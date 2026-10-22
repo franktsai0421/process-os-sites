@@ -1,0 +1,14 @@
+{
+  "format": "PROCESS_OS_SITE_SOURCE_APPROVAL_V1",
+  "projectId": "appgprj_6ad9abaff47c8191846eb9821034696b",
+  "approvalId": null,
+  "issuedAt": null,
+  "expiresAt": null,
+  "credentialExpiresAt": null,
+  "sourceCommit": null,
+  "sourceTree": null,
+  "previousRemoteCommit": null,
+  "reviewedGitHubCommit": null,
+  "reviewedGitHubTree": null,
+  "projectionSha256": null
+}

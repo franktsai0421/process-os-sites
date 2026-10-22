@@ -219,3 +219,14 @@ DB binding保持DB，R2為STATE_ARCHIVE。舊檢具原型EQUIPMENT_DB、equipmen
 2026-10-08例行FQC：既有ResultRow[]允許跨列同樣品多次測試，既有followup notes同次CAS記錄改善及複測；無新增欄位、SQL或migration。正式快照不改寫，單樣品失敗依每份正式報告各次結果聚合，細則見[ROUTINE_FQC模型](models/ROUTINE_FQC.md)。
 
 2026-10-12例行FQC：維持ResultRow.samples既有陣列及Document.number格式，不新增欄位／SQL／migration。新選樣單一且同項跨列不重複，未變更舊樣品保存相容；新複測RTS／更正COR號，舊號不回寫。照片移除僅文稿引用，正式歷史與R2實體保留。[模型](models/ROUTINE_FQC.md)。
+
+# Private-test owner bootstrap receipt
+
+The fresh Sites profile appends `process_owner_bootstrap`, a singleton security
+receipt with project/target/manifest/program/owner/attempt and time pins. It holds
+no password, verifier or setup key. Conditional D1 batch writes create this
+receipt and one maintenance-only shared_state owner; repeat/occupied targets
+refuse, including after owner deletion. Existing three-table snapshot data and
+applied legacy migrations are unchanged; this table is not snapshot business
+data and is not restored/exported with credentials. No live schema/owner change
+is implied. See [setup contract](../docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).

@@ -11,7 +11,7 @@ const patterns=[
  ['GITHUB_TOKEN',/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,})\b/],
  ['JWT_LITERAL',/\beyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/],
  ['BEARER_LITERAL',/Bearer\s+[A-Za-z0-9_-]{32,}/],
- ['ASSIGNED_SECRET',/(?:CLOUDFLARE_API_TOKEN|CF_API_KEY|SUPABASE_SERVICE_ROLE_KEY|JWT_SECRET|PROCESS_SESSION_SECRET|PROCESS_RELEASE_TOKEN)\s*[:=]\s*["'][A-Za-z0-9_/-]{24,}["']/],
+ ['ASSIGNED_SECRET',/(?:CLOUDFLARE_API_TOKEN|CF_API_KEY|SUPABASE_SERVICE_ROLE_KEY|JWT_SECRET|PROCESS_SESSION_SECRET|PROCESS_RELEASE_TOKEN|PROCESS_OWNER_BOOTSTRAP_SECRET)\s*[:=]\s*["'][A-Za-z0-9_/-]{24,}["']/],
  ['INLINE_MEDIA',/data:(?:image|video|audio)\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]{80,}/i],
  ['WORKSTATION_PATH',/\b[A-Za-z]:[\\/]/],
 ];

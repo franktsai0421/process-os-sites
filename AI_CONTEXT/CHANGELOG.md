@@ -1,3 +1,14 @@
+## Sites isolated derivative - default-off owner setup and pinned Site main
+
+Added the fixed private-test, same-origin, key/expiry/target-pinned first owner
+flow with existing scrypt login compatibility and a durable singleton receipt.
+The fresh schema appends one table; original migrations/business schema remain.
+The main guard retains GitHub/other-target refusal and supports only the exact
+registered Site source with reviewed commit/tree, expected remote ancestry and
+one-use non-secret execution receipt. Installed hooks, real accounts/secrets,
+permissions, source access and publication are not configured by this change.
+See [phase twenty-three](../docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
+
 ## Sites isolated derivative - source-only PR CI and history bridge
 
 Joined the private repository's initial README history without rewriting either

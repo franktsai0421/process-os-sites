@@ -11,6 +11,7 @@ test('symlinks submodules and media paths refuse',()=>{for(const mode of ['12000
 test('binary non-UTF8 and oversized contents refuse',()=>{for(const bytes of [Buffer.from([0]),Buffer.from([255]),Buffer.alloc(5*1024*1024+1,32)])assert.throws(()=>inspectSourceBytes('test.js',bytes,empty));});
 test('unreviewed credential categories refuse',()=>{
  const fixtures=['ghp_'+'X'.repeat(36),'Bearer '+'Z'.repeat(40),['-----BEGIN ','PRIVATE KEY-----'].join(''),'eyJ'+'a'.repeat(20)+'.'+'b'.repeat(20)+'.'+'c'.repeat(20),['PROCESS_SESSION_SECRET',' = "','f'.repeat(32),'"'].join('')];
+ fixtures.push(['PROCESS_OWNER_BOOTSTRAP_SECRET',' = "','f'.repeat(64),'"'].join(''));
  for(const value of fixtures)assert.throws(()=>inspectSourceBytes('tests/fixture.mjs',Buffer.from(value),empty),/SOURCE_UNREVIEWED/);
 });
 test('inline media and workstation references refuse without exact review',()=>{
