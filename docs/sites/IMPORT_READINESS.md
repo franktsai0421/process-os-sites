@@ -1,0 +1,124 @@
+# Post-login import readiness and recipe uploader
+
+## Client correction
+
+Login success still uses the existing account/password and session flow. The old
+static business shell can load before the Worker gate, but its shared-state and
+company data requests must remain unavailable until activation. shared-state.js
+now marks only HTTP 503, application/json, error IMPORT_TARGET_NOT_ACTIVE as
+importPending. bootstrap.js checks that flag before private preloads or script
+execution and shows Chinese/Vietnamese pending-import text with fixed / and
+/login top-level links. It does not claim that this response proves a valid
+session; the import gate runs before business identity verification.
+
+401/403, other 503 errors, malformed JSON, network failures and ordinary script
+errors are not silently presented as maintenance. Existing drafts and recovery
+are retained, no credential retries or automatic writes occur, and the hidden
+business shell remains hidden while import is pending.
+
+## Implemented uploader and limits
+
+lib/snapshot-recipe-uploader.mjs accepts the existing verified normalized view's
+manifest/readChunk port. It pins project/origin/target/owner/manifest, reads at
+most one <=1 MiB outgoing chunk at a time, checks length/hash, uses paginated
+missing receipts, and verifies server version/cursor progress. It does not copy
+the payload store or rerun R1 conversion. A lost PUT acknowledgement is read back
+before continuing; missing/uncertain acknowledgement stops rather than blindly
+retrying. Explicit resume fills only missing chunks. Redirects, expired auth,
+bad pages, changed pins, checksum failures and stale CAS refuse explicitly.
+
+Restore orchestrates existing audit, materialization, row restore and activation
+endpoints. Activation is a separate opt-in; ordinary restore stops data-ready.
+The existing server preserves the target owner's configured verifier, updates
+the consumed __processRecords / __processR2 references and bumps authEpoch.
+Source credentials and employee passwords are excluded. After activation the
+old owner session is invalidated; a fresh normal login is an expected final
+validation step, not a reason to reset the owner's password.
+
+Transfer status adds its existing ledger version so a restarted uploader can
+use exact CAS. No migration, new token endpoint or authorization exception is
+introduced. Every real request still needs the configured normal owner/admin
+application session and master.export, plus the private Sites gate.
+
+The controller requires an injected authenticated request function. It never
+reads browser cookies/tokens, discovers passwords, logs in, creates credentials,
+or falls back to ambient fetch. A source credential or Sites service-access
+token alone does not establish application owner identity. There is currently
+no production-ready session handoff adapter in this repository; the generic
+controller's synthetic success is not that missing integration.
+
+## Read-only local preflight
+
+scripts/sites-import-preflight.mjs takes these ordered pairs:
+
+    node scripts/sites-import-preflight.mjs --source <verified-snapshot-directory> --source-manifest <sha256> --view <completed-normalized-view-directory> --manifest <normalized-sha256> --project <existing-project-id> --origin <exact-https-origin> --owner frank --target <target-fingerprint>
+
+It checks the retained completion/plan/manifest receipts, opens the existing
+recipe view and reports aggregate sizes. It has no remote request path and
+does not create files, execute SQL or open a database. Plan opening reads bounded
+scrubbed table chunks needed by the decoder; it does not rehash all 8 GB or
+print rows, object names, media, account records or credentials.
+
+The selected completed 10/14 rev496 view has 9,387 chunks, 2,034 R2 objects and
+three table resources. Aggregate read-only preflight reports:
+
+| Quantity | Bytes | Meaning |
+| --- | ---: | --- |
+| Serialized DB table resources | 1,810,926 | Not an allocated SQLite/D1 database size |
+| Logical R2 objects | 8,141,576,279 | Includes retained current/history objects |
+| Transport chunks plus manifest | 8,147,460,347 | Temporary namespace, in addition to materialized objects |
+| R2 peak lower bound | 16,289,036,626 | Transport plus materialization, before owner/multipart overhead |
+| R2 planning budget | 17,917,940,289 | Lower bound plus explicit 10%/at-least-1-GiB headroom |
+| D1 planning budget | 46,741,432 | Four-times serialized rows plus chunk-ledger allowance; estimate only |
+
+These are source-derived planning figures, not verified Sites quota, price or
+guaranteed final database size. No history or duplicate reference is discarded
+to fit a quota. Interrupted transfers and multipart state are retained; do not
+delete them or assume they consume no capacity. Provider quota/usage must be
+checked for this exact target and all retained objects before real upload.
+The available native Sites tools expose table pages but no storage quota/billing
+API. The Settings/provider capacity and fee evidence remains a parent/platform
+prerequisite; do not assume 10 GB, a CF account plan or ChatGPT Pro supplies it.
+
+## Smallest remaining real-import path
+
+1. Verify exact test project, current program/runtime pins, normalized manifest,
+   retained source/view receipts, bootstrap-disabled state and singleton owner.
+   Do not read the owner's verifier into a client or conversation. Do not rerun
+   the completed R1 conversion or replace the normalized manifest.
+2. Obtain supported target-specific D1/R2 remaining capacity, usage and fee
+   evidence. The controller requires matching project/fingerprint, a recent
+   evidence reference and sufficient explicit planning budgets. These client
+   checks cannot manufacture a provider quota or authorize charges.
+3. Finish a supported authenticated transport. Prefer a reviewed same-origin
+   desktop browser uploader which uses the owner's existing HttpOnly session
+   automatically and reads explicitly selected local snapshot/recipe directories.
+   That requires a browser-compatible recipe reader/file-selection adapter: the
+   current Node fs-based reader cannot simply run in the browser. This adapter
+   is not implemented or verified here. A proposed local CLI import capability
+   would instead need a separately reviewed, bounded server authorization flow;
+   it is not supported by the current API and must not be silently introduced.
+4. Once the transport, capacity/fees and exact data-transfer authority are clear,
+   obtain the one necessary local-file/data-upload handoff and run begin, paged
+   receive, bounded verify, semantic audit, materialization, restore and explicit
+   activation. Server receipts/CAS are the resume authority, not a progress log.
+   Preserve the new target-owner credential on the server. No password reset,
+   browser cookie extraction, employee credential migration or auto-return from
+   local development to production is part of this path.
+5. Verify restored counts/current/history/media references, normal owner login,
+   disjoint role access and private image/export denials. Only then ask Frank
+   to validate the usable site. Public audience and the separate formal Site
+   remain distinct actions. Do not ask him to repeatedly log into an empty app.
+
+## Verification boundary
+
+Focused client tests run actual shared-state/bootstrap sources in an isolated
+DOM/storage fixture. Native checks fetch those compiled static sources and the
+real compiled inactive response from nonpersistent synthetic D1/R2. Uploader
+tests replay real normalization recipes against synthetic SQLite/R2 endpoints,
+including interruption, integrity, wrong target, auth refusal and preserved
+target credentials. They do not establish real platform quota, browser session
+handoff, live import or physical iOS behavior. Full type/build and exact-head
+CI/source-history evidence are recorded in the task/PR, with reused evidence
+identified separately. No true password, secret, data upload or live setting
+is changed by this source batch.

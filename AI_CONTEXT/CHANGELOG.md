@@ -461,3 +461,18 @@ HTTP fixture 12 PASS on the retained deb0e90 build; fresh-version receipts remai
 separately pinned. No production authentication/data model or dependency change.
 See [phase fourteen](../docs/sites/PHASE_FOURTEEN_OFFLINE_RUNTIME_FIX.md).
 
+## Sites isolated derivative - post-login pending import and recipe upload client
+
+The legacy bootstrap now recognizes only a 503 JSON IMPORT_TARGET_NOT_ACTIVE
+response, shows a bilingual pending-import view and makes no private-script
+preload or execution requests. Other auth, server and network failures retain
+their prior error path. Drafts/recovery and server authorization remain intact.
+
+Added a transport-neutral recipe upload controller, explicit data-write/capacity
+gates, bounded checksummed chunks, paged resume, lost-ack reconciliation and CAS
+activation orchestration. Transfer status now exposes its existing ledger version
+for correct resume. The read-only CLI reuses completed normalization receipts;
+no full snapshot copy, dependency, schema, credential or live data changes.
+See [import readiness](../docs/sites/IMPORT_READINESS.md) for remaining supported
+authentication, capacity/fee and real-transfer prerequisites.
+

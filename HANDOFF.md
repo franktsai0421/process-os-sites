@@ -1,5 +1,14 @@
 # Isolated Sites implementation handoff
 
+Current work: [post-login pending import and recipe upload readiness](docs/sites/IMPORT_READINESS.md).
+The client recognizes only the exact inactive-import refusal before preloading
+private scripts. A recipe-backed resumable upload controller and read-only local
+preflight reuse the completed normalized view. They do not obtain credentials,
+provide an authenticated transport, verify provider quota, or authorize data
+transfer. No schema, owner password, signer or live setting changes. Exact checks
+and the current PR/merge are recorded in the task; do not treat source readiness
+as successful live data import.
+
 Current work: [inactive root entry](docs/sites/ROOT_ENTRY.md). Known inactive
 GET/HEAD / renders a bilingual HTML entry shell instead of the data-gate JSON.
 Database failures, other methods, APIs, Worker-handled business routes and images retain the

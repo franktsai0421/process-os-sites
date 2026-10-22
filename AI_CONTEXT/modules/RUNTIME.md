@@ -117,3 +117,12 @@ BOM and process-authoring opt into a client token paired with an owned full mode
 - QC is implemented as operation-level standards/IPQC content, approval validation, and status/player presentation.
 - Legacy validators detected missing steps/standards/BOM/connections. Adopted process:platform reports approved business-content codes as advisories; permissions, locks, no-change restrictions, integrity and applicable BOM ownership interlocks remain. Quality validation is separate. See [confirmed process rules](../../docs/specs/current/PROCESS_WORKFLOW.md).
 - The Quality Management shell and its placeholder pages are implemented, but there is still no standalone QC entity, inspection-result transaction table, or statistical quality module. Existing operation-level standards/IPQC and Canonical quality collaboration data are unchanged and are not represented as new UI records.
+## Sites client import readiness
+
+public/process/shared-state.js exposes importPending only for the exact 503 JSON
+IMPORT_TARGET_NOT_ACTIVE response. bootstrap.js waits for that response before
+preloading private scripts; pending imports show bilingual static navigation,
+without claiming a verified identity. Other failures remain failures. No API,
+image, session, draft/recovery, schema or platform gate is relaxed. The separate
+recipe uploader is transport-neutral; see
+[import readiness](../../docs/sites/IMPORT_READINESS.md).

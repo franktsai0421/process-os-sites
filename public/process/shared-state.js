@@ -55,6 +55,7 @@
     paused: false,
     revision: 0,
     loadError: null,
+    importPending: false,
     saveError: null,
     flush,
     legacyDraftKeys: () => [...legacyDrafts.keys()],
@@ -172,6 +173,7 @@
     api.revision = revision;
   }
   async function load() {
+   api.importPending = false;
    try {
     const request = await fetch(endpoint, { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
     if (request.status === 200) {
@@ -186,6 +188,12 @@
     } else {
       api.protected = true;
       api.loadError = 'unavailable';
+      // Only the exact inactive-import response is a preparation state. Keep
+      // authentication failures, outages and malformed responses as failures.
+      if (request.status === 503 && request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() === 'application/json') {
+        try { api.importPending = (await request.json())?.error === 'IMPORT_TARGET_NOT_ACTIVE'; }
+        catch { /* Preserve the original unavailable state. */ }
+      }
       status('offline');
     }
   } catch (error) {
