@@ -2,7 +2,7 @@
 
 Current work: [inactive root entry](docs/sites/ROOT_ENTRY.md). Known inactive
 GET/HEAD / renders a bilingual HTML entry shell instead of the data-gate JSON.
-Database failures, other methods, APIs, business pages and images retain the
+Database failures, other methods, APIs, Worker-handled business routes and images retain the
 closed gate. No auth, secret, data or live platform setting changes. Exact local
 and CI evidence remains in the task/PR; Frank merges before any publication.
 

@@ -8,11 +8,17 @@ data is unavailable and owner setup needs its separately enabled window. It
 does not claim that an account exists or that import/activation succeeded.
 
 Only this known inactive root navigation changes. Non-GET/HEAD root requests,
-APIs, business pages and company images keep the original 503 JSON gate. Database
+APIs, Worker-handled business routes and company images keep the original 503 JSON gate. Database
 errors also keep that response, including at the root. Existing exact login,
 setup, asset and Sites-reserved paths pass as before. An active target or a
 disabled import gate leaves routing unchanged. No request value, identity or
 secret is embedded in the HTML; the shell has no scripts, forms or cookies.
+
+The existing /process/index.html program-only asset is served by the assets
+layer before the Worker and remains byte-identical to public source. This
+change does not alter asset routing or claim that the proxy covers every
+static file. Compiled tests distinguish that unchanged shell from protected
+data APIs and R2-backed media; the latter still require the closed gate.
 
 The platform private gate, authentication, bootstrap configuration, data schema
 and storage are unchanged. Root navigation is not owner-login acceptance. The
