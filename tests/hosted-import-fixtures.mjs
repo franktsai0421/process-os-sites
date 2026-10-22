@@ -34,7 +34,7 @@ export async function setup({large=false,bootstrap=true,legacyR2=false,largeLega
  f.db.tables.state_backups.push({...f.db.tables.state_backups[0],id:'history-shared-reference'});
  if(large){const raw=encode({note:'z'.repeat(8*1024*1024+64),photo:'/api/iqc/photo?id='+f.imageKey.split('/').at(-1),secret:'SOURCE_FIXTURE_EXCLUDED'}),key='snapshots/'+await sha256(raw)+'.json';f.bucket.objects.set(key,{key,data:raw,etag:'fixture-large-json',httpMetadata:{contentType:'application/json'}});const image=new Uint8Array(6*1024*1024+17);image[0]=137;const imageKey='iqc/photos/'+await sha256(image);f.bucket.objects.set(imageKey,{key:imageKey,data:image,etag:'fixture-large-image',httpMetadata:{contentType:'image/png'}});}
  const assetBytes=encode('synthetic image'),assetHash=await sha256(assetBytes),assetKey='company-assets/objects/'+assetHash;
- f.bucket.objects.set(assetKey,{key:assetKey,data:assetBytes,etag:'fixture-private-image',httpMetadata:{contentType:'image/png'}});
+ f.bucket.objects.set(assetKey,{key:assetKey,data:assetBytes,etag:'fixture-private-image',httpMetadata:{contentType:'image/png'},customMetadata:{sha256:assetHash}});
  f.bucket.objects.set('company-assets/index.json',{key:'company-assets/index.json',data:encode({format:'PROCESS_OS_COMPANY_ASSETS_V1',assets:[{path:'/process/iqc-media/fixture.png',key:assetKey,sha256:assetHash,bytes:assetBytes.length,contentType:'image/png',permissions:['iqc.view']}]}),etag:'fixture-private-index',httpMetadata:{contentType:'application/json'}});
  if(feedback)await addFeedbackFixture(f);
  let pack=memoryPackage();await exportSnapshot(await createD1R2Source({db:f.db,bucket:f.bucket,programCommit:'a'.repeat(40)}),pack);

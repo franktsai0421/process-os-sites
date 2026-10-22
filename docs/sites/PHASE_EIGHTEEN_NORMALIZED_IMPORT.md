@@ -11,6 +11,9 @@ source/curation provenance, business row identities and account/role fields.
 Every source object maps to a checked target. Equal canonical payloads may share
 one target only when target metadata agrees; original ETags remain provenance.
 Missing, conflicting, cyclic, unknown or corrupt resources fail explicitly.
+The binary writer's customMetadata.sha256 is its own checksum assertion, not an
+outgoing reference. Other self-references still fail. Private-image audit requires
+that metadata checksum, indexed checksum and actual bytes all agree before seal.
 
 `normalize-snapshot-view.mjs` consumes the already verified local Snapshot V1,
 not the original R1 ZIP. Its new directory holds bounded replay recipes, manifests
