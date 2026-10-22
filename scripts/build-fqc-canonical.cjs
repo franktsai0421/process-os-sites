@@ -1,0 +1,50 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+
+const root = path.resolve(__dirname, '..');
+const sourcePath = path.join(root, 'data-import/FQC/FQC標準 FQC-C TRIL 1.xlsx');
+const vendorPath = path.join(root, 'public/process/vendor/xlsx.full.min.js');
+const outputPath = path.join(root, 'data/canonical/quality/fqc.json');
+const source = fs.readFileSync(sourcePath);
+const sourceSha256 = crypto.createHash('sha256').update(source).digest('hex').toUpperCase();
+if (sourceSha256 !== '5BC8CC4B55C4194DA08E18E4F9E75CE65D4FB50967B2A0BB2F861B5845FCF257') throw Error('FQC source SHA256 mismatch');
+const sandbox = { window: {} }; sandbox.window = sandbox; vm.createContext(sandbox); vm.runInContext(fs.readFileSync(vendorPath, 'utf8'), sandbox);
+const workbook = sandbox.XLSX.read(source, { type: 'buffer' });
+const itemSheet = workbook.Sheets['產品資料'], categorySheet = workbook.Sheets['產品類別'];
+const rows = sandbox.XLSX.utils.sheet_to_json(itemSheet, { header: 1, defval: '', raw: true });
+const categoryRows = sandbox.XLSX.utils.sheet_to_json(categorySheet, { header: 1, defval: '', raw: true });
+const categories = new Map(categoryRows.slice(1).map(row => [String(row[1] || '').trim(), String(row[0] || '').trim()]));
+const products = JSON.parse(fs.readFileSync(path.join(root, 'data/canonical/products.json'), 'utf8')).records;
+const parts = JSON.parse(fs.readFileSync(path.join(root, 'data/canonical/parts.json'), 'utf8')).records;
+const categoryRecords = JSON.parse(fs.readFileSync(path.join(root, 'data/canonical/categories.json'), 'utf8')).records;
+const productMap = new Map(products.map(record => [record.data.code, { code: record.data.code, kind: 'product', name: record.data.name || '', specification: record.data.specification || '' }]));
+const partMap = new Map(parts.map(record => [record.data.code, { code: record.data.code, kind: record.kind || 'part', name: record.data.name || '', specification: record.data.specification || '' }]));
+const productIdMap = new Map(products.map(record => [record.data.code, record.id]));
+const partIdMap = new Map(parts.map(record => [record.data.code, record.id]));
+const categoryIdMap = new Map(categoryRecords.map(record => [`${record.data.line || ''}\0${record.data.name}`, record.id]));
+const value = (row, col) => {
+  if (rows[row]?.[col] !== '' && rows[row]?.[col] != null) return rows[row][col];
+  const merge = (itemSheet['!merges'] || []).find(range => row >= range.s.r && row <= range.e.r && col >= range.s.c && col <= range.e.c);
+  return merge ? rows[merge.s.r]?.[merge.s.c] ?? '' : '';
+};
+const text = input => String(input ?? '').trim();
+const refs = codes => codes.map(code => productMap.get(code) || partMap.get(code) || { code, kind: 'unresolved', name: '', specification: '' });
+const errorMap = new Map(), itemRecords = [];
+for (let row = 1; row < rows.length; row += 1) {
+  const category = text(value(row, 0)), code = text(value(row, 1)), errorName = text(value(row, 2)), checkNo = text(rows[row]?.[3]);
+  if (!category && !code && !checkNo) continue;
+  if (!category || !code || !checkNo) throw Error(`Incomplete FQC row ${row + 1}`);
+  const line = categories.get(category) || '';
+  const errorId = `fqc-error:${code}`;
+  const categoryId = categoryIdMap.get(`${line}\0${category}`) || categoryRecords.find(record => record.data.name === category)?.id;
+  if (!categoryId) throw Error(`Missing category relation for ${line}/${category}`);
+  if (!errorMap.has(code)) errorMap.set(code, { id: errorId, type: 'error-code', categoryId, data: { id: errorId, category, line, code, name: errorName, isDeleted: false, reason: '' } });
+  const productCodes = text(rows[row]?.[9]).split(/[,，\n\r]+/).map(text).filter(Boolean);
+  const id = `fqc-item:${checkNo}`;
+  itemRecords.push({ id, type: 'check-item', categoryId, productIds: productCodes.map(code => productIdMap.get(code)).filter(Boolean), partIds: productCodes.map(code => partIdMap.get(code)).filter(Boolean), data: { id, errorId, category, line, checkNo, name: text(rows[row]?.[4]), description: text(rows[row]?.[5]), tool: text(rows[row]?.[7]), mediaItems: [], isMonthly: false, isQuarterly: /^YES$/i.test(text(rows[row]?.[8])), productCodes, productRefs: refs(productCodes), isEnabled: /^YES$/i.test(text(rows[row]?.[10])), note: text(rows[row]?.[15]), reason: '', isDeleted: false, source: { sheet: '產品資料', row: row + 1, version: text(rows[row]?.[11]), versionDate: rows[row]?.[12] ? sandbox.XLSX.SSF.format('yyyy-mm-dd', rows[row][12]) : '', versionReason: text(rows[row]?.[13]), sha256: sourceSha256 } } });
+}
+const records = [...errorMap.values(), ...itemRecords];
+fs.writeFileSync(outputPath, `${JSON.stringify({ domain: 'fqc', records, schemaVersion: 1, source: { fileName: path.basename(sourcePath), sha256: sourceSha256, errorCodeCount: errorMap.size, checkItemCount: itemRecords.length, embeddedImageCount: 0 } }, null, 2)}\n`);
+console.log(JSON.stringify({ sourceSha256, errorCodes: errorMap.size, checkItems: itemRecords.length, records: records.length }));

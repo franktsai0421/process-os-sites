@@ -1,0 +1,23 @@
+/* Validate explicit local isolation evidence before any network request. No default target. */
+const { fs, path, crypto, childProcess } = require('./isolated-target-builtins.mjs').default;
+const { spawnSync } = childProcess;
+function probeRuntime(port){const script=`$listener=Get-NetTCPConnection -LocalPort ${Number(port)} -State Listen -ErrorAction Stop; $ownerIds=@($listener.OwningProcess | Select-Object -Unique); if($ownerIds.Count -ne 1){throw 'Ambiguous listener'}; $runtimeProcess=Get-CimInstance Win32_Process -Filter ('ProcessId='+$ownerIds[0]); @{pid=$runtimeProcess.ProcessId; command=$runtimeProcess.CommandLine} | ConvertTo-Json -Compress`;const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8',windowsHide:true,timeout:10000});if(result.status!==0)throw Error('RUNTIME_PROBE_UNAVAILABLE');try{return JSON.parse(result.stdout);}catch{throw Error('RUNTIME_PROBE_UNAVAILABLE');}}
+function inside(root,file){const relative=path.relative(root,fs.realpathSync(file));return relative&&!relative.startsWith('..')&&!path.isAbsolute(relative);}
+function verify(settings=process.env,runtimeProbe=probeRuntime){
+ if(!settings.PROCESS_TEST_URL||!settings.PROCESS_TEST_RECEIPT)throw Error('ISOLATION_REQUIRED: provide PROCESS_TEST_URL and PROCESS_TEST_RECEIPT before requests');
+ const url=new URL(settings.PROCESS_TEST_URL);if(!['127.0.0.1','localhost'].includes(url.hostname)||url.protocol!=='http:'||!url.port||url.port==='3000'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw Error('ISOLATED_LOOPBACK_TARGET_REQUIRED');
+ const receiptPath=path.resolve(settings.PROCESS_TEST_RECEIPT),receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8')),root=path.resolve(receipt.root||'.'),daily=path.resolve(receipt.source||'.');
+ if(receipt.status!=='PASS'||root===daily||root===path.resolve(process.cwd())||path.dirname(receiptPath)!==root)throw Error('INVALID_ISOLATION_RECEIPT');
+ const expected=new URL(receipt.url);if(!['127.0.0.1','localhost'].includes(expected.hostname)||expected.port!==url.port||Number(receipt.port)!==Number(url.port))throw Error('ISOLATION_TARGET_MISMATCH');
+ const bytes=fs.readFileSync(path.join(root,'candidate-manifest.json'));if(crypto.createHash('sha256').update(bytes).digest('hex')!==receipt.manifestHashes?.candidate)throw Error('ISOLATED_CANDIDATE_CHANGED');
+ const configPath=path.join(root,'.wrangler/local-only/wrangler.json'),state=path.join(root,'.wrangler/state'),config=JSON.parse(fs.readFileSync(configPath)),runtime=JSON.parse(fs.readFileSync(path.join(root,'.wrangler/local-only/test-runtime.json'))),sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+ if(!inside(root,configPath)||!inside(root,state)||runtime.root!==fs.realpathSync(root)||runtime.state!==fs.realpathSync(state)||runtime.config!==fs.realpathSync(configPath)||runtime.configSha256!==sha(configPath))throw Error('ISOLATED_STORAGE_BINDING_MISMATCH');
+ if(config.d1_databases?.length!==1||config.d1_databases[0].binding!=='DB'||config.d1_databases[0].remote!==false||config.r2_buckets?.length!==1||config.r2_buckets[0].binding!=='STATE_ARCHIVE'||config.r2_buckets[0].remote!==false)throw Error('ISOLATED_LOCAL_BINDINGS_REQUIRED');
+ for(const [kind,folder]of [['d1','miniflare-D1DatabaseObject'],['r2','miniflare-R2BucketObject']]){const store=path.join(state,'v3',kind,folder);if(!inside(root,store)||!fs.readdirSync(store).some(name=>name.endsWith('.sqlite')&&fs.statSync(path.join(store,name)).size>0))throw Error('ISOLATED_PRIVATE_STORAGE_REQUIRED');}
+ const live=runtimeProbe(Number(url.port)),server=path.join(root,'scripts/local-server.mjs');if(live.pid!==runtime.pid||runtime.port!==Number(url.port)||!live.command?.replaceAll('/',String.fromCharCode(92)).toLowerCase().includes(server.replaceAll('/',String.fromCharCode(92)).toLowerCase())||runtime.serverSha256!==sha(server))throw Error('ISOLATED_RUNTIME_MISMATCH');
+ return url.origin;
+}
+function fenceFetch(origin,fetch){return async function(input,options={}){const url=new URL(input instanceof Request?input.url:String(input),origin),expected=new URL(origin);if(url.protocol!==expected.protocol||url.port!==expected.port||!['localhost','127.0.0.1'].includes(url.hostname)||url.username||url.password)throw Error('ISOLATED_REQUEST_TARGET_MISMATCH');return fetch(input,{...options,redirect:'error'});};}
+module.exports=function requireIsolatedTarget(settings=process.env){const origin=verify(settings);globalThis.fetch=fenceFetch(origin,globalThis.fetch);return origin;};
+// Inject process facts only in pure contract tests. Production always probes the listener.
+module.exports.verify=verify;module.exports.fenceFetch=fenceFetch;

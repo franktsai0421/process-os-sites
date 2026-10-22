@@ -1,0 +1,12 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+overrides:
+  qs: 6.16.0
+  esbuild: 0.28.2
+  ws: 8.21.0
+  undici: 7.29.0
+  sharp: 0.35.4
+patchedDependencies:
+  image-size@2.0.2: patches/image-size@2.0.2.patch

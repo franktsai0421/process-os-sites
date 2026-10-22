@@ -1,0 +1,17 @@
+// Reduced native startup diagnostic: no business app, account, D1 or R2.
+import fs from 'node:fs';import path from 'node:path';import cp from 'node:child_process';import {createRequire} from 'node:module';import {fileURLToPath} from 'node:url';
+import {assertLocalMode,configureOfflineLocal} from '../lib/local-runtime.mjs';import {installLocalNetworkGuard} from '../lib/local-network-guard.mjs';
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));assertLocalMode([]);
+const dir=path.join(root,'.sites-runtime/native-minimal-20261022');fs.mkdirSync(dir);
+configureOfflineLocal(dir);installLocalNetworkGuard(dir);
+const require=createRequire(import.meta.url),binary=fs.realpathSync(require.resolve('@cloudflare/workerd-windows-64/bin/workerd.exe'));
+const report={format:'REDUCED_NATIVE_WORKER_DIAGNOSTIC_V1',at:new Date().toISOString(),node:process.version,binary,root:dir,realData:false,credentials:false,businessApp:false,DB:false,R2:false,remoteBindings:false,children:[],checks:[]};
+const persist=()=>fs.writeFileSync(path.join(dir,'process-state.json'),JSON.stringify(report,null,2)+'\n');
+const originalSpawn=cp.spawn;
+cp.spawn=function(command,args,options){const child=Reflect.apply(originalSpawn,this,[command,args,options]);if(path.resolve(command).toLowerCase()===binary.toLowerCase()){const row={executable:command,args,pid:child.pid||null,stdio:options.stdio,exitCode:null,signal:null};report.children.push(row);persist();child.once('exit',(code,signal)=>{row.exitCode=code;row.signal=signal;row.exited=true;persist();});child.once('close',()=>{row.closed=true;persist();});child.once('error',error=>{row.spawnCode=error.code||'UNKNOWN';persist();});}return child;};
+const capture=(name,stream)=>{let bytes=0;const log=fs.createWriteStream(path.join(dir,name),{flags:'wx'});stream.on('data',chunk=>{const remaining=1024*1024-bytes;if(remaining>0)log.write(chunk.subarray(0,remaining));bytes+=chunk.length;});stream.once('end',()=>log.end());};
+let mf;
+try{const {Miniflare,Log,LogLevel}=require('miniflare');mf=new Miniflare({host:'127.0.0.1',port:0,modules:true,script:'export default {fetch(){return new Response("synthetic-minimal")}}',compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],cf:false,log:new Log(LogLevel.NONE),verbose:true,defaultPersistRoot:dir,cachePersist:false,outboundService:{network:{allow:[],deny:['public','private']}},handleRuntimeStdio:(out,err)=>{capture('stdout.txt',out);capture('stderr.txt',err);}});const ready=await mf.ready;if(ready.port==='3000'||!['127.0.0.1','localhost'].includes(ready.hostname))throw Error('DIAGNOSTIC_LOOPBACK_REQUIRED');const response=await mf.dispatchFetch('http://localhost/synthetic');report.checks.push({name:'minimal worker response',status:response.status===200&&await response.text()==='synthetic-minimal'?'PASS':'FAIL'});report.status=report.checks.every(check=>check.status==='PASS')?'PASS_MINIMAL_LOCAL_WORKER_ONLY':'FAIL_MINIMAL_RESPONSE';}
+catch(error){report.status='FAIL_MINIMAL_NATIVE_STARTUP';report.code=/^[A-Z0-9_]+$/.test(error?.code||'')?error.code:'REDACTED_DIAGNOSTIC_ERROR';}
+finally{if(mf)try{await mf.dispose();report.disposed=true;}catch(error){report.disposed=false;report.disposeCode=/^[A-Z0-9_]+$/.test(error?.code||'')?error.code:'REDACTED_DISPOSE_ERROR';}persist();cp.spawn=originalSpawn;}
+fs.writeFileSync(path.join(root,'../sites-runtime-minimal-phase-twelve-results.json'),JSON.stringify(report,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(report));process.exitCode=report.status.startsWith('PASS_')?0:1;

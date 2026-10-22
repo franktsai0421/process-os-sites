@@ -1,0 +1,6 @@
+# Canonical manifest hashes must survive Windows Git checkout unchanged.
+data/canonical/** text eol=lf
+
+.githooks/* text eol=lf
+
+data/canonical/assets/web/*.webp binary

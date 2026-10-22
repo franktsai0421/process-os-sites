@@ -1,0 +1,15 @@
+import type {SharedDraft} from './shared-draft';
+export type LegacyCodeRow = {code:string;[key:string]:unknown};
+export type LegacyStage = LegacyCodeRow & {name?:string;machine?:string;assetNumber?:string;operators?:number|string};
+export type LegacyProduct = LegacyCodeRow & {name?:string;nameVi?:string;line?:string;category?:string;stages:string[]};
+export type LegacyLine = LegacyCodeRow & {name?:string;stages:LegacyStage[]};
+export type LegacyCategoryGroup = {line:string;name:string;defaultStages?:string[]|null;[key:string]:unknown};
+export type LegacyMasterCatalog = {products:LegacyProduct[];lines:LegacyLine[];categoryGroups?:LegacyCategoryGroup[];[key:string]:unknown};
+export type LegacyProcessEquipment = {id:string;name:string;number:string;stageCode:string;line:string;kind:string;mediaItems:{src:string;[key:string]:unknown}[];[key:string]:unknown};
+export type LegacyProcessTemplate = {id:string;name:string;presetKey?:string;presetVersion?:string|number;equipment?:LegacyProcessEquipment[];mediaItems?:{src:string;[key:string]:unknown}[];[key:string]:unknown};
+export type LegacyProcessCatalog = Record<string,LegacyProcessTemplate[]>;
+export type LegacyMasterSnapshot = LegacyMasterCatalog|LegacyProcessCatalog;
+export type LegacyMasterVersion = ({scope:'PROCESS';snapshot:LegacyProcessCatalog}|{scope:'AB'|'C';snapshot:LegacyMasterCatalog}) & {id:string;status:string;[key:string]:unknown};
+export type LegacyMasterControl = {active:{AB:LegacyMasterCatalog;C:LegacyMasterCatalog;PROCESS?:LegacyProcessCatalog};versions:LegacyMasterVersion[];workflowScopes?:Record<string,SharedDraft<LegacyMasterSnapshot>>};
+export type LegacyApprovalVersion = {id:string;status:string;[key:string]:unknown};
+export type PendingVersion = {status:string};

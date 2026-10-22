@@ -1,0 +1,6 @@
+import __esmImport0 from "node:assert/strict";
+import __esmImport1 from "node:events";
+import {createRequire as __esmFactory} from 'node:module';
+const __esmRequire=__esmFactory(import.meta.url);
+const assert=__esmImport0,{EventEmitter}=__esmImport1,{hiddenInput,runOperation}=__esmRequire('./account-access-tool.cjs');
+(async()=>{const input=new EventEmitter();Object.assign(input,{isTTY:true,isRaw:false,setRawMode(value){this.isRaw=value;},resume(){},pause(){}});let text='';const output={isTTY:true,write(value){text+=value;}};const pending=hiddenInput(input,output,'再次輸入：');for(const char of 'Synthetic-秘密-2026')input.emit('keypress',char,{});input.emit('keypress','',{name:'return'});assert.equal(await pending,'Synthetic-秘密-2026');assert.equal(text,'再次輸入：\n');assert.equal(input.isRaw,false);assert.equal(input.listenerCount('keypress'),0);await assert.rejects(hiddenInput({isTTY:false},output),/INTERACTIVE_TTY/);await assert.rejects(runOperation('recover-frank',{}, {},{}),/EXPECTED_REVISION/);console.log(JSON.stringify({status:'PASS',cases:['input not echoed/logged','TTY restored and listener removed','noninteractive input refused','explicit revision required'],credentialsPrinted:false,networkRequests:0}));})().catch(e=>{console.error(e);process.exitCode=1;});

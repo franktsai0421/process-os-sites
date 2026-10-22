@@ -1,0 +1,33 @@
+import fs from "node:fs";
+import vm from "node:vm";
+import assert from "node:assert/strict";
+const source=fs.readFileSync('public/process/process-editor.js','utf8'),results=[];
+const extract=(from,to)=>{const a=source.indexOf(from),b=source.indexOf(to,a);assert.ok(a>=0&&b>a,from);return source.slice(a,b);};
+const stored={id:'op',number:'TEST-01',stageCode:'TEST',name:'Long item',editorType:'manual',instructions:'legacy common note',instructionSteps:[{name:'準備 <item>',text:'確認物料\n安全檢查',standard:'符合標準',custom:'retain'}],productCodes:['A','B'],bomSelections:{A:['part']},machineIds:['machine-1'],ipqcAssignments:[{id:'ipqc-1'}],productInstructions:{A:'PRIVATE product note',B:'B old note'},productInstructionSteps:{A:[{name:'PRIVATE name',text:'PRIVATE text',standard:'PRIVATE standard'}]},mediaItems:[{src:'common-photo.png',name:'common'}],productMediaItems:{A:[{src:'PRIVATE-photo.png',name:'PRIVATE'}]},nextIds:['target'],x:100,y:200};
+const copy=v=>structuredClone(v),before=JSON.stringify(stored),nodes=new Map(),panel={scrollTop:0,querySelector:s=>nodes.get(s)?.[0]||null,querySelectorAll:s=>nodes.get(s)||[]},modal={draft:copy(stored),product:'A',tab:'common',scroll:{},workSelection:{},dialog:{querySelector:()=>panel}};
+const context={modal,h:v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),language:'zh',t:(zh,vi)=>context.language==='vi'?vi:zh,kind:o=>o.editorType,meta:()=>({icon:'●'}),label:k=>k,view:()=>({product:''}),can:()=>true,button:()=>'<button></button>',bomMap:o=>o.bomSelections||{},codeKey:s=>s,copy,operationWorkMediaItems:o=>o.mediaItems||[],operationProductMediaItems:(o,p)=>o.productMediaItems?.[p]||[],productsForCategory:()=>[{code:'A',name:'產品 A'},{code:'B',name:'產品 B'}],renderPanel(){},host:{},state:{editorLine:'A'}};
+
+vm.createContext(context);
+vm.runInContext(extract(' function commonSummary(','\n function workspace(')+extract(' function legacyFields(','\n function connectionMarkup(')+extract(' function workItemsMarkup(','\n function ipqcPanel(')+extract(' function bindPanel(){','\n async function apply(){'),context);
+
+function pass(name,fn){fn();results.push({name,status:'PASS'});}
+
+pass('All six card types display common item name, multiline content and standard; no product-specific details or media',()=>{for(const type of ['entry','exit','manual','inspection','machine','custom']){const html=context.card({...stored,editorType:type},0);for(const text of ['準備 &lt;item>','確認物料','安全檢查','符合標準','common-photo.png'])assert.ok(html.includes(text),type+': '+text);assert.doesNotMatch(html,/PRIVATE|產品補充|Bổ sung/);}});
+
+pass('Legacy common text remains visible only as fallback when there are no named items',()=>{assert.match(context.commonSummary({...stored,instructionSteps:[]}),/legacy common note/);assert.doesNotMatch(context.commonSummary(stored),/legacy common note/);});
+
+pass('Entry/exit legacy relationship warning has readable occupancy, no raw JSON; rendering changes no links',()=>{for(const type of ['entry','exit']){const o={...stored,editorType:type},before=JSON.stringify(o),html=context.legacyMarkup(o);for(const text of ['產品','BOM','machine-1','IPQC','part'])assert.ok(html.includes(text));assert.doesNotMatch(html,/<pre>|"products"|"machines"/);assert.equal(JSON.stringify(o),before);}assert.equal(context.legacyMarkup(stored),'');});
+
+pass('Common editor uses named fields first, retains existing unstructured text in collapsed legacy details',()=>{const html=context.workPanel(modal.draft,'');assert.ok(html.indexOf('data-step-name')<html.indexOf('data-work-note'));for(const text of ['項目名稱','項目內容','項目標準','legacy common note'])assert.ok(html.includes(text));assert.match(html,/<details class="pe-work-legacy">/);assert.doesNotMatch(html,/<details class="pe-work-legacy" open/);assert.equal(JSON.stringify(modal.draft),before);});
+
+pass('Product selector has a visible label and names; product fields and media remain isolated',()=>{const html=context.productWork(modal.draft);for(const text of ['選擇產品','value="A"','產品 A','專用項目名稱','專用項目內容','專用項目標準','PRIVATE-photo.png'])assert.ok(html.includes(text),text);assert.doesNotMatch(html,/common-photo.png|B old note/);});
+
+pass('Blank common/product forms expose all three fields without creating or deleting stored data',()=>{const blank={id:'blank',mediaItems:[],productCodes:['A']},before=JSON.stringify(blank);for(const product of ['', 'A']){const html=context.workPanel(blank,product);assert.match(html,/data-step-name="0"/);assert.match(html,/data-step-text="0"/);assert.match(html,/data-step-standard="0"/);assert.doesNotMatch(html,/data-work-note/);assert.equal(JSON.stringify(blank),before);}});
+
+pass('Typing first common item changes only the draft, retains unknown fields, position, edges, BOM, media and IPQC',()=>{modal.tab='common';modal.draft=copy(stored);modal.draft.instructionSteps=[];const baseline=copy(modal.draft),field={dataset:{stepName:'0'},value:'first item'},list={innerHTML:''};nodes.set('[data-step-name]',[field]);nodes.set('[data-work-step-list]',[list]);context.bindPanel();field.oninput();assert.equal(modal.draft.instructionSteps[0].name,'first item');assert.match(list.innerHTML,/first item/);const expected={...baseline,instructionSteps:[{name:'first item',text:'',standard:''}]};assert.deepEqual(JSON.parse(JSON.stringify(modal.draft)),expected);assert.equal(JSON.stringify(stored),before);});
+
+pass('Typing first product item leaves common content and other products unchanged; Cancel source unchanged',()=>{nodes.clear();modal.tab='product-work';modal.product='B';modal.draft=copy(stored);const expected=copy(stored),field={dataset:{stepStandard:'0'},value:'B only standard'};nodes.set('[data-step-standard]',[field]);context.bindPanel();field.oninput();expected.productInstructionSteps.B=[{name:'',text:'',standard:'B only standard'}];assert.deepEqual(JSON.parse(JSON.stringify(modal.draft)),expected);assert.equal(JSON.stringify(stored),before);});
+
+pass('Vietnamese headings, legacy guidance and summaries retain names/content/standards',()=>{context.language='vi';const html=context.workPanel(stored,''),product=context.productWork(stored);for(const text of ['Tên mục','Nội dung mục','Tiêu chuẩn mục'])assert.ok(html.includes(text));assert.ok(product.includes('Chọn sản phẩm'));assert.ok(context.legacyMarkup({...stored,editorType:'entry'}).includes('Giữ liên kết cũ'));assert.ok(context.commonSummary(stored).includes('Tiêu chuẩn'));});
+
+console.log(JSON.stringify({result:'PASS',evidence:'isolated VM; not desktop/mobile/browser Save acceptance',results},null,2));

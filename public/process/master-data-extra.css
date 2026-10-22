@@ -1,0 +1,6 @@
+.master-line-block{margin:0 14px 12px;border:1px solid #d9dfdd}
+.master-line-head{display:grid;grid-template-columns:100px minmax(180px,1fr) auto auto;gap:7px;padding:9px;background:#eaf1ef}
+.master-line-head input{min-width:0;padding:7px;border:1px solid #c9cecb}
+.master-line-add{padding:0 14px 14px}
+.master-small.danger{color:#ad2d18;border-color:#e6a08f}
+@media(max-width:700px){.master-line-head{grid-template-columns:1fr 1fr}.master-stage-card{grid-template-columns:1fr 1fr auto}}

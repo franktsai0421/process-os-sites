@@ -1,0 +1,26 @@
+import fs from "node:fs";
+import vm from "node:vm";
+import assert from "node:assert/strict";
+const copy=structuredClone,wid=JSON.stringify(['TEST','A']),other=JSON.stringify(['OTHER','B']);
+const workspace={id:wid,category:'TEST',line:'A',stages:{'A-CUT':[{id:'one',name:'original',x:30,y:30,nextIds:[]}]}};
+const server={versions:[{status:'draft'}],workflow:{generation:'g1',revision:1,pendingId:null,working:{workspaces:[copy(workspace),{id:other,category:'OTHER',line:'B',stages:{'B-X':[{id:'untouched',name:'other user'}]}}]}}};
+let enabled=false;
+let delay=false;
+let fail=false;
+const commands=[],timers=new Map(),pending=[];
+let timerId=0;
+const bridge=fs.readFileSync('public/process/master-shared-client.js','utf8'),diff=vm.runInNewContext('(function(){const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);'+bridge.slice(bridge.indexOf('    function diff('),bridge.indexOf('    async function execute('))+'return diff;})()');
+const client={read:async()=>({control:copy(server),permissions:{edit:true,history:false}}),contentIssues:()=>delay?new Promise((resolve,reject)=>pending.push({resolve,reject})):Promise.resolve({generation:'g1',revision:server.workflow.revision}),command:async(g,action,changes)=>{if(fail)throw Error('DEPENDENCY_CHANGED_RECONFIRM');commands.push(copy(changes));for(const p of changes.patches){let at=server.workflow.working;for(const part of p.path.slice(0,-1))at=typeof part==='string'?at[part]:at.find(x=>x.id===part.id);at[p.path.at(-1)]=copy(p.value);}server.workflow.revision++;return {control:copy(server)};},discardRejected:()=>true};
+const c={structuredClone,console,JSON,Error,setInterval:()=>{},setTimeout:f=>{timers.set(++timerId,f);return timerId;},clearTimeout:id=>timers.delete(id),localStorage:{getItem:()=>enabled?'enabled':null},state:{view:'editor',category:'TEST',editorLine:'A',editorByCategory:{}},document:{documentElement:{lang:'zh-TW'},addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>({dataset:{}})},bindView(){},renderInspector(){},render(){},toast(){},editorKey:()=> 'TEST:A',lineFor:()=>({stages:[{code:'A-CUT'}]}),createMasterSharedBridge:()=>({diff}),createSharedDraftClient:()=>client,ProcessSync:{identity:{id:'admin'}}};
+c.window=c;
+c.ensureCategoryEditor=()=>c.state.editorByCategory['TEST:A'];
+vm.createContext(c);
+vm.runInContext(fs.readFileSync('public/process/process-authoring-v3.js','utf8'),c);
+
+(async()=>{enabled=true;await c.ProcessAuthoringV3.load();delay=true;
+ c.ensureCategoryEditor()['A-CUT'][0].name='applied';await c.ProcessAuthoringV3.sync([{path:['workspaces',{id:wid},'stages','A-CUT',{id:'one'}],value:workspace.stages['A-CUT'][0]}]);
+ assert.equal(c.ProcessAuthoringV3.canMutate(),true,'advisory must not hold edit lock');assert.equal(server.workflow.working.workspaces[1].stages['B-X'][0].name,'other user');assert.equal(commands.length,1);assert.ok(commands[0].patches.every(p=>p.path[1].id===wid));assert.ok(commands[0].guards.some(g=>g.path.length===5),'whole-node CAS guard preserved');
+ for(const f of timers.values())f();timers.clear();assert.equal(pending.length,1);pending[0].reject(Error('advisory unavailable'));await new Promise(setImmediate);assert.equal(c.ProcessAuthoringV3.canMutate(),true);assert.equal(server.workflow.working.workspaces[0].stages['A-CUT'][0].name,'applied');
+ fail=true;c.ensureCategoryEditor()['A-CUT'][0].name='stale edit';await assert.rejects(c.ProcessAuthoringV3.sync(),/DEPENDENCY_CHANGED_RECONFIRM/);assert.equal(c.ensureCategoryEditor()['A-CUT'][0].name,'stale edit','caller retains input for correction');assert.equal(server.workflow.working.workspaces[0].stages['A-CUT'][0].name,'applied');
+ console.log(JSON.stringify({result:'PASS',checks:['apply resolves before advisory','advisory failure does not falsify successful write','current workspace patch only','whole-node guard retained','concurrent workspace preserved','CAS failure rejects and retains input']},null,2));
+})().catch(e=>{console.error(e);process.exitCode=1;});

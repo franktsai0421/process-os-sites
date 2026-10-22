@@ -1,0 +1,38 @@
+/* oxlint-disable typescript/no-require-imports -- actual handlers with isolated captured business data. */
+const assert=require('node:assert/strict'),{randomUUID}=require('node:crypto'),fixture=require('./ipqc-assignment-fixture.cjs');
+(async()=>{const f=await fixture(process.argv[2]),seq={},steps=[];try{
+const url=qualityModule=>'/api/'+qualityModule+'/workflow'+(qualityModule==='ipqc-ab'?'?scope=A%3ABORUAXE1021':''),read=async m=>(await f.request(m==='ipqc-c'?'/api/ipqc-c':url(m))).body.control;
+async function send(m,action,detail={},user='a'){const c=await read(m);return f.request(url(m),'POST',{command:{action,...detail,generation:c.workflow.generation,operationId:randomUUID(),clientId:'policy-'+user,sequence:seq[user]=(seq[user]||0)+1}},user);}
+async function ok(m,a,d,u){const r=await send(m,a,d,u);assert.equal(r.status,200,JSON.stringify({qualityModule:m,action:a,body:r.body}));return r.body.control;}
+const patch=(id,field,value)=>({op:'set',path:['items',{id},field],value});
+for(const qualityModule of ['ipqc-ab','ipqc-c']){
+ let c=await read(qualityModule);if(!c.workflow){assert.equal((await f.request(url(qualityModule),'POST',{action:'begin'})).status,200);c=await read(qualityModule);}if(c.workflow.pendingId){await ok(qualityModule,'withdraw',{caseId:c.workflow.pendingId,reason:'Isolated continuation'},qualityModule==='ipqc-c'?'withdrawer':'a');c=await read(qualityModule);}
+ let item=c.workflow.working.items.find(i=>!i.deleted&&(qualityModule==='ipqc-ab'?i.productCodes.includes('105B100051'):i.id===f.metadata.cItemId));assert.ok(item);
+ if(qualityModule==='ipqc-ab'){
+  // Saving unrelated text retains old bad products; submit still reports them.
+  await ok(qualityModule,'apply',{patches:[patch(item.id,'standard',item.standard+' · isolated policy check')]});assert.ok((await read(qualityModule)).workflow.working.items.find(i=>i.id===item.id).productCodes.includes('1111111'));
+  const saved=await ok(qualityModule,'save'),bad=await send(qualityModule,'submit',{savedId:saved.workflow.saved.id,reason:'Isolated invalid route test'});assert.equal(bad.status,422);assert.ok(bad.body.details.issues.some(i=>i.code==='PRODUCT_ROUTE_INVALID'));
+  const catalog=f.load('lib/ipqc-ab.ts').catalogFromMaster(f.values.masterDataControl);c=await read(qualityModule);const patches=[],guards=[];
+  for(const row of c.workflow.working.items){const parent=c.workflow.working.errors.find(e=>e.id===row.errorId),valid=row.productCodes.filter(code=>catalog.products.some(p=>p.code===code&&p.line==='A'&&p.category==='BORUAXE1021'&&p.stages.includes(parent.stageCode)));if(valid.length!==row.productCodes.length){const p=patch(row.id,'productCodes',valid);patches.push(p);guards.push({path:p.path,value:row.productCodes});}}
+  await ok(qualityModule,'apply',{patches,guards});steps.push('AB actual 422 route cause reproduced; unrelated edit/save preserves old invalid links; submit blocks until explicit guarded repair');
+ }
+ c=await read(qualityModule);item=c.workflow.working.items.find(i=>i.id===item.id);const fields=qualityModule==='ipqc-ab'?{methodText:'',rules:[]}:{description:'',frequency:'',rule:{cadence:'none'}};
+ const patches=Object.entries(fields).map(([field,value])=>patch(item.id,field,value)),guards=patches.filter(p=>['rules','rule'].includes(p.path[2])).map(p=>({path:p.path,value:item[p.path[2]]}));await ok(qualityModule,'apply',{patches,guards});
+ let saved=await ok(qualityModule,'save');const pending=await ok(qualityModule,'submit',{savedId:saved.workflow.saved.id,reason:'Isolated latest IPQC policy'}),review=pending.workflow.cases.at(-1);assert.equal(review.contentIssues.policy,'ipqc-completeness-v1');for(const code of ['IPQC_METHOD_MISSING','IPQC_FREQUENCY_MISSING','IPQC_PRODUCT_COVERAGE'])assert.ok(review.contentIssues.issues.some(i=>i.code===code),qualityModule+' '+code);
+ assert.equal((await send(qualityModule,'apply',{patches:[patch(item.id,'standard','pending change')]})).status,409);
+ const approved=await ok(qualityModule,'approve',{caseId:review.id},'reviewer');assert.equal(approved.activeVersionId,review.id);steps.push(qualityModule+': blank description/frequency + incomplete coverage retained as fixed advisories; submit/independent approve PASS; pending locked');
+ assert.equal((await f.request(url(qualityModule),'POST',{action:'begin'})).status,200);c=await read(qualityModule);saved=await ok(qualityModule,'save');const unchanged=await send(qualityModule,'submit',{savedId:saved.workflow.saved.id,reason:'No change'});assert.equal(unchanged.status,422);assert.equal(unchanged.body.error,'NO_SUBSTANTIVE_CHANGE');
+ const q=qualityModule==='ipqc-ab'?new URLSearchParams({mode:'choices',line:'A',category:'BORUAXE1021',stage:'A-CUT',product:'105B100051'}):new URLSearchParams({mode:'choices',line:'C',category:f.metadata.cCategory,stage:f.metadata.cStage,product:f.metadata.cProduct});
+ const choices=(await f.request('/api/process-ipqc?'+q)).body.choices;assert.ok(choices.some(i=>i.itemId===item.id&&i.sourceVersionId===review.id));steps.push(qualityModule+': approved real source becomes selectable with stable item/source version; no-change guard retained');
+ if(qualityModule==='ipqc-ab'){
+  const current=c.workflow.working.items.find(i=>i.id===item.id);assert.equal((await send(qualityModule,'apply',{patches:[patch(item.id,'productCodes',['FAKE'])],guards:[{path:patch(item.id,'productCodes',[]).path,value:current.productCodes}]})).status,422);
+  await ok(qualityModule,'apply',{patches:[patch(item.id,'rules',[{id:'invalid-rule',cadence:'batch',kind:'fixed',value:'bad'}])],guards:[{path:patch(item.id,'rules',[]).path,value:current.rules}]});saved=await ok(qualityModule,'save');const bad=await send(qualityModule,'submit',{savedId:saved.workflow.saved.id,reason:'Bad rule'});assert.equal(bad.status,422);assert.ok(bad.body.details.issues.some(i=>i.code==='FREQUENCY_INVALID'));
+ }else assert.equal((await send(qualityModule,'apply',{patches:[patch(item.id,'rule',{cadence:'batch',batchKind:'fixed_count',fixedCount:'bad'})],guards:[{path:patch(item.id,'rule',{}).path,value:c.workflow.working.items.find(i=>i.id===item.id).rule}]})).status,422);
+}
+// Exact IPQC policy cannot relax unrelated modules, unknown codes, errors or standard.
+const kernel=f.load('lib/shared-draft.ts');for(const [scope,issue,success]of [['ipqc-c',{kind:'missing',code:'IPQC_METHOD_MISSING'},true],['ipqc-ab:A:G',{kind:'missing',code:'IPQC_FREQUENCY_MISSING'},true],['iqc',{kind:'missing',code:'IPQC_METHOD_MISSING'},false],['ipqc-c',{kind:'error',code:'IPQC_METHOD_MISSING'},false],['ipqc-c',{kind:'missing',code:'STANDARD_REQUIRED'},false]]){
+ let n=0,s=kernel.createSharedDraft(scope,{x:0},null,'g');const ctx={actor:{id:'a',name:'A',admin:false},at:'now',id:()=>String(++n),allowed:()=>true,structure:()=>{},validate:()=>[{...issue,path:['x'],message:'classified'}],semantic:x=>x,activeId:null,advisoryPolicy:'ipqc-completeness-v1'};
+ s=kernel.applyDraftCommand(s,{operationId:'policy-save',clientId:'policy-client',sequence:1,generation:'g',action:'save'},ctx).state;const run=()=>kernel.applyDraftCommand(s,{operationId:'policy-submit',clientId:'policy-client',sequence:2,generation:'g',action:'submit',savedId:s.saved.id,reason:'test'},ctx);if(success)assert.ok(run().state.pendingId);else assert.throws(run,/VALIDATION_FAILED/);
+}steps.push('Filled invalid rules, new nonexistent product, standard requirement, other-module policy and no-change protections PASS');
+console.log(JSON.stringify({result:'PASS_IPQC_POLICY_REVIEW3',steps,formalWrites:0,source:'Captured real AB/C, normal isolated Save/Submit/Approve; no status fabrication'},null,2));
+}finally{f.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

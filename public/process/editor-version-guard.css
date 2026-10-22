@@ -1,0 +1,270 @@
+.editor-version-timeline {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  border: 1px solid #d7d9d4;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.editor-version-timeline > header {
+  margin: 0;
+}
+
+.editor-version-timeline .timeline-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.editor-version-timeline .timeline-toggle > div {
+  margin-right: auto;
+}
+
+.editor-version-timeline .timeline-toggle > i {
+  margin-left: 10px;
+  color: #356762;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.editor-version-timeline h3,
+.editor-version-timeline p,
+.editor-version-timeline small {
+  margin: 0;
+}
+
+.editor-version-timeline h3 {
+  font-size: 13px;
+}
+
+.editor-version-timeline header small {
+  display: none;
+}
+
+.editor-version-timeline header > span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #edf2f1;
+  color: #285856;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.editor-version-timeline > .timeline-items {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 7px;
+  padding-bottom: 2px;
+}
+
+.editor-version-timeline.collapsed > .timeline-items {
+  display: none;
+}
+
+.editor-version-timeline button {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 8px;
+  min-width: 138px;
+  padding: 6px 9px;
+  border: 1px solid #d9ddda;
+  border-radius: 6px;
+  background: #fafaf8;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-version-timeline button.active {
+  border-color: #0d6964;
+  background: #eaf4f2;
+  box-shadow: inset 3px 0 #0d6964;
+}
+
+.editor-version-timeline button span {
+  color: var(--signal);
+  font: 700 10px "Roboto Mono", monospace;
+}
+
+.editor-version-timeline button b {
+  font-size: 11px;
+}
+
+.editor-version-timeline button small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 9px "Roboto Mono", monospace;
+}
+
+.editor-version-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 8px;
+  padding: 8px 11px;
+  border: 1px solid #cfdad8;
+  border-left: 4px solid #0d6964;
+  border-radius: 7px;
+  background: #eef6f4;
+}
+
+.editor-version-rule b,
+.editor-version-rule span {
+  display: block;
+}
+
+.editor-version-rule b {
+  font-size: 13px;
+}
+
+.editor-version-rule span {
+  margin-top: 3px;
+  color: #647573;
+  font-size: 10px;
+}
+
+.editor-version-rule.pending {
+  border-color: #e1b861;
+  border-left-color: #d18d17;
+  background: #fff7df;
+}
+
+.editor-version-rule.approved {
+  border-color: #88b99c;
+  border-left-color: #3b8b5e;
+  background: #edf8f0;
+}
+
+.editor-version-rule.draft {
+  border-color: #d5aa91;
+  border-left-color: var(--signal);
+  background: #fff3ed;
+}
+
+.editor-submitted-lock .flow-canvas {
+  background-color: #f0f0ed;
+}
+
+.editor-page {
+  padding-top: 18px;
+}
+
+.editor-page > .editor-toolbar {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.editor-page > .editor-toolbar h2 {
+  margin: 2px 0;
+  font-size: 21px;
+}
+
+.editor-page > .editor-toolbar > div > p:last-child {
+  display: none;
+}
+
+.editor-page .editor-version-panel {
+  grid-template-columns: minmax(160px,.55fr) minmax(210px,.7fr) minmax(220px,1.1fr) auto;
+  gap: 9px;
+  margin-bottom: 8px;
+  padding: 9px 11px;
+}
+
+.editor-page .editor-version-panel h3 {
+  margin: 1px 0;
+  font-size: 14px;
+}
+
+.editor-page .editor-version-panel > div:first-child > small {
+  display: block;
+  margin-top: 2px;
+  color: #617571;
+  font-size: 9px;
+}
+
+.editor-page .editor-mini-diff .diff-list {
+  display: none;
+}
+
+.editor-page .editor-mini-diff > b {
+  display: none;
+}
+
+.editor-page .editor-mini-diff .diff-summary {
+  margin: 0;
+}
+
+.editor-version-rule {
+  min-height: 44px;
+}
+
+.editor-page .editor-mini-diff .diff-row {
+  grid-template-columns: 80px 1fr;
+  padding: 3px 5px;
+}
+
+.editor-page .diff-summary span {
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+.editor-page .editor-path {
+  margin-bottom: 8px;
+  padding: 9px 11px;
+}
+
+.editor-page .editor-path .field select {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.editor-page .stage-editor > header > div:first-child {
+  min-width: 155px;
+  margin-right: auto;
+}
+
+.editor-page .stage-editor > header h3 {
+  font-size: 14px;
+}
+
+.editor-page .stage-editor > header small {
+  font-size: 9px;
+}
+
+.editor-page .stage-editor > header > div:first-child small {
+  display: none;
+}
+
+.editor-page .stage-editor > header .button.ghost {
+  padding: 6px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .editor-version-rule,
+  .editor-version-timeline > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 1120px) {
+  .editor-page .editor-version-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .editor-page .stage-editor > header {
+    flex-wrap: wrap;
+  }
+}

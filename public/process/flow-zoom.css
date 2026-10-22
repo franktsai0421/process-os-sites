@@ -1,0 +1,217 @@
+.flow-zoom-content {
+  position: relative;
+  transform-origin: left top;
+}
+
+.flow-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 3px 4px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 7px;
+  background: rgba(4,16,22,.22);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.flow-zoom-controls button {
+  min-width: 25px;
+  height: 25px;
+  padding: 0 5px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 5px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font: 700 12px inherit;
+  cursor: pointer;
+}
+
+.flow-zoom-controls button:hover {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.flow-zoom-controls button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.flow-zoom-controls output {
+  min-width: 38px;
+  text-align: center;
+  font: 700 10px "Roboto Mono", monospace;
+  color: var(--lime);
+}
+
+.flow-zoom-controls.standalone {
+  width: max-content;
+  margin: 10px 0 10px auto;
+  border-color: #ccd5d3;
+  background: #13252c;
+}
+
+.stage-editor > header {
+  flex-wrap: nowrap;
+  padding: 10px 12px;
+  gap: 6px;
+}
+
+.stage-editor > header .flow-zoom-controls {
+  order: 2;
+  margin-left: 0;
+}
+
+.stage-editor > header .add-operation {
+  order: 3;
+}
+
+.status-stage > header,
+.live-product-flow > header {
+  flex-wrap: wrap;
+}
+
+.status-stage > header .flow-zoom-controls,
+.live-product-flow > header .flow-zoom-controls {
+  margin-left: auto;
+}
+
+.status-product-canvas,
+.flow-canvas {
+  overscroll-behavior: contain;
+}
+
+.live-flow-canvas {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}
+
+.live-graph-board {
+  display: grid;
+  gap: 18px;
+  padding: 16px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.live-product-flow {
+  overflow: hidden;
+  border: 1px solid #31434a;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(12,30,36,.1);
+}
+
+.live-product-flow > header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  padding: 13px 16px;
+  background: #15262d;
+  color: #fff;
+}
+
+.live-product-flow > header > div:first-child {
+  min-width: 260px;
+  margin-right: auto;
+}
+
+.live-product-flow > header code,
+.live-product-flow > header h3,
+.live-product-flow > header span {
+  display: block;
+  margin: 0;
+}
+
+.live-product-flow > header code {
+  color: var(--lime);
+  font-size: 10px;
+}
+
+.live-product-flow > header h3 {
+  margin: 3px 0;
+  font-size: 15px;
+}
+
+.live-product-flow > header span {
+  color: #9fb0b5;
+  font-size: 10px;
+}
+
+.live-product-flow > header > b {
+  color: #d9e5e4;
+  font: 11px "Roboto Mono", monospace;
+}
+
+.live-flow-canvas {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  overflow: auto;
+  background-color: #fbfaf7;
+  background-image: radial-gradient(#d6d4cc 1px,transparent 1px);
+  background-size: 18px 18px;
+}
+
+.device-page:fullscreen {
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #050b0e;
+  scrollbar-gutter: stable;
+}
+
+.device-page:fullscreen .live-graph-board {
+  overflow: visible;
+}
+
+.device-page:fullscreen .live-product-flow {
+  overflow: visible;
+}
+
+.live-flow-node {
+  width: 300px;
+  height: 340px;
+}
+
+.live-flow-node .status-node-scroll {
+  height: 267px;
+  max-height: 267px;
+}
+
+.live-flow-node .status-media-gallery,
+.live-flow-node .status-no-photo {
+  min-height: 92px;
+  max-height: 115px;
+}
+
+.live-flow-node .status-media-gallery img,
+.live-flow-node .status-media-gallery video {
+  min-height: 92px;
+  max-height: 115px;
+}
+
+.dispatch-live-preview .compact-monitor {
+  min-height: 0;
+}
+
+.approval-page .version-stage-grid {
+  transform-origin: left top;
+}
+
+@media (max-width: 900px) {
+  .flow-zoom-controls > span,
+  .flow-zoom-controls small {
+    display: none;
+  }
+
+  .live-product-flow > header > div:first-child {
+    min-width: 180px;
+  }
+}

@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import * as D from '../public/process/bom-domain.mjs';
+const row=(root,level,ordinal,code,name='Tên',quantity='1',denominator='1')=>[root,'.'.repeat(level)+level,ordinal,code,name,'Quy cách','CAI',quantity,denominator,'0'];
+const parse=rows=>D.parseMatrices([{name:'Fixture',rows:[D.columns,...rows]}]);
+const bom=parse([row('001',0,'','','Gốc','0','0'),row('001',1,'0020','P'),row('001',2,'0010','Q'),row('001',3,'01','R'),row('001',4,'01','S'),row('001',5,'01','T'),row('001',1,'0030','P')]);
+assert.equal(bom['001'][0].itemCode,'');assert.equal(bom['001'][0].denominator,'0');assert.equal(bom['001'][1].ordinal,'0020');assert.equal(bom['001'][2].quantity,'');assert.notEqual(bom['001'][1].id,bom['001'][6].id);D.validate(bom);
+assert.equal(D.compare(bom,bom).changes.length,0);
+const changed=structuredClone(bom);changed['001'][1].itemName='Đồng';changed['001'][1].quantity='2';
+let batch=D.compare(bom,changed);assert.equal(batch.changes.length,2);batch.changes[0].decision='accept';assert.equal(D.applyComparison(bom,batch)['001'][1].itemName,'Đồng');assert.equal(D.applyComparison(bom,batch)['001'][1].quantity,'1');assert.throws(()=>D.applyComparison(changed,batch),/BASE_CHANGED/);
+const partial=parse([row('002',0,'',''),row('002',1,'01','X')]);batch=D.compare(bom,partial);batch.changes.forEach(c=>c.decision='accept');assert.equal(Object.keys(D.applyComparison(bom,batch)).length,2);
+batch=D.compare(bom,partial,{replaceAll:true});batch.changes.forEach(c=>c.decision='accept');assert.deepEqual(Object.keys(D.applyComparison(bom,batch)),['002']);
+assert.throws(()=>parse([row('1',0,'',''),row('1',2,'01','X')]),/父層/);
+assert.throws(()=>parse([row('1',0,'',''),row('1',1,'01','X'),row('1',1,'01','X')]),/AMBIGUOUS/);
+const idx=D.createIndex(changed);assert.equal(idx.search('dong')[0].code,'P');assert.equal(idx.parents('P').length,2);assert.equal(idx.forest('Q')[0].rows.length,7);
+assert.equal(D.exportRows(bom)[3][7],'');assert.equal(D.exportRows(bom)[1][2],'');
+assert.equal(D.auditReferences({processEditor:{id:'op',bomSelections:{'001':['P'],'absent':['A']}}},bom)[0].status,'ambiguous');
+const repeated=D.parseMatrices([{name:'Repeated',rows:[['Report title'],D.columns,row('1',0,'',''),[],D.columns,row('1',1,'01','X')]}]);assert.equal(repeated['1'].length,2);
+console.log('PASS: identity, level 5, zero/blank, partial imports, per-field decisions, concurrent base guard, repeated headers, search, references');
+if(process.argv[2]) {
+ const c={Buffer};vm.runInNewContext(fs.readFileSync('public/process/vendor/xlsx.full.min.js','utf8'),c);
+ const book=c.XLSX.read(fs.readFileSync(process.argv[2]),{type:'buffer'}),actual=D.parseWorkbook(c.XLSX,book,{file:process.argv[2].split(/[\\/]/).at(-1)});D.validate(actual);
+ assert.equal(Object.keys(actual).length,11);assert.equal(Object.values(actual).flat().length,227);
+ assert.equal(D.compare(actual,D.parseWorkbook(c.XLSX,book)).changes.length,0);
+ const counts={};for(const r of Object.values(actual).flat())counts[r.level]=(counts[r.level]||0)+1;
+ assert.deepEqual(counts,{0:11,1:117,2:55,3:33,4:11});
+ const sheet=book.Sheets[book.SheetNames[0]];sheet.C2={t:'s',v:'IGNORED'};sheet.N5={t:'n',v:999999};
+ assert.equal(D.compare(actual,D.parseWorkbook(c.XLSX,book)).changes.length,0);
+ console.log(JSON.stringify({status:'PASS',roots:Object.keys(actual),rows:227,levels:counts,repeatDifferences:0,ignoredColumnDifferences:0}));
+}

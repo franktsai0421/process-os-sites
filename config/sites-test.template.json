@@ -1,0 +1,15 @@
+{
+  "slug": "process-os-test",
+  "audienceIntent": "owner-only",
+  "ownerIntent": "Frank",
+  "bindingsMustBeIndependent": true,
+  "runtimeValues": {
+    "DEMO_LOGIN_ENABLED": "false",
+    "PROCESS_SESSION_REVOCATION_ENABLED": "1",
+    "PROCESS_RELEASE_DISABLED": "true"
+  },
+  "requiredRuntimeValuesSeparately": {"PROCESS_PROGRAM_COMMIT": "Reviewed Git commit: exactly 40 lowercase hex; unset blocks build/publication preparation"},
+  "applicationAuthentication": "Existing signed account session and role checks; no mode flag",
+  "secretsRequiredSeparately": ["PROCESS_SESSION_SECRET"],
+  "registered": false
+}

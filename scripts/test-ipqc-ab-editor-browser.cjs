@@ -1,0 +1,44 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const runtime=require('./browser-test-runtime.cjs');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||runtime.playwrightModule);
+(async()=>{
+  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||runtime.browserExecutable,headless:true});
+  const context=await browser.newContext({viewport:{width:1280,height:850}});
+  const page=await context.newPage();
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  try{
+    await page.goto('http://127.0.0.1:3002/process/?system=quality&view=data&dataTab=quality-ipqc-ab');
+    await page.locator('[data-quick-login="admin"]').click();
+    await page.locator('[data-dual-view="data"]').click();
+    await page.locator('[data-quality-tab="quality-ipqc-ab"]').click();
+    await page.locator('.ipqcab-version h2').waitFor();
+    await page.locator('#ipqcab-line').selectOption('B');
+    await page.locator('#ipqcab-group').selectOption('VANPHAONHUA');
+    const error=page.locator('.ipqcab-error [data-ab-error]').last();
+    await error.click();
+    await page.locator('#ipqcab-add-item').click();
+    await page.locator('#ab-standard').waitFor();
+    await page.locator('#ab-standard').fill('Tiêu chuẩn trình duyệt');
+    await page.locator('#ab-method').fill('Quan sát và xác nhận');
+    await page.locator('#ab-add-rule').click();
+    await page.locator('.ab-rule-kind').selectOption('custom');
+    await page.locator('.ab-rule-name').fill('Số mẫu');
+    await page.locator('.ab-rule-value').fill('3 hoặc toàn bộ');
+    await page.locator('#ab-apply').click();
+    await page.locator('.ipqcab-overlay').waitFor({state:'detached'});
+    assert.match(await page.locator('.ipqcab-item').last().innerText(),/Tiêu chuẩn trình duyệt/);
+    await page.reload();await page.locator('.ipqcab-version h2').waitFor();
+    await page.locator('#ipqcab-line').selectOption('B');await page.locator('#ipqcab-group').selectOption('VANPHAONHUA');
+    await page.locator('.ipqcab-error [data-ab-error]').last().click();
+    await page.locator('[data-ab-edit-item]').last().click();
+    assert.equal(await page.locator('#ab-standard').inputValue(),'Tiêu chuẩn trình duyệt');
+    assert.equal(await page.locator('.ab-rule-name').inputValue(),'Số mẫu');
+    assert.equal(await page.locator('.ab-rule-value').inputValue(),'3 hoặc toàn bộ');
+    const shot=path.resolve('.wrangler/local-only/ipqc-ab-editor.png');fs.mkdirSync(path.dirname(shot),{recursive:true});
+    await page.screenshot({path:shot,fullPage:false});
+    assert.equal(errors.length,0,errors.join('\n'));
+    console.log('PASS editor: create item, batch custom fields, server save, reload/refill, modal screenshot '+shot);
+  }finally{await context.close();await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});

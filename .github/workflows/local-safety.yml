@@ -1,0 +1,101 @@
+name: Local safety
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: local-safety-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  local-safety:
+    name: Local safety
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - name: Select native Windows ZIP engine
+        run: |
+          $systemTools = Join-Path $env:SystemRoot 'System32'
+          $archiveTool = Join-Path $systemTools 'tar.exe'
+          if (-not (Test-Path -LiteralPath $archiveTool)) { throw 'Native Windows archive tool missing' }
+          $archiveVersion = & $archiveTool --version
+          if ($LASTEXITCODE -ne 0 -or $archiveVersion -notmatch 'bsdtar') { throw 'Unsupported Windows archive engine' }
+          $systemTools | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Canonical, history and upload safety
+        run: npm run github:preflight
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit
+      - name: Build
+        run: npm run build
+      - name: Isolated Local tests
+        run: |
+          npm run test:collaboration
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:demo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:local-schema
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:local-init
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:images
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:canonical
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:data-merge
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:task-safety
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:portable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Existing fixture regressions
+        run: |
+          node scripts/test-data-safety.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-local-backup.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-state-memory.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-state-media-restore.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-state-rebase-guard.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-local-r2-backup.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-master-api.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-release-safety.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-version-return-policy.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-consistency.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-system-upgrade.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-language-loop.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-bom-search.cjs public/process
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-bom-excel.cjs public/process
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-master-admin.cjs public/process
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

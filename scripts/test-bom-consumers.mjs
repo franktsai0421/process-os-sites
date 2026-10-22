@@ -1,0 +1,20 @@
+// Isolated projection/consumer checks: no local storage or business writes.
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import * as D from '../public/process/bom-domain.mjs';
+import {projectValues,materialize} from '../lib/canonical-data.mjs';
+const bom=D.parseMatrices([{name:'fixture',rows:[D.columns,['P','0','','','Root','','PCS','','',''],['P','.1','0010','X','Same','','PCS','0','2','0'],['P','.1','0020','X','Same','','PCS','1.23456','3',''],['P','..2','0010','Y','Deep','','KG','88','99','5']]}]);
+const wrapper={__format:'PROCESS_OS_BOM_OCCURRENCES_V3',replaceAll:true,data:bom};
+const values={bomOverrides:JSON.stringify(wrapper),bomMasterControl:'{"schemaVersion":1}'};
+const domains=projectValues(values,{root:process.cwd(),roleDefaults:{admin:{}}});
+assert.equal(domains.bom.length,4);assert.deepEqual(domains.bom.map(r=>r.id),bom.P.map(r=>r.id));
+assert.equal(materialize(values,domains).bomOverrides,values.bomOverrides);
+const changed=structuredClone(domains);changed.bom[1].data.quantity='9';assert.throws(()=>materialize(values,changed),/BOM_WORKFLOW_REQUIRED/);
+const app=fs.readFileSync('public/process/app.js','utf8'),start=app.indexOf('function rootBom(code)'),end=app.indexOf('const routeFor',start);
+const context={data:{bom},routing:{productRoutes:{P:{line:'C'}}},bomRowsFor:code=>bom[code]||[],window:{}};
+vm.createContext(context);vm.runInContext(app.slice(start,end)+';globalThis.result=rootBom("P");globalThis.missing=rootBom("X");globalThis.keys=result.map(bomReferenceKey);',context);
+assert.equal(context.result.length,2);assert.equal(context.missing.length,0);assert.equal(new Set(context.keys).size,2);assert.equal(context.result[0].denominator,'2');assert.equal(context.result[0].quantity,'0');assert.equal(context.result[0].bomConsumerLine,'C');
+const markupStart=app.indexOf('function compactBomMarkup('),markupEnd=app.indexOf('function mediaGalleryMarkup',markupStart);context.escapeHtml=v=>String(v??'');vm.runInContext(app.slice(markupStart,markupEnd)+';globalThis.markup=compactBomMarkup(result);',context);assert(!context.markup.includes('分母'));context.result.forEach(r=>r.bomConsumerLine='A');vm.runInContext('globalThis.markup=compactBomMarkup(result);',context);assert(context.markup.includes('分母 2'));assert(context.markup.includes('1.23456'));assert(context.markup.includes('用量 0'));
+const x={Buffer};vm.runInNewContext(fs.readFileSync('public/process/vendor/xlsx.full.min.js','utf8'),x);const sheet=x.XLSX.utils.aoa_to_sheet([D.columns,['P','0','','','Root','','PCS',1.23456,1,0]]);sheet.H2.z='0.000';const book={SheetNames:['precision'],Sheets:{precision:sheet}};assert.equal(D.parseWorkbook(x.XLSX,book).P[0].quantity,'1.23456');
+console.log('PASS: canonical occurrence IDs/roundtrip/workflow guard, original L1 only, duplicate codes distinct, no reroot/old fallback, C fields, A/B denominator/zero/precision, raw Excel numeric precision');
