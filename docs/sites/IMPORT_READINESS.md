@@ -80,6 +80,24 @@ The available native Sites tools expose table pages but no storage quota/billing
 API. The Settings/provider capacity and fee evidence remains a parent/platform
 prerequisite; do not assume 10 GB, a CF account plan or ChatGPT Pro supplies it.
 
+Official [Sites storage limits](https://help.openai.com/en/articles/20001339-creating-and-using-chatgpt-sites)
+specify up to 10 GB database storage for each Site. File storage has no fixed
+per-Site cap, but shared cross-Site usage/storage limits still apply; remaining
+account allowance is unknown. This is managed Sites capacity, not the user's
+own Cloudflare subscription. Imports should run serially, not duplicate the full
+transport/materialization peak simultaneously across test and formal Sites.
+The materialized R2 payloads for two equal Sites total 16,283,152,558 bytes;
+serially importing a second Site while retaining the first requires at least
+24,426,539,763 bytes plus that manifest and other overhead. These are planning
+lower bounds, not a promise that the account can store them.
+
+The underlying [D1 row/string/BLOB limit](https://developers.cloudflare.com/d1/platform/limits/)
+is 2,000,000 bytes. Preflight additionally decodes only the three bounded table
+resources, measures actual UTF-8 cells and conservatively serialized rows, and
+reserves 4 KiB for the owner overlay. Oversize rows refuse before upload; no
+row values are returned. These measurements do not establish the allocated
+database size or replace the final target's storage validation.
+
 ## Smallest remaining real-import path
 
 1. Verify exact test project, current program/runtime pins, normalized manifest,
