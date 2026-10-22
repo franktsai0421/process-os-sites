@@ -17,6 +17,11 @@ that metadata checksum, indexed checksum and actual bytes all agree before seal.
 The source writer defines sourceEtag as pinned provenance. It may equal the old
 content hash; it is preserved verbatim and never discovered or rewritten as a
 business reference. A stopped old-version plan is retained for diagnosis.
+`delivery/media` is the explicit state-media.ts profile: its ID hashes the original
+UTF-8 data URL, while its object stores decoded media bytes. Both normalization
+and hosted audit verify that ID with bounded base64 carry; other hash-named binary
+objects continue to require the actual payload digest. This is not a relaxed
+checksum exception. Media type, byte count and the reconstructed ID must agree.
 
 `normalize-snapshot-view.mjs` consumes the already verified local Snapshot V1,
 not the original R1 ZIP. Its new directory holds bounded replay recipes, manifests
