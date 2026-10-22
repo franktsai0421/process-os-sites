@@ -48,6 +48,11 @@ The original checkout's applied history is unchanged. A SOURCE-PROFILE receipt
 pins both original commit and projection. No Git repository, credential, data,
 dependency tree or platform migration is created by materialization.
 
+The source contains historical npm and pnpm locks. The official helper correctly
+rejects both at root. The projection retains the validated npm lock as active and
+archives other historical lock bytes under dependency-lock-history with hashes;
+the original source locks and installed versions remain unchanged.
+
 The projected source still needs its own reviewed Site-bound Git identity before
 publication. The existing main-push guard remains unchanged; creating another
 checkout or using no-verify is not its disposition. Local validation may reuse

@@ -25,12 +25,16 @@ export function materializeFreshSitesSource({sourceRoot,output,programCommit,pro
  fail(migrations.some(([name])=>name.endsWith('/meta/_journal.json'))&&migrations.some(([name])=>name.endsWith('.sql')),'FRESH_MIGRATIONS_MISSING');
  for(const [name,bytes]of migrations)if(name.endsWith('.sql'))fail(!/\b(INSERT|UPDATE|DELETE|REPLACE|DROP)\b/i.test(bytes.toString()),'FRESH_MIGRATIONS_NOT_SCHEMA_ONLY');
  fs.mkdirSync(output);
- const entries=[],legacy=[];
+ const entries=[],legacy=[],inactiveLocks=[];
  function write(name,bytes){const target=path.join(output,name);fail(target.startsWith(output+path.sep),'FRESH_SOURCE_PATH');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,bytes,{flag:'wx'});entries.push({path:name,bytes:bytes.length,sha256:digest(bytes)});}
- for(const [name,bytes]of files){if(name==='drizzle.config.ts'){write('config/drizzle-legacy-entry.ts',bytes);continue;}if(name.startsWith('drizzle/')){const target='drizzle-legacy-history/'+name.slice('drizzle/'.length);write(target,bytes);legacy.push({source:name,target,sha256:digest(bytes)});}else write(name,bytes);}
+ // The validated installation uses the unchanged npm lock. Preserve other
+ // historical lock bytes outside root so the official helper has one manager.
+ fail(files.has('package-lock.json')&&!files.has('npm-shrinkwrap.json'),'FRESH_SOURCE_NPM_LOCK_REQUIRED');
+ for(const [name,bytes]of files){if(['pnpm-lock.yaml','yarn.lock','bun.lock','bun.lockb'].includes(name)){const target='dependency-lock-history/'+name;write(target,bytes);inactiveLocks.push({source:name,target,sha256:digest(bytes)});continue;}if(name==='drizzle.config.ts'){write('config/drizzle-legacy-entry.ts',bytes);continue;}if(name.startsWith('drizzle/')){const target='drizzle-legacy-history/'+name.slice('drizzle/'.length);write(target,bytes);legacy.push({source:name,target,sha256:digest(bytes)});}else write(name,bytes);}
  for(const [name,bytes]of migrations)write('drizzle/'+name.slice('drizzle-sites-fresh/'.length),bytes);
  write('drizzle.config.ts',Buffer.from("import {defineConfig} from 'drizzle-kit';\nexport default defineConfig({out:'./drizzle',schema:'./db/sites-fresh-schema.ts',dialect:'sqlite'});\n"));
  const profile={format:'PROCESS_OS_FRESH_SITE_SOURCE_V1',project_id:projectId,sourceProgramCommit:programCommit,sourceTree:git(['rev-parse',programCommit+'^{tree}']).toString().trim(),migrationProfile:'schema-only-fresh-target',requiresEmptyUnmigratedTarget:true,originalAppliedMigrationBytesPreserved:legacy,migrationInputSha256:digest(Buffer.from(JSON.stringify(migrations.map(([name,bytes])=>({name,sha256:digest(bytes)}))))),sourceFiles:entries.length,sourceProjectionSha256:digest(Buffer.from(JSON.stringify(entries))),gitInitialized:false,sourceGuardDisposition:'REQUIRED_BEFORE_ANY_SOURCE_PUSH',platformMigrationApplied:false};
+ profile.packageManager='npm';profile.inactiveHistoricalLocks=inactiveLocks;
  write('SOURCE-PROFILE.json',Buffer.from(JSON.stringify(profile,null,2)+'\n'));
  return {output,profile,entries};
 }
