@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
-async function request(route='/',method='GET',headers={}){const r=await f.mf.dispatchFetch(origin+route,{method,headers,...(['POST','PUT','PATCH'].includes(method)?{body:'{}'}:{})});lastRequest={route:route.split('?')[0],method,status:r.status,contentType:r.headers.get('Content-Type')};return r;}
+async function request(route='/',method='GET',headers={}){lastRequest={route:route.split('?')[0],method};const r=await f.mf.dispatchFetch(origin+route,{method,headers,...(['POST','PUT','PATCH'].includes(method)?{body:'{}'}:{})});lastRequest={...lastRequest,status:r.status,contentType:r.headers.get('Content-Type')};return r;}
 async function closed(response){assert.equal(response.status,503);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.equal(response.headers.get('Retry-After'),'30');assert.deepEqual(await response.json(),{error:'IMPORT_TARGET_NOT_ACTIVE'});}
 try{
  f=await createRootEntryFixture();report.buildEntrySha256=f.buildEntrySha256;
@@ -20,6 +20,6 @@ try{
  await test('root and login navigation create no business or bootstrap records',async()=>{for(const table of ['shared_state','state_backups','web_feedback_store','process_owner_bootstrap','process_snapshot_target','process_snapshot_transfers','process_snapshot_chunks'])assert.equal((await f.db.prepare('SELECT count(*) n FROM '+table).first()).n,0);});
  await test('compiled database failure keeps the original root and API error gate',async()=>{await f.db.prepare('DROP TABLE process_snapshot_target').run();await closed(await request('/'));await closed(await request('/api/shared-state'));});
  report.status='PASS_COMPILED_SYNTHETIC_ROOT_ENTRY';
-}catch(error){report.status='FAIL_COMPILED_SYNTHETIC_ROOT_ENTRY';report.failedStage=stage;report.errorType=error.constructor.name;report.code=/^[A-Z_]+$/.test(error.message)?error.message:undefined;report.lastRequest=lastRequest;if(typeof error.actual==='number')report.actual=error.actual;if(typeof error.expected==='number')report.expected=error.expected;}
+}catch(error){report.status='FAIL_COMPILED_SYNTHETIC_ROOT_ENTRY';report.failedStage=stage;report.errorType=error.constructor.name;report.code=/^[A-Z_]+$/.test(error.message)?error.message:undefined;if(error instanceof TypeError)report.syntheticTransportError=error.message.slice(0,300);report.lastRequest=lastRequest;if(typeof error.actual==='number')report.actual=error.actual;if(typeof error.expected==='number')report.expected=error.expected;}
 finally{if(f)await f.close();report.disposed=true;report.tests=tests;report.cases=tests.length;}
 console.log(JSON.stringify(report));process.exitCode=report.status.startsWith('PASS_')?0:1;
