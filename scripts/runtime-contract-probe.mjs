@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {assertLocalMode,configureOfflineLocal} from '../lib/local-runtime.mjs';
 import {installLocalNetworkGuard} from '../lib/local-network-guard.mjs';
+import {denyLocalWorkerOutbound} from '../lib/local-worker-outbound.mjs';
 
 const source=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
 assertLocalMode([]);
@@ -33,7 +34,7 @@ export default {async fetch(request,env){
 let mf;const report={at:new Date().toISOString(),root,versions,scope:{synthetic:true,realData:false,realCredentials:false,applicationStarted:false,remoteBindings:false,installed:false,sitesAccepted:false},checks:[]};
 try{
  const {Miniflare,Log,LogLevel}=require('miniflare');
- mf=new Miniflare({host:'127.0.0.1',port:0,modules:true,script,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],cf:false,log:new Log(LogLevel.NONE),d1Databases:{DB:'synthetic-only'},r2Buckets:{STATE_ARCHIVE:'synthetic-only'},d1Persist:false,r2Persist:false,cachePersist:false,defaultPersistRoot:root,outboundService:{network:{allow:[],deny:['public','private']}}});
+ mf=new Miniflare({host:'127.0.0.1',port:0,modules:true,script,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],cf:false,log:new Log(LogLevel.NONE),d1Databases:{DB:'synthetic-only'},r2Buckets:{STATE_ARCHIVE:'synthetic-only'},d1Persist:false,r2Persist:false,cachePersist:false,defaultPersistRoot:root,outboundService:denyLocalWorkerOutbound});
  const ready=await mf.ready;
  if(!['127.0.0.1','localhost','[::1]'].includes(ready.hostname)||ready.port==='3000')throw Error('PROBE_LOOPBACK_PORT_REQUIRED');
  const response=await mf.dispatchFetch('http://localhost/fixture');

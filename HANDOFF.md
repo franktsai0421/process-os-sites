@@ -1,7 +1,18 @@
 # Isolated Sites implementation handoff
 
 Base M1: `7f5dc57239d6db483f096d96df6bd6cdd7357f5a`.
-Current phase: [pinned installation and native diagnostics](docs/sites/PHASE_TWELVE_PINNED_NATIVE_DIAGNOSTICS.md).
+Current phase: [offline runtime configuration fix](docs/sites/PHASE_FOURTEEN_OFFLINE_RUNTIME_FIX.md).
+The native outbound network-service object reproduced the probe crash on this
+host; a supported deny-all callback fixes startup while preserving both Worker
+and Node outbound denial. Shared guard native cases 3 PASS; full password/D1/R2/
+HMAC probe 8 PASS. Actual compiled application development fixture 12/12 PASS
+against the retained deb0e90 build, with synthetic/nonpersistent DB/R2/users only.
+Final commit, fresh build and fresh application HTTP receipts are kept separately
+in the parent task with actual commit fields; do not conflate those versions.
+No true credential/data/platform acceptance or remote action. Existing R1 remains
+unchanged. The old native failures and negative reductions remain evidence.
+
+Historical phase-twelve checkpoint:
 Fixed-lock install: 567 packages, exit 0; no lifecycle or package/lock change.
 Full TypeScript: 0 diagnostics after the private IQC baseline source repair
 (5 synthetic cases). Socketless native workerd: 1 basic + 4 password/HMAC PASS.

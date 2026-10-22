@@ -388,3 +388,13 @@ missing bundled IQC legacy import source with an explicitly pinned private read
 (5 fake cases); its real source remains unconfigured. Normal IQC data flows and
 true R1 remain unchanged. See [phase twelve](../docs/sites/PHASE_TWELVE_PINNED_NATIVE_DIAGNOSTICS.md).
 
+## Sites derivative - offline native probe configuration repaired
+
+Use the supported deny-all outbound callback in active Miniflare probes; the old
+native network-service object reproduced a host-specific startup crash. Node
+outbound guard remains; native GET/POST denial sentinel verifies zero connections.
+Shared guard 3 and full D1/R2/password/HMAC 8 PASS. Compiled application development
+HTTP fixture 12 PASS on the retained deb0e90 build; fresh-version receipts remain
+separately pinned. No production authentication/data model or dependency change.
+See [phase fourteen](../docs/sites/PHASE_FOURTEEN_OFFLINE_RUNTIME_FIX.md).
+
