@@ -14,6 +14,9 @@ Missing, conflicting, cyclic, unknown or corrupt resources fail explicitly.
 The binary writer's customMetadata.sha256 is its own checksum assertion, not an
 outgoing reference. Other self-references still fail. Private-image audit requires
 that metadata checksum, indexed checksum and actual bytes all agree before seal.
+The source writer defines sourceEtag as pinned provenance. It may equal the old
+content hash; it is preserved verbatim and never discovered or rewritten as a
+business reference. A stopped old-version plan is retained for diagnosis.
 
 `normalize-snapshot-view.mjs` consumes the already verified local Snapshot V1,
 not the original R1 ZIP. Its new directory holds bounded replay recipes, manifests
