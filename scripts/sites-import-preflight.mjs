@@ -9,6 +9,6 @@ try{
  const opened=await openNormalizationDirectory({source,output:get('--view')});view=opened.view;
  const prepared=await prepareRecipeUpload(view,{projectId:get('--project'),origin:get('--origin'),ownerId:get('--owner'),targetFingerprint:get('--target'),manifestSha256:get('--manifest')});
  const d1Rows=await inspectRecipeD1Rows(view,prepared.manifest);
- console.log(JSON.stringify({status:'PASS_READONLY_RECIPE_PREFLIGHT_NOT_AUTHORIZED_TO_UPLOAD',...prepared.summary,d1Rows,sourceReceiptVerified:true,normalizedReceiptVerified:true,copiedPayloadBytes:0,remoteRequests:0,requiredBeforeUpload:['measured target D1/R2 capacity and fee evidence','explicit real-data transfer authorization','supported authenticated request/session handoff'],passwordRead:false}));
+ console.log(JSON.stringify({status:'PASS_READONLY_RECIPE_PREFLIGHT_NOT_AUTHORIZED_TO_UPLOAD',...prepared.summary,d1Rows,sourceReceiptVerified:true,normalizedReceiptVerified:true,copiedPayloadBytes:0,remoteRequests:0,requiredBeforeUpload:['measured target D1/R2 capacity and fee evidence','applicable data/target authority; reuse existing approval','supported owner-browser file selection and request transport'],passwordRead:false}));
 }catch(error){console.error(JSON.stringify({status:'FAIL_PREFLIGHT_NO_REMOTE_WRITES',code:error instanceof Error&&/^[A-Z_]+$/.test(error.message)?error.message:'UPLOAD_PREFLIGHT_UNAVAILABLE'}));process.exitCode=1;}
 finally{if(view)await view.close();}

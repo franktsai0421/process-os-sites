@@ -6,7 +6,9 @@ import {createHostedTransferStore} from '@/lib/snapshot-hosted-store.mjs';
 import {createHostedActivationStore} from '@/lib/snapshot-hosted-activation-store.mjs';
 import {createHostedActivation} from '@/lib/snapshot-hosted-activation.mjs';
 import {maximumChunkBytes} from '@/lib/snapshot-contract.mjs';
-type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string};
+import {prepareRecipeUpload,assertUploadCapacity} from '@/lib/snapshot-recipe-uploader.mjs';
+import {importPageConfiguration} from '@/lib/sites-import-page.mjs';
+type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string};
 const reply=(value:unknown,status=200)=>Response.json(value,{status,headers:responseHeaders});
 async function dispatch(request:Request){
  const values=env as ImportValues;
@@ -28,7 +30,13 @@ async function dispatch(request:Request){
   if(request.method!=='POST')return reply({error:'IMPORT_METHOD'},405);
   if(action==='begin'){
    if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')return reply({error:'IMPORT_CONTENT_TYPE'},415);
-   return reply(await transfer.begin(principal,await readImportBody(request,manifestLimit)));
+   const {pins,capacity}=importPageConfiguration(values,hosting.project_id);
+   if(!capacity)return reply({error:'IMPORT_CAPACITY_UNVERIFIED'},409);
+   const bytes=await readImportBody(request,manifestLimit);
+   let manifest;try{manifest=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{return reply({error:'IMPORT_MANIFEST_INVALID'},400);}
+   let plan;try{plan=await prepareRecipeUpload({async manifest(){return manifest;}},pins);}catch{return reply({error:'IMPORT_MANIFEST_INVALID'},409);}
+   try{assertUploadCapacity(plan,capacity);}catch{return reply({error:'IMPORT_CAPACITY_UNVERIFIED'},409);}
+   return reply(await transfer.begin(principal,bytes));
   }
   if(action==='verify')return reply(await transfer.verify(principal,id,{expectedVersion,limit:8}));
   if(action==='audit')return reply(await activation.audit(principal,id,{expectedVersion}));

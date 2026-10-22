@@ -3,9 +3,11 @@
 Current work: [post-login pending import and recipe upload readiness](docs/sites/IMPORT_READINESS.md).
 The client recognizes only the exact inactive-import refusal before preloading
 private scripts. A recipe-backed resumable upload controller and read-only local
-preflight reuse the completed normalized view. They do not obtain credentials,
-provide an authenticated transport, verify provider quota, or authorize data
-transfer. No schema, owner password, signer or live setting changes. Exact checks
+preflight reuse the completed normalized view. A protected owner-only browser
+uploader now uses the existing same-origin session and a bounded local replay
+handoff instead of cookie extraction or a new credential. Provider quota and real
+file/transfer acceptance remain unverified; missing quota blocks begin on the
+server. No schema, owner password, signer or live setting changes. Exact checks
 and the current PR/merge are recorded in the task; do not treat source readiness
 as successful live data import.
 

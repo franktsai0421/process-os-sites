@@ -43,9 +43,35 @@ application session and master.export, plus the private Sites gate.
 The controller requires an injected authenticated request function. It never
 reads browser cookies/tokens, discovers passwords, logs in, creates credentials,
 or falls back to ambient fetch. A source credential or Sites service-access
-token alone does not establish application owner identity. There is currently
-no production-ready session handoff adapter in this repository; the generic
-controller's synthetic success is not that missing integration.
+token alone does not establish application owner identity.
+
+The protected /setup/import page now supplies the supported browser transport:
+normal same-origin fetch with the existing HttpOnly application session. The
+server checks exact configured owner, platform session, admin and master.export
+before rendering the page. Forged Sites headers and staff sessions do not grant
+access. No cookie export, new credential or local relay is introduced. The
+private platform gate remains. This code has synthetic/local acceptance only;
+actual selected-file handoff and hosted upload remain untested.
+
+prepare-browser-import.mjs opens the existing verified original and normalized
+view and writes a NEW local handoff directory. Original alias chunks stay in the
+original snapshot; only non-alias replay chunks are materialized, capped at
+16 MiB total. This uses the already tested Node recipe codecs, including the
+feedback ZIP writer, rather than inventing a browser codec or copying all media.
+The selected real plan contains three table recipes, 2,031 aliases and three
+small feedback ZIP recipes; non-alias logical bytes total 2,893,183. No true
+handoff artifact has been written in this batch. The handoff contains company
+data and must remain outside Git and shared/synced paths with the retained source.
+
+The browser chooses those two explicit directories, verifies completion markers,
+source/manifest/target pins and every outgoing chunk, and uses File objects of
+at most 1 MiB per payload read. File access is selection-scoped and not persisted.
+Unknown capacity disables upload; the server also rejects begin with
+IMPORT_CAPACITY_UNVERIFIED. New nonsecret PROCESS_IMPORT_CAPACITY_JSON accepts
+only approved metadata: projectId, targetFingerprint, reference, checkedAt,
+r2AvailableBytes and d1AvailableBytes. It must come from actual recent provider
+capacity/fee evidence; it is not a permission to guess values or enable billing.
+This batch configures none of these live values.
 
 ## Read-only local preflight
 
@@ -108,14 +134,17 @@ database size or replace the final target's storage validation.
    evidence. The controller requires matching project/fingerprint, a recent
    evidence reference and sufficient explicit planning budgets. These client
    checks cannot manufacture a provider quota or authorize charges.
-3. Finish a supported authenticated transport. Prefer a reviewed same-origin
-   desktop browser uploader which uses the owner's existing HttpOnly session
-   automatically and reads explicitly selected local snapshot/recipe directories.
-   That requires a browser-compatible recipe reader/file-selection adapter: the
-   current Node fs-based reader cannot simply run in the browser. This adapter
-   is not implemented or verified here. A proposed local CLI import capability
-   would instead need a separately reviewed, bounded server authorization flow;
-   it is not supported by the current API and must not be silently introduced.
+3. After the reviewed source is published privately, use the protected desktop
+   browser uploader with the existing owner session. Prepare the bounded local
+   handoff once in an explicitly private NEW directory using the same ordered
+   preflight arguments plus --output <new-handoff-directory>, with
+   scripts/prepare-browser-import.mjs. Choose the retained original snapshot and
+   this small handoff directory once. Do not choose an original ZIP, raw database,
+   credentials folder or the unmodified recipe directory. No password reset,
+   cookie extraction, temporary import token or persistent filesystem grant is
+   needed. Actual directory selection/transmission must respect the existing
+   specific data/target authorization; ask only for a genuinely missing action,
+   platform quota/cost decision or required user file-selection gesture.
 4. Once the transport, capacity/fees and exact data-transfer authority are clear,
    obtain the one necessary local-file/data-upload handoff and run begin, paged
    receive, bounded verify, semantic audit, materialization, restore and explicit
@@ -135,8 +164,9 @@ DOM/storage fixture. Native checks fetch those compiled static sources and the
 real compiled inactive response from nonpersistent synthetic D1/R2. Uploader
 tests replay real normalization recipes against synthetic SQLite/R2 endpoints,
 including interruption, integrity, wrong target, auth refusal and preserved
-target credentials. They do not establish real platform quota, browser session
-handoff, live import or physical iOS behavior. Full type/build and exact-head
+target credentials. File-object tests round-trip the local handoff and owner-page
+tests reject anonymous/forged access and unknown quota. They do not establish
+real platform quota, actual user file selection, live import or physical iOS behavior. Full type/build and exact-head
 CI/source-history evidence are recorded in the task/PR, with reused evidence
 identified separately. No true password, secret, data upload or live setting
 is changed by this source batch.

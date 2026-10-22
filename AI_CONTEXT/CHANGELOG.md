@@ -473,6 +473,11 @@ gates, bounded checksummed chunks, paged resume, lost-ack reconciliation and CAS
 activation orchestration. Transfer status now exposes its existing ledger version
 for correct resume. The read-only CLI reuses completed normalization receipts;
 no full snapshot copy, dependency, schema, credential or live data changes.
+An owner/platform/admin/export-only import page supplies same-origin browser
+requests. A new exclusive local handoff writer copies only <=16 MiB of replay
+chunks and aliases the remaining original files. It does not read cookies or
+request a new password. Unknown capacity also blocks server-side begin. Only
+synthetic handoff files were created; actual file selection/upload remain pending.
 See [import readiness](../docs/sites/IMPORT_READINESS.md) for remaining supported
 authentication, capacity/fee and real-transfer prerequisites.
 

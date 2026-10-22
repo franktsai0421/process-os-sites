@@ -71,6 +71,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-recipe-uploader.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-browser-handoff.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-hosted-activation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-normalize.test.mjs
@@ -103,6 +105,8 @@ jobs:
         run: node tests/sites-root-entry-native.test.mjs
       - name: Compiled pending-import client with synthetic nonpersistent bindings
         run: node --experimental-vm-modules tests/sites-import-pending-native.test.mjs
+      - name: Compiled authenticated recipe upload with synthetic nonpersistent bindings
+        run: node --experimental-vm-modules tests/sites-import-uploader-native.test.mjs
       - name: Record evidence boundary
         run: |
           Write-Output 'Source-only synthetic CI; no private canonical package, real R1 import, platform credential, deployment or production DB/R2.'
