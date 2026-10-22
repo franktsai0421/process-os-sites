@@ -1,3 +1,10 @@
+## Sites isolated derivative - inactive root entry
+
+Known inactive GET/HEAD / now has a bilingual, no-store HTML entry with login and
+owner-setup links. Database failures and every existing API/business/image gate
+retain their refusal. No authentication, schema, secret or platform change.
+See [root entry](../docs/sites/ROOT_ENTRY.md) for evidence boundaries.
+
 ## Sites isolated derivative - default-off owner setup and pinned Site main
 
 Added the fixed private-test, same-origin, key/expiry/target-pinned first owner
