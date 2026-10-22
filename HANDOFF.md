@@ -1,6 +1,12 @@
 # Isolated Sites implementation handoff
 
-Current work: [private-test owner setup and pinned source main](docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
+Current work: [inactive root entry](docs/sites/ROOT_ENTRY.md). Known inactive
+GET/HEAD / renders a bilingual HTML entry shell instead of the data-gate JSON.
+Database failures, other methods, APIs, Worker-handled business routes and images retain the
+closed gate. No auth, secret, data or live platform setting changes. Exact local
+and CI evidence remains in the task/PR; Frank merges before any publication.
+
+Retained owner/source context: [private-test owner setup and pinned source main](docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
 The default-off owner initializer appends a schema-only one-time receipt table;
 source guard changes are reviewable source only. Existing installed hooks and
 platform settings remain unchanged. Real owner/signer/source access/publication
