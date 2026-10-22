@@ -1,3 +1,14 @@
+## Sites isolated derivative - source delivery preparation
+
+Added the missing deployment entry with supported portable Sites source workflow,
+independent test/formal targets and precise unimplemented import/account steps.
+Verified installed helper paths without executing remote operations. Preserve the
+main push guard and migration history; a returned main source branch and the
+historical empty-singleton INSERT need disposition before hosted publication.
+This phase is documentation/source packaging only; existing actual build and
+12/12 synthetic compiled-app evidence remain pinned to efaedbd, with no repeated
+runtime, true-data conversion or dependency changes. See [deployment](../DEPLOYMENT.md).
+
 ## Sites isolated derivative - source-backed local import staging
 
 The importer now reuses verified read-only snapshot chunks without a full staging

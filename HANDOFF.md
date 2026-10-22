@@ -1,7 +1,22 @@
 # Isolated Sites implementation handoff
 
 Base M1: `7f5dc57239d6db483f096d96df6bd6cdd7357f5a`.
-Current phase: [offline runtime configuration fix](docs/sites/PHASE_FOURTEEN_OFFLINE_RUNTIME_FIX.md).
+Current phase: [Sites source and release handoff](DEPLOYMENT.md).
+Last application build and compiled synthetic HTTP acceptance use commit
+`efaedbd4893347a968b65cfa237358ffa8821316`; this source-delivery phase changes
+documentation only and reuses those explicitly versioned results.
+Hosting manifest has only DB/STATE_ARCHIVE bindings and no project_id. Installed
+Sites 1.1.1 portable helpers and Windows tar are present; remote work has not run.
+Parent-controlled creation must return the real project ID/source branch first.
+An existing main-push guard may conflict with a returned main source branch;
+preserve it and resolve the exact source workflow before pushing. The historical
+0002 empty-singleton INSERT needs a schema-only fresh-target migration strategy.
+Protected hosted resumable import and real account/bootstrap remain unimplemented.
+The current source archive/manifest/safety receipt live outside the checkout in
+the parent task's phase-fifteen handoff directory. A source ZIP is not a Sites
+publication archive. No platform ID, credential, real data or remote action added.
+
+Previous phase: [offline runtime configuration fix](docs/sites/PHASE_FOURTEEN_OFFLINE_RUNTIME_FIX.md).
 The native outbound network-service object reproduced the probe crash on this
 host; a supported deny-all callback fixes startup while preserving both Worker
 and Node outbound denial. Shared guard native cases 3 PASS; full password/D1/R2/
@@ -83,5 +98,7 @@ represent the running 3000 version and must not reconnect the old C2C workflow.
 
 Test audience intent: Frank only. Formal audience intent: public login entry,
 application-authenticated business data. No Site registration/sharing/deployment
-or Git write has happened. The old R20/G3 work and refusal boundaries remain
+has happened. Local derivative commits are recorded in the parent-task receipts;
+the statement above does not prohibit the already approved local source commits.
+The old R20/G3 work and refusal boundaries remain
 separate and unresolved.
