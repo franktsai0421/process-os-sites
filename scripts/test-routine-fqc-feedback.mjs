@@ -1,0 +1,12 @@
+import __esmImport0 from "node:assert/strict";
+import {createRequire as __esmFactory} from 'node:module';
+const __esmRequire=__esmFactory(import.meta.url);
+const assert=__esmImport0;
+const model=__esmRequire('./ipqc-ab-import-harness.cjs')()('lib/routine-fqc.ts');
+const item=(id,extra={})=>({id,name:id,checkNo:id,line:'A',category:'TIME',isEnabled:true,productCodes:[],rule:{cadence:'time',timeFrequency:'half_yearly'},...extra});
+const state={values:{masterDataControl:JSON.stringify({active:{AB:{categoryGroups:[{name:'EMPTY',line:'C'},{name:'TIME',line:'A'}],products:[]}}}),qualityMasterControl:JSON.stringify({libraries:{fqc:{activeVersionId:'approved',versions:[{id:'approved',number:1,status:'approved',reviewedAt:'2026-10-07T00:00:00Z',snapshot:{errors:[{id:'err',category:'ERROR-ONLY',line:'B'}],items:[item('half'),item('off',{isEnabled:false}),item('batch',{rule:{cadence:'batch'}}),item('custom',{rule:{cadence:'time',timeFrequency:'custom',customTimeText:'待確認'}})]}},{id:'draft',number:2,status:'draft',snapshot:{errors:[],items:[item('draft')]}}]}}})}};
+const catalog=JSON.parse(JSON.stringify(model.routineCatalog(state))),sources=JSON.parse(JSON.stringify(model.routineSources(state)));
+assert.deepEqual(catalog.lines,['A','B','C']);assert.ok(catalog.categories.some(c=>c.name==='EMPTY'));assert.ok(catalog.categories.some(c=>c.name==='ERROR-ONLY'));assert.equal(catalog.items.length,4);assert.ok(!catalog.items.some(i=>i.id==='draft'));
+assert.deepEqual(sources.map(s=>s.id),['half','custom']);assert.equal(sources[0].frequency,'semiannual');assert.equal(sources[1].frequency,null);
+const c=model.emptyRoutine();c.startDate='2026-10-07';const jobs=model.schedulePreview(c,sources,c.startDate,'2026-10-07');assert.equal(jobs.length,1);assert.equal(jobs[0].start,'2026-07-01');assert.equal(jobs[0].end,'2026-12-31');
+console.log('PASS effective catalog includes empty/dormant/non-time categories and A/B/C, excludes drafts; only enabled resolved time rules schedule; backend half_yearly maps to July–December.');

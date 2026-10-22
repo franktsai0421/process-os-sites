@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import * as D from '../public/process/bom-domain.mjs';
+const row=(root,level,ordinal,code,name=code)=>[root,'.'.repeat(level)+level,ordinal,code,name,'','PCS','1','1','0'];
+const parse=rows=>D.parseMatrices([{name:'Synthetic',rows:[D.columns,...rows]}]);
+const base=parse([row('ROOT',0,'','','Original'),row('ROOT',1,'01','SAME'),row('ROOT',2,'01','DEEP'),row('ROOT',1,'02','SAME'),row('OMITTED',0,'','','Keep root')]);
+const small=parse([row('ROOT',0,'','','Updated'),row('ROOT',1,'01','SAME','New name'),row('ROOT',1,'03','NEW')]);
+const batch=D.compare(base,small);batch.changes.forEach(c=>c.decision='accept');const next=D.applyComparison(base,batch);D.validate(next);
+assert.equal(next.ROOT.length,5);assert(next.OMITTED);assert.equal(next.ROOT.find(r=>r.ordinal==='01'&&r.level===1).itemName,'New name');assert.equal(next.ROOT.find(r=>r.itemCode==='DEEP').id,base.ROOT[2].id);assert.equal(next.ROOT.find(r=>r.ordinal==='02').id,base.ROOT[3].id);assert.equal(D.compare(next,small).changes.length,0);
+const digest=await D.semanticDigest(base);assert.equal(digest.length,64);assert.equal(await D.semanticDigest(Object.fromEntries(Object.entries(base).reverse())),digest);assert.notEqual(await D.semanticDigest(next),digest);
+const legacy=D.compare(base,small,{incremental:false});assert.equal(legacy.changes.length,1);legacy.changes[0].after=D.mergeOccurrences(legacy.changes[0].before,legacy.changes[0].after);legacy.changes[0].decision='accept';assert.deepEqual(D.semantic(D.applyComparison(base,legacy)),D.semantic(next));
+assert.throws(()=>D.applyComparison(next,batch),/BASE_CHANGED/);const explicit=D.compare(base,small,{replaceAll:true});explicit.changes.forEach(c=>c.decision='accept');assert.equal(D.applyComparison(base,explicit).ROOT.length,3);assert(!D.applyComparison(base,explicit).OMITTED);
+assert.deepEqual(D.auditReferences({process:{id:'op',bomSelections:{ROOT:[base.ROOT[1].id,base.ROOT[3].id]}}},next),[]);
+console.log(JSON.stringify({status:'PASS',cases:['smaller report retains omitted roots and children','stable duplicate occurrence identities and descendants','add/update is idempotent','canonical digest changes only with semantic data','already-open comparison compatibility','stale baseline rejected','explicit initialization stays explicit','process references preserved'],networkRequests:0}));

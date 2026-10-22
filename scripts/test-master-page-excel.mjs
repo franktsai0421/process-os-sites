@@ -1,0 +1,17 @@
+import __esmImport0 from "node:fs";
+import __esmImport1 from "node:path";
+import __esmImport2 from "node:vm";
+import __esmImport3 from "node:assert/strict";
+import {createRequire as __esmFactory} from 'node:module';
+import {fileURLToPath as __esmPath} from 'node:url';
+import __esmPathModule from 'node:path';
+const __filename=__esmPath(new URL("./test-master-page-excel.cjs",import.meta.url));
+const __dirname=__esmPathModule.dirname(__filename);
+const __esmRequire=__esmFactory(__filename);
+const fs=__esmImport0,path=__esmImport1,vm=__esmImport2,assert=__esmImport3;
+const root=path.resolve(process.argv[2]||path.join(__dirname,'../public/process')),sandbox={};sandbox.window=sandbox;vm.createContext(sandbox);
+for(const file of ['vendor/xlsx.full.min.js','line-stage-excel.js','master-page-excel.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),sandbox,{filename:file});
+const catalog={products:[{category:'水管',code:'P-1',name:'產品',specification:'10m',unit:'PCS',line:'A',stages:['A-CUT'],custom:'保留'}],categoryGroups:[{line:'A',name:'水管'},{line:'A',name:'空類別',color:'blue'}],lines:[{code:'A',name:'產線 A',note:'line note',stages:[{code:'A-CUT',name:'裁切',machine:'M1',assetNumber:'FA1',operators:2,note:'stage note'}]}]};
+const history=[{版本:'V1',狀態:'已核准'}],book=sandbox.MasterPageExcel.workbook(catalog,'AB',history),bytes=sandbox.XLSX.write(book,{type:'array',bookType:'xlsx'}),parsed=sandbox.MasterPageExcel.readBuffer(bytes,'AB');
+assert.equal(parsed.complete,true);assert.equal(parsed.products.length,1);assert.equal(parsed.products[0].custom,'保留');assert.equal(parsed.categoryGroups.length,2);assert.equal(parsed.categoryGroups[1].color,'blue');assert.equal(parsed.lines[0].note,'line note');assert.equal(parsed.lines[0].stages[0].note,'stage note');assert.throws(()=>sandbox.MasterPageExcel.readBuffer(bytes,'C'),/scope/);assert.equal(book.SheetNames.filter(name=>name==='版本紀錄').length,1);
+console.log('PASS: full master-page Excel roundtrip preserves products, empty categories, lines, stages, extra fields, scope and one history sheet.');

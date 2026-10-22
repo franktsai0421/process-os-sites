@@ -1,0 +1,42 @@
+/* oxlint-disable typescript/no-require-imports -- Local isolated regression evidence, not a release runner. */
+const fs=require('node:fs'),path=require('node:path'),{spawnSync,execFileSync}=require('node:child_process'),{createHash}=require('node:crypto');
+const root=path.resolve('.wrangler/local-only/v3-evidence'),suite=process.argv[2]||'core';fs.mkdirSync(root,{recursive:true});
+const evidenceDate=process.env.V3_EVIDENCE_DATE||'20261002';if(!/^\d{8}$/.test(evidenceDate))throw Error('Invalid evidence date');
+const suites={core:['test-shared-draft-v3','test-shared-draft-client-v3','test-shared-state-account-v3','test-workflow-wire-v3','test-workflow-core-http-v3','test-quality-permissions-v3','test-quality-equipment-lifecycle-v3','test-master-stage-link-v3','test-state-records','test-state-records-response','test-local-records-compat','test-shared-state-memory','test-state-media-restore','test-v3-removed-import-entrances','test-quality-legacy-fence-v3'],pages:['test-process-authoring-page-v3','test-process-master-page-v3','test-master-ui-v3','test-effective-version-notice-v3'],quality:['test-fqc-workflow-v3','test-iqc-workflow-v3','test-ipqc-ab-workflow-v3','test-ipqc-c-workflow-v3','test-equipment-workflow-v3','test-quality-equipment-replacement','test-quality-transfer-v3'],recovery:['test-v3-legacy-copy','test-v3-physical-recovery'],capacity:['test-v3-records-workerd']};
+suites.pages.push('test-effective-version-quality-v3');
+suites.transport=['test-shared-draft-client-v3','test-shared-state-account-v3','test-workflow-wire-v3'];
+suites.indirect=['test-admin-history-records-v3','test-photo-history-workerd-v3'];
+suites.transfer=['test-quality-transfer-v3','test-ab-transfer-mixed-v3'];
+suites.production=['test-authoring-production-pages-v3'];
+suites.legacyAdmin=['test-data-safety','test-user-management'];
+suites.mediaPages=['test-process-master-page-v3'];
+suites.lifecycle=['test-quality-equipment-lifecycle-v3'];
+suites.commandMedia=['test-workflow-command-media-v3'];
+suites.authoringPage=['test-process-authoring-page-v3'];
+suites.capacityFinal=['test-v3-records-workerd','test-quality-records-workerd-v3','test-authoring-records-workerd-v3'];
+suites.loadRecovery=['test-quality-load-recovery-v3'];
+suites.affectedRecovery=['test-fqc-workflow-v3','test-iqc-workflow-v3','test-ipqc-c-workflow-v3','test-equipment-workflow-v3'];
+suites.selection=['test-shared-draft-v3','test-ipqc-ab-workflow-v3'];
+suites.livePermissions=['test-quality-live-permissions-v3'];
+suites.correction=['test-quality-live-permissions-v3'];
+suites.staleForm=['test-quality-live-permissions-v3'];
+suites.photoCases=['test-quality-photo-cases-v3'];
+suites.formSave=['test-quality-live-permissions-v3'];
+suites.reviewRights=['test-quality-live-permissions-v3'];
+suites.codeUpdate=['test-quality-live-permissions-v3'];
+suites.masterPhotos=['test-master-photo-cases-v3'];
+suites.preservedApplication=['test-v3-preservation-application'];
+suites.maintenanceImports=['test-v3-maintenance-imports'];
+suites.permissionsAll=['test-quality-permissions-v3'];
+suites.equipmentValidation=['test-equipment-validation-v3'];
+suites.equipmentValidationBefore=['test-equipment-validation-v3'];
+suites.savedValidation=['test-quality-live-permissions-v3'];
+suites.initialVersions=['test-workflow-initial-v3'];
+suites.masterUI=['test-master-ui-v3'];
+suites.evidenceLinks=['test-process-authoring-v3','test-master-review-entrances-v3'];
+if(!suites[suite])throw Error('Unknown evidence suite');
+const git=args=>execFileSync('git',args,{encoding:'utf8'}).trim(),digest=b=>createHash('sha256').update(b).digest('hex');
+function source(){const files=git(['ls-files','--cached','--others','--exclude-standard']).split('\n').filter(f=>/^(app|lib|public\/process|scripts)\//.test(f)&&/\.(?:ts|tsx|js|mjs|cjs|html|css)$/.test(f)&&fs.existsSync(f));return{sha256:digest(files.sort().map(f=>f+'\0'+digest(fs.readFileSync(f))).join('\n')),files:files.length};}
+const report={startedAt:new Date().toISOString(),branch:git(['branch','--show-current']),head:git(['rev-parse','HEAD']),build:'2026.09.15.7100 / uncommitted V3 source',source:source(),storage:'records-v1 isolated where supported; existing Local unchanged',suite,tests:[],notAnOverallV3Pass:true};
+for(const name of suites[suite]){const start=Date.now(),script='scripts/'+name+'.cjs',scriptSha256=digest(fs.readFileSync(script)),run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,V3_STORAGE:'records',...(suite==='permissionsAll'?{V3_MODULES:'fqc,iqc,ipqc-ab,ipqc-c,routine-equipment,master-AB,master-C,master-PROCESS,authoring'}:{}),...(suite==='savedValidation'?{V3_VALIDATION:'1'}:{}),...(suite==='correction'?{V3_CORRECTION:'1'}:{}),...(suite==='staleForm'?{V3_STALE_FORM:'1'}:{}),...(suite==='formSave'?{V3_FORM_SAVE:'1'}:{}),...(suite==='reviewRights'?{V3_REVIEW_RIGHTS:'1'}:{}),...(suite==='codeUpdate'?{V3_CODE_UPDATE:'1'}:{}),...(suite==='capacity'?{V3_HISTORY_CASES:'40',V3_FULL_HISTORY:'1'}:{})},maxBuffer:32*1024*1024}),log=name+(suite==='equipmentValidationBefore'?'-before':'')+(['livePermissions','correction','staleForm','formSave','reviewRights','codeUpdate','savedValidation'].includes(suite)?'-'+suite:'')+'-'+evidenceDate+'.log';fs.writeFileSync(path.join(root,log),String(run.stdout||'')+String(run.stderr||''));const result={script,...(['livePermissions','correction','staleForm','formSave','reviewRights','codeUpdate','savedValidation'].includes(suite)?{variant:suite}:{}),status:run.status===0?'PASS_ISOLATED':'FAIL',exitCode:run.status,elapsedMs:Date.now()-start,scriptSha256,scriptUnchanged:scriptSha256===digest(fs.readFileSync(script)),log,...(run.error?{runnerError:run.error.message}:{})};report.tests.push(result);fs.writeFileSync(path.join(root,'continuation-'+suite+'-'+evidenceDate+'.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(result));}
+report.finishedAt=new Date().toISOString();report.sourceAfter=source();report.sourceUnchanged=report.source.sha256===report.sourceAfter.sha256;fs.writeFileSync(path.join(root,'continuation-'+suite+'-'+evidenceDate+'.json'),JSON.stringify(report,null,2));if(report.tests.some(t=>t.status==='FAIL'))process.exitCode=1;

@@ -1,0 +1,16 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>發布前草稿保全</title>
+<style>body{font:18px system-ui;max-width:700px;margin:40px auto;padding:20px;line-height:1.7}button{font:inherit;padding:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<h1>發布前草稿保全</h1><p>將此瀏覽器尚未同步的工作區與後台草稿另存為保護備份，不覆蓋目前資料庫。帳號與權限維持伺服器原資料。</p><button id="save">保全目前瀏覽器草稿</button><pre id="result"></pre>
+<script>
+document.querySelector('#save').onclick=async function(){
+  this.disabled=true;
+  try{
+    if(!['localhost','127.0.0.1'].includes(location.hostname))throw Error('僅供本機資料保全');
+    const fixed=['approvalVersions','dispatchBoard','publishedProcess','processMasterData','masterDataControl','bomOverrides','versionSampleSeed4','backupSettings'];
+    const values=Object.fromEntries(Object.keys(localStorage).filter(k=>fixed.includes(k)||k.startsWith('processEditor:')).map(k=>[k,localStorage.getItem(k)]));
+    const r=await fetch('/api/release-state?manage=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'capture',values})});
+    const v=await r.json();if(!r.ok)throw Error(v.error);
+    document.querySelector('#result').textContent='草稿已保全\n'+JSON.stringify(v,null,2);
+  }catch(e){document.querySelector('#result').textContent=e.message;this.disabled=false;}
+};
+</script></html>

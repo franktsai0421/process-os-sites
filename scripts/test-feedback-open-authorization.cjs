@@ -1,0 +1,28 @@
+/* oxlint-disable typescript/no-require-imports -- isolated UI authorization and private-draft regression. */
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict'),{performance}=require('node:perf_hooks');
+const src=fs.readFileSync('public/process/web-feedback.js','utf8');
+const openSource=src.slice(src.indexOf(' async function open(user,shell)'),src.indexOf(' async function submit()'));
+const results=[];
+function fixture(stored,text='new independent input'){
+ let resolve,reject;const permission=new Promise((a,b)=>{resolve=a;reject=b;});
+ const panel={hidden:false,style:{cssText:'shell'},status:{textContent:''},querySelector(sel){return sel==='[role=status]'?this.status:{focus(){}};}};
+ const shell={panel,input:{value:text},active:true,consumed:false,composing:false};if(process.argv.includes('--parallel'))shell.authorization=permission.then(data=>({data,elapsedMs:1})).catch(error=>({error}));
+ const ctx={epoch:0,actor:'',busy:false,draft:null,index:0,panel:null,performance,request:()=>permission,storageCalls:0,writes:[],draws:[],persistChain:Promise.resolve(),localKey:x=>x,storage:async()=>{ctx.storageCalls++;return structuredClone(stored);},persist:async()=>{ctx.writes.push(structuredClone(ctx.draft));},draw:()=>ctx.draws.push(structuredClone(ctx.draft)),positionPanel(){},endSelect(){},revoke(){},paste(){},t:x=>x,page:()=>({display:'current-page'}),marker:location=>({id:'new-marker',description:'',images:[],location}),document:{removeEventListener(){},addEventListener(){},documentElement:{dataset:{}}},structuredClone,Error,Promise};
+ vm.createContext(ctx);vm.runInContext(openSource+';this.runOpen=open;',ctx);
+ return {ctx,shell,resolve,reject,promise:ctx.runOpen({id:'admin2'},shell)};
+}
+const old={start:{display:'original-page'},markers:[{id:'old',description:'existing private text',images:[{name:'image',blob:new Blob(['abc'])}]}],pending:{operationId:'immutable',markers:[{id:'old',description:'existing private text'}]}};
+async function check(name,fn){await fn();results.push({name,status:'PASS'});}
+(async()=>{
+ await check('No private read or draw before fresh capabilities',async()=>{const f=fixture(old);await Promise.resolve();assert.equal(f.ctx.storageCalls,0);assert.equal(f.ctx.draws.length,0);f.reject(Error('403'));await f.promise;assert.equal(f.ctx.storageCalls,0);assert.equal(f.ctx.writes.length,0);});
+ await check('Other-tab account mismatch never reads or attributes new input',async()=>{const f=fixture(old);f.resolve({account:'reviewer'});await f.promise;assert.equal(f.ctx.storageCalls,0);assert.equal(f.ctx.writes.length,0);assert.equal(f.ctx.draws.length,0);assert.match(f.shell.panel.status.textContent,/登入身分/);});
+ await check('Verified merge preserves images, original page and frozen retry receipt',async()=>{const f=fixture(old);f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.draft.markers.length,2);assert.deepEqual(f.ctx.draft.pending,old.pending);assert.equal(await f.ctx.draft.markers[0].images[0].blob.text(),'abc');assert.deepEqual(f.ctx.draft.start,old.start);assert.equal(f.ctx.draft.markers[1].description,'new independent input');assert.equal(f.ctx.draws.length,1);});
+ await check('Close during verification persists verified input without reopening',async()=>{const f=fixture(old);f.shell.active=false;f.shell.panel.hidden=true;f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.writes.length,1);assert.equal(f.ctx.draws.length,0);assert.equal(f.shell.panel.hidden,true);});
+ await check('Identity change cancels pending permission response',async()=>{const f=fixture(old);f.ctx.epoch++;f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.storageCalls,0);assert.equal(f.ctx.writes.length,0);});
+ await check('IME composition completes before textarea replacement',async()=>{const f=fixture(old);f.shell.composing=true;f.resolve({account:'admin2'});for(let i=0;i<10;i++)await Promise.resolve();assert.equal(f.ctx.draws.length,0);f.shell.input.value='完成的中文輸入';f.shell.compositionEnd();await f.promise;assert.equal(f.ctx.draft.markers.at(-1).description,'完成的中文輸入');});
+ await check('Existing empty marker reused without exceeding marker limit',async()=>{const stored={start:{display:'original'},markers:[{id:'blank',description:'',images:[]}],pending:null};const f=fixture(stored);f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.draft.markers.length,1);assert.equal(f.ctx.draft.markers[0].id,'blank');});
+ await check('20 occupied markers keep new input and refuse destructive overflow',async()=>{const stored={start:{display:'original'},markers:Array.from({length:20},(_,i)=>({id:String(i),description:'old '+i,images:[]})),pending:null};const f=fixture(stored);f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.writes.length,0);assert.equal(f.ctx.draws.length,0);assert.equal(f.shell.input.value,'new independent input');assert.match(f.shell.panel.status.textContent,/20/);});
+ await check('No new text does not rewrite existing draft',async()=>{const f=fixture(old,'');f.resolve({account:'admin2'});await f.promise;assert.deepEqual(f.ctx.draft,old);assert.equal(f.ctx.writes.length,0);});
+ await check('Pending navigation retains the first-open page',async()=>{const f=fixture(null);f.ctx.page=()=>({display:'later-page'});f.resolve({account:'admin2'});await f.promise;assert.equal(f.ctx.draft.start.display,'current-page');});
+ console.log(JSON.stringify(results));
+})().catch(e=>{console.error(e);process.exitCode=1;});

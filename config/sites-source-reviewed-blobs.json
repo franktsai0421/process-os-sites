@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "reviewedSource": "e3f7be2f78a07a6e4d1eaffd6dbd4bb8308d0d70",
+  "description": "Exact historical synthetic fixtures and workstation-reference metadata reviewed in phase nineteen. No directory-wide exemption. Every modified blob is reviewed again.",
+  "entries": [
+    {
+      "path": "DEPLOYMENT.md",
+      "blob": "619c7e7c41968d12ceaa88c33490e41a3137a86e",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "blob": "6deebd2c8bb0a695aa7eb40915801a4b02e99a95",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "blob": "fe121ccec77962e06d538f39af8995f4cb53d82d",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/ipqc-reference/IPQC_Codex_20261006/00_README.txt",
+      "blob": "a7e5c54f01830a3df4c62b24a7206e4d4d89c3d8",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/ipqc-reference/IPQC_Codex_20261006/01_CODEX_PROMPT.txt",
+      "blob": "eac0e33d4cd1d240c7fcc5b894bcc99e582e7973",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/routine-fqc/FQC設計與審核條件_20261013.txt",
+      "blob": "b10657305e574c74221ce9d40c57867b4af919ed",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/routine-fqc/handoff-v2/FQC_Codex_Handoff_20261007_V2/01_CODEX_PROMPT.txt",
+      "blob": "e44d7dd67b18a8ef81560f75527a188bbd424313",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/sites/PHASE_EIGHT_LOCAL_R1_CHECKPOINT.md",
+      "blob": "532615bf56d89c2d320301daa879f6885f93be7a",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/sites/PHASE_FIFTEEN_DEPLOYMENT_PLAN.md",
+      "blob": "b8e37c58faa67b56ab0a5cb2e520e2ef4bee51bf",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "docs/sites/PHASE_NINE_TRUE_R1_LOCAL.md",
+      "blob": "bd2917d93eed0b3f863451bc7d8ac434e909a47a",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "scripts/r1-convert-local.mjs",
+      "blob": "0a743c2d817a04a8df28b5e0e3b5bc1ebcd28d2a",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "scripts/r1-inspect-local.mjs",
+      "blob": "3ab803c074a6cb56027963614dc0bf48116874aa",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "scripts/test-connected-build-safety.cjs",
+      "blob": "4a070c1e185eb2012c6570a023a2d8fb3f6fc5fc",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "scripts/test-data-safety.mjs",
+      "blob": "757aa617a70c77fe024b016bbdaaf7a834637829",
+      "categories": [
+        "ASSIGNED_SECRET"
+      ]
+    },
+    {
+      "path": "scripts/test-fqc-workflow-v3.cjs",
+      "blob": "3a7c169eaebb8d9abf22fdfdc8d2c6d6fc450092",
+      "categories": [
+        "INLINE_MEDIA"
+      ]
+    },
+    {
+      "path": "tests/r1-local-destination.test.mjs",
+      "blob": "6891ec54a748af546f3e491201565c03dd57a2b8",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "tests/r1-zip-reader.test.mjs",
+      "blob": "df9cda723852db69fcfe26efd88ca1720dff5b76",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "tests/sites-packager.test.mjs",
+      "blob": "1fe414de683faa577fdb939d2255ba4780ab8ce9",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    },
+    {
+      "path": "tests/sites-security.test.mjs",
+      "blob": "30f5581ed4b9b5b47186a153096f378e6b33f7e7",
+      "categories": [
+        "ASSIGNED_SECRET"
+      ]
+    },
+    {
+      "path": "tests/sites-security.test.mjs",
+      "blob": "6d44ecbca04371677d207a12d6937a8dceb5b95f",
+      "categories": [
+        "ASSIGNED_SECRET"
+      ]
+    },
+    {
+      "path": "tests/sites-source-boundary.test.mjs",
+      "blob": "a0cbba3abf6dea002aaacbe0ca8ab99bb68d8de5",
+      "categories": [
+        "WORKSTATION_PATH"
+      ]
+    }
+  ]
+}

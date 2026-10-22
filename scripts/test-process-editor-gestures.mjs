@@ -1,0 +1,40 @@
+import __esmImport0 from "node:fs";
+import __esmImport1 from "node:vm";
+import __esmImport2 from "node:assert/strict";
+/* Run the shipped graph and editor event handlers with controlled pointer/network timing. */
+const fs=__esmImport0,vm=__esmImport1,assert=__esmImport2;
+const checks=[],pass=name=>checks.push(name),copy=structuredClone;
+const graphContext={};vm.createContext(graphContext);vm.runInContext(fs.readFileSync('public/process/editor-graph.js','utf8'),graphContext);const G=graphContext.ProcessEditorGraph;
+const op=(id,type='manual',nextIds=[],stageCode='A')=>({id,editorType:type,stageCode,nextIds,x:80,y:80});
+const graph=[op('s','entry',['a']),op('a','manual',['b']),op('b'),op('z','exit'),op('foreign','manual',[],'B')];
+for(const [from,to]of [['s','s'],['s','a'],['z','b'],['b','s'],['b','a'],['a','foreign']])assert.equal(G.connection(graph,from,to,G.kind).valid,false,from+' -> '+to);
+assert.equal(G.connection(graph,'s','b',G.kind).valid,true);assert.equal(G.connection(graph,'a','z',G.kind).replace,true);
+assert.equal(G.connection([...graph,op('c','manual',['z'])],'b','z',G.kind).valid,false);
+assert.deepEqual(graph[1].nextIds,['b']);pass('connection direction, duplicate, cycle, cross-stage, exit-degree, replacement and immutability');
+class Classes{constructor(){this.set=new Set();}add(...xs){xs.forEach(x=>this.set.add(x));}remove(...xs){xs.forEach(x=>this.set.delete(x));}contains(x){return this.set.has(x);}toggle(x,on){if (on) { this.add(x); } else { this.remove(x); }}}
+const element=()=>({style:{},dataset:{},classList:new Classes(),setAttribute(k,v){this[k]=v;},setPointerCapture(){},remove(){this.removed=true;}});
+const workspace={A:[op('s','entry'),op('a'),op('b')]},writes=[];let rendered=0,hit=null,preview=null;
+const cards=Object.fromEntries(workspace.A.map(o=>{const card=element(),title=element();card.dataset.node=o.id;card.style={left:'80px',top:'80px'};card.querySelector=()=>title;return [o.id,card];}));
+const ports=workspace.A.flatMap(o=>['input','output'].map(port=>{const b=element();b.dataset.pe=port;b.closest=s=>s==='[data-node]'?cards[o.id]:b;b.getBoundingClientRect=()=>({left:80,top:100,width:40,height:30});return b;}));
+const port=(id,type)=>ports.find(b=>b.closest('[data-node]').dataset.node===id&&b.dataset.pe===type);
+const statusEl={textContent:''},canvas={style:{width:'2000px',height:'1200px'},getBoundingClientRect:()=>({left:0,top:0}),querySelector:()=>preview&&!preview.removed?preview:null,append:e=>{preview=e;}};
+const vp={scrollLeft:0,scrollTop:0,getBoundingClientRect:()=>({left:0,top:0,right:2000,bottom:2000})};const document={documentElement:{lang:'zh'},addEventListener(){},querySelector:s=>s==='.pe-viewport'?vp:s==='.pe-status'?statusEl:s==='.pe-canvas'?canvas:s==='.pe-link-preview'?canvas.querySelector():null,querySelectorAll:s=>s==='.pe-guide'?[]:s.startsWith('.pe-card')?ports:ports.filter(b=>b.classList.contains('pe-port-valid')||b.classList.contains('pe-port-selected')),elementFromPoint:()=>hit,createElementNS:()=>{const svg=element(),path=element();svg.querySelector=()=>path;return svg;}};
+let canvasAllowed=true,pendingLock=false,workflow={generation:'synthetic-g1',revision:1,working:{workspaces:[{id:JSON.stringify(['TEST','A']),stages:workspace}]}};const store=new Map(),session=new Map(),storage=m=>({getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v)});
+const c={ProcessSync:{identity:{id:'synthetic'},platformHeaders:()=>({})},localStorage:storage(store),sessionStorage:storage(session),location:{origin:'http://fixture.invalid',pathname:'/process/'},crypto:{randomUUID:()=> 'synthetic-tab'},createSharedDraftClient:()=>({}),window:null,document,structuredClone,console,JSON,Error,Map,Set,Number,Math,parseFloat,performance,requestAnimationFrame:()=>{},escapeHtml:x=>x,processMaster:{},state:{view:'editor',category:'TEST',editorLine:'A',editorByCategory:{'TEST:A':workspace}},editorKey:()=> 'TEST:A',ensureCategoryEditor:()=>c.state.editorByCategory['TEST:A'],editor:()=>'',render:()=>rendered++,ProcessEditorGraph:G,ProcessAuthoringV3:{canEditCanvas:()=>canvasAllowed&&!pendingLock,flow:()=>workflow,acceptCanvas:r=>{workflow=r.control.workflow;},canMutate:()=>false,cancelUnapplied(){},sync:async guards=>{writes.push({guards:copy(guards),next:copy(c.ensureCategoryEditor())});throw Error('Local gesture unexpectedly wrote shared content');}},addEventListener(){},toast:()=>{},lineFor:()=>({stages:[]})};c.window=c;vm.createContext(c);
+vm.runInContext(fs.readFileSync('public/process/canvas-local.js','utf8'),c);c.ProcessCanvasLocal.accept(workflow);const projected=()=>c.ProcessCanvasLocal.project(JSON.stringify(['TEST','A']),'A',workspace.A);
+const code=fs.readFileSync('public/process/process-editor.js','utf8').replace('host.ProcessOpenOperation=open;','host.TEST={drag,beginLink,previewLink,completeLink,clearLink,action,view,finishInteraction};host.ProcessOpenOperation=open;');
+vm.runInContext(code,c);c.TEST.view().stage='A';
+const pointer=(x,y)=>({altKey:true,clientX:x,clientY:y,button:0,pointerId:1,preventDefault(){},stopPropagation(){}}),flush=()=>new Promise(setImmediate);
+(async()=>{
+c.TEST.drag(cards.a,workspace.A[1]);const title=cards.a.querySelector();title.onpointerdown(pointer(100,100));title.onpointermove(pointer(140,70));assert.equal(cards.a.style.left,'120px');c.render();assert.equal(rendered,0);title.onpointerup();await flush();assert.equal(writes.length,0);assert.equal(projected()[1].x,120);assert.equal(c.ProcessEditorV2.interacting(),false);pass('Real drag handler updates locally, zero API, released immediately even with content busy');
+title.onpointerdown(pointer(100,100));title.onpointermove(pointer(180,170));title.onpointerup();await flush();assert.equal(projected()[1].x,200);assert.equal(writes.length,0);pass('Immediate second drag is accepted');
+title.onpointerdown(pointer(100,100));title.onpointermove(pointer(180,170));title.onpointercancel();assert.equal(cards.a.style.left,'200px');pass('Pointer cancellation restores just current gesture');
+c.TEST.beginLink(c.ensureCategoryEditor().A[0],'output',port('s','output'));hit=port('a','input');c.TEST.previewLink(pointer(400,300));assert.equal(preview.dataset.valid,'true');assert.ok(preview.classList.contains('valid'));await c.TEST.completeLink('a','input');assert.deepEqual(Array.from(projected()[0].nextIds),['a']);assert.equal(writes.length,0);pass('Valid green endpoint connects locally without awaiting API');
+c.TEST.beginLink(c.ensureCategoryEditor().A[2],'input',port('b','input'));await c.TEST.completeLink('s','output');assert.deepEqual(Array.from(projected()[0].nextIds),['a','b']);assert.equal(writes.length,0);pass('Reverse inlet gesture preserves source direction locally');
+assert.equal(workspace.A[1].x,80);assert.deepEqual(workspace.A[0].nextIds,[]);pass('Real journal isolates every gesture from shared business content');
+
+await title.onkeydown({key:'ArrowRight',preventDefault(){}});assert.equal(projected()[1].x,220);pass('Actual keyboard handler journals arrow position');
+canvasAllowed=false;await title.onkeydown({key:'ArrowRight',preventDefault(){throw Error('forbidden handler consumed key');}});assert.equal(projected()[1].x,220);canvasAllowed=true;pendingLock=true;title.onpointerdown(pointer(100,100));assert.equal(c.ProcessEditorV2.interacting(),false);assert.equal(projected()[1].x,220);pendingLock=false;pass('Permission and pending lock refuse keyboard and pointer edits');
+const sharedBeforeLayout=copy(workspace);const beforeLayout=copy(projected());await c.TEST.action('layout');assert.deepEqual(workspace,sharedBeforeLayout);assert.equal(writes.length,0);assert.deepEqual(projected().map(({x:_x,y:_y,...content})=>content),beforeLayout.map(({x:_x,y:_y,...content})=>content));assert(projected().every(o=>Number.isFinite(o.x)&&Number.isFinite(o.y)));pass('Auto-arrange journals positions locally, preserves all node content and connections, zero shared writes');
+const output=JSON.stringify({result:'PASS',checks},null,2);console.log(output);
+})().catch(e=>{console.error(e);process.exitCode=1;});

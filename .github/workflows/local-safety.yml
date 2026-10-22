@@ -1,0 +1,89 @@
+name: Local safety
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: local-safety-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  local-safety:
+    name: Local safety
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Select native Windows ZIP engine
+        run: |
+          $systemTools = Join-Path $env:SystemRoot 'System32'
+          $archiveTool = Join-Path $systemTools 'tar.exe'
+          if (-not (Test-Path -LiteralPath $archiveTool)) { throw 'Native Windows archive tool missing' }
+          $archiveVersion = & $archiveTool --version
+          if ($LASTEXITCODE -ne 0 -or $archiveVersion -notmatch 'bsdtar') { throw 'Unsupported Windows archive engine' }
+          $systemTools | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Source-only history and upload safety
+        run: node scripts/sites-ci-preflight.mjs
+      - name: Full TypeScript
+        run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Build exact checked-out commit
+        run: node scripts/local-build.mjs
+      - name: Synthetic source, snapshot and authorization regressions
+        run: |
+          New-Item -ItemType Directory -Force -Path .sites-runtime | Out-Null
+          node --experimental-vm-modules tests/sites-ci-preflight.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/sites-source-boundary.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/sites-fresh-source.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-hosted-transfer.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-hosted-activation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-normalize.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-normalize-files.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-audit.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-binary-address.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-owner-stream.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-json-stream.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-formats-integration.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-adapters.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-chunked.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-feedback-zip.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/sites-security.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Native isolated outbound-denial regression
+        run: node tests/local-worker-outbound.test.mjs
+      - name: Record evidence boundary
+        run: |
+          Write-Output 'Source-only synthetic CI; no private canonical package, real R1 import, platform credential, deployment or production DB/R2.'
+          Write-Output 'Phase18 external compiled HTTP and official Sites packager receipts are reused evidence, not CI executions.'

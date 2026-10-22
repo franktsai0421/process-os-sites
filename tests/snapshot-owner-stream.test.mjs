@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {jsonTransformStream} from '../lib/snapshot-json-stream.mjs';
+import {planOwnerStorage} from '../lib/snapshot-owner-storage.mjs';
+const encoder=new TextEncoder(),source=v=>new Blob([JSON.stringify(v)]).stream();
+const old=JSON.stringify([{id:'owner',role:'admin'}]),replacement=JSON.stringify([{id:'owner',role:'admin',password:'SYNTHETIC_TARGET_ONLY'}]);
+const run=(value,option)=>new Response(jsonTransformStream(source(value),{ownerAccountReplacement:option})).text();
+const input={platformUsers:old,note:'保留 / Giữ lại',nested:{platformUsers:old}};
+const result=JSON.parse(await run(input,{expected:old,replacement}));assert.equal(result.platformUsers,replacement);assert.equal(result.nested.platformUsers,old);assert.equal(result.note,input.note);
+const exported=JSON.parse(await run(result,null));assert.equal(JSON.parse(exported.platformUsers)[0].password,undefined);
+await assert.rejects(run({note:'no account field'},{expected:old,replacement}),/SNAPSHOT_OWNER_ACCOUNT_FIELD/);
+await assert.rejects(run(input,{expected:'[]',replacement}),/SNAPSHOT_OWNER_ACCOUNT_MISMATCH/);
+const bad=new Blob(['{"platformUsers":'+JSON.stringify(old)+',"platformUsers":'+JSON.stringify(old)+'}']).stream();await assert.rejects(new Response(jsonTransformStream(bad,{ownerAccountReplacement:{expected:old,replacement}})).text(),/SNAPSHOT_OWNER_ACCOUNT_FIELD/);
+const retained={credentials:{password:'SYNTHETIC_TARGET_ONLY'},authEpoch:3},rowFor=users=>({id:1,revision:1,updated_at:'fixture',values:JSON.stringify({platformUsers:JSON.stringify(users),maintenanceMode:'1'})});
+for(const patch of [{authMode:'demo'},{deletedAt:'fixture-deleted'}])await assert.rejects(planOwnerStorage({row:rowFor([{id:'owner',role:'admin',...patch}]),ownerId:'owner',retained}),/IMPORT_OWNER_NOT_IN_SOURCE/);
+await assert.rejects(planOwnerStorage({row:rowFor([{id:'Owner',role:'admin'},{id:'owner',role:'admin'}]),ownerId:'owner',retained}),/IMPORT_OWNER_NOT_IN_SOURCE/);
+const folded=await planOwnerStorage({row:rowFor([{id:'OWNER',role:'admin',authEpoch:0}]),ownerId:'owner',retained});assert.equal(JSON.parse(JSON.parse(folded.row.values).platformUsers)[0].id,'OWNER');
+console.log(JSON.stringify({status:'PASS_PRIVATE_OWNER_STREAM_BOUNDARIES',tests:9,realCredentials:false}));

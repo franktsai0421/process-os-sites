@@ -1,0 +1,66 @@
+.ipqcab-page{display:grid;gap:16px;color:#18383d;min-width:0}
+.ipqcab-card,.ipqcab-history,.ipqcab-issues{background:#fff;border:1px solid #c9dcd6;border-radius:8px;padding:16px;min-width:0}
+.ipqcab-page h2,.ipqcab-page h3,.ipqcab-page h4{margin:0 0 10px;color:#123d45}
+.ipqcab-page p{overflow-wrap:anywhere}
+.ipqcab-page button,.ipqcab-review button{border:1px solid #bacfc9;background:#fff;color:#123d45;border-radius:5px;padding:8px 10px;cursor:pointer;min-height:38px}
+.ipqcab-page button.signal,.ipqcab-review button[data-ab-approve]{background:#e85333;border-color:#e85333;color:#fff}
+.ipqcab-page button:disabled{opacity:.5;cursor:not-allowed}
+.ipqcab-page input:not([type=checkbox]):not([type=radio]):not([type=file]),.ipqcab-page select,.ipqcab-page textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid #abc7c3;border-radius:5px;padding:9px;background:#fff;color:#18383d;font:inherit}
+.ipqcab-page textarea{min-height:95px;resize:vertical}
+.ipqcab-page label{display:grid;gap:5px;font-weight:600}
+.ipqcab-page label:has([type=checkbox]),.ipqcab-page label:has([type=radio]){display:inline-flex;align-items:center;gap:7px}
+.ipqcab-version{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+.ipqcab-version .ipqcab-reason{width:100%}
+.ipqcab-actions{display:flex;align-items:end;flex-wrap:wrap;gap:8px}
+.ipqcab-actions label{min-width:160px}
+.ipqcab-message{background:#e7f5f0;border-left:4px solid #237466;padding:10px;margin:0}
+.ipqcab-history summary,.ipqcab-issues summary{cursor:pointer;font-weight:700}
+.ipqcab-issues p,.ipqcab-history p{border-top:1px solid #e1ece8;padding-top:9px}
+.ipqcab-issues button{margin-left:8px}
+.ipqcab-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ipqcab-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ipqcab-error-list{display:grid;gap:7px}
+.ipqcab-error{border:1px solid #d1e1dc;border-radius:6px;display:flex;align-items:center;gap:6px;padding:6px;min-width:0}
+.ipqcab-error.selected{border-color:#397f72;background:#eef8f4}
+.ipqcab-error>button:first-child{display:flex;flex:1;justify-content:space-between;gap:8px;text-align:left;min-width:0;flex-wrap:wrap;border:0;background:transparent}
+.ipqcab-item{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:11px;border:1px solid #d1e1dc;border-radius:6px;margin-top:8px;align-items:start}
+.ipqcab-item p{margin:5px 0}.ipqcab-item small{display:block;color:#456b70}
+.ipqcab-item-photos{display:flex;flex-wrap:wrap;gap:4px}.ipqcab-equipment-thumb{width:28px;height:28px;object-fit:cover;vertical-align:middle;margin-right:4px;border-radius:3px}
+.ipqcab-missing{display:block;color:#ae5b07;background:#fff3df;padding:3px 6px;border-radius:3px;margin-top:5px}
+.ipqcab-thumb{width:52px;height:48px;padding:0!important;overflow:hidden}.ipqcab-thumb img{width:100%;height:100%;object-fit:cover}
+.ipqcab-row-actions{display:flex;gap:5px;flex-wrap:wrap}
+.ipqcab-item-meta{display:grid;gap:7px;margin-top:8px;min-width:0}.ipqcab-enabled-tag{justify-self:start;border-radius:4px;padding:3px 7px;background:#e7f2ed;font-size:.75rem}
+.ipqcab-equipment-preview{display:flex;align-items:center;gap:9px;padding:8px;min-height:48px;background:#f1f7f4;border:1px solid #c7ddd4;border-radius:6px;text-decoration:none;color:#22534a;min-width:0}
+.ipqcab-equipment-preview img{width:42px;height:42px;object-fit:cover;flex:none;border-radius:4px}.ipqcab-equipment-preview>span{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}.ipqcab-equipment-preview>span>span{font-size:.8rem}
+.ipqcab-matrix-scroll{overflow:auto;max-width:100%;border:1px solid #d1e1dc;border-radius:5px}
+.ipqcab-matrix-scroll table{border-collapse:collapse;width:max-content;min-width:100%}
+.ipqcab-matrix-scroll th,.ipqcab-matrix-scroll td{border:1px solid #d1e1dc;padding:8px;text-align:center;min-width:92px}
+.ipqcab-matrix-scroll th:first-child{position:sticky;left:0;background:#f1f7f4;z-index:1;min-width:200px;text-align:left}
+.ipqcab-matrix-scroll th small{display:block;max-width:120px;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+.ipqcab-matrix-scroll input{width:22px;height:22px}
+.ipqcab-overlay,.ipqcab-viewer{position:fixed;inset:0;z-index:100050;background:#10282bad;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
+.ipqcab-viewer{z-index:100070}
+.ipqcab-dialog{width:min(860px,100%);max-height:calc(100dvh - 24px);background:#fff;border-radius:9px;display:flex;flex-direction:column;overflow:hidden}
+.ipqcab-dialog>header{background:#143e45;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.ipqcab-dialog>header h3{color:#fff;margin:0}.ipqcab-dialog>header button{color:#143e45}
+.ipqcab-dialog-body{padding:16px;overflow:auto;display:grid;gap:14px;min-height:0;overscroll-behavior:contain;overflow-anchor:none}
+.ipqcab-dialog>header,.ipqcab-dialog>footer{flex:none}
+.ipqcab-overlay{overscroll-behavior:contain}
+.ipqcab-equipment-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+@media(max-width:700px){.ipqcab-equipment-filters{grid-template-columns:1fr}.ipqcab-product-editor>div{grid-template-columns:1fr}}
+.ipqcab-dialog-body fieldset{border:1px solid #c9dcd6;border-radius:5px;display:flex;flex-wrap:wrap;gap:12px}
+.ipqcab-dialog>footer{padding:10px 16px;background:#f3f7f5;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #d1e1dc}
+.ipqcab-photo-editor,.ipqcab-rule{border:1px solid #c9dcd6;border-radius:5px;background:#f4faf7;padding:10px;display:grid;gap:8px}
+.ipqcab-photo-row{display:flex;align-items:center;gap:8px}.ipqcab-photo-row>button:first-child{padding:0;width:52px;height:50px}.ipqcab-photo-row img{width:100%;height:100%;object-fit:cover}
+.ipqcab-rule{grid-template-columns:repeat(2,minmax(0,1fr))}.ipqcab-rule>button{justify-self:start}
+.ipqcab-selected-equipment{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #c9dcd6;border-radius:5px;overflow-wrap:anywhere}
+.ipqcab-selected-equipment img,#ab-equipment-results img{width:48px;height:48px;object-fit:cover}
+#ab-equipment-results{display:grid;grid-auto-rows:max-content;align-content:start;gap:6px;max-height:55dvh;overflow:auto}
+#ab-equipment-results>button{display:flex;text-align:left;align-items:flex-start;gap:10px;min-width:0;height:auto;white-space:normal;overflow-wrap:anywhere}
+#ab-equipment-results>button>span{min-width:0;overflow-wrap:anywhere}
+#ab-equipment-results>button[hidden]{display:none}
+.ipqcab-product-editor{border:1px solid #c9dcd6;border-radius:5px;padding:10px}.ipqcab-product-editor>div{max-height:250px;overflow:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.ipqcab-product-editor label{display:grid!important;grid-template-columns:22px minmax(0,1fr);align-items:start!important;gap:10px!important;overflow-wrap:anywhere;border:1px solid #d1e1dc;border-radius:6px;padding:10px;min-height:64px;background:#fff}.ipqcab-product-editor label:has(input:checked){background:#edf7f2;border-color:#397f72}.ipqcab-product-editor label span{display:grid;gap:4px;min-width:0;font-size:13px;line-height:1.4}.ipqcab-product-editor label code{font-weight:700}.ipqcab-product-editor input{width:20px;height:20px;margin:2px 0 0;flex:none}.ipqcab-equipment-count{margin:0}
+#ab-equipment-results small{display:block}.ipqcab-viewer>div{background:#fff;padding:12px;border-radius:8px;max-width:min(96vw,960px);max-height:95dvh;text-align:center}
+.ipqcab-viewer img{display:block;max-width:100%;max-height:72dvh;object-fit:contain}
+.ipqcab-review article{border:1px solid #c9dcd6;border-radius:5px;padding:10px;margin-top:8px}.ipqcab-review article button{margin-right:8px}
+@media(max-width:700px){.ipqcab-filters{grid-template-columns:1fr}.ipqcab-item{grid-template-columns:48px minmax(0,1fr)}.ipqcab-row-actions{grid-column:1/-1}.ipqcab-error{flex-wrap:wrap}.ipqcab-error>button:first-child{flex-basis:100%}.ipqcab-rule{grid-template-columns:1fr}.ipqcab-dialog{max-height:100dvh;height:100dvh;border-radius:0}.ipqcab-overlay{padding:0}.ipqcab-dialog-body{padding-bottom:24px}.ipqcab-dialog>footer{position:sticky;bottom:0}.ipqcab-page button{min-height:44px}}

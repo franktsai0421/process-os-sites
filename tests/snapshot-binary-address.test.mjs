@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {assertBinaryAddress} from '../lib/snapshot-binary-address.mjs';
+const hash=v=>createHash('sha256').update(v).digest('hex'),bytes=Buffer.from([137,80,78,71,1,2,3,4]),type='image/png',id=hash('data:'+type+';base64,'+bytes.toString('base64')),pin={key:'delivery/media/'+id,bytes:bytes.length,sha256:hash(bytes),httpMetadata:{contentType:type}};
+const stream=(value=bytes)=>async()=>new ReadableStream({start(c){for(const byte of value)c.enqueue(new Uint8Array([byte]));c.close();}});
+await assertBinaryAddress(pin,stream());await assertBinaryAddress({...pin,key:'iqc/photos/'+hash(bytes)},stream());
+await assert.rejects(assertBinaryAddress({...pin,key:'delivery/media/'+hash(bytes)},stream()),/SNAPSHOT_MEDIA_ADDRESS_INTEGRITY/);
+await assert.rejects(assertBinaryAddress({...pin,httpMetadata:{contentType:'text/plain'}},stream()),/SNAPSHOT_MEDIA_ADDRESS_TYPE/);
+await assert.rejects(assertBinaryAddress(pin,stream(bytes.subarray(1))),/SNAPSHOT_MEDIA_ADDRESS_SIZE/);
+await assert.rejects(assertBinaryAddress({...pin,key:'iqc/photos/'+id},stream()),/NORMALIZE_BINARY_KEY_INTEGRITY/);
+await assert.rejects(assertBinaryAddress({...pin,httpMetadata:{contentType:'image/svg+xml'}},stream()),/SNAPSHOT_MEDIA_ADDRESS_TYPE/);
+console.log(JSON.stringify({status:'PASS_SYNTHETIC_BINARY_ADDRESS_CONTRACT',tests:7,realData:false,network:false}));

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi" data-process-boot>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101820" />
+    <meta name="app-build" content="2026.09.15.7100" />
+    <title>製程標準播放系統</title>
+    <style>[data-process-boot] .app-shell,[data-process-boot] #login-root{visibility:hidden}#process-boot{position:fixed;inset:0;display:grid;place-content:center;background:#f6f3ea;color:#24312d;font:18px system-ui;z-index:99999;padding:24px}#process-boot button{min-height:44px;margin-top:16px}</style>
+    <!-- Offline Local: use the existing system-font fallbacks. -->
+    <link rel="stylesheet" href="styles.css?v=20260930-comments6" />
+    <link rel="stylesheet" href="version-workflow.css?v=20260829-1425" />
+    <link rel="stylesheet" href="version-workflow-extra.css?v=20260910-5700" />
+    <link rel="stylesheet" href="permission-controls.css?v=20260907-2500" />
+    <link rel="stylesheet" href="flow-zoom.css?v=20260829-1425" />
+    <link rel="stylesheet" href="editor-version-guard.css?v=20260829-1425" />
+    <link rel="stylesheet" href="i18n.css?v=20261010-review1" />
+    <link rel="stylesheet" href="master-data.css?v=20260903-1510" />
+    <link rel="stylesheet" href="master-data-extra.css?v=20260903-1510" />
+    <link rel="stylesheet" href="master-data-validation.css?v=20260903-1510" />
+    <link rel="stylesheet" href="master-admin-ui.css?v=20261008-route-canvas-commit1" />
+    <link rel="stylesheet" href="approval-tabs.css?v=20261007-overview" />
+    <link rel="stylesheet" href="bom-search.css?v=20260903-1540" />
+    <link rel="stylesheet" href="bom-workspace.css?v=20261012-labels3" />
+    <link rel="stylesheet" href="process-equipment.css?v=20260911-6200" />
+    <link rel="stylesheet" href="dual-system.css?v=20260919-dual-system" />
+    <link rel="stylesheet" href="fqc-master.css?v=20261002-v3-zoom" />
+    <link rel="stylesheet" href="iqc-master.css?v=20260930-comments24" />
+    <link rel="stylesheet" href="routine-equipment.css?v=20260925-hierarchy" />
+    <link rel="stylesheet" href="ipqc-c.css?v=20261006-ipqc" />
+    <link rel="stylesheet" href="ipqc-ab.css?v=20260930-comments6" />
+    <script src="/process/local-asset-fallback.js"></script>
+</head>
+  <body>
+    <div id="process-boot" role="status">正在載入製程資料… / Đang tải dữ liệu quy trình…</div>
+    <div id="login-root"></div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">製</div>
+          <div><strong>製程中控</strong><span>PROCESS OS</span></div>
+        </div>
+        <nav id="main-nav" aria-label="主要功能">
+          <button class="nav-item active" data-view="dashboard"><span>▦</span>總覽</button>
+          <button class="nav-item" data-view="player"><span>▶</span>產線播放台</button>
+          <button class="nav-item" data-view="dispatch"><span>↗</span>發送介面</button>
+          <button class="nav-item" data-view="productStatus"><span>▣</span>產品製程狀態</button>
+          <button class="nav-item" data-view="approval"><span>✓</span>版本確認平台</button>
+          <button class="nav-item" data-view="editor"><span>◇</span>製程編輯台</button>
+          <button class="nav-item" data-view="data"><span>▤</span>資料後台</button>
+        </nav>
+        <div class="sidebar-foot"><span class="status-dot"></span><div><b>系統連線正常</b><small>最新版 · BUILD 2026.09.15.7100</small></div></div>
+      </aside>
+      <main>
+        <header class="topbar">
+          <button id="menu-toggle" aria-label="開啟選單">☰</button>
+          <div><p id="eyebrow">CONTROL CENTER</p><h1 id="page-title">生產總覽</h1></div>
+          <div class="top-actions"><span id="clock"></span><button class="icon-button" title="通知">◉<i>3</i></button><div class="account-wrap"><button class="avatar" id="account-button">QC</button><div class="account-menu" id="account-menu"><b id="account-name">尚未登入</b><small id="account-role"></small><button id="logout-button">登出／切換使用者</button></div></div></div>
+        </header>
+        <div id="view-root"></div>
+      </main>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="shared-state.js?v=20261014-uncertain-revert1"></script>
+    <script data-process-src="data/imported-data.js?v=20260829-1425"></script>
+    <script data-process-src="data/line-process-data.js?v=20260829-1425"></script>
+    <script data-process-src="data/line-c-master.js?v=20260903-1510"></script>
+    <script data-process-src="vendor/xlsx.full.min.js?v=20260903-1510"></script>
+    <script data-process-src="editor-line-selection.js?v=20260905-1100"></script>
+    <script data-process-src="version-return-policy.js?v=20260905-1500"></script>
+    <script data-process-src="data-safety.js?v=20260907-2500"></script>
+    <script data-process-src="master-admin-ui.js?v=20261010-review2"></script>
+    <script data-process-src="app.js?v=20261014-upload-start1"></script>
+    <script data-process-src="version-workflow.js?v=20261014-upload-player1"></script>
+    <script data-process-src="line-stage-excel.js?v=20260911-6000"></script>
+    <script data-process-src="master-page-excel.js?v=20260911-6000"></script>
+    <script data-process-src="master-review.js?v=20261012-bom-incremental3"></script>
+    <script data-process-src="approval-tabs.js?v=20261010-review1"></script>
+    <script data-process-src="shared-draft-client.js?v=20261014-review-metadata1"></script>
+    <script data-process-src="master-shared-client.js?v=20261008-route-canvas-commit1"></script>
+    <script data-process-src="master-data.js?v=20261014-read-projection1"></script>
+    <script data-process-src="process-equipment.js?v=20260911-6300"></script>
+    <script data-process-src="permission-controls.js?v=20261012-access4"></script>
+    <script data-process-src="flow-zoom.js?v=20261002-v3"></script>
+    <script data-process-src="editor-version-guard.js?v=20260919-workflow"></script>
+    <script data-process-src="withdraw-queue.js?v=20260829-1425"></script>
+    <script data-process-src="i18n.js?v=20261014-language9"></script>
+    <script data-process-src="bom-search-engine.js?v=20260903-1540"></script>
+    <script data-process-src="bom-excel.js?v=20260911-6000"></script>
+    <script data-process-src="bom-search.js?v=20260903-1630"></script>
+    <script data-process-src="bom-workspace.js?v=20261014-review-metadata3"></script>
+    <link rel="stylesheet" href="data-safety.css?v=20261014-recovery1">
+    <script data-process-src="data-safety-ui.js?v=20261014-recovery1"></script>
+    <link rel="stylesheet" href="system-upgrade.css?v=20260912-6900">
+    <script data-process-src="system-upgrade.js?v=20261006-review5"></script>
+    <link rel="stylesheet" href="version-draft-ui.css?v=20261006-review4">
+    <script data-process-src="version-draft-ui.js?v=20261012-bom-incremental3"></script>
+    <script data-process-src="process-authoring-v3.js?v=20261012-bom-incremental4"></script>
+      <script data-process-src="effective-version-notice.js?v=20261010-review1"></script>
+    <script data-process-src="fqc-excel.js?v=20260921-fqc"></script>
+    <script data-process-src="fqc-master.js?v=20261010-review1"></script>
+    <script data-process-src="iqc-master.js?v=20261010-review1"></script>
+    <script data-process-src="routine-equipment.js?v=20261014-delete-fence1"></script>
+    <link rel="stylesheet" href="tooling.css?v=20261007-2">
+    <script data-process-src="tooling.js?v=20261007-flow-2"></script>
+    <script data-process-src="quality-review-overview.js?v=20261010-review1"></script>
+    <link rel="stylesheet" href="process-ipqc.css?v=20261006-review5">
+    <script data-process-src="process-ipqc.js?v=20261006-review5"></script>
+    <script data-process-src="ipqc-c.js?v=20261010-review1"></script>
+    <script data-process-src="ipqc-ab.js?v=20261006-review5"></script>
+    <link rel="stylesheet" href="routine-fqc.css?v=20261007-operations1">
+    <script data-process-src="routine-fqc.js?v=20261014-export-read1"></script>
+    <script data-process-src="dual-system.js?v=20261010-review1"></script>
+    <link rel="stylesheet" href="process-editor.css?v=20261010-bom-search2">
+    <script data-process-src="editor-graph.js?v=20261008-compact3"></script>
+    <script data-process-src="canvas-local.js?v=20261008-local2"></script>
+    <script data-process-src="process-editor.js?v=20261010-review2-bom2"></script>
+    <link rel="stylesheet" href="interface-layout.css?v=20261014-mobile10">
+    <link rel="stylesheet" href="user-access.css?v=20261013-permission-ui2">
+    <script data-process-src="user-access.js?v=20261013-access7"></script>
+    <script src="bootstrap.js?v=20261010-access3"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
+import {classifyLocalStopEvidence,verifyPrivateLocalRuntime,declaredLocalRuntimeRoots} from '../lib/local-stop-gate.mjs';
+// Windows fixtures retain drive roots, quoted spaces and --import independently of this machine.
+const fixtureDrive=path.win32.parse(process.execPath).root;
+const root=path.win32.join(fixtureDrive,'workspace'),foreignRoot=path.win32.join(fixtureDrive,'fixture'),marker={pid:7,root,entry:'scripts/local-server.mjs',startedAt:'2026-10-12T01:00:00Z'};
+const node=(pid,entry)=>({pid,parentPid:1,name:'node.exe',command:'"'+path.win32.join(fixtureDrive,'Program Files','nodejs','node.exe')+'" --import "'+path.win32.join(fixtureDrive,'preload.mjs')+'" "'+entry+'" --port 3000',createdAt:'2026-10-12T00:59:59Z'});
+const browser={pid:7,parentPid:1,name:'msedgewebview2.exe',command:'browser',createdAt:'2026-10-13T01:00:00Z'};
+const checks=[];const check=(name,fn)=>{fn();checks.push(name);};
+check('PID reused by a newer browser permits stopped state',()=>assert.deepEqual(classifyLocalStopEvidence(root,marker,[browser]),{state:'STOPPED',pidReused:true}));
+check('Same workspace Local server still refuses',()=>assert.equal(classifyLocalStopEvidence(root,marker,[node(7,root+'/scripts/local-server.mjs')]).state,'RUNNING'));
+check('New server PID still refuses despite reused marker',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,node(8,root+'/scripts/local-server.mjs')]).state,'RUNNING'));
+check('Local startup parent refuses before marker creation',()=>assert.equal(classifyLocalStopEvidence(root,null,[node(8,root+'/scripts/local-dev.mjs')]).state,'RUNNING'));
+check('Missing creation metadata refuses',()=>assert.equal(classifyLocalStopEvidence(root,marker,[{...browser,createdAt:null}]).state,'UNKNOWN'));
+check('Missing marker root or entry refuses reused PID',()=>{assert.equal(classifyLocalStopEvidence(root,{...marker,root:null},[browser]).state,'UNKNOWN');assert.equal(classifyLocalStopEvidence(root,{...marker,entry:null},[browser]).state,'UNKNOWN');});
+check('Uninspectable Node refuses',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,{...node(8,root+'/scripts/local-server.mjs'),command:null}]).state,'UNKNOWN'));
+check('Relative Local entry refuses ambiguous workspace',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,node(8,'scripts/local-server.mjs')]).state,'UNKNOWN'));
+check('Other isolated Local parent with verified runtime and worker do not block',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,{...node(8,path.win32.join(foreignRoot,'scripts','local-server.mjs')),privateRuntimeVerified:true,verifiedRuntimeRoot:foreignRoot},{pid:9,parentPid:8,name:'workerd.exe'}]).state,'STOPPED'));
+check('Foreign script path alone cannot prove private storage',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,node(8,path.win32.join(foreignRoot,'scripts','local-server.mjs'))]).state,'UNKNOWN'));
+check('Orphan worker refuses',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,{pid:9,parentPid:99,name:'workerd.exe'}]).state,'UNKNOWN'));
+check('Conflicting process metadata refuses',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,browser]).state,'UNKNOWN'));
+if(process.platform==='win32'){
+  const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'local-stop-runtime-'));
+  const write=(rel,data)=>{const file=path.join(fixture,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,data);};
+  const entry=path.join(fixture,'scripts/local-server.mjs'),config=path.join(fixture,'.wrangler/local-only/wrangler.json'),state=path.join(fixture,'.wrangler/state');
+  write('scripts/local-server.mjs','// synthetic source');write('.wrangler/local-only/wrangler.json',JSON.stringify({d1_databases:[{binding:'DB',remote:false}],r2_buckets:[{binding:'STATE_ARCHIVE',remote:false}]}));fs.mkdirSync(state,{recursive:true});
+  const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  const runtime={pid:8,root:fixture,config,state,configSha256:sha(config),serverSha256:sha(entry),startedAt:'2026-10-12T01:00:00Z'};
+  const item=node(8,entry);const save=value=>write('.wrangler/local-only/test-runtime.json',JSON.stringify(value));
+  save(runtime);check('Filesystem runtime proof binds PID root config and state',()=>assert.equal(verifyPrivateLocalRuntime(item),true));
+  check('Relative entry needs a independently declared and verified runtime root',()=>{const relative=node(8,'./scripts/local-server.mjs');assert.equal(verifyPrivateLocalRuntime(relative),false);assert.equal(verifyPrivateLocalRuntime(relative,fixture),true);});
+  save({...runtime,root});check('Foreign entry with Main data root refuses',()=>assert.equal(verifyPrivateLocalRuntime(item),false));
+  save({...runtime,state:path.join(root,'.wrangler/state')});check('Foreign entry with conflicting state binding refuses',()=>assert.equal(verifyPrivateLocalRuntime(item),false));
+  save(runtime);check('Reused runtime PID creation refuses stale receipt',()=>assert.equal(verifyPrivateLocalRuntime({...item,createdAt:'2026-10-13T01:00:00Z'}),false));
+  save({...runtime,configSha256:'corrupt'});check('Changed runtime configuration refuses',()=>assert.equal(verifyPrivateLocalRuntime(item),false));
+  check('Runtime proof targeting Main always refuses as running',()=>assert.equal(classifyLocalStopEvidence(root,marker,[browser,{...node(8,'scripts/local-server.mjs'),privateRuntimeVerified:true,verifiedRuntimeRoot:root}]).state,'RUNNING'));
+  write('.wrangler/local-only/isolation.json',JSON.stringify({runtimeRoot:root}));check('External registry roots are not trusted',()=>assert.deepEqual(declaredLocalRuntimeRoots(fixture),[fs.realpathSync(fixture)]));
+}
+console.log(JSON.stringify({status:'PASS',checks,networkRequests:0,businessWrites:0,browserActions:0,scope:'Production evidence classifier; actual OS gate must be separately verified'}));
