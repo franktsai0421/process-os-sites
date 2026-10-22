@@ -1,7 +1,13 @@
 # Isolated Sites implementation handoff
 
 Base M1: `7f5dc57239d6db483f096d96df6bd6cdd7357f5a`.
-Current phase: [import contract and build validation](docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md).
+Current phase: [normalized initial import](docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md).
+Phase eighteen adds recipe-backed content-address reconstruction, actual consumed
+record/R2 owner storage adapters and a source-only fresh-migration projection.
+Source-specific validation receipts remain outside the checkout. Platform/source
+push, real credentials and live import remain separate and unaccepted.
+
+Historical phase seventeen follows:
 The selected test project ID is now preserved. New default-off protected initial
 import, durable chunk/semantic/copy/restore/activation ledgers and the separate
 schema-only fresh-target migration candidate have synthetic checks. Explicit

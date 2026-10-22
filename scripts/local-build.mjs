@@ -1,7 +1,8 @@
 import {spawn} from 'node:child_process';
 import {checkSitesSource} from './sites-source-check.mjs';
 import path from 'node:path';
-import {pathToFileURL} from 'node:url';
+import fs from 'node:fs';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import outputSafety from '../lib/build-output-safety.cjs';
 import {requireProgramCommit} from '../lib/sites-publication-readiness.mjs';
 
@@ -10,7 +11,15 @@ export async function runLocalBuild({spawnChild=spawn,emit=(dto)=>process.stdout
   checkSitesSource();
   const capture=outputSafety.createBuildOutputSafety();
   let child,spawnCode=null,captureFailed=false;
-  const argv=['--import',pathToFileURL(path.resolve('scripts/local-network-preload.mjs')).href,path.resolve('node_modules/vinext/dist/cli.js'),'build'];
+  // A source-only fresh-Site projection can reuse the same installed ancestor
+  // dependency tree. Node resolves the package normally; exact input bytes and
+  // version must match. No symlink, global SDK, environment override or reinstall.
+  const packageRoot=path.resolve(path.dirname(fileURLToPath(import.meta.resolve('vinext'))),'..');
+  const dependencyRoot=path.resolve(packageRoot,'..','..'),projectRoot=fs.realpathSync(process.cwd());
+  if(projectRoot!==dependencyRoot&&!projectRoot.startsWith(dependencyRoot+path.sep))throw Error('BUILD_DEPENDENCY_ROOT_MISMATCH');
+  const declared=JSON.parse(fs.readFileSync(path.join(projectRoot,'package.json'),'utf8')),installed=JSON.parse(fs.readFileSync(path.join(packageRoot,'package.json'),'utf8'));
+  if(installed.name!=='vinext'||installed.version!==declared.dependencies.vinext||!fs.readFileSync(path.join(projectRoot,'package-lock.json')).equals(fs.readFileSync(path.join(dependencyRoot,'package-lock.json'))))throw Error('BUILD_DEPENDENCY_INPUT_MISMATCH');
+  const argv=['--import',pathToFileURL(path.resolve('scripts/local-network-preload.mjs')).href,path.join(packageRoot,'dist/cli.js'),'build'];
   try { child=spawnChild(process.execPath,argv,{stdio:['inherit','pipe','pipe'],env:process.env}); }
   catch(e) { spawnCode=typeof e?.code==='string'?e.code:'OTHER_SPAWN_ERROR';const dto=capture.finish(null,null,spawnCode);emit(dto);return dto.exitCode; }
   for(const channel of ['stdout','stderr']) {

@@ -108,3 +108,10 @@ Transfer only exact reviewed source. Exclude .git, environment/auth files, .npmr
 data/R2/snapshots, node_modules, dist, .wrangler, .sites-runtime and private
 receipts. Keep the three held legacy scripts excluded without reopening them.
 Do not replay G3/C1/observer refusals or touch daily 3000, M1 or the true R1.
+# Current fresh-target import preparation
+
+The current source-only preparation is [phase eighteen](docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md).
+Use its explicit fresh-target projection for the installed official packager's
+root-drizzle contract. Do not apply archived legacy migrations to a new target,
+rewrite old applied migration history, bypass the main guard, or infer approval
+from synthetic tests. The original instructions below retain historical context.

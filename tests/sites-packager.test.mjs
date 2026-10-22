@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL,fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {materializeFreshSitesSource} from '../scripts/sites-fresh-source.mjs';
+const plugin=process.env.SITES_TEST_PLUGIN_ROOT;
+if(!plugin||!fs.existsSync(path.join(plugin,'scripts/package-site.mjs')))throw Error('SITES_INSTALLED_PACKAGER_REQUIRED');
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url))),base=fs.mkdtempSync(path.join(root,'.sites-runtime/official-packager-fixture-')),output=path.join(base,'source'),commit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+materializeFreshSitesSource({sourceRoot:root,output,programCommit:commit,projectId:'appgprj_6ad9abaff47c8191846eb9821034696b'});
+fs.mkdirSync(path.join(output,'dist/server'),{recursive:true});fs.mkdirSync(path.join(output,'dist/client'),{recursive:true});fs.mkdirSync(path.join(output,'dist/.openai'),{recursive:true});
+fs.writeFileSync(path.join(output,'dist/server/index.js'),"export default {fetch(){return new Response('synthetic packager contract fixture');}};\n");
+fs.writeFileSync(path.join(output,'dist/client/index.html'),'<title>Packager contract fixture only</title>');
+fs.copyFileSync(path.join(output,'.openai/hosting.json'),path.join(output,'dist/.openai/hosting.json'));
+const {packageSite}=await import(pathToFileURL(path.join(plugin,'scripts/package-site.mjs'))),archive=path.join(base,'NOT-FOR-DEPLOYMENT-packager-contract.tar.gz');
+await packageSite(output,archive);
+const tar=process.platform==='win32'?'C:/Windows/System32/tar.exe':'tar',names=execFileSync(tar,['-tzf',archive],{encoding:'utf8'}).trim().split(/\r?\n/);
+const sql=names.filter(n=>/^dist\/\.openai\/drizzle\/.*\.sql$/.test(n));assert.equal(sql.length,2);assert.equal(names.some(n=>n.includes('drizzle-legacy-history')),false);
+for(const name of sql){const bytes=execFileSync(tar,['-xOf',archive,name]);assert.doesNotMatch(bytes.toString(),/\b(INSERT|UPDATE|DELETE|REPLACE|DROP)\b/i);}
+assert.equal(names.includes('dist/.openai/drizzle/meta/_journal.json'),true);
+console.log(JSON.stringify({status:'PASS_OFFICIAL_PACKAGER_FRESH_MIGRATION_CONTRACT',tests:3,sourceProgramCommit:commit,schemaOnlySqlCount:sql.length,stubWorkerOnly:true,notADeployableApplicationArtifact:true,platformAccepted:false,fixtureArchive:archive}));

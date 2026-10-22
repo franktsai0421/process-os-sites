@@ -1,3 +1,18 @@
+## Sites normalized import view and target owner
+
+See [phase eighteen](../docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md). Private
+normalization recipes reconstruct canonical R2 names and references from the
+already verified Snapshot V1, preserving all source mappings/history/account
+business fields without a duplicate payload store. The manifest carries versioned
+normalization provenance and pins the real source commit and input manifest.
+No new business or operational table is introduced. Existing resource-audit
+ledgers also retain resumable target-owner object copy progress. Activation
+updates the actual __processRecords users reference or __processR2 root reference
+and advances owner authEpoch; an inline-only overlay is insufficient.
+Real source credentials are excluded; target credentials are separately configured.
+Fresh-source projection selects schema-only root drizzle for an empty target and
+archives unchanged legacy migration bytes; original applied migrations stay intact.
+
 ## Sites isolated derivative
 
 IQC's optional legacy first-Excel-import baseline is no longer a bundled business

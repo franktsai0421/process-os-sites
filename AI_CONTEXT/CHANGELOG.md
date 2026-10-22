@@ -1,3 +1,14 @@
+## Sites isolated derivative - canonical import and consumed owner storage
+
+Added a bounded recipe-backed normalization view with source/curation pins,
+current/history/feedback reference rebuilding, shared-content provenance and full
+output audit. Activation now updates consumed record/R2 owner storage through
+the resumable immutable-object writer and retains the closed gate until CAS.
+Added an explicit fresh-target source projection for the official root-drizzle
+packager without rewriting applied migration history or installing dependencies.
+See [phase eighteen](../docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md) for evidence
+boundaries and the remaining parent-controlled platform steps.
+
 ## Sites isolated derivative - protected initial import and option type repair
 
 Preserved the sole private test project ID; implemented default-off owner/origin/
