@@ -11,9 +11,9 @@ const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'process-main-guard-'));
 const work=path.join(fixture,'Unicode 測試 checkout'),remote=path.join(fixture,'remote.git');
 fs.writeFileSync(path.join(fixture,'global-git-config'),'');
 const environment={...process.env,GIT_CONFIG_GLOBAL:path.join(fixture,'global-git-config'),GIT_CONFIG_NOSYSTEM:'1',GIT_TERMINAL_PROMPT:'0'};
-let phase='start';
+let phase='start',lastGitFailure=null;
 const run=(cwd,args,input)=>spawnSync('git',args,{cwd,input,encoding:'utf8',env:environment,windowsHide:true});
-const ok=(cwd,args)=>{phase='git-'+args[0];const p=run(cwd,args);assert.equal(p.status,0);return p.stdout.trim();};
+const ok=(cwd,args)=>{phase='git-'+args[0];const p=run(cwd,args);if(p.status!==0)lastGitFailure={exitCode:p.status,startError:p.error?.code||null,category:/permission denied|access is denied|not permitted/i.test(p.stderr||'')?'PERMISSION_REFUSED':/invalid argument|invalid path|cannot mkdir|could not create/i.test(p.stderr||'')?'INVALID_FIXTURE_PATH':/template/i.test(p.stderr||'')?'TEMPLATE_CONFIGURATION':'OTHER_GIT_ERROR'};assert.equal(p.status,0);return p.stdout.trim();};
 const node=(cwd,file,args=[])=>{phase='setup';const p=spawnSync(process.execPath,[file,...args],{cwd,encoding:'utf8',env:environment,windowsHide:true});if(p.status!==0)phase+='-'+(p.stderr.match(/stage=([a-z-]+)/)?.[1]||'unknown');return p;};
 withFixtureCleanupSync(() => {
  fs.mkdirSync(work);ok(fixture,['init','--bare',remote]);ok(work,['init','-b','main']);
@@ -50,4 +50,4 @@ withFixtureCleanupSync(() => {
  ok(fixture,['clone',remote,path.join(fixture,'second-clone')]);
  assert.equal(ok(path.join(fixture,'second-clone'),['rev-parse','HEAD']),ok(work,['rev-parse','HEAD']));
  console.log('PASS: Windows-compatible local-bare push refusal, branch push, main target/delete refusal, clone/fetch/pull/commit, Unicode paths, idempotent setup and existing-hook preservation; no GitHub main push.');
-}, () => {const target=fs.realpathSync(fixture),parent=fs.realpathSync(os.tmpdir());if(path.dirname(target)!==parent||!path.basename(target).startsWith('process-main-guard-'))throw Error('Fixture cleanup verification failed');fs.rmSync(target,{recursive:true,force:true});}, (error) => {console.error(JSON.stringify({passed:false,phase,errorType:error.name,details:'Sensitive details suppressed'}));process.exitCode=1;});
+}, () => {const target=fs.realpathSync(fixture),parent=fs.realpathSync(os.tmpdir());if(path.dirname(target)!==parent||!path.basename(target).startsWith('process-main-guard-'))throw Error('Fixture cleanup verification failed');fs.rmSync(target,{recursive:true,force:true});}, (error) => {console.error(JSON.stringify({passed:false,phase,errorType:error.name,lastGitFailure,details:'Sensitive details suppressed'}));process.exitCode=1;});

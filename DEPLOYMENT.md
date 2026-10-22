@@ -1,5 +1,11 @@
 # Sites deployment preparation
 
+Current owner/source preparation:
+[default-off first owner and pinned Site-source main](docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
+This appends a fresh-only bootstrap receipt migration and supplies reviewable
+source for the exact Site remote. It does not update installed hooks or configure
+secrets. Retain the owner-private platform gate and explicit live-action approvals.
+
 Current implementation and acceptance boundaries:
 [import/build contract](docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md).
 The prior [phase-fifteen plan](docs/sites/PHASE_FIFTEEN_DEPLOYMENT_PLAN.md) is
@@ -28,8 +34,8 @@ Every Site URL is production for its Site; no staging switch.
    an ordinary local build does not select the candidate. Preserve applied SQL/
    journals and the original checkout. Old `drizzle` includes historical empty-row
    DML and lacks the new ledgers; it is not the ready fresh-Site profile.
-3. Use installed Sites 1.1.1 helpers at
-   `C:/Users/Admin/.codex/plugins/cache/openai-curated-remote/sites/1.1.1`.
+3. Use installed Sites 1.1.1 portable helpers. Resolve `<plugin-root>` from the
+   installed Sites skill and the parent task's non-secret local-helper receipt.
    Retrieve short-lived source access for the same Site only when authorized.
    `http_extra_header` credentials go from native return to session memory and
    hidden helper stdin; never chat, argv, files or persistent Git auth. A secret

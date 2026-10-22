@@ -35,6 +35,17 @@ Preserve unrelated changes and merge concurrent edits semantically. Delete docum
 
 All changes use work branches/PRs. Never directly/force push or delete main, or bypass review using Owner/admin. Frank reviews and finally merges; passing CI is insufficient. Do not merge without applicable authorization. Private GitHub Free hooks prevent mistakes, not server-side enforcement; do not change visibility, invite employees or retry paid protection.
 
+The Site-bound source repository is a separate publication destination. Its exact
+process-os-test remote/main may use the reviewed pinned source workflow only
+after the applicable per-action authorization and source approval receipt.
+Keep the main guard installed and enforce exact project/remote/commit/tree,
+expected remote state, expiry, one attempt and fast-forward ancestry. This is
+not an exception for either GitHub main or any other Site/remote, and a local
+receipt is not user authorization or a platform credential. Never create a
+checkout or change executors to avoid a guard or tool refusal. Real secrets,
+installed-hook updates, source credentials, publication and data transfer retain
+their separate authorization requirements.
+
 Do not mutate business records, seed, credentials, backups, schema/migrations, deployment access or remote environments outside the task. Production needs Frank's approval for the exact main SHA and DEPLOYMENT's applicable full/data-preserving procedure. Page publication defaults to the existing ChatGPT Site in .openai/hosting.json: retain URL/audience/bindings, publish approved merged source and verify live. Worker upload/Git merge alone is not a release.
 
 ## Safeguards and proportionate verification

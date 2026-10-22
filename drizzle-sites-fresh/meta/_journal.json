@@ -15,6 +15,13 @@
       "when": 1792651687296,
       "tag": "0001_sites_import_activation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792671383404,
+      "tag": "0002_sites_owner_bootstrap",
+      "breakpoints": true
     }
   ]
 }

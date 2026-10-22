@@ -1,5 +1,11 @@
 # Isolated Sites implementation handoff
 
+Current work: [private-test owner setup and pinned source main](docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
+The default-off owner initializer appends a schema-only one-time receipt table;
+source guard changes are reviewable source only. Existing installed hooks and
+platform settings remain unchanged. Real owner/signer/source access/publication
+still require their precise actions. Frank reviews and merges the new PR.
+
 Current source delivery: [source-only PR validation](docs/sites/PHASE_TWENTY_SOURCE_ONLY_CI.md).
 The new private repository README root is joined without rewriting the derivative
 history. The work branch's CI no longer requires an unpublished canonical data

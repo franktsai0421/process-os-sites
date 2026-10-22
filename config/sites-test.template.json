@@ -6,10 +6,13 @@
   "runtimeValues": {
     "DEMO_LOGIN_ENABLED": "false",
     "PROCESS_SESSION_REVOCATION_ENABLED": "1",
-    "PROCESS_RELEASE_DISABLED": "true"
+    "PROCESS_RELEASE_DISABLED": "true",
+    "PROCESS_OWNER_BOOTSTRAP_ENABLED": "0"
   },
   "requiredRuntimeValuesSeparately": {"PROCESS_PROGRAM_COMMIT": "Reviewed Git commit: exactly 40 lowercase hex; unset blocks build/publication preparation"},
   "applicationAuthentication": "Existing signed account session and role checks; no mode flag",
   "secretsRequiredSeparately": ["PROCESS_SESSION_SECRET"],
+  "oneTimeBootstrapSecretRequiredOnlyWhenExplicitlyEnabled": "PROCESS_OWNER_BOOTSTRAP_SECRET",
+  "bootstrapConfigurationReference": "docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md",
   "registered": false
 }

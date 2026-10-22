@@ -1,3 +1,3 @@
 #!/bin/sh
 git_dir=$(git rev-parse --absolute-git-dir) || exit 1
-exec node "$git_dir/hooks/process-main-push-guard.mjs"
+exec node "$git_dir/hooks/process-main-push-guard.mjs" "$@"
