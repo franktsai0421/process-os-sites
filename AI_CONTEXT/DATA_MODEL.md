@@ -6,12 +6,19 @@ explicit private object key/file SHA pin; unset/unavailable source refuses. No
 source object, schema or business row was created/changed, and it is not inferred
 from the R1 current data. See [phase twelve](../docs/sites/PHASE_TWELVE_PINNED_NATIVE_DIAGNOSTICS.md).
 
-Phase eleven leaves schema, migrations and real snapshot unchanged. A proposed
-hosted transfer ledger would stage descriptor-pinned 1 MiB chunks under an exact
-destination/manifest identity, with authenticated owner authorization, idempotent
-receipts/CAS and separate reconciled activation. It is a design only; no hosted
-adapter or remote import route exists and isolated-local target guards remain.
-See [runtime handoff](../docs/sites/PHASE_ELEVEN_RUNTIME_HANDOFF.md).
+The default-off hosted initial-import source now implements five operational
+ledger tables: process_snapshot_transfers, process_snapshot_target,
+process_snapshot_chunks, process_snapshot_activations and
+process_snapshot_resource_audits. They bind owner/project/target/manifest, pin
+chunk receipts and semantic/resource/multipart/row cursors, and gate activation.
+They are excluded from the three-table business snapshot. Transport chunks in
+the exact reserved process-import/v1 namespace are duplicate private operational
+payloads, excluded from later business export; unknown reserved layouts refuse.
+No real binding/schema/data was changed. A separately generated ten-table
+schema-only candidate lives in drizzle-sites-fresh; old applied drizzle history
+remains unchanged and the publication helper has not selected the new profile.
+See [current contract](../docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md); phase eleven's
+earlier design is historical. Isolated-local target guards remain unchanged.
 
 Local import staging now references the pinned Snapshot V1 chunks read-only,
 rechecking every read, instead of persisting a duplicate transfer payload. The

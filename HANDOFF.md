@@ -1,7 +1,17 @@
 # Isolated Sites implementation handoff
 
 Base M1: `7f5dc57239d6db483f096d96df6bd6cdd7357f5a`.
-Current phase: [Sites source and release handoff](DEPLOYMENT.md).
+Current phase: [import contract and build validation](docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md).
+The selected test project ID is now preserved. New default-off protected initial
+import, durable chunk/semantic/copy/restore/activation ledgers and the separate
+schema-only fresh-target migration candidate have synthetic checks. Explicit
+numeric options repair the two TS2353 errors without weakening CAS. Post-import
+export recognizes only the reserved transport V1 namespace; unknown layouts fail.
+Latest receipts are phase-seventeen files outside source, with real source/commit
+pins. Real credentials/data/platform remain untouched and unaccepted. Source main
+guard and adoption of fresh migrations still require a platform-source decision.
+
+Historical phase fifteen: [Sites source and release handoff](DEPLOYMENT.md).
 Last application build and compiled synthetic HTTP acceptance use commit
 `efaedbd4893347a968b65cfa237358ffa8821316`; this source-delivery phase changes
 documentation only and reuses those explicitly versioned results.

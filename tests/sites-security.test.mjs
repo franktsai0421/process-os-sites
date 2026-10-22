@@ -40,7 +40,7 @@ function loader(overrides={}) {
   return async relative=>{const module=await load('./'+relative);await module.evaluate();return module.namespace;};
 }
 
-await test('source-only copy excludes business dataset and old Site identity',()=>{assert.equal(checkSitesSource(root).registered,false);});
+await test('source-only copy excludes business dataset and retains the selected Site identity',()=>{const hosting=JSON.parse(fs.readFileSync(path.join(root,'.openai/hosting.json'),'utf8'));assert.equal(hosting.project_id,'appgprj_6ad9abaff47c8191846eb9821034696b');assert.equal(hosting.d1,'DB');assert.equal(hosting.r2,'STATE_ARCHIVE');assert.equal(checkSitesSource(root).registered,true);});
 await test('DEMO defaults closed; explicit opt-in still works',()=>{for(const value of [undefined,null,'',false,'false'])assert.equal(demoLoginAllowed(value),false);assert.equal(demoLoginAllowed('true'),true);});
 await test('request body size is enforced without trusting Content-Length',async()=>{await assert.rejects(boundedJson(new Request('https://fixture.invalid',{method:'POST',body:'x'.repeat(9000)})),/BODY_TOO_LARGE/);assert.deepEqual(await boundedJson(new Request('https://fixture.invalid',{method:'POST',body:'{"id":"fixture"}'})),{id:'fixture'});});
 const actor={id:'fixture-staff'};

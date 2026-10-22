@@ -1,3 +1,16 @@
+## Sites isolated derivative - protected initial import and option type repair
+
+Preserved the sole private test project ID; implemented default-off owner/origin/
+target/manifest-pinned import with resumable D1/R2 receipts, incremental semantic
+audit, multipart copy, bounded restore and gated activation. Generated a separate
+schema-only fresh-target profile without changing legacy migration history.
+Explicit numeric option types repair two TS2353 errors. Post-import export keeps
+all business objects and excludes only known duplicate internal transfer keys;
+unknown layouts refuse. Legacy R2 owner overlay and disabled owner activation
+refuse rather than falsely claiming a working login. Latest source-specific
+tests/build are separate receipts; no real credential/data/platform action or
+acceptance. See [current contract](../docs/sites/PHASE_SEVENTEEN_IMPORT_BUILD.md).
+
 ## Sites isolated derivative - source delivery preparation
 
 Added the missing deployment entry with supported portable Sites source workflow,
