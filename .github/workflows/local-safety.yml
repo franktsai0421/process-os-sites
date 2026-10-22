@@ -20,6 +20,7 @@ jobs:
       WRANGLER_SEND_METRICS: 'false'
       WRANGLER_WRITE_LOGS: 'false'
       npm_config_update_notifier: 'false'
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
     steps:
       - name: Select native Windows ZIP engine
         run: |
@@ -39,63 +40,50 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
-      - name: Canonical, history and upload safety
-        run: npm run github:preflight
-      - name: TypeScript
-        run: npx --no-install tsc --noEmit
-      - name: Build
-        run: npm run build
-      - name: Isolated Local tests
+      - name: Source-only history and upload safety
+        run: node scripts/sites-ci-preflight.mjs
+      - name: Full TypeScript
+        run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Build exact checked-out commit
+        run: node scripts/local-build.mjs
+      - name: Synthetic source, snapshot and authorization regressions
         run: |
-          npm run test:collaboration
+          New-Item -ItemType Directory -Force -Path .sites-runtime | Out-Null
+          node --experimental-vm-modules tests/sites-ci-preflight.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:demo
+          node --experimental-vm-modules tests/sites-source-boundary.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:local-schema
+          node --experimental-vm-modules tests/sites-fresh-source.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:local-init
+          node --experimental-vm-modules tests/snapshot-hosted-transfer.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:images
+          node --experimental-vm-modules tests/snapshot-hosted-activation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:canonical
+          node --experimental-vm-modules tests/snapshot-normalize.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:release
+          node --experimental-vm-modules tests/snapshot-normalize-files.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:data-merge
+          node --experimental-vm-modules tests/snapshot-audit.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:task-safety
+          node --experimental-vm-modules tests/snapshot-binary-address.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run test:portable
+          node --experimental-vm-modules tests/snapshot-owner-stream.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Existing fixture regressions
+          node --experimental-vm-modules tests/snapshot-json-stream.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-formats-integration.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-adapters.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-chunked.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/snapshot-feedback-zip.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/sites-security.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Native isolated outbound-denial regression
+        run: node tests/local-worker-outbound.test.mjs
+      - name: Record evidence boundary
         run: |
-          node scripts/test-data-safety.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-local-backup.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-shared-state-memory.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-state-media-restore.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-shared-state-rebase-guard.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-local-r2-backup.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-process-master-api.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-release-safety.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-version-return-policy.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-process-consistency.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-system-upgrade.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-language-loop.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-bom-search.cjs public/process
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-bom-excel.cjs public/process
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/test-master-admin.cjs public/process
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Output 'Source-only synthetic CI; no private canonical package, real R1 import, platform credential, deployment or production DB/R2.'
+          Write-Output 'Phase18 external compiled HTTP and official Sites packager receipts are reused evidence, not CI executions.'

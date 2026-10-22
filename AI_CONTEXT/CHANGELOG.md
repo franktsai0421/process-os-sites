@@ -1,3 +1,13 @@
+## Sites isolated derivative - source-only PR CI and history bridge
+
+Joined the private repository's initial README history without rewriting either
+root. Replaced CI's unpublished canonical-package execution dependency with
+bounded source/history scanning, exact reviewed synthetic classifications and
+negative fixtures; retained full types, real-SHA build and applicable synthetic
+permissions/import/native isolation tests. No business code, schema, dependency,
+true data or platform/security setting changes. See
+[CI evidence boundaries](../docs/sites/PHASE_TWENTY_SOURCE_ONLY_CI.md).
+
 ## Sites isolated derivative - canonical import and consumed owner storage
 
 Added a bounded recipe-backed normalization view with source/curation pins,

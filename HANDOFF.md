@@ -1,5 +1,11 @@
 # Isolated Sites implementation handoff
 
+Current source delivery: [source-only PR validation](docs/sites/PHASE_TWENTY_SOURCE_ONLY_CI.md).
+The new private repository README root is joined without rewriting the derivative
+history. The work branch's CI no longer requires an unpublished canonical data
+package. Frank alone performs the final merge; this is not Site publication.
+Exact new local/CI results and PR head are recorded in the parent task and PR.
+
 Base M1: `7f5dc57239d6db483f096d96df6bd6cdd7357f5a`.
 Current phase: [normalized initial import](docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md).
 Phase eighteen adds recipe-backed content-address reconstruction, actual consumed
