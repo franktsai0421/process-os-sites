@@ -48,8 +48,9 @@ token alone does not establish application owner identity.
 The protected /setup/import page now supplies the supported browser transport:
 normal same-origin fetch with the existing HttpOnly application session. The
 server checks exact configured owner, platform session, admin and master.export
-before rendering the page. Forged Sites headers and staff sessions do not grant
-access. No cookie export, new credential or local relay is introduced. The
+before returning the nonsecret configuration. The program shell itself contains
+no pins or file controls until that authenticated GET succeeds. Forged Sites
+headers and staff sessions do not grant access. No cookie export, new credential or local relay is introduced. The
 private platform gate remains. This code has synthetic/local acceptance only;
 actual selected-file handoff and hosted upload remain untested.
 

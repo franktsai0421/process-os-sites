@@ -22,6 +22,7 @@ async function dispatch(request:Request){
   const principal={id:actor.id,role:actor.role,sessionType:actor.sessionType,exportAllowed:await can(request,state,'master.export')};
   const config={enabled:true,projectId:hosting.project_id,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,ownerId:values.PROCESS_IMPORT_OWNER_ID};
   authorizeImport(principal,config);
+  if(request.method==='GET'&&url.searchParams.get('action')==='configuration')return reply(importPageConfiguration(values,hosting.project_id));
   const store=createHostedTransferStore({db:env.DB,bucket:env.STATE_ARCHIVE}),transfer=createHostedTransfer({store,bucket:env.STATE_ARCHIVE,config});
   const activation=createHostedActivation({transfer,store:createHostedActivationStore(env.DB),transferStore:store,db:env.DB,bucket:env.STATE_ARCHIVE,ownerId:config.ownerId});
   const id=url.searchParams.get('id')||'',action=url.searchParams.get('action'),rawVersion=url.searchParams.get('version'),expectedVersion=rawVersion===null?undefined:Number(rawVersion);

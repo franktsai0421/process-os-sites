@@ -4,7 +4,8 @@ import {openBrowserSnapshot} from '@/lib/snapshot-browser-source.mjs';
 import {prepareRecipeUpload,inspectRecipeD1Rows,assertUploadCapacity,createRecipeUploader} from '@/lib/snapshot-recipe-uploader.mjs';
 type Pins={projectId:string;origin:string;ownerId:string;targetFingerprint:string;manifestSha256:string};
 type Capacity={projectId:string;targetFingerprint:string;reference:string;checkedAt:string;r2AvailableBytes:number;d1AvailableBytes:number};
-export default function ImportClient({pins,capacity,bootstrapClosed}:{pins:Pins;capacity:Capacity|null;bootstrapClosed:boolean}){
+export type ImportConfiguration={pins:Pins;capacity:Capacity|null;bootstrapClosed:boolean};
+export default function ImportClient({pins,capacity,bootstrapClosed}:ImportConfiguration){
  const [sourceFiles,setSourceFiles]=useState<File[]>([]),[handoffFiles,setHandoffFiles]=useState<File[]>([]),[message,setMessage]=useState(''),[summary,setSummary]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[resume,setResume]=useState(false),[activate,setActivate]=useState(false);
  const abort=useRef<AbortController|null>(null);
  const folder=(node:HTMLInputElement|null)=>{node?.setAttribute('webkitdirectory','');};
