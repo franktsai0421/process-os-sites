@@ -1,5 +1,14 @@
 # Isolated Sites implementation handoff
 
+Current work: [cancelled campaign quarantine](docs/sites/CANCELLED_IMPORT.md).
+PR6 operational batching merged; a later approved retirement action archives old
+control values without deleting staging or using cancelled progress. Keep source
+validation separate from live retirement. User now requires program/data parity
+with current3000 before activation; R1/rev496 cannot establish this. Browser and
+current workstation connector are unavailable; never reconnect or retry refused
+D-drive Git/CIM actions to fill that evidence gap. Media inventory/compression
+evaluation remains local and does not alter originals or authorize old-data use.
+
 Current work: [operational import preparation](docs/sites/OPERATIONAL_IMPORT.md).
 The owner cancelled the full R1 transfer. Do not resume or activate that transfer,
 reset its budget marker or delete its staging. Prepare a separate offline view

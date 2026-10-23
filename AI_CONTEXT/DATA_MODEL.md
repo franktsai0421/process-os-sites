@@ -247,3 +247,12 @@ and the three-table Snapshot V1 schema/fingerprint remain unchanged. Existing
 targets migrate forward; no owner or business reset is implied. These counters
 do not represent measured provider storage or a billing limit. The runtime
 contract is docs/sites/IMPORT_READINESS.md.
+# Cancelled import lifecycle
+
+`process_import_retirements` (fresh append-only migration0004) stores the fenced
+old campaign's policy/counters/target/transfer snapshot and approved next pins.
+Old attempts, receipts and R2 staging remain separate from the active singleton.
+Only a pinned owner action may switch the pointer/budget after atomic fencing;
+no deletion/refund/lease expiry or account mutation. See
+[cancelled import](../docs/sites/CANCELLED_IMPORT.md). Current3000 parity must be
+resolved before selecting/activating new live data; an older R1 is not parity.

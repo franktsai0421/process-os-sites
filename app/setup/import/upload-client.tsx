@@ -10,7 +10,8 @@ type Capacity={projectId:string;targetFingerprint:string;reference:string;checke
 type Attempt=Pins&{mode:'bounded-attempt';capacityKnown:false;approvalId:string;issuedAt:string;expiresAt:string;writeBytes:number;writeCalls:number;requests:number;dbBytes:number;dbStatements:number};
 type Budget={state:string;inFlight:boolean;reason:string|null;used:{writeBytes:number;writeCalls:number;requests:number;dbBytes:number;dbStatements:number}|null};
 type Progress={stage:string;[key:string]:unknown};
-export type ImportConfiguration={pins:Pins;capacity:Capacity|null;attempt?:Attempt|null;budget?:Budget|null;bootstrapClosed:boolean};
+type Retirement={oldTransferId:string;nextTransferId:string;state:'required'|'fenced'|'retired';preservesStaging:boolean};
+export type ImportConfiguration={pins:Pins;capacity:Capacity|null;attempt?:Attempt|null;budget?:Budget|null;retirement?:Retirement|null;bootstrapClosed:boolean};
 function ProgressPanel({progress}:{progress:Progress|null}){
  const v=importProgressView(progress);if(!v)return null;
  return <section aria-label="匯入進度 / Tiến độ nhập" style={{padding:16,border:'1px solid #94a3b8',borderRadius:10,margin:'20px 0',background:'#f8fafc'}}>
@@ -23,12 +24,18 @@ function ProgressPanel({progress}:{progress:Progress|null}){
  </section>;
 }
 const controls={minHeight:48,border:'1px solid #64748b',borderRadius:7,padding:'10px 16px',margin:'6px 8px 6px 0',background:'#fff',color:'#0f172a'};
-export default function ImportClient({pins,capacity,attempt,budget,bootstrapClosed}:ImportConfiguration){
+export default function ImportClient({pins,capacity,attempt,budget,retirement,bootstrapClosed}:ImportConfiguration){
+ const [retirementState,setRetirementState]=useState(retirement);
  const [sourceFiles,setSourceFiles]=useState<File[]>([]),[handoffFiles,setHandoffFiles]=useState<File[]>([]),[message,setMessage]=useState(''),[summary,setSummary]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[resume,setResume]=useState(false),[activate,setActivate]=useState(false),[progress,setProgress]=useState<Progress|null>(null),[liveBudget,setLiveBudget]=useState(budget),[receiptUncertain,setReceiptUncertain]=useState(false);
  const abort=useRef<AbortController|null>(null),folder=(n:HTMLInputElement|null)=>{n?.setAttribute('webkitdirectory','');};
  async function open(){return openBrowserSnapshot({sourceFiles,handoffFiles,pins});}
  async function refreshBudget(){
-  try{const r=await fetch('/api/snapshots/import?action=budget-status',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('READ_UNAVAILABLE');const next:unknown=await r.json();if(next===null){setLiveBudget(null);setReceiptUncertain(false);return;}if(!next||typeof next!=='object')throw Error('READ_UNAVAILABLE');const b=next as Budget;if(!['not-started','open','stopped','complete'].includes(b.state)||typeof b.inFlight!=='boolean')throw Error('READ_UNAVAILABLE');setLiveBudget(b);setReceiptUncertain(false);}catch{setReceiptUncertain(true);}
+  try{const r=await fetch('/api/snapshots/import?action=budget-status',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('READ_UNAVAILABLE');const next:unknown=await r.json();if(next===null){setLiveBudget(null);setReceiptUncertain(false);return;}if(!next||typeof next!=='object')throw Error('READ_UNAVAILABLE');const b=next as Budget;if(!['not-started','open','stopped','complete','retirement-required'].includes(b.state)||typeof b.inFlight!=='boolean')throw Error('READ_UNAVAILABLE');setLiveBudget(b);setReceiptUncertain(false);}catch{setReceiptUncertain(true);}
+ }
+ async function retireCancelled(){
+  if(!retirementState||retirementState.state==='retired')return;setBusy(true);setReady(false);setMessage('');
+  try{const r=await fetch('/api/snapshots/import?action=retire',{method:'POST',credentials:'same-origin',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmOldTransferId:retirementState.oldTransferId})});if(!r.ok)throw Error('IMPORT_RETIREMENT_UNCONFIRMED');const value:unknown=await r.json();if(!value||typeof value!=='object')throw Error('IMPORT_RETIREMENT_UNCONFIRMED');const receipt=value as Record<string,unknown>;if(receipt.oldTransferId!==retirementState.oldTransferId||receipt.nextTransferId!==retirementState.nextTransferId||receipt.state!=='retired'||receipt.preservesStaging!==true)throw Error('IMPORT_RETIREMENT_UNCONFIRMED');setRetirementState({...retirementState,state:'retired'});setMessage('已封存取消的傳輸；原暫存保留。請對新資料包重新預檢。 / Đã cách ly lần truyền đã hủy; giữ nguyên tệp cũ. Kiểm tra lại gói mới.');}
+  catch{setReceiptUncertain(true);setMessage('IMPORT_RETIREMENT_UNCONFIRMED — 不自動重送；請先核對伺服器封存收據。 / Không tự gửi lại; kiểm tra biên nhận máy chủ.');}finally{await refreshBudget();setBusy(false);}
  }
  async function preflight(){
   setBusy(true);setReady(false);setMessage('');setProgress({stage:'preflight'});
@@ -47,6 +54,7 @@ export default function ImportClient({pins,capacity,attempt,budget,bootstrapClos
   <p>使用目前管理員登入狀態，不會要求或變更密碼。 / Dùng phiên quản trị viên hiện tại; không yêu cầu hoặc thay đổi mật khẩu.</p><p>目標 / Đích: {pins.origin}</p>
   {attempt&&<p role="status">容量未知：僅依固定伺服器預算嘗試；遇額度、付款或權限問題即停並保留待處理資料，不保證成功。 / Dung lượng chưa rõ: thử trong ngân sách cố định; dừng khi gặp giới hạn, thanh toán hoặc quyền.</p>}
   {!capacity&&!attempt&&<p role="status">尚無容量或有限預算設定，不能上傳。 / Chưa có cấu hình dung lượng hoặc ngân sách; chưa thể tải lên.</p>}
+  {retirementState&&retirementState.state!=='retired'&&<section><p role="status">取消的舊傳輸必須先封存隔離；不刪除暫存、不續傳舊包。 / Cần cách ly lần truyền đã hủy; không xóa tệp hay tiếp tục gói cũ.</p><button disabled={busy||!bootstrapClosed} onClick={retireCancelled} style={controls}>封存已取消傳輸 / Cách ly lần truyền đã hủy</button></section>}
   <ProgressPanel progress={progress}/>
   {liveBudget&&<details><summary>伺服器預算收據（不是上傳進度） / Biên nhận ngân sách, không phải tiến độ</summary><p>{liveBudget.state} {liveBudget.reason||''} {liveBudget.inFlight?'最後請求尚未收尾 / Yêu cầu cuối chưa hoàn tất':''}</p>{liveBudget.used&&<pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(liveBudget.used,null,2)}</pre>}</details>}
   {receiptUncertain&&<p role="alert">無法核對最後請求收據，暫不允許再次上傳；請勿重設或刷新來重試。 / Chưa kiểm tra được biên nhận cuối; chưa cho phép tải lại.</p>}

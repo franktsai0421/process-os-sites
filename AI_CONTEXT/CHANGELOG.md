@@ -511,3 +511,12 @@ request a new password. Unknown capacity also blocks server-side begin. Only
 synthetic handoff files were created; actual file selection/upload remain pending.
 See [import readiness](../docs/sites/IMPORT_READINESS.md) for remaining supported
 authentication, capacity/fee and real-transfer prerequisites.
+# 2026-10-23 - Cancelled campaign fencing preparation
+
+- Archive a specifically approved receiving campaign and isolate its namespace;
+  retain old staging/receipts and original owner credentials. Atomic counter/policy
+  comparison fences late writers before switching a new active pointer/budget.
+- Add lost-batch-ACK, late-provider completion, concurrent retirement and paged
+  inventory tests. Normal owner/same-origin authorization remains required.
+- New dataset activation waits for the user's current3000 parity requirement;
+  the operational R1 view is historical input, not proof of current live parity.

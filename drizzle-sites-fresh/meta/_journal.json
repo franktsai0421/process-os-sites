@@ -29,6 +29,13 @@
       "when": 1792715884411,
       "tag": "0003_sites_import_budget",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792732651715,
+      "tag": "0004_sites_import_retirement",
+      "breakpoints": true
     }
   ]
 }
