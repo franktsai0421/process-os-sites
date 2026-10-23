@@ -16,7 +16,7 @@ const {packageSite}=await import(pathToFileURL(path.join(plugin,'scripts/package
 await packageSite(output,archive);
 if(process.platform==='win32'&&!process.env.SystemRoot)throw Error('SITES_WINDOWS_SYSTEM_ROOT_REQUIRED');
 const tar=process.platform==='win32'?path.join(process.env.SystemRoot,'System32','tar.exe'):'tar',names=execFileSync(tar,['-tzf',archive],{encoding:'utf8'}).trim().split(/\r?\n/);
-const sql=names.filter(n=>/^dist\/\.openai\/drizzle\/.*\.sql$/.test(n));assert.equal(sql.length,3);assert.equal(names.some(n=>n.includes('drizzle-legacy-history')),false);
+const sql=names.filter(n=>/^dist\/\.openai\/drizzle\/.*\.sql$/.test(n));assert.equal(sql.length,4);assert.equal(names.some(n=>n.includes('drizzle-legacy-history')),false);
 for(const name of sql){const bytes=execFileSync(tar,['-xOf',archive,name]);assert.doesNotMatch(bytes.toString(),/\b(INSERT|UPDATE|DELETE|REPLACE|DROP)\b/i);}
 assert.equal(names.includes('dist/.openai/drizzle/meta/_journal.json'),true);
 console.log(JSON.stringify({status:'PASS_OFFICIAL_PACKAGER_FRESH_MIGRATION_CONTRACT',tests:3,sourceProgramCommit:commit,schemaOnlySqlCount:sql.length,stubWorkerOnly:true,notADeployableApplicationArtifact:true,platformAccepted:false,fixtureArchive:archive}));

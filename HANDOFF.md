@@ -1,13 +1,19 @@
 # Isolated Sites implementation handoff
 
 Current work: [post-login pending import and recipe upload readiness](docs/sites/IMPORT_READINESS.md).
+Incremental progress correction retains unknown capacity wording and shares the
+authoritative traffic gate with activation-status/final reply; the client never
+turns phase active alone into enabled success. No storage/auth guard is relaxed.
 The client recognizes only the exact inactive-import refusal before preloading
 private scripts. A recipe-backed resumable upload controller and read-only local
 preflight reuse the completed normalized view. A protected owner-only browser
 uploader now uses the existing same-origin session and a bounded local replay
 handoff instead of cookie extraction or a new credential. Provider quota and real
-file/transfer acceptance remain unverified; missing quota blocks begin on the
-server. No schema, owner password, signer or live setting changes. Exact checks
+file/transfer acceptance remain unverified. The verified-capacity mode remains;
+an explicitly approved bounded-attempt mode now keeps capacity unknown and uses
+durable server admission/counters rather than fabricated remaining quota. An
+append-only migration adds two control tables; no owner password, signer or live
+setting is changed by source preparation. Exact checks
 and the current PR/merge are recorded in the task; do not treat source readiness
 as successful live data import.
 

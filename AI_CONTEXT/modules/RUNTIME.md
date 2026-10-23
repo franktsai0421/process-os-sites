@@ -126,3 +126,11 @@ without claiming a verified identity. Other failures remain failures. No API,
 image, session, draft/recovery, schema or platform gate is relaxed. The separate
 recipe uploader is transport-neutral; see
 [import readiness](../../docs/sites/IMPORT_READINESS.md).
+
+The optional bounded-attempt import mode retains unknown quota, exact test-site
+pins and existing owner/admin/session/export/origin checks. Its persistent
+singleton and request ledger debit writes before execution and retain failed or
+uncertain reservations; only one writer may enter across requests. Previous
+verified-capacity behavior remains. A stopped/unresolved bounded campaign also
+keeps active-marker visibility closed. No automatic cleanup, account reset or
+paid upgrade is provided. See the same import-readiness contract for limits.
