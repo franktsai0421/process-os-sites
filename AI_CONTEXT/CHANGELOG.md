@@ -1,3 +1,15 @@
+# 2026-10-23 - Scoped offline photo references
+
+- Replace bare digest substitutions with explicit resource/module photo mapping;
+  unchanged feedback attachments retain their original checksum/size pins even
+  when identical pixels are also used in another module. Module-bound id-only
+  records and large encoded JSON retain bounded reference handling.
+- Check any preexisting optimized target regardless of inventory order. Unequal
+  bytes or business metadata refuse completion instead of losing metadata.
+- Add shared-image audit/export, both collision orders, fragmented large-state
+  and ambiguous/pin-mismatch regressions. No schema, live data, credential,
+  audience, upload or publication change is performed by this correction.
+
 # 2026-10-23 - Operational offline import preparation
 
 - Cancelled full-package direction: derive a new pinned operational view from

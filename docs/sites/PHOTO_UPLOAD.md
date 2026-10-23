@@ -38,13 +38,12 @@ synthetic activation records to reach post-import paths without disabling the
 gate. No true user session, password, media, network or remote binding is used.
 Actual Site/device visual acceptance and real-data migration are separate.
 
-Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and5
-snapshot-copy cases from actual compiled native acceptance. The earlier EACCES
-was resolved for one same-executor test through the tool's formal sandbox review,
-without changing ports/configuration, OS/firewall or guards. That run reached
-five native groups and found an invalid synthetic Content-Length declaration;
-the corrected bounded body fixture requires final exact-source validation.
-The route VM is independent evidence, not a substitute native PASS.
+Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and16
+snapshot-copy cases from the nine compiled native groups. The earlier EACCES
+was resolved for the same-executor test through the tool's formal sandbox review,
+without changing ports/configuration, OS/firewall or guards. Invalid synthetic
+Content-Length and absent feedback initialization fixtures were corrected before
+the final nine-group PASS. Route VM evidence remains separate from native PASS.
 
 `snapshot-photo-copy.mjs` writes only a new offline copy, uses the same PNG codec
 with a required independent pixel verifier, and rebuilds image keys/URLs/private
@@ -54,6 +53,19 @@ and all references before browser handoff. Failures retain an incomplete copy;
 original R1/3000 and the old candidate remain intact. PNG output is measured;
 the earlier183-PNG benchmark actually encoded lossless WebP, not PNG, and its
 88,059,514-byte saving is not a PNG-codec measurement or delivered215MB package.
+
+Offline photo rewriting is resource scoped. A digest shared with an unchanged
+feedback attachment is never globally substituted. Explicit photo keys/URLs,
+typed module photo arrays and their descriptor size/checksum fields are updated;
+id-only records inherit module context only through explicit state-record links.
+Ambiguous contexts and inconsistent descriptor pins fail. Large JSON keeps the
+existing streaming bounds; a single typed photo descriptor is bounded to32KiB.
+Before coalescing into an existing target, both source orders must pass the same
+byte/hash and complete HTTP/custom metadata comparison. Different disposition
+or custom metadata fails rather than silently dropping it; source ETags remain
+provenance in the conversion plan. Regression cases include one PNG used by
+tooling and feedback, a full hosted audit/export, both collision orders and
+fragmented encoded photo state above8MiB. They do not establish live Site QA.
 
 The owner reports current3000 unchanged. A bounded fixed-path sample of 13
 business source files in the original local tree matches M1 by SHA-256. This is

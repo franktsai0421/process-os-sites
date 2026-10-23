@@ -193,3 +193,11 @@ Six authenticated photo routes share a bounded lossless PNG upload baseline;
 see [policy and verification](docs/sites/PHOTO_UPLOAD.md). Other formats retain
 their bytes; no original media or candidate is rewritten. This local source
 work does not establish current3000 parity or authorize publication/import.
+
+PR8 review correction: offline photo references are resource/module scoped;
+unchanged feedback attachments no longer share bare-digest rewrites. Existing
+optimized targets require order-independent byte/hash/full business metadata
+equality. Sixteen synthetic copy cases and affected codecs cover these rules.
+The prior local candidate is retained but requires a corrected JSON-reference
+handoff; no live upload or activation is implied. See PHOTO_UPLOAD.md and the
+parent-task photo-review-real-audit-20261023.json receipt.
