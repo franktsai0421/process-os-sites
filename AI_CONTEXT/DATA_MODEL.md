@@ -1,5 +1,12 @@
 ## Sites normalized import view and target owner
 
+Native transport preparation uses the same handoff/manifest, chunk receipt,
+budget and retirement schemas, without adding a table or changing credentials.
+Within-request R2 concurrency remains inside one durable request/reservation;
+started writes drain before failure handling. The application capability and
+private Sites entry proposal is not implemented or enabled; see
+[native import plan](../docs/sites/NATIVE_IMPORT_PLAN.md).
+
 Operational selection is documented in [operational import](../docs/sites/OPERATIONAL_IMPORT.md).
 It changes no schema: a NEW offline candidate keeps current shared_state and
 feedback bytes plus reachable business/version records and all standalone media.

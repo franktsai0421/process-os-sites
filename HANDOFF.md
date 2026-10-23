@@ -1,5 +1,12 @@
 # Isolated Sites implementation handoff
 
+Current local preparation: [native import transport](docs/sites/NATIVE_IMPORT_PLAN.md).
+The owner closed the stalled browser sender. A read-only 10:56:30Z live receipt
+still showed open/no active request and unchanged counters. Native source reading
+and drained four-way within-request writes are local changes only; the new
+application capability/private Sites entry design awaits parent review. No new
+credential, source push, deployment or resumed business transfer is implied.
+
 Stage-two photo work extends the portable lossless-first policy to process
 editor and feedback uploads. Technical dimensions/alpha and existing JPEG/WebP
 remain; no repeated lossy canvas pass. An offline new-copy converter rebuilds
