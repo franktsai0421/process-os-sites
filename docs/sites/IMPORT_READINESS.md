@@ -77,6 +77,14 @@ This batch configures none of these live values.
 
 ## Approved bounded-attempt alternative
 
+Progress text distinguishes local fixed-budget preflight from provider capacity
+evidence: bounded success still says capacity is unknown. Activation status and
+the visibility gate share the same target/budget-completion predicate; phase
+active alone cannot report enabled traffic. Activation replies recheck after
+durable budget release, without a second request using the invalidated old owner
+cookie. The client result and success message honor that authoritative boolean.
+An unresolved/stopped gate is described as restored but still unavailable.
+
 PROCESS_IMPORT_ATTEMPT_JSON is a separate, default-absent policy. It must say
 mode bounded-attempt and capacityKnown false, pin the one test project, origin,
 Frank owner, target and normalized manifest, and include an approvalId and an

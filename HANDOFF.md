@@ -1,6 +1,9 @@
 # Isolated Sites implementation handoff
 
 Current work: [post-login pending import and recipe upload readiness](docs/sites/IMPORT_READINESS.md).
+Incremental progress correction retains unknown capacity wording and shares the
+authoritative traffic gate with activation-status/final reply; the client never
+turns phase active alone into enabled success. No storage/auth guard is relaxed.
 The client recognizes only the exact inactive-import refusal before preloading
 private scripts. A recipe-backed resumable upload controller and read-only local
 preflight reuse the completed normalized view. A protected owner-only browser

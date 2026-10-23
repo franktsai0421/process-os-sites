@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import {importPreflightMessage,importRestoreMessage} from '../lib/snapshot-import-messages.mjs';
+const tests=[];function test(name,run){run();tests.push(name);}
+test('bounded success keeps provider capacity explicitly unknown in both languages',()=>{const text=importPreflightMessage(true);assert.ok(text.includes('固定嘗試預算')&&text.includes('容量仍未知')&&text.includes('chưa rõ'));assert.ok(!text.includes('容量證據已核對'));assert.ok(text.includes('尚未上傳')&&text.includes('chưa tải lên'));});
+test('verified mode retains the capacity-evidence distinction without claiming an upload',()=>{const text=importPreflightMessage(false);assert.ok(text.includes('容量證據已核對')&&text.includes('bằng chứng dung lượng'));assert.ok(text.includes('尚未上傳'));});
+test('an active phase with traffic denied never becomes an enabled-success message',()=>{const text=importRestoreMessage({phase:'active',dataReady:true,businessTrafficEnabled:false});assert.ok(text.includes('仍未開放使用')&&text.includes('chưa được mở'));assert.ok(!text.startsWith('資料已開放使用'));});
+test('only the authoritative true flag claims traffic enabled and retains normal login guidance',()=>{const text=importRestoreMessage({phase:'active',dataReady:true,businessTrafficEnabled:true});assert.ok(text.startsWith('資料已開放使用'));assert.ok(text.includes('原密碼維持不變')&&text.includes('mật khẩu hiện tại'));});
+test('missing or nonboolean flags and incomplete results cannot report enabled traffic',()=>{for(const result of [{phase:'active',dataReady:true},{phase:'active',dataReady:true,businessTrafficEnabled:'true'},{phase:'copying',dataReady:false,businessTrafficEnabled:false}])assert.ok(!importRestoreMessage(result).startsWith('資料已開放使用'));});
+console.log(JSON.stringify({status:'PASS_SYNTHETIC_IMPORT_PROGRESS_MESSAGES',cases:tests.length,tests,network:false,realData:false}));

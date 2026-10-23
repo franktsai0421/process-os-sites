@@ -3,6 +3,7 @@ import {useRef,useState} from 'react';
 import {openBrowserSnapshot} from '@/lib/snapshot-browser-source.mjs';
 import {prepareRecipeUpload,inspectRecipeD1Rows,assertUploadCapacity,createRecipeUploader} from '@/lib/snapshot-recipe-uploader.mjs';
 import {assertAttemptPlan} from '@/lib/snapshot-attempt-policy.mjs';
+import {importPreflightMessage,importRestoreMessage} from '@/lib/snapshot-import-messages.mjs';
 
 type Pins={projectId:string;origin:string;ownerId:string;targetFingerprint:string;manifestSha256:string};
 type Capacity={projectId:string;targetFingerprint:string;reference:string;checkedAt:string;r2AvailableBytes:number;d1AvailableBytes:number};
@@ -14,9 +15,9 @@ export default function ImportClient({pins,capacity,attempt,budget,bootstrapClos
  const abort=useRef<AbortController|null>(null);
  const folder=(node:HTMLInputElement|null)=>{node?.setAttribute('webkitdirectory','');};
  async function open(){return openBrowserSnapshot({sourceFiles,handoffFiles,pins});}
- async function preflight(){setBusy(true);setReady(false);setMessage('');try{const source=await open(),plan=await prepareRecipeUpload(source,pins),rows=await inspectRecipeD1Rows(source,plan.manifest);setSummary(JSON.stringify({target:pins.projectId,...plan.summary,d1Rows:rows},null,2));if(attempt)assertAttemptPlan(plan,attempt);else assertUploadCapacity(plan,capacity);if(!bootstrapClosed)throw Error('UPLOAD_BOOTSTRAP_MUST_BE_CLOSED');setReady(true);setMessage('本機檔案與容量證據已核對，尚未上傳。 / Đã kiểm tra tệp và dung lượng, chưa tải lên.');}catch(e){setMessage(e instanceof Error?e.message:'UPLOAD_PREFLIGHT_UNAVAILABLE');}finally{setBusy(false);}}
+ async function preflight(){setBusy(true);setReady(false);setMessage('');try{const source=await open(),plan=await prepareRecipeUpload(source,pins),rows=await inspectRecipeD1Rows(source,plan.manifest);setSummary(JSON.stringify({target:pins.projectId,...plan.summary,d1Rows:rows},null,2));if(attempt)assertAttemptPlan(plan,attempt);else assertUploadCapacity(plan,capacity);if(!bootstrapClosed)throw Error('UPLOAD_BOOTSTRAP_MUST_BE_CLOSED');setReady(true);setMessage(importPreflightMessage(!!attempt));}catch(e){setMessage(e instanceof Error?e.message:'UPLOAD_PREFLIGHT_UNAVAILABLE');}finally{setBusy(false);}}
  async function upload(){setBusy(true);setReady(false);abort.current=new AbortController();try{const source=await open(),client=await createRecipeUploader({source,pins,signal:abort.current.signal,onProgress:async(p:{stage:string;sequence?:number;totalChunks?:number})=>setMessage(p.stage+(p.sequence===undefined?'':` ${p.sequence+1}/${p.totalChunks}`)),request:async(url:string,options:RequestInit)=>{if(new URL(url).origin!==location.origin||location.origin!==pins.origin)throw Error('UPLOAD_TARGET');const selected=new Headers(options.headers);selected.delete('Origin');return fetch(url,{...options,headers:selected,credentials:'same-origin',redirect:'error'});}});
-  const options={allowDataWrite:true,capacity,attempt,resume};await client.upload(options);const result=await client.restore({...options,allowActivation:activate});setMessage(result.phase==='active'?'資料已啟用；原登入將失效，請重新登入一次。 / Dữ liệu đã kích hoạt; vui lòng đăng nhập lại.':'資料已核對並還原，尚未啟用。 / Dữ liệu đã kiểm tra và khôi phục, chưa kích hoạt.');
+  const options={allowDataWrite:true,capacity,attempt,resume};await client.upload(options);const result=await client.restore({...options,allowActivation:activate});setMessage(importRestoreMessage(result));
  }catch(e){setMessage((e instanceof Error?e.message:'UPLOAD_UNAVAILABLE')+' — 已保留伺服器收據，請先核對再續傳。 / Đã giữ biên nhận; kiểm tra trước khi tiếp tục.');}finally{setBusy(false);abort.current=null;}}
  return <main style={{maxWidth:760,margin:'auto',padding:24,fontFamily:'system-ui',overflowWrap:'anywhere'}}>
   <h1>私人測試站資料匯入 / Nhập dữ liệu cho trang thử nghiệm riêng tư</h1>

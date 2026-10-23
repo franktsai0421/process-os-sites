@@ -1,5 +1,9 @@
 # 2026-10-23 — Bounded initial import preparation
 
+- Correct progress display: bounded preflight explicitly retains unknown quota;
+  activation-status, final reply and client result use the same fail-closed
+  target/budget predicate as actual data visibility. No phase-only enabled claim.
+
 - Preserve verified-capacity mode and add an explicit unknown-capacity attempt
   for the one test Site/owner/manifest. Server-owned persistent admission and
   debit counters include retries and partial/uncertain writes without refund.
