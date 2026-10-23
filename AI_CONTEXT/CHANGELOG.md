@@ -5,7 +5,14 @@
   Separate global backups offline; preserve current approval/version dependencies.
 - Audit selected payloads/references and create a small new browser handoff using
   original aliases. No source/target deletion, live reset, credential change or
-  resume of the cancelled campaign. Progress/batched transport remains pending.
+  resume of the cancelled campaign.
+- Add bounded 16-chunk/8MiB framed optional-gzip transport, server-computed durable
+  reservations and transactional receipts, with no refund or lock reset. Audit/
+  copy can process four bounded resources; single-chunk compatibility remains.
+- Display receipt-backed phase/bytes/chunks/speed and stable-sample stage ETA,
+  start sending after the first missing-page scan, and reconcile stop/error
+  receipts. Import login returns only to a fixed allowed admin destination.
+  Real hosted import and browser pixel QA remain separate from code/fixture PASS.
 
 # 2026-10-23 - Bounded initial import preparation
 

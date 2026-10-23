@@ -29,5 +29,32 @@ source, supported transport and explicitly scoped disposition of old cloud
 staging/control rows are required. Preserve the target owner verifier. Never
 silently reuse the cancelled transfer or bypass its retained in-flight marker.
 
-Progress and bounded batching are still in preparation in this work branch;
-the cancelled serial uploader is not a validated new import method.
+## Transport and progress
+
+The browser streams missing-receipt pages: it can acknowledge a batch from page
+one before scanning page two. Frames hold at most16 original chunks and8MiB
+decoded bytes. Optional gzip has the same decoded cap; unknown/truncated/extra
+frames, duplicate/out-of-order chunks and wrong hashes refuse. All hashes are
+validated before storage. A server-computed durable quote reserves batch bytes,
+R2 calls and D1 receipt statements once; existing wrapped storage consumes that
+reservation before each mutation. No refund/reset/unlock or new credential.
+Receipts insert transactionally; a partial provider failure retains its objects
+and reservation and stops the campaign. A lost client reply is reconciled read-only,
+never blindly resent. Single-chunk transport remains compatible.
+
+HTTP verification handles at most16 chunks; semantic audit/copy process up to4
+resources and8MiB per request (one larger streaming resource/multipart step stays
+bounded by its existing reader). Each cursor/version persists before continuing.
+Direct service defaults retain their old one-resource behavior.
+
+UI shows preparation, receipt scan, confirmed bytes/chunks/requests, verification,
+reference audit, materialization, database restore and activation. It never uses
+budget debit as ACK progress or advances by timer. Stable ACK samples alone may
+show an upload-stage ETA; other stages remain indeterminate when no reliable
+denominator exists. Stop/error reads back budget state without reusing an aborted
+signal and disables writes on unknown/in-flight receipts. Nothing auto-resumes.
+The import login link returns only to the fixed /setup/import route after normal
+login; arbitrary/duplicate/reserved Sites destinations remain refused.
+
+Desktop/mobile pixel QA remains unavailable while the browser tool is absent.
+Synthetic/compiled checks do not constitute the new real hosted import.
