@@ -1,5 +1,21 @@
 # Isolated Sites implementation handoff
 
+Stage-two photo work extends the portable lossless-first policy to process
+editor and feedback uploads. Technical dimensions/alpha and existing JPEG/WebP
+remain; no repeated lossy canvas pass. An offline new-copy converter rebuilds
+image/JSON/private-index/ZIP references with independent pixel verification.
+See [current photo policy](docs/sites/PHOTO_UPLOAD.md) and exact task receipts;
+earlier startup-EACCES checkpoints below are historical. One formally reviewed
+same-executor run connected and reached five native groups; the invalid-body-
+length fixture is corrected for the final compiled run. No live import/deploy.
+
+Photo work is saved on `sites/unified-photo-policy`, with no source push or live
+change. [Shared photo policy](docs/sites/PHOTO_UPLOAD.md) records 19 helper plus
+19 route fixture checks and the compiled-runtime startup EACCES blocker. Do not
+retry that connection by changing permissions/executor. Owner reports current3000
+unchanged; 13 fixed business source files match M1. No live DB comparison is
+claimed, and old backup dates alone are not evidence of changed data.
+
 Current work: [cancelled campaign quarantine](docs/sites/CANCELLED_IMPORT.md).
 PR6 operational batching merged; a later approved retirement action archives old
 control values without deleting staging or using cancelled progress. Keep source
@@ -171,3 +187,17 @@ has happened. Local derivative commits are recorded in the parent-task receipts;
 the statement above does not prohibit the already approved local source commits.
 The old R20/G3 work and refusal boundaries remain
 separate and unresolved.
+# Photo optimization in the independent derivative
+
+Six authenticated photo routes share a bounded lossless PNG upload baseline;
+see [policy and verification](docs/sites/PHOTO_UPLOAD.md). Other formats retain
+their bytes; no original media or candidate is rewritten. This local source
+work does not establish current3000 parity or authorize publication/import.
+
+PR8 review correction: offline photo references are resource/module scoped;
+unchanged feedback attachments no longer share bare-digest rewrites. Existing
+optimized targets require order-independent byte/hash/full business metadata
+equality. Nineteen synthetic copy cases and affected codecs cover these rules.
+The prior local candidate is retained but requires a corrected JSON-reference
+handoff; no live upload or activation is implied. See PHOTO_UPLOAD.md and the
+parent-task photo-review-real-audit-20261023.json receipt.

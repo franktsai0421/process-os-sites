@@ -1,3 +1,4 @@
+import {readPhotoUpload,photoUploadFailure} from '@/lib/photo-upload.mjs';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin } from '@/lib/process-state';
 
@@ -83,29 +84,8 @@ export async function PUT(request: Request) {
     const type = request.headers.get('content-type')?.split(';')[0] || '';
     if (!imageTypes.has(type))
       return Response.json({ error: '僅接受圖片檔' }, { status: 415 });
-    if (Number(request.headers.get('content-length') || 0) > 25_000_000)
-      return Response.json({ error: '圖片限 25 MB' }, { status: 413 });
-    const reader = request.body?.getReader();
-    if (!reader) return Response.json({ error: '圖片為空' }, { status: 422 });
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      size += chunk.value.byteLength;
-      if (size > 25_000_000) {
-        await reader.cancel();
-        return Response.json({ error: '圖片限 25 MB' }, { status: 413 });
-      }
-      chunks.push(chunk.value);
-    }
-    const assembled = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) {
-      assembled.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    const bytes = assembled.buffer;
+    const bytes = await readPhotoUpload(request,25_000_000);
+    const assembled = new Uint8Array(bytes);
     const signatures: Record<string, boolean> = {
       'image/png':
         assembled[0] === 137 &&
@@ -135,6 +115,7 @@ export async function PUT(request: Request) {
       });
     return Response.json({ id, url: `/api/routine-fqc/photo?id=${id}` });
   } catch (error) {
+    const failure=photoUploadFailure(error);if(failure)return failure;
     console.error('[routine-fqc] photo upload failed', error);
     return Response.json({ error: '照片未保存，請重試' }, { status: 503 });
   }

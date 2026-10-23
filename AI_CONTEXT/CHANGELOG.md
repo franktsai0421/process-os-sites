@@ -1,3 +1,15 @@
+# 2026-10-23 - Scoped offline photo references
+
+- Replace bare digest substitutions with explicit resource/module photo mapping;
+  unchanged feedback attachments retain their original checksum/size pins even
+  when identical pixels are also used in another module. Module-bound id-only
+  records and large encoded JSON retain bounded reference handling.
+- Check any preexisting optimized target regardless of inventory order. Unequal
+  bytes or business metadata refuse completion instead of losing metadata.
+- Add shared-image audit/export, both collision orders, fragmented large-state
+  and ambiguous/pin-mismatch regressions. No schema, live data, credential,
+  audience, upload or publication change is performed by this correction.
+
 # 2026-10-23 - Operational offline import preparation
 
 - Cancelled full-package direction: derive a new pinned operational view from
@@ -520,3 +532,9 @@ authentication, capacity/fee and real-transfer prerequisites.
   inventory tests. Normal owner/same-origin authorization remains required.
 - New dataset activation waits for the user's current3000 parity requirement;
   the operational R1 view is historical input, not proof of current live parity.
+# 2026-10-23 Independent Sites photo uploads
+
+Use one bounded, lossless PNG optimizer across six existing photo PUT routes,
+preserving dimensions, pixel samples, metadata and existing authorization.
+Non-PNG and special layouts keep original bytes; no schema/data migration.
+See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries.
