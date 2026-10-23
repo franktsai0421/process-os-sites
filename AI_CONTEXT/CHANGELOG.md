@@ -1,3 +1,12 @@
+# 2026-10-23 - Native import precision regressions
+
+- Cover both-first-admission nonce races (including different hashes), failed
+  intent settlement, pre-dispatch revocation, and readback across expiry.
+- Bound native inventory to128 pages of100 names within the existing512 total
+  operation ceiling. Incomplete scans refuse; existing quarantine checks remain.
+- Exercise native multi-page pollution detection and a small fixed capability
+  operation limit without changing live grants, schema, data or credentials.
+
 # 2026-10-23 - Dormant native staging importer
 
 - Add exact-target independent application capability checks and generation

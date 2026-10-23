@@ -299,6 +299,13 @@ lists at most100 existing bucket names per page to enforce the existing
 quarantine/fresh-target rule; it exposes none of those names to the client and
 cannot read those other objects or write/delete them. This audit-only inventory
 exception is explicitly part of the security review, not generic object access.
+The native path has a stricter inventory ceiling:128 pages x100 names (12,800
+names), within the overall512-operation request ceiling shared with all other
+I/O/metadata. Other operations may exhaust that total earlier. The160,000-name
+bound in the existing quarantine helper is NOT a native support promise. Page129
+is refused before provider dispatch; a truncated prefix never permits audit or
+activation. Configuration exposes these exact native limits. This is a bounded
+refusal, not a resumable large-inventory scanning architecture.
 Copy/business names, restore/business rows, activation/shared_state, general
 export, account management, begin, retirement, delete and multipart are excluded.
 
@@ -329,6 +336,26 @@ invocations in both modes; serial465ms versus four-way approximately189-192ms.
 This exposes guard overhead and shows modeled overlap only. No remote speedup,
 throughput or completion time is claimed. The old pool-only160/40ms model is
 separate evidence and does not represent this complete guarded path.
+
+## Precision regressions added after independent review
+
+Both contenders are held after prior() missed and before either admission batch
+executes, including a different-body/hash contender. Assertions require one
+request debit, one PUT, one nonce row and an open released winner lease.
+Settlement-SQL failures after a real fake-provider PUT preserve unknown, or a
+pending operation when all terminal updates fail; a new ledger reads that state
+without replay/unlock. This is a failed-settlement/reload test, not an OS process
+kill test. Revocation is injected after the durable pending CAS and before
+provider dispatch, requiring zero provider calls and denied receipt access.
+
+Readback crosses write expiry and then receipt expiry while an already-admitted
+stream is consumed. Existing I/O may settle with verified bytes; no fresh read or
+PUT may start afterwards. A stream error after expiry instead preserves unknown
+and its lock. No expiry check is relaxed to make these tests pass.
+Audit tests cover multi-page inventory, unrelated pollution on a later page,
+a deliberately small fixed capability operation limit reached during inventory,
+and the explicit native page ceiling. They assert retained state, no further
+provider list call after refusal, no activation row and no listed-name disclosure.
 
 ## Performance and reliability acceptance
 
