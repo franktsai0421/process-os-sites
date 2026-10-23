@@ -1,5 +1,12 @@
 ## Sites normalized import view and target owner
 
+Operational selection is documented in [operational import](../docs/sites/OPERATIONAL_IMPORT.md).
+It changes no schema: a NEW offline candidate keeps current shared_state and
+feedback bytes plus reachable business/version records and all standalone media.
+Only its global state_backups becomes []; the original 100 backups remain in
+the full local R1/view. This is retention separation, not source deletion or a
+reset/cleanup path for an existing hosted transfer or owner.
+
 See [phase eighteen](../docs/sites/PHASE_EIGHTEEN_NORMALIZED_IMPORT.md). Private
 normalization recipes reconstruct canonical R2 names and references from the
 already verified Snapshot V1, preserving all source mappings/history/account
