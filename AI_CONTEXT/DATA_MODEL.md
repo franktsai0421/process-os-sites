@@ -1,5 +1,12 @@
 ## Sites normalized import view and target owner
 
+Native transport preparation uses the same handoff/manifest, chunk receipt,
+budget and retirement schemas, without adding a table or changing credentials.
+Within-request R2 concurrency remains inside one durable request/reservation;
+started writes drain before failure handling. The application capability and
+private Sites entry proposal is not implemented or enabled; see
+[native import plan](../docs/sites/NATIVE_IMPORT_PLAN.md).
+
 Operational selection is documented in [operational import](../docs/sites/OPERATIONAL_IMPORT.md).
 It changes no schema: a NEW offline candidate keeps current shared_state and
 feedback bytes plus reachable business/version records and all standalone media.
@@ -256,3 +263,17 @@ Only a pinned owner action may switch the pointer/budget after atomic fencing;
 no deletion/refund/lease expiry or account mutation. See
 [cancelled import](../docs/sites/CANCELLED_IMPORT.md). Current3000 parity must be
 resolved before selecting/activating new live data; an older R1 is not parity.
+
+## Dormant native staging control metadata
+
+Append-only fresh migration0005 adds process_import_capabilities (digest, exact
+pins, owner epoch/generation, bounded windows/counters and existing-chunk
+baseline), process_import_native_requests (capability+nonce, immutable request
+digest/lease and outcome) and process_import_native_operations (per staged
+provider/receipt operation planned/pending/succeeded/failed/unknown state).
+These three operational tables contain no business rows, raw key, password or
+session signer. The local fresh schema has17 tables; the real Site remains on
+its previous14-table schema. No prior migration is edited. The default-off
+Authorization path refuses mixed cookies and grants no normal user session.
+See [native contract](../docs/sites/NATIVE_IMPORT_PLAN.md); live enablement is
+held for independent security review and exact credential/action approval.

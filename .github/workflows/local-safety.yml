@@ -127,6 +127,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Native isolated outbound-denial regression
         run: node tests/local-worker-outbound.test.mjs
+      - name: Dormant native staging authority and synthetic transport
+        run: |
+          node --test tests/snapshot-native-capability.test.mjs tests/snapshot-native-intents.test.mjs tests/snapshot-native-handler.test.mjs tests/snapshot-native-input.test.mjs tests/snapshot-native-source.test.mjs tests/snapshot-native-transport.test.mjs tests/snapshot-native-performance.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled application owner setup with synthetic nonpersistent bindings
         run: node tests/sites-owner-bootstrap-native.test.mjs
       - name: Compiled root entry with synthetic nonpersistent bindings
@@ -144,6 +148,8 @@ jobs:
           Write-Output 'Bounded attempt evidence is synthetic only; no live upload or spending authority.'
       - name: Compiled owner-approved cancelled campaign quarantine
         run: node --experimental-vm-modules tests/sites-retirement-native.test.mjs
+      - name: Compiled dormant native staging capability with fake storage only
+        run: node tests/sites-native-capability-runtime.test.mjs
       - name: Compiled authenticated photo uploads with synthetic nonpersistent bindings
         run: node tests/photo-upload-native.test.mjs
       - name: Record final evidence boundary

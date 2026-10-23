@@ -1,3 +1,26 @@
+# 2026-10-23 - Native import precision regressions
+
+- Cover both-first-admission nonce races (including different hashes), failed
+  intent settlement, pre-dispatch revocation, and readback across expiry.
+- Bound native inventory to128 pages of100 names within the existing512 total
+  operation ceiling. Incomplete scans refuse; existing quarantine checks remain.
+- Exercise native multi-page pollution detection and a small fixed capability
+  operation limit without changing live grants, schema, data or credentials.
+
+# 2026-10-23 - Dormant native staging importer
+
+- Add exact-target independent application capability checks and generation
+  revocation, durable nonce/request/provider intents, conservative unknown
+  outcomes and expiry-safe admitted metadata settlement. No normal session is
+  fabricated; copy, restore and activation remain excluded.
+- Read back previously receipted chunks before staging new ones. Direct fixed
+  folders and bounded pipe input replace browser selection for the dormant CLI;
+  request/registration deadlines, cancellation and receipt-only reconciliation
+  do not automatically retry an uncertain write or clear its lease.
+- Add local synthetic authority, provider, partial-effect, pipe and guarded
+  latency-model tests. Migration0005 and native runtime flags are NOT applied
+  remotely; security review and real credential approval remain required.
+
 # 2026-10-23 - Scoped offline photo references
 
 - Replace bare digest substitutions with explicit resource/module photo mapping;

@@ -1,5 +1,19 @@
 # Isolated Sites implementation handoff
 
+Current local preparation: [native import transport](docs/sites/NATIVE_IMPORT_PLAN.md).
+The owner closed the stalled browser sender. A read-only 10:56:30Z live receipt
+still showed open/no active request and unchanged counters. Native source reading
+and drained four-way within-request writes are local changes only; the new
+application capability/private Sites entry design awaits parent review. No new
+credential, source push, deployment or resumed business transfer is implied.
+
+The same branch now includes a Node CLI preflight/runner structure and guarded
+injected transport. Cancellation/deadlines freeze further sends and perform
+separate bounded read-only reconciliation; no provider, credential intake or
+new hosted auth route is installed. See the proposed capability/nonce/revocation
+protocol and explicit unknown official Sites entry-token lifetime in the plan.
+The owner wants fixed-folder automatic import, not renewed browser file picking.
+
 Stage-two photo work extends the portable lossless-first policy to process
 editor and feedback uploads. Technical dimensions/alpha and existing JPEG/WebP
 remain; no repeated lossy canvas pass. An offline new-copy converter rebuilds
@@ -201,3 +215,14 @@ equality. Nineteen synthetic copy cases and affected codecs cover these rules.
 The prior local candidate is retained but requires a corrected JSON-reference
 handoff; no live upload or activation is implied. See PHOTO_UPLOAD.md and the
 parent-task photo-review-real-audit-20261023.json receipt.
+
+# Native staging importer: local implementation, live HOLD
+
+The `sites/native-import-transport` branch adds default-off capability/nonce/
+operation metadata and an explicit pipe-only CLI using the existing fixed
+handoff directories. See [current native contract](docs/sites/NATIVE_IMPORT_PLAN.md)
+for the three-table migration0005, <=4h write/<=5h receipt windows, baseline
+readback, unknown-effect rules and exact staging-only scope. No live schema,
+credential, upload, audience, owner password or deployment has changed.
+Security architecture requires independent review and informed per-action
+credential approval before enabling. Copy/restore/activate are excluded.
