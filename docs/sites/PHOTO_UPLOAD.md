@@ -38,7 +38,7 @@ synthetic activation records to reach post-import paths without disabling the
 gate. No true user session, password, media, network or remote binding is used.
 Actual Site/device visual acceptance and real-data migration are separate.
 
-Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and16
+Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and18
 snapshot-copy cases from the nine compiled native groups. The earlier EACCES
 was resolved for the same-executor test through the tool's formal sandbox review,
 without changing ports/configuration, OS/firewall or guards. Invalid synthetic
@@ -57,6 +57,11 @@ the earlier183-PNG benchmark actually encoded lossless WebP, not PNG, and its
 Offline photo rewriting is resource scoped. A digest shared with an unchanged
 feedback attachment is never globally substituted. Explicit photo keys/URLs,
 typed module photo arrays and their descriptor size/checksum fields are updated;
+the actual collections are `photos`, `mediaItems`, `standardPhotos` and
+`methodPhotos`, plus the equipment `photoId` scalar. Ordinary business row ids
+are never treated as photo references. Equipment snapshots keep the equipment
+namespace even when embedded in another module; explicit photo URLs take
+precedence over inferred containing-module context.
 id-only records inherit module context only through explicit state-record links.
 Ambiguous contexts and inconsistent descriptor pins fail. Large JSON keeps the
 existing streaming bounds; a single typed photo descriptor is bounded to32KiB.
