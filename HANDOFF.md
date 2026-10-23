@@ -215,3 +215,14 @@ equality. Nineteen synthetic copy cases and affected codecs cover these rules.
 The prior local candidate is retained but requires a corrected JSON-reference
 handoff; no live upload or activation is implied. See PHOTO_UPLOAD.md and the
 parent-task photo-review-real-audit-20261023.json receipt.
+
+# Native staging importer: local implementation, live HOLD
+
+The `sites/native-import-transport` branch adds default-off capability/nonce/
+operation metadata and an explicit pipe-only CLI using the existing fixed
+handoff directories. See [current native contract](docs/sites/NATIVE_IMPORT_PLAN.md)
+for the three-table migration0005, <=4h write/<=5h receipt windows, baseline
+readback, unknown-effect rules and exact staging-only scope. No live schema,
+credential, upload, audience, owner password or deployment has changed.
+Security architecture requires independent review and informed per-action
+credential approval before enabling. Copy/restore/activate are excluded.

@@ -32,14 +32,15 @@ the cause of the recorded 401.
   existing folders, bounded to 16 MiB metadata / 1 MiB chunks. It reuses all
   browser handoff pin, alias, checksum and incomplete-package checks. No payload
   copy, credential lookup or global fetch is installed. A trusted caller must
-  provide the transport; this is not yet a usable authenticated remote CLI.
+  provide the transport. The new dormant pipe-only staging CLI and its remaining
+  live approval gates are described below.
 - A single batch's R2 puts use four workers within the same durable reservation.
   Every mutation still checks the existing durable fence. On failure, no new
   work is scheduled and already-started writes are awaited before budget failure
   handling. Receipts are written only after every put succeeds. No multi-request
   concurrency, extra budget, refund, deletion or changed activation rule.
 
-## Authorization design requiring parent review before implementation
+## Authorization design requiring independent review before enabling
 
 Sites native tools do not expose general business D1/R2 bulk import. Source Git
 credentials are not data credentials. A standalone client needs BOTH:
@@ -68,10 +69,11 @@ before any data mutation. SIGINT/deadlines stop further sends; after an uncertai
 write, bounded read-only reconciliation is required before an explicit resume.
 No automatic retry for quota/payment/permission, auth or uncertain writes.
 
-## Proposed capability protocol: NOT implemented or approved
+## Historical design review record at 1a72a212
 
-Use no general OAuth/session replacement. The following concrete proposal needs
-parent review before auth/schema implementation or any real credential issue:
+The following record describes the gaps at that commit. Local implementation is
+now authorized and documented below; enabling it or issuing real credentials
+still requires independent security review and informed action approval.
 
 - The official `sites_generate_siwc_bypass_token` accepts only project_id and
   returns a bearer token for `OAI-Sites-Authorization`. It creates/rotates the
@@ -227,9 +229,106 @@ https://developers.cloudflare.com/d1/observability/debug-d1/
 https://developers.cloudflare.com/r2/api/workers/workers-api-reference/
 
 Auth/schema, intent reconciliation and expiry-safe settlement need independent
-review and informed user approval. These are HOLD conditions for real transfer;
-ordinary PR permission does not approve them. Local code currently only narrows
-native staging scope and tests its lack of business side effects.
+review and informed user approval before enabling. These remain HOLD conditions
+for real transfer; ordinary PR permission does not approve them.
+
+## Current local implementation: dormant, synthetic validation only
+
+`0005_sites_native_import.sql` adds three operational tables: capabilities,
+native requests, native operations. Existing fourteen hosted tables and applied
+migrations are unchanged. The fresh local projection contains seventeen tables;
+no migration or grant has been applied to the real Site.
+
+`PROCESS_NATIVE_IMPORT_ENABLED` defaults off. An Authorization header cannot
+fall back to an owner cookie; mixed identities are refused. The fixed runtime
+`PROCESS_NATIVE_IMPORT_GRANT_JSON` contains only id/digest, owner authEpoch,
+issue/write/read deadlines and bounded request/operation limits, never raw keys.
+Registration proves that independent key and creates its fixed metadata once;
+it cannot change policy, renew, reset counters or revive a revoked capability.
+Neither this endpoint nor the CLI generates a key. The normal owner login and
+Frank verifier are unchanged. Full revoke is an administrative generation-CAS
+primitive, not a capability-authorized endpoint or an automatic platform-token
+rotation. No actual revocation/configuration has been performed.
+
+The write window is configurable up to T0+4h; receipt-only access is separately
+configurable up to T0+5h. Full revocation, owner disable/role/export/authEpoch
+changes deny both. These are application limits, NOT the official Sites entry
+bearer's expiry. The latter's lifetime and immediate revoke/disable remain
+unverified. Only create/rotation is exposed by the currently inspected tool;
+absence of another tool is not proof that the platform has no other facility.
+
+Each mutating request has an immutable canonical digest, random UUID nonce and
+durable request/lease generation. Same nonce reads original status only; changed
+body/action refuses. Before provider I/O, bounded operation metadata records the
+kind/key/size/hash and pending intent. States are planned, pending, succeeded,
+failed-before-invocation or unknown. R2 conditional PUT success requires the
+provider SHA256 acknowledgement or bounded object readback/hash; a null PUT is
+not success without readback. Generic provider or metadata-ACK loss stays unknown.
+Exact snapshot receipt/audit D1 mutations have their own intents too. Durable
+control-ledger writes are bounded reservations, not recursively recorded as
+provider operations. Physical internal retries/billing remain unknown.
+
+Before each new provider operation the authority, expiry, pins, owner eligibility,
+request generation and durable lease are rechecked. Already-admitted I/O and
+its exact allowlisted operational metadata may settle after expiry/revocation;
+that internal closure cannot issue another PUT, modify business tables, reopen a
+lock or grant expired receipt access. A failed/unknown operation retains the
+campaign lock and debits. No timeout unlock or refund exists.
+
+Before any new chunk write, `POST reconcile-existing` reads back all previously
+receipted chunks in pages of at most sixteen, with at most four concurrent reads,
+and validates the pinned manifest, size and hash. Registration pins the original
+receipt count, transfer version and chunk count; changes between pages refuse.
+Only an exact complete baseline permits batch/verify/audit. Missing or conflicting
+objects stop without inferring that an old incomplete provider operation failed.
+This is implemented locally; the real forty batches have NOT been read back.
+
+GET request-status is capability/nonce scoped, at most64 operations per page,
+with authoritative grouped counts and no object names or raw payloads. GET
+object-status probes only an existing PUT intent's exact staged key/size/hash;
+it increments the operational read meter and leaves the original state and lock
+unchanged. Two matching observations do not convert unknown to succeeded.
+Full revoke/read expiry denies these diagnostics. The client makes only two
+bounded GETs after a stopped request (budget, then exact nonce receipt), with
+ten-second deadlines each, after the120-second request deadline. It does not
+automatically retry even when a fully completed request is proved.
+
+Writes are confined to `process-import/v1/<fixed transfer>/chunks/cN` and
+allowlisted snapshot control metadata. Internal semantic audit additionally
+lists at most100 existing bucket names per page to enforce the existing
+quarantine/fresh-target rule; it exposes none of those names to the client and
+cannot read those other objects or write/delete them. This audit-only inventory
+exception is explicitly part of the security review, not generic object access.
+Copy/business names, restore/business rows, activation/shared_state, general
+export, account management, begin, retirement, delete and multipart are excluded.
+
+The CLI accepts `--inspect` as before. The dormant write entry is
+`--stage-existing --credentials-stdin --ack-reviewed-staging-only`, followed by
+the same seven nonsecret source/handoff/project/origin/owner/target/manifest
+arguments. Input must be a pipe (not TTY), at most8192 bytes, within30seconds,
+containing exactly capabilityId/applicationToken/siteEntryToken/transferId.
+It never reads a credential file/environment, cookie jar or password. SIGINT
+stops new sends; provider errors become fixed codes. JavaScript strings and
+platform/tool internal transport are not promised to be cryptographically wiped
+or unlogged; the program never prints or persists them. The flag is an explicit
+execution guard, not a substitute for informed credential approval.
+
+The client opens the two existing verified directories directly; no media copy
+or new data package is needed. Registration has a separate ten-second bounded
+response deadline and is attempted once. A configuration handshake, existing
+object reconciliation, missing-chunk staging and integrity verification follow.
+Its final status is `NATIVE_STAGING_VERIFIED_NOT_RESTORED`, dataReady:false and
+businessTrafficEnabled:false. Semantic audit is implemented in the scoped server
+and covered by the fixture; the current CLI does not automatically run audit,
+restore or activation. Remote quota/payment/permission/auth/uncertainty stop it.
+
+Local tests exercise the actual authority/intent SQL plus synthetic HTTP/provider
+and pipe-to-fixed-folder flow. The guarded delay model includes D1 and owner
+lookups (1ms each) and R2 PUT (10ms): sixteen64KiB puts used342 modeled D1
+invocations in both modes; serial465ms versus four-way approximately189-192ms.
+This exposes guard overhead and shows modeled overlap only. No remote speedup,
+throughput or completion time is claimed. The old pool-only160/40ms model is
+separate evidence and does not represent this complete guarded path.
 
 ## Performance and reliability acceptance
 
