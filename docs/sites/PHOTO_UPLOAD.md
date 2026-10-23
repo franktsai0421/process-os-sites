@@ -38,7 +38,7 @@ synthetic activation records to reach post-import paths without disabling the
 gate. No true user session, password, media, network or remote binding is used.
 Actual Site/device visual acceptance and real-data migration are separate.
 
-Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and18
+Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and19
 snapshot-copy cases from the nine compiled native groups. The earlier EACCES
 was resolved for the same-executor test through the tool's formal sandbox review,
 without changing ports/configuration, OS/firewall or guards. Invalid synthetic
@@ -63,8 +63,11 @@ are never treated as photo references. Equipment snapshots keep the equipment
 namespace even when embedded in another module; explicit photo URLs take
 precedence over inferred containing-module context.
 id-only records inherit module context only through explicit state-record links.
-Ambiguous contexts and inconsistent descriptor pins fail. Large JSON keeps the
-existing streaming bounds; a single typed photo descriptor is bounded to32KiB.
+Ambiguous contexts and inconsistent descriptor pins fail. Large JSON uses two
+bounded passes over the pinned source: collect direct descriptor scalars, then
+apply their resolved plans. Large inline content is streamed, not buffered as
+one descriptor; the index is limited to100,000 descriptors and scalar fields to
+4,096 characters. Long explicit src strings remain explicit, unmodified media.
 Before coalescing into an existing target, both source orders must pass the same
 byte/hash and complete HTTP/custom metadata comparison. Different disposition
 or custom metadata fails rather than silently dropping it; source ETags remain
