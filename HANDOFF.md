@@ -171,3 +171,9 @@ has happened. Local derivative commits are recorded in the parent-task receipts;
 the statement above does not prohibit the already approved local source commits.
 The old R20/G3 work and refusal boundaries remain
 separate and unresolved.
+# Photo optimization in the independent derivative
+
+Six authenticated photo routes share a bounded lossless PNG upload baseline;
+see [policy and verification](docs/sites/PHOTO_UPLOAD.md). Other formats retain
+their bytes; no original media or candidate is rewritten. This local source
+work does not establish current3000 parity or authorize publication/import.

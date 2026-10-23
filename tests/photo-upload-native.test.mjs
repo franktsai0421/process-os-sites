@@ -1,0 +1,40 @@
+// Compiled application, normal synthetic sessions, ephemeral D1/R2, denied outbound.
+// Never connects to a Site, production storage, port 3000 or a user's browser.
+import assert from 'node:assert/strict';
+import {scryptSync,createHash,randomBytes} from 'node:crypto';
+import sharp from 'sharp';
+import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+import {pngFixture} from './photo-fixtures.mjs';
+import {accessKeys} from '../public/process/access-policy.mjs';
+const origin='https://photos.synthetic.invalid',modules=['iqc','ipqc-ab','ipqc-c','routine-equipment','routine-fqc','tooling'];
+const tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false};
+let f,stage='startup';const sha=b=>createHash('sha256').update(b).digest('hex');
+async function test(name,fn){stage=name;await fn();tests.push(name);}
+try{
+ f=await createRootEntryFixture({syntheticBindings:{PROCESS_SESSION_SECRET:randomBytes(32).toString('hex')}});
+ const bucket=await f.mf.getR2Bucket('STATE_ARCHIVE'),input=pngFixture({filter:'all',alpha:true});
+ const password='synthetic-photo-password',salt='29'.repeat(24),verifier='scrypt$32768$8$3$'+salt+'$'+scryptSync(password,Buffer.from(salt,'hex'),64,{N:32768,r:8,p:3,maxmem:64*1024*1024}).toString('hex');
+ const denied=Object.fromEntries(accessKeys.map(k=>[k,false]));
+ const users=[{id:'frank',role:'admin'},{id:'blocked',role:'staff',accessOverrides:denied},{id:'viewer',role:'staff',accessOverrides:{...denied,'iqc.view':true}}].map(u=>({...u,enabled:true,authEpoch:0,passwordHash:verifier}));
+ let values={platformUsers:JSON.stringify(users),maintenanceMode:'0',routineFqcEnabled:'1'};
+ await f.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,0,?,?)').bind(JSON.stringify(values),'synthetic').run();
+ async function request(module,{method='GET',cookie='',headers={},body,id='a'.repeat(64)}={}){return f.mf.dispatchFetch(origin+'/api/'+module+'/photo?id='+id,{method,headers:{Origin:origin,...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'image/png'}:{}),...headers},...(body?{body}:{}),redirect:'manual'});}
+ async function login(id){const r=await f.mf.dispatchFetch(origin+'/api/platform-login',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({id,password})});assert.equal(r.status,200);const cookie=(r.headers.get('Set-Cookie')||'').split(';')[0];assert.ok(cookie);return cookie;}
+ await test('inactive import target rejects all six photo writes before storage',async()=>{for(const module of modules){const r=await request(module,{method:'PUT',body:input});assert.equal(r.status,503);assert.equal((await r.json()).error,'IMPORT_TARGET_NOT_ACTIVE');}assert.equal((await bucket.list()).objects.length,0);});
+ // Synthetic activation fixture only: exercise the normal post-import routes
+ // without disabling or modifying the production gate.
+ await f.db.prepare('INSERT INTO process_snapshot_target(id,target,transfer_id) VALUES(1,?,?)').bind('synthetic-target','synthetic-transfer').run();
+ await f.db.prepare("INSERT INTO process_snapshot_activations(transfer_id,phase,version,audit_cursor,copy_cursor,db_cursor,bootstrap_sha) VALUES(?,'active',1,0,0,0,?)").bind('synthetic-transfer','a'.repeat(64)).run();
+ const owner=await login('frank'),blocked=await login('blocked'),viewer=await login('viewer');
+ const oldKey='tooling/photos/'+sha(input);await bucket.put(oldKey,input,{httpMetadata:{contentType:'image/png'}});
+ await test('anonymous forged-header cross-origin and denied-role requests cannot write or read',async()=>{for(const module of modules){for(const cookie of ['',blocked]){assert.equal((await request(module,{cookie})).status,403);assert.equal((await request(module,{method:'PUT',cookie,body:input})).status,403);}assert.equal((await request(module,{method:'PUT',headers:{'oai-authenticated-user-id':'frank'},body:input})).status,403);assert.equal((await request(module,{method:'PUT',cookie:owner,headers:{Origin:'https://other.synthetic.invalid'},body:input})).status,403);}assert.equal((await bucket.list()).objects.length,1);});
+ const saved=new Map();
+ await test('all six compiled PUT/GET routes store smaller PNG with identical pixels and content-addressed URLs',async()=>{const expected=await sharp(input).ensureAlpha().raw().toBuffer();for(const module of modules){const started=Date.now(),r=await request(module,{method:'PUT',cookie:owner,body:input});assert.equal(r.status,200);const dto=await r.json(),get=await request(module,{cookie:owner,id:dto.id}),bytes=Buffer.from(await get.arrayBuffer());assert.equal(get.status,200);assert.equal(get.headers.get('Content-Type'),'image/png');assert.equal(get.headers.get('Cache-Control'),'no-store');assert.equal(get.headers.get('X-Content-Type-Options'),'nosniff');assert.ok(bytes.length+1024<input.length);assert.equal(dto.id,sha(bytes));assert.equal(dto.url,'/api/'+module+'/photo?id='+dto.id);assert.deepEqual(await sharp(bytes).ensureAlpha().raw().toBuffer(),expected);assert.equal((await sharp(bytes).metadata()).width,512);saved.set(module,dto.id);report[module]={inputBytes:input.length,storedBytes:bytes.length,elapsedMs:Date.now()-started};}});
+ await test('idempotent uploads do not duplicate objects or overwrite an existing original',async()=>{const before=(await bucket.list()).objects.length;for(const module of modules){const r=await request(module,{method:'PUT',cookie:owner,body:input});assert.equal(r.status,200);assert.equal((await r.json()).id,saved.get(module));}assert.equal((await bucket.list()).objects.length,before);assert.deepEqual(Buffer.from(await (await bucket.get(oldKey)).arrayBuffer()),input);});
+ await test('employee module read permission does not grant submit or unrelated photo access',async()=>{assert.equal((await request('iqc',{cookie:viewer,id:saved.get('iqc')})).status,200);assert.equal((await request('iqc',{method:'PUT',cookie:viewer,body:input})).status,403);assert.equal((await request('tooling',{cookie:viewer,id:saved.get('tooling')})).status,403);});
+ await test('bad formats corrupt PNG and original module limits fail without new storage',async()=>{const before=(await bucket.list()).objects.length;for(const module of modules){assert.equal((await request(module,{method:'PUT',cookie:owner,headers:{'Content-Type':'text/plain'},body:input})).status,415);assert.equal((await request(module,{method:'PUT',cookie:owner,body:Buffer.from('invalid')})).status,415);const corrupt=Buffer.from(input);corrupt[corrupt.length-5]^=1;assert.equal((await request(module,{method:'PUT',cookie:owner,body:corrupt})).status,422);const limit=['tooling','routine-fqc'].includes(module)?25_000_000:5_000_000;assert.equal((await request(module,{method:'PUT',cookie:owner,headers:{'Content-Length':String(limit+1)},body:input})).status,413);}assert.equal((await bucket.list()).objects.length,before);});
+ await test('FQC feature and maintenance protections retain their existing failures',async()=>{values.routineFqcEnabled='0';await f.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').bind(JSON.stringify(values)).run();assert.equal((await request('routine-fqc',{method:'PUT',cookie:owner,body:input})).status,404);values.routineFqcEnabled='1';values.maintenanceMode='1';await f.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').bind(JSON.stringify(values)).run();assert.equal((await request('routine-fqc',{method:'PUT',cookie:owner,body:input})).status,503);});
+ report.status='PASS_COMPILED_SYNTHETIC_PHOTOS';report.buildEntrySha256=f.buildEntrySha256;
+}catch(e){report.status='FAIL_COMPILED_SYNTHETIC_PHOTOS';report.failedStage=stage;report.errorType=e.constructor.name;if(typeof e.actual==='number')report.actual=e.actual;if(typeof e.expected==='number')report.expected=e.expected;if(/^[A-Z_]+$/.test(e.message))report.code=e.message;}
+finally{if(f)await f.close();report.disposed=true;report.tests=tests;report.cases=tests.length;}
+console.log(JSON.stringify(report));process.exitCode=report.status.startsWith('PASS_')?0:1;

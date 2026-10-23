@@ -1,3 +1,4 @@
+import {readPhotoUpload,photoUploadFailure} from '@/lib/photo-upload.mjs';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin } from '@/lib/process-state';
 
@@ -33,16 +34,13 @@ export async function PUT(request: Request) {
       return Response.json({ error: '沒有 IQC 照片上傳權限' }, { status: 403 });
     const type = request.headers.get('content-type')?.split(';')[0] || '';
     if (!imageTypes.has(type)) return Response.json({ error: '僅接受圖片檔' }, { status: 415 });
-    if (Number(request.headers.get('content-length') || 0) > 5_000_000)
-      return Response.json({ error: '圖片限 5 MB' }, { status: 413 });
-    const bytes = await request.arrayBuffer();
-    if (!bytes.byteLength || bytes.byteLength > 5_000_000)
-      return Response.json({ error: '圖片限 5 MB' }, { status: 413 });
+    const bytes = await readPhotoUpload(request,5_000_000);
     const id = await digest(bytes);
     if (!await env.STATE_ARCHIVE.head(key(id)))
       await env.STATE_ARCHIVE.put(key(id), bytes, { httpMetadata: { contentType: type } });
     return Response.json({ id, url: `/api/iqc/photo?id=${id}` });
   } catch (error) {
+    const failure=photoUploadFailure(error);if(failure)return failure;
     console.error('[iqc] photo upload failed', error);
     return Response.json({ error: '照片未保存，請重試' }, { status: 503 });
   }

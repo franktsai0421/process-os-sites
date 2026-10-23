@@ -520,3 +520,9 @@ authentication, capacity/fee and real-transfer prerequisites.
   inventory tests. Normal owner/same-origin authorization remains required.
 - New dataset activation waits for the user's current3000 parity requirement;
   the operational R1 view is historical input, not proof of current live parity.
+# 2026-10-23 Independent Sites photo uploads
+
+Use one bounded, lossless PNG optimizer across six existing photo PUT routes,
+preserving dimensions, pixel samples, metadata and existing authorization.
+Non-PNG and special layouts keep original bytes; no schema/data migration.
+See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries.

@@ -49,6 +49,8 @@ jobs:
       - name: Synthetic source, snapshot and authorization regressions
         run: |
           New-Item -ItemType Directory -Force -Path .sites-runtime | Out-Null
+          node tests/photo-upload.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/sites-root-entry.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/sites-import-pending.test.mjs
@@ -134,6 +136,8 @@ jobs:
           Write-Output 'Bounded attempt evidence is synthetic only; no live upload or spending authority.'
       - name: Compiled owner-approved cancelled campaign quarantine
         run: node --experimental-vm-modules tests/sites-retirement-native.test.mjs
+      - name: Compiled authenticated photo uploads with synthetic nonpersistent bindings
+        run: node tests/photo-upload-native.test.mjs
       - name: Record final evidence boundary
         run: |
           Write-Output 'Source-only synthetic CI; no private canonical package, real R1 import, platform credential, deployment or production DB/R2.'
