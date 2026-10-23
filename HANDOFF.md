@@ -1,5 +1,12 @@
 # Isolated Sites implementation handoff
 
+Photo work is saved on `sites/unified-photo-policy`, with no source push or live
+change. [Shared photo policy](docs/sites/PHOTO_UPLOAD.md) records 19 helper plus
+19 route fixture checks and the compiled-runtime startup EACCES blocker. Do not
+retry that connection by changing permissions/executor. Owner reports current3000
+unchanged; 13 fixed business source files match M1. No live DB comparison is
+claimed, and old backup dates alone are not evidence of changed data.
+
 Current work: [cancelled campaign quarantine](docs/sites/CANCELLED_IMPORT.md).
 PR6 operational batching merged; a later approved retirement action archives old
 control values without deleting staging or using cancelled progress. Keep source

@@ -107,3 +107,8 @@ FQC per-action reason removal, later V3 overall Submit reason and return/withdra
 2026-10-08 例行FQC新增原案件的已建立複測／收回草稿入口、就近阻擋原因與統計範圍色彩標記；沿用既有文件取消、權限與CAS，標記只影響檢視。[實作及驗收](../../docs/routine-fqc/20261008-actions.md)。
 
 2026-10-12 FQC14項回饋：單列單樣品、同項不重複、複測固定原樣品、移除再測快捷；草稿照片可移除，結果列展開保留，RPT/RTS/COR識別與舊號相容。[模型](../models/ROUTINE_FQC.md)／[本輪驗證](../../docs/routine-fqc/20261012-sample-feedback.md)。
+# Shared Sites photo upload implementation
+
+IQC, IPQC-AB/C, routine-equipment and routine-FQC share the same bounded lossless
+PNG upload helper as tooling. Existing permissions and module limits remain;
+see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).

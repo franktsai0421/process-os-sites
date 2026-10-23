@@ -31,3 +31,16 @@ normal synthetic sessions, ephemeral D1/R2 and the enabled import gate. It uses
 synthetic activation records to reach post-import paths without disabling the
 gate. No true user session, password, media, network or remote binding is used.
 Actual Site/device visual acceptance and real-data migration are separate.
+
+Local checkpoint: 19 lossless helper cases and 19 explicit-dependency route VM
+cases pass, with full TypeScript and actual build. The compiled photo fixture
+currently stops at startup with `connect EACCES 127.0.0.1:58410`; zero native
+photo cases ran. It was disposed and no alternate executor, network permission,
+firewall change or further connection retry was used after EACCES was identified.
+The route VM is independent evidence, not a substitute native PASS.
+
+The owner reports current3000 unchanged. A bounded fixed-path sample of 13
+business source files in the original local tree matches M1 by SHA-256. This is
+sampled code evidence only; no live process or DB was opened. Existing R1 and
+operational reference audits remain data-snapshot evidence, not a new live DB
+comparison. Old backup dates do not prove there have been modifications.
