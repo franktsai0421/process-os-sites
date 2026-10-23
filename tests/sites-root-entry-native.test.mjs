@@ -3,7 +3,11 @@ import fs from 'node:fs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
-async function request(route='/',method='GET',headers={}){lastRequest={route:route.split('?')[0],method};const r=await f.mf.dispatchFetch(origin+route,{method,headers,...(['POST','PUT','PATCH'].includes(method)?{body:'{}'}:{})});lastRequest={...lastRequest,status:r.status,contentType:r.headers.get('Content-Type')};return r;}
+// These requests intentionally reject before consuming input. Use explicit
+// framing and an independent synthetic connection so a prior HEAD/early close
+// cannot leave a pooled Miniflare/undici response body reset. No retry and no
+// accepted transport error: every case must still return the exact closed JSON.
+async function request(route='/',method='GET',headers={}){lastRequest={route:route.split('?')[0],method};const body=['POST','PUT','PATCH'].includes(method)?'{}':undefined;const r=await f.mf.dispatchFetch(origin+route,{method,headers:{Connection:'close',...(body?{'Content-Length':String(Buffer.byteLength(body)),'Content-Type':'application/json'}:{}),...headers},...(body?{body}:{})});lastRequest={...lastRequest,status:r.status,contentType:r.headers.get('Content-Type')};return r;}
 async function closed(response){assert.equal(response.status,503);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.equal(response.headers.get('Retry-After'),'30');assert.deepEqual(await response.json(),{error:'IMPORT_TARGET_NOT_ACTIVE'});}
 try{
  f=await createRootEntryFixture();report.buildEntrySha256=f.buildEntrySha256;
