@@ -51,6 +51,13 @@ check current policy/request ownership; late old completion cannot release,
 stop, debit or acknowledge the new campaign. No automatic lease expiry or refund.
 The fixed known staging format and registered retired IDs are paged and checked;
 unknown objects, foreign transfer prefixes or business objects refuse admission.
+The second transaction proves the immutable retirement record, complete old
+policy/target/owner/manifest and all archived counters; stopped.reason is only
+diagnostic. A request started on an older deployment may still overwrite that
+reason, so the transition and fenced recovery never use it as authority. New
+failure finalizers also require their own policy and open state. A previously
+used or retired nextId refuses before fencing, and begin independently refuses
+retired IDs before its existing-transfer resume path (no A-to-B-to-A revival).
 All other freshness/owner/reference/hash/activation checks remain. Fresh-target
 checking no longer mistakes a valid >100-object staging page for an occupied
 business target; unknown cursors/layouts still refuse.
