@@ -1,3 +1,14 @@
+# 2026-10-23 — Bounded initial import preparation
+
+- Preserve verified-capacity mode and add an explicit unknown-capacity attempt
+  for the one test Site/owner/manifest. Server-owned persistent admission and
+  debit counters include retries and partial/uncertain writes without refund.
+- Append two control tables through 0003; preserve old migrations, target owner
+  verifier, source records and all integrity/CAS/activation safeguards. A retained
+  in-flight/stopped budget keeps company visibility closed even after an active
+  marker. No live configuration, paid upgrade, credential change or true upload
+  is performed by this source batch. See docs/sites/IMPORT_READINESS.md.
+
 ## Sites isolated derivative - inactive root entry
 
 Known inactive GET/HEAD / now has a bilingual, no-store HTML entry with login and
@@ -480,4 +491,3 @@ request a new password. Unknown capacity also blocks server-side begin. Only
 synthetic handoff files were created; actual file selection/upload remain pending.
 See [import readiness](../docs/sites/IMPORT_READINESS.md) for remaining supported
 authentication, capacity/fee and real-transfer prerequisites.
-

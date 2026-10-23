@@ -22,6 +22,13 @@
       "when": 1792671383404,
       "tag": "0002_sites_owner_bootstrap",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792715884411,
+      "tag": "0003_sites_import_budget",
+      "breakpoints": true
     }
   ]
 }

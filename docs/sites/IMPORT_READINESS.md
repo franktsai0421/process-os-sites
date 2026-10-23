@@ -67,12 +67,58 @@ data and must remain outside Git and shared/synced paths with the retained sourc
 The browser chooses those two explicit directories, verifies completion markers,
 source/manifest/target pins and every outgoing chunk, and uses File objects of
 at most 1 MiB per payload read. File access is selection-scoped and not persisted.
-Unknown capacity disables upload; the server also rejects begin with
-IMPORT_CAPACITY_UNVERIFIED. New nonsecret PROCESS_IMPORT_CAPACITY_JSON accepts
+Without either a verified capacity or an explicitly enabled bounded attempt,
+unknown capacity disables upload and the server rejects begin with
+IMPORT_CAPACITY_UNVERIFIED. Nonsecret PROCESS_IMPORT_CAPACITY_JSON accepts
 only approved metadata: projectId, targetFingerprint, reference, checkedAt,
 r2AvailableBytes and d1AvailableBytes. It must come from actual recent provider
 capacity/fee evidence; it is not a permission to guess values or enable billing.
 This batch configures none of these live values.
+
+## Approved bounded-attempt alternative
+
+PROCESS_IMPORT_ATTEMPT_JSON is a separate, default-absent policy. It must say
+mode bounded-attempt and capacityKnown false, pin the one test project, origin,
+Frank owner, target and normalized manifest, and include an approvalId and an
+issuedAt/expiresAt window of at most seven days. It cannot coexist with the
+verified-capacity variable. These are server settings, not client authority.
+The verified-capacity mode and its evidence checks remain available.
+
+Explicit ceilings are 17,917,940,289 cumulative R2 payload-write-attempt bytes,
+30,000 R2 write calls (including multipart create/complete), 60,000 admitted
+requests, 128 MiB of bound D1 import-write parameters and 100,000 D1 import
+statements. A policy may lower, never exceed, them. The pinned plan must fit
+before beginning. These are application attempt budgets, not provider remaining
+capacity, physical allocated storage, network ingress/read traffic or a money
+limit. Budget/auth/control-ledger overhead and provider metadata remain distinct.
+No plan purchase, paid upgrade or automatic billing authorization is introduced.
+
+Append-only 0003_sites_import_budget adds a singleton budget and request ledger;
+previous SQL/snapshots/journal entries are preserved. Existing sites migrate
+forward to 13 tables, without resetting the initialized owner or old data. First
+admission rejects existing transfer ledgers or R2 objects, so a prior unmetered
+upload cannot be adopted as a zero-cost attempt. Resumes use the same immutable
+policy and counters; changing the approvalId/mode does not reset them.
+
+One durable active_request serializes all mutating import routes across tabs and
+Workers. Each R2 PUT/part and import D1 mutation is debited atomically before
+execution. Failed/conditional/uncertain attempts are not refunded. Missing
+acknowledgements after durable completion may be reconciled through existing
+receipts; an exception during the request freezes the campaign. Quota, payment,
+permission and unclassified storage failures stop further writes. If a Worker
+dies or D1 cannot record the stop, the retained in-flight marker also fails
+closed; there is no automatic expiry/unlock, reset, delete or cleanup endpoint.
+Such a retained lease needs a separately reviewed reconciliation, not a blind
+retry. Budget-window expiry stops new mutations without deleting partial data.
+
+The existing hashes, semantic audits, CAS/restore and target-owner verifier
+overlay are unchanged. Data-ready is still inactive. Even an active marker cannot
+open business traffic while its final budget release is unresolved/stopped.
+Public platform access and the separate formal Site are not enabled by this mode.
+
+This source preparation does not configure a live attempt, upload true data or
+claim platform acceptance. The selected real handoff remains outside Git; reuse
+it without repeating the complete R1 conversion after reviewed publication.
 
 ## Read-only local preflight
 
@@ -131,10 +177,11 @@ database size or replace the final target's storage validation.
    retained source/view receipts, bootstrap-disabled state and singleton owner.
    Do not read the owner's verifier into a client or conversation. Do not rerun
    the completed R1 conversion or replace the normalized manifest.
-2. Obtain supported target-specific D1/R2 remaining capacity, usage and fee
-   evidence. The controller requires matching project/fingerprint, a recent
-   evidence reference and sufficient explicit planning budgets. These client
-   checks cannot manufacture a provider quota or authorize charges.
+2. Choose verified-capacity evidence or the explicitly approved unknown-capacity
+   bounded attempt. The latter does not require an unavailable provider balance;
+   configure its exact pins and finite server budgets, never fabricated remaining
+   bytes. Neither mode authorizes purchases or paid upgrades. Provider quota,
+   payment or permission refusals stop the attempt and retain partial outputs.
 3. After the reviewed source is published privately, use the protected desktop
    browser uploader with the existing owner session. Prepare the bounded local
    handoff once in an explicitly private NEW directory using the same ordered

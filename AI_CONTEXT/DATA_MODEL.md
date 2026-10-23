@@ -230,3 +230,13 @@ refuse, including after owner deletion. Existing three-table snapshot data and
 applied legacy migrations are unchanged; this table is not snapshot business
 data and is not restored/exported with credentials. No live schema/owner change
 is implied. See [setup contract](../docs/sites/PHASE_TWENTY_THREE_OWNER_SETUP.md).
+## Sites bounded import control metadata
+
+Append-only fresh-Sites migration 0003 adds process_import_budget (singleton
+immutable policy, cumulative reserved counters and active request) and
+process_import_attempts (bounded per-request admission/result records). They are
+control metadata, not business tables or snapshot resources. Prior migrations
+and the three-table Snapshot V1 schema/fingerprint remain unchanged. Existing
+targets migrate forward; no owner or business reset is implied. These counters
+do not represent measured provider storage or a billing limit. The runtime
+contract is docs/sites/IMPORT_READINESS.md.
