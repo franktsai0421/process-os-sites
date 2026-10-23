@@ -8,6 +8,7 @@ import {assertAttemptPlan} from '@/lib/snapshot-attempt-policy.mjs';
 import {maximumChunkBytes} from '@/lib/snapshot-contract.mjs';
 import {prepareRecipeUpload,assertUploadCapacity} from '@/lib/snapshot-recipe-uploader.mjs';
 import {importPageConfiguration} from '@/lib/sites-import-page.mjs';
+import {maximumBatchBytes,batchType,batchGzipType,decodeBatchBody} from '@/lib/snapshot-batch.mjs';
 type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string};
 const reply=(value:unknown,status=200)=>Response.json(value,{status,headers:responseHeaders});
 async function dispatch(request:Request){
@@ -29,6 +30,10 @@ async function dispatch(request:Request){
   if(!['GET','POST','PUT'].includes(request.method))return reply({error:'IMPORT_METHOD'},405);
   let body:Uint8Array|undefined;
   if(request.method==='PUT')body=await readImportBody(request,maximumChunkBytes);
+  if(request.method==='POST'&&action==='batch'){
+   const type=request.headers.get('Content-Type')?.split(';')[0];if(type!==batchType&&type!==batchGzipType)return reply({error:'IMPORT_BATCH_FORMAT'},415);
+   body=await decodeBatchBody(await readImportBody(request,maximumBatchBytes),type);
+  }
   if(request.method==='POST'&&action==='begin'){
    if(request.headers.get('Content-Type')?.split(';')[0]!=='application/json')return reply({error:'IMPORT_CONTENT_TYPE'},415);
    if(!page.capacity&&!page.attempt)return reply({error:'IMPORT_CAPACITY_UNVERIFIED'},409);

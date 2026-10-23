@@ -1,5 +1,14 @@
 # Isolated Sites implementation handoff
 
+Current work: [operational import preparation](docs/sites/OPERATIONAL_IMPORT.md).
+The owner cancelled the full R1 transfer. Do not resume or activate that transfer,
+reset its budget marker or delete its staging. Prepare a separate offline view
+that retains current business dependencies/all media and leaves global backups
+in the original local source. Actual slimming audit/progress/batching results
+are separate from the earlier full-package CI and live version 3. The offline
+candidate audit passed; bounded transport and receipt-backed UI are implemented
+in this branch. Hosted acceptance/old campaign disposition are not implied.
+
 Current work: [post-login pending import and recipe upload readiness](docs/sites/IMPORT_READINESS.md).
 Incremental progress correction retains unknown capacity wording and shares the
 authoritative traffic gate with activation-status/final reply; the client never

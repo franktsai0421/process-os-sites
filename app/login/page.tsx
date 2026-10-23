@@ -1,5 +1,6 @@
 'use client';
 import {useState,type FormEvent} from 'react';
+import {loginDestination} from '@/lib/login-destination.mjs';
 
 export default function Login(){
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -9,7 +10,7 @@ export default function Login(){
     setBusy(true);setError('');
     try {
       const response=await fetch('/api/platform-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:form.get('id'),password:form.get('password')})});
-      if(response.ok){window.location.assign('/process/index.html');return;}
+      if(response.ok){window.location.assign(loginDestination(window.location.search));return;}
       setError(response.status===429?'登入次數過多，請稍後重試 / Vui lòng thử lại sau.':'帳號或密碼錯誤，或暫時無法登入 / Không thể đăng nhập.');
     }catch{setError('連線失敗，請稍後重試 / Không thể kết nối.');}
     finally{setBusy(false);}
