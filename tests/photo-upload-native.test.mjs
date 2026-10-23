@@ -18,7 +18,10 @@ try{
  const users=[{id:'frank',role:'admin'},{id:'blocked',role:'staff',accessOverrides:denied},{id:'viewer',role:'staff',accessOverrides:{...denied,'iqc.view':true}}].map(u=>({...u,enabled:true,authEpoch:0,passwordHash:verifier}));
  let values={platformUsers:JSON.stringify(users),maintenanceMode:'0',routineFqcEnabled:'1'};
  stage='seed ephemeral users';await f.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,0,?,?)').bind(JSON.stringify(values),'synthetic').run();
- async function request(module,{method='GET',cookie='',headers={},body,id='a'.repeat(64)}={}){return f.mf.dispatchFetch(origin+'/api/'+module+'/photo?id='+id,{method,headers:{Origin:origin,...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'image/png'}:{}),...headers},...(body?{body}:{}),redirect:'manual'});}
+ // Early permission/import failures intentionally do not consume photo bodies.
+ // Match the root-gate harness: explicit framing and a separate connection,
+ // while still requiring every exact HTTP/error assertion; never retry a reset.
+ async function request(module,{method='GET',cookie='',headers={},body,id='a'.repeat(64)}={}){return f.mf.dispatchFetch(origin+'/api/'+module+'/photo?id='+id,{method,headers:{Origin:origin,Connection:'close',...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'image/png','Content-Length':String(body.byteLength)}:{}),...headers},...(body?{body}:{}),redirect:'manual'});}
  async function login(id){const r=await f.mf.dispatchFetch(origin+'/api/platform-login',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({id,password})});assert.equal(r.status,200);const cookie=(r.headers.get('Set-Cookie')||'').split(';')[0];assert.ok(cookie);return cookie;}
  await test('inactive import target rejects all six photo writes before storage',async()=>{for(const module of modules){const r=await request(module,{method:'PUT',body:input});assert.equal(r.status,503);assert.equal((await r.json()).error,'IMPORT_TARGET_NOT_ACTIVE');}assert.equal((await bucket.list()).objects.length,0);});
  // Synthetic activation fixture only: exercise the normal post-import routes
