@@ -55,7 +55,9 @@ try{
     else if(['audit','copy','restore'].includes(action))value=await target.activation[action](actor,id,{expectedVersion:version,limit:4});else assert.fail('UNEXPECTED_NATIVE_ACTION');return Response.json(value);};
    const options={allowDataWrite:true,resume:true,capacity:{projectId:pins.projectId,targetFingerprint:pins.targetFingerprint,reference:'synthetic-known-capacity',checkedAt:new Date().toISOString(),r2AvailableBytes:2**40,d1AvailableBytes:2**30}};
    const stopped=await runNativeImport({...args,sendAuthorized,options});assert.equal(stopped.status,'NATIVE_STOPPED_REQUIRE_RECEIPT_REVIEW');assert.equal(stopped.receipt.readOnly,true);assert.ok(stopped.receipt.received>0);assert.equal(stopped.receipt.automaticResumeAllowed,false);assert.equal(methods.filter(m=>m==='POST').length,1);
-   const resumed=await runNativeImport({...args,sendAuthorized,options});assert.equal(resumed.status,'NATIVE_DATA_READY_NOT_ACTIVATED');assert.equal(resumed.businessTrafficEnabled,false);assert.ok([...puts.values()].every(n=>n===1));assert.equal(puts.size,manifest.chunks.length);
+   const before=target.sqlite.prepare('SELECT "values" v FROM shared_state').get().v;
+   const resumed=await runNativeImport({...args,sendAuthorized,options});assert.equal(resumed.status,'NATIVE_STAGING_VERIFIED_NOT_RESTORED');assert.equal(resumed.dataReady,false);assert.equal(resumed.businessTrafficEnabled,false);assert.ok([...puts.values()].every(n=>n===1));assert.equal(puts.size,manifest.chunks.length);
+   assert.equal(target.sqlite.prepare('SELECT "values" v FROM shared_state').get().v,before);assert.equal(target.sqlite.prepare('SELECT COUNT(*) n FROM state_backups').get().n,0);assert.equal(target.sqlite.prepare('SELECT COUNT(*) n FROM web_feedback_store').get().n,0);assert.ok([...target.bucket.objects.keys()].every(k=>k.startsWith('process-import/v1/')));
   }finally{await target.close();}
  });
  console.log(JSON.stringify({status:'PASS_SYNTHETIC_NATIVE_SOURCE',cases:tests.length,tests,network:false,realData:false,realCredentials:false}));
