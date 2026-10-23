@@ -18,8 +18,14 @@ signatures, corrupt PNG chunks/data and oversized bodies fail before R2 writes.
 
 Optimization is limited to 8 MiB input, 32 MiB inflated samples and a 256 KiB row.
 This is a conservative baseline, not a promise to optimize every format or
-image. Process-editor/canvas, inline state media and feedback attachments retain
-their existing separate flows; they have not been silently rewritten. Existing
+image. The shared portable core lives in `public/process/photo-policy.mjs`.
+Process-editor uploads use this same lossless-first policy. They preserve
+technical drawing dimensions/alpha; JPEG/WebP are no longer sent through an
+unnecessary second 1600px/WebP0.82 lossy pass. Existing saved1600px WebP remains
+compatible. Feedback attachment POSTs use the same core after source/account
+permission checks and before their size/digest/owner/location/ACL-dependent IDs.
+Their5MB/6-image limits and export/visibility semantics remain. Inline delivery
+externalization and old historical objects are not globally rewritten. Existing
 R1/3000/candidate image objects are untouched by new uploads. Re-encoding an
 existing candidate requires a separate complete reference/hash/MIME mapping and
 current-source/data parity evidence before activation.
@@ -32,12 +38,22 @@ synthetic activation records to reach post-import paths without disabling the
 gate. No true user session, password, media, network or remote binding is used.
 Actual Site/device visual acceptance and real-data migration are separate.
 
-Local checkpoint: 19 lossless helper cases and 19 explicit-dependency route VM
-cases pass, with full TypeScript and actual build. The compiled photo fixture
-currently stops at startup with `connect EACCES 127.0.0.1:58410`; zero native
-photo cases ran. It was disposed and no alternate executor, network permission,
-firewall change or further connection retry was used after EACCES was identified.
+Local receipts distinguish19 helper,19 route VM,5 editor,46 feedback and5
+snapshot-copy cases from actual compiled native acceptance. The earlier EACCES
+was resolved for one same-executor test through the tool's formal sandbox review,
+without changing ports/configuration, OS/firewall or guards. That run reached
+five native groups and found an invalid synthetic Content-Length declaration;
+the corrected bounded body fixture requires final exact-source validation.
 The route VM is independent evidence, not a substitute native PASS.
+
+`snapshot-photo-copy.mjs` writes only a new offline copy, uses the same PNG codec
+with a required independent pixel verifier, and rebuilds image keys/URLs/private
+index lengths/checksums, current/history references and feedback ZIP pins. The
+existing normalization/audit writer then verifies canonical object identities
+and all references before browser handoff. Failures retain an incomplete copy;
+original R1/3000 and the old candidate remain intact. PNG output is measured;
+the earlier183-PNG benchmark actually encoded lossless WebP, not PNG, and its
+88,059,514-byte saving is not a PNG-codec measurement or delivered215MB package.
 
 The owner reports current3000 unchanged. A bounded fixed-path sample of 13
 business source files in the original local tree matches M1 by SHA-256. This is

@@ -1,5 +1,14 @@
 # Isolated Sites implementation handoff
 
+Stage-two photo work extends the portable lossless-first policy to process
+editor and feedback uploads. Technical dimensions/alpha and existing JPEG/WebP
+remain; no repeated lossy canvas pass. An offline new-copy converter rebuilds
+image/JSON/private-index/ZIP references with independent pixel verification.
+See [current photo policy](docs/sites/PHOTO_UPLOAD.md) and exact task receipts;
+earlier startup-EACCES checkpoints below are historical. One formally reviewed
+same-executor run connected and reached five native groups; the invalid-body-
+length fixture is corrected for the final compiled run. No live import/deploy.
+
 Photo work is saved on `sites/unified-photo-policy`, with no source push or live
 change. [Shared photo policy](docs/sites/PHOTO_UPLOAD.md) records 19 helper plus
 19 route fixture checks and the compiled-runtime startup EACCES blocker. Do not

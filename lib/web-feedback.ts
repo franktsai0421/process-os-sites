@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import {readPhotoUpload,photoUploadFailure} from './photo-upload.mjs';
 import { readState, identity, can, sameOrigin, type State } from '@/lib/process-state';
 import { sha256, utf8, zipFiles } from '@/lib/web-feedback-zip';
 import { effectiveAccess } from '@/lib/user-access';
@@ -133,14 +134,9 @@ export async function handleFeedback(request: Request) {
   if(action==='upload') {
    const type=request.headers.get('content-type')?.split(';')[0]||'';
    if(!['image/png','image/jpeg','image/webp'].includes(type)) return json({error:'PNG_JPEG_WEBP_ONLY'},415);
-   const reader=request.body?.getReader(); if(!reader) fail('EMPTY_IMAGE');
-   const chunks:Uint8Array[]=[];let size=0;
-   while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>5_000_000){await reader.cancel();return json({error:'IMAGE_LIMIT_5MB'},413);}chunks.push(part.value);}
-   const bytes=new Uint8Array(size);let cursor=0;for(const chunk of chunks){bytes.set(chunk,cursor);cursor+=chunk.length;}
-   const signature=type==='image/png'?bytes.slice(0,8).join(',')==='137,80,78,71,13,10,26,10':type==='image/jpeg'?bytes[0]===255&&bytes[1]===216&&bytes[2]===255:new TextDecoder().decode(bytes.slice(0,4))==='RIFF'&&new TextDecoder().decode(bytes.slice(8,12))==='WEBP';
-   if(!signature||size<12) return json({error:'INVALID_IMAGE'},415);
    const location=locationOf(JSON.parse(url.searchParams.get('location')||'null'));
    if(!(await mayReportPage(request,state,user,location))) return json({error:'SOURCE_PERMISSION_REQUIRED'},403);
+   const bytes=new Uint8Array(await readPhotoUpload(request,5_000_000)),size=bytes.length;
    const name=text(url.searchParams.get('name'),160).replace(/[\\/\p{Cc}]/gu,'_')||'screenshot',access=sourceAccess(state,user);
    const digest=await sha256(bytes), id='ATT-'+await sha256(utf8(user.id+'|'+digest+'|'+name+'|'+JSON.stringify(location)+'|'+JSON.stringify(access))), existing=data.attachments.find(a=>a.id===id);
    if(existing) return json(existing);
@@ -198,5 +194,5 @@ export async function handleFeedback(request: Request) {
    data.handoffs.push({id,operationId,owner:user.id,digest,generatedAt,status:'generated',issues,sha256:await sha256(bytes),size:bytes.length});await write(revision,data);return json({id,status:'generated'},201);
   }
   return json({error:'UNKNOWN_ACTION'},404);
- } catch(error:unknown) { const failure=error as {status?:number;message?:string};return json({error:failure.status?failure.message:'FEEDBACK_UNAVAILABLE_RETRY'},failure.status||503); }
+ } catch(error:unknown) { const photoFailure=photoUploadFailure(error);if(photoFailure)return photoFailure;const failure=error as {status?:number;message?:string};return json({error:failure.status?failure.message:'FEEDBACK_UNAVAILABLE_RETRY'},failure.status||503); }
 }

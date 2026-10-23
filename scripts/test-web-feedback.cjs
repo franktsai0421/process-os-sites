@@ -9,16 +9,18 @@ const env={WEB_FEEDBACK_ENABLED:'1',PROCESS_SESSION_SECRET:randomUUID(),DB:{prep
 const load=require('./ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts'),route=load('app/api/web-feedback/route.ts'),log=[];
 (async()=>{const cookies={};for(const u of users)cookies[u.id]='process_demo='+await core.demoSession(new Request('http://localhost:3020'),u.id,false);
 async function call(action,body,user='employee',extra={}){const start=performance.now(),method=body===undefined?'GET':'POST',headers={Cookie:cookies[user]||'',Origin:'http://localhost:3020','Content-Type':'application/json',...extra.headers};const res=await route[method](new Request('http://localhost:3020/api/web-feedback?action='+action,{method,headers,...(body===undefined?{}:{body:Buffer.isBuffer(body)?body:JSON.stringify(body)})}));const bytes=Buffer.from(await res.arrayBuffer());return{status:res.status,body:res.headers.get('content-type')?.includes('json')?JSON.parse(bytes):bytes,ms:performance.now()-start};}
-function pass(name,result,status=200){assert.equal(result.status,status,JSON.stringify(result.body));log.push({name,status:'PASS',http:result.status,ms:+result.ms.toFixed(2)});}
+function pass(name,result,status=200){assert.equal(result.status,status,JSON.stringify(result.body));log.push({name,status:'PASS',http:result.status,ms:+result.ms.toFixed(2)});fs.appendFileSync(path.join(root,'api-progress.jsonl'),JSON.stringify(log.at(-1))+'\n');}
 const location={view:'editor',tab:'',system:'process',type:'element',display:'合成畫布 → 新增流程',locator:{id:'add-operation',tag:'button'},context:{recordId:'synthetic',password:'DO-NOT-COLLECT'},token:'DO-NOT-COLLECT'};
 pass('Anonymous rejected',await call('list',undefined,'anonymous'),401);pass('Disabled user rejected',await call('list',undefined,'disabled'),401);
 env.WEB_FEEDBACK_ENABLED='0';pass('Unconfigured environment disabled',await call('list'),404);env.WEB_FEEDBACK_ENABLED='1';
 pass('Cross-origin mutation denied',await call('submit',{},'employee',{headers:{Origin:'http://evil.invalid'}}),403);
 pass('Employee capabilities',await call('capabilities'));
 pass('JSON stream size bounded without content-length',await call('submit',Buffer.alloc(200_001,32)),413);
-const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6zSQAAAAASUVORK5CYII=','base64');
+// Generate a valid large transparent PNG rather than the old CRC-invalid stub.
+const png=require('../tests/photo-fixtures.mjs').pngFixture({alpha:true});
 const uploadAction='upload&name='+encodeURIComponent('驗收原圖.png')+'&location='+encodeURIComponent(JSON.stringify(location));
-const attachment=await call(uploadAction,png,'employee',{headers:{'Content-Type':'image/png'}});pass('Original PNG upload',attachment,201);
+const attachment=await call(uploadAction,png,'employee',{headers:{'Content-Type':'image/png'}});pass('Lossless normalized PNG upload',attachment,201);
+const savedPhoto=objects.get('web-feedback/v1/'+attachment.body.id),sharp=require('sharp');assert(savedPhoto.length<png.length);assert.equal(attachment.body.size,savedPhoto.length);assert.equal(attachment.body.type,'image/png');assert.equal(attachment.body.sha256,createHash('sha256').update(savedPhoto).digest('hex'));assert.deepEqual(await sharp(savedPhoto).raw().toBuffer(),await sharp(png).raw().toBuffer());log.push({name:'Attachment size MIME digest and transparent decoded pixels match normalized storage',status:'PASS'});
 pass('Image upload retry idempotent',await call(uploadAction,png,'employee',{headers:{'Content-Type':'image/png'}}));
 pass('Forged image signature rejected',await call(uploadAction,Buffer.from('not a real png file'),'employee',{headers:{'Content-Type':'image/png'}}),415);
 pass('SVG forbidden',await call(uploadAction,Buffer.from('<svg/>'),'employee',{headers:{'Content-Type':'image/svg+xml'}}),415);
@@ -34,7 +36,7 @@ pass('Atomic batch refuses invalid second marker',await call('submit',{operation
 assert.equal(JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.length,beforeCount);
 const publicList=await call('list',undefined,'other');pass('Company user sees public cases',publicList);assert.equal(publicList.body.issues.length,2);assert.equal(publicList.body.issues[0].attachments.length,0);assert(!JSON.stringify(publicList.body).includes('locator'));assert(!JSON.stringify(publicList.body).includes('notes'));assert(!JSON.stringify(publicList.body).includes('reporterId'));
 pass('Different employee cannot retrieve original image',await call('image&id='+attachment.body.id,undefined,'other'),403);
-const image=await call('image&id='+attachment.body.id);pass('Reporter retrieves authorized image',image);assert.deepEqual(image.body,png);
+const image=await call('image&id='+attachment.body.id);pass('Reporter retrieves authorized image',image);assert.deepEqual(image.body,savedPhoto);
 pass('Coworker with original access envelope can view image',await call('image&id='+attachment.body.id,undefined,'peer'));
 const id=submitted.body.ids[0];pass('Employee cannot edit status',await call('update',{id,version:1,status:'done'}),403);
 pass('Admin private note and completion',await call('update',{id,version:1,status:'done',note:'PRIVATE-NOTE'},'admin'));

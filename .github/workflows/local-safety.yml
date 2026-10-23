@@ -53,6 +53,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/photo-routes.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/photo-editor.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/snapshot-photo-copy.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-web-feedback.cjs .sites-runtime/ci-photo-feedback
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/sites-root-entry.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/sites-import-pending.test.mjs

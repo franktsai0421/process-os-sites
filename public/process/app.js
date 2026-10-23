@@ -693,8 +693,6 @@ function operationTemplateMediaMarkup(operation) {
   const item = items[0], title = item.name || `${operation.name} 流程資料照片`;
   return `<div class="operation-template-header-media"><button type="button" aria-label="查看流程類別照片" title="查看流程類別照片" data-lightbox-src="${escapeHtml(item.src)}" data-lightbox-type="${escapeHtml(item.type || 'image/jpeg')}" data-lightbox-title="${escapeHtml(title)}" data-lightbox-group="template-${escapeHtml(operation.id || operation.number)}">${item.type?.startsWith('video/') ? '<span class="media-video-mark">▶</span>' : `<img src="${escapeHtml(item.src)}" alt="${escapeHtml(title)}">`}</button></div>`;
 }
-const MEDIA_IMAGE_MAX_EDGE = 1600;
-const MEDIA_IMAGE_QUALITY = 0.82;
 function readUploadAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -703,84 +701,13 @@ function readUploadAsDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-async function loadUploadImage(file) {
-  if (typeof createImageBitmap === 'function') return createImageBitmap(file);
-  const url = URL.createObjectURL(file),
-    image = new Image();
-  try {
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error('照片格式無法讀取'));
-      image.src = url;
-    });
-    return image;
-  } catch (error) {
-    URL.revokeObjectURL(url);
-    throw error;
-  }
-}
-function canvasAsBlob(canvas, type, quality) {
-  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-}
-function compressedMediaName(name) {
-  const base = String(name || 'operation-photo').replace(/\.[^.]+$/, '');
-  return `${base}.webp`;
-}
+// Process instructions may contain dimensions/text and transparent drawings.
+// Lossless PNG only; never re-encode existing WebP/JPEG through a second lossy
+// 1600px canvas pass. Old saved WebP content remains readable and untouched.
 async function prepareMediaUpload(file) {
-  const original = async () => ({
-    item: {
-      src: await readUploadAsDataUrl(file),
-      name: file.name,
-      type: file.type,
-    },
-    compressed: false,
-  });
-  if (
-    !file.type?.startsWith('image/') ||
-    ['image/gif', 'image/svg+xml'].includes(file.type)
-  )
-    return original();
-  let image;
-  try {
-    image = await loadUploadImage(file);
-    const sourceWidth = image.naturalWidth || image.width,
-      sourceHeight = image.naturalHeight || image.height;
-    if (!sourceWidth || !sourceHeight) return original();
-    const scale = Math.min(
-        1,
-        MEDIA_IMAGE_MAX_EDGE / Math.max(sourceWidth, sourceHeight),
-      ),
-      width = Math.max(1, Math.round(sourceWidth * scale)),
-      height = Math.max(1, Math.round(sourceHeight * scale)),
-      canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) return original();
-    context.drawImage(image, 0, 0, width, height);
-    const blob = await canvasAsBlob(
-      canvas,
-      'image/webp',
-      MEDIA_IMAGE_QUALITY,
-    );
-    if (!blob || (scale === 1 && blob.size >= file.size)) return original();
-    return {
-      item: {
-        src: await readUploadAsDataUrl(blob),
-        name: compressedMediaName(file.name),
-        type: 'image/webp',
-      },
-      compressed: true,
-    };
-  } catch (error) {
-    if (!image || !(image.naturalWidth || image.width) || !(image.naturalHeight || image.height)) throw error;
-    console.warn('照片自動壓縮失敗，改用原始檔案', error);
-    return original();
-  } finally {
-    image?.close?.();
-    if (image instanceof HTMLImageElement && image.src?.startsWith('blob:'))
-      URL.revokeObjectURL(image.src);
-  }
+  const {prepareBrowserPhoto}=await import('./photo-policy.mjs?v=20261023-lossless1');
+  const prepared=await prepareBrowserPhoto(file);
+  return {item:{src:await readUploadAsDataUrl(prepared.blob),name:file.name,type:file.type},compressed:prepared.changed};
 }
 async function prepareMediaUploads(files) {
   const items = [];
