@@ -7,6 +7,13 @@ and drained four-way within-request writes are local changes only; the new
 application capability/private Sites entry design awaits parent review. No new
 credential, source push, deployment or resumed business transfer is implied.
 
+The same branch now includes a Node CLI preflight/runner structure and guarded
+injected transport. Cancellation/deadlines freeze further sends and perform
+separate bounded read-only reconciliation; no provider, credential intake or
+new hosted auth route is installed. See the proposed capability/nonce/revocation
+protocol and explicit unknown official Sites entry-token lifetime in the plan.
+The owner wants fixed-folder automatic import, not renewed browser file picking.
+
 Stage-two photo work extends the portable lossless-first policy to process
 editor and feedback uploads. Technical dimensions/alpha and existing JPEG/WebP
 remain; no repeated lossy canvas pass. An offline new-copy converter rebuilds
