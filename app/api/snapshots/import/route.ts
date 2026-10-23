@@ -9,7 +9,8 @@ import {maximumChunkBytes} from '@/lib/snapshot-contract.mjs';
 import {prepareRecipeUpload,assertUploadCapacity} from '@/lib/snapshot-recipe-uploader.mjs';
 import {importPageConfiguration} from '@/lib/sites-import-page.mjs';
 import {maximumBatchBytes,batchType,batchGzipType,decodeBatchBody} from '@/lib/snapshot-batch.mjs';
-type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string};
+import {createRetirement} from '@/lib/snapshot-retirement.mjs';
+type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string;PROCESS_IMPORT_RETIREMENT_JSON?:string};
 const reply=(value:unknown,status=200)=>Response.json(value,{status,headers:responseHeaders});
 async function dispatch(request:Request){
  const values=env as ImportValues;
@@ -24,9 +25,18 @@ async function dispatch(request:Request){
   const config={enabled:true,projectId:hosting.project_id,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,ownerId:values.PROCESS_IMPORT_OWNER_ID};
   authorizeImport(principal,config);
   const page=importPageConfiguration(values,hosting.project_id),budget=await createAttemptBudget({db:env.DB,bucket:env.STATE_ARCHIVE,policy:page.attempt,pins:page.pins});
-  if(request.method==='GET'&&url.searchParams.get('action')==='configuration')return reply({...page,budget:await budget.status()});
+  const retirement=createRetirement({db:env.DB,bucket:env.STATE_ARCHIVE,pins:page.pins,policy:page.attempt,plan:page.retirementPlan}),retirementStatus=await retirement.status();
+  async function visibleBudget(){return retirementStatus&&retirementStatus.state!=='retired'?{state:'retirement-required',inFlight:true,reason:'IMPORT_RETIREMENT_REQUIRED',used:null}:await budget.status();}
+  if(request.method==='GET'&&url.searchParams.get('action')==='configuration'){const {retirementPlan:_plan,...publicPage}=page;return reply({...publicPage,retirement:retirementStatus,budget:await visibleBudget()});}
   const id=url.searchParams.get('id')||'',action=url.searchParams.get('action'),rawVersion=url.searchParams.get('version'),expectedVersion=rawVersion===null?undefined:Number(rawVersion);
-  if(request.method==='GET'&&action==='budget-status')return reply(await budget.status());
+  if(request.method==='GET'&&action==='budget-status')return reply(await visibleBudget());
+  if(request.method==='POST'&&action==='retire'){
+   if(!page.bootstrapClosed||!page.retirementPlan||request.headers.get('Content-Type')?.split(';')[0]!=='application/json')throw Error('IMPORT_RETIREMENT_CONFIGURATION');
+   const raw=await readImportBody(request,1024);let confirmation;try{confirmation=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));}catch{throw Error('IMPORT_RETIREMENT_CONFIRMATION');}
+   if(!confirmation||Object.keys(confirmation).join()!=='confirmOldTransferId'||confirmation.confirmOldTransferId!==page.retirementPlan.oldTransferId)throw Error('IMPORT_RETIREMENT_CONFIRMATION');
+   return reply(await retirement.retire(principal));
+  }
+  if(retirementStatus&&retirementStatus.state!=='retired'&&request.method!=='GET')throw Error('IMPORT_RETIREMENT_REQUIRED');
   if(!['GET','POST','PUT'].includes(request.method))return reply({error:'IMPORT_METHOD'},405);
   let body:Uint8Array|undefined;
   if(request.method==='PUT')body=await readImportBody(request,maximumChunkBytes);

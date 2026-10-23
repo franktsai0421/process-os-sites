@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
 import {fixture,memoryPackage} from './snapshot-fixtures.mjs';
 import {createD1R2Source} from '../lib/snapshot-d1-r2.mjs';
 import {exportSnapshot,sha256,maximumChunkBytes} from '../lib/snapshot-contract.mjs';
@@ -13,6 +14,7 @@ async function setup(){
  const f=await fixture(),pack=memoryPackage();await exportSnapshot(await createD1R2Source({db:f.db,bucket:f.bucket,programCommit:'a'.repeat(40)}),pack);
  const bytes=encoder.encode(JSON.stringify(pack.completed)),config={enabled:true,projectId:'appgprj_fixture',targetFingerprint:'b'.repeat(64),manifestSha256:await sha256(bytes),ownerId:principal.id};
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('CREATE TABLE shared_state (id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT); CREATE TABLE state_backups (id TEXT PRIMARY KEY); CREATE TABLE web_feedback_store (id INTEGER,revision INTEGER,payload TEXT);'+hostedImportSchemaSQL);
+ sqlite.exec(fs.readFileSync(new URL('../drizzle-sites-fresh/0004_sites_import_retirement.sql',import.meta.url),'utf8'));
  const db=d1(sqlite),r2=bucket(),store=createHostedTransferStore({db,bucket:r2}),service=createHostedTransfer({store,bucket:r2,config,now:()=>1000});
  return {pack,bytes,config,sqlite,db,r2,store,service,async close(){sqlite.close();}};
 }
