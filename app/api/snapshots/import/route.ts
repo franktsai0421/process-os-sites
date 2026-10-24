@@ -83,7 +83,8 @@ async function dispatch(request:Request){
    let plan;try{plan=await prepareRecipeUpload({async manifest(){return manifest;}},page.pins);}catch{return reply({error:'IMPORT_MANIFEST_INVALID'},409);}
    if(page.attempt)assertAttemptPlan(plan,page.attempt);else{try{assertUploadCapacity(plan,page.capacity);}catch{return reply({error:'IMPORT_CAPACITY_UNVERIFIED'},409);}}
   }
-  return reply(await dispatchHostedImport({budget,db:env.DB,bucket:env.STATE_ARCHIVE,config,principal,method:request.method,action:request.method==='PUT'?url.searchParams.get('chunk')||'':action,id,expectedVersion,body,cursor:Number(url.searchParams.get('cursor')||0),signal:request.signal}));
+  const result=await dispatchHostedImport({budget,db:env.DB,bucket:env.STATE_ARCHIVE,config,principal,method:request.method,action:request.method==='PUT'?url.searchParams.get('chunk')||'':action,id,expectedVersion,body,cursor:Number(url.searchParams.get('cursor')||0),signal:request.signal});
+  return reply(request.method==='POST'&&['verify','audit'].includes(action||'')?{...result,budget:await visibleBudget()}:result);
  }catch(error){
   const code=error instanceof Error&&/^IMPORT_[A-Z0-9_]+$/.test(error.message)?error.message:'IMPORT_UNAVAILABLE';
   return reply({error:code},code==='IMPORT_OWNER_REQUIRED'?403:code==='IMPORT_DISABLED'?404:code==='IMPORT_UNAVAILABLE'?503:409);
