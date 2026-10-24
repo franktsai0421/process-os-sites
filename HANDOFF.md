@@ -1,13 +1,18 @@
 # Isolated Sites implementation handoff
 
-Current follow-up: [one-shot c273 observation](docs/sites/C273_OBSERVATION_20261024.md)
-is local only. Version 6 recovery reached version 19 but request 787e1f35 remains
-unknown at cursor 272; recovery was closed. All payloads remain staged, and no
-business restore/activation occurred. The earlier preparation paragraphs below
-are historical checkpoints, not current publication or recovery status. The
-new observation reuses normal owner login, consumes one independent receipt,
-and does not clear the original lock. See the task's final local evidence for
-the exact diff/build and untested live/browser boundaries.
+Current local follow-up: [verification control cost](docs/sites/VERIFY_CONTROL_COST_REVIEW.md).
+Three synthetic restricted GETs now execute 74 rather than 128 SQL statements;
+fresh per-I/O authority/fence checks and all writes are retained. This patch is
+uncommitted and not deployed. It does not implement version-19 recovery.
+
+The [one-shot c273 observation](docs/sites/C273_OBSERVATION_20261024.md) was deployed
+as private version 7. The owner observed matching 14,234 bytes/SHA in 675 ms;
+the durable singleton receipt is retained. Observation was closed in env revision
+14, deployment appgdep_6adc348aee848191a25e951c028f20a3. Recovery remains OFF.
+Original request 787e1f35 remains unknown at version 19/cursor 272, with the lock
+and charges unchanged. All payloads remain staged; no business restore/activation
+occurred. Current readability does not establish the historical failure cause.
+The preparation paragraphs below are historical, not current publication status.
 
 Latest local follow-up: [restricted incident verification protocol](docs/sites/VERIFY_INCIDENT_PROTOCOL_20261023.md).
 The default-off HTTP entry, separate persistent verify/audit scope and same-process

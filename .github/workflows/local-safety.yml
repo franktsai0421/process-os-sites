@@ -149,7 +149,7 @@ jobs:
       - name: Compiled owner-approved cancelled campaign quarantine
         run: node --experimental-vm-modules tests/sites-retirement-native.test.mjs
       - name: Exact incident maintenance and same-process verification host with synthetic inputs
-        run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs
+        run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs tests/snapshot-control-cost.test.mjs
       - name: Compiled exact incident recovery and restricted native scope with synthetic bindings
         run: node tests/sites-incident-recovery-native.test.mjs
       - name: Fixed one-shot owner observation with synthetic inputs only
