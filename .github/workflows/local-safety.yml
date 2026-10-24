@@ -81,7 +81,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-recipe-uploader.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/snapshot-owner-verifier.test.mjs tests/snapshot-owner-budget.test.mjs
+          node --test tests/snapshot-owner-verifier.test.mjs tests/snapshot-owner-budget.test.mjs tests/snapshot-owner-applier.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-attempt-budget.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -143,6 +143,8 @@ jobs:
         run: node --experimental-vm-modules tests/sites-import-uploader-native.test.mjs
       - name: Compiled continuous owner verification without local files or native credentials
         run: node tests/sites-owner-continuation-native.test.mjs
+      - name: Compiled owner application with retained credentials and isolated data
+        run: node tests/sites-owner-application-native.test.mjs
       - name: Compiled bounded attempt with synthetic nonpersistent bindings
         # Bounded mode is a finite approved attempt, not measured provider quota.
         # The following compiled test uses fake credentials and ephemeral storage.
