@@ -5,6 +5,7 @@ export const observationOwner={id:'frank',enabled:true,role:'admin',exportAllowe
 export async function seedObservationCase(db,values={}){
  await db.batch([
   db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,0,?,?)').bind(JSON.stringify(values),'synthetic-observation'),
+  db.prepare('INSERT INTO process_snapshot_target(id,target,transfer_id) VALUES(1,?,?)').bind(C.targetFingerprint,C.transferId),
   db.prepare('INSERT INTO process_snapshot_transfers(id,project_id,target,manifest_sha,manifest_key,owner_id,phase,version,verify_cursor,chunk_count,total_bytes,created_at,expires_at) VALUES(?,?,?,?,?,?,?,19,272,1401,275566702,0,9999999999999)').bind(C.transferId,C.projectId,C.targetFingerprint,C.manifestSha256,'process-import/v1/'+C.transferId+'/manifest.json','frank','receiving'),
   db.prepare("INSERT INTO process_import_budget(id,policy_sha,policy,state,active_request,reason,write_bytes,write_calls,requests,db_bytes,db_statements) VALUES(1,?,'{}','stopped',?,'IMPORT_ATTEMPT_PROVIDER_OR_UNCERTAIN',276216440,1402,158,2271529,9476)").bind(C.policySha256,C.requestId),
   db.prepare("INSERT INTO process_import_native_requests(capability_id,nonce,request_sha256,request_id,action,generation,state,created_at,finalized_at,reason) VALUES(?,?,?,?,'verify',1,'unknown',1792807686316,1792807703351,'request-incomplete-or-provider-uncertain')").bind(C.capabilityId,C.nonce,C.requestSha256,C.requestId),
