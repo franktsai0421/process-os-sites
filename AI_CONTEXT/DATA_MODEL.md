@@ -1,6 +1,11 @@
 ## Sites normalized import view and target owner
 
-Local incident recovery (not deployed): native r2-get intent settles only after
+Local-only 0007 adds singleton `process_import_c273_observation`: a consumed,
+owner-authorized diagnostic receipt/reservation, not a new credential or business
+table. It never updates original request/operation/cursor/budget records. See
+[one-shot observation](../docs/sites/C273_OBSERVATION_20261024.md).
+
+Deployed incident recovery: native r2-get intent settles only after
 bounded body read/hash; the committed transfer cursor remains authoritative.
 Schema-only 0006 adds process_import_verify_capabilities (separate persistent
 verify/audit-only scope) and singleton process_import_verify_maintenance (three

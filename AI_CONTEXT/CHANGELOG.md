@@ -1,3 +1,14 @@
+# 2026-10-24 - Local one-shot observation (not published)
+
+- Add a default-off, exact-case c273 read/hash observation using the existing
+  owner session, with a consumed independent receipt and no new API credential.
+- Bound fetch/body/hash, reject replays and drift, disclose only fixed diagnostic
+  fields, and leave the original unknown request/lock/cursor/charges unchanged.
+- Schema-only 0007 adds one control table. Synthetic and compiled tests are local
+  evidence; no real observation, live schema mutation or business activation.
+- The recovery preparation below is historical: version 6 was deployed, the
+  first version-19 window failed unknown at c273, and recovery was closed.
+
 # 2026-10-23 - Local restricted verification recovery
 
 - Consume/hash bounded R2 bodies before successful read intent settlement.

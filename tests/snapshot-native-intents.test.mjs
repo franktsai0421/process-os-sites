@@ -4,6 +4,7 @@ import {createAttemptBudget} from '../lib/snapshot-attempt-budget.mjs';import {d
 import {boundedAttemptSite,attemptCeilings} from '../lib/snapshot-attempt-policy.mjs';
 import {capabilityRecord,credentialDigest,createNativeAuthority} from '../lib/snapshot-native-capability.mjs';
 import {createNativeIntentLedger} from '../lib/snapshot-native-intents.mjs';
+import {consumeImportBody} from '../lib/snapshot-body.mjs';
 const tests=[],token='s'.repeat(43),capabilityId='ic_'+'1'.repeat(32),actor={id:'frank',role:'admin',sessionType:'platform',exportAllowed:true};
 async function test(name,run){const f=await setup({canonical:false,ownerId:'frank'});let clock=Date.now(),serial=0,queue=Promise.resolve();const db={prepare:s=>f.db.prepare(s),batch(items){const p=queue.then(()=>f.db.batch(items));queue=p.catch(()=>{});return p;}};
  try{
@@ -73,4 +74,25 @@ for(const cancel of [false,true])await test(cancel?'GET body cancellation retain
  await assert.rejects(f.budget.run('batch',false,s=>s.bucket(raw).get(f.key),l),cancel?/IMPORT_BODY_CANCELLED/:/IMPORT_BODY_TIMEOUT/);
  const receipt=await l.receipt();assert.equal(receipt.operations[0].state,'failed');assert.equal(receipt.operations[0].evidence,cancel?'IMPORT_BODY_CANCELLED':'IMPORT_BODY_TIMEOUT');assert.notEqual(receipt.state,'complete');assert.equal(cancellations,1);assert.equal((await f.budget.status()).state,'stopped');assert.equal((await f.budget.status()).inFlight,true);
 });
+for(const scenario of ['fetch','object','read','contract','hash','replay','settlement','settlement-ack-lost'])await test('safe GET diagnostic separates '+scenario+' while preserving unknown locks and no replay',async f=>{
+ const sensitive='SYNTHETIC_PRIVATE_PROVIDER_SECRET_DO_NOT_LOG',logs=[],originalLog=console.error,l=await f.ledger();let gets=0,settlements=0,restore=()=>{};
+ console.error=(...args)=>logs.push(args.join(' '));
+ const stages={fetch:'provider-fetch',object:'provider-object',read:'body-read',contract:'body-read',hash:'body-hash',replay:'provider-replay',settlement:'d1-settlement','settlement-ack-lost':'d1-settlement'};
+ if(scenario.startsWith('settlement'))interceptRuns(f.db,(sql,args)=>sql.startsWith('UPDATE process_import_native_operations SET state=?')&&args[0]==='succeeded',async op=>{settlements++;if(scenario==='settlement-ack-lost')await op.run();throw Error(sensitive);});
+ const raw={...f.bucket,async get(){gets++;if(scenario==='fetch')throw Object.assign(new TypeError(sensitive),{code:'ECONNRESET'});
+  const body=new ReadableStream({start(c){if(scenario==='read')c.error(new TypeError(sensitive));else{c.enqueue(scenario==='contract'?'invalid chunk representation':f.bytes);c.close();}}});
+  if(scenario==='hash'){const digest=crypto.subtle.digest;crypto.subtle.digest=()=>Promise.reject(new DOMException(sensitive,'OperationError'));restore=()=>{crypto.subtle.digest=digest;};}
+  const object={size:f.bytes.length,body};if(scenario==='object')Object.defineProperty(object,'size',{get(){throw new RangeError(sensitive);}});if(scenario==='replay')Object.defineProperty(object,'httpMetadata',{get(){throw new TypeError(sensitive);}});return object;
+ }};
+ const objectsBefore=[...f.bucket.objects.keys()];let receipt;
+ try{await assert.rejects(f.budget.run('batch',false,s=>s.bucket(raw).get(f.key),l),scenario==='contract'?/^Error: IMPORT_BODY$/:/PROVIDER_OR_UNCERTAIN/);restore();receipt=await l.receipt();}
+ finally{restore();console.error=originalLog;}
+ assert.equal(gets,1);assert.deepEqual([...f.bucket.objects.keys()],objectsBefore);assert.equal(receipt.state,'unknown');assert.equal((await f.budget.status()).state,'stopped');assert.equal((await f.budget.status()).inFlight,true);assert.equal(receipt.automaticRetryAllowed,false);
+ assert.equal(receipt.operations[0].state,scenario==='settlement-ack-lost'?'succeeded':'unknown');assert.equal(logs.length,1);const diagnostic=JSON.parse(logs[0]);assert.equal(diagnostic.stage,stages[scenario]);assert.equal(diagnostic.event,'import-native-read-unconfirmed');assert.equal(diagnostic.ordinal,1);assert.deepEqual(Object.keys(diagnostic).sort(),['code','event','format','ordinal','requestId','stage','type'].sort());
+ if(scenario==='fetch')assert.equal(diagnostic.code,'ECONNRESET');if(scenario==='contract')assert.equal(diagnostic.code,'IMPORT_BODY');
+ if(scenario!=='settlement-ack-lost'){const evidence=receipt.operations[0].evidence;assert.ok(evidence.startsWith('provider-or-receipt-uncertain:'));assert.equal(JSON.parse(evidence.slice(evidence.indexOf(':')+1)).stage,stages[scenario]);assert.ok(Buffer.byteLength(evidence)<=256);}else{assert.equal(receipt.operations[0].evidence,'provider-body-sha256:'+await sha256(f.bytes));assert.equal(settlements,1);}
+ assert.ok(!JSON.stringify({receipt,logs}).includes(sensitive));assert.ok(!logs[0].includes(f.key));
+ const before=await f.budget.status();await assert.rejects(f.budget.run('batch',false,()=>assert.fail(),await f.ledger()),/NOT_ADMITTED/);assert.deepEqual((await f.budget.status()).used,before.used);assert.equal(gets,1);
+});
+await test('body phase observation retains bounded bytes and checksum without exposing content',async f=>{const phases=[];const result=await consumeImportBody(new Blob([f.bytes]).stream(),f.bytes.length,{expectedBytes:f.bytes.length,onPhase:p=>phases.push(p)});assert.deepEqual(phases,['body-read','body-check','body-hash']);assert.deepEqual(result.bytes,f.bytes);assert.equal(result.sha256,await sha256(f.bytes));});
 console.log(JSON.stringify({status:'PASS_SYNTHETIC_NATIVE_NONCE_INTENTS',cases:tests.length,tests,realData:false,realCredentials:false,network:false}));
