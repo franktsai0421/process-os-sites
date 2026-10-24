@@ -1,6 +1,14 @@
 // Separate fresh Sites baseline. Never replaces an applied legacy migration.
 import {sql} from 'drizzle-orm';
 import {check,index,integer,primaryKey,sqliteTable,text,uniqueIndex} from 'drizzle-orm/sqlite-core';
+// Distinct singletons: pre-dispatch admission survives ambiguity, while the
+// completion receipt is committed atomically with the exact version fence.
+export const v19Admission=sqliteTable('process_import_verify_v19_admission',{
+ id:integer('id').primaryKey().notNull(),configSha:text('config_sha').notNull(),nonce:text('nonce').notNull().unique(),planSha:text('plan_sha').notNull(),plan:text('plan').notNull(),requestSha:text('request_sha').notNull(),maintenanceDigest:text('maintenance_digest').notNull(),issuedAt:integer('issued_at').notNull(),expiresAt:integer('expires_at').notNull(),receiptExpiresAt:integer('receipt_expires_at').notNull(),state:text('state').notNull(),admittedAt:integer('admitted_at').notNull(),finalizedAt:integer('finalized_at'),
+},t=>[check('v19_admission_singleton',sql`${t.id}=1`),check('v19_admission_state',sql`${t.state} IN ('pending','unknown','complete')`),check('v19_admission_expiry',sql`${t.expiresAt}=${t.issuedAt}+600000 AND ${t.receiptExpiresAt}=${t.issuedAt}+18000000`)]);
+export const v19Supersession=sqliteTable('process_import_verify_v19_supersession',{
+ id:integer('id').primaryKey().notNull(),nonce:text('nonce').notNull().unique(),planSha:text('plan_sha').notNull(),beforeSha:text('before_sha').notNull(),beforeImage:text('before_image').notNull(),oldRequestId:text('old_request_id').notNull(),newGrantId:text('new_grant_id').notNull().unique(),programCommit:text('program_commit').notNull(),maintenanceDigest:text('maintenance_digest').notNull(),appliedAt:integer('applied_at').notNull(),state:text('state').notNull(),
+},t=>[check('v19_supersession_singleton',sql`${t.id}=1`),check('v19_supersession_state',sql`${t.state}='resumed'`)]);
 export const sharedState=sqliteTable('shared_state',{id:integer('id').primaryKey().notNull(),revision:integer('revision').notNull(),values:text('values').notNull(),updatedAt:text('updated_at').notNull()});
 export const stateBackups=sqliteTable('state_backups',{id:text('id').primaryKey().notNull(),revision:integer('revision').notNull(),values:text('values').notNull(),reason:text('reason').notNull(),actor:text('actor').notNull(),createdAt:text('created_at').notNull()});
 export const webFeedbackStore=sqliteTable('web_feedback_store',{id:integer('id').primaryKey().notNull(),revision:integer('revision').notNull(),payload:text('payload').notNull()},t=>[check('feedback_singleton',sql`${t.id}=1`)]);

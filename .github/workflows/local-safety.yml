@@ -152,6 +152,11 @@ jobs:
         run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs tests/snapshot-control-cost.test.mjs
       - name: Compiled exact incident recovery and restricted native scope with synthetic bindings
         run: node tests/sites-incident-recovery-native.test.mjs
+      - name: Version19 exact incident adapter and guarded D1 regressions
+        run: |
+          node --test tests/snapshot-v19-recovery.test.mjs tests/snapshot-v19-runtime.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/sites-v19-recovery-native.test.mjs
       - name: Fixed one-shot owner observation with synthetic inputs only
         run: |
           node tests/c273-observation.test.mjs
