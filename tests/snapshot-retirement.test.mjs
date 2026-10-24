@@ -36,4 +36,66 @@ await test('A to B to retired A is refused before fencing B and direct begin can
  try{await assert.rejects(createRetirement({...f,pins:f.oldPins,policy:f.oldPolicy,plan:pb}).retire(actor),/CAMPAIGN_REUSE/);assert.deepEqual(await budgetB.status(),before);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM process_import_retirements').get().n,1);await assert.rejects(assertNewCampaignFresh(f.db,f.bucket,f.oldId),/CAMPAIGN_REUSE/);const transfer=createHostedTransfer({store:f.transferStore,bucket:f.bucket,config:f.config(f.oldPins)});await assert.rejects(transfer.begin(actor,encode(await f.view.manifest())),/CAMPAIGN_REUSE/);}finally{release();await running;}
 });
 await test('changed counters after an immutable fence refuse switching even when diagnostic reason is valid',async f=>{const pending=await f.stalled(),p=await f.plan(),list=f.bucket.list.bind(f.bucket);let changed=false;f.bucket.list=async o=>{if(!changed){changed=true;f.sqlite.prepare('UPDATE process_import_budget SET write_bytes=write_bytes+1').run();}return list(o);};await assert.rejects(createRetirement({...f,plan:p}).retire(actor));assert.equal(f.sqlite.prepare('SELECT state FROM process_import_retirements').get().state,'fenced');assert.equal(f.sqlite.prepare('SELECT transfer_id FROM process_snapshot_target').get().transfer_id,f.oldId);assert.equal(f.sqlite.prepare('SELECT policy_sha FROM process_import_budget').get().policy_sha,p.oldPolicySha256);pending.release();await assert.rejects(pending.running,/FENCED/);});
+function retainedControl(f){return Object.fromEntries(['process_import_retirements','process_import_budget','process_import_attempts','process_snapshot_target','process_snapshot_transfers','process_snapshot_activations','shared_state'].map(table=>[table,f.sqlite.prepare('SELECT * FROM '+table+' ORDER BY 1').all()]));}
+async function completedRetirement(f){
+ const pending=await f.stalled(),plan=await f.plan();let time=Date.now();
+ plan.expiresAt=new Date(time+60_000).toISOString();
+ const retirement=createRetirement({...f,plan,now:()=>time});
+ assert.equal((await retirement.retire(actor)).state,'retired');
+ pending.release();await assert.rejects(pending.running,/FENCED/);
+ return{plan,retirement,now:()=>time,expire(){time=Date.parse(plan.expiresAt);},setTime(v){time=v;}};
+}
+await test('completed retirement status survives its execution expiry and owner admission continues a synthetic audit824 checkpoint',async f=>{
+ const c=await completedRetirement(f),budget=await createAttemptBudget({...f,now:c.now});
+ const id=(await f.call(budget,f.pins,'POST','begin',undefined,encode(f.nextManifest))).id;
+ // This is a control/CAS fixture, not a claim to have hashed824 real resources.
+ f.sqlite.prepare("INSERT INTO process_snapshot_activations(transfer_id,phase,version,audit_cursor,copy_cursor,db_cursor,bootstrap_sha) VALUES(?,'auditing',825,824,0,0,?)").run(id,'a'.repeat(64));
+ c.expire();const before=retainedControl(f),objects=[...f.bucket.objects.keys()].sort();
+ assert.deepEqual(await c.retirement.status(),{oldTransferId:f.oldId,nextTransferId:id,state:'retired',preservesStaging:true});
+ assert.deepEqual(retainedControl(f),before);assert.deepEqual([...f.bucket.objects.keys()].sort(),objects);
+ const oldBudget=await budget.status();
+ await budget.run('audit',false,async s=>{
+  const row=await s.db.prepare('SELECT version,audit_cursor FROM process_snapshot_activations WHERE transfer_id=?').bind(id).first();
+  assert.deepEqual({...row},{version:825,audit_cursor:824});
+  const r=await s.db.prepare("UPDATE process_snapshot_activations SET version=version+1,audit_cursor=audit_cursor+4 WHERE transfer_id=? AND version=? AND audit_cursor=? AND phase='auditing'").bind(id,row.version,row.audit_cursor).run();
+  assert.equal(r.meta.changes,1);return{phase:'auditing'};
+ });
+ assert.deepEqual({...f.sqlite.prepare('SELECT version,audit_cursor,copy_cursor,db_cursor FROM process_snapshot_activations WHERE transfer_id=?').get(id)},{version:826,audit_cursor:828,copy_cursor:0,db_cursor:0});
+ const after=await budget.status();assert.equal(after.state,'open');assert.equal(after.inFlight,false);assert.equal(after.used.requests,oldBudget.used.requests+1);assert.equal(after.used.dbStatements,oldBudget.used.dbStatements+1);assert.equal(after.used.writeBytes,oldBudget.used.writeBytes);assert.equal(after.used.writeCalls,oldBudget.used.writeCalls);
+ assert.deepEqual(f.sqlite.prepare('SELECT * FROM process_import_retirements').all(),before.process_import_retirements);assert.deepEqual([...f.bucket.objects.keys()].sort(),objects);
+ const afterAudit=retainedControl(f);await assert.rejects(c.retirement.retire(actor),/IMPORT_RETIREMENT_EXPIRED/);assert.deepEqual(retainedControl(f),afterAudit);
+});
+await test('expired required and fenced status still refuse without changing archived state or counters',async f=>{
+ const pending=await f.stalled(),plan=await f.plan();plan.expiresAt=new Date(Date.now()+60_000).toISOString();const expired=Date.parse(plan.expiresAt);try{
+  const required=createRetirement({...f,plan,now:()=>expired}),before=retainedControl(f);
+  await assert.rejects(required.status(),/IMPORT_RETIREMENT_EXPIRED/);await assert.rejects(required.retire(actor),/IMPORT_RETIREMENT_EXPIRED/);assert.deepEqual(retainedControl(f),before);
+  await f.bucket.put('unknown-synthetic-object',new Uint8Array([1]));await assert.rejects(createRetirement({...f,plan}).retire(actor),/IMPORT_TARGET_OCCUPIED/);
+  assert.equal(f.sqlite.prepare('SELECT state FROM process_import_retirements').get().state,'fenced');const fenced=retainedControl(f);
+  await assert.rejects(required.status(),/IMPORT_RETIREMENT_EXPIRED/);await assert.rejects(required.retire(actor),/IMPORT_RETIREMENT_EXPIRED/);assert.deepEqual(retainedControl(f),fenced);
+ }finally{pending.release();await assert.rejects(pending.running,/FENCED/);}
+});
+await test('completed expired status still rejects wrong pins policy and invalid time envelopes without mutation',async f=>{
+ const c=await completedRetirement(f);c.expire();const before=retainedControl(f);
+ const variants=[
+  {pins:{...f.pins,ownerId:'staff'}},
+  {pins:{...f.pins,projectId:'appgprj_wrong'}},
+  {pins:{...f.pins,targetFingerprint:'a'.repeat(64)}},
+  {plan:{...c.plan,nextManifestSha256:'a'.repeat(64)}},
+  {plan:{...c.plan,oldManifestSha256:'a'.repeat(64)}},
+  {plan:{...c.plan,oldPolicySha256:'a'.repeat(64)}},
+  {policy:{...f.policy,approvalId:'different-policy'}},
+  {plan:{...c.plan,issuedAt:new Date(c.now()+1).toISOString()}},
+  {plan:{...c.plan,issuedAt:new Date(c.now()-25*3600_000).toISOString()}},
+ ];
+ for(const changed of variants)await assert.rejects(createRetirement({...f,plan:c.plan,now:c.now,...changed}).status(),/IMPORT_(RETIREMENT|ATTEMPT)_/);
+ assert.deepEqual(retainedControl(f),before);
+ c.setTime(Date.parse(f.policy.expiresAt));await assert.rejects(c.retirement.status(),/IMPORT_ATTEMPT_EXPIRED/);assert.deepEqual(retainedControl(f),before);
+});
+await test('completed expired status cannot bypass a stopped current budget or release its lock',async f=>{
+ const c=await completedRetirement(f);c.expire();
+ f.sqlite.prepare("UPDATE process_import_budget SET state='stopped',active_request=?,reason='synthetic-unknown' WHERE id=1").run('22222222-2222-4222-8222-222222222222');
+ const before=retainedControl(f);assert.equal((await c.retirement.status()).state,'retired');
+ const budget=await createAttemptBudget({...f,now:c.now});await assert.rejects(budget.run('audit',false,async()=>assert.fail('no audit dispatch')),/IMPORT_ATTEMPT_STOPPED/);
+ assert.deepEqual(retainedControl(f),before);
+});
 console.log(JSON.stringify({status:'PASS_SYNTHETIC_RETIRED_CAMPAIGN_AND_LOST_ACK',cases:tests.length,tests,realData:false,network:false,credentialsChanged:false}));
