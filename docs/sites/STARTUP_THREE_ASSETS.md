@@ -34,12 +34,15 @@ existing schema's `running`/`stopped` states. There is no schema change and no u
 replay. A lost response permits one bounded status read. Stop/cancel never claims
 the provider side effect was undone. Source, object, and receipt mismatches stop.
 
-Reader entries use the existing `statePermissions.processMasterData` view grants,
-matching the shared-state master data projection. `companyAsset` still requires
-normal identity and effective view permission, serves no-store, checks fixed
-object size and SHA metadata, and keeps payloads out of public assets. This is
-not a claim that all employee UI/scope behavior is accepted: it must be reviewed
-and checked on the application after publication.
+The three reader entries use `users.view` rather than a broad OR of module views.
+`companyAsset` additionally requires the exact normal Frank admin/platform
+session with `master.export` for these three paths and their pinned object keys,
+including any future URL alias. Other admins and single-module employees cannot
+read complete seed bytes. The original 304 entries retain their original ACLs.
+No account permission is changed. Headers remain no-store, object size/SHA
+metadata checks remain, and payloads stay out of public assets. Employee startup
+is not accepted by this owner-only fix: role-specific startup remains a separate
+scope requiring design and validation, not a reason to open complete seeds.
 
 The UI accepts the three pinned files and submits them sequentially once, then
 publishes the index. Supported browser file selection can select verified private
