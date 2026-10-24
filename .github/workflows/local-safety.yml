@@ -148,6 +148,10 @@ jobs:
           Write-Output 'Bounded attempt evidence is synthetic only; no live upload or spending authority.'
       - name: Compiled owner-approved cancelled campaign quarantine
         run: node --experimental-vm-modules tests/sites-retirement-native.test.mjs
+      - name: Exact incident maintenance and same-process verification host with synthetic inputs
+        run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs
+      - name: Compiled exact incident recovery and restricted native scope with synthetic bindings
+        run: node tests/sites-incident-recovery-native.test.mjs
       - name: Compiled dormant native staging capability with fake storage only
         run: node tests/sites-native-capability-runtime.test.mjs
       - name: Compiled authenticated photo uploads with synthetic nonpersistent bindings

@@ -1,3 +1,16 @@
+# 2026-10-23 - Local restricted verification recovery
+
+- Consume/hash bounded R2 bodies before successful read intent settlement.
+- Add exact-incident guarded hold/maintenance/resume transactions, separate
+  persistent verify/audit-only authority and same-process secret custody.
+- Preserve old charges/history, keep baseline unverified, deny payload/business
+  writes, and pause after the first clean verification window for exact review.
+- Recheck server time after the final asynchronous owner read and bind the fresh
+  timestamp into the durable maintenance expiry guard; delayed-owner regression
+  refuses expired dispatch while retaining unknown receipt/lock.
+- Register schema-only 0006 and align the fresh schema model with all 19 tables.
+  This is local implementation; no live recovery, credential or deployment.
+
 # 2026-10-23 - Native import precision regressions
 
 - Cover both-first-admission nonce races (including different hashes), failed

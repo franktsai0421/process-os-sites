@@ -1,5 +1,23 @@
 # Isolated Sites implementation handoff
 
+Latest local follow-up: [restricted incident verification protocol](docs/sites/VERIFY_INCIDENT_PROTOCOL_20261023.md).
+The default-off HTTP entry, separate persistent verify/audit scope and same-process
+host are implemented locally. Evidence: 21 initial unit/schema, 6 compiled HTTP
+and 7 local workerd-D1 probes pass; a subsequent delayed-owner expiry test passes
+individually. The previous 34 were not rerun after that narrow fix. The final
+build/type receipts and exact file hashes are recorded in the task-local final
+review handoff. The build stamp is a real
+ancestor, not a commit for these uncommitted changes. No true credential, source
+push, live schema/control-table change, deployment or real recovery occurred.
+The original [planner rehearsal](docs/sites/VERIFY_RESUME_DECISION_20261023.md)
+is historical evidence, superseded for implementation status by this protocol.
+
+Latest local-only incident work: [stalled native verify recovery](docs/sites/VERIFY_RECOVERY_20261023.md).
+All 1,401 payload ACKs exist, but last observed committed verify cursor is 272;
+the original host is absent and no online recovery was attempted. Bounded body
+consumption / intent proof changes and an exact stopped-only CAS are prepared
+for review. No lock release, credential renewal, deployment or activation is implied.
+
 Current local preparation: [native import transport](docs/sites/NATIVE_IMPORT_PLAN.md).
 The owner closed the stalled browser sender. A read-only 10:56:30Z live receipt
 still showed open/no active request and unchanged counters. Native source reading

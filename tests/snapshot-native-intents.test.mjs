@@ -13,7 +13,7 @@ async function test(name,run){const f=await setup({canonical:false,ownerId:'fran
   const pins={...Object.fromEntries(['projectId','origin','ownerId','targetFingerprint','manifestSha256'].map(k=>[k,base[k]])),transferId:start.id},record=capabilityRecord({id:capabilityId,credentialSha256:await credentialDigest(token),pins,ownerEpoch:3,issuedAt:clock,writeExpiresAt:clock+1000,receiptExpiresAt:clock+2000});
   const cols=Object.keys(record);f.sqlite.prepare(`INSERT INTO process_import_capabilities(${cols.join(',')}) VALUES(${cols.map(()=>'?').join(',')})`).run(...Object.values(record));
   const authority=createNativeAuthority({db,pins,now:()=>clock,readOwnerEligibility:async()=>{const r=f.sqlite.prepare('SELECT revision,"values" v,updated_at FROM shared_state').get(),u=JSON.parse(JSON.parse(r.v).platformUsers)[0];return{id:u.id,enabled:u.enabled!==false,role:u.role,exportAllowed:u.role==='admin',authEpoch:u.authEpoch,revision:r.revision,updatedAt:r.updated_at};}}),handle=await authority.authenticate({capabilityId,token});
-  async function ledger({nonce,hash}={}){serial++;return createNativeIntentLedger({db,authority,handle,pins,nonce:nonce||'10000000-0000-4000-8000-'+String(serial).padStart(12,'0'),requestSha256:hash||await sha256(encode('fixture-'+serial)),action:'batch',now:()=>clock});}
+  async function ledger({nonce,hash,signal,bodyTimeoutMs}={}){serial++;return createNativeIntentLedger({db,authority,handle,pins,nonce:nonce||'10000000-0000-4000-8000-'+String(serial).padStart(12,'0'),requestSha256:hash||await sha256(encode('fixture-'+serial)),action:'batch',now:()=>clock,signal,bodyTimeoutMs});}
   const key='process-import/v1/'+pins.transferId+'/chunks/c0',bytes=f.pack.chunks.get('c0');
   function rawWithChecksum(raw=f.bucket){return{...raw,async put(k,b,o){const value=await raw.put(k,b,o);return value?{...value,checksums:{sha256:Uint8Array.from((await sha256(b)).match(/../g),v=>parseInt(v,16)).buffer}}:value;}};}
   await run({...f,db,budget,policy,pins,record,authority,handle,ledger,key,bytes,setTime:v=>clock=v,now:()=>clock,rawWithChecksum});tests.push(name);
@@ -57,5 +57,20 @@ for(const bodyFailure of [false,true])await test(bodyFailure?'readback stream fa
  if(bodyFailure)await assert.rejects(run,/PROVIDER_OR_UNCERTAIN/);else await run;
  assert.equal(expiredMidBody,true);assert.equal(puts,1);assert.equal(gets,1);assert.equal(f.bucket.objects.has(f.key),true);const op=f.sqlite.prepare("SELECT state FROM process_import_native_operations WHERE kind='r2-put'").get();assert.equal(op.state,bodyFailure?'unknown':'succeeded');assert.equal((await f.budget.status()).inFlight,bodyFailure);await assert.rejects(l.receipt(),/RECEIPT_EXPIRED/);
  await assert.rejects(l.wrapBucket(raw).get(f.key),/RECEIPT_EXPIRED/);await assert.rejects(l.wrapBucket(raw).put(f.key,f.bytes,{onlyIf:{etagDoesNotMatch:'*'}}),/EXPIRED/);assert.equal(gets,1);assert.equal(puts,1);
+});
+await test('GET intent remains pending until bounded body consumption/hash completes, not just object response',async f=>{
+ let release,entered;const waiting=new Promise(r=>entered=r),l=await f.ledger({bodyTimeoutMs:500});
+ const body=new ReadableStream({pull(c){return new Promise(r=>{release=()=>{c.enqueue(f.bytes);c.close();r();};});}}),raw={...f.bucket,async get(){entered();return{size:f.bytes.length,body};}};
+ const run=f.budget.run('batch',false,s=>s.bucket(raw).get(f.key),l);await waiting;
+ // Provider invocation is the deterministic barrier AFTER pending admission.
+ assert.equal(f.sqlite.prepare('SELECT state FROM process_import_native_operations').get().state,'pending');release();const value=await run;
+ assert.deepEqual(new Uint8Array(await new Response(value.body).arrayBuffer()),f.bytes);
+ const receipt=await l.receipt();assert.equal(receipt.operations[0].state,'succeeded');assert.equal(receipt.operations[0].evidence,'provider-body-sha256:'+await sha256(f.bytes));assert.equal(receipt.state,'complete');
+});
+for(const cancel of [false,true])await test(cancel?'GET body cancellation retains stopped lease and definite incomplete-read receipt':'GET stalled body times out; never-awaiting cancel cannot hang failure receipt',async f=>{
+ let cancellations=0;const controller=new AbortController(),l=await f.ledger({bodyTimeoutMs:20,signal:controller.signal});
+ const raw={...f.bucket,async get(){if(cancel)setImmediate(()=>controller.abort());return{size:f.bytes.length,body:new ReadableStream({pull(){return new Promise(()=>{});},cancel(){cancellations++;return new Promise(()=>{});}})};}};
+ await assert.rejects(f.budget.run('batch',false,s=>s.bucket(raw).get(f.key),l),cancel?/IMPORT_BODY_CANCELLED/:/IMPORT_BODY_TIMEOUT/);
+ const receipt=await l.receipt();assert.equal(receipt.operations[0].state,'failed');assert.equal(receipt.operations[0].evidence,cancel?'IMPORT_BODY_CANCELLED':'IMPORT_BODY_TIMEOUT');assert.notEqual(receipt.state,'complete');assert.equal(cancellations,1);assert.equal((await f.budget.status()).state,'stopped');assert.equal((await f.budget.status()).inFlight,true);
 });
 console.log(JSON.stringify({status:'PASS_SYNTHETIC_NATIVE_NONCE_INTENTS',cases:tests.length,tests,realData:false,realCredentials:false,network:false}));
