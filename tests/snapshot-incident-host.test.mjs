@@ -6,13 +6,20 @@ import {incident} from '../scripts/verify-recovery-20261023.mjs';
 import {sha256} from '../lib/snapshot-contract.mjs';
 const programCommit='a'.repeat(40),gate='SYNTHETIC_GATE_ONLY',encode=v=>new TextEncoder().encode(JSON.stringify(v));
 class TTY extends EventEmitter{isTTY=true;isRaw=false;visible='';setRawMode(v){this.isRaw=v;}resume(){}pause(){}feed(v){const s=JSON.stringify(v)+'\n';if(!this.isRaw)this.visible+=s;this.emit('data',Buffer.from(s));}}
-function harness({replyConfig=true,replyBearer=true,replyReview=true,badConfig=false,expireReview=false,lostAck=false,badNonce=false,eofBearer=false,badContinue=false,reviewDelay=0}={}){
- const input=new TTY(),lines=[],stderr=[],log=[],statistics={entropy:0,claim:0,claimClose:0,sessionClose:0,sessionOpen:0},saved=[];let config,configSha,clock=1800000000000,stage='registered',cursor=272,version=19,audits=0,serial=0,last=null;
+function harness({mode='version18',replyConfig=true,replyBearer=true,replyReview=true,badConfig=false,expireReview=false,lostAck=false,badNonce=false,eofBearer=false,badContinue=false,reviewDelay=0,lostMaintenanceAck=false}={}){
+ const initialVersion=mode==='version19'?20:19;
+ const input=new TTY(),lines=[],stderr=[],log=[],statistics={entropy:0,claim:0,claimClose:0,sessionClose:0,sessionOpen:0},saved=[];let config,configSha,clock=1800000000000,stage='registered',cursor=272,version=initialVersion,audits=0,serial=0,last=null,maintenanceReceipt;
  const nonce=()=> '10000000-0000-4000-8000-'+String(++serial).padStart(12,'0');
  const response=v=>Response.json(v,{headers:{'Cache-Control':'no-store'}});
  const counts={planned:0,pending:0,succeeded:18,failed:0,unknown:0},budget={state:'open',inFlight:false};
  async function fetchAuthorized(url,o){
   const u=new URL(url),action=u.searchParams.get('action')||'status';assert.equal(u.origin,incident.origin);assert.equal(u.pathname,'/api/snapshots/import');assert.equal(o.headers instanceof Headers?o.headers.get('OAI-Sites-Authorization'):o.headers['OAI-Sites-Authorization'],'Bearer '+gate);log.push({method:o.method,action});
+  if(action.startsWith('v19-')){
+   assert.equal(mode,'version19');
+   if(action==='v19-plan')return response({stage:'not-admitted',planSha256:'c'.repeat(64),configSha,programCommit,nonce:config.nonce});
+   if(action==='v19-status')return response({stage:'resumed',inFlight:false,importInFlight:false,budgetState:'open',version:20,verifiedCursor:272,configSha,receipts:[maintenanceReceipt]});
+   assert.equal(action,'v19-resume');const b=JSON.parse(o.body);assert.equal(b.nonce,config.nonce);maintenanceReceipt={nonce:b.nonce,action,requestSha256:await sha256(encode({action,nonce:b.nonce,planSha256:b.planSha256,configSha})),state:'complete'};if(lostMaintenanceAck)throw Error(gate);return response({stage:'resumed',receipt:maintenanceReceipt});
+  }
   if(action.startsWith('incident-')){
    if(action==='incident-register')return response({stage:'registered'});
    if(action==='incident-plan')return response({stage,planSha256:stage==='registered'?'a'.repeat(64):'b'.repeat(64),configSha,programCommit});
@@ -21,7 +28,7 @@ function harness({replyConfig=true,replyBearer=true,replyReview=true,badConfig=f
    return response({stage,receipt:{nonce:b.nonce,action,requestSha256:await sha256(encode({action,nonce:b.nonce,planSha256:b.planSha256,configSha})),state:'complete'}});
   }
   const h=new Headers(o.headers);
-  if(action==='configuration')return response({pins:Object.fromEntries(['projectId','origin','ownerId','targetFingerprint','manifestSha256','transferId'].map(k=>[k,incident[k]])),bootstrapClosed:true,writeAvailable:true,budget,nativeScope:'incident-verify-audit-only-v1',baseline:{verified:false},continuation:{version:19,cursor:272,uploadAllowed:false}});
+  if(action==='configuration')return response({pins:Object.fromEntries(['projectId','origin','ownerId','targetFingerprint','manifestSha256','transferId'].map(k=>[k,incident[k]])),bootstrapClosed:true,writeAvailable:true,budget,nativeScope:'incident-verify-audit-only-v1',baseline:{verified:false},continuation:{version:initialVersion,cursor:272,uploadAllowed:false}});
   if(action==='budget-status')return response(budget);
   if(action==='request-status')return response(last);
   if(action==='status'){const p=Number(u.searchParams.get('cursor')||0),end=Math.min(p+100,1401);return response({id:incident.transferId,phase:cursor===1401?'integrity-verified':'receiving',version,verifiedCursor:cursor,received:1401,chunkCount:1401,missing:[],nextCursor:end<1401?end:null});}
@@ -32,7 +39,7 @@ function harness({replyConfig=true,replyBearer=true,replyReview=true,badConfig=f
  }
  const stdout={write(s){const v=JSON.parse(s);lines.push(v);if(v.status==='HOST_RECOVERY_CONFIG_GENERATED'){config=v.config;configSha=v.configSha256;}if(v.status==='HOST_AWAITING_VERIFY_REVIEW'&&replyReview){const count=log.length;setTimeout(()=>{assert.equal(log.length,count,'pause sends zero requests');if(expireReview)clock=config.grant.writeExpiresAt;input.feed({type:'continue-verification',grantId:config.grant.id,checkpointSha256:badContinue?'0'.repeat(64):v.checkpointSha256,transferId:incident.transferId,manifestSha256:incident.manifestSha256});},reviewDelay);}}};
  const err={write(s){assert.equal(input.isRaw,true,'echo disabled before ready');stderr.push(s);if(s.includes('configuration confirmation')&&replyConfig)queueMicrotask(()=>input.feed({type:'configured',projectId:incident.projectId,programCommit,configSha256:badConfig?'0'.repeat(64):configSha,envRevision:9}));if(s.includes('Site bearer')&&replyBearer)queueMicrotask(()=>eofBearer?input.emit('end'):input.feed({type:'bearer',maintenanceId:config.maintenance.id,grantId:config.grant.id,siteEntryToken:gate}));}};
- const host=createIncidentMemoryHost({programCommit,input,stdout,stderr:err,now:()=>clock,random:n=>{statistics.entropy++;return Buffer.alloc(n,statistics.entropy+2);},setupTimeoutMs:replyConfig?1000:10,reviewTimeoutMs:replyReview?1000:10,claimGeneration:()=>{statistics.claim++;return{generated:v=>saved.push(v),close:()=>statistics.claimClose++};},fetchAuthorized,openSession:async options=>{statistics.sessionOpen++;const session=await openIncidentVerificationSession({...options,nonce});const close=session.close;session.close=()=>{statistics.sessionClose++;close();};return session;}});
+ const host=createIncidentMemoryHost({programCommit,mode,nonce,input,stdout,stderr:err,now:()=>clock,random:n=>{statistics.entropy++;return Buffer.alloc(n,statistics.entropy+2);},setupTimeoutMs:replyConfig?1000:10,reviewTimeoutMs:replyReview?1000:10,claimGeneration:()=>{statistics.claim++;return{generated:v=>saved.push(v),close:()=>statistics.claimClose++};},fetchAuthorized,openSession:async options=>{statistics.sessionOpen++;const session=await openIncidentVerificationSession({...options,nonce});const close=session.close;session.close=()=>{statistics.sessionClose++;close();};return session;}});
  return{host,input,lines,stderr,log,statistics,saved,get config(){return config;},get clock(){return clock;}};
 }
 function clean(f){
@@ -55,4 +62,12 @@ test('EOF at hidden bearer intake sends nothing and removes all listeners',async
 test('wrong continuation frame cannot start a second verify window',async()=>{const f=harness({badContinue:true,reviewDelay:10}),r=await f.host.run();assert.equal(r.status,'HOST_STOPPED');assert.equal(f.log.filter(v=>v.action==='verify').length,1);assert.equal(f.log.some(v=>v.action==='audit'),false);clean(f);});
 test('persistent one-use claim prevents key regeneration after a new host object',()=>{
  const dir=fs.mkdtempSync(path.resolve('.sites-runtime/incident-host-claim-fixture-')),file=path.join(dir,'synthetic-once.json'),claim=incidentFileClaim(file),first=claim();first.generated({programCommit,config:{credentialSha256:'a'.repeat(64)}});first.close();assert.throws(()=>claim(),/HOST_GENERATION_ALREADY_RESERVED/);const value=JSON.parse(fs.readFileSync(file,'utf8'));assert.equal(value.state,'generated');assert.equal(Object.hasOwn(value,'applicationToken'),false);
+});
+test('v19 same-process lifecycle uses one resume, exact version21/cursor288 checkpoint, unchanged deadline and no upload',async()=>{
+ const f=harness({mode:'version19',reviewDelay:10}),r=await f.host.run();assert.equal(r.status,'HOST_VERIFY_AUDIT_SEALED');assert.equal(f.statistics.sessionOpen,1);assert.equal(f.statistics.sessionClose,1);
+ assert.equal(f.log.filter(x=>x.action==='v19-resume'&&x.method==='POST').length,1);assert.equal(f.log.some(x=>x.action.startsWith('incident-')||['register','batch','reconcile-existing','copy','restore','activate'].includes(x.action)),false);
+ const p=f.lines.find(x=>x.status==='HOST_AWAITING_VERIFY_REVIEW').checkpoint;assert.equal(p.version,21);assert.equal(p.verifiedCursor,288);assert.equal(p.writeExpiresAt,f.config.grant.issuedAt+14400000);assert.equal(f.log.filter(x=>x.action==='verify').length,71);clean(f);
+});
+for(const options of [{lostMaintenanceAck:true},{lostAck:true},{expireReview:true},{badContinue:true}])test('v19 fail-closed host '+JSON.stringify(options),async()=>{
+ const f=harness({mode:'version19',...options}),r=await f.host.run();assert.equal(r.status,'HOST_STOPPED');assert.equal(f.log.filter(x=>x.action==='v19-resume').length,1);assert.equal(f.log.filter(x=>x.action==='verify').length,options.lostMaintenanceAck?0:1);assert.equal(f.log.some(x=>x.action==='audit'),false);assert.ok(f.log.filter(x=>['request-status','budget-status'].includes(x.action)).length<=2);clean(f);
 });

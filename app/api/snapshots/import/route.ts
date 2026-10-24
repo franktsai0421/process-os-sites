@@ -15,11 +15,13 @@ import {createNativeImportHandler} from '@/lib/snapshot-native-handler.mjs';
 import {createIncidentRecoveryRuntime} from '@/lib/snapshot-incident-recovery.mjs';
 import {sha256} from '@/lib/snapshot-contract.mjs';
 import {createC273Observation} from '@/lib/snapshot-c273-observation.mjs';
+import {createV19RecoveryRuntime} from '@/lib/snapshot-v19-recovery.mjs';
 type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string;PROCESS_IMPORT_RETIREMENT_JSON?:string;PROCESS_NATIVE_IMPORT_ENABLED?:string;PROCESS_NATIVE_IMPORT_GRANT_JSON?:string;PROCESS_OWNER_BOOTSTRAP_ENABLED?:string;PROCESS_VERIFY_RECOVERY_ENABLED?:string;PROCESS_VERIFY_RECOVERY_JSON?:string;PROCESS_PROGRAM_COMMIT?:string};
 type ObservationValues={PROCESS_C273_OBSERVATION_ENABLED?:string;PROCESS_C273_OBSERVATION_JSON?:string};
+type V19Values={PROCESS_V19_RECOVERY_ENABLED?:string;PROCESS_V19_RECOVERY_JSON?:string};
 const reply=(value:unknown,status=200)=>Response.json(value,{status,headers:responseHeaders});
 async function dispatch(request:Request){
- const values=env as ImportValues&ObservationValues;
+ const values=env as ImportValues&ObservationValues&V19Values;
  if(values.PROCESS_IMPORT_ENABLED!=='1')return reply({error:'IMPORT_DISABLED'},404);
  try{
   const url=new URL(request.url),origin=values.PROCESS_IMPORT_ORIGIN;
@@ -32,7 +34,11 @@ async function dispatch(request:Request){
    return{id:owner.id,enabled:access.enabled&&owner.authMode!=='demo'&&!('disabled' in owner&&owner.disabled===true),role:owner.role,exportAllowed:access.permissions.includes('master.export'),authEpoch:typeof owner.authEpoch==='number'&&Number.isSafeInteger(owner.authEpoch)?owner.authEpoch:0,revision:current.revision,updatedAt:current.updated_at};
   };
   const nativePins={projectId:hosting.project_id,origin,ownerId:values.PROCESS_IMPORT_OWNER_ID,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,transferId:await sha256(new TextEncoder().encode(JSON.stringify([hosting.project_id,values.PROCESS_IMPORT_TARGET_FINGERPRINT,values.PROCESS_IMPORT_MANIFEST_SHA256])))};
-  const recovery=values.PROCESS_VERIFY_RECOVERY_ENABLED==='1'?await createIncidentRecoveryRuntime({db:env.DB,config:values.PROCESS_VERIFY_RECOVERY_JSON,programCommit:values.PROCESS_PROGRAM_COMMIT,projectId:hosting.project_id,origin,bindingsPins:nativePins,readOwnerEligibility}):null;
+  const v19Enabled=values.PROCESS_V19_RECOVERY_ENABLED==='1';
+  if(v19Enabled&&(values.PROCESS_VERIFY_RECOVERY_ENABLED==='1'||values.PROCESS_C273_OBSERVATION_ENABLED==='1'))throw Error('IMPORT_V19_MODE_CONFLICT');
+  const recovery=v19Enabled?await createV19RecoveryRuntime({db:env.DB,config:values.PROCESS_V19_RECOVERY_JSON,programCommit:values.PROCESS_PROGRAM_COMMIT,projectId:hosting.project_id,origin,bindingsPins:nativePins,readOwnerEligibility}):values.PROCESS_VERIFY_RECOVERY_ENABLED==='1'?await createIncidentRecoveryRuntime({db:env.DB,config:values.PROCESS_VERIFY_RECOVERY_JSON,programCommit:values.PROCESS_PROGRAM_COMMIT,projectId:hosting.project_id,origin,bindingsPins:nativePins,readOwnerEligibility}):null;
+  if(url.searchParams.get('action')?.startsWith('v19-'))return v19Enabled&&recovery?recovery.handle(request):reply({error:'IMPORT_V19_DISABLED'},404);
+  if(v19Enabled&&url.searchParams.get('action')?.startsWith('incident-'))return reply({error:'IMPORT_VERIFY_DISABLED'},404);
   if(url.searchParams.get('action')?.startsWith('incident-'))return recovery?recovery.handle(request):reply({error:'IMPORT_VERIFY_DISABLED'},404);
   if(request.headers.has('Authorization')){
    if(values.PROCESS_NATIVE_IMPORT_ENABLED!=='1')return reply({error:'IMPORT_NATIVE_DISABLED'},404);
@@ -46,7 +52,7 @@ async function dispatch(request:Request){
   const config={enabled:true,projectId:hosting.project_id,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,ownerId:values.PROCESS_IMPORT_OWNER_ID};
   authorizeImport(principal,config);
   if(url.searchParams.get('action')==='c273-observation'){
-   const observer=await createC273Observation({db:env.DB,bucket:env.STATE_ARCHIVE,pins:nativePins,programCommit:values.PROCESS_PROGRAM_COMMIT,enabled:values.PROCESS_C273_OBSERVATION_ENABLED==='1',configuration:values.PROCESS_C273_OBSERVATION_JSON,readOwnerEligibility,recoveryClosed:values.PROCESS_VERIFY_RECOVERY_ENABLED!=='1'});
+   const observer=await createC273Observation({db:env.DB,bucket:env.STATE_ARCHIVE,pins:nativePins,programCommit:values.PROCESS_PROGRAM_COMMIT,enabled:values.PROCESS_C273_OBSERVATION_ENABLED==='1',configuration:values.PROCESS_C273_OBSERVATION_JSON,readOwnerEligibility,recoveryClosed:values.PROCESS_VERIFY_RECOVERY_ENABLED!=='1'&&!v19Enabled});
    return observer.handle(request,principal);
   }
   const page=importPageConfiguration(values,hosting.project_id),budget=await createAttemptBudget({db:env.DB,bucket:env.STATE_ARCHIVE,policy:page.attempt,pins:page.pins});

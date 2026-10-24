@@ -51,6 +51,7 @@
       "tag": "0006_sites_verify_recovery",
       "breakpoints": true
     },
-    {"idx":7,"version":"6","when":1792809000000,"tag":"0007_sites_c273_observation","breakpoints":true}
+    {"idx":7,"version":"6","when":1792809000000,"tag":"0007_sites_c273_observation","breakpoints":true},
+    {"idx":8,"version":"6","when":1792818000000,"tag":"0008_sites_v19_recovery","breakpoints":true}
   ]
 }
