@@ -1,0 +1,47 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {getEventListeners} from 'node:events';
+import {createOwnerApplier} from '../lib/snapshot-owner-applier.mjs';import {sha256} from '../lib/snapshot-contract.mjs';
+const pins={projectId:'appgprj_synthetic',origin:'https://owner-apply.synthetic.invalid',ownerId:'frank',targetFingerprint:'a'.repeat(64),manifestSha256:'b'.repeat(64)},confirm={allowApply:true,allowActivation:true};
+async function fixture(options={}){
+ const id=await sha256(new TextEncoder().encode(JSON.stringify([pins.projectId,pins.targetFingerprint,pins.manifestSha256]))),controller=new AbortController(),calls=[],progress=[];
+ let phase=options.phase||'sealed',version=1258,objects=phase==='copying'?1:['restoring','data-ready','active'].includes(phase)?2:0,rows=['data-ready','active'].includes(phase)?1:0,prepared=false,invalidSession=false,running=0,maxRunning=0;
+ let budget={state:options.blocked?'stopped':phase==='active'?'complete':'open',inFlight:!!options.locked};let entered;const postEntered=new Promise(r=>entered=r);
+ const state=()=>({id,phase,version,auditedResources:5,completedObjects:objects,restoredRows:rows,businessTrafficEnabled:phase==='active'&&!options.closedGate});
+ const request=async(url,o)=>{
+  const u=new URL(url),action=u.searchParams.get('action')||'status';calls.push({method:o.method,action,version:u.searchParams.get('version'),signal:o.signal});
+  assert.equal(u.origin,pins.origin);assert.equal(u.pathname,'/api/snapshots/import');assert.equal(o.credentials,'same-origin');assert.equal(o.redirect,'error');assert.equal(o.cache,'no-store');assert.equal(o.headers.Origin,pins.origin);
+  if(options.refused||invalidSession)return Response.json({error:'LOGIN_REQUIRED'},{status:401});
+  if(action==='configuration'){if(options.stallRead)return new Promise(()=>{});return Response.json({pins:options.wrongPins?{...pins,ownerId:'other'}:pins,bootstrapClosed:true,budget});}
+  if(action==='status')return Response.json({id,phase:options.notVerified?'receiving':'integrity-verified',version:91,chunkCount:8,verifiedCursor:options.notVerified?7:8,received:8});
+  if(action==='activation-status')return Response.json(state());if(action==='budget-status')return Response.json(budget);
+  assert.equal(o.method,'POST');assert.ok(['copy','restore','activate'].includes(action));assert.equal(Number(u.searchParams.get('version')),version);assert.equal(budget.state,'open');entered();running++;maxRunning=Math.max(maxRunning,running);
+  try{
+   if(options.providerError){budget={state:'stopped',inFlight:false};return Response.json({error:options.providerError},{status:409});}
+   let reply;
+   if(action==='copy'){if(objects<2){objects++;phase='copying';version++;reply={id,phase,version,completedObjects:objects,totalObjects:2,dataReady:false};}else{phase='restoring';version++;reply={id,phase,version,dataReady:false};}}
+   else if(action==='restore'){rows=1;phase='data-ready';version++;reply={id,phase,version,restoredRows:rows,dataReady:true,businessTrafficEnabled:false};}
+   else if(!prepared){prepared=true;version++;reply={id,phase:'data-ready',version,ownerPreparing:true,dataReady:true,businessTrafficEnabled:false};}
+   else{phase='active';version++;budget={state:'complete',inFlight:false};reply={id,phase,dataReady:true,businessTrafficEnabled:true,ownerLoginConfigured:true,employeeCredentialsMigrated:false,previousOwnerSessionInvalidated:true};}
+   reply={...reply,budget};
+   if(options.stall){if(options.abort)queueMicrotask(()=>controller.abort());return new Promise(()=>{});}
+   if(options.lost||options.activationLost&&phase==='active'){if(phase==='active')invalidSession=true;throw Error('synthetic lost ACK');}
+   if(options.wrongVersion)reply.version=version-1;if(options.wrongId)reply.id='f'.repeat(64);
+   return Response.json(reply);
+  }finally{running--;}
+ };
+ const runner=await createOwnerApplier({pins,request,signal:controller.signal,onProgress:async p=>progress.push(p)});
+ return{runner,calls,progress,controller,postEntered,get state(){return state();},get maxRunning(){return maxRunning;}};
+}
+test('one explicit owner action copies restores and activates; no files upload verify audit or post-activation GET',async()=>{
+ const f=await fixture(),r=await f.runner.run(confirm);assert.equal(r.status,'active');assert.equal(r.businessTrafficEnabled,true);assert.equal(r.reloginRequired,true);assert.equal(r.employeeCredentialsMigrated,false);assert.equal(f.maxRunning,1);
+ assert.deepEqual(f.calls.filter(x=>x.method==='POST').map(x=>x.action),['copy','copy','copy','restore','activate','activate']);assert.deepEqual(f.calls.filter(x=>x.method==='POST').map(x=>x.version),['1258','1259','1260','1261','1262','1263']);assert.equal(f.calls.at(-1).action,'activate');
+ assert.deepEqual(f.progress.filter(x=>x.stage==='copying'&&x.requestMs!==undefined).map(x=>x.completedObjects),[1,2]);assert.equal(f.progress.at(-1).stage,'active');assert.equal(getEventListeners(f.controller.signal,'abort').length,0);await assert.rejects(f.runner.run(confirm),/ALREADY_USED/);
+});
+for(const options of [{},{allowApply:true},{allowActivation:true}])test('explicit application and activation intent required before any request '+JSON.stringify(options),async()=>{const f=await fixture(),r=await f.runner.run(options);assert.equal(r.status,'stopped');assert.equal(r.code,'OWNER_APPLY_CONFIRMATION_REQUIRED');assert.equal(f.calls.length,0);});
+for(const options of [{refused:true},{wrongPins:true},{notVerified:true},{phase:'auditing'},{blocked:true},{locked:true}])test('unready auth pins sealed state or budget has zero POST '+JSON.stringify(options),async()=>{const f=await fixture(options),r=await f.runner.run(confirm);assert.equal(r.status,'stopped');assert.equal(f.calls.some(x=>x.method==='POST'),false);});
+for(const phase of ['copying','restoring','data-ready'])test('reopened owner runner uses durable '+phase+' phase without restarting prior stages',async()=>{const f=await fixture({phase}),r=await f.runner.run(confirm);assert.equal(r.status,'active');assert.equal(f.calls.find(x=>x.method==='POST').action,phase==='copying'?'copy':phase==='restoring'?'restore':'activate');});
+for(const options of [{lost:true},{wrongVersion:true},{wrongId:true},{providerError:'IMPORT_ORIGINAL_OBJECT_CONFLICT'},{providerError:'IMPORT_ATTEMPT_BUDGET_EXHAUSTED'}])test('unknown malformed conflict or quota outcome stops without replay '+JSON.stringify(options),async()=>{const f=await fixture(options),r=await f.runner.run(confirm);assert.equal(r.status,'stopped');assert.equal(r.uncertain,true);assert.equal(r.automaticRetryAllowed,false);assert.equal(f.calls.filter(x=>x.method==='POST').length,1);assert.deepEqual(f.calls.slice(-2).map(x=>x.action),['budget-status','activation-status']);assert.equal('businessTrafficEnabled' in r,false);});
+test('Stop settles client promptly even if provider ignores abort; only two fresh readback signals remain',async()=>{const f=await fixture({stall:true,abort:true}),began=performance.now(),r=await f.runner.run(confirm);assert.equal(r.status,'stopped');assert.ok(performance.now()-began<1000);assert.equal(f.calls.filter(x=>x.method==='POST').length,1);assert.deepEqual(f.calls.slice(-2).map(x=>x.action),['budget-status','activation-status']);assert.ok(f.calls.slice(-2).every(x=>!x.signal.aborted||x.signal!==f.calls.find(x=>x.method==='POST').signal));assert.equal(getEventListeners(f.controller.signal,'abort').length,0);});
+test('POST120s deadline retains unknown and performs no second mutation',async t=>{t.mock.timers.enable({apis:['setTimeout']});try{const f=await fixture({stall:true}),pending=f.runner.run(confirm);await f.postEntered;t.mock.timers.tick(120000);const r=await pending;assert.equal(r.code,'OWNER_APPLY_OUTCOME_UNKNOWN');assert.equal(r.uncertain,true);assert.equal(f.calls.filter(x=>x.method==='POST').length,1);assert.deepEqual(f.calls.slice(-2).map(x=>x.action),['budget-status','activation-status']);assert.equal(getEventListeners(f.controller.signal,'abort').length,0);}finally{t.mock.timers.reset();}});
+test('GET10s deadline never dispatches a mutation',async t=>{t.mock.timers.enable({apis:['setTimeout']});try{const f=await fixture({stallRead:true}),pending=f.runner.run(confirm);await new Promise(r=>setImmediate(r));t.mock.timers.tick(10000);const r=await pending;assert.equal(r.status,'stopped');assert.equal(r.code,'OWNER_APPLY_READ_UNAVAILABLE');assert.equal(f.calls.filter(x=>x.method==='POST').length,0);}finally{t.mock.timers.reset();}});
+test('lost activation ACK cannot be reported inactive or replayed with an invalidated session',async()=>{const f=await fixture({phase:'data-ready',activationLost:true}),r=await f.runner.run(confirm);assert.equal(f.state.phase,'active');assert.equal(r.status,'stopped');assert.equal(r.uncertain,true);assert.equal('businessTrafficEnabled' in r,false);assert.equal(f.calls.filter(x=>x.action==='activate').length,2);assert.deepEqual(f.calls.slice(-2).map(x=>x.action),['budget-status','activation-status']);});
+test('fresh authenticated active status is read-only and requires complete budget and actual open gate',async()=>{const f=await fixture({phase:'active'}),r=await f.runner.run(confirm);assert.equal(r.status,'active');assert.equal(r.reloginRequired,false);assert.equal(f.calls.some(x=>x.method==='POST'),false);const refused=await fixture({phase:'active',closedGate:true});assert.equal((await refused.runner.run(confirm)).status,'stopped');assert.equal(refused.calls.some(x=>x.method==='POST'),false);});
