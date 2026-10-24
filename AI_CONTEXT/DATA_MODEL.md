@@ -1,10 +1,22 @@
 ## Sites normalized import view and target owner
 
+Local incident recovery (not deployed): native r2-get intent settles only after
+bounded body read/hash; the committed transfer cursor remains authoritative.
+Schema-only 0006 adds process_import_verify_capabilities (separate persistent
+verify/audit-only scope) and singleton process_import_verify_maintenance (three
+durable maintenance nonce receipts and retained before-image/plan). No business
+table changes. These operational records are not business snapshot content.
+The old staging table and history remain intact. Hold retains cursor/charges/lock;
+resume atomically revokes only the pinned old grant, adds the restricted record
+and releases only the pinned stopped request. Failed assertions roll back all
+effects. Baseline verification stays zero; only committed body-hash windows can
+advance the trusted continuation. See [current protocol](../docs/sites/VERIFY_INCIDENT_PROTOCOL_20261023.md).
+
 Native transport preparation uses the same handoff/manifest, chunk receipt,
 budget and retirement schemas, without adding a table or changing credentials.
 Within-request R2 concurrency remains inside one durable request/reservation;
-started writes drain before failure handling. The application capability and
-private Sites entry proposal is not implemented or enabled; see
+started writes drain before failure handling. These preparation notes predate
+the separate incident recovery work described above; see
 [native import plan](../docs/sites/NATIVE_IMPORT_PLAN.md).
 
 Operational selection is documented in [operational import](../docs/sites/OPERATIONAL_IMPORT.md).
