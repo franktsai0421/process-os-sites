@@ -17,31 +17,36 @@ const sessionSecret = (request: Request) => env.PROCESS_SESSION_SECRET || (loopb
 type SessionIdentity = { id: string; sessionType: 'demo' | 'platform'; authEpoch:number };
 export const sessionCookieName = (request:Request) => loopback(request)&&new URL(request.url).port==='3040'?'process_demo_3040':'process_demo';
 const requestSessionToken = (request: Request) => request.headers.get('cookie')?.split(';').map(c=>c.trim()).find(c=>c.startsWith(sessionCookieName(request)+'='))?.slice(sessionCookieName(request).length+1) || '';
-async function signedSession(request: Request): Promise<(SessionIdentity & { expires: number }) | null> {
+type AuthDiagnostic = (code:string)=>void;
+const authDiagnostic=(report:AuthDiagnostic|undefined,code:string)=>{try{report?.(code);}catch{/* no behavior change from diagnostics */}};
+async function signedSession(request: Request, report?:AuthDiagnostic): Promise<(SessionIdentity & { expires: number }) | null> {
   try {
     const secret = sessionSecret(request);
-    if (!secret) return null;
+    if (!secret) {authDiagnostic(report,'SESSION_SIGNER_UNAVAILABLE');return null;}
     const token = requestSessionToken(request);
-    if (token.length > 4096) return null;
+    if (!token) {authDiagnostic(report,'SESSION_MISSING');return null;}
+    if (token.length > 4096) {authDiagnostic(report,'SESSION_FORMAT');return null;}
     const [payload, signature, extra] = token.split('.');
-    if (extra || !payload || !/^[a-f0-9]{64}$/.test(signature || '')) return null;
+    if (extra || !payload || !/^[a-f0-9]{64}$/.test(signature || '')) {authDiagnostic(report,'SESSION_FORMAT');return null;}
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign','verify']);
-    if (!await crypto.subtle.verify('HMAC', key, Uint8Array.from(signature.match(/../g)!, x=>parseInt(x,16)), new TextEncoder().encode(payload))) return null;
+    if (!await crypto.subtle.verify('HMAC', key, Uint8Array.from(signature.match(/../g)!, x=>parseInt(x,16)), new TextEncoder().encode(payload))) {authDiagnostic(report,'SESSION_SIGNATURE');return null;}
     const value = JSON.parse(atob(payload));
-    if (typeof value.id !== 'string' || !Number.isFinite(value.expires) || value.expires <= Date.now()) return null;
+    if (typeof value.id !== 'string' || !Number.isFinite(value.expires)) {authDiagnostic(report,'SESSION_FORMAT');return null;}
+    if (value.expires <= Date.now()) {authDiagnostic(report,'SESSION_EXPIRED');return null;}
     const sessionType = value.version === 2 ? value.sessionType : value.version === undefined && value.demo === false ? 'platform' : null;
     if (sessionType === 'demo') {
       if (!demoEnabled(request) || !['admin','rd','staff'].some(role=>demoIdentity(role)?.id===value.id)) return null;
     } else if (sessionType !== 'platform') return null;
     return { id: value.id, sessionType, expires: value.expires,authEpoch:Number.isSafeInteger(value.authEpoch)?value.authEpoch:0 };
-  } catch { return null; }
+  } catch {authDiagnostic(report,'SESSION_VALIDATION_FAILED');return null; }
 }
-async function verifiedSession(request: Request): Promise<SessionIdentity | null> {
+async function verifiedSession(request: Request, report?:AuthDiagnostic): Promise<SessionIdentity | null> {
   try {
-    const session = await signedSession(request);
-    if (!session || (sessionRevocationEnabled() && await sessionRevoked(requestSessionToken(request)))) return null;
+    const session = await signedSession(request,report);
+    if (!session) return null;
+    if(sessionRevocationEnabled() && await sessionRevoked(requestSessionToken(request))){authDiagnostic(report,'SESSION_REVOKED');return null;}
     return { id: session.id, sessionType: session.sessionType,authEpoch:session.authEpoch };
-  } catch { return null; } // Revocation storage failures deny this session.
+  } catch {authDiagnostic(report,'SESSION_REVOCATION_READ_FAILED');return null; } // Revocation storage failures deny this session.
 }
 export async function demoSession(request: Request, id?: string, demo = true,authEpoch=0) {
   if (!id) return (await verifiedSession(request))?.id || null;
@@ -145,11 +150,11 @@ export async function readState(options:RecordRead={}): Promise<State> {
 }
 export const readPlatformUsers = (raw: string | undefined): PlatformUser[] => parse(raw, []);
 
-export async function identity(request: Request, state: State) {
-  const session = await verifiedSession(request);
+export async function identity(request: Request, state: State,report?:AuthDiagnostic) {
+  const session = await verifiedSession(request,report);
   if (session) {
     const user = readPlatformUsers(state.values.platformUsers).find((u)=>normalizeUserId(u.id)===session.id && u.enabled!==false && !u.deletedAt);
-    if (!user || (session.authEpoch!==(user.authEpoch||0)) || (session.sessionType==='demo' ? !isDemoUser(user) : user.authMode==='demo')) return null;
+    if (!user || (session.authEpoch!==(user.authEpoch||0)) || (session.sessionType==='demo' ? !isDemoUser(user) : user.authMode==='demo')) {authDiagnostic(report,!user?'SESSION_ACCOUNT_UNAVAILABLE':session.authEpoch!==(user.authEpoch||0)?'SESSION_EPOCH':'SESSION_ACCOUNT_TYPE');return null;}
     return {id:session.id,name:user.name,role:user.role,primary:isPrimary(user),authMode:user.authMode,sessionType:session.sessionType};
   }
   // Public hosted access requires the verified application session above.

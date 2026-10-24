@@ -16,6 +16,7 @@ import {createIncidentRecoveryRuntime} from '@/lib/snapshot-incident-recovery.mj
 import {sha256} from '@/lib/snapshot-contract.mjs';
 import {createC273Observation} from '@/lib/snapshot-c273-observation.mjs';
 import {createV19RecoveryRuntime} from '@/lib/snapshot-v19-recovery.mjs';
+import {createCopyIncident} from '@/lib/snapshot-copy-incident.mjs';
 type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string;PROCESS_IMPORT_RETIREMENT_JSON?:string;PROCESS_NATIVE_IMPORT_ENABLED?:string;PROCESS_NATIVE_IMPORT_GRANT_JSON?:string;PROCESS_OWNER_BOOTSTRAP_ENABLED?:string;PROCESS_VERIFY_RECOVERY_ENABLED?:string;PROCESS_VERIFY_RECOVERY_JSON?:string;PROCESS_PROGRAM_COMMIT?:string};
 type ObservationValues={PROCESS_C273_OBSERVATION_ENABLED?:string;PROCESS_C273_OBSERVATION_JSON?:string};
 type V19Values={PROCESS_V19_RECOVERY_ENABLED?:string;PROCESS_V19_RECOVERY_JSON?:string};
@@ -46,11 +47,19 @@ async function dispatch(request:Request){
    return handler.handle(request);
   }
   if(recovery&&request.method!=='GET')return reply({error:'IMPORT_VERIFY_MAINTENANCE_ONLY'},409);
-  const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']}),actor=await identity(request,state);
+  const authReport=(code:string)=>console.error(JSON.stringify({type:'PROCESS_IMPORT_AUTH_FAILURE_V1',code}));
+  const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']}),actor=await identity(request,state,authReport);
   if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
   const principal={id:actor.id,role:actor.role,sessionType:actor.sessionType,exportAllowed:await can(request,state,'master.export')};
   const config={enabled:true,projectId:hosting.project_id,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,ownerId:values.PROCESS_IMPORT_OWNER_ID};
   authorizeImport(principal,config);
+  if(['copy-recover','copy-recovery-status'].includes(url.searchParams.get('action')||'')){
+   if(recovery||values.PROCESS_C273_OBSERVATION_ENABLED==='1')throw Error('IMPORT_COPY_RECOVERY_MODE');
+   if([...url.searchParams.keys()].join()!=='action'||request.method!==(url.searchParams.get('action')==='copy-recover'?'POST':'GET'))throw Error('IMPORT_COPY_RECOVERY_INPUT');
+   if(values.PROCESS_OWNER_BOOTSTRAP_ENABLED==='1')throw Error('IMPORT_COPY_RECOVERY_MODE');
+   const incident=createCopyIncident({db:env.DB,bucket:env.STATE_ARCHIVE,config:{...config,origin},principal,signal:request.signal,recheckOwner:async()=>{const current=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']}),owner=await identity(request,current,authReport);return owner?{id:owner.id,role:owner.role,sessionType:owner.sessionType,exportAllowed:await can(request,current,'master.export')}:null;}});
+   return reply(url.searchParams.get('action')==='copy-recover'?await incident.recover():await incident.status());
+  }
   if(url.searchParams.get('action')==='c273-observation'){
    const observer=await createC273Observation({db:env.DB,bucket:env.STATE_ARCHIVE,pins:nativePins,programCommit:values.PROCESS_PROGRAM_COMMIT,enabled:values.PROCESS_C273_OBSERVATION_ENABLED==='1',configuration:values.PROCESS_C273_OBSERVATION_JSON,readOwnerEligibility,recoveryClosed:values.PROCESS_VERIFY_RECOVERY_ENABLED!=='1'&&!v19Enabled});
    return observer.handle(request,principal);
