@@ -1,7 +1,7 @@
 import {env} from 'cloudflare:workers';
 import hosting from '../../../../.openai/hosting.json';
 import {readState,identity,can,responseHeaders} from '@/lib/process-state';
-import {createStartupAssets,startupCase} from '@/lib/startup-assets.mjs';
+import {createStartupAssets,startupCase,startupBody} from '@/lib/startup-assets.mjs';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:responseHeaders});
 async function handle(request:Request){
  const url=new URL(request.url),settings=env as {PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_OWNER_BOOTSTRAP_ENABLED?:string;PROCESS_VERIFY_RECOVERY_ENABLED?:string;PROCESS_V19_RECOVERY_ENABLED?:string;PROCESS_C273_OBSERVATION_ENABLED?:string};
@@ -14,7 +14,13 @@ async function handle(request:Request){
   const writer=createStartupAssets({db:env.DB,bucket:env.STATE_ARCHIVE,authorize,signal:request.signal});
   if(request.method==='GET'&&url.search==='')return reply(await writer.status());
   if(request.method==='PUT'&&[...url.searchParams.keys()].join()==='file')return reply(await writer.put(url.searchParams.get('file'),request));
-  if(request.method==='POST'&&url.search==='?action=publish'&&!request.body)return reply(await writer.publish());
+  if(request.method==='POST'&&url.search==='?action=publish'){
+   // Hosted HTTP may represent an empty POST with a non-null body stream.
+   // Read it within the existing byte/deadline/abort bounds before admission.
+   const readOptions={signal:request.signal,timeoutMs:20000};
+   if(request.body&&(await startupBody(request.body,1,readOptions)).length!==0)return reply({error:'STARTUP_INPUT'},400);
+   return reply(await writer.publish());
+  }
   return reply({error:'STARTUP_INPUT'},400);
  }catch(e){const code=e instanceof Error&&/^STARTUP_[A-Z_]+$/.test(e.message)?e.message:'STARTUP_PROVIDER_UNKNOWN';return reply({error:code},code==='STARTUP_OWNER_REQUIRED'?403:409);}
 }
