@@ -151,6 +151,12 @@ jobs:
         run: node tests/sites-owner-application-native.test.mjs
       - name: Compiled fixed copy incident with synthetic data and nonpersistent D1/R2
         run: node tests/sites-copy-incident-native.test.mjs
+      - name: Fixed three-file startup supplement with synthetic storage only
+        run: |
+          node --test tests/startup-assets.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/sites-startup-assets-native.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled bounded attempt with synthetic nonpersistent bindings
         # Bounded mode is a finite approved attempt, not measured provider quota.
         # The following compiled test uses fake credentials and ephemeral storage.
