@@ -152,6 +152,13 @@ jobs:
         run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs
       - name: Compiled exact incident recovery and restricted native scope with synthetic bindings
         run: node tests/sites-incident-recovery-native.test.mjs
+      - name: Fixed one-shot owner observation with synthetic inputs only
+        run: |
+          node tests/c273-observation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/c273-observation-client.test.mjs
+      - name: Compiled fixed one-shot owner observation with ephemeral storage
+        run: node tests/sites-c273-observation-native.test.mjs
       - name: Compiled dormant native staging capability with fake storage only
         run: node tests/sites-native-capability-runtime.test.mjs
       - name: Compiled authenticated photo uploads with synthetic nonpersistent bindings

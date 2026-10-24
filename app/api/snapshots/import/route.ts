@@ -14,10 +14,12 @@ import {createRetirement} from '@/lib/snapshot-retirement.mjs';
 import {createNativeImportHandler} from '@/lib/snapshot-native-handler.mjs';
 import {createIncidentRecoveryRuntime} from '@/lib/snapshot-incident-recovery.mjs';
 import {sha256} from '@/lib/snapshot-contract.mjs';
+import {createC273Observation} from '@/lib/snapshot-c273-observation.mjs';
 type ImportValues={PROCESS_IMPORT_ENABLED?:string;PROCESS_IMPORT_OWNER_ID?:string;PROCESS_IMPORT_TARGET_FINGERPRINT?:string;PROCESS_IMPORT_MANIFEST_SHA256?:string;PROCESS_IMPORT_ORIGIN?:string;PROCESS_IMPORT_CAPACITY_JSON?:string;PROCESS_IMPORT_ATTEMPT_JSON?:string;PROCESS_IMPORT_RETIREMENT_JSON?:string;PROCESS_NATIVE_IMPORT_ENABLED?:string;PROCESS_NATIVE_IMPORT_GRANT_JSON?:string;PROCESS_OWNER_BOOTSTRAP_ENABLED?:string;PROCESS_VERIFY_RECOVERY_ENABLED?:string;PROCESS_VERIFY_RECOVERY_JSON?:string;PROCESS_PROGRAM_COMMIT?:string};
+type ObservationValues={PROCESS_C273_OBSERVATION_ENABLED?:string;PROCESS_C273_OBSERVATION_JSON?:string};
 const reply=(value:unknown,status=200)=>Response.json(value,{status,headers:responseHeaders});
 async function dispatch(request:Request){
- const values=env as ImportValues;
+ const values=env as ImportValues&ObservationValues;
  if(values.PROCESS_IMPORT_ENABLED!=='1')return reply({error:'IMPORT_DISABLED'},404);
  try{
   const url=new URL(request.url),origin=values.PROCESS_IMPORT_ORIGIN;
@@ -43,6 +45,10 @@ async function dispatch(request:Request){
   const principal={id:actor.id,role:actor.role,sessionType:actor.sessionType,exportAllowed:await can(request,state,'master.export')};
   const config={enabled:true,projectId:hosting.project_id,targetFingerprint:values.PROCESS_IMPORT_TARGET_FINGERPRINT,manifestSha256:values.PROCESS_IMPORT_MANIFEST_SHA256,ownerId:values.PROCESS_IMPORT_OWNER_ID};
   authorizeImport(principal,config);
+  if(url.searchParams.get('action')==='c273-observation'){
+   const observer=await createC273Observation({db:env.DB,bucket:env.STATE_ARCHIVE,pins:nativePins,programCommit:values.PROCESS_PROGRAM_COMMIT,enabled:values.PROCESS_C273_OBSERVATION_ENABLED==='1',configuration:values.PROCESS_C273_OBSERVATION_JSON,readOwnerEligibility,recoveryClosed:values.PROCESS_VERIFY_RECOVERY_ENABLED!=='1'});
+   return observer.handle(request,principal);
+  }
   const page=importPageConfiguration(values,hosting.project_id),budget=await createAttemptBudget({db:env.DB,bucket:env.STATE_ARCHIVE,policy:page.attempt,pins:page.pins});
   const retirement=createRetirement({db:env.DB,bucket:env.STATE_ARCHIVE,pins:page.pins,policy:page.attempt,plan:page.retirementPlan}),retirementStatus=await retirement.status();
   async function visibleBudget(){return retirementStatus&&retirementStatus.state!=='retired'?{state:'retirement-required',inFlight:true,reason:'IMPORT_RETIREMENT_REQUIRED',used:null}:await budget.status();}

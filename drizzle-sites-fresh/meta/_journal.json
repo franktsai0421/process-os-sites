@@ -50,6 +50,7 @@
       "when": 1792785600000,
       "tag": "0006_sites_verify_recovery",
       "breakpoints": true
-    }
+    },
+    {"idx":7,"version":"6","when":1792809000000,"tag":"0007_sites_c273_observation","breakpoints":true}
   ]
 }

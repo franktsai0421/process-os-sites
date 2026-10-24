@@ -1,17 +1,40 @@
-# Exact incident verification: local implementation and review input
+# Exact incident verification: original protocol and current diagnostic boundary
 
-Local-only, uncommitted changes relative to merged GitHub baseline
-`d0d664e734a40d542655db0809970d8c76cacde8`. No push, merge, live migration,
-credential creation, deployment, control-table change or real recovery occurred.
-Original R1, 3000, staged chunks, Frank's password and audience are untouched.
-The build stamp `5b43a376b70fd12585e49c5cf48349db1a378a6b` is a real ancestor;
-it does not identify this uncommitted patch. Review uses genuine Git diff/file SHA.
+The initial recovery was merged in PR #10 (`beb503832fe7e5d97974325db91e6752261248ef`)
+and published to owner-private Site version 6, source
+`e59180ee90b47055201139728d98cafd4196096b`. Migration 0006 is present (19 tables).
+On 2026-10-24, the atomic hold/maintenance/resume changed version 18 to 19 while
+preserving cursor 272, staged data and charges, and revoked the old staging grant.
+The first verify request stopped unknown at R2 GET `chunks/c273`; no cursor advance
+was committed. Its nonce is `9517c2ec-3e4b-4590-97a7-2b4889fbbac9`, request ID
+`787e1f35-5e06-4db9-a9f9-cc5fc61b8670`. Recovery was closed at runtime revision 11.
+Original R1, 3000, Frank's password and audience are untouched; no business data
+was activated or payload reuploaded. The original version-18 protocol below is
+consumed incident history, not permission or a reusable unlock plan for version 19.
+
+## Local read diagnostics (not deployed)
+
+The follow-up local patch separates provider-fetch, provider-object, body-read,
+body-check, body-hash, provider-replay and D1-settlement failures. Existing failed
+body deadline/cancellation/integrity receipts retain their exact codes. Other
+uncertain GETs retain unknown state and the request lock; their existing evidence
+and one structured diagnostic use only fixed stages, whitelisted error type/code,
+request ID and ordinal. No arbitrary messages, stacks, keys, headers, URLs or body
+bytes are logged. No provider call, retry, grant, migration or recovery action is
+added. A successful operation whose settlement response is lost is not overwritten;
+the enclosing request still remains unknown and stopped.
+
+These diagnostics cannot retrospectively identify the c273 exception. Its generic
+evidence does not distinguish provider fetch/body/replay failure from unsuccessful
+D1 success settlement. The Worker log shows HTTP 409 and outcome `ok`, which is
+not a successful business verification. Any future version-19 recovery needs its
+own reviewed exact before-image and applicable live authorization.
 
 ## Fixed incident and persistent authority
 
 The fixed pins and version-18 hash proof are in
-[the hold contract](VERIFY_RECOVERY_20261023.md). Last actual live observation
-remains transfer version 18 / committed cursor 272, not 1,401 verified chunks.
+[the hold contract](VERIFY_RECOVERY_20261023.md). Current actual live observation
+is transfer version 19 / committed cursor 272, not 1,401 verified chunks.
 All 1,401 uploads being acknowledged does not prove their body hashes were read.
 
 Migration 0006 adds only `process_import_verify_capabilities` and

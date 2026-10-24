@@ -1,5 +1,14 @@
 # Isolated Sites implementation handoff
 
+Current follow-up: [one-shot c273 observation](docs/sites/C273_OBSERVATION_20261024.md)
+is local only. Version 6 recovery reached version 19 but request 787e1f35 remains
+unknown at cursor 272; recovery was closed. All payloads remain staged, and no
+business restore/activation occurred. The earlier preparation paragraphs below
+are historical checkpoints, not current publication or recovery status. The
+new observation reuses normal owner login, consumes one independent receipt,
+and does not clear the original lock. See the task's final local evidence for
+the exact diff/build and untested live/browser boundaries.
+
 Latest local follow-up: [restricted incident verification protocol](docs/sites/VERIFY_INCIDENT_PROTOCOL_20261023.md).
 The default-off HTTP entry, separate persistent verify/audit scope and same-process
 host are implemented locally. Evidence: 21 initial unit/schema, 6 compiled HTTP
