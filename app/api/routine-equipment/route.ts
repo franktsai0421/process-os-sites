@@ -4,6 +4,9 @@ import { emptyEquipmentControl, activeVersion, openVersion, reserveMarks, nextPi
 import {parseEquipmentWorkflow} from '@/lib/equipment-workflow';
 import {visibleSharedControl} from '@/lib/versioned-shared-workflow';
 import {recordJSONResponse} from '@/lib/state-records-response';
+import {decodeRecordValues} from '@/lib/state-records';
+import {identityKeys} from '@/lib/delivery-read-plan.mjs';
+import {equipmentCatalog,projectEquipmentCatalog} from '@/lib/equipment-catalog.mjs';
 
 const KEY = 'routineEquipmentControl';
 const SOURCE_SHA = '07f85af6965e987da5e598f73b2ca592a23a20243fb69ad05429628393b3b2d0';
@@ -33,8 +36,27 @@ type WriteBody = {
     groups?: EquipmentGroup[]; issues?: Record<string, unknown>[] };
 };
 
+// A narrow read-only FQC dependency, never a workflow/write baseline. Authorize
+// before records I/O; keep the same pinned snapshot semantics as the full GET.
+async function effectiveCatalog(request: Request) {
+  const auth = await readState({keys:[...identityKeys]}), actor = await identity(request, auth);
+  if (!actor || !(await can(request, auth, 'view:data')) && !(await can(request, auth, 'view:approval')))
+    return reply({error:'沒有查看檢具資料的權限'},403);
+  const values = auth.recordStorage
+    ? (await decodeRecordValues(env.STATE_ARCHIVE,auth.recordStorage.envelope,{keys:[KEY],projectValue:projectEquipmentCatalog})).values
+    : auth.values;
+  const control = equipmentCatalog(values[KEY]);
+  // The full GET checks the session after hydration. Retain that timing for
+  // expiry/revoked tokens, without rereading global state or rejecting unrelated
+  // writes. Data rights stay those of the one pinned snapshot, as before.
+  const after = await identity(request,auth);
+  if (!after || after.id !== actor.id) return reply({error:'沒有查看檢具資料的權限'},403);
+  return reply({revision:auth.revision,control});
+}
+
 export async function GET(request: Request) {
   try {
+    if (new URL(request.url).searchParams.get('catalog') === 'effective') return await effectiveCatalog(request);
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);

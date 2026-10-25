@@ -13,11 +13,12 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const now = () => new Date().toISOString();
   let control = null, hostElement = null, mountSequence = 0;
+  let workspaceReady = () => false;
   let sharedClient,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll;
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',legacyArchive:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;}
-  async function loadShared(isCurrent=()=>true){const r=await transport().read();if(isCurrent())adopt(r);return r;}
+  async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
     for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
   }return{patches,guards};}
@@ -40,52 +41,94 @@
     ui.lastError=null;
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
   }catch(error){ui.lastError=error.message;throw error;}finally{ui.saving=false;render();}}
-  function pollShared(){clearTimeout(sharedPoll);sharedPoll=setTimeout(async()=>{if(!fqcTabIsActive())return;try{if(!ui.saving&&document.visibilityState!=='hidden'){
-    const flow=library().workflow,r=await transport().read(flow?flow.generation+':'+flow.revision:'');if(!r.unchanged&&r.control){if(document.querySelector('.fqc-modal-overlay')||document.activeElement?.matches('input,textarea,select')){const status=document.querySelector('#fqc-shared-status');if(status)status.textContent=isVi()?'Nội dung chung đã cập nhật; giữ biểu mẫu đang nhập.':'共用內容已更新；保留正在輸入的表單。';}else{adopt(r);render();}}
-  }}catch(error){ui.lastError=error.message;}finally{pollShared();}},4000);}
+  function pollShared() {
+    clearTimeout(sharedPoll);
+    if (!workspaceReady()) return;
+    const owned = currentReadOwner(workspaceReady);
+    sharedPoll = setTimeout(async () => {
+      if (!owned()) return;
+      try {
+        if (!ui.saving && document.visibilityState !== 'hidden') {
+          const flow = library().workflow;
+          const result = await transport().read(flow ? flow.generation + ':' + flow.revision : '');
+          if (!owned()) return;
+          if (!result.unchanged && result.control) {
+            if (document.querySelector('.fqc-modal-overlay') || document.activeElement?.matches('input,textarea,select')) {
+              const status = document.querySelector('#fqc-shared-status');
+              if (status) status.textContent = isVi() ? 'Nội dung chung đã cập nhật; giữ biểu mẫu đang nhập.' : '共用內容已更新；保留正在輸入的表單。';
+            } else { adopt(result); render(); }
+          }
+        }
+      } catch (error) { if (owned()) ui.lastError = error.message; }
+      finally { if (owned()) pollShared(); }
+    }, 4000);
+  }
   const ui = { line: '', category: '', search: '', selectedErrorId: '', matrixOpen: true, problemsOpen: false, selectedVersionId: '', saving: false, lastError: null };
 
   function read(key, fallback) { try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; } }
   function identity() { return window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null); }
   function actor() { const user = identity(); return { id: user?.id || 'unknown', name: user?.name || user?.id || '未記錄' }; }
   function canonicalRecords() { return read('canonicalQuality', { fqc: [] })?.fqc || []; }
-  let equipmentCache = null, equipmentLoadError = null;
-  async function loadEquipmentCatalog({ force = false } = {}) {
-    if (equipmentCache && !force) return equipmentCache;
+  let equipmentCache = null, equipmentLoadError = null, equipmentSequence = 0;
+  let equipmentCacheCurrent = () => false;
+  // Reads are owned by this exact identity epoch and mount, not just an id
+  // which can reappear after logout/login. Abort alone is not an adoption fence.
+  function currentReadOwner(isCurrent = () => true) {
+    const actorId = identity()?.id;
+    const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence;
+    if (!actorId) throw Error('LOGIN_REQUIRED');
+    return () => isCurrent() && identity()?.id === actorId &&
+      window.ProcessSync?.identityGeneration?.() === epoch && mountSequence === mount &&
+      !window.ProcessSync?.requiresReload;
+  }
+  async function loadEquipmentCatalog({ force = false, isCurrent = () => true } = {}) {
+    const owned = currentReadOwner(isCurrent);
+    if (equipmentCache && !force && equipmentCacheCurrent() && owned()) return equipmentCache;
+    const sequence = ++equipmentSequence;
+    const assertCurrent = () => { if (!owned() || sequence !== equipmentSequence) throw Error('EQUIPMENT_READ_SUPERSEDED'); };
     try {
-      const res = await fetch('/api/routine-equipment', { cache: 'no-store' });
+      const res = await fetch('/api/routine-equipment?catalog=effective', {
+        cache: 'no-store', headers: window.ProcessSync?.platformHeaders?.() || {}, signal: AbortSignal.timeout(45000)
+      });
       const json = await res.json().catch(() => ({}));
+      assertCurrent();
       if (!res.ok) throw Error(json.error || `HTTP ${res.status}`);
       const activeVersionId = json.control?.activeVersionId;
       const emptyControl = json.control;
+      let catalog;
       if (res.status === 200 && emptyControl?.schemaVersion === 1 && activeVersionId === null &&
           Array.isArray(emptyControl.versions) && emptyControl.versions.length === 0 &&
           Array.isArray(emptyControl.issues) && emptyControl.reservedMarks &&
           typeof emptyControl.reservedMarks === 'object' && !Array.isArray(emptyControl.reservedMarks)) {
-        equipmentCache = { activeVersionId: null, equipment: [], categories: [], subcategories: [], groups: [], issues: emptyControl.issues };
-        equipmentLoadError = null;
-        return equipmentCache;
+        catalog = { activeVersionId: null, equipment: [], categories: [], subcategories: [], groups: [], issues: emptyControl.issues };
+      } else {
+        const active = Array.isArray(json.control?.versions) ? json.control.versions.filter(v => v?.id === activeVersionId && v.status === 'approved') : [];
+        const ver = active.length === 1 ? active[0] : null;
+        if (res.status !== 200 || json.control?.schemaVersion !== 1 || !ver || !Array.isArray(ver.equipment) || !Array.isArray(ver.groups))
+          throw Error(isVi() ? 'Không tìm thấy phiên bản thiết bị đang có hiệu lực' : '找不到目前生效的檢具版本');
+        catalog = {
+          activeVersionId,
+          equipment: ver.equipment,
+          categories: ver.categories || [],
+          subcategories: ver.subcategories || [],
+          groups: ver.groups,
+          issues: ver.issues || json.control?.issues || []
+        };
+        if (!['categories', 'subcategories', 'issues'].every(key => Array.isArray(catalog[key]))) throw Error('EQUIPMENT_CATALOG_INVALID');
       }
-      const ver = json.control?.versions?.find(v => v.id === activeVersionId && v.status === 'approved');
-      if (!ver) throw Error(isVi() ? 'Không tìm thấy phiên bản thiết bị đang có hiệu lực' : '找不到目前生效的檢具版本');
-      equipmentCache = {
-        activeVersionId,
-        equipment: ver.equipment || [],
-        categories: ver.categories || [],
-        subcategories: ver.subcategories || [],
-        groups: ver.groups || [],
-        issues: ver.issues || json.control?.issues || []
-      };
-      equipmentLoadError = null;
-      return equipmentCache;
+      const commit = () => { assertCurrent(); equipmentCache = catalog; equipmentCacheCurrent = owned; equipmentLoadError = null; return catalog; };
+      return commit();
     } catch (e) {
-      console.error('[FQC] Failed to load routine equipment', e);
-      equipmentLoadError = e instanceof Error ? e : Error(String(e));
-      throw equipmentLoadError;
+      // A previous request must not erase a newer verified result or its error.
+      if (owned() && sequence === equipmentSequence) {
+        equipmentCache = null; equipmentCacheCurrent = () => false;
+        equipmentLoadError = e instanceof Error ? e : Error(String(e));
+      }
+      throw e;
     }
   }
   function getCachedEquipment(id) {
-    return equipmentCache?.equipment?.find(e => e.id === id) || null;
+    return equipmentCacheCurrent() ? equipmentCache?.equipment?.find(e => e.id === id) || null : null;
   }
   function eqPhotoUrl(item) {
     if (!item) return '';
@@ -103,25 +146,30 @@
     return '';
   }
   let masterCatalogCache = null, masterCatalogActor = '', masterCatalogSequence = 0;
+  let masterCatalogCurrent = () => false;
   async function loadMasterCatalog(isCurrent = () => true) {
     const owner = identity()?.id, sequence = ++masterCatalogSequence;
-    masterCatalogCache = null; masterCatalogActor = '';
-    if (!owner) throw Error('LOGIN_REQUIRED');
+    masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
+    const owned = currentReadOwner(isCurrent);
+    const assertCurrent = () => {
+      if (!owned()) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      if (sequence !== masterCatalogSequence) throw Error('MASTER_CATALOG_READ_SUPERSEDED');
+    };
     const client = window.createSharedDraftClient({ endpoint: '/api/master/workflow?scope=AB&caseMetadata=1', legacyArchive: true, actorId: owner, headers: () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' } });
     const result = await client.read();
     if (!isCurrent()) return null;
-    if (identity()?.id !== owner) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-    if (sequence !== masterCatalogSequence) throw Error('MASTER_CATALOG_READ_SUPERSEDED');
+    assertCurrent();
     const current = result.control, active = Array.isArray(current?.versions) ? current.versions.filter(version => version && version.id === current.activeVersionId && version.status === 'approved') : [];
     const snapshot = active.length === 1 ? active[0].snapshot : null;
     if (result.permissions?.view !== true || typeof current?.activeVersionId !== 'string' || !current.activeVersionId || !snapshot ||
         !Array.isArray(snapshot.products) || !Array.isArray(snapshot.lines) || !Array.isArray(snapshot.categoryGroups))
       throw Error(isVi() ? 'Không thể đọc danh mục AB đang có hiệu lực' : '無法讀取目前生效的 AB 主檔');
-    masterCatalogCache = clone(snapshot); masterCatalogActor = owner;
-    return masterCatalogCache;
+    const value = clone(snapshot);
+    const commit = () => { assertCurrent(); masterCatalogCache = value; masterCatalogActor = owner; masterCatalogCurrent = owned; return value; };
+    return commit();
   }
   function catalog() {
-    const active = masterCatalogActor === identity()?.id && masterCatalogCache ? { AB: masterCatalogCache } : {};
+    const active = masterCatalogActor === identity()?.id && masterCatalogCache && masterCatalogCurrent() ? { AB: masterCatalogCache } : {};
     const comparisonReady = Array.isArray(active.AB?.products);
     const baseProducts = comparisonReady ? active.AB.products : [];
     const productMap = new Map(baseProducts.map(item => [item.code, {
@@ -416,7 +464,7 @@
       });
 
       // Check equipment association
-      if (item.equipmentId && equipmentCache) {
+      if (item.equipmentId && equipmentCache && equipmentCacheCurrent()) {
         const eq = getCachedEquipment(item.equipmentId);
         if (!eq) {
           list.push({
@@ -512,6 +560,7 @@
   }
   function html() { return '<section class="fqc-page" id="fqc-page" data-i18n-skip="true"><div class="fqc-loading">'+(isVi()?'Đang tải dữ liệu FQC…':'正在載入 FQC 標準資料…')+'</div></section>'; }
   function render() {
+    if (!workspaceReady()) return;
     const focused=hostElement?.contains(document.activeElement)?document.activeElement:null,focusId=focused?.id,selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
     if (!fqcTabIsActive()) return;
     const matrixScroll = hostElement.querySelector('.fqc-matrix-scroll');
@@ -1123,7 +1172,7 @@
   }
 
   async function openEquipmentViewModal(eqId) {
-    try { await loadEquipmentCatalog({ force: true }); } catch { /* retain the last verified catalog for saved references */ }
+    try { await loadEquipmentCatalog({ force: true }); } catch { /* Never show a failed or previous actor's catalog as current. */ }
     const eq = getCachedEquipment(eqId);
     const vi = isVi();
     if (!eq) {
@@ -1986,13 +2035,37 @@
     }
   }
   function bind(element) {
-    const sequence=++mountSequence;
+    const sequence = ++mountSequence;
+    workspaceReady = () => false;
     clearTimeout(sharedPoll);
     hostElement = element;
     ensureControl();
-    hostElement.innerHTML=html();
-    const current=()=>sequence===mountSequence&&hostElement===element&&fqcTabIsActive();
-    return loadShared(current).then(async()=>{if(!current())return;await loadMasterCatalog(current);if(!current())return;render();pollShared();return loadEquipmentCatalog();}).then(()=>{if(current()&&!hostElement.contains(document.activeElement))render();}).catch(error=>{if(!current())return;hostElement.innerHTML=`<section class="fqc-page"><p role="alert">${h(error.message)}</p><button id="fqc-load-retry">${isVi()?'Tải lại':'重新載入'}</button></section>`;hostElement.querySelector('#fqc-load-retry').onclick=()=>bind(hostElement);});
+    hostElement.innerHTML = html();
+    const mounted = () => sequence === mountSequence && hostElement === element && fqcTabIsActive();
+    return (async () => {
+      const owned = currentReadOwner(mounted), client = transport();
+      equipmentCache = null; equipmentCacheCurrent = () => false;
+      masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
+      // Keep the established FQC -> AB -> equipment read/permission order.
+      // The dominant equipment read is narrowed server-side; no extra authority
+      // request or all-module revision equality blocks unrelated live updates.
+      const shared = await client.read();
+      if (!owned()) return;
+      await loadMasterCatalog(owned);
+      if (!owned()) return;
+      await loadEquipmentCatalog({ force: true, isCurrent: owned });
+      if (!owned()) return;
+      adopt(shared);
+      workspaceReady = owned;
+      render(); pollShared();
+    })().catch(error => {
+      if (!mounted()) return;
+      workspaceReady = () => false;
+      equipmentCache = null; equipmentCacheCurrent = () => false;
+      masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
+      hostElement.innerHTML = `<section class="fqc-page"><p role="alert">${h(error.message)}</p><button id="fqc-load-retry">${isVi() ? 'Tải lại' : '重新載入'}</button></section>`;
+      hostElement.querySelector('#fqc-load-retry').onclick = () => bind(hostElement);
+    });
   }
   function fqcTabIsActive() {
     const content = document.querySelector('#data-content');
@@ -2184,26 +2257,37 @@
     }
   };
 
-  window.addEventListener('process-language-change',()=>{if(fqcTabIsActive()&&!document.querySelector('.fqc-modal-overlay'))render();});
+  window.addEventListener('process-language-change',()=>{if(workspaceReady()&&!document.querySelector('.fqc-modal-overlay'))render();});
   window.addEventListener('process-shared-state-updated', () => {
-    if(library().workflow){if(!document.querySelector('.fqc-modal-overlay'))loadShared().then(()=>{if(fqcTabIsActive())render();}).catch(e=>{ui.lastError=e.message;});return;}
+    // No background path may install or render a partial mounting workspace.
+    if (fqcTabIsActive() && !workspaceReady()) return;
+    if (!identity()?.id || window.ProcessSync?.requiresReload) return;
+    const owned = currentReadOwner(() => !fqcTabIsActive() || workspaceReady());
+    if (library().workflow) {
+      if (!document.querySelector('.fqc-modal-overlay')) loadShared(owned).then(() => {
+        if (owned() && workspaceReady()) render();
+      }).catch(error => { if (owned()) ui.lastError = error.message; });
+      return;
+    }
     control = read(STORAGE, null);
-    equipmentCache = null;
+    equipmentCache = null; equipmentCacheCurrent = () => false;
     equipmentLoadError = null;
-    if (fqcTabIsActive()) {
+    if (workspaceReady()) {
       render();
-      loadEquipmentCatalog({ force: true }).then(() => {
-        if (fqcTabIsActive()) render();
-      }).catch(() => {
-        if (fqcTabIsActive()) render();
-      });
+      loadEquipmentCatalog({ force: true, isCurrent: owned }).then(() => {
+        if (owned() && workspaceReady()) render();
+      }).catch(() => { if (owned() && workspaceReady()) render(); });
     }
   });
   window.addEventListener('routine-equipment-updated', () => {
-    equipmentCache = null;
+    if (fqcTabIsActive() && !workspaceReady()) return;
+    equipmentCache = null; equipmentCacheCurrent = () => false;
     equipmentLoadError = null;
-    if (fqcTabIsActive()) {
-      loadEquipmentCatalog({ force: true }).then(() => { if (fqcTabIsActive()) render(); }).catch(() => { if (fqcTabIsActive()) render(); });
+    if (workspaceReady()) {
+      const owned = currentReadOwner(workspaceReady);
+      loadEquipmentCatalog({ force: true, isCurrent: owned }).then(() => {
+        if (owned()) render();
+      }).catch(() => { if (owned()) render(); });
     }
   });
   window.addEventListener('fqc-equipment-references-updated', () => {

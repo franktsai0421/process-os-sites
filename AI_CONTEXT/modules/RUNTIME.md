@@ -150,3 +150,33 @@ uncertain reservations; only one writer may enter across requests. Previous
 verified-capacity behavior remains. A stopped/unresolved bounded campaign also
 keeps active-marker visibility closed. No automatic cleanup, account reset or
 paid upgrade is provided. See the same import-readiness contract for limits.
+
+## 2026-10-25 FQC readiness candidate (not published)
+
+The scoped candidate retains the existing sequential FQC workflow → approved AB
+catalog → equipment data-read order. The dominant equipment read is narrowed
+server-side; there is no new client permission round-trip or all-module revision
+equality barrier. Unrelated concurrent state revisions remain usable. Adoption
+and background event/poll paths are fenced by actor id, identity generation,
+mount/host and reload invalidation. Normal same-actor refreshes may replace the
+identity object without invalidating that generation. A workspace renders once
+its required reads complete; polling begins afterwards. Failed/current-actor-
+mismatched equipment reads cannot reuse cached choices. IQC's data-then-
+permission ordering and document navigation remain unchanged. This is data
+loading correctness, not a new page-admission permission rule.
+
+`GET /api/routine-equipment?catalog=effective` retains the existing route's view
+policy but selects only active approved catalog fields before immutable body
+hydration. It uses one pinned state snapshot, preserving the full GET data-rights semantics.
+Session identity is checked before business reads and after hydration for token
+expiry/revocation, without a second global state read or unrelated-write retry. Legacy inline/chunk/R2 fallbacks and
+legal empty catalogs remain supported; malformed active pointers fail closed.
+The full GET and POST paths, business schema, stored records and ACLs are unchanged.
+
+Isolated actual-handler fixtures cover payload parity, integrity, session revocation and baseline-compatible concurrent
+revision behavior; VM tests cover concurrent load, current-generation adoption and
+failed/stale responses. Synthetic fewer reads/bytes are not live latency evidence.
+This does not remove full-page transitions: all major destinations need one
+reviewed lifecycle/projection handoff design, including module-specific dirty
+guards and side-effecting routine-report refresh. Source, build and live acceptance
+remain distinct; see task evidence for exact candidate results.

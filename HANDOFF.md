@@ -1,5 +1,16 @@
 # Isolated Sites implementation handoff
 
+Current isolated performance candidate: [FQC readiness](AI_CONTEXT/modules/RUNTIME.md#2026-10-25-fqc-readiness-candidate-not-published).
+Built from reviewed merged PR 24 commit `0620d0b7bca29888045a868ca027bf27c8baf9dc`
+(tree `b989908f163345c75bce0f6adbf9f969f1d08e91`) without changing the release
+checkout. The baseline sequential loader and a narrow active-equipment GET reduce
+unneeded hydration, with actor/generation/event fences and no new client
+permission round-trip or all-module revision retry barrier.
+This candidate has not been pushed or published; full-page navigation is
+unchanged. Exact local candidate commit/check receipts are retained by the task. All-major-pages persistent-shell design remains a separate material
+lifecycle decision, not completed by this first bottleneck fix.
+
+
 Current cloud-only candidate: [asset delivery read repair](AI_CONTEXT/modules/RUNTIME.md#2026-10-25-sites-圖片讀取候選未發布).
 The frozen nine-file local handoff was hash/base-blob checked against Site source
 `dbe84ce7b46c52f099df2be60136ec3970e0eb14` (reviewed GitHub baseline
