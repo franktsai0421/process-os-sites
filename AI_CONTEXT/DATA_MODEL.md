@@ -1,3 +1,11 @@
+## 2026-10-25 唯讀資產與版本投影
+
+沒有持久欄位、SQL/schema、migration、資料轉換或 R2 寫入。records decoder 的
+server-owned `projectValue` 在 aggregate SHA 驗證後、immutable body hydration 前
+執行；結果一律標記 partial，不能 encode 為寫入 baseline。只供可見圖片引用與
+effective-version metadata 讀取；既有完整 workflow／備份解碼不改。
+相容性與驗收界線見 [Runtime](modules/RUNTIME.md#2026-10-25-sites-圖片讀取候選未發布)。
+
 ## Sites normalized import view and target owner
 
 Local-only 0007 adds singleton `process_import_c273_observation`: a consumed,

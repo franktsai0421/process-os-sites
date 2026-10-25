@@ -7,6 +7,9 @@ export type AllocationIndex={version:1;errors:Record<string,string>[];items:Reco
 type Envelope={__processRecords:{version:1;values:Record<string,Ref>;legacySources?:Record<string,Ref>;allocations?:Record<string,Ref>};platformUsers?:string;maintenanceMode?:string};
 export type RecordStorage={envelope:Envelope;originalValues:Record<string,string>;known:Set<string>;partial:boolean;models:Map<string,unknown>;allocations:Map<string,AllocationIndex>};
 export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
+ // Server-owned, read-only projection after aggregate SHA verification, before
+ // body hydration. It is never accepted from HTTP input or a write adapter.
+ projectValue?:(key:string,raw:string)=>string|undefined|Promise<string|undefined>;
  // Read-only delivery projection. Never use as a write/backup baseline. Dedicated
  // workflow and history routes retain the complete original decoding contract.
  effectiveOnly?:boolean;
@@ -121,10 +124,11 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
  }
  // Serial module loading bounds transient allocation. Per-request body sharing
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
- for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const raw=await read(bucket,ref);
-  if(key===options.modelKey&&!options.effectiveOnly){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
+ for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const original=await read(bucket,ref),raw=options.projectValue?await options.projectValue(key,original):original;
+  if(raw===undefined)continue;
+  if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
  }
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
-  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.keys||!!options.effectiveOnly,models,allocations} satisfies RecordStorage};
+  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
 }

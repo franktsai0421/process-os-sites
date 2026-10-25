@@ -4,6 +4,7 @@ import {createHmac,createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 import {accessKeys} from '../public/process/access-policy.mjs';
+import {imageUrl} from '../lib/canonical-images.mjs';
 const require=createRequire(import.meta.url),origin='https://bootstrap.synthetic.invalid';
 const secret='synthetic-integration-session-only',tests=[];
 let fixture,stage='setup';
@@ -19,13 +20,15 @@ try{
  const load=require('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE:bucket}),records=load('lib/state-records.ts');
  const only=(id,cells)=>({id,name:id,role:'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,cells.includes(key)]))});
  const users=[{id:'frank',name:'Synthetic owner',role:'admin',primary:true,enabled:true,authMode:'platform',authEpoch:1},only('player',['player.view']),only('quality',['iqc.view']),only('editor',['editor.view']),only('denied',[])];
- const image=new Uint8Array([1,2,3]),id='a'.repeat(64),version=hash(image),hidden='b'.repeat(64);
+ const image=new Uint8Array([1,2,3]),id='a'.repeat(64),version=hash(image),hidden='b'.repeat(64),mediaId='c'.repeat(64);
+ const storedImage=imageUrl({sha256:id,web:{sha256:version}}),storedMedia='/api/state-media?id='+mediaId;
  const catalog=line=>({products:[{code:line+'1',name:line,category:line,line,stages:[line+'-CUT'],privateField:'not-runtime'}],lines:[{code:line,name:line,stages:[{code:line+'-CUT',name:'Cut'}]}]});
- const values={platformUsers:JSON.stringify(users),backupSettings:JSON.stringify({enabled:false}),masterDataControl:JSON.stringify({active:{AB:catalog('A'),C:catalog('C'),PROCESS:{'A-CUT':[{media:'asset:'+id}]}},versions:[]}),processMasterData:JSON.stringify({'A-CUT':[{media:'asset:'+id}]}),bomOverrides:JSON.stringify({replaceAll:true,data:{A1:[]}}),dispatchBoard:JSON.stringify({A:['A1'],B:[],C:[]}),canonicalQuality:JSON.stringify({iqc:{visible:'yes'},fqc:{media:'asset:'+hidden}}),iqcMasterControl:JSON.stringify({activeVersionId:'now',versions:[{id:'now',status:'approved',snapshot:{name:'current'}},{id:'old',status:'superseded',snapshot:{name:'secret old'}}],workflow:{working:{name:'secret draft'},cases:[],saves:[],receipts:{}}})};
+ const values={platformUsers:JSON.stringify(users),backupSettings:JSON.stringify({enabled:false}),masterDataControl:JSON.stringify({active:{AB:catalog('A'),C:catalog('C'),PROCESS:{'A-CUT':[{media:storedImage,photo:storedMedia}]}},versions:[]}),processMasterData:JSON.stringify({'A-CUT':[{media:storedImage,photo:storedMedia}]}),bomOverrides:JSON.stringify({replaceAll:true,data:{A1:[]}}),dispatchBoard:JSON.stringify({A:['A1'],B:[],C:[]}),canonicalQuality:JSON.stringify({iqc:{visible:'yes'},fqc:{media:'asset:'+hidden}}),iqcMasterControl:JSON.stringify({activeVersionId:'now',versions:[{id:'now',status:'approved',snapshot:{name:'current'}},{id:'old',status:'superseded',snapshot:{name:'secret old'}}],workflow:{working:{name:'secret draft'},cases:[],saves:[],receipts:{}}})};
  stage='encode synthetic immutable fixture';const raw=await records.encodeRecordValues(bucket,values);
  stage='seed synthetic D1';
  await fixture.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,498,?,?)').bind(raw,'synthetic').run();
  stage='seed synthetic image';await bucket.put('canonical-images/'+id+'/'+version+'.webp',image,{customMetadata:{sourceSha256:id,webSha256:version}});
+ await bucket.put('delivery/media/'+mediaId,image,{httpMetadata:{contentType:'image/png'}});
  const signed=(actor='player',epoch=1,expires=Date.now()+600000)=>{const payload=Buffer.from(JSON.stringify({version:2,id:actor,sessionType:'platform',authEpoch:epoch,expires,nonce:'synthetic-integration'})).toString('base64');return 'process_demo='+payload+'.'+createHmac('sha256',secret).update(payload).digest('hex');};
  const request=(path,cookie=signed(),method='GET')=>fixture.mf.dispatchFetch(origin+path,{method,headers:{Connection:'close',...(cookie?{Cookie:cookie}:{})}});
  await check('compiled bootstrap rejects anonymous, expired, wrong epoch and disabled cells',async()=>{
@@ -56,10 +59,16 @@ try{
   assert.equal((await request('/api/process-bootstrap?view=editor',signed('quality'))).status,403);
   assert.equal((await request('/api/process-bootstrap?view=player&view=editor',signed('frank'))).status,400);
  });
- await check('actual visible canonical reference authorizes bytes, unrelated module reference does not',async()=>{
+ await check('exact producer URL with asset fragment authorizes actual bytes, unrelated module reference does not',async()=>{
   const r=await request('/api/canonical-assets?id='+id+'&version='+version);assert.equal(r.status,200);assert.equal(hash(new Uint8Array(await r.arrayBuffer())),version);
   assert.equal((await request('/api/canonical-assets?id='+id+'&version='+version,signed('quality'))).status,403);
   assert.equal((await request('/api/canonical-assets?id='+hidden+'&version='+version,signed('quality'))).status,403);
+ });
+ await check('compiled state-media returns exact bytes only to a visible-reference actor',async()=>{
+  const r=await request(storedMedia);assert.equal(r.status,200);assert.equal(hash(new Uint8Array(await r.arrayBuffer())),version);assert.equal(r.headers.get('cache-control'),'no-store');
+  assert.equal((await request(storedMedia,'')).status,401);
+  for(const actor of ['quality','denied'])assert.equal((await request(storedMedia,signed(actor))).status,403);
+  assert.equal((await request('/api/state-media?id='+hidden)).status,403);
  });
  await check('legacy inline and non-body record aggregates retain active-only delivery and dynamic editor image ACL',async()=>{
   const legacy={...values,iqcMasterControl:JSON.stringify({activeVersionId:'now',versions:[{id:'now',status:'approved',snapshot:{name:'current'}},{id:'draft',status:'draft',snapshot:{secret:'unadopted draft'}},{id:'old',status:'superseded',snapshot:{secret:'unadopted history'}}],moduleDraft:{secret:'module draft'}}),'processEditor:legacy':JSON.stringify({image:'asset:'+hidden})};

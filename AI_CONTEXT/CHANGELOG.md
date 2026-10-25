@@ -1,3 +1,18 @@
+# 2026-10-25 - Cloud-only asset read candidate (not published)
+
+- Accept the exact canonical producer URL fragment, not arbitrary fragments or
+  substring matches. Share SHA-verified, pre-hydration public/role projection
+  between canonical-assets and state-media, preserving legacy/adoption rules.
+- Preserve sanitized caller identity references and mixed master snapshot
+  equality. Fence image delivery by fresh actor/revision and cancel undelivered
+  bodies, including read errors; never cache across requests or actors.
+- Read notification IDs from control metadata without immutable snapshot
+  bodies, retaining existing ordering. Projected records cannot be written.
+- Add isolated handler and exact producer/state-media compiled regressions to
+  existing CI. This is source-only work: no data, schema, account, remote source,
+  package or deployment change; live latency/memory and owner/staff UI remain
+  separate acceptance. Details: [Runtime](modules/RUNTIME.md).
+
 # 2026-10-24 - Local one-shot observation (not published)
 
 - Add a default-off, exact-case c273 read/hash observation using the existing
