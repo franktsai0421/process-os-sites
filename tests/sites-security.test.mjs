@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import {webcrypto} from 'node:crypto';
+import {webcrypto,randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {demoLoginAllowed} from '../lib/demo-identities.mjs';
@@ -20,7 +20,7 @@ async function test(name,run){await run();report.push(name);}
 function loader(overrides={}) {
   const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,Uint8Array,ArrayBuffer,crypto:webcrypto,atob,btoa,console});
   const cache=new Map();
-  async function load(specifier,importer=path.join(root,'entry.ts')) {
+  function load(specifier,importer=path.join(root,'entry.ts')) {
     if(Object.hasOwn(overrides,specifier)) {
       const key='override:'+specifier;
       if(!cache.has(key)){const exports=overrides[specifier];cache.set(key,new vm.SyntheticModule(Object.keys(exports),function(){for(const [name,value] of Object.entries(exports))this.setExport(name,value);},{context}));}
@@ -33,11 +33,13 @@ function loader(overrides={}) {
     const source=fs.readFileSync(file,'utf8');
     const output=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext},fileName:file,reportDiagnostics:true});
     assert.equal((output.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error).length,0,'TypeScript syntax diagnostics');
-    const module=new vm.SourceTextModule(output.outputText,{context,identifier:file});cache.set(file,module);
-    await module.link((name,parent)=>load(name,parent.identifier));
-    return module;
+    const compiledModule=new vm.SourceTextModule(output.outputText,{context,identifier:file});cache.set(file,compiledModule);
+    return compiledModule;
   }
-  return async relative=>{const module=await load('./'+relative);await module.evaluate();return module.namespace;};
+  // Link the root once and let the VM traverse its graph. Recursively linking
+  // each dependency can return a cached-but-still-linking shared module to a
+  // sibling import, producing ERR_VM_MODULE_LINK_FAILURE on diamond graphs.
+  return async relative=>{const compiledModule=load('./'+relative);if(compiledModule.status==='unlinked')await compiledModule.link((name,parent)=>load(name,parent.identifier));await compiledModule.evaluate();return compiledModule.namespace;};
 }
 
 await test('source-only copy excludes business dataset and retains the selected Site identity',()=>{const hosting=JSON.parse(fs.readFileSync(path.join(root,'.openai/hosting.json'),'utf8'));assert.equal(hosting.project_id,'appgprj_6ad9abaff47c8191846eb9821034696b');assert.equal(hosting.d1,'DB');assert.equal(hosting.r2,'STATE_ARCHIVE');assert.equal(checkSitesSource(root).registered,true);});
@@ -52,15 +54,24 @@ const id='a'.repeat(64);
 const asset={path:'/process/iqc-media/fixture.png',key:'company-assets/objects/'+id,sha256:id,bytes:4,permissions:['iqc.view'],contentType:'image/png'};
 await test('private asset index rejects traversal, empty ACL and duplicate paths',()=>{const index=assets=>({format:'PROCESS_OS_COMPANY_ASSETS_V1',assets});validateAssetIndex(index([asset]));for(const bad of [{...asset,path:'/process/iqc-media/../secret'},{...asset,permissions:[]}])assert.throws(()=>validateAssetIndex(index([bad])));assert.throws(()=>validateAssetIndex(index([asset,asset])));});
 
-const sessionEnv={PROCESS_SESSION_SECRET:'fixture-only-not-a-live-secret',DEMO_LOGIN_ENABLED:'false',PROCESS_SESSION_REVOCATION_ENABLED:'0',DB:{prepare(){return {bind(){return this;},async first(){return null;}};}}};
+const sessionEnv={PROCESS_SESSION_SECRET:randomBytes(32).toString('hex'),DEMO_LOGIN_ENABLED:'false',PROCESS_SESSION_REVOCATION_ENABLED:'0',DB:{prepare(){return {bind(){return this;},async first(){return null;}};}}};
 const processState=await loader({'cloudflare:workers':{env:sessionEnv},'./passwords':{verifyPassword:async()=>false},'./state-chunks':{encodeChunkedValues(){throw Error('Not used');},decodeChunkedValues(){throw Error('Not used');}},'./state-records':{encodeRecordValues(){throw Error('Not used');},decodeRecordValues(){throw Error('Not used');}}})('lib/process-state.ts');
 const userState={revision:1,values:{platformUsers:JSON.stringify([{id:'fixture-user',name:'Fixture',role:'staff',enabled:true,authEpoch:2}])}};
 await test('real HMAC session preserves normal account login and cookie attributes',async()=>{const token=await processState.demoSession(new Request('https://fixture.invalid'),'fixture-user',false,2);const response=await processState.identity(new Request('https://fixture.invalid',{headers:{cookie:'process_demo='+token}}),userState);assert.equal(response.id,'fixture-user');const cookie=processState.sessionCookie(new Request('https://fixture.invalid'),token);for(const flag of ['HttpOnly','Secure','SameSite=Strict','Max-Age=28800'])assert.ok(cookie.includes(flag));});
 await test('missing/fake Sites and admin headers do not authenticate hosted visitors',async()=>{assert.equal(await processState.identity(new Request('https://fixture.invalid',{headers:{'oai-authenticated-user-id':'fake','oai-authenticated-user-email':'fake@invalid','x-process-admin-id':'fixture-user','x-process-admin-password':'fixture-only'}}),userState),null);});
 await test('auth epoch, disabled user, tampered token and revocation deny sessions',async()=>{const token=await processState.demoSession(new Request('https://fixture.invalid'),'fixture-user',false,1);assert.equal(await processState.identity(new Request('https://fixture.invalid',{headers:{cookie:'process_demo='+token}}),userState),null);const valid=await processState.demoSession(new Request('https://fixture.invalid'),'fixture-user',false,2);const request=new Request('https://fixture.invalid',{headers:{cookie:'process_demo='+valid}});const disabled=structuredClone(userState);disabled.values.platformUsers=JSON.stringify([{id:'fixture-user',role:'staff',enabled:false,authEpoch:2}]);assert.equal(await processState.identity(request,disabled),null);assert.equal(await processState.identity(new Request('https://fixture.invalid',{headers:{cookie:'process_demo='+valid+'x'}}),userState),null);sessionEnv.PROCESS_SESSION_REVOCATION_ENABLED='1';sessionEnv.DB.prepare=()=>({bind(){return this;},async first(){return {expires_at:Date.now()+10000};}});assert.equal(await processState.identity(request,userState),null);sessionEnv.PROCESS_SESSION_REVOCATION_ENABLED='0';});
 await test('login limiter denies exhausted counters and does not create schema',async()=>{const calls=[];const env={DB:{prepare(sql){calls.push(sql);return {bind(){return this;}};},async batch(){return [{success:true,results:[{attempts:31}]},{success:true,results:[{attempts:1}]}];}}};const api=await loader({'cloudflare:workers':{env}})('lib/login-limit.ts');assert.equal(await api.allowLoginAttempt(new Request('https://fixture.invalid'),'fixture'),false);assert.ok(calls.every(sql=>!sql.includes('CREATE')));});
-await test('generic image endpoint allows normal staff only for visible image',async()=>{let visible=true;const api=await loader({'cloudflare:workers':{env:{STATE_ARCHIVE:{async get(){return {body:'fake',size:4,httpMetadata:{contentType:'image/png'}};}}}},'@/lib/process-state':{readState:async()=>fakeState,companyReader:async()=>({actor}),companyState:async()=>({values:{image:JSON.stringify(visible?'/api/state-media?id='+id:'none')}})}})('app/api/state-media/route.ts');const request=new Request('https://fixture.invalid/api/state-media?id='+id);const ok=await api.GET(request);assert.equal(ok.status,200);assert.equal(ok.headers.get('cache-control'),'no-store');visible=false;assert.equal((await api.GET(request)).status,403);});
-await test('anonymous image request is denied before bucket access',async()=>{let reads=0;const api=await loader({'cloudflare:workers':{env:{STATE_ARCHIVE:{get(){reads++;}}}},'@/lib/process-state':{readState:async()=>fakeState,companyReader:async()=>null,companyState:async()=>{throw Error('Must not read');}}})('app/api/state-media/route.ts');assert.equal((await api.GET(new Request('https://fixture.invalid/api/state-media?id='+id))).status,401);assert.equal(reads,0);});
+await test('generic image endpoint allows normal staff only for visible image',async()=>{
+ let visible=true,reads=0;
+ const stateAPI={readState:async()=>({revision:1,values:{platformUsers:'[]',processMasterData:JSON.stringify({image:visible?'/api/state-media?id='+id:'none'})}}),companyReader:async()=>({actor,canRead:permission=>permission==='player.view'}),publicState:state=>state};
+ const api=await loader({'cloudflare:workers':{env:{STATE_ARCHIVE:{async get(){reads++;return {body:'fake',size:4,httpMetadata:{contentType:'image/png'}};}}}},'@/lib/process-state':stateAPI,'./process-state':stateAPI})('app/api/state-media/route.ts');
+ const request=new Request('https://fixture.invalid/api/state-media?id='+id),ok=await api.GET(request);assert.equal(ok.status,200);assert.equal(ok.headers.get('cache-control'),'no-store');assert.equal(await ok.text(),'fake');assert.equal(reads,1);
+ visible=false;assert.equal((await api.GET(request)).status,403);assert.equal(reads,1,'hidden reference must not fetch image bytes');
+});
+await test('anonymous image request is denied before bucket access',async()=>{
+ let reads=0;const stateAPI={readState:async()=>fakeState,companyReader:async()=>null,publicState:()=>{throw Error('Must not project');}};
+ const api=await loader({'cloudflare:workers':{env:{STATE_ARCHIVE:{get(){reads++;}}}},'@/lib/process-state':stateAPI,'./process-state':stateAPI})('app/api/state-media/route.ts');assert.equal((await api.GET(new Request('https://fixture.invalid/api/state-media?id='+id))).status,401);assert.equal(reads,0);
+});
 await test('snapshot API requires normal admin and fixed program version; hosted import unavailable',async()=>{let who={role:'staff',sessionType:'platform'};const api=await loader({'cloudflare:workers':{env:{}},'@/lib/snapshot-d1-r2.mjs':{createD1R2Source(){throw Error('No real bindings used');}},'@/lib/snapshot-stream.mjs':{snapshotResponseBody(){throw Error('No live export');}},'@/lib/process-state':{readState:async()=>fakeState,identity:async()=>who,can:async()=>true,responseHeaders:{'Cache-Control':'no-store'}}})('app/api/snapshots/route.ts');const request=new Request('https://fixture.invalid/api/snapshots?action=export');assert.equal((await api.GET(request)).status,403);who={role:'admin',sessionType:'demo'};assert.equal((await api.GET(request)).status,403);who={role:'admin',sessionType:'platform'};assert.equal((await api.GET(request)).status,503);assert.equal((await api.POST()).status,405);});
 
 const encoded=new TextEncoder().encode('[]'),schemaFingerprint='b'.repeat(64);
