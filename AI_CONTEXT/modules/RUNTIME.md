@@ -1,3 +1,19 @@
+## 2026-10-25 Sites 圖片讀取候選（未發布）
+
+`canonical-assets` 僅新增接受正式 `imageUrl()` 產生的精確 `#asset-<source SHA>`
+片段；錯誤片段、其他版本與文字子字串仍拒絕。與 `state-media` 共用 request-local
+可見引用掃描：先驗證 aggregate SHA，再依既有 `publicState`／角色規則移除不可見
+內容，僅 hydration 一個可讀 aggregate，找到引用即停止。保留 caller 的已去秘密身分
+欄位、legacy editor／adoption 邊界，以及混合 inline／immutable master 的舊 equality
+路徑；不擴權、不改全域 active-only 政策。兩條圖片路由回傳前重驗 actor／revision，
+拒絕或例外會取消未交付 body。無跨 request／actor 快取。
+
+`effective-versions` 先認證，再只讀 SHA-verified control metadata；保留 master 首個
+approved、legacy 同 category/line 最後 approved 與各 scope active ID 的既有順序。
+讀後重驗身分及 revision。投影被標記 partial，不能當寫入 baseline；無 schema、
+資料、帳號、R2 物件或 ACL 修改。legacy inline/chunks/monolith 仍有原本全解碼成本。
+隔離測試／編譯與真站台驗收是不同證據；候選不代表 live 延遲或記憶體已修復。
+
 ## 2026-10-17 離線完整快照更新與儲存入口
 
 `scripts/dev-package-update.mjs` 提供 register／plan／apply／status／recover 及隔離 TEST install-test。管理者核對的固定輸入與雜湊限制目標、來源、相容版本及發布包；不是 Canonical 同步或帳號管理入口。`local-update-guard` 拒絕未完成交易，`local-storage-lease` 讓已啟用目標的正常 SDK／SQLite／server 入口在實際關閉前持有互斥；`local-storage-sqlite` 保留未提供 options 的原生建構語意。未知建構或關閉結果留 HOLD，不從 catch 推定資源安全。舊未啟用目標不建立新互斥檔，但仍檢查未知交易。

@@ -1,5 +1,17 @@
 # Isolated Sites implementation handoff
 
+Current cloud-only candidate: [asset delivery read repair](AI_CONTEXT/modules/RUNTIME.md#2026-10-25-sites-圖片讀取候選未發布).
+The frozen nine-file local handoff was hash/base-blob checked against Site source
+`dbe84ce7b46c52f099df2be60136ec3970e0eb14` (reviewed GitHub baseline
+`3f3b5594ae2103b782762809aaae6ef8fb2c26e3`). Cloud is the sole source writer;
+the workstation task remains stopped. Exact producer fragments, bounded visible
+asset scans and version metadata reads retain existing permission/adoption and
+CAS fences. Compatibility and failed-body cleanup regressions were added during
+review. Build stamps identify the reviewed baseline, not these uncommitted
+changes. No commit/push/package/deployment or live data/session transfer occurred.
+Synthetic checks are not live image, latency, memory or full owner/staff acceptance.
+Historical phase notes below retain their original evidence boundaries.
+
 Current local follow-up: [verification control cost](docs/sites/VERIFY_CONTROL_COST_REVIEW.md).
 Three synthetic restricted GETs now execute 74 rather than 128 SQL statements;
 fresh per-I/O authority/fence checks and all writes are retained. This patch is
