@@ -1,7 +1,10 @@
 // Exercise the actual YAML block with synthetic exit-only commands, not the suites.
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';
 const yaml=fs.readFileSync('.github/workflows/local-safety.yml','utf8');
-const block=yaml.split('      - name: Integrated entry and read-only delivery contracts\n')[1]?.split('      - name:')[0];assert(block);
+const extract=value=>value.replace(/\r\n/g,'\n').split('      - name: Integrated entry and read-only delivery contracts\n')[1]?.split('      - name:')[0];
+const block=extract(yaml);assert(block);
+assert.equal(extract(yaml.replace(/\r?\n/g,'\r\n')),block,'native Windows checkout and LF source must produce the exact same executable block');
+assert.equal(extract(yaml.replace(/\r\n/g,'\n')),block);
 const lines=block.split('\n').filter(line=>line.startsWith('          ')).map(line=>line.slice(10));
 const commands=lines.flatMap((line,index)=>line.startsWith('node ')?[index]:[]);assert(commands.length>=5);
 for(const index of commands)assert.equal(lines[index+1],'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }','every native command must preserve its own exit');
