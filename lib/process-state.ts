@@ -8,7 +8,8 @@ import { encodeChunkedValues, decodeChunkedValues, type ChunkStorage } from './s
 import {encodeRecordValues,decodeRecordValues,type RecordStorage,type RecordRead} from './state-records';
 import { sessionRevocationEnabled, sessionRevoked, revokeSession } from './session-revocation';
 import {projectCompanyState} from './site-security.mjs';
-export type State = { revision: number; values: Record<string, string>; storage?:ChunkStorage;recordStorage?:RecordStorage };
+import {effectiveDeliveryValues} from './effective-delivery.mjs';
+export type State = { revision: number; values: Record<string, string>; storage?:ChunkStorage;recordStorage?:RecordStorage;deliveryOnly?:boolean };
 let localSessionSecret = '';
 const loopback = (request: Request) => ['localhost','127.0.0.1'].includes(new URL(request.url).hostname);
 // This delivery defaults to account login; demos need an explicit flag.
@@ -103,6 +104,7 @@ export const parse = (s: string | undefined, fallback: unknown) => {
   }
 };
 export async function encodeValues(values:Record<string,string>,previous?:State,updatedModels?:Map<string,unknown>) {
+  if(previous?.deliveryOnly)throw Error('Read-only delivery cannot be saved');
   if(previous?.recordStorage)return encodeRecordValues(env.STATE_ARCHIVE,values,previous.recordStorage,updatedModels);
   if(updatedModels?.size)throw Error('Prepared writes require record storage');
   if(previous?.storage)return encodeChunkedValues(env.STATE_ARCHIVE,values,previous.storage);
@@ -134,19 +136,20 @@ export async function decodeValues(raw:string):Promise<Record<string,string>> {
 }
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
 export async function readState(options:RecordRead={}): Promise<State> {
+  const deliver=(state:State):State=>options.effectiveOnly?{...state,values:effectiveDeliveryValues(state.values),deliveryOnly:true}:state;
   // Schema is owned by the checked-in Drizzle migrations, never by public reads.
   const row = await env.DB.prepare(
     'SELECT revision,"values" FROM shared_state WHERE id=1',
   ).first<{ revision: number; values: string }>();
   if (!row) throw Error('Current state is missing; explicit initialization is required');
   const stored=JSON.parse(row.values);
-  if(stored.__processRecords)return {revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)};
-  if(stored.__processChunks)return {revision:row.revision,...await decodeChunkedValues(env.STATE_ARCHIVE,stored)};
+  if(stored.__processRecords)return deliver({revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)});
+  if(stored.__processChunks)return deliver({revision:row.revision,...await decodeChunkedValues(env.STATE_ARCHIVE,stored)});
   // Inline legacy state is already decoded. Avoid parsing large captured JSON
   // twice; R2 envelopes still pass through integrity-checked decodeValues.
-  if(!stored.__processR2)return {revision:row.revision,values:stored};
+  if(!stored.__processR2)return deliver({revision:row.revision,values:stored});
   const values = await decodeValues(row.values);
-  return { revision: row.revision, values };
+  return deliver({ revision: row.revision, values });
 }
 export const readPlatformUsers = (raw: string | undefined): PlatformUser[] => parse(raw, []);
 
@@ -373,7 +376,7 @@ export async function backupStoredState(state: State, reason: string, actor: str
   ).run();
   return true;
 }
-export async function scheduledBackup(state: State) {
+export async function scheduledBackup(state: State,readComplete?:()=>Promise<State>) {
   const settings = backupSettings(state),
     [hour, minute] = settings.time.split(':').map(Number),
     now = Date.now(),
@@ -400,6 +403,17 @@ export async function scheduledBackup(state: State) {
   }
   const dueAt = new Date(scheduled.getTime() - offset),
     id = `scheduled-${settings.frequency}-${dueAt.toISOString()}`;
+  // Avoid re-encoding the same scheduled snapshot on every page read. The
+  // unique id and INSERT OR IGNORE remain the final concurrent-writer guard.
+  if(await env.DB.prepare('SELECT id FROM state_backups WHERE id=?').bind(id).first())return;
+  if(state.recordStorage?.partial||state.deliveryOnly){
+    if(!readComplete)throw Error('Partial read cannot be backed up');
+    const complete=await readComplete();
+    // A concurrent settings/revision change must be evaluated afresh, not saved
+    // under a schedule derived from an older partial snapshot.
+    if(complete.recordStorage?.partial||complete.deliveryOnly||complete.revision!==state.revision)throw Error('Backup snapshot changed');
+    state=complete;
+  }
   const label =
     settings.frequency === 'weekly'
       ? '每週'

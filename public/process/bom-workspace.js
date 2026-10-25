@@ -7,6 +7,7 @@
  const ui={query:'',code:'',tab:'forest',position:'',zoom:1,left:0,top:0,compareOpen:true};
  let D,client,actor='',control,editor={},pending=[],batch=null,edit=null,error='',busy=false,loading=false,saveCommand=null; const prepared=new WeakMap();let readEpoch=0,lastErrorCode='';
  let reviewState=null,reviewRevision=null,reviewEpoch=0,fullRevision=0,reviewLoading=null;
+ let initialReady=Promise.resolve();
  const flow=()=>control?.workflow,active=()=>control?.versions.find(v=>v.id===control.activeVersionId),version=()=>control?.versions.find(v=>['draft','pending','pending-test'].includes(v.status))||active();
  const editable=()=>client?.permission('edit')===true&&version()?.status==='draft'&&!!flow()&&!flow().pendingId;
  const btn=(id,label,disabled=false)=>`<button type="button" class="button ghost" data-bw="${id}" ${disabled?'disabled':''}>${h(label)}</button>`;
@@ -103,6 +104,7 @@
  }
  function renderReview(){window.dispatchEvent(new CustomEvent('bom-review-updated'));}
  window.BOMWorkspace={
+  readyForReview:()=>reviewLoading||Promise.resolve(),
   pendingCount:()=>actor===window.ProcessSync?.identity?.id&&permission('view')!==false&&(reviewState?reviewState.workflow?.pendingId:flow()?.pendingId)?1:0,
   reviewError:()=>error,
   reviewPermission:action=>actor===window.ProcessSync?.identity?.id&&permission(action),
@@ -116,7 +118,8 @@
  setInterval(async()=>{if(polling||busy||loading||pending.length||batch||edit||document.visibilityState==='hidden'||document.querySelector('dialog[open]')||document.activeElement?.matches('input,textarea,select')||!document.querySelector('.bw-workspace,#master-unified-review'))return;polling=true;try{if(!document.querySelector('.bw-workspace')){await window.BOMWorkspace.loadReview();return;}const result=await read(true);if(!result.unchanged||result.permissionsChanged){paint();renderReview();}}catch(e){error=errorText(e);const status=document.querySelector('.bw-error');if(status)status.textContent=error;}finally{polling=false;}},4000);
  const oldBind=bindDataInner;
  bomTable=()=>`<section class="bw-workspace" data-i18n-skip="true"><p>${h(t('正在載入 BOM…','Đang tải BOM…'))}</p></section>`;
- bindDataInner=function(tab){if(tab!=='bom')return oldBind(tab);if(loading)return;loading=true;void run(async()=>{D ||= await import('./bom-domain.mjs?v=20261012-incremental1');await read();}).finally(()=>loading=false);};
+ bindDataInner=function(tab){if(tab!=='bom')return oldBind(tab);if(loading)return;loading=true;initialReady=run(async()=>{D ||= await import('./bom-domain.mjs?v=20261012-incremental1');await read();}).finally(()=>loading=false);};
+ window.BOMWorkspace.readyForDestination=()=>initialReady;
  // oxlint-disable-next-line typescript/no-deprecated -- Chromium requires returnValue to warn before losing unsaved BOM input.
  window.addEventListener('beforeunload',event=>{if(hasUnsavedChanges()){event.preventDefault();event.returnValue='BOM changes pending';}});
  document.addEventListener('click',event=>{if(!document.querySelector('.bw-workspace')||!hasUnsavedChanges())return;const target=event.target.closest('a,[data-view],[data-tab]');if(!target||target.closest('.bw-workspace'))return;if(!confirm(t('BOM 尚有未儲存修改或未套用比對，仍要離開？','BOM có sửa chưa lưu hoặc so sánh chưa áp dụng. Rời đi?'))){event.preventDefault();event.stopImmediatePropagation();}},true);

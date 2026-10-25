@@ -59,8 +59,9 @@
       })),
     };
   }
-  let control = readStore(STORAGE, null) || initial();
-  if (!Array.isArray(control.active?.C?.products)) {
+  const projected=window.ProcessSync?.deliveryProjection===true;
+  let control = readStore(STORAGE, null) || (projected?{active:{},versions:[]}:initial());
+  if (!projected&&!Array.isArray(control.active?.C?.products)) {
     control = initial();
     localStorage.setItem(STORAGE, JSON.stringify(control));
   }
@@ -69,6 +70,7 @@
   state.masterSearch = state.masterSearch || '';
   state.masterReviewId = state.masterReviewId || null;
   const sharedLoaded=new Set(),sharedLoading=new Set();
+  let dataReady=Promise.resolve();
   const shared=window.createMasterSharedBridge({control,onChange:()=>render()});
   function persist(scope=state.masterScope) {
     if(['AB','C','PROCESS'].includes(scope))return shared.execute(scope,'apply');
@@ -82,6 +84,7 @@
     );
   }
   function ensureProcessMasterVersionScope() {
+    if(projected)return false;
     if (control.active.PROCESS && control.versions.some((item) => item.scope === 'PROCESS'))
       return false;
     const created = now(),
@@ -303,7 +306,7 @@
   };
 
   dataView = function () {
-    return `<section class="page"><div class="tabs master-tabs"><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'AB' ? 'active' : ''}" data-master-scope="AB">AB 產線與類別</button><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'C' ? 'active' : ''}" data-master-scope="C">C 產線與類別</button><button class="tab master-tab" data-tab="bom">BOM 資料</button><button class="tab master-tab ${state.masterSection === 'lines' ? 'active' : ''}" data-tab="line-admin">線別與工段管理</button><button class="tab master-tab" data-tab="process-master">流程資料</button><button class="tab master-tab" data-tab="users">使用者與權限</button></div><div id="data-content">${masterView()}</div></section>`;
+    return `<section class="page"><div class="tabs master-tabs"><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'AB' ? 'active' : ''}" data-master-scope="AB">AB 產線與類別</button><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'C' ? 'active' : ''}" data-master-scope="C">C 產線與類別</button><button class="tab master-tab" data-tab="bom">BOM 資料</button><button class="tab master-tab ${state.masterSection === 'lines' ? 'active' : ''}" data-tab="line-admin">線別與工段管理</button><button class="tab master-tab" data-tab="process-master">流程資料</button><button class="tab master-tab" data-tab="users">使用者與權限</button></div><div id="data-content">${projected?'':masterView()}</div></section>`;
   };
   function selectDataTab(tab, push = false) {
     if (!['AB','C','bom','line-admin','process-master','users'].includes(tab)) tab='AB';
@@ -314,7 +317,7 @@
     if (!content) return;
     if(tab==='process-master'&&!sharedLoaded.has('PROCESS')){
       content.textContent=document.documentElement.lang==='vi'?'Đang tải dữ liệu quy trình…':'載入流程資料中…';
-      if(!sharedLoading.has('PROCESS')){sharedLoading.add('PROCESS');shared.load('PROCESS').then(()=>{sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
+      if(!sharedLoading.has('PROCESS')){sharedLoading.add('PROCESS');dataReady=shared.load('PROCESS').then(()=>{sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
         if(state.dataTab!=='process-master')return;content.textContent=displayDraftError(error);const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử lại':'重試';retry.onclick=()=>selectDataTab(tab);content.append(retry);
       }).finally(()=>sharedLoading.delete('PROCESS'));}bindTabButtons();return;
     }
@@ -344,12 +347,18 @@
       button.onclick=()=>selectDataTab(tab,true);
     });
   }
-  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons};
+  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:()=>dataReady};
   bindData = function () {
+    if(window.ProcessSync?.deliveryProjection&&String(state.dataTab||'').startsWith('quality-')){
+      if(window.ProcessDualSystem)window.ProcessDualSystem.renderQualityDataTab(state.dataTab);
+      else {const content=document.querySelector('#data-content');if(content)content.textContent='…';}
+      return;
+    }
     selectDataTab(state.dataTab||new URL(location.href).searchParams.get('dataTab')||'AB');
   };
   window.addEventListener('popstate',()=>{
     if (!currentUser) return;
+    if (window.ProcessSync?.deliveryProjection && new URL(location.href).searchParams.get('view')!=='data') return;
     state.dataTab=new URL(location.href).searchParams.get('dataTab')||'AB';
     if (state.view!=='data') navigate('data');else selectDataTab(state.dataTab);
   });
@@ -824,7 +833,7 @@
           .filter((code) => validStages.has(code)),
       );
     };
-    if (typeof ensureProcessMasterStages === 'function')
+    if (!projected&&typeof ensureProcessMasterStages === 'function')
       ensureProcessMasterStages();
     Object.keys(state.editorByCategory || {}).forEach((key) => {
       if (!validEditorKeys.has(key)) {
@@ -925,8 +934,13 @@
     }
   }
   function applyActive() {
-    const ab = control.active.AB,
-      c = control.active.C,
+    const empty={products:[],lines:[],categoryGroups:[]};
+    // Runtime dependencies and editable master scopes are distinct. Missing
+    // permission scopes never become seeded master data or storage updates.
+    const runtime=window.ProcessSync?.catalog;
+    const fallback=scope=>runtime?{products:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)).flatMap(line=>Object.values(runtime.routing.productRoutes).filter(row=>row.line===line.code)),lines:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)),categoryGroups:[]}:empty;
+    const ab = control.active.AB || fallback('AB'),
+      c = control.active.C || fallback('C'),
       all = [...clone(ab.products), ...clone(c.products)],
       groupMap = new Map();
     [
@@ -1081,7 +1095,7 @@
     masterView = enhanced.masterView;
     bindMaster = function(){enhanced.bindMaster();const scope=state.masterScope;if(sharedLoaded.has(scope)||sharedLoading.has(scope))return;
       sharedLoading.add(scope);document.querySelectorAll('#data-content button').forEach(b=>b.disabled=true);
-      shared.load(scope).then(()=>{sharedLoaded.add(scope);render();}).catch(error=>{
+      dataReady=shared.load(scope).then(()=>{sharedLoaded.add(scope);render();}).catch(error=>{
         toast(displayDraftError(error));const panel=document.querySelector('#data-content');if(!panel)return;
         const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử tải lại bản nháp chung':'重新載入共用草稿';retry.onclick=()=>{retry.remove();bindMaster();};panel.prepend(retry);
       }).finally(()=>sharedLoading.delete(scope));};
@@ -1104,7 +1118,7 @@
         },
       });
       approvalSection = review.view;
-      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;missing.forEach(s=>sharedLoading.add(s));Promise.all(missing.map(s=>shared.load(s).then(()=>sharedLoaded.add(s)))).then(()=>render()).catch(e=>toast(displayDraftError(e))).finally(()=>missing.forEach(s=>sharedLoading.delete(s)));};
+      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>sharedLoaded.add(s)))).then(()=>render()).catch(e=>toast(displayDraftError(e))).finally(()=>missing.forEach(s=>sharedLoading.delete(s)));};
     }
   }
   window.MasterDataWorkflow = {

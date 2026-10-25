@@ -69,7 +69,7 @@
     const data = await response.json();
     if (!response.ok || !data.control || !Number.isInteger(data.revision)) throw Error(data.error || 'IQC 載入失敗');
     control = data.control; revision = data.revision;
-    if(control.workflow)await transport().permissions(); // Initialize owned recovery and current server policy before rendering.
+    await transport().permissions(); // Legacy and adopted libraries both use current server policy before rendering.
     return data;
   }
   async function post(action, extra = {}) {

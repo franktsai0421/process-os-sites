@@ -10,7 +10,7 @@ function serialized(control:ToolingControl){
  return control;
 }
 export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingControl>={
- key:'toolingMasterControl',scope:'tooling',parse:parseTooling,empty:emptyTooling,preparedModel:true,photoPrefix:'tooling/photos/',photoIds:s=>s.tools.flatMap(t=>t.photos.map(p=>p.id)),
+ key:'toolingMasterControl',scope:'tooling',parse:parseTooling,empty:emptyTooling,preparedModel:true,permissionOnlyRead:true,photoPrefix:'tooling/photos/',photoIds:s=>s.tools.flatMap(t=>t.photos.map(p=>p.id)),
  serializeModel:serialized,serialize:control=>JSON.stringify(serialized(control)),
  async access(_request,_state,permissions){return {...permissions,history:permissions.view};},
  context(control,state,base){

@@ -137,6 +137,28 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Native isolated outbound-denial regression
         run: node tests/local-worker-outbound.test.mjs
+      - name: Integrated entry and read-only delivery contracts
+        run: |
+          node --test tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-draft-client-v3.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-integrated-workflow-cycles.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-bom-workflow.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-fqc-operations.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-effective-delivery-formats.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-integrated-bootstrap.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-scheduled-backup-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compiled module-scoped bootstrap and canonical image boundaries
+        run: node tests/sites-integrated-bootstrap-native.test.mjs
+      - name: Compiled destination pages in an isolated browser with synthetic identities
+        run: node tests/sites-delivery-browser.test.mjs
       - name: Dormant native staging authority and synthetic transport
         run: |
           node --test tests/snapshot-native-capability.test.mjs tests/snapshot-native-intents.test.mjs tests/snapshot-native-handler.test.mjs tests/snapshot-native-input.test.mjs tests/snapshot-native-source.test.mjs tests/snapshot-native-transport.test.mjs tests/snapshot-native-performance.test.mjs

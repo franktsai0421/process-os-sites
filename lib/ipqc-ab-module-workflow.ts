@@ -39,7 +39,7 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   }}
   return root;
  }
- return{key:'ipqcABMasterControl',scope:'ipqc-ab:module',preparedModel:true,
+  return{key:'ipqcABMasterControl',scope:'ipqc-ab:module',preparedModel:true,permissionOnlyRead:true,
   empty:()=>snapshot(false),photoPrefix:'ipqc-ab/photos/',photoIds:c=>Object.values(c.scopes).flatMap(s=>s.items.flatMap(i=>[...i.standardPhotos,...i.methodPhotos].map(p=>p.id))),
   parse(raw,prepared){root=parseAbControl(raw,prepared) as AbModuleRoot;return root.moduleDraft||{activeVersionId:null,versions:[]};},
   serializeModel:project,serialize:c=>JSON.stringify(project(c)),beforeBegin:()=>conflict(),

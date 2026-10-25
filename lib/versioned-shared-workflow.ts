@@ -124,17 +124,19 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
       let preflight:State|undefined;
-      if(adapter.permissionOnlyRead&&(selectors.has('permissions')||/^state:\d+$/.test(selectors.get('since')||''))){
+      if(adapter.permissionOnlyRead){
         preflight=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']});
         const actor=await identity(request,preflight),permissions=await currentPermissions(request,preflight);
         if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
         if(selectors.has('permissions'))return reply({permissions,revision:preflight.revision,otherReviewerAvailable:otherReviewerAvailable(preflight,actor.id)});
         if(selectors.get('since')===`state:${preflight.revision}`)return reply({revision:preflight.revision,permissions,unchanged:true});
       }
-      // Changed revisions and full/history reads retain the original domain
-      // hydration and validation. Recheck identity on that fresh full snapshot.
+      // Changed revisions and history reads retain the original domain
+      // hydration and validation. Restore previews keep full dependencies.
+      // Recheck identity on the newly selected snapshot.
       // Legacy formats already read the entire snapshot; avoid reading it twice.
-      const state=preflight&&!preflight.recordStorage?preflight:await readState({deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),actor=await identity(request,state),permissions=await currentPermissions(request,state);
+      const selectedKeys=adapter.permissionOnlyRead&&!selectors.has('restoreSaveId')?['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',adapter.key]:undefined;
+      const state=preflight&&!preflight.recordStorage?preflight:await readState({keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),actor=await identity(request,state),permissions=await currentPermissions(request,state);
       if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
       const query=new URL(request.url).searchParams;
       if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
