@@ -50,6 +50,7 @@ void (async () => {
     document.documentElement.dataset.processAssetsReadyMs = Math.round(performance.now());
     // The editor module is registered after app.js performs its initial render.
     // Reveal the authoritative canvas, not that early legacy/empty render.
+    if(bootStatus)bootStatus.textContent=vi?'Đang tải nội dung làm việc đã xác thực…':'正在載入已驗證的工作內容…';
     await window.ProcessAuthoringV3?.readyForEditor?.();
     performance.mark('process-ready');
     document.documentElement.dataset.processReadyMs = Math.round(performance.now());

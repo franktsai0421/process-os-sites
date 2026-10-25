@@ -74,7 +74,9 @@
     try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null')); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     async function request(url,body) {
       assertOwner();
-      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+      // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
+      // mutations at their existing deadline and receipt-first unknown policy.
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?15000:45000);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
         let result=await response.json();
