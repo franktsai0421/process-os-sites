@@ -1,11 +1,15 @@
 // Explicit isolated conversion format. Immutable snapshot bodies are separate
 // from live aggregates; workflow requests need not reconstruct old history.
+import {effectiveDeliveryValue} from './effective-delivery.mjs';
 type Bucket={get(key:string):Promise<{text():Promise<string>}|null>;put(key:string,value:string,options?:{httpMetadata:{contentType:string}}):Promise<unknown>};
 type Ref={key:string;sha256:string};
 export type AllocationIndex={version:1;errors:Record<string,string>[];items:Record<string,string>[];equipment:{assetCode:string;pieceMark:string}[];categories:{code:string}[]};
 type Envelope={__processRecords:{version:1;values:Record<string,Ref>;legacySources?:Record<string,Ref>;allocations?:Record<string,Ref>};platformUsers?:string;maintenanceMode?:string};
 export type RecordStorage={envelope:Envelope;originalValues:Record<string,string>;known:Set<string>;partial:boolean;models:Map<string,unknown>;allocations:Map<string,AllocationIndex>};
 export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string|null;versionId?:string|null;keys?:string[];modelKey?:string;
+ // Read-only delivery projection. Never use as a write/backup baseline. Dedicated
+ // workflow and history routes retain the complete original decoding contract.
+ effectiveOnly?:boolean;
  // Workflow adapters consume dependencies' effective/open content, not legacy
  // historical parsers. Opt-in only; ordinary/public reads retain their contract.
  deferDependencyHistory?:boolean;allocationKey?:string};
@@ -98,7 +102,7 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
  async function visit(v:unknown,parent='',activeIds:string[]=[],inheritedDeferred=false):Promise<unknown>{
   if(reference(v)){if(inheritedDeferred){known.add(v.__immutableBody.sha256);return v;}return body(v.__immutableBody);}
   if(Array.isArray(v)){const next=[];for(const item of v){if(!object(item)){next.push(item);continue;}
-    const row={...item},deferred=inheritedDeferred||options.deferHistory&&(
+     const row={...item},deferred=inheritedDeferred||options.deferHistory&&(
       parent==='versions'&&deferVersions&&!['draft','pending','pending-test'].includes(typeof row.status==='string'?row.status:'')&&!activeIds.includes(typeof row.id==='string'?row.id:'')&&row.id!==options.versionId||
       parent==='cases'&&row.status!=='pending'&&row.id!==options.caseId||
       parent==='saves'&&row.id!==options.saveId);
@@ -108,18 +112,19 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
   if(object(v)){const next:Record<string,unknown>={},active=object(v.active)?v.active:{},ids=typeof v.activeVersionId==='string'?[v.activeVersionId]:Array.isArray(v.versions)&&v.active?v.versions.filter(object).filter(row=>{const source=typeof row.scope==='string'?active[row.scope]:null;return reference(row.snapshot)&&reference(source)&&row.snapshot.__immutableBody.sha256===source.__immutableBody.sha256;}).map(row=>typeof row.id==='string'?row.id:''):activeIds;
    // Legacy readers still consume version snapshots directly. Only adopted
    // scopes have the authorized on-demand history endpoint needed for laziness.
-   if(Array.isArray(v.versions))for(const row of v.versions.filter(object)){
+    if(Array.isArray(v.versions))for(const row of v.versions.filter(object)){
     const adopted=!!v.workflow||(typeof row.scope==='string'&&object(v.workflowScopes)&&!!v.workflowScopes[row.scope]);
     if(!adopted&&typeof row.id==='string'&&!ids.includes(row.id))ids.push(row.id);
    }
-   for(const [key,value]of Object.entries(v))next[key]=await visit(value,key,ids,inheritedDeferred);return next;}return v;
+    for(const [key,value]of Object.entries(v))next[key]=await visit(value,key,ids,inheritedDeferred);
+    return next;}return v;
  }
  // Serial module loading bounds transient allocation. Per-request body sharing
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
  for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const raw=await read(bucket,ref);
-  if(key===options.modelKey){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
-  else values[key]=raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
+  if(key===options.modelKey&&!options.effectiveOnly){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
+  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
  }
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
- return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.keys,models,allocations} satisfies RecordStorage};
+  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.keys||!!options.effectiveOnly,models,allocations} satisfies RecordStorage};
 }

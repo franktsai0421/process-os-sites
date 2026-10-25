@@ -56,6 +56,14 @@
     revision: 0,
     loadError: null,
     importPending: false,
+    loginRequired: false,
+    deliveryProjection: false,
+    writableKeys: [],
+    catalog: null,
+    destination: null,
+    requiresReload: false,
+    projectionWriteError: null,
+    bootstrapping: true,
     saveError: null,
     flush,
     legacyDraftKeys: () => [...legacyDrafts.keys()],
@@ -91,6 +99,7 @@
   }
   api.setPlatformIdentity = (user, password) => {
     quarantinePending();identityEpoch++;
+    if(ready&&api.deliveryProjection)invalidateDelivery();
     window.EffectiveVersionNotice?.reset?.();
     api.identity = { id: user.id, name: user.name, role: user.role, authMode: user.authMode, sessionType: user.sessionType };
     platformCredential = password ? { id: user.id, password } : null;
@@ -100,7 +109,7 @@
   };
   api.getPlatformPassword = () => platformCredential?.password || '';
   api.setDemoIdentity = user => {api.setPlatformIdentity(user);sessionStorage.removeItem('process-platform-signed-out');};
-  api.clearIdentity = () => {quarantinePending();identityEpoch++;window.EffectiveVersionNotice?.reset?.();platformCredential=null;api.identity=null;blocked=false;paused=false;api.paused=false;};
+  api.clearIdentity = () => {quarantinePending();identityEpoch++;if(ready&&api.deliveryProjection)invalidateDelivery();window.EffectiveVersionNotice?.reset?.();platformCredential=null;api.identity=null;blocked=false;paused=false;api.paused=false;};
   api.identityGeneration = () => identityEpoch;
   api.pendingState=()=>({dirty:Object.keys(dirty).length,inFlight:posting,paused,blocked});
   api.ownRecovery=()=>{if(!api.identity?.id)return null;const memory=quarantined.get(api.identity.id);if(memory)return memory;try{const saved=JSON.parse(originalGet.call(sessionStorage,recoveryKey(api.identity.id))||'null');return saved?.actorId===api.identity.id?saved:null;}catch{return null;}};
@@ -149,12 +158,32 @@
     // next account. A fresh authenticated load replaces the old page mirror.
     dirty={};dirtyOwner=null;
   }
+  function invalidateDelivery(){
+    api.requiresReload=true;api.catalog=null;api.destination=null;api.writableKeys=[];
+    sharedValues.clear();baseline={};baselineOwner=null;
+    // Existing module closures must not continue under a different actor. Their
+    // normal APIs also fence identity; a new document clears the old closures.
+    window.dispatchEvent(new CustomEvent('process-delivery-invalidated'));
+  }
   function apply(shared) {
     api.loadError = null;
     api.saveError = null;
+    api.projectionWriteError = null;
     staleKeys.clear();
     api.expired = false;
-    const values = shared.values || {};
+      let values = shared.values || {};
+      if(api.deliveryProjection&&shared.deliveryProjection!==true){
+        // A legacy write receipt may contain a larger authorized snapshot. It
+        // acknowledges complete writable cells, not a new page projection.
+        const receiptKeys=new Set([...api.writableKeys,'platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']);
+        values={...Object.fromEntries(sharedValues),...Object.fromEntries(Object.entries(values).filter(([key])=>receiptKeys.has(key)))};
+      }
+    if(shared.deliveryProjection===true){
+      api.deliveryProjection=true;
+      api.writableKeys=Array.isArray(shared.writableKeys)?shared.writableKeys:[];
+      api.catalog=shared.catalog;
+      api.destination=shared.destination||null;
+    }
     sharedValues = new Map(
       Object.entries(values).filter(
         ([key, value]) => isSharedKey(key) && typeof value === 'string',
@@ -162,7 +191,7 @@
     );
     // Preserve old browser drafts until a complete server write is verified.
     for (const [key, value] of legacyDrafts) {
-      if (!sharedValues.has(key) && validLegacyDraft(key, value)) sharedValues.set(key, value);
+      if (!api.deliveryProjection && !sharedValues.has(key) && validLegacyDraft(key, value)) sharedValues.set(key, value);
     }
     Object.keys(localStorage)
       .filter(key => isSharedKey(key) && !key.startsWith('processEditor:'))
@@ -173,16 +202,32 @@
     api.revision = revision;
   }
   async function load() {
+   if(api.requiresReload)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+   const generation=identityEpoch,oldActor=api.identity?.id;
    api.importPending = false;
+   api.loginRequired = false;
    try {
-    const request = await fetch(endpoint, { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
+    const query=new URLSearchParams(location.search),intent=new URLSearchParams();
+    for(const key of ['system','view','dataTab'])for(const value of query.getAll(key))intent.append(key,value);
+    if(!intent.has('system')){const saved=sessionStorage.getItem('process-active-system');if(saved==='process'||saved==='quality')intent.set('system',saved);}
+    const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
+    if(generation!==identityEpoch)return;
     if (request.status === 200) {
       const shared = await request.json();
+      if(generation!==identityEpoch)return;
+      if(ready&&api.deliveryProjection&&oldActor!==shared.identity?.id){quarantinePending();identityEpoch++;api.identity=null;invalidateDelivery();return;}
       api.identity = shared.identity || null;
       api.protected = !!shared.serverProtected;
       api.demoEnabled = !!shared.demoEnabled;
       apply(shared);
+    } else if (request.status === 401) {
+      if(ready&&api.deliveryProjection){quarantinePending();identityEpoch++;invalidateDelivery();}
+      api.protected = true;
+      api.identity = null;
+      api.expired = true;
+      api.loginRequired = true;
     } else if (request.status === 403) {
+      if(ready&&api.deliveryProjection){quarantinePending();identityEpoch++;invalidateDelivery();}
       api.protected = true;
       api.expired = true;
     } else {
@@ -197,6 +242,7 @@
       status('offline');
     }
   } catch (error) {
+    if(generation!==identityEpoch)return;
     api.protected = true;
     api.loadError = 'unavailable';
     console.warn('共用資料服務無法連線', error);
@@ -211,6 +257,7 @@
     if(pendingFlush)await pendingFlush;
     if (Object.keys(dirty).length) throw Error('Unsaved changes');
     await load();
+    if(api.requiresReload)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if(api.loadError || api.expired) throw Error('Shared state unavailable');
     window.dispatchEvent(new CustomEvent('process-shared-state-updated'));
   };
@@ -223,6 +270,7 @@
     } catch { return null; }
   }
   function stageLegacyDrafts() {
+    if(api.deliveryProjection)return;
     if (!ready || (api.protected && (!api.identity || ['viewer', 'device'].includes(api.identity.role)))) return;
     for (const [key, value] of legacyDrafts) {
       if (!(key in baseline) && validLegacyDraft(key, value)) queue(key, sharedValues.get(key));
@@ -248,7 +296,7 @@
   };
   function flush() {
     clearTimeout(timer);
-    if (api.loadError) return Promise.resolve(false);
+    if (api.loadError || api.projectionWriteError) return Promise.resolve(false);
     if (pendingFlush) return pendingFlush;
     if (blocked||dirtyOwner&&dirtyOwner!==api.identity?.id) return Promise.resolve(false);
     // Explicit Save may retry a temporary failure. No background retry is scheduled.
@@ -426,6 +474,18 @@
     key = String(key);
     value = String(value);
     if (this === localStorage && isSharedKey(key)) {
+      // A delivery projection is not a whole-state/draft baseline. Dedicated
+      // workflow APIs own these writes; bootstrap must never seed missing keys.
+      if(api.deliveryProjection&&!api.writableKeys.includes(key)){
+        // Existing account/authoring mirrors have dedicated mutation APIs.
+        // For an attempted legacy business edit, expose refusal rather than
+        // acknowledging an edit that was never queued or persisted.
+        if(!api.bootstrapping&&!['platformUsers','processCustomRoles','processRoleTemplateOverrides','approvalVersions','publishedProcess'].includes(key)&&!key.startsWith('processEditor:')&&sharedValues.get(key)!==value){
+          api.projectionWriteError={status:409,message:'USE_MODULE_WORKFLOW'};
+          api.saveError=api.projectionWriteError;status('readonly');
+        }
+        return;
+      }
       if(sharedValues.has('processAuthoringControl')&&(key==='approvalVersions'||key==='publishedProcess'||key.startsWith('processEditor:')))return;
       sharedValues.set(key, value);
       queue(key, value);
@@ -436,6 +496,10 @@
   Storage.prototype.removeItem = function (key) {
     key = String(key);
     if (this === localStorage && isSharedKey(key)) {
+      if(api.deliveryProjection&&!api.writableKeys.includes(key)){
+        if(!api.bootstrapping&&sharedValues.has(key)){api.projectionWriteError={status:409,message:'USE_MODULE_WORKFLOW'};api.saveError=api.projectionWriteError;status('readonly');}
+        return;
+      }
       sharedValues.delete(key);
       queue(key, null);
       return;

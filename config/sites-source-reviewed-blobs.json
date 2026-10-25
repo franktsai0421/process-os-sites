@@ -2,6 +2,15 @@
   "version": 1,
   "reviewedSource": "e3f7be2f78a07a6e4d1eaffd6dbd4bb8308d0d70",
   "description": "Exact historical synthetic fixtures and workstation-reference metadata reviewed in phase nineteen. No directory-wide exemption. Every modified blob is reviewed again.",
+  "supplementalReviews": [
+    {
+      "commit": "f5992734796c93d384759af4656ec878fb9614ce",
+      "entries": [
+        {"path":"scripts/test-integrated-bootstrap.cjs","blob":"c991cb7e3d377436df4780a7fa334b35472cd8f6","categories":["ASSIGNED_SECRET"]},
+        {"path":"tests/sites-delivery-browser.test.mjs","blob":"ce58816f488382bfe41438ce629c15b6b0594c08","categories":["WORKSTATION_PATH"]}
+      ]
+    }
+  ],
   "entries": [
     {
       "path": "DEPLOYMENT.md",

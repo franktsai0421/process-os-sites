@@ -181,7 +181,7 @@
     if(!isCurrent())return;
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('Không tải được IPQC-C','IPQC-C 載入失敗'));
     control = body.control; revision = body.revision; catalog = body.catalog || catalog;
-    if(control.workflow)await sharedTransport().permissions();
+    await sharedTransport().permissions();
     equipmentGroups = body.equipmentGroups || [];
     equipment = body.equipment || [];
     equipmentCategories = body.equipmentCategories || [];

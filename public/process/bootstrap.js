@@ -4,9 +4,10 @@ void (async () => {
   const vi=localStorage.getItem('processUILanguage')!=='zh';
   const bootStatus=document.querySelector('#process-boot');
   if(bootStatus)bootStatus.textContent=vi?'Đang tải dữ liệu quy trình…':'正在載入製程資料…';
-  const scripts = [...document.querySelectorAll('script[data-process-src]')];
+  let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
     window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261010-access3');
+    window.ProcessDeliveryPurpose=await import('./delivery-purpose.mjs?v=20261025-purpose1');
     await window.ProcessSync.ready;
     if (window.ProcessSync.importPending === true) {
       // The data gate runs before application identity. Do not claim a verified
@@ -28,6 +29,27 @@ void (async () => {
       document.documentElement.dataset.processImportPending='1';
       return;
     }
+    if(window.ProcessSync.loginRequired){
+      // Carry display intent only. Login applies its enumerated destination
+      // whitelist; no redirect URL, role or credentials are forwarded.
+      const source=new URLSearchParams(location.search),intent=new URLSearchParams();
+      for(const key of ['system','view','dataTab','line','stage'])if(source.getAll(key).length===1)intent.set(key,source.get(key));
+      location.replace('/login?'+intent);return;
+    }
+    if(window.ProcessSync.loadError||window.ProcessSync.expired||!window.ProcessSync.identity)throw Error('BOOTSTRAP_UNAVAILABLE');
+    if(!window.ProcessSync.destination)throw Error('BOOTSTRAP_DESTINATION_REQUIRED');
+    const destinationURL=window.ProcessDeliveryPurpose.destinationURL(location.href,window.ProcessSync.destination);
+    history.replaceState(history.state,'',destinationURL);
+    const catalog=window.ProcessSync.catalog;
+    if(catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1')throw Error('BOOTSTRAP_CATALOG_REQUIRED');
+    window.IMPORTED_DATA=catalog.imported;
+    window.LINE_PROCESS_DATA=catalog.routing;
+    window.LINE_C_MASTER=catalog.lineC;
+    // The immutable full seeds remain owner-only. No employee requests them.
+    scripts=scripts.filter(item=>{
+      if(/(?:^|\/)data\/(imported-data|line-process-data|line-c-master)\.js(?:\?|$)/.test(item.dataset.processSrc)){item.remove();return false;}
+      return true;
+    });
     // Wait for the gate before preloading: preload alone would request private
     // resources even if their later script execution were stopped.
     for (const item of scripts) {
@@ -52,6 +74,12 @@ void (async () => {
     // Reveal the authoritative canvas, not that early legacy/empty render.
     if(bootStatus)bootStatus.textContent=vi?'Đang tải nội dung làm việc đã xác thực…':'正在載入已驗證的工作內容…';
     await window.ProcessAuthoringV3?.readyForEditor?.();
+    await window.ProcessDualSystem?.readyForDestination?.();
+    await window.ProcessDataTabs?.readyForDestination?.();
+    if(window.ProcessSync.destination.dataTab==='bom')await window.BOMWorkspace?.readyForDestination?.();
+    if(window.ProcessSync.destination.dataTab==='users')await window.ProcessUserAccess?.readyForDestination?.();
+    if(window.ProcessSync.destination.view==='approval')await window.BOMWorkspace?.readyForReview?.();
+    window.ProcessSync.bootstrapping=false;
     performance.mark('process-ready');
     document.documentElement.dataset.processReadyMs = Math.round(performance.now());
     document.querySelector('#process-boot')?.remove();

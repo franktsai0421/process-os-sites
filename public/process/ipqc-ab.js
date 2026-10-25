@@ -91,7 +91,7 @@
     selectDefaults();
     if (!keep || !working) working = opened()?.status === 'draft' ? clone(opened().snapshot) : null;
     selectDefaults();
-    if(scope()?.workflow)await transport().permissions();
+    await transport().permissions();
   }
   async function write(action, detail = {}) {
     if(['approve','reject','withdraw'].includes(action)&&control?.moduleDraft?.workflow?.cases.some(c=>c.id===(detail.versionId||opened()?.id)))return moduleSave(action,detail);

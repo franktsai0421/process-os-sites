@@ -1,5 +1,6 @@
 (() => {
   const SYSTEM_KEY = 'process-active-system';
+  let destinationReady=Promise.resolve();
   const qualityViews = {
     'quality-dashboard': ['QUALITY MANAGEMENT', '總覽'],
     'quality-search': ['QUALITY STANDARD', '標準搜尋'],
@@ -68,7 +69,7 @@
   render = function () {
     if (qualityViews[state.view]) {
       root.innerHTML = qualityPage(state.view);
-      if (state.view === 'quality-inspections') window.RoutineFQCUI?.mount?.(root);
+      if (state.view === 'quality-inspections') destinationReady=Promise.resolve(window.RoutineFQCUI?.mount?.(root));
       bindCommon();
     } else {
       baseRender();
@@ -81,7 +82,7 @@
   const baseNavigate = navigate;
   navigate = function (view) {
     if (qualityViews[view]) {
-      if (!currentUser || currentUser.role === 'device') {
+      if (!canView(view)) {
         toast('目前帳號沒有此功能權限');
         return;
       }
@@ -102,12 +103,13 @@
   }
 
   function navButton(view, icon, label, _group = '') {
-    const allowed = qualityViews[view] ? (currentUser && currentUser.role !== 'device') : canView(view);
+    const allowed = canView(view);
     return `<button class="nav-item ${state.view === view ? 'active' : ''}" data-view="${view}" data-dual-view="${view}" ${allowed ? '' : 'disabled aria-disabled="true" title="目前帳號沒有此功能權限"'}><span>${icon}</span>${label}</button>`;
   }
 
   const baseCanView = typeof canView === 'function' ? canView : () => true;
   canView = function (view) {
+    if(qualityViews[view]&&window.ProcessSync?.deliveryProjection){const module=window.ProcessDeliveryPurpose?.deliveryViews[view];return !!currentUser&&currentUser.role!=='device'&&!!module&&window.hasPermission?.(module+'.view')===true;}
     if (qualityViews[view]) return !!(currentUser && currentUser.role !== 'device');
     return baseCanView(view);
   };
@@ -174,14 +176,11 @@
     state.dataTab = tab;
     const content = document.querySelector('#data-content');
     if (!content) return false;
+    if(content.dataset.activeTab===tab&&content.childElementCount&&window.ProcessSync?.deliveryProjection)return true;
     content.dataset.activeTab = tab;
     content.innerHTML = qualityDataPage(tab);
-    if (tab === 'quality-fqc') window.FQCMasterUI?.bind?.(content);
-    if (tab === 'quality-iqc') window.IQCMasterUI?.mount?.(content);
-    if (tab === 'quality-ipqc-ab') window.IPQCABUI?.mount?.(content);
-    if (tab === 'quality-ipqc-c') window.IPQCCUI?.mount?.(content);
-    if (tab === 'quality-routine-equipment') window.RoutineEquipmentUI?.mount?.(content);
-    if (tab === 'quality-mold-equipment') window.ToolingUI?.mount?.(content);
+    const loaders={'quality-fqc':()=>window.FQCMasterUI?.bind?.(content),'quality-iqc':()=>window.IQCMasterUI?.mount?.(content),'quality-ipqc-ab':()=>window.IPQCABUI?.mount?.(content),'quality-ipqc-c':()=>window.IPQCCUI?.mount?.(content),'quality-routine-equipment':()=>window.RoutineEquipmentUI?.mount?.(content),'quality-mold-equipment':()=>window.ToolingUI?.mount?.(content)};
+    destinationReady=Promise.resolve(loaders[tab]?.());
     document.querySelectorAll('.master-tabs .tab').forEach(button => {
       const value = button.dataset.qualityTab || button.dataset.masterScope || button.dataset.tab;
       button.classList.toggle('active', value === tab);
@@ -215,6 +214,10 @@
     sections.append(processSection, qualitySection);
     tabs.remove();
     parent.prepend(sections);
+    if(window.ProcessSync?.deliveryProjection)sections.querySelectorAll('.tab').forEach(button=>{
+      const tab=button.dataset.qualityTab||button.dataset.masterScope||button.dataset.tab,module=window.ProcessDeliveryPurpose?.deliveryTabs[tab];
+      if(module&&window.hasPermission?.(module+'.view')!==true){button.disabled=true;button.setAttribute('aria-disabled','true');}
+    });
     sections.querySelectorAll('[data-quality-tab]').forEach(button => {
       button.onclick = () => renderQualityDataTab(button.dataset.qualityTab, true);
     });
@@ -297,6 +300,7 @@
     go,
     renderQualityDataTab,
     decorateDataTabs,
+    readyForDestination:()=>destinationReady,
   };
 
   if (currentUser) {

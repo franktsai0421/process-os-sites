@@ -18,7 +18,7 @@ const editableFields:Record<keyof IqcSnapshot,string[]>={categories:['nameVi'],s
   items:['nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
 export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>={
   key:'iqcMasterControl',scope:'iqc',parse:parseIqcWorkflow,empty:emptyIqcSnapshot,
-  preparedModel:true,
+  preparedModel:true,permissionOnlyRead:true,
   photoPrefix:'iqc/photos/',photoIds:content=>[...content.parts.flatMap(p=>p.photos.map(p=>p.id)),...content.items.flatMap(i=>(i.mediaItems||[]).map(p=>p.id))],
   context(control,state,base){
     const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};

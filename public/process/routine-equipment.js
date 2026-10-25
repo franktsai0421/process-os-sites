@@ -349,7 +349,7 @@
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
     control = body.control; revision = body.revision;controlActor=actor;
     readUnavailable=false;
-    if(control.workflow)await sharedTransport().permissions();
+    await sharedTransport().permissions();
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
     if(!preserveInput){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;

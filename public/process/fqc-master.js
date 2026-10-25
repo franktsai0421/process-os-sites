@@ -1992,7 +1992,7 @@
     ensureControl();
     hostElement.innerHTML=html();
     const current=()=>sequence===mountSequence&&hostElement===element&&fqcTabIsActive();
-    loadShared(current).then(async()=>{if(!current())return;await loadMasterCatalog(current);if(!current())return;render();pollShared();return loadEquipmentCatalog();}).then(()=>{if(current()&&!hostElement.contains(document.activeElement))render();}).catch(error=>{if(!current())return;hostElement.innerHTML=`<section class="fqc-page"><p role="alert">${h(error.message)}</p><button id="fqc-load-retry">${isVi()?'Tải lại':'重新載入'}</button></section>`;hostElement.querySelector('#fqc-load-retry').onclick=()=>bind(hostElement);});
+    return loadShared(current).then(async()=>{if(!current())return;await loadMasterCatalog(current);if(!current())return;render();pollShared();return loadEquipmentCatalog();}).then(()=>{if(current()&&!hostElement.contains(document.activeElement))render();}).catch(error=>{if(!current())return;hostElement.innerHTML=`<section class="fqc-page"><p role="alert">${h(error.message)}</p><button id="fqc-load-retry">${isVi()?'Tải lại':'重新載入'}</button></section>`;hostElement.querySelector('#fqc-load-retry').onclick=()=>bind(hostElement);});
   }
   function fqcTabIsActive() {
     const content = document.querySelector('#data-content');

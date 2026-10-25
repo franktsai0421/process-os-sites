@@ -21,7 +21,7 @@ export function parseEquipmentWorkflow(raw?:string,prepared?:unknown):EquipmentS
 const fields:Record<keyof EquipmentSnapshot,string[]>={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
 export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,EquipmentSharedControl>={
  key:'routineEquipmentControl',scope:'routine-equipment',parse:parseEquipmentWorkflow,empty,photoPrefix:'routine-equipment/photos/',
- preparedModel:true,
+  preparedModel:true,permissionOnlyRead:true,
  needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
  photoIds:content=>[...content.equipment,...content.groups,...content.categories,...content.subcategories].flatMap(row=>row.photoId?[row.photoId]:[]),
  serialize(control){

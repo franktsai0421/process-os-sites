@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {validateSourceMember,gitBlobId,inspectSourceBytes,parseBatch,validatePolicy} from '../scripts/sites-ci-preflight.mjs';
+import {validateSourceMember,gitBlobId,inspectSourceBytes,parseBatch,validatePolicy,authorizeSupplementalReviews} from '../scripts/sites-ci-preflight.mjs';
 const tests=[],empty={entries:[]};
 function test(name,run){run();tests.push(name);}
 test('program and schema metadata are source',()=>{for(const file of ['app/api/login/route.ts','drizzle/0000_schema.sql','config/sites-test.template.json'])validateSourceMember(file);});
@@ -29,6 +29,28 @@ test('real reviewed fixture blob classification is exact by bytes and path',()=>
 });
 test('invalid review policies reject broad or malformed classifications',()=>{
  for(const entry of [{path:'tests/a.js',blob:'x',categories:['ASSIGNED_SECRET']},{path:'.env',blob:'a'.repeat(40),categories:['ASSIGNED_SECRET']},{path:'tests/a.js',blob:'a'.repeat(40),categories:['ALL']}])assert.throws(()=>validatePolicy({version:1,reviewedSource:'a'.repeat(40),entries:[entry]}));
+});
+test('PR23 supplement admits only both fixed synthetic blobs after ancestor and exact tree proof',()=>{
+ const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url)));
+ assert.equal(policy.reviewedSource,'e3f7be2f78a07a6e4d1eaffd6dbd4bb8308d0d70');
+ const review=policy.supplementalReviews[0],pairs=new Set(review.entries.map(item=>item.path+'\0'+item.blob));
+ const authorized=authorizeSupplementalReviews(policy,new Set([review.commit]),new Map([[review.commit,pairs]]));
+ for(const item of review.entries){
+  const bytes=execFileSync('git',['show',':'+item.path]);assert.equal(gitBlobId(bytes),item.blob);
+  assert.deepEqual(inspectSourceBytes(item.path,bytes,authorized),item.categories);
+  assert.throws(()=>inspectSourceBytes('tests/other.mjs',bytes,authorized),/SOURCE_UNREVIEWED/);
+  assert.throws(()=>inspectSourceBytes(item.path,Buffer.concat([bytes,Buffer.from('\n// changed')]),authorized),/SOURCE_UNREVIEWED/);
+  const wrongCategory={entries:authorized.entries.map(entry=>entry.path===item.path&&entry.blob===item.blob?{...entry,categories:[]}:entry)};
+  assert.throws(()=>inspectSourceBytes(item.path,bytes,wrongCategory),/SOURCE_UNREVIEWED/);
+ }
+ assert.throws(()=>authorizeSupplementalReviews(policy,new Set(),new Map([[review.commit,pairs]])),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
+ assert.throws(()=>authorizeSupplementalReviews(policy,new Set([review.commit]),new Map([[review.commit,new Set([...pairs].slice(1))]])),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
+});
+test('PR23 supplement cannot change path blob category commit or add a broad exemption',()=>{
+ const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url)));
+ for(const mutate of [p=>p.supplementalReviews[0].commit='a'.repeat(40),p=>p.supplementalReviews[0].entries[0].path='tests/other.mjs',p=>p.supplementalReviews[0].entries[0].blob='b'.repeat(40),p=>p.supplementalReviews[0].entries[0].categories=['WORKSTATION_PATH'],p=>p.supplementalReviews[0].entries[0].categories.push('INLINE_MEDIA'),p=>p.supplementalReviews[0].entries.push({...p.supplementalReviews[0].entries[0],path:'tests/*'})]){
+  const modified=structuredClone(policy);mutate(modified);assert.throws(()=>validatePolicy(modified),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);
+ }
 });
 test('batch framing hashes missing and extra content are checked',()=>{
  const bytes=Buffer.from('synthetic'),oid=gitBlobId(bytes),item={oid},valid=Buffer.concat([Buffer.from(oid+' blob '+bytes.length+'\n'),bytes,Buffer.from('\n')]);

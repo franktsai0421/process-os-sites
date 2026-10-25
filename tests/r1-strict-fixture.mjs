@@ -1,13 +1,13 @@
 // Synthetic metadata and tiny images only. Existing record codec supplies the
 // actual __processRecords envelope; no real package or credential is read.
 import fs from 'node:fs';
-import vm from 'node:vm';
 import {createRequire} from 'node:module';
-import {createHash,webcrypto} from 'node:crypto';
+import {createHash} from 'node:crypto';
 import {r1Tables} from '../lib/r1-contract.mjs';
-const require=createRequire(import.meta.url),ts=require(process.env.SITES_TEST_TYPESCRIPT||require.resolve('typescript')),module={exports:{}};
-vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../lib/state-records.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,TextEncoder,crypto:webcrypto});
-export const recordCodec=module.exports;
+const require=createRequire(import.meta.url);
+// The real codec now has local module dependencies. Reuse the existing isolated
+// recursive loader instead of evaluating transpiled CommonJS without require.
+export const recordCodec=require('../scripts/ipqc-ab-import-harness.cjs')()('lib/state-records.ts');
 export const enc=value=>new TextEncoder().encode(typeof value==='string'?value:JSON.stringify(value)),dec=bytes=>new TextDecoder().decode(bytes),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const p='pack-v5/';
 export function sealFixture(f){

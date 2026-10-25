@@ -8,7 +8,7 @@ export function abWorkflowAdapter(key:string):WorkflowAdapter<AbSnapshot,AbShare
   let root:AbControl&{moduleDraft?:VersionedControl<unknown>},allowedStages=new Set<string>();
   const separator=key.indexOf(':'),line=key.slice(0,separator),group=key.slice(separator+1);
   return{key:'ipqcABMasterControl',scope:'ipqc-ab:'+key,empty:()=>({errors:[],items:[]}),photoPrefix:'ipqc-ab/photos/',
-    preparedModel:true,
+    preparedModel:true,permissionOnlyRead:true,
     beforeBegin(){if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');},
     beforeCommand(_control,command){
       if(root.moduleDraft?.workflow?.pendingId)throw new DraftConflict('PENDING_LOCKED');

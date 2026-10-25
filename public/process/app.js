@@ -90,6 +90,20 @@ approvalVersions.forEach((version) => {
 });
 state.deviceLine = state.deviceLine || 'A';
 state.deviceStage = state.deviceStage || 'A-CUT';
+// Display intent only. Server identity and player.view remain authoritative.
+function applyPlayerIntent(){
+  const intent=new URL(location.href).searchParams;
+  if(intent.get('view')!=='player')return;
+  const selected=routing.lines.find(line=>line.code===intent.get('line'));
+  if(selected){state.deviceLine=selected.code;state.deviceStage=selected.stages.find(stage=>stage.code===intent.get('stage'))?.code||selected.stages[0]?.code||'';}
+}
+applyPlayerIntent();
+window.addEventListener('popstate',applyPlayerIntent);
+function rememberPlayerPosition(){
+  const url=new URL(location.href);url.searchParams.set('system','process');url.searchParams.set('view','player');
+  url.searchParams.set('line',state.deviceLine);url.searchParams.set('stage',state.deviceStage||'');
+  history.replaceState(history.state,'',url);
+}
 state.approvalVersionId = null;
 state.approvalCompareId = null;
 state.editorVersionId = null;
@@ -361,7 +375,7 @@ function ensureProcessMasterStages() {
 }
 // Adopted master/process catalogs belong to their revision-checked workflows.
 // Opening a page must not reseed templates or delete stored stage entries.
-if (!['masterDataControl', 'processAuthoringControl'].some((key) => {
+if (!globalThis.window?.ProcessSync?.deliveryProjection&&!['masterDataControl', 'processAuthoringControl'].some((key) => {
   const stored = localStorage.getItem(key);
   return stored && stored !== 'null';
 })) ensureProcessMasterStages();
@@ -2134,10 +2148,12 @@ function bindView() {
       lineSelect.onchange = (event) => {
         state.deviceLine = event.target.value;
         state.deviceStage = lineFor(state.deviceLine).stages[0]?.code;
+        rememberPlayerPosition();
         render();
       };
       stageSelect.onchange = (event) => {
         state.deviceStage = event.target.value;
+        rememberPlayerPosition();
         render();
       };
     }
@@ -3363,7 +3379,7 @@ function enterPlatform(user) {
     source = stored ? { ...stored, ...user } : user;
   currentUser = { ...source };
   state.view = 'dashboard';
-  state.dataTab = null;
+  state.dataTab = window.ProcessSync?.deliveryProjection ? window.ProcessSync.destination?.dataTab || null : null;
   state.selectedOperation = null;
   if (typeof window.normalizePlatformUser === 'function')
     window.normalizePlatformUser(currentUser);

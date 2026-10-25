@@ -76,6 +76,16 @@ export function sameDraftValue(a:unknown,b:unknown):boolean{
  const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(k=>Object.hasOwn(b,k)&&sameDraftValue((a as Record<string,unknown>)[k],(b as Record<string,unknown>)[k]));
 }
 const same = sameDraftValue;
+
+// Only a server-owned terminal case can authorize sending its fixed Save again.
+// A later approval or a different active baseline invalidates this continuation.
+export function isSavedCaseResubmission<T>(state: SharedDraft<T>): boolean {
+  const previous = state.cases.at(-1);
+  return !!state.saved && !!previous &&
+    (previous.status === 'withdrawn' || previous.status === 'returned') &&
+    previous.baseId === state.active.id && previous.savedId === state.saved.id &&
+    same(previous.content, state.saved.content);
+}
 function fail(code: string, status = 409): never { throw new DraftConflict(code, status); }
 const safeKey = (key: string) => {
   if (!key || ['__proto__', 'prototype', 'constructor'].includes(key)) fail('INVALID_PATH', 422);
@@ -220,7 +230,7 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     if (!command.reason?.trim() && !(ctx.optionalReasonPolicy === 'routine-fqc' && source.scope.startsWith('routine-fqc:'))) fail('REASON_REQUIRED', 422);
     if (ctx.activeId !== state.baseId) fail('ACTIVE_VERSION_CHANGED');
     const issues=check(state.saved.content);
-    if(state.active.id&&same(ctx.semantic(state.saved.content),ctx.semantic(state.active.content)))issues.push({kind:'missing',code:'NO_SUBSTANTIVE_CHANGE',path:[],message:'NO_SUBSTANTIVE_CHANGE'});
+    if(state.active.id&&same(ctx.semantic(state.saved.content),ctx.semantic(state.active.content))&&!isSavedCaseResubmission(state))fail('NO_SUBSTANTIVE_CHANGE',422);
     const reviewCase: DraftCase<T> = { ...stamp, id: ctx.id(), savedId: state.saved.id,
       baseId: state.baseId, before: cloneDraft(state.active.content), content: cloneDraft(state.saved.content),
       reason: command.reason?.trim() || '', status: 'pending',contentIssues:{policy:source.scope==='process:platform'?'process-platform-v1' as const:'reviewer-completeness-v2' as const,issues} };

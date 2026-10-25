@@ -28,7 +28,7 @@ export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot
 export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Library>{
  let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false;
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
-  preparedModel:true,
+   preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
    root=(prepared||JSON.parse(raw)) as Root;if(!root.active?.[scope]||!Array.isArray(root.versions))throw new DraftConflict('MASTER_EXISTING_DATA_INVALID',422);
    // Each adapter belongs to one request. Keep untouched legacy snapshots by

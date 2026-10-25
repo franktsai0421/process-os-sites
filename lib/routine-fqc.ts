@@ -3,6 +3,7 @@ import type {FqcSnapshot} from './fqc-workflow';
 import {
   createSharedDraft,
   applyDraftCommand,
+  isSavedCaseResubmission,
   cloneDraft,
   stableDraftJSON,
   DraftConflict,
@@ -1021,7 +1022,7 @@ export function executeRoutine(
           if (pending?.actor.id === ctx.actor.id)
             demand(ctx.actor.admin, 'SELF_REVIEW_ADMIN_ONLY', 403);
         }
-        if (command.action === 'submit' && doc.flow.active.id && !(doc.reopened && doc.lifecycle?.at(-1)?.action === 'restore-document'))
+        if (command.action === 'submit' && doc.flow.active.id && !isSavedCaseResubmission(doc.flow))
           demand(
             stableDraftJSON(doc.flow.saved?.content) !==
               stableDraftJSON(doc.flow.active.content),
