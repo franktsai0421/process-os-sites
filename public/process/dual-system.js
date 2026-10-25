@@ -16,8 +16,9 @@
     'quality-routine-reports': '例行報告資料庫',
     'quality-routine-equipment': '檢具與測試設備',
   };
-  let activeSystem = new URL(location.href).searchParams.get('system') === 'quality'
-    ? 'quality'
+  const requestedSystem = new URL(location.href).searchParams.get('system');
+  let activeSystem = requestedSystem === 'process' || requestedSystem === 'quality'
+    ? requestedSystem
     : sessionStorage.getItem(SYSTEM_KEY) === 'quality'
       ? 'quality'
       : 'process';
