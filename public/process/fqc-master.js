@@ -16,7 +16,7 @@
   let workspaceReady = () => false;
   let sharedClient,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll;
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
-  function transport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',legacyArchive:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
+  function transport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
@@ -75,9 +75,9 @@
   // which can reappear after logout/login. Abort alone is not an adoption fence.
   function currentReadOwner(isCurrent = () => true) {
     const actorId = identity()?.id;
-    const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence;
+    const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence,delivery=window.ProcessSync?.captureDelivery?.();
     if (!actorId) throw Error('LOGIN_REQUIRED');
-    return () => isCurrent() && identity()?.id === actorId &&
+    return () => isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
       window.ProcessSync?.identityGeneration?.() === epoch && mountSequence === mount &&
       !window.ProcessSync?.requiresReload;
   }
@@ -546,7 +546,7 @@
       const code = eq ? `${eq.assetCode}／${eq.pieceMark}` : (item.tool || '檢具');
       const name = eq ? (displayName(eq) || eq.name || '') : '';
       return `<div class="fqc-tool-cell">
-        ${photoSrc ? `<img src="${h(photoSrc)}" alt="" class="fqc-tool-thumb">` : '<span class="fqc-tool-thumb placeholder">◇</span>'}
+        ${photoSrc ? `<img decoding="async" loading="lazy" src="${h(photoSrc)}" alt="" class="fqc-tool-thumb">` : '<span class="fqc-tool-thumb placeholder">◇</span>'}
         <div class="fqc-tool-meta">
           <a href="javascript:void(0)" class="fqc-eq-link" data-view-eq-id="${h(item.equipmentId)}" title="${vi ? 'Xem chi tiết thiết bị' : '查看檢具詳細資訊'}"><b>${h(code)}</b></a>
           ${name ? `<small class="fqc-tool-name" data-i18n-skip="true">${h(name)}</small>` : ''}
@@ -650,7 +650,7 @@
                   <td class="col-item-photo">
                     ${photo ? `
                       <button type="button" class="fqc-thumb-trigger" data-view-item="${h(item.id)}" aria-label="${h(photo.name || (isVi() ? 'Xem ảnh' : '查看圖片'))}">
-                        <img src="${h(photo.src)}" alt="" class="fqc-thumb-img">
+                        <img decoding="async" loading="lazy" src="${h(photo.src)}" alt="" class="fqc-thumb-img">
                         ${photoCount > 1 ? `<span class="fqc-thumb-count">${photoCount}</span>` : ''}
                       </button>
                     ` : '<span class="fqc-no-photo-text">無</span>'}
@@ -1087,7 +1087,7 @@
         return `
           <div class="fqc-picker-item ${isSelected ? 'selected' : ''} ${isAvailable ? '' : 'unavailable'}">
             <div class="fqc-picker-thumb">
-              ${photoSrc ? `<img src="${h(photoSrc)}" alt="">` : '<span class="placeholder">◇</span>'}
+              ${photoSrc ? `<img decoding="async" loading="lazy" src="${h(photoSrc)}" alt="">` : '<span class="placeholder">◇</span>'}
             </div>
             <div class="fqc-picker-info">
               <div class="fqc-picker-code">
@@ -2035,7 +2035,7 @@
     }
   }
   function bind(element) {
-    const sequence = ++mountSequence;
+    const sequence = ++mountSequence;navigationError=null;
     workspaceReady = () => false;
     clearTimeout(sharedPoll);
     hostElement = element;
@@ -2060,7 +2060,7 @@
       render(); pollShared();
     })().catch(error => {
       if (!mounted()) return;
-      workspaceReady = () => false;
+      navigationError=error;workspaceReady = () => false;
       equipmentCache = null; equipmentCacheCurrent = () => false;
       masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
       hostElement.innerHTML = `<section class="fqc-page"><p role="alert">${h(error.message)}</p><button id="fqc-load-retry">${isVi() ? 'Tải lại' : '重新載入'}</button></section>`;
@@ -2082,7 +2082,7 @@
     return `<section class="quality-review"><div class="review-list"><h3>FQC · ${isVi()?'Chờ duyệt':'待確認'} ${pending.length}</h3>${[...pending,...(current?[current]:[])].map(caseButton).join('') || `<p>${isVi()?'Chưa có hồ sơ FQC':'目前沒有 FQC 審核紀錄'}</p>`}${history.length?`<details><summary>${isVi()?'Lịch sử':'歷史版本'} · ${history.length}</summary>${history.map(caseButton).join('')}</details>`:''}</div><div id="quality-review-detail" class="review-detail"></div></section>`;
   }
   function bindReview(panel) {
-    if(!library().workflow)loadShared().then(()=>{if(panel.isConnected&&library().workflow)refreshReviewUI(panel);}).catch(e=>toast(displayDraftError(e)));
+    if(!library().workflow){const owned=currentReadOwner(()=>panel.isConnected);return loadShared(owned).then(()=>{if(owned()&&library().workflow)refreshReviewUI(panel);}).catch(e=>{if(owned()){navigationError=e;toast(displayDraftError(e));}});}
     panel.querySelectorAll('[data-quality-review]').forEach(button => button.onclick = () => {
       const version = library().versions.find(item => item.id === button.dataset.qualityReview);
       if (!version) return;
@@ -2180,7 +2180,8 @@
   }catch(error){toast(displayDraftError(error));}}
 
   function pendingCount() { return ensureControl().libraries.fqc.versions.filter(version => version.status === 'pending').length; }
-  host.FQCMasterUI = { html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  let navigationError=null;
+  host.FQCMasterUI = { navigation:{canLeave:()=>!ui.saving&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;clearTimeout(sharedPoll);workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     getEquipmentReferences(eqId) {
       const refs = [];

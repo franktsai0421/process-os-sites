@@ -4,6 +4,8 @@ void (async () => {
   const vi=localStorage.getItem('processUILanguage')!=='zh';
   const bootStatus=document.querySelector('#process-boot');
   if(bootStatus)bootStatus.textContent=vi?'Đang tải dữ liệu quy trình…':'正在載入製程資料…';
+  let initialOwner=null;
+  const stillInitial=()=>initialOwner==null||window.ProcessSync?.isCurrentDelivery?.(initialOwner)!==false;
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
     window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261010-access3');
@@ -70,23 +72,37 @@ void (async () => {
       });
     }
     document.documentElement.dataset.processAssetsReadyMs = Math.round(performance.now());
+    await window.ProcessDeliveryNavigation?.initialized;
+    initialOwner=window.ProcessSync.captureDelivery?.();
+    // Session + authorized projection + executable registration are complete.
+    // Reveal the real shell now; each target owns its honest local loading/error
+    // state. Offscreen photos and unrelated background checks never gate it.
+    document.querySelector('#process-boot')?.remove();
+    document.documentElement.removeAttribute('data-process-boot');
+    window.ProcessSync.bootstrapping=false;
     // The editor module is registered after app.js performs its initial render.
     // Reveal the authoritative canvas, not that early legacy/empty render.
     if(bootStatus)bootStatus.textContent=vi?'Đang tải nội dung làm việc đã xác thực…':'正在載入已驗證的工作內容…';
+    await window.ProcessDeliveryNavigation?.readyForDestination?.();
     await window.ProcessAuthoringV3?.readyForEditor?.();
     await window.ProcessDualSystem?.readyForDestination?.();
     await window.ProcessDataTabs?.readyForDestination?.();
     if(window.ProcessSync.destination.dataTab==='bom')await window.BOMWorkspace?.readyForDestination?.();
     if(window.ProcessSync.destination.dataTab==='users')await window.ProcessUserAccess?.readyForDestination?.();
     if(window.ProcessSync.destination.view==='approval')await window.BOMWorkspace?.readyForReview?.();
+    if(!stillInitial())return;
     window.ProcessSync.bootstrapping=false;
     performance.mark('process-ready');
     document.documentElement.dataset.processReadyMs = Math.round(performance.now());
+    document.documentElement.dataset.processDestinationReadyGeneration=document.documentElement.dataset.processDestinationGeneration||'0';
+    document.documentElement.dataset.processNavigationStatus='ready';
     document.querySelector('#process-boot')?.remove();
     document.documentElement.removeAttribute('data-process-boot');
     window.dispatchEvent?.(new Event('process-ui-ready'));
   } catch {
-    const boot = document.querySelector('#process-boot');
+    if(!stillInitial())return;
+    let boot = document.querySelector('#process-boot');
+    if(!boot){boot=document.createElement('section');boot.className='page';boot.dataset.navigationError='true';document.querySelector('#view-root')?.prepend(boot);document.documentElement.dataset.processNavigationStatus='error';}
     boot.setAttribute('role', 'alert');
     boot.textContent =
       vi?'Không thể tải. Vui lòng tải lại.':'載入失敗，請重新整理。';

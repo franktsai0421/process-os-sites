@@ -25,5 +25,5 @@
   for(const row of wrappers)row.summary.tabIndex=0;
   observer=new MutationObserver(update);observer.observe(panel,{childList:true,subtree:true,characterData:true});update();
  }
- window.QualityReviewOverview={html,mount};
+ window.QualityReviewOverview={dispose(){observer?.disconnect();observer=null;},html,mount};
 })();

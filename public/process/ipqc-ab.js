@@ -41,7 +41,7 @@
   const actor = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
   const ownPending = v => v && ['pending','pending-test'].includes(v.status) && permitted('approval.withdraw');
   let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null,pollTimer,sourceEntryApplied=false;
-  function transport(){const id=actor()?.id,identityKey=id+':'+key();if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(key())+'&caseMetadata=1',legacyArchive:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${key()}"]`,return:`[data-ab-reject="${key()}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
+  function transport(){const id=actor()?.id,identityKey=id+':'+key();if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(key())+'&caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${key()}"]`,return:`[data-ab-reject="${key()}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old)continue;for(const [field,value]of Object.entries(row)){if(['equipmentSnapshot'].includes(field)||JSON.stringify(value)===JSON.stringify(old[field]))continue;const path=[collection,{id:row.id},field];patches.push({op:'set',path,value});guards.push({path,value:old[field]});}}return{patches,guards};}
   async function writeShared(action,detail={}){
     if(busy)return null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=actor(),requestScope=key();let cancelled=false;try{
@@ -83,15 +83,18 @@
     if (!scope()?.versions.some(v => v.id === versionId)) versionId = opened()?.id || active()?.id || scope()?.versions.at(-1)?.id || '';
   }
   async function load(keep = false) {
+    const delivery=window.ProcessSync?.captureDelivery?.();
     const response = await fetch(API+'?caseMetadata=1',{headers:headers(),cache:'no-store'});
     const body = await response.json().catch(()=>({}));
     if (!response.ok || !body.control || !Number.isInteger(body.revision))
       throw Error(body.error || t('IPQC-AB 載入失敗','Không tải được IPQC-AB'));
+    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
     control = body.control; catalog = body.catalog; equipment = body.equipment || []; revision = body.revision;
     selectDefaults();
     if (!keep || !working) working = opened()?.status === 'draft' ? clone(opened().snapshot) : null;
     selectDefaults();
     await transport().permissions();
+    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
   }
   async function write(action, detail = {}) {
     if(['approve','reject','withdraw'].includes(action)&&control?.moduleDraft?.workflow?.cases.some(c=>c.id===(detail.versionId||opened()?.id)))return moduleSave(action,detail);
@@ -164,19 +167,20 @@
     if (!working || JSON.stringify(working) === JSON.stringify(opened()?.snapshot)) return true;
     return !!await save('apply');
   }
-  function scheduleRefresh(){clearTimeout(pollTimer);pollTimer=setTimeout(async()=>{
+  function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
+    if(!owns())return;
     if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;
     try{if(!busy&&document.visibilityState!=='hidden'){
       const current=key(),flow=scope()?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(key()===current&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
+      if(owns()&&key()===current&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
         if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;working=opened()?.status==='draft'?clone(opened().snapshot):null;}if(!host.contains(document.activeElement))draw();}
         else{const banner=host.querySelector('#ipqcab-shared-status');if(banner)banner.textContent=t('共用內容已更新，保留彈窗輸入；套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
-    }}catch(error){message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
-    finally{scheduleRefresh();}
+    }}catch(error){if(!owns())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
+    finally{if(owns())scheduleRefresh();}
   },4000);}
   function photoButtons(photos,itemId,kind) {
-    return photos.map((photo,index)=>`<button type="button" class="ipqcab-thumb" data-ab-photo-item="${h(itemId)}" data-ab-photo-kind="${kind}" data-ab-photo-index="${index}"><img src="${h(photoUrl(photo))}" alt="${h(photo.note || photo.name)}"></button>`).join('');
+    return photos.map((photo,index)=>`<button type="button" class="ipqcab-thumb" data-ab-photo-item="${h(itemId)}" data-ab-photo-kind="${kind}" data-ab-photo-index="${index}"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note || photo.name)}"></button>`).join('');
   }
   function missing(item) {
     const problems = [];
@@ -239,7 +243,7 @@
         ${editing()&&chosenError()?`<button type="button" id="ipqcab-add-item">＋${t('新增檢查項目','Thêm hạng mục')}</button>`:''}</div>
         ${list.map(i=>`<article class="ipqcab-item"><div class="ipqcab-item-photos">${photoButtons(i.standardPhotos,i.id,'standard')}${photoButtons(i.methodPhotos,i.id,'method')}${!i.standardPhotos.length&&!i.methodPhotos.length?'◇':''}</div>
           <div><b>${h(i.code)}</b><p>${h(i.standard) || `<span class="ipqcab-missing">${t('標準待補','Thiếu tiêu chuẩn')}</span>`}</p>
-            <div class="ipqcab-item-meta"><span class="ipqcab-enabled-tag">${i.isEnabled?t('啟用','Bật'):t('停用','Tắt')}</span>${i.inspectionMode==='equipment'?`<a class="ipqcab-equipment-preview" href="/process/?system=quality&view=data&dataTab=quality-routine-equipment&equipmentId=${encodeURIComponent(i.equipmentId)}" target="_blank" rel="noopener" title="${h(t('查看檢具資訊','Xem thiết bị'))}">${i.equipmentSnapshot?.photoId?`<img src="/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}" alt="">`:'◇'}<span><b>${h(i.equipmentSnapshot?.assetCode || '')} / ${h(i.equipmentSnapshot?.pieceMark || '')}</b><span>${h(i.equipmentSnapshot?.name || t('檢具資訊待補','Chờ thông tin thiết bị'))}</span></span></a>`:`<span>${t('目視檢查','Kiểm tra trực quan')}</span>`}<small>${t('頻率','Tần suất')}: ${i.rules.length?i.rules.map(ruleLabel).map(h).join(' / '):t('未設定','Chưa thiết lập')}</small></div>
+            <div class="ipqcab-item-meta"><span class="ipqcab-enabled-tag">${i.isEnabled?t('啟用','Bật'):t('停用','Tắt')}</span>${i.inspectionMode==='equipment'?`<a class="ipqcab-equipment-preview" href="/process/?system=quality&view=data&dataTab=quality-routine-equipment&equipmentId=${encodeURIComponent(i.equipmentId)}" target="_blank" rel="noopener" title="${h(t('查看檢具資訊','Xem thiết bị'))}">${i.equipmentSnapshot?.photoId?`<img decoding="async" loading="lazy" src="/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}" alt="">`:'◇'}<span><b>${h(i.equipmentSnapshot?.assetCode || '')} / ${h(i.equipmentSnapshot?.pieceMark || '')}</b><span>${h(i.equipmentSnapshot?.name || t('檢具資訊待補','Chờ thông tin thiết bị'))}</span></span></a>`:`<span>${t('目視檢查','Kiểm tra trực quan')}</span>`}<small>${t('頻率','Tần suất')}: ${i.rules.length?i.rules.map(ruleLabel).map(h).join(' / '):t('未設定','Chưa thiết lập')}</small></div>
             ${window.ProcessIPQC.referenceMarkup('AB',`${line}:${group}`,i.id)}${missing(i)}</div><div class="ipqcab-row-actions"><button type="button" data-ab-view-item="${h(i.id)}">${t('查看','Xem')}</button>
             ${editing()?`<button type="button" data-ab-edit-item="${h(i.id)}">${t('修改','Sửa')}</button><button type="button" data-ab-delete-item="${h(i.id)}">${t('刪除','Xóa')}</button>`:''}</div></article>`).join('') || `<p>${t('請先選擇錯誤代碼','Hãy chọn mã lỗi')}</p>`}</section>
       <section class="ipqcab-card"><h3>${t('產品關聯矩陣','Ma trận sản phẩm')}</h3>
@@ -298,7 +302,7 @@
           <input id="ab-equipment-search" placeholder="${t('搜尋編號、名稱、群組','Tìm mã, tên, nhóm')}" value="${h(modal.query||'')}">
           <p class="ipqcab-equipment-count">${t('符合','Phù hợp')} ${matching.length} · ${t('可選','Có thể chọn')} ${matching.filter(eq=>eq.available).length}</p>
           <div id="ab-equipment-results">${matching.map(eq=>`<button type="button" data-ab-choose-equipment="${h(eq.id)}" ${eq.available?'':'disabled'}>
-            ${eq.photoId?`<img src="/api/routine-equipment/photo?id=${h(eq.photoId)}" alt="">`:'◇'}<span><b>${h(equipmentLabel(eq))}</b><small>${h([eq.category,eq.subcategory,eq.group].filter(Boolean).join(' / '))}</small><small>${eq.available?t('可選取','Có thể chọn'):t('設備未啟用','Thiết bị chưa kích hoạt')}</small></span></button>`).join('') || t('沒有符合設備','Không có thiết bị phù hợp')}</div></div>
+            ${eq.photoId?`<img decoding="async" loading="lazy" src="/api/routine-equipment/photo?id=${h(eq.photoId)}" alt="">`:'◇'}<span><b>${h(equipmentLabel(eq))}</b><small>${h([eq.category,eq.subcategory,eq.group].filter(Boolean).join(' / '))}</small><small>${eq.available?t('可選取','Có thể chọn'):t('設備未啟用','Thiết bị chưa kích hoạt')}</small></span></button>`).join('') || t('沒有符合設備','Không có thiết bị phù hợp')}</div></div>
         <footer><button type="button" data-ab-close>${t('取消','Hủy')}</button></footer></div></div>`;
     }
     const row = modal.type === 'error' ? snapshot().errors.find(e=>e.id===modal.id) : snapshot().items.find(i=>i.id===modal.id);
@@ -512,11 +516,6 @@
   }
   let reviewLoading = false;
   function reviewHTML() {
-    if (!control && !reviewLoading) {
-      reviewLoading = true;
-      void load().then(()=>drawReview()).catch(error=>{message=error.message;drawReview();})
-        .finally(()=>{reviewLoading=false;});
-    }
     const pending = Object.values(control?.scopes || {}).flatMap(s=>s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).map(v=>({scope:s,version:v})));
     const history = Object.values(control?.scopes || {}).flatMap(s=>s.versions.filter(v=>!v.wholeModuleCaseId&&['approved','superseded','tested','returned','withdrawn'].includes(v.status)).slice(-3).reverse().map(v=>({scope:s,version:v})));
     return `<section class="ipqcab-review ipqcab-card" data-i18n-skip="true"><h3>IPQC-AB · ${t('待確認','Chờ duyệt')} ${pending.length+Number(!!control?.moduleDraft?.workflow?.pendingId)}</h3>${message?`<p role="alert" class="ipqcab-message">${h(displayDraftError(message))}</p>`:''}
@@ -539,6 +538,7 @@
   }
   function bindReview(root) {
     reviewHost=root;
+    if(!control){const delivery=window.ProcessSync?.captureDelivery?.();if(reviewLoading)return reviewLoading;const task=load().then(()=>{if(!delivery||window.ProcessSync.isCurrentDelivery(delivery))drawReview();}).catch(error=>{if(!delivery||window.ProcessSync.isCurrentDelivery(delivery)){navigationError=error;message=error.message;}}).finally(()=>{if(reviewLoading===task)reviewLoading=null;});reviewLoading=task;return task;}
     sharedClient?.gatePermissions?.();
     root.querySelectorAll('[data-ab-module-action]').forEach(el=>{const action=el.dataset.abModuleAction,permission=action==='reject'?'approval.reject':action==='approve'?'approval.approve':'approval.withdraw';el.disabled=!permitted(permission);el.onclick=()=>moduleSave(action,{versionId:el.dataset.caseId});});
     root.querySelectorAll('[data-ab-approve],[data-ab-reject]').forEach(el=>el.addEventListener('click',async()=>{
@@ -572,13 +572,14 @@
       if(document.activeElement===(event.shiftKey?nodes[0]:nodes.at(-1)) || !dialog.contains(document.activeElement)){event.preventDefault();(event.shiftKey?nodes.at(-1):nodes[0])?.focus({preventScroll:true});}
     }
   });
-  window.IPQCABUI = { html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  let navigationError=null;
+  window.IPQCABUI = { navigation:{canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){clearTimeout(pollTimer);host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }
       document.querySelector('[data-quality-tab="quality-ipqc-ab"]')?.click();
     },
-    async mount(element){host=element;try{await load();const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();}draw();showPendingItem();scheduleRefresh();}catch(error){host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
+    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{await load();if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
       host.querySelector('#ipqcab-retry').onclick=()=>window.IPQCABUI.mount(host);}},
     reviewHTML,bindReview,pendingCount:()=>Number(!!control?.moduleDraft?.workflow?.pendingId)+Object.values(control?.scopes||{}).reduce((n,s)=>n+s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).length,0) };
   new MutationObserver(()=>{

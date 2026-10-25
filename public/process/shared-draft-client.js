@@ -17,6 +17,7 @@
     return Object.hasOwn(messages, code) ? messages[code][language === 'vi' ? 1 : 0] : raw;
   };
   const clients=new Set(),transports=new Map();
+  window.invalidateSharedDraftReads=()=>{for(const client of transports.values())client.invalidateReadState();};
   function packCommand(command){
     const counts=new Map(),visit=value=>{if(typeof value==='string'&&value.length>=4096&&/^data:image\/(?:png|jpeg|webp|gif|avif);base64,[A-Za-z0-9+/=]+$/.test(value))counts.set(value,(counts.get(value)||0)+1);else if(value&&typeof value==='object')Object.values(value).forEach(visit);};visit(command);
     const media=[...counts].filter(([,count])=>count>1).map(([value])=>value);if(!media.length||media.length>64)return command;
@@ -74,6 +75,7 @@
     try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null')); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     async function request(url,body) {
       assertOwner();
+      const readOwner=body?null:window.ProcessSync?.captureDelivery?.();
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
       // mutations at their existing deadline and receipt-first unknown policy.
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?15000:45000);
@@ -81,6 +83,7 @@
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
         let result=await response.json();
         assertOwner();
+        if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(response.ok&&result.permissions){const revoked=access&&Object.keys(result.permissions).some(key=>access[key]===true&&result.permissions[key]===false);access=result.permissions;gateControls(revoked);}
         else if(!body&&[401,403].includes(response.status)){access=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,false]));gateControls(true);}
         if(result.wireVersion===1){const live=result.liveContent;if(!live||typeof live!=='object')throw Error('INVALID_WORKFLOW_RESPONSE');const expand=value=>{
@@ -125,6 +128,7 @@
       gatePermissions:()=>{assertOwner();gateControls();},
       setPermissionGates(value){gates=value;gateControls();return client;},
       withLegacyArchive(){client.legacyHistory=before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`));client.legacyVersion=id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`));return client;},
+      invalidateReadState(){access=null;conditionalRead=null;validation=null;},
       useStateRevision(){conditionalState=true;return client;},
       read: token=>request(token?query(`since=${encodeURIComponent(conditionalState&&conditionalRead?.flowToken===token?'state:'+conditionalRead.revision:token)}`):endpoint),
       permissions:()=>request(query('permissions=1')),
@@ -208,7 +212,7 @@
     const keyboard=e=>{if(document.querySelector('dialog[open]')||[...document.querySelectorAll('.shared-restore-overlay')].at(-1)!==overlay)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first||!e.shiftKey&&document.activeElement===last){e.preventDefault();(e.shiftKey?last:first)?.focus();}}};
     const checkPermission=()=>{permissionTimer=setTimeout(async()=>{try{const state=await client.permissions();if(!state.permissions?.history){close();return;}}catch(e){if([401,403].includes(e.status)){close();return;}}if(overlay.isConnected)checkPermission();},4000);};
     const labels={name:'Tên / 名稱',nameVi:'Tên / 名稱',description:'Mô tả / 敘述',standard:'Tiêu chuẩn / 標準',code:'Mã / 代碼',checkNo:'Mã kiểm tra / 檢查編號',equipmentId:'Thiết bị / 檢具',productCodes:'Sản phẩm / 產品',rule:'Tần suất / 頻率',rules:'Tần suất / 頻率',note:'Ghi chú / 備註',notes:'Ghi chú / 備註',isEnabled:'Kích hoạt / 啟用',enabled:'Kích hoạt / 啟用'};
-    const photos=row=>row?[...(row.photos||[]),...(row.mediaItems||[]),...(row.standardPhotos||[]),...(row.methodPhotos||[]),...(row.photoId?[{id:row.photoId}]:[])].map(p=>({...p,url:client.mediaURL(p)})).filter(p=>p.url).map(p=>`<img src="${h(p.url)}" alt="${h(p.name||t('Ảnh tại thời điểm gửi','送審當時圖片'))}" loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%">`).join(''):'';
+    const photos=row=>row?[...(row.photos||[]),...(row.mediaItems||[]),...(row.standardPhotos||[]),...(row.methodPhotos||[]),...(row.photoId?[{id:row.photoId}]:[])].map(p=>({...p,url:client.mediaURL(p)})).filter(p=>p.url).map(p=>`<img decoding="async" src="${h(p.url)}" alt="${h(p.name||t('Ảnh tại thời điểm gửi','送審當時圖片'))}" loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%">`).join(''):'';
     const fields=row=>!row?`<p>${t('Không tồn tại','不存在')}</p>`:`<dl>${Object.entries(row).filter(([key])=>!['photos','mediaItems','standardPhotos','methodPhotos','photoId'].includes(key)).map(([key,value])=>`<dt>${h(labels[key]||key)}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${h(typeof value==='object'?JSON.stringify(value,(_k,v)=>typeof v==='string'&&v.startsWith('data:')?'[Ảnh / 圖片]':v,null,2):value)}</dd>`).join('')}</dl>${photos(row)}`;
     const draw=()=>{
       const oldCollections={...historyCollections(review?.before)},newCollections={...historyCollections(review?.content)};
@@ -255,7 +259,7 @@ async function loadList(before){loading=true;draw();try{if(legacy){const result=
     function fieldValue(key,value){
       const mediaKeys=['photos','mediaItems','standardPhotos','methodPhotos'];
       const media=mediaKeys.includes(key)&&Array.isArray(value)?value:key==='photoId'&&value?[{id:value}]:null;
-      if(media)return media.map(photo=>{const url=client.mediaURL(photo);return url?`<figure><img loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%" src="${h(url)}" alt="${h(photo.name||t('Ảnh lịch sử','歷史圖片'))}"><figcaption>${h(photo.name||'')}</figcaption></figure>`:`<p>${t('Ảnh không khả dụng','圖片不可用')}</p>`;}).join('')||'—';
+      if(media)return media.map(photo=>{const url=client.mediaURL(photo);return url?`<figure><img decoding="async" loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%" src="${h(url)}" alt="${h(photo.name||t('Ảnh lịch sử','歷史圖片'))}"><figcaption>${h(photo.name||'')}</figcaption></figure>`:`<p>${t('Ảnh không khả dụng','圖片不可用')}</p>`;}).join('')||'—';
       return h(typeof value==='object'?JSON.stringify(value,(_key,v)=>typeof v==='string'&&v.startsWith('data:')?'[Ảnh / 圖片]':v,2):typeof value==='string'&&value.startsWith('data:')?'[Ảnh / 圖片]':value);
     }
     function fields(row,other){if(!row)return `<p>${t('Không tồn tại','不存在')}</p>`;return `<dl>${Object.keys({...row,...other}).filter(k=>JSON.stringify(row[k])!==JSON.stringify(other?.[k])).map(k=>`<dt>${h(labels[k]||k)}</dt><dd>${fieldValue(k,row[k])}</dd>`).join('')}</dl>`;}

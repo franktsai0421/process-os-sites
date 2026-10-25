@@ -607,7 +607,7 @@ export function createHistorySearch({ getData, readPreview }) {
     );
   }
   const photos = (ids) =>
-    `<div class="rf-photos">${(ids || []).map((id) => `<a class="rf-photo" target="_blank" rel="noopener" href="/api/routine-fqc/photo?id=${encodeURIComponent(id)}"><img loading="lazy" src="/api/routine-fqc/photo?id=${encodeURIComponent(id)}" alt="${t('檢查照片', 'Ảnh kiểm tra')}"></a>`).join('')}</div>`;
+    `<div class="rf-photos">${(ids || []).map((id) => `<a class="rf-photo" target="_blank" rel="noopener" href="/api/routine-fqc/photo?id=${encodeURIComponent(id)}"><img decoding="async" loading="lazy" src="/api/routine-fqc/photo?id=${encodeURIComponent(id)}" alt="${t('檢查照片', 'Ảnh kiểm tra')}"></a>`).join('')}</div>`;
   function sourceInfo(source) {
     return `<p class="rf-subtle">${h([source.line, source.category, source.errorCode, source.code].filter(Boolean).join(' / '))}</p><p>${t('來源版本', 'Phiên bản nguồn')}：${h(source.version || '—')} · ${t('生效日', 'Ngày hiệu lực')}：${h(source.effectiveDate || '—')}</p><div class="rf-coverage"><b>${t('涵蓋產品（不代表實測）', 'Sản phẩm bao phủ (không phải đã thử)')}</b><p>${h((source.products || []).map((p) => p.code + ' · ' + p.name).join(' / ') || '—')}</p></div><details><summary>${t('當次檢查標準', 'Tiêu chuẩn tại thời điểm kiểm tra')}</summary><p class="rf-history-text">${h(source.description || '—')}</p></details>`;
   }

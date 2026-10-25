@@ -10,7 +10,7 @@
     routing.productRoutes[product.code]?.line || '待補';
   const routeStages = (product) =>
     routing.productRoutes[product.code]?.stages || [];
-  const abProducts = data.products
+  let abProducts = data.products
     .filter((product) => ['A', 'B'].includes(routeLine(product)))
     .map((product) => ({
       ...clone(product),
@@ -70,7 +70,9 @@
   state.masterSearch = state.masterSearch || '';
   state.masterReviewId = state.masterReviewId || null;
   const sharedLoaded=new Set(),sharedLoading=new Set();
-  let dataReady=Promise.resolve();
+  let approvalReady=Promise.resolve();
+  let dataReady=Promise.resolve(), deliveryGeneration=0, dataError=null;
+  const ownsDelivery=generation=>generation===deliveryGeneration&&!window.ProcessSync?.requiresReload;
   const shared=window.createMasterSharedBridge({control,onChange:()=>render()});
   function persist(scope=state.masterScope) {
     if(['AB','C','PROCESS'].includes(scope))return shared.execute(scope,'apply');
@@ -317,9 +319,9 @@
     if (!content) return;
     if(tab==='process-master'&&!sharedLoaded.has('PROCESS')){
       content.textContent=document.documentElement.lang==='vi'?'Đang tải dữ liệu quy trình…':'載入流程資料中…';
-      if(!sharedLoading.has('PROCESS')){sharedLoading.add('PROCESS');dataReady=shared.load('PROCESS').then(()=>{sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
-        if(state.dataTab!=='process-master')return;content.textContent=displayDraftError(error);const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử lại':'重試';retry.onclick=()=>selectDataTab(tab);content.append(retry);
-      }).finally(()=>sharedLoading.delete('PROCESS'));}bindTabButtons();return;
+      if(!sharedLoading.has('PROCESS')){const generation=deliveryGeneration;sharedLoading.add('PROCESS');dataError=null;dataReady=shared.load('PROCESS').then(()=>{if(!ownsDelivery(generation))return;sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
+        if(!ownsDelivery(generation)||state.dataTab!=='process-master')return;dataError=error;content.textContent=displayDraftError(error);const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử lại':'重試';retry.onclick=()=>selectDataTab(tab);content.append(retry);
+      }).finally(()=>{if(ownsDelivery(generation))sharedLoading.delete('PROCESS');});}bindTabButtons();return;
     }
     content.dataset.activeTab=tab;
     const url=new URL(location.href);
@@ -347,7 +349,7 @@
       button.onclick=()=>selectDataTab(tab,true);
     });
   }
-  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:()=>dataReady};
+  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:async()=>{await dataReady;if(state.view==='approval')await approvalReady;if(dataError)throw dataError;}};
   bindData = function () {
     if(window.ProcessSync?.deliveryProjection&&String(state.dataTab||'').startsWith('quality-')){
       if(window.ProcessDualSystem)window.ProcessDualSystem.renderQualityDataTab(state.dataTab);
@@ -1094,11 +1096,12 @@
     editable = enhanced.editable;
     masterView = enhanced.masterView;
     bindMaster = function(){enhanced.bindMaster();const scope=state.masterScope;if(sharedLoaded.has(scope)||sharedLoading.has(scope))return;
-      sharedLoading.add(scope);document.querySelectorAll('#data-content button').forEach(b=>b.disabled=true);
-      dataReady=shared.load(scope).then(()=>{sharedLoaded.add(scope);render();}).catch(error=>{
+      const generation=deliveryGeneration;dataError=null;sharedLoading.add(scope);document.querySelectorAll('#data-content button').forEach(b=>b.disabled=true);
+      dataReady=shared.load(scope).then(()=>{if(!ownsDelivery(generation))return;sharedLoaded.add(scope);render();}).catch(error=>{
+        if(!ownsDelivery(generation))return;dataError=error;
         toast(displayDraftError(error));const panel=document.querySelector('#data-content');if(!panel)return;
         const retry=document.createElement('button');retry.className='button ghost';retry.textContent=document.documentElement.lang==='vi'?'Thử tải lại bản nháp chung':'重新載入共用草稿';retry.onclick=()=>{retry.remove();bindMaster();};panel.prepend(retry);
-      }).finally(()=>sharedLoading.delete(scope));};
+      }).finally(()=>{if(ownsDelivery(generation))sharedLoading.delete(scope);});};
     productRows = enhanced.productRows;
     syncRows = enhanced.syncRows;
     categories = enhanced.categories;
@@ -1118,26 +1121,36 @@
         },
       });
       approvalSection = review.view;
-      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>sharedLoaded.add(s)))).then(()=>render()).catch(e=>toast(displayDraftError(e))).finally(()=>missing.forEach(s=>sharedLoading.delete(s)));};
+      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
     }
   }
   window.MasterDataWorkflow = {
     control: () => control,
+    canLeave:()=>!shared.busy(),
+    resetProjection(){
+      deliveryGeneration++;clearTimeout(sharedPoll);shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
+      abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
+      seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};
+      const incoming=readStore(STORAGE,null)||{active:{},versions:[]};
+      for(const key of Object.keys(control))delete control[key];Object.assign(control,incoming);
+      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();
+    },
     persist,
     record,
     applyActive,
     shared,
   };
   let sharedPoll;
-  function pollMaster(){clearTimeout(sharedPoll);sharedPoll=setTimeout(async()=>{
+  function pollMaster(){clearTimeout(sharedPoll);const generation=deliveryGeneration;sharedPoll=setTimeout(async()=>{
+    if(!ownsDelivery(generation))return;
     try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){
       const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
       if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
         const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope))continue;const result=await shared.load(scope);changed ||= !result.unchanged||result.permissionsChanged;}
+        for(const scope of scopes){if(!sharedLoaded.has(scope))continue;const result=await shared.load(scope);if(!ownsDelivery(generation))return;changed ||= !result.unchanged||result.permissionsChanged;}
         if(changed){applyActive();render();}
       }
-    }}catch(error){const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{pollMaster();}
+    }}catch(error){if(!ownsDelivery(generation))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation))pollMaster();}
   },4000);}
   pollMaster();
   applyActive();
@@ -1201,35 +1214,22 @@
           const route = new URL(location.href);
           route.searchParams.set('approvalTab', key);
           if (key !== 'routine') { route.searchParams.delete('rfDocument'); route.searchParams.delete('rfCase'); }
-          history.replaceState(null, '', route);
+          history.replaceState(history.state, '', route);
           render();
         },
       });
-      if (masterActive) {bindApprovalMaster();void window.BOMWorkspace?.loadReview().catch(()=>{});}
-      if (state.approvalTab === 'quality') window.QualityReviewOverview?.mount?.(document.querySelector('#approval-panel-quality'));
-      if (state.approvalTab === 'quality') window.ToolingUI?.bindReview?.(document.querySelector('#approval-panel-quality'));
-      if (state.approvalTab === 'routine') window.RoutineFQCUI?.bindReview?.(document.querySelector('#approval-panel-routine'));
-      window.RoutineFQCUI?.refreshPending?.();
-      if (state.approvalTab === 'quality')
-        window.FQCMasterUI?.bindReview?.(
-          document.querySelector('#approval-panel-quality'),
-        );
-      if (state.approvalTab === 'quality')
-        window.RoutineEquipmentUI?.bindReview?.(
-          document.querySelector('#approval-panel-quality'),
-        );
-      if (state.approvalTab === 'quality')
-        window.IQCMasterUI?.bindReview?.(
-          document.querySelector('#approval-panel-quality'),
-        );
-      if (state.approvalTab === 'quality')
-        window.IPQCCUI?.bindReview?.(
-          document.querySelector('#approval-panel-quality'),
-        );
-      if (state.approvalTab === 'quality')
-        window.IPQCABUI?.bindReview?.(
-          document.querySelector('#approval-panel-quality'),
-        );
+      const reads=[];
+      if(masterActive){bindApprovalMaster();reads.push(dataReady,window.BOMWorkspace?.loadReview());}
+      if(state.approvalTab==='quality'){
+        const panel=document.querySelector('#approval-panel-quality');
+        window.QualityReviewOverview?.mount?.(panel);
+        for(const name of ['ToolingUI','FQCMasterUI','RoutineEquipmentUI','IQCMasterUI','IPQCCUI','IPQCABUI'])reads.push(window[name]?.bindReview?.(panel));
+      }
+      if(state.approvalTab==='routine')reads.push(window.RoutineFQCUI?.bindReview?.(document.querySelector('#approval-panel-routine')));
+      // This background count does not gate another panel's usable readiness.
+      if(state.approvalTab!=='routine')void window.RoutineFQCUI?.refreshPending?.();
+      approvalReady=Promise.all(reads);approvalReady.catch(()=>{});
+
     }
   };
   window.addEventListener('process-language-change',()=>{if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});

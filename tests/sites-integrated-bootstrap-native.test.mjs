@@ -46,12 +46,12 @@ try{
  await check('quality actor receives own current scope only and owner still uses the same normal session contract',async()=>{
   const r=await request('/api/process-bootstrap',signed('quality'));assert.equal(r.status,200);const body=await r.json();
   assert.deepEqual(body.catalog.loadedScopes,[]);assert(!body.values.masterDataControl);assert(!JSON.stringify(body).includes('secret draft'));assert(!JSON.stringify(body).includes('secret old'));
-  assert.deepEqual(Object.keys(JSON.parse(body.values.canonicalQuality)),['iqc']);
+  assert(!body.values.canonicalQuality);assert(!body.values.iqcMasterControl);
   assert.equal((await request('/api/process-bootstrap',signed('frank'))).status,200);
  });
  await check('owner first load and reload select purpose fields; staff cannot request another module',async()=>{
   for(let iteration=0;iteration<2;iteration++){
-   const q=await request('/api/process-bootstrap?view=data&dataTab=quality-iqc',signed('frank'));assert.equal(q.status,200);const body=await q.json();assert.equal(body.destination.key,'data:quality-iqc');assert.deepEqual(body.catalog.loadedScopes,[]);assert(!body.values.masterDataControl);assert(!body.values.dispatchBoard);assert.deepEqual(Object.keys(JSON.parse(body.values.canonicalQuality)),['iqc']);
+   const q=await request('/api/process-bootstrap?view=data&dataTab=quality-iqc',signed('frank'));assert.equal(q.status,200);const body=await q.json();assert.equal(body.destination.key,'data:quality-iqc');assert.deepEqual(body.catalog.loadedScopes,[]);assert(!body.values.masterDataControl);assert(!body.values.dispatchBoard);assert(!body.values.canonicalQuality);assert(!body.values.iqcMasterControl);
   }
   const home=await request('/api/process-bootstrap?view=dashboard',signed('frank'));assert.equal(home.status,200);const h=await home.json();assert(!h.values.iqcMasterControl);assert.deepEqual(h.catalog.imported.bom,{});
   const ab=await request('/api/process-bootstrap?view=data&dataTab=AB',signed('frank'));assert.equal(ab.status,200);const a=await ab.json();assert.deepEqual(a.catalog.loadedScopes,['AB']);assert.deepEqual(Object.keys(JSON.parse(a.values.masterDataControl).active),['AB']);
@@ -77,7 +77,7 @@ try{
   await bucket.put('canonical-images/'+hidden+'/'+version+'.webp',image,{customMetadata:{sourceSha256:hidden,webSha256:version}});
   try{for(const representation of [JSON.stringify(legacy),JSON.stringify(plainEnvelope)]){
    await fixture.db.prepare('UPDATE shared_state SET "values"=?').bind(representation).run();
-   const r=await request('/api/process-bootstrap',signed('quality'));assert.equal(r.status,200);const body=await r.json();assert.deepEqual(JSON.parse(body.values.iqcMasterControl).versions.map(v=>v.id),['now']);assert(!JSON.stringify(body).includes('secret'));
+   const r=await request('/api/process-bootstrap',signed('quality'));assert.equal(r.status,200);const body=await r.json();assert(!body.values.iqcMasterControl);assert(!body.values.canonicalQuality);assert(!JSON.stringify(body).includes('secret'));
    const path='/api/canonical-assets?id='+hidden+'&version='+version;
    const editor=await request(path,signed('editor'));assert.equal(editor.status,200);assert.equal(hash(new Uint8Array(await editor.arrayBuffer())),version);
    assert.equal((await request(path,signed('quality'))).status,403);assert.equal((await request(path,signed('player'))).status,403);
