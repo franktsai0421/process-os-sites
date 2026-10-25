@@ -9,6 +9,12 @@
         {"path":"scripts/test-integrated-bootstrap.cjs","blob":"c991cb7e3d377436df4780a7fa334b35472cd8f6","categories":["ASSIGNED_SECRET"]},
         {"path":"tests/sites-delivery-browser.test.mjs","blob":"ce58816f488382bfe41438ce629c15b6b0594c08","categories":["WORKSTATION_PATH"]}
       ]
+    },
+    {
+      "commit": "705e92bf53b7cd4ed9667444bcd5289679a86234",
+      "entries": [
+        {"path":"tests/sites-delivery-browser.test.mjs","blob":"f7992a769f1e739ce60ec6887137348824a429e6","categories":["WORKSTATION_PATH"]}
+      ]
     }
   ],
   "entries": [

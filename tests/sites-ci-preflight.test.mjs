@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 import {validateSourceMember,gitBlobId,inspectSourceBytes,parseBatch,validatePolicy,authorizeSupplementalReviews} from '../scripts/sites-ci-preflight.mjs';
 const tests=[],empty={entries:[]};
 function test(name,run){run();tests.push(name);}
+function reviewProof(policy){return {commits:new Set(policy.supplementalReviews.map(r=>r.commit)),pairs:new Map(policy.supplementalReviews.map(r=>[r.commit,new Set(r.entries.map(item=>item.path+'\0'+item.blob))]))};}
 test('program and schema metadata are source',()=>{for(const file of ['app/api/login/route.ts','drizzle/0000_schema.sql','config/sites-test.template.json'])validateSourceMember(file);});
 test('private paths and held files refuse before content access',()=>{for(const file of ['.env','a/.dev.vars','database.json','data/canonical/x.json','a/snapshot.zip','scripts/u1-package.mjs','scripts/dev-package-restore.mjs','scripts/dev-package-update.mjs'])assert.throws(()=>validateSourceMember(file));});
 test('escape and ambiguous paths refuse',()=>{for(const file of ['../x','/x','x//y','x\\y','a/./x'])assert.throws(()=>validateSourceMember(file));});
@@ -33,22 +35,45 @@ test('invalid review policies reject broad or malformed classifications',()=>{
 test('PR23 supplement admits only both fixed synthetic blobs after ancestor and exact tree proof',()=>{
  const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url)));
  assert.equal(policy.reviewedSource,'e3f7be2f78a07a6e4d1eaffd6dbd4bb8308d0d70');
- const review=policy.supplementalReviews[0],pairs=new Set(review.entries.map(item=>item.path+'\0'+item.blob));
- const authorized=authorizeSupplementalReviews(policy,new Set([review.commit]),new Map([[review.commit,pairs]]));
+ const review=policy.supplementalReviews[0],proof=reviewProof(policy),pairs=proof.pairs.get(review.commit);
+ const authorized=authorizeSupplementalReviews(policy,proof.commits,proof.pairs);
  for(const item of review.entries){
-  const bytes=execFileSync('git',['show',':'+item.path]);assert.equal(gitBlobId(bytes),item.blob);
+  const bytes=execFileSync('git',['cat-file','blob',item.blob]);assert.equal(gitBlobId(bytes),item.blob);
   assert.deepEqual(inspectSourceBytes(item.path,bytes,authorized),item.categories);
   assert.throws(()=>inspectSourceBytes('tests/other.mjs',bytes,authorized),/SOURCE_UNREVIEWED/);
   assert.throws(()=>inspectSourceBytes(item.path,Buffer.concat([bytes,Buffer.from('\n// changed')]),authorized),/SOURCE_UNREVIEWED/);
   const wrongCategory={entries:authorized.entries.map(entry=>entry.path===item.path&&entry.blob===item.blob?{...entry,categories:[]}:entry)};
   assert.throws(()=>inspectSourceBytes(item.path,bytes,wrongCategory),/SOURCE_UNREVIEWED/);
  }
- assert.throws(()=>authorizeSupplementalReviews(policy,new Set(),new Map([[review.commit,pairs]])),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
- assert.throws(()=>authorizeSupplementalReviews(policy,new Set([review.commit]),new Map([[review.commit,new Set([...pairs].slice(1))]])),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
+ assert.throws(()=>authorizeSupplementalReviews(policy,new Set([...proof.commits].filter(c=>c!==review.commit)),proof.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
+ const missingPair=new Map(proof.pairs);missingPair.set(review.commit,new Set([...pairs].slice(1)));
+ assert.throws(()=>authorizeSupplementalReviews(policy,proof.commits,missingPair),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
 });
 test('PR23 supplement cannot change path blob category commit or add a broad exemption',()=>{
  const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url)));
  for(const mutate of [p=>p.supplementalReviews[0].commit='a'.repeat(40),p=>p.supplementalReviews[0].entries[0].path='tests/other.mjs',p=>p.supplementalReviews[0].entries[0].blob='b'.repeat(40),p=>p.supplementalReviews[0].entries[0].categories=['WORKSTATION_PATH'],p=>p.supplementalReviews[0].entries[0].categories.push('INLINE_MEDIA'),p=>p.supplementalReviews[0].entries.push({...p.supplementalReviews[0].entries[0],path:'tests/*'})]){
+  const modified=structuredClone(policy);mutate(modified);assert.throws(()=>validatePolicy(modified),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);
+ }
+});
+test('PR26 supplement admits only its exact historical browser fixture after ancestry and tree proof',()=>{
+ const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url))),proof=reviewProof(policy);
+ const review=policy.supplementalReviews[1];
+ assert.equal(review.commit,'705e92bf53b7cd4ed9667444bcd5289679a86234');
+ assert.deepEqual(review.entries,[{path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']}]);
+ const item=review.entries[0],bytes=execFileSync('git',['cat-file','blob',item.blob]);assert.equal(gitBlobId(bytes),item.blob);
+ assert.throws(()=>inspectSourceBytes(item.path,bytes,{entries:policy.entries}),/SOURCE_UNREVIEWED_WORKSTATION_PATH/);
+ const authorized=authorizeSupplementalReviews(policy,proof.commits,proof.pairs);
+ assert.deepEqual(inspectSourceBytes(item.path,bytes,authorized),['WORKSTATION_PATH']);
+ assert.deepEqual(inspectSourceBytes(item.path,Buffer.from(bytes.toString().replace(/\r?\n/g,'\r\n')),authorized,{working:true}),['WORKSTATION_PATH']);
+ assert.throws(()=>inspectSourceBytes('tests/other.mjs',bytes,authorized),/SOURCE_UNREVIEWED_WORKSTATION_PATH/);
+ assert.throws(()=>inspectSourceBytes(item.path,Buffer.concat([bytes,Buffer.from('\n// changed')]),authorized),/SOURCE_UNREVIEWED_WORKSTATION_PATH/);
+ assert.throws(()=>authorizeSupplementalReviews(policy,new Set([...proof.commits].filter(c=>c!==review.commit)),proof.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
+ const wrongTree=new Map(proof.pairs);wrongTree.set(review.commit,new Set([item.path+'\0'+'a'.repeat(40)]));
+ assert.throws(()=>authorizeSupplementalReviews(policy,proof.commits,wrongTree),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
+});
+test('PR26 historical registration cannot broaden commit path blob or categories',()=>{
+ const policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url)));
+ for(const mutate of [p=>p.supplementalReviews[1].commit='a'.repeat(40),p=>p.supplementalReviews[1].entries[0].path='tests/other.mjs',p=>p.supplementalReviews[1].entries[0].blob='b'.repeat(40),p=>p.supplementalReviews[1].entries[0].categories=['ASSIGNED_SECRET'],p=>p.supplementalReviews[1].entries[0].categories.push('INLINE_MEDIA'),p=>p.supplementalReviews[1].entries.push({...p.supplementalReviews[1].entries[0],path:'tests/*'}),p=>p.supplementalReviews.push({...p.supplementalReviews[1],commit:'c'.repeat(40)})]){
   const modified=structuredClone(policy);mutate(modified);assert.throws(()=>validatePolicy(modified),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);
  }
 });
@@ -57,4 +82,17 @@ test('batch framing hashes missing and extra content are checked',()=>{
  assert.deepEqual(parseBatch(valid,[item]),[bytes]);
  for(const invalid of [valid.subarray(0,-1),Buffer.concat([valid,Buffer.from('extra')]),Buffer.from(oid+' missing\n'),Buffer.from(valid.toString().replace('synthetic','different'))])assert.throws(()=>parseBatch(invalid,[item]));
 });
+{
+ const source=fs.readFileSync(new URL('./sites-delivery-browser.test.mjs',import.meta.url),'utf8');
+ assert.deepEqual(inspectSourceBytes('tests/sites-delivery-browser.test.mjs',Buffer.from(source),empty),[]);
+ const begin=source.indexOf(' const bundled='),end=source.indexOf(' const origin=fixture.url.origin;');assert.ok(begin>=0&&end>begin);
+ const code=source.slice(begin,end),args=['--disable-background-networking','--disable-component-update','--no-first-run'];
+ for(const exists of [true,false]){
+  const probes=[],options=await vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{fs:{existsSync:p=>(probes.push(p),exists)},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async options=>options}});
+  assert.deepEqual(probes,['/synthetic/bundled-browser']);assert.equal(options.headless,true);assert.deepEqual(JSON.parse(JSON.stringify(options.args)),args);
+  if(exists){assert.equal(options.executablePath,'/synthetic/bundled-browser');assert.equal(options.channel,undefined);}else{assert.equal(options.channel,'chrome');assert.equal(options.executablePath,undefined);}
+ }
+ await assert.rejects(vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{fs:{existsSync:()=>false},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async()=>{throw Error('BROWSER_UNAVAILABLE');}}}),/BROWSER_UNAVAILABLE/);
+ tests.push('actual portable browser selector retains bundled priority channel discovery flags and hard launch failure');
+}
 console.log(JSON.stringify({status:'PASS_SOURCE_ONLY_CI_NEGATIVE_FIXTURES',cases:tests.length,tests,realData:false,network:false}));

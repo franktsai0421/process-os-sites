@@ -37,9 +37,11 @@ The precise producer policy is in
 
 ## Validation status
 
-The executable candidate is unchanged from
-`fff6a8231f58af817e19e2b2d2828f1b86e95a28`; only documentation was revised.
-Existing evidence is reused, not represented as new executions:
+Application code is byte-identical to
+`fff6a8231f58af817e19e2b2d2828f1b86e95a28`. Test infrastructure now uses portable
+Chrome discovery; 15 focused preflight/launcher checks PASS. The first CI run did
+not reach the compiled browser; the corrected exact-head run remains pending.
+Existing application evidence is reused, not represented as new executions:
 
 - PASS: 10 actual IQC/route handler groups, including storage compatibility,
   permissions, history/adoption, corruption and unrelated revisions.

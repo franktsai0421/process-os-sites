@@ -49,9 +49,11 @@ critical viewers/print, layout and authorization. No all-data/image preload is a
 
 ## Validation status
 
-Executable files, tests and CI are unchanged from
-`fff6a8231f58af817e19e2b2d2828f1b86e95a28`; this revision changes documentation only.
-Reused evidence is not a new run and overlapping suites are not summed:
+Application code is byte-identical to
+`fff6a8231f58af817e19e2b2d2828f1b86e95a28`. Test infrastructure now uses portable
+Chrome discovery; 15 focused preflight/launcher checks PASS. The first CI run did
+not reach the compiled browser; the corrected exact-head run remains pending.
+Reused application evidence is not a new run and overlapping suites are not summed:
 
 - PASS: 140-check earlier integration checkpoint and shared-client recovery checks.
 - PASS: 54 targeted correction checks, including history ownership, stale reads,
