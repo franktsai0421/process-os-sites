@@ -51,7 +51,29 @@ await check('C7 loopback full-read historicalCodes and non-loopback bounded beha
  for(const origin of ['http://localhost:3040','http://127.0.0.1:3000'])for(const who of ['frank','reader']){const req=request(who,'?caseMetadata=1',{origin}),next=await run(req),prior=await run(req,true);assert.deepEqual(comparable(next),comparable(prior));assert(next.keys.includes(refs.unrelated.key));if(who==='frank')assert(next.body.historicalCodes.includes('C-HIST-TIEN-L987-01'));else assert.equal(next.body.historicalCodes,undefined);}
  const hosted=await run(request('frank'));assert.equal(hosted.body.historicalCodes,undefined);assert(!hosted.keys.includes(refs.unrelated.key));
 });
-await check('C9 POST and workflow/image sources remain exact v20 bytes',()=>{const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];const original=execFileSync('git',['show',base+':app/api/ipqc-c/route.ts'],{encoding:'utf8'}),actual=fs.readFileSync('app/api/ipqc-c/route.ts','utf8');assert.equal(actual.slice(actual.indexOf('type Body =')),original.slice(original.indexOf('type Body =')));for(const file of ['lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts'])assert(fs.readFileSync(file).equals(execFileSync('git',['show',base+':'+file])));});
+await check('C9 POST and workflow/image sources remain exact v20 bytes',()=>{
+ const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];
+ // Git blobs remain byte-exact; checkout conversion may change CRLF, and nothing else.
+ const checkoutBytes=bytes=>bytes.filter((byte,index)=>byte!==13||bytes[index+1]!==10);
+ const postBytes=bytes=>{const index=bytes.indexOf(Buffer.from('type Body ='));assert(index>=0,'POST source marker required');return bytes.subarray(index);};
+ const preserved=(original,committed,working,postOnly=false)=>{
+  assert.deepEqual(postOnly?postBytes(committed):committed,postOnly?postBytes(original):original,'Committed protected source changed');
+  assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
+ };
+ const lf=Buffer.from('prefix\ntype Body = {};\nconst value = true;\n'),crlf=Buffer.from(lf.toString().replace(/\n/g,'\r\n'));
+ for(const original of [lf,crlf])for(const working of [lf,crlf])for(const postOnly of [false,true])preserved(original,original,working,postOnly);
+ for(const mutation of [Buffer.from(lf.toString().replace('true','false')),Buffer.from(lf.toString().replace('const',' const')),Buffer.from(lf.toString().replace('const','\tconst')),Buffer.from(lf.toString().replace('prefix','pre\rfix')),lf.subarray(0,lf.length-1),Buffer.concat([lf,Buffer.from([255])])]){
+  for(const postOnly of [false,true])assert.throws(()=>preserved(lf,lf,mutation,postOnly),/Working source changed/);
+ }
+ assert.throws(()=>preserved(lf,crlf,crlf),/Committed protected source changed/);
+ const changed=Buffer.from(lf.toString().replace('true','false'));
+ for(const postOnly of [false,true])assert.throws(()=>preserved(lf,changed,changed,postOnly),/Committed protected source changed/);
+ assert.throws(()=>preserved(Buffer.from('missing'),lf,lf,true),/POST source marker required/);
+ assert.throws(()=>preserved(lf,Buffer.from('missing'),lf,true),/POST source marker required/);
+ for(const file of ['app/api/ipqc-c/route.ts','lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts']){
+  preserved(execFileSync('git',['show',base+':'+file]),execFileSync('git',['show','HEAD:'+file]),fs.readFileSync(file),file==='app/api/ipqc-c/route.ts');
+ }
+});
 await check('C10 absent archive inline compatibility; R2-dependent formats still fail closed',async()=>{
  const original=env.STATE_ARCHIVE,inline=JSON.stringify(values),sha=createHash('sha256').update(inline).digest('hex'),key='snapshots/'+sha+'.json',chunked=await chunks.encodeChunkedValues(bucket,values);objects.set(key,Buffer.from(inline));
  try{for(const missing of [undefined,null]){env.STATE_ARCHIVE=missing;install(inline);assert.equal((await run(request())).status,200);for(const stored of [raw,chunked,JSON.stringify({__processR2:{key,sha256:sha}})]){install(stored);assert.equal((await run(request())).status,503);}}}
