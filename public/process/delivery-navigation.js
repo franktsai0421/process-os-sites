@@ -3,7 +3,7 @@
 (() => {
  const sync=window.ProcessSync,policy=window.ProcessDeliveryPurpose;
  if(!sync?.deliveryProjection||!policy||!sync.destination)return;
- const moduleNames=['FQCMasterUI','IQCMasterUI','IPQCABUI','IPQCCUI','ToolingUI','RoutineEquipmentUI','RoutineFQCUI','BOMWorkspace','ProcessAuthoringV3','ProcessUserAccess'];
+ const moduleNames=['FQCMasterUI','IQCMasterUI','IPQCABUI','IPQCCUI','ToolingUI','RoutineEquipmentUI','RoutineFQCUI','BOMWorkspace','ProcessAuthoringV3','ProcessUserAccess','ProcessFeedbackEntry'];
  const modules=()=>moduleNames.map(name=>window[name]).filter(Boolean);
  const draftsPending=()=>{
   const shared=sync.pendingState?.()||{},drafts=window.sharedDraftAccountState?.()||{};

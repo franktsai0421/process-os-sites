@@ -9,7 +9,7 @@ void (async () => {
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
     window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261010-access3');
-    window.ProcessDeliveryPurpose=await import('./delivery-purpose.mjs?v=20261025-purpose1');
+    window.ProcessDeliveryPurpose=await import('./delivery-purpose.mjs?v=20261026-feedback1');
     await window.ProcessSync.ready;
     if (window.ProcessSync.importPending === true) {
       // The data gate runs before application identity. Do not claim a verified

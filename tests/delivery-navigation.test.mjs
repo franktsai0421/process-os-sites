@@ -88,3 +88,10 @@ test('legacy-first pop cannot mutate the source while dirty, in-flight or unknow
   f.location.href=source;f.dispatchPop(1);assert.equal(f.history.state.processNavigationIndex,1);assert.equal(f.state.dataTab,'quality-iqc');assert.equal(f.reads.length,1);
  }
 });
+
+test('feedback uses indexed navigation and Back/Forward with denial preserving current source',async()=>{
+ const f=await fixture();f.api.navigate('data','web-feedback','process');assert.equal(f.reads[0].target.dataTab,'web-feedback');f.finish(0);await turn();const url=f.location.href,index=f.history.state.processNavigationIndex;assert.equal(f.state.dataTab,'web-feedback');
+ f.api.navigate('editor');f.reads[1].reject(Object.assign(Error('denied'),{status:403}));await turn();assert.equal(f.location.href,url);assert.equal(f.state.dataTab,'web-feedback');assert.equal(f.history.state.processNavigationIndex,index);
+ f.location.href='https://fixture.invalid/process/index.html?system=process&view=dashboard';f.dispatchPop(0);f.finish(2);await turn();assert.equal(f.state.view,'dashboard');assert.equal(f.history.state.processNavigationIndex,0);
+ f.location.href=url;f.dispatchPop(index);f.finish(3);await turn();assert.equal(f.state.dataTab,'web-feedback');assert.equal(f.history.state.processNavigationIndex,index);assert(!f.calls.includes('reload'));
+});

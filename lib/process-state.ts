@@ -5,7 +5,7 @@ import {isPrimary,moduleForURL,operationForLegacy,accessKeys,catalog} from '../p
 import {verifyPassword} from './passwords';
 import { demoLoginAllowed, demoIdentity, isDemoUser } from './demo-identities.mjs';
 import { encodeChunkedValues, decodeChunkedValues, type ChunkStorage } from './state-chunks';
-import {encodeRecordValues,decodeRecordValues,type RecordStorage,type RecordRead} from './state-records';
+import {encodeRecordValues,decodeRecordValues,pinIdentityReadToken,type RecordStorage,type RecordRead} from './state-records';
 import { sessionRevocationEnabled, sessionRevoked, revokeSession } from './session-revocation';
 import {projectCompanyState} from './site-security.mjs';
 import {effectiveDeliveryValues} from './effective-delivery.mjs';
@@ -143,7 +143,7 @@ export async function readState(options:RecordRead={}): Promise<State> {
   ).first<{ revision: number; values: string }>();
   if (!row) throw Error('Current state is missing; explicit initialization is required');
   const stored=JSON.parse(row.values);
-  if(stored.__processRecords)return deliver({revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)});
+  if(stored.__processRecords){pinIdentityReadToken(options.identityReadToken,row.revision,row.values,env.STATE_ARCHIVE);return deliver({revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)});}
   if(stored.__processChunks)return deliver({revision:row.revision,...await decodeChunkedValues(env.STATE_ARCHIVE,stored)});
   // Inline legacy state is already decoded. Avoid parsing large captured JSON
   // twice; R2 envelopes still pass through integrity-checked decodeValues.

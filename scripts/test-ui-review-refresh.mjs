@@ -31,7 +31,7 @@ function bomDraftActions(){
 }
 async function feedback(){
  let resolve;const shell={querySelector:()=>({textContent:''})},host={isConnected:true,innerHTML:'',querySelector:()=>shell};
- const ctx={board:null,boardActor:'',epoch:0,issues:[],isAdmin:false,t:a=>a,request:()=>new Promise(r=>resolve=r),renders:0,renderBoard(){ctx.renders++;},document:{}};
+ const ctx={captureOwner:()=>({}),owns:()=>true,guard:fn=>fn,holdBoard:()=>false,board:null,boardActor:'',epoch:0,issues:[],isAdmin:false,t:a=>a,request:()=>new Promise(r=>resolve=r),renders:0,renderBoard(){ctx.renders++;},document:{}};
  vm.createContext(ctx);vm.runInContext(between(source('web-feedback.js'),' async function admin(', '\n const filters=')+';this.open=admin;',ctx);
  let task=ctx.open(host,{id:'a'});host.querySelector=()=>null;resolve({issues:[{id:'late'}],admin:true});await task;assert.equal(ctx.renders,0);assert.equal(ctx.issues.length,0);
  host.querySelector=()=>shell;task=ctx.open(host,{id:'a'},true);ctx.epoch++;resolve({issues:[{id:'old-account'}],admin:true});await task;assert.equal(ctx.renders,0);
@@ -77,4 +77,4 @@ async function feedbackAssets(){
  ctx.window.WebFeedback={ready:true};const retry=ctx.loadAssets();assert.equal(nodes.length,3);nodes[2].onload();assert.equal((await retry).ready,true);
  console.log('PASS failed feedback assets can retry without duplicating the loaded controller');
 }
-(async()=>{await bom();bomDraftActions();await feedback();await feedbackAssets();approval();await effective();await processReview();})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{if(process.argv.includes('--feedback-only')){await feedback();await feedbackAssets();return;}await bom();bomDraftActions();await feedback();await feedbackAssets();approval();await effective();await processReview();})().catch(e=>{console.error(e);process.exitCode=1;});
