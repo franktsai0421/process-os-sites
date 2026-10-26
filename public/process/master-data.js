@@ -351,12 +351,14 @@
   }
   window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:async()=>{await dataReady;if(state.view==='approval')await approvalReady;if(dataError)throw dataError;}};
   bindData = function () {
-    if(window.ProcessSync?.deliveryProjection&&String(state.dataTab||'').startsWith('quality-')){
-      if(window.ProcessDualSystem)window.ProcessDualSystem.renderQualityDataTab(state.dataTab);
+    const tab=state.dataTab||new URL(location.href).searchParams.get('dataTab')||'AB';
+    if(window.ProcessSync?.deliveryProjection&&String(tab).startsWith('quality-')){
+      state.dataTab=tab;
+      if(window.ProcessDualSystem)window.ProcessDualSystem.renderQualityDataTab(tab);
       else {const content=document.querySelector('#data-content');if(content)content.textContent='…';}
       return;
     }
-    selectDataTab(state.dataTab||new URL(location.href).searchParams.get('dataTab')||'AB');
+    selectDataTab(tab);
   };
   window.addEventListener('popstate',()=>{
     if (!currentUser) return;

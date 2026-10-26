@@ -39,7 +39,10 @@ try{
    for(const [name,target]of [['window',window],['document',document]]){const add=target.addEventListener,remove=target.removeEventListener;target.addEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);if(!listeners.has(key))listeners.set(key,new Set());listeners.get(key).add(fn);return add.call(this,type,fn,options);};target.removeEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);listeners.get(key)?.delete(fn);return remove.call(this,type,fn,options);};}
    window.__fixtureResourceCounts=()=>({intervals:intervals.size,timeouts:timeouts.size,objectURLs:urls.size,globalListeners:[...listeners.values()].reduce((n,rows)=>n+rows.size,0)});
   });
-  const page=await context.newPage();lastPage=page;page.on('pageerror',error=>report.pageErrors.push(String(error.message).replaceAll(secret,'[redacted]').slice(0,160)));
+  const page=await context.newPage();lastPage=page;page.on('pageerror',error=>{
+   report.pageErrors.push(String(error.message).replaceAll(secret,'[redacted]').slice(0,160));
+   const route=new URL(page.url());(report.pageErrorDetails||=[]).push({actor:actor||'normal-login',stage,path:route.pathname,view:route.searchParams.get('view'),dataTab:route.searchParams.get('dataTab'),frames:String(error.stack||'').split('\n').slice(1,5).map(line=>{const match=line.match(/\/process\/([\w.-]+\.js)(?:\?[^:\s)]*)?:(\d+):(\d+)/);return match?{file:match[1],line:Number(match[2]),column:Number(match[3])}:null;})});
+  });
   page.on('console',message=>{if(message.text().startsWith('Process page rendering failed'))report.pageErrors.push(message.text().slice(0,350));});
   page.on('response',response=>{if(response.status()>=400)report.failedRequests.push({path:new URL(response.url()).pathname,status:response.status()});});
   return{context,page};

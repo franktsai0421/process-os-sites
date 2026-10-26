@@ -37,10 +37,15 @@ The precise producer policy is in
 
 ## Validation status
 
-Application code is byte-identical to
-`fff6a8231f58af817e19e2b2d2828f1b86e95a28`. Test infrastructure now uses portable
-Chrome discovery; 15 focused preflight/launcher checks PASS. The first CI run did
-not reach the compiled browser; the corrected exact-head run remains pending.
+The application baseline is
+`fff6a8231f58af817e19e2b2d2828f1b86e95a28`, plus a narrow cold-entry data-tab
+dispatch correction: a quality destination no longer falls back to an absent
+master scope before its module registers. It adds no data reads or readiness
+shortcut. The correction passes 48 focused adapter/router/bootstrap cases.
+Portable Chrome discovery retains its 15 focused preflight/launcher checks.
+An actual compiled-browser run exercised navigation and original-image paths but
+failed on the cold-entry page error; that partial run is not an overall PASS.
+Corrected exact-head full CI remains pending.
 Existing application evidence is reused, not represented as new executions:
 
 - PASS: 10 actual IQC/route handler groups, including storage compatibility,

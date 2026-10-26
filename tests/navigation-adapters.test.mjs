@@ -5,6 +5,30 @@ import vm from 'node:vm';
 const source=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
 const part=(text,start,end)=>text.slice(text.indexOf(start),text.indexOf(end,text.indexOf(start)));
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
+
+function masterTabFixture(tab,{registered=false,selected,projected=true,master=false}={}){
+ const state={view:'data',masterScope:'AB',...(selected?{dataTab:selected}:{})},content={dataset:{},textContent:'',innerHTML:''},calls=[];
+ const catalog={products:[],lines:[],categoryGroups:[]},control={active:master?{AB:catalog,C:catalog}:{},versions:[]};
+ const box={state,control,URL,location:{href:'https://fixture.invalid/process/?view=data&dataTab='+tab},document:{documentElement:{lang:'zh',dataset:{}},querySelector:selector=>selector==='#data-content'?content:null},hasPermission:()=>false,history:{pushState(){throw Error('UNEXPECTED_HISTORY_WRITE');}},fetch(){throw Error('UNEXPECTED_READ');},localStorage:{setItem(){throw Error('UNEXPECTED_STORAGE_WRITE');}},bindData:null,bindTabButtons:()=>calls.push('tabs'),bindMaster:()=>calls.push('master'),sharedLoaded:new Set(),sharedLoading:new Set()};
+ box.window=box;box.MutationObserver=class{observe(){}};box.ProcessSync={deliveryProjection:projected};if(registered)box.ProcessDualSystem={renderQualityDataTab:value=>calls.push(['quality',value])};
+ vm.createContext(box);vm.runInContext(source('master-admin-ui.js'),box,{filename:'master-admin-ui.js'});
+ const admin=box.MasterAdminUI.install({state,control,versions:()=>[],draft:()=>null,pending:()=>null,shared:{flow:()=>null,permissions:()=>({})}});box.masterView=admin.masterView;
+ const text=source('master-data.js');for(const [start,end]of [['  function selectDataTab(','  function bindTabButtons('],['  bindData = function () {',"  window.addEventListener('popstate'"]]){
+  const offset=text.indexOf(start);assert(offset>=0&&text.indexOf(end,offset)>offset);vm.runInContext(part(text,start,end),box,{filename:'master-data.js',lineOffset:text.slice(0,offset).split('\n').length-1});
+ }
+ return{box,state,content,calls,control};
+}
+for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-equipment','quality-routine-reports'])test('cold destination '+tab+' never falls back to an absent master scope',()=>{
+ for(const registered of [false,true]){
+  const f=masterTabFixture(tab,{registered}),before=JSON.stringify(f.control);f.box.bindData();
+  assert.equal(f.state.dataTab,tab);assert.equal(JSON.stringify(f.control),before);assert.equal(f.content.innerHTML,'');
+  assert.deepEqual(f.calls,registered?[['quality',tab]]:[]);assert.equal(f.content.textContent,registered?'':'…');
+  assert.equal(f.box.document.documentElement.dataset.processDestinationReadyGeneration,undefined);
+ }
+});
+test('cold destination keeps an installed quality tab ahead of an old display URL',()=>{const f=masterTabFixture('AB',{registered:true,selected:'quality-iqc'});f.box.bindData();assert.deepEqual(f.calls,[['quality','quality-iqc']]);assert.equal(f.state.dataTab,'quality-iqc');});
+for(const tab of ['AB','C'])test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
+test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 const iqcLoad=part(source('iqc-master.js'),'  async function load() {','  async function post(');
 for(const stage of ['json','permissions'])test('actual IQC load rejects old delivery after '+stage+' without installing model',async()=>{
  let epoch=1,permissionCalls=0;const json=deferred(),permissions=deferred();
@@ -56,6 +80,6 @@ for(const outcome of ['resolve','reject'])test('actual FQC approval '+outcome+' 
 });
 test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 test('changed persistent-navigation executable references have coherent new cache versions',()=>{
- const html=source('index.html');for(const file of ['app.js','approval-tabs.js','bom-workspace.js','bootstrap.js','canvas-local.js','delivery-navigation.js','dual-system.js','effective-version-notice.js','fqc-master.js','ipqc-ab.js','ipqc-c.js','iqc-master.js','master-data.js','master-shared-client.js','permission-controls.js','process-authoring-v3.js','quality-review-overview.js','routine-equipment.js','routine-fqc.js','shared-draft-client.js','shared-state.js','tooling.js','user-access.js','navigation-forms.js'])assert(html.includes(file+'?v=20261025-navigation2'),file);
+ const html=source('index.html');for(const file of ['app.js','approval-tabs.js','bom-workspace.js','bootstrap.js','canvas-local.js','delivery-navigation.js','dual-system.js','effective-version-notice.js','fqc-master.js','ipqc-ab.js','ipqc-c.js','iqc-master.js','master-data.js','master-shared-client.js','permission-controls.js','process-authoring-v3.js','quality-review-overview.js','routine-equipment.js','routine-fqc.js','shared-draft-client.js','shared-state.js','tooling.js','user-access.js','navigation-forms.js'])assert(html.includes(file+'?v='+(file==='master-data.js'?'20261026-navigation3':'20261025-navigation2')),file);
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261025-navigation2"));
 });
