@@ -1,5 +1,5 @@
 // Display intent only; the server independently checks the destination cell.
-export const deliveryTabs=Object.freeze({AB:'ab',C:'c',bom:'bom','line-admin':'lines','process-master':'templates',users:'users','quality-fqc':'fqc','quality-iqc':'iqc','quality-ipqc-ab':'ipqc-ab','quality-ipqc-c':'ipqc-c','quality-mold-equipment':'tooling','quality-routine-reports':'routine-reports','quality-routine-equipment':'equipment'});
+export const deliveryTabs=Object.freeze({AB:'ab',C:'c',bom:'bom','line-admin':'lines','process-master':'templates',users:'users','web-feedback':'feedback','quality-fqc':'fqc','quality-iqc':'iqc','quality-ipqc-ab':'ipqc-ab','quality-ipqc-c':'ipqc-c','quality-mold-equipment':'tooling','quality-routine-reports':'routine-reports','quality-routine-equipment':'equipment'});
 export const deliveryViews=Object.freeze({dashboard:'dashboard',player:'player',dispatch:'dispatch',productStatus:'status',editor:'editor',approval:'approval','quality-dashboard':'quality-dashboard','quality-search':'quality-search','quality-reports':'quality-reports','quality-inspections':'routine','quality-fpy':'fpy'});
 export function deliveryCandidate(search){
  const q=new URLSearchParams(search);

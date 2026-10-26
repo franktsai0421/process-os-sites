@@ -8,6 +8,8 @@ import { publicIpqcWorkflow } from '@/lib/ipqc-c-workflow';
 import {recordJSONResponse} from '@/lib/state-records-response';
 
 const KEY = 'ipqcCMasterControl';
+// Hosted GET only: local historicalCodes and every write retain full-state reads.
+const readKeys = ['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY,'masterDataControl','routineEquipmentControl'];
 const reply = (body: unknown, status = 200) => Response.json(body, { status, headers });
 const record = (actor: { id: string; name: string }, action: string, comment = '') =>
   ({ action, actorId: actor.id, actorName: actor.name, at: new Date().toISOString(), ...(comment ? { comment } : {}) });
@@ -59,7 +61,7 @@ const clean = (value: unknown) => typeof value === 'string' ? value : '';
 export async function GET(request: Request) {
   try {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
+    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});
     const actor = await identity(request, state);
     if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
       return reply({ error: '沒有查看 IPQC-C 的權限' }, 403);

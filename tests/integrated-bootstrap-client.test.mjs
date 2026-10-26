@@ -19,7 +19,7 @@ test('real client refuses partial legacy writes without false save success; comp
  g.api.applyServerState({revision:12,values:{masterDataControl:'{"fullUnrelatedScope":true}',iqcMasterControl:'{"other":true}',dispatchBoard:'{"A":["confirmed"]}'}});assert.equal(g.localStorage.getItem('masterDataControl'),'{"active":{},"versions":[]}');assert.equal(g.localStorage.getItem('iqcMasterControl'),null);assert.equal(g.localStorage.getItem('dispatchBoard'),'{"A":["confirmed"]}');
 });
 test('real bootstrap never requests raw seeds, waits authoritative editor readiness, and keeps failures covered',async()=>{
- const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  async function boot(failed=false){
   const requested=[],removed=[],attrs={},gate={style:{},setAttribute(){},append(){},remove(){removed.push('gate');}};
   const scripts=['./data/imported-data.js?v=1','data/line-process-data.js','data/line-c-master.js','./app.js','./module.js'].map(src=>({dataset:{processSrc:src},remove(){removed.push(src);},replaceWith(script){requested.push(script.src);script.onload();}}));
@@ -33,13 +33,13 @@ test('real bootstrap never requests raw seeds, waits authoritative editor readin
  const bad=await boot(true);assert.deepEqual(bad.requested,[]);assert(!bad.removed.includes('gate'));assert.match(bad.gate.textContent,/載入失敗/);
 });
 test('expired normal session returns to fixed login with display intent and requests no seed',async()=>{
- const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  const navigations=[],gate={textContent:''};
  await vm.runInNewContext(text,{window:{ProcessSync:{ready:Promise.resolve(),loginRequired:true}},deliveryPolicy,document:{querySelector:()=>gate,querySelectorAll:()=>[]},localStorage:{getItem:()=> 'zh'},URLSearchParams,location:{search:'?system=process&view=player&line=C&stage=C-CUT&next=https://bad.invalid&role=admin',replace:url=>navigations.push(url)}});
  assert.deepEqual(navigations,['/login?system=process&view=player&line=C&stage=C-CUT']);
 });
 test('account and review destinations wait for their existing reads without launching another read',async()=>{
- const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  for(const destination of [{view:'data',dataTab:'users',system:'process'},{view:'approval',system:'process'}]){
   let release,removed=false,calls=0;const existing=new Promise(resolve=>release=resolve),wait=()=>{calls++;return existing;},gate={setAttribute(){},append(){},remove(){removed=true;}};
   const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},destination,catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{products:[]},routing:{lines:[]},lineC:{products:[]}}},ProcessUserAccess:{readyForDestination:wait},BOMWorkspace:{readyForReview:wait,loadReview(){throw Error('DUPLICATE_REVIEW_READ');}},dispatchEvent(){}};
@@ -55,7 +55,7 @@ test('bootstrap sends only destination intent; account change clears old deliver
  assert(f.events.includes('process-delivery-invalidated'));await assert.rejects(()=>f.api.refresh(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.calls.length,1);
 });
 test('cold bootstrap completion cannot mark a newer same-document target ready',async()=>{
- const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  let epoch=0,release;const targetReady=new Promise(resolve=>release=resolve),attrs={processDestinationGeneration:'0'},gate={setAttribute(){},append(){},remove(){}};
  const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>epoch,isCurrentDelivery:old=>old===epoch,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};
  const document={querySelector:()=>gate,querySelectorAll:()=>[],createElement:()=>({}),head:{append(){}},documentElement:{dataset:attrs,removeAttribute(){}}};
@@ -63,7 +63,7 @@ test('cold bootstrap completion cannot mark a newer same-document target ready',
  await new Promise(resolve=>setImmediate(resolve));epoch++;attrs.processDestinationGeneration='1';release();await pending;assert.equal(attrs.processDestinationReadyGeneration,undefined);assert.equal(attrs.processReadyMs,undefined);
 });
 test('late cold target-read error preserves already interactive owned module DOM',async()=>{
- const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  let reject,removed=false,prepended=0,replaced=0;const targetReady=new Promise((_r,j)=>reject=j),root={prepend(){prepended++;},replaceChildren(){replaced++;}},gate={setAttribute(){},append(){},remove(){removed=true;}};
  const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>({id:'frank',generation:0}),isCurrentDelivery:()=>true,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};
  const document={querySelector:s=>s==='#view-root'?root:removed?null:gate,querySelectorAll:()=>[],createElement:()=>({dataset:{},setAttribute(){},append(){}}),head:{append(){}},documentElement:{dataset:{},removeAttribute(){}}};

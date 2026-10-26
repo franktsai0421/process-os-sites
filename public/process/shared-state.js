@@ -59,6 +59,7 @@
     importPending: false,
     loginRequired: false,
     deliveryProjection: false,
+    features: Object.freeze({webFeedback:false}),
     writableKeys: [],
     catalog: null,
     destination: null,
@@ -214,6 +215,7 @@
       }
     if(shared.deliveryProjection===true){
       api.deliveryProjection=true;
+      api.features=Object.freeze({webFeedback:shared.features?.webFeedback===true});
       api.writableKeys=Array.isArray(shared.writableKeys)?shared.writableKeys:[];
       api.catalog=shared.catalog;
       api.destination=shared.destination||null;

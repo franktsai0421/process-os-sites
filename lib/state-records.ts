@@ -15,7 +15,9 @@ export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string
  effectiveOnly?:boolean;
  // Workflow adapters consume dependencies' effective/open content, not legacy
  // historical parsers. Opt-in only; ordinary/public reads retain their contract.
- deferDependencyHistory?:boolean;allocationKey?:string};
+ deferDependencyHistory?:boolean;allocationKey?:string;
+ // Opaque server-created request token; never supplied by HTTP or a write path.
+ identityReadToken?:object};
 const prefix='state-records/v1/',encoder=new TextEncoder();
 const hash=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(s))),b=>b.toString(16).padStart(2,'0')).join('');
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -26,6 +28,36 @@ const reference=(v:unknown):v is {__immutableBody:Ref}=>object(v)&&Object.keys(v
 export const isImmutableRecordBody=reference;
 async function read(bucket:Bucket,ref:Ref){if(!valid(ref))throw Error('Invalid immutable record reference');const object=await bucket.get(ref.key);if(!object)throw Error('Immutable record missing');const raw=await object.text();if(await hash(raw)!==ref.sha256)throw Error('Immutable record corrupt');return raw;}
 export const readImmutableRecord=read;
+// A bootstrap may reuse only previously SHA-verified raw identity aggregates
+// between its first and selected reads. No parsed objects or authority results
+// are cached; its final read MUST omit the token and reread storage independently.
+const identityReadKeys=new Set(['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']);
+type IdentityReadContext={revision:number|null;manifest:string;bucket:Bucket|null;phase:'collect'|'reuse'|'disabled';raws:Map<string,string>};
+const identityReadContexts=new WeakMap<object,IdentityReadContext>();
+export function createIdentityReadToken(){const token=Object.freeze({});identityReadContexts.set(token,{revision:null,manifest:'',bucket:null,phase:'collect',raws:new Map()});return token;}
+export function pinIdentityReadToken(token:object|undefined,revision:number,manifest:string,bucket:Bucket){
+ const c=token&&identityReadContexts.get(token);if(!c)return;
+ if(c.revision!==null&&(c.revision!==revision||c.manifest!==manifest||c.bucket!==bucket)){c.raws.clear();c.phase='disabled';}
+ c.revision=revision;c.manifest=manifest;c.bucket=bucket;
+}
+export function allowIdentityReadReuse(token:object){
+ const c=identityReadContexts.get(token);if(!c||c.phase!=='collect')return false;
+ // Identity-only destinations have no other media/BOM dependencies. Opt out if
+ // these raw values could introduce deferred-media I/O before the final fence.
+ try{const override=JSON.parse(c.manifest).maintenanceMode;for(const raw of [...c.raws.values(),...(override===undefined?[]:[override])]){const normalized=JSON.stringify(JSON.parse(raw));if(/data:(?:image|video)\//.test(normalized)||normalized.includes('"__immutableBody"'))throw Error('NOT_REUSABLE');}}catch{c.raws.clear();c.phase='disabled';return false;}
+ c.phase='reuse';return true;
+}
+async function readIdentityAggregate(bucket:Bucket,key:string,ref:Ref,token?:object){
+ if(!valid(ref))throw Error('Invalid immutable record reference');
+ const c=token&&identityReadContexts.get(token),name=key+'\0'+ref.key+'\0'+ref.sha256;
+ if(c?.phase==='reuse'&&c.bucket===bucket&&identityReadKeys.has(key)&&c.raws.has(name))return c.raws.get(name)!;
+ const raw=await read(bucket,ref);
+ if(c?.phase==='collect'&&c.bucket===bucket&&identityReadKeys.has(key)){
+  // Bound retained strings by UTF-16 code units, not UTF-8 bytes.
+  if(raw.length>262144){c.raws.clear();c.phase='disabled';}else c.raws.set(name,raw);
+ }
+ return raw;
+}
 const allocationKeys=new Set(['qualityMasterControl','ipqcABMasterControl','ipqcCMasterControl','routineEquipmentControl']);
 function checkedAllocation(value:unknown):AllocationIndex{
  if(!object(value)||value.version!==1||!['errors','items','equipment','categories'].every(k=>Array.isArray(value[k])&&(value[k] as unknown[]).every(row=>object(row)&&Object.values(row).every(v=>typeof v==='string'))))throw Error('Invalid allocation index');
@@ -124,7 +156,7 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
  }
  // Serial module loading bounds transient allocation. Per-request body sharing
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
- for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const original=await read(bucket,ref),raw=options.projectValue?await options.projectValue(key,original):original;
+ for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const original=await (options.identityReadToken?readIdentityAggregate(bucket,key,ref,options.identityReadToken):read(bucket,ref)),raw=options.projectValue?await options.projectValue(key,original):original;
   if(raw===undefined)continue;
   if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;

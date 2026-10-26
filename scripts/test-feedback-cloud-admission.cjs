@@ -1,0 +1,21 @@
+/* oxlint-disable typescript/no-require-imports -- actual route with isolated SQLite/R2 ports. */
+const vm=require('node:vm'),ts=require('typescript'),fs=require('node:fs'),assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomUUID}=require('node:crypto');
+const db=new DatabaseSync(':memory:'),queries=[],objects=new Map();db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT)');
+const env={WEB_FEEDBACK_ENABLED:'1',PROCESS_SESSION_SECRET:randomUUID(),STATE_ARCHIVE:{async get(key){throw Error('Unexpected feedback bootstrap R2 read '+key);},async put(){throw Error('Unexpected write');}},DB:{prepare(sql){queries.push(sql);let args=[];return{bind(...v){args=v;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return {success:true,results:db.prepare(sql).all(...args)};},async run(){throw Error('Read must not write');}};}}};
+const load=require('./ipqc-ab-import-harness.cjs')(env),policy=load('public/process/access-policy.mjs'),keys=policy.accessKeys;
+const actor=(id,allowed)=>({id,name:'Synthetic '+id,role:'staff',enabled:true,inheritRole:false,views:['data'],lines:[],permissions:[],accessOverrides:Object.fromEntries(keys.map(key=>[key,allowed.includes(key)]))});
+const values={platformUsers:JSON.stringify([actor('feedback',['feedback.view']),actor('denied',['iqc.view']),{id:'frank',name:'Synthetic owner',role:'admin',primary:true,enabled:true}]),processCustomRoles:'[]',processRoleTemplateOverrides:'{}',backupSettings:'{"enabled":false}'};
+db.prepare('INSERT INTO shared_state VALUES(1,7,?,?)').run(JSON.stringify(values),'synthetic');
+(async()=>{const core=load('lib/process-state.ts'),cookies={};
+ // The shared harness uses a VM per TS module and native require for mjs. Bind
+ // Error to the same realm here so actual production instanceof checks are faithful.
+ const mod={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/process-bootstrap/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,Error,Request,Response,URL,require(id){if(id==='cloudflare:workers')return{env};const file=id.replace(/^@\//,'');return file.endsWith('.mjs')?require('../'+file):load(file+'.ts');}});const route=mod.exports;for(const id of ['feedback','denied','frank'])cookies[id]='process_demo='+await core.demoSession(new Request('http://fixture.invalid'),id,false);
+ const request=(id,query='?view=data&dataTab=web-feedback')=>route.GET(new Request('http://fixture.invalid/api/process-bootstrap'+query,{headers:id?{Cookie:cookies[id]}:{}}));
+ const before=db.prepare('SELECT * FROM shared_state').get();assert.equal((await request(null)).status,401);
+ let r=await request('feedback');assert.equal(r.status,200);let body=await r.json();assert.deepEqual(body.features,{webFeedback:true});assert.equal(body.destination.key,'data:web-feedback');assert.deepEqual(body.catalog.loadedScopes,[]);assert(!body.values.masterDataControl);assert(!body.values.iqcMasterControl);
+ assert.equal((await request('denied')).status,403);
+ for(const flag of ['0','true','',undefined]){env.WEB_FEEDBACK_ENABLED=flag;r=await request('feedback');assert.equal(r.status,404);r=await request('feedback','');assert.equal(r.status,403);r=await request('frank','?view=data&dataTab=users');assert.equal(r.status,200);body=await r.json();assert.deepEqual(body.features,{webFeedback:false});}
+ env.WEB_FEEDBACK_ENABLED='1';assert.equal((await request('feedback','')).status,200);
+ assert(!queries.some(sql=>/web_feedback_store/i.test(sql)),'bootstrap must not read/init feedback singleton');assert.deepEqual(db.prepare('SELECT * FROM shared_state').get(),before);assert.equal(objects.size,0);
+ console.log(JSON.stringify({status:'PASS',checks:['anonymous','strict feature flag','view permission','identity-only delivery','fallback excludes disabled','no feedback reads','no writes'],scope:'Actual bootstrap strict opt-in, feedback.view, minimal delivery, fallback and no feedback storage reads/writes; synthetic SQLite/auth only',live:false}));
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>db.close());

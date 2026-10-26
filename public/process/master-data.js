@@ -311,12 +311,16 @@
     return `<section class="page"><div class="tabs master-tabs"><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'AB' ? 'active' : ''}" data-master-scope="AB">AB 產線與類別</button><button class="tab master-tab ${state.masterSection !== 'lines' && state.masterScope === 'C' ? 'active' : ''}" data-master-scope="C">C 產線與類別</button><button class="tab master-tab" data-tab="bom">BOM 資料</button><button class="tab master-tab ${state.masterSection === 'lines' ? 'active' : ''}" data-tab="line-admin">線別與工段管理</button><button class="tab master-tab" data-tab="process-master">流程資料</button><button class="tab master-tab" data-tab="users">使用者與權限</button></div><div id="data-content">${projected?'':masterView()}</div></section>`;
   };
   function selectDataTab(tab, push = false) {
-    if (!['AB','C','bom','line-admin','process-master','users'].includes(tab)) tab='AB';
+    if (!['AB','C','bom','line-admin','process-master','users','web-feedback'].includes(tab)) tab='AB';
     state.dataTab=tab;
     state.masterSection=tab==='line-admin'?'lines':'products';
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
+    if(tab==='web-feedback'){
+      content.dataset.activeTab=tab;
+      window.ProcessFeedbackEntry?.mount?.(content);bindTabButtons();return;
+    }
     if(tab==='process-master'&&!sharedLoaded.has('PROCESS')){
       content.textContent=document.documentElement.lang==='vi'?'Đang tải dữ liệu quy trình…':'載入流程資料中…';
       if(!sharedLoading.has('PROCESS')){const generation=deliveryGeneration;sharedLoading.add('PROCESS');dataError=null;dataReady=shared.load('PROCESS').then(()=>{if(!ownsDelivery(generation))return;sharedLoaded.add('PROCESS');if(state.dataTab==='process-master')selectDataTab(tab);}).catch(error=>{
@@ -349,7 +353,7 @@
       button.onclick=()=>selectDataTab(tab,true);
     });
   }
-  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:async()=>{await dataReady;if(state.view==='approval')await approvalReady;if(dataError)throw dataError;}};
+  window.ProcessDataTabs={select:selectDataTab,bind:bindTabButtons,readyForDestination:async()=>{await dataReady;if(state.view==='data'&&state.dataTab==='web-feedback')await window.ProcessFeedbackEntry?.readyForDestination?.();if(state.view==='approval')await approvalReady;if(dataError)throw dataError;}};
   bindData = function () {
     const tab=state.dataTab||new URL(location.href).searchParams.get('dataTab')||'AB';
     if(window.ProcessSync?.deliveryProjection&&String(tab).startsWith('quality-')){
