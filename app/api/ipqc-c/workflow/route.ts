@@ -52,7 +52,7 @@ function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},a
 export async function GET(request:Request) {
   try {
     const query=new URL(request.url).searchParams;
-    const state=await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
+    const state=await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
     if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
     if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;

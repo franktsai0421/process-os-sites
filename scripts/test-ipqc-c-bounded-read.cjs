@@ -51,13 +51,14 @@ await check('C7 loopback full-read historicalCodes and non-loopback bounded beha
  for(const origin of ['http://localhost:3040','http://127.0.0.1:3000'])for(const who of ['frank','reader']){const req=request(who,'?caseMetadata=1',{origin}),next=await run(req),prior=await run(req,true);assert.deepEqual(comparable(next),comparable(prior));assert(next.keys.includes(refs.unrelated.key));if(who==='frank')assert(next.body.historicalCodes.includes('C-HIST-TIEN-L987-01'));else assert.equal(next.body.historicalCodes,undefined);}
  const hosted=await run(request('frank'));assert.equal(hosted.body.historicalCodes,undefined);assert(!hosted.keys.includes(refs.unrelated.key));
 });
-await check('C9 POST and workflow/image sources remain exact v20 bytes',()=>{
+await check('C9 protected POST, domain and image sources remain exact v20 bytes',()=>{
  const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];
  // Git blobs remain byte-exact; checkout conversion may change CRLF, and nothing else.
  const checkoutBytes=bytes=>bytes.filter((byte,index)=>byte!==13||bytes[index+1]!==10);
- const postBytes=bytes=>{const index=bytes.indexOf(Buffer.from('type Body ='));assert(index>=0,'POST source marker required');return bytes.subarray(index);};
+ const postBytes=(bytes,marker='type Body =')=>{const index=bytes.indexOf(Buffer.from(marker));assert(index>=0,'POST source marker required');return bytes.subarray(index);};
  const preserved=(original,committed,working,postOnly=false)=>{
-  assert.deepEqual(postOnly?postBytes(committed):committed,postOnly?postBytes(original):original,'Committed protected source changed');
+  const marker=typeof postOnly==='string'?postOnly:undefined;
+  assert.deepEqual(postOnly?postBytes(committed,marker):committed,postOnly?postBytes(original,marker):original,'Committed protected source changed');
   assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
  };
  const lf=Buffer.from('prefix\ntype Body = {};\nconst value = true;\n'),crlf=Buffer.from(lf.toString().replace(/\n/g,'\r\n'));
@@ -71,7 +72,7 @@ await check('C9 POST and workflow/image sources remain exact v20 bytes',()=>{
  assert.throws(()=>preserved(Buffer.from('missing'),lf,lf,true),/POST source marker required/);
  assert.throws(()=>preserved(lf,Buffer.from('missing'),lf,true),/POST source marker required/);
  for(const file of ['app/api/ipqc-c/route.ts','lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts']){
-  preserved(execFileSync('git',['show',base+':'+file]),execFileSync('git',['show','HEAD:'+file]),fs.readFileSync(file),file==='app/api/ipqc-c/route.ts');
+  preserved(execFileSync('git',['show',base+':'+file]),execFileSync('git',['show','HEAD:'+file]),fs.readFileSync(file),file==='app/api/ipqc-c/workflow/route.ts'?'export async function POST(':file==='app/api/ipqc-c/route.ts');
  }
 });
 await check('C10 absent archive inline compatibility; R2-dependent formats still fail closed',async()=>{

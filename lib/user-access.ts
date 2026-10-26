@@ -9,10 +9,10 @@ export type PlatformUser = AccessUser & { name: string; email?: string; password
 export function roleTemplates(values:Record<string,string>):Record<string,AccessScope> {return templates(values,roleDefaults);}
 export function effectiveAccess(user:AccessUser, values:Record<string,string>) {
   const role = user.role;
-  const preset = roleTemplates(values)[role];
+  const roles = roleTemplates(values), preset = roles[role];
   const scope = user.inheritRole !== false ? preset : user;
   const enabled = user.enabled !== false && !user.deletedAt && !!preset;
-  const cells=effectiveCells(user,roleTemplates(values)),primary=isPrimary(user);
+  const cells=effectiveCells(user,roles),primary=isPrimary(user);
   return { role, enabled, primary, cells, inheritRole: user.inheritRole !== false,
     lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...(primary?roleDefaults.admin.permissions:scope?.permissions||[]),...accessKeys.filter(key=>cells[key])])] : [] };
 }

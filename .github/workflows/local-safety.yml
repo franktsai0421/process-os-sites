@@ -191,6 +191,12 @@ jobs:
         run: |
           node scripts/test-ipqc-c-bounded-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-c-permissions-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-bounded-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-access-template-reuse.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bootstrap bounded reads without production instrumentation
         run: node scripts/test-bootstrap-read-reduction.cjs
       - name: Opt-in feedback cloud entry, ownership and reserved toolbar geometry
