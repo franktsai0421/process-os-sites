@@ -6,11 +6,17 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {sourcePathDisposition} from '../lib/sites-source-boundary.mjs';
 
 const held=new Set(['scripts/dev-package-restore.mjs','scripts/u1-package.mjs','scripts/dev-package-update.mjs']);
-// Independently reviewed synthetic fixtures from PR23. No other commit, path,
+// Independently reviewed exact synthetic fixtures. No other commit, path,
 // blob or category is admitted by this supplement; the original anchor stays.
 const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',entries:[
  {path:'scripts/test-integrated-bootstrap.cjs',blob:'c991cb7e3d377436df4780a7fa334b35472cd8f6',categories:['ASSIGNED_SECRET']},
  {path:'tests/sites-delivery-browser.test.mjs',blob:'ce58816f488382bfe41438ce629c15b6b0594c08',categories:['WORKSTATION_PATH']},
+]},
+// PR26's extended synthetic browser fixture retains the previously reviewed
+// standard Chrome fallback. Admit only this historical ancestor/path/blob/category;
+// future browser discovery no longer embeds an installation path.
+{commit:'705e92bf53b7cd4ed9667444bcd5289679a86234',entries:[
+ {path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']},
 ]}];
 const patterns=[
  ['PRIVATE_KEY',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],

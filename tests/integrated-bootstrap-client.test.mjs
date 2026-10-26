@@ -26,8 +26,8 @@ test('real bootstrap never requests raw seeds, waits authoritative editor readin
   let release,releaseModule;const readiness=new Promise(resolve=>release=resolve),moduleReady=new Promise(resolve=>releaseModule=resolve),window={ProcessSync:{ready:Promise.resolve(),identity:{id:'staff'},loadError:failed?'failed':null,destination:{view:'editor',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{products:[]},routing:{lines:[]},lineC:{products:[]}}},ProcessAuthoringV3:{readyForEditor:()=>readiness},ProcessDualSystem:{readyForDestination:()=>moduleReady},dispatchEvent(){}};
   const document={querySelector:()=>gate,querySelectorAll:()=>scripts,createElement:()=>({}),head:{append:link=>requested.push(link.href)},documentElement:{dataset:attrs,removeAttribute(){}}};
   const p=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html?view=editor',reload(){}}});
-  for(let n=0;n<15;n++)await Promise.resolve();assert(!removed.includes('gate'));
-  release();for(let n=0;n<10;n++)await Promise.resolve();assert(!removed.includes('gate'),'destination module must settle before reveal');releaseModule();await p;return {requested,removed,attrs,gate};
+  for(let n=0;n<15;n++)await Promise.resolve();if(!failed)assert(removed.includes('gate'),'authenticated shell is usable before target reads settle');assert.equal(attrs.processReadyMs,undefined);
+  release();for(let n=0;n<10;n++)await Promise.resolve();if(!failed)assert(removed.includes('gate'));assert.equal(attrs.processReadyMs,undefined,'target remains honestly not ready');releaseModule();await p;return {requested,removed,attrs,gate};
  }
  const ok=await boot();assert(ok.removed.includes('gate'));assert(ok.requested.length>0);assert(ok.requested.every(path=>!path.includes('/data/')&&!path.startsWith('data/')));assert.equal(ok.attrs.processReadyMs,10);
  const bad=await boot(true);assert.deepEqual(bad.requested,[]);assert(!bad.removed.includes('gate'));assert.match(bad.gate.textContent,/載入失敗/);
@@ -45,7 +45,7 @@ test('account and review destinations wait for their existing reads without laun
   const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},destination,catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{products:[]},routing:{lines:[]},lineC:{products:[]}}},ProcessUserAccess:{readyForDestination:wait},BOMWorkspace:{readyForReview:wait,loadReview(){throw Error('DUPLICATE_REVIEW_READ');}},dispatchEvent(){}};
   const document={querySelector:()=>gate,querySelectorAll:()=>[],createElement:()=>({}),head:{append(){}},documentElement:{dataset:{},removeAttribute(){}}};
   const pending=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html',reload(){}}});
-  for(let n=0;n<20;n++)await Promise.resolve();assert.equal(calls,1);assert.equal(removed,false);release();await pending;assert.equal(removed,true);assert.equal(calls,1);
+  for(let n=0;n<20;n++)await Promise.resolve();assert.equal(calls,1);assert.equal(removed,true);assert.equal(document.documentElement.dataset.processReadyMs,undefined);release();await pending;assert.equal(removed,true);assert.equal(calls,1);
  }
 });
 test('bootstrap sends only destination intent; account change clears old delivery and cannot refresh it into another actor',async()=>{
@@ -53,4 +53,19 @@ test('bootstrap sends only destination intent; account change clears old deliver
  assert.equal(f.calls[0].url,'/api/process-bootstrap?system=quality&view=data&dataTab=quality-iqc');
  f.api.setPlatformIdentity({id:'other',role:'staff'});assert.equal(f.api.requiresReload,true);assert.equal(f.api.catalog,null);assert.equal(f.localStorage.getItem('masterDataControl'),null);
  assert(f.events.includes('process-delivery-invalidated'));await assert.rejects(()=>f.api.refresh(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.calls.length,1);
+});
+test('cold bootstrap completion cannot mark a newer same-document target ready',async()=>{
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ let epoch=0,release;const targetReady=new Promise(resolve=>release=resolve),attrs={processDestinationGeneration:'0'},gate={setAttribute(){},append(){},remove(){}};
+ const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>epoch,isCurrentDelivery:old=>old===epoch,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};
+ const document={querySelector:()=>gate,querySelectorAll:()=>[],createElement:()=>({}),head:{append(){}},documentElement:{dataset:attrs,removeAttribute(){}}};
+ const pending=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html?view=dashboard',reload(){}}});
+ await new Promise(resolve=>setImmediate(resolve));epoch++;attrs.processDestinationGeneration='1';release();await pending;assert.equal(attrs.processDestinationReadyGeneration,undefined);assert.equal(attrs.processReadyMs,undefined);
+});
+test('late cold target-read error preserves already interactive owned module DOM',async()=>{
+ const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261025-purpose1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ let reject,removed=false,prepended=0,replaced=0;const targetReady=new Promise((_r,j)=>reject=j),root={prepend(){prepended++;},replaceChildren(){replaced++;}},gate={setAttribute(){},append(){},remove(){removed=true;}};
+ const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>({id:'frank',generation:0}),isCurrentDelivery:()=>true,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};
+ const document={querySelector:s=>s==='#view-root'?root:removed?null:gate,querySelectorAll:()=>[],createElement:()=>({dataset:{},setAttribute(){},append(){}}),head:{append(){}},documentElement:{dataset:{},removeAttribute(){}}};
+ const pending=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html?view=dashboard',reload(){}}});await new Promise(resolve=>setImmediate(resolve));assert.equal(removed,true);reject(Error('target read failed'));await pending;assert.equal(replaced,0);assert.equal(prepended,1);assert.equal(document.documentElement.dataset.processNavigationStatus,'error');
 });

@@ -62,7 +62,7 @@ function checkEquipment(snapshot: IqcSnapshot, previous: IqcSnapshot, values: Re
 export async function GET(request: Request) {
   try {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
+    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
     if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
       return reply({ error: '沒有查看 IQC 資料的權限' }, 403);

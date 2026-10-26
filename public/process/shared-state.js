@@ -36,6 +36,7 @@
     inFlightUpdates = null,
     inFlightOwner = null,
     identityEpoch = 0,
+    deliveryEpoch = 0,
     baseline = {},
     baselineOwner = null,
     blocked = false,
@@ -111,6 +112,39 @@
   api.setDemoIdentity = user => {api.setPlatformIdentity(user);sessionStorage.removeItem('process-platform-signed-out');};
   api.clearIdentity = () => {quarantinePending();identityEpoch++;if(ready&&api.deliveryProjection)invalidateDelivery();window.EffectiveVersionNotice?.reset?.();platformCredential=null;api.identity=null;blocked=false;paused=false;api.paused=false;};
   api.identityGeneration = () => identityEpoch;
+  api.captureDelivery = () => ({id:api.identity?.id,identityEpoch,deliveryEpoch});
+  api.isCurrentDelivery = owner => !!owner && !api.requiresReload && owner.id===api.identity?.id && owner.identityEpoch===identityEpoch && owner.deliveryEpoch===deliveryEpoch;
+  const preparedDestinations=new WeakMap();
+  const destinationError=(message,status)=>Object.assign(Error(message),{status});
+  api.prepareDestination = async (target,signal) => {
+    if(api.requiresReload||!api.identity?.id)throw destinationError('LOGIN_REQUIRED',401);
+    const owner=api.captureDelivery(),query=new URLSearchParams();
+    for(const key of ['system','view','dataTab'])if(typeof target[key]==='string'&&target[key])query.set(key,target[key]);
+    const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});
+    const payload=await response.json().catch(()=>null);
+    if(!api.isCurrentDelivery(owner)||signal?.aborted)throw destinationError('DELIVERY_SUPERSEDED',0);
+    if(response.status===401){quarantinePending();identityEpoch++;api.identity=null;api.expired=true;api.loginRequired=true;invalidateDelivery();throw destinationError('LOGIN_REQUIRED',401);}
+    // A denied target is not a logout or a new page-admission policy. Preserve
+    // the current session/source projection; never install the denied payload.
+    if(!response.ok)throw destinationError(typeof payload?.error==='string'?payload.error:'BOOTSTRAP_UNAVAILABLE',response.status);
+    if(payload?.identity?.id!==owner.id){quarantinePending();identityEpoch++;api.identity=null;invalidateDelivery();throw destinationError('ACCOUNT_CHANGED_REOPEN_REQUIRED',401);}
+    const policy=window.ProcessDeliveryPurpose,destination=payload.destination;
+    if(payload.deliveryProjection!==true||!Number.isSafeInteger(payload.revision)||!payload.values||Array.isArray(payload.values)||typeof payload.values!=='object'||!Object.values(payload.values).every(v=>typeof v==='string')||payload.catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!destination||!policy||!(destination.view==='data'?Object.hasOwn(policy.deliveryTabs,destination.dataTab):Object.hasOwn(policy.deliveryViews,destination.view))||destination.key!==policy.destinationKey(destination)||!['process','quality'].includes(destination.system)||target.view&&target.view!==destination.view||target.dataTab&&target.dataTab!==destination.dataTab)throw destinationError('BOOTSTRAP_INVALID_PROJECTION',503);
+    const handle=Object.freeze({destination:Object.freeze({...destination})});
+    preparedDestinations.set(handle,{payload,owner,signal});return handle;
+  };
+  api.validateDestination = handle => {
+    const prepared=preparedDestinations.get(handle);
+    if(!prepared||prepared.signal?.aborted||!api.isCurrentDelivery(prepared.owner))throw destinationError('DELIVERY_SUPERSEDED',0);
+    if(Object.keys(dirty).length||posting||paused||blocked||api.projectionWriteError)throw destinationError('UNSAVED_CHANGES',409);
+    return true;
+  };
+  api.commitDestination = handle => {
+    api.validateDestination(handle);const {payload}=preparedDestinations.get(handle);preparedDestinations.delete(handle);
+    deliveryEpoch++;api.identity=payload.identity;api.protected=!!payload.serverProtected;api.demoEnabled=!!payload.demoEnabled;
+    apply(payload);return api.destination;
+  };
+  api.suspendDestination=()=>{deliveryEpoch++;api.requiresReload=true;api.projectionWriteError='DESTINATION_INSTALL_FAILED';api.catalog=null;api.writableKeys=[];sharedValues.clear();baseline={};baselineOwner=null;};
   api.pendingState=()=>({dirty:Object.keys(dirty).length,inFlight:posting,paused,blocked});
   api.ownRecovery=()=>{if(!api.identity?.id)return null;const memory=quarantined.get(api.identity.id);if(memory)return memory;try{const saved=JSON.parse(originalGet.call(sessionStorage,recoveryKey(api.identity.id))||'null');return saved?.actorId===api.identity.id?saved:null;}catch{return null;}};
   api.platformHeaders = () => ({ 'Content-Type': 'application/json', ...authHeaders() });
@@ -159,7 +193,7 @@
     dirty={};dirtyOwner=null;
   }
   function invalidateDelivery(){
-    api.requiresReload=true;api.catalog=null;api.destination=null;api.writableKeys=[];
+    deliveryEpoch++;api.requiresReload=true;api.catalog=null;api.destination=null;api.writableKeys=[];
     sharedValues.clear();baseline={};baselineOwner=null;
     // Existing module closures must not continue under a different actor. Their
     // normal APIs also fence identity; a new document clears the old closures.
@@ -203,7 +237,7 @@
   }
   async function load() {
    if(api.requiresReload)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-   const generation=identityEpoch,oldActor=api.identity?.id;
+   const generation=identityEpoch,route=deliveryEpoch,oldActor=api.identity?.id;
    api.importPending = false;
    api.loginRequired = false;
    try {
@@ -211,10 +245,10 @@
     for(const key of ['system','view','dataTab'])for(const value of query.getAll(key))intent.append(key,value);
     if(!intent.has('system')){const saved=sessionStorage.getItem('process-active-system');if(saved==='process'||saved==='quality')intent.set('system',saved);}
     const request = await fetch('/api/process-bootstrap'+(intent.size?'?'+intent:''), { cache: 'no-store', headers: { 'X-Process-Media': 'deferred-v1', ...authHeaders() }, signal: AbortSignal.timeout(45000) });
-    if(generation!==identityEpoch)return;
+    if(generation!==identityEpoch||route!==deliveryEpoch)return;
     if (request.status === 200) {
       const shared = await request.json();
-      if(generation!==identityEpoch)return;
+      if(generation!==identityEpoch||route!==deliveryEpoch)return;
       if(ready&&api.deliveryProjection&&oldActor!==shared.identity?.id){quarantinePending();identityEpoch++;api.identity=null;invalidateDelivery();return;}
       api.identity = shared.identity || null;
       api.protected = !!shared.serverProtected;
@@ -242,7 +276,7 @@
       status('offline');
     }
   } catch (error) {
-    if(generation!==identityEpoch)return;
+    if(generation!==identityEpoch||route!==deliveryEpoch)return;
     api.protected = true;
     api.loadError = 'unavailable';
     console.warn('共用資料服務無法連線', error);
@@ -256,7 +290,9 @@
   api.refresh = async () => {
     if(pendingFlush)await pendingFlush;
     if (Object.keys(dirty).length) throw Error('Unsaved changes');
+    const route=deliveryEpoch;
     await load();
+    if(route!==deliveryEpoch)return;
     if(api.requiresReload)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if(api.loadError || api.expired) throw Error('Shared state unavailable');
     window.dispatchEvent(new CustomEvent('process-shared-state-updated'));

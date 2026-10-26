@@ -45,7 +45,7 @@
   let nodeDialog = null, viewDialog = null, formSnapshot = null, addingEquipment = false, newEquipmentForm = null, newEquipmentOwner = null, equipmentReadAttempt = null, transferDialog = null;
   const equipmentRefCache = new Map();
   let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll;
-  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
+  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
   function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
       for(const old of base[collection]||[])if(!(next[collection]||[]).some(r=>r.id===old.id)){const path=[collection,{id:old.id}];patches.push({op:'remove',path});guards.push({path,value:old});}
@@ -213,16 +213,17 @@
     }
   }
 
-  function pollShared(){clearTimeout(sharedPoll);sharedPoll=setTimeout(async()=>{
+  function pollShared(){clearTimeout(sharedPoll);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
+    if(!owns())return;
     if(!routineTabIsActive())return;
     try{if(!busy&&document.visibilityState!=='hidden'){
       const flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
+      if(!owns())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(editingEquipmentId||nodeDialog||addingEquipment||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}
         else{if(wasOpen){selectedVersionId=open()?.id||active()?.id;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}render();}
       }
-    }}catch(e){showEquipmentReadRecovery(e);}
-    finally{pollShared();}
+    }}catch(e){if(owns())showEquipmentReadRecovery(e);}
+    finally{if(owns())pollShared();}
   },4000);}
   const unitLabels = { '個': ['個','Cái'], '支': ['支','Cây'], '台': ['台','Máy'], '組': ['組','Bộ'] };
 
@@ -340,21 +341,23 @@
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' };
 
   async function read(preserveInput=false) {
-    const actor=identity()?.id;
+    const actor=identity()?.id,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);
     try {
     const response = await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'caseMetadata=1', { cache: 'no-store', headers: headers() });
     const body = await response.json().catch(() => ({}));
+    if(!owns())throw Error('DELIVERY_SUPERSEDED');
     if(actor!==identity()?.id)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('後端資料載入失敗', 'Không thể tải dữ liệu máy chủ'));
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
     control = body.control; revision = body.revision;controlActor=actor;
     readUnavailable=false;
     await sharedTransport().permissions();
+    if(!owns())throw Error('DELIVERY_SUPERSEDED');
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
     if(!preserveInput){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;
     syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}
-    }catch(error){readUnavailable=true;throw error;}
+    }catch(error){if(owns())readUnavailable=true;throw error;}
   }
 
   async function write(action, more = {}, preserve = false) {
@@ -671,7 +674,7 @@
   function hierarchyCard(kind, item, title, active, image = '') {
     return `<div class="routine-node">
       <button type="button" data-node-select="${kind}" data-id="${h(item.id)}" class="routine-node-select ${active ? 'active' : ''}" aria-pressed="${active}">
-        ${image ? `<img src="${h(image)}" alt="" style="object-fit:cover">` : '<span class="routine-tile-placeholder">◇</span>'}
+        ${image ? `<img decoding="async" loading="lazy" src="${h(image)}" alt="" style="object-fit:cover">` : '<span class="routine-tile-placeholder">◇</span>'}
         <span data-i18n-skip="true"><b>${h(title)}</b>${kind !== 'subcategory' ? `<small>${h(item.code || item.id)}</small>` : ''}</span>
       </button>
       <div class="routine-node-actions">
@@ -729,7 +732,7 @@
       ${search && editable() ? `<p class="routine-hint">${t('搜尋期間請清空搜尋並先選群組，再新增檢具。', 'Khi tìm kiếm, xóa từ khóa và chọn nhóm trước khi thêm thiết bị.')}</p>` : ''}
       <div class="routine-equipment-list">${shown.map(record => `<div class="routine-equipment-card ${record.id === selectedEquipmentId ? 'active' : ''}">
         <button type="button" class="routine-equipment-select" data-equipment-select="${h(record.id)}">
-          ${photo(record) ? `<img src="${h(photo(record))}" loading="lazy" alt="">` : '<span class="routine-tile-placeholder">◇</span>'}
+          ${photo(record) ? `<img decoding="async" src="${h(photo(record))}" loading="lazy" alt="">` : '<span class="routine-tile-placeholder">◇</span>'}
           <span><b data-i18n-skip="true">${h(record.assetCode)}</b><small>${t('固定分件號：', 'Ký hiệu cố định: ')}<em data-i18n-skip="true">${h(record.pieceMark)}</em> · ${t('第幾件：', 'Thiết bị thứ: ')}<em data-i18n-skip="true">${h(record.pieceIndex || t('待核對', 'Chờ đối soát'))}</em></small><small data-i18n-skip="true">${h(displayName(record))}</small><small>${h(itemUse(record, version))}</small></span>
         </button>
         <div class="routine-equipment-actions">
@@ -1087,6 +1090,15 @@
       photoRemoved: false,
       error: '',
     };
+    render();
+  }
+
+  function cancelNodeDialog() {
+    const url = nodeDialog?.pendingPhoto?.url;
+    // Applied/unknown writes may still own this preview; only release an
+    // untransferred dialog preview, never the pending draft's recovery data.
+    if (url && ![...pendingPhotos.values()].some(photo => photo.url === url)) URL.revokeObjectURL(url);
+    nodeDialog = null;
     render();
   }
 
@@ -2588,11 +2600,11 @@
     root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); });
 
     // Node dialog bindings
-    root.querySelector('#routine-dialog-close')?.addEventListener('click', () => { nodeDialog = null; render(); });
-    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', () => { nodeDialog = null; render(); });
+    root.querySelector('#routine-dialog-close')?.addEventListener('click', cancelNodeDialog);
+    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', cancelNodeDialog);
     root.querySelector('#routine-dialog-confirm')?.addEventListener('click', confirmNodeDialog);
     root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', event => {
-      if (event.target?.id === 'routine-node-dialog-backdrop') { nodeDialog = null; render(); }
+      if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();
     });
     root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', event => {
       const file = event.target.files?.[0];
@@ -2963,14 +2975,15 @@
     equipmentRefCache.clear();
   }
   async function mount(element) {
-    equipmentEditRequest++;
+    equipmentEditRequest++;navigationError=null;
+    const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     clearTimeout(sharedPoll);
     const preserve = controlActor===identity()?.id&&(isDirty() || pendingPhotos.size > 0 || addingEquipment && newEquipmentForm);
     host = element;
     if (preserve) { message = t('本頁仍有未儲存草稿，已保留於工作區；請儲存或送審。', 'Trang này còn bản nháp chưa lưu; đã giữ trong vùng làm việc.'); render(); pollShared(); return; }
     message = ''; render();
     try {
-      await read();
+      await read();if(!owns())return;
       const linkedId=new URL(location.href).searchParams.get('equipmentId');
       if (linkedId) {
         const effective=active(), item=effective?.equipment.find(row=>row.id===linkedId);
@@ -2979,12 +2992,12 @@
           const group=structure(effective).groups.find(row=>row.id===item.groupId);
           selectedCategory=group?.categoryId || '';selectedSubcategory=group?.subcategoryId || '';
           equipmentPage=1;
-          await loadEquipmentReferences(item.id,{renderAfter:false});
+          await loadEquipmentReferences(item.id,{renderAfter:false});if(!owns())return;
           viewDialog={kind:'equipment',data:item};
         } else message=t('此設備已不在目前生效版本，請核對歷史資料。','Thiết bị không còn trong phiên bản hiệu lực; kiểm tra lịch sử.');
       }
       render();pollShared();if(!linkedId)void reconcilePendingReplacements();
-    } catch (error) { message = error.message; render(); }
+    } catch (error) {if(!owns())return;navigationError=error; message = error.message; render(); }
   }
   window.addEventListener('beforeunload', event => {
     if (isDirty() || pendingPhotos.size) {
@@ -2997,7 +3010,8 @@
   function reviewHTML() { return `<section class="routine-review routine-card" data-i18n-skip="true"><h3>${t('檢具與測試設備 · 待確認', 'Dưỡng kiểm và thiết bị đo · Chờ duyệt')}</h3><div class="routine-review-body">${t('正在載入…', 'Đang tải…')}</div></section>`; }
   async function bindReview(element) {
     reviewHost = element?.querySelector('.routine-review'); if (!reviewHost) return;
-    try { await read(); reviewRender(); } catch (error) { reviewHost.querySelector('.routine-review-body').textContent = displayDraftError(error); }
+    const target=reviewHost,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>reviewHost===target&&target.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+    try { await read();if(owns())reviewRender(); } catch (error) {if(owns()){navigationError=error; target.querySelector('.routine-review-body').textContent = displayDraftError(error);}}
   }
 
   function reviewRender() {
@@ -3034,7 +3048,7 @@
         const changedFields = before ? Object.keys(fields).filter(key => String(before[key] ?? '') !== String(item[key] ?? '')) : Object.keys(fields);
         return `<details><summary data-i18n-skip="true">${h(item.assetCode)}／${h(item.pieceMark)} · ${h(displayName(item))}</summary>
           ${changedFields.map(key => `<p><b>${fields[key]}</b>：<span data-i18n-skip="true">${h(fieldValue(key, before?.[key], base))} → ${h(fieldValue(key, item[key], version))}</span></p>`).join('')}
-          ${photo(item) ? `<img src="${h(photo(item))}" loading="lazy" alt="${t('送審照片', 'Ảnh gửi duyệt')}" class="routine-review-photo">` : ''}
+          ${photo(item) ? `<img decoding="async" src="${h(photo(item))}" loading="lazy" alt="${t('送審照片', 'Ảnh gửi duyệt')}" class="routine-review-photo">` : ''}
         </details>`;
       }).join('');
 
@@ -3093,7 +3107,9 @@
   window.addEventListener('fqc-equipment-references-updated', refreshOpenEquipmentReferences);
   window.addEventListener('quality-equipment-references-updated', refreshOpenEquipmentReferences);
 
+  let navigationError=null;
   window.RoutineEquipmentUI = {
+    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;equipmentRefCache.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

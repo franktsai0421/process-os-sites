@@ -97,7 +97,7 @@
   function thumbnail(equipment) {
     const photo = equipment.mediaItems?.[0];
     return photo
-      ? `<img src="${h(photo.src)}" alt="${h(equipment.number || equipment.name)}" loading="lazy">`
+      ? `<img decoding="async" src="${h(photo.src)}" alt="${h(equipment.number || equipment.name)}" loading="lazy">`
       : `<span aria-hidden="true">—</span>`;
   }
   function modalField(key, label, value, editable, wide = false) {
@@ -270,7 +270,7 @@
       if (current) usageParts.push(t('本方塊被選取','Đã chọn trong ô này'));
       if (otherNumbers.length) usageParts.push(`${t('其他方塊','Ô khác')}：${otherNumbers.map(h).join('、')}`);
       const usage = usageParts.join(' · ') || t('尚未在其他方塊使用','Chưa dùng ở ô khác');
-      return `<label class="equipment-choice ${current ? 'is-current' : ''}"><input type="checkbox" data-operation-machine="${h(machine.no)}" ${current ? 'checked' : ''}>${machine.mediaItems?.[0] ? `<img src="${h(machine.mediaItems[0].src)}" alt="${h(machine.number || machine.name)}" loading="lazy">` : ''}<span><code>${h(machine.number || (machine.no.startsWith('EQ-') ? t('待補編號','Chưa có mã') : machine.no))}</code><b>${h(t(machine.name || machine.nameVi,machine.nameVi || machine.name))}</b>${machine.historical ? `<small>${t('原已選設備；已不在目前工段清單，可取消。','Thiết bị cũ; có thể bỏ chọn.')}</small>` : ''}</span><small class="equipment-used">${usage}</small></label>`;
+      return `<label class="equipment-choice ${current ? 'is-current' : ''}"><input type="checkbox" data-operation-machine="${h(machine.no)}" ${current ? 'checked' : ''}>${machine.mediaItems?.[0] ? `<img decoding="async" src="${h(machine.mediaItems[0].src)}" alt="${h(machine.number || machine.name)}" loading="lazy">` : ''}<span><code>${h(machine.number || (machine.no.startsWith('EQ-') ? t('待補編號','Chưa có mã') : machine.no))}</code><b>${h(t(machine.name || machine.nameVi,machine.nameVi || machine.name))}</b>${machine.historical ? `<small>${t('原已選設備；已不在目前工段清單，可取消。','Thiết bị cũ; có thể bỏ chọn.')}</small>` : ''}</span><small class="equipment-used">${usage}</small></label>`;
     }).join('') || `<p>${t('此工段尚無已核准設備，請先在流程資料載入設備並完成送審。','Công đoạn này chưa có máy được duyệt.')}</p>`}</div></fieldset>`;
   }
   async function portable(snapshot) {

@@ -29,8 +29,8 @@
       buttons.forEach(button=>{const active=button.dataset.reviewTab===state.approvalTab;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;if(active&&focus)button.focus();});
     }
     buttons.forEach((button,index)=>{
-      button.onclick=()=>{const key=button.dataset.reviewTab;if(key===state.approvalTab)return;state.approvalTab=key;onSelect?.(key);};
-      button.onkeydown=event=>{let next;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index-1+buttons.length)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();const key=buttons[next].dataset.reviewTab;state.approvalTab=key;onSelect?.(key);page.querySelector('[data-review-tab="'+key+'"]')?.focus({preventScroll:true});};
+      button.onclick=()=>{const key=button.dataset.reviewTab;if(key===state.approvalTab)return;if(host.ProcessDeliveryNavigation?.approval){host.ProcessDeliveryNavigation.approval(key);return;}state.approvalTab=key;onSelect?.(key);};
+      button.onkeydown=event=>{let next;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index-1+buttons.length)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();const key=buttons[next].dataset.reviewTab;if(host.ProcessDeliveryNavigation?.approval){void host.ProcessDeliveryNavigation.approval(key).then(result=>{if(result.status==='ready')document.querySelector('[data-review-tab="'+key+'"]')?.focus({preventScroll:true});});return;}state.approvalTab=key;onSelect?.(key);page.querySelector('[data-review-tab="'+key+'"]')?.focus({preventScroll:true});};
     });
     select(state.approvalTab);labels(page);
   }

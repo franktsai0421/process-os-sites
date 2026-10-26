@@ -98,11 +98,11 @@ function applyPlayerIntent(){
   if(selected){state.deviceLine=selected.code;state.deviceStage=selected.stages.find(stage=>stage.code===intent.get('stage'))?.code||selected.stages[0]?.code||'';}
 }
 applyPlayerIntent();
-window.addEventListener('popstate',applyPlayerIntent);
+window.addEventListener('popstate',()=>{if(!window.ProcessDeliveryNavigation?.ownsHistory)applyPlayerIntent();});
 function rememberPlayerPosition(){
   const url=new URL(location.href);url.searchParams.set('system','process');url.searchParams.set('view','player');
   url.searchParams.set('line',state.deviceLine);url.searchParams.set('stage',state.deviceStage||'');
-  history.replaceState(history.state,'',url);
+  if(!window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url))history.replaceState(history.state,'',url);
 }
 state.approvalVersionId = null;
 state.approvalCompareId = null;
@@ -2124,7 +2124,7 @@ function processMasterView() {
         const mediaItems = processTemplateMediaItems(template),
           key = processMasterTemplateKey(template),
           equipmentButton = window.ProcessEquipment?.cardButton(template) || '';
-        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div><div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><img src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}">${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
+        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div><div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}">${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
       },
     )
     .join(
@@ -3523,3 +3523,25 @@ if (currentUser) {
       : 'player';
   navigate(initial);
 } else renderLogin();
+
+// A fresh destination replaces every business mirror, not a merge/cache of pages.
+window.ProcessRuntimeProjection={
+  applyPlayerIntent,
+  canLeave:()=>[...processMasterNameBindings].every(binding=>binding.clean()),
+  install(catalog){
+    if(catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!catalog.imported||!catalog.routing||!catalog.lineC)throw Error('BOOTSTRAP_INVALID_CATALOG');
+    const replace=(target,value)=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,value);};
+    replace(data,catalog.imported);replace(routing,catalog.routing);
+    if(window.LINE_C_MASTER&&typeof window.LINE_C_MASTER==='object')replace(window.LINE_C_MASTER,catalog.lineC);else window.LINE_C_MASTER=catalog.lineC;
+    window.IMPORTED_DATA=data;window.LINE_PROCESS_DATA=routing;
+    lines.splice(0,lines.length,...routing.lines.map((line,index)=>({...line,stations:line.stages.map(stage=>stage.code),load:[82,64,48][index]||50})));
+    platformUsers=readStore('platformUsers',[]);approvalVersions=readStore('approvalVersions',[]);dispatchBoard=readStore('dispatchBoard',{});processMaster=readStore('processMasterData',{});
+    const actor=window.ProcessSync?.identity,stored=platformUsers.find(user=>user.id===actor?.id);
+    if(!actor||!stored)throw Error('BOOTSTRAP_IDENTITY_REQUIRED');
+    currentUser={...stored,...actor};window.normalizePlatformUser?.(currentUser);
+    state.published=readStore('publishedProcess',null);state.processes=[];state.editorByCategory={};state.selectedOperation=null;state.addingStage=null;state.editorProblemPlaceholder=null;state.editorVersionId=null;
+    state.category=data.categories?.[0]||'';state.productCode=data.products?.[0]?.code||'';state.editorLine=routing.lines?.[0]?.code||'';state.masterStage=routing.lines?.[0]?.stages?.[0]?.code||'';
+    for(const binding of processMasterNameBindings){binding.input.oninput=binding.input.oncompositionstart=binding.input.oncompositionend=null;}processMasterNameBindings.clear();
+    window.ProcessRoles?.refresh?.();applyPlatformIdentity();
+  }
+};

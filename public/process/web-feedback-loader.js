@@ -14,7 +14,7 @@
     const fail=message=>{loading=null;css.remove();script?.remove();reject(Error(message));};
     const ready=()=>{if(styled&&window.WebFeedback)resolve(window.WebFeedback);};
     css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261010-ui4';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
-    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261010-access3';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
+    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261025-bounded-media1';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
   }));
   // The immediate shell contains only new input, never private draft data.
   function open(event) {

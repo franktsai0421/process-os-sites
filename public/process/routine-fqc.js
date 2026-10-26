@@ -67,7 +67,7 @@
         ? d.flow.active.content
         : d.flow.working;
   const photo = (p) =>
-    `<a class="rf-photo" href="${endpoint}/photo?id=${h(p)}" target="_blank" rel="noopener"><img loading="lazy" src="${endpoint}/photo?id=${h(p)}" alt="${h(t('檢查照片', 'Ảnh kiểm tra'))}"></a>`;
+    `<a class="rf-photo" href="${endpoint}/photo?id=${h(p)}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="${endpoint}/photo?id=${h(p)}" alt="${h(t('檢查照片', 'Ảnh kiểm tra'))}"></a>`;
   const s = {
     tab: 'jobs',
     module: 'FQC',
@@ -110,9 +110,12 @@
   function html() {
     return '<section id="routine-fqc-root" class="rf-app" data-i18n-skip="true"><div class="rf-empty" role="status">FQC · 載入中 / Đang tải…</div></section>';
   }
+  let inFlightMutation=0,navigationError=null;
   async function read(query = '') {
+    const delivery=window.ProcessSync?.captureDelivery?.();
     const r = await fetch(endpoint + query, { cache: 'no-store' }),
       v = await r.json();
+    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
     if (!r.ok) throw Error(v.error || 'FQC_READ_FAILED');
     return v;
   }
@@ -185,6 +188,7 @@
     return prefix + (issueNames[issue.message] ? t(...issueNames[issue.message]) : issue.message || issue.code);
   }
   function fault(e) {
+    if(e?.message==='DELIVERY_SUPERSEDED')return;
     s.error =
       e.message === 'VALIDATION_FAILED'
         ? t(
@@ -199,6 +203,9 @@
     paint();
   }
   async function post(command) {
+    inFlightMutation++;try{return await postOwned(command);}finally{inFlightMutation--;}
+  }
+  async function postOwned(command) {
     const body = { ...command, operationId: command.operationId || id() };
     let response, v;
     try {
@@ -256,11 +263,12 @@
   let historySearch, historyLanguage, pendingHistoryItem;
   async function ensureHistorySearch() {
     if (!historySearch) {
-      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261013');
+      const workflowModule = await import('/process/routine-fqc-search.mjs?v=20261025-bounded-media1');
       historySearch = workflowModule.createHistorySearch({getData: () => data, readPreview: () => read('?search-preview=1')});
     }
   }
   async function mount(container, historyMode = false) {
+    const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);navigationError=null;
     s.reviewPlatform = false;
     root = container.matches?.('#routine-fqc-root')
       ? container
@@ -270,17 +278,17 @@
     if (loading) return;
     loading = true;
     try {
-      const a = await read('?availability=1');
+      const a = await read('?availability=1');if(!owns())return;
       if (!a.enabled) {
         root.innerHTML = `<div class="rf-empty"><b>${t('例行檢查準備中', 'Đang chuẩn bị kiểm tra định kỳ')}</b>${t('3040 完成驗收後啟用', 'Kích hoạt sau nghiệm thu 3040')}</div>`;
         return;
       }
-      await ensureHistorySearch();
+      await ensureHistorySearch();if(!owns())return;
       await refresh(true);
     } catch (e) {
-      fault(e);
+      if(owns()){navigationError=e;fault(e);}
     } finally {
-      loading = false;
+      if(owns())loading = false;
     }
   }
   const docs = () => data?.control.documents || [],
@@ -1677,9 +1685,10 @@
   }
   function openReview(d) {
     s.selected = d.id; s.reviewCase = d.flow.pendingId; s.selfReview = null;
+    if(window.ProcessDeliveryNavigation?.approval){void window.ProcessDeliveryNavigation.approval('routine',{rfDocument:d.id,...(d.flow.pendingId?{rfCase:d.flow.pendingId}:{})});return;}
     state.approvalTab = 'routine';
     const url = new URL(location.href); url.searchParams.set('approvalTab', 'routine'); url.searchParams.set('rfDocument', d.id); if (d.flow.pendingId) url.searchParams.set('rfCase', d.flow.pendingId);
-    history.replaceState(null, '', url);
+    if(!window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url))history.replaceState(history.state, '', url);
     window.ProcessDualSystem.go('approval');
   }
   function reviewHTML() {
@@ -1692,7 +1701,7 @@
     bind(); mountDraft();
     root.querySelectorAll('[data-review-doc]').forEach((b) => b.onclick = () => {
       s.selected = b.dataset.reviewDoc; s.reviewCase = doc().flow.pendingId; s.selfReview = null; s.cancelConfirm = null;
-      const url = new URL(location.href); url.searchParams.set('rfDocument', s.selected); if (s.reviewCase) url.searchParams.set('rfCase', s.reviewCase); else url.searchParams.delete('rfCase'); history.replaceState(null, '', url); paint();
+      const url = new URL(location.href); url.searchParams.set('rfDocument', s.selected); if (s.reviewCase) url.searchParams.set('rfCase', s.reviewCase); else url.searchParams.delete('rfCase'); if(!window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url))history.replaceState(history.state, '', url); paint();
     });
     root.querySelectorAll('button').forEach((b) => { if (s.busy) b.disabled = true; });
   }
@@ -1702,7 +1711,7 @@
     const url = new URL(location.href);
     if (url.searchParams.get('rfDocument')) s.selected = url.searchParams.get('rfDocument');
     s.reviewCase = url.searchParams.get('rfCase'); s.selfReview = null;
-    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; paint(); updatePendingBadge(); } catch (e) { fault(e); }
+    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}
   }
   function updatePendingBadge() {
     const count = liveDocs().filter((d) => status(d) === 'pending').length;
@@ -1711,6 +1720,7 @@
   async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
 
   window.RoutineFQCUI = {
+    navigation:{canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
     html,
     mount,
     reviewHTML,

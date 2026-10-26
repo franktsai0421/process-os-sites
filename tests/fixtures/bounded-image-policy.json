@@ -1,0 +1,195 @@
+[
+  {
+    "file": "iqc-master.js",
+    "baseLine": 165,
+    "before": "<img class=\"iqc-part-thumb\" src=\"${h(part.photos[0].src)}\" alt=\"${t('零件照片', 'Ảnh linh kiện')}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" class=\"iqc-part-thumb\" src=\"${h(part.photos[0].src)}\" alt=\"${t('零件照片', 'Ảnh linh kiện')}\">"
+  },
+  {
+    "file": "iqc-master.js",
+    "baseLine": 521,
+    "before": "<img src=\"${h(photo)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photo)}\" alt=\"\">"
+  },
+  {
+    "file": "fqc-master.js",
+    "baseLine": 549,
+    "before": "<img src=\"${h(photoSrc)}\" alt=\"\" class=\"fqc-tool-thumb\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoSrc)}\" alt=\"\" class=\"fqc-tool-thumb\">"
+  },
+  {
+    "file": "fqc-master.js",
+    "baseLine": 653,
+    "before": "<img src=\"${h(photo.src)}\" alt=\"\" class=\"fqc-thumb-img\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photo.src)}\" alt=\"\" class=\"fqc-thumb-img\">"
+  },
+  {
+    "file": "fqc-master.js",
+    "baseLine": 1090,
+    "before": "<img src=\"${h(photoSrc)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoSrc)}\" alt=\"\">"
+  },
+  {
+    "file": "ipqc-ab.js",
+    "baseLine": 179,
+    "before": "<img src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.note || photo.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.note || photo.name)}\">"
+  },
+  {
+    "file": "ipqc-ab.js",
+    "baseLine": 242,
+    "before": "<img src=\"/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}\" alt=\"\">"
+  },
+  {
+    "file": "ipqc-ab.js",
+    "baseLine": 301,
+    "before": "<img src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 164,
+    "before": "<img src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.name)}\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 259,
+    "before": "<img src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"${h(eq.name||'')}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"${h(eq.name||'')}\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 279,
+    "before": "<img src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.note||photo.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoUrl(photo))}\" alt=\"${h(photo.note||photo.name)}\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 316,
+    "before": "<img src=\"${h(photoUrl(i.mediaItems[0]))}\" alt=\"${h(i.mediaItems[0].note||i.mediaItems[0].name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(photoUrl(i.mediaItems[0]))}\" alt=\"${h(i.mediaItems[0].note||i.mediaItems[0].name)}\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 318,
+    "before": "<img src=\"/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}\" alt=\"\">"
+  },
+  {
+    "file": "ipqc-c.js",
+    "baseLine": 432,
+    "before": "<img src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-equipment/photo?id=${h(eq.photoId)}\" alt=\"\">"
+  },
+  {
+    "file": "routine-equipment.js",
+    "baseLine": 674,
+    "before": "<img src=\"${h(image)}\" alt=\"\" style=\"object-fit:cover\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${h(image)}\" alt=\"\" style=\"object-fit:cover\">"
+  },
+  {
+    "file": "routine-equipment.js",
+    "baseLine": 732,
+    "before": "<img src=\"${h(photo(record))}\" loading=\"lazy\" alt=\"\">",
+    "after": "<img decoding=\"async\" src=\"${h(photo(record))}\" loading=\"lazy\" alt=\"\">"
+  },
+  {
+    "file": "routine-equipment.js",
+    "baseLine": 3037,
+    "before": "<img src=\"${h(photo(item))}\" loading=\"lazy\" alt=\"${t('送審照片', 'Ảnh gửi duyệt')}\" class=\"routine-review-photo\">",
+    "after": "<img decoding=\"async\" src=\"${h(photo(item))}\" loading=\"lazy\" alt=\"${t('送審照片', 'Ảnh gửi duyệt')}\" class=\"routine-review-photo\">"
+  },
+  {
+    "file": "tooling.js",
+    "baseLine": 52,
+    "before": "<img class=\"tooling-photo\" loading=\"lazy\" src=\"/api/tooling/photo?id=${r.photos[0].id}\" alt=\"${h(r.code)}\">",
+    "after": "<img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"/api/tooling/photo?id=${r.photos[0].id}\" alt=\"${h(r.code)}\">"
+  },
+  {
+    "file": "tooling.js",
+    "baseLine": 85,
+    "before": "<img loading=\"lazy\" src=\"/api/tooling/photo?id=${p.id}\" alt=\"${h(row.code||t('Ảnh','照片'))}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/tooling/photo?id=${p.id}\" alt=\"${h(row.code||t('Ảnh','照片'))}\">"
+  },
+  {
+    "file": "tooling.js",
+    "baseLine": 103,
+    "before": "<img class=\"tooling-photo\" loading=\"lazy\" src=\"${h(url)}\" alt=\"${h(p.code)}\">",
+    "after": "<img decoding=\"async\" class=\"tooling-photo\" loading=\"lazy\" src=\"${h(url)}\" alt=\"${h(p.code)}\">"
+  },
+  {
+    "file": "process-equipment.js",
+    "baseLine": 100,
+    "before": "<img src=\"${h(photo.src)}\" alt=\"${h(equipment.number || equipment.name)}\" loading=\"lazy\">",
+    "after": "<img decoding=\"async\" src=\"${h(photo.src)}\" alt=\"${h(equipment.number || equipment.name)}\" loading=\"lazy\">"
+  },
+  {
+    "file": "process-equipment.js",
+    "baseLine": 273,
+    "before": "<img src=\"${h(machine.mediaItems[0].src)}\" alt=\"${h(machine.number || machine.name)}\" loading=\"lazy\">",
+    "after": "<img decoding=\"async\" src=\"${h(machine.mediaItems[0].src)}\" alt=\"${h(machine.number || machine.name)}\" loading=\"lazy\">"
+  },
+  {
+    "file": "process-ipqc.js",
+    "baseLine": 26,
+    "before": "<img loading=\"lazy\" src=\"/api/ipqc-${c.source==='AB'?'ab':'c'}/photo?id=${encodeURIComponent(p.id)}\" alt=\"${h(p.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/ipqc-${c.source==='AB'?'ab':'c'}/photo?id=${encodeURIComponent(p.id)}\" alt=\"${h(p.name)}\">"
+  },
+  {
+    "file": "shared-draft-client.js",
+    "baseLine": 211,
+    "before": "<img src=\"${h(p.url)}\" alt=\"${h(p.name||t('Ảnh tại thời điểm gửi','送審當時圖片'))}\" loading=\"lazy\" width=\"160\" height=\"120\" style=\"object-fit:contain;max-width:100%\">",
+    "after": "<img decoding=\"async\" src=\"${h(p.url)}\" alt=\"${h(p.name||t('Ảnh tại thời điểm gửi','送審當時圖片'))}\" loading=\"lazy\" width=\"160\" height=\"120\" style=\"object-fit:contain;max-width:100%\">"
+  },
+  {
+    "file": "shared-draft-client.js",
+    "baseLine": 258,
+    "before": "<img loading=\"lazy\" width=\"160\" height=\"120\" style=\"object-fit:contain;max-width:100%\" src=\"${h(url)}\" alt=\"${h(photo.name||t('Ảnh lịch sử','歷史圖片'))}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" width=\"160\" height=\"120\" style=\"object-fit:contain;max-width:100%\" src=\"${h(url)}\" alt=\"${h(photo.name||t('Ảnh lịch sử','歷史圖片'))}\">"
+  },
+  {
+    "file": "routine-fqc.js",
+    "baseLine": 70,
+    "before": "<img loading=\"lazy\" src=\"${endpoint}/photo?id=${h(p)}\" alt=\"${h(t('檢查照片', 'Ảnh kiểm tra'))}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${endpoint}/photo?id=${h(p)}\" alt=\"${h(t('檢查照片', 'Ảnh kiểm tra'))}\">"
+  },
+  {
+    "file": "routine-fqc-search.mjs",
+    "baseLine": 610,
+    "before": "<img loading=\"lazy\" src=\"/api/routine-fqc/photo?id=${encodeURIComponent(id)}\" alt=\"${t('檢查照片', 'Ảnh kiểm tra')}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"/api/routine-fqc/photo?id=${encodeURIComponent(id)}\" alt=\"${t('檢查照片', 'Ảnh kiểm tra')}\">"
+  },
+  {
+    "file": "web-feedback.js",
+    "baseLine": 130,
+    "before": "<img loading=\"lazy\" src=\"${imageURL(a.id)}\" alt=\"${esc(a.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${imageURL(a.id)}\" alt=\"${esc(a.name)}\">"
+  },
+  {
+    "file": "web-feedback.js",
+    "baseLine": 134,
+    "before": "<img loading=\"lazy\" src=\"${imageURL(a.id)}\" alt=\"${esc(a.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${imageURL(a.id)}\" alt=\"${esc(a.name)}\">"
+  },
+  {
+    "file": "app.js",
+    "baseLine": 2127,
+    "before": "<img src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(template.name)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(template.name)}\">"
+  },
+  {
+    "file": "version-workflow.js",
+    "baseLine": 280,
+    "before": "<img src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(item.name||productCode)}\">",
+    "after": "<img decoding=\"async\" loading=\"lazy\" src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(item.name||productCode)}\">"
+  },
+  {
+    "file": "system-upgrade.js",
+    "baseLine": 87,
+    "before": "<img src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(item.name||`${group.label} ${index+1}`)}\">",
+    "after": "<img ${hidden?'loading=\"lazy\" decoding=\"async\"':''} src=\"${escapeHtml(item.src)}\" alt=\"${escapeHtml(item.name||`${group.label} ${index+1}`)}\">",
+    "conditional": "hidden gallery only; first canvas cover unchanged"
+  }
+]

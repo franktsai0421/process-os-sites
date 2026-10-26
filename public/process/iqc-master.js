@@ -9,7 +9,7 @@
   let control = null, revision = null, root = null, reviewRoot = null;
   let sharedClient=null,sharedActor='',pollTimer=null,dialogBase=null,dialogGeneration=null;
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
+    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
   }
   const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -65,12 +65,14 @@
   }
 
   async function load() {
+    const delivery=window.ProcessSync?.captureDelivery?.();
     const response = await fetch(apiUrl+'?caseMetadata=1', { headers: window.ProcessSync?.platformHeaders?.() || {} });
     const data = await response.json();
     if (!response.ok || !data.control || !Number.isInteger(data.revision)) throw Error(data.error || 'IQC 載入失敗');
-    control = data.control; revision = data.revision;
+    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
     await transport().permissions(); // Legacy and adopted libraries both use current server policy before rendering.
-    return data;
+    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    control = data.control; revision = data.revision;return data;
   }
   async function post(action, extra = {}) {
     if (ui.busy) throw Error('IQC 資料儲存中，請稍候');
@@ -162,7 +164,7 @@
   }
   function partRows() {
     const data = snap();
-    return filteredParts().map(part => `<div class="iqc-part ${ui.partCode === part.code ? 'active' : ''}" data-select-part="${h(part.code)}" tabindex="0" role="button" aria-label="${h(part.code)} ${h(part.nameVi)}"><div class="iqc-part-media">${part.photos[0] ? `<button class="iqc-thumb-button" data-photo-part="${h(part.code)}" aria-label="${t('查看全部照片', 'Xem tất cả ảnh')}"><img class="iqc-part-thumb" src="${h(part.photos[0].src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"></button>` : `<div class="iqc-part-thumb iqc-empty">${t('無圖', 'Không ảnh')}</div>`}${draft() && mayEdit() ? `<div class="iqc-part-tools"><button class="button ghost iqc-small" data-edit-part="${h(part.code)}">${t('修改', 'Sửa')}</button><button class="button iqc-danger iqc-small" data-delete-part="${h(part.code)}">${t('刪除', 'Xóa')}</button></div>` : ''}</div><div class="iqc-part-copy"><strong data-i18n-skip="true">${h(part.code)} ${h(part.nameVi)}</strong><span class="iqc-source"><b>${t('供應商', 'Nhà cung cấp')}:</b> <span data-i18n-skip="true">${h(part.supplierIds.length ? part.supplierIds.map(id => name(data.suppliers,id)).join(' → ') : t('待核對','Cần đối chiếu'))}</span></span><span class="iqc-category-label"><b>${t('類別', 'Nhóm')}:</b> <span data-i18n-skip="true">${h(name(data.categories,part.categoryId) || '—')}</span></span></div></div>`).join('') || `<div class="iqc-empty">${t('沒有符合條件的零件', 'Không có linh kiện phù hợp')}</div>`;
+    return filteredParts().map(part => `<div class="iqc-part ${ui.partCode === part.code ? 'active' : ''}" data-select-part="${h(part.code)}" tabindex="0" role="button" aria-label="${h(part.code)} ${h(part.nameVi)}"><div class="iqc-part-media">${part.photos[0] ? `<button class="iqc-thumb-button" data-photo-part="${h(part.code)}" aria-label="${t('查看全部照片', 'Xem tất cả ảnh')}"><img decoding="async" loading="lazy" class="iqc-part-thumb" src="${h(part.photos[0].src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"></button>` : `<div class="iqc-part-thumb iqc-empty">${t('無圖', 'Không ảnh')}</div>`}${draft() && mayEdit() ? `<div class="iqc-part-tools"><button class="button ghost iqc-small" data-edit-part="${h(part.code)}">${t('修改', 'Sửa')}</button><button class="button iqc-danger iqc-small" data-delete-part="${h(part.code)}">${t('刪除', 'Xóa')}</button></div>` : ''}</div><div class="iqc-part-copy"><strong data-i18n-skip="true">${h(part.code)} ${h(part.nameVi)}</strong><span class="iqc-source"><b>${t('供應商', 'Nhà cung cấp')}:</b> <span data-i18n-skip="true">${h(part.supplierIds.length ? part.supplierIds.map(id => name(data.suppliers,id)).join(' → ') : t('待核對','Cần đối chiếu'))}</span></span><span class="iqc-category-label"><b>${t('類別', 'Nhóm')}:</b> <span data-i18n-skip="true">${h(name(data.categories,part.categoryId) || '—')}</span></span></div></div>`).join('') || `<div class="iqc-empty">${t('沒有符合條件的零件', 'Không có linh kiện phù hợp')}</div>`;
   }
   function listPanel() {
     const data = snap(), parts = filteredParts();
@@ -242,20 +244,22 @@
   async function mount(container) {
     root = container.querySelector('#iqc-page');
     if (!root) return;
-    try { await load(); render(); } catch (error) { root.innerHTML = `<section class="iqc-panel iqc-alert" role="alert">${h(displayDraftError(error))} <button class="button ghost" id="iqc-retry">${t('重新載入','Tải lại')}</button></section>`; root.querySelector('#iqc-retry').onclick = () => mount(container); }
-    scheduleRefresh();
+    const ownedRoot=root,delivery=window.ProcessSync?.captureDelivery?.(),current=()=>root===ownedRoot&&ownedRoot.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+    navigationError=null;try { await load();if(!current())return; render(); } catch (error) {if(!current())return;navigationError=error; root.innerHTML = `<section class="iqc-panel iqc-alert" role="alert">${h(displayDraftError(error))} <button class="button ghost" id="iqc-retry">${t('重新載入','Tải lại')}</button></section>`; root.querySelector('#iqc-retry').onclick = () => mount(container); }
+    if(current())scheduleRefresh();
   }
-  function scheduleRefresh(){clearTimeout(pollTimer);pollTimer=setTimeout(async()=>{
+  function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
+    if(!current())return;
     if(!root?.isConnected&&!reviewRoot?.isConnected)return;
     try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'){
       const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
+      if(!current())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(wasOpen)ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
         if(!document.querySelector('.iqc-dialog-overlay')&&!root?.contains(document.activeElement))render();
         else {const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('共用內容已更新；彈窗輸入保留，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
-    }}catch(error){const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
-    finally{scheduleRefresh();}
+    }}catch(error){if(!current())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
+    finally{if(current())scheduleRefresh();}
   },4000);}
   function twoConfirm(label) {
     return confirm(`${label}？`) && confirm(`${label}。此操作會寫入 IQC 草稿，請再次確認。`);
@@ -518,7 +522,7 @@
         const query = searchKey(search.value.trim());
         const filtered = equipmentChoices.filter(eq => (!selectedCategory || eq.categoryId === selectedCategory) && (!selectedSubcategory || eq.subcategoryId === selectedSubcategory) && (!selectedGroup || eq.groupId === selectedGroup) && (!query || searchKey(`${eq.assetCode} ${eq.pieceMark} ${equipmentName(eq)} ${eq.spec || ''}`).includes(query)));
         status.textContent = `${t('符合','Phù hợp')} ${filtered.length} / ${equipmentChoices.length} ${t('筆設備','thiết bị')}`;
-        list.innerHTML = filtered.map(eq => { const photo = equipmentPhoto(eq), enabled = eq.enabled !== false; return `<article class="iqc-picker-item ${eq.id === selectedEqId ? 'selected' : ''} ${enabled ? '' : 'unavailable'}"><div class="iqc-picker-thumb">${photo ? `<img src="${h(photo)}" alt="">` : '◇'}</div><div class="iqc-picker-info"><strong>${h(eq.assetCode || '')}／${h(eq.pieceMark || '')}</strong><span class="iqc-picker-availability">${enabled ? t('可選','Có thể chọn') : t('未啟用','Chưa kích hoạt')}</span><span data-i18n-skip="true">${h(equipmentName(eq))}</span><small data-i18n-skip="true">${h(eq.spec || '')}</small></div><button type="button" class="button ${eq.id === selectedEqId ? 'ghost' : 'signal'}" data-iqc-select-equipment="${h(eq.id)}" ${enabled ? '' : 'disabled'}>${eq.id === selectedEqId ? t('目前所選','Đã chọn') : t('選擇此設備','Chọn thiết bị')}</button></article>`; }).join('') || `<p class="iqc-muted">${t('無符合條件的設備','Không có thiết bị phù hợp')}</p>`;
+        list.innerHTML = filtered.map(eq => { const photo = equipmentPhoto(eq), enabled = eq.enabled !== false; return `<article class="iqc-picker-item ${eq.id === selectedEqId ? 'selected' : ''} ${enabled ? '' : 'unavailable'}"><div class="iqc-picker-thumb">${photo ? `<img decoding="async" loading="lazy" src="${h(photo)}" alt="">` : '◇'}</div><div class="iqc-picker-info"><strong>${h(eq.assetCode || '')}／${h(eq.pieceMark || '')}</strong><span class="iqc-picker-availability">${enabled ? t('可選','Có thể chọn') : t('未啟用','Chưa kích hoạt')}</span><span data-i18n-skip="true">${h(equipmentName(eq))}</span><small data-i18n-skip="true">${h(eq.spec || '')}</small></div><button type="button" class="button ${eq.id === selectedEqId ? 'ghost' : 'signal'}" data-iqc-select-equipment="${h(eq.id)}" ${enabled ? '' : 'disabled'}>${eq.id === selectedEqId ? t('目前所選','Đã chọn') : t('選擇此設備','Chọn thiết bị')}</button></article>`; }).join('') || `<p class="iqc-muted">${t('無符合條件的設備','Không có thiết bị phù hợp')}</p>`;
         list.querySelectorAll('[data-iqc-select-equipment]').forEach(button => button.onclick = () => {
           const eq = equipmentChoices.find(row => row.id === button.dataset.iqcSelectEquipment && row.enabled !== false);
           if (!eq) return;
@@ -526,6 +530,7 @@
         });
       }
       async function load() {
+    const delivery=window.ProcessSync?.captureDelivery?.();
         status.textContent = t('載入目前生效設備…','Đang tải thiết bị đang hiệu lực…');
         try {
           const response = await fetch('/api/routine-equipment', { cache: 'no-store' });
@@ -700,9 +705,10 @@
       });
       current.querySelector('.quality-review-pending-list [data-iqc-review]')?.click();
     };
-    ready().catch(error => { if(initial.isConnected && identity()?.id === requestActor) initial.innerHTML = `<p role="alert">${h(displayDraftError(error))}</p>`; });
+    return ready().catch(error => { if(initial.isConnected && identity()?.id === requestActor){navigationError=error;initial.innerHTML = `<p role="alert">${h(displayDraftError(error))}</p>`;} });
   }
   function pendingCount() { return (control?.versions || []).filter(v => v.status === 'pending').length; }
   function renderApprovedDetail(area,data,partId,onPhoto){const part=data.parts.find(p=>p.id===partId),state={partCode:part?.code||'',errorId:''};function draw(){area.innerHTML=detailPanel(data,state,true);area.querySelectorAll('[data-select-error]').forEach(b=>b.onclick=()=>{state.errorId=b.dataset.selectError;draw();});area.querySelectorAll('[data-photo-part]').forEach(b=>b.onclick=()=>onPhoto(part.photos[Number(b.dataset.photoIndex)]?.src));area.querySelectorAll('[data-item-photo]').forEach(b=>b.onclick=()=>onPhoto(data.items.find(i=>i.id===b.dataset.itemPhoto)?.mediaItems?.[Number(b.dataset.photoIndex)]?.src));}draw();}
-  host.IQCMasterUI = { html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  let navigationError=null;
+  host.IQCMasterUI = { navigation:{canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){clearTimeout(pollTimer);root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
 })(window);

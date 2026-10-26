@@ -98,6 +98,7 @@
   };
 
   function go(view, push = true) {
+    if(window.ProcessDeliveryNavigation?.navigate?.(view,view==='data'?null:undefined,activeSystem,{history:push?'push':'replace'}))return;
     navigate(view);
     if (state.view === view && push) writeRoute(view);
   }
@@ -165,8 +166,9 @@
       }
       switcher.textContent = activeSystem === 'quality' ? '切換至中控系統' : '切換至品質系統';
       switcher.onclick = () => {
-        rememberSystem(activeSystem === 'quality' ? 'process' : 'quality');
-        go(activeSystem === 'quality' ? 'quality-dashboard' : 'dashboard');
+        const target=activeSystem==='quality'?'process':'quality';
+        if(window.ProcessDeliveryNavigation?.navigate?.(target==='quality'?'quality-dashboard':'dashboard',undefined,target))return;
+        rememberSystem(target);go(target==='quality'?'quality-dashboard':'dashboard');
       };
     }
   }
@@ -277,7 +279,7 @@
   };
 
   window.addEventListener('popstate', () => {
-    if (!currentUser) return;
+    if (!currentUser||window.ProcessDeliveryNavigation?.ownsHistory) return;
     const url = new URL(location.href), system = url.searchParams.get('system');
     rememberSystem(system === 'quality' ? 'quality' : 'process');
     const requested = url.searchParams.get('view');
@@ -295,6 +297,7 @@
 
   window.ProcessDualSystem = {
     get activeSystem() { return activeSystem; },
+    installSystem:rememberSystem,
     qualityViews,
     qualityDataTabs,
     go,
