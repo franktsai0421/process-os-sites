@@ -106,7 +106,7 @@ function seedValidate(source: NonNullable<Body['source']>, catalog: AbCatalog, c
 export async function GET(request: Request) {
   try {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true}), actor = await identity(request,state);
+    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY,'masterDataControl','routineEquipmentControl'],modelKey:KEY,deferHistory:true,deferDependencyHistory:true}), actor = await identity(request,state);
     if (!actor || !(await can(request,state,'view:data')) && !(await can(request,state,'view:approval')))
       return reply({ error:'沒有查看 IPQC-AB 權限' },403);
     const catalog = catalogFromMaster(state.values.masterDataControl);

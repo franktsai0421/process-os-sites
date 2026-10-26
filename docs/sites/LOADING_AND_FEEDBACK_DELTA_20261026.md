@@ -63,3 +63,15 @@ patch; after-login bootstrap may benefit. Login, sidebar, backend tabs and helpe
 real-speed acceptance is **NOT_PASSED**, not formal-release readiness. Native
 browser/IME/heap acceptance is NOT_RUN; repeated synthetic requests are not actual
 cold/warm/reload browser trials. No live deployment or remote CI result is claimed.
+
+## Follow-on IPQC-C permission read (local candidate)
+
+- Only `permissions` GET on the specialized IPQC-C workflow selects the existing five identity/access/maintenance keys. Other GET selectors, POST, permission evaluation, revocation checks, responses and pinned-snapshot semantics are unchanged.
+- This removes unrelated record hydration from that request; it does not remove the client wait, authorize page/data access, cache authority, or make requests concurrent. Unrelated corrupt records no longer block this permission-only response; selected missing/corrupt records still fail closed.
+- Focused actual-handler parity and bounded-work checks accompany the change. Local/CI/live results must be bound separately; no live speedup or deployment is claimed here.
+
+## Follow-on AB and same-call access computation (local candidate)
+
+- Ordinary IPQC-AB GET selects its eight existing identity/access/control/catalog/equipment dependencies. Local and hosted responses, complete history streaming, POST/import/restore/numbering and partial-save denial retain their existing contracts.
+- `effectiveAccess` constructs the same role templates once per synchronous call instead of twice. No result survives the call; identity, session revocation, action/data rights and Frank-primary management rules are unchanged.
+- These changes reduce records-format I/O and pure repeated computation respectively; they do not remove the client permissions wait or establish a live latency improvement.
