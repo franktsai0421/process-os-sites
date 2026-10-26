@@ -339,6 +339,7 @@ export function allowedKey(k: string) {
     ].includes(k) || k.startsWith('processEditor:')
   );
 }
+// Explicit maintenance/draft capture only; ordinary mutation routes do not call this.
 export async function backup(
   state: State,
   reason: string,
@@ -359,11 +360,9 @@ export async function backup(
       new Date().toISOString(),
     )
     .run();
-  await env.DB.prepare(
-    'DELETE FROM state_backups WHERE id NOT IN (SELECT id FROM state_backups ORDER BY created_at DESC LIMIT 100)',
-  ).run();
   return id;
 }
+// Explicit maintenance tooling only; ordinary mutations use stateRevisionIsCurrent.
 // Snapshot the exact stored envelope, preserving its verified immutable R2 refs.
 // The revision predicate prevents backing up a different revision during a race.
 export async function backupStoredState(state: State, reason: string, actor: string) {
@@ -371,68 +370,18 @@ export async function backupStoredState(state: State, reason: string, actor: str
     'INSERT INTO state_backups(id,revision,"values",reason,actor,created_at) SELECT ?,revision,"values",?,?,? FROM shared_state WHERE id=1 AND revision=?',
   ).bind(crypto.randomUUID(), reason, actor, new Date().toISOString(), state.revision).run();
   if (result.meta.changes !== 1) return false;
-  await env.DB.prepare(
-    'DELETE FROM state_backups WHERE id NOT IN (SELECT id FROM state_backups ORDER BY created_at DESC LIMIT 100)',
-  ).run();
   return true;
 }
-export async function scheduledBackup(state: State,readComplete?:()=>Promise<State>) {
-  const settings = backupSettings(state),
-    [hour, minute] = settings.time.split(':').map(Number),
-    now = Date.now(),
-    offset = 7 * 60 * 60 * 1000,
-    local = new Date(now + offset),
-    scheduled = new Date(local);
-  if (!settings.enabled) return;
-  if (settings.frequency === 'hourly') {
-    scheduled.setUTCMinutes(minute, 0, 0);
-    if (scheduled.getTime() > local.getTime())
-      scheduled.setUTCHours(scheduled.getUTCHours() - 1);
-  } else {
-    scheduled.setUTCHours(hour, minute, 0, 0);
-    if (settings.frequency === 'weekly') {
-      scheduled.setUTCDate(
-        scheduled.getUTCDate() -
-          ((scheduled.getUTCDay() - settings.dayOfWeek + 7) % 7),
-      );
-    }
-    if (scheduled.getTime() > local.getTime())
-      scheduled.setUTCDate(
-        scheduled.getUTCDate() - (settings.frequency === 'weekly' ? 7 : 1),
-      );
-  }
-  const dueAt = new Date(scheduled.getTime() - offset),
-    id = `scheduled-${settings.frequency}-${dueAt.toISOString()}`;
-  // Avoid re-encoding the same scheduled snapshot on every page read. The
-  // unique id and INSERT OR IGNORE remain the final concurrent-writer guard.
-  if(await env.DB.prepare('SELECT id FROM state_backups WHERE id=?').bind(id).first())return;
-  if(state.recordStorage?.partial||state.deliveryOnly){
-    if(!readComplete)throw Error('Partial read cannot be backed up');
-    const complete=await readComplete();
-    // A concurrent settings/revision change must be evaluated afresh, not saved
-    // under a schedule derived from an older partial snapshot.
-    if(complete.recordStorage?.partial||complete.deliveryOnly||complete.revision!==state.revision)throw Error('Backup snapshot changed');
-    state=complete;
-  }
-  const label =
-    settings.frequency === 'weekly'
-      ? '每週'
-      : settings.frequency === 'daily'
-        ? '每日'
-        : '每小時';
-  await env.DB.prepare(
-    'INSERT OR IGNORE INTO state_backups(id,revision,"values",reason,actor,created_at) VALUES(?,?,?,?,?,?)',
-  )
-    .bind(
-      id,
-      state.revision,
-      await encodeValues(state.values,state),
-      `整站定期備份 · ${label} ${settings.time}`,
-      'system',
-      new Date().toISOString(),
-    )
-    .run();
-  await env.DB.prepare(
-    'DELETE FROM state_backups WHERE id NOT IN (SELECT id FROM state_backups ORDER BY created_at DESC LIMIT 100)',
-  ).run();
+// Automatic periodic backups are disabled, irrespective of retained settings.
+// Kept as an inert compatibility export: no full read, encode, backup or prune.
+export async function scheduledBackup(_state: State,_readComplete?:()=>Promise<State>) {
+  return {status:'disabled' as const};
+}
+
+// Preserve the early stale-revision check without creating a protection snapshot.
+// Every caller retains its final revision-conditioned UPDATE as the actual fence.
+export async function stateRevisionIsCurrent(state: Pick<State,'revision'>) {
+  if(!Number.isSafeInteger(state.revision)||state.revision<0)return false;
+  const current=await env.DB.prepare('SELECT revision FROM shared_state WHERE id=1 AND revision=?').bind(state.revision).first<{revision:number}>();
+  return current?.revision===state.revision;
 }

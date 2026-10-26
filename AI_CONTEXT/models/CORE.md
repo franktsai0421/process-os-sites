@@ -152,6 +152,8 @@ Each line is limited by UI/business logic to three unique product codes. A dispa
 
 ### Backup Settings and Backups
 
+> The published baseline behavior below differs from the unshipped [automatic-backup disabling candidate](../../docs/sites/AUTOMATIC_BACKUPS_DISABLED.md): ordinary periodic/pre-change snapshots and implicit pruning are disabled there, while explicit maintenance safety paths and existing backup data remain.
+
 `backupSettings` stores cloud schedule state: `enabled`, weekly frequency, Saturday day number, time, and `Asia/Ho_Chi_Minh` timezone. The local ADMIN backup page can switch its active endpoint between host ZIP backup and this cloud snapshot API; that mode choice is browser session UI state and is not persisted in D1. When cloud scheduling is enabled, an allowed shared-state GET performs an idempotent missed-run check, so the due snapshot can be created when the site is opened even if the backup page is not open.
 
 Cloud snapshots use `state_backups`. Host ZIP backup settings are stored separately in `local-backup.settings.json`; schedule state, audit logs, locks, and the encryption key live under the configured backup directory's `.system` folder. The Windows default is `.local-backups`, overridable with `PROCESS_BACKUP_PATH`. A path-picker capability is reported by the local backend only when the host can safely open one; manual server paths remain available and are validated and created by the backend.

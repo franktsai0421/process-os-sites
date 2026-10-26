@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, backup, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
+import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import { activeIpqc, checkedIpqcRule, checkedIpqcSnapshot, copyIpqc, nextErrorCode, nextItemCode,
   openIpqc, parseIpqcControl, submitIpqcErrors,submitIpqcIssues, type IpqcError,
   type IpqcItem, type IpqcSnapshot } from '@/lib/ipqc-c';
@@ -267,7 +267,6 @@ export async function POST(request: Request) {
       version.updatedAt = at; version.revision += 1;
     }
     const values = { ...state.values, [KEY]: JSON.stringify(control) };
-    await backup(state, 'IPQC-C 版本異動前保護備份', actor.id, true);
     const updated = await env.DB.prepare('UPDATE shared_state SET revision=?, "values"=?, updated_at=? WHERE id=1 AND revision=?')
       .bind(state.revision + 1, await encodeValues(values,state), at, state.revision).run();
     if (updated.meta.changes !== 1) return reply({ error: '修訂衝突，沒有儲存', revision: (await readState()).revision }, 409);

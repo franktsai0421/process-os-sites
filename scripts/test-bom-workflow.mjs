@@ -12,6 +12,7 @@ const fs=__esmImport0,path=__esmImport1,assert=__esmImport2,{DatabaseSync}=__esm
 const harness=__esmRequire('./ipqc-ab-import-harness.cjs');
 (async()=>{
  const db=new DatabaseSync(':memory:'),objects=new Map();for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())db.exec(fs.readFileSync(path.join('drizzle',file),'utf8'));
+ const verifyRetainedBackups=__esmRequire('./automatic-backup-fixture.cjs')(db);
  const env={PROCESS_SESSION_SECRET:randomUUID(),DB:{prepare(sql){let args=[];return{bind(...a){args=a;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}},STATE_ARCHIVE:{async put(k,v){objects.set(k,Buffer.from(v));},async head(k){return objects.has(k)?{}:null;},async get(k){const b=objects.get(k);return b?{text:async()=>b.toString(),arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),body:new ReadableStream({start(c){c.enqueue(b);c.close();}})}:null;}}};
  const load=harness(env),core=load('lib/process-state.ts'),D=await import('../public/process/bom-domain.mjs');
  // BOM exchange now intentionally combines import AND export; noimport lacks both.
@@ -41,6 +42,7 @@ const harness=__esmRequire('./ipqc-ab-import-harness.cjs');
  const after=await core.readState(),projected=JSON.parse(after.values.bomOverrides);assert.equal(projected.replaceAll,true);assert.deepEqual(Object.keys(projected.data),['001']);assert.equal(after.values.processEditorFixture,values.processEditorFixture);
  const publicValue=core.publicState(after);assert(!JSON.parse(publicValue.values?.bomMasterControl||publicValue.bomMasterControl).workflow);
  assert.equal((await req('POST',{action:'begin'})).status,200);await read();await cmd('save');const beforeNoChange=await core.readState(),unchanged=await cmd('submit',{savedId:current.workflow.saved.id,reason:'No substantive change'},'editor',422);assert.equal(unchanged.body.error,'NO_SUBSTANTIVE_CHANGE');const afterNoChange=await core.readState();assert.equal(afterNoChange.revision,beforeNoChange.revision);assert.deepEqual(afterNoChange.values,beforeNoChange.values);
+ verifyRetainedBackups();
  console.log('PASS: import privilege, unchanged active before approval, occurrence identity, L2 exclusion, stale import/edit conflict, manual structure rejection, save/submit/pending lock/review, preserved process references, private draft projection; active no-change422 preserves values');
  if(process.argv.includes('--serve')){db.prepare('UPDATE shared_state SET revision=1,"values"=? WHERE id=1').run(encoded);__esmRequire('./bom-ui-fixture.cjs')({load,headers,core,db});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

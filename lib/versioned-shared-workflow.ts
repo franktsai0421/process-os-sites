@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, backupStoredState, responseHeaders, type State } from './process-state';
+import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
 import { createSharedDraft, applyDraftCommand, DraftConflict, cloneDraft, type SharedDraft, type DraftCommand, type DraftContext, type DraftPermission } from './shared-draft';
 import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,isWorkflowDigestFingerprint} from './workflow-wire';
 import {effectiveAccess} from './user-access';
@@ -207,7 +207,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
         projectSharedVersion(control,actor,at,body.command?.action==='approve');
-        if(!await backupStoredState(state,adapter.scope+' V3 before mutation',actor.id))continue;
+        if(!await stateRevisionIsCurrent(state))continue;
         const prepared=state.recordStorage&&(!adapter.serialize||adapter.serializeModel)?new Map([[adapter.key,adapter.serializeModel?adapter.serializeModel(control):control]]):undefined;
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.

@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, backupStoredState, parse, responseHeaders, type State } from '@/lib/process-state';
+import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
 import { parseIpqcControl, activeIpqc, openIpqc, copyIpqc } from '@/lib/ipqc-c';
 import { beginIpqcWorkflow, applyIpqcWorkflow, ipqcWorkflowContext, publicIpqcWorkflow, type IpqcWorkflowControl, type IpqcWorkflowCommand } from '@/lib/ipqc-c-workflow';
 import { DraftConflict, type DraftPermission } from '@/lib/shared-draft';
@@ -170,7 +170,7 @@ export async function POST(request:Request) {
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
       }
       projection(control,actor,at,body.command?.action==='approve');
-      if(!await backupStoredState(state,'IPQC-C V3 workflow before mutation',actor.id))continue;
+      if(!await stateRevisionIsCurrent(state))continue;
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')

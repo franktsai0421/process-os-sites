@@ -15,6 +15,10 @@ export const digest = async (value: string) =>
 // Immutable, byte-identical images are fetched when displayed, not on every login.
 export async function mediaState(state: State, actorId?: string, authorizedSource?:{revision:number;values:Record<string,string>}) {
   const source = authorizedSource || publicState(state, actorId);
+  const entries = Object.entries(source.values);
+  // No transform is needed: retain exact authorized raw values without a derived cache round trip.
+  if (entries.every(([, raw]) => !/data:(?:image|video)\//.test(raw)))
+    return { revision: source.revision, values: Object.fromEntries(entries) };
   const bucket = env.STATE_ARCHIVE;
   const cacheKey = `delivery/v1/${await digest(JSON.stringify(source))}.json`;
   const cached = await bucket.get(cacheKey);

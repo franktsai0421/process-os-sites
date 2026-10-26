@@ -8,6 +8,16 @@
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let control = null, revision = null, root = null, reviewRoot = null;
   let sharedClient=null,sharedActor='',pollTimer=null,dialogBase=null,dialogGeneration=null;
+  // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
+  const editorOwners = new Set();
+  function quarantineEditors() {
+    for (const owner of editorOwners) owner.terminal = true;
+    for (const owner of editorOwners) owner.detach();
+  }
+  host.addEventListener('process-delivery-invalidated', quarantineEditors);
+  const photoViewerDisposers = new Set();
+  function disposePhotoViewers() { for (const close of [...photoViewerDisposers]) close(); }
+  host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
     if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
@@ -64,27 +74,32 @@
     return `<section class="iqc-panel" id="iqc-shared-status" role="status"><b>${t('共用範圍：IQC 全庫','Phạm vi chung: toàn bộ IQC')}</b> · ${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):unsaved?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}<br>${saved?`${t('儲存者','Người lưu')}: ${h(saved.actor.name)} · ${h(date(saved.at))} · ${h(saved.id)}`:t('尚無成功儲存快照','Chưa có bản chụp lưu thành công')}${sharedClient?.hasUnknown()?`<p role="alert">${t('上次操作結果未知，請查證後再繼續','Kết quả thao tác trước chưa rõ; kiểm tra trước khi tiếp tục')}</p><button id="iqc-operation-check">${t('查詢結果','Kiểm tra kết quả')}</button><button id="iqc-operation-retry">${t('重試同一操作','Thử lại cùng thao tác')}</button>`:''}</section>`;
   }
 
-  async function load() {
+  async function load(owner) {
+    owner?.assert();
     const delivery=window.ProcessSync?.captureDelivery?.();
     const response = await fetch(apiUrl+'?caseMetadata=1', { headers: window.ProcessSync?.platformHeaders?.() || {} });
     const data = await response.json();
+    owner?.assert();
     if (!response.ok || !data.control || !Number.isInteger(data.revision)) throw Error(data.error || 'IQC 載入失敗');
     if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
     await transport().permissions(); // Legacy and adopted libraries both use current server policy before rendering.
     if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    owner?.assert();
     control = data.control; revision = data.revision;return data;
   }
-  async function post(action, extra = {}) {
+  async function post(action, extra = {}, owner) {
+    owner?.assert();
     if (ui.busy) throw Error('IQC 資料儲存中，請稍候');
     if (!Number.isInteger(revision)) throw Error('IQC 後端尚未載入，沒有寫入空資料');
     ui.busy = true; render();
     try {
       // Pending pre-V3 cases retain their exact legacy content until concluded.
       if(action!=='import'&&(control.workflow||!control.versions.some(v=>v.status==='pending'))){
-        const client=transport();if(client.hasUnknown()){await client.resolveUnknown();await load();}
+        const client=transport();if(client.hasUnknown()){await client.resolveUnknown();owner?.assert();await load(owner);owner?.assert();}
         if(!control.workflow||action==='begin'){
-          const started=await client.begin();control=started.control;revision=started.revision;ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
+          owner?.assert();const started=await client.begin();owner?.assert();control=started.control;revision=started.revision;ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
           if(dialogBase&&!dialogGeneration)dialogGeneration=control.workflow.generation;
+          if(owner&&!owner.generation)owner.generation=control.workflow.generation;
           if(action==='begin')return started;
         }
         let commandAction=action,detail={};const flow=control.workflow;
@@ -101,14 +116,19 @@
           const answer=await window.VersionDraftUI.confirmReview({action,scope:'IQC · '+caseId,reason:extra.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===identity()?.id});if(!answer)return;
           detail={caseId,...answer};
         }
-        const result=await client.command(['applySnapshot','createError','createItem'].includes(action)?dialogGeneration||flow.generation:flow.generation,commandAction,detail);
-        if(result.control){control=result.control;revision=result.revision;}else await load();
+        owner?.assert();
+        const result=await client.command(['applySnapshot','createError','createItem'].includes(action)?owner?.generation||dialogGeneration||flow.generation:flow.generation,commandAction,detail);
+        owner?.assert();
+        if(result.control){control=result.control;revision=result.revision;}else await load(owner);
+        owner?.assert();
         ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
         window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
       }
+      owner?.assert();
       const response = await fetch(apiUrl, { method: 'POST', headers: window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, baseRevision: revision, ...extra }) });
       const data = await response.json();
+      owner?.assert();
       if (!response.ok || !data.control || !Number.isInteger(data.revision))
         throw Error(data.problems?.length ? `${data.error}：${data.problems.slice(0, 3).join('；')}` : data.error || `HTTP ${response.status}`);
       control = data.control; revision = data.revision;
@@ -117,7 +137,7 @@
       if (action === 'begin' || action === 'withdraw' || action === 'reject')
         ui.versionId = control.versions.find(version => version.status === 'draft')?.id || '';
       return data;
-    } finally { ui.busy = false; render(); }
+    } finally { ui.busy = false; if(!owner||owner.current())render(); }
   }
   function versionBar() {
     const v = selected();
@@ -265,8 +285,9 @@
     return confirm(`${label}？`) && confirm(`${label}。此操作會寫入 IQC 草稿，請再次確認。`);
   }
   function dialog(content) {
+    if(host.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
     if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=copy(snap());dialogGeneration=control?.workflow?.generation||null;}
-    const opener = document.activeElement;
+    const opener = document.activeElement, actor = identity(), delivery = host.ProcessSync?.captureDelivery?.();
     const overlay = document.createElement('div'); overlay.className = 'iqc-dialog-overlay'; overlay.dataset.i18nSkip = 'true';
     overlay.innerHTML = `<div class="iqc-dialog" role="dialog" aria-modal="true">${content}</div>`;
     if(control?.workflow){
@@ -276,8 +297,21 @@
     document.body.append(overlay);
     sharedClient?.gatePermissions?.();
     overlay.style.zIndex = String(100010 + document.querySelectorAll('.iqc-dialog-overlay').length);
-    const close = () => { overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
+    const owner = { overlay, base:dialogBase, generation:dialogGeneration, terminal:false,
+      detach(){overlay.inert=true;document.removeEventListener('keydown',esc);overlay.remove();},
+      current(){
+        if(owner.terminal)return false;
+        if(host.ProcessSync?.requiresReload||identity()!==actor||(delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)){
+          owner.terminal=true;owner.detach();return false;
+        }
+        return overlay.isConnected;
+      },
+      assert(){if(!owner.current())throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');}
+    };
+    editorOwners.add(owner);
+    const close = () => { if(!owner.current())return;owner.terminal=true;editorOwners.delete(owner);overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
     const esc = event => {
+      if(!owner.current())return;
       if ([...document.querySelectorAll('.iqc-dialog-overlay')].at(-1) !== overlay || document.querySelector('.iqc-lightbox')) return;
       if (event.key === 'Escape') { event.preventDefault(); close(); }
       if (event.key === 'Tab') {
@@ -289,11 +323,13 @@
     document.addEventListener('keydown', esc);
     overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = close);
     overlay.querySelector('input:not([readonly]),textarea,select,button')?.focus({preventScroll:true});
-    return { overlay, close };
+    return { overlay, close, owner };
   }
-  async function saveSnapshot(next, success = 'IQC 草稿已同步') {
+  async function saveSnapshot(next, success = 'IQC 草稿已同步', owner) {
+    owner?.assert();
     const v = draft(); if (!v) throw Error('IQC 草稿不是可修改狀態');
-    await post('applySnapshot', { base:copy(dialogBase||v.snapshot),snapshot:next });
+    await post('applySnapshot', { base:copy(owner?.base||dialogBase||v.snapshot),snapshot:next }, owner);
+    owner?.assert();
     notice(t('已同步至共用草稿，尚未手動儲存','Đã đồng bộ vào bản nháp chung, chưa lưu thủ công')+' · '+success.replaceAll('已儲存','已套用').replaceAll('Đã lưu','Đã áp dụng'));
   }
   async function withDraft(action) {
@@ -309,23 +345,29 @@
       action();
     } catch (error) { notice(displayDraftError(error)); }
   }
-  async function mutateSnapshot(change, success) {
-    const next = copy(dialogBase||draft().snapshot); change(next); await saveSnapshot(next, success);
+  async function mutateSnapshot(change, success, owner) {
+    owner?.assert();
+    const next = copy(owner?.base||dialogBase||draft().snapshot); change(next); await saveSnapshot(next, success, owner);
   }
-  async function upload(file) {
+  async function upload(file, owner) {
+    owner?.assert();
     const response = await fetch(photoUrl, { method: 'PUT', headers: { ...window.ProcessSync?.platformHeaders?.(), 'Content-Type': file.type }, body: file });
+    owner?.assert();
     const data = await response.json();
+    owner?.assert();
     if (!response.ok || !data.id) throw Error(data.error || '照片保存失敗');
     return { id: data.id, src: data.url, name: file.name };
   }
   function photoViewerPhotos(photos, start = 0, label = t('照片', 'Ảnh')) {
-    if (!photos.length) return;
-    let index = start;
+    const owner = host.ProcessSync?.captureDelivery?.();
+    if (!photos.length || host.ProcessSync?.requiresReload || owner && host.ProcessSync?.isCurrentDelivery?.(owner) !== true) return;
+    let index = start, closed = false;
     const overlay = document.createElement('div'); overlay.className = 'iqc-lightbox'; overlay.dataset.i18nSkip = 'true'; document.body.append(overlay);
-    const draw = () => { overlay.innerHTML = `<div class="iqc-lightbox-content"><div class="iqc-actions"><button class="button ghost" id="iqc-photo-prev">←</button><b>${index+1} / ${photos.length}</b><button class="button ghost" id="iqc-photo-next">→</button><button class="button ghost" id="iqc-photo-close">${t('關閉','Đóng')}</button></div><img src="${h(photos[index].src)}" alt="${h(label)}"><p data-i18n-skip="true">${h(photos[index].note || photos[index].name || '')}</p></div>`; overlay.querySelector('#iqc-photo-prev').onclick = () => { index = (index - 1 + photos.length) % photos.length; draw(); }; overlay.querySelector('#iqc-photo-next').onclick = () => { index = (index + 1) % photos.length; draw(); }; overlay.querySelector('#iqc-photo-close').onclick = close; };
-    const key = event => { if (event.key === 'Escape') close(); if (event.key === 'ArrowLeft') { index = (index - 1 + photos.length) % photos.length; draw(); } if (event.key === 'ArrowRight') { index = (index + 1) % photos.length; draw(); } };
-    const close = () => { overlay.remove(); document.removeEventListener('keydown', key); };
-    document.addEventListener('keydown', key); draw();
+    const current = () => !closed && !host.ProcessSync?.requiresReload && (!owner || host.ProcessSync?.isCurrentDelivery?.(owner) === true);
+    const draw = () => { if (!current()) { close(); return; } overlay.innerHTML = `<div class="iqc-lightbox-content"><div class="iqc-actions"><button class="button ghost" id="iqc-photo-prev">←</button><b>${index+1} / ${photos.length}</b><button class="button ghost" id="iqc-photo-next">→</button><button class="button ghost" id="iqc-photo-close">${t('關閉','Đóng')}</button></div><img src="${h(photos[index].src)}" alt="${h(label)}"><p data-i18n-skip="true">${h(photos[index].note || photos[index].name || '')}</p></div>`; overlay.querySelector('#iqc-photo-prev').onclick = () => { if (!current()) { close(); return; } index = (index - 1 + photos.length) % photos.length; draw(); }; overlay.querySelector('#iqc-photo-next').onclick = () => { if (!current()) { close(); return; } index = (index + 1) % photos.length; draw(); }; overlay.querySelector('#iqc-photo-close').onclick = close; };
+    const key = event => { if (!current()) { close(); return; } if (event.key === 'Escape') close(); if (event.key === 'ArrowLeft') { index = (index - 1 + photos.length) % photos.length; draw(); } if (event.key === 'ArrowRight') { index = (index + 1) % photos.length; draw(); } };
+    const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', key); overlay.querySelectorAll('button').forEach(button => button.onclick = null); overlay.querySelectorAll('img').forEach(image => image.removeAttribute('src')); overlay.replaceChildren(); overlay.remove(); photoViewerDisposers.delete(close); photos = []; };
+    photoViewerDisposers.add(close); document.addEventListener('keydown', key); draw();
   }
   function photoViewer(partCode, start = 0) {
     const part = snap().parts.find(item => item.code === partCode);
@@ -357,8 +399,9 @@
   function bind() {
     const on = (selector, event, handler) => root.querySelectorAll(selector).forEach(node => node.addEventListener(event, handler));
     on('#iqc-version', 'change', event => { ui.versionId = event.target.value; ui.partCode = ''; ui.errorId = ''; render(); });
-    on('#iqc-search', 'input', event => { if (event.isComposing) return; ui.search = event.target.value; refreshPartRows(); });
-    on('#iqc-search', 'compositionend', event => { ui.search = event.target.value; refreshPartRows(); });
+    const updateSearch = event => { if (event.isComposing || ui.search === event.target.value) return; ui.search = event.target.value; refreshPartRows(); };
+    on('#iqc-search', 'input', updateSearch);
+    on('#iqc-search', 'compositionend', updateSearch);
     on('#iqc-supplier', 'change', event => { ui.supplier = event.target.value; render(); });
     on('#iqc-category', 'change', event => { ui.category = event.target.value; render(); });
     bindPartRows();
@@ -424,17 +467,17 @@
       const rank = item => kind === 'suppliers' ? item.nameVi === 'NƯỚC NGOÀI' ? 0 : item.nameVi === 'CÔNG TY' ? 1 : 2 : 0;
       return rank(a)-rank(b) || a.nameVi.localeCompare(b.nameVi, 'vi');
     });
-    const { overlay, close } = dialog(`<div class="iqc-dialog-title"><h3>${title}</h3><button type="button" class="button ghost" data-close>${t('關閉', 'Đóng')}</button></div><label for="iqc-list-search">${t('搜尋清單', 'Tìm trong danh sách')}</label><input id="iqc-list-search" aria-label="${t('搜尋清單', 'Tìm trong danh sách')}"><div id="iqc-managed-rows" class="iqc-managed-list"></div><div class="iqc-list-add"><label for="iqc-list-new">${t('新增越文名稱', 'Thêm tên tiếng Việt')}</label><div class="iqc-inline"><input id="iqc-list-new" placeholder="${t('越文名稱', 'Tên tiếng Việt')}" data-i18n-skip="true"><button class="button ghost" id="iqc-list-add">${t('新增', 'Thêm')}</button></div></div><p class="iqc-error" id="iqc-list-error" role="alert"></p><footer><button class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" id="iqc-list-save">${t('儲存草稿', 'Lưu bản nháp')}</button></footer>`);
+    const { overlay, close, owner } = dialog(`<div class="iqc-dialog-title"><h3>${title}</h3><button type="button" class="button ghost" data-close>${t('關閉', 'Đóng')}</button></div><label for="iqc-list-search">${t('搜尋清單', 'Tìm trong danh sách')}</label><input id="iqc-list-search" aria-label="${t('搜尋清單', 'Tìm trong danh sách')}"><div id="iqc-managed-rows" class="iqc-managed-list"></div><div class="iqc-list-add"><label for="iqc-list-new">${t('新增越文名稱', 'Thêm tên tiếng Việt')}</label><div class="iqc-inline"><input id="iqc-list-new" placeholder="${t('越文名稱', 'Tên tiếng Việt')}" data-i18n-skip="true"><button class="button ghost" id="iqc-list-add">${t('新增', 'Thêm')}</button></div></div><p class="iqc-error" id="iqc-list-error" role="alert"></p><footer><button class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" id="iqc-list-save">${t('儲存草稿', 'Lưu bản nháp')}</button></footer>`);
     const search = overlay.querySelector('#iqc-list-search');
-    const applySearch = () => overlay.querySelectorAll('[data-row-id]').forEach(row => {
+    const applySearch = () => {if(!owner.current())return;overlay.querySelectorAll('[data-row-id]').forEach(row => {
       row.hidden = !rows.find(item => item.id === row.dataset.rowId)?.nameVi.toLocaleLowerCase().includes(search.value.toLocaleLowerCase());
-    });
+    });};
     search.oninput = applySearch;
     const draw = () => {
       overlay.querySelector('#iqc-managed-rows').innerHTML = sorted().map(item => `<div class="iqc-managed-row" data-row-id="${h(item.id)}"><strong data-row-label data-i18n-skip="true">${h(item.nameVi)}</strong><input data-row-name="${h(item.id)}" value="${h(item.nameVi)}" aria-label="${t('越文名稱', 'Tên tiếng Việt')}" data-i18n-skip="true" hidden><button type="button" class="button ghost iqc-small" data-row-edit="${h(item.id)}">${t('修改', 'Sửa')}</button><button type="button" class="button iqc-danger iqc-small" data-row-remove="${h(item.id)}">${t('刪除', 'Xóa')}</button></div>`).join('');
-      overlay.querySelectorAll('[data-row-edit]').forEach(button => button.onclick = () => { const row = button.closest('[data-row-id]'), input = row.querySelector('[data-row-name]'), label = row.querySelector('[data-row-label]'); const editing = input.hidden; input.hidden = !editing; label.hidden = editing; button.textContent = editing ? t('完成', 'Xong') : t('修改','Sửa'); if (editing) { input.focus(); input.select(); } });
-      overlay.querySelectorAll('[data-row-name]').forEach(input => input.oninput = () => { const item = rows.find(row => row.id === input.dataset.rowName); item.nameVi = input.value; input.closest('[data-row-id]').querySelector('[data-row-label]').textContent = input.value; });
-      overlay.querySelectorAll('[data-row-remove]').forEach(button => button.onclick = () => {
+      overlay.querySelectorAll('[data-row-edit]').forEach(button => button.onclick = () => { if(!owner.current())return; const row = button.closest('[data-row-id]'), input = row.querySelector('[data-row-name]'), label = row.querySelector('[data-row-label]'); const editing = input.hidden; input.hidden = !editing; label.hidden = editing; button.textContent = editing ? t('完成', 'Xong') : t('修改','Sửa'); if (editing) { input.focus(); input.select(); } });
+      overlay.querySelectorAll('[data-row-name]').forEach(input => input.oninput = () => { if(!owner.current())return; const item = rows.find(row => row.id === input.dataset.rowName); item.nameVi = input.value; input.closest('[data-row-id]').querySelector('[data-row-label]').textContent = input.value; });
+      overlay.querySelectorAll('[data-row-remove]').forEach(button => button.onclick = () => { if(!owner.current())return;
         const item = rows.find(row => row.id === button.dataset.rowRemove);
         const references = draft().snapshot.parts.filter(part => kind === 'categories' ? part.categoryId === item.id : part.supplierIds.includes(item.id));
         if (references.length) { overlay.querySelector('#iqc-list-error').textContent = `${references.length} ${t('個零件仍在使用，請先改派', 'linh kiện đang sử dụng; hãy chuyển trước')}`; return; }
@@ -445,13 +488,13 @@
       sharedClient?.gatePermissions?.();
     };
     draw();
-    overlay.querySelector('#iqc-list-add').onclick = () => { const input = overlay.querySelector('#iqc-list-new'); const value = input.value.trim(); if (!value) return; if (rows.some(item => item.nameVi === value)) { overlay.querySelector('#iqc-list-error').textContent = t('名稱不可重複','Tên không được trùng'); return; } rows.push({ id: crypto.randomUUID(), nameVi: value }); input.value = ''; search.value = ''; draw(); };
-    overlay.querySelector('#iqc-list-save').onclick = async () => { if (rows.some(item => !item.nameVi.trim()) || new Set(rows.map(item => item.nameVi.trim())).size !== rows.length) { overlay.querySelector('#iqc-list-error').textContent = t('名稱不可空白或重複', 'Tên không được trống hoặc trùng'); return; } try { await mutateSnapshot(next => { next[kind] = rows; }, `${title}已儲存`); close(); } catch (error) { overlay.querySelector('#iqc-list-error').textContent = displayDraftError(error); } };
+    overlay.querySelector('#iqc-list-add').onclick = () => { if(!owner.current())return; const input = overlay.querySelector('#iqc-list-new'); const value = input.value.trim(); if (!value) return; if (rows.some(item => item.nameVi === value)) { overlay.querySelector('#iqc-list-error').textContent = t('名稱不可重複','Tên không được trùng'); return; } rows.push({ id: crypto.randomUUID(), nameVi: value }); input.value = ''; search.value = ''; draw(); };
+    overlay.querySelector('#iqc-list-save').onclick = async () => { if(!owner.current())return; if (rows.some(item => !item.nameVi.trim()) || new Set(rows.map(item => item.nameVi.trim())).size !== rows.length) { overlay.querySelector('#iqc-list-error').textContent = t('名稱不可空白或重複', 'Tên không được trống hoặc trùng'); return; } try { await mutateSnapshot(next => { next[kind] = rows; }, `${title}已儲存`, owner); close(); } catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-list-error').textContent = displayDraftError(error); } };
   }
 
   function editPart(code = '') {
     const formActor=identity(),formActorId=formActor?.id,formGeneration=control?.workflow?.generation,formVersionId=selected()?.id;
-    const formCurrent=()=>overlay.isConnected&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
+    const formCurrent=()=>owner.current()&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
     const data = draft().snapshot, old = data.parts.find(item => item.code === code), suppliers = [...data.suppliers].sort((a,b) => {
       const rank = x => x.nameVi === 'NƯỚC NGOÀI' ? 0 : x.nameVi === 'CÔNG TY' ? 1 : 2;
@@ -459,15 +502,15 @@
     });
     const supplierIds = [...(old?.supplierIds || [])], photos = copy(old?.photos || []);
     const rawSupplierNote = old?.supplierRaw && old.supplierRaw !== supplierIds.map(id => name(data.suppliers,id)).join(' → ') ? `<details class="iqc-source-note"><summary>${t('匯入供應商備註', 'Ghi chú nhà cung cấp gốc')}</summary><p data-i18n-skip="true">${h(old.supplierRaw)}</p></details>` : '';
-    const { overlay, close } = dialog(`<h3>${old ? t('修改零件', 'Sửa linh kiện') : t('新增零件', 'Thêm linh kiện')}</h3><form id="iqc-part-form"><div class="iqc-form-grid"><div class="iqc-field"><label>${t('零件編號', 'Mã linh kiện')}</label><input name="code" required value="${h(old?.code || '')}" ${old ? 'readonly' : ''} data-i18n-skip="true"></div><div class="iqc-field"><label>${t('零件名稱（越文）', 'Tên linh kiện (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div></div><div class="iqc-field"><label>${t('規格（越文）', 'Quy cách (tiếng Việt)')}</label><textarea name="specificationVi" data-i18n-skip="true">${h(old?.specificationVi || '')}</textarea></div><div class="iqc-field"><label>${t('零件類別', 'Nhóm linh kiện')}</label><select name="categoryId" required><option value="">${t('選擇類別', 'Chọn nhóm')}</option>${data.categories.map(item => `<option value="${h(item.id)}" ${old?.categoryId === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><div class="iqc-field"><label>${t('第一、第二及後續供應商（依順序）', 'Nhà cung cấp thứ nhất, thứ hai và tiếp theo (theo thứ tự)')}</label><div id="iqc-part-suppliers"></div><button type="button" class="button ghost" id="iqc-part-add-supplier">${t('＋新增供應商位置', '＋Thêm vị trí nhà cung cấp')}</button></div>${rawSupplierNote}<div class="iqc-field"><label>${t('零件照片（可多張）', 'Ảnh linh kiện (nhiều ảnh)')}</label><input type="file" id="iqc-part-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><div id="iqc-part-photos"></div></div><p class="iqc-error" id="iqc-part-error" role="alert"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
-    const showError = error => overlay.querySelector('#iqc-part-error').textContent = displayDraftError(error);
-    const drawSuppliers = () => { overlay.querySelector('#iqc-part-suppliers').innerHTML = supplierIds.map((id,index) => `<div class="iqc-supplier-row"><label>${t('供應商', 'Nhà cung cấp')} ${index+1}<select data-supplier-index="${index}"><option value="">${t('選擇供應商', 'Chọn nhà cung cấp')}</option>${suppliers.map(item => `<option value="${h(item.id)}" ${item.id === id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></label><button type="button" class="button ghost" data-supplier-up="${index}" ${index ? '' : 'disabled'} aria-label="${t('向前移動','Chuyển lên')}">↑</button><button type="button" class="button ghost" data-supplier-down="${index}" ${index < supplierIds.length-1 ? '' : 'disabled'} aria-label="${t('向後移動','Chuyển xuống')}">↓</button><button type="button" class="button iqc-danger" data-supplier-remove="${index}">${t('移除', 'Bỏ')}</button></div>`).join(''); overlay.querySelectorAll('[data-supplier-index]').forEach(select => select.onchange = () => { supplierIds[Number(select.dataset.supplierIndex)] = select.value; }); overlay.querySelectorAll('[data-supplier-up]').forEach(button => button.onclick = () => { const i=Number(button.dataset.supplierUp); [supplierIds[i-1],supplierIds[i]]=[supplierIds[i],supplierIds[i-1]]; drawSuppliers(); }); overlay.querySelectorAll('[data-supplier-down]').forEach(button => button.onclick = () => { const i=Number(button.dataset.supplierDown); [supplierIds[i+1],supplierIds[i]]=[supplierIds[i],supplierIds[i+1]]; drawSuppliers(); }); overlay.querySelectorAll('[data-supplier-remove]').forEach(button => button.onclick = () => { const i=Number(button.dataset.supplierRemove); if (!twoConfirm(`${t('移除供應商', 'Bỏ nhà cung cấp')} ${i+1}`)) return; supplierIds.splice(i,1); drawSuppliers(); }); };
-    const drawPhotos = () => { overlay.querySelector('#iqc-part-photos').innerHTML = photos.map((photo,index) => `<div class="iqc-photo-edit"><img src="${h(photo.src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"><span>${index+1}</span><button type="button" class="button ghost" data-photo-up="${index}" ${index ? '' : 'disabled'}>↑</button><button type="button" class="button ghost" data-photo-down="${index}" ${index < photos.length-1 ? '' : 'disabled'}>↓</button><button type="button" class="button iqc-danger" data-photo-remove="${index}">${t('移除', 'Bỏ')}</button></div>`).join(''); overlay.querySelectorAll('[data-photo-up]').forEach(button => button.onclick = () => { const i=Number(button.dataset.photoUp); [photos[i-1],photos[i]]=[photos[i],photos[i-1]]; drawPhotos(); }); overlay.querySelectorAll('[data-photo-down]').forEach(button => button.onclick = () => { const i=Number(button.dataset.photoDown); [photos[i+1],photos[i]]=[photos[i],photos[i+1]]; drawPhotos(); }); overlay.querySelectorAll('[data-photo-remove]').forEach(button => button.onclick = () => { const i=Number(button.dataset.photoRemove); if (!twoConfirm(`${t('移除照片', 'Bỏ ảnh')} ${i+1}`)) return; photos.splice(i,1); drawPhotos(); }); };
+    const { overlay, close, owner } = dialog(`<h3>${old ? t('修改零件', 'Sửa linh kiện') : t('新增零件', 'Thêm linh kiện')}</h3><form id="iqc-part-form"><div class="iqc-form-grid"><div class="iqc-field"><label>${t('零件編號', 'Mã linh kiện')}</label><input name="code" required value="${h(old?.code || '')}" ${old ? 'readonly' : ''} data-i18n-skip="true"></div><div class="iqc-field"><label>${t('零件名稱（越文）', 'Tên linh kiện (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div></div><div class="iqc-field"><label>${t('規格（越文）', 'Quy cách (tiếng Việt)')}</label><textarea name="specificationVi" data-i18n-skip="true">${h(old?.specificationVi || '')}</textarea></div><div class="iqc-field"><label>${t('零件類別', 'Nhóm linh kiện')}</label><select name="categoryId" required><option value="">${t('選擇類別', 'Chọn nhóm')}</option>${data.categories.map(item => `<option value="${h(item.id)}" ${old?.categoryId === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><div class="iqc-field"><label>${t('第一、第二及後續供應商（依順序）', 'Nhà cung cấp thứ nhất, thứ hai và tiếp theo (theo thứ tự)')}</label><div id="iqc-part-suppliers"></div><button type="button" class="button ghost" id="iqc-part-add-supplier">${t('＋新增供應商位置', '＋Thêm vị trí nhà cung cấp')}</button></div>${rawSupplierNote}<div class="iqc-field"><label>${t('零件照片（可多張）', 'Ảnh linh kiện (nhiều ảnh)')}</label><input type="file" id="iqc-part-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><div id="iqc-part-photos"></div></div><p class="iqc-error" id="iqc-part-error" role="alert"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
+    const showError = error => {if(owner.current())overlay.querySelector('#iqc-part-error').textContent = displayDraftError(error);};
+    const drawSuppliers = () => { overlay.querySelector('#iqc-part-suppliers').innerHTML = supplierIds.map((id,index) => `<div class="iqc-supplier-row"><label>${t('供應商', 'Nhà cung cấp')} ${index+1}<select data-supplier-index="${index}"><option value="">${t('選擇供應商', 'Chọn nhà cung cấp')}</option>${suppliers.map(item => `<option value="${h(item.id)}" ${item.id === id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></label><button type="button" class="button ghost" data-supplier-up="${index}" ${index ? '' : 'disabled'} aria-label="${t('向前移動','Chuyển lên')}">↑</button><button type="button" class="button ghost" data-supplier-down="${index}" ${index < supplierIds.length-1 ? '' : 'disabled'} aria-label="${t('向後移動','Chuyển xuống')}">↓</button><button type="button" class="button iqc-danger" data-supplier-remove="${index}">${t('移除', 'Bỏ')}</button></div>`).join(''); overlay.querySelectorAll('[data-supplier-index]').forEach(select => select.onchange = () => { if(!owner.current())return; supplierIds[Number(select.dataset.supplierIndex)] = select.value; }); overlay.querySelectorAll('[data-supplier-up]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.supplierUp); [supplierIds[i-1],supplierIds[i]]=[supplierIds[i],supplierIds[i-1]]; drawSuppliers(); }); overlay.querySelectorAll('[data-supplier-down]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.supplierDown); [supplierIds[i+1],supplierIds[i]]=[supplierIds[i],supplierIds[i+1]]; drawSuppliers(); }); overlay.querySelectorAll('[data-supplier-remove]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.supplierRemove); if (!twoConfirm(`${t('移除供應商', 'Bỏ nhà cung cấp')} ${i+1}`)) return; supplierIds.splice(i,1); drawSuppliers(); }); };
+    const drawPhotos = () => { overlay.querySelector('#iqc-part-photos').innerHTML = photos.map((photo,index) => `<div class="iqc-photo-edit"><img src="${h(photo.src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"><span>${index+1}</span><button type="button" class="button ghost" data-photo-up="${index}" ${index ? '' : 'disabled'}>↑</button><button type="button" class="button ghost" data-photo-down="${index}" ${index < photos.length-1 ? '' : 'disabled'}>↓</button><button type="button" class="button iqc-danger" data-photo-remove="${index}">${t('移除', 'Bỏ')}</button></div>`).join(''); overlay.querySelectorAll('[data-photo-up]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.photoUp); [photos[i-1],photos[i]]=[photos[i],photos[i-1]]; drawPhotos(); }); overlay.querySelectorAll('[data-photo-down]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.photoDown); [photos[i+1],photos[i]]=[photos[i],photos[i+1]]; drawPhotos(); }); overlay.querySelectorAll('[data-photo-remove]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.photoRemove); if (!twoConfirm(`${t('移除照片', 'Bỏ ảnh')} ${i+1}`)) return; photos.splice(i,1); drawPhotos(); }); };
     overlay.querySelector('#iqc-part-form').insertAdjacentHTML('afterbegin',`<label class="iqc-enabled"><input type="checkbox" name="partEnabled" ${old?.isEnabled!==false?'checked':''}>${t('啟用此 IQC 零件','Kích hoạt linh kiện IQC')}</label>`);
     drawSuppliers(); drawPhotos();
-    overlay.querySelector('#iqc-part-add-supplier').onclick = () => { supplierIds.push(''); drawSuppliers(); };
-    overlay.querySelector('#iqc-part-file').onchange = async event => { const files = [...event.target.files]; for (const file of files) { try { assertFormCurrent(); const photo=await upload(file); assertFormCurrent(); photos.push(photo); drawPhotos(); } catch (error) { showError(error); return; } } event.target.value = ''; };
-    overlay.querySelector('#iqc-part-form').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget; try { assertFormCurrent(); } catch(error) { showError(error); return; } const partCode = formText(form, 'code').trim(); const nameVi = formText(form, 'nameVi'); const categoryId = formText(form, 'categoryId'); if (!partCode || !nameVi.trim()) return showError(t('請填寫零件編號及越文名稱','Hãy nhập mã và tên tiếng Việt của linh kiện')); if (!categoryId) return showError(t('請選擇零件類別','Hãy chọn nhóm linh kiện')); if (supplierIds.some(id => !id) || new Set(supplierIds).size !== supplierIds.length) return showError(t('供應商不可空白或重複','Nhà cung cấp không được trống hoặc trùng')); if (!old && data.parts.some(item => item.code === partCode)) return showError(t('零件編號已存在','Mã linh kiện đã tồn tại')); try { await mutateSnapshot(next => { const part = old ? next.parts.find(item => item.id === old.id) : { id: crypto.randomUUID(), code: partCode, supplierRaw: '', standardCode: '', sourceRow: undefined }; Object.assign(part, { isEnabled:form.elements.partEnabled.checked, nameVi, specificationVi: formText(form, 'specificationVi'), categoryId, supplierIds, photos }); if (!old) next.parts.push(part); }, t('零件已儲存至 IQC 草稿','Đã lưu linh kiện vào bản nháp IQC')); if(formCurrent()){ui.partCode = partCode; close(); render();} } catch (error) { showError(error); } };
+    overlay.querySelector('#iqc-part-add-supplier').onclick = () => { if(!owner.current())return; supplierIds.push(''); drawSuppliers(); };
+    overlay.querySelector('#iqc-part-file').onchange = async event => { if(!owner.current())return; const files = [...event.target.files]; for (const file of files) { try { assertFormCurrent(); const photo=await upload(file,owner); assertFormCurrent(); photos.push(photo); drawPhotos(); } catch (error) { showError(error); return; } } if(owner.current())event.target.value = ''; };
+    overlay.querySelector('#iqc-part-form').onsubmit = async event => { event.preventDefault();if(!owner.current())return; const form = event.currentTarget; try { assertFormCurrent(); } catch(error) { showError(error); return; } const partCode = formText(form, 'code').trim(); const nameVi = formText(form, 'nameVi'); const categoryId = formText(form, 'categoryId'); if (!partCode || !nameVi.trim()) return showError(t('請填寫零件編號及越文名稱','Hãy nhập mã và tên tiếng Việt của linh kiện')); if (!categoryId) return showError(t('請選擇零件類別','Hãy chọn nhóm linh kiện')); if (supplierIds.some(id => !id) || new Set(supplierIds).size !== supplierIds.length) return showError(t('供應商不可空白或重複','Nhà cung cấp không được trống hoặc trùng')); if (!old && data.parts.some(item => item.code === partCode)) return showError(t('零件編號已存在','Mã linh kiện đã tồn tại')); try { await mutateSnapshot(next => { const part = old ? next.parts.find(item => item.id === old.id) : { id: crypto.randomUUID(), code: partCode, supplierRaw: '', standardCode: '', sourceRow: undefined }; Object.assign(part, { isEnabled:form.elements.partEnabled.checked, nameVi, specificationVi: formText(form, 'specificationVi'), categoryId, supplierIds, photos }); if (!old) next.parts.push(part); }, t('零件已儲存至 IQC 草稿','Đã lưu linh kiện vào bản nháp IQC'), owner); if(formCurrent()){ui.partCode = partCode; close(); render();} } catch (error) { showError(error); } };
   }
 
   function previewNumber(prefix, reserved = [], width = 0) {
@@ -476,13 +519,13 @@
   }
   function editError(id = '') {
     const old = snap().errors.find(item => item.id === id);
-    const { overlay, close } = dialog(`<h3>${old ? t('修改錯誤代碼', 'Sửa mã lỗi') : t('新增錯誤代碼', 'Thêm mã lỗi')}</h3><form id="iqc-error-form"><div class="iqc-field"><label>${t('錯誤代碼', 'Mã lỗi')}</label><input value="${h(old?.code || previewNumber(`${ui.partCode}-IQC-L`, control.reservedErrorCodes))}" readonly></div><div class="iqc-field"><label>${t('錯誤名稱（越文）', 'Tên lỗi (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div><p class="iqc-error" id="iqc-error-message"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
-    overlay.querySelector('form').onsubmit = async event => { event.preventDefault(); const value = formText(event.currentTarget, 'nameVi').trim(); try { if (old) await mutateSnapshot(next => { next.errors.find(item => item.id === id).nameVi = value; }, t('錯誤代碼已套用','Đã áp dụng mã lỗi')); else { const v = draft(); await post('createError', { versionId: v.id, versionRevision: v.revision, partCode: ui.partCode, nameVi: value }); notice(t('新增錯誤代碼已同步，尚未手動儲存','Đã đồng bộ mã lỗi mới, chưa lưu thủ công')); } close(); } catch (error) { overlay.querySelector('#iqc-error-message').textContent = displayDraftError(error); } };
+    const { overlay, close, owner } = dialog(`<h3>${old ? t('修改錯誤代碼', 'Sửa mã lỗi') : t('新增錯誤代碼', 'Thêm mã lỗi')}</h3><form id="iqc-error-form"><div class="iqc-field"><label>${t('錯誤代碼', 'Mã lỗi')}</label><input value="${h(old?.code || previewNumber(`${ui.partCode}-IQC-L`, control.reservedErrorCodes))}" readonly></div><div class="iqc-field"><label>${t('錯誤名稱（越文）', 'Tên lỗi (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div><p class="iqc-error" id="iqc-error-message"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
+    overlay.querySelector('form').onsubmit = async event => { event.preventDefault();if(!owner.current())return; const value = formText(event.currentTarget, 'nameVi').trim(); try { if (old) await mutateSnapshot(next => { next.errors.find(item => item.id === id).nameVi = value; }, t('錯誤代碼已套用','Đã áp dụng mã lỗi'), owner); else { const v = draft(); await post('createError', { versionId: v.id, versionRevision: v.revision, partCode: ui.partCode, nameVi: value }, owner); if(!owner.current())return;notice(t('新增錯誤代碼已同步，尚未手動儲存','Đã đồng bộ mã lỗi mới, chưa lưu thủ công')); } close(); } catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-error-message').textContent = displayDraftError(error); } };
   }
 
   function editItem(id = '', errorId = '') {
     const formActor=identity(),formActorId=formActor?.id,formGeneration=control?.workflow?.generation,formVersionId=selected()?.id;
-    const formCurrent=()=>overlay.isConnected&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
+    const formCurrent=()=>owner.current()&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
     const old = snap().items.find(item => item.id === id), error = snap().errors.find(item => item.id === (old?.errorId || errorId));
     if (!error) return;
@@ -492,7 +535,7 @@
     let selectedEqId = old?.equipmentId || '';
     let selectedEq = old?.equipmentSnapshot || null;
     const initialMode = selectedEqId ? 'equipment' : old?.inspectionMode === 'visual' || !old ? 'visual' : '';
-    const { overlay, close } = dialog(`<form id="iqc-item-form" class="iqc-item-form"><header class="iqc-item-form-header"><div><h3>${old ? t('修改檢查項目', 'Sửa hạng mục kiểm tra') : t('新增檢查項目', 'Thêm hạng mục kiểm tra')}</h3><small data-i18n-skip="true">${h(old?.checkNo || previewNumber(`${error.code}-`, control.reservedCheckNos, 2))}</small><div class="iqc-parent-error"><b>${t('錯誤代碼','Mã lỗi')}</b><code>${h(error.code)}</code><span data-i18n-skip="true">${h(error.nameVi)}</span></div></div><button type="button" class="button ghost" data-close>${t('返回', 'Quay lại')}</button></header><div class="iqc-item-form-body">
+    const { overlay, close, owner } = dialog(`<form id="iqc-item-form" class="iqc-item-form"><header class="iqc-item-form-header"><div><h3>${old ? t('修改檢查項目', 'Sửa hạng mục kiểm tra') : t('新增檢查項目', 'Thêm hạng mục kiểm tra')}</h3><small data-i18n-skip="true">${h(old?.checkNo || previewNumber(`${error.code}-`, control.reservedCheckNos, 2))}</small><div class="iqc-parent-error"><b>${t('錯誤代碼','Mã lỗi')}</b><code>${h(error.code)}</code><span data-i18n-skip="true">${h(error.nameVi)}</span></div></div><button type="button" class="button ghost" data-close>${t('返回', 'Quay lại')}</button></header><div class="iqc-item-form-body">
       <section class="iqc-item-form-section"><h4>${t('基本資料','Thông tin cơ bản')}</h4><div class="iqc-field"><label>${t('檢查項目', 'Hạng mục kiểm tra')}</label><textarea name="nameVi" required data-i18n-skip="true">${h(old?.nameVi || '')}</textarea></div><div class="iqc-field"><label>${t('檢測方法','Phương pháp kiểm tra')}</label><textarea name="methodVi" data-i18n-skip="true">${h(old?.methodVi || '')}</textarea></div></section>
       <section class="iqc-item-form-section"><h4>${t('檢查工具／設備','Dụng cụ / thiết bị kiểm tra')}</h4><div class="iqc-tool-options"><label><input type="radio" name="inspectionMode" value="visual" ${initialMode === 'visual' ? 'checked' : ''}>${t('目視檢查','Kiểm tra bằng mắt')}</label><label><input type="radio" name="inspectionMode" value="equipment" ${initialMode === 'equipment' ? 'checked' : ''}>${t('檢具與測試設備','Dụng cụ và thiết bị thử')}</label></div><p class="iqc-muted" id="iqc-tool-pending" ${initialMode ? 'hidden' : ''}>${t('尚未指定正式檢查工具；原始資料保留在來源紀錄。','Chưa chỉ định dụng cụ chính thức; dữ liệu gốc vẫn được lưu trong nguồn.')}</p><div id="iqc-equipment-box" ${initialMode === 'equipment' ? '' : 'hidden'}><div id="iqc-selected-equipment"></div><div class="iqc-actions"><button type="button" class="button ghost" id="iqc-equipment-change">${t('選擇檢具與測試設備','Chọn dụng cụ / thiết bị đo')}</button><button type="button" class="button ghost" id="iqc-equipment-clear">${t('清除關聯','Xóa liên kết')}</button></div></div></section>
       <section class="iqc-item-form-section iqc-item-photo-editor"><h4>${t('檢查方式照片（可多張）','Ảnh cách kiểm tra (nhiều ảnh)')}</h4><input type="file" id="iqc-item-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><div id="iqc-item-photo-list"></div></section>
@@ -503,7 +546,8 @@
     const equipmentName = eq => eq?.name || eq?.nameVi || eq?.nameZh || '';
     const searchKey = value => String(value || '').replace(/đ/g, 'd').replace(/Đ/g, 'D').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     function openEquipmentPicker() {
-      const { overlay: picker, close: closePicker } = dialog(`<div class="iqc-equipment-picker"><header><h3>${t('選擇檢具與測試設備','Chọn dụng cụ / thiết bị đo')}</h3><button type="button" class="button ghost" data-close>${t('返回','Quay lại')}</button></header><div class="iqc-equipment-picker-body"><p id="iqc-picker-status" role="status">${t('載入目前生效設備…','Đang tải thiết bị đang hiệu lực…')}</p><div id="iqc-picker-filters" hidden><label>${t('類別','Nhóm')}<select id="iqc-picker-category"></select></label><label>${t('子類別','Phân nhóm')}<select id="iqc-picker-subcategory"></select></label><label>${t('規格群組','Nhóm quy cách')}<select id="iqc-picker-group"></select></label><label>${t('搜尋設備','Tìm thiết bị')}<input type="search" id="iqc-picker-search" placeholder="${t('編號、名稱、規格…','Mã, tên, quy cách…')}"></label></div><div id="iqc-picker-list"></div></div><footer><button type="button" class="button ghost" data-close>${t('取消','Hủy')}</button></footer></div>`);
+      if(!owner.current())return;
+      const { overlay: picker, close: closePicker, owner: pickerOwner } = dialog(`<div class="iqc-equipment-picker"><header><h3>${t('選擇檢具與測試設備','Chọn dụng cụ / thiết bị đo')}</h3><button type="button" class="button ghost" data-close>${t('返回','Quay lại')}</button></header><div class="iqc-equipment-picker-body"><p id="iqc-picker-status" role="status">${t('載入目前生效設備…','Đang tải thiết bị đang hiệu lực…')}</p><div id="iqc-picker-filters" hidden><label>${t('類別','Nhóm')}<select id="iqc-picker-category"></select></label><label>${t('子類別','Phân nhóm')}<select id="iqc-picker-subcategory"></select></label><label>${t('規格群組','Nhóm quy cách')}<select id="iqc-picker-group"></select></label><label>${t('搜尋設備','Tìm thiết bị')}<input type="search" id="iqc-picker-search" placeholder="${t('編號、名稱、規格…','Mã, tên, quy cách…')}"></label></div><div id="iqc-picker-list"></div></div><footer><button type="button" class="button ghost" data-close>${t('取消','Hủy')}</button></footer></div>`);
       const status = picker.querySelector('#iqc-picker-status');
       const list = picker.querySelector('#iqc-picker-list');
       const category = picker.querySelector('#iqc-picker-category');
@@ -513,32 +557,37 @@
       let catalog, selectedCategory = '', selectedSubcategory = '', selectedGroup = '';
       const option = (value, label, selected) => `<option value="${h(value)}" ${value === selected ? 'selected' : ''} ${value ? 'data-i18n-skip="true"' : ''}>${h(label)}</option>`;
       function drawSubcategories() {
+        if(!owner.current()||!pickerOwner.current())return;
         subcategory.innerHTML = option('', t('全部子類別','Tất cả phân nhóm'), selectedSubcategory) + catalog.subcategories.filter(row => !selectedCategory || row.categoryId === selectedCategory).map(row => option(row.id, row.name || row.nameVi || row.id, selectedSubcategory)).join('');
       }
       function drawGroups() {
+        if(!owner.current()||!pickerOwner.current())return;
         group.innerHTML = option('', t('全部規格群組','Tất cả nhóm quy cách'), selectedGroup) + catalog.groups.filter(row => (!selectedCategory || row.categoryId === selectedCategory) && (!selectedSubcategory || row.subcategoryId === selectedSubcategory)).map(row => option(row.id, row.name || row.nameVi || row.id, selectedGroup)).join('');
       }
       function drawList() {
+        if(!owner.current()||!pickerOwner.current())return;
         const query = searchKey(search.value.trim());
         const filtered = equipmentChoices.filter(eq => (!selectedCategory || eq.categoryId === selectedCategory) && (!selectedSubcategory || eq.subcategoryId === selectedSubcategory) && (!selectedGroup || eq.groupId === selectedGroup) && (!query || searchKey(`${eq.assetCode} ${eq.pieceMark} ${equipmentName(eq)} ${eq.spec || ''}`).includes(query)));
         status.textContent = `${t('符合','Phù hợp')} ${filtered.length} / ${equipmentChoices.length} ${t('筆設備','thiết bị')}`;
         list.innerHTML = filtered.map(eq => { const photo = equipmentPhoto(eq), enabled = eq.enabled !== false; return `<article class="iqc-picker-item ${eq.id === selectedEqId ? 'selected' : ''} ${enabled ? '' : 'unavailable'}"><div class="iqc-picker-thumb">${photo ? `<img decoding="async" loading="lazy" src="${h(photo)}" alt="">` : '◇'}</div><div class="iqc-picker-info"><strong>${h(eq.assetCode || '')}／${h(eq.pieceMark || '')}</strong><span class="iqc-picker-availability">${enabled ? t('可選','Có thể chọn') : t('未啟用','Chưa kích hoạt')}</span><span data-i18n-skip="true">${h(equipmentName(eq))}</span><small data-i18n-skip="true">${h(eq.spec || '')}</small></div><button type="button" class="button ${eq.id === selectedEqId ? 'ghost' : 'signal'}" data-iqc-select-equipment="${h(eq.id)}" ${enabled ? '' : 'disabled'}>${eq.id === selectedEqId ? t('目前所選','Đã chọn') : t('選擇此設備','Chọn thiết bị')}</button></article>`; }).join('') || `<p class="iqc-muted">${t('無符合條件的設備','Không có thiết bị phù hợp')}</p>`;
-        list.querySelectorAll('[data-iqc-select-equipment]').forEach(button => button.onclick = () => {
+        list.querySelectorAll('[data-iqc-select-equipment]').forEach(button => button.onclick = () => { if(!owner.current()||!pickerOwner.current())return;
           const eq = equipmentChoices.find(row => row.id === button.dataset.iqcSelectEquipment && row.enabled !== false);
           if (!eq) return;
           selectedEqId = eq.id; selectedEq = eq; drawSelectedEquipment(); closePicker();
         });
       }
       async function load() {
-    const delivery=window.ProcessSync?.captureDelivery?.();
+        if(!owner.current()||!pickerOwner.current())return;
         status.textContent = t('載入目前生效設備…','Đang tải thiết bị đang hiệu lực…');
         try {
           const response = await fetch('/api/routine-equipment', { cache: 'no-store' });
+          if(!owner.current()||!pickerOwner.current())return;
           const data = await response.json();
+          if(!owner.current()||!pickerOwner.current())return;
           if (!response.ok) throw Error(data.error || `HTTP ${response.status}`);
           const version = data.control?.versions?.find(row => row.id === data.control.activeVersionId && row.status === 'approved');
           if (!version) throw Error(t('目前沒有生效檢具版本','Chưa có phiên bản thiết bị hiệu lực'));
-          if (!picker.isConnected) return;
+          if(!owner.current()||!pickerOwner.current())return;
           catalog = { categories: version.categories || [], subcategories: version.subcategories || [], groups: version.groups || [] };
           equipmentChoices = version.equipment || [];
           const current = equipmentChoices.find(eq => eq.id === selectedEqId);
@@ -546,19 +595,20 @@
           category.innerHTML = option('', t('全部類別','Tất cả nhóm'), selectedCategory) + catalog.categories.map(row => option(row.id, `${row.code || ''} · ${row.name || row.nameVi || row.id}`, selectedCategory)).join('');
           drawSubcategories(); drawGroups(); picker.querySelector('#iqc-picker-filters').hidden = false; drawList();
         } catch (error) {
-          if (!picker.isConnected) return;
+          if(!owner.current()||!pickerOwner.current())return;
           status.textContent = `${t('設備載入失敗','Không tải được thiết bị')}: ${displayDraftError(error)}`;
           list.innerHTML = `<button type="button" class="button ghost" id="iqc-picker-retry">${t('重新載入設備','Tải lại thiết bị')}</button>`;
           list.querySelector('#iqc-picker-retry').onclick = load;
         }
       }
-      category.onchange = () => { selectedCategory = category.value; selectedSubcategory = ''; selectedGroup = ''; drawSubcategories(); drawGroups(); drawList(); };
-      subcategory.onchange = () => { selectedSubcategory = subcategory.value; selectedGroup = ''; drawGroups(); drawList(); };
-      group.onchange = () => { selectedGroup = group.value; drawList(); };
+      category.onchange = () => { if(!owner.current()||!pickerOwner.current())return; selectedCategory = category.value; selectedSubcategory = ''; selectedGroup = ''; drawSubcategories(); drawGroups(); drawList(); };
+      subcategory.onchange = () => { if(!owner.current()||!pickerOwner.current())return; selectedSubcategory = subcategory.value; selectedGroup = ''; drawGroups(); drawList(); };
+      group.onchange = () => { if(!owner.current()||!pickerOwner.current())return; selectedGroup = group.value; drawList(); };
       search.oninput = drawList;
       void load();
     }
     function drawSelectedEquipment() {
+      if(!owner.current())return;
       const card = overlay.querySelector('#iqc-selected-equipment');
       const photo = equipmentPhoto(selectedEq);
       card.innerHTML = selectedEqId && selectedEq ? `<article class="iqc-equipment-card"><div class="iqc-equipment-thumb">${photo ? `<img src="${h(photo)}" alt="">` : '◇'}</div><div class="iqc-equipment-meta" data-i18n-skip="true"><strong>${h(selectedEq.assetCode || '')}／${h(selectedEq.pieceMark || '')}</strong><span>${h(equipmentName(selectedEq))}</span><small>${h(selectedEq.spec || '')}</small></div></article>` : '';
@@ -566,6 +616,7 @@
       overlay.querySelector('#iqc-equipment-change').textContent = selectedEqId ? t('選擇／更換檢具','Chọn / đổi thiết bị') : t('選擇檢具與測試設備','Chọn dụng cụ / thiết bị đo');
     }
     const updateMode = () => {
+      if(!owner.current())return;
       const mode = overlay.querySelector('input[name="inspectionMode"]:checked')?.value;
       overlay.querySelector('#iqc-equipment-box').hidden = mode !== 'equipment';
       overlay.querySelector('#iqc-tool-pending').hidden = Boolean(mode);
@@ -573,7 +624,7 @@
     };
     overlay.querySelectorAll('input[name="inspectionMode"]').forEach(input => input.onchange = updateMode);
     overlay.querySelector('#iqc-equipment-change').onclick = openEquipmentPicker;
-    overlay.querySelector('#iqc-equipment-clear').onclick = () => {
+    overlay.querySelector('#iqc-equipment-clear').onclick = () => { if(!owner.current())return;
       selectedEqId = ''; selectedEq = null;
       overlay.querySelectorAll('input[name="inspectionMode"]').forEach(input => { input.checked = false; });
       updateMode();
@@ -581,8 +632,8 @@
     updateMode();
     if (selectedEqId) {
       const currentId = selectedEqId;
-      void fetch('/api/routine-equipment', { cache: 'no-store' }).then(response => response.ok ? response.json() : null).then(data => {
-        if (!overlay.isConnected || selectedEqId !== currentId) return;
+      void fetch('/api/routine-equipment', { cache: 'no-store' }).then(response => owner.current()&&response.ok ? response.json() : null).then(data => {
+        if (!owner.current() || selectedEqId !== currentId) return;
         const version = data?.control?.versions?.find(row => row.id === data.control.activeVersionId && row.status === 'approved');
         const current = version?.equipment?.find(eq => eq.id === currentId);
         if (current) { selectedEq = current; drawSelectedEquipment(); }
@@ -591,19 +642,19 @@
     function drawItemPhotos() {
       const list = overlay.querySelector('#iqc-item-photo-list');
       list.innerHTML = photos.map((photo,index) => `<div class='iqc-photo-edit'><img src='${h(photo.src)}' alt=''><span>${index+1}</span><input data-item-photo-note='${index}' value='${h(photo.note || '')}' placeholder='${t('照片備註','Ghi chú ảnh')}' data-i18n-skip='true'><button type='button' data-item-photo-first='${index}' ${index ? '' : 'disabled'}>${t('設為首圖','Ảnh đầu')}</button><button type='button' data-item-photo-up='${index}' ${index ? '' : 'disabled'}>↑</button><button type='button' data-item-photo-down='${index}' ${index < photos.length-1 ? '' : 'disabled'}>↓</button><button type='button' data-item-photo-remove='${index}'>${t('移除','Xóa')}</button></div>`).join('');
-      list.querySelectorAll('[data-item-photo-note]').forEach(input => input.oninput = () => { photos[Number(input.dataset.itemPhotoNote)].note = input.value; });
-      list.querySelectorAll('[data-item-photo-first]').forEach(button => button.onclick = () => { photos.unshift(photos.splice(Number(button.dataset.itemPhotoFirst),1)[0]); drawItemPhotos(); });
-      list.querySelectorAll('[data-item-photo-up]').forEach(button => button.onclick = () => { const i=Number(button.dataset.itemPhotoUp); [photos[i-1],photos[i]]=[photos[i],photos[i-1]]; drawItemPhotos(); });
-      list.querySelectorAll('[data-item-photo-down]').forEach(button => button.onclick = () => { const i=Number(button.dataset.itemPhotoDown); [photos[i+1],photos[i]]=[photos[i],photos[i+1]]; drawItemPhotos(); });
-      list.querySelectorAll('[data-item-photo-remove]').forEach(button => button.onclick = () => { const i=Number(button.dataset.itemPhotoRemove); if(twoConfirm(`${t('移除檢查照片','Xóa ảnh hạng mục')} ${i+1}`)){photos.splice(i,1);drawItemPhotos();} });
+      list.querySelectorAll('[data-item-photo-note]').forEach(input => input.oninput = () => { if(!owner.current())return; photos[Number(input.dataset.itemPhotoNote)].note = input.value; });
+      list.querySelectorAll('[data-item-photo-first]').forEach(button => button.onclick = () => { if(!owner.current())return; photos.unshift(photos.splice(Number(button.dataset.itemPhotoFirst),1)[0]); drawItemPhotos(); });
+      list.querySelectorAll('[data-item-photo-up]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.itemPhotoUp); [photos[i-1],photos[i]]=[photos[i],photos[i-1]]; drawItemPhotos(); });
+      list.querySelectorAll('[data-item-photo-down]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.itemPhotoDown); [photos[i+1],photos[i]]=[photos[i],photos[i+1]]; drawItemPhotos(); });
+      list.querySelectorAll('[data-item-photo-remove]').forEach(button => button.onclick = () => { if(!owner.current())return; const i=Number(button.dataset.itemPhotoRemove); if(twoConfirm(`${t('移除檢查照片','Xóa ảnh hạng mục')} ${i+1}`)){photos.splice(i,1);drawItemPhotos();} });
     }
     drawItemPhotos();
-    overlay.querySelector('#iqc-item-file').onchange = async event => {
+    overlay.querySelector('#iqc-item-file').onchange = async event => { if(!owner.current())return;
       for (const file of event.target.files) {
-        try { assertFormCurrent(); const photo=await upload(file); assertFormCurrent(); photos.push({ ...photo, note: '' }); drawItemPhotos(); }
-        catch (error) { overlay.querySelector('#iqc-item-error').textContent = displayDraftError(error); break; }
+        try { assertFormCurrent(); const photo=await upload(file,owner); assertFormCurrent(); photos.push({ ...photo, note: '' }); drawItemPhotos(); }
+        catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-item-error').textContent = displayDraftError(error); break; }
       }
-      event.target.value = '';
+      if(owner.current())event.target.value = '';
     };
     const kinds = rule => rule.cadence === 'batch' ? [['aql','AQL'],['fixed_count',t('固定件數','Số mẫu cố định')],['batch_quantity',t('批次數量','Số lượng lô')],['custom',t('自訂','Tùy chỉnh')]] : [['week',t('週','Tuần')],['month',t('月','Tháng')],['quarter',t('季','Quý')],['half_year',t('半年','Nửa năm')],['year',t('年','Năm')],['custom',t('自訂','Tùy chỉnh')]];
     const drawRules = () => {
@@ -618,17 +669,17 @@
         ${rule.cadence === 'batch' && rule.kind === 'custom' ? `<label>${t('自訂項目名稱（必填）','Tên mục tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : ''}
         ${rule.cadence === 'batch' ? `<label>${rule.kind === 'custom' ? t('對應數量或文字內容（必填）','Số lượng hoặc nội dung (bắt buộc)') : t('對應數值（必填）','Giá trị (bắt buộc)')}<input data-rule-value="${index}" value="${h(rule.value||'')}" ${rule.kind === 'custom' ? '' : 'inputmode="decimal"'} data-i18n-skip="true"></label>` : rule.kind === 'custom' ? `<label>${t('自訂週期內容（必填）','Nội dung chu kỳ tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : `<p class="iqc-muted">${t('按時間不填數量','Theo thời gian không nhập số lượng')}</p>`}
         </div><button type="button" class="button iqc-danger iqc-small iqc-rule-remove" data-rule-remove="${index}" ${rules.length === 1 ? 'disabled' : ''}>${t('移除規則','Xóa quy tắc')}</button></details>`).join('');
-      overlay.querySelectorAll('[data-rule-cadence]').forEach(select => select.onchange = () => { const rule=rules[Number(select.dataset.ruleCadence)]; rule.cadence=select.value; rule.kind=select.value==='batch'?'aql':'week'; rule.value=''; rule.nameVi=''; drawRules(); });
-      overlay.querySelectorAll('[data-rule-kind]').forEach(select => select.onchange = () => { const rule=rules[Number(select.dataset.ruleKind)]; rule.kind=select.value; rule.value=''; rule.nameVi=''; drawRules(); });
-      overlay.querySelectorAll('[data-rule-value]').forEach(input => input.oninput = () => { rules[Number(input.dataset.ruleValue)].value=input.value; });
-      overlay.querySelectorAll('[data-rule-name]').forEach(input => input.oninput = () => { rules[Number(input.dataset.ruleName)].nameVi=input.value; });
-      overlay.querySelectorAll('[data-rule-remove]').forEach(button => button.onclick = () => { if (rules.length === 1) { overlay.querySelector('#iqc-item-error').textContent = t('至少保留一條檢查規則', 'Phải giữ ít nhất một quy tắc'); return; } const index=Number(button.dataset.ruleRemove); if(!twoConfirm(`${t('移除檢查規則','Bỏ quy tắc kiểm tra')} ${index+1}`))return; rules.splice(index,1); drawRules(); });
+      overlay.querySelectorAll('[data-rule-cadence]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleCadence)]; rule.cadence=select.value; rule.kind=select.value==='batch'?'aql':'week'; rule.value=''; rule.nameVi=''; drawRules(); });
+      overlay.querySelectorAll('[data-rule-kind]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleKind)]; rule.kind=select.value; rule.value=''; rule.nameVi=''; drawRules(); });
+      overlay.querySelectorAll('[data-rule-value]').forEach(input => input.oninput = () => { if(!owner.current())return; rules[Number(input.dataset.ruleValue)].value=input.value; });
+      overlay.querySelectorAll('[data-rule-name]').forEach(input => input.oninput = () => { if(!owner.current())return; rules[Number(input.dataset.ruleName)].nameVi=input.value; });
+      overlay.querySelectorAll('[data-rule-remove]').forEach(button => button.onclick = () => { if(!owner.current())return; if (rules.length === 1) { overlay.querySelector('#iqc-item-error').textContent = t('至少保留一條檢查規則', 'Phải giữ ít nhất một quy tắc'); return; } const index=Number(button.dataset.ruleRemove); if(!twoConfirm(`${t('移除檢查規則','Bỏ quy tắc kiểm tra')} ${index+1}`))return; rules.splice(index,1); drawRules(); });
       body.scrollTop = scroll;
     };
     drawRules();
-    overlay.querySelector('#iqc-rule-add').onclick = () => { rules.push({ id: crypto.randomUUID(), cadence: 'batch', kind: 'aql', value: '', nameVi: '' }); drawRules(); overlay.querySelector(`[data-rule-card="${rules.length-1}"]`).open = true; };
+    overlay.querySelector('#iqc-rule-add').onclick = () => { if(!owner.current())return; rules.push({ id: crypto.randomUUID(), cadence: 'batch', kind: 'aql', value: '', nameVi: '' }); drawRules(); overlay.querySelector(`[data-rule-card="${rules.length-1}"]`).open = true; };
     overlay.querySelector('form').onsubmit = async event => {
-      event.preventDefault();
+      event.preventDefault();if(!owner.current())return;
       const form = event.currentTarget;
       const nameVi = formText(form, 'nameVi');
       const toolVi = old?.toolVi || '';
@@ -657,10 +708,10 @@
         equipmentId: chosenMode === 'equipment' ? selectedId : '',
         equipmentSnapshot: chosenMode === 'equipment' ? chosen ? { id: chosen.id, assetCode: chosen.assetCode || '', pieceMark: chosen.pieceMark || '', name: chosen.name || chosen.nameVi || '', spec: chosen.spec || '' } : old?.equipmentSnapshot : null };
       try {
-        if (old) await mutateSnapshot(next => { Object.assign(next.items.find(row => row.id === id), payload); }, t('檢查項目已儲存','Hạng mục đã lưu'));
-        else { const v = draft(); await post('createItem', { versionId: v.id, versionRevision: v.revision, errorId: error.id, ...payload }); notice(t('新檢查項目已同步，尚未手動儲存','Đã đồng bộ hạng mục mới, chưa lưu thủ công')); }
+        if (old) await mutateSnapshot(next => { Object.assign(next.items.find(row => row.id === id), payload); }, t('檢查項目已儲存','Hạng mục đã lưu'), owner);
+        else { const v = draft(); await post('createItem', { versionId: v.id, versionRevision: v.revision, errorId: error.id, ...payload }, owner);if(!owner.current())return;notice(t('新檢查項目已同步，尚未手動儲存','Đã đồng bộ hạng mục mới, chưa lưu thủ công')); }
         if(formCurrent())close();
-      } catch (failure) { errorBox.textContent = displayDraftError(failure); }
+      } catch (failure) { if(!owner.current())return;errorBox.textContent = displayDraftError(failure); }
     };
   }
 
@@ -710,5 +761,5 @@
   function pendingCount() { return (control?.versions || []).filter(v => v.status === 'pending').length; }
   function renderApprovedDetail(area,data,partId,onPhoto){const part=data.parts.find(p=>p.id===partId),state={partCode:part?.code||'',errorId:''};function draw(){area.innerHTML=detailPanel(data,state,true);area.querySelectorAll('[data-select-error]').forEach(b=>b.onclick=()=>{state.errorId=b.dataset.selectError;draw();});area.querySelectorAll('[data-photo-part]').forEach(b=>b.onclick=()=>onPhoto(part.photos[Number(b.dataset.photoIndex)]?.src));area.querySelectorAll('[data-item-photo]').forEach(b=>b.onclick=()=>onPhoto(data.items.find(i=>i.id===b.dataset.itemPhoto)?.mediaItems?.[Number(b.dataset.photoIndex)]?.src));}draw();}
   let navigationError=null;
-  host.IQCMasterUI = { navigation:{canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){clearTimeout(pollTimer);root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  host.IQCMasterUI = { navigation:{canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){disposePhotoViewers();clearTimeout(pollTimer);root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
 })(window);

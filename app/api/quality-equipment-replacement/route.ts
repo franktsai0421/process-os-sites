@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, backupStoredState, parse, responseHeaders as headers } from '@/lib/process-state';
+import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders as headers } from '@/lib/process-state';
 import { activeReplacementVersion, equipmentSnapshot, itemName, itemNumber, liveItems,
   openReplacementVersion, replacementModules, replacementSelectionId,
   type PendingReplacement, type ReplacementItem, type ReplacementLibrary,
@@ -260,7 +260,7 @@ export async function POST(request: Request) {
     const values: Record<string, string> = { ...state.values, routineEquipmentControl: JSON.stringify(routine) };
     if (moduleId === 'fqc') values.qualityMasterControl = JSON.stringify(quality);
     else values[replacementModules[moduleId].key] = JSON.stringify(moduleId==='ipqc-ab'?ipqcAB:library);
-    if(!await backupStoredState(state, `${replacementModules[moduleId].label} 檢具替換前保護備份`, actor.id))
+    if(!await stateRevisionIsCurrent(state))
       return reply({error:'修訂衝突，沒有儲存',revision:(await readState()).revision},409);
     const update = await env.DB.prepare('UPDATE shared_state SET revision=?, "values"=?, updated_at=? WHERE id=1 AND revision=?')
       .bind(state.revision + 1, await encodeValues(values,state), at, state.revision).run();
