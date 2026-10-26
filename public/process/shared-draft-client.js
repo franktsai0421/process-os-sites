@@ -69,12 +69,14 @@
     const gateControls=(revoked=false)=>{if(!access||!gates)return;let changedElement=null;for(const [permission,selector]of Object.entries(gates))if(access[permission]===false)document.querySelectorAll?.(selector).forEach(element=>{if(!element.disabled)changedElement=element;element.disabled=true;element.setAttribute('aria-disabled','true');});if(revoked&&changedElement&&!permissionNotice?.isConnected){const root=changedElement.closest('#data-content,#fixture')||document.querySelector('#data-content');if(root){permissionNotice=document.createElement('p');permissionNotice.className='master-edit-note';permissionNotice.setAttribute('role','alert');permissionNotice.textContent=document.documentElement.lang==='vi'?'Quyền thao tác đã thay đổi; giữ đầu vào hiện tại. Tải lại và kiểm tra quyền trước khi tiếp tục.':'操作權限已變更；保留目前輸入，請重新載入核對權限後繼續。';root.prepend(permissionNotice);}}};
     const clientId=crypto.randomUUID(),syncFailures=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,recoveryInvalid=false,conditionalRead=null;
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
+    // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
+    const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
     clients.add({actorId,queued:()=>queued,unknown:()=>!!unknown||recoveryInvalid,failed:()=>!!syncFailures.size});
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null')); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     async function request(url,body) {
-      assertOwner();
+      if(body)assertMutationAdmission();else assertOwner();
       const readOwner=body?null:window.ProcessSync?.captureDelivery?.();
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
       // mutations at their existing deadline and receipt-first unknown policy.
@@ -108,11 +110,11 @@
       const result=await request(query(`operationId=${encodeURIComponent(unknown.operationId)}`));
       syncFailures.delete(unknown.operationId);retain(null);return result;
     }
-    async function post(command) {
-      assertOwner();
-      if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');
+    async function post(command, retry = false) {
+      assertMutationAdmission();
+      if(unknown && (!retry || unknown.operationId!==command.operationId))throw Error('PREVIOUS_OPERATION_UNKNOWN');
       // Keep the operation before transport so closing the tab cannot create a blind retry.
-      try{retain(command);}catch(error){throw Object.assign(error,{notSent:true});}
+      try{if(!unknown)retain(command);}catch(error){throw Object.assign(error,{notSent:true});}
       try {const result=await request(endpoint,{command});retain(null);if(command.action!=='apply')validation=null;return result;}
       catch(error) {
         if(error.message==='ACCOUNT_CHANGED_REOPEN_REQUIRED')throw error;
@@ -142,7 +144,7 @@
       previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
       begin:()=>request(endpoint,{action:'begin'}),
       resolveUnknown,
-      retryUnknown:async()=>{assertOwner();if(!unknown)return null;const command=unknown;unknown=null;const result=await post(command);syncFailures.delete(command.operationId);return result;},
+      retryUnknown:async()=>{assertMutationAdmission();if(!unknown)return null;const command=unknown;const result=await post(command,true);syncFailures.delete(command.operationId);return result;},
       hasUnknown:()=>!!unknown||recoveryInvalid,
       hasSyncFailures:()=>!!syncFailures.size,
       // Explicit form cancellation can discard only confirmed rejections (or
@@ -157,11 +159,10 @@
       receipt:async id=>{assertOwner();const result=await request(query(`operationId=${encodeURIComponent(id)}`));if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command) {
-        assertOwner();queued++;const {action}=command;
-        if(unknown?.operationId===command.operationId)unknown=null;
-        const result=tail.then(async()=>{assertOwner();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
-          if(action==='submit'){const advisory=await request(query('permissions=1'));if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
-          return post(command);}).finally(()=>{queued--;});
+        assertMutationAdmission();const retry=unknown?.operationId===command.operationId;queued++;const {action}=command;
+        const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
+          if(action==='submit'){const advisory=await request(query('permissions=1'));assertMutationAdmission();if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
+          return post(command,retry);}).finally(()=>{queued--;});
         tail=result.then(()=>{syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);

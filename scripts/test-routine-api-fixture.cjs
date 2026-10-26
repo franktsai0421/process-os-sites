@@ -9,6 +9,7 @@ const { DatabaseSync } = require('node:sqlite');
 const { webcrypto, randomUUID } = require('node:crypto');
 const db = new DatabaseSync(':memory:');
 for (const name of fs.readdirSync('drizzle').filter(name => name.endsWith('.sql')).sort()) db.exec(fs.readFileSync(path.join('drizzle', name), 'utf8'));
+const verifyRetainedBackups = require('./automatic-backup-fixture.cjs')(db);
 const objects = new Map();
 const maintenanceToken = randomUUID();
 const env = {
@@ -41,7 +42,7 @@ function load(file) {
     if (require('node:module').isBuiltin(id)) return require(id);
     const target = id.startsWith('@/') ? path.resolve(id.slice(2)) : path.resolve(path.dirname(file), id);
     return target.endsWith('.mjs') ? require(target) : load(target.endsWith('.ts') ? target : target + '.ts');
-  }, Request, Response, URL, crypto: webcrypto, Date, TextEncoder, TextDecoder, atob, btoa, console });
+  }, Request, Response, ReadableStream, Headers, structuredClone, URL, crypto: webcrypto, Date, TextEncoder, TextDecoder, atob, btoa, console });
   cache.set(file, fixtureModule.exports); return fixtureModule.exports;
 }
 const core = load('lib/process-state.ts');
@@ -129,7 +130,8 @@ async function read(role) {
   response = await call('admin', 'create', { assetCode: 'FIX001', groupId: 'TG-FIX', unit: '組' }); assert.equal(response.status, 200);
   assert.equal(response.body.control.versions.find(version => version.status === 'draft').equipment.at(-1).pieceMark, '03');
   assert.equal((await call('admin', 'delete', { id: response.body.control.versions.find(version => version.status === 'draft').equipment[0].id })).status, 403);
-  const image = new Uint8Array([137,80,78,71,13,10,26,10]);
+  const {pngFixture}=await import('../tests/photo-fixtures.mjs');
+  const image=pngFixture({width:8,height:8});
   const imageResponse = await photoApi.PUT(new Request(base + '/api/routine-equipment/photo', { method: 'PUT',
     headers: { Cookie: cookies.admin, Origin: base, 'Content-Type': 'image/png' }, body: image }));
   assert.equal(imageResponse.status, 200);
@@ -222,6 +224,7 @@ async function read(role) {
   assert.equal((await read('admin')).status, 503);
   assert.equal((await call('admin', 'begin', {}, currentRow.revision)).status, 500);
   assert.equal(db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values, JSON.stringify(corruptValues));
+  verifyRetainedBackups();
   console.log(JSON.stringify({ isolated: true, saveReload: true, submitIncludesLastEdit: true, invalidSaveAtomic: true,
     duplicateSubmitBlocked: true, permission: true, rejectResubmitWithdrawApprove: true,
     historicalVersion: true, pieceMarkNoReuse: true, photoR2: true, photoReload: true,

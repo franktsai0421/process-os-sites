@@ -8,6 +8,7 @@ const {randomUUID, webcrypto} = require('node:crypto');
 const harness = require('./ipqc-ab-import-harness.cjs');
 const db = new DatabaseSync(':memory:'), objects = new Map();
 for (const file of fs.readdirSync('drizzle').filter(name => name.endsWith('.sql')).sort()) db.exec(fs.readFileSync(path.join('drizzle', file), 'utf8'));
+const verifyRetainedBackups=require('./automatic-backup-fixture.cjs')(db);
 const env = {PROCESS_SESSION_SECRET: randomUUID(), DB: {prepare(sql) {
   let args = [];
   return {bind(...values) {args = values; return this;}, async first() {return db.prepare(sql).get(...args) || null;},
@@ -51,7 +52,7 @@ function client() {
     headers = {Cookie: 'process_demo=' + await core.demoSession(new Request(url), 'qa-save', false), Origin: 'http://fixture', 'Content-Type': 'application/json'};
     const c = client(), first = await c.read(), generation = first.control.workflow.generation;
     const rowPath = ['workspaces', {id: JSON.stringify(['QA-G', 'A'])}, 'stages', 'A-CUT', {id: 'qa-op'}, 'name'];
-    await c.command(generation, 'apply', {patches: [{op: 'set', path: rowPath, value: 'Saved cutoff'}]});
+    await c.command(generation, 'apply', {patches: [{op: 'set', path: rowPath, value: 'Saved cutoff'}], guards: [{path:rowPath,value:first.control.workflow.working.workspaces[0].stages['A-CUT'][0].name}]});
     await assert.rejects(c.command(generation, 'save'), /RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);
     assert.equal(c.hasUnknown(), true); assert.equal(storage.size, 1);
     const retained = JSON.parse([...storage.values()][0]); assert.equal(retained.action, 'save');
@@ -68,9 +69,10 @@ function client() {
     assert.equal(JSON.stringify(reloaded.control.workflow.saved.content), JSON.stringify(saved.content));
     assert.equal(db.prepare('SELECT revision FROM shared_state WHERE id=1').get().revision, revision);
     assert.equal(calls.filter(call => call.method === 'POST' && call.action === 'save').length, 1);
-    await reopened.command(generation, 'apply', {patches: [{op: 'set', path: rowPath, value: 'Later unsaved working'}]});
+    await reopened.command(generation, 'apply', {patches: [{op: 'set', path: rowPath, value: 'Later unsaved working'}], guards: [{path:rowPath,value:reloaded.control.workflow.working.workspaces[0].stages['A-CUT'][0].name}]});
     const later = await reopened.read(); assert.equal(later.control.workflow.working.workspaces[0].stages['A-CUT'][0].name, 'Later unsaved working');
     assert.equal(later.control.workflow.saved.id, saved.id); assert.equal(JSON.stringify(later.control.workflow.saved.content), JSON.stringify(saved.content));
+    verifyRetainedBackups();
     console.log(JSON.stringify({status: 'PASS', cases: ['actual Save commits before lost ACK', 'unknown operation retained and not reported as success',
       'reopened production transport resolves exact own operation receipt', 'saved ID/body/cutoff persist without duplicate Save or revision change',
       'later working edit cannot overwrite immutable saved snapshot'], scope: 'Production API and client, in-memory SQLite/R2; not real-browser reload or cross-computer acceptance', networkTargets: 0}));

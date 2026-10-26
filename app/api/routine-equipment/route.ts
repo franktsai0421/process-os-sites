@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, backup, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
+import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import { emptyEquipmentControl, activeVersion, openVersion, reserveMarks, nextPieceMark, checkedSnapshot, submitProblems, hierarchy, fillRepresentativePhotos, type EquipmentControl, type Equipment, type EquipmentGroup } from '@/lib/routine-equipment';
 import {parseEquipmentWorkflow} from '@/lib/equipment-workflow';
 import {visibleSharedControl} from '@/lib/versioned-shared-workflow';
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
   try {
     if (new URL(request.url).searchParams.get('catalog') === 'effective') return await effectiveCatalog(request);
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
+    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
     if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
       return reply({ error: '沒有查看檢具資料的權限' }, 403);
@@ -262,7 +262,6 @@ export async function POST(request: Request) {
     }
     if (version) { version.updatedAt = time; version.revision += 1; }
     const values = { ...state.values, [KEY]: JSON.stringify(control) };
-    await backup(state, '檢具資料異動前保護備份', actor.id, true);
     const result = await env.DB.prepare('UPDATE shared_state SET revision=? ,"values"=? ,updated_at=? WHERE id=1 AND revision=?')
       .bind(state.revision + 1, await encodeValues(values,state), time, state.revision).run();
     if (result.meta.changes !== 1) return reply({ error: '修訂衝突；沒有儲存', revision: (await readState()).revision }, 409);

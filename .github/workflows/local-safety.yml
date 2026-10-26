@@ -139,6 +139,16 @@ jobs:
         run: node tests/local-worker-outbound.test.mjs
       - name: Integrated entry and read-only delivery contracts
         run: |
+          node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/shared-draft-terminal-admission.test.mjs tests/iqc-editor-terminal.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-equipment-full-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-media-cache-fast-path.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-media-fast-path-routes.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/navigation-adapters.test.mjs tests/destination-transaction.test.mjs tests/bounded-media-loading.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-shared-draft-client-v3.cjs
@@ -164,6 +174,18 @@ jobs:
           node scripts/test-integrated-bootstrap.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-scheduled-backup-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test scripts/test-automatic-backups-disabled.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-v3-save-unknown-snapshot.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-user-access.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-fqc-bom-boundary.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-api-fixture.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-quality-equipment-replacement.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled module-scoped bootstrap and canonical image boundaries
         run: node tests/sites-integrated-bootstrap-native.test.mjs

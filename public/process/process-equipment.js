@@ -7,7 +7,7 @@
     t = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh,
     h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
     copy = value => JSON.parse(JSON.stringify(value));
-  let search = '', lineFilter = '', stageFilter = '', editing = null;
+  let search = '', lineFilter = '', stageFilter = '', editing = null, repaintGeneration = 0;
 
   function isMachineTemplate(template) {
     return machineKinds.includes(template?.presetKey);
@@ -25,22 +25,48 @@
     const list = snapshot?.[stageCode] || [];
     return list.find(template => template.presetKey === unifiedKind) || list.find(template => template.presetKey === legacyKind);
   }
+  function currentEquipmentMount(area, content, owner) {
+    return !!area?.isConnected && document.querySelector('#data-content') === area &&
+      area.firstElementChild === content && !host.ProcessSync?.requiresReload &&
+      (!owner || host.ProcessSync?.isCurrentDelivery?.(owner) === true);
+  }
   function repaint(showDialog = false, focusSearch = false, focusField = '') {
-    const top = scrollY;
-    document.querySelector('#data-content').innerHTML = processMasterView();
+    const area = document.querySelector('#data-content');
+    if (!area) return;
+    const top = scrollY, owner = host.ProcessSync?.captureDelivery?.(), generation = ++repaintGeneration;
+    area.innerHTML = processMasterView();
     bindDataInner('process-master');
+    const content = area.firstElementChild, input = area.querySelector('#equipment-search'),
+      dialog = area.querySelector('#equipment-editor-dialog'),
+      field = focusField ? area.querySelector(`[data-equipment-field="${CSS.escape(focusField)}"]`) : null;
     requestAnimationFrame(() => {
+      if (generation !== repaintGeneration || !currentEquipmentMount(area, content, owner) || host.ProcessNavigationForms?.composing?.() ||
+          input && (!input.isConnected || area.querySelector('#equipment-search') !== input) ||
+          showDialog && dialog && (!dialog.isConnected || area.querySelector('#equipment-editor-dialog') !== dialog)) return;
       scrollTo(0, top);
-      if (showDialog) {
-        document.querySelector('#equipment-editor-dialog')?.showModal();
-        if (focusField) document.querySelector(`[data-equipment-field="${CSS.escape(focusField)}"]`)?.focus({preventScroll:true});
+      if (showDialog && dialog?.isConnected && area.querySelector('#equipment-editor-dialog') === dialog) {
+        dialog.showModal();
+        if (field?.isConnected && dialog.contains(field)) field.focus({preventScroll:true});
       }
-      if (focusSearch) {
-        const input = document.querySelector('#equipment-search');
-        input?.focus({preventScroll:true});
-        try { input?.setSelectionRange(search.length, search.length); } catch {}
+      if (focusSearch && input?.isConnected && area.querySelector('#equipment-search') === input) {
+        input.focus({preventScroll:true});
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch {}
       }
     });
+  }
+  function bindEquipmentRows(area) {
+    area.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = () => openEditor(button.dataset.equipmentEdit));
+  }
+  function refreshEquipmentSearch(area, input, content, owner) {
+    if (!currentEquipmentMount(area, content, owner) || !input.isConnected || area.querySelector('#equipment-search') !== input) return;
+    const summary = area.querySelector('#equipment-panel .equipment-summary');
+    if (!summary) return;
+    const template = document.createElement('template');
+    template.innerHTML = panel();
+    const next = template.content.querySelector('.equipment-summary');
+    if (!next) return;
+    summary.innerHTML = next.innerHTML;
+    bindEquipmentRows(summary);
   }
   function validate(snapshot) {
     const errors = [], ids = new Set();
@@ -221,9 +247,20 @@
   function bind() {
     document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
     document.querySelector('#add-equipment')?.addEventListener('click',() => openEditor());
-    document.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = () => openEditor(button.dataset.equipmentEdit));
+    bindEquipmentRows(document);
     const searchInput = document.querySelector('#equipment-search');
-    if (searchInput) searchInput.oninput = () => { search = searchInput.value; repaint(false,true); };
+    if (searchInput) {
+      const area = document.querySelector('#data-content'), content = area?.firstElementChild, owner = host.ProcessSync?.captureDelivery?.();
+      let composing = false;
+      const updateSearch = event => {
+        if (composing || event.isComposing || !currentEquipmentMount(area, content, owner) || !searchInput.isConnected || area.querySelector('#equipment-search') !== searchInput || search === searchInput.value) return;
+        search = searchInput.value;
+        refreshEquipmentSearch(area, searchInput, content, owner);
+      };
+      searchInput.oncompositionstart = () => { composing = true; };
+      searchInput.oncompositionend = event => { composing = false; updateSearch(event); };
+      searchInput.oninput = updateSearch;
+    }
     document.querySelector('#equipment-line-filter')?.addEventListener('change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
     document.querySelector('#equipment-stage-filter')?.addEventListener('change',event => { stageFilter = event.target.value; repaint(); });
     document.querySelector('#equipment-filter-clear')?.addEventListener('click',() => { search = lineFilter = stageFilter = ''; repaint(); });

@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/no-explicit-any -- Existing shared-state JSON shapes are validated by the mutation guards. */
 import {env} from 'cloudflare:workers';
-import {readState,identity,sameOrigin,encodeValues,backupStoredState,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
+import {readState,identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
 import {effectiveAccess,roleTemplates} from '@/lib/user-access';
 import {passwordHash,verifyPassword,validatePassword} from '@/lib/passwords';
 import {catalog,columns,accessKeys,isPrimary,managementRight,editableCells,PRIMARY_ADMIN_ID,invalidDependencies,effectiveCells,roleEditable} from '../../../public/process/access-policy.mjs';
@@ -71,7 +71,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
   const audit=parse(values.processAccessControl,{schemaVersion:2,primaryAdminId:PRIMARY_ADMIN_ID,audit:[]});if(audit.primaryAdminId!==PRIMARY_ADMIN_ID)throw Error('PRIMARY_BINDING_MISMATCH');
   // Never include credential fields, including hashes, in account audit records.
   audit.audit.push({id:crypto.randomUUID(),at:now,actor:{id:actor.id,name:actor.name,role:actor.role},action:body.action,target:id,before,after});values.processAccessControl=JSON.stringify(audit);
-  if(!await backupStoredState(state,'使用者與權限異動前保護備份',actor.id))throw Error('REVISION_CHANGED');
+  if(!await stateRevisionIsCurrent(state))throw Error('REVISION_CHANGED');
   const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await encodeValues(values,state),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
   return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});
  }catch(error){const message=(error as Error).message,known=new Set(['FORBIDDEN','INVALID_CELLS','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:code==='PRIMARY_BINDING_MISMATCH'?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}

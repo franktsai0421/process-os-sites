@@ -5,7 +5,7 @@ import {accessKeys} from '@/public/process/access-policy.mjs';
 import type {LegacyMasterControl,LegacyMasterSnapshot,LegacyMasterCatalog,LegacyCodeRow,LegacyProcessCatalog,LegacyProcessEquipment,LegacyApprovalVersion} from '@/lib/legacy-master-types';
 import { env } from 'cloudflare:workers';
 import { mediaState, restoreMediaUpdates, writeReceipt } from '@/lib/state-media';
-import { backupStoredState } from '@/lib/process-state';
+import { stateRevisionIsCurrent } from '@/lib/process-state';
 import {DraftConflict,stableDraftJSON} from '@/lib/shared-draft';
 import {validateIPQCAssignments,legacyWorkspace} from '@/lib/process-ipqc';
 import {removedMasterStages,stageReferences} from '@/lib/master-stage-references';
@@ -20,7 +20,6 @@ import {
   publicState,
   sameOrigin,
   allowedKey,
-  scheduledBackup,
   parse,
   publicUntil,
   demoEnabled,
@@ -102,11 +101,7 @@ export async function GET(request: Request) {
   const projected=await companyState(request,state);
   const user=await identity(request,state);
   if(!user)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});
-  try {
-    await scheduledBackup(state);
-  } catch (error) {
-    console.error('[cloud-backup] scheduled snapshot failed', error);
-  }
+  // Ordinary reads never create or prune backups; deferred media may still cache.
   return Response.json(
     { ...(request.headers.get('X-Process-Media') === 'deferred-v1' ? await mediaState(state,user.id,projected) : projected), identity: user, serverProtected: true, demoEnabled: demoEnabled(request) },
     { headers },
@@ -491,7 +486,7 @@ export async function POST(request: Request) {
   if (Object.keys(values).length === Object.keys(state.values).length &&
       Object.entries(values).every(([key, value]) => value === state.values[key]))
     return Response.json(request.headers.get('X-Process-Receipt') === 'sha256' ? await writeReceipt(state, request, body.updates) : publicState(state,user.id), { headers });
-  if (!await backupStoredState(state, '整站資料異動前保護備份', user.id))
+  if (!await stateRevisionIsCurrent(state))
     return Response.json(publicState(await readState(),user.id), { status: 409, headers });
   const next = { revision: state.revision + 1, values };
   const result = await env.DB.prepare(

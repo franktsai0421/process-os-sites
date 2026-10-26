@@ -10,6 +10,7 @@ const { webcrypto, randomUUID } = require('node:crypto');
 const db = new DatabaseSync(':memory:');
 for (const name of fs.readdirSync('drizzle').filter(name => name.endsWith('.sql')).sort())
   db.exec(fs.readFileSync(path.join('drizzle', name), 'utf8'));
+const verifyRetainedBackups = require('./automatic-backup-fixture.cjs')(db);
 const objects = new Map();
 const env = {
   PROCESS_SESSION_SECRET: randomUUID(), DEMO_LOGIN_ENABLED: 'true',
@@ -36,9 +37,10 @@ function load(file) {
   }).outputText;
   vm.runInNewContext(code, { module: workflowModule, exports: workflowModule.exports, require(id) {
     if (id === 'cloudflare:workers') return { env };
+    if (require('node:module').isBuiltin(id)) return require(id);
     const target = id.startsWith('@/') ? path.resolve(id.slice(2)) : path.resolve(path.dirname(file), id);
     return target.endsWith('.mjs') ? require(target) : load(target.endsWith('.ts') ? target : `${target}.ts`);
-  }, Request, Response, URL, crypto: webcrypto, Date, TextEncoder, TextDecoder, atob, btoa, console });
+  }, Request, Response, ReadableStream, Headers, structuredClone, URL, crypto: webcrypto, Date, TextEncoder, TextDecoder, atob, btoa, console });
   cache.set(file, workflowModule.exports); return workflowModule.exports;
 }
 const now = new Date().toISOString();
@@ -247,6 +249,7 @@ function change(fn) {
   assert.deepEqual(response.body.results.map(row=>row.status),['applied','applied']);
   abAfter=readAB();assert.equal(abAfter.scopes['B:G5'].versions[0].snapshot.items[0].equipmentId,'target');
   assert.equal(abAfter.scopes['A:G3'].versions[0].snapshot.items[0].equipmentId,'source');
+  verifyRetainedBackups();
   console.log(JSON.stringify({ isolated: true, modules: 4, multiReference: true, abScopedIds:true,
     pendingTestLocked:true, abAssetsReservedCodesPreserved:true,
     noDeferredWrites: true, sameDraftAtomic:true, approvedPendingRequiresReselection: true, idempotent: true, cas: true, permissions: true,

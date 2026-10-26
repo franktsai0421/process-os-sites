@@ -6,7 +6,7 @@ import {
   can,
   sameOrigin,
   encodeValues,
-  backupStoredState,
+  stateRevisionIsCurrent,
   responseHeaders,
 } from '@/lib/process-state';
 import { DraftConflict } from '@/lib/shared-draft';
@@ -219,11 +219,7 @@ export async function POST(request: Request) {
         if (state.values.routineFqcEnabled === '1')
           return reply({ enabled: true });
         if (
-          !(await backupStoredState(
-            state,
-            'routine-fqc enable after acceptance',
-            actor.id,
-          ))
+          !(await stateRevisionIsCurrent(state))
         )
           continue;
         const changed = await env.DB.prepare(
@@ -277,11 +273,7 @@ export async function POST(request: Request) {
             throw new DraftConflict('PHOTO_NOT_UPLOADED', 422, { issues: [{ kind: 'error', message: 'PHOTO_NOT_UPLOADED', path: line && row ? ['lines', { id: line.id }, 'results', { id: row.id }, 'photos'] : ['evidence'] }] });
           }
       if (
-        !(await backupStoredState(
-          state,
-          'routine-fqc ' + command.action,
-          actor.id,
-        ))
+        !(await stateRevisionIsCurrent(state))
       )
         continue;
       const values = { ...state.values, [RF_KEY]: JSON.stringify(control) };

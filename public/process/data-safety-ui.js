@@ -198,7 +198,7 @@
     return `${n.toFixed(index ? 1 : 0)} ${units[index]}`;
   };
   function backupModeSummary(active) {
-    return `<div class="backup-modes" role="tablist" aria-label="備份方式"><button type="button" role="tab" class="backup-mode-card ${active === 'disk' ? 'active' : ''}" data-backup-mode="disk" aria-selected="${active === 'disk'}" ${isLocalBackup?'':'disabled'}><span>方式一</span><h3>本機硬碟完整備份</h3><small>${isLocalBackup?'網站程式、資料庫與資產的完整 ZIP 備份。':'請從本機管理網址使用。'}</small></button><button type="button" role="tab" class="backup-mode-card ${active === 'cloud' ? 'active' : ''}" data-backup-mode="cloud" aria-selected="${active === 'cloud'}"><span>方式二</span><h3>雲端資料備份</h3><small>設定自動時間、立即建立及線上回復。</small></button></div>`;
+    return `<div class="backup-modes" role="tablist" aria-label="備份方式"><button type="button" role="tab" class="backup-mode-card ${active === 'disk' ? 'active' : ''}" data-backup-mode="disk" aria-selected="${active === 'disk'}" ${isLocalBackup?'':'disabled'}><span>方式一</span><h3>本機硬碟完整備份</h3><small>${isLocalBackup?'網站程式、資料庫與資產的完整 ZIP 備份。':'請從本機管理網址使用。'}</small></button><button type="button" role="tab" class="backup-mode-card ${active === 'cloud' ? 'active' : ''}" data-backup-mode="cloud" aria-selected="${active === 'cloud'}"><span>方式二</span><h3>雲端資料備份</h3><small>自動備份已停用；既有備份保留。</small></button></div>`;
   }
   function bindBackupModeSwitches(content) {
     content.querySelectorAll('[data-backup-mode]').forEach((button) => {
@@ -344,6 +344,12 @@
   async function backupPage() {
     const content = document.querySelector('#data-content');
     if (!content || !canManage()) return;
+    if (activeBackupMode === 'cloud') {
+      const vi = document.documentElement.lang === 'vi';
+      content.innerHTML = `<section class="backup-panel" data-backup-status="disabled"><h2>${vi ? 'Sao lưu tự động đã tắt' : '自動備份已停用'}</h2><p>${vi ? 'Không tạo bản sao lưu định kỳ hoặc trước thay đổi trong thao tác thông thường; không tự dọn bản sao lưu cũ. Bản sao lưu hiện có được giữ nguyên. Xác nhận xóa, bản nháp, phê duyệt và lịch sử phiên bản không thay đổi.' : '一般操作不再建立週期備份或修改前備份，也不自動清理舊備份。既有備份保留；刪除確認、草稿、審核與版本歷史不變。'}</p>${backupModeSummary('cloud')}</section>`;
+      bindBackupModeSwitches(content);
+      return;
+    }
     content.innerHTML =
       '<section class="backup-panel"><h2>整站備份與還原 · ADMIN</h2><p>正在載入本機硬碟或雲端備份資料…</p></section>';
     try {
