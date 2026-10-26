@@ -98,7 +98,7 @@ function applyPlayerIntent(){
   if(selected){state.deviceLine=selected.code;state.deviceStage=selected.stages.find(stage=>stage.code===intent.get('stage'))?.code||selected.stages[0]?.code||'';}
 }
 applyPlayerIntent();
-window.addEventListener('popstate',applyPlayerIntent);
+window.addEventListener('popstate',()=>{if(!window.ProcessDeliveryNavigation?.ownsHistory)applyPlayerIntent();});
 function rememberPlayerPosition(){
   const url=new URL(location.href);url.searchParams.set('system','process');url.searchParams.set('view','player');
   url.searchParams.set('line',state.deviceLine);url.searchParams.set('stage',state.deviceStage||'');

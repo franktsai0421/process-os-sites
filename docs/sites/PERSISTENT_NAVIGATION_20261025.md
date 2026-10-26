@@ -50,14 +50,18 @@ critical viewers/print, layout and authorization. No all-data/image preload is a
 ## Validation status
 
 The application baseline is
-`fff6a8231f58af817e19e2b2d2828f1b86e95a28`, plus a narrow cold-entry data-tab
-dispatch correction: a quality destination no longer falls back to an absent
-master scope before its module registers. It adds no data reads or readiness
-shortcut. The correction passes 48 focused adapter/router/bootstrap cases.
+`fff6a8231f58af817e19e2b2d2828f1b86e95a28`, plus two narrow navigation corrections.
+Cold quality entry no longer falls back to an absent master scope before module
+registration. Legacy master-tab and player-intent listeners now yield to the
+persistent history owner; native fallback remains available without that owner.
+Neither correction adds reads or bypasses actual-data readiness. The latest
+correction passes 51 focused router/player/adapter cases, including legacy-first
+history races, pending-write guards and post-install player intent.
 Portable Chrome discovery retains its 15 focused preflight/launcher checks.
-An actual compiled-browser run exercised navigation and original-image paths but
-failed on the cold-entry page error; that partial run is not an overall PASS.
-Corrected exact-head full CI remains pending.
+Actual compiled-browser runs exercised navigation and original-image paths but
+failed on a legacy popstate page error, not the separately reproduced cold-entry
+edge. Those partial runs are not an overall PASS. The corrected exact-head full
+CI remains pending.
 Reused application evidence is not a new run and overlapping suites are not summed:
 
 - PASS: 140-check earlier integration checkpoint and shared-client recovery checks.

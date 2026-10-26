@@ -9,7 +9,7 @@ test('actual player intent validates current line/stage, retains reload position
  state.deviceLine='A';state.deviceStage='A-CUT';vm.runInContext('applyPlayerIntent()',context);assert.equal(state.deviceLine,'C');assert.equal(state.deviceStage,'C-CUT');
  location.href='https://fixture.invalid/process/?view=player&line=C&stage=A-CUT';vm.runInContext('applyPlayerIntent()',context);assert.equal(state.deviceStage,'C-CUT');
  location.href='https://fixture.invalid/process/?view=player&line=PRIVATE&stage=X';vm.runInContext('applyPlayerIntent()',context);assert.equal(state.deviceLine,'C');
- assert.match(text,/window\.addEventListener\('popstate',applyPlayerIntent\)/);
+ assert.match(text,/window\.addEventListener\('popstate',/);
 });
 for(const outcome of ['missing method','declined','accepted'])test('actual player display URL hook '+outcome+' preserves history ownership and excludes identity',()=>{
  const identity={id:'synthetic-actor',role:'synthetic-role'},state={deviceLine:'C',deviceStage:'C-CUT',currentUser:identity};
@@ -21,4 +21,14 @@ for(const outcome of ['missing method','declined','accepted'])test('actual playe
  assert.strictEqual(state.currentUser,identity);assert.deepEqual(identity,{id:'synthetic-actor',role:'synthetic-role'});assert.strictEqual(history.state,historyState);assert.equal(history.state.processNavigationIndex,7);
  assert.equal(delegated.length,outcome==='missing method'?0:1);if(delegated.length){assert(delegated[0] instanceof URL);assert.equal(String(delegated[0]),location.href);}
  assert.equal(replacements.length,outcome==='accepted'?0:1);if(replacements.length){assert.strictEqual(replacements[0].value,historyState);assert.equal(replacements[0].title,'');assert.equal(replacements[0].url,location.href);}
+});
+
+test('actual player popstate retains native fallback but leaves owned history to fresh commit',()=>{
+ const registration=text.split('\n').find(line=>line.startsWith("window.addEventListener('popstate',"));assert(registration);
+ for(const owner of [undefined,{ownsHistory:false},{ownsHistory:true}]){
+  const state={deviceLine:'A',deviceStage:'A-CUT'},window={ProcessDeliveryNavigation:owner,addEventListener(_name,fn){this.popstate=fn;}};
+  const context=vm.createContext({window,state,URL,location:{href:'https://fixture.invalid/process/?view=player&line=C&stage=C-CUT'},routing:{lines:[{code:'C',stages:[{code:'C-CUT'}]}]}});
+  vm.runInContext(functions+'\n'+registration,context);window.popstate();assert.equal(state.deviceLine,owner?.ownsHistory?'A':'C');assert.equal(state.deviceStage,owner?.ownsHistory?'A-CUT':'C-CUT');
+  vm.runInContext('applyPlayerIntent()',context);assert.equal(state.deviceLine,'C');assert.equal(state.deviceStage,'C-CUT','explicit post-install application remains available to the owner');
+ }
 });

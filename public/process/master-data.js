@@ -361,7 +361,7 @@
     selectDataTab(tab);
   };
   window.addEventListener('popstate',()=>{
-    if (!currentUser) return;
+    if (!currentUser || window.ProcessDeliveryNavigation?.ownsHistory) return;
     if (window.ProcessSync?.deliveryProjection && new URL(location.href).searchParams.get('view')!=='data') return;
     state.dataTab=new URL(location.href).searchParams.get('dataTab')||'AB';
     if (state.view!=='data') navigate('data');else selectDataTab(state.dataTab);

@@ -38,21 +38,25 @@ The precise producer policy is in
 ## Validation status
 
 The application baseline is
-`fff6a8231f58af817e19e2b2d2828f1b86e95a28`, plus a narrow cold-entry data-tab
-dispatch correction: a quality destination no longer falls back to an absent
-master scope before its module registers. It adds no data reads or readiness
-shortcut. The correction passes 48 focused adapter/router/bootstrap cases.
+`fff6a8231f58af817e19e2b2d2828f1b86e95a28`, plus two narrow navigation corrections.
+Cold quality entry no longer falls back to an absent master scope before module
+registration. Legacy master-tab and player-intent listeners now yield to the
+persistent history owner; native fallback remains available without that owner.
+Neither correction adds reads or bypasses actual-data readiness. The latest
+correction passes 51 focused router/player/adapter cases, including legacy-first
+history races, pending-write guards and post-install player intent.
 Portable Chrome discovery retains its 15 focused preflight/launcher checks.
-An actual compiled-browser run exercised navigation and original-image paths but
-failed on the cold-entry page error; that partial run is not an overall PASS.
-Corrected exact-head full CI remains pending.
+Actual compiled-browser runs exercised navigation and original-image paths but
+failed on a legacy popstate page error, not the separately reproduced cold-entry
+edge. Those partial runs are not an overall PASS. The corrected exact-head full
+CI remains pending.
 Existing application evidence is reused, not represented as new executions:
 
 - PASS: 10 actual IQC/route handler groups, including storage compatibility,
   permissions, history/adoption, corruption and unrelated revisions.
 - PASS: targeted image policy, original/full-size references, 100-row IQC markup,
   conditional reads, hidden polling and preview-ownership checks.
-- PASS: full TypeScript and the official build for the unchanged-code candidate.
+- PASS: full TypeScript and the official build for the prior code candidate.
 - NOT_RUN for this revision: exact-head compiled-browser CI, user visual preview,
   native Chinese/Vietnamese IME and real-data latency/scroll/long-run memory checks.
 
