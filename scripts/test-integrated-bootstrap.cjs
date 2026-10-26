@@ -1,9 +1,9 @@
 /* oxlint-disable typescript/no-require-imports -- isolated real route/record codec and SQLite fixture; no network. */
-const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),harness=require('./ipqc-ab-import-harness.cjs');
+const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes}=require('node:crypto'),harness=require('./ipqc-ab-import-harness.cjs');
 const db=new DatabaseSync(':memory:'),objects=new Map();let gets=[],puts=0,afterGet=null;
 db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT);CREATE TABLE state_backups(id TEXT PRIMARY KEY,revision INTEGER,"values" TEXT,reason TEXT,actor TEXT,created_at TEXT)');
 const bucket={async put(key,value){puts++;objects.set(key,value);},async get(key){gets.push(key);afterGet?.(key);const raw=objects.get(key);return raw===undefined?null:{size:Buffer.byteLength(raw),text:async()=>raw};}};
-const env={STATE_ARCHIVE:bucket,PROCESS_SESSION_SECRET:'isolated-bootstrap-fixture-only',DB:{prepare(sql){let args=[];return {bind(...values){args=values;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}}};
+const env={STATE_ARCHIVE:bucket,PROCESS_SESSION_SECRET:randomBytes(32).toString('hex'),DB:{prepare(sql){let args=[];return {bind(...values){args=values;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}}};
 const load=harness(env),core=load('lib/process-state.ts'),records=load('lib/state-records.ts'),route=load('app/api/process-bootstrap/route.ts'),{accessKeys}=require('../public/process/access-policy.mjs');
 const cells=permission=>Object.fromEntries(accessKeys.map(key=>[key,key===permission]));
 const users=[{id:'quality',name:'Quality fixture',role:'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:cells('iqc.view')},{id:'player',name:'Player fixture',role:'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:cells('player.view')}];
@@ -22,8 +22,8 @@ async function request(id){const base=new Request('https://fixture.invalid/api/p
  const anonymous=await route.GET(new Request('https://fixture.invalid/api/process-bootstrap'));assert.equal(anonymous.status,401);
  gets=[];const quality=await route.GET(await request('quality'));assert.equal(quality.status,200);const q=await quality.json();
  assert.equal(q.identity.id,'quality');assert(q.deliveryProjection);assert.deepEqual(q.catalog.loadedScopes,[]);assert(!q.values.masterDataControl);assert(!JSON.stringify(q).includes('private working'));assert(!JSON.stringify(q).includes('padding'));
- assert.deepEqual(Object.keys(JSON.parse(q.values.canonicalQuality)),['iqc']);
- const envelope=JSON.parse(raw);assert(!gets.includes(envelope.__processRecords.values.masterDataControl.key));
+ assert.equal(q.destination.module,'iqc');assert.deepEqual(q.writableKeys,[]);
+ const envelope=JSON.parse(raw);for(const key of ['masterDataControl','iqcMasterControl','canonicalQuality']){assert.equal(Object.hasOwn(q.values,key),false);assert(envelope.__processRecords.values[key]?.key);assert(!gets.includes(envelope.__processRecords.values[key].key),'dedicated module aggregate not read by bootstrap');}
  const player=await route.GET(await request('player'));assert.equal(player.status,200);const p=await player.json();
  assert.equal(p.catalog.imported.products.length,2);assert(!p.values.iqcMasterControl);assert.deepEqual(Object.keys(JSON.parse(p.values.masterDataControl).active),['PROCESS']);
  assert.deepEqual(p.writableKeys,['dispatchBoard']);assert.equal(puts,beforePuts,'bootstrap without deferred media/new backup must not write');

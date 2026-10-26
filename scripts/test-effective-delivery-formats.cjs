@@ -22,7 +22,11 @@ const store=raw=>db.prepare('INSERT INTO shared_state VALUES(1,1,?,?) ON CONFLIC
   assert.deepEqual(scoped.versions.map(v=>v.id),['current'],name);assert.deepEqual(scoped.workflowScopes,{AB:{}},name);assert(!JSON.stringify(scoped).includes('secret'),name);
   assert(view.deliveryOnly);assert(!view.recordStorage?.models.size);await assert.rejects(()=>core.encodeValues(view.values,view),/Read-only delivery/);
   const full=await core.readState();assert.equal(JSON.parse(full.values.iqcMasterControl).versions.length,3,name+' normal history unchanged');assert.equal(JSON.parse(full.values.masterDataControl).versions.length,3,name+' scoped history unchanged');
-  const response=await bootstrap.GET(await signed('https://fixture.invalid/api/process-bootstrap','quality'));assert.equal(response.status,200,name);const delivered=await response.json();assert.deepEqual(JSON.parse(delivered.values.iqcMasterControl).versions.map(v=>v.id),['v1'],name+' actual bootstrap');assert(!JSON.stringify(delivered).includes('secret'),name+' no private bootstrap values');
+  readKeys.length=0;const response=await bootstrap.GET(await signed('https://fixture.invalid/api/process-bootstrap','quality'));assert.equal(response.status,200,name);const delivered=await response.json();
+  assert.equal(delivered.identity.id,'quality');assert.equal(delivered.destination.module,'iqc');assert.deepEqual(delivered.catalog.loadedScopes,[]);assert.deepEqual(delivered.writableKeys,[]);
+  for(const key of ['iqcMasterControl','canonicalQuality','masterDataControl'])assert.equal(Object.hasOwn(delivered.values,key),false,name+' dedicated module data omitted from bootstrap');
+  const manifest=JSON.parse(raw).__processRecords;if(manifest)for(const key of ['iqcMasterControl','masterDataControl']){assert(manifest.values[key]?.key);assert(!readKeys.includes(manifest.values[key].key),name+' unrelated aggregate not read');}
+  assert(!JSON.stringify(delivered).includes('secret'),name+' no private bootstrap values');
  }
  // Legacy dynamic editor refs retain their original module ACL in both formats.
  objects.set('canonical-images/'+'a'.repeat(64)+'/'+'b'.repeat(64)+'.webp','fixture');
