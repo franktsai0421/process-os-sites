@@ -1,3 +1,19 @@
+## 2026-10-27 FQC bootstrap active body 去重（本機候選）
+- 只在實際已採用 FQC records metadata 合格時，將重複 active body 讀取留給原 mandatory workflow GET；其他 quality libraries、canonical fallback、fresh authority 不動。
+- 保留明確 full-GET 錯誤／readiness；body fault 時點變化有隔離實證，不宣稱整體延遲或 OOM 已解決。詳見 RUNTIME 與 portable paired regression。
+
+## 2026-10-27 — 設備反查逐模組唯讀候選
+
+- 查看資訊先開 metadata，展開模組才查引用；未查詢/失敗不再冒充零筆。
+- FQC 改用既有授權 full workflow GET，保留 active/history 與 exact snapshot readonly 明細，不採入編輯 model。
+- 保留嚴格 edit/delete/replacement 查核與所有持久語義；本機隔離證據不等於發布/native驗收。見 modules/RUNTIME.md。
+
+# 2026-10-27 - Local FQC structure first-match lookup (not published)
+
+- Reuse a lazy per-structure previous-row index for FQC errors/items, preserving first duplicate, malformed-row fallback, order and equipment snapshots.
+- Add portable historical-source paired adapter regression and one normal CI command. Synthetic handler pairs retain exact DTO/persistence/I/O, current authorization and CAS path.
+- CPU lookup work only; no selective hydration, auth cache, live speed/heap claim, schema or real data change. See [Runtime](modules/RUNTIME.md).
+
 ## 2026-10-27 scoped automatic-read pause（本機候選）
 - 401/403 只暫停同owner／endpoint／read-kind的後續自動輪詢；保留資料與未知操作，不自動登出或重送。
 - 單次清楚提示＋獨立GET-only核對，晚到舊回應不能解除新拒絕；各自動consumer加精確guard並同步cachetag。

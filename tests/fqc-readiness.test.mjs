@@ -6,6 +6,12 @@ import vm from 'node:vm';
 // Actual implementation, in-memory transport/DOM doubles; no server, browser,
 // credentials, business/storage writes or source rewriting.
 const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
+// Keep the fixture's unrelated read ports, but execute the actual production poll gate.
+const sharedSource = fs.readFileSync(new URL('../public/process/shared-draft-client.js', import.meta.url), 'utf8');
+const pauseStart = sharedSource.indexOf('  window.createScopedReadPause = label => {');
+const pauseEnd = sharedSource.indexOf('  const clients=new Set(),transports=new Map();', pauseStart);
+assert(pauseStart >= 0 && pauseEnd > pauseStart);
+const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
 const part = (start, end) => {
   const a = source.indexOf(start), b = source.indexOf(end, a + start.length);
   assert(a >= 0 && b > a);
@@ -50,6 +56,9 @@ function fixture() {
     read() { throw Error('STORAGE_ACCESS_REFUSED'); }
   };
   vm.createContext(box);
+  vm.runInContext(pauseSource, box);
+  const pause = box.window.createScopedReadPause('FQC readiness fixture');
+  client.canPoll = kind => pause.canPoll(kind);
   vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=null,workspaceReady=()=>false;` +
     part('  async function loadShared(', '  function changes(') +
     part('  function pollShared()', '  const ui =') +
@@ -60,7 +69,7 @@ function fixture() {
     `this.bind=bind;this.loadEquipment=loadEquipmentCatalog;this.loadMaster=loadMasterCatalog;
      this.state=()=>({equipment:equipmentCache,master:masterCatalogCache,masterActor:masterCatalogActor,error:equipmentLoadError});
      this.cached=getCachedEquipment;this.catalogRead=catalog;`, box);
-  return { box, reads, results, element, sync, button, events, timers, epoch: value => { epoch = value; }, active: value => { active = value; } };
+  return { box, reads, results, element, sync, button, events, timers, pause, epoch: value => { epoch = value; }, active: value => { active = value; } };
 }
 async function resolveContent(f, { sharedIndex = 0, masterIndex = 0, equipmentIndex = 0, revisions = [7, 7, 7] } = {}) {
   f.reads.shared.pending[sharedIndex].resolve({ ...clone(shared), revision: revisions[0] }); await flush();
@@ -173,4 +182,25 @@ for (const source of ['shared event', 'equipment event', 'in-flight poll']) test
   if (source === 'equipment event') f.reads.equipment.pending[1].resolve({}); else f.reads.shared.pending[1].resolve(clone(shared));
   await flush(); if (poll) await poll;
   assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1); assert.equal(f.results.polls, 1);
+});
+
+
+test('actual scoped403 pause sends no automatic GET; only current successful recovery resumes polling', async () => {
+  const f = fixture(), done = f.box.bind(f.element); await resolveContent(f); await done;
+  const owner = f.pause.capture();
+  f.pause.denied('state', 403, owner, async () => { throw Error('EXPLICIT_RECHECK_PORT_NOT_INVOKED'); });
+  assert.equal(f.pause.canPoll('state'), false);
+  await f.timers[0]();
+  assert.equal(f.reads.shared.pending.length, 1, 'paused timer must not call the read port');
+  assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1);
+  const olderRecovery = f.pause.capture(), newerDenial = f.pause.capture();
+  f.pause.denied('state', 403, newerDenial, async () => {});
+  f.pause.success('state', olderRecovery);
+  assert.equal(f.pause.canPoll('state'), false, 'older success cannot clear a newer denial');
+  f.pause.success('state', f.pause.capture());
+  assert.equal(f.pause.canPoll('state'), true);
+  const poll = f.timers[1]();
+  assert.equal(f.reads.shared.pending.length, 2, 'current recovery permits the existing GET path');
+  f.reads.shared.pending[1].resolve({ unchanged: true }); await poll;
+  assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1);
 });

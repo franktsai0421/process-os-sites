@@ -1,3 +1,29 @@
+## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
+
+FQC destination 的 bootstrap keys、canonical fallback 與所有新鮮身分／撤權／revision 判定不變。僅 records-v1 的已驗 SHA aggregate，且 quality schema1、FQC versions array、workflow schema3／scope fqc／generation／revision 合格時，bootstrap 暫不投影 FQC library；保留其他 quality libraries 原資料。FQC 頁面仍必須完成自己原有的 workflow → AB catalog → equipment GET，且 owner/epoch/delivery 仍有效後才 adopt、render ready。未採用／缺失／不合格 header、inline/chunk 與其他 destination 維持原讀取。不新增 fake workflow、假空版本、notice 啟動或前端 API；publicState 本來就移除 FQC workflow，IQC-only／mixed notice 行為亦保留。
+
+這只避免 bootstrap 再讀一次正式 active snapshot，不省略 full workflow 的 working／pending／history 驗證，也不改 POST、CAS、receipt、manual Sync 或 ACL。已知 active body 缺失／損壞的錯誤時點會由 bootstrap503 延至 mandatory FQC GET503；實際 FQC controller 仍 unready，顯示 role=alert 與重新載入，不把暫存空 library 當完成。不得聲稱 bootstrap 至 GET 期間所有外部同步 control getter 均完整，FQC 可見畫面仍受既有 loading/readiness fence 保護。
+
+`node scripts/test-fqc-bootstrap-projection.cjs` 用正常合成登入→Begin／Apply／Save／Submit／獨立確認及後續草稿，對照實際 handlers：目前樣本 active approved／draft／pending 的 R2 GET 14→13、少 6,396 bytes；SQL7／fresh revocation4 不變。沒有 active 的初始草稿／待審不減讀取。這是隔離工作量，不是實站毫秒、記憶體峰值或 17s 初載已解決的證明。保留非空合成照片 URL 參照、GET 零資料寫入、SHA／撤權／revision fence；browser deferred-media header 有覆蓋，但無 inline image，本證據不宣稱 mediaState 永不建立合法衍生快取。VM 完整 FQC/shared client＋合成 DOM／VersionDraftUI mount port 只證 loading／final data／error ownership，不是原生畫面驗收。
+
+## 2026-10-27 設備查看資訊：逐模組唯讀引用（獨立本機候選）
+
+設備「查看資訊」立即開啟既有資訊視窗；FQC、IQC、IPQC-AB、IPQC-C 及待處理替換各區在使用者展開時才 GET。未查詢、查詢中、失敗、已查詢零筆明確分開，不以未載入宣稱沒有引用。相同視窗/模組 single-flight；結果只保留於該 equipmentId／actor／登入世代／delivery／equipment revision 的視窗，不宣稱永遠最新。各區標示自己的 response revision；失敗可明確僅讀取重查，不自動 POST 或輪詢重送。
+
+根因：equipment destination 合約不含 qualityMasterControl，切頁清除 FQC model，舊檢具反查卻讀 FQC 本地 mirror，因此正式引用可被顯成零。新的查看分支直接使用既有授權 `/api/fqc/workflow` full GET，不把資料塞回 bootstrap 或採入 FQC editor；既有 server view/history 範圍不變。active 必須是 activeVersionId 且 approved，其餘 pending/draft/history 分列，不混為目前生效。FQC 列按 exact associated version/item 開啟既有 readonly 明細；passed snapshot 的照片/規則/工具快照不被當前 editor/catalog 覆寫，缺版本/項目明確拒絕、無 active fallback。子照片視窗與原 view 同屬清理範圍，無 edit/restore/upload 動作。AB 列保留既有 openItemView exact version/item/scope 委派，經正常分頁入口、原授權 mount/load 後開唯讀明細；不注入外部 snapshot、不繞離頁保護。IQC/C 原連結只有 alert，本次明確提示完整標準到對應模組查閱。
+
+只改查看分支，不平行全模組 hydrate；edit/delete/replacement 的嚴格全模組查核與既有 action/ACL/receipt/Save/Submit/history mutation 完全不改。品質更新事件仍使舊 strict cache 失效並刷新編輯分支，但不偷偷替 progressive view 執行全模組查詢。既有 FQC 內嵌 equipment reverse panel 及外部 referencesHTML API 仍是舊 reader，非本次涵蓋範圍。
+
+可攜回歸 `node scripts/test-equipment-reference-view.cjs`：實際完整 frontend/handlers＋合成 DOM/GET；不是 native 或實際後端授權/資料庫/heap/時間驗收。原 edit-open-race runner 僅新增實際依賴與兩個 view 契約改為立即開、其餘 edit/dirty/stale assertions 保留。原生 v26 四筆串讀合計約 42.039s / 38.721s 為 manager sanitized log，候選尚未發布，不聲稱後端加速；本次先免除查看首屏等所有模組完成。Schema/data migration 無變更。
+
+## 2026-10-27 FQC structure 前值索引（本機候選，未發布）
+
+只把 FQC `structure` 的兩處 previous-row `.find` 改為每次呼叫內、首次需要才建立的 first-match Map。errors/items 各最多建立一次；duplicate ID 保留第一筆，不改輸出順序、設備快照、完整欄位或既有結構檢查。非陣列、null／非字串 ID 等不符合索引條件的前值沿用原 `.find` 拒絕／匹配次序。適用的是現有 JSON-hydrated rows，不宣稱任意 getter／Proxy 的觀察副作用等價；不跨 request 留存。
+
+`node scripts/test-fqc-structure-lookup.cjs` 載入固定 845a baseline 與實際候選 adapter，精確驗證歷史 SHA、不同 override 被使用、Windows/POSIX 相對路徑與 20 組完整輸出／錯誤／前值不變。24 項的前值 predicate 601 次，改為 25 index rows + 49 lookups；200 項為 40,201 → 201 + 401。這是合成 Node 工作量，不是 native CPU／毫秒／heap 改善承諾。已另用正常 synthetic login/Begin/Apply 比較 3 對 handler：DTO、shared_state、SQL/R2 次數與 bytes 相同。
+
+完整 state hydration、auth/role/9 次即時撤權、pending、receipt replay、版本／allocation、revision read、CAS、POST、parent lookup 及 Apply 結構驗證仍保留。沒有 selected-state 寫入或 partial-save guard 變動，沒有 I/O 減少、schema、資料遷移、帳號或部署動作。全專案 typed/build/remote CI/native 尚待各自驗證；單獨 helper typecheck 不代表完整專案通過。
+
 ## 2026-10-27 401／403 自動讀取暫停（本機候選）
 
 只對讀取遭拒的 actor／identity epoch／delivery、endpoint 與 read-kind 暫停後續自動輪詢。不是全站登出：403 可能是此模組無權限，也可能未通過身分驗證；不診斷密碼錯誤或 session 到期。保留目前 cached data、未套用表單、canvas journal、unknown receipt 與現有讀寫／ACL 判定。第一個拒絕仍拋原錯誤；單一 alert 說明暫停，附「唯讀重新核對」只發原 GET，不呼 receipt resend，不自動導頁、清儲存或延長 TTL。
@@ -351,3 +377,28 @@ No backend, permission, CAS, manual canvas Sync or Save meaning changes.
 Fake-clock delayed ACK/abort/recovery tests and the coupled cache tag are in the
 existing CI test files. Native latency, storage cost and runtime build remain
 separate acceptance; this local candidate is not a release.
+
+### FQC Apply / Save feedback and form admission (2026-10-27, local candidate)
+
+- FQC matrix Apply now immediately marks the clicked cell busy and prevents a
+  second local mutation while a command is active or its result is unknown.
+  This is feedback/admission, not a backend speed improvement.
+- Error-code, item and batch-association forms admit one owned intent before
+  changing local data. All controls in that submitted form temporarily pause,
+  with their values preserved. Duplicate pending submits do not append another
+  row/history entry or generate another command/toast. Current-context failure
+  restores controls; existing item rollback behavior remains context-bound.
+- Only an actually awaited, newly admitted Apply/Save may present its retained
+  command as processing. Settled unknown and existing errors remain failures.
+  The FQC 15-second mutation limit, receipts, manual recovery, CAS, ACL, review,
+  history and server validation are unchanged. No automatic retry was added.
+- FQC command adoption and form settlement are scoped to identity epoch,
+  delivery and mount; form ownership also includes draft/generation. A stale
+  ACK cannot close/rewrite a newer form or adopt into a new owner context.
+  If a supported lazy Begin or another transition changes the form's context,
+  preserve its inputs read-only and enable only its own explicit close controls,
+  with a visible re-open/reconcile instruction. Do not silently rebase inputs.
+- node scripts/test-fqc-feedback-races.cjs exercises production FQC handlers
+  and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
+  mount is a model/status port. It is not native browser, authenticated backend,
+  real timeout-duration, or original unknown-operation recovery acceptance.
