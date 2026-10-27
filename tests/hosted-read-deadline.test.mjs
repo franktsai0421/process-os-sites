@@ -15,9 +15,9 @@ function responseAfter(c,ms,signal,value,status=200){return new Promise((resolve
  const timer=c.setTimeout(()=>{signal.removeEventListener('abort',abort);resolve(Response.json(value,{status}));},ms);
  signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
 });}
-function clientFixture(handler){const c=clock(),calls=[],memory=new Map(),owner={identity:{id:'owner'}},window={ProcessSync:owner};
+function clientFixture(handler,endpoint='/api/process-authoring/workflow?caseMetadata=1'){const c=clock(),calls=[],memory=new Map(),owner={identity:{id:'owner'}},window={ProcessSync:owner};
  vm.runInNewContext(source,{window,document:{documentElement:{lang:'vi'}},fetch:(url,options)=>{calls.push({url,method:options.method});return handler(c,url,options);},crypto:webcrypto,AbortController,setTimeout:c.setTimeout,clearTimeout:c.clearTimeout,sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)}});
- return {c,calls,owner,memory,client:window.createSharedDraftClient({endpoint:'/api/process-authoring/workflow?caseMetadata=1',actorId:'owner',headers:()=>({})})};}
+ return {c,calls,owner,memory,client:window.createSharedDraftClient({endpoint,actorId:'owner',headers:()=>({})})};}
 let cases=0;
 async function test(name,run){await run();cases++;console.log('PASS '+name);}
 await test('24-second owned read survives old 15-second boundary; exact response and one GET',async()=>{
@@ -27,9 +27,9 @@ await test('24-second owned read survives old 15-second boundary; exact response
 await test('hung read aborts at 45 seconds with no automatic retry or unknown write',async()=>{
  const f=clientFixture((c,_url,o)=>responseAfter(c,60000,o.signal,{}));const p=assert.rejects(f.client.read(),e=>e.name==='AbortError');await f.c.tick(45000);await p;assert.equal(f.calls.length,1);assert.equal(f.client.hasUnknown(),false);assert.equal(f.c.pending,0);
 });
-await test('mutation still times out at 15 seconds; only receipt GET follows; unresolved command stays fenced',async()=>{
- const f=clientFixture((c,_url,o)=>o.method==='POST'?responseAfter(c,60000,o.signal,{}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})));
- const p=assert.rejects(f.client.command('g','apply',{patches:[]}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);await f.c.tick(15000);await p;assert.deepEqual(f.calls.map(x=>x.method),['POST','GET']);assert.equal(f.client.hasUnknown(),true);assert.equal(f.memory.size,1);await assert.rejects(f.client.command('g','save'),/UNKNOWN/);assert.equal(f.calls.length,2);assert.equal(f.c.pending,0);
+for(const [endpoint,deadline] of [['/api/process-authoring/workflow?caseMetadata=1',45000],['/api/iqc/workflow',15000]])await test('mutation deadline '+deadline+'ms for '+endpoint+'; only receipt GET follows; unresolved command stays fenced',async()=>{
+ const f=clientFixture((c,_url,o)=>o.method==='POST'?responseAfter(c,60000,o.signal,{}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})),endpoint);
+ let settled=false;const p=assert.rejects(f.client.command('g','apply',{patches:[]}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/).then(()=>{settled=true;});await f.c.tick(deadline-1);assert.equal(settled,false);assert.deepEqual(f.calls.map(x=>x.method),['POST']);const bytes=[...f.memory];assert.equal(bytes.length,1);await f.c.tick(1);await p;assert.deepEqual(f.calls.map(x=>x.method),['POST','GET']);assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],bytes);await assert.rejects(f.client.command('g','save'),/UNKNOWN/);assert.deepEqual([...f.memory],bytes);assert.equal(f.calls.length,2);assert.equal(f.c.pending,0);
 });
 await test('slow response from previous actor is rejected, never adopted',async()=>{
  const f=clientFixture((c,_url,o)=>responseAfter(c,24000,o.signal,{revision:496,permissions:{view:true}}));const p=assert.rejects(f.client.read(),/ACCOUNT_CHANGED/);await f.c.tick(16000);f.owner.identity={id:'other'};await f.c.tick(8000);await p;assert.equal(f.calls.length,1);

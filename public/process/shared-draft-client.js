@@ -63,6 +63,10 @@
   const permissionKeys={'approval.submit':'edit','approval.withdraw':'withdraw','approval.approve':'approve','approval.reject':'return','approval.compare':'history','master.delete':'delete'};
   window.sharedDraftPermissionAllowed=(client,key)=>client?.permission(permissionKeys[key]||key)!==false;
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false}) => {
+    // Only the existing relative authoring route gets longer mutation tolerance.
+    // Other/absolute endpoints retain 15s; GET remains 45s. This is not proof of
+    // commit: unknown-result receipt validation and retry admission stay intact.
+    const mutationDeadline=/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     const transportKey=actorId+':'+endpoint;
     if(transports.has(transportKey)){const cached=transports.get(transportKey);if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
@@ -79,8 +83,8 @@
       if(body)assertMutationAdmission();else assertOwner();
       const readOwner=body?null:window.ProcessSync?.captureDelivery?.();
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
-      // mutations at their existing deadline and receipt-first unknown policy.
-      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?15000:45000);
+      // non-authoring mutations at 15s and the receipt-first unknown policy.
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?mutationDeadline:45000);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
         let result=await response.json();
