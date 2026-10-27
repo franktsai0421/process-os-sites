@@ -63,6 +63,10 @@
   const permissionKeys={'approval.submit':'edit','approval.withdraw':'withdraw','approval.approve':'approve','approval.reject':'return','approval.compare':'history','master.delete':'delete'};
   window.sharedDraftPermissionAllowed=(client,key)=>client?.permission(permissionKeys[key]||key)!==false;
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false}) => {
+    // Only the existing relative authoring route gets longer mutation tolerance.
+    // Other/absolute endpoints retain 15s; GET remains 45s. This is not proof of
+    // commit: unknown-result receipt validation and retry admission stay intact.
+    const mutationDeadline=/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     const transportKey=actorId+':'+endpoint;
     if(transports.has(transportKey)){const cached=transports.get(transportKey);if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
@@ -79,8 +83,8 @@
       if(body)assertMutationAdmission();else assertOwner();
       const readOwner=body?null:window.ProcessSync?.captureDelivery?.();
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
-      // mutations at their existing deadline and receipt-first unknown policy.
-      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?15000:45000);
+      // non-authoring mutations at 15s and the receipt-first unknown policy.
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?mutationDeadline:45000);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
         let result=await response.json();
@@ -105,17 +109,36 @@
       catch(error){throw Object.assign(Error('RECOVERY_STORAGE_UNAVAILABLE'),{cause:error});}
       unknown=command;
     }
+    // A successful HTTP response is not evidence that this operation committed.
+    // Review receipts may rotate generation; only Apply is bound to its original one.
+    function confirmedReceipt(result,operationId,generation) {
+      const r=result?.receipt;
+      if(!r||typeof r!=='object'||Array.isArray(r)||r.operationId!==operationId||
+        typeof r.generation!=='string'||!r.generation||!Number.isSafeInteger(r.revision)||r.revision<0||
+        !(r.savedId===null||typeof r.savedId==='string')||!(r.caseId===null||typeof r.caseId==='string')||
+        typeof r.unchanged!=='boolean'||generation!==undefined&&r.generation!==generation){
+        conditionalRead=null;
+        throw Object.assign(Error('INVALID_OPERATION_RECEIPT'),{operationId});
+      }
+      return result;
+    }
     async function resolveUnknown() {
       if(!unknown)return null;
-      const result=await request(query(`operationId=${encodeURIComponent(unknown.operationId)}`));
-      syncFailures.delete(unknown.operationId);retain(null);return result;
+      const command=unknown,result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined);
+      syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
     }
     async function post(command, retry = false) {
       assertMutationAdmission();
-      if(unknown && (!retry || unknown.operationId!==command.operationId))throw Error('PREVIOUS_OPERATION_UNKNOWN');
+      if(unknown && (!retry || unknown.operationId!==command.operationId)){
+        const error=Error('PREVIOUS_OPERATION_UNKNOWN');
+        // A different command was never sent. Keep its failure until explicit
+        // matching-field cancellation/correction; never relabel the sent unknown.
+        if(unknown.operationId!==command.operationId)error.notSent=true;
+        throw error;
+      }
       // Keep the operation before transport so closing the tab cannot create a blind retry.
       try{if(!unknown)retain(command);}catch(error){throw Object.assign(error,{notSent:true});}
-      try {const result=await request(endpoint,{command});retain(null);if(command.action!=='apply')validation=null;return result;}
+      try {const result=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined);retain(null);if(command.action!=='apply')validation=null;return result;}
       catch(error) {
         if(error.message==='ACCOUNT_CHANGED_REOPEN_REQUIRED')throw error;
         if(Array.isArray(error.details?.issues)&&['submit','approve'].includes(command.action))validation={issues:error.details.issues,requestId:error.requestId,generation:command.generation,savedId:command.savedId,caseId:command.caseId};
@@ -156,7 +179,7 @@
         if(typeof photo?.src==='string'&&photo.src.startsWith('assets/')){const url=new URL(photo.src,location.origin+'/process/');if(url.origin===location.origin&&url.pathname.startsWith('/process/assets/'))return url.pathname+url.search;}
         return /^[a-f0-9]{64}$/.test(photo?.id||'')?endpoint.split('?')[0].replace(/\/workflow$/,'')+'/photo?id='+photo.id:'';},
       prepare(generation,action,details={}) {assertOwner();return {...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};},
-      receipt:async id=>{assertOwner();const result=await request(query(`operationId=${encodeURIComponent(id)}`));if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
+      receipt:async (id,generation)=>{assertOwner();const expected=generation??(unknown?.operationId===id&&unknown.action==='apply'?unknown.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command) {
         assertMutationAdmission();const retry=unknown?.operationId===command.operationId;queued++;const {action}=command;
@@ -166,7 +189,7 @@
         tail=result.then(()=>{syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);
-        }},error=>{if(action==='apply')syncFailures.set(command.operationId,{command,error});});return result;
+        }},error=>{if(action==='apply'&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
       },
       // Only this client's already queued operations are awaited, never other users.
       flush:async()=>{assertOwner();await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},

@@ -139,9 +139,21 @@ jobs:
         run: node tests/local-worker-outbound.test.mjs
       - name: Integrated entry and read-only delivery contracts
         run: |
+          node scripts/test-authoring-contentissues-cache.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-bom-map-removal.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-begin-recovery.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-authoring-unknown-recovery.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-authoring-save-validation-ui.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-canvas-unknown-recovery.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-login-reentry.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-login-entry-marker.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-canvas-pan-cancel.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -149,7 +161,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/shared-draft-terminal-admission.test.mjs tests/iqc-editor-terminal.test.mjs
+          node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-equipment-full-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,3 +1,50 @@
+## 2026-10-27 authoring contentIssues 單次請求驗證重用（隔離候選）
+
+僅 `contentIssues` GET：records 解碼器以 immutable body SHA 共用同一 request-local object；正常 Save 後 working/saved 可指向同一內容。以 WeakMap 重用該物件的純 validation 結果，不做深度內容快取，也不跨 request、actor、generation 或 revision 留存。不同物件仍逐一驗證；固定案件 issues、working/saved/review 的 id／checked／fixed 與錯誤格式保留，wrapper map 不修改原 issues。
+
+所有 readState、aggregate/body integrity、身分與即時撤權、history 判斷及未知 validation code 的 fail-closed 檢查均不變。POST、Save/Submit/Sync、receipt、pending、CAS、ACL、schema 與讀取零寫入契約不變。這只減少重複 validation CPU 工作，不減 SQL/R2，也不是 first POST 未知結果的修復或 live 毫秒改善保證。
+
+`node scripts/test-authoring-contentissues-cache.cjs` 以同一 synthetic SQLite/R2 比較 exact af7 route 與候選；CI 保留完整 Git history 供歷史 route byte 讀取。含正常 login/Apply/Save/Submit/Return、working/saved 相同與不同、legacy 未固定案件、inline、權限/登出撤權、實際 BOM422/409/body503、完整 DTO/header/I/O 與資料不變。未知非advisory code 另以明示 fault-injected validator port 證 fail-closed，不稱自然產品路徑。量測 counter 為 Node fixture，非 Workers/native 效能。
+
+## 2026-10-27 受保護登入的手動新頁面邊界（候選）
+
+投影頁面的帳號變更仍走既有 `setPlatformIdentity`／`clearIdentity`、quarantine、identity epoch 與 invalidation；不重設 `requiresReload`，不在舊閉包 refresh／enter。已確認且仍屬目前嘗試的登入，在身分 fence **之後**只移除 `process-platform-signed-out`。顯示保全提醒，由使用者手動 reload **目前完整網址**；絕不自動重載、重送未知命令、清除／搬移 canvas journal、tab 或 actor-owned recovery。logout 使用 optional account menu，以免同步 invalidation 移除 shell 後再 dereference。
+
+帳號請求前，已知 open dialog／overlay、IME／drag、編輯表單與模組 busy guard 先阻止；其餘投影操作必須明確確認保全提醒。請求期間 shell inert，不清輸入。若等待時另出現 modal，保留其值但隱藏／inert，不讓下一身分使用舊控制項；不宣稱可恢復該表單。收到 2xx 但無有效身分／JSON、網路或 5xx 回應均屬未確認結果，清除舊 in-memory identity 並增加既有 epoch、保留 marker 與 recovery，手動新頁面確認；確定 4xx 不改身分。儲存 marker 失敗仍先 fence，不可把換 cookie 後的舊閉包重新啟用。
+
+獨立 `/login` 只在目前成功嘗試移除同一 marker；unmount／較新嘗試、失敗／429／網路不得清除。既有 `loginDestination` 與 allowlist／canonical 路徑不改，因此 `/process/` 與 `/process/index.html` 的 canvas pathname namespace 相容／還原**仍未保證**。本修正不解釋早先真實「密碼錯誤」、不修改密碼驗證／cookie／ACL，也不保證使用者已自行登出／刷新前的記憶體輸入仍存在。
+
+可移植回歸：`node scripts/test-login-reentry.cjs`、`node scripts/test-login-entry-marker.cjs`（已安裝 repo TypeScript）；測真正 source functions、transport、invalidation listener／form events，搭配隔離 DOM／合成登入與 bootstrap 回應。不是 native browser、實際 cookie persistence、IME、top-layer dialog 點擊或真資料驗收。native top-layer raced dialog 是否阻擋按鈕仍須真瀏覽器檢查；瀏覽器自身 reload 不屬自動動作。本候選須與 canvas／其他 navigation 修改由單一整合者合併語義後再跑對應檢查，不把獨立來源 PASS 當整合 PASS。
+
+## 2026-10-27 畫布未知結果恢復候選（未發布）
+
+畫布依然手動 Sync；Sync／Apply、手動 Save、送審及核准不是同一步。
+Canvas `channel=canvas` 與主 authoring 是不同 transport。網路未知結果保留原
+operation、session recovery 與本機 journal，不自動清空或換 ID 重送。
+
+- 只有被既有 unknown 阻擋、且 operationId 不同的新命令標記 `notSent`；仍保留
+  sync failure 和本機輸入。原已送命令／同 ID 預先排隊 duplicate 不得改標未送，
+  duplicate 也不覆蓋原 RESULT_UNKNOWN failure。只有既有 matching-path 明確
+  Cancel／成功修正流程可清除未送 failure；unknown 尚在時 Cancel 不清它。
+- 主面板 Retry 查到原收據後，以剩餘 failure 決定 localFailure，不讓未送內容
+  失去明確 Cancel 路徑。已驗證「保留輸入 → 查到原收據 → 明確還原／Cancel →
+  載入最新模型 → 手動 Save」；不是宣稱保留舊表單直接 Apply 必定成功，舊 guard
+  仍可能正常 CAS 拒絕，需要重新核對，不能自動 rebase／overwrite。
+- 命令 ACK／收據須有既有 DraftReceipt 的六個欄位與正確 operationId，Apply
+  再核原 generation（canvas 以 pending batch 傳入）。Review 可輪替 generation；
+  Begin 的 control-only 回應不套收據驗證。缺欄、錯 ID／generation、403／404／503
+  不假報成功；僅有效收據可清對應 unknown。晚到舊查詢只能退休其 captured ID，
+  不清另一個新 unknown。有效收據後 fresh model GET 失敗仍保留 canvas journal。
+- Canvas「查收據／重試」不是唯讀按鈕：既有 404 分支仍可同 ID POST；本次未改
+  此規則、15s mutation／45s GET deadline、伺服器權限／待審／CAS／歷史／資料格式。
+
+隔離回歸跑完整 production JS + synthetic ports，authoring 另用真 transition kernel；
+不是 native browser、真站台 timing、API 權限或完整 modal DOM 驗收。原始 v23
+可重現 recovery bookkeeping／無效收據誤確認缺陷，但沒有 live HTTP／收據證據可
+斷言使用者第一次 unknown 的原因。Server 收據 GET 仍有完整 body hydration 成本，
+metadata-only 讀取、登入與效能候選不納入本次。新三個測試已加入既有安全 CI；
+本機未安裝依賴／未跑 typed lint、完整 build 或遠端 CI，發布需另核來源及授權。
+
 ## 2026-10-25 Sites 圖片讀取候選（未發布）
 
 `canonical-assets` 僅新增接受正式 `imageUrl()` 產生的精確 `#asset-<source SHA>`
@@ -180,3 +227,72 @@ This does not remove full-page transitions: all major destinations need one
 reviewed lifecycle/projection handoff design, including module-specific dirty
 guards and side-effecting routine-report refresh. Source, build and live acceptance
 remain distinct; see task evidence for exact candidate results.
+
+
+## Authoring Save acknowledgement and scoped advisory inspection (2026-10-27)
+
+Only a confirmed Save command response plus adopted current model ends the Save
+operation's busy phase. Content-issue inspection then runs separately with an
+explicit Chinese/Vietnamese “verification in progress / not completed” status.
+The saved snapshot remains visibly saved; a failed advisory read does not undo
+that acknowledgement or pretend validation passed. Submit stays disabled until
+an inspection matches the current actor/delivery, adopted model, generation,
+revision, saved/pending IDs and editor/review scope. Explicit Submit/Approve keep
+their existing fresh inspection and server-side mandatory validation. All other
+actions retain their awaited post-action inspection; no deadline is changed.
+
+Same-scope background polls share an in-flight inspection rather than sending
+repeated GETs. A newer model/revision or actor/delivery/route/reset cannot adopt
+an older result. A current failure leaves pending state and exposes a manual
+retry; unchanged polling does not silently retry forever. New local edits remain
+unsaved and guarded, never overwritten by advisory responses. This is no global
+cache, no mutation cancellation and no bypass of pending/CAS or manual Sync.
+
+The transport deliberately retains an operation before POST. During one newly
+admitted Save only (no prior unknown or sync failure), a client/actor/delivery-
+bound pending-command marker prevents this precautionary record from being
+painted as a settled failure. Existing load/local failures still take priority.
+The marker ends in command finally, is invalidated on reset/actor change, and
+never clears the real recovery record. A timed-out/settled unknown, previous
+unknown or blocked second operation remains failed and quarantined. Inspection
+busy alone cannot suppress unknown state. Navigation guards are unchanged.
+
+The focused runner uses the actual controller, transport, diff and transition
+kernel with deferred synthetic HTTP/timers and a DOM mount port. Original
+three-GET duplication, Save-after-ACK waiting and in-flight false-failure
+counterexamples are retained. Fewer fixture requests are not live performance
+claims; native UI/layout, complete ACL/lifecycle and real-user recovery remain
+separate acceptance gates.
+
+Canvas journal persistence optionally notifies a badge-only authoring callback.
+It checks current actor/delivery and connected editor root, then updates only
+the existing save-state text; it never invokes panel/render, sends a request or
+changes the journal. Reverting positions can show saved only if the existing
+server working content still equals its acknowledged saved snapshot. The
+synthetic actual edit→persist→update chain is covered; native drag/layout remains
+unrun. Legacy metadata paragraphs are not independently repainted by this hook.
+
+Save also checks busy before entering the existing canvas pre-save confirmation/
+Sync path. The later post-loading guard remains. Repeated public Save calls
+cannot initiate an extra canvas Apply while the first Save awaits its response;
+new local canvas entries stay retained for a later explicit Sync/Save. This is
+public-controller admission coverage, not native rapid-double-click acceptance.
+Approve's fresh-inspection source path is retained; no new complete Approve
+lifecycle is claimed by the focused UI runner.
+
+
+## 2026-10-27 Authoring mutation deadline candidate (not published)
+
+Only the existing relative `/api/process-authoring/workflow` endpoint (including
+its normal query and canvas channel) uses a 45-second mutation deadline. Other
+module mutations, absolute URLs and lookalike paths retain 15 seconds; all GETs
+retain 45 seconds. This is longer response tolerance, not faster performance or
+a commit guarantee. A timed-out mutation may already have committed.
+
+Operation IDs, saved unknown bytes, serial queue, receipt-first recovery, receipt
+shape/generation checks and actor/terminal fences are unchanged. No automatic
+POST retry is added; the existing canvas receipt404 retry behavior is unchanged.
+No backend, permission, CAS, manual canvas Sync or Save meaning changes.
+Fake-clock delayed ACK/abort/recovery tests and the coupled cache tag are in the
+existing CI test files. Native latency, storage cost and runtime build remain
+separate acceptance; this local candidate is not a release.

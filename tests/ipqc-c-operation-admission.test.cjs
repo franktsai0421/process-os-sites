@@ -16,7 +16,7 @@ const perms=(x={})=>({view:true,edit:false,save:false,submit:false,withdraw:fals
 const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAllowed==='function'?operationAllowed:null,editing,mainHTML,writeShared,upload,submitEditor,bind,sharedTransport,
  setup(s){control=s.control;working=s.working;revision=7;selectedVersionId='draft-c';modal=s.modal||null;host=s.host||null;caseHistory=s.caseHistory||null;catalog={products:[],stages:[]};},
  snapshot(){return{control,working,modal,message,busy,sharedActor};}};\n`;
-function fixture({permissions=perms(),recovery=null,adopted=true}={}){
+function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceipt=false}={}){
  const calls=[],storageWrites=[],events=[],nodes=new Map(),memory=new Map(recovery?[[recoveryKey,recovery]]:[]);
  let nextResponse=null,caps=permissions,control,working;
  class Node{
@@ -37,7 +37,24 @@ function fixture({permissions=perms(),recovery=null,adopted=true}={}){
   const call={url,method:options.method||'GET',...(options.body&&typeof options.body==='string'?{body:JSON.parse(options.body)}:{})};calls.push(call);
   if(nextResponse){const next=nextResponse;nextResponse=null;return next(url,options);}
   if(call.method==='PUT')return Response.json({id:'a'.repeat(64)});
-  if(call.method==='POST')return Response.json({revision:7,control:copy(control),receipt:{operationId:call.body?.command?.operationId||'begin'}});
+  if(call.method==='POST'){
+   const command=call.body?.command;
+   // Synthetic response projection, not a backend transition/authority test.
+   // Bind all six receipt fields to the returned workflow; Begin is control-only.
+   const returned=copy(control),flow=returned.workflow;
+   if(command){
+    flow.revision++;
+    if(command.action==='save')flow.saved={...flow.saved,id:'saved-'+command.operationId,revision:flow.revision,content:copy(flow.working)};
+    if(command.action==='submit'){
+     assert.equal(command.savedId,flow.saved.id,'Submit consumes the fixed saved snapshot');
+     flow.pendingId='case-'+command.operationId;
+     flow.cases.push({id:flow.pendingId,savedId:flow.saved.id,status:'pending',actor:copy(flow.saved.actor),content:copy(flow.saved.content)});
+     returned.versions[0].status='pending';
+    }
+   }
+   const receipt=command?(malformedReceipt?{operationId:command.operationId}:{operationId:command.operationId,generation:flow.generation,revision:flow.revision,savedId:flow.saved?.id||null,caseId:flow.pendingId||null,unchanged:false}):null;
+   return Response.json({revision:7,control:returned,...(receipt?{receipt}:{})});
+  }
   if(String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
   if(String(url).startsWith('/api/ipqc-c?'))return Response.json({control:copy(control),revision:7,catalog:{products:[],stages:[]}});
   return Response.json({permissions:caps,revision:7,unchanged:true,otherReviewerAvailable:true});
@@ -69,7 +86,11 @@ test('adopted Save and Submit have independent visibility and actual dispatch wi
   assert.equal(html.includes('id="ipqcc-'+(action==='save'?'submit':'save')+'"'),false,'other operation hidden');assert.equal(html.includes('data-ipqcc-add='),false,'no editor affordance');
   const result=await f.ui.writeShared(action);assert(result?.receipt,action+' dispatched');
   assert.deepEqual(f.mutations().map(c=>c.body.command.action),[action]);assert.equal(f.mutations()[0].body.command.generation,'g-c');
-  if(action==='submit')assert.equal(f.mutations()[0].body.command.savedId,'saved-c');
+  const command=f.mutations()[0].body.command,flow=result.control.workflow;
+  assert.equal(result.receipt.operationId,command.operationId);assert.equal(result.receipt.generation,flow.generation);assert.equal(result.receipt.revision,flow.revision);assert.equal(flow.revision,4);
+  assert.equal(result.receipt.savedId,flow.saved.id);assert.equal(result.receipt.caseId,flow.pendingId);assert.equal(result.receipt.unchanged,false);
+  if(action==='save'){assert.equal(flow.saved.id,'saved-'+command.operationId);assert.equal(flow.pendingId,null);assert.deepEqual(flow.saved.content,f.control.workflow.working);}
+  if(action==='submit'){assert.equal(command.savedId,'saved-c');assert.equal(flow.pendingId,'case-'+command.operationId);assert.equal(flow.cases.at(-1).savedId,command.savedId);assert.deepEqual(flow.cases.at(-1).content,f.control.workflow.saved.content);}
   assert.equal(f.client.hasUnknown(),false,'successful synthetic receipt settled');
  }
 });
@@ -77,10 +98,20 @@ test('adopted Save and Submit have independent visibility and actual dispatch wi
 test('edit-only allows Apply and photo but does not Save or Submit',async()=>{
  const f=fixture({permissions:perms({edit:true})});await f.hydrate();
  const html=f.ui.mainHTML();assert(!html.includes('id="ipqcc-save"'));assert(!html.includes('id="ipqcc-submit"'));
- const patches=[{op:'set',path:['items',{id:'fixture-item'},'note'],value:'explicit synthetic edit'}];await f.ui.writeShared('apply',{patches,guards:[]});
+ const patches=[{op:'set',path:['items',{id:'fixture-item'},'note'],value:'explicit synthetic edit'}];const result=await f.ui.writeShared('apply',{patches,guards:[]});assert(result?.receipt,'valid Apply receipt acknowledged');assert.equal(f.client.hasUnknown(),false);
  assert.equal(f.mutations().length,1);assert.equal(f.mutations()[0].body.command.action,'apply');assert.deepEqual(f.mutations()[0].body.command.patches,patches);
  assert.equal(await f.ui.upload(new Blob(['synthetic bytes'],{type:'image/png'})),'a'.repeat(64));assert.equal(f.mutations()[1].method,'PUT');
  await f.ui.writeShared('save');await f.ui.writeShared('submit');assert.equal(f.mutations().length,2,'no implicit Save/Submit');
+});
+
+test('malformed successful Save ACK stays unknown with input retained and no repeated POST',async()=>{
+ const f=fixture({permissions:perms({save:true}),malformedReceipt:true});await f.hydrate();f.setModal();
+ const before=f.state();assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);
+ assert.deepEqual(f.mutations().map(c=>c.body.command.action),['save']);
+ assert.equal(f.calls.filter(c=>c.method==='GET'&&c.url.includes('operationId=')).length,1,'receipt lookup follows malformed ACK');
+ const recovery=f.memory.get(recoveryKey);assert(recovery);assert.equal(JSON.parse(recovery).operationId,f.mutations()[0].body.command.operationId);
+ for(const key of ['control','working','modal'])assert.deepEqual(f.state()[key],before[key],key+' preserved');
+ assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);assert.equal(f.mutations().length,1,'another Save does not blindly resend');assert.equal(f.memory.get(recoveryKey),recovery);
 });
 
 test('unknown and denied edit block Begin Apply module mutations and photo with input intact',async()=>{

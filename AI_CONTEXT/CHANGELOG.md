@@ -6,6 +6,31 @@
 - C UI gates Save/Submit independently and fails closed for unknown/revoked operation permissions while retaining input and uncertain receipts. Add normal-login isolated backend and actual-JS VM regressions, exact cache-tag expectation and CI invocations.
 - No schema or manual canvas Sync change. Local dependency/build environment remains unaccepted; GitHub clean CI and independent review are required. Combined draft PR is authorized; merge/deploy still need the final specific gate.
 
+- Local rework onto merged main `4e1eaca` / tree `f079f1b` preserves PR32 login/recovery and PR34 Save/deadline/validation fixes, tags and tests. No new permission policy or actual account changes; new-base CI and final permission-impact decision remain required before upload/merge/publication.
+
+# 2026-10-27 - Local authoring deadline tolerance (not published)
+
+- Bound only the canonical relative authoring workflow mutations at 45 seconds; other mutations stay at 15 seconds and GETs at 45 seconds. No new permission, retry, receipt or storage policy.
+- Keep exact unknown operation bytes and all actor/generation fences. Longer waiting is neither a performance improvement nor proof of commit; failed or malformed acknowledgements remain receipt-first.
+- Add fake-clock authoring/other-module/deadline/late-receipt cases to existing CI-covered recovery tests and update only the shared-client cache tag. See [Runtime](modules/RUNTIME.md).
+
+# 2026-10-27 - Local authoring contentIssues validation reuse (not published)
+
+- Reuse pure validation only for the same decoded content object within one contentIssues GET. Keep separate projections and immutable fixed-case issues.
+- Preserve authorization/storage reads and failure priority; no I/O reduction, POST change, schema/data mutation or live latency claim.
+- Portable actual-handler regression covers exact DTO/status/header/I/O parity and zero writes; see [runtime boundary](modules/RUNTIME.md).
+
+# 2026-10-27 - Local canvas unknown-recovery hardening (not published)
+
+- Bind command ACK/receipt to the existing six-field receipt and exact operation ID;
+  Apply additionally binds generation while review generation changes and Begin remain compatible.
+- Preserve original unknown/journal and newly blocked input. Only a distinct unsent command gains
+  matching explicit Cancel eligibility; Retry preserves remaining local failures. Late receipt
+  lookups cannot erase a newer unknown. See [runtime boundaries](modules/RUNTIME.md).
+- Synthetic old-failure/new-pass evidence covers manual eight-node Sync, recovery, Cancel-to-Save,
+  malformed receipts and delivery fences. No claim about the first live failure cause or native
+  acceptance; no timeout/server/ACL/data/automatic-retry change or publication.
+
 # 2026-10-26 - Local authoring BOM map removal fix (not published)
 
 - Preserve the existing product-removal requirement: the authoring-only diff emits a guarded whole `bomSelections` field when supported string-array map keys are removed. Shared generic diff, server protocol/integrity, permissions and schema are unchanged.
@@ -613,3 +638,15 @@ Use one bounded, lossless PNG optimizer across six existing photo PUT routes,
 preserving dimensions, pixel samples, metadata and existing authorization.
 Non-PNG and special layouts keep original bytes; no schema/data migration.
 See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries.
+
+
+### 2026-10-27 — isolated authoring Save / advisory inspection candidate
+
+- Release Save operation busy only after acknowledged/adopted success; run advisory
+  inspection separately with honest pending/failure status and current-snapshot Submit gate.
+- Coalesce same-scope background inspection, fence late scope/identity replies and
+  retain explicit retry rather than silent polling retries.
+- Distinguish a newly admitted in-flight Save recovery record from settled unknown
+  failure without altering transport storage, navigation, backend validation or deadlines.
+- Add focused deferred-transport regression, exact cache expectation and CI command.
+  This entry is local candidate documentation, not publication/native acceptance.
