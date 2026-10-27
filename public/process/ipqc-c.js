@@ -20,10 +20,13 @@
   let equipmentCategories = [], equipmentSubcategories = [], picker = null;
   let caseHistory=null;
   let sharedClient=null, sharedActor='', pollTimer=null, mountSequence=0;
+  // Server-confirmed operation cells; unknown, revoked or another actor fails closed.
+  const operationAllowed = operation => !!identity()?.id && sharedActor===identity().id &&
+    !window.ProcessSync?.requiresReload && sharedClient?.permission(operation)===true;
   function sharedTransport() {
     const actor=identity()?.id;
     if(!actor)throw Error(t('Cần đăng nhập','請先登入'));
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,permissionGates:{edit:'[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
+    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,permissionGates:{edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
     return sharedClient;
   }
   const workflowErrors={
@@ -53,7 +56,10 @@
         if(!sameActor() || closeModal && modal!==targetModal){return cancelResponse();}
         if(closeModal)throw Error('STALE_GENERATION');
       }
+      const operation=['save','submit'].includes(action)?action:['approve','reject','withdraw'].includes(action)?null:'edit';
+      if(operation&&!operationAllowed(operation))throw Error('FORBIDDEN');
       if(!control.workflow||action==='begin') {
+        if(!operationAllowed('edit'))throw Error('FORBIDDEN');
         const started=await transport.begin();if(!sameActor() || closeModal && (modal!==targetModal || editorState()!==submittedState)){return cancelResponse();}control=started.control;revision=started.revision;
         selectedVersionId=open()?.id||active()?.id||selectedVersionId;working=open()?.status==='draft'?copy(open().snapshot):null;
         if(modal&&!modal.generation)modal.generation=control.workflow?.generation;
@@ -79,6 +85,8 @@
       else {commandAction='apply';fields={moduleAction:action,input:detail};}
       const requestWorking=working,requestGeneration=control?.workflow?.generation,
         createdCollection=action==='create-item'?'items':action==='create-error'?'errors':null;
+      if(!sameActor())return cancelResponse();
+      if(operation&&!operationAllowed(operation))throw Error('FORBIDDEN');
       const result=await transport.command(flow.generation,commandAction,fields);
       if(!sameActor() || closeModal && (working!==requestWorking || control?.workflow?.generation!==requestGeneration)){return cancelResponse();}
       const operationId=result.receipt?.operationId,
@@ -121,7 +129,8 @@
   const active = () => control?.versions.find(v => v.id === control.activeVersionId);
   const version = () => control?.versions.find(v => v.id === selectedVersionId) || open() || active() || control?.versions[0];
   const snapshot = () => version()?.status === 'draft' && working && version()?.id === open()?.id ? working : version()?.snapshot;
-  const editing = () => version()?.status === 'draft' && !!working && permitted('approval.submit');
+  const draftOpen = () => version()?.status === 'draft' && !!working && !control?.workflow?.pendingId;
+  const editing = () => draftOpen() && operationAllowed('edit');
   const pendingItems = () => (version()?.status === 'draft' ? snapshot()?.items || [] : []).filter(item=>!item.deleted).map(item=>{
     const missing=[];
     if(!item.description?.trim())missing.push(t('Mô tả cách kiểm tra','檢查方式敘述'));
@@ -298,8 +307,9 @@
         <p>${t('Dữ liệu sản phẩm và công đoạn lấy từ danh mục hiện hành','產品與工段讀取現行主檔')}</p></div>
         <div class="ipqcc-header-actions"><label>${t('Phiên bản','版本')}<select id="ipqcc-version">${(control?.versions || []).slice().reverse().map(row => `<option value="${h(row.id)}" ${row.id === v?.id ? 'selected':''}>V${row.number} · ${h(status(row.status))} · ${h(lastEdit(row)?.actorName || row.creatorName)} · ${h(date(lastEdit(row)?.at || row.createdAt))}</option>`).join('')}</select></label>
           ${v ? `<span class="ipqcc-state">V${v.number} · ${h(status(v.status))}</span>`:''}
-          ${!open() && permitted('approval.submit') ? `<button class="button signal" id="ipqcc-begin">${t('Bắt đầu sửa','開始修改')}</button>`:''}
-          ${editing() ? `<button class="button ghost" id="ipqcc-save" ${busy?'disabled':''}>${t('Lưu bản nháp','儲存草稿')}</button><button class="button signal" id="ipqcc-submit" ${busy?'disabled':''}>${t('Gửi duyệt','送出審核')}</button>`:''}
+          ${!open() && operationAllowed('edit') ? `<button class="button signal" id="ipqcc-begin">${t('Bắt đầu sửa','開始修改')}</button>`:''}
+          ${draftOpen() && operationAllowed('save') && (control?.workflow||operationAllowed('edit')) ? `<button class="button ghost" id="ipqcc-save" ${busy?'disabled':''}>${t('Lưu bản nháp','儲存草稿')}</button>`:''}
+          ${draftOpen() && operationAllowed('submit') && (control?.workflow||operationAllowed('edit')) ? `<button class="button signal" id="ipqcc-submit" ${busy?'disabled':''}>${t('Gửi duyệt','送出審核')}</button>`:''}
           ${control?.workflow&&permitted('approval.compare')?`<button class="button ghost" id="ipqcc-case-history">${t('Hồ sơ gửi duyệt','送審案件')}</button>`:''}
           ${v?.status === 'pending' && permitted('approval.withdraw') ? `<button class="button ghost" id="ipqcc-withdraw" ${busy?'disabled':''}>${t('Rút hồ sơ','撤回送審')}</button>`:''}
         </div></header>
@@ -350,6 +360,7 @@
     if (results) results.innerHTML = productRows();
   }
   async function upload(file) {
+    if(!operationAllowed('edit'))throw Error('FORBIDDEN');
     if (!file || file.size > 5_000_000) throw Error(t('Ảnh tối đa 5 MB','圖片限 5 MB'));
     const response = await fetch(`${API}/photo`, { method:'PUT', headers:{...headers(),'Content-Type':file.type}, body:file });
     const body = await response.json().catch(() => ({}));
@@ -537,7 +548,7 @@
     root.querySelector('#ipqcc-case-back')?.addEventListener('click',()=>{caseHistory.reviewCase=null;draw();});
     root.querySelector('#ipqcc-case-all')?.addEventListener('click',()=>{caseHistory.showAll=!caseHistory.showAll;caseHistory.itemPage=0;draw();});
     const caseFooter=root.querySelector('#ipqcc-case-dialog footer');
-    if(caseFooter&&caseHistory?.reviewCase&&permitted('approval.submit')&&permitted('approval.compare')){
+    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('edit')&&permitted('approval.compare')){
       const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';
       button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);
       button.onclick=async()=>{try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){caseHistory.error=error.message;draw();}};

@@ -1,3 +1,13 @@
+# 2026-10-27 - Combined quality replacement preview and C operation policy alignment (not published)
+
+- Carry the reviewed FQC/IQC/scoped-AB preview correction onto current main; align adopted C preview with its explicit view/edit capability. Preserve AB scope and whole-module pending fences.
+- At the user's explicit request, separate C edit/save/submit operations without changing entry/view, global access catalog, role defaults or actual accounts. Preserve review/history/withdraw/seed and V3 legacy refusal; delete metadata reflects existing edit-plus-delete mutation checks.
+- C Photo PUT uses edit. Direct legacy Save/Submit require every operation they perform because they replace snapshots; list every new allow/deny in [Quality implementation](modules/QUALITY.md).
+- C UI gates Save/Submit independently and fails closed for unknown/revoked operation permissions while retaining input and uncertain receipts. Add normal-login isolated backend and actual-JS VM regressions, exact cache-tag expectation and CI invocations.
+- No schema or manual canvas Sync change. Local dependency/build environment remains unaccepted; GitHub clean CI and independent review are required. Combined draft PR is authorized; merge/deploy still need the final specific gate.
+
+- Local rework onto merged main `4e1eaca` / tree `f079f1b` preserves PR32 login/recovery and PR34 Save/deadline/validation fixes, tags and tests. No new permission policy or actual account changes; new-base CI and final permission-impact decision remain required before upload/merge/publication.
+
 # 2026-10-27 - Local authoring deadline tolerance (not published)
 
 - Bound only the canonical relative authoring workflow mutations at 45 seconds; other mutations stay at 15 seconds and GETs at 45 seconds. No new permission, retry, receipt or storage policy.

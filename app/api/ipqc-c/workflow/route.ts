@@ -12,11 +12,12 @@ const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
 async function access(request:Request,state:State) {
   const data=await can(request,state,'view:data'),review=await can(request,state,'view:approval');
-  const submit=data;
-  return {view:data||review,edit:data&&submit,save:data&&submit,submit:data&&submit,
+  const edit=data&&await can(request,state,'ipqc-c.edit');
+  return {view:data||review,edit,
+    save:data&&await can(request,state,'ipqc-c.save'),submit:data&&await can(request,state,'ipqc-c.submit'),
     withdraw:data||review&&await can(request,state,'approval.withdraw'),
     approve:review&&await can(request,state,'approval.approve'),return:review&&await can(request,state,'approval.reject'),
-    history:(data||review)&&await can(request,state,'approval.compare'),delete:data&&submit&&await can(request,state,'master.delete')};
+    history:(data||review)&&await can(request,state,'approval.compare'),delete:edit&&await can(request,state,'master.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {

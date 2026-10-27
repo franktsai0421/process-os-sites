@@ -112,8 +112,14 @@ export async function POST(request: Request) {
       if (!localHost(request) || actor.role !== 'admin' || !(await can(request, state, 'master.import')))
         return reply({ error: '首次建置僅允許 Local ADMIN' }, 403);
     } else if (edit) {
-      if (!(await can(request, state, 'view:data')) && !(action==='withdraw'&&await can(request,state,'view:approval')) ||
-          !(await can(request, state, action === 'withdraw' ? 'approval.withdraw' : 'approval.submit')))
+      const data=await can(request,state,'view:data');
+      // Legacy Save/Submit replace body.snapshot, unlike V3's separate working,
+      // saved and fixed case commands. Require every operation they perform.
+      const required=action==='save'?['edit','save']:action==='submit'?['edit','save','submit']:['edit'];
+      const allowed=action==='withdraw'
+        ? (data||await can(request,state,'view:approval'))&&await can(request,state,'approval.withdraw')
+        : data&&(await Promise.all(required.map(op=>can(request,state,'ipqc-c.'+op)))).every(Boolean);
+      if (!allowed)
         return reply({ error: '沒有 IPQC-C 編輯權限' }, 403);
       if (action.startsWith('delete') && !(await can(request, state, 'master.delete')))
         return reply({ error: '沒有刪除權限' }, 403);

@@ -1,3 +1,25 @@
+## 2026-10-27 品質檢具替換預覽＋C 操作權限對齊（本機候選，未發布）
+
+FQC／IQC／IPQC-C 已採 V3 的替換預覽依各自既有 `view && edit`；IPQC-AB 逐 scope 判斷 adoption，已採者用 `ipqc-ab.view && ipqc-ab.edit`，未採 scope 保留 legacy gate。待審不可選與原理由保留；AB whole-module pending 鎖定所有 scope。預覽零寫入；只有 working draft 會套用，手動 Save、固定 saved Submit、獨立審核各自分開。手動畫布 Sync、replacement legacy POST 不改。
+
+使用者 2026-10-27 明確要求 C 對齊並與三模組一起送 PR。本次 C **只**把編輯／儲存／送審分別接到 `ipqc-c.edit/save/submit`，均須原 data view；不改頁面入口、navigation、view DTO、角色範本／帳號設定或全域 `can`。Review／history／withdraw 原權限與 legacy owner 邊界保留，不借本次重構所有 ACL。Delete DTO 收斂為 edit＋既有 delete，反映實際 mutation 原本同需 edit/delete，不新增刪除能力。
+
+| C 動作 | 舊 gate | 新 gate／影響 |
+| --- | --- | --- |
+| V3 Begin／Apply／Restore | view | view＋edit；不再因可看即能改 |
+| V3 Save | view | view＋save；已採草稿不另要求 edit |
+| V3 Submit | view | view＋submit；只送最後成功 saved，不另要求 edit/save |
+| Photo PUT、legacy Begin／Create | view＋submit | view＋edit；edit-only 新允許、submit-only/no-edit 新拒絕 |
+| Legacy Delete | view＋submit＋delete | view＋edit＋delete；delete 權限仍必要 |
+| Legacy Save | view＋submit | view＋edit＋save；因直接替換 snapshot，不能讓 save-only 偷改內容 |
+| Legacy Submit | view＋submit | view＋edit＋save＋submit；舊端點同時替換 snapshot／保存／送審，不能旁路三動作權限 |
+
+上述 legacy/photo 的 submit 是 C URL 映射後的 `ipqc-c.submit`，不是替換 preview 的 raw global Submit。Legacy seed、既有 pending review／withdraw 及 adopted `WORKFLOW_V3_REQUIRED` 保留。Photo GET 與物件 bytes／reference／歷史保留；未因本次新增自動授權或寫入真帳號。原始 shipped ADMIN/RD/STAFF cells 已開放三操作，但自訂角色／個別 overrides 的實際影響未知，需發布前呈現本表，不能聲稱已盤點所有真帳號。
+
+C UI 將 draft 狀態與 edit 分開；Save／Submit 各讀實際 operation，不使用舊 `approval.submit→edit` alias。Server permission 未載入／撤銷、actor 改變或 delivery 需重載時 fail closed；保留正在輸入的資料及 unresolved receipt。未採 legacy 草稿要先經有 edit 者 Begin 採用，不能由 save-only 自動採用。
+
+驗證：三模組既有 portable tests；`scripts/test-ipqc-c-operation-permissions.cjs` 正常登入、正常核准合成主檔／設備／C／非空圖片；legacy compatibility 是正常來源衍生投影，revocation 是隔離帳號 injection，非真帳號管理／legacy 匯入驗收。`tests/ipqc-c-operation-admission.test.cjs` 跑實際 C JS＋shared client VM，非原生瀏覽器。正常 build／完整 CI／目前候選的 native UI 與每鈕速度未接受，GitHub clean CI 必須通過；combined PR 不等於 merge／deploy 授權。資料模型無變更。
+
 ## 2026-10-20 FQC 審核報告的異常案件導覽
 
 審核平台點選報告的異常案件連結時，沿用既有路由切回例行檢查，再顯示原案件；避免仍使用只接受文件的審核 renderer 而清空明細。保留原選取清理、路由權限、掛載讀取及非審核頁的焦點／捲動行為，不改 API、樣品、照片、歷史、角色、CAS 或核准規則。`node scripts/test-fqc-approval-case-route.mjs` 僅為抽取實際函式的可攜控制；此新修正的真 GUI、建置與最後 ZIP 須另以[唯一交接](../../HANDOFF.md)收據接受，不能沿用修正前4a3的通過聲明。持久資料模型無變更。

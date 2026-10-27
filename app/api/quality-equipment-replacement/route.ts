@@ -118,8 +118,34 @@ export async function GET(request: Request) {
         scopes,reason:ipqcAB?'':'尚未接入正式版本與草稿'};
     });
     const editable=await can(request,state,'approval.submit');
-    for (const entry of modules) if (!editable || (entry.moduleId==='fqc' && actor.role!=='admin')) {
-      for (const item of entry.items) {item.selectable=false;item.unavailableReason='沒有目標模組草稿編輯權限';}
+    const abPending=!!(ipqcAB as AbControl & {moduleDraft?:{workflow?:{pendingId?:string|null}}} | null)?.moduleDraft?.workflow?.pendingId;
+    for (const entry of modules) {
+      // Preview consumes existing V3 edit capability; it grants no access and
+      // never enables an item disabled by a pending case. AB adoption is scoped.
+      if (entry.moduleId==='ipqc-ab' && 'scopes' in entry) {
+        const v3Editable=await can(request,state,'ipqc-ab.view') && await can(request,state,'ipqc-ab.edit');
+        for (const scope of entry.scopes) for (const item of scope.items) {
+          if (abPending && item.selectable) {
+            item.selectable=false;item.unavailableReason='待審範圍已鎖定；結案後請重新選取';
+          }
+          if (!(scope.workflow?v3Editable:editable) && item.selectable) {
+            item.selectable=false;item.unavailableReason='沒有目標模組草稿編輯權限';
+          }
+        }
+        continue;
+      }
+      if ((entry.moduleId==='fqc'||entry.moduleId==='iqc'||entry.moduleId==='ipqc-c') && 'workflow' in entry && entry.workflow) {
+        const allowed=await can(request,state,entry.moduleId+'.view') && await can(request,state,entry.moduleId+'.edit');
+        if (!allowed) for (const item of entry.items) if (item.selectable) {
+          item.selectable=false;item.unavailableReason='沒有目標模組草稿編輯權限';
+        }
+        continue;
+      }
+      // Non-adopted replacement and its POST retain their legacy policy.
+      const allowed = editable && (entry.moduleId!=='fqc' || actor.role==='admin');
+      if (!allowed) for (const item of entry.items) {
+        item.selectable=false;item.unavailableReason='沒有目標模組草稿編輯權限';
+      }
     }
     const relatedPending = pending.filter(row =>
       (row.sourceEquipmentId === sourceId || row.targetEquipmentId === sourceId) && row.status !== 'applied')

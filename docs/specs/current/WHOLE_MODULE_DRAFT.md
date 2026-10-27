@@ -1,3 +1,9 @@
+## 2026-10-27 C 操作權限補充（取代「僅 view 即可修改／儲存／送審」）
+
+使用者明確要求 IPQC-C 與其他文稿的操作權限對齊，並與 FQC／IQC／IPQC-AB 預覽修正一起送 PR。保留現行頁面入口與檢視規則，不自動替帳號加權限；編輯、儲存、送審各自依相應 cell。V3 Save 可由具 save 者保存已有共用草稿；Submit 可由具 submit 者送出已成功手動 Save 的固定快照，不藉此修改內容。直接 legacy Save／Submit 因同時替換 snapshot，必須具它實際執行的 edit＋save（及 submit）能力。圖片上傳屬 edit；review／history／withdraw、待審鎖、歷史與原 owner 邊界不因本次改動而擴張。
+
+本次未授權改真帳號／角色範本或 merge／deploy；自訂角色與個別 overrides 的影響需明列，不能以 shipped defaults 推定所有使用者均不受影響。實作細節與測試界線見 [Quality implementation](../../../AI_CONTEXT/modules/QUALITY.md)。
+
 # 2026-10-07 整份文稿與 Local 3000 銜接
 
 Current confirmed user requirements；取代逐群組部分成功及一般員工 FQC 禁止維護的舊政策。執行結果與未測界線見 [驗收報告](../../ipqc-reference/20261007-whole-module-progress.md)，本檔只保存有效需求。

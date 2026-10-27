@@ -30,7 +30,7 @@ export async function PUT(request: Request) {
   try {
     const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
     if (!await identity(request, state) || !(await can(request, state, 'view:data')) ||
-        !(await can(request, state, 'approval.submit')))
+        !(await can(request, state, 'ipqc-c.edit')))
       return Response.json({ error: '沒有照片上傳權限' }, { status: 403 });
     const type = request.headers.get('content-type')?.split(';')[0] || '';
     if (!formats.has(type)) return Response.json({ error: '僅接受 JPG、PNG、WebP 或 GIF' }, { status: 415 });
