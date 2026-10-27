@@ -13,12 +13,12 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const now = () => new Date().toISOString();
   let control = null, hostElement = null, mountSequence = 0;
-  let workspaceReady = () => false;
+  let workspaceReady = () => false, sharedStateCurrent = () => false, reviewReadSequence = 0;
   let sharedClient,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll,pendingCommandFeedback=null,activeSharedAction=null;
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
-  function adopt(result){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;}
+  function adopt(result,selectOpen=false){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner();}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
     for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
@@ -31,7 +31,7 @@
     try{
     const client=transport();if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
     const local=clone(editable()?.snapshot||library().workflow?.working||{errors:[],items:[]}),base=clone(syncBase||local),generation=syncGeneration;
-    if(!library().workflow||action==='begin'){const begun=await client.begin();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(begun);if(action==='begin'){render();return true;}}
+    if(!library().workflow||action==='begin'){const begun=await client.begin();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(begun,action==='begin');if(action==='begin'){render();return true;}}
     if(action==='apply'){detail=changes(base,local);if(!detail.patches.length)return true;}
     if(action==='save'){await client.flush();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');if(document.querySelector('.fqc-modal-overlay')&&!confirm(isVi()?'Chỉ lưu nội dung đã đồng bộ; không bao gồm biểu mẫu chưa áp dụng. Tiếp tục?':'只儲存已同步內容，不包含未套用表單。繼續？'))return false;}
     const formVersion=action==='save'&&document.querySelector('.fqc-modal-overlay')?editable():null;
@@ -158,7 +158,7 @@
       if (!owned()) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       if (sequence !== masterCatalogSequence) throw Error('MASTER_CATALOG_READ_SUPERSEDED');
     };
-    const client = window.createSharedDraftClient({ endpoint: '/api/master/workflow?scope=AB&caseMetadata=1', legacyArchive: true, actorId: owner, headers: () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' } });
+    const client = window.createSharedDraftClient({ endpoint: '/api/master/workflow?scope=AB&catalog=effective', legacyArchive: true, actorId: owner, headers: () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' } });
     const result = await client.read();
     if (!isCurrent()) return null;
     assertCurrent();
@@ -2129,28 +2129,40 @@
     return hostElement === content && content?.isConnected && content.dataset.activeTab === 'quality-fqc';
   }
   function reviewHTML() {
+    if(!sharedStateCurrent())return `<section class="quality-review" data-quality-review-state="loading"><p role="status">${isVi()?'Đang tải hồ sơ FQC…':'正在載入 FQC 案件…'}</p></section>`;
     const all = library().versions.filter(version => ['pending','approved','superseded'].includes(version.status)).slice().reverse();
     const pending = all.filter(version => version.status === 'pending');
     const current = all.find(version => version.status === 'approved');
     const history = all.filter(version => version !== current && version.status !== 'pending');
     const caseButton = version => `<button data-quality-review="${h(version.id)}"><b>FQC ${h(version.number)} · ${h(statusLabel(version.status))}</b><span>${h(version.creatorName)} · ${formatDate(version.submittedAt || version.updatedAt)}</span></button>`;
-    return `<section class="quality-review"><div class="review-list"><h3>FQC · ${isVi()?'Chờ duyệt':'待確認'} ${pending.length}</h3>${[...pending,...(current?[current]:[])].map(caseButton).join('') || `<p>${isVi()?'Chưa có hồ sơ FQC':'目前沒有 FQC 審核紀錄'}</p>`}${history.length?`<details><summary>${isVi()?'Lịch sử':'歷史版本'} · ${history.length}</summary>${history.map(caseButton).join('')}</details>`:''}</div><div id="quality-review-detail" class="review-detail"></div></section>`;
+    return `<section class="quality-review" data-quality-review-state="ready"><div class="review-list"><h3>FQC · ${isVi()?'Chờ duyệt':'待確認'} ${pending.length}</h3>${[...pending,...(current?[current]:[])].map(caseButton).join('') || `<p>${isVi()?'Chưa có hồ sơ FQC':'目前沒有 FQC 審核紀錄'}</p>`}${history.length?`<details><summary>${isVi()?'Lịch sử':'歷史版本'} · ${history.length}</summary>${history.map(caseButton).join('')}</details>`:''}</div><div id="quality-review-detail" class="review-detail"></div></section>`;
   }
   function bindReview(panel) {
-    if(!library().workflow){const owned=currentReadOwner(()=>panel.isConnected);return loadShared(owned).then(()=>{if(owned()&&library().workflow)refreshReviewUI(panel);}).catch(e=>{if(owned()){navigationError=e;toast(displayDraftError(e));}});}
+    if(!sharedStateCurrent()){
+      const sequence=++reviewReadSequence,owned=currentReadOwner(()=>panel.isConnected&&sequence===reviewReadSequence);
+      const loadingBody=panel.querySelector('#review-fqc')||panel;loadingBody.innerHTML=reviewHTML();
+      return loadShared(owned).then(()=>{if(!owned())return;if(!sharedStateCurrent())throw Error('FQC_REVIEW_UNAVAILABLE');navigationError=null;refreshReviewUI(panel);}).catch(error=>{
+        if(!owned())return;navigationError=error;
+        const body=panel.querySelector('#review-fqc')||panel;
+        body.innerHTML=`<section class="quality-review" data-quality-review-state="error"><p role="alert">${h(displayDraftError(error))}</p><button id="fqc-review-retry">${isVi()?'Tải lại hồ sơ FQC':'重新讀取 FQC 案件'}</button></section>`;
+        body.querySelector('#fqc-review-retry').onclick=()=>{if(owned())return bindReview(panel);};
+      });
+    }
     panel.querySelectorAll('[data-quality-review]').forEach(button => button.onclick = () => {
       const version = library().versions.find(item => item.id === button.dataset.qualityReview);
       if (!version) return;
       const base = library().versions.find(item => item.id === version.baseVersionId);
       const detail = panel.querySelector('#quality-review-detail');
-      const before = base?.snapshot || { errors: [], items: [] };
+      const before = base?.snapshot;
+      const baseLoaded = Array.isArray(before?.errors) && Array.isArray(before?.items);
       const after = version.snapshot;
       const canReview = version.status === 'pending' && (identity()?.role === 'admin'||typeof window.hasPermission==='function'&&(window.hasPermission('approval.approve')||window.hasPermission('approval.reject')));
       const canWithdraw = version.status === 'pending' && canWithdrawDraft();
 
       detail.innerHTML = `
         <h3>FQC ${h(version.number)} · ${h(statusLabel(version.status))}</h3>
-        <p>${isVi()?'Mã lỗi':'錯誤代碼'}：${before.errors.filter(item => !item.isDeleted).length} → ${after.errors.filter(item => !item.isDeleted).length}<br>${isVi()?'Hạng mục kiểm tra':'檢查項目'}：${before.items.filter(item => !item.isDeleted).length} → ${after.items.filter(item => !item.isDeleted).length}</p>
+        <p data-quality-base-state="${baseLoaded?'loaded':'unavailable'}">${isVi()?'Mã lỗi':'錯誤代碼'}：${baseLoaded?before.errors.filter(item => !item.isDeleted).length:'—'} → ${after.errors.filter(item => !item.isDeleted).length}<br>${isVi()?'Hạng mục kiểm tra':'檢查項目'}：${baseLoaded?before.items.filter(item => !item.isDeleted).length:'—'} → ${after.items.filter(item => !item.isDeleted).length}</p>
+        ${baseLoaded?'':`<p role="status">${isVi()?'Chưa tải phiên bản cơ sở; chưa thể so sánh số lượng trước thay đổi.':'基準版本尚未載入，無法比較修改前數量。'}</p>`}
         <div class="quality-diff">
           ${[...(version.history || [])].reverse().map(item => {const entry=historyDisplay(item);return `<p><b>${h(entry.label)}</b><span>${entry.note ? h(entry.note) + ' · ' : ''}${h(entry.actor)} · ${formatDate(item.at)}</span></p>`;}).join('')}
         </div>
@@ -2234,9 +2246,9 @@
     await sharedAction(action,{caseId:version.id,...answer});refreshReviewUI(panel);
   }catch(error){toast(displayDraftError(error));}}
 
-  function pendingCount() { return ensureControl().libraries.fqc.versions.filter(version => version.status === 'pending').length; }
+  function pendingCount() { return sharedStateCurrent()?ensureControl().libraries.fqc.versions.filter(version => version.status === 'pending').length:null; }
   let navigationError=null;
-  host.FQCMasterUI = { navigation:{canLeave:()=>!ui.saving&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;clearTimeout(sharedPoll);workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  host.FQCMasterUI = { navigation:{canLeave:()=>!ui.saving&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;clearTimeout(sharedPoll);workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');
