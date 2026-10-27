@@ -1,3 +1,11 @@
+# 2026-10-27 - Combined quality replacement preview and C operation policy alignment (not published)
+
+- Carry the reviewed FQC/IQC/scoped-AB preview correction onto current main; align adopted C preview with its explicit view/edit capability. Preserve AB scope and whole-module pending fences.
+- At the user's explicit request, separate C edit/save/submit operations without changing entry/view, global access catalog, role defaults or actual accounts. Preserve review/history/withdraw/seed and V3 legacy refusal; delete metadata reflects existing edit-plus-delete mutation checks.
+- C Photo PUT uses edit. Direct legacy Save/Submit require every operation they perform because they replace snapshots; list every new allow/deny in [Quality implementation](modules/QUALITY.md).
+- C UI gates Save/Submit independently and fails closed for unknown/revoked operation permissions while retaining input and uncertain receipts. Add normal-login isolated backend and actual-JS VM regressions, exact cache-tag expectation and CI invocations.
+- No schema or manual canvas Sync change. Local dependency/build environment remains unaccepted; GitHub clean CI and independent review are required. Combined draft PR is authorized; merge/deploy still need the final specific gate.
+
 # 2026-10-26 - Local authoring BOM map removal fix (not published)
 
 - Preserve the existing product-removal requirement: the authoring-only diff emits a guarded whole `bomSelections` field when supported string-array map keys are removed. Shared generic diff, server protocol/integrity, permissions and schema are unchanged.
