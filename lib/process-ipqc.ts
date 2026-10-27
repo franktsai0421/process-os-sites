@@ -39,6 +39,10 @@ export function ipqcChoices(values:Record<string,string>,w:Pick<Workspace,'line'
 }
 export const assignments=(op:Operation):IPQCAssignment[]=>op.ipqcAssignments as IPQCAssignment[]||[];
 export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>){
+ // Source strings are immutable within this synchronous call. Unchanged
+ // historical links still skip decoding; no cache survives the invocation.
+ const decoded=new Map<string,unknown>();
+ const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
   const occupied=new Map<string,Operation>();
   for(const op of ops){
@@ -52,7 +56,7 @@ export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspac
     occupied.set(key,op);
     // Preserve an unchanged historical link, even if its source/route was removed.
     if(old&&assignments(old).some(p=>stableDraftJSON(p)===stableDraftJSON(a)))continue;
-    choices??=ipqcChoices(values,w,stage,op.productCodes).choices;
+    choices??=ipqcChoicesFrom(readSource,w,stage,op.productCodes).choices;
     const choice=choices.find(c=>assignmentKey(c)===key&&c.sourceVersionId===a.sourceVersionId);
     if(!choice||stableDraftJSON([...choice.productCodes].sort())!==stableDraftJSON([...a.productCodes].sort()))throw new DraftConflict('IPQC_SOURCE_CHANGED: Nguồn hoặc sản phẩm đã thay đổi / 來源或適用產品已變更，請重新選取',409);
    }

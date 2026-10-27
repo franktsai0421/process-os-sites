@@ -11,7 +11,7 @@ const text=(value:unknown)=>typeof value==='string'?value:typeof value==='number
 export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  let root:{schemaVersion:number;libraries:Record<string,FqcLibrary>},numbers:Map<string,number|string>,abGuard:{versionId:string;codes:string[]}|null=null;
  return{key:'qualityMasterControl',scope:'fqc',empty:()=>({errors:[],items:[]}),photoPrefix:'fqc/photos/',photoIds:()=>[],
-   preparedModel:true,permissionOnlyRead:true,
+   preparedModel:true,permissionOnlyRead:true,recordMutation:'fqc-existing-set',
   needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
   parse(raw,prepared){root=(prepared|| (raw===undefined?{schemaVersion:1,libraries:{}}:JSON.parse(raw))) as typeof root;if(root.schemaVersion!==1||!root.libraries)throw new DraftConflict('FQC_EXISTING_DATA_INVALID',422);
    const lib=root.libraries.fqc||{activeVersionId:null,versions:[]};if(!Array.isArray(lib.versions))throw new DraftConflict('FQC_EXISTING_DATA_INVALID',422);
