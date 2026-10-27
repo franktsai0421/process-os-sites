@@ -1,3 +1,42 @@
+## 2026-10-27 受保護登入的手動新頁面邊界（候選）
+
+投影頁面的帳號變更仍走既有 `setPlatformIdentity`／`clearIdentity`、quarantine、identity epoch 與 invalidation；不重設 `requiresReload`，不在舊閉包 refresh／enter。已確認且仍屬目前嘗試的登入，在身分 fence **之後**只移除 `process-platform-signed-out`。顯示保全提醒，由使用者手動 reload **目前完整網址**；絕不自動重載、重送未知命令、清除／搬移 canvas journal、tab 或 actor-owned recovery。logout 使用 optional account menu，以免同步 invalidation 移除 shell 後再 dereference。
+
+帳號請求前，已知 open dialog／overlay、IME／drag、編輯表單與模組 busy guard 先阻止；其餘投影操作必須明確確認保全提醒。請求期間 shell inert，不清輸入。若等待時另出現 modal，保留其值但隱藏／inert，不讓下一身分使用舊控制項；不宣稱可恢復該表單。收到 2xx 但無有效身分／JSON、網路或 5xx 回應均屬未確認結果，清除舊 in-memory identity 並增加既有 epoch、保留 marker 與 recovery，手動新頁面確認；確定 4xx 不改身分。儲存 marker 失敗仍先 fence，不可把換 cookie 後的舊閉包重新啟用。
+
+獨立 `/login` 只在目前成功嘗試移除同一 marker；unmount／較新嘗試、失敗／429／網路不得清除。既有 `loginDestination` 與 allowlist／canonical 路徑不改，因此 `/process/` 與 `/process/index.html` 的 canvas pathname namespace 相容／還原**仍未保證**。本修正不解釋早先真實「密碼錯誤」、不修改密碼驗證／cookie／ACL，也不保證使用者已自行登出／刷新前的記憶體輸入仍存在。
+
+可移植回歸：`node scripts/test-login-reentry.cjs`、`node scripts/test-login-entry-marker.cjs`（已安裝 repo TypeScript）；測真正 source functions、transport、invalidation listener／form events，搭配隔離 DOM／合成登入與 bootstrap 回應。不是 native browser、實際 cookie persistence、IME、top-layer dialog 點擊或真資料驗收。native top-layer raced dialog 是否阻擋按鈕仍須真瀏覽器檢查；瀏覽器自身 reload 不屬自動動作。本候選須與 canvas／其他 navigation 修改由單一整合者合併語義後再跑對應檢查，不把獨立來源 PASS 當整合 PASS。
+
+## 2026-10-27 畫布未知結果恢復候選（未發布）
+
+畫布依然手動 Sync；Sync／Apply、手動 Save、送審及核准不是同一步。
+Canvas `channel=canvas` 與主 authoring 是不同 transport。網路未知結果保留原
+operation、session recovery 與本機 journal，不自動清空或換 ID 重送。
+
+- 只有被既有 unknown 阻擋、且 operationId 不同的新命令標記 `notSent`；仍保留
+  sync failure 和本機輸入。原已送命令／同 ID 預先排隊 duplicate 不得改標未送，
+  duplicate 也不覆蓋原 RESULT_UNKNOWN failure。只有既有 matching-path 明確
+  Cancel／成功修正流程可清除未送 failure；unknown 尚在時 Cancel 不清它。
+- 主面板 Retry 查到原收據後，以剩餘 failure 決定 localFailure，不讓未送內容
+  失去明確 Cancel 路徑。已驗證「保留輸入 → 查到原收據 → 明確還原／Cancel →
+  載入最新模型 → 手動 Save」；不是宣稱保留舊表單直接 Apply 必定成功，舊 guard
+  仍可能正常 CAS 拒絕，需要重新核對，不能自動 rebase／overwrite。
+- 命令 ACK／收據須有既有 DraftReceipt 的六個欄位與正確 operationId，Apply
+  再核原 generation（canvas 以 pending batch 傳入）。Review 可輪替 generation；
+  Begin 的 control-only 回應不套收據驗證。缺欄、錯 ID／generation、403／404／503
+  不假報成功；僅有效收據可清對應 unknown。晚到舊查詢只能退休其 captured ID，
+  不清另一個新 unknown。有效收據後 fresh model GET 失敗仍保留 canvas journal。
+- Canvas「查收據／重試」不是唯讀按鈕：既有 404 分支仍可同 ID POST；本次未改
+  此規則、15s mutation／45s GET deadline、伺服器權限／待審／CAS／歷史／資料格式。
+
+隔離回歸跑完整 production JS + synthetic ports，authoring 另用真 transition kernel；
+不是 native browser、真站台 timing、API 權限或完整 modal DOM 驗收。原始 v23
+可重現 recovery bookkeeping／無效收據誤確認缺陷，但沒有 live HTTP／收據證據可
+斷言使用者第一次 unknown 的原因。Server 收據 GET 仍有完整 body hydration 成本，
+metadata-only 讀取、登入與效能候選不納入本次。新三個測試已加入既有安全 CI；
+本機未安裝依賴／未跑 typed lint、完整 build 或遠端 CI，發布需另核來源及授權。
+
 ## 2026-10-25 Sites 圖片讀取候選（未發布）
 
 `canonical-assets` 僅新增接受正式 `imageUrl()` 產生的精確 `#asset-<source SHA>`

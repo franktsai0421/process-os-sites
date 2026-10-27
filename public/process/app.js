@@ -3483,20 +3483,31 @@ document.querySelector('#menu-toggle').onclick = () =>
 document.querySelector('#account-button').onclick = () =>
   document.querySelector('#account-menu').classList.toggle('open');
 document.querySelector('#logout-button').onclick = async () => {
+  const transition=window.ProcessAccountTransition, token=transition?.begin('logout');
+  if(transition&&!token)return;
+  try {
   const draftAccount=window.sharedDraftAccountState?.();
-  if(draftAccount?.queued||draftAccount?.unknown||draftAccount?.failed){
+  if((draftAccount?.queued||draftAccount?.unknown||draftAccount?.failed)&&!token?.confirmedRisk){
     if(!confirm('Thao tác chưa đồng bộ hoặc chưa rõ kết quả. Bản đã lưu vẫn ở máy chủ; hãy đăng nhập lại bằng cùng tài khoản để kiểm tra mã thao tác. Đăng xuất mà không lưu thêm?\n尚有未同步或結果未知的操作。已儲存資料仍在伺服器；請以相同帳號重新登入查證操作。是否登出而不補存？'))return;
   }
   if(await window.ProcessSync?.flush?.()!==true){
     if(!confirm('Không thể xác nhận đồng bộ. Dữ liệu đã lưu vẫn ở máy chủ; đầu vào chưa đồng bộ được giữ riêng theo tài khoản, không tự gửi lại. Không đóng trang trước khi tải bản phục hồi. Đăng xuất?\n無法確認同步。已儲存資料仍在伺服器；未同步輸入按帳號保留，不自動補送。下載保全檔前請勿關閉本頁。仍要登出？'))return;
   }
-  try{const response=await fetch('/api/platform-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'}),signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('LOGOUT_NOT_CONFIRMED');}catch{toast('Chưa xác nhận đăng xuất; tài khoản và đầu vào vẫn được giữ. / 尚未確認登出，帳號及輸入仍保留。');return;}
+  if(token&&!transition.current(token))return;
+  let logoutResponse;
+  try{logoutResponse=await fetch('/api/platform-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'}),signal:AbortSignal.timeout(15000)});}
+  catch{if(token)transition.unconfirmed(token);else toast('登出結果未確認，請保全輸入後重新載入確認身分');return;}
+  if(logoutResponse.status>=500){if(token)transition.unconfirmed(token);return;}
+  if(!logoutResponse.ok){toast('Chưa xác nhận đăng xuất; tài khoản và đầu vào vẫn được giữ. / 尚未確認登出，帳號及輸入仍保留。');return;}
+  if(token){if(!transition.current(token))return;transition.confirm(token);}
   window.ProcessSync?.clearIdentity?.();
   sessionStorage.setItem('process-platform-signed-out', '1');
   currentUser = null;
   persistPlatform();
-  document.querySelector('#account-menu').classList.remove('open');
+  document.querySelector('#account-menu')?.classList.remove('open');
+  if(window.ProcessSync?.requiresReload){transition?.handoff('已確認登出。舊頁已停止操作，請先保全輸入，再由您手動重新載入目前網址。未知操作與畫布恢復紀錄不會自動清除或重送；未套用表單不保證可恢復。 / Đã đăng xuất. Bảo toàn nội dung rồi tự tải lại đúng địa chỉ; không tự xóa/gửi lại thao tác chưa rõ kết quả.');return;}
   renderLogin();
+  } finally { if(token)transition.finish(token); }
 };
 setInterval(() => {
   const now = new Date();

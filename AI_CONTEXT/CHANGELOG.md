@@ -1,3 +1,14 @@
+# 2026-10-27 - Local canvas unknown-recovery hardening (not published)
+
+- Bind command ACK/receipt to the existing six-field receipt and exact operation ID;
+  Apply additionally binds generation while review generation changes and Begin remain compatible.
+- Preserve original unknown/journal and newly blocked input. Only a distinct unsent command gains
+  matching explicit Cancel eligibility; Retry preserves remaining local failures. Late receipt
+  lookups cannot erase a newer unknown. See [runtime boundaries](modules/RUNTIME.md).
+- Synthetic old-failure/new-pass evidence covers manual eight-node Sync, recovery, Cancel-to-Save,
+  malformed receipts and delivery fences. No claim about the first live failure cause or native
+  acceptance; no timeout/server/ACL/data/automatic-retry change or publication.
+
 # 2026-10-26 - Local authoring BOM map removal fix (not published)
 
 - Preserve the existing product-removal requirement: the authoring-only diff emits a guarded whole `bomSelections` field when supported string-array map keys are removed. Shared generic diff, server protocol/integrity, permissions and schema are unchanged.
