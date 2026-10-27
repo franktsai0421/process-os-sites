@@ -75,3 +75,8 @@ cold/warm/reload browser trials. No live deployment or remote CI result is claim
 - Ordinary IPQC-AB GET selects its eight existing identity/access/control/catalog/equipment dependencies. Local and hosted responses, complete history streaming, POST/import/restore/numbering and partial-save denial retain their existing contracts.
 - `effectiveAccess` constructs the same role templates once per synchronous call instead of twice. No result survives the call; identity, session revocation, action/data rights and Frank-primary management rules are unchanged.
 - These changes reduce records-format I/O and pure repeated computation respectively; they do not remove the client permissions wait or establish a live latency improvement.
+
+## Canvas Escape cancellation (local follow-on, not published)
+
+- Escape now invokes the existing background-pan cancellation cleanup. It ends the current pan and releases a deferred repaint without changing node positions, local draft journal, Sync, Save, authorization, or node/link cancellation.
+- Focused actual-module synthetic tests cover terminal pan state, late pointer events, existing pointer termination, dirty content preservation, fullscreen and read-only behavior. Native pointer capture and real-browser visual acceptance remain separate. Negative-coordinate fit behavior is unchanged.

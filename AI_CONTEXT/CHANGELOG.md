@@ -1,3 +1,8 @@
+# 2026-10-26 - Local authoring BOM map removal fix (not published)
+
+- Preserve the existing product-removal requirement: the authoring-only diff emits a guarded whole `bomSelections` field when supported string-array map keys are removed. Shared generic diff, server protocol/integrity, permissions and schema are unchanged.
+- Same-map concurrent changes require reconfirmation. Manual canvas Sync, Save, product-specific history and effective/fixed snapshots retain their boundaries. See [V3 implementation](modules/V3.md); exact local checks are task evidence, not native or hosted acceptance.
+
 # 2026-10-25 - Cloud-only asset read candidate (not published)
 
 - Accept the exact canonical producer URL fragment, not arbitrary fragments or
