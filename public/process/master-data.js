@@ -1229,7 +1229,7 @@
       if(state.approvalTab==='quality'){
         const panel=document.querySelector('#approval-panel-quality');
         window.QualityReviewOverview?.mount?.(panel);
-        for(const name of ['ToolingUI','FQCMasterUI','RoutineEquipmentUI','IQCMasterUI','IPQCCUI','IPQCABUI'])reads.push(window[name]?.bindReview?.(panel));
+        for(const name of ['ToolingUI','FQCMasterUI','RoutineEquipmentUI','IQCMasterUI','IPQCCUI','IPQCABUI']){const read=window[name]?.bindReview?.(panel);window.QualityReviewOverview?.track?.(panel,name,read);reads.push(read);}
       }
       if(state.approvalTab==='routine')reads.push(window.RoutineFQCUI?.bindReview?.(document.querySelector('#approval-panel-routine')));
       // This background count does not gate another panel's usable readiness.
