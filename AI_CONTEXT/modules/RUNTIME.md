@@ -1,3 +1,11 @@
+## 2026-10-27 authoring contentIssues 單次請求驗證重用（隔離候選）
+
+僅 `contentIssues` GET：records 解碼器以 immutable body SHA 共用同一 request-local object；正常 Save 後 working/saved 可指向同一內容。以 WeakMap 重用該物件的純 validation 結果，不做深度內容快取，也不跨 request、actor、generation 或 revision 留存。不同物件仍逐一驗證；固定案件 issues、working/saved/review 的 id／checked／fixed 與錯誤格式保留，wrapper map 不修改原 issues。
+
+所有 readState、aggregate/body integrity、身分與即時撤權、history 判斷及未知 validation code 的 fail-closed 檢查均不變。POST、Save/Submit/Sync、receipt、pending、CAS、ACL、schema 與讀取零寫入契約不變。這只減少重複 validation CPU 工作，不減 SQL/R2，也不是 first POST 未知結果的修復或 live 毫秒改善保證。
+
+`node scripts/test-authoring-contentissues-cache.cjs` 以同一 synthetic SQLite/R2 比較 exact af7 route 與候選；CI 保留完整 Git history 供歷史 route byte 讀取。含正常 login/Apply/Save/Submit/Return、working/saved 相同與不同、legacy 未固定案件、inline、權限/登出撤權、實際 BOM422/409/body503、完整 DTO/header/I/O 與資料不變。未知非advisory code 另以明示 fault-injected validator port 證 fail-closed，不稱自然產品路徑。量測 counter 為 Node fixture，非 Workers/native 效能。
+
 ## 2026-10-27 受保護登入的手動新頁面邊界（候選）
 
 投影頁面的帳號變更仍走既有 `setPlatformIdentity`／`clearIdentity`、quarantine、identity epoch 與 invalidation；不重設 `requiresReload`，不在舊閉包 refresh／enter。已確認且仍屬目前嘗試的登入，在身分 fence **之後**只移除 `process-platform-signed-out`。顯示保全提醒，由使用者手動 reload **目前完整網址**；絕不自動重載、重送未知命令、清除／搬移 canvas journal、tab 或 actor-owned recovery。logout 使用 optional account menu，以免同步 invalidation 移除 shell 後再 dereference。
@@ -219,3 +227,72 @@ This does not remove full-page transitions: all major destinations need one
 reviewed lifecycle/projection handoff design, including module-specific dirty
 guards and side-effecting routine-report refresh. Source, build and live acceptance
 remain distinct; see task evidence for exact candidate results.
+
+
+## Authoring Save acknowledgement and scoped advisory inspection (2026-10-27)
+
+Only a confirmed Save command response plus adopted current model ends the Save
+operation's busy phase. Content-issue inspection then runs separately with an
+explicit Chinese/Vietnamese “verification in progress / not completed” status.
+The saved snapshot remains visibly saved; a failed advisory read does not undo
+that acknowledgement or pretend validation passed. Submit stays disabled until
+an inspection matches the current actor/delivery, adopted model, generation,
+revision, saved/pending IDs and editor/review scope. Explicit Submit/Approve keep
+their existing fresh inspection and server-side mandatory validation. All other
+actions retain their awaited post-action inspection; no deadline is changed.
+
+Same-scope background polls share an in-flight inspection rather than sending
+repeated GETs. A newer model/revision or actor/delivery/route/reset cannot adopt
+an older result. A current failure leaves pending state and exposes a manual
+retry; unchanged polling does not silently retry forever. New local edits remain
+unsaved and guarded, never overwritten by advisory responses. This is no global
+cache, no mutation cancellation and no bypass of pending/CAS or manual Sync.
+
+The transport deliberately retains an operation before POST. During one newly
+admitted Save only (no prior unknown or sync failure), a client/actor/delivery-
+bound pending-command marker prevents this precautionary record from being
+painted as a settled failure. Existing load/local failures still take priority.
+The marker ends in command finally, is invalidated on reset/actor change, and
+never clears the real recovery record. A timed-out/settled unknown, previous
+unknown or blocked second operation remains failed and quarantined. Inspection
+busy alone cannot suppress unknown state. Navigation guards are unchanged.
+
+The focused runner uses the actual controller, transport, diff and transition
+kernel with deferred synthetic HTTP/timers and a DOM mount port. Original
+three-GET duplication, Save-after-ACK waiting and in-flight false-failure
+counterexamples are retained. Fewer fixture requests are not live performance
+claims; native UI/layout, complete ACL/lifecycle and real-user recovery remain
+separate acceptance gates.
+
+Canvas journal persistence optionally notifies a badge-only authoring callback.
+It checks current actor/delivery and connected editor root, then updates only
+the existing save-state text; it never invokes panel/render, sends a request or
+changes the journal. Reverting positions can show saved only if the existing
+server working content still equals its acknowledged saved snapshot. The
+synthetic actual edit→persist→update chain is covered; native drag/layout remains
+unrun. Legacy metadata paragraphs are not independently repainted by this hook.
+
+Save also checks busy before entering the existing canvas pre-save confirmation/
+Sync path. The later post-loading guard remains. Repeated public Save calls
+cannot initiate an extra canvas Apply while the first Save awaits its response;
+new local canvas entries stay retained for a later explicit Sync/Save. This is
+public-controller admission coverage, not native rapid-double-click acceptance.
+Approve's fresh-inspection source path is retained; no new complete Approve
+lifecycle is claimed by the focused UI runner.
+
+
+## 2026-10-27 Authoring mutation deadline candidate (not published)
+
+Only the existing relative `/api/process-authoring/workflow` endpoint (including
+its normal query and canvas channel) uses a 45-second mutation deadline. Other
+module mutations, absolute URLs and lookalike paths retain 15 seconds; all GETs
+retain 45 seconds. This is longer response tolerance, not faster performance or
+a commit guarantee. A timed-out mutation may already have committed.
+
+Operation IDs, saved unknown bytes, serial queue, receipt-first recovery, receipt
+shape/generation checks and actor/terminal fences are unchanged. No automatic
+POST retry is added; the existing canvas receipt404 retry behavior is unchanged.
+No backend, permission, CAS, manual canvas Sync or Save meaning changes.
+Fake-clock delayed ACK/abort/recovery tests and the coupled cache tag are in the
+existing CI test files. Native latency, storage cost and runtime build remain
+separate acceptance; this local candidate is not a release.
