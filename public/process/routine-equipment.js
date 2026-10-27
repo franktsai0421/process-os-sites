@@ -216,7 +216,7 @@
   function pollShared(){clearTimeout(sharedPoll);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
     if(!owns())return;
     if(!routineTabIsActive())return;
-    try{if(!busy&&document.visibilityState!=='hidden'){
+    try{if(!busy&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')){
       const flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
       if(!owns())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(editingEquipmentId||nodeDialog||addingEquipment||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}

@@ -16,6 +16,29 @@
     const code = Object.hasOwn(messages, error?.code) ? error.code : raw;
     return Object.hasOwn(messages, code) ? messages[code][language === 'vi' ? 1 : 0] : raw;
   };
+  // Read-loop admission only. Never infer logout or mutate recovery/write state.
+  window.createScopedReadPause = label => {
+    const blocks=new Map(),outcomes=new Map();let sequence=0;
+    const capture=()=>({sequence:++sequence,id:window.ProcessSync?.identity?.id,identity:window.ProcessSync?.identity,epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.()});
+    const current=owner=>!window.ProcessSync?.requiresReload&&owner.id===window.ProcessSync?.identity?.id&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync?.identityGeneration?.():owner.identity===window.ProcessSync?.identity)&&(!owner.delivery||window.ProcessSync?.isCurrentDelivery?.(owner.delivery)!==false);
+    const remove=kind=>{const old=blocks.get(kind);old?.node?.remove?.();blocks.delete(kind);};
+    function draw(kind,record){
+      if(record.node?.isConnected)return;
+      const root=document.querySelector?.('main')||document.body,node=document.createElement?.('section');if(!root?.prepend||!node?.append||!node?.setAttribute)return;
+      node.className='editor-version-rule';node.dataset.i18nSkip='true';node.setAttribute('role','alert');
+      const text=document.createElement('p'),button=document.createElement('button'),vi=document.documentElement.lang==='vi',displayKind=['state','receipt','permissions','inspection','review','history','effective','references'].includes(kind)?kind:'detail';
+      text.textContent=vi?`${label} · ${displayKind}: quyền đọc bị từ chối (${record.status}); đã dừng cập nhật tự động. Dữ liệu, biểu mẫu và thao tác chưa rõ kết quả được giữ nguyên. Bảo toàn nội dung rồi kiểm tra chỉ đọc hoặc mở trang đăng nhập mới.`:`${label} · ${displayKind}：讀取遭拒（${record.status}），已暫停此項自動更新。現有資料、表單與未知操作保留；請先保全輸入，再唯讀核對或另開登入頁。`;
+      record.message=text.textContent;button.type='button';button.className='button ghost';button.textContent=vi?'Kiểm tra lại chỉ đọc':'唯讀重新核對';
+      button.onclick=async()=>{if(record.retrying||!current(record.owner)||blocks.get(kind)!==record)return;record.retrying=true;button.disabled=true;try{await record.retry();}catch{if(current(record.owner)&&blocks.get(kind)===record)text.textContent=record.message+(vi?' Vẫn chưa xác nhận được quyền đọc.':' 仍未能確認讀取權限。');}finally{record.retrying=false;if(button.isConnected)button.disabled=false;}};
+      node.append(text,button);root.prepend(node);record.node=node;
+    }
+    return {capture,current,
+      canPoll(kind='state'){if(window.ProcessSync&&(window.ProcessSync.requiresReload||!window.ProcessSync.identity?.id))return false;const record=blocks.get(kind);if(!record)return true;if(!current(record.owner)){remove(kind);return true;}draw(kind,record);return false;},
+      denied(kind,status,owner,retry){if(![401,403].includes(status)||!current(owner)||owner.sequence<(outcomes.get(kind)||0))return;outcomes.set(kind,owner.sequence);const old=blocks.get(kind);if(old&&current(old.owner)){old.owner=owner;old.retry=retry;draw(kind,old);return;}remove(kind);const record={status,owner,retry,node:null,retrying:false};blocks.set(kind,record);draw(kind,record);},
+      success(kind,owner){if(current(owner)&&owner.sequence>=(outcomes.get(kind)||0)){outcomes.set(kind,owner.sequence);remove(kind);}},
+      state:kind=>blocks.has(kind)?{status:blocks.get(kind).status}:null
+    };
+  };
   const clients=new Set(),transports=new Map();
   window.invalidateSharedDraftReads=()=>{for(const client of transports.values())client.invalidateReadState();};
   function packCommand(command){
@@ -79,17 +102,20 @@
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null')); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
+    const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
+    const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body) {
       if(body)assertMutationAdmission();else assertOwner();
-      const readOwner=body?null:window.ProcessSync?.captureDelivery?.();
+      const readOwner=body?null:window.ProcessSync?.captureDelivery?.(),pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
       // non-authoring mutations at 15s and the receipt-first unknown policy.
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?mutationDeadline:45000);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
-        let result=await response.json();
+        let result;try{result=await response.json();}catch(error){if(!body)readPause.denied(kind,response.status,pauseOwner,()=>request(url));throw error;}
         assertOwner();
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
+        if(!body)readPause.denied(kind,response.status,pauseOwner,()=>request(url));
         if(response.ok&&result.permissions){const revoked=access&&Object.keys(result.permissions).some(key=>access[key]===true&&result.permissions[key]===false);access=result.permissions;gateControls(revoked);}
         else if(!body&&[401,403].includes(response.status)){access=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,false]));gateControls(true);}
         if(result.wireVersion===1){const live=result.liveContent;if(!live||typeof live!=='object')throw Error('INVALID_WORKFLOW_RESPONSE');const expand=value=>{
@@ -101,6 +127,7 @@
         // replies must never advance this token past a model the caller has seen.
         const flow=result.control?.workflow;
         if(flow&&Number.isSafeInteger(result.revision)&&typeof flow.generation==='string'&&Number.isSafeInteger(flow.revision)&&(!conditionalRead||result.revision>=conditionalRead.revision))conditionalRead={flowToken:flow.generation+':'+flow.revision,revision:result.revision};
+        if(!body)readPause.success(kind,pauseOwner);
         return result;
       } finally {clearTimeout(timer);}
     }
@@ -148,6 +175,7 @@
       }
     }
     const client={
+      canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
       permission: key=>access?.[key],
       gatePermissions:()=>{assertOwner();gateControls();},

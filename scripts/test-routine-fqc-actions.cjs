@@ -20,7 +20,7 @@ const document={documentElement:{get lang(){return lang}},hidden:false,querySele
 const window={scrollX:0,scrollY:320,scrollTo:()=>{},matchMedia:()=>({matches:false}),addEventListener:()=>{}};
 const fetch=async(url,options={})=>{if(options.method==='POST'){const command=JSON.parse(options.body);requests.push(command);try{const result=run(command);return {ok:true,json:async()=>({result})}}catch(e){return {ok:false,json:async()=>({error:e.code||e.message,details:e.details})}}}return {ok:true,json:async()=>view()};};
 const code=fs.readFileSync('public/process/routine-fqc.js','utf8').replace('  window.RoutineFQCUI = {','  window.__contract = {s,setData:v=>data=v,setRoot:v=>root=v,act,toggleHighlight,highlighted,list,retestActions,followupState,setDialog:fn=>dialog=fn};\n  window.RoutineFQCUI = {');
-vm.runInNewContext(code,{window,document,fetch,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
+vm.runInNewContext(fs.readFileSync('public/process/shared-draft-client.js','utf8')+'\n'+code,{window,document,fetch,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
 const ui=window.__contract;
 let dialogNotes=null;ui.setDialog(async()=>dialogNotes===null?null:new Map([['notes',dialogNotes]]));
 function sync(){ui.setData(view());ui.setRoot(root);ui.s.tab='cases';ui.s.selected=caseId;}

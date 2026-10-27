@@ -15,7 +15,8 @@
   const choiceRequests=new WeakMap(),referenceViews=new WeakMap();
   const currentIdentity=()=>window.ProcessSync?.identity||null;
   const messages={SOURCE_NOT_APPROVED:['Chưa có nguồn IPQC được duyệt','尚無核准的 IPQC 來源'],NO_PRODUCTS:['Chọn sản phẩm trong thông tin cơ bản','請先在基本資料選擇產品'],NO_MATCHING_ITEMS:['Không có hạng mục phù hợp','沒有符合條件的項目']};
-  async function get(query){const response=await fetch('/api/process-ipqc?'+query,{cache:'no-store',headers:window.ProcessSync?.platformHeaders?.()||{}}),body=await response.json();if(!response.ok)throw Error(body.error||text('Không thể tải','讀取失敗'));return body;}
+  const readPause=window.createScopedReadPause('IPQC 製程引用 / Tham chiếu IPQC');
+  async function get(query){const owner=readPause.capture(),kind=new URLSearchParams(query).get('mode')==='references'?'references':query.toString(),response=await fetch('/api/process-ipqc?'+query,{cache:'no-store',headers:window.ProcessSync?.platformHeaders?.()||{}});let body;try{body=await response.json();}catch(error){readPause.denied(kind,response.status,owner,()=>get(query));if([401,403].includes(response.status))error.status=response.status;throw error;}if(!response.ok){readPause.denied(kind,response.status,owner,()=>get(query));throw Object.assign(Error(body.error||text('Không thể tải','讀取失敗')),{status:response.status});}readPause.success(kind,owner);return body;}
   function frequency(item){
     const names={batch:'Theo lô / 按批次',time:'Theo thời gian / 按時間',none:'Chưa thiết lập / 未設定',aql:'AQL',fixed:'Số mẫu / 固定件數',quantity:'Số lượng lô / 批次數量',week:'Hàng tuần / 每週',month:'Hàng tháng / 每月',quarter:'Hàng quý / 每季','half-year':'Nửa năm / 每半年',year:'Hàng năm / 每年',weekly:'Hàng tuần / 每週',monthly:'Hàng tháng / 每月',quarterly:'Hàng quý / 每季',half_yearly:'Nửa năm / 每半年',yearly:'Hàng năm / 每年',custom:'Tùy chỉnh / 自訂'};
     names.fixed_count='Số lượng cố định / 固定件數';names.batch_quantity='Số lượng lô / 批次數量';
@@ -54,6 +55,28 @@
       panel.querySelectorAll('[data-ipqc-remove]').forEach(button=>button.onclick=()=>{op.ipqcAssignments=(op.ipqcAssignments||[]).filter(a=>key(a)!==button.dataset.ipqcRemove);panel.dispatchEvent(new Event('input',{bubbles:true}));void loadChoices(panel,op);});
     }catch(error){if(valid()){panel.innerHTML=`<p role="alert">${label('Không thể tải IPQC; liên kết cũ được giữ lại','IPQC 讀取失敗；既有關聯保留')}<small>${h(error.message)}</small></p><button type="button">${label('Thử lại','重試')}</button>`;panel.querySelector('button').onclick=()=>loadChoices(panel,op);}}
   }
+  // C is query-only: no assignment controls or mutation callbacks are installed.
+  const cQueryViews=new Map();
+  const canReadC=()=>!!currentIdentity()?.id&&!window.ProcessSync?.requiresReload&&typeof currentUser!=='undefined'&&currentUser?.id===currentIdentity()?.id&&window.hasPermission?.('view:editor')===true&&(currentUser.role==='admin'||currentUser.lines?.includes('C'));
+  function cQueryContext(op){const query=new URLSearchParams({mode:'choices',line:state.editorLine,category:state.category,stage:op.stageCode});(op.productCodes||[]).forEach(p=>query.append('product',p));return query.toString();}
+  function cQueryCurrent(panel,op,request){const sync=window.ProcessSync;return panel.isConnected&&cQueryViews.get(panel)===request&&request.isCurrent()&&state.view==='editor'&&state.editorLine==='C'&&op.ipqcQueryEnabled===true&&canReadC()&&currentIdentity()===request.identity&&currentIdentity()?.id===request.id&&sync?.identityGeneration?.()===request.epoch&&(request.delivery==null||sync?.isCurrentDelivery?.(request.delivery)===true)&&cQueryContext(op)===request.context;}
+  function clearInvalidCQueries(){for(const [panel,r] of cQueryViews){if(!cQueryCurrent(panel,r.op,r)){cQueryViews.delete(panel);panel.innerHTML='';}}}
+  function unmountCQuery(panel){if(!panel)return;cQueryViews.delete(panel);panel.innerHTML='';}
+  function cQueryMarkup(c){const eq=c.equipment;return `<article class="process-ipqc-choice"><h4>${h(c.code)} · ${h(c.errorName)}</h4><p><b>${label('Tiêu chuẩn kiểm tra','檢查標準')}</b><span>${h(c.standard)}</span></p><p><b>${label('Sản phẩm áp dụng','適用產品')}</b>${c.productCodes.map(h).join(' · ')}</p><p><b>${label('Mô tả cách kiểm tra','檢查方式敘述')}</b>${h(c.description)}</p><div class="process-ipqc-photos">${c.photos.map(p=>`<figure><a href="/api/ipqc-c/photo?id=${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="/api/ipqc-c/photo?id=${encodeURIComponent(p.id)}" alt="${h(p.name)}"></a><figcaption>${h(p.note||p.name)}</figcaption></figure>`).join('')}</div><p><b>${label('Thiết bị / cách kiểm tra','檢具／檢查方式')}</b>${eq?h([eq.assetCode,eq.pieceMark,eq.name].filter(Boolean).join(' · ')):h(c.inspection)}</p><p><b>${label('Tần suất kiểm tra','檢查頻率')}</b>${h(frequency(c))}</p></article>`;}
+  async function mountCQuery(panel,op,{isCurrent=()=>true}={}){
+    if(!panel)return;clearInvalidCQueries();cQueryViews.delete(panel);panel.innerHTML='';
+    if(!op.ipqcQueryEnabled){panel.innerHTML=`<p role="status">${label('Bật truy vấn để xem các tiêu chuẩn đã duyệt; không phân công hạng mục.','啟用查詢後顯示核准標準；不分配項目。')}</p>`;return;}
+    if(state.view!=='editor'||state.editorLine!=='C'||!isCurrent()||!canReadC()){panel.innerHTML=`<p role="alert">${label('Không có quyền xem hoặc phiên đã thay đổi.','無查看權限或登入狀態已變更。')}</p>`;return;}
+    if(!op.productCodes?.length){panel.innerHTML=`<p role="status">${label(...messages.NO_PRODUCTS)}</p>`;return;}
+    const sync=window.ProcessSync,identity=currentIdentity(),request={identity,id:identity.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),context:cQueryContext(op),op,isCurrent};cQueryViews.set(panel,request);
+    const valid=()=>cQueryCurrent(panel,op,request),retire=()=>{if(cQueryViews.get(panel)===request){cQueryViews.delete(panel);panel.innerHTML='';}};
+    panel.innerHTML=`<p role="status">${label('Đang tải tiêu chuẩn IPQC-C…','IPQC-C 標準載入中…')}</p>`;
+    try{const result=await get(request.context);if(!valid()){retire();return;}if(result.source!=='C'||result.scope!=='C'||!Array.isArray(result.choices)||result.reason&&!messages[result.reason])throw Error('IPQC_RESPONSE_INVALID');
+      panel.innerHTML=`<p>${label('Chỉ đọc nguồn IPQC-C đã duyệt; không thêm hoặc đổi phân công.','僅查閱已核准 IPQC-C；不新增或變更分配。')}</p>${result.reason?`<p role="status">${label(...messages[result.reason])}</p>`:result.choices.length?'':`<p role="status">${label(...messages.NO_MATCHING_ITEMS)}</p>`}${result.choices.map(cQueryMarkup).join('')}<button type="button" data-c-query-reload>${label('Tải lại tiêu chuẩn','重新讀取標準')}</button>`;
+      panel.querySelector('[data-c-query-reload]').onclick=()=>{if(!valid()){retire();return;}return mountCQuery(panel,op,{isCurrent});};
+    }catch(error){if(!valid()){retire();return;}panel.innerHTML=`<p role="alert">${label('Không thể tải IPQC-C; không hiển thị dữ liệu cũ.','IPQC-C 讀取失敗；不顯示舊資料。')}<small>${h(error.message)}</small></p><button type="button" data-c-query-reload>${label('Thử lại','重試')}</button>`;panel.querySelector('[data-c-query-reload]').onclick=()=>{if(!valid()){retire();return;}return mountCQuery(panel,op,{isCurrent});};}
+  }
+  for(const event of ['process-delivery-invalidated','process-shared-state-updated','process-sync-status'])window.addEventListener(event,clearInvalidCQueries);
   function mountInspector(form,op){
     const grid=form.querySelector('.inspector-form');if(!grid||grid.querySelector('.process-ipqc-tabs'))return;
     const actions=grid.querySelector('.inspector-actions'),basic=document.createElement('section'),panel=document.createElement('section'),nav=document.createElement('div');
@@ -91,17 +114,17 @@
     button.onkeydown=event=>{if(event.key===' '){event.preventDefault();button.click();}};
   }
   async function mountReferences(root=document){
-    const nodes=[...root.querySelectorAll('[data-ipqc-reference]')];if(!nodes.length)return;
+    const nodes=[...root.querySelectorAll('[data-ipqc-reference]')];if(!nodes.length||!readPause.canPoll('references'))return;
     const identity=currentIdentity();if(!referenceSession||referenceSession.identity!==identity||referenceSession.id!==identity?.id){referenceSession={identity,id:identity?.id,pending:null,result:null};for(const node of document.querySelectorAll('[data-ipqc-reference]')){referenceViews.delete(node);node.lastElementChild.innerHTML=label('Đang tải…','載入中…');}}
     const session=referenceSession,query=new URLSearchParams({mode:'references'});if(session.result)query.set('revision',String(session.result.revision));
     const request=session.pending||(session.pending={promise:get(query)});
     try{const response=await request.promise;if(!validSession(session)||session.pending!==request)return;
       const result=response.unchanged?session.result:response;if(!result)return;session.result=result;
       for(const node of nodes)renderReferences(node,result,session);
-    }catch{if(!validSession(session)||session.pending!==request)return;for(const node of nodes)if(node.isConnected){referenceViews.delete(node);node.lastElementChild.innerHTML=label('Không thể tải tham chiếu; thử lại sau','引用讀取失敗，請稍後重試');}}
+    }catch(error){if(!validSession(session)||session.pending!==request)return;if([401,403].includes(error.status)&&session.result)return;for(const node of nodes)if(node.isConnected){referenceViews.delete(node);node.lastElementChild.innerHTML=label('Không thể tải tham chiếu; thử lại sau','引用讀取失敗，請稍後重試');}}
     finally{if(session.pending===request)queueMicrotask(()=>{if(session.pending===request)session.pending=null;});}
   }
   window.addEventListener('process-language-change',()=>{referenceSession=null;void mountReferences();const panel=document.querySelector('#operation-ipqc-panel');if(panel?.isConnected){const reload=panel.querySelector('[data-ipqc-reload]');if(reload&&!panel.hidden)reload.click();}const basic=document.querySelector('#operation-basic-tab');if(basic)basic.innerHTML=label('Thông tin cơ bản','基本資料');for(const node of document.querySelectorAll('[data-ipqc-reference] h4'))node.innerHTML=label('Tham chiếu quy trình','製程引用');});
-  window.ProcessIPQC={mountChoices:loadChoices,mountInspector,referenceMarkup,mountReferences};
+  window.ProcessIPQC={mountCQuery,unmountCQuery,mountChoices:loadChoices,mountInspector,referenceMarkup,mountReferences};
   setInterval(()=>{if(document.visibilityState==='visible')void mountReferences();},5000);
 })();

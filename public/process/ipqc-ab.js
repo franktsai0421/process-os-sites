@@ -170,7 +170,7 @@
   function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
     if(!owns())return;
     if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;
-    try{if(!busy&&document.visibilityState!=='hidden'){
+    try{if(!busy&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
       const current=key(),flow=scope()?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
       if(owns()&&key()===current&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
         if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;working=opened()?.status==='draft'?clone(opened().snapshot):null;}if(!host.contains(document.activeElement))draw();}

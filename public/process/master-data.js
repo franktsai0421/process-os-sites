@@ -1153,7 +1153,7 @@
       const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
       if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
         const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope))continue;const result=await shared.load(scope);if(!ownsDelivery(generation))return;changed ||= !result.unchanged||result.permissionsChanged;}
+        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation))return;changed ||= !result.unchanged||result.permissionsChanged;}
         if(changed){applyActive();render();}
       }
     }}catch(error){if(!ownsDelivery(generation))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation))pollMaster();}

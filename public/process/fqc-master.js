@@ -48,7 +48,7 @@
     sharedPoll = setTimeout(async () => {
       if (!owned()) return;
       try {
-        if (!ui.saving && document.visibilityState !== 'hidden') {
+        if (!ui.saving && document.visibilityState !== 'hidden' && transport().canPoll('state')) {
           const flow = library().workflow;
           const result = await transport().read(flow ? flow.generation + ':' + flow.revision : '');
           if (!owned()) return;

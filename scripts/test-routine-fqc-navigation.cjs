@@ -9,7 +9,7 @@ const document={documentElement:{get lang(){return lang}},hidden:false,querySele
 const window={innerHeight:884,get scrollX(){return page[0]},get scrollY(){return page[1]},scrollTo:(x,y)=>page=[x,y],matchMedia:()=>({matches:false}),addEventListener:()=>{},RoutineFQCUI:null};
 let code=fs.readFileSync('public/process/routine-fqc.js','utf8');
 code=code.replace('  window.RoutineFQCUI = {','  window.__contract = {s,setData:(v)=>data=v,setRoot:(v)=>root=v,choose,list,jobSummary,documentStage,planActions,requiredForLine,retestGuidance,issueText,localMissing,lineHTML,buffer,paint,documentGroup,planReportState,holdFilterView,jumpListGroup,act};\n  window.RoutineFQCUI = {');
-vm.runInNewContext(code,{window,document,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
+vm.runInNewContext(fs.readFileSync('public/process/shared-draft-client.js','utf8')+'\n'+code,{window,document,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
 const ui=window.__contract;
 const source={id:'source',name:'Fixture check',line:'A',category:'Fixture',code:'TEST',products:[{code:'A',name:'Original sample'},{code:'B',name:'Other sample'}]};
 const line=(sample)=>({id:'line',jobId:'job',source,requiredSamples:[],results:[{id:'row',samples:sample?[sample]:[],outcome:'pass',value:'12',notes:'',photos:[]}]});

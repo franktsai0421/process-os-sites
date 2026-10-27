@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const read=file=>fs.readFileSync(new URL('../public/process/'+file,import.meta.url),'utf8');
+// Actual production read gate; unrelated extracted-callback read ports stay synthetic.
+const readGate=box=>{vm.runInContext(read('shared-draft-client.js'),box);return box.window.createScopedReadPause('synthetic callback');};
 const part=(source,a,b)=>{const i=source.indexOf(a),j=source.indexOf(b,i+a.length);assert(i>=0&&j>i);return source.slice(i,j);};
 const policy=JSON.parse(fs.readFileSync(new URL('./fixtures/bounded-image-policy.json',import.meta.url),'utf8'));
 for(const rule of policy)test(`${rule.file}:${rule.baseLine} only audited image scheduling hints change`,()=>{
@@ -41,9 +43,9 @@ for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-
 });
 test('custom IPQC-C conditional protocol is not opted in',()=>{const line=part(read('ipqc-c.js'),'  function sharedTransport()', '  const workflowErrors=');assert(!line.includes('conditionalState:true'));});
 test('tooling polling skips hidden documents and resumes its existing read in visible documents',async()=>{
- const source=read('tooling.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},host:{isConnected:true,dataset:{activeTab:'quality-mold-equipment'},querySelector:()=>null},reviewHost:null,client:{},busy:false,dialog:null,syncActions(){},flow:()=>({generation:'g',revision:1}),transport:()=>({read:async t=>{calls.push(t);return{unchanged:true};}}),window:{VersionDraftUI:{updateSync(){}}}};
- vm.createContext(box);vm.runInContext(part(source,' setInterval(async()=>{','})();'),box);await timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';await timers[0]();assert.deepEqual(calls,['g:1']);
+ const source=read('tooling.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},host:{isConnected:true,dataset:{activeTab:'quality-mold-equipment'},querySelector:()=>null},reviewHost:null,client:{},busy:false,dialog:null,syncActions(){},flow:()=>({generation:'g',revision:1}),transport:()=>({read:async t=>{calls.push(t);return{unchanged:true};}}),window:{ProcessSync:{identity:{id:'synthetic'}},VersionDraftUI:{updateSync(){}}}};
+ vm.createContext(box);const gate=readGate(box);box.client={canPoll:kind=>gate.canPoll(kind),hasUnknown:()=>false};vm.runInContext(part(source,' setInterval(async()=>{','})();'),box);await timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';await timers[0]();assert.deepEqual(calls,['g:1']);gate.denied('state',403,gate.capture(),async()=>{});await timers[0]();assert.deepEqual(calls,['g:1'],'actual denied gate prevents another automatic read');
 });
 test('authoring polling skips hidden documents without altering manual/initial reads',()=>{
- const source=read('process-authoring-v3.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},enabled:()=>true,state:{view:'editor'},load:()=>calls.push('read')};vm.createContext(box);vm.runInContext(source.split('\n').find(l=>l.startsWith(' setInterval(')),box);timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';timers[0]();assert.equal(calls.length,1);assert(source.includes(' if(enabled())void load();'));
+ const source=read('process-authoring-v3.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},enabled:()=>true,state:{view:'editor'},load:()=>calls.push('read'),window:{ProcessSync:{identity:{id:'synthetic'}}}};box.host=box.window;vm.createContext(box);const gate=readGate(box);box.client=()=>({canPoll:kind=>gate.canPoll(kind)});vm.runInContext(source.split('\n').find(l=>l.startsWith(' setInterval(')),box);timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';timers[0]();assert.equal(calls.length,1);gate.denied('state',401,gate.capture(),async()=>{});timers[0]();assert.equal(calls.length,1,'actual denied gate prevents another automatic read');assert(source.includes(' if(enabled())void load();'));
 });

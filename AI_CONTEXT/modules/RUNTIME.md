@@ -1,3 +1,58 @@
+## 2026-10-27 401／403 自動讀取暫停（本機候選）
+
+只對讀取遭拒的 actor／identity epoch／delivery、endpoint 與 read-kind 暫停後續自動輪詢。不是全站登出：403 可能是此模組無權限，也可能未通過身分驗證；不診斷密碼錯誤或 session 到期。保留目前 cached data、未套用表單、canvas journal、unknown receipt 與現有讀寫／ACL 判定。第一個拒絕仍拋原錯誤；單一 alert 說明暫停，附「唯讀重新核對」只發原 GET，不呼 receipt resend，不自動導頁、清儲存或延長 TTL。
+
+shared-draft client 提供 `canPoll(kind)`，真正 timer/focus 消費端先判斷；state、inspection、review、permissions、history、receipt 互不代替，AB/C 等 scope 仍由獨立 endpoint 分開。明確同kind成功 GET 只解除讀取暫停，不直接採用資料或解除 authoring 操作鎖。request admission sequence 防止較早成功回應清掉較晚拒絕；不同 actor/epoch/delivery 或 requiresReload 不得解除。已在途請求仍會正常完成/報錯，這不是取消或壓掉所有錯誤；404、409、5xx 與所有 POST/未知處理不變。
+
+來源覆蓋：authoring、master AB/C/PROCESS、FQC、IQC、IPQC-AB/C、equipment、BOM（state/review及必要receipt讀取）、tooling（timer/focus），以及獨立 effective notice 30s、routine-FQC 15s、IPQC references 5s。後三者透過既有 index 中更早載入的 actual shared helper；standalone test/embed 必須同樣載入它。shared-state 本來就沒有 background read poll；history/restore permission timer 原本401/403會停止，本輪不改。媒體圖片、所有手動讀取與未列出的頁面不冒稱已全驗。
+
+`node scripts/test-scoped-read-pause.cjs`：actual shared transport、九種 production timer callback（周邊closure ports）和三個direct consumer完整script，synthetic DOM/HTTP；同kind/跨kind/跨endpoint、晚到回應、一次通知、cached IPQC保留、POST與未知紀錄不變。不是native每頁驗收，也不是403根因、真實毫秒或heap改善的證明。手動重查成功仍需要原模組正常讀取與權限流程。
+
+## 2026-10-27 製程 C 線 IPQC 查詢結果（獨立隔離候選）
+
+C 線「啟用 IPQC-C 查詢」現在於流程表單內讀取既有 `/api/process-ipqc?mode=choices&line=C`，只顯示核准來源的標準、適用產品、照片、檢具／檢查方式、頻率。關閉或沒有適用產品時不發查詢；沒有核准來源、沒有匹配項目、讀取失敗各有明確狀態，失敗不沿用舊結果。手動重讀只有 GET，沒有自動輪詢或資料補造。
+
+這不是 AB 式分配：C 不建立 checkbox assignment handlers，不更動既有唯讀 assignments、後端 ACL／核准篩選或任何寫入流程；只延續原 checkbox 修改本機 draft flag，再由使用者明確 Apply／Save。查詢需同 actor、identity epoch、delivery、模態框、線別／類別／工段、產品與開關狀態；撤權或交付失效事件會清舊結果，晚到回覆不得覆蓋新範圍，模態框關閉移除請求顯示所有權。AB 原分配路徑保留。
+
+`node scripts/test-process-ipqc-c-query.cjs` 以實際 editor renderPanel／toggle、完整 process-ipqc 加 synthetic DOM／GET port 證明查詢與晚到守衛。不是 native／真 API ACL／照片實際載入驗收；backend 與 tab9 未知結果不在本候選範圍。
+
+## 2026-10-27 Save／Submit 重複意圖與送審 ACK（隔離候選）
+
+只有同 actor／delivery／本機 context 已承接的 Save preflight、Submit 理由準備或實際命令，後續 Save／Submit 點擊才不另排程、不報新 unknown，也不回傳假 ACK。其他 busy 不會遮掉舊 unknown。Save 在第一次 await 前保留意圖；手動確認 canvas Sync → Save 仍是兩個不同命令，不省略同步、不自動送審。context reset／actor／delivery／route 變化後的舊 ACK 或 finally 不得採用或解除新 context busy。
+
+Submit 的 fresh pre-inspection 與 backend mandatory validation 不變。只有回應 receipt 與 captured generation／process:platform scope／savedId，以及 control 的 pendingId／pending case savedId/status／pending version 相符，才採用待審狀態並釋放操作 busy；後續 advisory inspection 改為背景 single-flight，失敗仍可見且不能解開待審編輯鎖。這省去 ACK 後等待 advisory GET 的 UI 阻塞，不保證 POST 或 live 計算已變快。
+
+合法六欄 receipt 但缺失／矛盾的領域投影不會宣告送審成功。先作一次 authoritative full GET；失敗保留當前文件、該意圖專用的唯讀保護，顯示「送審狀態尚未確認」及獨立「重新讀取送審狀態（唯讀）」出口。此按鈕只 GET，不能走 receipt 404 重送路徑；舊背景 poll、stale revision、晚到 actor/delivery/context 結果不能解除保護。GET 以 trusted 發送前 revision/scope/saved 與新 linked case（同 saved、原 actor、非已知舊 case）核對，不信已矛盾 ACK 的 caseId。linked case 仍待審時核其 generation 與目前 pending；已核准／發回／撤回時核合法結果，再獨立驗目前 pending/case/version/active 的一致性，容許後續合法新 generation 或再次送審。確認的是目前狀態，不是原操作收據。權限投影不足／stale／錯誤仍不猜；本機未套用表單或 dirty canvas journal 不會被此 GET 採用覆蓋，先保留原內容與 guard。此保護不跨文件持久化，重新載入不能宣稱原操作已解決。唯讀案件／歷史仍可查看；authoring 傳給歷史工具的 command 在呼叫當下也禁止 Restore，包含先前已開的預覽。
+
+實際 shared transport／transition kernel 與 synthetic HTTP、DOM、deferred ports 驗證快速連點、實際 reason form 雙 submit、Save→Submit、晚到 ACK、正確 ACK 提早釋放、inspection 失敗、領域錯配／唯讀重查、malformed receipt unknown 保全。非 native 快速點擊、route auth、完整 concurrency matrix、live latency 或原 V12 恢復驗收。此意圖修補維持 command／idempotency／receipt／timeout 協定、手動 Sync 與 backend／Approve 必要檢查；整合版本另新增的自動 GET 暫停見上方「401／403 自動讀取暫停」，IPQC 驗證來源解析重用見下方對應章節。
+
+## 2026-10-27 製程送審理由與報錯回饋（隔離候選）
+
+製程 V3 的合法 Submit click 先顯示理由對話框，不再把 fresh contentIssues GET 放在開啟對話框前。這只移除前置等待，不省略送出前的 fresh inspection 或後端檢查；確認後仍檢查同 actor／delivery、generation／revision／savedId、pending、目前權限與編輯範圍。準備期間鎖住第二次點擊；取消不發 request，等待時有更新則保留理由／工作並要求重新確認。canvas persist 的本機 epoch 只作 UI fence，不寫 journal、不自動同步。
+
+已知 unknown／損壞 recovery record 在 dialog 與 inspection 前阻擋，不能把 saved badge 當作未知命令已解。真正錯誤 code、request／operation ID 與至多前 50 項詳情放入可展開且有 alert 的「報錯」區；超過顯示上限時保留總數提示。純內容檢查失敗與操作未知分開呈現。原通用黑色按鈕改為符合當前狀態的次要操作名稱；未知時明示「查操作收據／確認重試」，仍保留原 receipt-first、404 明確確認後同 ID 重試流程，並非純讀按鈕。健康／檢查中的狀態不顯示無用途的重查按鈕。僅新承接 Save 或 Submit 等待 command ACK 的同 actor／delivery 階段視為處理中；原 unknown、不匹配身分、已失敗操作與檢查中的 unknown 不被遮蔽。finally 清顯示 marker，不清 recovery record。
+
+不變：手動 Sync／Apply／Save／Submit 分離、固定 saved 快照、舊 working 與圖片／歷史、cas／pending／權限、transport timeout、receipt schema、重送規則、版本確認平台與所有 backend handlers。仍可明確送最後 Save，不會替使用者自動 Save 較新的 working。Submit 成功後檢查的調整見下述 rapid-intent 段；Approve/Return/Withdraw 路徑保留。本候選不是 live POST canceled 或 contentIssues exceededMemory 的根因修復；後者需獨立 backend 量測與候選。
+
+`node scripts/test-authoring-submit-feedback.cjs` 使用實際 authoring/shared-client/transition kernel，加 synthetic HTTP/DOM，另執行實際 VersionDraftUI reason cache 與報錯 mount。含先開理由、防雙擊、取消零請求、fresh inspection、晚到範圍變更、未知 404／503 保全、不自動 Save 與固定案件內容。這不是 native layout／IME／真站點速度、正常登入 API 或原 V12 未知結果驗收。測試 prefix 只重用既有 Save fixture，不改 runtime permission 或 transport 判斷。
+
+## 2026-10-27 IPQC 待補檢查的單次解析重用（本機候選）
+
+`process-ipqc.ipqcIssues` 在一次同步檢查內按需解析 master／AB／C 來源各一次，
+同次各工段與既有關聯沿用該已解析來源。完整項目、照片、rules、順序、缺少／失效
+提醒與 malformed 錯誤不刪減；對外 `ipqcChoices` 每次仍建立 fresh 來源及輸出，
+不跨請求保存、沒有 ACL cache。`validateIPQCAssignments`、workflow POST、CAS、
+readState／record hydration、手動同步與核准來源選擇未改。
+
+`test-authoring-ipqc-read-reuse.cjs` 用 exact PR34 基線與候選 actual handler 配對，
+正常合成登入／Apply／Save／Submit／獨立發回；品質核准來源明標 derived synthetic，
+不冒充實際品質核准生命週期。17 pairs／34 GET 保持 DTO/status/header/I/O 與零寫入，
+另 10 domain 條件含 C、失效、空值及 malformed；完整 photos/rules、回傳別名與
+只讀來源保留另有斷言。候選 actual Apply／Save／Submit／獨立發回另走通，
+3 組拒絕 POST（過期 revision、無 Save 權限、pending Apply lock）保持零寫入；
+拒絕 DTO 僅個別生成且驗形的 requestId UUID 不作位元相等。24 個關聯的 AB fixture 重解析 25→1，屬 parsed byte／
+次數減少，不代表真實 Worker 記憶體峰值、毫秒等比例改善或 v25 OOM 已排除。
+
 ## 2026-10-27 authoring contentIssues 單次請求驗證重用（隔離候選）
 
 僅 `contentIssues` GET：records 解碼器以 immutable body SHA 共用同一 request-local object；正常 Save 後 working/saved 可指向同一內容。以 WeakMap 重用該物件的純 validation 結果，不做深度內容快取，也不跨 request、actor、generation 或 revision 留存。不同物件仍逐一驗證；固定案件 issues、working/saved/review 的 id／checked／fixed 與錯誤格式保留，wrapper map 不修改原 issues。

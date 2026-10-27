@@ -1,3 +1,40 @@
+## 2026-10-27 scoped automatic-read pause（本機候選）
+- 401/403 只暫停同owner／endpoint／read-kind的後續自動輪詢；保留資料與未知操作，不自動登出或重送。
+- 單次清楚提示＋獨立GET-only核對，晚到舊回應不能解除新拒絕；各自動consumer加精確guard並同步cachetag。
+- 403原因與native整頁仍待確認；非TTL/ACL或密碼修正，詳見RUNTIME。
+
+## 2026-10-27 C 線 IPQC 查詢顯示隔離候選
+- 啟用查詢後顯示已核准標準與產品／照片／檢具／頻率；保留 C query-only 與 AB assignment 差異。
+- 明確空來源／未核准／錯誤；same-actor／delivery／產品／工段／modal 晚到守衛與 GET-only 手動重讀。
+- 不改後端 ACL／資料或原 unknown 操作；詳見 RUNTIME 與 portable focused test。
+
+## 2026-10-27 Save／Submit rapid-intent 隔離修補
+- 第一次 await 前保留同 owner 意圖；重複點擊不新增命令或錯誤，不自動排程下一個 Save／Submit。
+- 精確待審 receipt/control 綁定後，Submit 不再等待 advisory inspection 才解操作 busy；送出前與後端驗證不變。
+- 不一致 ACK 僅一次 fresh GET，再提供獨立唯讀確認出口；未確認禁止寫入，歷史 Restore 的當下入口亦守衛，不更改共享 transport 或原未知重試協定。
+
+## 2026-10-27 製程送審回饋隔離候選
+- 理由對話框先顯示，確認後仍 fresh inspection＋同身分／版本／編輯狀態 fence；阻擋重複點擊與已知未知結果。
+- 真正 code/details 放入「報錯」，恢復按鈕依 receipt／inspection 等狀態命名；不移除必要恢復或新增自動重送。
+- 保留手動畫布同步、固定 Save、backend 檢查與全部歷史；本地針對性證據不代表 live memory／POST timeout 已修復。詳見 RUNTIME 最新候選段。
+
+## 2026-10-27 IPQC 待補檢查的單次解析重用（本機候選）
+
+`process-ipqc.ipqcIssues` 在一次同步檢查內按需解析 master／AB／C 來源各一次，
+同次各工段與既有關聯沿用該已解析來源。完整項目、照片、rules、順序、缺少／失效
+提醒與 malformed 錯誤不刪減；對外 `ipqcChoices` 每次仍建立 fresh 來源及輸出，
+不跨請求保存、沒有 ACL cache。`validateIPQCAssignments`、workflow POST、CAS、
+readState／record hydration、手動同步與核准來源選擇未改。
+
+`test-authoring-ipqc-read-reuse.cjs` 用 exact PR34 基線與候選 actual handler 配對，
+正常合成登入／Apply／Save／Submit／獨立發回；品質核准來源明標 derived synthetic，
+不冒充實際品質核准生命週期。17 pairs／34 GET 保持 DTO/status/header/I/O 與零寫入，
+另 10 domain 條件含 C、失效、空值及 malformed；完整 photos/rules、回傳別名與
+只讀來源保留另有斷言。候選 actual Apply／Save／Submit／獨立發回另走通，
+3 組拒絕 POST（過期 revision、無 Save 權限、pending Apply lock）保持零寫入；
+拒絕 DTO 僅個別生成且驗形的 requestId UUID 不作位元相等。24 個關聯的 AB fixture 重解析 25→1，屬 parsed byte／
+次數減少，不代表真實 Worker 記憶體峰值、毫秒等比例改善或 v25 OOM 已排除。
+
 # 2026-10-27 - Combined quality replacement preview and C operation policy alignment (not published)
 
 - Carry the reviewed FQC/IQC/scoped-AB preview correction onto current main; align adopted C preview with its explicit view/edit capability. Preserve AB scope and whole-module pending fences.
