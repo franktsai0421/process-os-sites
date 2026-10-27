@@ -1,5 +1,7 @@
 # 製程編輯台現行規格（2026-10-09）
 
+> 2026-10-26 本地候選補充（未發布）：僅按「完整流程」時，以 actor／workspace／stage 隔離的記憶中顯示原點涵蓋負座標方塊；不改儲存座標、Graph、Journal 或手動同步。正座標沿用原 Fit 行為；不新增所有繞線均可見保證。原生 CSS 點擊命中與捲動驗收仍待完成。
+
 狀態：Current confirmed requirements。依使用者本次交接包最新文字；舊圖不得恢復「恢復 BOM」等已取消功能。本機畫布最新實作與驗收見 [本機畫布報告](../../ipqc-reference/20261008-canvas-local.md)；較早編輯台驗收見 [3020 報告](../../ipqc-reference/20261008-process-editor.md)。本規格不等於全部驗收 PASS。
 
 ## 1. 範圍與基礎
