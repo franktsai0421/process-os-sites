@@ -1,7 +1,7 @@
 /* Actual authoring/transport/kernel plus actual VersionDraftUI dialog/mount; synthetic HTTP/DOM only. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{createRequire}=require('node:module'),{createHash}=require('node:crypto');
 const root=path.resolve(__dirname,'..'),source=process.env.PROCESS_SUBMIT_UI_SOURCE||root,fixturePath=path.join(root,'scripts/test-authoring-save-validation-ui.cjs');
-const fixtureText=fs.readFileSync(fixturePath,'utf8'),split='(async()=>{\n await check(';assert(fixtureText.includes(split));
+const fixtureText=fs.readFileSync(fixturePath,'utf8').replace(/\r\n/g,'\n'),split='(async()=>{\n await check(';assert(fixtureText.includes(split));
 let prefix=fixtureText.split(split)[0].replace('async function fixture(){','async function fixture(options={}){').replace('return{c,api:c.ProcessAuthoringV3,pending,','return{target,c,api:c.ProcessAuthoringV3,pending,');
 prefix=prefix.replace('vm.createContext(c);','if(options.invalidRecovery||options.recoveryRecord)session.set("shared-draft-v3-operation:editor:/api/process-authoring/workflow?caseMetadata=1",options.recoveryRecord||"invalid{");vm.createContext(c);');
 prefix=prefix.replace('history:false','history:!!options.history');
