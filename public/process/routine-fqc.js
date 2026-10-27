@@ -111,13 +111,13 @@
     return '<section id="routine-fqc-root" class="rf-app" data-i18n-skip="true"><div class="rf-empty" role="status">FQC · 載入中 / Đang tải…</div></section>';
   }
   let inFlightMutation=0,navigationError=null;
+  const readPause=window.createScopedReadPause('例行 FQC / FQC định kỳ');
   async function read(query = '') {
-    const delivery=window.ProcessSync?.captureDelivery?.();
-    const r = await fetch(endpoint + query, { cache: 'no-store' }),
-      v = await r.json();
+    const delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
+    const r = await fetch(endpoint + query, { cache: 'no-store' });let v;try{v=await r.json();}catch(error){readPause.denied(kind,r.status,pauseOwner,()=>read(query));if([401,403].includes(r.status))error.status=r.status;throw error;}
     if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
-    if (!r.ok) throw Error(v.error || 'FQC_READ_FAILED');
-    return v;
+    if (!r.ok){readPause.denied(kind,r.status,pauseOwner,()=>read(query));throw Object.assign(Error(v.error || 'FQC_READ_FAILED'),{status:r.status});}
+    readPause.success(kind,pauseOwner);return v;
   }
   const issueNames = {
     IMPROVEMENT_REQUIRED: ['請先記錄本次不合格的改善措施，再建立複測。','Ghi cải thiện cho lần không đạt này trước khi tạo thử lại.'],
@@ -1749,6 +1749,7 @@
   setInterval(async () => {
     if (
       !root?.isConnected ||
+      !readPause.canPoll('state') ||
       s.busy ||
       s.retry ||
       document.hidden ||

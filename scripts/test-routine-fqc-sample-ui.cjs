@@ -16,7 +16,7 @@ const window={scrollX:0,scrollY:300,scrollTo:()=>{},matchMedia:()=>({matches:fal
 const fetch=async()=>{uploaded++;return await new Promise(resolve=>uploadResolve=()=>resolve({ok:true,json:async()=>({id:'a'.repeat(64)})}));};
 let code=fs.readFileSync('public/process/routine-fqc.js','utf8');
 code=code.replace('  window.RoutineFQCUI = {','  window.__contract={s,setData:v=>data=v,setRoot:v=>root=v,bind,paint,lineHTML,buffer,localMissing,displayNumber,legacyNumber};\n  window.RoutineFQCUI = {');
-vm.runInNewContext(code,{window,document,fetch,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
+vm.runInNewContext(fs.readFileSync('public/process/shared-draft-client.js','utf8')+'\n'+code,{window,document,fetch,crypto:webcrypto,setInterval:()=>{},setTimeout:()=>{},location:{port:'3040',href:'http://127.0.0.1:3040/process/'},URL,console});
 const ui=window.__contract;ui.setData(data);ui.setRoot(root);ui.s.selected=d.id;ui.s.tab='reports';
 const original=JSON.stringify(data),working=ui.buffer(d);
 const html=ui.lineHTML(working.lines[0],0,d,true);assert.match(html,/type="radio"/);assert.match(html,/data-sample="A" disabled/);assert.doesNotMatch(html,/repeat-result|use-required/);

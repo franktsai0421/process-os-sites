@@ -1,3 +1,84 @@
+## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
+
+FQC destination 的 bootstrap keys、canonical fallback 與所有新鮮身分／撤權／revision 判定不變。僅 records-v1 的已驗 SHA aggregate，且 quality schema1、FQC versions array、workflow schema3／scope fqc／generation／revision 合格時，bootstrap 暫不投影 FQC library；保留其他 quality libraries 原資料。FQC 頁面仍必須完成自己原有的 workflow → AB catalog → equipment GET，且 owner/epoch/delivery 仍有效後才 adopt、render ready。未採用／缺失／不合格 header、inline/chunk 與其他 destination 維持原讀取。不新增 fake workflow、假空版本、notice 啟動或前端 API；publicState 本來就移除 FQC workflow，IQC-only／mixed notice 行為亦保留。
+
+這只避免 bootstrap 再讀一次正式 active snapshot，不省略 full workflow 的 working／pending／history 驗證，也不改 POST、CAS、receipt、manual Sync 或 ACL。已知 active body 缺失／損壞的錯誤時點會由 bootstrap503 延至 mandatory FQC GET503；實際 FQC controller 仍 unready，顯示 role=alert 與重新載入，不把暫存空 library 當完成。不得聲稱 bootstrap 至 GET 期間所有外部同步 control getter 均完整，FQC 可見畫面仍受既有 loading/readiness fence 保護。
+
+`node scripts/test-fqc-bootstrap-projection.cjs` 用正常合成登入→Begin／Apply／Save／Submit／獨立確認及後續草稿，對照實際 handlers：目前樣本 active approved／draft／pending 的 R2 GET 14→13、少 6,396 bytes；SQL7／fresh revocation4 不變。沒有 active 的初始草稿／待審不減讀取。這是隔離工作量，不是實站毫秒、記憶體峰值或 17s 初載已解決的證明。保留非空合成照片 URL 參照、GET 零資料寫入、SHA／撤權／revision fence；browser deferred-media header 有覆蓋，但無 inline image，本證據不宣稱 mediaState 永不建立合法衍生快取。VM 完整 FQC/shared client＋合成 DOM／VersionDraftUI mount port 只證 loading／final data／error ownership，不是原生畫面驗收。
+
+## 2026-10-27 設備查看資訊：逐模組唯讀引用（獨立本機候選）
+
+設備「查看資訊」立即開啟既有資訊視窗；FQC、IQC、IPQC-AB、IPQC-C 及待處理替換各區在使用者展開時才 GET。未查詢、查詢中、失敗、已查詢零筆明確分開，不以未載入宣稱沒有引用。相同視窗/模組 single-flight；結果只保留於該 equipmentId／actor／登入世代／delivery／equipment revision 的視窗，不宣稱永遠最新。各區標示自己的 response revision；失敗可明確僅讀取重查，不自動 POST 或輪詢重送。
+
+根因：equipment destination 合約不含 qualityMasterControl，切頁清除 FQC model，舊檢具反查卻讀 FQC 本地 mirror，因此正式引用可被顯成零。新的查看分支直接使用既有授權 `/api/fqc/workflow` full GET，不把資料塞回 bootstrap 或採入 FQC editor；既有 server view/history 範圍不變。active 必須是 activeVersionId 且 approved，其餘 pending/draft/history 分列，不混為目前生效。FQC 列按 exact associated version/item 開啟既有 readonly 明細；passed snapshot 的照片/規則/工具快照不被當前 editor/catalog 覆寫，缺版本/項目明確拒絕、無 active fallback。子照片視窗與原 view 同屬清理範圍，無 edit/restore/upload 動作。AB 列保留既有 openItemView exact version/item/scope 委派，經正常分頁入口、原授權 mount/load 後開唯讀明細；不注入外部 snapshot、不繞離頁保護。IQC/C 原連結只有 alert，本次明確提示完整標準到對應模組查閱。
+
+只改查看分支，不平行全模組 hydrate；edit/delete/replacement 的嚴格全模組查核與既有 action/ACL/receipt/Save/Submit/history mutation 完全不改。品質更新事件仍使舊 strict cache 失效並刷新編輯分支，但不偷偷替 progressive view 執行全模組查詢。既有 FQC 內嵌 equipment reverse panel 及外部 referencesHTML API 仍是舊 reader，非本次涵蓋範圍。
+
+可攜回歸 `node scripts/test-equipment-reference-view.cjs`：實際完整 frontend/handlers＋合成 DOM/GET；不是 native 或實際後端授權/資料庫/heap/時間驗收。原 edit-open-race runner 僅新增實際依賴與兩個 view 契約改為立即開、其餘 edit/dirty/stale assertions 保留。原生 v26 四筆串讀合計約 42.039s / 38.721s 為 manager sanitized log，候選尚未發布，不聲稱後端加速；本次先免除查看首屏等所有模組完成。Schema/data migration 無變更。
+
+## 2026-10-27 FQC structure 前值索引（本機候選，未發布）
+
+只把 FQC `structure` 的兩處 previous-row `.find` 改為每次呼叫內、首次需要才建立的 first-match Map。errors/items 各最多建立一次；duplicate ID 保留第一筆，不改輸出順序、設備快照、完整欄位或既有結構檢查。非陣列、null／非字串 ID 等不符合索引條件的前值沿用原 `.find` 拒絕／匹配次序。適用的是現有 JSON-hydrated rows，不宣稱任意 getter／Proxy 的觀察副作用等價；不跨 request 留存。
+
+`node scripts/test-fqc-structure-lookup.cjs` 載入固定 845a baseline 與實際候選 adapter，精確驗證歷史 SHA、不同 override 被使用、Windows/POSIX 相對路徑與 20 組完整輸出／錯誤／前值不變。24 項的前值 predicate 601 次，改為 25 index rows + 49 lookups；200 項為 40,201 → 201 + 401。這是合成 Node 工作量，不是 native CPU／毫秒／heap 改善承諾。已另用正常 synthetic login/Begin/Apply 比較 3 對 handler：DTO、shared_state、SQL/R2 次數與 bytes 相同。
+
+完整 state hydration、auth/role/9 次即時撤權、pending、receipt replay、版本／allocation、revision read、CAS、POST、parent lookup 及 Apply 結構驗證仍保留。沒有 selected-state 寫入或 partial-save guard 變動，沒有 I/O 減少、schema、資料遷移、帳號或部署動作。全專案 typed/build/remote CI/native 尚待各自驗證；單獨 helper typecheck 不代表完整專案通過。
+
+## 2026-10-27 401／403 自動讀取暫停（本機候選）
+
+只對讀取遭拒的 actor／identity epoch／delivery、endpoint 與 read-kind 暫停後續自動輪詢。不是全站登出：403 可能是此模組無權限，也可能未通過身分驗證；不診斷密碼錯誤或 session 到期。保留目前 cached data、未套用表單、canvas journal、unknown receipt 與現有讀寫／ACL 判定。第一個拒絕仍拋原錯誤；單一 alert 說明暫停，附「唯讀重新核對」只發原 GET，不呼 receipt resend，不自動導頁、清儲存或延長 TTL。
+
+shared-draft client 提供 `canPoll(kind)`，真正 timer/focus 消費端先判斷；state、inspection、review、permissions、history、receipt 互不代替，AB/C 等 scope 仍由獨立 endpoint 分開。明確同kind成功 GET 只解除讀取暫停，不直接採用資料或解除 authoring 操作鎖。request admission sequence 防止較早成功回應清掉較晚拒絕；不同 actor/epoch/delivery 或 requiresReload 不得解除。已在途請求仍會正常完成/報錯，這不是取消或壓掉所有錯誤；404、409、5xx 與所有 POST/未知處理不變。
+
+來源覆蓋：authoring、master AB/C/PROCESS、FQC、IQC、IPQC-AB/C、equipment、BOM（state/review及必要receipt讀取）、tooling（timer/focus），以及獨立 effective notice 30s、routine-FQC 15s、IPQC references 5s。後三者透過既有 index 中更早載入的 actual shared helper；standalone test/embed 必須同樣載入它。shared-state 本來就沒有 background read poll；history/restore permission timer 原本401/403會停止，本輪不改。媒體圖片、所有手動讀取與未列出的頁面不冒稱已全驗。
+
+`node scripts/test-scoped-read-pause.cjs`：actual shared transport、九種 production timer callback（周邊closure ports）和三個direct consumer完整script，synthetic DOM/HTTP；同kind/跨kind/跨endpoint、晚到回應、一次通知、cached IPQC保留、POST與未知紀錄不變。不是native每頁驗收，也不是403根因、真實毫秒或heap改善的證明。手動重查成功仍需要原模組正常讀取與權限流程。
+
+## 2026-10-27 製程 C 線 IPQC 查詢結果（獨立隔離候選）
+
+C 線「啟用 IPQC-C 查詢」現在於流程表單內讀取既有 `/api/process-ipqc?mode=choices&line=C`，只顯示核准來源的標準、適用產品、照片、檢具／檢查方式、頻率。關閉或沒有適用產品時不發查詢；沒有核准來源、沒有匹配項目、讀取失敗各有明確狀態，失敗不沿用舊結果。手動重讀只有 GET，沒有自動輪詢或資料補造。
+
+這不是 AB 式分配：C 不建立 checkbox assignment handlers，不更動既有唯讀 assignments、後端 ACL／核准篩選或任何寫入流程；只延續原 checkbox 修改本機 draft flag，再由使用者明確 Apply／Save。查詢需同 actor、identity epoch、delivery、模態框、線別／類別／工段、產品與開關狀態；撤權或交付失效事件會清舊結果，晚到回覆不得覆蓋新範圍，模態框關閉移除請求顯示所有權。AB 原分配路徑保留。
+
+`node scripts/test-process-ipqc-c-query.cjs` 以實際 editor renderPanel／toggle、完整 process-ipqc 加 synthetic DOM／GET port 證明查詢與晚到守衛。不是 native／真 API ACL／照片實際載入驗收；backend 與 tab9 未知結果不在本候選範圍。
+
+## 2026-10-27 Save／Submit 重複意圖與送審 ACK（隔離候選）
+
+只有同 actor／delivery／本機 context 已承接的 Save preflight、Submit 理由準備或實際命令，後續 Save／Submit 點擊才不另排程、不報新 unknown，也不回傳假 ACK。其他 busy 不會遮掉舊 unknown。Save 在第一次 await 前保留意圖；手動確認 canvas Sync → Save 仍是兩個不同命令，不省略同步、不自動送審。context reset／actor／delivery／route 變化後的舊 ACK 或 finally 不得採用或解除新 context busy。
+
+Submit 的 fresh pre-inspection 與 backend mandatory validation 不變。只有回應 receipt 與 captured generation／process:platform scope／savedId，以及 control 的 pendingId／pending case savedId/status／pending version 相符，才採用待審狀態並釋放操作 busy；後續 advisory inspection 改為背景 single-flight，失敗仍可見且不能解開待審編輯鎖。這省去 ACK 後等待 advisory GET 的 UI 阻塞，不保證 POST 或 live 計算已變快。
+
+合法六欄 receipt 但缺失／矛盾的領域投影不會宣告送審成功。先作一次 authoritative full GET；失敗保留當前文件、該意圖專用的唯讀保護，顯示「送審狀態尚未確認」及獨立「重新讀取送審狀態（唯讀）」出口。此按鈕只 GET，不能走 receipt 404 重送路徑；舊背景 poll、stale revision、晚到 actor/delivery/context 結果不能解除保護。GET 以 trusted 發送前 revision/scope/saved 與新 linked case（同 saved、原 actor、非已知舊 case）核對，不信已矛盾 ACK 的 caseId。linked case 仍待審時核其 generation 與目前 pending；已核准／發回／撤回時核合法結果，再獨立驗目前 pending/case/version/active 的一致性，容許後續合法新 generation 或再次送審。確認的是目前狀態，不是原操作收據。權限投影不足／stale／錯誤仍不猜；本機未套用表單或 dirty canvas journal 不會被此 GET 採用覆蓋，先保留原內容與 guard。此保護不跨文件持久化，重新載入不能宣稱原操作已解決。唯讀案件／歷史仍可查看；authoring 傳給歷史工具的 command 在呼叫當下也禁止 Restore，包含先前已開的預覽。
+
+實際 shared transport／transition kernel 與 synthetic HTTP、DOM、deferred ports 驗證快速連點、實際 reason form 雙 submit、Save→Submit、晚到 ACK、正確 ACK 提早釋放、inspection 失敗、領域錯配／唯讀重查、malformed receipt unknown 保全。非 native 快速點擊、route auth、完整 concurrency matrix、live latency 或原 V12 恢復驗收。此意圖修補維持 command／idempotency／receipt／timeout 協定、手動 Sync 與 backend／Approve 必要檢查；整合版本另新增的自動 GET 暫停見上方「401／403 自動讀取暫停」，IPQC 驗證來源解析重用見下方對應章節。
+
+## 2026-10-27 製程送審理由與報錯回饋（隔離候選）
+
+製程 V3 的合法 Submit click 先顯示理由對話框，不再把 fresh contentIssues GET 放在開啟對話框前。這只移除前置等待，不省略送出前的 fresh inspection 或後端檢查；確認後仍檢查同 actor／delivery、generation／revision／savedId、pending、目前權限與編輯範圍。準備期間鎖住第二次點擊；取消不發 request，等待時有更新則保留理由／工作並要求重新確認。canvas persist 的本機 epoch 只作 UI fence，不寫 journal、不自動同步。
+
+已知 unknown／損壞 recovery record 在 dialog 與 inspection 前阻擋，不能把 saved badge 當作未知命令已解。真正錯誤 code、request／operation ID 與至多前 50 項詳情放入可展開且有 alert 的「報錯」區；超過顯示上限時保留總數提示。純內容檢查失敗與操作未知分開呈現。原通用黑色按鈕改為符合當前狀態的次要操作名稱；未知時明示「查操作收據／確認重試」，仍保留原 receipt-first、404 明確確認後同 ID 重試流程，並非純讀按鈕。健康／檢查中的狀態不顯示無用途的重查按鈕。僅新承接 Save 或 Submit 等待 command ACK 的同 actor／delivery 階段視為處理中；原 unknown、不匹配身分、已失敗操作與檢查中的 unknown 不被遮蔽。finally 清顯示 marker，不清 recovery record。
+
+不變：手動 Sync／Apply／Save／Submit 分離、固定 saved 快照、舊 working 與圖片／歷史、cas／pending／權限、transport timeout、receipt schema、重送規則、版本確認平台與所有 backend handlers。仍可明確送最後 Save，不會替使用者自動 Save 較新的 working。Submit 成功後檢查的調整見下述 rapid-intent 段；Approve/Return/Withdraw 路徑保留。本候選不是 live POST canceled 或 contentIssues exceededMemory 的根因修復；後者需獨立 backend 量測與候選。
+
+`node scripts/test-authoring-submit-feedback.cjs` 使用實際 authoring/shared-client/transition kernel，加 synthetic HTTP/DOM，另執行實際 VersionDraftUI reason cache 與報錯 mount。含先開理由、防雙擊、取消零請求、fresh inspection、晚到範圍變更、未知 404／503 保全、不自動 Save 與固定案件內容。這不是 native layout／IME／真站點速度、正常登入 API 或原 V12 未知結果驗收。測試 prefix 只重用既有 Save fixture，不改 runtime permission 或 transport 判斷。
+
+## 2026-10-27 IPQC 待補檢查的單次解析重用（本機候選）
+
+`process-ipqc.ipqcIssues` 在一次同步檢查內按需解析 master／AB／C 來源各一次，
+同次各工段與既有關聯沿用該已解析來源。完整項目、照片、rules、順序、缺少／失效
+提醒與 malformed 錯誤不刪減；對外 `ipqcChoices` 每次仍建立 fresh 來源及輸出，
+不跨請求保存、沒有 ACL cache。`validateIPQCAssignments`、workflow POST、CAS、
+readState／record hydration、手動同步與核准來源選擇未改。
+
+`test-authoring-ipqc-read-reuse.cjs` 用 exact PR34 基線與候選 actual handler 配對，
+正常合成登入／Apply／Save／Submit／獨立發回；品質核准來源明標 derived synthetic，
+不冒充實際品質核准生命週期。17 pairs／34 GET 保持 DTO/status/header/I/O 與零寫入，
+另 10 domain 條件含 C、失效、空值及 malformed；完整 photos/rules、回傳別名與
+只讀來源保留另有斷言。候選 actual Apply／Save／Submit／獨立發回另走通，
+3 組拒絕 POST（過期 revision、無 Save 權限、pending Apply lock）保持零寫入；
+拒絕 DTO 僅個別生成且驗形的 requestId UUID 不作位元相等。24 個關聯的 AB fixture 重解析 25→1，屬 parsed byte／
+次數減少，不代表真實 Worker 記憶體峰值、毫秒等比例改善或 v25 OOM 已排除。
+
 ## 2026-10-27 authoring contentIssues 單次請求驗證重用（隔離候選）
 
 僅 `contentIssues` GET：records 解碼器以 immutable body SHA 共用同一 request-local object；正常 Save 後 working/saved 可指向同一內容。以 WeakMap 重用該物件的純 validation 結果，不做深度內容快取，也不跨 request、actor、generation 或 revision 留存。不同物件仍逐一驗證；固定案件 issues、working/saved/review 的 id／checked／fixed 與錯誤格式保留，wrapper map 不修改原 issues。
@@ -296,3 +377,28 @@ No backend, permission, CAS, manual canvas Sync or Save meaning changes.
 Fake-clock delayed ACK/abort/recovery tests and the coupled cache tag are in the
 existing CI test files. Native latency, storage cost and runtime build remain
 separate acceptance; this local candidate is not a release.
+
+### FQC Apply / Save feedback and form admission (2026-10-27, local candidate)
+
+- FQC matrix Apply now immediately marks the clicked cell busy and prevents a
+  second local mutation while a command is active or its result is unknown.
+  This is feedback/admission, not a backend speed improvement.
+- Error-code, item and batch-association forms admit one owned intent before
+  changing local data. All controls in that submitted form temporarily pause,
+  with their values preserved. Duplicate pending submits do not append another
+  row/history entry or generate another command/toast. Current-context failure
+  restores controls; existing item rollback behavior remains context-bound.
+- Only an actually awaited, newly admitted Apply/Save may present its retained
+  command as processing. Settled unknown and existing errors remain failures.
+  The FQC 15-second mutation limit, receipts, manual recovery, CAS, ACL, review,
+  history and server validation are unchanged. No automatic retry was added.
+- FQC command adoption and form settlement are scoped to identity epoch,
+  delivery and mount; form ownership also includes draft/generation. A stale
+  ACK cannot close/rewrite a newer form or adopt into a new owner context.
+  If a supported lazy Begin or another transition changes the form's context,
+  preserve its inputs read-only and enable only its own explicit close controls,
+  with a visible re-open/reconcile instruction. Do not silently rebase inputs.
+- node scripts/test-fqc-feedback-races.cjs exercises production FQC handlers
+  and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
+  mount is a model/status port. It is not native browser, authenticated backend,
+  real timeout-duration, or original unknown-operation recovery acceptance.

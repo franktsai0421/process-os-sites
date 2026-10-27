@@ -19,7 +19,19 @@ export async function GET(request:Request){
     catch(error){return Response.json({error:error instanceof Error?error.message:'INVALID_DESTINATION'},{status:error instanceof Error&&error.message==='DESTINATION_FORBIDDEN'?403:error instanceof Error&&error.message==='DESTINATION_UNAVAILABLE'?404:400,headers:responseHeaders});}
     // Only identity-only projections qualify; catalog/media/business readers do not.
     const reuseIdentity=plan.keys.every(key=>identityKeys.includes(key))&&allowIdentityReadReuse(identityReadToken);
-    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{})});
+    // The FQC screen must obtain its owned full workflow before rendering. For
+    // adopted records only, defer that library's bodies to this mandatory GET;
+    // retain sibling quality libraries and the canonical fallback unchanged.
+    const projectFqc=(key:string,raw:string)=>{
+      if(key!=='qualityMasterControl')return raw;
+      const root=JSON.parse(raw),library=root?.libraries?.fqc,flow=library?.workflow;
+      if(root?.schemaVersion!==1||!root.libraries||Array.isArray(root.libraries)||!library||Array.isArray(library)||
+        !Array.isArray(library.versions)||flow?.schemaVersion!==3||flow.scope!=='fqc'||typeof flow.generation!=='string'||!flow.generation||
+        !Number.isSafeInteger(flow.revision)||flow.revision<0)return raw;
+      const {fqc:_deferred,...libraries}=root.libraries;
+      return JSON.stringify({...root,libraries});
+    };
+    const state=await readState({keys:plan.keys,effectiveOnly:true,deferHistory:true,deferDependencyHistory:true,...(reuseIdentity?{identityReadToken}:{}),...(plan.destination.module==='fqc'?{projectValue:projectFqc}:{})});
     const reader=await companyReader(request,state);
     if(!reader||reader.actor.id!==before.actor.id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
     if(state.revision!==auth.revision)return Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409,headers:responseHeaders});

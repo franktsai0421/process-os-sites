@@ -141,13 +141,21 @@ jobs:
         run: |
           node scripts/test-authoring-contentissues-cache.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-authoring-ipqc-read-reuse.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-bom-map-removal.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-begin-recovery.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-unknown-recovery.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-scoped-read-pause.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-save-validation-ui.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-ipqc-c-query.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-authoring-submit-feedback.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-canvas-unknown-recovery.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -162,6 +170,14 @@ jobs:
           node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-fqc-feedback-races.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-fqc-structure-lookup.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-equipment-reference-view.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-edit-open-race.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-equipment-full-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -192,6 +208,8 @@ jobs:
           node scripts/test-equipment-catalog-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-integrated-bootstrap.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-fqc-bootstrap-projection.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-scheduled-backup-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

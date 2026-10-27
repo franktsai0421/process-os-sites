@@ -27,14 +27,26 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     semantic:content=>({errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
     structure(content,previous){
+     // Per-structure, lazy first-match indexes; malformed prior rows retain find's failure/order semantics.
+     const previousIndexes=new Map<'errors'|'items',Map<string,Row>|null>();
+     const previousRow=(key:'errors'|'items',id:string):Row|undefined=>{
+      let index=previousIndexes.get(key);
+      if(index===undefined){
+       const rows=previous[key];if(!Array.isArray(rows))return (rows as Row[]).find(row=>row.id===id);
+       index=new Map<string,Row>();
+       for(const row of rows){if(!row||typeof row.id!=='string'){index=null;break;}if(!index.has(row.id))index.set(row.id,row);}
+       previousIndexes.set(key,index);
+      }
+      return index?index.get(id):previous[key].find(row=>row.id===id);
+     };
      for(const key of ['errors','items'] as const){const ids=new Set<string>(),codes=new Set<string>();
       if(!Array.isArray(content[key]))throw new DraftConflict('INVALID_COLLECTION',422);
-      for(const row of content[key]){const code=key==='errors'?row.code:row.checkNo,old=previous[key].find(r=>r.id===row.id);
+      for(const row of content[key]){const code=key==='errors'?row.code:row.checkNo,old=previousRow(key,row.id);
        if(typeof row.id!=='string'||!row.id||typeof code!=='string'||!code||ids.has(row.id)||codes.has(code)||typeof row.name!=='string'||typeof row.category!=='string'||typeof row.line!=='string'||row.isDeleted!==undefined&&typeof row.isDeleted!=='boolean')throw new DraftConflict('INVALID_FQC_IDENTITY',422);
        ids.add(row.id);codes.add(code);if(old&&(old.category!==row.category||old.line!==row.line||(key==='errors'?old.code:old.checkNo)!==code))throw new DraftConflict('FQC_IDENTITY_PROTECTED',422);
       }
      }
-     for(const row of content.items){const old=previous.items.find(i=>i.id===row.id),parent=content.errors.find(e=>e.id===row.errorId);
+     for(const row of content.items){const old=previousRow('items',row.id),parent=content.errors.find(e=>e.id===row.errorId);
       if(!row.isDeleted&&(!parent||parent.isDeleted||parent.category!==row.category))throw new DraftConflict('ERROR_PARENT_INVALID',422);
       if(!Array.isArray(row.productCodes)||row.productCodes.some(c=>typeof c!=='string')||new Set(row.productCodes).size!==row.productCodes.length||!Array.isArray(row.mediaItems)||row.mediaItems.some(p=>!p||typeof p.src!=='string'||!(/^(data:image\/(png|jpeg|webp|gif);base64,|\/)/.test(p.src)))||typeof row.isEnabled!=='boolean')throw new DraftConflict('INVALID_FQC_ITEM',422);
       if(row.equipmentId!=null&&typeof row.equipmentId!=='string')throw new DraftConflict('INVALID_EQUIPMENT',422);

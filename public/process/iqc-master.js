@@ -271,7 +271,7 @@
   function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
     if(!current())return;
     if(!root?.isConnected&&!reviewRoot?.isConnected)return;
-    try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'){
+    try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
       const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
       if(!current())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(wasOpen)ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';

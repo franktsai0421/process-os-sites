@@ -46,11 +46,11 @@ async function currentWholeModuleDelegation() {
   const control={activeVersionId:'active',versions:[{id:'active',status:'approved',snapshot:copy(working)},{id:'draft',status:'draft',snapshot:copy(working)}],workflow:{generation:'unit-generation',revision:1,working:copy(working)}};
   const owner={libraries:{fqc:control}},commands=[],events=[],buttons=[{disabled:false},{disabled:false}];let resolve,reject,options,renders=0;
   const client={hasUnknown:()=>false,command(generation,action,detail){commands.push({generation,action,detail});return new Promise((yes,no)=>{resolve=yes;reject=no;});},begin(){throw Error('Unexpected implicit begin');},flush(){throw Error('Unexpected Save in submit/review contract');}};
-  const context={ui:{saving:false,lastError:null,selectedVersionId:'draft'},sharedClient:null,sharedActor:'',syncBase:copy(working),syncGeneration:'unit-generation',clone:copy,
+  const context={ui:{saving:false,lastError:null,selectedVersionId:'draft'},sharedClient:null,sharedActor:'',mountSequence:0,pendingCommandFeedback:null,activeSharedAction:null,syncBase:copy(working),syncGeneration:'unit-generation',clone:copy,
     ensureControl:()=>owner,library:()=>owner.libraries.fqc,selected:()=>owner.libraries.fqc.versions.find(v=>v.id===context.ui.selectedVersionId),editable:()=>owner.libraries.fqc.versions.find(v=>v.status==='draft'),identity:()=>({id:'synthetic-controller-actor'}),
     hostElement:{querySelectorAll:()=>buttons,querySelector:()=>null},document:{querySelector:()=>null},isVi:()=>false,render(){renders++;},
     window:{ProcessSync:{platformHeaders:()=>({'Content-Type':'application/json'})},createSharedDraftClient(value){options=value;return client;},dispatchEvent(event){events.push(event.type);}},CustomEvent:class{constructor(type){this.type=type;}}};
-  _vm.runInNewContext(['transport','adopt','sharedAction'].map(productionFunction).join('\n')+'\nthis.sharedAction=sharedAction;',context);
+  _vm.runInNewContext(['currentReadOwner','transport','adopt','sharedAction'].map(productionFunction).join('\n')+'\nthis.sharedAction=sharedAction;',context);
   const submitDetail={savedId:'synthetic-saved',reason:'synthetic submission'},submit=context.sharedAction('submit',submitDetail);
   assert.equal(context.ui.saving,true);assert.ok(buttons.every(button=>button.disabled));assert.equal(owner.libraries.fqc.versions.find(v=>v.id==='draft').status,'draft','No optimistic pending mutation before API response');
   assert.equal(options.endpoint,'/api/fqc/workflow?caseMetadata=1');assert.equal(options.actorId,'synthetic-controller-actor');assert.equal(commands[0].generation,'unit-generation');assert.equal(commands[0].action,'submit');assert.strictEqual(commands[0].detail,submitDetail);

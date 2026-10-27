@@ -216,7 +216,7 @@
   function pollShared(){clearTimeout(sharedPoll);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
     if(!owns())return;
     if(!routineTabIsActive())return;
-    try{if(!busy&&document.visibilityState!=='hidden'){
+    try{if(!busy&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')){
       const flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
       if(!owns())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(editingEquipmentId||nodeDialog||addingEquipment||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}
@@ -1550,6 +1550,113 @@
     });
   }
 
+  // View-only readers do not populate editor models or strict replacement caches.
+  const viewReferenceKinds={
+    fqc:{label:'FQC',url:'/api/fqc/workflow'},iqc:{label:'IQC',url:'/api/iqc'},
+    ipqcAB:{label:'IPQC-AB',url:'/api/ipqc-ab'},ipqcC:{label:'IPQC-C',url:'/api/ipqc-c'},
+    planned:{label:'',url:'/api/quality-equipment-replacement'}
+  };
+  function newViewReferences(id){
+    const actorId=identity()?.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),version=revision;
+    if(!actorId)throw Error('LOGIN_REQUIRED');
+    const session={id,states:Object.fromEntries(Object.keys(viewReferenceKinds).map(key=>[key,{status:'unloaded',open:false,result:null,error:'',promise:null,revision:null}]))};
+    session.current=()=>viewDialog?.references===session&&viewDialog.data?.id===id&&host?.isConnected&&identity()?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery))&&!window.ProcessSync?.requiresReload&&revision===version;
+    return session;
+  }
+  function collectViewReferences(kind,data,id){
+    const refs={active:[],pending:[],draft:[],superseded:[]},seen=new Set();
+    const add=(lib,scope='')=>{
+      if(!lib||!Array.isArray(lib.versions)||!(lib.activeVersionId===null||typeof lib.activeVersionId==='string'))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+      for(const version of lib.versions){
+        if(typeof version?.id!=='string'||typeof version.status!=='string'||!Array.isArray(version.snapshot?.items))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+        for(const item of version.snapshot.items){
+          if(!item||typeof item.id!=='string')throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+          if(item.isDeleted||item.deleted||item.equipmentId!==id)continue;
+          const key=JSON.stringify([scope,version.id,item.id]);if(seen.has(key))continue;seen.add(key);
+          const group=version.id===lib.activeVersionId&&version.status==='approved'?'active':['pending','pending-test'].includes(version.status)?'pending':version.status==='draft'?'draft':'superseded';
+          refs[group].push({versionId:version.id,versionNumber:version.number,status:version.status,itemId:item.id,scope,checkNo:item.checkNo||item.code||item.id,itemName:item.nameVi||item.name||item.standard||item.description?.slice(0,30)||'',isEnabled:item.isEnabled!==false});
+        }
+      }
+    };
+    if(kind==='planned'){
+      if(!Array.isArray(data?.pending)||!Array.isArray(data.modules))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+      return {planned:data.pending.map(row=>({moduleId:row.moduleId,versionId:row.pendingVersionId,versionNumber:row.pendingVersionNumber,itemId:row.itemId,checkNo:row.itemCode||row.itemId,itemName:row.itemName||'',status:row.status,reason:row.reason||''}))};
+    }
+    if(kind==='fqc'&&data?.permissions?.view!==true)throw Error('EQUIPMENT_REFERENCE_ACCESS_UNCONFIRMED');
+    if(kind==='ipqcAB'){
+      if(!data.control?.scopes||typeof data.control.scopes!=='object'||Array.isArray(data.control.scopes))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+      for(const [scope,lib]of Object.entries(data.control.scopes))add(lib,scope);
+    }else add(data.control);
+    return refs;
+  }
+  async function readViewReferences(session,kind,retry=false){
+    const row=session?.states[kind],spec=viewReferenceKinds[kind];if(!row||!spec||!session.current())return;
+    if(row.promise)return row.promise;
+    if(row.status==='loaded'||row.status==='error'&&!retry)return;
+    row.status='loading';row.error='';paintViewReferences(session);
+    const task=Promise.resolve().then(async()=>{
+      try{
+        const url=spec.url+(kind==='planned'?'?sourceId='+encodeURIComponent(session.id):'');
+        const response=await fetch(url,{cache:'no-store',headers:headers(),signal:AbortSignal.timeout(45000)});
+        const data=await response.json().catch(()=>null);
+        if(!session.current())return;
+        if(!response.ok)throw Error(data?.error||'HTTP '+response.status);
+        if(!Number.isSafeInteger(data?.revision))throw Error('EQUIPMENT_REFERENCE_RESPONSE_INVALID');
+        const result=collectViewReferences(kind,data,session.id);
+        if(!session.current())return;
+        row.result=result;row.control=kind==='fqc'?data.control:null;row.revision=data.revision;row.status='loaded';
+      }catch(error){if(session.current()){row.status='error';row.error=error?.message||'EQUIPMENT_REFERENCE_READ_FAILED';}}
+      finally{row.promise=null;if(session.current())paintViewReferences(session);}
+    });row.promise=task;return task;
+  }
+  function viewReferencesHTML(session){
+    if(!session?.current())return '<section data-routine-view-references role="status">'+h(t('頁面狀態已改變；請關閉後重新開啟查看資訊。','Trạng thái đã thay đổi; đóng rồi mở lại thông tin.'))+'</section>';
+    const labels={active:t('目前生效中','Đang hiệu lực'),pending:t('主管審核中','Chờ duyệt'),draft:t('草稿中','Bản nháp'),superseded:t('歷史版本','Bản lịch sử'),planned:t('待處理替換','Thay thế chờ xử lý')};
+    return '<section data-routine-view-references><h4>'+h(t('四種品質標準反向引用','Tham chiếu ngược 4 tiêu chuẩn chất lượng'))+'</h4><p>'+h(t('展開後查詢該模組；各模組為各次查詢的快照，未查詢不表示沒有引用。','Mở từng mục để tra cứu. Mỗi mục là ảnh chụp riêng; chưa tra cứu không có nghĩa là không có tham chiếu.'))+'</p>'+Object.entries(viewReferenceKinds).map(([kind,spec])=>{
+      const row=session.states[kind],label=spec.label||labels.planned;
+      let status=t('尚未查詢','Chưa tra cứu'),body='<p>'+h(t('展開此區查詢。','Mở mục này để tra cứu.'))+'</p>';
+      if(row.status==='loading'){status=t('查詢中…','Đang tra cứu…');body='<p role="status">'+h(status)+'</p>';}
+      if(row.status==='error'){status=t('查詢未完成','Tra cứu chưa hoàn tất');body='<p role="alert">'+h(t('查詢未完成，不代表沒有引用。','Tra cứu chưa hoàn tất, không có nghĩa là không có tham chiếu.'))+' '+h(row.error)+'</p><button type="button" class="button ghost" data-view-ref-retry="'+kind+'">'+h(t('重新查詢（僅讀取）','Tra cứu lại (chỉ đọc)'))+'</button>';}
+      if(row.status==='loaded'){
+        const groups=Object.entries(row.result),count=groups.reduce((n,[,rows])=>n+rows.length,0);status=t('已查詢','Đã tra cứu')+' · '+count;
+        body='<small>'+h(t('資料修訂','Bản sửa dữ liệu'))+' '+h(row.revision)+'</small>'+groups.filter(([,rows])=>rows.length).map(([group,rows])=>'<div class="routine-ref-subgroup"><b>'+h(labels[group])+' ('+rows.length+')</b>'+rows.map(item=>'<div class="routine-ref-row">'+(kind==='fqc'?'<button type="button" class="button ghost" data-view-ref-detail="'+h(item.itemId)+'" data-view-ref-version="'+h(item.versionId)+'">'+h(item.checkNo)+'</button>':kind==='ipqcAB'?'<button type="button" class="button ghost" data-view-ab-detail="'+h(item.itemId)+'" data-view-ab-version="'+h(item.versionId)+'" data-view-ab-scope="'+h(item.scope)+'">'+h(item.checkNo)+'</button>':'<code>'+h(item.checkNo)+'</code>')+'<span data-i18n-skip="true">'+h(item.itemName)+'</span><small>V'+h(String(item.versionNumber??'—').replace(/^V/i,''))+' · '+h(item.status)+(item.scope?' · '+h(item.scope):'')+(item.moduleId?' · '+h(item.moduleId):'')+'</small>'+(item.reason?'<small>'+h(item.reason)+'</small>':'')+'</div>').join('')+'</div>').join('');
+        if(!count)body+='<p>'+h(t('本次授權查詢範圍內沒有引用。','Không có tham chiếu trong phạm vi được phép của lần tra cứu này.'))+'</p>';
+        if(row.detailError)body+='<p role="alert">'+h(row.detailError)+'</p>';
+        body+='<p>'+h(t('完整標準請至對應模組查閱。','Xem tiêu chuẩn đầy đủ tại mô-đun tương ứng.'))+'</p>';
+      }
+      return '<details class="routine-ref-box" data-view-ref-kind="'+kind+'"'+(row.open?' open':'')+'><summary><b>'+h(label)+'</b> · '+h(status)+'</summary><div class="routine-ref-content">'+body+'</div></details>';
+    }).join('')+'</section>';
+  }
+  function bindViewReferences(root,session=viewDialog?.references){
+    if(!root||!session)return;
+    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',()=>{
+      if(!session.current())return;const kind=details.dataset.viewRefKind;session.states[kind].open=details.open;
+      if(details.open)void readViewReferences(session,kind);
+    }));
+    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=()=>readViewReferences(session,button.dataset.viewRefRetry,true));
+    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=()=>{
+      if(!session.current())return;
+      const row=session.states.ipqcAB,versionId=button.dataset.viewAbVersion,itemId=button.dataset.viewAbDetail,scope=button.dataset.viewAbScope;
+      if(row.status!=='loaded'||!Object.values(row.result).some(rows=>rows.some(item=>item.versionId===versionId&&item.itemId===itemId&&item.scope===scope)))return;
+      openStandardItemView('ipqc-ab',versionId,itemId,scope);
+    });
+    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=()=>{
+      if(!session.current())return;
+      const row=session.states.fqc,control=row.control,version=control?.versions.find(v=>v.id===button.dataset.viewRefVersion);
+      try{
+        const item=version?.snapshot?.items.find(item=>item.id===button.dataset.viewRefDetail);
+        if(row.status!=='loaded'||!version||!item||item.equipmentId!==session.id||!window.FQCQualityAPI?.openAuthorizedItemView)throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');
+        session.closeDetail?.();
+        session.closeDetail=window.FQCQualityAPI.openAuthorizedItemView(version,item.id,()=>session.current()&&row.control===control&&row.status==='loaded');
+      }catch(error){row.detailError=error?.message||'FQC_REFERENCE_VIEW_UNAVAILABLE';paintViewReferences(session);}
+    });
+  }
+  function paintViewReferences(session){
+    if(!session.current())return;
+    const area=host.querySelector('[data-routine-view-references]');if(!area)return;
+    area.outerHTML=viewReferencesHTML(session);bindViewReferences(host,session);
+  }
+
   async function queryAllQualityReferences(eqId, { strict = false } = {}) {
     const result = {
       fqc: { active: [], pending: [], draft: [], superseded: [] },
@@ -2282,7 +2389,7 @@
         ` : ''}
         <div class="routine-view-row"><b>${t('入庫日期', 'Ngày nhập kho')}</b><span>${h(data.intakeDate || '—')}</span></div>
         <div class="routine-view-row full"><b>${t('規格／常用檢測用途', 'Quy cách / Mục đích')}</b><span>${h(data.spec || '—')}</span></div>
-        <div class="routine-view-row full routine-view-refs-row">${equipmentReferencesSectionHTML(data.id, 'view')}</div>
+        <div class="routine-view-row full routine-view-refs-row">${viewReferencesHTML(viewDialog.references)}</div>
         <div class="routine-view-row full"><b>${t('備註', 'Ghi chú')}</b><span>${h(data.notes || '—')}</span></div>
         ${data.sourceRow ? `
           <div class="routine-view-row full" style="border-top:1px dashed #d5e2d9;padding-top:6px;margin-top:6px">
@@ -2392,8 +2499,10 @@
       const item = (visible()?.equipment || []).find(e => e.id === id);
       if (item) {
         equipmentEditRequest++;
-        await loadEquipmentReferences(id, { renderAfter: false });
+        if(viewDialog?.kind==='equipment'&&viewDialog.data?.id===id&&viewDialog.references?.current())return;
+        viewDialog?.references?.closeDetail?.();
         viewDialog = { kind: 'equipment', data: item };
+        viewDialog.references=newViewReferences(id);
         render();
       }
     });
@@ -2628,10 +2737,10 @@
     });
 
     // View dialog bindings
-    root.querySelector('#routine-view-close')?.addEventListener('click', () => { viewDialog = null; render(); });
-    root.querySelector('#routine-view-dismiss')?.addEventListener('click', () => { viewDialog = null; render(); });
+    root.querySelector('#routine-view-close')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
+    root.querySelector('#routine-view-dismiss')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
     root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', event => {
-      if (event.target?.id === 'routine-view-modal-backdrop') { viewDialog = null; render(); }
+      if (event.target?.id === 'routine-view-modal-backdrop') { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }
     });
 
     // Transfer dialog bindings
@@ -2670,6 +2779,7 @@
     root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', () => executeTransfer('ipqcAB'));
 
     bindReferenceActions(root);
+    bindViewReferences(root);
 
     root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = () => {
       const asset = btn.dataset.jumpAsset, mark = btn.dataset.jumpMark;
@@ -3099,7 +3209,7 @@
     equipmentRefCache.clear();
     const openIds = new Set([
       editingEquipmentId,
-      viewDialog?.kind === 'equipment' ? viewDialog.data?.id : ''
+      viewDialog?.kind === 'equipment' && !viewDialog.references ? viewDialog.data?.id : ''
     ].filter(Boolean));
     await Promise.all([...openIds].map(id => loadEquipmentReferences(id, { renderAfter: false })));
     if (routineTabIsActive()) for (const id of openIds) updateEquipmentReferenceSections(id);
@@ -3109,7 +3219,7 @@
 
   let navigationError=null;
   window.RoutineEquipmentUI = {
-    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;equipmentRefCache.clear();navigationError=null;}},
+    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;equipmentRefCache.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

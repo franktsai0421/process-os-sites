@@ -15,7 +15,7 @@ export function runFilterSelectionRegression(productSource = fs.readFileSync('pu
   assert.equal(productSource.split(marker).length, 2, 'Unique existing public UI seam');
   const instrumented = productSource.replace(marker,
     '  window.__filterContract = {s, filters, matches, bind, setData: (v) => data = v, setRoot: (v) => root = v};\n' + marker);
-  vm.runInNewContext(instrumented, {window, document: {documentElement: {get lang() {return lang;}}, hidden: false, querySelector: () => null}, crypto: webcrypto,
+  vm.runInNewContext(fs.readFileSync('public/process/shared-draft-client.js', 'utf8') + '\n' + instrumented, {window, document: {documentElement: {get lang() {return lang;}}, hidden: false, querySelector: () => null}, crypto: webcrypto,
     setInterval() {}, setTimeout() {}, location: {port: '61361'}, URL,
     fetch() {throw Error('UNEXPECTED_HTTP');}}, {timeout: 1000});
   const ui = window.__filterContract;

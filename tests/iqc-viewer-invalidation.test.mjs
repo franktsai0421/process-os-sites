@@ -36,6 +36,7 @@ async function fixture(){
  // No source file is changed; actual reset and all IQC event registrations run.
  const iqc=src('iqc-master.js');assert(iqc.endsWith('})(window);\r\n')||iqc.endsWith('})(window);\n'));
  vm.runInContext(iqc.replace('})(window);','host.__testIqc={photoViewerPhotos,dialog};\n})(window);'),context);
+ vm.runInContext(src('shared-draft-client.js'),context);
  vm.runInContext(src('effective-version-notice.js'),context);
  vm.runInContext(src('quality-review-overview.js'),context);
  for(const [object,key,label]of [[window.IQCMasterUI.navigation,'reset','IQC'],[window.EffectiveVersionNotice,'reset','effective'],[window.QualityReviewOverview,'dispose','overview']]){const original=object[key];object[key]=function(...args){resets[label]++;return original.apply(this,args);};}

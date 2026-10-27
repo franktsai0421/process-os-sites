@@ -680,7 +680,7 @@
       const visible=host?.isConnected&&host.dataset.activeTab==='quality-ipqc-c';
       if(!visible&&!reviewHost?.isConnected)return;
       try {
-        if(!busy&&identity()?.id&&document.visibilityState!=='hidden') {
+        if(!busy&&identity()?.id&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')) {
           const flow=control?.workflow;
           const update=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
           if(sequence!==mountSequence)return;
