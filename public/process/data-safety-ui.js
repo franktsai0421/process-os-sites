@@ -94,21 +94,117 @@
   }
   window.addEventListener('process-sync-status', () => updateOwnRecovery());
   window.addEventListener('process-language-change', () => updateOwnRecovery());
+  // Account changes are document boundaries for projected delivery. Do not
+  // reset requiresReload or reuse old module closures under a new session.
+  let accountAttempt = 0, activeAccountAttempt = null;
+  const accountText = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh;
+  function accountInputBlock() {
+    if (window.ProcessNavigationForms?.composing?.() || window.ProcessEditorV2?.interacting?.())
+      return accountText('請先完成輸入法或目前拖曳操作，再切換登入。', 'Hoàn tất nhập liệu hoặc thao tác kéo trước khi đổi phiên đăng nhập.');
+    const modal = [...document.querySelectorAll('dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay')]
+      .some(node => node.isConnected && !node.hidden);
+    if (modal || window.ProcessNavigationForms?.dirty?.(document.querySelector('#view-root')) ||
+        window.ProcessRuntimeProjection?.canLeave?.() === false || window.MasterDataWorkflow?.canLeave?.() === false)
+      return accountText('仍有尚未完成的表單或輸入。請先複製保全，並完成或取消目前編輯，再登入或登出；不會自動儲存。', 'Còn biểu mẫu hoặc nội dung chưa hoàn tất. Hãy sao chép để bảo toàn rồi hoàn tất hoặc hủy chỉnh sửa trước khi đăng nhập/đăng xuất; không tự lưu.');
+    return null;
+  }
+  window.ProcessAccountTransition = {
+    begin(kind) {
+      if (activeAccountAttempt) return null;
+      const blocked = accountInputBlock();
+      if (blocked) { toast(blocked); return null; }
+      const projected = sync?.deliveryProjection === true;
+      if (projected && !confirm(accountText(
+        '切換登入將停止舊頁面的操作。請先保全尚未儲存的輸入；未知結果與畫布恢復紀錄不會自動清除或重送，也不保證未套用表單可恢復。確認已保全並繼續？',
+        'Đổi phiên sẽ dừng thao tác của trang cũ. Hãy bảo toàn nội dung chưa lưu; thao tác chưa rõ kết quả và bản khôi phục sơ đồ không tự xóa/gửi lại. Không đảm bảo khôi phục biểu mẫu chưa áp dụng. Đã bảo toàn và tiếp tục?'))) return null;
+      const shell = document.querySelector('.app-shell');
+      const token = { serial: ++accountAttempt, kind, epoch: sync?.identityGeneration?.(), actor: sync?.identity?.id,
+        shell, priorInert: shell?.inert, confirmed: false, confirmedRisk: projected };
+      if (projected && shell) shell.inert = true;
+      activeAccountAttempt = token; return token;
+    },
+    current(token) { return activeAccountAttempt === token && token.epoch === sync?.identityGeneration?.() && token.actor === sync?.identity?.id; },
+    confirm(token) { if (!this.current(token)) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED'); token.confirmed = true; },
+    inputBlock: accountInputBlock,
+    unconfirmed(token) {
+      if (!this.current(token)) return false;
+      this.confirm(token);
+      // A dispatched account request may already have changed its cookie.
+      // Do not re-enable old closures or infer an actor from a malformed reply.
+      sync?.clearIdentity?.();
+      if (token.shell) { token.shell.inert = true; token.shell.hidden = true; }
+      this.handoff(accountText(
+        '登入狀態變更的結果尚未確認，舊頁已停止操作。不要重送登入、登出或未知操作；請先保全輸入，再由您手動重新載入目前網址，透過新的頁面確認身分。既有恢復紀錄未清除，未套用內容不保證可恢復。',
+        'Chưa xác nhận kết quả đổi phiên; trang cũ đã dừng. Không gửi lại đăng nhập/đăng xuất hoặc thao tác chưa rõ kết quả. Bảo toàn nội dung rồi tự tải lại đúng địa chỉ để kiểm tra phiên mới. Không xóa bản khôi phục; nội dung chưa áp dụng có thể không khôi phục.'));
+      return true;
+    },
+    finish(token) {
+      if (activeAccountAttempt !== token) return;
+      activeAccountAttempt = null;
+      if (!token.confirmed && token.shell?.isConnected) token.shell.inert = token.priorInert;
+    },
+    handoff(message) {
+      let gate = document.querySelector('#process-boot');
+      if (!gate) { gate = document.createElement('div'); gate.id = 'process-boot'; document.body.append(gate); }
+      gate.setAttribute('role', 'alert');
+      gate.textContent = message || accountText(
+        '登入已確認。為避免沿用舊帳號頁面，請由您手動重新載入目前網址完成登入。未儲存或結果未知的操作不會自動儲存、清除或重送；請先保全輸入，未套用表單不保證可恢復。',
+        'Đã xác nhận đăng nhập. Hãy tự tải lại đúng địa chỉ hiện tại để hoàn tất, không dùng lại trang của phiên cũ. Nội dung chưa lưu/thao tác chưa rõ kết quả không tự lưu, xóa hoặc gửi lại; hãy bảo toàn trước, biểu mẫu chưa áp dụng có thể không khôi phục.');
+      const fallback = document.createElement('p');
+      fallback.textContent = accountText('若頁內按鈕無法操作，請先保全資料後使用瀏覽器重新整理（同網址）。', 'Nếu nút trong trang không dùng được, hãy bảo toàn dữ liệu rồi tải lại bằng trình duyệt tại cùng địa chỉ.');
+      gate.append(fallback);
+      const button = document.createElement('button');
+      button.textContent = accountText('我已保全輸入，重新載入目前頁面', 'Đã bảo toàn, tải lại trang hiện tại');
+      button.onclick = () => location.reload();
+      gate.append(button);
+    },
+  };
   async function platformLogin(id, password) {
-    const response = await fetch('/api/platform-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, password }),
-      }),
-      value = await response.json();
-    if (!response.ok) throw Error(value.error || '帳號或密碼錯誤');
-    const user = { ...value.user };
-    sync?.setPlatformIdentity?.(user, password);
-    await sync?.refresh?.();
-    window.BOMExcel?.refreshProjection?.();
-    state.editorByCategory={};state.editorVersionId=null;
-    enterPlatform(user);
-    updateOwnRecovery(true);
+    const transition = window.ProcessAccountTransition, token = transition.begin('login');
+    if (!token) return false;
+    try {
+      let response, value;
+      try {
+        response = await fetch('/api/platform-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, password }),
+        });
+      } catch { return transition.unconfirmed(token); }
+      if (!transition.current(token)) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      if (response.status >= 500) return transition.unconfirmed(token);
+      try { value = await response.json(); }
+      catch (error) { if (response.ok) return transition.unconfirmed(token); throw error; }
+      if (!transition.current(token)) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      if (!response.ok) throw Error(value?.error || '帳號或密碼錯誤');
+      if (typeof value?.user?.id !== 'string' || !value.user.id) return transition.unconfirmed(token);
+      const user = { ...value.user };
+      let changedInput;
+      try { changedInput = transition.inputBlock(); }
+      catch { return transition.unconfirmed(token); }
+      transition.confirm(token);
+      // Only this confirmed current login may retire the intentional sign-out
+      // marker. All actor-owned unknown/canvas/recovery keys remain untouched.
+      sync?.setPlatformIdentity?.(user, password);
+      let markerError = false;
+      if (!changedInput) { try { sessionStorage.removeItem('process-platform-signed-out'); } catch { markerError = true; } }
+      if (sync?.requiresReload) {
+        transition.handoff(markerError ? accountText(
+          '登入已確認，但瀏覽器無法更新登入標記。舊頁已停止操作；請先保全輸入，不要重送登入或未知操作。需排除瀏覽器儲存問題後才能完成重新進入。',
+          'Đã xác nhận đăng nhập nhưng không cập nhật được dấu phiên. Trang cũ đã dừng; bảo toàn nội dung, không gửi lại đăng nhập/thao tác chưa rõ kết quả. Cần khắc phục lưu trữ trình duyệt trước khi vào lại.') : changedInput ? accountText(
+          '登入已確認，但等待期間出現未完成輸入。舊頁已停止操作；請先保全輸入，再手動重新載入目前網址。未套用內容不保證可恢復，登入標記尚未清除。',
+          'Đã xác nhận đăng nhập nhưng có nội dung chưa hoàn tất trong lúc chờ. Trang cũ đã dừng; hãy bảo toàn rồi tự tải lại đúng địa chỉ. Không đảm bảo khôi phục nội dung chưa áp dụng; dấu đăng xuất chưa được xóa.') : undefined);
+        return true;
+      }
+      if (markerError) throw Error('LOGIN_STORAGE_UNAVAILABLE_REOPEN_REQUIRED');
+      if (changedInput) throw Error('ACCOUNT_INPUT_CHANGED_REOPEN_REQUIRED');
+      await sync?.refresh?.();
+      window.BOMExcel?.refreshProjection?.();
+      state.editorByCategory={};state.editorVersionId=null;
+      enterPlatform(user);
+      updateOwnRecovery(true);
+      return true;
+    } finally { transition.finish(token); }
   }
   function bindProtectedPlatformLogin() {
     document.querySelectorAll('[data-quick-login]').forEach(
@@ -132,7 +228,7 @@
           hint = document.querySelector('.login-hint');
         submit.disabled = true;
         try {
-          await platformLogin(id, password);
+          if (await platformLogin(id, password) === false) submit.disabled = false;
         } catch (error) {
           hint.textContent = error.message;
           hint.classList.add('error');

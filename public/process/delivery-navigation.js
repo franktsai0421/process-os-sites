@@ -160,6 +160,9 @@
  })();
  window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
  window.addEventListener('process-delivery-invalidated',()=>{
+  // Admission blocks open dialogs before account requests. A late-created
+  // overlay must not remain usable under the next session; retain its values.
+  for(const modal of document.querySelectorAll('body > dialog,.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay')){modal.inert=true;modal.hidden=true;modal.style.visibility='hidden';modal.style.pointerEvents='none';}
   for(const value of [window.IMPORTED_DATA,window.LINE_PROCESS_DATA,window.LINE_C_MASTER])if(value&&typeof value==='object')for(const key of Object.keys(value))delete value[key];
   const shell=document.querySelector('.app-shell');if(shell){shell.replaceChildren();shell.hidden=true;}
   let gate=document.querySelector('#process-boot');if(!gate){gate=document.createElement('div');gate.id='process-boot';document.body.append(gate);}
