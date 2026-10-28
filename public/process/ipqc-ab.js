@@ -534,7 +534,8 @@
     if (!reviewHost || !document.contains(reviewHost)) return;
     const restore=window.VersionDraftUI.preserveView(reviewHost),section=reviewHost.querySelector('.ipqcab-review');
     if (section) section.outerHTML=reviewHTML();
-    bindReview(reviewHost);restore();
+    // bindReview owns its delivery-fenced load/catch; this caller does not await review hydration.
+    void bindReview(reviewHost);restore();
   }
   function bindReview(root) {
     reviewHost=root;

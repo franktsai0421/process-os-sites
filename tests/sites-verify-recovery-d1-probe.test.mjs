@@ -12,7 +12,7 @@ async function seed(){
  const db=f.db;
  await db.batch(['process_import_native_operations','process_import_native_requests','process_import_verify_capabilities','process_import_capabilities','process_import_attempts','process_import_budget','process_snapshot_chunks','process_snapshot_target','process_snapshot_transfers'].map(t=>db.prepare('DELETE FROM '+t)));
  const pins=JSON.stringify(Object.fromEntries(['projectId','origin','ownerId','targetFingerprint','manifestSha256','transferId'].map(k=>[k,incident[k]])));
- const insert=(table,row)=>{const k=Object.keys(row);return db.prepare(`INSERT INTO ${table}(${k.join(',')}) VALUES(${k.map(()=>'?')})`).bind(...Object.values(row));};
+ const insert=(table,row)=>{const k=Object.keys(row);return db.prepare(`INSERT INTO ${table}(${k.join(',')}) VALUES(${k.map(()=>'?').join(',')})`).bind(...Object.values(row));};
  await db.batch([
   insert('process_snapshot_transfers',{id:incident.transferId,project_id:incident.projectId,target:incident.targetFingerprint,manifest_sha:incident.manifestSha256,manifest_key:'process-import/v1/'+incident.transferId+'/manifest.json',owner_id:'frank',phase:'receiving',version:18,verify_cursor:272,chunk_count:1401,total_bytes:incident.bytes,created_at:1,expires_at:9999999999999}),
   insert('process_snapshot_target',{id:1,target:incident.targetFingerprint,transfer_id:incident.transferId}),

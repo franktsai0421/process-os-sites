@@ -34,4 +34,4 @@ const checks=[];async function check(name,run){await run();checks.push(name);}
   }
  });
  console.log(JSON.stringify({status:'PASS',checks:checks.length,names:checks,baseline,reduced,network:false,businessWrites:false}));
- }catch(e){console.error(e);process.exitCode=1;}finally{db.close();}})();
+ }catch(e){console.error(e);process.exitCode=1;}finally{db.close();}})().catch(error=>{console.error(error);process.exitCode=1;});

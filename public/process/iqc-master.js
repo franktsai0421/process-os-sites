@@ -16,7 +16,7 @@
   }
   host.addEventListener('process-delivery-invalidated', quarantineEditors);
   const photoViewerDisposers = new Set();
-  function disposePhotoViewers() { for (const close of [...photoViewerDisposers]) close(); }
+  function disposePhotoViewers() { const closing = Array.from(photoViewerDisposers); for (const close of closing) close(); }
   host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
     if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
@@ -750,7 +750,7 @@
         sharedClient?.gatePermissions?.();
         for (const action of ['reject','approve','withdraw']) detail.querySelector(`#iqc-review-${action}`)?.addEventListener('click',async()=>{
           const comment=action==='approve' ? detail.querySelector('#iqc-review-comment')?.value?.trim() || '' : '';
-          try { const result=await post(action,{versionId:v.id,versionRevision:v.revision,comment});if(!result)return; void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); reviewRoot=panel.querySelector('.iqc-review'); if(reviewRoot){reviewRoot.outerHTML=reviewHTML();bindReview(panel);} notice(action==='approve'?t('IQC 版本已核准','Đã duyệt phiên bản IQC'):action==='withdraw'?t('IQC 送審已撤回','Đã rút hồ sơ IQC'):t('IQC 版本已發回','Đã trả lại phiên bản IQC')); }
+          try { const result=await post(action,{versionId:v.id,versionRevision:v.revision,comment});if(!result)return; void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); reviewRoot=panel.querySelector('.iqc-review'); if(reviewRoot){reviewRoot.outerHTML=reviewHTML();/* bindReview retains its existing owned load/error UI; success notice stays immediate. */void bindReview(panel);} notice(action==='approve'?t('IQC 版本已核准','Đã duyệt phiên bản IQC'):action==='withdraw'?t('IQC 送審已撤回','Đã rút hồ sơ IQC'):t('IQC 版本已發回','Đã trả lại phiên bản IQC')); }
           catch(error){notice(displayDraftError(error));}
         });
       });

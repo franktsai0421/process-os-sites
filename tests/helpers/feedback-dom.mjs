@@ -1,7 +1,7 @@
 // Bounded synthetic DOM dependency port. Not layout, browser or native IME evidence.
 export function feedbackDOM(){
- const eventSets=new Map();let document;
- function events(target){target.addEventListener=(type,fn,options={})=>{const key={target,type,fn};eventSets.set(key,true);options.signal?.addEventListener('abort',()=>eventSets.delete(key),{once:true});};target.removeEventListener=(type,fn)=>{for(const key of eventSets.keys())if(key.target===target&&key.type===type&&key.fn===fn)eventSets.delete(key);};target.dispatchEvent=e=>{e.stopImmediatePropagation ||= ()=>{e.stopped=true;};for(const key of [...eventSets.keys()])if(key.target===target&&key.type===e.type){key.fn(e);if(e.stopped)break;}return true;};return target;}
+ const eventSets=new Map();
+ function events(target){target.addEventListener=(type,fn,options={})=>{const key={target,type,fn};eventSets.set(key,true);options.signal?.addEventListener('abort',()=>eventSets.delete(key),{once:true});};target.removeEventListener=(type,fn)=>{for(const key of eventSets.keys())if(key.target===target&&key.type===type&&key.fn===fn)eventSets.delete(key);};target.dispatchEvent=e=>{e.stopImmediatePropagation ||= ()=>{e.stopped=true;};const pendingListeners=[...eventSets.keys()];for(const key of pendingListeners)if(key.target===target&&key.type===e.type){key.fn(e);if(e.stopped)break;}return true;};return target;}
  const decode=s=>s.replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&gt;','>');
  class Node{
   constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.attrs={};this.dataset={};this.style={};this.value='';this._text='';this.hidden=false;this.files=[];events(this);this.classList={toggle:(name,force)=>{const set=new Set(this.className.split(' ').filter(Boolean));const on=force===undefined?!set.has(name):force;if(on)set.add(name);else set.delete(name);this.className=[...set].join(' ');},contains:name=>this.className.split(' ').includes(name)};}
@@ -17,6 +17,6 @@ export function feedbackDOM(){
   querySelectorAll(selector){const out=[];const visit=n=>{for(const c of n.children){if(selector.split(',').some(s=>c.matches(s)))out.push(c);visit(c);}};visit(this);return out;}querySelector(s){return this.querySelectorAll(s)[0]||null;}closest(s){return this.matches(s)?this:this.parentElement?.closest(s)||null;}
   contains(node){return this===node||this.children.some(c=>c.contains(node));}getRootNode(){return this.parentElement?.getRootNode()||this;}focus(){document.activeElement=this;}getBoundingClientRect(){return this.rect||{left:0,top:0,width:0,height:0,right:0,bottom:0};}scrollIntoView(){}
  }
- document=events({createElement:tag=>new Node(tag)});document.documentElement=new Node('html');document.documentElement.lang='zh';document.head=new Node('head');document.body=new Node('body');document.documentElement.append(document.head,document.body);document.querySelector=s=>document.documentElement.querySelector(s);document.querySelectorAll=s=>document.documentElement.querySelectorAll(s);
+ const document=events({createElement:tag=>new Node(tag)});document.documentElement=new Node('html');document.documentElement.lang='zh';document.head=new Node('head');document.body=new Node('body');document.documentElement.append(document.head,document.body);document.querySelector=s=>document.documentElement.querySelector(s);document.querySelectorAll=s=>document.documentElement.querySelectorAll(s);
  return {Node,document,events,eventSets};
 }

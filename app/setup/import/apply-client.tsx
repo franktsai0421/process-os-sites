@@ -3,11 +3,14 @@ import {useEffect,useRef,useState} from 'react';
 import {createOwnerApplier} from '@/lib/snapshot-owner-applier.mjs';
 import {recoverOwnerCopy} from '@/lib/snapshot-owner-copy-recovery.mjs';
 import type {ImportConfiguration} from './upload-client';
+// Stage is authored by this UI or the fixed owner runner's emit(), not copied from an HTTP response.
+type Report={stage:string;[key:string]:unknown};
 export default function ApplyClient({pins,repairCopy=false}:ImportConfiguration&{repairCopy?:boolean}){
  const controller=useRef<AbortController|null>(null),busy=useRef(false),recoveryAttempted=useRef(false);
- const [running,setRunning]=useState(false),[report,setReport]=useState<Record<string,unknown>>({stage:'idle'}),[elapsed,setElapsed]=useState(0);
+ const [recoveryUsed,setRecoveryUsed]=useState(false);
+ const [running,setRunning]=useState(false),[report,setReport]=useState<Report>({stage:'idle'}),[elapsed,setElapsed]=useState(0);
  useEffect(()=>()=>controller.current?.abort(),[]);
- async function start(){if(busy.current||repairCopy&&recoveryAttempted.current)return;if(repairCopy)recoveryAttempted.current=true;busy.current=true;setRunning(true);const abort=new AbortController();controller.current=abort;const began=Date.now();const timer=setInterval(()=>setElapsed(Date.now()-began),1000);
+ async function start(){if(busy.current||repairCopy&&recoveryAttempted.current)return;if(repairCopy){recoveryAttempted.current=true;setRecoveryUsed(true);}busy.current=true;setRunning(true);const abort=new AbortController();controller.current=abort;const began=Date.now();const timer=setInterval(()=>setElapsed(Date.now()-began),1000);
   try{if(repairCopy){setReport({stage:'checking'});const recovery=await recoverOwnerCopy({origin:pins.origin,request:(url:string,options:RequestInit)=>fetch(url,options),signal:abort.signal});if(recovery.status!=='recovered'){setReport({stage:'stopped',...recovery});return;}}const runner=await createOwnerApplier({pins,request:(url:string,options:RequestInit)=>fetch(url,options),signal:abort.signal,onProgress:async p=>setReport(p)});const result=await runner.run({allowApply:true,allowActivation:true});setReport(old=>({...old,...result}));}
   catch{setReport({stage:'stopped',code:'OWNER_APPLY_START_FAILED'});}
   finally{clearInterval(timer);busy.current=false;controller.current=null;setRunning(false);}}
@@ -21,7 +24,7 @@ export default function ApplyClient({pins,repairCopy=false}:ImportConfiguration&
   <p>共享容量餘額未知；沿用固定預算。衝突、額度、付款要求或結果不明即停止；不自動重送。不刪除原始資料或暫存。關閉頁面會停止後續送出。</p>
   <p>Dung lượng dùng chung chưa xác định; dùng giới hạn đã duyệt. Dừng khi xung đột, thiếu dung lượng, yêu cầu thanh toán hoặc kết quả không rõ. Không tự gửi lại, không xóa dữ liệu gốc. Đóng trang sẽ dừng yêu cầu tiếp theo.</p>
   <p>目標 / Đích: {pins.projectId} · {pins.manifestSha256}</p>
-  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><button disabled={running||stage==='active'||repairCopy&&recoveryAttempted.current} onClick={()=>void start()} style={{minHeight:44}}>套用資料並啟用 / Áp dụng và kích hoạt</button><button disabled={!running} onClick={()=>{controller.current?.abort();setReport(old=>({...old,stage:'stopping'}));}} style={{minHeight:44}}>停止 / Dừng</button></div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><button disabled={running||stage==='active'||repairCopy&&recoveryUsed} onClick={()=>void start()} style={{minHeight:44}}>套用資料並啟用 / Áp dụng và kích hoạt</button><button disabled={!running} onClick={()=>{controller.current?.abort();setReport(old=>({...old,stage:'stopping'}));}} style={{minHeight:44}}>停止 / Dừng</button></div>
   {report.receiptState==='recovered'&&<p><a href="?continue=apply">恢復收據已確認；重新開啟一般套用入口 / Đã xác nhận khôi phục; mở lại trang áp dụng</a></p>}
   <p>本次耗時 / Thời gian: {Math.floor(elapsed/1000)} s</p>
   <section aria-live="polite" style={{background:'#f5f2ea',padding:16}}><h2>{labels[stage]||stage}</h2>

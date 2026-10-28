@@ -2,9 +2,11 @@
 import {useEffect,useRef,useState} from 'react';
 import {createOwnerVerifier} from '@/lib/snapshot-owner-verifier.mjs';
 import type {ImportConfiguration} from './upload-client';
+// Stage is authored by this UI or the fixed owner runner's emit(), not copied from an HTTP response.
+type Report={stage:string;[key:string]:unknown};
 export default function VerifyClient({pins}:ImportConfiguration){
  const controller=useRef<AbortController|null>(null),busy=useRef(false);
- const [running,setRunning]=useState(false),[report,setReport]=useState<Record<string,unknown>>({stage:'idle'}),[elapsed,setElapsed]=useState(0);
+ const [running,setRunning]=useState(false),[report,setReport]=useState<Report>({stage:'idle'}),[elapsed,setElapsed]=useState(0);
  useEffect(()=>()=>controller.current?.abort(),[]);
  async function start(){if(busy.current)return;busy.current=true;setRunning(true);const abort=new AbortController();controller.current=abort;const startAt=Date.now();const timer=setInterval(()=>setElapsed(Date.now()-startAt),1000);
   try{const runner=await createOwnerVerifier({pins,request:(url:string,options:RequestInit)=>fetch(url,options),signal:abort.signal,onProgress:async p=>{setReport(p);}});const result=await runner.run();setReport(old=>({...old,...result}));}
