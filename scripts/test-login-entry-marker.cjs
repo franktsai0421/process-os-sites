@@ -1,7 +1,7 @@
 /* Actual standalone submit function in isolated React/event/transport ports.
  * Only synthetic storage/login responses. No browser, cookie or credential use. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),ts=require('typescript'),{createHash}=require('node:crypto');
-const root=process.env.FOURTH_SOURCE||process.cwd(),file='app/login/page.tsx',text=fs.readFileSync(path.join(root,file),'utf8'),tree=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let submit,attempt,effect;
+const root=process.env.FOURTH_SOURCE||process.cwd(),file='app/login/login-client.tsx',text=fs.readFileSync(path.join(root,file),'utf8'),tree=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let submit,attempt,effect;
 function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text==='submit')submit=n.getText(tree);if(ts.isVariableDeclaration(n)&&n.name.getText(tree)==='attempt')attempt='const '+n.getText(tree)+';';if(ts.isCallExpression(n)&&n.expression.getText(tree)==='useEffect'&&n.getText(tree).includes('attempt.current++'))effect=n.getText(tree)+';';ts.forEachChild(n,visit);}visit(tree);assert(submit);
 const code=ts.transpileModule((attempt||'const attempt={current:0};')+'\n'+(effect||'')+'\n'+submit+';this.runSubmit=submit;this.invalidate=()=>{attempt.current++;};',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const {loginDestination}=require(path.join(root,'lib/login-destination.mjs'));

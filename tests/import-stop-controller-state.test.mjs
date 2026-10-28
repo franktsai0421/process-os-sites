@@ -39,10 +39,12 @@ void test('render uses an availability state, retaining original controller assi
  assert.match(source,/disabled=\{!busy\|\|!controllerAvailable\} onClick=\{\(\)=>abort\.current\?\.abort\(\)\}/);
  assert.doesNotMatch(source,/disabled=\{[^}]*abort\.current/);
 });
-void test('actual React server render keeps Stop disabled and the native login link unchanged',()=>{
+void test('actual React server render keeps Stop disabled and native top-level login destination unchanged',()=>{
  const html=renderToStaticMarkup(React.createElement(ImportClient,{pins:{projectId:'synthetic',origin:'https://synthetic.invalid',ownerId:'fixture',targetFingerprint:'fixture',manifestSha256:'0'.repeat(64)},capacity:null,bootstrapClosed:true}));
  assert.match(html,/<button disabled=""[^>]*>停止送出並核對最後收據/);
- assert.match(html,/<a href="\/login\?next=%2Fsetup%2Fimport" target="_top">/);
+ assert.match(html,/<form action="\/login" method="get" target="_top">/);
+ assert.match(html,/<input type="hidden" name="next" value="\/setup\/import"\/>/);
+ assert.match(html,/<button type="submit"[^>]*>登入後返回匯入頁/);
 });
 void test('availability is set synchronously after admission and retained through upload and restore',async()=>{
  const opened=deferred(),uploaded=deferred(),restored=deferred();let signal,uploads=0,restores=0;

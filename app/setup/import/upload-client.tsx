@@ -68,6 +68,6 @@ export default function ImportClient({pins,capacity,attempt,budget,retirement,bo
   <label style={{display:'block',padding:12}}><input type="checkbox" disabled={busy} checked={activate} onChange={e=>setActivate(e.target.checked)}/> 完整核對後才啟用資料 / Chỉ kích hoạt sau khi kiểm tra đầy đủ</label>
   <button disabled={busy||!ready||(!capacity&&!attempt)||!bootstrapClosed||receiptUncertain||liveBudget?.state==='stopped'||liveBudget?.inFlight} onClick={upload} style={{...controls,background:'#1e40af',color:'#fff'}}>批次上傳、核對及還原 / Tải theo lô, kiểm tra và khôi phục</button>
   <button disabled={!busy||!controllerAvailable} onClick={()=>abort.current?.abort()} style={controls}>停止送出並核對最後收據 / Dừng gửi và kiểm tra biên nhận cuối</button>
-  <p><output aria-live="polite">{message}</output></p><a href="/login?next=%2Fsetup%2Fimport" target="_top">登入後返回匯入頁 / Đăng nhập rồi quay lại trang nhập</a>
+  <p><output aria-live="polite">{message}</output></p><form action="/login" method="get" target="_top"><input type="hidden" name="next" value="/setup/import"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>登入後返回匯入頁 / Đăng nhập rồi quay lại trang nhập</button></form>
  </main>;
 }

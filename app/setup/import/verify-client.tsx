@@ -30,7 +30,7 @@ export default function VerifyClient({pins}:ImportConfiguration){
    {typeof report.code==='string'&&<p>{report.code}</p>}
    {report.uncertain===true&&<p>結果尚待確認，已停止；不會自動重送。 / Kết quả chưa được xác nhận; đã dừng, không tự gửi lại.</p>}
   </section>
-  {stage==='sealed'&&<p><a href="/setup/import?continue=apply">套用已核對資料並啟用 / Áp dụng dữ liệu đã kiểm toán</a></p>}
-  <a href="/login?next=%2Fsetup%2Fimport%3Fcontinue%3Dverify">登入並返回 / Đăng nhập và quay lại</a><p><a href="/setup/import">資料匯入頁 / Trang nhập dữ liệu</a></p>
+  {stage==='sealed'&&<form action="/setup/import" method="get"><input type="hidden" name="continue" value="apply"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>套用已核對資料並啟用 / Áp dụng dữ liệu đã kiểm toán</button></form>}
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><form action="/login" method="get"><input type="hidden" name="next" value="/setup/import?continue=verify"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>登入並返回 / Đăng nhập và quay lại</button></form><form action="/setup/import" method="get"><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>資料匯入頁 / Trang nhập dữ liệu</button></form></div>
  </main>;
 }

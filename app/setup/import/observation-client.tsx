@@ -28,6 +28,6 @@ export default function ObservationClient(){
   <button style={button} disabled={busy||hasUsed||value?.status!=='ready'} onClick={()=>void request('POST')}>執行一次觀察 / Kiểm tra một lần</button>
   <button style={button} disabled={busy} onClick={()=>void request('GET')}>只讀取收據 / Chỉ xem biên nhận</button>
   {value&&<dl><dt>狀態 / Trạng thái</dt><dd>{value.status}</dd><dt>階段 / Giai đoạn</dt><dd>{value.stage}</dd><dt>Bytes</dt><dd>{value.size??'—'}</dd><dt>SHA-256</dt><dd>{value.sha256??'—'}</dd><dt>耗時 / Thời gian (ms)</dt><dd>{value.elapsedMs}</dd></dl>}
-  <p><a href="/login?next=%2Fsetup%2Fimport">登入 / Đăng nhập</a> · <a href="/setup/import">返回匯入頁 / Về trang nhập</a></p>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><form action="/login" method="get"><input type="hidden" name="next" value="/setup/import"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>登入 / Đăng nhập</button></form><form action="/setup/import" method="get"><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>返回匯入頁 / Về trang nhập</button></form></div>
  </main>;
 }
