@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, perf/fqc-process-bounded-writes-clean-20261028]
+    branches: [main, perf/fqc-process-bounded-writes-clean-20261028, perf/process-fqc-fullflow-20261028]
 permissions:
   contents: read
 concurrency:
@@ -172,6 +172,12 @@ jobs:
         id: head_validation_06
         if: ${{ !cancelled() && steps.head_validation_05.outcome == 'success' }}
         run: |
+          node scripts/test-tooling-ui-request.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-tooling-workflow-request.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-tooling-checks-input.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-record-mutation.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-process-save-record-mutation.cjs
