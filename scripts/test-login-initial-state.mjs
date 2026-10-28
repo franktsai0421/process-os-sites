@@ -33,7 +33,7 @@ export function loadLoginModules(ports={},sources={}){
  }
  return{Page:load(pageFile).default,Client:load(clientFile).default};
 }
-function nodeText(source,predicate){const tree=ts.createSourceFile('fixture.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let found;function visit(node){if(predicate(node))found=node.getText(tree);ts.forEachChild(node,visit);}visit(tree);assert.ok(found);return found;}
+function nodeText(source,predicate){source=source.replace(/\r\n/g,'\n');const tree=ts.createSourceFile('fixture.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let found;function visit(node){if(predicate(node))found=node.getText(tree);ts.forEachChild(node,visit);}visit(tree);assert.ok(found);return found;}
 export async function verifyInitialState(){
  const checks=[],{Page}=loadLoginModules(),{renderToString}=requireModule('react-dom/server');
  const cases=[
@@ -71,7 +71,10 @@ export async function verifyInitialState(){
  checks.push('historical SSR reproduces fixed process A before any effect');
  for(const name of ['submit','chooseSystem'])assert.equal(nodeText(source,n=>ts.isFunctionDeclaration(n)&&n.name?.text===name),nodeText(previous,n=>ts.isFunctionDeclaration(n)&&n.name?.text===name));
  const cleanup=s=>nodeText(s,n=>ts.isCallExpression(n)&&n.expression.getText()==='useEffect'&&n.getText().includes('attempt.current++'));
- assert.equal(cleanup(source),cleanup(previous));checks.push('submit chooseSystem and attempt cleanup exact historical source');
+ assert.equal(cleanup(source),cleanup(previous));
+ for(const name of ['submit','chooseSystem']){const select=n=>ts.isFunctionDeclaration(n)&&n.name?.text===name;assert.equal(nodeText(source.replace(/\r?\n/g,'\r\n'),select),nodeText(previous,select));}
+ assert.throws(()=>assert.equal(nodeText(source.replace('async function submit(', 'async function alteredSubmit('),n=>ts.isFunctionDeclaration(n)&&n.name?.text==='alteredSubmit'),nodeText(previous,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='submit')),{code:'ERR_ASSERTION'});
+ checks.push('submit chooseSystem and attempt cleanup canonical historical source; LF/CRLF equivalent, code changes rejected');
  // Run the actual unchanged submit closure: destination must be read after ACK,
  // not reconstructed from the server-provided initial values or captured at submit.
  const submit=nodeText(source,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='submit');

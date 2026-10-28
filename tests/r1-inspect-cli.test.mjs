@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync,execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {test,after} from 'node:test';
+import {readR1InspectPairPath} from '../lib/r1-inspect-cli.mjs';
+import {inspectSourceBytes} from '../scripts/sites-ci-preflight.mjs';
+const repo=fileURLToPath(new URL('../',import.meta.url)),script=path.join(repo,'scripts/r1-inspect-local.mjs');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'r1-inspect-explicit-'));
+after(()=>fs.rmSync(root,{recursive:true,force:true}));
+let serial=0;
+const own=()=>{const p=path.join(root,'case-'+serial++);fs.mkdirSync(p);return p;};
+const pinned={bytes:1781028009,sha256:'b986fdf80859488aaf5f712f591b9fbeb53a1ec2752102e9c310c826e4765714'};
+function invoke(args,cwd,report){const env={...process.env};delete env.R1_PREFLIGHT_REPORT;delete env.R1_PREFLIGHT_STRUCTURE_ONLY;if(report)env.R1_PREFLIGHT_REPORT=report;return spawnSync(process.execPath,[script,...args],{cwd,env,encoding:'utf8',timeout:10000});}
+for(const args of [[],['--pair'],['--other','owned.json'],['--pair','a','--pair','b'],['--pair',''],['--pair','--help'],['--pair','a\0b'],['--pair',null]])void test('explicit pair argument rejects malformed shape '+JSON.stringify(args),()=>{assert.throws(()=>readR1InspectPairPath(args),/R1_INSPECT_PAIR_ARGUMENT_REQUIRED/);});
+void test('explicit path is returned exactly, without hidden default, environment discovery or normalization',()=>{for(const p of ['relative.json','sub/pair file #1.json',path.join(root,'pair.json')])assert.equal(readR1InspectPairPath(['--pair',p]),p);});
+void test('all selected-content pins, decoder, metadata output, close and report preserve canonical source across LF/CRLF checkouts',()=>{
+ const old=execFileSync('git',['show','3ab803c074a6cb56027963614dc0bf48116874aa'],{cwd:repo,encoding:'utf8'});
+ const bytes=Buffer.from(old);assert.equal(createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex'),'3ab803c074a6cb56027963614dc0bf48116874aa');
+ const original=old.split('\n'),actual=fs.readFileSync(script,'utf8');
+ assert.match(original[6],/^const base='[^']+',source=/);assert.match(original[7],/^const pair=JSON.parse\(fs.readFileSync\(/);
+ const expected=[...original];expected[6]=expected[6].replace(/^const base='[^']+',source=/,'const source=');expected[7]="const pair=JSON.parse(fs.readFileSync(readR1InspectPairPath(process.argv.slice(2)),'utf8'));";expected.splice(6,0,"import {readR1InspectPairPath} from '../lib/r1-inspect-cli.mjs';");
+ const check=value=>assert.deepEqual(value.replace(/\r\n/g,'\n').split('\n'),expected);check(actual);check(actual.replace(/\r?\n/g,'\r\n'));assert.throws(()=>check(actual.replace('R1_PAIR_PIN_MISMATCH','R1_PIN_SKIPPED')),{code:'ERR_ASSERTION'});assert.match(actual,/expectedBytes:input.bytes,expectedSha256:input.sha256/);
+});
+void test('new portable script and helper pass the unmodified source guard with no exceptions',()=>{for(const f of ['scripts/r1-inspect-local.mjs','lib/r1-inspect-cli.mjs','tests/r1-inspect-cli.test.mjs'])assert.deepEqual(inspectSourceBytes(f,fs.readFileSync(path.join(repo,f)),{entries:[]}),[]);});
+for(const args of [[],['--pair'],['--unknown','pair.json'],['--pair','pair.json','extra']])void test('normal CLI rejects invalid arguments before selecting any source '+JSON.stringify(args),()=>{const cwd=own(),result=invoke(args,cwd);assert.equal(result.status,1);assert.match(result.stderr,/R1_INSPECT_PAIR_ARGUMENT_REQUIRED/);assert.doesNotMatch(result.stderr,/ENOENT/);assert.equal(result.stdout,'');assert.deepEqual(fs.readdirSync(cwd),[]);});
+for(const change of [{bytes:22},{sha256:'0'.repeat(64)}])void test('metadata pin mismatch refuses before opening an unavailable package '+Object.keys(change)[0],()=>{const cwd=own(),pair=path.join(cwd,'pair.json');fs.writeFileSync(pair,JSON.stringify({data:{...pinned,...change,path:path.join(cwd,'must-not-open.zip')}}));const before=fs.readFileSync(pair);const result=invoke(['--pair',pair],cwd);assert.equal(result.status,1);assert.match(result.stderr,/R1_PAIR_PIN_MISMATCH/);assert.doesNotMatch(result.stderr,/ENOENT/);assert.equal(result.stdout,'');assert.deepEqual(fs.readFileSync(pair),before);assert.deepEqual(fs.readdirSync(cwd),['pair.json']);});
+void test('real ZIP admission still rejects a tiny synthetic package despite pinned metadata, without changing inputs',()=>{const cwd=own(),body=path.join(cwd,'synthetic.zip'),pair=path.join(cwd,'pair file #1.json');fs.writeFileSync(body,Buffer.alloc(22));fs.writeFileSync(pair,JSON.stringify({data:{...pinned,path:body}}));const before=fs.readFileSync(body);const result=invoke(['--pair',path.basename(pair)],cwd);assert.equal(result.status,1,result.stderr);const report=JSON.parse(result.stdout);assert.equal(report.status,'STOPPED_METADATA_CONTRACT');assert.equal(report.error,'R1_ZIP_INPUT_SIZE');assert.deepEqual(report.input,pinned);assert.deepEqual(report.scope,{readOnly:true,rowsLogged:false,SQLExecuted:false,outputData:false,SDK:false,network:false});assert.deepEqual(fs.readFileSync(body),before);assert.deepEqual(fs.readdirSync(cwd).sort(),[path.basename(pair),'synthetic.zip'].sort());fs.renameSync(body,body+'.closed');fs.renameSync(body+'.closed',body);});
+void test('optional report retains exclusive creation and never overwrites an existing file',()=>{const cwd=own(),body=path.join(cwd,'synthetic.zip'),pair=path.join(cwd,'pair.json'),report=path.join(cwd,'report.json');fs.writeFileSync(body,Buffer.alloc(22));fs.writeFileSync(pair,JSON.stringify({data:{...pinned,path:body}}));const first=invoke(['--pair',pair],cwd,report);assert.equal(first.status,1);assert.equal(JSON.parse(fs.readFileSync(report,'utf8')).error,'R1_ZIP_INPUT_SIZE');const before=fs.readFileSync(report),second=invoke(['--pair',pair],cwd,report);assert.equal(second.status,1);assert.match(second.stderr,/EEXIST/);assert.deepEqual(fs.readFileSync(report),before);});

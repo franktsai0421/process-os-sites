@@ -1794,7 +1794,6 @@
   window.addEventListener('beforeunload', (e) => {
     if (docs().some((d) => dirty(d))) {
       e.preventDefault();
-      e.returnValue = '';
     }
   });
 })();
