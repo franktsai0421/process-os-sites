@@ -1,3 +1,35 @@
+## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
+
+依使用者確認，正常流程調整為「新增兩器具→正常送審及獨立核准→四品質模組移轉草稿→明確保存／送審／退回修改／重新保存及重送核准」。無草稿時依權限 Begin；已有 editable draft 不多送 Begin。四模組的 pending／returned／revised saved 階段保持原正式標準，到原核准 route 成功才更新正式引用；返回案件內容及舊 save history／R2 bytes 不變。正常權限 actual route 回歸涵蓋四模組各一項標準；AB 採整份 module 審核，C 完整歷史內容由 fixture core.readState 核對，並非目的頁原生控件驗收。
+
+用過的器具改測「停用」而非刪除：仍被正式標準引用時，停用 saved 的 Submit 回 422／EQUIPMENT_STILL_REFERENCED 且零持久寫入；先以正常四模組移轉、保存、送審與獨立核准清除該正式引用，再停用 Save／Submit／Return／改 notes／新 Save／Resubmit／Approve。核准前正式版器具仍啟用，核准後同一 ID 保留但 enabled=false，歷史仍在；反查確認舊器具無 current 引用、目標器具四模組一致。停用審核使用實際 UI writeShared＋routes；原分類流程的版本確認另有 bound review 控件測試，不把兩者混為目的頁控件驗收。刪除另用未核准、無引用／移轉紀錄的新 draft fixture，類別／子類只刪沒有下階資料者；不更改正式／來源／引用保護。
+
+本輪只補兩個 actual suites 及流程文件，runtime／六命令 CI／shared core 與已審 d38ccbd 完全相同，沿用其未變 CPU 與安全回歸，不重跑無關大型項目。獨立審查與 exact source／log pin 另記隔離交接；無 browser、真資料、上傳或發布。這不是新業務規則或資料模型變更。
+
+## 2026-10-28 檢具同步差異索引與原流程補驗（FINAL21 隔離候選，未發布）
+
+`routine-equipment.js` 的 `snapshotChanges` 只在同一集合前後各至少 100 筆且 ID 全為字串時，建立本次同步呼叫的 first-match Map／ID Set，取代逐筆 `find`／`some`。保留 collection／row／field 的 patch 與 guard 順序、duplicate first-match、原 row reference；小集合或 legacy 非字串 ID 沿原掃描，不建立持久快取。原 32 筆樣本的時間沒有穩定改善，因此提高門檻至 100；1000／5000 筆隔離 lookup 計數分別由 2,002,001／50,010,001 降為 7,001／35,001。這只改善同步差異計算的 CPU 工作；不減任何授權、引用、I/O、CAS、pending、receipt 或故障檢查，不代表實站／原生畫面速度。
+
+新增 paired 實際函式回歸 `test-routine-equipment-snapshot-changes.cjs`，完整比較有序 patches／guards、無變更、移除／新增、首筆重複、特殊／缺漏 ID、null／sparse／非陣列的 fallback／throw、原 reference 與連續呼叫。時間樣本無 PASS 門檻；功能及 lookup 計數才斷言。此第六命令加入原 `head_validation_06` 並獨立 fail-fast，前五命令與其它 jobs／gates 保留。
+
+流程補驗使用正常 synthetic actor、實際 UI/shared transport 和記憶體 SQLite／R2 routes：新增兩類別／兩子類／兩器具；類別／子類的實際表單改名及一般照片 PUT、保留舊照；UI 拒刪有下階分類、可刪無引用且未生效的新增器具；編號／名稱搜尋、查看與編輯、Save／Submit／Return／Resubmit／Approve。四模組另建立兩個新器具，未核准目標拒絕且零 POST；經單獨明確 Save／Submit／獨立 reviewer Approve 後，再逐模組移轉與手動 Save，原正式標準／歷史不改。
+
+**原順序的既有業務邊界**：新器具須先核准才能作為四品質模組的移轉目標；已生效／來源器具即使移空引用也不能刪，只能按原規則停用。未生效且無 active／pending／draft 引用的新 draft 器具才可刪。故不能宣稱「新建→未核准即轉移→核准後刪除」照原順序全部通過，更沒有為測試放寬保護。每步 timing 是 fixture／handler／synthetic DOM，不是 browser 進頁或原生渲染；瀏覽器維持未執行。資料模型及 shared core 無變更。
+
+## 2026-10-28 檢具 Begin／跨品質移轉隔離候選（未發布）
+
+範圍僅 `routine-equipment.js`（檢具與測試設備），不是 `tooling.js`（模具設備）。既有 shared transport 的 15 秒 timeout 不變；Begin 失去回應後以 actor／active baseline／generation 記錄 unknown，只做一次 GET，不能把匹配草稿歸因為原 POST 成功。普通重讀不清 unknown；使用者按「重新檢查並進入已存在草稿」後，以原權限、scope、唯一草稿、creator／已知 draft、projection 及 owner/epoch/delivery/view 核對，才選擇既有草稿。保留未套用內容；不重送 Begin、不自動 Apply。離開或換帳號的晚回應不得接管，自己的 busy latch 仍須釋放。
+
+四品質模組移轉綁定原 actor／view／版本／來源／目標／勾選意圖；先 flush 已排入目標 client 的操作，再核對意圖後送 guarded Apply。target Begin unknown 以精確 endpoint+AB scope+意圖隔離；首次中止，後續明確 GET-only 復核仍不 Apply，需再次核對清單後移轉。既有 editable draft 不多送 Begin，pending/CAS/權限仍交原後端；AB unknown 停止後續 scope，其他 scope conflict 明列部分結果。只更新 working，不替使用者 Save、Submit 或 Approve。
+
+編輯用引用 display 的四個既有讀取平行且同意圖 single-flight；模組失敗獨立呈現，寫入/引用更新事件使舊 in-flight 失效。刪除的 strict fresh/fail-closed 路徑不平行化。未增加背景輪詢。類別／子類別／設備目前已使用單一 `accept="image/*"` 上傳；沒有另設照片規格篩選，業務「規格群組」及設備規格不得誤刪，舊照片不移除。
+
+隔離測試入口：`test-routine-equipment-begin-recovery.cjs`、`test-routine-equipment-transfer-intent.cjs`（full UI/shared transport，synthetic DOM/HTTP）；`test-routine-equipment-isolated-workflow.cjs`、`test-routine-equipment-four-module-transfer.cjs`（正常 synthetic 登入/審核與真 SQLite/R2 route handlers）。後者涵蓋四模組 Begin 失 ACK→GET-only 選既有草稿→明確移轉、existing draft 更新及 pending race；另以原授權 actual route 明確執行目的模組 Save（AB 為既有整份模組 Save），fresh read 確認持久快照，後續改 working 不改舊 saved／formal／case 與既有 object bytes；C 另以公開 workflow GET 核對 saved id/revision，完整 saved content 由 core.readState 核驗；另以原 shared client 接真 fixture routes，每輪先以正常移轉改 working，斷言新 saved id／save history +1／receipt.unchanged=false 與舊 snapshot 不變，再驗證四模組 Save 已 commit 失 ACK 時只查 receipt、receipt 503 時保留 unknown／阻止再次 Save POST、再以明確 GET 確認；不改 receipt 或重試政策。此段不是目的頁面的 browser 控件測試，亦未涵蓋目的頁面所有前置 Begin 控件。equipment suite 涵蓋 2 類別/2 子類/2 設備、只刪各一筆新 fixture、照片與原歷史保留、Save/Submit/Return/Resubmit/Approve。版本確認沿 shell `#review-equipment`，不是 authoring 正式版。
+
+續修候選將四個新 suite 與修正後 session 契約共五命令加入既有 Local safety／head_validation_06，各命令保留獨立非零退出；不改其他 jobs、gates、permissions 或部署邊界。Node 24／鎖定 TypeScript／記憶體 SQLite-R2 沿既有依賴，官方 Windows CI 仍待獨立 PR 執行。
+
+耗時只代表隔離 JS/handler；不構成 browser、native load/render、實站速度或 accessibility 驗收。未改資料模型、server writer、ACL、shared kernel、歷史或發布狀態。舊 session-recovery group 2 的「403 後自動 polling 恢復權限」期待與原基準 scoped read-pause 契約衝突，原 FAIL 證據保留；本次只修測試期待並加強第二 poll 零 GET／仍拒絕、明確 GET 成功與失敗／actor 漂移不恢復，原投影與輸入保全斷言保留。新契約完整 9 組通過；不是 runtime 權限修復，也不是 CI 或 browser 驗收。
+
 ## 2026-10-28 FQC 規則長文與矩陣雙軸顯示（本機候選，未發布）
 
 檢查規則 badge 以欄寬為上限，長中越文及無空白自訂內容完整換行，不截斷、不侵入包含產品／操作欄；項目表保留固定欄與內部橫捲，操作鈕可分行。矩陣的 `✓`／`—` 只代表已納入／未納入該產品標準，與項目的啟用狀態分開；只有 `isEnabled === false` 在項目列標題顯示雙語停用 badge，legacy 未提供值與既有編輯 checkbox／項目清單相同視為啟用。停用但已選的產品仍保留 `✓`，不得用停用文字取代原選擇。雙語圖例及每格 aria-label 同時說明兩個狀態。

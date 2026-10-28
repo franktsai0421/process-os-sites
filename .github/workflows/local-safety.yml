@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, perf/fqc-process-bounded-writes-clean-20261028]
+    branches: [main, perf/fqc-process-bounded-writes-clean-20261028, perf/process-fqc-fullflow-20261028]
 permissions:
   contents: read
 concurrency:
@@ -233,6 +233,18 @@ jobs:
           node scripts/test-equipment-reference-view.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-routine-equipment-edit-open-race.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-begin-recovery.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-transfer-intent.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-session-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-isolated-workflow.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-four-module-transfer.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-routine-equipment-snapshot-changes.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-equipment-full-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

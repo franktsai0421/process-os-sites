@@ -1,3 +1,25 @@
+## 2026-10-28 — 依確認保留保護的檢具測試流程（隔離補驗）
+
+- 新增兩器具先正常核准才接收移轉；四模組分無草稿／已有草稿，加入退回後真正改選器具、新 Save、重送與獨立核准，正式標準只在核准後改變。
+- 用過器具測停用：有正式引用時拒絕送審；正常移轉並核准清引用後，停用／退回修改／重新保存重送核准，同 ID 與歷史保留。刪除只測另一未核准無引用的新 draft。
+- 僅兩個 actual regression 與文件，runtime／CI／授權／CAS／receipt／刪除保護不動；無 browser／live／上傳。詳見 [QUALITY](modules/QUALITY.md)。
+
+## 2026-10-28 — 檢具差異計算與完整流程補驗（隔離候選，未發布）
+
+- 同步 Apply 差異計算改為大集合單次 first-match 索引，小集合／legacy fallback；不減 I/O、ACL、CAS、receipt 或故障檢查。CPU 樣本不是實站速度。
+- 在原草稿／四模組移轉與失 ACK 保存回歸上，補類別／子類一般照片修改、查看／編輯／搜尋、正常 UI 刪除保護及新兩器具四模組移轉保存。
+- 明確保留「目標先核准」及「已生效器具不可刪」邊界；未核准拒轉與核准後拒刪皆有零寫入負測，不冒稱原需求順序完全可行。
+- 新 paired lookup suite 加入既有 CI，保留獨立 fail-fast；兩頁獨立 PR，未上傳／發布／執行 browser。細節與限制見 [QUALITY](modules/QUALITY.md)。
+
+## 2026-10-28 — 檢具 Begin 與跨品質移轉安全候選（未發布）
+
+- 續修只補 CI 五命令註冊與四模組明確 Save／fresh read／舊 saved 不變及失 ACK→receipt／UNKNOWN 不重送的 actual-route 證據（AB 整份 Save）；不新增 runtime 修正，不冒稱目的頁面 browser 或正式 CI 已驗收。
+
+- routine-equipment 的 Begin unknown 改為保留結果不確定、明確 GET-only 選擇匹配既有草稿；不提高 deadline、不重 POST、不自動串接 Apply。
+- 跨 FQC/IQC/IPQC-C/IPQC-AB 固定意圖、目標 client queue drain、精確 scope unknown 防護；display 引用平行/single-flight 並在寫後使舊讀取失效，strict delete 不變。
+- 舊 403 polling 測試契約對齊既有 scoped-read-pause：加強自動讀取零重送、明確 GET 成功／失敗與換帳號保護；不改 shared guard 或權限行為，保留舊失敗證據。
+- 新增 full UI/synthetic DOM 與正常權限 actual-handler 隔離流程回歸；分開記錄能力邊界，無資料模型或 live 記錄變更。見 [品質模組](modules/QUALITY.md)。
+
 ## 2026-10-28 剩餘 lint 與 Windows 測試相容性 / Remaining lint and Windows test compatibility
 - 匯入頁改採 per-mount 原始 query snapshot；SSR/loading、exact observe/continue 與原 mount-only 行為保留，取消的 config 回覆不採用。Hydration 的 config GET 晚一個 commit，非速度改善；proxy、帳號權限與寫入保護不變。
 - Native URL observer uses own data-method descriptors without changing dynamic receivers, wrapper order, resource assertions or context lifetime. Portable synthetic tests do not replace native browser acceptance.
