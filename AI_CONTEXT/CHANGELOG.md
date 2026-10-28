@@ -1,3 +1,11 @@
+## 2026-10-28 剩餘 lint 與 Windows 測試相容性 / Remaining lint and Windows test compatibility
+- 匯入頁改採 per-mount 原始 query snapshot；SSR/loading、exact observe/continue 與原 mount-only 行為保留，取消的 config 回覆不採用。Hydration 的 config GET 晚一個 commit，非速度改善；proxy、帳號權限與寫入保護不變。
+- Native URL observer uses own data-method descriptors without changing dynamic receivers, wrapper order, resource assertions or context lifetime. Portable synthetic tests do not replace native browser acceptance.
+- 經使用者明確同意，Spinner 以 output 包裝並保持 SVG ref/事件/大小/動畫；form="" 防止 form.reset 清除 SVG。Routine FQC 移除 legacy returnValue，保留 dirty/preventDefault/manual Save；新版 Chrome/Edge 能力界線與未驗證項目詳見 LINT_CONTRACT_POLICY。
+- R1 inspection now requires an explicit --pair argument. Existing fixed-content pin, decoder, metadata-only reporting and exclusive output remain; no real package was read or imported. Source guard and reviewed historical blobs are unchanged.
+- Windows child-node preload uses file URL; source-bound regression comparisons normalize CRLF only and still reject non-line-ending mutations while retaining historical raw hashes. Native Windows CI is still required; the separate 9000-byte compiled transport ECONNRESET is not declared fixed.
+- 本批測試、型別、建置與 lint 以精確整合收據為準；不把原生瀏覽器/AT/離頁提醒未驗當通過，不合併或發布。Both PRs remain draft until all independent CI and review blockers are resolved.
+
 ## 2026-10-28 登入初始意圖 / Server-owned initial login intent
 - 登入頁以正式server searchParams（保留重複值）交原loginIntent判斷初始系統／線別，SSR與hydration不再先顯process/A再跳動。
 - Initial system/line now come from the server entry through the unchanged intent allowlist. Manual choices persist; submit still reads the current URL after its actual response, with original attempt fencing, marker handling and authorization.

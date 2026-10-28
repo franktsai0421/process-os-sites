@@ -140,6 +140,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/management-navigation-actions.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/sites-delivery-url-observer.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --import tsx --test tests/import-entry-snapshot.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/r1-inspect-cli.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/spinner-contract.test.mjs tests/routine-fqc-unload-contract.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-binary-address.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/snapshot-owner-stream.test.mjs
