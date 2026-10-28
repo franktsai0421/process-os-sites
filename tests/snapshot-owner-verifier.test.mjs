@@ -3,7 +3,7 @@ import {createOwnerVerifier} from '../lib/snapshot-owner-verifier.mjs';import {s
 const pins={projectId:'appgprj_synthetic',origin:'https://owner.example.test',ownerId:'frank',targetFingerprint:'a'.repeat(64),manifestSha256:'b'.repeat(64)};
 async function fixture({lost=false,stall=false,wrong=false,blocked=false,refused=false,alterConfig=false,ready=false}={}){
  const id=await sha256(new TextEncoder().encode(JSON.stringify([pins.projectId,pins.targetFingerprint,pins.manifestSha256]))),controller=new AbortController(),log=[],progress=[];
- let cursor=ready?320:288,version=21,audits=0,budget={state:blocked?'stopped':'open',inFlight:false},running=0,maxRunning=0;
+ let cursor=ready?320:288,version=21,audits=0;const budget={state:blocked?'stopped':'open',inFlight:false};let running=0,maxRunning=0;
  const row=()=>({id,phase:cursor===320?'integrity-verified':'receiving',version,verifiedCursor:cursor,chunkCount:320,received:320,missing:[]});
  const request=async(url,o)=>{const u=new URL(url),action=u.searchParams.get('action')||'status';log.push({method:o.method,action,version:u.searchParams.get('version')});assert.equal(u.origin,pins.origin);assert.equal(u.pathname,'/api/snapshots/import');assert.equal(o.credentials,'same-origin');assert.equal(o.headers.Origin,pins.origin);
   if(refused)return Response.json({error:'LOGIN_REQUIRED'},{status:401});

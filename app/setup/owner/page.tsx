@@ -1,8 +1,8 @@
 'use client';
-import {useState,type FormEvent} from 'react';
+import {useState,type SyntheticEvent} from 'react';
 export default function OwnerSetup(){
  const [message,setMessage]=useState(''),[pending,setPending]=useState(false),[done,setDone]=useState(false);
- async function submit(event:FormEvent<HTMLFormElement>){
+ async function submit(event:SyntheticEvent<HTMLFormElement>){
   event.preventDefault();const form=event.currentTarget,data=new FormData(form);setPending(true);setMessage('');
   try{
    const response=await fetch('/api/setup/owner',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({bootstrapKey:data.get('bootstrapKey'),password:data.get('password'),confirmation:data.get('confirmation')})});

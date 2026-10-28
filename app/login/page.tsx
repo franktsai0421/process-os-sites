@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type SyntheticEvent} from 'react';
 import {loginDestination,loginIntent} from '@/lib/login-destination.mjs';
 import './login.css';
 
@@ -9,7 +9,7 @@ export default function Login(){
   useEffect(()=>{const query=loginIntent(window.location.search);setSystem(query.get('system')||'process');setLine(query.get('line')||'A');},[]);
   const account=useRef<HTMLInputElement>(null),attempt=useRef(0);
   useEffect(()=>()=>{attempt.current++;},[]);
-  async function submit(event:FormEvent<HTMLFormElement>){
+  async function submit(event:SyntheticEvent<HTMLFormElement>){
     event.preventDefault();if(busy)return;
     const form=new FormData(event.currentTarget);
     const player=(event.nativeEvent as SubmitEvent).submitter?.getAttribute('value')==='player';

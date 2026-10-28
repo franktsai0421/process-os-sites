@@ -150,7 +150,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       await legacyCall('begin', 'edit-only');
       await unchanged(legacy, () => legacyCall('create-error', 'submit-only', 403, { productCode: 'C100', stageCode: 'C-CUT', name: 'Denied' }));
       await legacyCall('create-error', 'edit-only', 200, { productCode: 'C100', stageCode: 'C-CUT', name: 'Synthetic legacy added' });
-      let l = await full(legacy), draft = l.versions.find(row => row.status === 'draft'), extraError = draft.snapshot.errors.at(-1);
+      let l = await full(legacy);const draft = l.versions.find(row => row.status === 'draft'),extraError = draft.snapshot.errors.at(-1);
       for (const who of ['delete-only', 'edit-only']) await unchanged(legacy, () => legacyCall('delete-error', who, 403, { id: extraError.id }));
       await legacyCall('delete-error', 'edit-delete', 200, { id: extraError.id });
       const legacySnapshot = json((await full(legacy)).versions.find(row => row.status === 'draft').snapshot); legacySnapshot.items[0].standard = '11 mm';
