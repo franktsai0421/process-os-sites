@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..'),source=process.env.PROCESS_RECOVERY_SOUR
 const code=Object.fromEntries(['shared-draft-client.js','canvas-local.js'].map(f=>[f,fs.readFileSync(path.join(source,'public/process',f),'utf8')]));
 function setup(){
  const w=JSON.stringify(['SYNTHETIC','A']),rows=Array.from({length:8},(_,i)=>({id:'node-'+i,x:100+i*50,y:100,nextIds:i===7?[]:['node-'+(i+1)]}));
- let model={generation:'generation-one',revision:1,pendingId:null,working:{workspaces:[{id:w,category:'SYNTHETIC',line:'A',stages:{'A-CUT':rows}}]}},server=copy(model),phase='success',lastCommand,receipt;
+ let model={generation:'generation-one',revision:1,pendingId:null,working:{workspaces:[{id:w,category:'SYNTHETIC',line:'A',stages:{'A-CUT':rows}}]}};const server=copy(model);let phase='success',lastCommand,receipt;
  const store=new Map(),session=new Map(),timers=new Map(),requests=[],status={textContent:'',title:''},button={textContent:'',disabled:false};let serial=0;
  const storage=map=>({getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)});
  const response=(body,status=200)=>Response.json(body,{status});

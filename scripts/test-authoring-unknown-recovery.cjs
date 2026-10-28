@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..'),source=process.env.PROCESS_RECOVERY_SOUR
 const codes=Object.fromEntries(['shared-draft-client.js','master-shared-client.js','process-authoring-v3.js'].map(f=>[f,fs.readFileSync(path.join(f==='process-authoring-v3.js'&&process.env.PROCESS_AUTHORING_SOURCE||source,'public/process',f),'utf8')]));
 const groups=[];async function check(name,fn){await fn();groups.push({name,status:'PASS'});console.log(name,'PASS');}
 async function fixture(){
- let enabled=false,modal=false,phase='lost',epoch=1,sequence=0;const id=JSON.stringify(['SYNTHETIC','A']),session=new Map(),requests=[],receipts=new Map(),errors=[];
+ let enabled=false,modal=false,phase='lost';const epoch=1;let sequence=0;const id=JSON.stringify(['SYNTHETIC','A']),session=new Map(),requests=[],receipts=new Map(),errors=[];
  const content={workspaces:[{id,category:'SYNTHETIC',line:'A',stages:{S:[{id:'node',name:'original',x:1,y:2,nextIds:[],photos:[{id:'synthetic-retained-media'}]}]}}]};
  let model={versions:[{id:'draft',status:'draft'}],workflow:kernel.createSharedDraft('process:platform',copy(content),null,'g')};
  const ctx={actor:{id:'editor',name:'Synthetic editor',admin:false},at:'synthetic',id:randomUUID,allowed:()=>true,activeId:null,semantic:x=>x,validate:()=>[],structure(){}};

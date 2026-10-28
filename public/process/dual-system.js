@@ -110,7 +110,7 @@
 
   const baseCanView = typeof canView === 'function' ? canView : () => true;
   canView = function (view) {
-    if(qualityViews[view]&&window.ProcessSync?.deliveryProjection){const module=window.ProcessDeliveryPurpose?.deliveryViews[view];return !!currentUser&&currentUser.role!=='device'&&!!module&&window.hasPermission?.(module+'.view')===true;}
+    if(qualityViews[view]&&window.ProcessSync?.deliveryProjection){const permissionModule=window.ProcessDeliveryPurpose?.deliveryViews[view];return !!currentUser&&currentUser.role!=='device'&&!!permissionModule&&window.hasPermission?.(permissionModule+'.view')===true;}
     if (qualityViews[view]) return !!(currentUser && currentUser.role !== 'device');
     return baseCanView(view);
   };
@@ -217,8 +217,8 @@
     tabs.remove();
     parent.prepend(sections);
     if(window.ProcessSync?.deliveryProjection)sections.querySelectorAll('.tab').forEach(button=>{
-      const tab=button.dataset.qualityTab||button.dataset.masterScope||button.dataset.tab,module=window.ProcessDeliveryPurpose?.deliveryTabs[tab];
-      if(module&&window.hasPermission?.(module+'.view')!==true){button.disabled=true;button.setAttribute('aria-disabled','true');}
+      const tab=button.dataset.qualityTab||button.dataset.masterScope||button.dataset.tab,permissionModule=window.ProcessDeliveryPurpose?.deliveryTabs[tab];
+      if(permissionModule&&window.hasPermission?.(permissionModule+'.view')!==true){button.disabled=true;button.setAttribute('aria-disabled','true');}
     });
     sections.querySelectorAll('[data-quality-tab]').forEach(button => {
       button.onclick = () => renderQualityDataTab(button.dataset.qualityTab, true);

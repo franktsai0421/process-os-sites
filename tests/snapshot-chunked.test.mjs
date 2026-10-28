@@ -4,9 +4,9 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {webcrypto} from 'node:crypto';
 import {rewriteChunkedManifest} from '../lib/snapshot-chunked.mjs';
-const require=createRequire(import.meta.url),ts=require(process.env.SITES_TEST_TYPESCRIPT||require.resolve('typescript')),module={exports:{}};
-vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../lib/state-chunks.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,TextEncoder,crypto:webcrypto});
-const legacy=module.exports,tests=[];
+const require=createRequire(import.meta.url),ts=require(process.env.SITES_TEST_TYPESCRIPT||require.resolve('typescript')),fixtureModule={exports:{}};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../lib/state-chunks.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:fixtureModule,exports:fixtureModule.exports,TextEncoder,crypto:webcrypto});
+const legacy=fixtureModule.exports,tests=[];
 async function test(name,run){await run();tests.push(name);console.log('PASS '+name);}
 function store(){const objects=new Map();return {objects,async put(key,raw){objects.set(key,new TextEncoder().encode(raw));},async get(key){const bytes=objects.get(key);return bytes?{size:bytes.length,body:new Blob([bytes]).stream(),async text(){return new TextDecoder().decode(bytes);}}:null;}};}
 const old='state-records/v1/'+'a'.repeat(64)+'.json',next='state-records/v1/'+'b'.repeat(64)+'.json';

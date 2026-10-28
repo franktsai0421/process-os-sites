@@ -10,7 +10,7 @@ import {restoreLocalSnapshot} from '../lib/snapshot-local.mjs';
 import {snapshotResponseBody,receiveSnapshotStream} from '../lib/snapshot-stream.mjs';
 import {prepareFeedbackZip} from '../lib/snapshot-feedback-zip.mjs';
 const require=createRequire(import.meta.url),ts=require(process.env.SITES_TEST_TYPESCRIPT||require.resolve('typescript'));
-function legacy(file){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../lib/'+file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,TextEncoder,Uint8Array,DataView,crypto:webcrypto});return module.exports;}
+function legacy(file){const fixtureModule={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(new URL('../lib/'+file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:fixtureModule,exports:fixtureModule.exports,TextEncoder,Uint8Array,DataView,crypto:webcrypto});return fixtureModule.exports;}
 const chunks=legacy('state-chunks.ts'),zipFiles=legacy('web-feedback-zip.ts').zipFiles;
 const encode=value=>new TextEncoder().encode(typeof value==='string'?value:JSON.stringify(value)),decode=bytes=>new TextDecoder().decode(bytes),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const proof={kind:'local-platform-proxy',remoteBindings:false,emptyTarget:true},tests=[],id='H-fixture-000000000001',issueId='issue_fixture_0001',attachmentId='attachment_fixture_0001',zipKey='web-feedback/v1/'+id+'.zip';

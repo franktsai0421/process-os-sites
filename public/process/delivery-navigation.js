@@ -30,7 +30,7 @@
   function clearPageModels(){
    window.QualityReviewOverview?.dispose?.();window.EffectiveVersionNotice?.reset?.();
    for(const dialog of document.querySelectorAll('body > dialog:not([open])')){for(const media of dialog.querySelectorAll('img,video')){media.pause?.();media.removeAttribute('src');}dialog.remove();}
-   for(const module of modules())module.navigation?.reset?.();
+   for(const deliveryModule of modules())deliveryModule.navigation?.reset?.();
    window.invalidateSharedDraftReads?.();
    window.ProcessNavigationForms?.clearDisconnected?.();
   }
