@@ -25,7 +25,7 @@ export default function ApplyClient({pins,repairCopy=false}:ImportConfiguration&
   <p>Dung lượng dùng chung chưa xác định; dùng giới hạn đã duyệt. Dừng khi xung đột, thiếu dung lượng, yêu cầu thanh toán hoặc kết quả không rõ. Không tự gửi lại, không xóa dữ liệu gốc. Đóng trang sẽ dừng yêu cầu tiếp theo.</p>
   <p>目標 / Đích: {pins.projectId} · {pins.manifestSha256}</p>
   <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><button disabled={running||stage==='active'||repairCopy&&recoveryUsed} onClick={()=>void start()} style={{minHeight:44}}>套用資料並啟用 / Áp dụng và kích hoạt</button><button disabled={!running} onClick={()=>{controller.current?.abort();setReport(old=>({...old,stage:'stopping'}));}} style={{minHeight:44}}>停止 / Dừng</button></div>
-  {report.receiptState==='recovered'&&<p><a href="?continue=apply">恢復收據已確認；重新開啟一般套用入口 / Đã xác nhận khôi phục; mở lại trang áp dụng</a></p>}
+  {report.receiptState==='recovered'&&<form action="/setup/import" method="get"><input type="hidden" name="continue" value="apply"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>恢復收據已確認；重新開啟一般套用入口 / Đã xác nhận khôi phục; mở lại trang áp dụng</button></form>}
   <p>本次耗時 / Thời gian: {Math.floor(elapsed/1000)} s</p>
   <section aria-live="polite" style={{background:'#f5f2ea',padding:16}}><h2>{labels[stage]||stage}</h2>
    {total>0&&<><progress aria-label="已建立物件 / Đối tượng đã khôi phục" value={objects} max={total} style={{width:'100%'}}/><p>{objects} / {total} 個圖片、附件與資料物件 / đối tượng</p></>}
@@ -36,6 +36,6 @@ export default function ApplyClient({pins,repairCopy=false}:ImportConfiguration&
    {report.uncertain===true&&<p>結果不明，請勿重複送出；保留資料並核對狀態。 / Kết quả chưa rõ, không gửi lại; giữ dữ liệu và kiểm tra trạng thái.</p>}
    {stage==='active'&&<p>保留的管理員密碼可繼續使用。請重新登入；資料與主要功能驗收仍須完成。 / Mật khẩu quản trị được giữ nguyên. Đăng nhập lại; vẫn cần nghiệm thu dữ liệu và chức năng.</p>}
   </section>
-  <p><a href="/login?next=%2Fsetup%2Fimport">登入 / Đăng nhập</a> · <a href="/setup/import?continue=verify">核對頁 / Trang kiểm toán</a></p>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><form action="/login" method="get"><input type="hidden" name="next" value="/setup/import"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>登入 / Đăng nhập</button></form><form action="/setup/import" method="get"><input type="hidden" name="continue" value="verify"/><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>核對頁 / Trang kiểm toán</button></form></div>
  </main>;
 }

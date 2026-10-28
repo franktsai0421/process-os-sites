@@ -12,6 +12,6 @@ export default function StartupAssets(){
  {receipt?.state==='ready'&&<><label>固定來源三檔 / Ba tệp nguồn <input type="file" multiple accept=".js" disabled={busy} onChange={e=>setSelected(Array.from(e.target.files||[]))}/></label><p>已選 {selected.length}/3</p><button disabled={busy||selected.length!==3} onClick={()=>void start()} style={{minHeight:48,padding:12}}>開始補件 / Bắt đầu</button></>}
  {busy&&<button style={{minHeight:48,marginLeft:12}} onClick={()=>abort.current?.abort()}>停止送出 / Dừng gửi</button>}
  <p><output aria-live="polite">{stage} · 已確認 {confirmed.toLocaleString()} / 1,386,533 bytes</output></p>
- {receipt?.state==='complete'&&<a href="/process/" target="_top">開啟網站 / Mở trang web</a>}<p><a href="/login" target="_top">登入 / Đăng nhập</a></p>
+ {receipt?.state==='complete'&&<form action="/process/" method="get" target="_top"><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>開啟網站 / Mở trang web</button></form>}<form action="/login" method="get" target="_top"><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>登入 / Đăng nhập</button></form>
  </main>;
 }

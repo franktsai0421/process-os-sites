@@ -21,6 +21,6 @@ export default function OwnerSetup(){
    <button disabled={pending} type="submit" style={{padding:12,background:'#1d4ed8',color:'#fff',borderRadius:6,opacity:pending?0.6:1}}>{pending?'處理中 / Đang xử lý':'建立管理員 / Tạo quản trị viên'}</button>
    <button disabled={pending} type="reset" style={{padding:10,border:'1px solid #64748b',borderRadius:6}}>清除 / Xóa</button>
   </form>}
-  <p style={{marginTop:16}}><output aria-live="polite">{message}</output></p><a href="/login" style={{display:'inline-block',padding:'12px 0',color:'#1d4ed8',textDecoration:'underline'}}>返回登入 / Quay lại đăng nhập</a>
+  <p style={{marginTop:16}}><output aria-live="polite">{message}</output></p><form action="/login" method="get"><button type="submit" style={{minHeight:44,padding:'8px 12px'}}>返回登入 / Quay lại đăng nhập</button></form>
  </main>;
 }

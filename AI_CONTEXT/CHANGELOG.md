@@ -1,3 +1,14 @@
+## 2026-10-28 登入初始意圖 / Server-owned initial login intent
+- 登入頁以正式server searchParams（保留重複值）交原loginIntent判斷初始系統／線別，SSR與hydration不再先顯process/A再跳動。
+- Initial system/line now come from the server entry through the unchanged intent allowlist. Manual choices persist; submit still reads the current URL after its actual response, with original attempt fencing, marker handling and authorization.
+- 新增23組query/SSR/submit負測，獨立ReactDOM hydration13例；不等同原生瀏覽器登入驗收，也不改raw-query匯入觀察規則。
+
+## 2026-10-28 管理導航操作與 abort 型別契約 / Management navigation actions and abort contracts
+- 經確認，7個設定／匯入頁的14個入口改為13個原生GET表單按鈕及1個本頁核對按鈕；保留原query值、4個_top及replaceState，不改中控首頁／FQC業務導航。接受不再提供連結專屬另開／複製操作。
+- Owner-approved action-button semantics replace 14 management links. Native GET destinations, targets and local verification transition are retained; no framework prefetch or automatic business POST is introduced.
+- 兩個真正不讀this的snapshot abort producer補明receiver-independent型別，body／回傳函式identity／儲存順序不變；受保護R1 consumer原始碼不動。新增14個假資料正負測，不等於真實R1資料驗收。
+- Normal source/SSR and ReactDOM-emulator regression cover form ownership, repeated activation, precise query and cleanup. Native keyboard/frame navigation and responsive browser layout remain untested; full CI/lint blockers are still reported, not waived.
+
 ## 2026-10-28 初次觀察收據 owned GET（隔離候選）
 - 首畫面即等待收據，不先短暫顯示可點；初次GET由effect獨立持有controller，僅實際回覆後更新狀態。
 - 手動GET/單次POST、60秒終止、錯誤/未知回覆與unmount最新controller仍遵原規則；13 source/SSR及8 ReactDOM負測，不代表原生瀏覽器或R1匯入驗收。
