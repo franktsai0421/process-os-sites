@@ -1,4 +1,4 @@
-import {test} from 'node:test';
+import {test,mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {incidentFixture} from './incident-recovery-fixture.mjs';
 import {setup,actor} from './hosted-import-fixtures.mjs';
@@ -73,15 +73,15 @@ for(const [label,sql]of Object.entries(changes))void test('fresh joined fence af
 });
 
 void test('manifest and chunk each hash once in transfer layer and preserve descriptor checks',async()=>{
- const f=await setup({canonical:false}),original=crypto.subtle.digest;try{
+ const f=await setup({canonical:false});let digest;try{
   const {id}=await f.transfer.begin(actor,f.bytes);for(const c of f.pack.completed.chunks)await f.transfer.receive(actor,id,c.id,f.pack.chunks.get(c.id));
-  let digests=0;crypto.subtle.digest=function(...args){digests++;return original.apply(this,args);};
+  digest=mock.method(crypto.subtle,'digest');
   const result=await f.transfer.verify(actor,id,{expectedVersion:1,limit:1});
-  assert.equal(result.verifiedCursor,1);assert.equal(digests,2);
-  crypto.subtle.digest=original;
+  assert.equal(result.verifiedCursor,1);assert.equal(digest.mock.callCount(),2);
+  digest.mock.restore();
   const descriptor=f.pack.completed.chunks[1],key='process-import/v1/'+id+'/chunks/'+descriptor.id;
   const bad=f.pack.chunks.get(descriptor.id).slice();bad[0]^=1;await f.bucket.put(key,bad,{});
   await assert.rejects(f.transfer.verify(actor,id,{expectedVersion:2,limit:1}),/IMPORT_CHUNK_INTEGRITY/);
   assert.equal((await f.transferStore.get(id)).verify_cursor,1);
- }finally{crypto.subtle.digest=original;await f.close();}
+ }finally{digest?.mock.restore();await f.close();}
 });
