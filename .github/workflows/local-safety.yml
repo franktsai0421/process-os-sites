@@ -41,7 +41,39 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Normal typed lint
-        run: npm run lint
+        run: |
+          $base = 'db190a37ff7b9c5dc1e098e2a62d9d9ddff504da'
+          foreach ($file in @('package.json', 'package-lock.json', '.oxlintrc.json', 'tsconfig.json')) {
+            $headBlob = & git rev-parse "HEAD:$file"
+            if ($LASTEXITCODE -ne 0) { throw 'Head lint input missing' }
+            $baseBlob = & git rev-parse "${base}:$file"
+            if ($LASTEXITCODE -ne 0 -or $headBlob -ne $baseBlob) { throw 'Baseline lint inputs differ' }
+          }
+          Write-Host 'HEAD_LINT_BEGIN'
+          & npm run lint -- --format unix
+          $headLintExit = $LASTEXITCODE
+          Write-Host "HEAD_LINT_END exit=$headLintExit"
+          if ($headLintExit -eq 0) { exit 0 }
+          $baselineRoot = Join-Path $env:RUNNER_TEMP ("process-lint-base-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_RUN_ATTEMPT)
+          $pushed = $false
+          try {
+            if (Test-Path -LiteralPath $baselineRoot) { throw 'Baseline diagnostic directory already exists' }
+            & git worktree add --detach $baselineRoot $base
+            if ($LASTEXITCODE -ne 0) { throw 'Baseline worktree setup failed' }
+            Push-Location -LiteralPath $baselineRoot
+            $pushed = $true
+            & npm ci --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw 'Baseline locked install failed' }
+            Write-Host "BASE_LINT_BEGIN commit=$base"
+            & npm run lint -- --format unix
+            Write-Host "BASE_LINT_END exit=$LASTEXITCODE"
+          } catch {
+            Write-Host ("BASE_LINT_DIAGNOSTIC_INCOMPLETE: " + $_.Exception.Message)
+          } finally {
+            if ($pushed) { Pop-Location }
+          }
+          # A baseline is diagnostic only: never subtract errors or relax the head gate.
+          exit $headLintExit
       - name: Source-only history and upload safety
         run: node scripts/sites-ci-preflight.mjs
       - name: Full TypeScript
