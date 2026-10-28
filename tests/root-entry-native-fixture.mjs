@@ -17,3 +17,23 @@ export async function createRootEntryFixture({programCommit=process.env.PROCESS_
   return{mf,db,url,runtime,programCommit,buildEntrySha256:createHash('sha256').update(fs.readFileSync(main)).digest('hex'),async close(){await mf.dispose();}};
  }catch(error){await mf.dispose();throw error;}
 }
+
+// Failure-only diagnostics: never serialize errors, messages, URLs or bodies.
+export function nativeFailureDiagnostics(error){
+ const codes=['ECONNRESET','ECONNREFUSED','EPIPE','ETIMEDOUT','ABORT_ERR','UND_ERR_SOCKET','UND_ERR_ABORTED','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','UND_ERR_CONNECT_TIMEOUT'];
+ const causeCodes=[],seen=[];let location=null,current=error;
+ for(let depth=0;depth<3&&current!==null&&(typeof current==='object'||typeof current==='function')&&!seen.includes(current);depth++){
+  seen.push(current);
+  try{
+   const code=Object.getOwnPropertyDescriptor(current,'code');
+   if(code&&Object.hasOwn(code,'value')&&typeof code.value==='string'&&codes.includes(code.value)&&!causeCodes.includes(code.value))causeCodes.push(code.value);
+   const stack=Object.getOwnPropertyDescriptor(current,'stack');
+   if(!location&&stack&&Object.hasOwn(stack,'value')&&typeof stack.value==='string')for(const line of stack.value.slice(0,20000).split('\n').slice(1,16)){
+    const match=line.match(/(?:^|[\\/])(sites-startup-assets-native\.test\.mjs|sites-bounded-import-native\.test\.mjs|root-entry-native-fixture\.mjs):(\d+):(\d+)\)?$/);
+    if(match){const lineNumber=Number(match[2]),columnNumber=Number(match[3]);if(Number.isSafeInteger(lineNumber)&&Number.isSafeInteger(columnNumber)&&lineNumber>0&&lineNumber<=1000000&&columnNumber>0&&columnNumber<=1000000){location={file:match[1],line:lineNumber,column:columnNumber};break;}}
+   }
+   const cause=Object.getOwnPropertyDescriptor(current,'cause');current=cause&&Object.hasOwn(cause,'value')?cause.value:null;
+  }catch{break;}
+ }
+ return{causeCodes,location};
+}

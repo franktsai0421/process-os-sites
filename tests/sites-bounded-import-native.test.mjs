@@ -1,6 +1,6 @@
 // Compiled Worker, normal synthetic login and nonpersistent D1/R2 only.
 import assert from 'node:assert/strict';import {scryptSync} from 'node:crypto';
-import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+import {createRootEntryFixture,nativeFailureDiagnostics} from './root-entry-native-fixture.mjs';
 import {setup} from './hosted-import-fixtures.mjs';
 import {createNormalizationPlan,openNormalizationView} from '../lib/snapshot-normalize.mjs';
 import {createRecipeUploader} from '../lib/snapshot-recipe-uploader.mjs';
@@ -8,7 +8,6 @@ import {boundedAttemptSite,attemptCeilings} from '../lib/snapshot-attempt-policy
 import {sha256} from '../lib/snapshot-contract.mjs';
 const tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,capacityKnown:false};let f,original,view,stage='startup',substage='startup';
 async function test(name,run){stage=name;substage='case-start';await run();tests.push(name);}
-function failureLocation(error){try{const stack=error?.stack;if(typeof stack!=='string')return null;for(const line of stack.slice(0,20000).split('\n').slice(1,16)){const match=line.match(/(?:^|[\\/])(sites-bounded-import-native\.test\.mjs|root-entry-native-fixture\.mjs):(\d+):(\d+)\)?$/);if(match){const lineNumber=Number(match[2]),columnNumber=Number(match[3]);if(Number.isSafeInteger(lineNumber)&&Number.isSafeInteger(columnNumber)&&lineNumber>0&&lineNumber<=1000000&&columnNumber>0&&columnNumber<=1000000)return{file:match[1],line:lineNumber,column:columnNumber};}}}catch{}return null;}
 try{
  original=await setup({canonical:false,ownerId:'frank'});const plan=await createNormalizationPlan(original.pack,{programCommit:'e'.repeat(40)});view=await openNormalizationView(original.pack,plan);
  const manifestSha256=await sha256(new TextEncoder().encode(JSON.stringify(plan.manifest))),origin='https://bounded-native.synthetic.invalid',targetFingerprint='c'.repeat(64),pins={projectId:boundedAttemptSite,origin,ownerId:'frank',targetFingerprint,manifestSha256};
@@ -30,6 +29,6 @@ try{
  await f.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,0,?,?)').bind(JSON.stringify(seed),'synthetic').run();
  await test('server-side exhaustion rejects manual chunk calls before storage and freezes the campaign',async()=>{const login=await request('/api/platform-login',{method:'POST',body:JSON.stringify({id:'frank',password})});assert.equal(login.status,200);cookie=(login.headers.get('Set-Cookie')||'').split(';')[0];const begin=await request('/api/snapshots/import?action=begin',{method:'POST',headers:{Cookie:cookie},body:JSON.stringify(plan.manifest)});assert.equal(begin.status,200);const {id}=await begin.json();await f.db.prepare('UPDATE process_import_budget SET write_bytes=? WHERE id=1').bind(policy.writeBytes).run();const c=plan.manifest.chunks[0],bytes=await view.readChunk(c.id),r=await request('/api/snapshots/import?id='+id+'&chunk='+c.id,{method:'PUT',headers:{Cookie:cookie,'Content-Type':'application/octet-stream'},body:bytes});assert.equal(r.status,409);assert.equal((await r.json()).error,'IMPORT_ATTEMPT_BUDGET_EXHAUSTED');assert.equal((await f.db.prepare('SELECT count(*) n FROM process_snapshot_chunks').first()).n,0);assert.equal((await f.db.prepare('SELECT state FROM process_import_budget').first()).state,'stopped');assert.equal((await request('/api/shared-state',{headers:{Cookie:cookie}})).status,503);const row=await f.db.prepare('SELECT "values" v FROM shared_state').first();assert.equal(JSON.parse(JSON.parse(row.v).platformUsers)[0].passwordHash,verifier);});
  report.status='PASS_COMPILED_SYNTHETIC_BOUNDED_IMPORT';
-}catch(e){report.status='FAIL_COMPILED_SYNTHETIC_BOUNDED_IMPORT';report.failedStage=stage;report.failedSubstage=substage;report.failureLocation=failureLocation(e);report.errorType=e.constructor.name;if(/^[A-Z_]+$/.test(e.message))report.code=e.message;if(typeof e.actual==='number')report.actual=e.actual;if(typeof e.expected==='number')report.expected=e.expected;}
+}catch(e){report.status='FAIL_COMPILED_SYNTHETIC_BOUNDED_IMPORT';report.failedStage=stage;report.failedSubstage=substage;report.failureDiagnostics=nativeFailureDiagnostics(e);report.failureLocation=report.failureDiagnostics.location;report.errorType=e.constructor.name;if(/^[A-Z_]+$/.test(e.message))report.code=e.message;if(typeof e.actual==='number')report.actual=e.actual;if(typeof e.expected==='number')report.expected=e.expected;}
 finally{if(f)await f.close();if(view)await view.close();if(original)await original.close();report.disposed=true;report.tests=tests;report.cases=tests.length;}
 console.log(JSON.stringify(report));process.exitCode=report.status.startsWith('PASS_')?0:1;
