@@ -1,3 +1,9 @@
+## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
+
+製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。
+
+Owner 同意 eligible path 不因完全無關 body 異常而阻擋，原 refs/content 不動，必要錯誤仍按原規則。Legacy／非canonical／未納入動作回原路，fallback 可能多讀。詳見 [有界寫入](../docs/testing/BOUNDED_WRITER_OPTIMIZATION.md)。Begin／restore／insert/delete 未納本次新能力；未修改實站資料。
+
 ## 2026-10-25 唯讀資產與版本投影
 
 沒有持久欄位、SQL/schema、migration、資料轉換或 R2 寫入。records decoder 的
