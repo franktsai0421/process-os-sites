@@ -45,7 +45,7 @@ async function fixture(){
  function state(){return{identity:window.ProcessSync.identity,requiresReload:window.ProcessSync.requiresReload,destination:window.ProcessSync.destination,shellHidden:shell.hidden===true,viewers:[...nodes].filter(n=>n.className==='iqc-lightbox').length,keydownListeners:docEvents.get('keydown')?.size||0,reloadGates:[...nodes].filter(n=>n.id==='process-boot').length,resets:{...resets},dispatches:[...dispatches],stubFetchCalls:calls.filter(v=>Array.isArray(v)).length};}
  return{window,context,document,events,docEvents,nodes,pending,resets,open,state,calls};
 }
-for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])test('IQC viewer is disposed by actual '+mode+' cascade without resetting editors/transports',async()=>{
+for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])void test('IQC viewer is disposed by actual '+mode+' cascade without resetting editors/transports',async()=>{
  const f=await fixture();
  if(mode==='pendingNavigation401'){f.window.ProcessDeliveryNavigation.navigate('player');assert.equal(f.pending.length,1);}
  const viewer=f.open(),image=viewer.querySelector('img'),oldKey=[...f.docEvents.get('keydown')][0],oldNext=viewer.querySelector('#iqc-photo-next').onclick;
@@ -66,13 +66,13 @@ for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActo
  assert.equal(f.calls.filter(call=>Array.isArray(call)&&call[0]==='STUB_FETCH_ONLY').length,mode==='refresh401'||mode==='pendingNavigation401'?2:1);
  assert(!f.calls.includes('focus'),'viewer disposal never refocuses an editor');
 });
-test('IQC denied target retains current viewer; normal close and repeated clean reset release only owned resources',async()=>{
+void test('IQC denied target retains current viewer; normal close and repeated clean reset release only owned resources',async()=>{
  const f=await fixture();f.window.ProcessDeliveryNavigation.navigate('player');const viewer=f.open();f.pending[0].resolve(Response.json({error:'DENIED'},{status:403}));await tick();await tick();assert.equal(f.state().requiresReload,false);assert.equal(f.state().viewers,1);
  for(const key of f.docEvents.get('keydown'))key({key:'ArrowRight'});assert(viewer.innerHTML.includes('old-synthetic-1.png'));
  viewer.querySelector('#iqc-photo-close').onclick();assert.equal(f.state().viewers,0);assert.equal(f.state().keydownListeners,0);
  for(let i=0;i<200;i++){const node=f.open();assert(node);if(i%2)node.querySelector('#iqc-photo-close').onclick();else f.window.IQCMasterUI.navigation.reset();assert.equal(f.state().viewers,0);assert.equal(f.state().keydownListeners,0);}
 });
-for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])test('actual '+mode+' cascade quarantines IQC editor without normal close or receipt cleanup',async()=>{
+for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])void test('actual '+mode+' cascade quarantines IQC editor without normal close or receipt cleanup',async()=>{
  const f=await fixture();if(mode==='pendingNavigation401'){f.window.ProcessDeliveryNavigation.navigate('player');assert.equal(f.pending.length,1);}
  const {overlay,owner,close}=f.window.__testIqc.dialog('<input value="synthetic pending text">'),input=overlay.querySelector('input'),files=[{name:'unsent.png'}];input.value='中文 Việt composing';input.files=files;const base=owner.base,html=overlay.innerHTML,key=[...f.docEvents.get('keydown')][0],focusCount=f.calls.filter(x=>x==='focus').length;
  f.context.sessionStorage.setItem('synthetic-owned-unknown-receipt','exact retained bytes');

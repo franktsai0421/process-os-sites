@@ -17,7 +17,7 @@ function fixture(){
  f.close=()=>sqlite.close();return f;
 }
 async function run(fn){const f=fixture();try{await fn(f);}finally{f.close();}}
-test('both authenticated GET handlers leave enabled/due backups and shared state unchanged',()=>run(async f=>{
+void test('both authenticated GET handlers leave enabled/due backups and shared state unchanged',()=>run(async f=>{
  const before=f.sqlite.prepare('SELECT * FROM shared_state').get(),old=f.sqlite.prepare('SELECT * FROM state_backups').all();
  for(const [route,path]of [[f.bootstrap,'/api/process-bootstrap?view=data&dataTab=quality-iqc'],[f.shared,'/api/shared-state']]){
   assert.equal((await route.GET(new Request('https://fixture.invalid'+path))).status,401);
@@ -25,7 +25,7 @@ test('both authenticated GET handlers leave enabled/due backups and shared state
  }
  assert.deepEqual(f.sqlite.prepare('SELECT * FROM shared_state').get(),before);assert.deepEqual(f.sqlite.prepare('SELECT * FROM state_backups').all(),old);assert.equal(f.writes.length,0);assert.equal(f.puts.length,0);
 }));
-test('deferred-media GETs still populate technical R2 cache, never backup/prune or mutate D1',()=>run(async f=>{
+void test('deferred-media GETs still populate technical R2 cache, never backup/prune or mutate D1',()=>run(async f=>{
  // Transport-only synthetic bytes, not image-rendering or full-quality evidence.
  const media='data:image/png;base64,'+Buffer.alloc(5000,3).toString('base64');f.values.dispatchBoard=JSON.stringify({A:[],B:[],C:[],fixture:media});f.update();
  const before=f.sqlite.prepare('SELECT * FROM shared_state').get();
@@ -35,14 +35,14 @@ test('deferred-media GETs still populate technical R2 cache, never backup/prune 
  assert(f.puts.some(key=>key.startsWith('delivery/v1/')));assert(f.puts.some(key=>key.startsWith('delivery/media/')));assert.equal(f.writes.length,0);assert.equal(f.count(),150);assert.deepEqual(f.sqlite.prepare('SELECT * FROM shared_state').get(),before);
  assert.equal(JSON.parse(f.sqlite.prepare('SELECT "values" FROM shared_state').get().values).dispatchBoard,f.values.dispatchBoard,'stored original transport bytes preserved');
 }));
-test('GET authorization still rejects a revoked actor epoch and cross-origin POST still refuses',()=>run(async f=>{
+void test('GET authorization still rejects a revoked actor epoch and cross-origin POST still refuses',()=>run(async f=>{
  const bootstrap=await f.request('/api/process-bootstrap?view=data&dataTab=quality-iqc'),shared=await f.request('/api/shared-state');
  const users=JSON.parse(f.values.platformUsers);users[0].authEpoch=2;f.values.platformUsers=JSON.stringify(users);f.update();
  assert.equal((await f.bootstrap.GET(bootstrap)).status,401);assert.equal((await f.shared.GET(shared)).status,401);
  const denied=await f.shared.POST(new Request('https://fixture.invalid/api/shared-state',{method:'POST',headers:{Origin:'https://other.invalid'},body:'{}'}));assert.equal(denied.status,403);assert.equal(f.writes.length,0);
 }));
 
-test('periodic compatibility entry is inert even with enabled, due, partial or malformed settings',()=>run(async f=>{
+void test('periodic compatibility entry is inert even with enabled, due, partial or malformed settings',()=>run(async f=>{
  const before=f.sqlite.prepare('SELECT * FROM state_backups ORDER BY id').all();let fullReads=0;
  for(const state of [await f.core.readState(),{revision:7,values:{backupSettings:'{"enabled":true}'},deliveryOnly:true},{revision:7,values:{backupSettings:'invalid'}}]){
   f.reads.length=0;const result=await f.core.scheduledBackup(state,async()=>{fullReads++;throw Error('must not read full state');});
@@ -50,7 +50,7 @@ test('periodic compatibility entry is inert even with enabled, due, partial or m
  }
  assert.equal(fullReads,0);assert.equal(f.writes.length,0);assert.equal(f.puts.length,0);assert.deepEqual(f.sqlite.prepare('SELECT * FROM state_backups ORDER BY id').all(),before);
 }));
-test('revision admission is read-only, fails closed and does not decode a full snapshot',()=>run(async f=>{
+void test('revision admission is read-only, fails closed and does not decode a full snapshot',()=>run(async f=>{
  const current={revision:7};assert.equal(await f.core.stateRevisionIsCurrent(current),true);assert.equal(await f.core.stateRevisionIsCurrent({revision:6}),false);
  const count=f.reads.length;for(const revision of [-1,1.5,NaN,Number.MAX_SAFE_INTEGER+1])assert.equal(await f.core.stateRevisionIsCurrent({revision}),false);assert.equal(f.reads.length,count);
  assert(f.reads.every(sql=>sql==='SELECT revision FROM shared_state WHERE id=1 AND revision=?'));assert.equal(f.writes.length,0);assert.equal(f.puts.length,0);
@@ -58,29 +58,29 @@ test('revision admission is read-only, fails closed and does not decode a full s
 }));
 const update={dispatchBoard:JSON.stringify({A:[],B:[],C:[],fixture:'changed'})};
 async function save(f,updates=update,baseRevision=7){return f.shared.POST(await f.request('/api/shared-state',{method:'POST',headers:{Origin:'https://fixture.invalid','Content-Type':'application/json','X-Process-Receipt':'sha256'},body:JSON.stringify({baseRevision,updates})}));}
-test('ordinary save retains data, revision and receipt but never creates/prunes a backup',()=>run(async f=>{
+void test('ordinary save retains data, revision and receipt but never creates/prunes a backup',()=>run(async f=>{
  const old=f.sqlite.prepare('SELECT * FROM state_backups ORDER BY id').all(),response=await save(f);assert.equal(response.status,200);const body=await response.json();assert.equal(body.revision,8);
  assert.equal(f.sqlite.prepare('SELECT revision FROM shared_state').get().revision,8);assert.equal(JSON.parse(f.sqlite.prepare('SELECT "values" FROM shared_state').get().values).dispatchBoard,update.dispatchBoard);
  assert.deepEqual(f.sqlite.prepare('SELECT * FROM state_backups ORDER BY id').all(),old);assert.equal(f.writes.length,1);assert.match(f.writes[0],/^UPDATE shared_state/);
  const replay=await save(f,update,8);assert.equal(replay.status,200);assert.equal(f.writes.length,1,'no-change replay performs no write');
 }));
-test('retained enabled schedule settings cannot reactivate automatic snapshots',()=>run(async f=>{
+void test('retained enabled schedule settings cannot reactivate automatic snapshots',()=>run(async f=>{
  const updates={backupSettings:JSON.stringify({enabled:true,frequency:'weekly',dayOfWeek:6,time:'13:00',timezone:'Asia/Ho_Chi_Minh'})};assert.equal((await save(f,updates)).status,200);
  assert.equal((await f.shared.GET(await f.request('/api/shared-state'))).status,200);assert.equal(f.count(),150);assert.equal(f.writes.length,1);
 }));
-test('stale request and revision race retain conflict handling without backup writes',()=>run(async f=>{
+void test('stale request and revision race retain conflict handling without backup writes',()=>run(async f=>{
  assert.equal((await save(f,update,6)).status,409);assert.equal(f.writes.length,0);
  let changed=false;f.beforeRun=sql=>{if(!changed&&sql.startsWith('UPDATE shared_state')){changed=true;f.sqlite.prepare('UPDATE shared_state SET revision=8 WHERE id=1').run();}};
  assert.equal((await save(f)).status,409);assert.equal(JSON.parse(f.sqlite.prepare('SELECT "values" FROM shared_state').get().values).dispatchBoard,f.values.dispatchBoard);assert.equal(f.count(),150);assert.equal(f.writes.length,1);
 }));
-test('revision admission failure stops before encoding or the final mutation',()=>run(async f=>{
+void test('revision admission failure stops before encoding or the final mutation',()=>run(async f=>{
  f.beforeFirst=sql=>{if(sql==='SELECT revision FROM shared_state WHERE id=1 AND revision=?')throw Error('synthetic revision read unavailable');};
  await assert.rejects(()=>save(f),/unavailable/);assert.equal(f.writes.length,0);assert.equal(f.puts.length,0);assert.equal(f.count(),150);
 }));
-test('unknown committed save acknowledgment is not converted into success or blindly retried',()=>run(async f=>{
+void test('unknown committed save acknowledgment is not converted into success or blindly retried',()=>run(async f=>{
  f.unknown='throw';await assert.rejects(()=>save(f),/unknown result/);assert.equal(f.sqlite.prepare('SELECT revision FROM shared_state').get().revision,8);assert.equal(f.writes.length,1);assert.equal(f.count(),150);
 }));
-test('explicit maintenance capture and stored-envelope helper remain available without implicit pruning',()=>run(async f=>{
+void test('explicit maintenance capture and stored-envelope helper remain available without implicit pruning',()=>run(async f=>{
  const old=f.sqlite.prepare('SELECT * FROM state_backups ORDER BY id').all(),state=await f.core.readState();
  assert.equal(await f.core.backupStoredState(state,'explicit fixture maintenance','fixture'),true);assert.equal(f.count(),151);
  const release=f.load('app/api/release-state/route.ts'),body=JSON.stringify({action:'capture',values:update});
@@ -88,13 +88,13 @@ test('explicit maintenance capture and stored-envelope helper remain available w
  const response=await release.POST(new Request('https://fixture.invalid/api/release-state',{method:'POST',headers:{Origin:'https://fixture.invalid','Content-Type':'application/json','X-Process-Release-Token':f.env.PROCESS_RELEASE_TOKEN},body}));assert.equal(response.status,200);const saved=await response.json();assert(saved.id);assert.equal(f.count(),152);
  for(const row of old)assert.deepEqual(f.sqlite.prepare('SELECT * FROM state_backups WHERE id=?').get(row.id),row);assert.equal(f.sqlite.prepare('SELECT revision FROM shared_state').get().revision,7);f.noPrune();
 }));
-test('backup screen reports disabled without flushing business input or calling a missing endpoint',async()=>{
+void test('backup screen reports disabled without flushing business input or calling a missing endpoint',async()=>{
  const fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),source=fs.readFileSync('public/process/data-safety-ui.js','utf8'),tree=ts.createSourceFile('ui.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let declaration;
  function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text==='backupPage')declaration=source.slice(n.getStart(tree),n.end);ts.forEachChild(n,visit);}visit(tree);assert(declaration);
  for(const lang of ['zh-Hant','vi']){const content={innerHTML:''},context={document:{documentElement:{lang},querySelector:()=>content},canManage:()=>true,activeBackupMode:'cloud',backupModeSummary:()=>'',bindBackupModeSwitches(){},sync:{flush(){throw Error('must not flush');}},backupRequest(){throw Error('must not fetch');}};vm.createContext(context);vm.runInContext(declaration,context);await context.backupPage();assert.match(content.innerHTML,/data-backup-status="disabled"/);assert(!content.innerHTML.includes('data-cloud-restore'));}
 });
 
-test('legacy IQC begin/save uses synthetic existing standards and preserves historical backups',()=>run(async f=>{
+void test('legacy IQC begin/save uses synthetic existing standards and preserves historical backups',()=>run(async f=>{
  const sample=require('./v3-quality-growth-fixture.cjs')('iqc',[{id:'a'.repeat(64)}],1,2),control=JSON.parse(sample.values.iqcMasterControl);delete control.workflow;control.versions=control.versions.filter(v=>v.status==='approved');
  f.values.iqcMasterControl=JSON.stringify(control);f.values.masterDataControl=sample.values.masterDataControl;f.update();const api=f.load('app/api/iqc/route.ts');
  const post=async body=>api.POST(await f.request('/api/iqc',{method:'POST',headers:{Origin:'https://fixture.invalid','Content-Type':'application/json'},body:JSON.stringify(body)}));
@@ -103,7 +103,7 @@ test('legacy IQC begin/save uses synthetic existing standards and preserves hist
  assert.equal(f.count(),150);assert.equal(f.writes.length,2);assert(f.writes.every(sql=>sql.startsWith('UPDATE shared_state')));
 }));
 
-test('legacy IPQC-C begin/save retains active history and does not create protection snapshots',()=>run(async f=>{
+void test('legacy IPQC-C begin/save retains active history and does not create protection snapshots',()=>run(async f=>{
  const sample=require('./v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64)}],1,2),control=JSON.parse(sample.values.ipqcCMasterControl);delete control.workflow;control.versions=control.versions.filter(v=>v.status==='approved');
  f.values.ipqcCMasterControl=JSON.stringify(control);f.values.masterDataControl=sample.values.masterDataControl;f.update();const api=f.load('app/api/ipqc-c/route.ts');
  const post=async body=>api.POST(await f.request('/api/ipqc-c',{method:'POST',headers:{Origin:'https://fixture.invalid','Content-Type':'application/json'},body:JSON.stringify(body)}));
@@ -112,7 +112,7 @@ test('legacy IPQC-C begin/save retains active history and does not create protec
  assert.equal(f.count(),150);assert.equal(f.writes.length,2);assert(f.writes.every(sql=>sql.startsWith('UPDATE shared_state')));
 }));
 
-test('legacy IPQC-AB begin/save retains active history and does not create protection snapshots',()=>run(async f=>{
+void test('legacy IPQC-AB begin/save retains active history and does not create protection snapshots',()=>run(async f=>{
  const sample=require('./v3-quality-growth-fixture.cjs')('ipqc-ab',[{id:'a'.repeat(64)}],1,2),control=JSON.parse(sample.values.ipqcABMasterControl),scope=control.scopes['A:G'];delete scope.workflow;scope.versions=scope.versions.filter(v=>v.status==='approved');
  f.values.ipqcABMasterControl=JSON.stringify(control);f.values.masterDataControl=sample.values.masterDataControl;f.update();const api=f.load('app/api/ipqc-ab/route.ts');
  const post=async body=>api.POST(await f.request('/api/ipqc-ab',{method:'POST',headers:{Origin:'https://fixture.invalid','Content-Type':'application/json'},body:JSON.stringify({line:'A',group:'G',...body})}));

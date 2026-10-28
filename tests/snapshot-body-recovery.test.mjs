@@ -10,23 +10,23 @@ import {createHostedTransfer} from '../lib/snapshot-hosted-transfer.mjs';
 import {createHostedTransferStore} from '../lib/snapshot-hosted-store.mjs';
 const bytes=new Uint8Array([1,2,3]),encode=v=>new TextEncoder().encode(JSON.stringify(v));
 function stalled(cancel=()=>{}){return new ReadableStream({pull(){return new Promise(()=>{});},cancel});}
-test('body timeout bounds a stalled read AND never-settling provider cancel',async()=>{
+void test('body timeout bounds a stalled read AND never-settling provider cancel',async()=>{
  let cancellations=0;const body=stalled(()=>{cancellations++;return new Promise(()=>{});}),at=performance.now();
  await assert.rejects(consumeImportBody(body,20,{timeoutMs:15}),/IMPORT_BODY_TIMEOUT/);
  assert.equal(cancellations,1);assert.equal(body.locked,false);assert.ok(performance.now()-at<1000);
 });
-test('external abort cancels once and removes abort listener',async()=>{
+void test('external abort cancels once and removes abort listener',async()=>{
  const controller=new AbortController();let add=0,remove=0,cancel=0;
  const signal={get aborted(){return controller.signal.aborted;},addEventListener(...a){add++;controller.signal.addEventListener(...a);},removeEventListener(...a){remove++;controller.signal.removeEventListener(...a);}};
  const body=stalled(()=>cancel++),run=consumeImportBody(body,20,{signal,timeoutMs:100});controller.abort();await assert.rejects(run,/IMPORT_BODY_CANCELLED/);
  assert.equal(cancel,1);assert.equal(body.locked,false);assert.equal(add,remove);
 });
-test('already-aborted body makes no source pull; exact successful body/hash checks and cleanup',async()=>{
+void test('already-aborted body makes no source pull; exact successful body/hash checks and cleanup',async()=>{
  const c=new AbortController();c.abort();let read=0,cancel=0;const body=new ReadableStream({pull(){read++;},cancel(){cancel++;}},{highWaterMark:0});
  await assert.rejects(consumeImportBody(body,20,{signal:c.signal,timeoutMs:100}),/CANCELLED/);assert.equal(read,0);assert.equal(cancel,1);
  const ok=new Blob([bytes]).stream(),result=await consumeImportBody(ok,3,{expectedBytes:3,expectedSha256:await sha256(bytes),timeoutMs:100});assert.deepEqual(result.bytes,bytes);assert.equal(ok.locked,false);
 });
-test('oversize, wrong size/hash, source errors do not become successful body proof',async()=>{
+void test('oversize, wrong size/hash, source errors do not become successful body proof',async()=>{
  await assert.rejects(consumeImportBody(new Blob([bytes]).stream(),2),/BODY_LIMIT/);
  await assert.rejects(consumeImportBody(new Blob([bytes]).stream(),3,{expectedBytes:2}),/BODY_INTEGRITY/);
  await assert.rejects(consumeImportBody(new Blob([bytes]).stream(),3,{expectedSha256:'0'.repeat(64)}),/BODY_INTEGRITY/);
@@ -48,10 +48,10 @@ function fixture(){
  const dump=table=>sqlite.prepare('SELECT * FROM '+table).all().map(v=>({...v})),oldAdvance=()=>sqlite.prepare("UPDATE process_snapshot_transfers SET version=version+1,verify_cursor=288 WHERE id=? AND version=18 AND phase='receiving'").run(incident.transferId).changes;
  return{db,sqlite,dump,oldAdvance,close:()=>sqlite.close()};
 }
-test('exact stored request digest proves captured version 18, not a guessed elapsed-time fence',async()=>{
+void test('exact stored request digest proves captured version 18, not a guessed elapsed-time fence',async()=>{
  const proof=await proveIncidentVersion();assert.equal(proof.requestSha256,incident.requestSha256);assert.equal(proof.capturedVersion,18);
 });
-test('recovery fences old advance atomically, preserves cursor/data/charges/capability/operations/history and RETAINS lock',async()=>{
+void test('recovery fences old advance atomically, preserves cursor/data/charges/capability/operations/history and RETAINS lock',async()=>{
  const f=fixture();try{
   const before={budget:f.dump('process_import_budget')[0],ops:f.dump('process_import_native_operations'),chunks:f.dump('process_snapshot_chunks'),cap:f.dump('process_import_capabilities'),history:f.dump('process_import_attempts')[1]};
   const plan=await planIncidentRecovery(f.db),result=await applyIncidentRecovery(f.db,plan,{at:500});assert.equal(result.transferVersion,19);assert.equal(result.verifiedCursor,272);assert.equal(result.automaticResumeAllowed,false);assert.equal(f.oldAdvance(),0);
@@ -65,21 +65,21 @@ test('recovery fences old advance atomically, preserves cursor/data/charges/capa
   await assert.rejects(applyIncidentRecovery(f.db,plan,{at:501}),/PRECONDITION/);
  }finally{f.close();}
 });
-test('if old advance wins BETWEEN fresh read and recovery transaction, ENTIRE recovery fails without overwriting cursor',async()=>{
+void test('if old advance wins BETWEEN fresh read and recovery transaction, ENTIRE recovery fails without overwriting cursor',async()=>{
  const f=fixture();try{const plan=await planIncidentRecovery(f.db),batch=f.db.batch;let calls=0;f.db.batch=async items=>{if(++calls===2)assert.equal(f.oldAdvance(),1);return batch(items);};
   await assert.rejects(applyIncidentRecovery(f.db,plan,{at:500}),/malformed JSON/);
   assert.equal(f.dump('process_snapshot_transfers')[0].version,19);assert.equal(f.dump('process_snapshot_transfers')[0].verify_cursor,288);assert.equal(f.dump('process_import_native_requests')[0].state,'running');assert.equal(f.dump('process_import_budget')[0].state,'open');
  }finally{f.close();}
 });
-test('later statement failure rolls back transfer fence/request/budget together',async()=>{
+void test('later statement failure rolls back transfer fence/request/budget together',async()=>{
  const f=fixture();try{const plan=await planIncidentRecovery(f.db),before=['process_snapshot_transfers','process_import_budget','process_import_native_requests','process_import_attempts'].map(t=>f.dump(t));f.sqlite.exec("CREATE TRIGGER synthetic_fail BEFORE UPDATE ON process_import_attempts BEGIN SELECT RAISE(ABORT,'SYNTHETIC_LATE_CAS_FAILURE'); END");
  await assert.rejects(applyIncidentRecovery(f.db,plan,{at:500}),/SYNTHETIC_LATE_CAS_FAILURE/);assert.deepEqual(['process_snapshot_transfers','process_import_budget','process_import_native_requests','process_import_attempts'].map(t=>f.dump(t)),before);
  }finally{f.close();}
 });
-for(const [name,sql]of Object.entries({pins:"UPDATE process_snapshot_transfers SET target='wrong'",state:"UPDATE process_import_native_requests SET state='unknown'",cursor:'UPDATE process_snapshot_transfers SET verify_cursor=288',request:"UPDATE process_import_native_requests SET request_sha256='bad'",operations:"UPDATE process_import_native_operations SET state='pending' WHERE ordinal=11",accounting:'UPDATE process_import_budget SET db_statements=db_statements+1'}))test('wrong or changed '+name+' refuses recovery without mutation',async()=>{
+for(const [name,sql]of Object.entries({pins:"UPDATE process_snapshot_transfers SET target='wrong'",state:"UPDATE process_import_native_requests SET state='unknown'",cursor:'UPDATE process_snapshot_transfers SET verify_cursor=288',request:"UPDATE process_import_native_requests SET request_sha256='bad'",operations:"UPDATE process_import_native_operations SET state='pending' WHERE ordinal=11",accounting:'UPDATE process_import_budget SET db_statements=db_statements+1'}))void test('wrong or changed '+name+' refuses recovery without mutation',async()=>{
  const f=fixture();try{const plan=await planIncidentRecovery(f.db);f.sqlite.exec(sql);const before=['process_snapshot_transfers','process_import_budget','process_import_native_requests'].map(t=>f.dump(t));await assert.rejects(applyIncidentRecovery(f.db,plan,{at:500}),/PRECONDITION/);assert.deepEqual(['process_snapshot_transfers','process_import_budget','process_import_native_requests'].map(t=>f.dump(t)),before);}finally{f.close();}
 });
-test('post-fence verify rehashes committed window; corrupt/stalled body cannot advance; no reupload',async()=>{
+void test('post-fence verify rehashes committed window; corrupt/stalled body cannot advance; no reupload',async()=>{
  // Synthetic manifest/bytes intentionally differ from real pins. This tests
  // the service's post-fence verification semantics, not online admission.
  const raw=new Uint8Array([5,6,7]),hash=await sha256(raw),id='a'.repeat(64),manifest={format:'PROCESS_OS_SNAPSHOT_V1',schemaVersion:1,direction:'site-to-isolated-local',credentialPolicy:'excluded',programCommit:'d'.repeat(40),schemaFingerprint:'e'.repeat(64),sourceRevision:{},createdAt:'2026-10-23T00:00:00Z',chunks:[]};

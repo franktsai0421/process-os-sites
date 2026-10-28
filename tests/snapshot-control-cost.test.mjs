@@ -23,7 +23,7 @@ async function context(f){
  const budget=await createAttemptBudget({db:f.db,bucket:f.bucket,policy:f.policy,pins:f.pins,now:f.now});
  return{ledger,budget};
 }
-for(const mode of ['control','settlement-before-apply','settlement-ack-lost'])test('joined controls: '+mode,async()=>{
+for(const mode of ['control','settlement-before-apply','settlement-ack-lost'])void test('joined controls: '+mode,async()=>{
  const f=await incidentFixture(),logs=[],savedLog=console.error;try{
   await f.advanceTo('resumed');let injected=false;
   const inject=async(sql,args)=>{if(!injected&&sql.startsWith('UPDATE process_import_native_operations SET state=?')&&args[0]==='succeeded'&&args[4]===3){injected=true;throw Error('SYNTHETIC_SETTLEMENT_UNAVAILABLE');}};
@@ -59,7 +59,7 @@ const changes={
  'changed request generation':"UPDATE process_import_native_requests SET generation=2 WHERE state='running'",
  'revoked new grant':"UPDATE process_import_verify_capabilities SET revoked_at=1,generation=generation+1",
 };
-for(const [label,sql]of Object.entries(changes))test('fresh joined fence after admission rejects '+label,async()=>{
+for(const [label,sql]of Object.entries(changes))void test('fresh joined fence after admission rejects '+label,async()=>{
  const f=await incidentFixture();try{
   await f.advanceTo('resumed');let changed=false,gets=0;
   instrument(f.db,{afterRun:async s=>{if(!changed&&s.startsWith("UPDATE process_import_native_operations SET state='pending'")){changed=true;f.sqlite.exec(sql);}}});
@@ -72,7 +72,7 @@ for(const [label,sql]of Object.entries(changes))test('fresh joined fence after a
  }finally{f.close();}
 });
 
-test('manifest and chunk each hash once in transfer layer and preserve descriptor checks',async()=>{
+void test('manifest and chunk each hash once in transfer layer and preserve descriptor checks',async()=>{
  const f=await setup({canonical:false}),original=crypto.subtle.digest;try{
   const {id}=await f.transfer.begin(actor,f.bytes);for(const c of f.pack.completed.chunks)await f.transfer.receive(actor,id,c.id,f.pack.chunks.get(c.id));
   let digests=0;crypto.subtle.digest=function(...args){digests++;return original.apply(this,args);};

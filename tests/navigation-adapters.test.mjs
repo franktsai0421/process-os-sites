@@ -18,7 +18,7 @@ function masterTabFixture(tab,{registered=false,selected,projected=true,master=f
  }
  return{box,state,content,calls,control};
 }
-for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-equipment','quality-routine-reports'])test('cold destination '+tab+' never falls back to an absent master scope',()=>{
+for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-equipment','quality-routine-reports'])void test('cold destination '+tab+' never falls back to an absent master scope',()=>{
  for(const registered of [false,true]){
   const f=masterTabFixture(tab,{registered}),before=JSON.stringify(f.control);f.box.bindData();
   assert.equal(f.state.dataTab,tab);assert.equal(JSON.stringify(f.control),before);assert.equal(f.content.innerHTML,'');
@@ -26,11 +26,11 @@ for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c'
   assert.equal(f.box.document.documentElement.dataset.processDestinationReadyGeneration,undefined);
  }
 });
-test('cold destination keeps an installed quality tab ahead of an old display URL',()=>{const f=masterTabFixture('AB',{registered:true,selected:'quality-iqc'});f.box.bindData();assert.deepEqual(f.calls,[['quality','quality-iqc']]);assert.equal(f.state.dataTab,'quality-iqc');});
-for(const tab of ['AB','C'])test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
-test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
+void test('cold destination keeps an installed quality tab ahead of an old display URL',()=>{const f=masterTabFixture('AB',{registered:true,selected:'quality-iqc'});f.box.bindData();assert.deepEqual(f.calls,[['quality','quality-iqc']]);assert.equal(f.state.dataTab,'quality-iqc');});
+for(const tab of ['AB','C'])void test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
+void test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 const iqcLoad=part(source('iqc-master.js'),'  async function load(owner) {','  async function post(');
-for(const stage of ['json','permissions'])test('actual IQC load rejects old delivery after '+stage+' without installing model',async()=>{
+for(const stage of ['json','permissions'])void test('actual IQC load rejects old delivery after '+stage+' without installing model',async()=>{
  let epoch=1,permissionCalls=0;const json=deferred(),permissions=deferred();
  const box={control:null,revision:null,apiUrl:'/api/iqc',fetch:async()=>({ok:true,json:()=>json.promise}),window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch,platformHeaders:()=>({})}},transport:()=>({permissions:()=>{permissionCalls++;return permissions.promise;}})};
  vm.createContext(box);vm.runInContext(iqcLoad,box);const promise=box.load(),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);
@@ -39,27 +39,27 @@ for(const stage of ['json','permissions'])test('actual IQC load rejects old deli
  if(stage==='permissions'){assert.equal(permissionCalls,1);epoch++;permissions.resolve({view:true});}
  await rejected;assert.equal(box.control,null);assert.equal(box.revision,null);
 });
-test('actual IQC keeps model read then permissions then adoption ordering',async()=>{
+void test('actual IQC keeps model read then permissions then adoption ordering',async()=>{
  const events=[],box={control:null,revision:null,apiUrl:'/api/iqc',fetch:async()=>{events.push('model');return{ok:true,json:async()=>({control:{workflow:{}},revision:9})};},window:{ProcessSync:{captureDelivery:()=>1,isCurrentDelivery:()=>true,platformHeaders:()=>({})}},transport:()=>({permissions:async()=>{events.push('permissions');assert.equal(box.control,null);}})};
  vm.createContext(box);vm.runInContext(iqcLoad,box);await box.load();assert.deepEqual(events,['model','permissions']);assert.equal(box.revision,9);
 });
 const accountSend=part(source('user-access.js'),' async function send(payload){','\n function paint()');
 function accountBox(response){const box={writing:0,writeUncertain:false,model:{actor:{id:'frank'},revision:1},modelStamp:{id:'frank'},identityStamp:()=>({id:'frank'}),sameIdentity:()=>true,fetch:async()=>response,window:{ProcessSync:{platformHeaders:()=>({})}},emitIdentity(){},calls:0};const fetch=box.fetch;box.fetch=async(...args)=>{box.calls++;return fetch(...args);};vm.createContext(box);vm.runInContext(accountSend,box);return box;}
-for(const kind of ['network','body','500'])test('actual account '+kind+' lost acknowledgement stays guarded and cannot replay',async()=>{
+for(const kind of ['network','body','500'])void test('actual account '+kind+' lost acknowledgement stays guarded and cannot replay',async()=>{
  const box=accountBox({ok:kind==='body',status:kind==='500'?500:200,json:async()=>{if(kind==='body')throw Error('lost body');return{error:'SERVER_FAILURE'};}});
  if(kind==='network')box.fetch=async()=>{box.calls++;throw Error('offline');};
  await assert.rejects(box.send({action:'update'}));assert.equal(box.writing,0);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);
  await assert.rejects(box.send({action:'update'}),/WRITE_RESULT_UNKNOWN/);assert.equal(box.calls,1);
 });
-test('actual account definite 4xx rejection releases departure guard without retry',async()=>{const box=accountBox({ok:false,status:403,json:async()=>({error:'FORBIDDEN'})});await assert.rejects(box.send({}),/FORBIDDEN/);assert.equal(box.writeUncertain,false);assert.equal(box.calls,1);});
-test('actual account acknowledged write releases departure guard',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({actor:{id:'frank'},revision:2})});await box.send({});assert.equal(box.writeUncertain,false);assert.equal(box.model.revision,2);assert.equal(box.calls,1);});
-test('actual role refresh removes deleted custom names and old built-in overrides',()=>{
+void test('actual account definite 4xx rejection releases departure guard without retry',async()=>{const box=accountBox({ok:false,status:403,json:async()=>({error:'FORBIDDEN'})});await assert.rejects(box.send({}),/FORBIDDEN/);assert.equal(box.writeUncertain,false);assert.equal(box.calls,1);});
+void test('actual account acknowledged write releases departure guard',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({actor:{id:'frank'},revision:2})});await box.send({});assert.equal(box.writeUncertain,false);assert.equal(box.model.revision,2);assert.equal(box.calls,1);});
+void test('actual role refresh removes deleted custom names and old built-in overrides',()=>{
  const text=source('permission-controls.js'),refresh=part(text,'  function refresh(){','  refresh();');
  const values={processCustomRoles:[],processRoleTemplateOverrides:{}};
  const box={roleNames:{staff:'OLD',custom_removed:'REMOVED'},builtInRoleNames:{admin:'ADMIN',staff:'STAFF'},customTemplates:[{id:'custom_removed'}],roleOverrides:{staff:{name:'OLD'}},templates:{},builtInTemplates:{admin:{views:[]},staff:{views:[]}},readStore:(key,fallback)=>values[key]||fallback};
  vm.createContext(box);vm.runInContext(refresh,box);box.refresh();assert.deepEqual(box.roleNames,{admin:'ADMIN',staff:'STAFF'});assert.equal(box.customTemplates.length,0);assert.deepEqual(box.roleOverrides,{});
 });
-test('actual form tracker only guards explicitly supplied editing scope and acknowledges saved input',()=>{
+void test('actual form tracker only guards explicitly supplied editing scope and acknowledges saved input',()=>{
  const listeners={},box={window:{},document:{addEventListener:(name,fn)=>listeners[name]=fn}};vm.createContext(box);vm.runInContext(source('navigation-forms.js'),box);
  const input={type:'text',tagName:'INPUT',value:'old',defaultValue:'old',isConnected:true,matches:()=>true};const scope={querySelectorAll:()=>[input]},api=box.window.ProcessNavigationForms;
  listeners.focusin({target:input});input.value='new';listeners.input({target:input});
@@ -67,19 +67,19 @@ test('actual form tracker only guards explicitly supplied editing scope and ackn
  listeners.compositionstart({target:input});assert.equal(api.composing(),true);listeners.compositionend({target:input});assert.equal(api.composing(),false);
  input.type='file';input.files=[{name:'original.png',size:33,lastModified:1}];assert.equal(api.dirty(scope),true);
 });
-for(const outcome of ['resolve','reject'])test('actual BOM stale run '+outcome+' cannot clear new operation busy/error or repaint',async()=>{
+for(const outcome of ['resolve','reject'])void test('actual BOM stale run '+outcome+' cannot clear new operation busy/error or repaint',async()=>{
  const text=source('bom-workspace.js'),run=part(text,' async function run(fn){',' function selectionAllowed()');let delivery=1;const old=deferred(),fresh=deferred(),events=[];
  const box={busy:false,runSequence:0,readEpoch:0,error:'',lastErrorCode:'',window:{ProcessSync:{captureDelivery:()=>delivery,isCurrentDelivery:owner=>owner===delivery},VersionDraftUI:{updateSync(){}}},document:{querySelector:()=>null,querySelectorAll:()=>[]},paint:()=>events.push('paint'),renderReview:()=>events.push('review'),errorText:e=>e.message,permission:()=>true};vm.createContext(box);vm.runInContext(run,box);
  const first=box.run(()=>old.promise);delivery++;box.runSequence++;box.busy=false;const second=box.run(()=>fresh.promise);
  if(outcome==='reject')old.reject(Error('old-read'));else old.resolve();await first;
  assert.equal(box.busy,true);assert.equal(box.error,'');assert.deepEqual(events,[]);fresh.resolve();await second;assert.equal(box.busy,false);assert.deepEqual(events,['paint','review']);
 });
-for(const outcome of ['resolve','reject'])test('actual FQC approval '+outcome+' after delivery change cannot set new error or toast',async()=>{
+for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outcome+' after delivery change cannot set new error or toast',async()=>{
  const text=source('fqc-master.js'),bind=part(text,'  function bindReview(panel) {','  function refreshReviewUI(panel)');let epoch=1;const read=deferred(),events=[],panel={isConnected:true,querySelector:()=>null};
  const box={sharedStateCurrent:()=>false,reviewReadSequence:0,reviewHTML:()=>'<p>Loading</p>',library:()=>({}),currentReadOwner:predicate=>{const owner=epoch;return()=>epoch===owner&&predicate();},loadShared:()=>read.promise,navigationError:null,refreshReviewUI:()=>events.push('render'),toast:()=>events.push('toast'),displayDraftError:e=>e.message};vm.createContext(box);vm.runInContext(bind,box);const pending=box.bindReview(panel);epoch++;if(outcome==='resolve')read.resolve({});else read.reject(Error('DELIVERY_SUPERSEDED'));await pending;assert.equal(box.navigationError,null);assert.deepEqual(events,[]);
 });
-test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
-test('changed persistent-navigation executable references have coherent new cache versions',()=>{
+void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
+void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const readPaused=["shared-draft-client.js", "process-authoring-v3.js", "master-data.js", "fqc-master.js", "iqc-master.js", "ipqc-ab.js", "ipqc-c.js", "routine-equipment.js", "bom-workspace.js", "tooling.js", "effective-version-notice.js", "routine-fqc.js", "process-ipqc.js"];const html=source('index.html');for(const file of ['app.js','approval-tabs.js','bom-workspace.js','bootstrap.js','canvas-local.js','delivery-navigation.js','dual-system.js','effective-version-notice.js','fqc-master.js','ipqc-ab.js','ipqc-c.js','iqc-master.js','master-data.js','master-shared-client.js','permission-controls.js','process-authoring-v3.js','quality-review-overview.js','routine-equipment.js','routine-fqc.js','shared-draft-client.js','shared-state.js','tooling.js','user-access.js','navigation-forms.js'])assert(html.includes(file+'?v='+(['fqc-master.js','master-data.js','quality-review-overview.js'].includes(file)?'20261027-readscope-truthful1':['fqc-master.js','routine-equipment.js'].includes(file)?'20261027-fqc-followon1':readPaused.includes(file)?'20261027-scoped-read-pause1':['app.js','delivery-navigation.js'].includes(file)?'20261027-login-reentry1':['shared-state.js','master-data.js','bootstrap.js'].includes(file)?'20261026-feedback1':file==='iqc-master.js'?'20261026-editor-terminal1':file==='ipqc-c.js'?'20261027-operation-permissions1':['process-authoring-v3.js','canvas-local.js'].includes(file)?'20261027-save-inspection1':file==='shared-draft-client.js'?'20261027-authoring-deadline1':['app.js','master-data.js'].includes(file)?'20261026-navigation4':'20261025-navigation2')),file);
  assert(html.includes("process-ipqc.js?v=20261027-scoped-read-pause1"));
  assert(html.includes("data-safety-ui.js?v=20261027-login-reentry1"));

@@ -18,18 +18,18 @@ async function fixture({lost=false,stall=false,wrong=false,blocked=false,refused
  const runner=await createOwnerVerifier({pins,request,signal:controller.signal,onProgress:async p=>progress.push(p)});
  return{runner,log,progress,controller,get cursor(){return cursor;},get maxRunning(){return maxRunning;}};
 }
-test('one click continuously verifies from288 and audits tosealed without files/keys/pauses/activation',async()=>{
+void test('one click continuously verifies from288 and audits tosealed without files/keys/pauses/activation',async()=>{
  const f=await fixture(),r=await f.runner.run();assert.equal(r.status,'sealed');assert.equal(r.businessTrafficEnabled,false);assert.equal(f.maxRunning,1);
  assert.deepEqual(f.log.filter(x=>x.method==='POST').map(x=>x.action),['verify','verify','audit','audit']);assert.deepEqual(f.log.filter(x=>x.action==='verify').map(x=>x.version),['21','22']);
  assert.deepEqual(f.progress.filter(p=>p.lastSuccessAt&&p.stage==='verifying').map(p=>p.verifiedChunks),[304,320]);assert.equal(f.progress.at(-1).stage,'sealed');await assert.rejects(f.runner.run(),/ALREADY_USED/);
 });
-for(const options of [{refused:true},{alterConfig:true},{blocked:true}])test('login/owner pins/budget refusal has zero POST '+JSON.stringify(options),async()=>{const f=await fixture(options),r=await f.runner.run();assert.equal(r.status,'stopped');assert.equal(f.log.some(x=>x.method==='POST'),false);});
-for(const options of [{lost:true},{wrong:true}])test('uncertain or contradictory POST never retries; two readonly reconciliation calls '+JSON.stringify(options),async()=>{
+for(const options of [{refused:true},{alterConfig:true},{blocked:true}])void test('login/owner pins/budget refusal has zero POST '+JSON.stringify(options),async()=>{const f=await fixture(options),r=await f.runner.run();assert.equal(r.status,'stopped');assert.equal(f.log.some(x=>x.method==='POST'),false);});
+for(const options of [{lost:true},{wrong:true}])void test('uncertain or contradictory POST never retries; two readonly reconciliation calls '+JSON.stringify(options),async()=>{
  const f=await fixture(options),r=await f.runner.run();assert.equal(r.status,'stopped');assert.equal(r.uncertain,true);assert.equal(r.automaticRetryAllowed,false);assert.equal(f.log.filter(x=>x.method==='POST').length,1);assert.deepEqual(f.log.slice(-2).map(x=>x.action),['budget-status','status']);assert.equal(f.cursor,304);
 });
-test('stop aborts even a provider ignoring cancellation; readback only and no next mutation',async()=>{
+void test('stop aborts even a provider ignoring cancellation; readback only and no next mutation',async()=>{
  const f=await fixture({stall:true}),start=performance.now(),r=await f.runner.run();assert.equal(r.status,'stopped');assert.ok(performance.now()-start<1000);assert.equal(f.log.filter(x=>x.method==='POST').length,1);assert.deepEqual(f.log.slice(-2).map(x=>x.action),['budget-status','status']);
 });
-test('reopened runner starts at server-committed progress; sealed transfer does not reverify',async()=>{
+void test('reopened runner starts at server-committed progress; sealed transfer does not reverify',async()=>{
  const f=await fixture({ready:true}),r=await f.runner.run();assert.equal(r.status,'sealed');assert.equal(f.log.some(x=>x.action==='verify'),false);assert.equal(f.log.filter(x=>x.action==='audit').length,2);
 });
