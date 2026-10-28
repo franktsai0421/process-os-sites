@@ -172,6 +172,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-truthful-review.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-fqc-matrix-layout.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-contentissues-cache.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-ipqc-read-reuse.cjs
@@ -207,6 +209,8 @@ jobs:
           node scripts/test-fqc-feedback-races.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-structure-lookup.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-fqc-parent-lookup.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-equipment-reference-view.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -379,6 +383,8 @@ jobs:
           node tests/c273-observation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/c273-observation-client.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --import tsx --test tests/import-stop-controller-state.test.mjs tests/observation-initial-receipt.test.mjs
       - name: Compiled fixed one-shot owner observation with ephemeral storage
         id: head_validation_27
         if: ${{ !cancelled() && steps.head_validation_26.outcome == 'success' }}
@@ -406,13 +412,12 @@ jobs:
           $base = 'db190a37ff7b9c5dc1e098e2a62d9d9ddff504da'
           $actualBase = & git rev-parse HEAD
           if ($LASTEXITCODE -ne 0 -or $actualBase -ne $base) { throw 'Unexpected baseline commit' }
-          foreach ($file in @('package.json', 'package-lock.json', '.oxlintrc.json', 'tsconfig.json', '.githooks/pre-push', 'scripts/main-push-guard.mjs', 'scripts/collaboration-setup.mjs')) {
-            $headBlob = & git -C $env:GITHUB_WORKSPACE rev-parse "HEAD:$file"
-            if ($LASTEXITCODE -ne 0) { throw 'Head lint input missing' }
-            $baseBlob = & git rev-parse "HEAD:$file"
-            if ($LASTEXITCODE -ne 0 -or $headBlob -ne $baseBlob) { throw 'Baseline lint or guard inputs differ' }
-          }
-          # Normal postinstall must install/verify unchanged guards in a standalone checkout.
+          & node (Join-Path $env:GITHUB_WORKSPACE 'tests/lint-baseline-inputs.test.mjs')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & node (Join-Path $env:GITHUB_WORKSPACE 'scripts/compare-lint-baseline-inputs.mjs') . $env:GITHUB_WORKSPACE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Normal postinstall verifies guards in this standalone baseline checkout.
+          # The comparator accepts byte-identical inputs or one reviewed unused-import-only pair.
           & npm ci --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host "BASE_LINT_BEGIN commit=$base"

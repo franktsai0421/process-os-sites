@@ -6,13 +6,21 @@ function receipt(v:unknown):v is Receipt{if(!v||typeof v!=='object')return false
 const button={minHeight:48,padding:'10px 16px',marginRight:12,marginBottom:12};
 export default function ObservationClient(){
  const [hasUsed,setHasUsed]=useState(false);
- const [value,setValue]=useState<Receipt|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(false),used=useRef(false),active=useRef<AbortController|null>(null);
+ const [value,setValue]=useState<Receipt|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState(false),used=useRef(false),active=useRef<AbortController|null>(null);
  async function request(method:'GET'|'POST'){
   if(method==='POST'){if(used.current||value?.status!=='ready')return;used.current=true;setHasUsed(true);}active.current?.abort();const controller=new AbortController();active.current=controller;const timer=setTimeout(()=>controller.abort(),60000);setBusy(true);setError(false);
   try{const r=await fetch(endpoint,{method,credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal});const v:unknown=await r.json();if(!receipt(v))throw Error('OBS_RECEIPT');if(controller.signal.aborted)return;setValue(v);if(v.status!=='ready'&&v.status!=='disabled'){used.current=true;setHasUsed(true);}}catch{if(active.current===controller){setError(true);if(method==='POST')setValue({status:'unknown',stage:'unavailable',size:null,sha256:null,elapsedMs:0});}}
   finally{clearTimeout(timer);if(active.current===controller){active.current=null;setBusy(false);}}
  }
- useEffect(()=>{void request('GET');return()=>active.current?.abort();},[]);
+ useEffect(function readInitialReceipt(){
+  active.current?.abort();const controller=new AbortController();active.current=controller;const timer=setTimeout(()=>controller.abort(),60000);
+  void(async()=>{
+   try{const r=await fetch(endpoint,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal});const v:unknown=await r.json();if(!receipt(v))throw Error('OBS_RECEIPT');if(controller.signal.aborted)return;setValue(v);if(v.status!=='ready'&&v.status!=='disabled'){used.current=true;setHasUsed(true);}}
+   catch{if(active.current===controller)setError(true);}
+   finally{clearTimeout(timer);if(active.current===controller){active.current=null;setBusy(false);}}
+  })();
+  return()=>active.current?.abort();
+ },[]);
  return <main style={{maxWidth:680,margin:'auto',padding:24,fontFamily:'system-ui',overflowWrap:'anywhere'}}>
   <h1>單次 c273 觀察 / Kiểm tra c273 một lần</h1>
   <p>只讀固定分塊，不續傳、不解鎖、不啟用資料。/ Chỉ đọc khối đã cố định; không tải tiếp, mở khóa hoặc kích hoạt dữ liệu.</p>

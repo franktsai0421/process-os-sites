@@ -46,7 +46,11 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
        ids.add(row.id);codes.add(code);if(old&&(old.category!==row.category||old.line!==row.line||(key==='errors'?old.code:old.checkNo)!==code))throw new DraftConflict('FQC_IDENTITY_PROTECTED',422);
       }
      }
-     for(const row of content.items){const old=previousRow('items',row.id),parent=content.errors.find(e=>e.id===row.errorId);
+     // Identity checks above have succeeded. Keep first-match parent lookup local
+     // to this structure call, without rescanning every error for every item.
+     const parentErrors=new Map<string,FqcSnapshot['errors'][number]>();
+     if(content.items.length)for(const error of content.errors)if(!parentErrors.has(error.id))parentErrors.set(error.id,error);
+     for(const row of content.items){const old=previousRow('items',row.id),parent=parentErrors.get(row.errorId);
       if(!row.isDeleted&&(!parent||parent.isDeleted||parent.category!==row.category))throw new DraftConflict('ERROR_PARENT_INVALID',422);
       if(!Array.isArray(row.productCodes)||row.productCodes.some(c=>typeof c!=='string')||new Set(row.productCodes).size!==row.productCodes.length||!Array.isArray(row.mediaItems)||row.mediaItems.some(p=>!p||typeof p.src!=='string'||!(/^(data:image\/(png|jpeg|webp|gif);base64,|\/)/.test(p.src)))||typeof row.isEnabled!=='boolean')throw new DraftConflict('INVALID_FQC_ITEM',422);
       if(row.equipmentId!=null&&typeof row.equipmentId!=='string')throw new DraftConflict('INVALID_EQUIPMENT',422);

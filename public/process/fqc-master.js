@@ -740,7 +740,22 @@
   function matrixHTML(version, category, products, canEdit) {
     const visibleProducts = products.filter(product => !ui.search || `${product.code} ${product.name}`.toLowerCase().includes(ui.search.toLowerCase()));
     const items = itemRows(version, category);
-    return `<div class="fqc-matrix-scroll"><table class="fqc-matrix-table"><thead><tr><th class="fqc-matrix-corner"><span class="fqc-matrix-corner-label">FQC 檢查編號／名稱</span></th>${visibleProducts.map(product => `<th class="fqc-matrix-prod-th" title="${h(`${product.code} ${product.name} ${product.specification || ''}`)}"><div class="matrix-prod-code"><code>${h(product.code)}</code></div><div class="matrix-prod-name" data-i18n-skip="true">${h(product.name)}</div>${product.specification ? `<div class="matrix-prod-spec" data-i18n-skip="true">${h(product.specification)}</div>` : ''}${product.kind === 'semi-finished' ? '<div class="matrix-prod-tag"><span class="semi-tag">半成品</span></div>' : ''}</th>`).join('')}</tr></thead><tbody>${items.map(item => `<tr><th class="fqc-matrix-item-th"><code class="fqc-matrix-item-code">${h(item.checkNo)}</code><span class="fqc-matrix-item-name" data-i18n-skip="true">${h(item.name)}</span></th>${visibleProducts.map(product => { const included = (item.productCodes || []).includes(product.code); const symbol = included ? (item.isEnabled ? '✓' : '停用') : '—'; return `<td><button class="matrix-cell ${included ? 'included' : ''} ${item.isEnabled ? '' : 'disabled-item'}" data-matrix-item="${h(item.id)}" data-matrix-product="${h(product.code)}" ${canEdit ? '' : 'disabled'} aria-label="${h(item.checkNo)} ${h(product.code)} ${symbol}">${symbol}</button></td>`; }).join('')}</tr>`).join('') || `<tr><td colspan="${visibleProducts.length + 1}">尚無檢查項目</td></tr>`}</tbody></table></div>`;
+    const vi = isVi();
+    const selectedLabel = vi ? 'Đã chọn cho sản phẩm' : '已納入產品標準';
+    const excludedLabel = vi ? 'Chưa chọn cho sản phẩm' : '未納入產品標準';
+    const disabledLabel = vi ? 'Đã tắt' : '停用';
+    const enabledLabel = vi ? 'Đang dùng' : '啟用中';
+    const legend = `<div class="fqc-matrix-legend" data-i18n-skip="true"><span>✓ ${selectedLabel}</span><span>— ${excludedLabel}</span><span>${vi ? 'Đã tắt: chưa chọn “Kích hoạt tiêu chuẩn này”; lựa chọn sản phẩm được giữ nguyên.' : '停用：未勾選「啟用此標準」，不改變產品選擇。'}</span></div>`;
+    return `${legend}<div class="fqc-matrix-scroll"><table class="fqc-matrix-table"><thead><tr><th class="fqc-matrix-corner"><span class="fqc-matrix-corner-label">${vi ? 'FQC Mã / tên kiểm tra' : 'FQC 檢查編號／名稱'}</span></th>${visibleProducts.map(product => `<th class="fqc-matrix-prod-th" title="${h(`${product.code} ${product.name} ${product.specification || ''}`)}"><div class="matrix-prod-code"><code>${h(product.code)}</code></div><div class="matrix-prod-name" data-i18n-skip="true">${h(product.name)}</div>${product.specification ? `<div class="matrix-prod-spec" data-i18n-skip="true">${h(product.specification)}</div>` : ''}${product.kind === 'semi-finished' ? `<div class="matrix-prod-tag"><span class="semi-tag">${vi ? 'Bán thành phẩm' : '半成品'}</span></div>` : ''}</th>`).join('')}</tr></thead><tbody>${items.map(item => {
+      // Inclusion and item activation are independent; match the edit checkbox's legacy default.
+      const enabled = item.isEnabled !== false;
+      return `<tr><th class="fqc-matrix-item-th"><code class="fqc-matrix-item-code">${h(item.checkNo)}</code><span class="fqc-matrix-item-name" data-i18n-skip="true">${h(item.name)}</span>${enabled ? '' : `<span class="fqc-matrix-item-status" data-i18n-skip="true">${disabledLabel}</span>`}</th>${visibleProducts.map(product => {
+        const included = (item.productCodes || []).includes(product.code);
+        const symbol = included ? '✓' : '—';
+        const label = `${item.checkNo} ${product.code} · ${included ? selectedLabel : excludedLabel} · ${enabled ? enabledLabel : disabledLabel}`;
+        return `<td><button type="button" class="matrix-cell ${included ? 'included' : ''} ${enabled ? '' : 'disabled-item'}" data-matrix-item="${h(item.id)}" data-matrix-product="${h(product.code)}" ${canEdit ? '' : 'disabled'} aria-pressed="${included}" aria-label="${h(label)}" title="${h(label)}">${symbol}</button></td>`;
+      }).join('')}</tr>`;
+    }).join('') || `<tr><td colspan="${visibleProducts.length + 1}">${vi ? 'Chưa có hạng mục kiểm tra' : '尚無檢查項目'}</td></tr>`}</tbody></table></div>`;
   }
   function bindEvents() {
     const root = hostElement.querySelector('#fqc-page') || hostElement;
