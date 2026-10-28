@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
-import {fileURLToPath,pathToFileURL} from 'node:url';
+import {pathToFileURL} from 'node:url';
 
 const refusal='main不得直接Push，請建立工作分支並提交Pull Request。';
 export const sitesSourceProject='appgprj_6ad9abaff47c8191846eb9821034696b';

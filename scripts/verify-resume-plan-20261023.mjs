@@ -55,7 +55,7 @@ export async function planIncidentMaintenance(db,{holdPlan,newGrant,reviewedProg
 }
 async function validate(plan){
  fail(plan?.format==='PROCESS_OS_VERIFY_RESUME_PLAN_20261023'&&plan.requiredRuntime===requiredResumeRuntime&&plan.liveReady===false);
- const {planSha256,liveReady,...value}=plan;fail(await digest(value)===planSha256);
+ const {planSha256,liveReady:_liveReady,...value}=plan;fail(await digest(value)===planSha256);
  fixedSnapshot(plan.snapshot,plan.holdPlanSha256);
  // Revalidate the new public grant metadata, not a caller-selected SQL shape.
  const g=plan.newGrant,normalized=incidentVerifyRecord({id:g.id,credentialSha256:g.credential_sha256,pins,ownerEpoch:g.owner_epoch,issuedAt:g.issued_at,writeExpiresAt:g.write_expires_at,receiptExpiresAt:g.receipt_expires_at,requestLimit:g.request_limit,operationLimit:g.operation_limit});
@@ -89,7 +89,7 @@ export async function buildIncidentResumeBatch(db,plan,{at}={}){
  out.push(db.prepare(assertion('?>=? AND ?<?')).bind(at,g.issued_at,at,g.write_expires_at));
  update(db,out,'UPDATE process_import_capabilities SET revoked_at=?,generation=generation+1 WHERE id=? AND generation=1 AND revoked_at IS NULL',[at,incident.capabilityId]);
  const stored={...g,hold_plan_sha:plan.holdPlanSha256,resume_plan_sha:plan.planSha256,program_commit:plan.reviewedProgramCommit},columns=Object.keys(stored);
- update(db,out,`INSERT INTO process_import_verify_capabilities(${columns.join(',')}) VALUES(${columns.map(()=>'?')})`,Object.values(stored));
+ update(db,out,`INSERT INTO process_import_verify_capabilities(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,Object.values(stored));
  update(db,out,"UPDATE process_import_native_requests SET reason=? WHERE request_id=? AND state='blocked' AND reason=?",['verify-recovery-resumed:'+plan.holdPlanSha256+':'+plan.planSha256,incident.requestId,s.request.reason]);
  update(db,out,"UPDATE process_import_budget SET state='open',active_request=NULL,reason=? WHERE id=1 AND state='stopped' AND active_request=? AND reason=?",['IMPORT_VERIFY_RESUME_ONLY:'+plan.planSha256,incident.requestId,s.budget.reason]);
  // Cursor/version/charges/old operations/history stay intact. The default-off

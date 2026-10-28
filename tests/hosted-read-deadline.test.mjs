@@ -16,7 +16,7 @@ function responseAfter(c,ms,signal,value,status=200){return new Promise((resolve
  signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
 });}
 function clientFixture(handler,endpoint='/api/process-authoring/workflow?caseMetadata=1'){const c=clock(),calls=[],memory=new Map(),owner={identity:{id:'owner'}},window={ProcessSync:owner};
- vm.runInNewContext(source,{window,document:{documentElement:{lang:'vi'}},fetch:(url,options)=>{calls.push({url,method:options.method});return handler(c,url,options);},crypto:webcrypto,AbortController,setTimeout:c.setTimeout,clearTimeout:c.clearTimeout,sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)}});
+ vm.runInNewContext(source,{window,document:{documentElement:{lang:'vi'}},fetch:(url,options)=>{calls.push({url,method:options.method});return handler(c,url,options);},crypto:webcrypto,AbortController,setTimeout:c.setTimeout.bind(c),clearTimeout:c.clearTimeout.bind(c),sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)}});
  return {c,calls,owner,memory,client:window.createSharedDraftClient({endpoint,actorId:'owner',headers:()=>({})})};}
 let cases=0;
 async function test(name,run){await run();cases++;console.log('PASS '+name);}

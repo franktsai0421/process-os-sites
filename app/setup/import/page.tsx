@@ -27,5 +27,5 @@ export default function ImportPage(){
  if(observation)return <ObservationClient/>;
  if(config&&application)return <ApplyClient {...config} repairCopy={repairCopy}/>;
  if(config)return continuation?<VerifyClient {...config}/>:<><p style={{padding:16}}><a href="?continue=verify" onClick={e=>{e.preventDefault();history.replaceState(null,'','?continue=verify');setContinuation(true);}}>接續已上傳資料的核對（免選檔） / Tiếp tục kiểm tra dữ liệu đã tải lên</a></p><ImportClient {...config}/></>;
- return <main style={{maxWidth:720,margin:'auto',padding:24,fontFamily:'system-ui'}}><h1>資料匯入 / Nhập dữ liệu</h1><p role="status">{error?'無法取得管理員匯入權限或設定，尚未選取或上傳任何檔案。 / Chưa xác nhận quyền hoặc cấu hình; chưa chọn hoặc gửi tệp.':'正在核對管理員登入狀態… / Đang kiểm tra phiên quản trị viên…'}</p>{error&&<p>{error}</p>}<a href="/login?next=%2Fsetup%2Fimport" target="_top">登入後返回匯入頁 / Đăng nhập rồi quay lại trang nhập</a></main>;
+ return <main style={{maxWidth:720,margin:'auto',padding:24,fontFamily:'system-ui'}}><h1>資料匯入 / Nhập dữ liệu</h1><p><output>{error?'無法取得管理員匯入權限或設定，尚未選取或上傳任何檔案。 / Chưa xác nhận quyền hoặc cấu hình; chưa chọn hoặc gửi tệp.':'正在核對管理員登入狀態… / Đang kiểm tra phiên quản trị viên…'}</output></p>{error&&<p>{error}</p>}<a href="/login?next=%2Fsetup%2Fimport" target="_top">登入後返回匯入頁 / Đăng nhập rồi quay lại trang nhập</a></main>;
 }

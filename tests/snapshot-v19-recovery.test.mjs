@@ -1,8 +1,8 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {incidentFixture} from './incident-recovery-fixture.mjs';
 import {incidentVerifyScope,credentialDigest,createIncidentVerifyAuthority} from '../lib/snapshot-native-capability.mjs';
-import {v19,v19ReceiptSchema,proveV19,planV19Recovery,buildV19RecoveryBatch,readV19RecoveryReceipt,checkV19Continuation} from '../scripts/verify-recovery-v19-20261024.mjs';
-const insert=(db,table,v)=>{const keys=Object.keys(v);return db.prepare(`INSERT INTO ${table}(${keys.join(',')}) VALUES(${keys.map(()=>'?')})`).bind(...Object.values(v)).run();};
+import {v19,proveV19,planV19Recovery,buildV19RecoveryBatch,readV19RecoveryReceipt,checkV19Continuation} from '../scripts/verify-recovery-v19-20261024.mjs';
+const insert=(db,table,v)=>{const keys=Object.keys(v);return db.prepare(`INSERT INTO ${table}(${keys.join(',')}) VALUES(${keys.map(()=>'?').join(',')})`).bind(...Object.values(v)).run();};
 async function fixture(){
  const f=await incidentFixture();await f.advanceTo('resumed');
  const prior=f.sqlite.prepare('SELECT * FROM process_import_verify_capabilities').get();

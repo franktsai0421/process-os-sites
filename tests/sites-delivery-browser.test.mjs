@@ -4,7 +4,7 @@ import fs from 'node:fs';import assert from 'node:assert/strict';import {createH
 import {pngFixture,chunk} from './photo-fixtures.mjs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';import {accessKeys} from '../public/process/access-policy.mjs';
 const require=createRequire(import.meta.url),{chromium}=require('playwright'),secret='synthetic-browser-delivery-only';
-let fixture,browser,lastPage,stage='setup';const report={status:'PENDING',pages:[],failedRequests:[],mutations:[],pageErrors:[],realData:false,realCredentials:false};
+let fixture,browser;/** @type {import('playwright').Page|undefined} */ let lastPage;let stage='setup';const report={status:'PENDING',pages:[],failedRequests:[],mutations:[],pageErrors:[],realData:false,realCredentials:false};
 try{
  fixture=await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:secret,DEMO_LOGIN_ENABLED:'false'}});
  const bucket=await fixture.mf.getR2Bucket('STATE_ARCHIVE'),load=require('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE:bucket}),records=load('lib/state-records.ts');
@@ -34,9 +34,9 @@ try{
    const intervals=new Set(),timeouts=new Set(),urls=new Set(),listeners=new Map();
    const setI=window.setInterval,clearI=window.clearInterval,setT=window.setTimeout,clearT=window.clearTimeout;
    window.setInterval=function(...args){const id=setI.apply(this,args);intervals.add(id);return id;};window.clearInterval=function(id){intervals.delete(id);return clearI.call(this,id);};
-   window.setTimeout=function(fn,ms,...args){if(typeof fn!=='function')return setT.call(this,fn,ms,...args);let id;id=setT.call(this,()=>{timeouts.delete(id);fn(...args);},ms);timeouts.add(id);return id;};window.clearTimeout=function(id){timeouts.delete(id);return clearT.call(this,id);};
+   window.setTimeout=function(fn,ms,...args){if(typeof fn!=='function')return setT.call(this,fn,ms,...args);const id=setT.call(this,()=>{timeouts.delete(id);fn(...args);},ms);timeouts.add(id);return id;};window.clearTimeout=function(id){timeouts.delete(id);return clearT.call(this,id);};
    const create=URL.createObjectURL,revoke=URL.revokeObjectURL;URL.createObjectURL=function(value){const url=create.call(this,value);urls.add(url);return url;};URL.revokeObjectURL=function(url){urls.delete(url);return revoke.call(this,url);};
-   for(const [name,target]of [['window',window],['document',document]]){const add=target.addEventListener,remove=target.removeEventListener;target.addEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);if(!listeners.has(key))listeners.set(key,new Set());listeners.get(key).add(fn);return add.call(this,type,fn,options);};target.removeEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);listeners.get(key)?.delete(fn);return remove.call(this,type,fn,options);};}
+   /** @type {[string, Window|Document][]} */ const eventTargets=[['window',window],['document',document]];for(const [name,target]of eventTargets){const add=target.addEventListener,remove=target.removeEventListener;target.addEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);if(!listeners.has(key))listeners.set(key,new Set());listeners.get(key).add(fn);return add.call(this,type,fn,options);};target.removeEventListener=function(type,fn,options){const key=name+':'+type+':'+!!(typeof options==='boolean'?options:options?.capture);listeners.get(key)?.delete(fn);return remove.call(this,type,fn,options);};}
    window.__fixtureResourceCounts=()=>({intervals:intervals.size,timeouts:timeouts.size,objectURLs:urls.size,globalListeners:[...listeners.values()].reduce((n,rows)=>n+rows.size,0)});
   });
   const page=await context.newPage();lastPage=page;page.on('pageerror',error=>{

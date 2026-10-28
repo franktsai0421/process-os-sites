@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {cleanJson,scrubJsonBytes,maximumJsonBytes} from '../lib/snapshot-redaction.mjs';
-import {createD1R2Source,snapshotTables} from '../lib/snapshot-d1-r2.mjs';
+import {createD1R2Source} from '../lib/snapshot-d1-r2.mjs';
 import {exportSnapshot,sha256} from '../lib/snapshot-contract.mjs';
 import {restoreLocalSnapshot} from '../lib/snapshot-local.mjs';
 import {snapshotResponseBody,receiveSnapshotStream} from '../lib/snapshot-stream.mjs';
