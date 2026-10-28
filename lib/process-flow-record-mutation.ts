@@ -23,7 +23,7 @@ export function processFlowCommand(command:ModuleDraftCommand|undefined):command
   if(command.action==='submit')return typeof command.savedId==='string'&&!!command.savedId;
   if(command.action==='approve')return typeof command.caseId==='string'&&!!command.caseId&&(command.selfReviewConfirmed===undefined||typeof command.selfReviewConfirmed==='boolean')&&(command.acknowledgedContentIssues===undefined||Array.isArray(command.acknowledgedContentIssues))&&!containsReference(command.acknowledgedContentIssues);
   if(!Array.isArray(command.patches)||!command.patches.length||command.patches.length>256||!Array.isArray(command.guards)||command.guards.some(g=>!g||Object.keys(g).some(k=>!['path','value'].includes(k))||!path(g.path)||containsReference(g.value)))return false;
-  return command.patches.every(p=>p&&Object.keys(p).every(k=>['op','path','value'].includes(k))&&p.op==='set'&&path(p.path)&&p.path.length>=6&&fields.has(p.path[5] as string)&&!p.path.slice(6).some(k=>['id','isDeleted','deleted'].includes(String(k)))&&p.value!==undefined&&!containsReference(p.value)&&command.guards!.some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)));
+  return command.patches.every(p=>p&&Object.keys(p).every(k=>['op','path','value'].includes(k))&&p.op==='set'&&path(p.path)&&p.path.length>=6&&fields.has(p.path[5] as string)&&!p.path.slice(6).some(k=>typeof k!=='string'||['id','isDeleted','deleted'].includes(k))&&p.value!==undefined&&!containsReference(p.value)&&command.guards!.some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)));
  }catch{return false;}
 }
 export async function readProcessFlowMutationState(command:ModuleDraftCommand):Promise<State|null>{
