@@ -1,3 +1,25 @@
+## 2026-10-28 初次觀察收據 owned GET（隔離候選）
+- 首畫面即等待收據，不先短暫顯示可點；初次GET由effect獨立持有controller，僅實際回覆後更新狀態。
+- 手動GET/單次POST、60秒終止、錯誤/未知回覆與unmount最新controller仍遵原規則；13 source/SSR及8 ReactDOM負測，不代表原生瀏覽器或R1匯入驗收。
+
+## 2026-10-28 匯入停止按鈕 committed state（隔離候選）
+- 原 AbortController 同步建立/清空與 abort handler 不動，僅以同時更新的 state 顯示可停止狀態，避免 render 讀取 mutable ref。
+- 正常 React SSR/source 邊界10例及獨立 jsdom ReactDOM commit/event6例通過；後者是測試 DOM，非實體瀏覽器或資料匯入驗收。應用依賴/鎖檔未更動。
+
+## 2026-10-28 FQC parent 查找索引（隔離候選）
+- 完整結構/identity檢查後，以單次呼叫索引取代每個項目掃描全部錯誤碼；保留原錯誤順序、首筆比對、收據與存檔結果。
+- 三十組 historical/current paired 回歸；120錯誤碼/1000項目的比較工作減少，但單一早命中項目會多建索引，並非每份資料更快。R2/SQL/權限檢查不減，未宣稱解決10–25秒I/O等待。
+
+## 2026-10-28 CI lint 基準輸入鑑別（隔離候選）
+- 保留 head typed lint 與固定 db190 baseline 的原失敗退出碼、正常獨立 checkout/install 及全部後段檢查。
+- 七個輸入仍逐一核對原始 Git blob；僅已審查的 main-push-guard 未用 import 刪除 exact pair 可分類為非功能差異，其他差異/缺檔仍 NOT_COMPARABLE。不是 lint 豁免，也不是位元組完全相同。
+- 新增十五項正負回歸；Windows 原生 CI 與完整 ancestry 仍須在精確遠端提交驗證。
+
+## 2026-10-28 FQC 規則溢出與矩陣狀態（本機候選）
+- 長自訂規則完整換行於原欄位；FQC 單符號矩陣格不受共用歷史按鈕 padding 擠壓。
+- 產品納入 `✓`／未納入 `—` 與啟用狀態分開；明確 false 才顯示列標題停用 badge，雙語及 legacy default 對齊編輯頁，不改選擇資料或寫入路徑。
+- 新增純 DOM／CSS 契約回歸及 CI 入口；非原生 layout／發布驗收。實作與證據界線見 [QUALITY](modules/QUALITY.md)。
+
 ## 2026-10-27 FQC bootstrap active body 去重（本機候選）
 - 只在實際已採用 FQC records metadata 合格時，將重複 active body 讀取留給原 mandatory workflow GET；其他 quality libraries、canonical fallback、fresh authority 不動。
 - 保留明確 full-GET 錯誤／readiness；body fault 時點變化有隔離實證，不宣稱整體延遲或 OOM 已解決。詳見 RUNTIME 與 portable paired regression。

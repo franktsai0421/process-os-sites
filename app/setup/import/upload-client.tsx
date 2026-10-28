@@ -27,6 +27,7 @@ const controls={minHeight:48,border:'1px solid #64748b',borderRadius:7,padding:'
 export default function ImportClient({pins,capacity,attempt,budget,retirement,bootstrapClosed}:ImportConfiguration){
  const [retirementState,setRetirementState]=useState(retirement);
  const [sourceFiles,setSourceFiles]=useState<File[]>([]),[handoffFiles,setHandoffFiles]=useState<File[]>([]),[message,setMessage]=useState(''),[summary,setSummary]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[resume,setResume]=useState(false),[activate,setActivate]=useState(false),[progress,setProgress]=useState<Progress|null>(null),[liveBudget,setLiveBudget]=useState(budget),[receiptUncertain,setReceiptUncertain]=useState(false);
+ const [controllerAvailable,setControllerAvailable]=useState(false);
  const abort=useRef<AbortController|null>(null),folder=(n:HTMLInputElement|null)=>{n?.setAttribute('webkitdirectory','');};
  async function open(){return openBrowserSnapshot({sourceFiles,handoffFiles,pins});}
  async function refreshBudget(){
@@ -43,11 +44,11 @@ export default function ImportClient({pins,capacity,attempt,budget,retirement,bo
   catch(e){setMessage(e instanceof Error&&/^[A-Z0-9_]+$/.test(e.message)?e.message:'UPLOAD_PREFLIGHT_UNAVAILABLE');setProgress({stage:'error'});}finally{setBusy(false);}
  }
  async function upload(){
-  setBusy(true);setReady(false);setMessage('');setProgress({stage:'preparing'});abort.current=new AbortController();
+  setBusy(true);setReady(false);setMessage('');setProgress({stage:'preparing'});abort.current=new AbortController();setControllerAvailable(true);
   try{const source=await open(),client=await createRecipeUploader({source,pins,batch:true,signal:abort.current.signal,onProgress:async(p:Progress)=>setProgress(p),request:async(url:string,options:RequestInit)=>{if(new URL(url).origin!==location.origin||location.origin!==pins.origin)throw Error('UPLOAD_TARGET');const h=new Headers(options.headers);h.delete('Origin');return fetch(url,{...options,headers:h,credentials:'same-origin',redirect:'error'});}});
    const options={allowDataWrite:true,capacity,attempt,resume};await client.upload(options);const result=await client.restore({...options,allowActivation:activate});setMessage(importRestoreMessage(result));
   }catch(e){if(abort.current?.signal.aborted)setProgress(p=>({...p,stage:'stopped'}));else setProgress(p=>({...p,stage:'error'}));setMessage((e instanceof Error&&/^[A-Z0-9_]+$/.test(e.message)?e.message:'UPLOAD_UNAVAILABLE')+' — 不會自動重試；最後請求請依收據核對。 / Không tự thử lại; kiểm tra biên nhận yêu cầu cuối.');await refreshBudget();}
-  finally{setBusy(false);abort.current=null;}
+  finally{setBusy(false);abort.current=null;setControllerAvailable(false);}
  }
  return <main style={{maxWidth:800,margin:'auto',padding:24,fontFamily:'system-ui',lineHeight:1.6,overflowWrap:'anywhere',color:'#0f172a'}}>
   <h1 style={{fontSize:26}}>私人測試站資料匯入 / Nhập dữ liệu cho trang thử nghiệm riêng tư</h1>
@@ -66,7 +67,7 @@ export default function ImportClient({pins,capacity,attempt,budget,retirement,bo
   <label style={{display:'block',padding:12}}><input type="checkbox" disabled={busy} checked={resume} onChange={e=>setResume(e.target.checked)}/> 依同一傳輸的既有收據續傳 / Tiếp tục cùng lần truyền theo biên nhận</label>
   <label style={{display:'block',padding:12}}><input type="checkbox" disabled={busy} checked={activate} onChange={e=>setActivate(e.target.checked)}/> 完整核對後才啟用資料 / Chỉ kích hoạt sau khi kiểm tra đầy đủ</label>
   <button disabled={busy||!ready||(!capacity&&!attempt)||!bootstrapClosed||receiptUncertain||liveBudget?.state==='stopped'||liveBudget?.inFlight} onClick={upload} style={{...controls,background:'#1e40af',color:'#fff'}}>批次上傳、核對及還原 / Tải theo lô, kiểm tra và khôi phục</button>
-  <button disabled={!busy||!abort.current} onClick={()=>abort.current?.abort()} style={controls}>停止送出並核對最後收據 / Dừng gửi và kiểm tra biên nhận cuối</button>
+  <button disabled={!busy||!controllerAvailable} onClick={()=>abort.current?.abort()} style={controls}>停止送出並核對最後收據 / Dừng gửi và kiểm tra biên nhận cuối</button>
   <p><output aria-live="polite">{message}</output></p><a href="/login?next=%2Fsetup%2Fimport" target="_top">登入後返回匯入頁 / Đăng nhập rồi quay lại trang nhập</a>
  </main>;
 }
