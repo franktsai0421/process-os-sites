@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, perf/fqc-process-bounded-writes-20261027]
+    branches: [main, perf/fqc-process-bounded-writes-clean-20261028]
 permissions:
   contents: read
 concurrency:
@@ -39,6 +39,7 @@ jobs:
           node-version: '24'
           cache: npm
       - name: Install locked dependencies
+        id: install_locked_dependencies
         run: npm ci --no-audit --no-fund
       - name: Normal typed lint
         id: normal_typed_lint
@@ -48,43 +49,21 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
-      - name: Checkout exact baseline for failed-lint diagnosis
-        if: ${{ failure() && steps.normal_typed_lint.outcome == 'failure' }}
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: db190a37ff7b9c5dc1e098e2a62d9d9ddff504da
-          path: .sites-runtime/lint-baseline
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Diagnose exact baseline without relaxing head lint
-        if: ${{ failure() && steps.normal_typed_lint.outcome == 'failure' }}
-        working-directory: .sites-runtime/lint-baseline
-        run: |
-          $base = 'db190a37ff7b9c5dc1e098e2a62d9d9ddff504da'
-          $actualBase = & git rev-parse HEAD
-          if ($LASTEXITCODE -ne 0 -or $actualBase -ne $base) { throw 'Unexpected baseline commit' }
-          foreach ($file in @('package.json', 'package-lock.json', '.oxlintrc.json', 'tsconfig.json', '.githooks/pre-push', 'scripts/main-push-guard.mjs', 'scripts/collaboration-setup.mjs')) {
-            $headBlob = & git -C $env:GITHUB_WORKSPACE rev-parse "HEAD:$file"
-            if ($LASTEXITCODE -ne 0) { throw 'Head lint input missing' }
-            $baseBlob = & git rev-parse "HEAD:$file"
-            if ($LASTEXITCODE -ne 0 -or $headBlob -ne $baseBlob) { throw 'Baseline lint or guard inputs differ' }
-          }
-          # Normal postinstall must install/verify unchanged guards in a standalone checkout.
-          & npm ci --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Write-Host "BASE_LINT_BEGIN commit=$base"
-          & npm run lint -- --format unix
-          $baseLintExit = $LASTEXITCODE
-          Write-Host "BASE_LINT_END exit=$baseLintExit"
-          # This diagnostic never changes the already failed head-lint outcome.
-          exit $baseLintExit
       - name: Source-only history and upload safety
+        id: head_validation_01
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' && (steps.normal_typed_lint.outcome == 'success' || steps.normal_typed_lint.outcome == 'failure') }}
         run: node scripts/sites-ci-preflight.mjs
       - name: Full TypeScript
+        id: head_validation_02
+        if: ${{ !cancelled() && steps.head_validation_01.outcome == 'success' }}
         run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Build exact checked-out commit
+        id: head_validation_03
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: node scripts/local-build.mjs
       - name: Synthetic source, snapshot and authorization regressions
+        id: head_validation_04
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
         run: |
           New-Item -ItemType Directory -Force -Path .sites-runtime | Out-Null
           node tests/photo-upload.test.mjs
@@ -174,8 +153,12 @@ jobs:
           node --experimental-vm-modules tests/sites-security.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Native isolated outbound-denial regression
+        id: head_validation_05
+        if: ${{ !cancelled() && steps.head_validation_04.outcome == 'success' }}
         run: node tests/local-worker-outbound.test.mjs
       - name: Integrated entry and read-only delivery contracts
+        id: head_validation_06
+        if: ${{ !cancelled() && steps.head_validation_05.outcome == 'success' }}
         run: |
           node scripts/test-fqc-record-mutation.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -288,6 +271,8 @@ jobs:
           node --test tests/ipqc-c-operation-admission.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: IPQC-C bounded reads and compatibility
+        id: head_validation_07
+        if: ${{ !cancelled() && steps.head_validation_06.outcome == 'success' }}
         run: |
           node scripts/test-ipqc-c-bounded-read.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -298,8 +283,12 @@ jobs:
           node scripts/test-access-template-reuse.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bootstrap bounded reads without production instrumentation
+        id: head_validation_08
+        if: ${{ !cancelled() && steps.head_validation_07.outcome == 'success' }}
         run: node scripts/test-bootstrap-read-reduction.cjs
       - name: Opt-in feedback cloud entry, ownership and reserved toolbar geometry
+        id: head_validation_09
+        if: ${{ !cancelled() && steps.head_validation_08.outcome == 'success' }}
         run: |
           node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -310,34 +299,58 @@ jobs:
           node scripts/test-ui-review-refresh.mjs --feedback-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled module-scoped bootstrap and canonical image boundaries
+        id: head_validation_10
+        if: ${{ !cancelled() && steps.head_validation_09.outcome == 'success' }}
         run: node tests/sites-integrated-bootstrap-native.test.mjs
       - name: Compiled destination pages in an isolated browser with synthetic identities
+        id: head_validation_11
+        if: ${{ !cancelled() && steps.head_validation_10.outcome == 'success' }}
         run: node tests/sites-delivery-browser.test.mjs
       - name: Dormant native staging authority and synthetic transport
+        id: head_validation_12
+        if: ${{ !cancelled() && steps.head_validation_11.outcome == 'success' }}
         run: |
           node --test tests/snapshot-native-capability.test.mjs tests/snapshot-native-intents.test.mjs tests/snapshot-native-handler.test.mjs tests/snapshot-native-input.test.mjs tests/snapshot-native-source.test.mjs tests/snapshot-native-transport.test.mjs tests/snapshot-native-performance.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled application owner setup with synthetic nonpersistent bindings
+        id: head_validation_13
+        if: ${{ !cancelled() && steps.head_validation_12.outcome == 'success' }}
         run: node tests/sites-owner-bootstrap-native.test.mjs
       - name: Compiled root entry with synthetic nonpersistent bindings
+        id: head_validation_14
+        if: ${{ !cancelled() && steps.head_validation_13.outcome == 'success' }}
         run: node tests/sites-root-entry-native.test.mjs
       - name: Compiled pending-import client with synthetic nonpersistent bindings
+        id: head_validation_15
+        if: ${{ !cancelled() && steps.head_validation_14.outcome == 'success' }}
         run: node --experimental-vm-modules tests/sites-import-pending-native.test.mjs
       - name: Compiled authenticated recipe upload with synthetic nonpersistent bindings
+        id: head_validation_16
+        if: ${{ !cancelled() && steps.head_validation_15.outcome == 'success' }}
         run: node --experimental-vm-modules tests/sites-import-uploader-native.test.mjs
       - name: Compiled continuous owner verification without local files or native credentials
+        id: head_validation_17
+        if: ${{ !cancelled() && steps.head_validation_16.outcome == 'success' }}
         run: node tests/sites-owner-continuation-native.test.mjs
       - name: Compiled owner application with retained credentials and isolated data
+        id: head_validation_18
+        if: ${{ !cancelled() && steps.head_validation_17.outcome == 'success' }}
         run: node tests/sites-owner-application-native.test.mjs
       - name: Compiled fixed copy incident with synthetic data and nonpersistent D1/R2
+        id: head_validation_19
+        if: ${{ !cancelled() && steps.head_validation_18.outcome == 'success' }}
         run: node tests/sites-copy-incident-native.test.mjs
       - name: Fixed three-file startup supplement with synthetic storage only
+        id: head_validation_20
+        if: ${{ !cancelled() && steps.head_validation_19.outcome == 'success' }}
         run: |
           node --test tests/startup-assets.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/sites-startup-assets-native.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compiled bounded attempt with synthetic nonpersistent bindings
+        id: head_validation_21
+        if: ${{ !cancelled() && steps.head_validation_20.outcome == 'success' }}
         # Bounded mode is a finite approved attempt, not measured provider quota.
         # The following compiled test uses fake credentials and ephemeral storage.
         run: |
@@ -345,27 +358,73 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Output 'Bounded attempt evidence is synthetic only; no live upload or spending authority.'
       - name: Compiled owner-approved cancelled campaign quarantine
+        id: head_validation_22
+        if: ${{ !cancelled() && steps.head_validation_21.outcome == 'success' }}
         run: node --experimental-vm-modules tests/sites-retirement-native.test.mjs
       - name: Exact incident maintenance and same-process verification host with synthetic inputs
+        id: head_validation_23
+        if: ${{ !cancelled() && steps.head_validation_22.outcome == 'success' }}
         run: node --test tests/sites-fresh-recovery-schema.test.mjs tests/snapshot-incident-recovery.test.mjs tests/snapshot-incident-host.test.mjs tests/snapshot-control-cost.test.mjs
       - name: Compiled exact incident recovery and restricted native scope with synthetic bindings
+        id: head_validation_24
+        if: ${{ !cancelled() && steps.head_validation_23.outcome == 'success' }}
         run: node tests/sites-incident-recovery-native.test.mjs
       - name: Version19 exact incident adapter and guarded D1 regressions
+        id: head_validation_25
+        if: ${{ !cancelled() && steps.head_validation_24.outcome == 'success' }}
         run: |
           node --test tests/snapshot-v19-recovery.test.mjs tests/snapshot-v19-runtime.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/sites-v19-recovery-native.test.mjs
       - name: Fixed one-shot owner observation with synthetic inputs only
+        id: head_validation_26
+        if: ${{ !cancelled() && steps.head_validation_25.outcome == 'success' }}
         run: |
           node tests/c273-observation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/c273-observation-client.test.mjs
       - name: Compiled fixed one-shot owner observation with ephemeral storage
+        id: head_validation_27
+        if: ${{ !cancelled() && steps.head_validation_26.outcome == 'success' }}
         run: node tests/sites-c273-observation-native.test.mjs
       - name: Compiled dormant native staging capability with fake storage only
+        id: head_validation_28
+        if: ${{ !cancelled() && steps.head_validation_27.outcome == 'success' }}
         run: node tests/sites-native-capability-runtime.test.mjs
       - name: Compiled authenticated photo uploads with synthetic nonpersistent bindings
+        id: head_validation_29
+        if: ${{ !cancelled() && steps.head_validation_28.outcome == 'success' }}
         run: node tests/photo-upload-native.test.mjs
+      - name: Checkout exact baseline for failed-lint diagnosis
+        if: ${{ failure() && steps.normal_typed_lint.outcome == 'failure' }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: db190a37ff7b9c5dc1e098e2a62d9d9ddff504da
+          path: .sites-runtime/lint-baseline
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Diagnose exact baseline without relaxing head lint
+        if: ${{ failure() && steps.normal_typed_lint.outcome == 'failure' }}
+        working-directory: .sites-runtime/lint-baseline
+        run: |
+          $base = 'db190a37ff7b9c5dc1e098e2a62d9d9ddff504da'
+          $actualBase = & git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $actualBase -ne $base) { throw 'Unexpected baseline commit' }
+          foreach ($file in @('package.json', 'package-lock.json', '.oxlintrc.json', 'tsconfig.json', '.githooks/pre-push', 'scripts/main-push-guard.mjs', 'scripts/collaboration-setup.mjs')) {
+            $headBlob = & git -C $env:GITHUB_WORKSPACE rev-parse "HEAD:$file"
+            if ($LASTEXITCODE -ne 0) { throw 'Head lint input missing' }
+            $baseBlob = & git rev-parse "HEAD:$file"
+            if ($LASTEXITCODE -ne 0 -or $headBlob -ne $baseBlob) { throw 'Baseline lint or guard inputs differ' }
+          }
+          # Normal postinstall must install/verify unchanged guards in a standalone checkout.
+          & npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "BASE_LINT_BEGIN commit=$base"
+          & npm run lint -- --format unix
+          $baseLintExit = $LASTEXITCODE
+          Write-Host "BASE_LINT_END exit=$baseLintExit"
+          # This diagnostic never changes the already failed head-lint outcome.
+          exit $baseLintExit
       - name: Record final evidence boundary
         run: |
           Write-Output 'Source-only synthetic CI; no private canonical package, real R1 import, platform credential, deployment or production DB/R2.'

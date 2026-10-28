@@ -82,4 +82,4 @@ const checks=[];async function check(name,run){await run();checks.push(name);}
   const aggregate=JSON.parse(objects.get(equipmentKey));assert.throws(()=>equipmentCatalog(projectEquipmentCatalog('routineEquipmentControl',JSON.stringify(aggregate))),/EQUIPMENT_CATALOG_INVALID/);
  });
  console.log(JSON.stringify({pass:true,checks:checks.length,names:checks,baseline,reduced,network:false,businessWrites:false}));
-}catch(error){console.error(error);process.exitCode=1;}finally{db.close();}})();
+}catch(error){console.error(error);process.exitCode=1;}finally{db.close();}})().catch(error=>{console.error(error);process.exitCode=1;});

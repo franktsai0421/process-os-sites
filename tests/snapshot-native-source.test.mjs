@@ -45,7 +45,7 @@ try{
  await test('lost acknowledgement stops native sender; explicit new runner resumes receipts without retransmitting confirmed chunks',async()=>{
   const target=await setup({canonical:false,feedback:true});try{
    target.config.manifestSha256=pins.manifestSha256;const manifest=await normalized.view.manifest(),raw=new TextEncoder().encode(JSON.stringify(manifest));await target.transfer.begin(actor,raw);
-   const puts=new Map(),originalPut=target.bucket.put;target.bucket.put=async(key,...rest)=>{if(key.includes('/chunks/'))puts.set(key,(puts.get(key)||0)+1);return originalPut(key,...rest);};let lose=true;const methods=[];
+   const puts=new Map(),originalPut=target.bucket.put.bind(target.bucket);target.bucket.put=async(key,...rest)=>{if(key.includes('/chunks/'))puts.set(key,(puts.get(key)||0)+1);return originalPut(key,...rest);};let lose=true;const methods=[];
    const sendAuthorized=async(url,o)=>{methods.push(o.method);const u=new URL(url),id=u.searchParams.get('id'),action=u.searchParams.get('action'),version=u.searchParams.has('version')?Number(u.searchParams.get('version')):undefined;let value;
     if(action==='configuration')value={pins,bootstrapClosed:true,budget:{state:'open',inFlight:false}};
     else if(action==='budget-status')value={state:'open',inFlight:false};

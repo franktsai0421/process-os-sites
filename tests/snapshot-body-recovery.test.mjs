@@ -7,7 +7,7 @@ import {sha256} from '../lib/snapshot-contract.mjs';
 import {incident,proveIncidentVersion,planIncidentRecovery,applyIncidentRecovery} from '../scripts/verify-recovery-20261023.mjs';
 import {d1} from './hosted-import-fixtures.mjs';
 import {createHostedTransfer} from '../lib/snapshot-hosted-transfer.mjs';
-import {createHostedTransferStore} from '../lib/snapshot-hosted-store.mjs';
+import '../lib/snapshot-hosted-store.mjs';
 const bytes=new Uint8Array([1,2,3]),encode=v=>new TextEncoder().encode(JSON.stringify(v));
 function stalled(cancel=()=>{}){return new ReadableStream({pull(){return new Promise(()=>{});},cancel});}
 void test('body timeout bounds a stalled read AND never-settling provider cancel',async()=>{
@@ -34,7 +34,7 @@ void test('oversize, wrong size/hash, source errors do not become successful bod
 });
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');for(const name of fs.readdirSync(new URL('../drizzle-sites-fresh/',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())sqlite.exec(fs.readFileSync(new URL('../drizzle-sites-fresh/'+name,import.meta.url),'utf8'));
- const db=d1(sqlite),insert=(table,row)=>{const keys=Object.keys(row);sqlite.prepare(`INSERT INTO ${table}(${keys.join(',')}) VALUES(${keys.map(()=>'?')})`).run(...Object.values(row));};
+ const db=d1(sqlite),insert=(table,row)=>{const keys=Object.keys(row);sqlite.prepare(`INSERT INTO ${table}(${keys.join(',')}) VALUES(${keys.map(()=>'?').join(',')})`).run(...Object.values(row));};
  const pins=Object.fromEntries(['projectId','origin','ownerId','targetFingerprint','manifestSha256','transferId'].map(k=>[k,incident[k]]));
  insert('process_snapshot_transfers',{id:incident.transferId,project_id:incident.projectId,target:incident.targetFingerprint,manifest_sha:incident.manifestSha256,manifest_key:'process-import/v1/'+incident.transferId+'/manifest.json',owner_id:'frank',phase:'receiving',version:18,verify_cursor:272,chunk_count:1401,total_bytes:incident.bytes,created_at:1,expires_at:9999999999999});
  insert('process_snapshot_target',{id:1,target:incident.targetFingerprint,transfer_id:incident.transferId});
@@ -66,7 +66,7 @@ void test('recovery fences old advance atomically, preserves cursor/data/charges
  }finally{f.close();}
 });
 void test('if old advance wins BETWEEN fresh read and recovery transaction, ENTIRE recovery fails without overwriting cursor',async()=>{
- const f=fixture();try{const plan=await planIncidentRecovery(f.db),batch=f.db.batch;let calls=0;f.db.batch=async items=>{if(++calls===2)assert.equal(f.oldAdvance(),1);return batch(items);};
+ const f=fixture();try{const plan=await planIncidentRecovery(f.db),batch=f.db.batch.bind(f.db);let calls=0;f.db.batch=async items=>{if(++calls===2)assert.equal(f.oldAdvance(),1);return batch(items);};
   await assert.rejects(applyIncidentRecovery(f.db,plan,{at:500}),/malformed JSON/);
   assert.equal(f.dump('process_snapshot_transfers')[0].version,19);assert.equal(f.dump('process_snapshot_transfers')[0].verify_cursor,288);assert.equal(f.dump('process_import_native_requests')[0].state,'running');assert.equal(f.dump('process_import_budget')[0].state,'open');
  }finally{f.close();}

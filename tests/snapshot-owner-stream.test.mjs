@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {jsonTransformStream} from '../lib/snapshot-json-stream.mjs';
 import {planOwnerStorage} from '../lib/snapshot-owner-storage.mjs';
-const encoder=new TextEncoder(),source=v=>new Blob([JSON.stringify(v)]).stream();
+new TextEncoder();const source=v=>new Blob([JSON.stringify(v)]).stream();
 const old=JSON.stringify([{id:'owner',role:'admin'}]),replacement=JSON.stringify([{id:'owner',role:'admin',password:'SYNTHETIC_TARGET_ONLY'}]);
 const run=(value,option)=>new Response(jsonTransformStream(source(value),{ownerAccountReplacement:option})).text();
 const input={platformUsers:old,note:'保留 / Giữ lại',nested:{platformUsers:old}};

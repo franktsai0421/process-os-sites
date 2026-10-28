@@ -18,7 +18,7 @@ const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAll
  snapshot(){return{control,working,modal,message,busy,sharedActor};}};\n`;
 function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceipt=false}={}){
  const calls=[],storageWrites=[],events=[],nodes=new Map(),memory=new Map(recovery?[[recoveryKey,recovery]]:[]);
- let nextResponse=null,caps=permissions,control,working;
+ let nextResponse=null,caps=permissions;
  class Node{
   constructor(id=''){this.id=id;this.dataset={};this.disabled=false;this.attrs={};this.value='unsaved 中文 Việt';this.children=[];this.listeners={};this.isConnected=false;}
   setAttribute(k,v){this.attrs[k]=v;}getAttribute(k){return this.attrs[k];}hasAttribute(k){return k in this.attrs;}
@@ -32,7 +32,7 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
  const document={documentElement:{lang:'zh'},visibilityState:'visible',activeElement:null,createElement:()=>new Node(),querySelector:s=>s==='#data-content'?null:nodes.get(s)||null,querySelectorAll:s=>s.split(',').flatMap(q=>nodes.has(q.trim())?[nodes.get(q.trim())]:[]),addEventListener(){},removeEventListener(){}};
  const sync={identity:{id:actor},requiresReload:false,platformHeaders:()=>({})};
  const window={ProcessSync:sync,hasPermission:()=>true,VersionDraftUI:{preserveView:()=>()=>{},reasonFor:()=>'',confirmSubmit:async()=> 'synthetic explicit submit',confirmReview:async()=>({reason:'unused'}),date:()=>''},ProcessIPQC:{referenceMarkup:()=>'',mountReferences:async()=>{}},addEventListener(){},dispatchEvent:e=>events.push(e.type),alert:()=>{}};
- const snapshot={errors:[],items:[]};working=copy(snapshot);control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
+ const snapshot={errors:[],items:[]};const working=copy(snapshot),control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
  const context=vm.createContext({window,document,console,crypto:webcrypto,AbortController,URL,URLSearchParams,FormData,Blob,CustomEvent:class{constructor(type){this.type=type;}},setTimeout,clearTimeout,confirm:()=>true,toast:()=>{},sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>{memory.set(k,v);storageWrites.push(['set',k,v]);},removeItem:k=>{memory.delete(k);storageWrites.push(['remove',k]);}},fetch:async(url,options={})=>{
   const call={url,method:options.method||'GET',...(options.body&&typeof options.body==='string'?{body:JSON.parse(options.body)}:{})};calls.push(call);
   if(nextResponse){const next=nextResponse;nextResponse=null;return next(url,options);}

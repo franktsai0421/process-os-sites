@@ -51,7 +51,7 @@ async function capture(db){
 }
 function normalizedGrant(g){const r=incidentVerifyRecord(g);fail(r.id!==v19.capabilityId&&r.id==='ic_'+r.credential_sha256.slice(0,32));return{...r,baseline_receipts:1401,baseline_chunks:1401,baseline_version:19};}
 async function valid(plan){
- fail(plan?.format==='PROCESS_OS_V19_SUPERSESSION_LOCAL_V1'&&plan.liveReady===false);const{planSha256,liveReady,...body}=plan;fail(await hash(body)===planSha256&&await hash(plan.snapshot)===plan.beforeSha256);fixed(plan.snapshot);
+ fail(plan?.format==='PROCESS_OS_V19_SUPERSESSION_LOCAL_V1'&&plan.liveReady===false);const{planSha256,liveReady:_liveReady,...body}=plan;fail(await hash(body)===planSha256&&await hash(plan.snapshot)===plan.beforeSha256);fixed(plan.snapshot);
  fail(/^[a-f0-9]{40}$/.test(plan.programCommit)&&!/^0+$/.test(plan.programCommit)&&noncePattern.test(plan.nonce));
  const m=plan.maintenance;fail(digestPattern.test(m?.credentialSha256||'')&&Number.isSafeInteger(m.issuedAt)&&m.issuedAt>=0&&m.expiresAt===m.issuedAt+600000);
  const g=plan.newGrant,n=normalizedGrant({id:g.id,credentialSha256:g.credential_sha256,pins,ownerEpoch:g.owner_epoch,issuedAt:g.issued_at,writeExpiresAt:g.write_expires_at,receiptExpiresAt:g.receipt_expires_at,requestLimit:g.request_limit,operationLimit:g.operation_limit});
@@ -79,7 +79,7 @@ export async function buildV19RecoveryBatch(db,plan,{now=()=>Date.now(),readOwne
  update("UPDATE process_snapshot_transfers SET version=20 WHERE id=? AND version=19 AND verify_cursor=272 AND phase='receiving'",[v19.transferId]);
  update('UPDATE process_import_verify_capabilities SET revoked_at=?,generation=generation+1 WHERE id=? AND generation=1 AND revoked_at IS NULL',[at,v19.capabilityId]);
  const stored={...g,hold_plan_sha:plan.beforeSha256,resume_plan_sha:plan.planSha256,program_commit:plan.programCommit},columns=Object.keys(stored);
- update(`INSERT INTO process_import_verify_capabilities(${columns.join(',')}) VALUES(${columns.map(()=>'?')})`,Object.values(stored));
+ update(`INSERT INTO process_import_verify_capabilities(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`,Object.values(stored));
  update("INSERT INTO process_import_verify_v19_supersession(id,nonce,plan_sha,before_sha,before_image,old_request_id,new_grant_id,program_commit,maintenance_digest,applied_at,state) VALUES(1,?,?,?,?,?,?,?,?,?,'resumed')",[plan.nonce,plan.planSha256,plan.beforeSha256,JSON.stringify(plan.snapshot),v19.requestId,g.id,plan.programCommit,m.credentialSha256,at]);
  update("UPDATE process_import_budget SET state='open',active_request=NULL,reason=? WHERE id=1 AND state='stopped' AND active_request=? AND reason='IMPORT_ATTEMPT_PROVIDER_OR_UNCERTAIN'",['IMPORT_V19_VERIFY_ONLY:'+plan.planSha256,v19.requestId]);
  // Original request, operations, attempts, consumed maintenance, cursor, chunk

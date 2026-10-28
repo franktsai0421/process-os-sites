@@ -5,7 +5,7 @@ import {v19} from '../scripts/verify-recovery-v19-20261024.mjs';
 export async function v19Fixture(options={}){
  const f=await incidentFixture(options);await f.advanceTo('resumed');
  f.sqlite.prepare('UPDATE process_import_verify_capabilities SET id=?,credential_sha256=?,reserved_operations=3').run(v19.capabilityId,v19.capabilityId.slice(3)+'0'.repeat(32));
- const put=(table,v)=>{const k=Object.keys(v);f.sqlite.prepare(`INSERT INTO ${table}(${k.join(',')}) VALUES(${k.map(()=>'?')})`).run(...Object.values(v));};
+ const put=(table,v)=>{const k=Object.keys(v);f.sqlite.prepare(`INSERT INTO ${table}(${k.join(',')}) VALUES(${k.map(()=>'?').join(',')})`).run(...Object.values(v));};
  put('process_import_native_requests',{capability_id:v19.capabilityId,nonce:v19.nonce,request_sha256:v19.requestSha256,request_id:v19.requestId,action:'verify',generation:1,state:'unknown',created_at:f.now()-100,finalized_at:f.now()-10,reason:'request-incomplete-or-provider-uncertain'});
  put('process_import_attempts',{id:v19.requestId,action:'verify',state:'stopped',created_at:f.now()-100});
  f.sqlite.prepare("UPDATE process_import_budget SET state='stopped',active_request=?,reason='IMPORT_ATTEMPT_PROVIDER_OR_UNCERTAIN',requests=requests+1").run(v19.requestId);
@@ -17,5 +17,5 @@ export async function v19Fixture(options={}){
 }
 export async function seedV19D1(db,f){
  const tables=f.sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map(r=>r.name);
- for(const table of tables){const rows=f.sqlite.prepare('SELECT * FROM '+table).all();for(let start=0;start<rows.length;start+=40){const batch=rows.slice(start,start+40).map(r=>{const k=Object.keys(r);return db.prepare(`INSERT INTO "${table}"(${k.map(n=>'"'+n+'"').join(',')}) VALUES(${k.map(()=>'?')})`).bind(...Object.values(r));});if(batch.length)await db.batch(batch);}}
+ for(const table of tables){const rows=f.sqlite.prepare('SELECT * FROM '+table).all();for(let start=0;start<rows.length;start+=40){const batch=rows.slice(start,start+40).map(r=>{const k=Object.keys(r);return db.prepare(`INSERT INTO "${table}"(${k.map(n=>'"'+n+'"').join(',')}) VALUES(${k.map(()=>'?').join(',')})`).bind(...Object.values(r));});if(batch.length)await db.batch(batch);}}
 }

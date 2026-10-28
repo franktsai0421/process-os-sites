@@ -7,7 +7,7 @@ const masterHistory=masterSource.slice(masterSource.indexOf("  window.addEventLi
 const appHistory=fs.readFileSync('public/process/app.js','utf8').split('\n').find(line=>line.startsWith("window.addEventListener('popstate',"));
 assert(masterHistory.includes('selectDataTab(state.dataTab)'));assert(appHistory);
 async function fixture({legacy=false}={}){
- const listeners={},events={},clicks={},calls=[],messages=[],pending={dirty:0},drafts={},reads=[],ready=deferred();let readiness=Promise.resolve(),clearCount=0;
+ const listeners={},events={},clicks={},calls=[],messages=[],pending={dirty:0},drafts={},reads=[];deferred();let readiness=Promise.resolve(),clearCount=0;
  const location={href:'https://fixture.invalid/process/index.html?system=process&view=dashboard',get search(){return new URL(this.href).search;},reload:()=>calls.push('reload')};
  const element=()=>({dataset:{},setAttribute(){},append(){},prepend(){calls.push('banner');},querySelector:()=>null,querySelectorAll:()=>[],replaceChildren(){clearCount++;},remove(){}}),area=element(),shell=element();
  const document={documentElement:{dataset:{},lang:'zh'},addEventListener:(name,fn)=>clicks[name]=fn,querySelector:s=>s==='#view-root'?area:s==='.app-shell'?shell:null,querySelectorAll:()=>[],createElement:element,body:{append(){}}};

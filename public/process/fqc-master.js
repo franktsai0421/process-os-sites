@@ -2233,7 +2233,8 @@
     const reviewRoot = panel.querySelector('.quality-review');
     if (reviewRoot) {
       reviewRoot.outerHTML = reviewHTML();
-      bindReview(panel);
+      // bindReview owns its read and error UI; retain its existing fire-and-forget completion.
+      void bindReview(panel);
     }
     const count = document.querySelector('#approval-tab-quality .approval-tab-count');
     if (count) count.textContent = String(pendingCount() + (window.IQCMasterUI?.pendingCount?.() || 0) + (window.RoutineEquipmentUI?.pendingCount?.() || 0));

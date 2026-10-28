@@ -109,10 +109,12 @@ for (const failed of ['shared', 'master', 'equipment']) void test(`${failed} rea
   assert.equal(f.reads.permission.pending.length, 0); assert.equal(typeof f.button.onclick, 'function');
 });
 
-for (const [name, invalidate] of [
+/** @type {[string, (f: ReturnType<typeof fixture>)=>void][]} */
+const invalidationCases = [
   ['same actor identity epoch', f => f.epoch(2)], ['another actor', f => { f.sync.identity = { id: 'OTHER' }; }],
   ['delivery invalidation', f => { f.sync.requiresReload = true; }], ['unmounted destination', f => f.active(false)]
-]) void test(`${name} prevents an old read from continuing the destination load`, async () => {
+];
+for (const [name, invalidate] of invalidationCases) void test(`${name} prevents an old read from continuing the destination load`, async () => {
   const f = fixture(), done = f.box.bind(f.element); invalidate(f);
   f.reads.shared.pending[0].resolve(clone(shared)); await done;
   assert.equal(f.reads.master.pending.length, 0); assert.equal(f.reads.equipment.pending.length, 0);
