@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {mock} from 'node:test';
 import {setup,encode} from './hosted-import-fixtures.mjs';import {sha256} from '../lib/snapshot-contract.mjs';
 import {createAttemptBudget} from '../lib/snapshot-attempt-budget.mjs';import {dispatchHostedImport} from '../lib/snapshot-import-dispatch.mjs';
 import {boundedAttemptSite,attemptCeilings} from '../lib/snapshot-attempt-policy.mjs';
@@ -81,7 +82,7 @@ for(const scenario of ['fetch','object','read','contract','hash','replay','settl
  if(scenario.startsWith('settlement'))interceptRuns(f.db,(sql,args)=>sql.startsWith('UPDATE process_import_native_operations SET state=?')&&args[0]==='succeeded',async op=>{settlements++;if(scenario==='settlement-ack-lost')await op.run();throw Error(sensitive);});
  const raw={...f.bucket,async get(){gets++;if(scenario==='fetch')throw Object.assign(new TypeError(sensitive),{code:'ECONNRESET'});
   const body=new ReadableStream({start(c){if(scenario==='read')c.error(new TypeError(sensitive));else{c.enqueue(scenario==='contract'?'invalid chunk representation':f.bytes);c.close();}}});
-  if(scenario==='hash'){const digest=crypto.subtle.digest;crypto.subtle.digest=()=>Promise.reject(new DOMException(sensitive,'OperationError'));restore=()=>{crypto.subtle.digest=digest;};}
+  if(scenario==='hash'){const digest=mock.method(crypto.subtle,'digest',()=>Promise.reject(new DOMException(sensitive,'OperationError')));restore=()=>{digest.mock.restore();};}
   const object={size:f.bytes.length,body};if(scenario==='object')Object.defineProperty(object,'size',{get(){throw new RangeError(sensitive);}});if(scenario==='replay')Object.defineProperty(object,'httpMetadata',{get(){throw new TypeError(sensitive);}});return object;
  }};
  const objectsBefore=[...f.bucket.objects.keys()];let receipt;
