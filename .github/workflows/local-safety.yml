@@ -40,6 +40,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Normal typed lint
+        run: npm run lint
       - name: Source-only history and upload safety
         run: node scripts/sites-ci-preflight.mjs
       - name: Full TypeScript
