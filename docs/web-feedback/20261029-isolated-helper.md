@@ -143,6 +143,8 @@ PASS：型別檢查、typed lint、build／auth audit；64 項 API（含新增�
 
 dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器；仍無 migration。公開預覽與實站同帳號 Chrome／ChatGPT、原生 IME、實體裝置尚未驗證。GitHub API 仍 Forbidden，因此 Draft PR 尚未建立；不會自行 merge、auto-merge 或覆蓋既有 Site。
 
+本輪收尾再次明確 fetch 全部 GitHub heads（不只分支預設 fetchspec），main 仍為原基準。另發現 `cloud/users-permissions-29102026`（`7af150adaf9f51c24fbb17e297fe812ebb92b995`）及 `codex/photo-standard-cloud-29102026`（`19855a067e89692a63376794160b67f5b1062499`）與本分支重疊 `public/process/index.html`、`AI_CONTEXT/CHANGELOG.md`、`HANDOFF.md`。下方兩個既有 fix 分支仍重疊 index／CHANGELOG。只比對遠端提交，沒有合併、接管其工作目錄或推斷哪個開啟中 PR 屬於 dot。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
