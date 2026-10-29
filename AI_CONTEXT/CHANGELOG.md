@@ -20,6 +20,25 @@
 - 舊 403 polling 測試契約對齊既有 scoped-read-pause：加強自動讀取零重送、明確 GET 成功／失敗與換帳號保護；不改 shared guard 或權限行為，保留舊失敗證據。
 - 新增 full UI/synthetic DOM 與正常權限 actual-handler 隔離流程回歸；分開記錄能力邊界，無資料模型或 live 記錄變更。見 [品質模組](modules/QUALITY.md)。
 
+## 2026-10-28 模具設備保留歷史的收尾測試流程
+- 依使用者同意，兩新器具完成修改／移轉後測停用與必填原因；刪除另用未核准、無引用／移轉的獨立器具。已有移轉拒刪仍是負測，無 cascade 或 runtime 政策改動。
+- 補兩輪退回後修改、手動重存、重送核准與正式版本／案件 immutable history GET 讀回；原瀏覽器取消不變。詳見 [coverage](../docs/tooling/20261028-isolated-flow-coverage.md)。
+
+## 2026-10-28 模具設備查詢成本與完整隔離流程（未發布）
+- 在 FINAL21 獨立基準保留已審草稿流程與 checks 輸入存活期改善；不採用 CPU 索引／compact 原型。
+- 器具與 IQC 查詢字串每次篩選只 normalize 一次；位置計算保留首筆／更正順序，逐筆掃描移轉而不先複製匹配陣列。無快取、server I/O／權限／故障政策改變。
+- 補兩現有＋兩新器具照片／日期／啟停／IQC／移轉重複流程、逐步隔離計時及新器具已有移轉時拒刪。完整步驟與限制見 [coverage](../docs/tooling/20261028-isolated-flow-coverage.md)；非瀏覽器、128 MB 或實站速度驗收。
+
+## 2026-10-28 模具設備檢查輸入生命週期（隔離候選）
+- 接到最新 PR38 測試基準，保留已審草稿流程；未納入 a3ab CPU 索引候選。
+- advisory checks 維持原 full workflow 讀取，跨 IQC await 僅保留檢查所需 snapshot／metadata，未省略權限、revision fence 或任何 issue。
+- compact／alias 原型在不同 working/saved 內容出現反例，已撤出最終 source；Node 觀測與離線 workerd 語義不能當 128MB／browser 驗收。詳見 [TOOLING](models/TOOLING.md)。
+
+## 2026-10-28 模具設備流程／回讀穩定化（雲端候選）
+- tooling-local Begin 未知結果回讀、背景讀不閃灰與提示檢查後載入；不改共享 timeout／receipt／kernel。
+- 日期遺失、啟用／停用理由、移除封存操作 UI、IQC 雙語搜尋；既有歷史資料保留。
+- actual-handler／synthetic UI-state 流程與計時分列；新器具已有移轉時拒刪仍保留。詳見 [TOOLING](models/TOOLING.md)；未發佈、未執行瀏覽器。
+
 ## 2026-10-28 剩餘 lint 與 Windows 測試相容性 / Remaining lint and Windows test compatibility
 - 匯入頁改採 per-mount 原始 query snapshot；SSR/loading、exact observe/continue 與原 mount-only 行為保留，取消的 config 回覆不採用。Hydration 的 config GET 晚一個 commit，非速度改善；proxy、帳號權限與寫入保護不變。
 - Native URL observer uses own data-method descriptors without changing dynamic receivers, wrapper order, resource assertions or context lifetime. Portable synthetic tests do not replace native browser acceptance.
