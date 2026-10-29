@@ -1,3 +1,5 @@
+流程資料補驗發現離開提醒缺口並局部修復；18 項原生離開／重整／背景恢復驗收通過。最後整合測速另見 [本輪紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
+
 本次預覽照片補驗版本 `88ccd81`：15 組原生表單通過，新增共用燈箱放大。與流程 `74ab03f` 組合；固定權限／小幫手分支核對及最小入口補丁見 [整合紀錄](docs/sites/integration-cloud-29102026/README.md)。未混入其他任務程式、未發布既有站台。
 
 本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。

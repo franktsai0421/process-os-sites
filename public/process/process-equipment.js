@@ -424,7 +424,8 @@
     search = lineFilter = stageFilter = '';
     openEditor(id, field);
   }
-  host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate};
+  function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
+  host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };

@@ -1638,6 +1638,22 @@ async function applyProcessMasterSnapshot(before,next) {
   if(patches.length)await shared.patch('PROCESS',patches,guards);
 }
 const processMasterNameBindings=new Set();
+// Departure only: do not apply, save, or send requests while the page closes.
+function processMasterHasUnfinishedChanges() {
+  if (state.view !== 'data' || state.dataTab !== 'process-master') return false;
+  if (window.ProcessEquipment?.hasUnappliedChanges?.()) return true;
+  if ([...processMasterNameBindings].some(binding => binding.owner === window.ProcessSync?.identity && binding.input.isConnected && !binding.clean())) return true;
+  if ([...document.querySelectorAll('[data-master-media]')].some(input => input.files?.length)) return true;
+  const flow = window.MasterDataWorkflow?.shared?.flow('PROCESS');
+  if (!flow || flow.pendingId || !editableProcessMasterData()) return false;
+  return JSON.stringify(flow.working) !== JSON.stringify(flow.saved?.content ?? flow.active.content);
+}
+window.addEventListener('beforeunload', event => {
+  if (!processMasterHasUnfinishedChanges()) return;
+  event.preventDefault();
+  // oxlint-disable-next-line typescript/no-deprecated -- Native browser departure confirmation.
+  event.returnValue = 'Unsaved process changes';
+});
 function bindProcessMasterName(input) {
   const shared=window.MasterDataWorkflow.shared,owner=window.ProcessSync?.identity,generation=shared.flow('PROCESS')?.generation;
   const key=input.closest('.master-template')?.dataset.templateKey,snapshot=editableProcessMasterData();

@@ -1,3 +1,7 @@
+## 2026-10-29 流程資料離開提醒
+
+只在流程資料頁 beforeunload 檢查設備未套用、名稱組字／未確認、照片待處理及 working 相對 saved／active 差異，提示不寫入。乾淨／已 Save／待審不誤提示；原傳輸層保護保留。18 項 Chromium 結果見 [補驗](../../docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
+
 ## 2026-10-29 流程資料修復候選
 
 設備搜尋 ownership 改綁設備面板，不再綁會被 VersionDraftUI 替換的首節點。開始／保存／送審僅重畫本模組。設備套用仍只改 working，新增取消確認與照片重試；流程圖片支援查看、更換及移除。新增流程使用 UUID 及選用 editorType，核准後製程新增／編輯選單按類型顯示，舊 templateId 保留。
