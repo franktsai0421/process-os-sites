@@ -151,3 +151,5 @@
 .ua-page button,.ua-dialog button{white-space:normal;overflow-wrap:anywhere}
 @media(max-width:1000px){.ua-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.ua-filters{grid-template-columns:minmax(0,1fr)}.ua-page>header{padding:14px}.ua-users td{padding:7px 4px}.ua-users td.ua-actions{min-height:0}}
+
+.ua-page .ua-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:10px}.ua-page .ua-pagination:empty{display:none}.ua-page .ua-pagination span{overflow-wrap:anywhere}
