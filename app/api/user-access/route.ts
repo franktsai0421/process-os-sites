@@ -8,9 +8,31 @@ const safe=(user:any)=>{const {password:_password,passwordHash:_hash,...rest}=us
 const denied=()=>{throw Error('FORBIDDEN');};
 const own=(object:any,key:string)=>Object.prototype.hasOwnProperty.call(object,key);
 function actors(state:any,id:string){const users=parse(state.values.platformUsers,[]),actor=users.find((u:any)=>u.id===id&&!u.deletedAt&&u.enabled!==false);if(!actor)denied();const roles=roleTemplates(state.values);return {users,actor,access:effectiveAccess(actor,state.values,roles),roles};}
-function projection(state:any,id:string){const {users,actor,access,roles}=actors(state,id),manager=actor.role==='admin';return {revision:state.revision,actor:{...safe(actor),...access,roleCells:effectiveCells({...actor,accessOverrides:{}},roles),roleName:roles[actor.role]?.name||actor.role},primaryId:PRIMARY_ADMIN_ID,catalog,columns,
- users:users.filter((u:any)=>!u.deletedAt&&(manager?u.authMode!=='demo':u.id===actor.id)).map((u:any)=>{const rights=effectiveAccess(u,state.values,roles);return {...safe(u),...rights,configuredCells:u.enabled===false?effectiveCells({...u,enabled:true},roles):rights.cells,editable:editableCells(actor,u,access.cells),actions:Object.fromEntries(['view','edit','delete','status','password','password-own'].map(action=>[action,managementRight(actor,u,action,access.cells)]))};}),
- roles:manager?Object.entries(roles).map(([id,r]:[string,any])=>({...r,id,assigned:users.filter((u:any)=>u.role===id&&!u.deletedAt).length,formalCount:users.filter((u:any)=>u.role===id&&!u.deletedAt&&u.authMode!=='demo').length})):[],canCreate:manager&&access.cells['users.create'],canRoles:isPrimary(actor)};}
+function projection(state:any,id:string){
+ const {users,actor,access,roles}=actors(state,id),manager=actor.role==='admin';
+ // Request-local only: inherited defaults are identical within this snapshot.
+ // Individual overrides, legacy independent scopes, disabled users and Frank
+ // always go through the full policy. Never reuse authority across requests.
+ const inherited=new Map<string,ReturnType<typeof effectiveAccess>>(),editable=new Map<string,Record<string,boolean>>();
+ const rightsFor=(user:any)=>{
+  if(user.id===actor.id)return access;
+  if(isPrimary(user)||user.enabled===false||user.deletedAt||user.inheritRole===false||Object.keys(user.accessOverrides||{}).length)return effectiveAccess(user,state.values,roles);
+  if(!inherited.has(user.role))inherited.set(user.role,effectiveAccess(user,state.values,roles));
+  return inherited.get(user.role)!;
+ };
+ const editableFor=(user:any)=>{
+  // These are all target-dependent inputs to editableCells/managementRight;
+  // the actor and its effective cells are fixed for this projection.
+  const key=JSON.stringify([user.role,user.id===actor.id,isPrimary(user),user.authMode==='demo']);
+  if(!editable.has(key))editable.set(key,editableCells(actor,user,access.cells));
+  return editable.get(key)!;
+ };
+ const counts=new Map<string,{assigned:number;formalCount:number}>();
+ if(manager)for(const user of users){if(user.deletedAt)continue;const count=counts.get(user.role)||{assigned:0,formalCount:0};count.assigned++;if(user.authMode!=='demo')count.formalCount++;counts.set(user.role,count);}
+ return {revision:state.revision,actor:{...safe(actor),...access,roleCells:effectiveCells({...actor,accessOverrides:{}},roles),roleName:roles[actor.role]?.name||actor.role},primaryId:PRIMARY_ADMIN_ID,catalog,columns,
+  users:users.filter((u:any)=>!u.deletedAt&&(manager?u.authMode!=='demo':u.id===actor.id)).map((u:any)=>{const rights=rightsFor(u);return {...safe(u),...rights,configuredCells:u.enabled===false?effectiveCells({...u,enabled:true},roles):rights.cells,editable:editableFor(u),actions:Object.fromEntries(['view','edit','delete','status','password','password-own'].map(action=>[action,managementRight(actor,u,action,access.cells)]))};}),
+  roles:manager?Object.entries(roles).map(([id,r]:[string,any])=>({...r,id,...(counts.get(id)||{assigned:0,formalCount:0})})):[],canCreate:manager&&access.cells['users.create'],canRoles:isPrimary(actor)};
+}
 export async function GET(request:Request){try{const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl']}),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});return Response.json(projection(state,id),{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}
 function cellChanges(input:any,allowed:Record<string,boolean>,prior:Record<string,boolean>){if(!input||typeof input!=='object'||Array.isArray(input))throw Error('INVALID_CELLS');const next={...prior};for(const [key,value]of Object.entries(input)){if(!accessKeys.includes(key)||![true,false,null].includes(value as any))throw Error('INVALID_CELLS');if(!allowed[key])denied();if(value===null)delete next[key];else next[key]=value as boolean;}return next;}
 function validUser(user:any,values:Record<string,string>){const candidate={...user,enabled:true,deletedAt:undefined};if(invalidDependencies(effectiveAccess(candidate,values).cells).length)throw Error('VIEW_DEPENDENCY_REQUIRED');}
