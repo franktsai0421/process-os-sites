@@ -17,3 +17,5 @@
 不變：資料庫、附件、權限管理介面、共用草稿協定、審核資格與自審限制。最終 dot 核對及 Frank 合併決定仍保留；本任務未 merge／auto-merge／發布。
 
 最後已用預覽產品 commit `642d4defc8057c5d96e902070e39a6181a1afc17` 重新執行 merge-tree 比對；照片組成 `88ccd815ff341d80e23b573eea6c8016a93a430c`，衝突範圍未增加。入口補丁仍通過 apply check，checks 記錄最終 index 雜湊。
+
+離開提醒補驗後，已更新至預覽 `b307b8d`（流程 `72e6de9`＋照片 `88ccd81`）重新核對同一組固定分支；入口保留 flowleave1。最新 patch apply check 通過，未合併其他任務程式。
