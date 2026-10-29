@@ -237,3 +237,66 @@ export async function encodeProcessSaveRecordMutation(bucket:Bucket,handle:Proce
  const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,processAuthoringControl:encoded.__processRecords.values.processAuthoringControl}}};
  return JSON.stringify(next);
 }
+
+// Process Apply/Submit/Approve has a distinct capability and full BOM/IPQC closure.
+// All aggregate verification is retained; only unrelated body hydration differs.
+const processFlowMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'];
+export type ProcessFlowRecordMutationHandle={readonly __processFlowRecordMutation:unique symbol};
+type ProcessFlowMutationBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;values:Record<string,string>;visibleStorage:RecordStorage;visibleKnown:string[];model:unknown;consumed:boolean};
+const processFlowMutationHandles=new WeakMap<object,ProcessFlowMutationBinding>();
+export async function readProcessFlowRecordMutation(bucket:Bucket,envelope:Envelope,revision:number,caseId?:string){
+ const manifest=envelope?.__processRecords;
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||!valid(manifest.values.processAuthoringControl))return null;
+ const original=JSON.stringify(envelope);
+ const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true,caseId},new Set(processFlowMutationKeys));
+ if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
+ const model=selected.recordStorage.models.get('processAuthoringControl');
+ if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='process:platform'||model.workflow.schemaVersion!==3)return null;
+ const handle=Object.freeze({}) as ProcessFlowRecordMutationHandle;
+ const privateStorage:RecordStorage={...selected.recordStorage,envelope:JSON.parse(original),originalValues:{...selected.recordStorage.originalValues},known:new Set(selected.recordStorage.known),models:new Map(selected.recordStorage.models),allocations:new Map(selected.recordStorage.allocations)};
+ processFlowMutationHandles.set(handle,{bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,values:{...selected.values},visibleStorage:selected.recordStorage,visibleKnown:[...selected.recordStorage.known],model,consumed:false});
+ return{...selected,handle};
+}
+export async function encodeProcessFlowRecordMutation(bucket:Bucket,handle:ProcessFlowRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=processFlowMutationHandles.get(handle);
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||storage.known.size!==b.visibleKnown.length||b.visibleKnown.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('processAuthoringControl')!==b.model||storage.allocations.size!==0||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value))throw Error('Invalid Process Flow mutation handle');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{processAuthoringControl:b.values.processAuthoringControl},b.storage,new Map([['processAuthoringControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,processAuthoringControl:encoded.__processRecords.values.processAuthoringControl}}};
+ return JSON.stringify(next);
+}
+
+// FQC lifecycle has a separate fixed eight-body capability. Existing-set B0
+// remains unchanged; selected case hydration follows the original POST reader.
+const fqcLifecycle8MutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','qualityMasterControl','masterDataControl','routineEquipmentControl'];
+export type FqcLifecycle8RecordMutationHandle={readonly __fqcLifecycle8RecordMutation:unique symbol};
+type FqcLifecycle8MutationBinding={selection:string;bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;values:Record<string,string>;visibleStorage:RecordStorage;visibleKnown:string[];model:unknown;siblings:string;consumed:boolean};
+const fqcLifecycle8MutationHandles=new WeakMap<object,FqcLifecycle8MutationBinding>();
+const fqcLifecycle8Siblings=(model:unknown)=>{if(!object(model)||!object(model.libraries))throw Error('Invalid FQC lifecycle mutation model');return JSON.stringify({...model,libraries:Object.fromEntries(Object.entries(model.libraries).filter(([key])=>key!=='fqc'))});};
+export type FqcLifecycle8Selection={action:'save'|'submit'|'withdraw'|'return'|'approve';caseId?:string};
+export async function readFqcLifecycle8RecordMutation(bucket:Bucket,envelope:Envelope,revision:number,selection:FqcLifecycle8Selection){
+ if(!selection||!['save','submit','withdraw','return','approve'].includes(selection.action)||Object.keys(selection).some(k=>k!=='action'&&k!=='caseId'))return null;
+ const review=['withdraw','return','approve'].includes(selection.action);
+ if(review?typeof selection.caseId!=='string'||!selection.caseId:selection.caseId!==undefined)return null;
+ const manifest=envelope?.__processRecords;
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.qualityMasterControl)||!valid(manifest.values.qualityMasterControl))return null;
+ const original=JSON.stringify(envelope);
+ const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true,caseId:selection.caseId},new Set(fqcLifecycle8MutationKeys));
+ // Noncanonical mirrors are handled by the ordinary full reader/encoder;
+ // this overlay never silently repairs or retains a divergent auth mirror.
+ if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
+ const model=selected.recordStorage.models.get('qualityMasterControl');
+ if(!object(model)||model.schemaVersion!==1||!object(model.libraries)||!object(model.libraries.fqc)||!object(model.libraries.fqc.workflow)||model.libraries.fqc.workflow.scope!=='fqc'||model.libraries.fqc.workflow.schemaVersion!==3)return null;
+ const handle=Object.freeze({}) as FqcLifecycle8RecordMutationHandle;
+ const privateStorage:RecordStorage={...selected.recordStorage,envelope:JSON.parse(original),originalValues:{...selected.recordStorage.originalValues},known:new Set(selected.recordStorage.known),models:new Map(selected.recordStorage.models),allocations:new Map(selected.recordStorage.allocations)};
+ fqcLifecycle8MutationHandles.set(handle,{selection:JSON.stringify(selection),bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,values:{...selected.values},visibleStorage:selected.recordStorage,visibleKnown:[...selected.recordStorage.known],model,siblings:fqcLifecycle8Siblings(model),consumed:false});
+ return{...selected,handle};
+}
+export async function encodeFqcLifecycle8RecordMutation(bucket:Bucket,handle:FqcLifecycle8RecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown,selection:FqcLifecycle8Selection){
+ const b=fqcLifecycle8MutationHandles.get(handle);
+ if(!b||b.selection!==JSON.stringify(selection)||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||storage.known.size!==b.visibleKnown.length||b.visibleKnown.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('qualityMasterControl')!==b.model||storage.allocations.size!==0||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value)||fqcLifecycle8Siblings(model)!==b.siblings)throw Error('Invalid FQC lifecycle mutation handle');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{qualityMasterControl:b.values.qualityMasterControl},b.storage,new Map([['qualityMasterControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,qualityMasterControl:encoded.__processRecords.values.qualityMasterControl},allocations:{...b.envelope.__processRecords.allocations,qualityMasterControl:encoded.__processRecords.allocations!.qualityMasterControl}}};
+ return JSON.stringify(next);
+}

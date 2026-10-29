@@ -1,6 +1,6 @@
 # 有界寫入與製程解析重用 / Bounded writes and process parse reuse
 
-## Scope / 範圍
+## Initial bounded batch (#37) / 第一批有界寫入範圍
 
 This batch follows PR #36. It does not change the shared draft lifecycle or deploy the Site by itself.
 
@@ -42,3 +42,31 @@ Lane evidence: FQC 54 actual-handler groups; Process Save 38 same-source ordinar
 Required gates: actual handler normal/fault/auth/revocation/CAS/receipt pairs, negative capability/foreign-ref tests, unchanged ordinary decoder/encoder contracts, FQC regression after Process Save integration, unchanged source guards, complete GitHub clean build/type/lint/regression checks, and independent final source review.
 
 Local fixtures use generated data only. Local dependency/type limitations and full-CI status must be stated separately; no native/live acceptance is implied. All related PRs must be reviewed and merged before one final private test-Site publication with its separate per-action authorization and credentials. Until then the Site remains v27.
+
+
+## Flow follow-on / 後續完整流程的限縮寫入
+
+The follow-on extends only the explicitly approved actions below. Initial #37 capabilities remain independent; no lifecycle, ACL, schema, client-retry or automatic-operation policy change.
+
+| Module / 模組 | Eligible actions / 新納入動作 | Required bodies / 必要內容 |
+| --- | --- | --- |
+| Process / 製程 | Manual Sync and Apply guarded sets on existing operations; Submit; Approve | Auth five keys, complete authoring/master, BOM, IPQC-AB, IPQC-C: 10 keys |
+| FQC | Save, Submit, owner Withdraw, reviewer Return, Approve | Auth five keys, complete quality/master/equipment: 8 keys |
+
+**不涵蓋：** Begin、restore、新增／刪除及結構 insert/remove/order；Process Withdraw／Return 維持原路。未符合精確命令或 canonical 狀態者回原 full reader，不是取消原有功能。FQC 保留完整 quality root 及 IQC 等 sibling libraries，不以正式 AB 小投影取代必要寫入資料。
+
+Submit 仍驗成功 Save 的精確 savedId/content、active/base、無變更及合法重送規則；Approve 仍驗唯一的目前 pending case/content/before、自審及待補確認。Withdraw 與 Return 各保留原權限和可編輯／重送語義。每次 CAS retry 重讀來源與撤權；不快取授權。核准後同 ID receipt replay 可回原全讀，不因此重送 POST。
+
+**Owner 已同意故障差異：** 以上 eligible path 中，完全無關的 immutable body 缺失、SHA損壞或格式錯誤不再阻擋有效操作；原 ref/content 不修復、不替換、不刪除。所有 aggregate 原順序／SHA／格式、必要 bodies 與明指 case 仍保留。選擇性 hydration 出錯回原 reader 決定結果，維持 unsupported state 多故障優先序。這是容錯政策，不是查到實站毀損。
+
+Independent opaque single-use handles bind snapshot, revision, bucket, models and known refs. Original partial-save rejection, unloaded refs, auth mirrors, legacy sources, allocations and immutable history remain. Only the designated target is overlaid. Receipt identity/fingerprint, unknown quarantine and manual workflow remain; no automatic resend or journal clearing.
+
+### Evidence boundaries / 驗證界線
+
+- Process: 112 portable ordinary-path/on pairs, including canvas payloads, complete BOM/IPQC faults, fixed saved/case data, revocation/CAS, late committed ACK, capability/ref tampering and fallback errors.
+- FQC: 175 exact historical and 175 portable pairs; five-action lifecycle, withdrawn/returned resubmission, exact case, required-data/auth failures, concurrency, same-ID replay, siblings/index/history and old-reader compatibility.
+- Same-fixture Process Apply/Submit: R2 20→18 GET, 616,031→15,995 bytes; Approve 616,626→16,590 bytes. FQC: 17→16 GET, 600,012 fewer bytes per action. SQL 11, fresh revocation 9 and CAS 1 remain; no PUT reduction claimed.
+- **Fallback may be slower:** Process 20→38 or 21→40 GET; FQC 17→32 or 16→31; both may add one SQL. Inline can add one SQL without reducing R2. Actual Site manifest/index/mirror eligibility remains unknown.
+- These are isolated actual-handler SQLite/R2 fixtures, not Worker/native seconds or heap peaks. Local CPU samples are mixed, including slower samples; no percentage or live latency guarantee.
+
+Both new portable suites and affected existing storage/B0/Save suites must pass after semantic integration, then original source guards, types, normal lint, clean full CI and independent integrated review. Focused local types are not normal lint/build acceptance. All related PRs must merge normally before one final private Site publication; no interim release or credential reuse.
