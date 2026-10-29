@@ -74,6 +74,7 @@
   };
 
   function enforcePagePermissions(){
+    if(state.view==="dispatch")document.querySelectorAll(".publish-line,[data-dispatch-slot],[data-dispatch-category-slot]").forEach(e=>{e.disabled=!allowed("dispatch.view")||!allowed("dispatch.edit");if(e.disabled)e.title=document.documentElement.lang==='vi'?'Chỉ xem; cần quyền sửa điều phối':'目前唯讀；需要發送介面的編輯權限';});
     if(state.view==="approval"){
       document.querySelector("#approval-compare-version")?.toggleAttribute("disabled",!allowed("approval.compare"));
       document.querySelectorAll("[data-version-action]").forEach(button=>{const permission={approve:"approval.approve",reject:"approval.reject","request-change":"approval.requestChange",revoke:"approval.revoke",withdraw:"approval.withdraw"}[button.dataset.versionAction];if(permission&&!allowed(permission))button.hidden=true});
