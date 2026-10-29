@@ -151,6 +151,7 @@
   let masterCatalogCache = null, masterCatalogActor = '', masterCatalogSequence = 0;
   let masterCatalogCurrent = () => false;
   async function loadMasterCatalog(isCurrent = () => true) {
+    if(typeof host.hasPermission==='function'&&(!host.hasPermission('ab.view')||!host.hasPermission('equipment.view')))throw Error(isVi()?'FQC cần quyền Xem AB và thiết bị để tải danh mục. Nhờ quản trị viên kiểm tra; hệ thống không tự cấp quyền.':'FQC 載入目錄需要 AB 與檢具查看權限。請管理者核對設定；系統不會自動授權。');
     const owner = identity()?.id, sequence = ++masterCatalogSequence;
     masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
     const owned = currentReadOwner(isCurrent);

@@ -1,3 +1,5 @@
+2026-10-29 FQC browser-discovered dependency: current catalog APIs require ab.view and equipment.view in addition to fqc.view. Settings now show these existing prerequisites and reject newly introduced incomplete combinations; the FQC page explains missing grants before fetching. No automatic grant or broadened catalog API access.
+
 2026-10-29 IPQC-C explicit-rights candidate (user approved): module view is required; view no longer grants withdraw, approval-platform view no longer grants module content, approve/return use their module cells. Restore is explicit and checked for create/delete effects. Legacy snapshot and owner/pending boundaries remain. Existing tests are updated to the accepted policy rather than retaining the earlier exception.
 
 2026-10-29 equipment permissions candidate: V3 Save/Submit rendering and handlers use each right, not editable(); legacy full snapshot writes require edit+save(+submit), explicit create/delete and diff checks. Narrow effective dependency catalog authorization is unchanged. No live data changes.

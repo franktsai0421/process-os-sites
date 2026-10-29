@@ -87,7 +87,9 @@ export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='line
 // reject newly introduced dependencies so unrelated edits remain possible.
 export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>r.id!=='lines'&&cells[r.id+'.'+op]).flatMap(op=>{
  const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];
- return required.filter(need=>!cells[r.id+'.'+need]).map(need=>({key:r.id+'.'+op,requires:r.id+'.'+need}));
+ const issues=required.filter(need=>!cells[r.id+'.'+need]).map(need=>({key:r.id+'.'+op,requires:r.id+'.'+need}));
+ if(r.id==='fqc'&&op==='view')for(const key of ['ab.view','equipment.view'])if(!cells[key])issues.push({key:'fqc.view',requires:key});
+ return issues;
 }));}
 export function newDependencyIssues(cells,previous={}){const old=new Set(dependencyIssues(previous).map(i=>i.key+':'+i.requires));return dependencyIssues(cells).filter(i=>!old.has(i.key+':'+i.requires));}
 export function moduleForURL(input){
