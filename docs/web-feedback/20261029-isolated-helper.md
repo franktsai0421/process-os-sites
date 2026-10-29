@@ -92,6 +92,57 @@ FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-performance.mjs 
 
 本輪 PASS：TypeScript、typed lint、build／postbuild auth audit；49 項 VM／layout 檢查（新增並行載入、三種身分／delivery 失效及失敗重試）；17 組編譯 Worker＋Chromium 流程（新增慢資源並行與清單失敗重試）。先前 API 59 項結果沿用，因本輪未改後端。線上 Chrome／ChatGPT 同帳號、原生輸入法、實體裝置及公開預覽仍尚未驗證。未發布，因此既有測試站不會因本次提交而加速。
 
+## 再追加：載入／讀取／交接寫入（同分支，未發布）
+
+本輪基準為 `558a5d7c200ca5aee2c04a91cb0a6f4e9b86b796`。限定回報模組，無共用權限、讀寫或 schema 調整；共用 `public/process/index.html` 仍僅入口參數更新為 `20261029-feedback3`，修改前已說明範圍。
+
+- 明確進入問題頁且已有登入身分時，entry 在 loader 下載期間啟動首個新鮮 list 與 JS/CSS 預載；一般頁面 UI-ready 不預讀任何問題／私人草稿。首讀只能被同 owner／delivery 的 loader 消費一次，不是跨請求快取。失敗、401、切換身分、重試及去重已驗證。實際瀏覽器確認 list、核心 JS、CSS 各只讀一次。
+- 清單附件及交接最新狀態用本次請求的 ID 索引，避免重複線性搜尋；每張附件的原有授權檢查保持。
+- ZIP 原圖同一請求內按 ID 去重，最多 4 個並行讀取；同圖仍保留每個問題原本的檔案路徑／manifest 項目。所有讀取完成且每張原圖雜湊正確才寫入 ZIP，再以原 CAS 保存交接；任一缺圖／損壞會等待進行中讀取結束後拒絕，不寫成功紀錄。30 MB 按每個重複 ZIP 項目累計，未放寬上限。
+- ZIP CRC32 改為固定 256 項查表，仍產生相同 UTF-8 STORE 格式。沒有降低 SHA-256／CRC 校驗，也沒有提前回報保存成功。
+
+### 首次載入：控制後端，交替前端版本
+
+最初非交替的 5 次測量，一般網路 541→680 ms、120 ms 延遲情境 810→709 ms。分段資源記錄顯示一般網路多數額外等待發生在模組開始前，不能只報較快的樣本。因此新增 paired 模式：同一編譯後端、同一份 60 筆資料及登入，各次使用全新 browser context，交替舊／新前端且每輪翻轉先後順序。只把本模組 entry／loader／core 資產回覆替換成基準或候選 bytes，其餘載入流程相同；不是舊後端和新後端的端到端比較。每組各 5 次，以下為中位數。
+
+|毫秒|基準前端|候選前端|
+|---|---:|---:|
+|一般：navigation → 真實問題列 frame|579|571|
+|一般：loader 請求起 → 真實問題列 frame|63|54|
+|模組每請求增加 120 ms：navigation → 真實問題列 frame|811|678|
+|同延遲：loader 請求起 → 真實問題列 frame|302|173|
+|一般：API 回應開始等待（不含人工排程）|12.1|11.4|
+|一般：list 回應結束 → 真實問題列 frame|27.9|30.8|
+|延遲：list 回應結束 → 真實問題列 frame|26.5|31.4|
+
+一般冷啟動範圍 556–593 → 549–602 ms，差異小且重疊，不能宣稱大幅改善。延遲情境範圍 753–860 → 668–741 ms。改善來自重疊請求，非 CPU render 或後端授權變快；共同啟動仍佔大部分時間，其他模組不在本次範圍。
+
+重現 paired 模式（先正常設定 `PROCESS_PROGRAM_COMMIT` 並 build）：
+
+```bash
+FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-startup-performance.mjs round3-paired 558a5d7c200ca5aee2c04a91cb0a6f4e9b86b796
+```
+
+### 讀取／寫入：Node handler／SQLite 隔離資料與合成儲存等待
+
+`node tests/web-feedback-io-performance.cjs <label>`：60 案，交接選 20 案、每案 2 張圖，合計 40 個 ZIP 圖片項目、8 個唯一原圖。正常簽章合成 Frank session，實際模組 handler、記憶體 SQLite／附件 Map；並非 D1 或 R2 線上速度。每組 5 次，前後同資料與腳本，表中為中位數。
+
+|操作|基準 ms|候選 ms|
+|---|---:|---:|
+|問題清單|1.86|1.96|
+|備註／狀態保存|2.27|2.25|
+|交接紀錄讀取|2.05|2.01|
+|ZIP 生成（沒有人工儲存延遲）|50.77|25.39|
+|ZIP 生成（每次附件 GET／PUT 增加 40 ms）|1,754.25|141.23|
+
+ZIP 的原圖 GET 40→8 次、並行上限 1→4；ZIP PUT 仍 1 次、交接 CAS 仍 1 次。一般清單、備註、交接讀取沒有可宣稱的顯著改善，不把 Node 的 2 ms 說成雲端使用者保存時間。瀏覽器既有端到端單次樣本中，備註 API total 15.1→16.3 ms、送出 API 14.6→12.6 ms、交接 API 25.5→20.1 ms、圖片 17.0→19.8 ms；包含自動化／繪製的操作時間及完整 API／圖片時間保留於 `.sites-runtime/feedback-performance/round3-before.json`、`round3-after.json`，不能用單次波動宣稱寫入／圖片全面加速。
+
+### 驗證與整合
+
+PASS：型別檢查、typed lint、build／auth audit；64 項 API（含新增共圖去重、並行上限、缺圖／損壞零寫入、容量上限）；52 項 VM／layout（含 entry 首讀／失敗重試／401）；17 組 Chromium＋編譯 Worker；新增 ZIP CRC 已知向量／空檔／邊界／1 MB／中越檔名／central directory；既有 snapshot ZIP reader 的 4 個相容與損壞拒絕案例。瀏覽器回報→備註→完成／重開、交接／下載、刪除三角色、標記不穿透與草稿重試仍通過。未以人工延遲模擬冒充實站驗證。
+
+dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器；仍無 migration。公開預覽與實站同帳號 Chrome／ChatGPT、原生 IME、實體裝置尚未驗證。GitHub API 仍 Forbidden，因此 Draft PR 尚未建立；不會自行 merge、auto-merge 或覆蓋既有 Site。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。

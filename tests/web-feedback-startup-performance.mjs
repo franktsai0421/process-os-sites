@@ -2,11 +2,16 @@
 // Optional fixed response delay models latency, not a real hosted connection.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
 
 const label=process.argv[2]||'current';
 assert.match(label,/^[a-z0-9-]+$/);
+const reference=process.argv[3];
+if(reference)assert.match(reference,/^[a-f0-9]{40}$/);
+const variants=reference?['reference','candidate']:['candidate'];
+const assets=new Map(reference?['web-feedback-entry.js','web-feedback-loader.js','web-feedback.js'].map(name=>['/process/'+name,{reference:execFileSync('git',['show',reference+':public/process/'+name]),candidate:fs.readFileSync('dist/client/process/'+name)}]):[]);
 const fixture=await createFeedbackFixture();
 let browser;
 const samples=[],out='.sites-runtime/feedback-startup';
@@ -20,12 +25,15 @@ try {
  await page.locator('#id').fill('frank');await page.locator('#password').fill(fixture.password);
  await page.locator('.site-entry-submit').click();await page.waitForSelector('.wf-row');
  const auth=await login.storageState();await login.close();
- for(const delayMs of [0,120])for(let run=0;run<5;run++) {
+ // Alternate order to separate shared machine/boot variance from the module's
+ // request waterfall. Paired mode uses the same compiled backend for both arms.
+ for(const delayMs of [0,120])for(let run=0;run<5;run++)for(const variant of (run%2?[...variants].reverse():variants)) {
   const context=await browser.newContext({storageState:auth,viewport:{width:1365,height:1000},serviceWorkers:'block'});
   await context.route('**/*',async r=>{
    const url=new URL(r.request().url());
    if(url.origin!==fixture.origin)return r.abort();
    if(delayMs&&(url.pathname.includes('/web-feedback')||url.pathname==='/api/web-feedback'))await new Promise(resolve=>setTimeout(resolve,delayMs));
+   if(assets.has(url.pathname))return r.fulfill({status:200,contentType:'text/javascript',body:assets.get(url.pathname)[variant]});
    return r.continue();
   });
   const p=await context.newPage();
@@ -50,9 +58,10 @@ try {
   }));
   assert.equal(result.rows,60);
   assert.equal(result.resources.filter(e=>e.action==='list').length,1,'one authorized list request per cold entry');
-  samples.push({delayMs,run,...result});
+  for(const name of ['web-feedback.js','web-feedback.css'])assert.equal(result.resources.filter(e=>e.path==='/process/'+name).length,1,'preload must not duplicate '+name);
+  samples.push({delayMs,run,variant,...result});
   fs.mkdirSync(out,{recursive:true});
-  if(delayMs===0&&run===0){
+  if(delayMs===0&&run===0&&variant==='candidate'){
    await p.locator('[data-issue]').nth(1).click();
    if(await p.locator('html').getAttribute('lang')!=='zh')await p.locator('.top-language-switch').click();
    await p.waitForFunction(()=>document.querySelector('.wf-admin h2')?.textContent==='網頁問題回報');
@@ -61,10 +70,10 @@ try {
   await context.close();
  }
  const median=values=>values.toSorted((a,b)=>a-b)[Math.floor(values.length/2)];
- const summary=[0,120].map(delayMs=>{
-  const group=samples.filter(s=>s.delayMs===delayMs);
-  return {delayMs,runs:group.length,medianReadyMs:median(group.map(s=>s.readyMs)),medianListWaitMs:median(group.map(s=>s.resources.find(r=>r.action==='list').waitMs)),medianRenderAfterListMs:median(group.map(s=>s.readyMs-s.resources.find(r=>r.action==='list').endMs))};
- });
- fs.writeFileSync(out+'/'+label+'.json',JSON.stringify({label,browser:browser.version(),seedIssues:60,summary,samples},null,2));
+ const summary=[0,120].flatMap(delayMs=>variants.map(variant=>{
+  const group=samples.filter(s=>s.delayMs===delayMs&&s.variant===variant);
+  return {delayMs,variant,runs:group.length,medianReadyMs:median(group.map(s=>s.readyMs)),medianListWaitMs:median(group.map(s=>s.resources.find(r=>r.action==='list').waitMs)),medianRenderAfterListMs:median(group.map(s=>s.readyMs-s.resources.find(r=>r.action==='list').endMs))};
+ }));
+ fs.writeFileSync(out+'/'+label+'.json',JSON.stringify({label,reference:reference||null,pairedBackend:!!reference,browser:browser.version(),seedIssues:60,summary,samples},null,2));
  console.log(JSON.stringify({label,summary}));
 }finally{await browser?.close();await fixture.close();}

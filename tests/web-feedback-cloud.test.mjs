@@ -15,7 +15,7 @@ function fixture({enabled=true,boot=false,tab=null,autoScripts=true}={}){
  const context=vm.createContext({window,document,history,location,state:{view:tab?'data':'dashboard',dataTab:tab},console,URL,URLSearchParams,AbortController,Promise,Map,WeakSet,structuredClone,crypto:webcrypto,Blob,performance:{now:()=>10,timeOrigin:100},innerHeight:757,innerWidth:1180,requestAnimationFrame:window.requestAnimationFrame,MutationObserver:observer,PerformanceObserver:observer,ResizeObserver:observer,queueMicrotask,setTimeout,clearTimeout,sessionStorage:{getItem:()=>null,removeItem(){},setItem(){}},fetch:(url,options)=>{const pending=deferred();requests.push({url,options,...pending});return pending.promise;}});
  const coreCode=read('web-feedback.js').replace(' window.WebFeedback={open,admin,identityChanged,routeChanged};',`window.__core={setup(value){actor='A';draft=value;reportPhase='ready';panel=document.createElement('section');panel.id='wf-panel';document.body.append(panel);storage=window.__storage;draw();},setupBoard(){board=document.createElement('div');document.body.append(board);board.innerHTML='<div role="status"></div><button data-export></button><input data-pick="fixture" type="checkbox">';selected.add('fixture');},state:()=>({draft,actor,retained,exportOperation,persisting,busy,board,composing,storageFailed,epoch,reportPhase}),waitWrites(promise){persistChain=promise;},hold(value){busy=value.busy||false;composing=value.composing||false;},submit,exportZip,guard,request,draw,routeChanged,persist,selectLocation,showImage};\n window.WebFeedback={open,admin,identityChanged,routeChanged};`);
  window.__storage=async(mode,key,value)=>{if(mode==='readwrite')writes.set(key,structuredClone(value));return structuredClone(writes.get(key));};
- const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback2')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
+ const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback3')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
  document.head.onappend=node=>{calls.push(['asset',node.src||node.href]);if(autoScripts)queueMicrotask(()=>{if(node.tagName==='SCRIPT'){run(node.src.includes('loader')?'web-feedback-loader.js':'web-feedback.js');}node.onload?.();});};
  function invalidate(mode='event'){if(mode==='delivery'){generation++;return;}if(mode==='epoch'){epoch++;return;}sync.requiresReload=true;window.dispatchEvent({type:'process-delivery-invalidated'});if(mode==='actor')sync.identity={id:'B',role:'admin'};}
  return{...dom,window,sync,context,content,calls,requests,writes,frames,run,invalidate,location};
@@ -61,6 +61,42 @@ void test('cold board overlaps list with assets and does not render until both f
  await tick();assert.equal(f.content.querySelector('[data-board-tab]'),null);
  f.document.head.querySelector('link').onload();await task;
  assert(f.content.querySelector('[data-board-tab]'));assert.equal(f.requests.length,1);
+});
+
+void test('explicit cold entry starts one authorized list before host download and consumes it once',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-entry.js');
+ f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);assert.equal(f.requests.length,0);
+ f.document.documentElement.removeAttribute('data-process-boot');const task=f.window.ProcessFeedbackEntry.readyForDestination();
+ assert.equal(f.requests.length,1);assert.equal(f.window.WebFeedbackHost,undefined);
+ assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,2);
+ reply(f.requests[0],{issues:[],admin:true,permissions:{view:true}});await tick();assert.equal(f.content.querySelector('[data-board-tab]'),null);
+ const entryScript=f.document.head.children.find(n=>n.src?.includes('loader'));
+ f.run('web-feedback-loader.js');entryScript.onload();
+ f.run('web-feedback.js');f.document.head.children.find(n=>n.src?.includes('/web-feedback.js')).onload();
+ f.document.head.children.find(n=>n.rel==='stylesheet').onload();await task;
+ assert(f.content.querySelector('[data-board-tab]'));assert.equal(f.requests.length,1);
+ assert.equal(f.window.ProcessFeedbackEntry.takePreparedList(f.content),null);
+});
+
+void test('failed host discards prepared list; retry starts a fresh read without duplicate preloads',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-entry.js');
+ f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);f.document.documentElement.removeAttribute('data-process-boot');
+ for(let i=0;i<2;i++){
+  const task=f.window.ProcessFeedbackEntry.readyForDestination(),failed=assert.rejects(task,/FEEDBACK_HOST_LOAD_FAILED/);
+  assert.equal(f.requests.length,i+1);reply(f.requests[i],{issues:[],admin:true,permissions:{view:true}});await tick();
+  f.document.head.children.find(n=>n.src?.includes('loader')).onerror();await failed;
+  assert.equal(f.window.ProcessFeedbackEntry.takePreparedList(f.content),null);
+ }
+ assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,2);assert.equal(f.writes.size,0);
+});
+
+void test('401 during prepared entry invalidates identity before private board can appear',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-entry.js');
+ f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);f.document.documentElement.removeAttribute('data-process-boot');
+ const task=f.window.ProcessFeedbackEntry.readyForDestination();reply(f.requests[0],{error:'LOGIN_REQUIRED'},401);await tick();
+ assert.equal(f.sync.requiresReload,true);assert.equal(f.window.ProcessFeedbackEntry.takePreparedList(f.content),null);
+ f.run('web-feedback-loader.js');f.document.head.children.find(n=>n.src?.includes('loader')).onload();await task;
+ assert.equal(f.content.querySelector('[data-board-tab]'),null);assert.equal(f.requests.length,1);assert.equal(f.writes.size,0);
 });
 
 for(const mode of ['actor','epoch','delivery'])void test('parallel first list cannot publish after '+mode+' changes during asset loading',async()=>{
