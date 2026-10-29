@@ -383,5 +383,61 @@
     "process-template",
     "process-equipment"
   ],
-  "timingNote": "One acceptance sequence per case including image decoding, hashing, DB readback and screenshot; not an operation benchmark or production-site latency."
+  "timingNote": "One acceptance sequence per case including image decoding, hashing, DB readback and screenshot; not an operation benchmark or production-site latency.",
+  "standaloneVerification": {
+    "commit": "88ccd815ff341d80e23b573eea6c8016a93a430c",
+    "build": "PASS",
+    "status": "PASS",
+    "cases": [
+      {
+        "name": "fqc",
+        "status": "PASS"
+      },
+      {
+        "name": "iqc-part",
+        "status": "PASS"
+      },
+      {
+        "name": "iqc-item",
+        "status": "PASS"
+      },
+      {
+        "name": "ipqc-ab",
+        "status": "PASS"
+      },
+      {
+        "name": "ipqc-c",
+        "status": "PASS"
+      },
+      {
+        "name": "equipment",
+        "status": "PASS"
+      },
+      {
+        "name": "equipment-new",
+        "status": "PASS"
+      },
+      {
+        "name": "tooling",
+        "status": "PASS"
+      },
+      {
+        "name": "equipment-hierarchy",
+        "status": "PASS"
+      },
+      {
+        "name": "routine-report",
+        "status": "PASS"
+      },
+      {
+        "name": "routine-disposal",
+        "status": "PASS"
+      },
+      {
+        "name": "feedback",
+        "status": "PASS"
+      }
+    ],
+    "pageErrors": []
+  }
 }
