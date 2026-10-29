@@ -62,6 +62,7 @@ try{
  assert.ok((await read('frank')).working['A-CUT'].some(t=>t.id===raceId));
  const removalSaved=await run('frank','save');assert.equal(removalSaved.status,200);
  const removalSubmitted=await run('frank','submit',{savedId:removalSaved.value.control.workflow.saved.id,reason:'Deletion candidate'});assert.equal(removalSubmitted.status,200);
+ const selfReview=await run('frank','approve',{caseId:removalSubmitted.value.receipt.caseId});assert.notEqual(selfReview.status,200);assert.equal(selfReview.value.error,'SELF_REVIEW_CONFIRM_REQUIRED');check('self review without explicit confirmation is denied');
  await fixture.mutateSyntheticValues(values=>{const versions=JSON.parse(values.approvalVersions);versions[0].stages['A-CUT'].push({id:'review-time-reference',number:'A-03',name:'New reference before approval',templateId:'A-CUT-CUSTOM-2',productCodes:['A1']});values.approvalVersions=JSON.stringify(versions);});
  assert.equal((await run('reviewer','approve',{caseId:removalSubmitted.value.receipt.caseId})).status,409);
  assert.equal((await run('frank','withdraw',{caseId:removalSubmitted.value.receipt.caseId,reason:'Resolve new reference'})).status,200);

@@ -272,8 +272,9 @@
         search = searchInput.value;
         refreshEquipmentSearch(area, searchInput, content, owner);
       };
-      searchInput.oncompositionstart = () => { composing = true; };
-      searchInput.oncompositionend = event => { composing = false; updateSearch(event); };
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers||[])searchInput.removeEventListener(type,handler);
+      searchInput.processEquipmentCompositionHandlers=[['compositionstart',()=>{composing=true;}],['compositionend',event=>{composing=false;updateSearch(event);}]];
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers)searchInput.addEventListener(type,handler);
       searchInput.oninput = updateSearch;
     }
     document.querySelector('#equipment-line-filter')?.addEventListener('change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
