@@ -195,6 +195,53 @@ dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器�
 
 原始資料為兩個隔離 checkout 的 `.sites-runtime/feedback-performance/final-compare-{before,after}-{1..5}.json`、`.sites-runtime/feedback-startup/final-cold-{before,after}.json`，匯總位於開發 checkout 的 `.sites-runtime/feedback-performance/final-compare-summary.json`。這是本機版本對照，非既有網站與候選部署對照；實站連線仍被環境網路規則阻擋，新增允許網域的設定草稿尚待使用者套用。
 
+## 收尾補驗與尚未完成項目
+
+本輪從 `145eaa81bf0d46dca70069ee3b3d4192dc11192f` 繼續，沒有修改功能程式。新增 `tests/web-feedback-final-browser.test.mjs`，使用現有編譯 Worker、正常登入與隔離 D1/R2：
+
+- PASS：延遲交接紀錄回應後返回清單、連續選取 20 筆，舊回應不能覆蓋清單或最後一筆明細。
+- PASS：刪除未送出標記後，經總覽頁／瀏覽器返回、三次展開收合與重新整理，剩餘原文保留、已刪標記不復活、window/document 事件監聽數不累積。
+- PASS（有條件）：等標記遮罩完成兩個 animation frame 後，跨來源 iframe 內按鈕的 pointerdown/mousedown/click 均未觸發；回報保存 iframe 外框 ID／tag／座標，退出後內部按鈕恢復。外部網址由 Playwright 本地 fulfill，沒有連到真實外站。
+- **FAIL／未修復**：不等待遮罩第一幀、立刻以 CDP 座標輸入點擊跨來源 iframe，曾觸發 iframe 內部 pointerdown/mousedown/click，且未完成標記。暫設 iframe inert 的嘗試仍失敗，已撤回，沒有把無效修正交付。此項不是因沒有實站憑證而未驗證，而是隔離 Chromium 已重現的切換瞬間保護缺口；不得宣稱跨來源 iframe 在所有時序均不穿透。
+
+正常補驗 3 PASS，加先前三組 suite 的 26 組，共 29 組通過情境；另保留上述 1 項失敗診斷，不能用 29 PASS 抵銷。首次跨頁測試誤把進入資料後台預設頁當作返回問題頁，涉及不完整合成 master 資料；已改用正常總覽／瀏覽器返回驗證本模組，不修改其他業務或放寬其資料門檻。52 項 VM/layout 再次通過，功能程式與既有已建置版本相同，因此沿用先前 type/lint/build/API 證據。
+
+結果：`.sites-runtime/feedback-final/results.json`；首幀失敗證據：`iframe-immediate-failure.json`。重現正常驗收：
+
+```bash
+PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-final-browser.test.mjs
+```
+
+另加 `FEEDBACK_PREPAINT_PROBE=1` 可執行保留的首幀時序診斷（存在已知失敗，非預設通過測試）；新跑的結果與既有證據應分開保存。
+
+### 外部交付狀態
+
+|項目|狀態／必要條件|
+|---|---|
+|Draft PR|尚未建立；GitHub Git 可用，但目前環境仍未允許 api.github.com。PR 說明已整理，須套用已保存的環境網路草稿後重試 API。|
+|獨立公開預覽|尚未建立；沒有 Sites 建立／發布工具、部署身分或公開入口。須接上能建立全新 Site、獨立 D1/R2 與正常登入的受控平台。名稱固定「Codex 預覽副本｜網頁回報與小幫手」，標示分支與部署 commit。|
+|實站 Chrome／ChatGPT 同網址同帳號比較|尚未驗證；目前執行環境也未允許測試站網域，且沒有同帳號已登入瀏覽器會話。只能唯讀比較既有站，寫入必須在獨立預覽。|
+|一般網路首次開啟改善|尚未達成可量測改善；585→594 ms，不承諾實站提速，也不越界修改共用啟動。|
+|實體手機、原生 OS 中越文 IME／截圖工具|尚未驗證；模擬尺寸、composition 與 Chromium Clipboard API 證據不能取代。|
+|iframe 切換瞬間保護|上述隔離診斷 FAIL，仍需修復／複驗；穩定繪製後外框標記通過。|
+
+環境設定草稿 revision 3 已有 api.github.com 與 process-os-test.franktsai0421.chatgpt.site；本輪 environment_status 的執行設定仍為 revision 1、無新增網域／capabilities／secrets／outbound identities。沒有重複新增憑證需求或嘗試繞過代理。尚未提供預覽網址、未聲稱 PR 已建立、未發布／merge。
+
+### 最新遠端重疊檔案
+
+再次唯讀 fetch 全部 heads，main 仍為原基準。只列尚未被 main 包含的遠端分支，按各自 merge-base→分支的修改與本次交集；這不是開啟中 PR 狀態，也無法代表 dot 未推送的修改。
+
+|分支|SHA|重疊檔案|
+|---|---|---|
+|`cloud/users-permissions-29102026`|`a8c988841e7cf3b1616f321a7eb55280f7379738`|`AI_CONTEXT/CHANGELOG.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/photo-standard-cloud-29102026`|`19855a067e89692a63376794160b67f5b1062499`|`AI_CONTEXT/CHANGELOG.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/preview-process-flow-cloud-29102026`|`f91f758f85a481819801274f656b4f917e798ffa`|`AI_CONTEXT/CHANGELOG.md`, `AI_CONTEXT/DATA_MODEL.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/process-flow-cloud-29102026`|`10de4c27f8c7a32e46938acded575b77eee9231e`|`AI_CONTEXT/CHANGELOG.md`, `AI_CONTEXT/DATA_MODEL.md`, `HANDOFF.md`, `public/process/index.html`|
+|`fix/authoring-save-response-20261027`|`4674df6cc419b6cf14cbb6808d0f99061cbd8a5c`|`AI_CONTEXT/CHANGELOG.md`, `public/process/index.html`|
+|`fix/ipqc-ab-read-ownership-20261029`|`6b56bf68c0c892aa11cdfb7d266995d5dd7f921c`|`AI_CONTEXT/CHANGELOG.md`, `public/process/index.html`|
+
+只讀取與比對，不合併或接管以上分支。index 整合只保留本次 feedback entry 版本參數，其餘共用入口由 dot 語意整合；文件保留雙方條目。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
