@@ -1,5 +1,7 @@
 # 權限設定 → 介面 → 後端對照（CLOUD 29102026）
 
+最新實測：[設定後各頁面權限核對](USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md)。604 次共用函式比對、600 次目的頁判定、87 組流程權限、11 個撤權會話及 IQC 實際頁面；已確認落差未修復，不能標為全站通過。
+
 基準及驗收限制見 [主報告](USERS_CLOUD_29102026.md)。catalog 為 `public/process/access-policy.mjs`，27 列、151 個有效格。角色矩陣與個別矩陣沿用同一 catalog，未新增權限鍵。
 
 通用對應：view=查看、create=新增、edit=套用／編輯、delete=草稿刪除、save=儲存草稿、submit=送審、withdraw=撤回、approve=核准、return=發回、exchange=匯入／匯出、settings=設定。列全選是 UI 控制，不是第 152 個權限。view 相依由 API 驗證，不靜默擴權。`permission-controls.js` 與 `process-state.ts:can` 依 URL/module 對應 legacy 鍵；`destination-delivery.mjs` 另檢查目的頁 view。後端仍須同時滿足 CAS、pending、角色、歷史及工作流限制；勾選不是無條件放行。
@@ -10,19 +12,19 @@
 |---|---|---|---|---|
 | dashboard.view | `view=dashboard` | 查看總覽 | `/api/process-bootstrap`、shared-state 授權投影 | 已盤點；逐項真資料未測 |
 | player.view | `view=player` | 播放／查看 | bootstrap、shared-state、state-media ACL | 已盤點；播放器細項未測 |
-| dispatch.view/edit | `view=dispatch` | 查看、編輯發送 | bootstrap；`/api/shared-state` 的 dispatchBoard | **需要獨立修復評估**：generic dispatchBoard POST 現只查 `view:dispatch`，未明確查 dispatch.edit。本次不改發送流程 |
+| dispatch.view/edit | `view=dispatch` | 查看、編輯發送 | bootstrap；`/api/shared-state` 的 dispatchBoard | **已實證越權，未修復**：只勾 view、未勾 edit，直接 POST 200 且 dispatchBoard 實際改變；需獨立修復 |
 | status.view | `view=productStatus` | 產品狀態查看 | bootstrap、state-media | 已盤點；legacy status.viewDetails／viewMedia／viewAllLines 無獨立新 catalog 格，需確認是否仍須細分 |
 | ab.* | dataTab=AB | 查看、新增、編輯、刪除、儲存、送審、撤回、核准、發回、匯入出 | `/api/master/workflow?scope=AB`、versioned workflow | 已盤點；全操作尚未驗證 |
 | c.* | dataTab=C | 同上 | `/api/master/workflow?scope=C` | 已盤點；全操作尚未驗證 |
 | bom.* | dataTab=bom | 查看、編輯、儲存、送審、撤回、核准、發回、匯入出 | `/api/bom/workflow` | **已符合（定向）**：角色撤銷 bom.edit 後舊會話拒絕、新登入直接 begin API 拒絕；其他操作尚未全測 |
-| lines.* | dataTab=line-admin | 線別／工段草稿操作 | master workflow（AB/C scope） | **需要確認**：lines.* 頁面格與 AB/C scope 的實際判定是否應獨立；不在本 PR 改既有主資料授權 |
+| lines.* | dataTab=line-admin | 線別／工段草稿操作 | master workflow（AB/C scope） | **已實證不一致／需確認**：僅 lines.view 可過入口，AB workflow permissions GET 卻 403；需決定與 AB/C 的關係 |
 | templates.* | dataTab=process-master | 流程資料草稿操作 | `/api/master/workflow?scope=PROCESS` | 已盤點；全操作尚未驗證 |
 | editor.* | view=editor | 建立、編輯、刪除、儲存、送審、撤回、核准、發回 | `/api/process-authoring/workflow`、process-authoring adapter | 已盤點；不修改其他任務的製程流程 |
 | approval.view/approve/return/withdraw | view=approval | 查看／核准／發回／撤回 | 各模組 workflow；legacy shared-state approvalVersions | 已盤點；跨模組 authority／creator／pending 規則尚未全測 |
 | fqc.* | dataTab=quality-fqc | 版本草稿操作 | `/api/fqc/workflow` | 已盤點；尚未全測 |
-| iqc.* | dataTab=quality-iqc | 版本草稿、媒體 | `/api/iqc/workflow`、`/api/iqc/photo` | 已盤點；尚未全測 |
+| iqc.* | dataTab=quality-iqc | 版本草稿、媒體 | `/api/iqc/workflow`、`/api/iqc/photo` | **實測設定／撤權與既有零件修改通過；新增按鈕不一致**：edit=true、create=false 仍顯示新增；後端 403 且未改資料。完整業務未全測 |
 | ipqc-ab.* | dataTab=quality-ipqc-ab | 版本草稿、媒體 | `/api/ipqc-ab/workflow`、photo | 已盤點；尚未全測 |
-| ipqc-c.* | dataTab=quality-ipqc-c | 版本草稿、媒體 | `/api/ipqc-c/workflow`、photo | **需要確認／另立 PR**：既有回歸明示 view/withdraw/history/review 例外；未勾撤回可能仍允許。見主報告 |
+| ipqc-c.* | dataTab=quality-ipqc-c | 版本草稿、媒體 | `/api/ipqc-c/workflow`、photo | **已實證舊規則衝突／另立 PR**：view-only 可撤回；跨頁審核查看及核准／發回另有 approval.view 前提。見最新實測 |
 | tooling.* | dataTab=quality-mold-equipment | 草稿及模具檢查 | `/api/tooling/workflow`、checks、iqc、photo | 已盤點；子操作尚未全測 |
 | routine-reports.view | dataTab=quality-routine-reports | 查看入口 | bootstrap；placeholder | **不適用新增操作**：現為建置中，不創造不存在的業務 API |
 | equipment.* | dataTab=quality-routine-equipment | 草稿、替換、照片 | `/api/routine-equipment/workflow`、photo、quality-equipment-replacement | 已盤點；尚未全測 |
