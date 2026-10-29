@@ -259,7 +259,10 @@
       repaint(true);
     } catch (error) { toast(error.message);if(editing===target&&dialog.isConnected){const retry=document.createElement('button');retry.type='button';retry.className='button ghost equipment-photo-retry';retry.textContent=t('重試照片上傳','Thử tải ảnh lại');retry.onclick=()=>updatePhotos(mode,pendingFiles);dialog.querySelector('.equipment-dialog-photos').append(retry);}}finally{target.uploading=false;status.remove();}
   }
-  function bindSearch() {
+  function bind() {
+    document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
+    document.querySelector('#add-equipment')?.addEventListener('click',() => openEditor());
+    bindEquipmentRows(document);
     const searchInput = document.querySelector('#equipment-search');
     if (searchInput) {
       const area = document.querySelector('#data-content'), content = area?.querySelector('#equipment-panel'), owner = host.ProcessSync?.captureDelivery?.();
@@ -269,16 +272,11 @@
         search = searchInput.value;
         refreshEquipmentSearch(area, searchInput, content, owner);
       };
-      searchInput.oncompositionstart = () => { composing = true; };
-      searchInput.oncompositionend = event => { composing = false; updateSearch(event); };
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers||[])searchInput.removeEventListener(type,handler);
+      searchInput.processEquipmentCompositionHandlers=[['compositionstart',()=>{composing=true;}],['compositionend',event=>{composing=false;updateSearch(event);}]];
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers)searchInput.addEventListener(type,handler);
       searchInput.oninput = updateSearch;
     }
-  }
-  function bind() {
-    document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
-    document.querySelector('#add-equipment')?.addEventListener('click',() => openEditor());
-    bindEquipmentRows(document);
-    bindSearch();
     document.querySelector('#equipment-line-filter')?.addEventListener('change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
     document.querySelector('#equipment-stage-filter')?.addEventListener('change',event => { stageFilter = event.target.value; repaint(); });
     document.querySelector('#equipment-filter-clear')?.addEventListener('click',() => { search = lineFilter = stageFilter = ''; repaint(); });
@@ -427,7 +425,6 @@
     openEditor(id, field);
   }
   host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate};
-  host.addEventListener('process-destination-ready',() => { if (document.querySelector('#equipment-panel')) bindSearch(); });
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };

@@ -1633,24 +1633,32 @@ function bindProcessMasterName(input) {
   if(previous){previous.transfer(input);return;}
   const ids=new Set(processMasterCatalogMatches(snapshot,key).map(template=>template.id));
   let baseline=Object.entries(snapshot).flatMap(([stage,list])=>list.filter(template=>ids.has(template.id)).map(template=>({path:[stage,{id:template.id},'name'],value:template.name})));
-  let pending=Promise.resolve(),failure=null,lastQueued=input.value,composing=false,active=0;
+  let pending=Promise.resolve(),failure=null,lastQueued=input.value,composing=false,active=0,detachComposition=()=>{};
   const owned=()=>input.isConnected&&window.ProcessSync?.identity===owner&&shared.flow('PROCESS')?.generation===generation&&Boolean(editableProcessMasterData());
   const synchronize=()=>{
     const value=input.value;
-    if(failure||lastQueued===value)return;
-    lastQueued=value;active++;
+    if(failure||lastQueued===value&&(active||baseline.every(row=>row.value===value)))return;
+    lastQueued=value;
+    if(active)return;
+    active++;
     pending=pending.then(async()=>{
-      if(failure)return;
-      if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
-      const changed=baseline.filter(row=>row.value!==value);
-      if(!changed.length)return;
-      const patches=changed.map(row=>({op:'set',path:row.path,value})),guards=changed.map(row=>({path:row.path,value:row.value}));
-      await shared.patch('PROCESS',patches,guards);
-      if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
-      // Advance only values confirmed by this successful command, never a fresh remote snapshot.
-      baseline=baseline.map(row=>({path:row.path,value}));
-      updateProcessSharedStatus();
-    }).catch(error=>{if(!failure){failure=error;if(owned())toast(window.sharedDraftErrorMessage?.(error)||error.message);}}).finally(()=>{active--;});
+      let sending=value;
+      // Keep the in-flight command intact; collapse only values not yet sent.
+      for(;;){
+        if(failure)return;
+        if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+        const changed=baseline.filter(row=>row.value!==sending);
+        if(changed.length){
+          const patches=changed.map(row=>({op:'set',path:row.path,value:sending})),guards=changed.map(row=>({path:row.path,value:row.value}));
+          await shared.patch('PROCESS',patches,guards);
+          if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+          baseline=baseline.map(row=>({path:row.path,value:sending}));
+          updateProcessSharedStatus();
+        }
+        if(composing||sending===lastQueued)break;
+        sending=lastQueued;
+      }
+    }).catch(error=>{if(!failure){failure=error;if(owned())toast(window.sharedDraftErrorMessage?.(error)||error.message);}}).finally(()=>{active--;if(!failure&&!composing&&owned()&&baseline.some(row=>row.value!==lastQueued))synchronize();});
   };
   const drain=async()=>{
     let current;do{current=pending;await current;}while(current!==pending);
@@ -1658,17 +1666,20 @@ function bindProcessMasterName(input) {
     if(composing)throw Error('OPERATION_IN_PROGRESS');
     if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
   };
-  const binding={input,owner,generation,key,drain,clean:()=>!active&&!failure&&!composing};
+  const binding={input,owner,generation,key,drain,clean:()=>!active&&!failure&&!composing&&baseline.every(row=>row.value===lastQueued)};
   const attach=()=>{
     const attached=input;
     input.processMasterNameFlush=drain;
-    input.oncompositionstart=()=>{if(input===attached)composing=true;};
-    input.oninput=event=>{if(input!==attached)return;composing=!!event.isComposing;if(!composing)synchronize();};
-    input.oncompositionend=()=>{if(input!==attached)return;composing=false;synchronize();};
+    const startComposition=()=>{if(input===attached)composing=true;};
+    const endComposition=()=>{if(input!==attached)return;composing=false;synchronize();};
+    input.oninput=event=>{if(input!==attached)return;if(event.isComposing)composing=true;if(!composing)synchronize();};
+    input.addEventListener('compositionstart',startComposition);
+    input.addEventListener('compositionend',endComposition);
+    detachComposition=()=>{attached.removeEventListener('compositionstart',startComposition);attached.removeEventListener('compositionend',endComposition);};
   };
   binding.transfer=next=>{
     const visible=input.value;
-    input.oninput=input.oncompositionstart=input.oncompositionend=null;
+    detachComposition();input.oninput=null;
     input=next;binding.input=next;input.value=visible;attach();
   };
   processMasterNameBindings.add(binding);attach();
