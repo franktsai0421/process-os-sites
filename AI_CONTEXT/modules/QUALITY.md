@@ -1,3 +1,5 @@
+2026-10-29 IQC permissions candidate: V3 save/submit/withdraw buttons use their own rights, create uses create+edit; legacy snapshot writes require edit+save(+submit) and content create/delete checks. No data migration or publication. Depends on clear-rights shared permission foundation; browser acceptance recorded in users acceptance report.
+
 ## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
 
 依使用者確認，正常流程調整為「新增兩器具→正常送審及獨立核准→四品質模組移轉草稿→明確保存／送審／退回修改／重新保存及重送核准」。無草稿時依權限 Begin；已有 editable draft 不多送 Begin。四模組的 pending／returned／revised saved 階段保持原正式標準，到原核准 route 成功才更新正式引用；返回案件內容及舊 save history／R2 bytes 不變。正常權限 actual route 回歸涵蓋四模組各一項標準；AB 採整份 module 審核，C 完整歷史內容由 fixture core.readState 核對，並非目的頁原生控件驗收。
