@@ -159,6 +159,18 @@ dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器�
 
 修改限模組前端、專屬測試與文件；共用 `public/process/index.html` 只更新已事先說明的入口版本 `20261029-feedback4`。無資料模型或權限政策變更。這是隔離 Chromium 驗證；尚未發布、未驗證既有實站同帳號 Chrome／ChatGPT、實體手機及原生 OS IME，也不宣稱所有可能的網路故障都已涵蓋。
 
+## 剪貼簿追加驗證（功能程式未變更）
+
+使用者追問截圖複製貼上，新增 `tests/web-feedback-clipboard-browser.test.mjs`，以實際 Chromium Clipboard API 寫入隔離合成頁面的 640×280 截圖，再透過鍵盤 Ctrl+V 觸發原生 paste，不是注入 ClipboardEvent。正常帳號／編譯 Worker／隔離 D1/R2，3 組 PASS：
+
+- 標記模式中點小幫手文字框貼截圖，只新增一張縮圖，標記模式仍有效；Esc 退出、附件放大與關閉可用。
+- 中越文文字 Ctrl+V 正常插入一次、仍可編輯，不被圖片貼上處理器攔截。
+- 多標記切換、刪除其中一筆附件、重新整理後還原、送出兩筆問題與後台讀取附件均通過；提交後原圖解碼像素逐位元組等於貼上的瀏覽器截圖。shared_state 值與 revision 未變。
+
+檢查結果在 `.sites-runtime/feedback-clipboard/results.json`；合併前輪 23 組，共有 26 組已執行瀏覽器流程證據。本次未修改功能、未重跑不相關整套測試，也未發布。既有任意位置標記／早期事件攔截／捲動／取消恢復操作的證據仍見原流程。
+
+操作為「點選網頁位置」→ 點一下欲回報處 → 自動退出選取並編輯；Esc／取消也可退出。只在選取期間攔截底層操作，小幫手自身控制項保留。剪貼簿圖片不是內建自動截圖功能，需先由外部截圖工具取得圖片，再貼入小幫手；每個標記最多 6 張，每張 5 MB，PNG／JPEG／WebP。實體 OS 截圖工具、使用者裝置 Google Chrome、線上剪貼簿權限與跨來源 iframe 內部定位仍尚未驗證／受既有位置備援限制。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
