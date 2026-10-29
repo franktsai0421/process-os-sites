@@ -1,3 +1,4 @@
+import {restoreAllowed} from '@/lib/draft-restore-access';
 import {masterWorkflowAdapter} from '@/lib/master-workflow';
 import {versionedWorkflowRoute,workflowAccess} from '@/lib/versioned-shared-workflow';
 import {readState,identity,can,responseHeaders} from '@/lib/process-state';
@@ -7,7 +8,7 @@ import {masterCatalog,projectMasterCatalog,MasterCatalogLegacyFallback} from '@/
 const authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 async function catalogPermissions(request:Request,state:Awaited<ReturnType<typeof readState>>){
  const permissions=await workflowAccess(request,state);
- return {...permissions,delete:permissions.edit&&await can(request,state,'ab.delete')};
+ return {...permissions,restore:permissions.edit&&await restoreAllowed(request,state),create:permissions.edit&&await can(request,state,'ab.create'),delete:permissions.edit&&await can(request,state,'ab.delete')};
 }
 function legacyCatalog(request:Request){
  // Preserve the established FQC generic read and its legacy failure coverage.
