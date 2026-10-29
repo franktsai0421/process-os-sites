@@ -171,7 +171,9 @@
 .ua-simple input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--ua-accent);margin:2px}
 .ua-simple .ua-inherit{font-size:11px;padding:3px 0;border:0;background:none;color:var(--ua-accent);min-height:26px;text-decoration:underline}
 .ua-simple .ua-inherit[hidden]{display:none}
-.ua-simple .ua-extra,.ua-simple .ua-extra details{display:contents}
+.ua-simple .ua-extra{display:block;grid-column:6}
+.ua-simple .ua-extra:has(details[open]){grid-column:1/-1}
+.ua-simple .ua-extra details{display:block}
 .ua-simple .ua-extra summary{grid-column:6;grid-row:1;padding:12px 8px;cursor:pointer;font-size:13px;color:var(--ua-accent);min-height:44px;list-style-position:inside}
 .ua-simple summary small{display:block;color:var(--ua-muted);font-size:11px;line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
 .ua-simple .ua-extra-panel{grid-column:1/-1;padding:14px;background:var(--ua-soft);border-top:1px solid var(--ua-line);display:flex;flex-wrap:wrap;gap:12px 22px}
@@ -193,6 +195,7 @@
  .ua-matrix.ua-simple tr>th{grid-column:1/-1;padding:4px}
  .ua-matrix.ua-simple tr>td{padding:6px 3px}
  .ua-simple td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;min-height:34px;line-height:1.5}
+ .ua-simple .ua-extra{grid-column:1/-1}
  .ua-simple .ua-extra summary{grid-column:1/-1;grid-row:auto;padding:8px 4px;min-height:44px}
  .ua-simple .ua-extra-panel{padding:12px 8px;gap:12px}.ua-simple .ua-extra-panel>.ua-cell{flex-basis:130px}
  .ua-simple .ua-cell label{min-height:32px;justify-content:flex-start}
