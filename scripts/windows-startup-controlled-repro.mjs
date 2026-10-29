@@ -9,15 +9,25 @@ const STATUSES=[...Array(6).fill(403),409,409,200,409,409,400,403,...Array.from(
 const EVENTS=['create','send_headers','body_chunk_sent','body_sent','response_headers','response_complete','request_error'],CODES=['ECONNRESET','ECONNREFUSED','EPIPE','ETIMEDOUT','ABORT_ERR','UND_ERR_SOCKET','UND_ERR_ABORTED','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','UND_ERR_CONNECT_TIMEOUT','OTHER'];
 const hash=value=>createHash('sha256').update(value).digest('hex'),hex=(v,n)=>typeof v==='string'&&new RegExp(`^[a-f0-9]{${n}}$`).test(v),integer=(v,min,max)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
 export const normalizedSourceHash=bytes=>hash(bytes.toString('utf8').replace(/\r\n/g,'\n'));
+export const DIAGNOSTIC_FILES=Object.freeze(['.github/workflows/windows-startup-controlled-repro.yml','scripts/windows-startup-controlled-repro.mjs','tests/windows-startup-controlled-repro.test.mjs']);
+export function compareSourceTrees(reference,current){
+ const parse=raw=>{const map=new Map();for(const row of raw.split('\0').filter(Boolean)){const match=/^(100644|100755) blob ([a-f0-9]{40})\t([\s\S]+)$/.exec(row);if(!match||map.has(match[3]))throw Error('SOURCE_TREE_INVALID');map.set(match[3],{mode:match[1],blob:match[2]});}return map;};
+ const before=parse(reference),after=parse(current);
+ if(before.size===0||after.size!==before.size+DIAGNOSTIC_FILES.length)return false;
+ for(const [name,item]of before)if(DIAGNOSTIC_FILES.includes(name)||after.get(name)?.mode!==item.mode||after.get(name)?.blob!==item.blob)return false;
+ return DIAGNOSTIC_FILES.every(name=>after.get(name)?.mode==='100644');
+}
 export function inspectSource(sourceDir){
  const git=(...args)=>execFileSync('git',['-C',sourceDir,...args],{encoding:'utf8',timeout:10000,maxBuffer:LIMIT.outputBytes,stdio:['ignore','pipe','pipe']}).trim();
  const test=fs.readFileSync(path.join(sourceDir,PIN.test)),modules=fs.lstatSync(path.join(sourceDir,'node_modules'));
  const dependencies=modules.isDirectory()&&!modules.isSymbolicLink()&&[['miniflare','4.20260515.0'],['workerd','1.20260515.1'],['undici','7.30.1']].every(([name,version])=>JSON.parse(fs.readFileSync(path.join(sourceDir,'node_modules',name,'package.json'),'utf8')).version===version);
- return{head:git('rev-parse','HEAD'),tree:git('rev-parse','HEAD^{tree}'),clean:git('status','--porcelain','--untracked-files=no')==='',testSha256:normalizedSourceHash(test),testRawSha256:hash(test),distSha256:hash(fs.readFileSync(path.join(sourceDir,'dist/server/index.js'))),dependencies};
+ git('merge-base','--is-ancestor',PIN.commit,'HEAD');
+ return{head:git('rev-parse','HEAD'),tree:git('rev-parse','HEAD^{tree}'),eventHead:process.env.GITHUB_SHA,programCommit:process.env.PROCESS_PROGRAM_COMMIT,referenceTree:git('rev-parse',PIN.commit+'^{tree}'),runtimeSourceExact:compareSourceTrees(git('ls-tree','-rz',PIN.commit),git('ls-tree','-rz','HEAD')),clean:git('status','--porcelain','--untracked-files=no')==='',testSha256:normalizedSourceHash(test),testRawSha256:hash(test),distSha256:hash(fs.readFileSync(path.join(sourceDir,'dist/server/index.js'))),dependencies};
 }
 export function sourceVerdict(value){
  if(!value||typeof value!=='object')return'SOURCE_INSPECTION_FAILED';
- if(value.head!==PIN.commit||value.tree!==PIN.tree||value.clean!==true)return'SOURCE_MISMATCH';
+ if(!hex(value.head,40)||/^0{40}$/.test(value.head)||!hex(value.tree,40)||/^0{40}$/.test(value.tree)||value.head!==value.eventHead||value.head!==value.programCommit||value.clean!==true)return'SOURCE_MISMATCH';
+ if(value.referenceTree!==PIN.tree||value.runtimeSourceExact!==true)return'RUNTIME_REFERENCE_MISMATCH';
  if(value.testSha256!==PIN.testSha256)return'TEST_SOURCE_MISMATCH';
  if(value.dependencies!==true)return'DEPENDENCY_MISMATCH';
  if(value.distSha256!==PIN.distSha256)return'BUILD_HASH_MISMATCH';
@@ -62,7 +72,7 @@ export function runNativeChild(sourceDir,{spawnChild=spawn,setTimer=setTimeout,c
   const release=()=>{child?.unref();child?.stdout?.destroy();child?.stderr?.destroy();finish();};
   const terminate=()=>{if(terminating||settled)return;terminating=true;timerHandles.cleanup=setTimer(release,LIMIT.cleanupMs);if(!exited)try{killRequested=child.kill();}catch{killRequested=false;}};
   const capture=(chunk,isError)=>{if(settled||terminating)return;const bytes=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk),remaining=LIMIT.outputBytes-stdoutBytes-stderrBytes,retained=bytes.subarray(0,remaining);if(isError){stderrBytes+=retained.length;errHash.update(retained);}else{stdoutBytes+=retained.length;outHash.update(retained);chunks.push(retained);}if(bytes.length>remaining){overflow=true;terminate();}};
-  try{child=spawnChild(process.execPath,[path.join(sourceDir,PIN.test)],{cwd:sourceDir,env:{...process.env,PROCESS_PROGRAM_COMMIT:PIN.commit},stdio:['ignore','pipe','pipe'],windowsHide:true,shell:false});}
+  try{child=spawnChild(process.execPath,[path.join(sourceDir,PIN.test)],{cwd:sourceDir,env:{...process.env},stdio:['ignore','pipe','pipe'],windowsHide:true,shell:false});}
   catch{spawnError=true;finish();return;}
   child.stdout.on('data',chunk=>capture(chunk,false));child.stderr.on('data',chunk=>capture(chunk,true));
   for(const pipe of [child.stdout,child.stderr])pipe.on('error',()=>{spawnError=true;terminate();});
@@ -76,7 +86,8 @@ export async function runControlled({sourceDir,platform=process.platform,inspect
  if(platform!=='win32')return stop('WINDOWS_REQUIRED');
  if(typeof sourceDir!=='string'||!path.isAbsolute(sourceDir))return stop('ABSOLUTE_SOURCE_REQUIRED');
  let source;try{source=await Promise.resolve(inspect(sourceDir));}catch{return stop('SOURCE_INSPECTION_FAILED');}
- summary.source={};for(const key of ['head','tree','testSha256','testRawSha256','distSha256'])if(hex(source?.[key],key==='head'||key==='tree'?40:64))summary.source[key]=source[key];
+ summary.source={};for(const key of ['head','tree','eventHead','programCommit','referenceTree','testSha256','testRawSha256','distSha256'])if(hex(source?.[key],['head','tree','eventHead','programCommit','referenceTree'].includes(key)?40:64))summary.source[key]=source[key];
+ summary.source.runtimeSourceExact=source?.runtimeSourceExact===true;summary.source.referenceArtifactExact=source?.distSha256===PIN.distSha256;
  const mismatch=sourceVerdict(source);if(mismatch)return stop(mismatch);
  for(let iteration=1;iteration<=LIMIT.iterations;iteration++){
   summary.attemptsStarted++;summary.requestUpperBound+=43;let child;

@@ -21,7 +21,7 @@ jobs:
       WRANGLER_SEND_METRICS: 'false'
       WRANGLER_WRITE_LOGS: 'false'
       npm_config_update_notifier: 'false'
-      PROCESS_PROGRAM_COMMIT: ec4070c98c1b4667baab8fb947c48d5f1fb401cc
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
     steps:
       - name: Select unchanged native Windows ZIP engine
         run: |
@@ -31,16 +31,9 @@ jobs:
           $archiveVersion = & $archiveTool --version
           if ($LASTEXITCODE -ne 0 -or $archiveVersion -notmatch 'bsdtar') { throw 'Unsupported Windows archive engine' }
           $systemTools | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - name: Checkout reviewed diagnostic controls
+      - name: Checkout true diagnostic event HEAD with unchanged runtime source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 0
-          persist-credentials: false
-          path: control
-      - name: Checkout exact original compiled source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          ref: ec4070c98c1b4667baab8fb947c48d5f1fb401cc
           fetch-depth: 0
           persist-credentials: false
           path: source
@@ -50,7 +43,7 @@ jobs:
           cache: npm
           cache-dependency-path: source/package-lock.json
       - name: Pure runner bounds and first-failure tests (no service)
-        working-directory: control
+        working-directory: source
         run: |
           $env:PROCESS_REPRO_SOURCE_DIR = Join-Path $env:GITHUB_WORKSPACE 'source'
           node --test tests/windows-startup-controlled-repro.test.mjs
@@ -62,12 +55,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/sites-ci-preflight.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Build fixed original source once
+      - name: Build guarded source once (reference artifact must still match)
         working-directory: source
         run: node scripts/local-build.mjs
       - name: Bounded original fixture reproduction (stop at first failure)
         run: |
           $source = Join-Path $env:GITHUB_WORKSPACE 'source'
           $evidence = Join-Path $env:RUNNER_TEMP 'startup-controlled-evidence'
-          node control/scripts/windows-startup-controlled-repro.mjs --source-dir $source --evidence-dir $evidence
+          node source/scripts/windows-startup-controlled-repro.mjs --source-dir $source --evidence-dir $evidence
           exit $LASTEXITCODE
