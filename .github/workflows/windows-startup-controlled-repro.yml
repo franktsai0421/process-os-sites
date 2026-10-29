@@ -1,0 +1,73 @@
+name: Windows original startup controlled reproduction
+on:
+  push:
+    branches: ['diagnostic/windows-startup-controlled-20261029']
+    paths:
+      - 'scripts/windows-startup-controlled-repro.mjs'
+      - 'tests/windows-startup-controlled-repro.test.mjs'
+      - '.github/workflows/windows-startup-controlled-repro.yml'
+permissions:
+  contents: read
+jobs:
+  controlled-original-startup:
+    if: ${{ github.repository == 'franktsai0421/process-os-sites' && github.ref == 'refs/heads/diagnostic/windows-startup-controlled-20261029' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+      PROCESS_PROGRAM_COMMIT: ec4070c98c1b4667baab8fb947c48d5f1fb401cc
+    steps:
+      - name: Select unchanged native Windows ZIP engine
+        run: |
+          $systemTools = Join-Path $env:SystemRoot 'System32'
+          $archiveTool = Join-Path $systemTools 'tar.exe'
+          if (-not (Test-Path -LiteralPath $archiveTool)) { throw 'Native Windows archive tool missing' }
+          $archiveVersion = & $archiveTool --version
+          if ($LASTEXITCODE -ne 0 -or $archiveVersion -notmatch 'bsdtar') { throw 'Unsupported Windows archive engine' }
+          $systemTools | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Checkout reviewed diagnostic controls
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          path: control
+      - name: Checkout exact original compiled source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ec4070c98c1b4667baab8fb947c48d5f1fb401cc
+          fetch-depth: 0
+          persist-credentials: false
+          path: source
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.22.1'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Pure runner bounds and first-failure tests (no service)
+        working-directory: control
+        run: |
+          $env:PROCESS_REPRO_SOURCE_DIR = Join-Path $env:GITHUB_WORKSPACE 'source'
+          node --test tests/windows-startup-controlled-repro.test.mjs
+          exit $LASTEXITCODE
+      - name: Normal locked install and unchanged source guard
+        working-directory: source
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build fixed original source once
+        working-directory: source
+        run: node scripts/local-build.mjs
+      - name: Bounded original fixture reproduction (stop at first failure)
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'source'
+          $evidence = Join-Path $env:RUNNER_TEMP 'startup-controlled-evidence'
+          node control/scripts/windows-startup-controlled-repro.mjs --source-dir $source --evidence-dir $evidence
+          exit $LASTEXITCODE
