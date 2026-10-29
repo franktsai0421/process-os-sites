@@ -53,7 +53,7 @@ try{
   const route='**/api/web-feedback?action=update';let fail=true,count=0;
   await page.route(route,async request=>{count++;if(fail){fail=false;return request.abort();}await new Promise(resolve=>setTimeout(resolve,180));return request.continue();});
   const note='私人備註 中文 · Ghi chú riêng tiếng Việt';await page.locator('[data-note]').fill(note);
-  await page.locator('[data-update]').first().click();await page.waitForFunction(()=>document.querySelector('.wf-admin [role=status]')?.textContent.length>0);assert.equal(await page.locator('[data-note]').inputValue(),note);
+  await page.locator('[data-update]').first().click();await page.waitForFunction(()=>document.querySelector('.wf-admin [role=status]')?.textContent.match(/尚未確認|Chưa xác nhận/));assert.equal(await page.locator('[data-note]').inputValue(),note);
   const lists=report.api.filter(r=>r.action==='list').length;
   await page.locator('[data-update]').first().evaluate(button=>{button.click();button.click();});await page.waitForFunction(()=>document.querySelector('[data-note]')?.value==='');assert.equal(count,2);assert.equal(report.api.filter(r=>r.action==='list').length,lists);
   await page.locator('[data-update]').nth(1).click();await page.waitForFunction(()=>document.querySelector('[data-update]')?.dataset.update==='done');await page.locator('[data-update]').nth(1).click();await page.waitForFunction(()=>document.querySelector('[data-update]')?.dataset.update==='open');

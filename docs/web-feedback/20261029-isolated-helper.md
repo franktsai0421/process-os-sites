@@ -145,6 +145,20 @@ dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器�
 
 本輪收尾再次明確 fetch 全部 GitHub heads（不只分支預設 fetchspec），main 仍為原基準。另發現 `cloud/users-permissions-29102026`（`7af150adaf9f51c24fbb17e297fe812ebb92b995`）及 `codex/photo-standard-cloud-29102026`（`19855a067e89692a63376794160b67f5b1062499`）與本分支重疊 `public/process/index.html`、`AI_CONTEXT/CHANGELOG.md`、`HANDOFF.md`。下方兩個既有 fix 分支仍重疊 index／CHANGELOG。只比對遠端提交，沒有合併、接管其工作目錄或推斷哪個開啟中 PR 屬於 dot。
 
+## 操作是否卡住：額外恢復驗證與修復
+
+基準為 `1654d2dfcbb7d92f08a9749fc0bf55bb4c291c46`。既有 17 組瀏覽器檢查仍通過；新增邊界操作重現三個缺陷，並已修復：
+
+1. 勾選 21 案後，原前端先建立 pending 交接，後端以 `SELECT_1_TO_20` 拒絕，選取及切換仍被鎖定。現在建立 pending／發送前就提示 1–20 案；可取消第 21 案後成功交接 20 案，並正常切到交接紀錄。後端上限未變。
+2. 另一位 admin 先修改問題，自己的備註保存遇到 `CASE_CHANGED_RELOAD`，原本只能重試過期版本，更新又受未保存備註保護阻擋。現在顯示「讀取最新狀態，保留備註」：重新核驗清單、保留原文，要求再次確認保存，不自動覆寫他人狀態。恢復讀取失敗可以再次重試。若新的狀態不符合原篩選，仍將文字保留在原案件 ID，不能誤套給下一案。
+3. 保存期間仍可輸入，舊請求成功會清掉後續文字。現在保存期間顯示保存中、備註唯讀（可選取／複製）、保存按鈕暫停；成功或失敗後恢復。沒有在成功回覆前清空輸入，也沒有變更後端更新收據／CAS。
+
+新增 `tests/web-feedback-recovery-browser.test.mjs` 使用實際編譯 Worker、隔離 D1/R2、正常 Frank／其他 admin 登入。初次結果 3 FAIL／2 PASS，證據保存在 `.sites-runtime/feedback-recovery/before.json`；修復後新增附件／搜尋檢查，共 **6 PASS**：超額交接恢復、雙管理者版本衝突（含讀取失敗重試與篩選）、保存期間輸入保護、交接成功回覆遺失後同批重試且僅一筆紀錄、交接紀錄失敗重試、附件放大實際載入／Esc 回焦與空搜尋／篩選恢復。
+
+既有全流程再次 **17 PASS**，合計 **23 組瀏覽器流程**，並通過 52 項 VM／layout、TypeScript、typed lint、build／auth audit。保存狀態現在先顯示「保存中」，既有失敗重試測試已改為等到真正的失敗提示才重試，避免把載入提示當成操作完成。後端本輪未修改；前輪 64 項 API 證據沿用。合成 business shared_state 值與 revision 比對未變。
+
+修改限模組前端、專屬測試與文件；共用 `public/process/index.html` 只更新已事先說明的入口版本 `20261029-feedback4`。無資料模型或權限政策變更。這是隔離 Chromium 驗證；尚未發布、未驗證既有實站同帳號 Chrome／ChatGPT、實體手機及原生 OS IME，也不宣稱所有可能的網路故障都已涵蓋。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。

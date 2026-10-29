@@ -207,10 +207,30 @@
    }else{const url=new URL('/process/',location.origin);url.searchParams.set('view',l.view);url.searchParams.set('system',l.system);if(l.tab)url.searchParams.set('dataTab',l.tab);location.href=url.href;}
   };
   let updateReceipt=null;
-  host.querySelectorAll('[data-update]').forEach(b=>b.onclick=async()=>{const target=board,token=epoch,owner=captureOwner();if(adminBusy||!owns(owner))return;adminBusy=true;b.disabled=true;
+  host.querySelectorAll('[data-update]').forEach(b=>b.onclick=async()=>{const target=board,token=epoch,owner=captureOwner();if(adminBusy||!owns(owner))return;adminBusy=true;const noteInput=host.querySelector('[data-note]');noteInput.readOnly=true;host.querySelectorAll('[data-update]').forEach(button=>button.disabled=true);target.querySelector('[role=status]').textContent=t('保存中…','Đang lưu…');
    try{const body={id:i.id,version:i.version,status:b.dataset.update,note:host.querySelector('[data-note]').value},signature=JSON.stringify(body);if(updateReceipt?.signature!==signature)updateReceipt={signature,operationId:uid()};const result=await request('update',{...body,operationId:updateReceipt.operationId},owner);if(token===epoch&&owns(owner)&&board===target){host.querySelector('[data-note]').value='';Object.assign(i,result);adminBusy=false;refreshIssue(i);target.querySelector('[role=status]').textContent=t('已保存','Đã lưu');refreshDirtyBoard();}}
-   catch(e){if(token===epoch&&owns(owner)&&board===target)target.querySelector('[role=status]').textContent=t('尚未確認保存；輸入已保留，請重試。','Chưa xác nhận lưu; nội dung được giữ, hãy thử lại. ')+e.message;}
-   finally{if(token===epoch&&owns(owner)){adminBusy=false;b.disabled=false;}}
+   catch(e){if(token===epoch&&owns(owner)&&board===target){
+    const status=target.querySelector('[role=status]');
+    if(e.message==='CASE_CHANGED_RELOAD'){
+     status.textContent=t('問題已被其他人更新。請讀取最新狀態，確認後再保存；備註已保留。','Báo cáo đã được cập nhật. Tải trạng thái mới, kiểm tra rồi lưu lại; ghi chú được giữ.');
+     const retry=document.createElement('button');retry.type='button';retry.dataset.reloadNote='true';retry.textContent=t('讀取最新狀態，保留備註','Tải trạng thái mới, giữ ghi chú');
+     retry.onclick=guard(async()=>{
+      if(adminBusy)return;adminBusy=true;retry.disabled=true;noteInput.readOnly=true;
+      try{
+       const value=await request('list',undefined,owner);if(token!==epoch||!owns(owner)||board!==target)return;
+       if(!value.issues.some(row=>row.id===i.id))throw Error(t('問題已不存在；請複製備註後清空輸入，再更新清單。','Báo cáo không còn; sao chép ghi chú, xóa ô nhập rồi tải lại danh sách.'));
+       if(!value.admin||!value.permissions?.edit)throw Error(t('目前沒有編輯權限；備註保留供複製。','Hiện không có quyền sửa; ghi chú được giữ để sao chép.'));
+       const note=noteInput.value;issues=value.issues;isAdmin=value.admin;boardPermissions=value.permissions;boardDirty=false;
+       // A status filter may now exclude this issue. Never attach its pending
+       // note to whichever other row becomes first after refreshing the list.
+       renderBoard(true);selectedIssue=i.id;renderDetail();target.querySelector('[data-note]').value=note;
+       target.querySelector('[role=status]').textContent=t('已讀取最新狀態，備註尚未保存；請確認後按保存。','Đã tải trạng thái mới; ghi chú chưa lưu. Kiểm tra rồi nhấn lưu.');
+      }catch(error){if(token===epoch&&owns(owner)&&board===target){status.textContent=t('讀取失敗，備註已保留。','Không tải được; ghi chú được giữ. ')+error.message;status.append(retry);}}
+      finally{if(token===epoch&&owns(owner)){adminBusy=false;retry.disabled=false;noteInput.readOnly=false;}}
+     },owner);status.append(retry);
+    }else status.textContent=t('尚未確認保存；輸入已保留，請重試。','Chưa xác nhận lưu; nội dung được giữ, hãy thử lại. ')+e.message;
+   }}
+   finally{if(token===epoch&&owns(owner)){adminBusy=false;noteInput.readOnly=false;host.querySelectorAll('[data-update]').forEach(button=>button.disabled=!boardPermissions.edit);}}
   });
   host.querySelector('[data-delete-issue]')?.addEventListener('click',guard(async()=>{
    if(adminBusy||!confirm(t('確定刪除此問題？既有交接紀錄與附件會保留。','Xóa báo cáo này? Lịch sử bàn giao và tệp đính kèm vẫn được giữ.')))return;
@@ -225,7 +245,7 @@
 
  const statusLabel=status=>status==='done'?t('已完成','Hoàn tất'):status==='open'?t('未完成','Chưa xong'):t('已刪除','Đã xóa');
  async function loadHistory(){const target=board,token=epoch,owner=captureOwner(),host=board.querySelector('.wf-board-body'),generation=++historyRequest;host.textContent=t('載入中…','Đang tải…');try{const {handoffs}=await request('handoffs',undefined,owner);if(token!==epoch||!owns(owner)||board!==target||boardTab!=='history'||generation!==historyRequest||!host.isConnected)return;host.innerHTML=handoffs.slice().reverse().map(h=>`<article class="wf-history"><strong>${h.id}</strong> · ${h.generatedAt}<br><a href="${api}?action=download&id=${h.id}">${t('下載已生成 ZIP','Tải ZIP đã tạo')}</a><p>${t('生成成功不代表瀏覽器下載成功','Đã tạo không đồng nghĩa đã tải')}</p>${h.issues.map(i=>`<details><summary>${i.id} · ${esc(i.reporter)} · ${t('當時','Lúc đó')}: ${statusLabel(i.status)} · ${t('最新','Hiện tại')}: ${statusLabel(h.latest.find(v=>v.id===i.id)?.status)}</summary><p>${esc(i.description)}</p>${i.notes.map(n=>`<p>${esc(n.author)}: ${esc(n.text)}</p>`).join('')}</details>`).join('')}</article>`).join('')||t('尚無交接紀錄','Chưa có bàn giao');wire(host);}catch(e){if(token===epoch&&owns(owner)&&board===target&&host.isConnected&&generation===historyRequest){host.textContent=t('讀取失敗。','Không tải được. ')+e.message;const retry=document.createElement('button');retry.textContent=t('重試','Thử lại');retry.onclick=guard(loadHistory);host.append(retry);}}}
- async function exportZip(){const target=board,token=epoch,owner=captureOwner(),status=board.querySelector('[role=status]'),button=board.querySelector('[data-export]');if(!owns(owner)||adminBusy)return;if(!selected.size){status.textContent=t('請先勾選案件','Hãy chọn báo cáo');return;}
+ async function exportZip(){const target=board,token=epoch,owner=captureOwner(),status=board.querySelector('[role=status]'),button=board.querySelector('[data-export]');if(!owns(owner)||adminBusy)return;if(!selected.size||selected.size>20){status.textContent=t('請勾選 1–20 筆案件，再產生交接 ZIP。','Chọn từ 1 đến 20 báo cáo để tạo ZIP bàn giao.');return;}
   adminBusy=true;button.disabled=true;const picks=[...board.querySelectorAll('[data-pick]')];picks.forEach(p=>p.disabled=true);status.textContent=t('產生 ZIP…','Đang tạo ZIP…');exportOperation ||= {operationId:uid(),ids:[...selected]};const frozen=exportOperation;
   try{const result=await request('export',frozen,owner);if(token!==epoch||!owns(owner)||board!==target)return;if(exportOperation===frozen)exportOperation=null;status.innerHTML=`${t('ZIP 已生成；請下載並確認檔案。','Đã tạo ZIP; hãy tải và kiểm tra.')} <a href="${api}?action=download&id=${encodeURIComponent(result.id)}">${result.id}.zip</a>`;wire(status);if(boardTab==='history')await loadHistory();}
   catch(e){if(token===epoch&&owns(owner)&&board===target)status.textContent=t('匯出尚未確認；重試使用同一批次。','Chưa xác nhận xuất; thử lại cùng lô. ')+e.message;}
