@@ -12,7 +12,7 @@
     returned:t('Đã trả lại','已發回'), withdrawn:t('Đã rút lại','已撤回') })[value] || value;
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const identity = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
-  const permitted = key => (window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : identity()?.role === 'admin');
+  const permitted = key => (window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) : identity()?.role === 'admin');
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type':'application/json' };
   let host = null, reviewHost = null, control = null, catalog = { products:[], stages:[] }, equipmentGroups = [], equipment = [], revision = null;
   let working = null, selectedVersionId = '', productCode = '', stageCode = '', errorId = '', search = '';
@@ -548,7 +548,7 @@
     root.querySelector('#ipqcc-case-back')?.addEventListener('click',()=>{caseHistory.reviewCase=null;draw();});
     root.querySelector('#ipqcc-case-all')?.addEventListener('click',()=>{caseHistory.showAll=!caseHistory.showAll;caseHistory.itemPage=0;draw();});
     const caseFooter=root.querySelector('#ipqcc-case-dialog footer');
-    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('edit')&&permitted('approval.compare')){
+    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('restore')&&permitted('approval.compare')){
       const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';
       button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);
       button.onclick=async()=>{try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){caseHistory.error=error.message;draw();}};

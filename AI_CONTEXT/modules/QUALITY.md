@@ -1,3 +1,15 @@
+2026-10-29 FQC browser-discovered dependency: current catalog APIs require ab.view and equipment.view in addition to fqc.view. Settings now show these existing prerequisites and reject newly introduced incomplete combinations; the FQC page explains missing grants before fetching. No automatic grant or broadened catalog API access.
+
+2026-10-29 IPQC-C explicit-rights candidate (user approved): module view is required; view no longer grants withdraw, approval-platform view no longer grants module content, approve/return use their module cells. Restore is explicit and checked for create/delete effects. Legacy snapshot and owner/pending boundaries remain. Existing tests are updated to the accepted policy rather than retaining the earlier exception.
+
+2026-10-29 equipment permissions candidate: V3 Save/Submit rendering and handlers use each right, not editable(); legacy full snapshot writes require edit+save(+submit), explicit create/delete and diff checks. Narrow effective dependency catalog authorization is unchanged. No live data changes.
+
+2026-10-29 IPQC-AB permissions candidate: module Save/Submit use own rights; an existing whole-module draft is read without an unnecessary edit-gated begin POST. Initial draft creation still requires edit; group scopes, whole-module CAS/pending and membership fences remain. No data changes/publication.
+
+2026-10-29 FQC permissions candidate: save/submit buttons use their own rights on existing V3 draft; edit is still needed to begin a draft. No workflow kernel or business state change. Stacked on users/IQC candidates; acceptance tracked in clear-rights report.
+
+2026-10-29 IQC permissions candidate: V3 save/submit/withdraw buttons use their own rights, create uses create+edit; legacy snapshot writes require edit+save(+submit) and content create/delete checks. No data migration or publication. Depends on clear-rights shared permission foundation; browser acceptance recorded in users acceptance report.
+
 ## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
 
 依使用者確認，正常流程調整為「新增兩器具→正常送審及獨立核准→四品質模組移轉草稿→明確保存／送審／退回修改／重新保存及重送核准」。無草稿時依權限 Begin；已有 editable draft 不多送 Begin。四模組的 pending／returned／revised saved 階段保持原正式標準，到原核准 route 成功才更新正式引用；返回案件內容及舊 save history／R2 bytes 不變。正常權限 actual route 回歸涵蓋四模組各一項標準；AB 採整份 module 審核，C 完整歷史內容由 fixture core.readState 核對，並非目的頁原生控件驗收。

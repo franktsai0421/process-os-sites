@@ -1,3 +1,5 @@
+2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
+
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 
 製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。

@@ -151,6 +151,7 @@
   let masterCatalogCache = null, masterCatalogActor = '', masterCatalogSequence = 0;
   let masterCatalogCurrent = () => false;
   async function loadMasterCatalog(isCurrent = () => true) {
+    if(typeof host.hasPermission==='function'&&(!host.hasPermission('ab.view')||!host.hasPermission('equipment.view')))throw Error(isVi()?'FQC cần quyền Xem AB và thiết bị để tải danh mục. Nhờ quản trị viên kiểm tra; hệ thống không tự cấp quyền.':'FQC 載入目錄需要 AB 與檢具查看權限。請管理者核對設定；系統不會自動授權。');
     const owner = identity()?.id, sequence = ++masterCatalogSequence;
     masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
     const owned = currentReadOwner(isCurrent);
@@ -270,6 +271,7 @@
     }
   }
   const canEditDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'edit')??(typeof window.hasPermission==='function'?window.hasPermission('view:data'):identity()?.role==='admin'));
+  const canDraftAction=op=>!!identity()&&sharedClient?.permission(op)===true&&(library()?.workflow||canEditDraft());
   const canWithdrawDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'withdraw')??(typeof window.hasPermission==='function'?window.hasPermission('view:data')||window.hasPermission('approval.withdraw'):identity()?.role==='admin'));
   async function beginDraft() {
     if (!canEditDraft()) return toast('沒有編輯 FQC 草稿權限');
@@ -587,7 +589,7 @@
             <select id="fqc-version">${versions().map(item => `<option value="${h(item.id)}" ${item.id === version.id ? 'selected' : ''}>${h(item.number)} · ${h(statusLabel(item.status))} · ${h(displayScalar(historyDisplay(lastEdit(item)).actor,item.creatorName))} · ${formatDate(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select>
           </div>
           ${version.status === 'approved' && canEditDraft() ? '<button class="button signal" id="fqc-begin">開始修改／刪除資料</button>' : ''}
-          ${canEdit ? `<button class="button ghost" id="fqc-save" ${ui.saving ? 'disabled' : ''}>${ui.saving ? '儲存中…' : '儲存草稿'}</button><button class="button signal" id="fqc-submit">送出主管審核</button>` : ''}
+          ${version.status === 'draft' && canDraftAction('save') ? `<button class="button ghost" id="fqc-save" ${ui.saving ? 'disabled' : ''}>${ui.saving ? '儲存中…' : '儲存草稿'}</button>` : ''}${version.status === 'draft' && canDraftAction('submit') ? `<button class="button signal" id="fqc-submit">送出主管審核</button>` : ''}
           ${version.status === 'pending' && canWithdrawDraft() ? '<button class="button ghost" id="fqc-withdraw">解除送審</button>' : ''}
         </div>
       </section>

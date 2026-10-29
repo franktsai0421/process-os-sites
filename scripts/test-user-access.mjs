@@ -22,6 +22,9 @@ const harness=__esmRequire('./ipqc-ab-import-harness.cjs');
  assert.equal((await core.readState()).values.platformUsers,values.platformUsers,'login never rewrites legacy credentials');
  const req=async(method,body,id='frank',endpoint=route,url='/api/user-access')=>{const r=await endpoint[method](new Request('http://localhost'+url,{method,headers:{Origin:'http://localhost',Cookie:cookies[id],'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));return{status:r.status,body:await r.json()};};
  let count=0;const check=()=>count++;async function command(body,id='frank',expected=200){const state=await core.readState(),r=await req('POST',{baseRevision:state.revision,...body},id);assert.equal(r.status,expected,JSON.stringify(r.body));check();return r.body;}
+ await command({action:'update-user',id:'staff-one',changes:{'iqc.edit':false}},'frank',400);
+ await command({action:'create-role',id:'custom_bad_restore',name:'Invalid restore only',access:{'iqc.view':true,'iqc.restore':true}},'frank',400);
+ const permissionSnapshot=await req('GET');assert.equal(permissionSnapshot.body.users.find(u=>u.id==='manager').cells['iqc.restore'],false);assert.equal(permissionSnapshot.body.actor.cells['iqc.restore'],true);check();
  const initial=await req('GET');assert.equal(initial.body.users.length,4);assert.equal(initial.body.roles.find(r=>r.id==='admin').formalCount,2);assert.equal(initial.body.roles.find(r=>r.id==='admin').assigned,3);check();
  for(const id of ['staff-one','rd-one']){const r=await req('GET',null,id);assert.deepEqual(r.body.users.map(u=>u.id),[id]);assert.deepEqual(r.body.roles,[]);assert(!JSON.stringify(r.body).includes(password));check();}
  for(const id of ['frank','manager'])await command({action:'update-user',id,name:'Forbidden'},'manager',403);

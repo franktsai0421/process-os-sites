@@ -1,3 +1,5 @@
+2026-10-29 dispatch permissions candidate: dispatchBoard POST now requires dispatch.view+dispatch.edit; readonly selectors/button and actual publish handler use the same cells. Production validation and shared-state CAS/flush remain unchanged. Isolated validation only; no deployment.
+
 ## 2026-10-15 非同步編輯器與工作區保全
 
 process-equipment照片與Save／Delete捕獲原target／actor／working／draft，await後不得覆新編輯器；同視窗較新輸入保留，confirmed base供再次套用。process-editor commit以原workspace key及optimistic reference限制失敗回滾，避免覆另一線別／分類或較新資料；remove重核確認前後context且只關原modal。拒絕entry／exit轉型還原實際select。這些client修正不改資料派送、BOM interlock或核准版內容。[驗收分層與剩餘項](../../docs/local-integration/20261015-button-coverage.json)。

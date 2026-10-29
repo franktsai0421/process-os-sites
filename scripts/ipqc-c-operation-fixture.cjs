@@ -15,12 +15,13 @@ const { accessKeys } = require(path.join(source, 'public/process/access-policy.m
 const json = value => JSON.parse(JSON.stringify(value));
 const hash = value => createHash('sha256').update(value).digest('hex');
 
-const ops = ['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw'];
+const ops = ['view', 'create', 'edit', 'delete', 'save', 'submit', 'withdraw', 'restore'];
 const modules = ['ipqc-c', 'equipment', 'c', 'ab', 'lines', 'templates', 'approval'];
 const c = (...operations) => operations.map(operation => 'ipqc-c.' + operation);
 const allowed = {
   editor: modules.flatMap(name => ops.map(operation => name + '.' + operation)),
   reviewer: modules.flatMap(name => ['view', 'approve', 'return'].map(operation => name + '.' + operation)),
+  'module-reviewer': c('view','approve','return'),
   viewer: ['equipment.view', ...c('view')],
   'edit-only': ['equipment.view', ...c('view', 'edit', 'withdraw')],
   'save-only': ['equipment.view', ...c('view', 'save')],

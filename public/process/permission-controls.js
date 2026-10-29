@@ -36,7 +36,7 @@
   platformUsers.forEach(ensurePermissions);if(currentUser)ensurePermissions(currentUser);
   if(currentUser){const stored=platformUsers.find(user=>user.id===currentUser.id);if(stored){currentUser.views=[...stored.views];currentUser.lines=[...stored.lines];currentUser.permissions=[...stored.permissions];}}
   // Normalizing the working cache is not a user edit; do not post it on startup.
-  function allowed(key){if(currentUser?.enabled===false)return false;if(window.ProcessSync?.protected&&!window.ProcessSync.identity&&!key.startsWith('status.')&&!['approval.viewAll','approval.viewLine','approval.compare'].includes(key))return false;const policy=window.ProcessAccessPolicy,cells=currentUser?.cells,workflowModule=window.ProcessSync?.destination?.module||policy?.moduleForURL(location.href),op=policy?.operationForLegacy(key);if(cells&&workflowModule&&op&&policy.accessKeys.includes(workflowModule+'.'+op))return cells[workflowModule+'.'+op]===true;if(cells&&policy?.accessKeys.includes(key))return cells[key]===true;if(key.startsWith('view:'))return !!currentUser?.views?.includes(key.slice(5));const group=permissionGroups.find(g=>g.items.some(([id])=>id===key));return !!currentUser?.permissions?.includes(key)&&(!group||currentUser.views?.includes(group.view))}
+  function allowed(key){if(currentUser?.enabled===false)return false;if(window.ProcessSync?.protected&&!window.ProcessSync.identity&&!key.startsWith('status.')&&!['approval.viewAll','approval.viewLine','approval.compare'].includes(key))return false;const policy=window.ProcessAccessPolicy,cells=currentUser?.cells,destinationModule=window.ProcessSync?.destination?.module||policy?.moduleForURL(location.href),workflowModule=destinationModule==='lines'?(typeof state!=='undefined'&&state.masterScope==='C'?'c':'ab'):destinationModule,op=policy?.operationForLegacy(key);if(cells&&workflowModule&&op&&policy.accessKeys.includes(workflowModule+'.'+op))return cells[workflowModule+'.'+op]===true;if(cells&&policy?.accessKeys.includes(key))return cells[key]===true;if(key.startsWith('view:'))return !!currentUser?.views?.includes(key.slice(5));const group=permissionGroups.find(g=>g.items.some(([id])=>id===key));return !!currentUser?.permissions?.includes(key)&&(!group||currentUser.views?.includes(group.view))}
   window.hasPermission=allowed;
   canApprove=function(){return ["approval.approve","approval.reject","approval.requestChange","approval.revoke"].some(allowed)};
 
@@ -74,6 +74,7 @@
   };
 
   function enforcePagePermissions(){
+    if(state.view==="dispatch")document.querySelectorAll(".publish-line,[data-dispatch-slot],[data-dispatch-category-slot]").forEach(e=>{e.disabled=!allowed("dispatch.view")||!allowed("dispatch.edit");if(e.disabled)e.title=document.documentElement.lang==='vi'?'Chỉ xem; cần quyền sửa điều phối':'目前唯讀；需要發送介面的編輯權限';});
     if(state.view==="approval"){
       document.querySelector("#approval-compare-version")?.toggleAttribute("disabled",!allowed("approval.compare"));
       document.querySelectorAll("[data-version-action]").forEach(button=>{const permission={approve:"approval.approve",reject:"approval.reject","request-change":"approval.requestChange",revoke:"approval.revoke",withdraw:"approval.withdraw"}[button.dataset.versionAction];if(permission&&!allowed(permission))button.hidden=true});

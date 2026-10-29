@@ -187,12 +187,13 @@ export async function POST(request: Request) {
       : key === 'bomOverrides'
         ? 'master.import'
         : key === 'dispatchBoard'
-          ? 'view:dispatch'
+          ? 'dispatch.edit'
           : key === 'approvalVersions'
             ? 'view:approval'
             : key.startsWith('processEditor:')
               ? 'view:editor'
               : 'view:data';
+    if(key==='dispatchBoard'&&!await can(request,state,'dispatch.view'))return Response.json({error:'FORBIDDEN'},{status:403,headers});
     if (
       required === 'admin'
         ? user.role !== 'admin'

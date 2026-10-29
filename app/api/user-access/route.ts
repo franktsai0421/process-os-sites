@@ -3,18 +3,40 @@ import {env} from 'cloudflare:workers';
 import {readState,identity,sameOrigin,encodeValues,stateRevisionIsCurrent,responseHeaders as headers,parse,sessionCookie} from '@/lib/process-state';
 import {effectiveAccess,roleTemplates} from '@/lib/user-access';
 import {passwordHash,verifyPassword,validatePassword} from '@/lib/passwords';
-import {catalog,columns,accessKeys,isPrimary,managementRight,editableCells,PRIMARY_ADMIN_ID,invalidDependencies,effectiveCells,roleEditable} from '../../../public/process/access-policy.mjs';
+import {catalog,columns,accessKeys,isPrimary,managementRight,editableCells,PRIMARY_ADMIN_ID,invalidDependencies,effectiveCells,roleEditable,newDependencyIssues} from '../../../public/process/access-policy.mjs';
 const safe=(user:any)=>{const {password:_password,passwordHash:_hash,...rest}=user;return rest;};
 const denied=()=>{throw Error('FORBIDDEN');};
 const own=(object:any,key:string)=>Object.prototype.hasOwnProperty.call(object,key);
-function actors(state:any,id:string){const users=parse(state.values.platformUsers,[]),actor=users.find((u:any)=>u.id===id&&!u.deletedAt&&u.enabled!==false);if(!actor)denied();return {users,actor,access:effectiveAccess(actor,state.values),roles:roleTemplates(state.values)};}
-function projection(state:any,id:string){const {users,actor,access,roles}=actors(state,id),manager=actor.role==='admin';return {revision:state.revision,actor:{...safe(actor),...access,roleName:roles[actor.role]?.name||actor.role},primaryId:PRIMARY_ADMIN_ID,catalog,columns,
- users:users.filter((u:any)=>!u.deletedAt&&(manager?u.authMode!=='demo':u.id===actor.id)).map((u:any)=>({...safe(u),...effectiveAccess(u,state.values),configuredCells:effectiveAccess({...u,enabled:true},state.values).cells,editable:editableCells(actor,u,access.cells),actions:Object.fromEntries(['view','edit','delete','status','password','password-own'].map(action=>[action,managementRight(actor,u,action,access.cells)]))})),
- roles:manager?Object.entries(roles).map(([id,r]:[string,any])=>({...r,id,assigned:users.filter((u:any)=>u.role===id&&!u.deletedAt).length,formalCount:users.filter((u:any)=>u.role===id&&!u.deletedAt&&u.authMode!=='demo').length})):[],canCreate:manager&&access.cells['users.create'],canRoles:isPrimary(actor)};}
+function actors(state:any,id:string){const users=parse(state.values.platformUsers,[]),actor=users.find((u:any)=>u.id===id&&!u.deletedAt&&u.enabled!==false);if(!actor)denied();const roles=roleTemplates(state.values);return {users,actor,access:effectiveAccess(actor,state.values,roles),roles};}
+function projection(state:any,id:string){
+ const {users,actor,access,roles}=actors(state,id),manager=actor.role==='admin';
+ // Request-local only: inherited defaults are identical within this snapshot.
+ // Individual overrides, legacy independent scopes, disabled users and Frank
+ // always go through the full policy. Never reuse authority across requests.
+ const inherited=new Map<string,ReturnType<typeof effectiveAccess>>(),editable=new Map<string,Record<string,boolean>>();
+ const rightsFor=(user:any)=>{
+  if(user.id===actor.id)return access;
+  if(isPrimary(user)||user.enabled===false||user.deletedAt||user.inheritRole===false||Object.keys(user.accessOverrides||{}).length)return effectiveAccess(user,state.values,roles);
+  if(!inherited.has(user.role))inherited.set(user.role,effectiveAccess(user,state.values,roles));
+  return inherited.get(user.role)!;
+ };
+ const editableFor=(user:any)=>{
+  // These are all target-dependent inputs to editableCells/managementRight;
+  // the actor and its effective cells are fixed for this projection.
+  const key=JSON.stringify([user.role,user.id===actor.id,isPrimary(user),user.authMode==='demo']);
+  if(!editable.has(key))editable.set(key,editableCells(actor,user,access.cells));
+  return editable.get(key)!;
+ };
+ const counts=new Map<string,{assigned:number;formalCount:number}>();
+ if(manager)for(const user of users){if(user.deletedAt)continue;const count=counts.get(user.role)||{assigned:0,formalCount:0};count.assigned++;if(user.authMode!=='demo')count.formalCount++;counts.set(user.role,count);}
+ return {revision:state.revision,actor:{...safe(actor),...access,roleCells:effectiveCells({...actor,accessOverrides:{}},roles),roleName:roles[actor.role]?.name||actor.role},primaryId:PRIMARY_ADMIN_ID,catalog,columns,
+  users:users.filter((u:any)=>!u.deletedAt&&(manager?u.authMode!=='demo':u.id===actor.id)).map((u:any)=>{const rights=rightsFor(u);return {...safe(u),...rights,configuredCells:u.enabled===false?effectiveCells({...u,enabled:true},roles):rights.cells,editable:editableFor(u),actions:Object.fromEntries(['view','edit','delete','status','password','password-own'].map(action=>[action,managementRight(actor,u,action,access.cells)]))};}),
+  roles:manager?Object.entries(roles).map(([id,r]:[string,any])=>({...r,id,...(counts.get(id)||{assigned:0,formalCount:0})})):[],canCreate:manager&&access.cells['users.create'],canRoles:isPrimary(actor)};
+}
 export async function GET(request:Request){try{const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl']}),id=(await identity(request,state))?.id;if(!id)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers});return Response.json(projection(state,id),{headers});}catch{return Response.json({error:'FORBIDDEN'},{status:403,headers});}}
 function cellChanges(input:any,allowed:Record<string,boolean>,prior:Record<string,boolean>){if(!input||typeof input!=='object'||Array.isArray(input))throw Error('INVALID_CELLS');const next={...prior};for(const [key,value]of Object.entries(input)){if(!accessKeys.includes(key)||![true,false,null].includes(value as any))throw Error('INVALID_CELLS');if(!allowed[key])denied();if(value===null)delete next[key];else next[key]=value as boolean;}return next;}
-function validUser(user:any,values:Record<string,string>){const candidate={...user,enabled:true,deletedAt:undefined};if(invalidDependencies(effectiveAccess(candidate,values).cells).length)throw Error('VIEW_DEPENDENCY_REQUIRED');}
-function validateRoles(values:Record<string,string>,users:any[],roleId:string){const roles=roleTemplates(values),sample={id:'role-check',role:roleId,enabled:true,inheritRole:true};if(invalidDependencies(effectiveCells(sample,roles)).length)throw Error('VIEW_DEPENDENCY_REQUIRED');for(const user of users.filter(u=>u.role===roleId&&!u.deletedAt))validUser(user,values);}
+function validUser(user:any,values:Record<string,string>,previous?:Record<string,boolean>){const candidate={...user,enabled:true,deletedAt:undefined};if(invalidDependencies(effectiveAccess(candidate,values).cells).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(newDependencyIssues(effectiveAccess(candidate,values).cells,previous).length)throw Error('EDIT_DEPENDENCY_REQUIRED');}
+function validateRoles(values:Record<string,string>,users:any[],roleId:string,prior:Record<string,string>){const roles=roleTemplates(values),sample={id:'role-check',role:roleId,enabled:true,inheritRole:true};if(invalidDependencies(effectiveCells(sample,roles)).length)throw Error('VIEW_DEPENDENCY_REQUIRED');if(newDependencyIssues(effectiveCells(sample,roles),effectiveAccess(sample,prior).cells).length)throw Error('EDIT_DEPENDENCY_REQUIRED');for(const user of users.filter(u=>u.role===roleId&&!u.deletedAt))validUser(user,values,effectiveAccess({...user,enabled:true},prior).cells);}
 export async function POST(request:Request){if(!sameOrigin(request))return Response.json({error:'FORBIDDEN_ORIGIN'},{status:403,headers});let body:any;try{body=await request.json();}catch{return Response.json({error:'INVALID_INPUT'},{status:400,headers});}
  try{
   if(!body||Array.isArray(body)||typeof body!=='object'||JSON.stringify(body).length>100000)throw Error('INVALID_INPUT');
@@ -36,7 +58,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
    if(body.action==='password'){
     passwordOwn=actor.id===target.id;
     if(!managementRight(actor,target,passwordOwn?'password-own':'password',access.cells))denied();
-    if(passwordOwn&&actor.role!=='admin'&&!await verifyPassword(target,String(body.oldPassword||'')))throw Error('OLD_PASSWORD_INCORRECT');
+    if(passwordOwn&&!await verifyPassword(target,String(body.oldPassword||'')))throw Error('OLD_PASSWORD_INCORRECT');
     validatePassword(String(body.password||''),String(body.confirmation||''));target.passwordHash=await passwordHash(body.password);delete target.password;changed=true;
    }else if(body.action==='status-user'){
     if(!managementRight(actor,target,'status',access.cells))denied();if(typeof body.enabled!=='boolean')throw Error('INVALID_INPUT');changed=target.enabled!==body.enabled;target.enabled=body.enabled;
@@ -48,7 +70,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
     if(own(body,'name')){if(!String(body.name).trim())throw Error('INVALID_USER');target.name=String(body.name).trim().slice(0,80);}
     if(own(body,'enabled')&&target.enabled!==body.enabled)throw Error('USE_STATUS_ACTION');
     if(own(body,'changes'))target.accessOverrides=cellChanges(body.changes,editableCells(actor,target,access.cells),target.accessOverrides||{});
-    validUser(target,values);changed=JSON.stringify(before)!==JSON.stringify(safe(target));
+    validUser(target,values,effectiveAccess({...before,enabled:true},state.values).cells);changed=JSON.stringify(before)!==JSON.stringify(safe(target));
    }
    if(changed)target.authEpoch=(target.authEpoch||0)+1;after=safe(target);
   }else if(['create-role','update-role','delete-role'].includes(body.action)){
@@ -58,7 +80,7 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
     if(body.action==='create-role'){if(!/^custom_[a-z0-9_-]{1,60}$/.test(id)||current)throw Error('INVALID_ROLE');if(['admin','rd','staff','administrator','主要管理員','quản trị viên chính'].includes(name.normalize('NFKC').toLowerCase()))throw Error('ROLE_EXISTS');const role={id,name,description,lines:['A','B','C'],views:[],permissions:[],access:Object.fromEntries(accessKeys.map(key=>[key,false]))};role.access=cellChanges(body.access||{},roleEditable(id),role.access);custom.push(role);values.processCustomRoles=JSON.stringify(custom);after=role;changed=true;}
     else{if(!current)throw Error('INVALID_ROLE');const next={...current,name,description,access:cellChanges(body.access||{},roleEditable(id),(current as any).access||{})};roleControl[id]=next;after=next;changed=JSON.stringify(current)!==JSON.stringify(next);}
    }
-   values.processRoleTemplateOverrides=JSON.stringify(roleControl);if(body.action!=='delete-role')validateRoles(values,users,id);
+   values.processRoleTemplateOverrides=JSON.stringify(roleControl);if(body.action!=='delete-role')validateRoles(values,users,id,state.values);
    // Refresh sessions only when their effective rights change. The primary
    // administrator keeps full rights independently of the ADMIN template.
    if(changed)for(const u of users.filter((u:any)=>!u.deletedAt&&u.role===id)){
@@ -74,5 +96,5 @@ export async function POST(request:Request){if(!sameOrigin(request))return Respo
   if(!await stateRevisionIsCurrent(state))throw Error('REVISION_CHANGED');
   const result=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await encodeValues(values,state),now,state.revision).run();if(!result.meta.changes)throw Error('REVISION_CHANGED');
   return Response.json({...projection({revision:state.revision+1,values},actor.id),ok:true,relogin:passwordOwn||users.find((u:any)=>u.id===actor.id)?.authEpoch!==parse(state.values.platformUsers,[]).find((u:any)=>u.id===actor.id)?.authEpoch},{headers:{...headers,...(passwordOwn?{'Set-Cookie':sessionCookie(request,'')}: {})}});
- }catch(error){const message=(error as Error).message,known=new Set(['FORBIDDEN','INVALID_CELLS','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:code==='PRIMARY_BINDING_MISMATCH'?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}
+ }catch(error){const message=(error as Error).message,known=new Set(['FORBIDDEN','INVALID_CELLS','EDIT_DEPENDENCY_REQUIRED','VIEW_DEPENDENCY_REQUIRED','INVALID_INPUT','INVALID_USER','ACCOUNT_EXISTS','INVALID_ROLE','GRANT_EXCEEDS_ACTOR','ACCOUNT_NOT_FOUND','OLD_PASSWORD_INCORRECT','USE_STATUS_ACTION','DEFAULT_ROLE_PROTECTED','ROLE_ASSIGNED','ROLE_EXISTS','INVALID_ACTION','REVISION_CHANGED','PRIMARY_BINDING_MISMATCH','PASSWORD_LENGTH','PASSWORD_MISMATCH']);const code=known.has(message)?message:'SERVER_ERROR',status=code==='FORBIDDEN'?403:code==='ACCOUNT_NOT_FOUND'?404:code==='REVISION_CHANGED'?409:code==='PRIMARY_BINDING_MISMATCH'?503:code==='SERVER_ERROR'?500:400;return Response.json({error:code},{status,headers});}
 }
