@@ -1,3 +1,11 @@
+## 2026-10-28 FQC 規則長文與矩陣雙軸顯示（本機候選，未發布）
+
+檢查規則 badge 以欄寬為上限，長中越文及無空白自訂內容完整換行，不截斷、不侵入包含產品／操作欄；項目表保留固定欄與內部橫捲，操作鈕可分行。矩陣的 `✓`／`—` 只代表已納入／未納入該產品標準，與項目的啟用狀態分開；只有 `isEnabled === false` 在項目列標題顯示雙語停用 badge，legacy 未提供值與既有編輯 checkbox／項目清單相同視為啟用。停用但已選的產品仍保留 `✓`，不得用停用文字取代原選擇。雙語圖例及每格 aria-label 同時說明兩個狀態。
+
+僅 FQC scoped selector 覆蓋 `.master-history button` 的共用 padding，固定 44px 單符號觸控格、保留鍵盤焦點；不改共用樣式。既有產品關聯點選、Apply／Save、permissions、pending、CAS、審核及歷史處理完全不改，無資料模型或資料回寫／遷移。JS／CSS cache tag 一起更新。
+
+`node scripts/test-fqc-matrix-layout.mjs` 使用實際完整 renderer＋隔離 DOM 與 CSS 宣告契約，涵蓋中越四種啟用／選擇組合、legacy undefined、唯讀、篩選、重畫／切語言、長文 escaping 及零 I/O；`--before <原JS>` 另重現舊 selected+disabled 符號被替換與 legacy 顯示不一致。CSS 宣告測試不是瀏覽器 layout 證據，desktop／iPhone 及原生捲動、focus、寬窄畫面仍待唯一瀏覽器正常恢復後驗收，不能據此宣稱已部署或通過原生 UI。
+
 ## 2026-10-27 品質檢具替換預覽＋C 操作權限對齊（本機候選，未發布）
 
 FQC／IQC／IPQC-C 已採 V3 的替換預覽依各自既有 `view && edit`；IPQC-AB 逐 scope 判斷 adoption，已採者用 `ipqc-ab.view && ipqc-ab.edit`，未採 scope 保留 legacy gate。待審不可選與原理由保留；AB whole-module pending 鎖定所有 scope。預覽零寫入；只有 working draft 會套用，手動 Save、固定 saved Submit、獨立審核各自分開。手動畫布 Sync、replacement legacy POST 不改。
@@ -134,3 +142,8 @@ FQC per-action reason removal, later V3 overall Submit reason and return/withdra
 IQC, IPQC-AB/C, routine-equipment and routine-FQC share the same bounded lossless
 PNG upload helper as tooling. Existing permissions and module limits remain;
 see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).
+
+### FQC parent-error lookup（2026-10-28 隔離候選）
+- `fqc-workflow.structure` 完成原 identity/collection 檢查後，單次呼叫建立 parent 索引；保留首筆匹配、錯誤順序、equipment snapshot、DTO、收據與原存檔路徑。
+- 30 組 paired synthetic 回歸比對兩個 stack 層各自的歷史 blob。資料量大且重複查找時減少比較工作；低基數早命中可增加索引工作，不能聲稱所有情境更快。
+- 不減 R2/SQL/fresh permission/CAS 次數，不改窄寫入依賴閉包，尚非實站 I/O 延遲或原生 UI 驗收。

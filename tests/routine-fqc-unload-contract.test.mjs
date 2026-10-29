@@ -1,0 +1,22 @@
+// Modern beforeunload capability contract only; synthetic cancellation is not
+// proof of a native prompt, user activation, browser floor or mobile delivery.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {test} from 'node:test';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import ts from 'typescript';
+const file='public/process/routine-fqc.js',current=fs.readFileSync(file,'utf8'),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
+assert.equal(createHash('sha256').update(previous).digest('hex'),'ed342c34242df88c2b6edb71d2f2025b284a4fe41026ffbd92d0fb614f03c3f7');
+const lf=text=>text.replace(/\r\n/g,'\n'),expected=lf(previous).replace("      e.returnValue = '';\n",'');
+void test('only deprecated returnValue assignment changes; dirty/manual Save/SPA source stays exact',()=>{assert.equal(lf(current),expected);});
+void test('LF and CRLF checkouts compare equally, but deleted preventDefault or changed Save still fail the source proof',()=>{for(const text of [current,lf(current).replace(/\n/g,'\r\n')]){assert.equal(lf(text),expected);assert.notEqual(lf(text).replace('e.preventDefault();',''),expected);assert.notEqual(lf(text).replace('async function save()', 'async function changedSave()'),expected);}});
+function functions(source){const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);const out={};function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text==='dirty')out.dirty=n.getText(tree);if(ts.isVariableDeclaration(n)&&n.name.getText(tree)==='docs')out.docs='const '+n.getText(tree)+';';if(ts.isPropertyAssignment(n)&&n.name.getText(tree)==='canLeave')out.leave=n.initializer.getText(tree);if(ts.isCallExpression(n)&&n.expression.getText(tree)==='window.addEventListener'&&n.arguments[0]?.text==='beforeunload')out.unload=n.getText(tree);ts.forEachChild(n,visit);}visit(tree);for(const key of ['dirty','docs','leave','unload'])assert.ok(out[key],key);return out;}
+function fixture(source){const code=functions(source),s={buffers:new Map(),bases:new Map(),busy:false,retry:false,dialogOpen:false},data={control:{documents:[{id:'a'},{id:'b'}]}},listeners=[];const c={s,data,inFlightMutation:false,window:{addEventListener:(name,fn)=>listeners.push({name,fn})}};vm.createContext(c);vm.runInContext(code.dirty+'\n'+code.docs+'\n'+code.unload+';this.canLeave='+code.leave,c);assert.equal(listeners.length,1);assert.equal(listeners[0].name,'beforeunload');return{s,c,handler:listeners[0].fn};}
+for(const mode of ['no-buffer','equal-buffer','dirty-first','dirty-second','reverted'])void test('actual dirty and beforeunload handler '+mode,()=>{
+ const result=[];for(const source of [previous,current]){const f=fixture(source);if(mode!=='no-buffer'){f.s.bases.set('a',{notes:'saved'});f.s.buffers.set('a',{notes:mode==='dirty-first'?'new':'saved'});}if(mode==='dirty-second'){f.s.bases.set('b',{notes:'saved'});f.s.buffers.set('b',{notes:'new'});}if(mode==='reverted'){f.s.buffers.get('a').notes='new';f.s.buffers.get('a').notes='saved';}
+ const event=new Event('beforeunload',{cancelable:true});let writes=0;Object.defineProperty(event,'returnValue',{get:()=>true,set:()=>writes++});const snapshot=JSON.stringify([...f.s.buffers]);const value=f.handler(event);assert.equal(value,undefined);assert.equal(JSON.stringify([...f.s.buffers]),snapshot);const dirty=mode.startsWith('dirty');assert.equal(event.defaultPrevented,dirty);assert.equal(f.c.canLeave(),!dirty);assert.equal(writes,source===previous&&dirty?1:0);result.push({cancelled:event.defaultPrevented,leave:f.c.canLeave()});}assert.deepEqual(result[1],result[0]);
+});
+void test('remaining SPA busy/retry/dialog/inflight guards are independently retained',()=>{const f=fixture(current);for(const key of ['busy','retry','dialogOpen']){f.s[key]=true;assert.equal(f.c.canLeave(),false);f.s[key]=false;}f.c.inFlightMutation=true;assert.equal(f.c.canLeave(),false);f.c.inFlightMutation=false;assert.equal(f.c.canLeave(),true);});
+void test('modern handler never touches legacy returnValue even when accessor would throw',()=>{const f=fixture(current);f.s.bases.set('a',{});f.s.buffers.set('a',{notes:'dirty'});const event=new Event('beforeunload',{cancelable:true});Object.defineProperty(event,'returnValue',{get(){throw Error('LEGACY_READ');},set(){throw Error('LEGACY_WRITE');}});assert.doesNotThrow(()=>f.handler(event));assert.equal(event.defaultPrevented,true);});

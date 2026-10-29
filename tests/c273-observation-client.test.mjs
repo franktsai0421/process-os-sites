@@ -6,7 +6,7 @@ function fixture(responses){const slots=[],effects=[],requests=[];let cursor=0,t
  const context={exports:{},require:name=>name==='react'?hooks:name==='react/jsx-runtime'?jsx:assert.fail('unexpected import'),AbortController,setTimeout,clearTimeout,fetch:async(url,options)=>{requests.push({url,...options});const value=responses.shift();if(value instanceof Error)throw value;return Response.json(value);}};
  vm.runInNewContext(code,context);const Component=context.exports.default;
  const render=()=>{cursor=0;tree=Component();return tree;};render();const cleanups=effects.map(e=>e());
- function buttons(element=tree){if(!element||typeof element!=='object')return[];return[element.type==='button'?element:null,...[element.props?.children].flat(Infinity).flatMap(x=>buttons(x))].filter(Boolean);}
+ function buttons(element=tree){if(!element||typeof element!=='object')return[];return[element.type==='button'?element:null,...[element.props?.children??[]].flat(Infinity).flatMap(x=>buttons(x))].filter(Boolean);}
  return{requests,render,buttons,close(){for(const c of cleanups)c?.();},get tree(){return tree;}};
 }
 const flush=()=>new Promise(r=>setImmediate(r));

@@ -6,7 +6,7 @@ import {readMigrationFiles} from 'drizzle-orm/migrator';
 import {getTableConfig} from 'drizzle-orm/sqlite-core';
 import * as schema from '../db/sites-fresh-schema.ts';
 
-test('fresh journal applies all nine schema-only migrations and matches all 22 model tables',()=>{
+void test('fresh journal applies all nine schema-only migrations and matches all 22 model tables',()=>{
  const migrations=readMigrationFiles({migrationsFolder:'drizzle-sites-fresh'}),db=new DatabaseSync(':memory:');
  try{
   assert.equal(migrations.length,9);

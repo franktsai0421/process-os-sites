@@ -1,3 +1,44 @@
+## 2026-10-28 剩餘 lint 與 Windows 測試相容性 / Remaining lint and Windows test compatibility
+- 匯入頁改採 per-mount 原始 query snapshot；SSR/loading、exact observe/continue 與原 mount-only 行為保留，取消的 config 回覆不採用。Hydration 的 config GET 晚一個 commit，非速度改善；proxy、帳號權限與寫入保護不變。
+- Native URL observer uses own data-method descriptors without changing dynamic receivers, wrapper order, resource assertions or context lifetime. Portable synthetic tests do not replace native browser acceptance.
+- 經使用者明確同意，Spinner 以 output 包裝並保持 SVG ref/事件/大小/動畫；form="" 防止 form.reset 清除 SVG。Routine FQC 移除 legacy returnValue，保留 dirty/preventDefault/manual Save；新版 Chrome/Edge 能力界線與未驗證項目詳見 LINT_CONTRACT_POLICY。
+- R1 inspection now requires an explicit --pair argument. Existing fixed-content pin, decoder, metadata-only reporting and exclusive output remain; no real package was read or imported. Source guard and reviewed historical blobs are unchanged.
+- Windows child-node preload uses file URL; source-bound regression comparisons normalize CRLF only and still reject non-line-ending mutations while retaining historical raw hashes. Native Windows CI is still required; the separate 9000-byte compiled transport ECONNRESET is not declared fixed.
+- 本批測試、型別、建置與 lint 以精確整合收據為準；不把原生瀏覽器/AT/離頁提醒未驗當通過，不合併或發布。Both PRs remain draft until all independent CI and review blockers are resolved.
+
+## 2026-10-28 登入初始意圖 / Server-owned initial login intent
+- 登入頁以正式server searchParams（保留重複值）交原loginIntent判斷初始系統／線別，SSR與hydration不再先顯process/A再跳動。
+- Initial system/line now come from the server entry through the unchanged intent allowlist. Manual choices persist; submit still reads the current URL after its actual response, with original attempt fencing, marker handling and authorization.
+- 新增23組query/SSR/submit負測，獨立ReactDOM hydration13例；不等同原生瀏覽器登入驗收，也不改raw-query匯入觀察規則。
+
+## 2026-10-28 管理導航操作與 abort 型別契約 / Management navigation actions and abort contracts
+- 經確認，7個設定／匯入頁的14個入口改為13個原生GET表單按鈕及1個本頁核對按鈕；保留原query值、4個_top及replaceState，不改中控首頁／FQC業務導航。接受不再提供連結專屬另開／複製操作。
+- Owner-approved action-button semantics replace 14 management links. Native GET destinations, targets and local verification transition are retained; no framework prefetch or automatic business POST is introduced.
+- 兩個真正不讀this的snapshot abort producer補明receiver-independent型別，body／回傳函式identity／儲存順序不變；受保護R1 consumer原始碼不動。新增14個假資料正負測，不等於真實R1資料驗收。
+- Normal source/SSR and ReactDOM-emulator regression cover form ownership, repeated activation, precise query and cleanup. Native keyboard/frame navigation and responsive browser layout remain untested; full CI/lint blockers are still reported, not waived.
+
+## 2026-10-28 初次觀察收據 owned GET（隔離候選）
+- 首畫面即等待收據，不先短暫顯示可點；初次GET由effect獨立持有controller，僅實際回覆後更新狀態。
+- 手動GET/單次POST、60秒終止、錯誤/未知回覆與unmount最新controller仍遵原規則；13 source/SSR及8 ReactDOM負測，不代表原生瀏覽器或R1匯入驗收。
+
+## 2026-10-28 匯入停止按鈕 committed state（隔離候選）
+- 原 AbortController 同步建立/清空與 abort handler 不動，僅以同時更新的 state 顯示可停止狀態，避免 render 讀取 mutable ref。
+- 正常 React SSR/source 邊界10例及獨立 jsdom ReactDOM commit/event6例通過；後者是測試 DOM，非實體瀏覽器或資料匯入驗收。應用依賴/鎖檔未更動。
+
+## 2026-10-28 FQC parent 查找索引（隔離候選）
+- 完整結構/identity檢查後，以單次呼叫索引取代每個項目掃描全部錯誤碼；保留原錯誤順序、首筆比對、收據與存檔結果。
+- 三十組 historical/current paired 回歸；120錯誤碼/1000項目的比較工作減少，但單一早命中項目會多建索引，並非每份資料更快。R2/SQL/權限檢查不減，未宣稱解決10–25秒I/O等待。
+
+## 2026-10-28 CI lint 基準輸入鑑別（隔離候選）
+- 保留 head typed lint 與固定 db190 baseline 的原失敗退出碼、正常獨立 checkout/install 及全部後段檢查。
+- 七個輸入仍逐一核對原始 Git blob；僅已審查的 main-push-guard 未用 import 刪除 exact pair 可分類為非功能差異，其他差異/缺檔仍 NOT_COMPARABLE。不是 lint 豁免，也不是位元組完全相同。
+- 新增十五項正負回歸；Windows 原生 CI 與完整 ancestry 仍須在精確遠端提交驗證。
+
+## 2026-10-28 FQC 規則溢出與矩陣狀態（本機候選）
+- 長自訂規則完整換行於原欄位；FQC 單符號矩陣格不受共用歷史按鈕 padding 擠壓。
+- 產品納入 `✓`／未納入 `—` 與啟用狀態分開；明確 false 才顯示列標題停用 badge，雙語及 legacy default 對齊編輯頁，不改選擇資料或寫入路徑。
+- 新增純 DOM／CSS 契約回歸及 CI 入口；非原生 layout／發布驗收。實作與證據界線見 [QUALITY](modules/QUALITY.md)。
+
 ## 2026-10-27 FQC bootstrap active body 去重（本機候選）
 - 只在實際已採用 FQC records metadata 合格時，將重複 active body 讀取留給原 mandatory workflow GET；其他 quality libraries、canonical fallback、fresh authority 不動。
 - 保留明確 full-GET 錯誤／readiness；body fault 時點變化有隔離實證，不宣稱整體延遲或 OOM 已解決。詳見 RUNTIME 與 portable paired regression。

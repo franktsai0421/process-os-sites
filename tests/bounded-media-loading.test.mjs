@@ -7,33 +7,33 @@ const read=file=>fs.readFileSync(new URL('../public/process/'+file,import.meta.u
 const readGate=box=>{vm.runInContext(read('shared-draft-client.js'),box);return box.window.createScopedReadPause('synthetic callback');};
 const part=(source,a,b)=>{const i=source.indexOf(a),j=source.indexOf(b,i+a.length);assert(i>=0&&j>i);return source.slice(i,j);};
 const policy=JSON.parse(fs.readFileSync(new URL('./fixtures/bounded-image-policy.json',import.meta.url),'utf8'));
-for(const rule of policy)test(`${rule.file}:${rule.baseLine} only audited image scheduling hints change`,()=>{
+for(const rule of policy)void test(`${rule.file}:${rule.baseLine} only audited image scheduling hints change`,()=>{
  const source=read(rule.file);assert(source.includes(rule.after));
  const normalize=s=>s.replace(/ \$\{hidden\?'loading="lazy" decoding="async"':''\}/g,'').replace(/\s+(?:loading="lazy"|decoding="async")/g,'');
  assert.equal(normalize(rule.after),normalize(rule.before));
 });
-test('100 actual IQC list rows retain original URLs and links without eager thumbnail declarations',()=>{
+void test('100 actual IQC list rows retain original URLs and links without eager thumbnail declarations',()=>{
  const source=read('iqc-master.js'),parts=Array.from({length:100},(_,i)=>({code:'P'+i,nameVi:'Kiểm tra 中文',photos:[{src:'/fixture/'+i+'.svg'}],supplierIds:[],categoryId:''}));
  const box={snap:()=>({suppliers:[],categories:[]}),filteredParts:()=>parts,ui:{partCode:'P0'},h:String,t:z=>z,draft:()=>false,mayEdit:()=>false,name:()=>''};vm.createContext(box);vm.runInContext(part(source,'  function partRows()', '  function listPanel()')+'this.renderRows=partRows;',box);
  const html=box.renderRows();assert.equal((html.match(/<img /g)||[]).length,100);assert.equal((html.match(/loading="lazy"/g)||[]).length,100);assert.equal((html.match(/decoding="async"/g)||[]).length,100);for(let i=0;i<100;i++){assert(html.includes('src="/fixture/'+i+'.svg"'));assert(html.includes('data-photo-part="P'+i+'"'));}
 });
-test('hidden legacy gallery sources are lazy; first canvas cover and fullsize references remain eager/original',()=>{
+void test('hidden legacy gallery sources are lazy; first canvas cover and fullsize references remain eager/original',()=>{
  const source=read('system-upgrade.js'),box={escapeHtml:String};vm.createContext(box);vm.runInContext(part(source,'  const uniqueCardMedia=', '  function closeEditor(')+'this.group=operationCardMediaGroup;',box);
  const html=box.group({id:'op'},{key:'work',label:'Photos',items:Array.from({length:10},(_,i)=>({src:'/original/'+i+'.png',type:'image/png'}))});assert.equal((html.match(/loading="lazy"/g)||[]).length,9);assert.equal((html.match(/data-lightbox-src=/g)||[]).length,10);assert(html.includes('<img  src="/original/0.png"'));for(let i=0;i<10;i++)assert(html.includes('data-lightbox-src="/original/'+i+'.png"'));
 });
-test('selected fullsize viewers and exported print images are not deferred',()=>{
+void test('selected fullsize viewers and exported print images are not deferred',()=>{
  for(const [file,a,b] of [['iqc-master.js','  function photoViewerPhotos(', '  function photoViewer('],['ipqc-c.js','  function viewerHTML()', '  async function submitEditor('],['fqc-master.js','class="fqc-viewer-img"','class="fqc-viewer-img"']]){
   if(file==='fqc-master.js'){const tag=read(file).match(/<img[^>]*class="fqc-viewer-img"[^>]*>/)?.[0];assert(tag);assert(!tag.includes('loading="lazy"'));}
   else assert(!part(read(file),a,b).includes('loading="lazy"'));
  }
  const exported=read('routine-fqc.js').split('\n').find(line=>line.includes('images[p]'));assert(exported);assert(!exported.includes('loading="lazy"'));
 });
-test('node preview cancellation releases only untransferred URLs, including repeated close',()=>{
+void test('node preview cancellation releases only untransferred URLs, including repeated close',()=>{
  const source=read('routine-equipment.js'),revoked=[],box={URL:{revokeObjectURL:u=>revoked.push(u)},pendingPhotos:new Map(),nodeDialog:{pendingPhoto:{url:'blob:discard'}},render(){}};vm.createContext(box);vm.runInContext(part(source,'  function cancelNodeDialog()', '  async function confirmNodeDialog()')+'this.cancel=cancelNodeDialog;',box);
  box.cancel();box.cancel();assert.deepEqual(revoked,['blob:discard']);box.pendingPhotos.set('saved',{url:'blob:owned'});box.nodeDialog={pendingPhoto:{url:'blob:owned'}};box.cancel();assert.deepEqual(revoked,['blob:discard']);assert.equal(box.pendingPhotos.get('saved').url,'blob:owned');assert.equal(box.nodeDialog,null);
  assert(read('routine-equipment.js').includes("addEventListener('click', cancelNodeDialog)"));assert(read('routine-equipment.js').includes("if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();"));
 });
-for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-ab.js','tooling.js'])test(`${name} actual transport opts into existing conditional protocol only`,()=>{
+for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-ab.js','tooling.js'])void test(`${name} actual transport opts into existing conditional protocol only`,()=>{
  const source=read(name),functionName=name==='routine-equipment.js'?'sharedTransport':'transport',line=source.split('\n').find(s=>s.includes('function '+functionName+'()'));assert(line);
  const options=[],box={identity:()=>({id:'actor'}),actor:()=>({id:'actor'}),key:()=> 'A:group',headers:()=>({}),API:'/api/ipqc-ab',api:'/api/routine-equipment',apiUrl:'/api/iqc',t:x=>x,sharedActor:'',sharedIdentity:'',sharedClient:null,control:null,selected:'',iqc:null,checks:null,caseVersionNumbers:new Map(),window:{ProcessSync:{identity:{id:'actor'}},createSharedDraftClient:o=>{options.push(o);return {};}}};
  if(name==='tooling.js')box.actor='';vm.createContext(box);
@@ -41,11 +41,11 @@ for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-
  const text=name==='iqc-master.js'?part(source,'  function transport()', '  const equal='):line;
  vm.runInContext(text+';this.call='+functionName+';',box);box.call();box.call();assert.equal(options.length,1);assert.equal(options[0].conditionalState,true);assert.equal(options[0].actorId,'actor');assert(options[0].endpoint.includes('caseMetadata=1'));
 });
-test('custom IPQC-C conditional protocol is not opted in',()=>{const line=part(read('ipqc-c.js'),'  function sharedTransport()', '  const workflowErrors=');assert(!line.includes('conditionalState:true'));});
-test('tooling polling skips hidden documents and resumes its existing read in visible documents',async()=>{
+void test('custom IPQC-C conditional protocol is not opted in',()=>{const line=part(read('ipqc-c.js'),'  function sharedTransport()', '  const workflowErrors=');assert(!line.includes('conditionalState:true'));});
+void test('tooling polling skips hidden documents and resumes its existing read in visible documents',async()=>{
  const source=read('tooling.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},host:{isConnected:true,dataset:{activeTab:'quality-mold-equipment'},querySelector:()=>null},reviewHost:null,client:{},busy:false,dialog:null,syncActions(){},flow:()=>({generation:'g',revision:1}),transport:()=>({read:async t=>{calls.push(t);return{unchanged:true};}}),window:{ProcessSync:{identity:{id:'synthetic'}},VersionDraftUI:{updateSync(){}}}};
  vm.createContext(box);const gate=readGate(box);box.client={canPoll:kind=>gate.canPoll(kind),hasUnknown:()=>false};vm.runInContext(part(source,' setInterval(async()=>{','})();'),box);await timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';await timers[0]();assert.deepEqual(calls,['g:1']);gate.denied('state',403,gate.capture(),async()=>{});await timers[0]();assert.deepEqual(calls,['g:1'],'actual denied gate prevents another automatic read');
 });
-test('authoring polling skips hidden documents without altering manual/initial reads',()=>{
+void test('authoring polling skips hidden documents without altering manual/initial reads',()=>{
  const source=read('process-authoring-v3.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},enabled:()=>true,state:{view:'editor'},load:()=>calls.push('read'),window:{ProcessSync:{identity:{id:'synthetic'}}}};box.host=box.window;vm.createContext(box);const gate=readGate(box);box.client=()=>({canPoll:kind=>gate.canPoll(kind)});vm.runInContext(source.split('\n').find(l=>l.startsWith(' setInterval(')),box);timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';timers[0]();assert.equal(calls.length,1);gate.denied('state',401,gate.capture(),async()=>{});timers[0]();assert.equal(calls.length,1,'actual denied gate prevents another automatic read');assert(source.includes(' if(enabled())void load();'));
 });

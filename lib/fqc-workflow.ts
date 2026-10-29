@@ -11,7 +11,7 @@ const text=(value:unknown)=>typeof value==='string'?value:typeof value==='number
 export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  let root:{schemaVersion:number;libraries:Record<string,FqcLibrary>},numbers:Map<string,number|string>,abGuard:{versionId:string;codes:string[]}|null=null;
  return{key:'qualityMasterControl',scope:'fqc',empty:()=>({errors:[],items:[]}),photoPrefix:'fqc/photos/',photoIds:()=>[],
-   preparedModel:true,permissionOnlyRead:true,
+   preparedModel:true,permissionOnlyRead:true,recordMutation:'fqc-existing-set',
   needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
   parse(raw,prepared){root=(prepared|| (raw===undefined?{schemaVersion:1,libraries:{}}:JSON.parse(raw))) as typeof root;if(root.schemaVersion!==1||!root.libraries)throw new DraftConflict('FQC_EXISTING_DATA_INVALID',422);
    const lib=root.libraries.fqc||{activeVersionId:null,versions:[]};if(!Array.isArray(lib.versions))throw new DraftConflict('FQC_EXISTING_DATA_INVALID',422);
@@ -46,7 +46,11 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
        ids.add(row.id);codes.add(code);if(old&&(old.category!==row.category||old.line!==row.line||(key==='errors'?old.code:old.checkNo)!==code))throw new DraftConflict('FQC_IDENTITY_PROTECTED',422);
       }
      }
-     for(const row of content.items){const old=previousRow('items',row.id),parent=content.errors.find(e=>e.id===row.errorId);
+     // Identity checks above have succeeded. Keep first-match parent lookup local
+     // to this structure call, without rescanning every error for every item.
+     const parentErrors=new Map<string,FqcSnapshot['errors'][number]>();
+     if(content.items.length)for(const error of content.errors)if(!parentErrors.has(error.id))parentErrors.set(error.id,error);
+     for(const row of content.items){const old=previousRow('items',row.id),parent=parentErrors.get(row.errorId);
       if(!row.isDeleted&&(!parent||parent.isDeleted||parent.category!==row.category))throw new DraftConflict('ERROR_PARENT_INVALID',422);
       if(!Array.isArray(row.productCodes)||row.productCodes.some(c=>typeof c!=='string')||new Set(row.productCodes).size!==row.productCodes.length||!Array.isArray(row.mediaItems)||row.mediaItems.some(p=>!p||typeof p.src!=='string'||!(/^(data:image\/(png|jpeg|webp|gif);base64,|\/)/.test(p.src)))||typeof row.isEnabled!=='boolean')throw new DraftConflict('INVALID_FQC_ITEM',422);
       if(row.equipmentId!=null&&typeof row.equipmentId!=='string')throw new DraftConflict('INVALID_EQUIPMENT',422);

@@ -18,7 +18,7 @@ const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAll
  snapshot(){return{control,working,modal,message,busy,sharedActor};}};\n`;
 function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceipt=false}={}){
  const calls=[],storageWrites=[],events=[],nodes=new Map(),memory=new Map(recovery?[[recoveryKey,recovery]]:[]);
- let nextResponse=null,caps=permissions,control,working;
+ let nextResponse=null,caps=permissions;
  class Node{
   constructor(id=''){this.id=id;this.dataset={};this.disabled=false;this.attrs={};this.value='unsaved 中文 Việt';this.children=[];this.listeners={};this.isConnected=false;}
   setAttribute(k,v){this.attrs[k]=v;}getAttribute(k){return this.attrs[k];}hasAttribute(k){return k in this.attrs;}
@@ -32,7 +32,7 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
  const document={documentElement:{lang:'zh'},visibilityState:'visible',activeElement:null,createElement:()=>new Node(),querySelector:s=>s==='#data-content'?null:nodes.get(s)||null,querySelectorAll:s=>s.split(',').flatMap(q=>nodes.has(q.trim())?[nodes.get(q.trim())]:[]),addEventListener(){},removeEventListener(){}};
  const sync={identity:{id:actor},requiresReload:false,platformHeaders:()=>({})};
  const window={ProcessSync:sync,hasPermission:()=>true,VersionDraftUI:{preserveView:()=>()=>{},reasonFor:()=>'',confirmSubmit:async()=> 'synthetic explicit submit',confirmReview:async()=>({reason:'unused'}),date:()=>''},ProcessIPQC:{referenceMarkup:()=>'',mountReferences:async()=>{}},addEventListener(){},dispatchEvent:e=>events.push(e.type),alert:()=>{}};
- const snapshot={errors:[],items:[]};working=copy(snapshot);control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
+ const snapshot={errors:[],items:[]};const working=copy(snapshot),control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
  const context=vm.createContext({window,document,console,crypto:webcrypto,AbortController,URL,URLSearchParams,FormData,Blob,CustomEvent:class{constructor(type){this.type=type;}},setTimeout,clearTimeout,confirm:()=>true,toast:()=>{},sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>{memory.set(k,v);storageWrites.push(['set',k,v]);},removeItem:k=>{memory.delete(k);storageWrites.push(['remove',k]);}},fetch:async(url,options={})=>{
   const call={url,method:options.method||'GET',...(options.body&&typeof options.body==='string'?{body:JSON.parse(options.body)}:{})};calls.push(call);
   if(nextResponse){const next=nextResponse;nextResponse=null;return next(url,options);}
@@ -71,7 +71,7 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
 function stableInput(f){const s=f.state();return{control:s.control,working:s.working,modal:s.modal,storage:[...f.memory]};}
 function noWrites(f,before,label){assert.deepEqual(stableInput(f),before,label+' retained working/modal/fixed receipt/recovery');assert.equal(f.mutations().length,0,label+' no mutation dispatched');}
 
-test('strict operationAllowed requires true, same actor and non-terminal delivery',async()=>{
+void test('strict operationAllowed requires true, same actor and non-terminal delivery',async()=>{
  const f=fixture();assert.equal(f.ui.operationAllowed('edit'),false,'unknown before first permission read');
  for(const value of [false,null,0,1,'true',undefined]){f.setCaps(perms({edit:value}));await f.hydrate();assert.equal(f.ui.operationAllowed('edit'),false,'non-true capability '+String(value));}
  f.setCaps(perms({edit:true}));await f.hydrate();assert.equal(f.ui.operationAllowed('edit'),true);
@@ -79,7 +79,7 @@ test('strict operationAllowed requires true, same actor and non-terminal deliver
  f.sync.identity={id:actor};f.sync.requiresReload=true;assert.equal(f.ui.operationAllowed('edit'),false);assert.equal(f.mutations().length,0);
 });
 
-test('adopted Save and Submit have independent visibility and actual dispatch without edit',async()=>{
+void test('adopted Save and Submit have independent visibility and actual dispatch without edit',async()=>{
  for(const action of ['save','submit']){
   const f=fixture({permissions:perms({[action]:true})});await f.hydrate();
   const html=f.ui.mainHTML();assert.equal(html.includes('id="ipqcc-'+action+'"'),true,action+' visible independent of edit');
@@ -95,7 +95,7 @@ test('adopted Save and Submit have independent visibility and actual dispatch wi
  }
 });
 
-test('edit-only allows Apply and photo but does not Save or Submit',async()=>{
+void test('edit-only allows Apply and photo but does not Save or Submit',async()=>{
  const f=fixture({permissions:perms({edit:true})});await f.hydrate();
  const html=f.ui.mainHTML();assert(!html.includes('id="ipqcc-save"'));assert(!html.includes('id="ipqcc-submit"'));
  const patches=[{op:'set',path:['items',{id:'fixture-item'},'note'],value:'explicit synthetic edit'}];const result=await f.ui.writeShared('apply',{patches,guards:[]});assert(result?.receipt,'valid Apply receipt acknowledged');assert.equal(f.client.hasUnknown(),false);
@@ -104,7 +104,7 @@ test('edit-only allows Apply and photo but does not Save or Submit',async()=>{
  await f.ui.writeShared('save');await f.ui.writeShared('submit');assert.equal(f.mutations().length,2,'no implicit Save/Submit');
 });
 
-test('malformed successful Save ACK stays unknown with input retained and no repeated POST',async()=>{
+void test('malformed successful Save ACK stays unknown with input retained and no repeated POST',async()=>{
  const f=fixture({permissions:perms({save:true}),malformedReceipt:true});await f.hydrate();f.setModal();
  const before=f.state();assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);
  assert.deepEqual(f.mutations().map(c=>c.body.command.action),['save']);
@@ -114,7 +114,7 @@ test('malformed successful Save ACK stays unknown with input retained and no rep
  assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);assert.equal(f.mutations().length,1,'another Save does not blindly resend');assert.equal(f.memory.get(recoveryKey),recovery);
 });
 
-test('unknown and denied edit block Begin Apply module mutations and photo with input intact',async()=>{
+void test('unknown and denied edit block Begin Apply module mutations and photo with input intact',async()=>{
  for(const hydrate of [false,true]){
   const f=fixture();if(hydrate)await f.hydrate();f.setModal();const before=stableInput(f);
   for(const action of ['begin','apply','create-item','create-error','delete-item','delete-error']){await f.ui.writeShared(action,{patches:[],guards:[]});noWrites(f,before,action);}
@@ -123,14 +123,14 @@ test('unknown and denied edit block Begin Apply module mutations and photo with 
  }
 });
 
-test('unadopted Save or Submit cannot silently Begin without edit',async()=>{
+void test('unadopted Save or Submit cannot silently Begin without edit',async()=>{
  for(const action of ['save','submit']){
   const f=fixture({permissions:perms({[action]:true}),adopted:false});await f.hydrate();
   assert(!f.ui.mainHTML().includes('id="ipqcc-'+action+'"'));const before=stableInput(f);await f.ui.writeShared(action);noWrites(f,before,action+' nonadopted');assert.equal(f.state().message,'FORBIDDEN');
  }
 });
 
-test('no-edit history binding creates no Restore button; allowed button is disabled by unchanged revocation',async()=>{
+void test('no-edit history binding creates no Restore button; allowed button is disabled by unchanged revocation',async()=>{
  const denied=fixture();await denied.hydrate();denied.bindHistory();assert.equal(denied.nodes.has('#ipqcc-case-restore'),false);assert.equal(denied.mutations().length,0);
  const f=fixture({permissions:perms({edit:true,save:true,submit:true})});await f.hydrate();f.bindHistory();const restore=f.nodes.get('#ipqcc-case-restore');assert(restore);assert.equal(restore.disabled,false);
  f.setModal();const before=stableInput(f);f.setCaps(perms());const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);
@@ -138,7 +138,7 @@ test('no-edit history binding creates no Restore button; allowed button is disab
  assert.equal(f.ui.operationAllowed('edit'),false);noWrites(f,before,'unchanged revocation');
 });
 
-test('401 and 403 permission refresh fail closed without discarding unsaved input or unknown receipt',async()=>{
+void test('401 and 403 permission refresh fail closed without discarding unsaved input or unknown receipt',async()=>{
  for(const status of [401,403]){
   const f=fixture({permissions:perms({edit:true,save:true,submit:true}),recovery:rawUnknown});await f.hydrate();f.setModal();const before=stableInput(f),writes=f.storageWrites.length;
   f.next(()=>Response.json({error:'FORBIDDEN'},{status}));await assert.rejects(f.hydrate(),e=>e.status===status);
@@ -146,14 +146,14 @@ test('401 and 403 permission refresh fail closed without discarding unsaved inpu
  }
 });
 
-test('revoked unknown-operation action does receipt GET only and retains raw unresolved recovery',async()=>{
+void test('revoked unknown-operation action does receipt GET only and retains raw unresolved recovery',async()=>{
  const f=fixture({permissions:perms({edit:true}),recovery:rawUnknown});await f.hydrate();f.setModal();f.setCaps(perms());await f.client.read('g-c:3');const before=stableInput(f),start=f.calls.length;
  await f.ui.writeShared('apply',{patches:[],guards:[]},true);
  assert.deepEqual(f.calls.slice(start).map(c=>[c.method,new URL(c.url,'http://fixture').searchParams.get('operationId')]),[['GET',unknown.operationId]]);
  assert.equal(f.client.hasUnknown(),true);assert.equal(f.memory.get(recoveryKey),rawUnknown);assert.deepEqual(f.storageWrites,[]);noWrites(f,before,'failed receipt lookup');
 });
 
-test('terminal reload and actor mismatch cannot dispatch through C or lose current input',async()=>{
+void test('terminal reload and actor mismatch cannot dispatch through C or lose current input',async()=>{
  for(const mode of ['reload','actor']){
   const f=fixture({permissions:perms({edit:true,save:true,submit:true})});await f.hydrate();f.setModal();const before=stableInput(f);
   if(mode==='reload')f.sync.requiresReload=true;else f.sync.identity={id:'new-synthetic-actor'};
@@ -162,7 +162,7 @@ test('terminal reload and actor mismatch cannot dispatch through C or lose curre
  }
 });
 
-test('Submit confirmation rechecks operation actor and delivery before dispatch',async()=>{
+void test('Submit confirmation rechecks operation actor and delivery before dispatch',async()=>{
  for(const mode of ['revoke','actor','reload']){
   const f=fixture({permissions:perms({submit:true})});await f.hydrate();f.setModal();const before=stableInput(f);
   let confirm;f.window.VersionDraftUI.confirmSubmit=()=>new Promise(resolve=>{confirm=resolve;});
@@ -174,9 +174,9 @@ test('Submit confirmation rechecks operation actor and delivery before dispatch'
  }
 });
 
-test('pending draft hides edit Save Submit affordances without changing fixed history',async()=>{
+void test('pending draft hides edit Save Submit affordances without changing fixed history',async()=>{
  const f=fixture({permissions:perms({edit:true,save:true,submit:true})});await f.hydrate();f.control.workflow.pendingId='fixed-pending';f.control.versions[0].status='pending';const before=stableInput(f),html=f.ui.mainHTML();
  for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit'])assert(!html.includes('id="'+id+'"'));assert.equal(f.ui.editing(),false);noWrites(f,before,'pending render');
 });
 
-test('source receipt identifies exact actual JS used by this synthetic VM',t=>{t.diagnostic(JSON.stringify({sourceRoot,ipqcCSha256:digest(cSource),sharedClientSha256:digest(clientSource),boundary:'Actual JS functions and transport; test-only closure exposure, synthetic DOM and fetch responses. Not native UI or backend acceptance.'}));});
+void test('source receipt identifies exact actual JS used by this synthetic VM',t=>{t.diagnostic(JSON.stringify({sourceRoot,ipqcCSha256:digest(cSource),sharedClientSha256:digest(clientSource),boundary:'Actual JS functions and transport; test-only closure exposure, synthetic DOM and fetch responses. Not native UI or backend acceptance.'}));});

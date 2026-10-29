@@ -77,7 +77,7 @@ async function resolveContent(f, { sharedIndex = 0, masterIndex = 0, equipmentIn
   f.reads.equipment.pending[equipmentIndex].resolve({ body: { ...clone(equipment), revision: revisions[2] } }); await flush();
 }
 
-test('preserves sequential FQC then AB then narrowed equipment reads, renders once without new permission request', async () => {
+void test('preserves sequential FQC then AB then narrowed equipment reads, renders once without new permission request', async () => {
   const f = fixture(), done = f.box.bind(f.element);
   assert.equal(f.reads.shared.pending.length, 1); assert.equal(f.reads.master.pending.length, 0); assert.equal(f.reads.equipment.pending.length, 0);
   f.reads.shared.pending[0].resolve(clone(shared)); await flush();
@@ -92,14 +92,14 @@ test('preserves sequential FQC then AB then narrowed equipment reads, renders on
   assert.equal(f.results.fetches[0].options.cache, 'no-store');
 });
 
-test('unrelated concurrent state revisions do not introduce a new whole-workspace retry gate', async () => {
+void test('unrelated concurrent state revisions do not introduce a new whole-workspace retry gate', async () => {
   const f = fixture(), done = f.box.bind(f.element);
   await resolveContent(f, { revisions: [7, 8, 9] }); await done;
   assert.equal(f.results.renders.length, 1); assert.equal(f.results.adopted.length, 1);
   assert.equal(f.reads.permission.pending.length, 0); assert(!f.element.innerHTML.includes('RELOAD_REQUIRED'));
 });
 
-for (const failed of ['shared', 'master', 'equipment']) test(`${failed} read failure stays covered without partial render or added requests`, async () => {
+for (const failed of ['shared', 'master', 'equipment']) void test(`${failed} read failure stays covered without partial render or added requests`, async () => {
   const f = fixture(), done = f.box.bind(f.element);
   if (failed !== 'shared') { f.reads.shared.pending[0].resolve(clone(shared)); await flush(); }
   if (failed === 'equipment') { f.reads.master.pending[0].resolve(clone(master)); await flush(); }
@@ -109,50 +109,52 @@ for (const failed of ['shared', 'master', 'equipment']) test(`${failed} read fai
   assert.equal(f.reads.permission.pending.length, 0); assert.equal(typeof f.button.onclick, 'function');
 });
 
-for (const [name, invalidate] of [
+/** @type {[string, (f: ReturnType<typeof fixture>)=>void][]} */
+const invalidationCases = [
   ['same actor identity epoch', f => f.epoch(2)], ['another actor', f => { f.sync.identity = { id: 'OTHER' }; }],
   ['delivery invalidation', f => { f.sync.requiresReload = true; }], ['unmounted destination', f => f.active(false)]
-]) test(`${name} prevents an old read from continuing the destination load`, async () => {
+];
+for (const [name, invalidate] of invalidationCases) void test(`${name} prevents an old read from continuing the destination load`, async () => {
   const f = fixture(), done = f.box.bind(f.element); invalidate(f);
   f.reads.shared.pending[0].resolve(clone(shared)); await done;
   assert.equal(f.reads.master.pending.length, 0); assert.equal(f.reads.equipment.pending.length, 0);
   assert.equal(f.results.renders.length, 0); assert.equal(f.results.adopted.length, 0);
 });
 
-test('newer mount wins when older initial read finishes last', async () => {
+void test('newer mount wins when older initial read finishes last', async () => {
   const f = fixture(), first = f.box.bind(f.element), second = f.box.bind(f.element);
   await resolveContent(f, { sharedIndex: 1 }); await second;
   f.reads.shared.pending[0].resolve(clone(shared)); await first;
   assert.equal(f.results.renders.length, 1); assert.equal(f.results.adopted.length, 1); assert.equal(f.reads.master.pending.length, 1);
 });
 
-test('same actor same epoch refresh retains verified catalog and in-flight ownership', async () => {
+void test('same actor same epoch refresh retains verified catalog and in-flight ownership', async () => {
   const f = fixture(), done = f.box.bind(f.element); f.sync.identity = { id: 'ACTOR' };
   await resolveContent(f); await done; f.sync.identity = { id: 'ACTOR' };
   assert.equal(f.box.cached('tool').id, 'tool'); assert.equal(f.box.catalogRead().comparisonReady, true);
   await f.box.loadEquipment(); assert.equal(f.reads.equipment.pending.length, 1);
 });
 
-test('equipment cache cannot be reused after same-id epoch change or a newer denied read', async () => {
+void test('equipment cache cannot be reused after same-id epoch change or a newer denied read', async () => {
   const f = fixture(), first = f.box.loadEquipment(); f.reads.equipment.pending[0].resolve({}); await first;
   assert.equal(f.box.cached('tool').id, 'tool'); f.epoch(2); assert.equal(f.box.cached('tool'), null);
   const second = f.box.loadEquipment(); f.reads.equipment.pending[1].resolve({ status: 403, body: { error: 'DENIED' } });
   await assert.rejects(second, /DENIED/); assert.equal(f.box.state().equipment, null);
 });
 
-test('late equipment failure cannot overwrite a newer success', async () => {
+void test('late equipment failure cannot overwrite a newer success', async () => {
   const f = fixture(), older = f.box.loadEquipment({ force: true }), newer = f.box.loadEquipment({ force: true });
   f.reads.equipment.pending[1].resolve({}); await newer;
   f.reads.equipment.pending[0].resolve({ status: 403, body: { error: 'OLD_DENIAL' } }); await assert.rejects(older, /SUPERSEDED/);
   assert.equal(f.box.cached('tool').id, 'tool'); assert.equal(f.box.state().error, null);
 });
 
-test('duplicate approved pointer fails instead of selecting arbitrary equipment', async () => {
+void test('duplicate approved pointer fails instead of selecting arbitrary equipment', async () => {
   const f = fixture(), done = f.box.loadEquipment(), bad = clone(equipment); bad.control.versions.push(clone(bad.control.versions[0]));
   f.reads.equipment.pending[0].resolve({ body: bad }); await assert.rejects(done); assert.equal(f.box.state().equipment, null);
 });
 
-for (const event of ['process-shared-state-updated', 'routine-equipment-updated', 'process-language-change']) test(`actual ${event} listener cannot bypass pending or failed mount`, async () => {
+for (const event of ['process-shared-state-updated', 'routine-equipment-updated', 'process-language-change']) void test(`actual ${event} listener cannot bypass pending or failed mount`, async () => {
   const f = fixture(), done = f.box.bind(f.element); f.events[event](); await flush();
   assert.equal(f.reads.shared.pending.length, 1); assert.equal(f.reads.equipment.pending.length, 0);
   assert.equal(f.results.adopted.length, 0); assert.equal(f.results.renders.length, 0);
@@ -160,7 +162,7 @@ for (const event of ['process-shared-state-updated', 'routine-equipment-updated'
   assert.equal(f.results.adopted.length, 0); assert.equal(f.results.renders.length, 0); assert.equal(f.reads.shared.pending.length, 1);
 });
 
-for (const source of ['shared event', 'equipment event', 'in-flight poll']) test(`${source} from previous mount cannot adopt, render or reschedule into next mount`, async () => {
+for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`${source} from previous mount cannot adopt, render or reschedule into next mount`, async () => {
   const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
   if (source === 'shared event') f.events['process-shared-state-updated']();
   else if (source === 'equipment event') f.events['routine-equipment-updated']();
@@ -173,7 +175,7 @@ for (const source of ['shared event', 'equipment event', 'in-flight poll']) test
   assert.equal(f.results.adopted.length, 2); assert.equal(f.results.renders.length, 2); assert.equal(f.results.polls, 2);
 });
 
-for (const source of ['shared event', 'equipment event', 'in-flight poll']) test(`${source} cannot adopt after same-id epoch change without remount`, async () => {
+for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`${source} cannot adopt after same-id epoch change without remount`, async () => {
   const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
   if (source === 'shared event') f.events['process-shared-state-updated']();
   else if (source === 'equipment event') f.events['routine-equipment-updated']();
@@ -185,7 +187,7 @@ for (const source of ['shared event', 'equipment event', 'in-flight poll']) test
 });
 
 
-test('actual scoped403 pause sends no automatic GET; only current successful recovery resumes polling', async () => {
+void test('actual scoped403 pause sends no automatic GET; only current successful recovery resumes polling', async () => {
   const f = fixture(), done = f.box.bind(f.element); await resolveContent(f); await done;
   const owner = f.pause.capture();
   f.pause.denied('state', 403, owner, async () => { throw Error('EXPLICIT_RECHECK_PORT_NOT_INVOKED'); });

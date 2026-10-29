@@ -84,6 +84,11 @@ function allocationIndex(value:unknown,previous?:AllocationIndex):AllocationInde
 }
 export async function encodeRecordValues(bucket:Bucket,values:Record<string,string>,previous?:RecordStorage,updatedModels?:Map<string,unknown>){
  if(previous?.partial)throw Error('Partial read cannot be saved');
+ return encodeRecordValuesCore(bucket,values,previous,updatedModels);
+}
+// Private encoding primitive. The ordinary writer above always rejects partial
+// state; the FQC overlay below supplies a server-issued, single-target handle.
+async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>,previous?:RecordStorage,updatedModels?:Map<string,unknown>){
  const refs:Record<string,Ref>={},allocations:Record<string,Ref>={...previous?.envelope.__processRecords.allocations},legacySources:Record<string,Ref>=previous?.envelope.__processRecords.legacySources||{},written=new Set<string>(),known=new Set(previous?.known||[]);
  const put=async(raw:string)=>{const sha256=await hash(raw),ref={key:prefix+sha256+'.json',sha256};if(!written.has(sha256)&&!known.has(sha256)){await bucket.put(ref.key,raw,{httpMetadata:{contentType:'application/json'}});written.add(sha256);}return ref;};
  const bodies=new WeakMap<object,Ref>();
@@ -124,6 +129,10 @@ export async function encodeRecordValues(bucket:Bucket,values:Record<string,stri
  return JSON.stringify({__processRecords:{version:1,values:refs,legacySources,...(Object.keys(allocations).length?{allocations}:{})},platformUsers:values.platformUsers,...(values.maintenanceMode!==undefined?{maintenanceMode:values.maintenanceMode}:{})});
 }
 export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options:RecordRead={}){
+ return decodeRecordValuesCore(bucket,envelope,options);
+}
+// Only the dedicated FQC mutation reader may supply a body hydration boundary.
+async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>){
  if(envelope.__processRecords?.version!==1||!envelope.__processRecords.values||Array.isArray(envelope.__processRecords.values))throw Error('Invalid record manifest');
  const values:Record<string,string>={},known=new Set<string>(),cache=new Map<string,unknown>(),models=new Map<string,unknown>(),allocations=new Map<string,AllocationIndex>();
  const allocationRef=options.allocationKey?envelope.__processRecords.allocations?.[options.allocationKey]:null;
@@ -156,11 +165,75 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
  }
  // Serial module loading bounds transient allocation. Per-request body sharing
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
- for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;known.add(ref.sha256);const original=await (options.identityReadToken?readIdentityAggregate(bucket,key,ref,options.identityReadToken):read(bucket,ref)),raw=options.projectValue?await options.projectValue(key,original):original;
+ for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await (options.identityReadToken?readIdentityAggregate(bucket,key,ref,options.identityReadToken):read(bucket,ref));
+  // Preserve the original manifest traversal/error order: required bodies are
+  // hydrated now, before reading the next aggregate. Excluded bodies alone are
+  // the approved fault-policy change; aggregate SHA/JSON still fail closed.
+  if(bodyKeys&&!bodyKeys.has(key)){if(original.includes('"__immutableBody"'))JSON.parse(original);continue;}
+  known.add(ref.sha256);const raw=options.projectValue?await options.projectValue(key,original):original;
   if(raw===undefined)continue;
   if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
  }
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
-  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
+  return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
+}
+
+// B0 mutation boundary: all aggregates are verified, but only the fixed FQC
+// dependency closure hydrates bodies. This is not a general partial-state writer.
+const fqcMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','qualityMasterControl','masterDataControl','routineEquipmentControl'];
+export type FqcRecordMutationHandle={readonly __fqcRecordMutation:unique symbol};
+type FqcMutationBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;values:Record<string,string>;visibleStorage:RecordStorage;visibleKnown:string[];model:unknown;siblings:string;consumed:boolean};
+const fqcMutationHandles=new WeakMap<object,FqcMutationBinding>();
+const fqcSiblings=(model:unknown)=>{if(!object(model)||!object(model.libraries))throw Error('Invalid FQC mutation model');return JSON.stringify({...model,libraries:Object.fromEntries(Object.entries(model.libraries).filter(([key])=>key!=='fqc'))});};
+export async function readFqcRecordMutation(bucket:Bucket,envelope:Envelope,revision:number){
+ const manifest=envelope?.__processRecords;
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.qualityMasterControl)||!valid(manifest.values.qualityMasterControl))return null;
+ const original=JSON.stringify(envelope);
+ const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'qualityMasterControl',deferDependencyHistory:true,deferHistory:true},new Set(fqcMutationKeys));
+ // Noncanonical mirrors are handled by the ordinary full reader/encoder;
+ // this overlay never silently repairs or retains a divergent auth mirror.
+ if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
+ const model=selected.recordStorage.models.get('qualityMasterControl');
+ if(!object(model)||model.schemaVersion!==1||!object(model.libraries)||!object(model.libraries.fqc)||!object(model.libraries.fqc.workflow)||model.libraries.fqc.workflow.scope!=='fqc'||model.libraries.fqc.workflow.schemaVersion!==3)return null;
+ const handle=Object.freeze({}) as FqcRecordMutationHandle;
+ const privateStorage:RecordStorage={...selected.recordStorage,envelope:JSON.parse(original),originalValues:{...selected.recordStorage.originalValues},known:new Set(selected.recordStorage.known),models:new Map(selected.recordStorage.models),allocations:new Map(selected.recordStorage.allocations)};
+ fqcMutationHandles.set(handle,{bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,values:{...selected.values},visibleStorage:selected.recordStorage,visibleKnown:[...selected.recordStorage.known],model,siblings:fqcSiblings(model),consumed:false});
+ return{...selected,handle};
+}
+export async function encodeFqcRecordMutation(bucket:Bucket,handle:FqcRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=fqcMutationHandles.get(handle);
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||storage.known.size!==b.visibleKnown.length||b.visibleKnown.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('qualityMasterControl')!==b.model||storage.allocations.size!==0||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value)||fqcSiblings(model)!==b.siblings)throw Error('Invalid FQC mutation handle');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{qualityMasterControl:b.values.qualityMasterControl},b.storage,new Map([['qualityMasterControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,qualityMasterControl:encoded.__processRecords.values.qualityMasterControl},allocations:{...b.envelope.__processRecords.allocations,qualityMasterControl:encoded.__processRecords.allocations!.qualityMasterControl}}};
+ return JSON.stringify(next);
+}
+
+// Process Save has its own capability, not an extension of the FQC Apply scope.
+// All aggregate verification is retained; only unrelated body hydration differs.
+const processSaveMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl'];
+export type ProcessSaveRecordMutationHandle={readonly __processSaveRecordMutation:unique symbol};
+type ProcessSaveMutationBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;values:Record<string,string>;visibleStorage:RecordStorage;visibleKnown:string[];model:unknown;consumed:boolean};
+const processSaveMutationHandles=new WeakMap<object,ProcessSaveMutationBinding>();
+export async function readProcessSaveRecordMutation(bucket:Bucket,envelope:Envelope,revision:number){
+ const manifest=envelope?.__processRecords;
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||!valid(manifest.values.processAuthoringControl))return null;
+ const original=JSON.stringify(envelope);
+ const selected=await decodeRecordValuesCore(bucket,envelope,{modelKey:'processAuthoringControl',deferDependencyHistory:true,deferHistory:true},new Set(processSaveMutationKeys));
+ if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
+ const model=selected.recordStorage.models.get('processAuthoringControl');
+ if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='process:platform'||model.workflow.schemaVersion!==3)return null;
+ const handle=Object.freeze({}) as ProcessSaveRecordMutationHandle;
+ const privateStorage:RecordStorage={...selected.recordStorage,envelope:JSON.parse(original),originalValues:{...selected.recordStorage.originalValues},known:new Set(selected.recordStorage.known),models:new Map(selected.recordStorage.models),allocations:new Map(selected.recordStorage.allocations)};
+ processSaveMutationHandles.set(handle,{bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,values:{...selected.values},visibleStorage:selected.recordStorage,visibleKnown:[...selected.recordStorage.known],model,consumed:false});
+ return{...selected,handle};
+}
+export async function encodeProcessSaveRecordMutation(bucket:Bucket,handle:ProcessSaveRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=processSaveMutationHandles.get(handle);
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||storage.known.size!==b.visibleKnown.length||b.visibleKnown.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('processAuthoringControl')!==b.model||storage.allocations.size!==0||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value))throw Error('Invalid Process Save mutation handle');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{processAuthoringControl:b.values.processAuthoringControl},b.storage,new Map([['processAuthoringControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,processAuthoringControl:encoded.__processRecords.values.processAuthoringControl}}};
+ return JSON.stringify(next);
 }

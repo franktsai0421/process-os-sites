@@ -1,5 +1,19 @@
 # lint 載入契約與驗收界線
 
+## 2026-10-28 新批准的 D2 契約調整（隔離候選，未發布）
+
+使用者於 2026-10-28 14:00 UTC 明確同意三項使用契約調整；其中 Spinner 與離頁提醒在此記錄。這是新授權，不把下方歷史保留 FAIL／撤回候選改寫成當時已批准或已驗收。R1 工具另案。
+
+- Spinner 現在以真正 HTML `output` 包住原 SVG。預設為原生 status，名稱 `Loading`（可用原 `aria-label`／`aria-labelledby` 指定中越名稱），預設 polite／atomic；caller `role` override 與 label／labelledby／describedby／live／atomic／busy 移到 output。非 status 的 role override 不強加 status 的 live／atomic 預設。
+- 此 output 只表示載入狀態，不是表單計算／提交欄位；明確 `form=""` 解除 form owner，避免原生 form reset 的 output reset 演算法清除內層 SVG／留下 stale ref。正常 DOM 反例與修後 formowner=null、SVG/ref 保留均需驗證；不修改外部 form。
+- 原 SVG 仍是 ref、className、style、size／動畫、event currentTarget、tabIndex／focusable 的目標；React 19 callback-ref cleanup 沿原 lucide 轉送。未指定互動／ARIA 的 SVG 預設 decorative；明確 tabIndex（含 -1）、focusable=true、事件 handler、title／children／其他 ARIA 或 aria-hidden=false 保留 SVG 暴露並附同名／說明關聯。這是保守 props 判斷，不是對 AT 操作性的保證。
+- 明示 aria-hidden 同步 output 與 SVG；hidden、inline display:none、visibility:hidden/collapse 同步隱藏 output，不殘留可讀 busy status。顯式互相矛盾的 caller focus/aria-hidden 意圖不擅自改寫。任意外部 CSS／className 隱藏無法由 props 完整推斷；className 留在 SVG，整體隱藏應用 hidden／上述 inline style／aria-hidden。外部 root／direct-child SVG selector 必須依新 output DOM 調整，不能假稱完全相容或使用 display:contents 略過驗證。唯一 tracked attachment vertical spinner selector 改為匹配內層 data-slot=spinner SVG；未擴大共享樣式。
+- Routine FQC 僅刪除 deprecated returnValue 賦值，原 dirty 計算、preventDefault、SPA 離頁 guard、manual Save 與資料／審核邏輯不變。批准能力底線是桌面 Chrome 119+、Edge 131+ 且無 legacy override；不是建議使用舊版本，也未核對公司裝置政策。其他 browser／mobile 不推定支援；行動裝置終止程序本來就不保證 beforeunload。
+
+回歸涵蓋實際 React/lucide SSR、Tailwind selector 編譯、正常 ReactDOM hydration、object/callback refs／cleanup／StrictMode、SVG focus/keyboard/click currentTarget、hide/remount、中越名稱／ARIA props，以及實際 Routine dirty/handler/canLeave 的合成事件；合成 event.defaultPrevented **不是原生離頁提示 PASS**。原生畫面、responsive、AT announcement、dirty reload/close、取消保留／繼續離頁及公司 browser 設定仍未驗，必須在正式支援接受前補證。相關實作不得放寬 lint、guard、ACL 或規則；當前完整 lint 結果由精確候選／整合收據另列，不由下方歷史數字推算。
+
+## 歷史判斷（保留原證據與當時限制）
+
 2026-10-19 三處 borrowed-method 修正整合後，最新完整實跑為 **FAIL 2／exit 1**：Spinner 的 `jsx-a11y(prefer-tag-over-role)` 與 Routine FQC 的 `typescript(no-deprecated)`（`returnValue`）。三個 `typescript(unbound-method)` 已移除；規則、typeAware／typeCheck及其他安全守門未放寬。這是 lint 結果，不能把修正理由、純fixture或局部瀏覽器證據合併稱成全功能PASS。
 
 2026-10-17 的 **FAIL 5／692 files，exit 1** 保留為歷史：當時有3個動態receiver、1個SVG accessibility、1個beforeunload診斷。精確CJS適用性調整由468移除463個require診斷、新增0，其餘5項multiset不變；收據位於 `Temp/sol61-equipment-clearance-cjs-root-20261017/`，不是目前仍有5項。

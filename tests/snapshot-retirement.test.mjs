@@ -50,9 +50,9 @@ await test('completed retirement status survives its execution expiry and owner 
  const id=(await f.call(budget,f.pins,'POST','begin',undefined,encode(f.nextManifest))).id;
  // This is a control/CAS fixture, not a claim to have hashed824 real resources.
  f.sqlite.prepare("INSERT INTO process_snapshot_activations(transfer_id,phase,version,audit_cursor,copy_cursor,db_cursor,bootstrap_sha) VALUES(?,'auditing',825,824,0,0,?)").run(id,'a'.repeat(64));
- c.expire();const before=retainedControl(f),objects=[...f.bucket.objects.keys()].sort();
+ c.expire();const before=retainedControl(f),objects=[...f.bucket.objects.keys()].sort((a,b)=>String(a)<String(b)?-1:String(a)>String(b)?1:0);
  assert.deepEqual(await c.retirement.status(),{oldTransferId:f.oldId,nextTransferId:id,state:'retired',preservesStaging:true});
- assert.deepEqual(retainedControl(f),before);assert.deepEqual([...f.bucket.objects.keys()].sort(),objects);
+ assert.deepEqual(retainedControl(f),before);assert.deepEqual([...f.bucket.objects.keys()].sort((a,b)=>String(a)<String(b)?-1:String(a)>String(b)?1:0),objects);
  const oldBudget=await budget.status();
  await budget.run('audit',false,async s=>{
   const row=await s.db.prepare('SELECT version,audit_cursor FROM process_snapshot_activations WHERE transfer_id=?').bind(id).first();
@@ -62,7 +62,7 @@ await test('completed retirement status survives its execution expiry and owner 
  });
  assert.deepEqual({...f.sqlite.prepare('SELECT version,audit_cursor,copy_cursor,db_cursor FROM process_snapshot_activations WHERE transfer_id=?').get(id)},{version:826,audit_cursor:828,copy_cursor:0,db_cursor:0});
  const after=await budget.status();assert.equal(after.state,'open');assert.equal(after.inFlight,false);assert.equal(after.used.requests,oldBudget.used.requests+1);assert.equal(after.used.dbStatements,oldBudget.used.dbStatements+1);assert.equal(after.used.writeBytes,oldBudget.used.writeBytes);assert.equal(after.used.writeCalls,oldBudget.used.writeCalls);
- assert.deepEqual(f.sqlite.prepare('SELECT * FROM process_import_retirements').all(),before.process_import_retirements);assert.deepEqual([...f.bucket.objects.keys()].sort(),objects);
+ assert.deepEqual(f.sqlite.prepare('SELECT * FROM process_import_retirements').all(),before.process_import_retirements);assert.deepEqual([...f.bucket.objects.keys()].sort((a,b)=>String(a)<String(b)?-1:String(a)>String(b)?1:0),objects);
  const afterAudit=retainedControl(f);await assert.rejects(c.retirement.retire(actor),/IMPORT_RETIREMENT_EXPIRED/);assert.deepEqual(retainedControl(f),afterAudit);
 });
 await test('expired required and fenced status still refuse without changing archived state or counters',async f=>{

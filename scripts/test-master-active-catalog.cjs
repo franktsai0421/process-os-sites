@@ -108,4 +108,4 @@ const checks=[],policyDifferences=[],legacyCosts=[];async function check(name,fn
   const selected=await records.decodeRecordValues(bucket,envelope,{keys:['masterDataControl'],projectValue:catalog.projectMasterCatalog});assert.equal(selected.recordStorage.partial,true);assert.equal(selected.recordStorage.models.size,0);const before=puts;await assert.rejects(records.encodeRecordValues(bucket,selected.values,selected.recordStorage),/Partial read cannot be saved/);assert.equal(puts,before);assert.equal(catalog.projectMasterCatalog('other','{}'),undefined);
  });
  console.log(JSON.stringify({status:'PASS_ISOLATED_CONTRACTS_WITH_POLICY_ACCEPTANCE_HOLD',checks:checks.length,names:checks,baseline,reduced,legacyCosts,policyDifferences,cpuLimit:'Node process CPU on synthetic fixtures, not native Worker CPU or live performance',network:false,businessWrites:false,liveTests:false}));
-}catch(error){console.error(error);process.exitCode=1;}finally{db.close();}})();
+}catch(error){console.error(error);process.exitCode=1;}finally{db.close();}})().catch(error=>{console.error(error);process.exitCode=1;});

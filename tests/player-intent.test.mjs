@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import ts from 'typescript';import test from 'node:test';
 const text=fs.readFileSync('public/process/app.js','utf8'),parsed=ts.createSourceFile('app.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
 const functions=parsed.statements.filter(n=>ts.isFunctionDeclaration(n)&&['applyPlayerIntent','rememberPlayerPosition'].includes(n.name?.text)).map(n=>n.getText(parsed)).join('\n');
-test('actual player intent validates current line/stage, retains reload position, and never supplies identity',()=>{
+void test('actual player intent validates current line/stage, retains reload position, and never supplies identity',()=>{
  const state={deviceLine:'A',deviceStage:'A-CUT'},location={href:'https://fixture.invalid/process/?view=player&line=C&stage=C-PACK'},events=[];
  const context={window:{},state,location,URL,routing:{lines:[{code:'A',stages:[{code:'A-CUT'}]},{code:'C',stages:[{code:'C-CUT'},{code:'C-PACK'}]}]},history:{state:{kept:true},replaceState(s,_title,url){events.push(s);location.href=String(url);}}};
  vm.createContext(context);vm.runInContext(functions+';applyPlayerIntent();',context);assert.equal(state.deviceLine,'C');assert.equal(state.deviceStage,'C-PACK');assert.equal(state.currentUser,undefined);
@@ -11,7 +11,7 @@ test('actual player intent validates current line/stage, retains reload position
  location.href='https://fixture.invalid/process/?view=player&line=PRIVATE&stage=X';vm.runInContext('applyPlayerIntent()',context);assert.equal(state.deviceLine,'C');
  assert.match(text,/window\.addEventListener\('popstate',/);
 });
-for(const outcome of ['missing method','declined','accepted'])test('actual player display URL hook '+outcome+' preserves history ownership and excludes identity',()=>{
+for(const outcome of ['missing method','declined','accepted'])void test('actual player display URL hook '+outcome+' preserves history ownership and excludes identity',()=>{
  const identity={id:'synthetic-actor',role:'synthetic-role'},state={deviceLine:'C',deviceStage:'C-CUT',currentUser:identity};
  const location={href:'https://fixture.invalid/process/?view=player&line=C&stage=C-PACK'},historyState={kept:true,processNavigationIndex:7},replacements=[],delegated=[];
  const history={state:historyState,replaceState(value,title,url){replacements.push({value,title,url:String(url)});this.state=value;location.href=String(url);}};
@@ -23,7 +23,7 @@ for(const outcome of ['missing method','declined','accepted'])test('actual playe
  assert.equal(replacements.length,outcome==='accepted'?0:1);if(replacements.length){assert.strictEqual(replacements[0].value,historyState);assert.equal(replacements[0].title,'');assert.equal(replacements[0].url,location.href);}
 });
 
-test('actual player popstate retains native fallback but leaves owned history to fresh commit',()=>{
+void test('actual player popstate retains native fallback but leaves owned history to fresh commit',()=>{
  const registration=text.split('\n').find(line=>line.startsWith("window.addEventListener('popstate',"));assert(registration);
  for(const owner of [undefined,{ownsHistory:false},{ownsHistory:true}]){
   const state={deviceLine:'A',deviceStage:'A-CUT'},window={ProcessDeliveryNavigation:owner,addEventListener(_name,fn){this.popstate=fn;}};

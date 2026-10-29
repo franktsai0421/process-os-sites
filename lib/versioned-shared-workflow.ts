@@ -5,6 +5,8 @@ import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,
 import {effectiveAccess} from './user-access';
 import {recordJSONResponse} from './state-records-response';
 import {moduleForURL,accessKeys} from '../public/process/access-policy.mjs';
+import {fqcExistingSetCommand,readFqcMutationState,encodeFqcMutationState} from './fqc-record-mutation';
+import {processSaveCommand,readProcessSaveMutationState,encodeProcessSaveMutationState} from './process-save-record-mutation';
 
 export type NumericVersion<T>={id:string;number:number;status:string;snapshot:T;revision:number;baseVersionId?:string|null;
   contentIssues?:SharedDraft<T>['cases'][number]['contentIssues'];
@@ -25,6 +27,8 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   key:string;scope:string;parse:(raw:string|undefined,prepared?:unknown)=>C;empty:()=>T;preparedModel?:boolean;
   // Opt in only when access reads identity/role state, never domain content.
   permissionOnlyRead?:boolean;
+  // Server-only opt-in; the mutation helper further checks storage and command.
+  recordMutation?:'fqc-existing-set'|'process-save';
   needsFullHistory?:(command:ModuleDraftCommand|undefined)=>boolean;
   context:(control:C,state:State,base:Omit<DraftContext<T>,'structure'|'validate'|'semantic'|'activeId'>)=>DraftContext<T>;
   apply:(control:C,command:ModuleDraftCommand,context:DraftContext<T>)=>ReturnType<typeof applyDraftCommand<T>>|Promise<ReturnType<typeof applyDraftCommand<T>>>;
@@ -176,7 +180,9 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     async POST(request:Request){let streamRecords=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const payload=compactWorkflowPayload(body,query.get('compact')==='1');return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
       const body=await commandBody(request),caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
       for(let attempt=0;attempt<4;attempt++){
-        const state=await readState({deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
+        const mutationState=body.action===undefined&&adapter.recordMutation==='fqc-existing-set'&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcExistingSetCommand(body.command)?await readFqcMutationState(body.command):null;
+        const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
+        const state=mutationState||processSaveState||await readState({deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
         const permissions=await currentPermissions(request,state),control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
@@ -212,7 +218,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.
         const values={...state.values,...(!prepared?{[adapter.key]:adapter.serialize?adapter.serialize(control):JSON.stringify(control)}:{[adapter.key]:state.values[adapter.key]??'null'}),...adapter.projectValues?.(control)};
-        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await encodeValues(values,state,prepared),at,state.revision).run();
+        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
         if(changed.meta.changes!==1)continue;
         return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,requestId});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);

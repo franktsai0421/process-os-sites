@@ -10,7 +10,7 @@ async function client(search=''){
  vm.runInNewContext(source,{Storage,localStorage,sessionStorage,window,fetch,crypto:webcrypto,TextEncoder,AbortSignal,URLSearchParams,location:{search},CustomEvent:class{constructor(type){this.type=type;}},console,document:{documentElement:{lang:'zh'}},setTimeout:fn=>{timers.set(++id,fn);return id;},clearTimeout:key=>timers.delete(key)});
  await window.ProcessSync.ready;return {api:window.ProcessSync,localStorage,calls,timers,events};
 }
-test('real client refuses partial legacy writes without false save success; complete dispatch key still uses original write endpoint',async()=>{
+void test('real client refuses partial legacy writes without false save success; complete dispatch key still uses original write endpoint',async()=>{
  const f=await client();assert.equal(f.calls[0].url,'/api/process-bootstrap');assert.equal(f.api.pendingState().dirty,0);
  f.localStorage.setItem('masterDataControl','{"seed":true}');assert.equal(f.api.projectionWriteError,null);assert.equal(f.localStorage.getItem('masterDataControl'),'{"active":{},"versions":[]}');assert.equal(f.calls.length,1);
  f.api.bootstrapping=false;
@@ -18,7 +18,7 @@ test('real client refuses partial legacy writes without false save success; comp
  const g=await client();g.localStorage.setItem('platformUsers','[]');g.localStorage.setItem('dispatchBoard','{"A":["TEST"]}');assert.equal(await g.api.flush(),true);assert.equal(g.calls.filter(c=>c.method==='POST').length,1);assert.equal(g.calls.at(-1).url,'/api/shared-state');assert.equal(g.api.revision,11);
  g.api.applyServerState({revision:12,values:{masterDataControl:'{"fullUnrelatedScope":true}',iqcMasterControl:'{"other":true}',dispatchBoard:'{"A":["confirmed"]}'}});assert.equal(g.localStorage.getItem('masterDataControl'),'{"active":{},"versions":[]}');assert.equal(g.localStorage.getItem('iqcMasterControl'),null);assert.equal(g.localStorage.getItem('dispatchBoard'),'{"A":["confirmed"]}');
 });
-test('real bootstrap never requests raw seeds, waits authoritative editor readiness, and keeps failures covered',async()=>{
+void test('real bootstrap never requests raw seeds, waits authoritative editor readiness, and keeps failures covered',async()=>{
  const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  async function boot(failed=false){
   const requested=[],removed=[],attrs={},gate={style:{},setAttribute(){},append(){},remove(){removed.push('gate');}};
@@ -32,13 +32,13 @@ test('real bootstrap never requests raw seeds, waits authoritative editor readin
  const ok=await boot();assert(ok.removed.includes('gate'));assert(ok.requested.length>0);assert(ok.requested.every(path=>!path.includes('/data/')&&!path.startsWith('data/')));assert.equal(ok.attrs.processReadyMs,10);
  const bad=await boot(true);assert.deepEqual(bad.requested,[]);assert(!bad.removed.includes('gate'));assert.match(bad.gate.textContent,/載入失敗/);
 });
-test('expired normal session returns to fixed login with display intent and requests no seed',async()=>{
+void test('expired normal session returns to fixed login with display intent and requests no seed',async()=>{
  const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  const navigations=[],gate={textContent:''};
  await vm.runInNewContext(text,{window:{ProcessSync:{ready:Promise.resolve(),loginRequired:true}},deliveryPolicy,document:{querySelector:()=>gate,querySelectorAll:()=>[]},localStorage:{getItem:()=> 'zh'},URLSearchParams,location:{search:'?system=process&view=player&line=C&stage=C-CUT&next=https://bad.invalid&role=admin',replace:url=>navigations.push(url)}});
  assert.deepEqual(navigations,['/login?system=process&view=player&line=C&stage=C-CUT']);
 });
-test('account and review destinations wait for their existing reads without launching another read',async()=>{
+void test('account and review destinations wait for their existing reads without launching another read',async()=>{
  const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  for(const destination of [{view:'data',dataTab:'users',system:'process'},{view:'approval',system:'process'}]){
   let release,removed=false,calls=0;const existing=new Promise(resolve=>release=resolve),wait=()=>{calls++;return existing;},gate={setAttribute(){},append(){},remove(){removed=true;}};
@@ -48,13 +48,13 @@ test('account and review destinations wait for their existing reads without laun
   for(let n=0;n<20;n++)await Promise.resolve();assert.equal(calls,1);assert.equal(removed,true);assert.equal(document.documentElement.dataset.processReadyMs,undefined);release();await pending;assert.equal(removed,true);assert.equal(calls,1);
  }
 });
-test('bootstrap sends only destination intent; account change clears old delivery and cannot refresh it into another actor',async()=>{
+void test('bootstrap sends only destination intent; account change clears old delivery and cannot refresh it into another actor',async()=>{
  const f=await client('?view=data&dataTab=quality-iqc&system=quality&role=admin&token=not-a-credential');
  assert.equal(f.calls[0].url,'/api/process-bootstrap?system=quality&view=data&dataTab=quality-iqc');
  f.api.setPlatformIdentity({id:'other',role:'staff'});assert.equal(f.api.requiresReload,true);assert.equal(f.api.catalog,null);assert.equal(f.localStorage.getItem('masterDataControl'),null);
  assert(f.events.includes('process-delivery-invalidated'));await assert.rejects(()=>f.api.refresh(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.calls.length,1);
 });
-test('cold bootstrap completion cannot mark a newer same-document target ready',async()=>{
+void test('cold bootstrap completion cannot mark a newer same-document target ready',async()=>{
  const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  let epoch=0,release;const targetReady=new Promise(resolve=>release=resolve),attrs={processDestinationGeneration:'0'},gate={setAttribute(){},append(){},remove(){}};
  const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>epoch,isCurrentDelivery:old=>old===epoch,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};
@@ -62,7 +62,7 @@ test('cold bootstrap completion cannot mark a newer same-document target ready',
  const pending=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html?view=dashboard',reload(){}}});
  await new Promise(resolve=>setImmediate(resolve));epoch++;attrs.processDestinationGeneration='1';release();await pending;assert.equal(attrs.processDestinationReadyGeneration,undefined);assert.equal(attrs.processReadyMs,undefined);
 });
-test('late cold target-read error preserves already interactive owned module DOM',async()=>{
+void test('late cold target-read error preserves already interactive owned module DOM',async()=>{
  const text=fs.readFileSync('public/process/bootstrap.js','utf8').replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
  let reject,removed=false,prepended=0,replaced=0;const targetReady=new Promise((_r,j)=>reject=j),root={prepend(){prepended++;},replaceChildren(){replaced++;}},gate={setAttribute(){},append(){},remove(){removed=true;}};
  const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'frank'},captureDelivery:()=>({id:'frank',generation:0}),isCurrentDelivery:()=>true,destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessDeliveryNavigation:{initialized:Promise.resolve(),readyForDestination:()=>targetReady},dispatchEvent(){}};

@@ -1,6 +1,6 @@
 /* Actual editor + Graph + Journal. Synthetic DOM/geometry only; no native hit-test claim. */
 const assert=require('node:assert/strict'),fixture=require('./fixtures/canvas-controls.cjs'),results=[];
-const clone=structuredClone,node=(id,x,y)=>({id,editorType:'manual',number:id,name:'Synthetic '+id,stageCode:'A-CUT',nextIds:[],x,y});
+const node=(id,x,y)=>({id,editorType:'manual',number:id,name:'Synthetic '+id,stageCode:'A-CUT',nextIds:[],x,y});
 const mixed=()=>[node('negative',-180,-60),node('large',2400,1500)];
 const close=(a,b)=>assert(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 async function test(name,fn){await fn();results.push({name,status:'PASS'});console.log(JSON.stringify(results.at(-1)));}

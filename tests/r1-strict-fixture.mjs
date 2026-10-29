@@ -1,6 +1,6 @@
 // Synthetic metadata and tiny images only. Existing record codec supplies the
 // actual __processRecords envelope; no real package or credential is read.
-import fs from 'node:fs';
+import 'node:fs';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {r1Tables} from '../lib/r1-contract.mjs';
