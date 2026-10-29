@@ -837,8 +837,9 @@
     sharedClient?.gatePermissions?.();
   }
 
+  const canDraftAction=op=>!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
   async function saveDraft(action) {
-    if (!editable() || busy) return null;
+    if (!canDraftAction(action) || busy) return null;
     if(control?.workflow||open()?.status!=='pending')return writeShared(action);
     try {
       if (pendingPhotos.size) {
@@ -2783,7 +2784,7 @@
         <div class="routine-version-actions">
           <label>${t('查看版本／草稿', 'Xem phiên bản / bản nháp')}<select id="routine-version-select">${[...control.versions].reverse().map(record => `<option value="${h(record.id)}" ${record.id === version.id ? 'selected' : ''}>V${record.number} · ${h(status(record.status))} · ${h(lastEdit(record)?.actorName || record.creatorName)} · ${h(date(lastEdit(record)?.at || record.createdAt))}</option>`).join('')}</select></label>
           ${!open() && active() && permitted('approval.submit') ? `<button class="button signal" id="routine-begin" ${busy ? 'disabled' : ''}>${t('開始修改', 'Bắt đầu sửa')}</button>` : ''}
-          ${canEdit ? `<button class="button ghost" id="routine-save" ${busy ? 'disabled' : ''}>${t('儲存草稿', 'Lưu bản nháp')}</button><button class="button signal" id="routine-submit" ${busy ? 'disabled' : ''}>${t('送出審核', 'Gửi duyệt')}</button>` : ''}
+          ${canDraftAction('save') ? `<button class="button ghost" id="routine-save" ${busy ? 'disabled' : ''}>${t('儲存草稿', 'Lưu bản nháp')}</button>` : ''}${canDraftAction('submit') ? `<button class="button signal" id="routine-submit" ${busy ? 'disabled' : ''}>${t('送出審核', 'Gửi duyệt')}</button>` : ''}
           ${version.status === 'pending' && permitted('approval.withdraw') ? `<button class="button ghost" id="routine-withdraw" ${busy ? 'disabled' : ''}>${t('撤回送審', 'Rút hồ sơ')}</button>` : ''}
         </div>
       </section>

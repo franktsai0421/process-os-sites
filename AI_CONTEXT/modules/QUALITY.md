@@ -1,3 +1,5 @@
+2026-10-29 equipment permissions candidate: V3 Save/Submit rendering and handlers use each right, not editable(); legacy full snapshot writes require edit+save(+submit), explicit create/delete and diff checks. Narrow effective dependency catalog authorization is unchanged. No live data changes.
+
 2026-10-29 IPQC-AB permissions candidate: module Save/Submit use own rights; an existing whole-module draft is read without an unnecessary edit-gated begin POST. Initial draft creation still requires edit; group scopes, whole-module CAS/pending and membership fences remain. No data changes/publication.
 
 2026-10-29 FQC permissions candidate: save/submit buttons use their own rights on existing V3 draft; edit is still needed to begin a draft. No workflow kernel or business state change. Stacked on users/IQC candidates; acceptance tracked in clear-rights report.
