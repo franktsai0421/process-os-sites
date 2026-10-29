@@ -155,3 +155,10 @@
 先依既有 onboarding 設定安裝，`npm ci`；設定目前 SHA build，執行 `PROCESS_PROGRAM_COMMIT=<SHA> EXTENDED_ACCEPTANCE=1 MEASUREMENT_PHASE=acceptance node tests/process-master-cloud-browser.test.mjs`；native 執行 `tests/process-master-cloud-native.test.mjs`，突發輸入執行 `tests/process-master-name-burst-browser.test.mjs`。預覽副本的 `scripts/start-process-flow-preview.mjs` 會建立隔離合成資料；帳號／啟動說明見該副本 `PREVIEW_CLOUD_29102026.md`。
 
 公開預覽需可建立新站的工具／平台；GitHub API 必須在環境政策允許後才能提交兩張 Draft PR。準備好的 PR body 僅為草稿檔，不是已建立 PR。完成上述外部交付、使用者實際驗收與 dot 核對後，才可進入後續整合；本任務仍不自行 merge 或發布既有站台。
+
+
+## 2026-10-29 照片與共用入口補驗
+
+照片候選補做 15 組原生表單、保存回讀、方向／透明／小字檢查；共用燈箱增加原像素放大。請以照片分支 [驗收紀錄](https://github.com/franktsai0421/process-os-sites/blob/codex/photo-standard-cloud-29102026/docs/sites/PHOTO_STANDARD_CLOUD_29102026.md) 為來源；本流程分支不混入照片程式。兩候選預覽已包含此修正。
+
+原先「請 dot 注意三個新增共用檔案」已補成固定分支實際比對：權限及小幫手分支沒有修改 master-data.js、master-review.js、bom-workspace.js；程式衝突集中在 index 資產標記。詳細 SHA、文件衝突與通過 apply check 的入口補丁見 [整合核對](integration-cloud-29102026/README.md)。沒有把另外兩任務程式合進本分支，亦未冒稱四任務組合已通過瀏覽器驗收。

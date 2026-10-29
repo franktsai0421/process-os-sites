@@ -1,4 +1,4 @@
-流程 CLOUD 29102026 最新產品來源 `74ab03f`：已補修流程專屬 reviewer 的平台載入，10 項審核／取消驗收與 39 項完整流程通過。新增共用重疊 master-data.js、master-review.js、bom-workspace.js 與 index，請 dot 核對；仍未建立公開預覽或 Draft PR。
+流程 CLOUD 29102026 最新產品來源 `74ab03f`：已補修流程專屬 reviewer 的平台載入，10 項審核／取消驗收與 39 項完整流程通過。已實際核對權限／小幫手固定分支：前三個共用 JS 無同檔變更，index 的最小入口補丁及文件衝突見 [整合核對](docs/sites/integration-cloud-29102026/README.md)；仍未建立公開預覽或 Draft PR。
 
 流程 CLOUD 29102026 續修已驗：產品來源 `212a730`、瀏覽器 39 記錄及 native 14 組；名稱 Apply 併寫與真實 IME 事件修正。完整逐步清單、前後三輪測速、未測與公開交付阻礙見 [驗收](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。原獨立分支與 dot 整合界線不變。
 
