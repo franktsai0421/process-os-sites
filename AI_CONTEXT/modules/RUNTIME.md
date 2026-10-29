@@ -1,3 +1,7 @@
+## 2026-10-29 全站照片入口統一候選
+
+FQC `fileData` 新上傳先經 `prepareBrowserPhoto` 再保存 data URL；其他入口沿用現行 shared policy，PNG 無損、其餘支援格式保持編碼。介面不再顯示照片規格／壓縮方案。沒有持久 schema、附件識別、權限、歷史或既有照片轉換。詳見 [唯一盤點與驗證紀錄](../../docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
 ## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
 
 FQC destination 的 bootstrap keys、canonical fallback 與所有新鮮身分／撤權／revision 判定不變。僅 records-v1 的已驗 SHA aggregate，且 quality schema1、FQC versions array、workflow schema3／scope fqc／generation／revision 合格時，bootstrap 暫不投影 FQC library；保留其他 quality libraries 原資料。FQC 頁面仍必須完成自己原有的 workflow → AB catalog → equipment GET，且 owner/epoch/delivery 仍有效後才 adopt、render ready。未採用／缺失／不合格 header、inline/chunk 與其他 destination 維持原讀取。不新增 fake workflow、假空版本、notice 啟動或前端 API；publicState 本來就移除 FQC workflow，IQC-only／mixed notice 行為亦保留。

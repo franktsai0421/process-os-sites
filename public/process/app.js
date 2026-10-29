@@ -2124,7 +2124,7 @@ function processMasterView() {
         const mediaItems = processTemplateMediaItems(template),
           key = processMasterTemplateKey(template),
           equipmentButton = window.ProcessEquipment?.cardButton(template) || '';
-        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div><div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}">${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
+        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div><div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}">${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span></label>' : ''}</article>`;
       },
     )
     .join(
@@ -3011,13 +3011,13 @@ function renderInspector(operation) {
     if (!files.length) return;
     syncText();
     try {
-      const { items, compressedCount } = await prepareMediaUploads(files);
+      const { items } = await prepareMediaUploads(files);
       operation.mediaItems.push(...items);
       const first = operationWorkMediaItems(operation)[0];
       operation.media = first?.src || null;
       operation.mediaName = first?.name || '';
       operation.mediaType = first?.type || '';
-      if (compressedCount) toast('照片已自動壓縮後加入');
+      if (items.length) toast(document.documentElement.lang === 'vi' ? 'Đã thêm ảnh' : '已加入照片');
       renderInspector(operation);
     } catch (error) {
       console.warn('媒體上傳失敗', error);
@@ -3259,9 +3259,7 @@ function bindDataInner(tab) {
           processMasterView();
         bindDataInner('process-master');
         toast(
-          prepared.compressedCount
-            ? `已加入 ${prepared.items.length} 張照片，其中 ${prepared.compressedCount} 張已自動壓縮`
-            : `已加入 ${prepared.items.length} 張照片`,
+          document.documentElement.lang === 'vi' ? `Đã thêm ${prepared.items.length} ảnh` : `已加入 ${prepared.items.length} 張照片`,
         );
         }catch(error){toast(error.message);}finally{input.disabled=false;input.value='';}
       };
