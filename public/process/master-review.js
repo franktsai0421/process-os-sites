@@ -12,6 +12,7 @@
     ...(host.MasterAdminUI?.categoryEntries(catalog)||[]).map(g=>({key:'category:'+g.line+':'+g.name,kind:t('類別','Nhóm'),code:g.line,value:g.name+' · '+(Array.isArray(g.defaultStages)?t('預設路線：','Tuyến mặc định: ')+(g.defaultStages.join(' → ')||t('空路線','Tuyến trống')):g.defaultStages===null?t('已移除預設，保留產品路線','Đã bỏ mặc định, giữ tuyến sản phẩm'):t('尚未設定群組路線','Chưa đặt tuyến nhóm'))}))
   ];}
   function diff(next,previous){const before=new Map(rows(previous).map(r=>[r.key,r])),after=new Map(rows(next).map(r=>[r.key,r]));return [...new Set([...before.keys(),...after.keys()])].flatMap(key=>{const a=before.get(key),b=after.get(key);if(a&&b&&(a.fingerprint||a.value)===(b.fingerprint||b.value))return [];const mediaOnly=a&&b&&a.value===b.value;return [{kind:(b||a).kind,code:(b||a).code,type:!a?'add':!b?'delete':'edit',before:a?.value||'—',after:(b?.value||'—')+(mediaOnly?t('（照片或詳細內容已更新）',' (Đã cập nhật ảnh hoặc chi tiết)'):'')}];});}
+  const readableScopes=()=>['AB','C','PROCESS'].filter(scope=>host.hasPermission?.({AB:'ab.view',C:'c.view',PROCESS:'templates.view'}[scope])===true);
   function install({state,control,persist: _persist,record: _record,validateCatalog: _validateCatalog,applyActive,showVersion: _showVersion,shared}){
     let busy=false,error='',owner='',epoch=0;
     const bodies=new Map(),requests=new Map();
@@ -24,12 +25,12 @@
     function items(){
       if(owner!==actor()){owner=actor();epoch++;bodies.clear();requests.clear();error='';state.masterReviewId=null;}
       const rows=[];
-      for(const scope of ['AB','C','PROCESS']){
+      for(const scope of readableScopes()){
         const cases=shared?.flow(scope)?.cases||[],ids=new Set(cases.map(c=>c.id));
         for(const c of cases){const v=control.versions.find(v=>v.id===c.id&&v.scope===scope);rows.push({...c,scope,number:v?.number,creatorName:c.actor?.name,updatedAt:c.result?.at||c.at,fixed:true});}
         rows.push(...control.versions.filter(v=>v.scope===scope&&v.status!=='draft'&&!ids.has(v.id)).map(v=>({...v,fixed:false,reason:v.reason||v.changeReason||'',actor:{id:v.creatorId,name:v.creatorName},at:v.createdAt||v.updatedAt})));
       }
-      rows.push(...(host.BOMWorkspace?.reviewItems?.()||[]));
+      if(host.hasPermission?.('bom.view'))rows.push(...(host.BOMWorkspace?.reviewItems?.()||[]));
       return rows.sort((a,b)=>new Date(b.updatedAt||b.at)-new Date(a.updatedAt||a.at));
     }
     const visible=()=>items().filter(v=>state.masterReviewMode==='history'?v.status!=='pending':v.status==='pending');
@@ -53,7 +54,7 @@
     function view(){const all=items(),list=visible(),item=selected(),history=state.masterReviewMode==='history';if(item)state.masterReviewId=key(item);return '<section id="master-unified-review" class="master-pending master-review-top" data-i18n-skip="true"><header><div><h2>'+t('主資料送審案件','Hồ sơ duyệt dữ liệu gốc')+'</h2><p>'+t('AB、C、BOM、線別工段與流程資料','AB, C, BOM, chuyền, công đoạn và dữ liệu quy trình')+'</p></div><span>'+all.filter(v=>v.status==='pending').length+' '+t('件待確認','hồ sơ chờ duyệt')+'</span></header><div class="toolbar master-review-filters"><button type="button" class="button '+(!history?'signal':'ghost')+'" data-review-mode="pending" aria-pressed="'+!history+'">'+t('待審案件','Chờ duyệt')+'</button><button type="button" class="button '+(history?'signal':'ghost')+'" data-review-mode="history" aria-pressed="'+history+'">'+t('歷史紀錄','Lịch sử')+'</button><button type="button" class="button ghost" id="master-review-refresh" '+(busy?'disabled':'')+'>'+t('重新整理','Tải lại')+'</button></div><p class="master-review-error" role="alert">'+h(error||host.BOMWorkspace?.reviewError?.()||'')+'</p><div class="master-review-grid"><aside class="master-review-list" aria-label="'+t('案件清單','Danh sách hồ sơ')+'">'+list.map(v=>'<button type="button" data-master-review="'+h(key(v))+'" aria-pressed="'+(item&&key(item)===key(v))+'" class="'+(item&&key(item)===key(v)?'active':'')+'"><b>'+h(scopeLabel(v))+(v.number?' · V'+v.number:'')+'</b><span class="master-status '+h(v.status)+'">'+h(statuses()[v.status]||v.status)+'</span><small>'+h(v.actor?.name||v.creatorName||'—')+' · '+h(stamp(v.at||v.updatedAt))+'</small></button>').join('')+'</aside><div class="master-review-detail">'+detail(item)+'</div></div></section>';}
     function redraw(){if(state.view!=='approval'||state.approvalTab!=='master')return;const root=document.querySelector('#master-unified-review');if(!root)return;const restore=host.VersionDraftUI?.preserveView(root.parentElement||root);const markup=view();if(root.outerHTML!==markup){root.outerHTML=markup;bind();}restore?.();const badge=document.querySelector('[data-review-tab="master"] .approval-tab-count');if(badge)badge.textContent=String(items().filter(v=>v.status==='pending').length);}
     async function loadBody(item){if(!item?.fixed||bodies.has(key(item)))return;const id=key(item),who=actor(),token=epoch;if(requests.has(id))return requests.get(id);const task=(async()=>{try{const result=item.scope==='BOM'?await host.BOMWorkspace.reviewCase(item.id):await shared.client(item.scope).reviewCase(item.id);if(who!==actor()||token!==epoch)return;bodies.set(id,result.reviewCase);}catch(e){if(who===actor())error=message(e);}finally{requests.delete(id);redraw();}})();requests.set(id,task);return task;}
-    async function refresh(){await Promise.all(['AB','C','PROCESS'].map(s=>shared.load(s)));await host.BOMWorkspace?.loadReview?.();applyActive();}
+    async function refresh(){await Promise.all(readableScopes().map(s=>shared.load(s)));if(host.hasPermission?.('bom.view'))await host.BOMWorkspace?.loadReview?.();applyActive();}
     async function act(action){const item=selected();if(!item||!access(item,action))return;busy=true;error='';const who=actor();redraw();try{
       let result;
       if(item.scope==='BOM')result=await host.BOMWorkspace.reviewAction(action,item.id);
@@ -73,5 +74,5 @@
     host.addEventListener('bom-review-updated',redraw);
     return {view,bind};
   }
-  host.MasterReview={install,diff};
+  host.MasterReview={install,diff,readableScopes};
 })(typeof window==='undefined'?globalThis:window);
