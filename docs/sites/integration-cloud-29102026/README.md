@@ -19,3 +19,5 @@
 最後已用預覽產品 commit `642d4defc8057c5d96e902070e39a6181a1afc17` 重新執行 merge-tree 比對；照片組成 `88ccd815ff341d80e23b573eea6c8016a93a430c`，衝突範圍未增加。入口補丁仍通過 apply check，checks 記錄最終 index 雜湊。
 
 離開提醒補驗後，已更新至預覽 `b307b8d`（流程 `72e6de9`＋照片 `88ccd81`）重新核對同一組固定分支；入口保留 flowleave1。最新 patch apply check 通過，未合併其他任務程式。
+
+首次進頁優化後，固定比較更新為預覽 `cfc2c6a`（流程 `6349715`＋照片 `88ccd81`）。新增 index 的 processBootLayout 條件；整合必須保留其僅在 process-master boot 期間適用的範圍。現有入口補丁仍可套用，實際在暫存副本確認未遺失資產或此條件；最新 index 雜湊記於 checks。merge-tree 衝突範圍未增加，未合併其他任務。

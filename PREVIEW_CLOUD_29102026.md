@@ -1,3 +1,5 @@
+最新編譯產品 `cfc2c6abca11794a1e86d620a0115d6037de5630`，組成流程 `6349715`＋照片 `88ccd81`。入口優化與五輪拆量見 [報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。下方舊版本均為歷史紀錄。公開預覽網址仍未建立。
+
 最新產品來源 `b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc`，組成流程 `72e6de9`＋照片 `88ccd81`，含離開提醒修正。18 項離開補驗與最終三輪比較見 [紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。下方早期產品 commit 保留作歷史追蹤。
 
 # 流程資料驗收副本 CLOUD 29102026
