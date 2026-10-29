@@ -31,6 +31,7 @@ try{
   const other=await login('other-admin');try{assert.equal((await call(other.context,'update',{id,version:issue.version,status:'done',note:'Concurrent admin 私人備註'})).status(),200);}finally{await other.context.close();}
   const note='保留我的備註 Giữ ghi chú';await page.locator('[data-note]').fill(note);await page.locator('[data-update]').first().click();
   await page.locator('[data-reload-note]').waitFor();assert.equal(await page.locator('[data-note]').inputValue(),note);
+  await page.locator('[data-board-tab=history]').click();assert(await page.locator('[data-reload-note]').isVisible());assert.equal(await page.locator('[data-board-tab=list]').getAttribute('aria-selected'),'true');
   await page.route('**/api/web-feedback?action=list',r=>r.abort(),{times:1});await page.locator('[data-reload-note]').click();await page.waitForFunction(()=>!document.querySelector('[data-reload-note]')?.disabled);assert.equal(await page.locator('[data-note]').inputValue(),note);
   await page.locator('[data-reload-note]').click();await page.waitForFunction(()=>!document.querySelector('[data-reload-note]'));
   assert.equal(await page.locator('.wf-detail h3').textContent(),id);assert.equal(await page.locator('[data-note]').inputValue(),note);assert.equal(await page.locator('[data-update]').first().getAttribute('data-update'),'done');
