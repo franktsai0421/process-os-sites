@@ -1,3 +1,9 @@
+## 2026-10-29 — Stacked C source delivery
+
+IPQC-C entry/Apply/coverage, approved Save-only bounded storage and explicit Save-response projection. Dirty ACK input is retained, new writes paused pending manual fresh reload; full server validation/CAS/history retained. C large Save remains above 1 second.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
 ## 2026-10-29 — Stacked AB source delivery
 
 IPQC-AB owner-bound reads, independent action/photo authorization, local diff indexing and deferred equipment entry. Single-owner shared read guards and foreground scheduler declarations are prerequisites; new Begin behavior remains in the later back-office layer.
