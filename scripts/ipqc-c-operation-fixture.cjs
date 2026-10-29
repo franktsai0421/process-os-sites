@@ -33,7 +33,8 @@ const allowed = {
   'no-view': ['equipment.view', 'approval.view', ...c('edit', 'save', 'submit', 'approve', 'return', 'delete')],
   revocable: ['equipment.view', ...c('view', 'edit', 'save', 'submit')],
 };
-async function fixture(projection = {}) {
+async function fixture(projection = {}, { iqcReferenceView = false } = {}) {
+  assert.equal(typeof iqcReferenceView, 'boolean');
   const db = new DatabaseSync(':memory:'), objects = new Map(), trace = [];
   for (const file of fs.readdirSync('drizzle').filter(file => file.endsWith('.sql')).sort())
     db.exec(fs.readFileSync(path.join('drizzle', file), 'utf8'));
@@ -64,7 +65,7 @@ async function fixture(projection = {}) {
     role: id === 'admin' ? 'admin' : 'staff', enabled: true, inheritRole: false, authEpoch: 1,
     password, lines: ['A', 'B', 'C'], views: ['data', 'approval'],
     permissions: [],
-    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key)])),
+    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || (id === 'editor' && iqcReferenceView && key === 'iqc.view')])),
   }));
   const values = { ...projection, platformUsers: JSON.stringify(users) };
   db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(
