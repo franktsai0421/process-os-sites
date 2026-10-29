@@ -23,7 +23,7 @@ try {
  await command('reviewer','return',{caseId:first.receipt.caseId,reason:'合成案例：請補照片說明'});
  const second=await command('frank','submit',{savedId,reason:'合成撤回案例'});
  await command('frank','withdraw',{caseId:second.receipt.caseId,reason:'合成案例：送審者撤回'});
- console.log(JSON.stringify({name:'流程資料驗收副本 CLOUD 29102026',status:'READY_ISOLATED_PREVIEW',port:fixture.url.port,programCommit:process.env.PROCESS_PROGRAM_COMMIT,composition:{flow:'212a730',photos:'19855a0'},realData:false}));
+ console.log(JSON.stringify({name:'流程資料驗收副本 CLOUD 29102026',status:'READY_ISOLATED_PREVIEW',port:fixture.url.port,programCommit:process.env.PROCESS_PROGRAM_COMMIT,composition:{flow:'74ab03f',photos:'19855a0'},realData:false}));
  let stopping=false;
  const stop=async()=>{if(stopping)return;stopping=true;await fixture.close();process.exit(0);};
  process.on('SIGTERM',()=>void stop());process.on('SIGINT',()=>void stop());

@@ -1,6 +1,6 @@
 # 流程資料驗收副本 CLOUD 29102026
 
-此 checkout 僅作本次隔離預覽，組成流程 212a730 與照片 19855a0；衝突只在此預覽副本按功能整合，不改兩個 PR 或 main。需 dot 後續核對。
+此 checkout 僅作本次隔離預覽，組成流程 74ab03f 與照片 19855a0；衝突只在此預覽副本按功能整合，不改兩個 PR 或 main。需 dot 後續核對。
 
 使用 `PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) npm run build` 後，執行 `PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) node scripts/start-process-flow-preview.mjs`。伺服器使用原生 Miniflare 隔離 D1/R2，停止即清除；不連向既有站台，沒有持久真實業務資料。
 
