@@ -3,7 +3,7 @@ import vm from "node:vm";
 import assert from "node:assert/strict";
 const cases=['AB','C','PROCESS','BOM'].map(scope=>({id:scope+'-case',scope,status:'pending',reason:scope+' reason',actor:{id:'submitter',name:'Submitter'},at:'2026-10-10T00:00:00Z',fixed:true}));
 const state={view:'approval',approvalTab:'master'},control={versions:[{id:'old',scope:'AB',status:'approved',number:1,snapshot:{products:[],lines:[]}}]};
-const host={ProcessSync:{identity:{id:'reviewer'}},addEventListener(){},BOMWorkspace:{reviewItems:()=>cases.filter(c=>c.scope==='BOM'),reviewPermission:()=>true,reviewError:()=>''},hasPermission:()=>false};
+const host={ProcessSync:{identity:{id:'reviewer'}},addEventListener(){},BOMWorkspace:{reviewItems:()=>cases.filter(c=>c.scope==='BOM'),reviewPermission:()=>true,reviewError:()=>''},hasPermission:key=>["ab.view","c.view","templates.view","bom.view"].includes(key)};
 const context={window:host,document:{documentElement:{lang:'zh-Hant'},querySelector:()=>null},URL,location:{href:'http://localhost/process/?view=data&dataTab=bom'},history:{state:null,replaceState(a,b,url){context.location.href=String(url);}},navigate(view){state.view=view;},currentUser:{role:'staff'}};
 
 vm.createContext(context);
@@ -48,3 +48,10 @@ review.view();
 assert.notEqual(state.masterReviewId,'BOM:BOM-case');
 
 console.log('PASS unified AB/C/PROCESS/BOM list, withdrawn exclusion, audit history, read-only closed cases, bilingual labels, route and actor reset');
+// A restricted reviewer must not load or display unauthorized cached scopes.
+host.hasPermission=key=>key==='templates.view';
+state.masterReviewMode='history';state.masterReviewId=null;
+html=review.view();assert.match(html,/PROCESS-case/);assert(!html.includes('AB:old'));assert(!html.includes('BOM:BOM-case'));
+assert.equal(Array.from(host.MasterReview.readableScopes()).join(','),'PROCESS');
+host.hasPermission=()=>false;assert.equal((review.view().match(/data-master-review=/g)||[]).length,0);
+console.log('PASS restricted reviewer sees only permitted scopes; denied view exposes no cached cases');
