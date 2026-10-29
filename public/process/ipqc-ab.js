@@ -147,7 +147,8 @@
     const valid=()=>actor()===identity;
     try{
       const client=moduleTransport();if(client.hasUnknown())await client.resolveUnknown();await client.flush();
-      let result=['approve','reject','withdraw'].includes(action)?await client.read():await client.begin();if(!valid())throw Error('IDENTITY_CHANGED');
+      let result=await client.read();if(!valid())throw Error('IDENTITY_CHANGED');
+      if(!result.control?.workflow&&!['approve','reject','withdraw'].includes(action)){result=await client.begin();if(!valid())throw Error('IDENTITY_CHANGED');}
       const flow=result.control?.workflow;if(!flow)throw Error('WORKFLOW_LOAD_FAILED');
       let fields={expectedRevision:flow.revision,input:{stateRevision:result.revision}},commandAction=action;
       if(action==='submit'){if(!flow.saved)throw Error('SUCCESSFUL_SAVE_REQUIRED');const why=await window.VersionDraftUI.confirmSubmit(reason,'IPQC-AB · '+Object.keys(flow.saved.content.scopes).join('、'));if(!why)return null;fields={...fields,savedId:flow.saved.id,reason:why};}
@@ -226,8 +227,8 @@
         <div class="ipqcab-actions"><label>${t('選擇版本','Chọn phiên bản')}<select id="ipqcab-version">
           ${(scope()?.versions || []).slice().reverse().map(row=>`<option value="${h(row.id)}" ${row.id===v?.id?'selected':''}>V${row.number} · ${status(row.status)} · ${h(lastEdit(row)?.actorName || row.creatorName)} · ${h(new Date(lastEdit(row)?.at || row.createdAt).toLocaleString())}</option>`).join('')}</select></label>
           ${!opened() && permitted('approval.submit')?`<button type="button" id="ipqcab-begin">${t('開始修改','Bắt đầu sửa')}</button>`:''}
-          ${moduleDrafts().length&&permitted('approval.submit')?`<button type="button" id="ipqcab-save" ${busy?'disabled':''}>${t('儲存草稿','Lưu bản nháp')}</button>
-            <button type="button" class="signal" id="ipqcab-submit" ${busy?'disabled':''}>${t('送出審核','Gửi duyệt')}</button>`:''}
+          ${moduleDrafts().length&&sharedClient?.permission('save')===true?`<button type="button" id="ipqcab-save" ${busy?'disabled':''}>${t('儲存草稿','Lưu bản nháp')}</button>`:''}
+          ${moduleDrafts().length&&sharedClient?.permission('submit')===true?`<button type="button" class="signal" id="ipqcab-submit" ${busy?'disabled':''}>${t('送出審核','Gửi duyệt')}</button>`:''}
           ${ownPending(v)?`<button type="button" id="ipqcab-withdraw">${t('撤回','Rút hồ sơ')}</button>`:''}</div>
         ${editing()?`<label class="ipqcab-reason">${t('變更理由','Lý do thay đổi')}<input id="ipqcab-reason" value="${h(reason)}"></label>`:''}</section>
       ${message?`<p class="ipqcab-message" role="status">${h(displayDraftError(message))}</p>`:''}

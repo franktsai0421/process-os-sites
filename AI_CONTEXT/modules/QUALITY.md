@@ -1,3 +1,5 @@
+2026-10-29 IPQC-AB permissions candidate: module Save/Submit use own rights; an existing whole-module draft is read without an unnecessary edit-gated begin POST. Initial draft creation still requires edit; group scopes, whole-module CAS/pending and membership fences remain. No data changes/publication.
+
 2026-10-29 FQC permissions candidate: save/submit buttons use their own rights on existing V3 draft; edit is still needed to begin a draft. No workflow kernel or business state change. Stacked on users/IQC candidates; acceptance tracked in clear-rights report.
 
 2026-10-29 IQC permissions candidate: V3 save/submit/withdraw buttons use their own rights, create uses create+edit; legacy snapshot writes require edit+save(+submit) and content create/delete checks. No data migration or publication. Depends on clear-rights shared permission foundation; browser acceptance recorded in users acceptance report.
