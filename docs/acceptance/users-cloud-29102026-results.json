@@ -3,7 +3,7 @@
   "candidateSourceSha256": {
     "app/api/user-access/route.ts": "ba4f1da044ac70c5058eb5e4656342d0d333ba45e9b487e82046e0cf2c190435",
     "lib/user-access.ts": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
-    "public/process/user-access.js": "324048a1c4ed1baed807115f3d2dc4619231bec8fac91ab44e9d2cee51f5d7fa",
+    "public/process/user-access.js": "d5024e97d09761b603472e8bc55f5dd23eed52c20da46059ec51b37118845c33",
     "public/process/user-access.css": "d5b13eb492734d02947a6c908d92f8007f7a82d4ebebdc8bc84fd9fe66e9076f",
     "public/process/index.html": "8f2953be82ef6e0d4406807449cef44b3be3c9a6db1f9e80395b30873cfdcd09"
   },
@@ -16,112 +16,112 @@
         "operation": "S1/S2 search promised fields, combine role/status, clear and matching count",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 176.5
+        "ms": 287.4
       },
       {
         "actor": "frank",
         "operation": "S3 composition events preserve text/focus and apply once on composition end",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 97.6
+        "ms": 82.5
       },
       {
         "actor": "frank",
         "operation": "V1 correct user, stable matrix nodes/scroll/focus on toggle and row select",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 517.3
+        "ms": 651.1
       },
       {
         "actor": "frank",
         "operation": "E1 duplicate submit/Escape while saving makes one POST and verified persisted data",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 466.5
+        "ms": 515.6
       },
       {
         "actor": "frank",
         "operation": "R4 missing view dependency rejects and preserves input",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 283.2
+        "ms": 351.7
       },
       {
         "actor": "frank",
         "operation": "E2 real CAS conflict preserves draft, read-only retry never overwrites changed target",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 418.4
+        "ms": 448.2
       },
       {
         "actor": "frank",
         "operation": "E4 old GET cannot replace successful same-actor mutation",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 214.6
+        "ms": 249.3
       },
       {
         "actor": "frank",
         "operation": "M3 delete cancel does not write; delete failure is not success",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 383.5
+        "ms": 452.5
       },
       {
         "actor": "frank",
         "operation": "E2 committed write with failed readback recovers using GET only",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 283
+        "ms": 331.5
       },
       {
         "actor": "frank",
         "operation": "R1 role CRUD, user creation/assignment, assigned-role deletion protection and logical deletion",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 1700.5
+        "ms": 1816.2
       },
       {
         "actor": "manager",
         "operation": "P1 ordinary admin old password field and incorrect-password feedback",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 266.4
+        "ms": 284.6
       },
       {
         "actor": "manager",
         "operation": "R2/R3 manager cannot edit own/Frank/peer roles or role definitions",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 216.5
+        "ms": 202.8
       },
       {
         "actor": "staff-one",
         "operation": "V2 regular user own effective permission matrix is read-only/private",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 283.1
+        "ms": 296.3
       },
       {
         "actor": "frank",
         "operation": "U1 desktop and narrow Vietnamese layout, long Unicode name, keyboard focus",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 736
+        "ms": 750.4
       },
       {
         "actor": "frank",
         "operation": "E3 unknown POST result preserves input, blocks repeat, read check never writes",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 397.3
+        "ms": 367.6
       },
       {
         "actor": "frank",
         "operation": "E3 POST deadline remains uncertain and cannot resubmit (virtual timer)",
         "actual": "expected assertions passed",
         "status": "PASS",
-        "ms": 270.5
+        "ms": 324.6
       }
     ],
     "errors": []
@@ -398,5 +398,13 @@
         "r2": 0
       }
     }
+  },
+  "timingCandidateCommit": "4c44ec210ff728f6221184f208a390ff3a6c6c50",
+  "timingCandidateSourceSha256": {
+    "app/api/user-access/route.ts": "ba4f1da044ac70c5058eb5e4656342d0d333ba45e9b487e82046e0cf2c190435",
+    "lib/user-access.ts": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+    "public/process/user-access.js": "324048a1c4ed1baed807115f3d2dc4619231bec8fac91ab44e9d2cee51f5d7fa",
+    "public/process/user-access.css": "d5b13eb492734d02947a6c908d92f8007f7a82d4ebebdc8bc84fd9fe66e9076f",
+    "public/process/index.html": "8f2953be82ef6e0d4406807449cef44b3be3c9a6db1f9e80395b30873cfdcd09"
   }
 }
