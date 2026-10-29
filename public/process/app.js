@@ -1577,7 +1577,7 @@ function lineData() {
 function canDeleteProcessMaster() {
   const allowed =
     typeof window.hasPermission === 'function'
-      ? window.hasPermission('master.delete')
+      ? window.hasPermission('templates.delete')
       : currentUser?.role === 'admin';
   if (!allowed) return false;
   return !processMasterPending();
@@ -1615,7 +1615,7 @@ function currentProcessMasterData() {
 }
 function editableProcessMasterData() {
   const selected = selectedProcessMasterVersion();
-  return selected?.status === 'draft'&&window.MasterDataWorkflow?.shared.permissions('PROCESS')?.edit!==false ? selected.snapshot : null;
+  return selected?.status === 'draft'&&!processMasterPending()&&window.MasterDataWorkflow?.shared.permissions('PROCESS')?.edit===true ? selected.snapshot : null;
 }
 function persistProcessMasterControl() {
   return window.MasterDataWorkflow?.persist?.('PROCESS');
@@ -1693,7 +1693,7 @@ function updateProcessSharedStatus() {
   panel.innerHTML=`<p>${t('共用草稿範圍','Phạm vi bản nháp chung')}: PROCESS · ${flow.pendingId?t('待審鎖定','Đang chờ duyệt · đã khóa'):dirty?t('尚未儲存','Chưa lưu'):t('已儲存','Đã lưu')} · ${t('儲存者','Người lưu')}: ${escapeHtml(flow.saved?.actor.name||'—')}</p><div class="master-version-actions"><button type="button" class="button ghost" data-process-history>${t('固定案件／歷史還原','Hồ sơ cố định / Khôi phục')}</button><button type="button" class="button ghost" data-process-recover>${t('查詢未知操作結果','Kiểm tra kết quả chưa rõ')}</button></div>`;
   shared.renderValidation('PROCESS',{after:panel,label:issue=>issue.path?.[0]+' / '+(issue.path?.[1]?.id||''),onLocate:issue=>{
     if(shared.permissions('PROCESS')?.edit===false)return;
-    state.processMasterVersionId=processMasterDraft()?.id;render();
+    state.processMasterVersionId=processMasterDraft()?.id;repaintProcessMasterPage();
     const template=shared.flow('PROCESS')?.working[issue.path?.[0]]?.find(row=>row.id===issue.path?.[1]?.id);
     const key=processMasterTemplateKey(template),card=[...document.querySelectorAll('[data-template-key]')].find(row=>row.dataset.templateKey===key);
     if(issue.path?.[2]==='equipment'){
@@ -1748,26 +1748,26 @@ async function beginProcessMasterDraft() {
   try{await window.MasterDataWorkflow.shared.execute('PROCESS','begin');
     const draft=processMasterDraft();
     if(currentUser?.id!==actorId||!draft||processMasterPending()||window.MasterDataWorkflow.shared.permissions('PROCESS')?.edit===false)return false;
-    state.processMasterVersionId=draft.id;render();return true;
+    state.processMasterVersionId=draft.id;repaintProcessMasterPage();return true;
   }catch(error){toast(error.message);return false;}
 }
 
 async function saveProcessMasterDraft() {
   try{await flushProcessMasterNames();await window.MasterDataWorkflow.shared.execute('PROCESS','save');
     toast(document.documentElement.lang==='vi'?'Đã lưu nội dung đã đồng bộ.':'已儲存全員已同步內容。');
-    if(!document.querySelector('#equipment-editor-dialog[open]'))render();
+    if(!document.querySelector('#equipment-editor-dialog[open]'))repaintProcessMasterPage();
   }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}
 }
 async function submitProcessMasterDraft() {
   try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.submit('PROCESS');if(!result)return;
-    state.masterReviewId=result.receipt.caseId;state.processMasterVersionId=result.receipt.caseId;render();
+    state.masterReviewId=result.receipt.caseId;state.processMasterVersionId=result.receipt.caseId;repaintProcessMasterPage();
   }catch(error){updateProcessSharedStatus();toast(window.sharedDraftErrorMessage?.(error)||error.message);}
 }
 async function withdrawProcessMasterDraft() {
   const version = processMasterPending();
   if(!version)return;
   try{const result=await window.MasterDataWorkflow.shared.review('PROCESS','withdraw',version.id);if(!result)return;
-    state.processMasterVersionId=processMasterDraft()?.id;render();
+    state.processMasterVersionId=processMasterDraft()?.id;repaintProcessMasterPage();
   }catch(error){toast(error.message);}
 }
 function processMasterVersionBar() {
@@ -2066,18 +2066,32 @@ async function importProcessMasterData(file) {
       : '全部流程資料與照片已匯入草稿',
   );
 }
-function processTemplateImpact(templateIds) {
-  const ids = new Set(Array.isArray(templateIds) ? templateIds : [templateIds]);
-  const drafts = Object.values(state.editorByCategory || {})
-      .flatMap((set) => Object.values(set || {}).flat())
-      .filter((operation) => ids.has(operation.templateId)).length,
-    versions = approvalVersions.filter((version) =>
-      Object.values(version.stages || {})
-        .flat()
-        .some((operation) => ids.has(operation.templateId)),
-    ).length;
-  return { drafts, versions };
+function processMasterText(zh,vi) { return document.documentElement.lang==='vi'?vi:zh; }
+function repaintProcessMasterPage() {
+  if(state.view!=='data'||state.dataTab!=='process-master')return;
+  const area=document.querySelector('#data-content');if(!area)return;
+  const top=scrollY;area.innerHTML=processMasterView();bindDataInner('process-master');scrollTo(0,top);
 }
+async function confirmProcessMasterRemoval(kind,id,label) {
+  const actor=window.ProcessSync?.identity,generation=window.MasterDataWorkflow.shared.flow('PROCESS')?.generation;
+  const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
+  if(!owned())return false;
+  const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));
+  const result=await response.json();if(!owned())return false;
+  if(result.total){
+    const dialog=document.createElement('dialog');dialog.className='process-reference-dialog';dialog.setAttribute('data-i18n-skip','true');
+    const heading=processMasterText('仍有引用，請先移除或替換引用','Còn tham chiếu; hãy gỡ hoặc thay thế trước');
+    dialog.innerHTML='<h3>'+escapeHtml(heading)+'</h3><p>'+escapeHtml(label)+' · '+result.total+'</p><ul>'+result.references.map(ref=>{
+      const text=[ref.products.join(', '),ref.line,ref.category,ref.stage,ref.number,ref.name,ref.status,ref.versionId].filter(Boolean).join(' · ');
+      const url='/process/?view=editor&line='+encodeURIComponent(ref.line)+'&category='+encodeURIComponent(ref.category)+'&stage='+encodeURIComponent(ref.stage);
+      return '<li>'+escapeHtml(text)+' <a href="'+escapeHtml(url)+'" target="_blank" rel="noopener">'+processMasterText('前往製程','Mở quy trình')+'</a></li>';
+    }).join('')+'</ul>'+(result.detailsRestricted?'<p>'+processMasterText('此帳號無查看引用內容權限，請交由有權限者處理。','Tài khoản không có quyền xem chi tiết; nhờ người có quyền xử lý.')+'</p>':'')+'<button type="button">'+processMasterText('關閉','Đóng')+'</button>';
+    document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();dialog.onclose=()=>dialog.remove();dialog.showModal();return false;
+  }
+  return confirm(processMasterText('刪除「'+label+'」？只移除目前草稿項目，保留歷史紀錄。','Xóa “'+label+'”? Chỉ gỡ khỏi bản nháp hiện tại; giữ lịch sử.'))&&owned();
+}
+
 async function deleteProcessTemplate(stageCode, templateKey) {
   const before = editableProcessMasterData();
   if (!before) {
@@ -2094,15 +2108,8 @@ async function deleteProcessTemplate(stageCode, templateKey) {
     );
     return;
   }
-  const matches = processMasterCatalogMatches(editable, templateKey),
-    template = matches[0],
-    impact = processTemplateImpact(matches.map((item) => item.id));
-  if (
-    !window.confirmMasterDeletion(
-      `刪除流程資料「${template?.name || templateKey}」？\n\n影響範圍：\n• 所有工段的新增流程選項：移除 1 項\n• 編輯中草稿引用：${impact.drafts} 個（保留內容，改為自訂流程）\n• 歷史／送審版本：${impact.versions} 版（保留紀錄，不會刪除）\n\n確定刪除？`,
-    )
-  )
-    return;
+  const template=processMasterCatalogMatches(editable,templateKey)[0];
+  try{if(!await confirmProcessMasterRemoval('template',templateKey,template?.name||templateKey))return;}catch(error){toast(error.message);return;}
   Object.keys(editable).forEach((code) => {
     editable[code] = (editable[code] || []).filter(
       (item) => processMasterTemplateKey(item) !== templateKey,
@@ -2118,13 +2125,13 @@ function processMasterView() {
     templates = processMasterCatalogTemplates(pageMaster),
     editable = Boolean(editableProcessMasterData());
 
-  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions">${editable ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
+  return `${processMasterVersionBar()}<div class="master-toolbar process-photo-master"><div><p class="eyebrow">OPERATION MASTER</p><h2>製程編輯台可用流程</h2><p>流程核准後可供製程編輯台使用。</p></div><div class="process-master-toolbar"><div class="process-master-actions">${editable && window.hasPermission?.('templates.create') ? '<button class="button signal" type="button" id="add-master-template">＋ 新增流程</button>' : ''}</div></div></div><div class="master-template-grid flow-photo-presets">${templates
     .map(
       (template, index) => {
         const mediaItems = processTemplateMediaItems(template),
           key = processMasterTemplateKey(template),
           equipmentButton = window.ProcessEquipment?.cardButton(template) || '';
-        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div><div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}">${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
+        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div>${!template.presetKey ? `<label class="template-type-field" data-i18n-skip="true"><span>${processMasterText('方塊類型','Loại ô')}</span><select data-master-type ${editable?'':'disabled'}>${[['entry','開始','Bắt đầu'],['manual','一般作業','Thao tác'],['inspection','檢查','Kiểm tra'],['machine','機器','Máy'],['exit','結束','Kết thúc'],['custom','自訂','Tùy chỉnh']].map(([value,zh,vi])=>`<option value="${value}" ${value===(template.editorType||'custom')?'selected':''}>${processMasterText(zh,vi)}</option>`).join('')}</select></label>`:''}<div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><button type="button" class="process-template-preview" data-lightbox-src="${escapeHtml(item.src)}" data-lightbox-type="${escapeHtml(item.type||'image/png')}" data-lightbox-title="${escapeHtml(template.name)}" data-lightbox-group="template-${escapeHtml(key)}"><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}"></button>${editable?`<label class="process-template-replace" data-i18n-skip="true">${processMasterText('更換照片','Thay ảnh')}<input type="file" accept="image/*" data-master-media data-replace-index="${mediaIndex}"></label>`:''}${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
       },
     )
     .join(
@@ -3136,14 +3143,15 @@ function bindDataInner(tab) {
       if (!before||addMasterTemplate.disabled) return;
       const editable=JSON.parse(JSON.stringify(before));
       addMasterTemplate.disabled=true;
-      const timestamp = Date.now(),
+      const timestamp = crypto.randomUUID(),
         catalogKey = `custom-${timestamp}`;
       routing.lines.flatMap((line) => line.stages).forEach((stage) => {
         const list = editable[stage.code] || (editable[stage.code] = []);
         list.push({
           id: `${stage.code}-CUSTOM-${timestamp}`,
           catalogKey,
-          name: '新流程',
+          name: processMasterText('新流程','Quy trình mới'),
+          editorType: 'custom',
           mode: 'human',
           people: 1,
           machineIds: [],
@@ -3161,6 +3169,7 @@ function bindDataInner(tab) {
       latest?.querySelector('[data-master-name]')?.select();
     };
     document.querySelectorAll('[data-master-name]').forEach(bindProcessMasterName);
+    document.querySelectorAll('[data-master-type]').forEach(input=>input.onchange=async()=>{const before=editableProcessMasterData(),key=input.closest('[data-template-key]').dataset.templateKey;if(!before||input.disabled)return;const next=JSON.parse(JSON.stringify(before));for(const template of processMasterCatalogMatches(next,key)){template.editorType=input.value;template.mode=input.value==='machine'?'machine':'human';}input.disabled=true;try{await applyProcessMasterSnapshot(before,next);repaintProcessMasterPage();}catch(error){toast(error.message);}finally{input.disabled=false;}});
     document.querySelector('#process-master-version-choice')?.addEventListener(
       'change',
       (event) => {
@@ -3244,14 +3253,13 @@ function bindDataInner(tab) {
           ),
           template = matches[0];
         if (!template || !input.files?.length) return;
-        input.disabled=true;
+        input.disabled=true;card.querySelector('.process-photo-retry')?.remove();
         try{
         const prepared = await prepareMediaUploads([...input.files]);
         if(input.isConnected===false || !sameActor() || before!==editableProcessMasterData() || requestDraft!==processMasterDraft())return;
-        const nextMedia = [
-          ...processTemplateMediaItems(template),
-          ...prepared.items,
-        ];
+        const nextMedia = processTemplateMediaItems(template).slice();
+        if(input.hasAttribute('data-replace-index'))nextMedia.splice(Number(input.dataset.replaceIndex),1,prepared.items[0]);
+        else nextMedia.push(...prepared.items);
         matches.forEach((item) => setProcessTemplateMedia(item, nextMedia));
         await applyProcessMasterSnapshot(before,next);
         if(input.isConnected===false || !sameActor())return;
@@ -3263,7 +3271,7 @@ function bindDataInner(tab) {
             ? `已加入 ${prepared.items.length} 張照片，其中 ${prepared.compressedCount} 張已自動壓縮`
             : `已加入 ${prepared.items.length} 張照片`,
         );
-        }catch(error){toast(error.message);}finally{input.disabled=false;input.value='';}
+        }catch(error){toast(error.message);if(input.isConnected&&sameActor()){const retry=document.createElement('button');retry.type='button';retry.className='button ghost process-photo-retry';retry.textContent=processMasterText('重試照片上傳','Thử tải ảnh lại');retry.onclick=async()=>{const shared=window.MasterDataWorkflow.shared;if(shared.client('PROCESS').hasUnknown()){try{await shared.recover('PROCESS');if(!shared.client('PROCESS').hasUnknown())repaintProcessMasterPage();}catch(failure){toast(failure.message);}}else await input.onchange();};card.append(retry);}}finally{input.disabled=false;}
       };
     });
     document

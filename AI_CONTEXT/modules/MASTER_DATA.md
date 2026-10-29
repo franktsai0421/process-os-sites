@@ -1,3 +1,9 @@
+## 2026-10-29 流程資料修復候選
+
+設備搜尋 ownership 改綁設備面板，不再綁會被 VersionDraftUI 替換的首節點。開始／保存／送審僅重畫本模組。設備套用仍只改 working，新增取消確認與照片重試；流程圖片支援查看、更換及移除。新增流程使用 UUID 及選用 editorType，核准後製程新增／編輯選單按類型顯示，舊 templateId 保留。
+
+新增授權引用 GET；刪除 Apply 與 Submit／Approve 在同一 CAS 讀取內重新檢查目前 authoring、舊版有效／草稿／待審及 published 引用。閉合歷史快照保持原文，不自動解除引用。列表資料不足時不再把設備引用顯成零；設備開啟時按需查詢。具體檔案、驗收與剩餘限制見 [唯一紀錄](../../docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
+
 ## 2026-10-16 既有欄位原值防護與名稱輸入鏈
 
 master AB／C／PROCESS、process authoring 及 equipment 的既有 set 欄位必須附對應 path 原值 guard，沿原 kernel 判斷 stale；不同欄位仍可合併。原 immutable codes、引用、角色、pending、CAS 與審核規則保留。master／authoring 對已有成功 receipt 的精確命令保留 replay 相容；仍核對 actor 與 fingerprint，沒有新無 guard 命令通道。authoring 原 whole-operation 相依 guard 仍有效，不能把同方塊不同欄位強行當成可合併。
@@ -8,7 +14,7 @@ PROCESS 即時名稱輸入在 bind 時固定原值、actor 物件及 generation�
 
 ## 2026-10-15 模板照片與主資料操作
 
-流程模板照片準備前捕獲actor／draft／working與input連接狀態，await後重核再依現行shared.diff套用；回覆不重畫失效actor／節點。模板照片目前是inline img，沒有獨立preview click入口。設備與模板媒體均沿master:PROCESS原nested field guard／Save／R2記錄，不新增照片資料表。AB/C分類、群組及路線變更維持原scope和CAS；使用者矩陣VM不替代14原帳號GUI接受。[唯一按鈕與資料證據](../../docs/local-integration/20261015-button-coverage.json)。
+流程模板照片準備前捕獲actor／draft／working與input連接狀態，await後重核再依現行shared.diff套用；回覆不重畫失效actor／節點。此段為當時狀態；2026-10-29 候選已增加流程照片 preview／更換入口，見本文最新紀錄。設備與模板媒體均沿master:PROCESS原nested field guard／Save／R2記錄，不新增照片資料表。AB/C分類、群組及路線變更維持原scope和CAS；使用者矩陣VM不替代14原帳號GUI接受。[唯一按鈕與資料證據](../../docs/local-integration/20261015-button-coverage.json)。
 
 ## 2026-10-14 shared-state未知結果與改回舊值
 
