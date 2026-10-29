@@ -414,7 +414,7 @@
     const nextLanguage = language === "vi" ? "vi" : "zh-Hant";
     if (document.documentElement.lang !== nextLanguage) document.documentElement.lang = nextLanguage;
     document.body.classList.toggle("lang-vi", language === "vi");
-    const nextTitle = language === "vi" ? "Hệ thống hiển thị tiêu chuẩn quy trình" : "製程標準播放系統";
+    const nextTitle = "流程資料驗收副本 CLOUD 29102026 · " + (language === "vi" ? "Hệ thống hiển thị tiêu chuẩn quy trình" : "製程標準播放系統");
     if (document.title !== nextTitle) document.title = nextTitle;
     updateSwitches();
     observer?.takeRecords();
