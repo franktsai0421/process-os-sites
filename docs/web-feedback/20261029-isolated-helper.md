@@ -171,6 +171,30 @@ dot 須一起整合 entry、loader、對應版本參數及後端 ZIP 生產器�
 
 操作為「點選網頁位置」→ 點一下欲回報處 → 自動退出選取並編輯；Esc／取消也可退出。只在選取期間攔截底層操作，小幫手自身控制項保留。剪貼簿圖片不是內建自動截圖功能，需先由外部截圖工具取得圖片，再貼入小幫手；每個標記最多 6 張，每張 5 MB，PNG／JPEG／WebP。實體 OS 截圖工具、使用者裝置 Google Chrome、線上剪貼簿權限與跨來源 iframe 內部定位仍尚未驗證／受既有位置備援限制。
 
+## 最初 main 與目前實作的完整重測比較
+
+使用者要求修改前後對照，重新量測最初 main `2cac307f29b8017a2bb6dc5229d47720f2deab33` 與目前實作 `5d5c68f75779783aea3ab7485b2e61f382c43ff5`。同一台機器、Chromium 154.0.8037.57、60 筆相同合成資料生成器、正常登入，各測 5 次。一般操作交替版本並翻轉先後順序；冷啟動各自建立 5 個全新 context，先後執行兩版。核對兩個 checkout 的模組 JS 與各自編譯資產雜湊一致，未更動任一版本的功能程式。
+
+|操作（毫秒，中位數）|原始 main|目前實作|
+|---|---:|---:|
+|首次冷開啟問題頁|585|594|
+|首次冷開啟，模組每請求額外等待 120 ms|962|705|
+|重新整理整頁|492|473|
+|切換問題明細|64|64|
+|保存備註|107|104|
+|標記完成|131|98|
+|重新開啟|114|98|
+|準備 ZIP（2 案）|93|92|
+|交接紀錄|98|98|
+|切回問題清單|82|81|
+|小幫手首次展開（已進入問題頁）|98|98|
+|小幫手再次展開|94|94|
+|送出文字回報|108|108|
+
+一般首次開啟沒有變快，不能宣稱全面提升；數字也會隨機器排程波動，非固定保證值。冷啟動計 navigation 至真實問題列的首個 frame；其餘操作包含測試驅動及等待兩個 frame。API 與畫面合計不能直接相減當純 CPU 時間。備註／完成／重開各由 2 個 API 請求減為 1 個；送出回報由 1→2 個是成功後更新清單的正確性修復。大量共圖 ZIP 的優化另見前段不同負載測量，不混入此處 2 案的小批次結果。
+
+原始資料為兩個隔離 checkout 的 `.sites-runtime/feedback-performance/final-compare-{before,after}-{1..5}.json`、`.sites-runtime/feedback-startup/final-cold-{before,after}.json`，匯總位於開發 checkout 的 `.sites-runtime/feedback-performance/final-compare-summary.json`。這是本機版本對照，非既有網站與候選部署對照；實站連線仍被環境網路規則阻擋，新增允許網域的設定草稿尚待使用者套用。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
