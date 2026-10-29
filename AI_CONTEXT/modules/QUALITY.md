@@ -1,3 +1,5 @@
+2026-10-29 FQC permissions candidate: save/submit buttons use their own rights on existing V3 draft; edit is still needed to begin a draft. No workflow kernel or business state change. Stacked on users/IQC candidates; acceptance tracked in clear-rights report.
+
 2026-10-29 IQC permissions candidate: V3 save/submit/withdraw buttons use their own rights, create uses create+edit; legacy snapshot writes require edit+save(+submit) and content create/delete checks. No data migration or publication. Depends on clear-rights shared permission foundation; browser acceptance recorded in users acceptance report.
 
 ## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
