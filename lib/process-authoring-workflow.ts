@@ -35,7 +35,7 @@ export function bomRootReader(values:Record<string,string>){
  };
 }
 export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringControl>{
- return{key:'processAuthoringControl',scope:'process:platform',recordMutation:'process-save',empty:()=>({workspaces:[]}),photoIds:()=>[],photoPrefix:'',deletePermission:'approval.submit',preparedModel:true,permissionOnlyRead:true,
+ return{key:'processAuthoringControl',scope:'process:platform',recordMutation:'process-save',processFlowMutation:true,empty:()=>({workspaces:[]}),photoIds:()=>[],photoPrefix:'',deletePermission:'approval.submit',preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!raw&&!prepared)throw new DraftConflict('AUTHORING_CONVERSION_REQUIRED',409);const c=prepared||JSON.parse(raw!);if(!c.workflow||c.workflow.scope!=='process:platform'||!Array.isArray(c.versions))throw new DraftConflict('AUTHORING_CONTROL_INVALID',422);return c;},
   async access(_request,_state,p){return p;},
   context(control,state,base){const master=parse(state.values.masterDataControl,null);if(!master?.active)throw new DraftConflict('MASTER_SOURCE_REQUIRED',422);
