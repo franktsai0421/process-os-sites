@@ -1,3 +1,4 @@
+import {accessKeys} from '../public/process/access-policy.mjs';
 // Real compiled Worker, ephemeral D1/R2 and synthetic accounts only.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
@@ -17,7 +18,7 @@ try{
  const values={platformUsers:JSON.stringify(users),processCustomRoles:'[]',processRoleTemplateOverrides:'{}',publishedProcess:JSON.stringify({creatorId:'staff-one',history:[{actorId:'staff-one',note:'retain business history'}]})};
  await f.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(JSON.stringify(values),'synthetic').run();
  for(const u of users)await sign(u.id);
- const projection=await get('staff-one');assert.equal(projection.status,200);assert.deepEqual(projection.body.users.map(u=>u.id),['staff-one']);assert.equal(projection.body.roles.length,0);assert.equal(Object.keys(projection.body.actor.cells).length,151);assert.equal(Object.keys(projection.body.actor.roleCells).length,151);assert(!JSON.stringify(projection).includes(password));report.cases.push('own effective and inherited cells, no peers/templates/password disclosure');
+ const projection=await get('staff-one');assert.equal(projection.status,200);assert.deepEqual(projection.body.users.map(u=>u.id),['staff-one']);assert.equal(projection.body.roles.length,0);assert.equal(Object.keys(projection.body.actor.cells).length,accessKeys.length);assert.equal(Object.keys(projection.body.actor.roleCells).length,accessKeys.length);assert(!JSON.stringify(projection).includes(password));report.cases.push('own effective and inherited cells, no peers/templates/password disclosure');
  for(const actor of ['frank','manager','staff-one'])await unchanged(actor+' own password requires old password',async()=>{for(const oldPassword of [undefined,'wrong'])await post(actor,{action:'password',id:actor,oldPassword,password:'Synthetic-next-2026',confirmation:'Synthetic-next-2026'},400);await post(actor,{action:'password',id:actor,oldPassword:password,password:'Synthetic-next-2026',confirmation:'mismatch'},400);});
  await unchanged('primary/peer/self/DEMO and raw API escalation denied',async()=>{
   for(const actor of ['manager','demo-admin','staff-one']){

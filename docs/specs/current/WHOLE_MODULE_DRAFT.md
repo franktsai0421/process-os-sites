@@ -1,3 +1,7 @@
+## 2026-10-29 後續明確權限規則（使用者已確認）
+
+本次確認取代下文較早候選中「保留 IPQC-C 舊 review/view/withdraw 例外」的範圍：IPQC-C 要有本模組 view，撤回要有 withdraw；核准／發回依模組 approve／return，不另外綁 approval.view。版本確認平台入口仍需其自身查看，不能反向授予 IPQC-C 內容。legacy 創建者限制、pending、CAS、固定 saved 快照與自審確認保留。獨立還原授權與依賴見 [使用者權限規格](PERMISSIONS_ADMIN.md)，驗證及未測範圍見[候選交接](../../acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
+
 ## 2026-10-27 C 操作權限補充（取代「僅 view 即可修改／儲存／送審」）
 
 使用者明確要求 IPQC-C 與其他文稿的操作權限對齊，並與 FQC／IQC／IPQC-AB 預覽修正一起送 PR。保留現行頁面入口與檢視規則，不自動替帳號加權限；編輯、儲存、送審各自依相應 cell。V3 Save 可由具 save 者保存已有共用草稿；Submit 可由具 submit 者送出已成功手動 Save 的固定快照，不藉此修改內容。直接 legacy Save／Submit 因同時替換 snapshot，必須具它實際執行的 edit＋save（及 submit）能力。圖片上傳屬 edit；review／history／withdraw、待審鎖、歷史與原 owner 邊界不因本次改動而擴張。

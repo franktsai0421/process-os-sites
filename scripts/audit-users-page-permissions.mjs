@@ -21,6 +21,7 @@ let cookie,frankCookie;
 async function signed(id){const state=await core.readState(),user=JSON.parse(state.values.platformUsers).find(u=>u.id===id);return'process_demo='+await core.demoSession(new Request('http://fixture'),id,false,user.authEpoch||0);}
 async function call(endpoint,method='GET',body,auth=cookie){const url='http://fixture/api/'+endpoint,route=endpoint.split('?')[0];const response=await load('app/api/'+route+'/route.ts')[method](new Request(url,{method,headers:{Origin:'http://fixture',Cookie:auth,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}));report.requests++;return{status:response.status,body:await response.json()};}
 async function configure(keys=[],id='audit-staff'){
+ if(keys.includes('fqc.view'))keys=[...new Set([...keys,'ab.view','equipment.view'])];
  const state=await core.readState(),user=JSON.parse(state.values.platformUsers).find(u=>u.id===id),allowed=P.roleEditable(user.role),changes=Object.fromEntries(P.accessKeys.filter(k=>allowed[k]).map(k=>[k,keys.includes(k)]));
  const result=await accounts.POST(new Request('http://fixture/api/user-access',{method:'POST',headers:{Origin:'http://fixture',Cookie:frankCookie,'Content-Type':'application/json'},body:JSON.stringify({action:'update-user',id,baseRevision:state.revision,changes})}));
  assert.equal(result.status,200,JSON.stringify(await result.clone().json()));report.settingsWrites++;
@@ -40,21 +41,21 @@ try{
   if(module==='users')continue;
   const actor=await configure([module+'.view']);let checked=0;
   for(const [target,targetQuery]of Object.entries(pageURLs)){
-   try{const plan=await destinationPlan(targetQuery,k=>actor.cells[k],[],{webFeedback:true});assert.equal(target,module);assert.equal(plan.destination.module,module);}
-   catch(error){if(error.message!=='DESTINATION_FORBIDDEN')throw error;assert.notEqual(target,module);}
+   try{const plan=await destinationPlan(targetQuery,k=>actor.cells[k],[],{webFeedback:true});assert.equal(actor.cells[target+'.view'],true);assert.equal(plan.destination.module,target);}
+   catch(error){if(error.message!=='DESTINATION_FORBIDDEN')throw error;assert.equal(actor.cells[target+'.view'],false);}
    checked++;
   }
   ctx.location.href='http://fixture/process/'+query;assert.equal(ctx.allowed(module+'.view'),true);
   report.destinations.push({module,grant:module+'.view',status:'MATCH',explicitURLsChecked:checked});
  }
  for(const [module,endpoint]of workflows){
-  for(const operation of ['view','edit','save','submit','withdraw','approve','return','delete']){
+  for(const operation of ['view','create','edit','save','submit','withdraw','approve','return','delete','restore']){
    if(!P.accessKeys.includes(module+'.'+operation))continue;
-   const grants=[module+'.view',module+'.'+operation];if(operation==='delete')grants.push(module+'.edit');
+   const grants=[module+'.view',module+'.'+operation];if(['create','delete','restore'].includes(operation))grants.push(module+'.edit');
    const actor=await configure(grants);const r=await call(endpoint+(endpoint.includes('?')?'&':'?')+'permissions=1');
    const differences=[];
    if(r.status!==200)differences.push({status:r.status,error:r.body.error});
-   else for(const op of ['view','edit','save','submit','withdraw','approve','return','delete']){
+   else for(const op of ['view','create','edit','save','submit','withdraw','approve','return','delete','restore']){
     if(!P.accessKeys.includes(module+'.'+op))continue;
     const expected=actor.cells[module+'.'+op]===true;
     if(r.body.permissions[op]!==expected)differences.push({operation:op,configured:expected,api:r.body.permissions[op]});
@@ -65,8 +66,8 @@ try{
   await configure([module+'.view']);const old=cookie;await configure([]);const stale=await call(endpoint+(endpoint.includes('?')?'&':'?')+'permissions=1','GET',undefined,old);assert([401,403].includes(stale.status),module+' revoked session');report.sessions.push({module,oldSessionStatus:stale.status});
  }
  await configure(['dispatch.view']);const before=await core.readState(),write=await call('shared-state','POST',{baseRevision:before.revision,updates:{dispatchBoard:JSON.stringify({A:['synthetic-dispatch-probe'],B:[],C:[]})}}),after=await core.readState();
- report.findings.push({id:'DISPATCH_WRITE_WITH_VIEW_ONLY',configuredEdit:ctx.currentUser.cells['dispatch.edit'],status:write.status,persisted:JSON.parse(after.values.dispatchBoard).A.includes('synthetic-dispatch-probe'),revisionChanged:before.revision!==after.revision});
+ assert.equal(write.status,403);assert.deepEqual(after,before);report.findings.push({fixed:true,id:'DISPATCH_WRITE_WITH_VIEW_ONLY',configuredEdit:ctx.currentUser.cells['dispatch.edit'],status:write.status,persisted:JSON.parse(after.values.dispatchBoard).A.includes('synthetic-dispatch-probe'),revisionChanged:before.revision!==after.revision});
  await configure(['lines.view']);const lines=await call('master/workflow?scope=AB&permissions=1');report.findings.push({id:'LINES_VIEW_VS_AB_ENDPOINT',pageAllowed:(await destinationPlan('?view=data&dataTab=line-admin',k=>ctx.currentUser.cells[k])).destination.module==='lines',apiStatus:lines.status});
- await configure(['approval.view']);const crossReview=await call('ipqc-c/workflow?permissions=1');report.findings.push({id:'IPQCC_REVIEW_CROSS_VIEW',configuredView:ctx.currentUser.cells['ipqc-c.view'],apiStatus:crossReview.status,permissions:crossReview.body.permissions});
- report.status='COMPLETED_WITH_FINDINGS';
+ await configure(['approval.view']);const crossReview=await call('ipqc-c/workflow?permissions=1');assert.equal(crossReview.status,403);report.findings.push({fixed:true,id:'IPQCC_REVIEW_CROSS_VIEW',configuredView:ctx.currentUser.cells['ipqc-c.view'],apiStatus:crossReview.status,permissions:crossReview.body.permissions});
+ assert.equal(report.workflows.filter(r=>r.status==='MISMATCH').length,0);report.status='PASS_WITH_DOCUMENTED_LINES_SCOPE_DEPENDENCY';
 }catch(error){report.status='HARNESS_FAILED';report.error={message:error.message,stack:error.stack};process.exitCode=1;}finally{db.close();report.disposed=true;fs.writeFileSync(path.join(evidence,'page-permissions-audit.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,error:report.error,settingsWrites:report.settingsWrites,cellChecks:report.cellChecks.length,destinations:report.destinations.length,workflows:report.workflows.length,mismatches:report.workflows.filter(x=>x.status==='MISMATCH'),findings:report.findings,sessions:report.sessions.length,requests:report.requests}));}

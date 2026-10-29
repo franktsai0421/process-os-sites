@@ -1,10 +1,10 @@
-Draft-page audit follow-up: [findings and recommendations](docs/acceptance/USERS_CLOUD_DRAFT_PERMISSION_AUDIT_29102026.md). Seven isolated IQC browser/API cases confirm missing save-only/submit-only/withdraw-only buttons and history restore soft-deletion without delete permission. Audit only, no production changes; module-specific fixes and broader browser coverage remain outstanding.
+# 使用者權限 CLOUD 29102026 — 已修正，未部署
 
-Users-permissions audit follow-up: [saved settings → page/API evidence](docs/acceptance/USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md). Audit only; confirmed dispatch view-only write bypass, IPQC-C legacy exceptions, lines/AB mismatch and IQC create-button mismatch remain unresolved. 604 resolver checks and 600 admissions are not full-page/business acceptance. Keep fixes in module-specific PRs; existing preview/PR blockers unchanged.
+最新：[清楚權限修復／驗收交接](docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)、[設定→頁面→API 對照](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。使用者確認方案後完成簡化矩陣、明確依賴、獨立還原、5 個品質模組單獨保存／送審／撤回、線別範圍說明及發送查看者拒寫。基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`；完整編譯瀏覽器版本 `4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6`；最終相依驗收分支 `cloud/permissions-verified-29102026`。各模組分支分開交接，不整檔覆蓋其他任務。
 
-Latest users-permissions loading follow-up: [full-page loading evidence](docs/acceptance/USERS_CLOUD_LOADING_29102026.md). Code `91942a677fb3fc5d912437b65bd8f495972d70ea`; request-local projection reuse, authenticated initial-read overlap, and 50-account UI pages. Shared index change additionally registers `user-access-initial-read.js`; preserve other tasks' script registrations. External preview and Draft PR remain blocked; no merge/publication.
+只用隔離合成資料；原站／正式站沒有修改。外部預覽及 Draft PR 受工具／GitHub API 網路政策限制仍未建立，PR body／base-head 清單已備妥；嚴格100ms開啟設定目標仍未達，真站效能與實體輸入法未驗證。不能標完整交付或放行整合。dot 須先核對 web-feedback-helper 與 ipqc-ab-read-ownership 的共用 index／讀取所有權等重疊，詳見交接。沒有 merge、auto-merge 或發布。
 
-Current independent user-permissions candidate (CLOUD 29102026): [acceptance and handoff](docs/acceptance/USERS_CLOUD_29102026.md), [permission map](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md). Branch `cloud/users-permissions-29102026`, baseline `2cac307f29b8017a2bb6dc5229d47720f2deab33`. All writes use synthetic isolated fixtures; existing Site/data unchanged. Shared changes are limited to request-local role reuse, this module's asset versions, and current documentation. External preview / Draft PR access and cross-module permission exceptions remain explicitly tracked. No merge or publication is authorized by these test results.
+先前載入優化見[歷史載入報告](docs/acceptance/USERS_CLOUD_LOADING_29102026.md)；早期 audit-only 未修復狀態已由本輪候選取代，原始證據仍保留。
 
 # Isolated Sites implementation handoff
 

@@ -495,7 +495,7 @@
   }
 
   function editPart(code = '') {
-    if(!code&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm')); 
+    if(!code&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm'));
     const formActor=identity(),formActorId=formActor?.id,formGeneration=control?.workflow?.generation,formVersionId=selected()?.id;
     const formCurrent=()=>owner.current()&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
@@ -521,14 +521,14 @@
     return prefix + String(Math.max(0, ...numbers) + 1).padStart(width, '0');
   }
   function editError(id = '') {
-    if(!id&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm')); 
+    if(!id&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm'));
     const old = snap().errors.find(item => item.id === id);
     const { overlay, close, owner } = dialog(`<h3>${old ? t('修改錯誤代碼', 'Sửa mã lỗi') : t('新增錯誤代碼', 'Thêm mã lỗi')}</h3><form id="iqc-error-form"><div class="iqc-field"><label>${t('錯誤代碼', 'Mã lỗi')}</label><input value="${h(old?.code || previewNumber(`${ui.partCode}-IQC-L`, control.reservedErrorCodes))}" readonly></div><div class="iqc-field"><label>${t('錯誤名稱（越文）', 'Tên lỗi (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div><p class="iqc-error" id="iqc-error-message"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
     overlay.querySelector('form').onsubmit = async event => { event.preventDefault();if(!owner.current())return; const value = formText(event.currentTarget, 'nameVi').trim(); try { if(!old&&!mayCreate())throw Error('FORBIDDEN'); if (old) await mutateSnapshot(next => { next.errors.find(item => item.id === id).nameVi = value; }, t('錯誤代碼已套用','Đã áp dụng mã lỗi'), owner); else { const v = draft(); await post('createError', { versionId: v.id, versionRevision: v.revision, partCode: ui.partCode, nameVi: value }, owner); if(!owner.current())return;notice(t('新增錯誤代碼已同步，尚未手動儲存','Đã đồng bộ mã lỗi mới, chưa lưu thủ công')); } close(); } catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-error-message').textContent = displayDraftError(error); } };
   }
 
   function editItem(id = '', errorId = '') {
-    if(!id&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm')); 
+    if(!id&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm'));
     const formActor=identity(),formActorId=formActor?.id,formGeneration=control?.workflow?.generation,formVersionId=selected()?.id;
     const formCurrent=()=>owner.current()&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
