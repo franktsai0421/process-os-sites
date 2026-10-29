@@ -14,7 +14,7 @@
   if(!assetsPreloaded){
    assetsPreloaded=true;
    for(const [as,name] of [['script','web-feedback-loader.js'],['script','web-feedback.js'],['style','web-feedback.css']]){
-    const link=document.createElement('link');link.rel='preload';link.as=as;link.href='/process/'+name+'?v=20261029-feedback6';document.head.append(link);
+    const link=document.createElement('link');link.rel='preload';link.as=as;link.href='/process/'+name+'?v=20261029-feedback7';document.head.append(link);
    }
   }
  }
@@ -42,7 +42,7 @@
   if(window.WebFeedbackHost)return window.WebFeedbackHost.active?.()===false?Promise.reject(Error('FEEDBACK_RELOAD_REQUIRED')):Promise.resolve(window.WebFeedbackHost);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
-   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback6';script.defer=true;
+   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback7';script.defer=true;
    script.onload=()=>window.WebFeedbackHost?resolve(window.WebFeedbackHost):fail();
    const fail=()=>{loading=null;script.remove();reject(Error('FEEDBACK_HOST_LOAD_FAILED'));};script.onerror=fail;document.head.append(script);
   });return loading;

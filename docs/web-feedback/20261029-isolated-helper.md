@@ -335,6 +335,64 @@ PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chro
 
 本輪 fetch 後 main 仍為 `2cac307f29b8017a2bb6dc5229d47720f2deab33`。photo 分支更新至 `d9b2eb7c42d6f8d7700472858c28923aef8b5f0b`，preview-process-flow 至 `0874e872acc226c5679845e99c8349d51a4a7445`，process-flow 至 `d4ef8118425c5623c7245f8e5711c614ca9f6293`；與本分支的交集仍是上表共用入口／文件，沒有合併他們的程式。dot 須保留其他入口 script 及本次 feedback6 版本，整合後重跑以上時序回歸。開啟中 PR／外部部署 webhook 狀態仍未取得；沒有發布既有 Site。
 
+## 頁面整理與速度／功能複驗（feedback7）
+
+本輪以 `f32523b66687036697aed297e72df82f390155d1` 為優化前版本，沿原獨立分支與 main 基準。先跑既有操作量測及新大交接量測，再修改模組呈現。必要共用檔案仍只有 `public/process/index.html` 的 helper 快取參數 feedback6→feedback7；已在修改前說明路徑、原因、最小方式與範圍。未變更後端、登入、權限、schema、共用草稿／讀寫或其他模組。
+
+### 畫面與功能改動
+
+- 問題明細補目前狀態標籤，私人備註分段，保存主按鈕／狀態／刪除分組並支援換行；長中文／越文內容維持原文。
+- 保存或切換狀態收到成功回覆後只更新備註歷史、狀態、清單與統計；原明細圖片、輸入及按鈕節點保留。失敗保留輸入，版本與固定重試收據不變。這次量測前後圖片請求都是 0，不能宣稱減少了網路下載。
+- 交接頁先顯示批次 ID、日期、筆數與 ZIP；展開批次建立案件摘要，展開案件建立完整原文與私人備註，重開同一項不重複建立。不新增背景請求，不省略 API 資料；重新進入交接頁仍讀取並核驗最新資料，過時／跨帳號處理器不能繪製。
+
+### 相同條件的前後量測
+
+Chromium 154、1365×900、相同已編譯後端／隔離 D1/R2，60 筆問題、24 批交接、每批 20 筆與 4 段長備註。reference 與 candidate 各 5 次、交替先後，每次還原同一合成 payload／新 context；reference 只換入前版 core/CSS。所有業務資料 revision／values 前後相同。
+
+|中位數，毫秒（節點除外）|前|後|
+|---|---:|---:|
+|保存備註整個操作|114.7|107.1|
+|切換完成整個操作|115.1|115.3|
+|交接頁整個操作|149.0|148.7|
+|交接 HTML setter 執行時間|9.4|0.8|
+|交接初始子節點數|3,456|192|
+|保存後明細圖片節點保留|否|是|
+|交接 API 等待|25.4|23.8|
+
+整體交接／狀態速度無明顯改善，備註差異小且樣本有限；確定改善是初始 DOM 建立量減少約 94%，HTML setter 時間減少約 91%。HTML setter 量測只涵蓋字串解析與節點建立，不等於全部 JS／繪製 CPU。完整操作包含 Playwright 動作及兩個 animation frame 等待，不能當純 render 或伺服器速度。新原始樣本 `.sites-runtime/feedback-render/round7-paired.json`，初次診斷保留 `before.json`，不用不同批次數字混作前後比較。
+
+### 目前各功能速度
+
+以下為相同隔離機器、正常登入、60 筆合成問題，5 次中位數。每個工作流重建合成資料；API 等待與圖片分開記錄；「回覆後」包含繪製、兩幀及自動化排程，不是純畫面 CPU，各欄不能直接相加。
+
+|操作|整體 ms|API 等待合計 ms|最後 API 回覆後 ms|圖片請求時間合計 ms|
+|---|---:|---:|---:|---:|
+|已載入分頁重新整理|420.6|9.8|83.2|17.7|
+|選取問題明細|63.5|0|—|0|
+|保存備註|90.4|12|46.9|0|
+|標記完成|98.2|10|50.7|0|
+|重新開啟|98.2|10.8|49.2|0|
+|準備 ZIP|93.3|15.4|43.8|0|
+|讀取交接（1 批）|98.0|8.6|51.4|0|
+|交接切回問題清單|81.8|0|—|0|
+|首次展開小幫手|97.9|7|46.7|0|
+|再次展開小幫手|93.1|5.7|52.1|0|
+|送出回報並更新清單|109.5|18.0|32.5|0|
+
+另以全新瀏覽器 context 量測真正冷開啟：5 次中位數 **541.7 ms** 到問題列首幀，list API 等待 **9.5 ms**，list 回覆後到首幀 **32.0 ms**。模組每請求人工延遲 120 ms 的 5 次中位數為 **687.2 ms**；這是受控延遲，非真實慢網路。首次載入路徑本輪未改，不用舊批次數字聲稱進一步加速。來源 `.sites-runtime/feedback-startup/round7.json` 與 `.sites-runtime/feedback-performance/round7-after-{1..5}.json`。上述一律不是既有 Site 的速度。
+
+### 功能驗證與交付
+
+- PASS：主要瀏覽器 17 組、失敗／併發恢復 6 組、導航／標記收尾 3 組、新增明細／交接／版面 3 組；含三角色刪除 API、回報→備註→完成→重開、ZIP／交接歷史、慢請求／重試、原文 escape、按需呈現完整性、無額外展開請求、320／390／768／1365 px 中越文、鍵盤 Tab／Enter 焦點。
+- PASS：原 iframe 第一幀前立即點擊診斷 3 次仍無底層事件；未增加 ready 等待。
+- PASS：TypeScript、typed lint、build／auth audit、40 core＋13 layout、source-only preflight。沒有後端改動，64 項 API 專項沿用歷史結果；本輪瀏覽器仍實際呼叫三角色 API。
+- 新版測試最初使用滑鼠後程式 focus 斷言 focus-visible，與瀏覽器鍵盤模式不符；改為實際 Tab／Shift+Tab 確認鍵盤焦點，再驗證 outline，未放寬功能斷言。目前無未處理失敗。
+- 尚未驗證：實站同帳號 Chrome／ChatGPT、品牌 Chrome、實體手機／OS IME／截圖工具；獨立公開預覽與 Draft PR 仍缺 API 網路／部署工具能力。本輪不發布、merge 或覆蓋任何 Site。圖片剪貼簿沿用前輪實測，未改貼上路徑。
+
+重現：正常 build 後設定 `PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD)`、`FEEDBACK_BROWSER_PATH=/usr/bin/chromium`，執行 `node tests/web-feedback-detail-browser.test.mjs`；效能 `node tests/web-feedback-render-performance.mjs round7-paired f32523b66687036697aed297e72df82f390155d1`、`node tests/web-feedback-performance.mjs <label>`、`node tests/web-feedback-startup-performance.mjs <label>`。截圖由 detail/browser 測試存到各 `.sites-runtime/feedback-*` 目錄，未把生成圖片加入 source-only Git。
+
+最新 fetch main 仍為 `2cac307f29b8017a2bb6dc5229d47720f2deab33`。dot 相關 process-flow 更新至 `4b2fdf6ae558d2ab123f139ba6f93d320300fcad`，preview-process-flow 至 `fa298dedb62fb84c807a06f93479aa41dd092425`；其餘交集同前輪，仍只有共用入口及文件（整分支含先前 DATA_MODEL 條目，本輪未修改它）。由 dot 語意整合入口 script／feedback7 與文件，不接管或合併別人的分支。已檢查的 repo workflows 僅 PR 測試；外部 webhook／開啟中 PR 狀態仍無法查，未宣稱已完整核驗外部部署設定。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
