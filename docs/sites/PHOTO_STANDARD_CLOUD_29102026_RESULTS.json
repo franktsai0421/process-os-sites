@@ -1,0 +1,387 @@
+{
+  "realData": false,
+  "physicalPhone": false,
+  "cases": [
+    {
+      "name": "fqc",
+      "status": "PASS",
+      "ms": 2883,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "iqc-part",
+      "status": "PASS",
+      "ms": 2077,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "iqc-item",
+      "status": "PASS",
+      "ms": 2429,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            1400,
+            900
+          ],
+          "bytes": 26666,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "ipqc-ab",
+      "status": "PASS",
+      "ms": 2348,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "ipqc-c",
+      "status": "PASS",
+      "ms": 2570,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "equipment",
+      "status": "PASS",
+      "ms": 4501,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "equipment-new",
+      "status": "PASS",
+      "ms": 2266,
+      "evidence": [
+        {
+          "dimensions": [
+            1600,
+            1000
+          ],
+          "bytes": 83752,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "tooling",
+      "status": "PASS",
+      "ms": 2356,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "equipment-hierarchy",
+      "status": "PASS",
+      "ms": 3633,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            1400,
+            900
+          ],
+          "bytes": 26666,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "routine-report",
+      "status": "PASS",
+      "ms": 2768,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "routine-disposal",
+      "status": "PASS",
+      "ms": 4565,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "feedback",
+      "status": "PASS",
+      "ms": 3012,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "process-template",
+      "status": "PASS",
+      "ms": 2570,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "process-equipment",
+      "status": "PASS",
+      "ms": 2618,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    },
+    {
+      "name": "process-authoring",
+      "status": "PASS",
+      "ms": 3078,
+      "evidence": [
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            2000,
+            1200
+          ],
+          "bytes": 109396,
+          "pixelsOrOriginalBytesEqual": true
+        },
+        {
+          "dimensions": [
+            800,
+            1200
+          ],
+          "bytes": 77898,
+          "pixelsOrOriginalBytesEqual": true
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "buildBaseCommit": "dd72a9c6c0cc607333dc0f1e151f570b45e84375",
+  "productSourceFiles": {
+    "public/process/app.js": "9e12a49cb13ecd10befb68b29756cab8a99027680582d9e707f0ef2200d46a2a",
+    "public/process/index.html": "700a51378c7d499a0d79227d0b1436494fa97ebdaaa8ffc5e399f4189d174d4b",
+    "public/process/photo-viewer.css": "c1ea8eba333b7b3977d994126a3a35923dc9bd155618e75e4b1b38b7de7e93ad"
+  },
+  "sourceNote": "Compiled preview based on dd72a9c plus the photo viewer changes identified by SHA-256. All 15 passed; the two shared lightbox cases rerun after the final CSS correction. Other cases do not use the changed viewer.",
+  "operator": "Synthetic Photo QA / frank admin, isolated fixture only",
+  "network": "loopback, external browser requests blocked",
+  "viewports": [
+    1365,
+    390
+  ],
+  "retestedAfterFinalCss": [
+    "process-template",
+    "process-equipment"
+  ],
+  "timingNote": "One acceptance sequence per case including image decoding, hashing, DB readback and screenshot; not an operation benchmark or production-site latency."
+}

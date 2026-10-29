@@ -1099,7 +1099,7 @@ function bindLightbox() {
           dialog.id = 'media-lightbox';
           dialog.className = 'media-lightbox';
           dialog.innerHTML =
-            '<button type="button" class="media-lightbox-close" aria-label="關閉大圖">×</button><button type="button" class="media-lightbox-nav previous" aria-label="上一個媒體">‹</button><figure><img alt="照片放大檢視"><video controls playsinline></video><figcaption></figcaption></figure><button type="button" class="media-lightbox-nav next" aria-label="下一個媒體">›</button>';
+            '<button type="button" class="media-lightbox-close" aria-label="關閉大圖">×</button><button type="button" class="media-lightbox-nav previous" aria-label="上一個媒體">‹</button><button type="button" class="media-lightbox-zoom" aria-pressed="false"></button><figure><div class="media-lightbox-viewport" tabindex="0"><img alt="照片放大檢視"><video controls playsinline></video></div><figcaption></figcaption></figure><button type="button" class="media-lightbox-nav next" aria-label="下一個媒體">›</button>';
           document.body.appendChild(dialog);
           dialog.querySelector('.media-lightbox-close').onclick = () =>
             dialog.close();
@@ -1108,6 +1108,17 @@ function bindLightbox() {
           };
           dialog.addEventListener('cancel', () => dialog.close());
         }
+        const viewport = dialog.querySelector('.media-lightbox-viewport'),
+          zoomButton = dialog.querySelector('.media-lightbox-zoom'),
+          viewerText = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh,
+          setZoom = (expanded) => {
+            viewport.classList.toggle('is-expanded', expanded);
+            viewport.scrollTo(0, 0);
+            zoomButton.setAttribute('aria-pressed', String(expanded));
+            zoomButton.textContent = expanded ? viewerText('適合視窗', 'Vừa cửa sổ') : viewerText('放大', 'Phóng to');
+          };
+        viewport.setAttribute('aria-label', viewerText('照片檢視區，可捲動查看放大照片', 'Vùng ảnh, có thể cuộn khi phóng to'));
+        zoomButton.onclick = () => setZoom(zoomButton.getAttribute('aria-pressed') !== 'true');
         const group = [
             ...document.querySelectorAll(
               `[data-lightbox-group="${CSS.escape(button.dataset.lightboxGroup || 'default')}"]`,
@@ -1120,6 +1131,8 @@ function bindLightbox() {
             const isVideo = current.dataset.lightboxType?.startsWith('video/'),
               image = dialog.querySelector('img'),
               video = dialog.querySelector('video');
+            setZoom(false);
+            zoomButton.hidden = !!isVideo;
             video.pause();
             image.hidden = isVideo;
             video.hidden = !isVideo;

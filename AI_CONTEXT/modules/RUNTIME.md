@@ -1,6 +1,6 @@
 ## 2026-10-29 全站照片入口統一候選
 
-FQC `fileData` 新上傳先經 `prepareBrowserPhoto` 再保存 data URL；其他入口沿用現行 shared policy，PNG 無損、其餘支援格式保持編碼。介面不再顯示照片規格／壓縮方案。沒有持久 schema、附件識別、權限、歷史或既有照片轉換。詳見 [唯一盤點與驗證紀錄](../../docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+FQC `fileData` 新上傳先經 `prepareBrowserPhoto` 再保存 data URL；其他入口沿用現行 shared policy，PNG 無損、其餘支援格式保持編碼。介面不再顯示照片規格／壓縮方案。沒有持久 schema、附件識別、權限、歷史或既有照片轉換。共用照片燈箱另加原像素放大／適合視窗，樣式限定 media-lightbox；新實際表單測試含技術小字與 EXIF 樣本。詳見 [唯一盤點與驗證紀錄](../../docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
 
 ## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
 
