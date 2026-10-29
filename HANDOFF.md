@@ -1,3 +1,5 @@
+本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
 本次獨立候選：流程資料頁面 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/process-flow-cloud-29102026`。照片 PR 獨立；未合併或發布既有站台。實作、逐步驗收與預覽阻礙見 [流程紀錄](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
 
 # Isolated Sites implementation handoff
