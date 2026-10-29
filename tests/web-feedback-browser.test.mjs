@@ -30,6 +30,17 @@ try{
   await page.reload();await page.waitForSelector('.wf-row');assert.equal(await page.locator('#wf-launcher').isVisible(),true);
   firstId=await page.locator('[data-issue]').first().getAttribute('data-issue');assert.equal(await page.locator('[data-delete-issue]').count(),1);
  });
+ await check('cold list overlaps slow assets; failed list shows retry and performs one fresh read',async()=>{
+  const core='**/process/web-feedback.js?*',list='**/api/web-feedback?action=list';
+  let coreReleased=false,readBeforeCore=false;
+  await page.route(core,async r=>{await new Promise(resolve=>setTimeout(resolve,200));coreReleased=true;await r.continue();});
+  await page.route(list,r=>{readBeforeCore=!coreReleased;return r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'SYNTHETIC_LIST_RETRY'})});},{times:1});
+  await page.reload();await page.getByText('SYNTHETIC_LIST_RETRY',{exact:true}).waitFor();
+  assert(readBeforeCore);assert.equal(await page.locator('.wf-row').count(),0);
+  const before=report.api.filter(r=>r.action==='list').length;
+  await page.locator('#data-content button').filter({hasText:/重試|Thử lại/}).click();await page.waitForSelector('.wf-row');
+  assert.equal(report.api.filter(r=>r.action==='list').length,before+1);await page.unroute(core);
+ });
  await check('normal other-admin named Frank and staff cannot delete via forged direct API or UI',async()=>{
   for(const id of ['other-admin','employee']){const actor=await login(id);assert.equal(await actor.page.locator('[data-delete-issue]').count(),0);const response=await call(actor.context,'delete',{id:firstId,version:1,name:'frank',role:'admin',primary:true});assert.equal(response.status(),403);await actor.context.close();}
   lastPage=page;

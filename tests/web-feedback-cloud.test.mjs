@@ -15,7 +15,7 @@ function fixture({enabled=true,boot=false,tab=null,autoScripts=true}={}){
  const context=vm.createContext({window,document,history,location,state:{view:tab?'data':'dashboard',dataTab:tab},console,URL,URLSearchParams,AbortController,Promise,Map,WeakSet,structuredClone,crypto:webcrypto,Blob,performance:{now:()=>10,timeOrigin:100},innerHeight:757,innerWidth:1180,requestAnimationFrame:window.requestAnimationFrame,MutationObserver:observer,PerformanceObserver:observer,ResizeObserver:observer,queueMicrotask,setTimeout,clearTimeout,sessionStorage:{getItem:()=>null,removeItem(){},setItem(){}},fetch:(url,options)=>{const pending=deferred();requests.push({url,options,...pending});return pending.promise;}});
  const coreCode=read('web-feedback.js').replace(' window.WebFeedback={open,admin,identityChanged,routeChanged};',`window.__core={setup(value){actor='A';draft=value;reportPhase='ready';panel=document.createElement('section');panel.id='wf-panel';document.body.append(panel);storage=window.__storage;draw();},setupBoard(){board=document.createElement('div');document.body.append(board);board.innerHTML='<div role="status"></div><button data-export></button><input data-pick="fixture" type="checkbox">';selected.add('fixture');},state:()=>({draft,actor,retained,exportOperation,persisting,busy,board,composing,storageFailed,epoch,reportPhase}),waitWrites(promise){persistChain=promise;},hold(value){busy=value.busy||false;composing=value.composing||false;},submit,exportZip,guard,request,draw,routeChanged,persist,selectLocation,showImage};\n window.WebFeedback={open,admin,identityChanged,routeChanged};`);
  window.__storage=async(mode,key,value)=>{if(mode==='readwrite')writes.set(key,structuredClone(value));return structuredClone(writes.get(key));};
- const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback1')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
+ const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback2')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
  document.head.onappend=node=>{calls.push(['asset',node.src||node.href]);if(autoScripts)queueMicrotask(()=>{if(node.tagName==='SCRIPT'){run(node.src.includes('loader')?'web-feedback-loader.js':'web-feedback.js');}node.onload?.();});};
  function invalidate(mode='event'){if(mode==='delivery'){generation++;return;}if(mode==='epoch'){epoch++;return;}sync.requiresReload=true;window.dispatchEvent({type:'process-delivery-invalidated'});if(mode==='actor')sync.identity={id:'B',role:'admin'};}
  return{...dom,window,sync,context,content,calls,requests,writes,frames,run,invalidate,location};
@@ -49,6 +49,39 @@ void test('cold feedback destination is non-circular and readiness waits for act
 
 void test('management entry uses coordinator, never a direct unindexed push',async()=>{
  const f=fixture();f.run('web-feedback-loader.js');const tab=f.document.querySelector('#wf-admin-tab');tab.dispatchEvent({type:'click',preventDefault(){},stopImmediatePropagation(){}});assert.deepEqual(f.calls.find(c=>c[0]==='navigate'),['navigate','data','web-feedback','process']);assert(!f.calls.some(c=>c[0]==='unindexed-push'));
+});
+
+void test('cold board overlaps list with assets and does not render until both finish',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-loader.js');
+ const task=f.window.WebFeedbackHost.showAdmin(f.content);
+ assert.equal(f.requests.length,1);assert.equal(f.window.WebFeedback,undefined);
+ reply(f.requests[0],{issues:[],admin:true,permissions:{view:true}});await tick();
+ assert.equal(f.content.querySelector('[data-board-tab]'),null);
+ f.run('web-feedback.js');f.document.head.querySelector('script').onload();
+ await tick();assert.equal(f.content.querySelector('[data-board-tab]'),null);
+ f.document.head.querySelector('link').onload();await task;
+ assert(f.content.querySelector('[data-board-tab]'));assert.equal(f.requests.length,1);
+});
+
+for(const mode of ['actor','epoch','delivery'])void test('parallel first list cannot publish after '+mode+' changes during asset loading',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-loader.js');
+ const task=f.window.WebFeedbackHost.showAdmin(f.content);
+ reply(f.requests[0],{issues:[],admin:true,permissions:{view:true}});await tick();f.invalidate(mode);
+ const outcome=mode==='actor'?assert.rejects(task,/回報功能暫時無法載入/):task;
+ const script=f.document.head.querySelector('script'),style=f.document.head.querySelector('link');
+ f.run('web-feedback.js');script.onload();style.onload();await outcome;
+ assert.equal(f.content.querySelector('[data-board-tab]'),null);assert.equal(f.requests.length,1);assert.equal(f.writes.size,0);
+});
+
+void test('parallel list failure is observed and retry performs a fresh authorized read',async()=>{
+ const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-loader.js');
+ const task=f.window.WebFeedbackHost.showAdmin(f.content);const rejected=assert.rejects(task,/DENIED/);
+ reply(f.requests[0],{error:'DENIED'},403);await tick();
+ f.run('web-feedback.js');f.document.head.querySelector('script').onload();f.document.head.querySelector('link').onload();await rejected;
+ assert.equal(f.content.querySelector('[data-board-tab]'),null);
+ const retry=f.window.WebFeedbackHost.showAdmin(f.content);assert.equal(f.requests.length,2);
+ reply(f.requests[1],{issues:[],admin:false,permissions:{view:true}});await retry;
+ assert(f.content.querySelector('[data-board-tab]'));assert.equal(f.writes.size,0);
 });
 
 for(const mode of ['event','actor','epoch','delivery'])void test('retained actual helper handlers are inert after '+mode,async()=>{

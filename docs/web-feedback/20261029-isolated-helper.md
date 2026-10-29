@@ -65,6 +65,33 @@ FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-performance.mjs 
 
 首次清單圖片載入：基準 16 ms、修改 18 ms（各 7,081 bytes），未宣稱圖片加速。清單／明細切換讀取已在記憶體中，不增加 API。備註、完成、重開各少一次 list GET；原解壓 JSON 約 72 KB／次（傳輸 gzip 約 3.3 KB），不混稱傳輸量。送出後新增一次 list GET 是修復清單失效，確保新案件立即可見。helper 再開啟本樣本較慢，未隱藏退步或宣稱全模組全面加速。
 
+## 追加：首次開啟速度（同分支，未發布）
+
+使用者要求繼續改善首次開啟。本輪基準為 `808a61c8b84bc5e993007c1d0d94e4d861f3e06d`，不是前表的原始 main。
+
+實測發現 `loader → JS/CSS → list` 的串接等待。現在只在使用者要求開啟問題頁、且登入與目的頁有效時，將 list 讀取與 JS/CSS 並行；一般頁面的小幫手初始化不預讀問題或私人草稿。後端每次核驗、前端帳號／delivery fence、失敗重試與單一請求去重均保留；沒有新增快取或調整資料模型。模組入口版本改為 `20261029-feedback2`，共用 `public/process/index.html` 仍只改該版本參數，修改前已列明範圍。
+
+`tests/web-feedback-startup-performance.mjs`：相同 Chromium／1365×1000／60 筆合成資料，正常登入後每次建立新的 browser context，沒有瀏覽器資源快取。從目的頁 navigation 起，到首次 animation frame 出現真實問題列，分別各量 5 次取中位數。120 ms 情境使用 Playwright 對本模組每個資源／API 請求加入固定等待，並非真實行動網路；其餘共用入口未加延遲，也未修改。
+
+|項目（毫秒，中位數）|808a61c8|本輪候選|
+|---|---:|---:|
+|一般冷啟動：navigation → 問題列呈現|596|566|
+|加入延遲：navigation → 問題列呈現|1,021|859|
+|一般：loader 請求開始 → 問題列呈現|74|64|
+|加入延遲：loader 請求開始 → 問題列呈現|440|304|
+|一般：list 請求總時間|13|24|
+|加入延遲：list 請求總時間|133|145|
+|一般：list 回應結束 → 問題列呈現|30|24|
+|加入延遲：list 回應結束 → 問題列呈現|29|27|
+|一般：圖片請求總時間|16|16|
+|加入延遲：圖片請求總時間|135|135|
+
+冷啟動範圍：一般 557–617 → 563–586 ms；加入延遲 987–1,597 → 820–872 ms。這是小樣本，有波動，不能當正式站 SLA。並行後 list 本身沒有變快；改善來自重疊等待。總時間包含共用啟動，不將其全歸因於本模組。本輪使用首次可見 frame，與前表包含 automation／兩次 rAF 的 reload 測量方式不同，不能直接比較。
+
+重現：先設定 `PROCESS_PROGRAM_COMMIT`、建置，再執行 `FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-startup-performance.mjs before` 或 `after`。產物在 `.sites-runtime/feedback-startup/`：JSON 保留每次資源等待／總時間／圖片時間；`after-desktop-zh.png` 是收合小幫手、選取短問題後的後台實測圖，截圖操作在效能取樣之後。
+
+本輪 PASS：TypeScript、typed lint、build／postbuild auth audit；49 項 VM／layout 檢查（新增並行載入、三種身分／delivery 失效及失敗重試）；17 組編譯 Worker＋Chromium 流程（新增慢資源並行與清單失敗重試）。先前 API 59 項結果沿用，因本輪未改後端。線上 Chrome／ChatGPT 同帳號、原生輸入法、實體裝置及公開預覽仍尚未驗證。未發布，因此既有測試站不會因本次提交而加速。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。

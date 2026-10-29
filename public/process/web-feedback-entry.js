@@ -11,7 +11,7 @@
   if(window.WebFeedbackHost)return window.WebFeedbackHost.active?.()===false?Promise.reject(Error('FEEDBACK_RELOAD_REQUIRED')):Promise.resolve(window.WebFeedbackHost);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
-   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback1';script.defer=true;
+   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback2';script.defer=true;
    script.onload=()=>window.WebFeedbackHost?resolve(window.WebFeedbackHost):fail();
    const fail=()=>{loading=null;script.remove();reject(Error('FEEDBACK_HOST_LOAD_FAILED'));};script.onerror=fail;document.head.append(script);
   });return loading;

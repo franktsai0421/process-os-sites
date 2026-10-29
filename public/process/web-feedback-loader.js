@@ -26,8 +26,8 @@
     const css=document.createElement('link');let script,styled=false;
     const fail=message=>{loading=null;css.remove();script?.remove();reject(Error(message));};
     const ready=()=>{if(styled&&window.WebFeedback)resolve(window.WebFeedback);};
-    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261029-feedback1';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
-    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261029-feedback1';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
+    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261029-feedback2';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
+    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261029-feedback2';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
   }));
   // The immediate shell contains only new input, never private draft data.
   function open(event) {
@@ -117,7 +117,18 @@
     if(adminLoading?.host===host&&owns(adminLoading.owner))return adminLoading.promise;
     if(!host.querySelector('.wf-admin'))host.innerHTML='<section class="wf-admin" data-i18n-skip="true"><p role="status">'+t('正在載入問題回報…','Đang tải báo lỗi…')+'</p></section>';
     const request={host,owner};adminLoading=request;
-    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-board-tab]'));}).catch(e=>{
+    // Only a requested, authenticated board starts a read. Overlap its fresh
+    // server-authorized list with JS/CSS; ordinary helper startup reads nothing.
+    // Capture failures immediately so an asset failure cannot leave an unhandled
+    // rejected promise. Both the loader and core reject a stale identity/delivery.
+    const firstList=!host.querySelector('[data-board-tab]')?fetch('/api/web-feedback?action=list',{cache:'no-store'}).then(async response=>{
+      if(owns(owner)&&response.status===401){sync()?.clearIdentity?.();invalidate();}
+      const value=await response.json();
+      if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');
+      if(!response.ok)throw Error(value.error||response.status);
+      return {value};
+    }).catch(error=>({error})):null;
+    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-board-tab]'),firstList);}).catch(e=>{
       if(adminLoading===request&&host.isConnected&&owns(owner)&&host.dataset.activeTab==='web-feedback'){
         host.replaceChildren();const status=document.createElement('p'),retry=document.createElement('button');status.textContent=e.message;retry.textContent=t('重試','Thử lại');retry.onclick=()=>{void showAdmin(host).catch(()=>{});};host.append(status,retry);
       }throw e;
@@ -132,7 +143,7 @@
     diagnostics.ready=Math.round(performance.now());publish();
     requestAnimationFrame(()=>requestAnimationFrame(()=>{document.documentElement.dataset.feedbackPaintReady='1';publish();}));
     if(diagnostics.baseline)return;
-    void import('./web-feedback-layout.mjs?v=20261029-feedback1').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Right-side fallback remains, never hide the platform toolbar. */});
+    void import('./web-feedback-layout.mjs?v=20261029-feedback2').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Right-side fallback remains, never hide the platform toolbar. */});
     for(const name of ['render','renderLogin','enterPlatform']) {
       // Existing global function bindings are explicitly wrapped once; no DOM observer/polling.
       const original=window[name];if(typeof original!=='function')continue;
