@@ -18,7 +18,8 @@ function equipment(){
    dispatchEvent(event){assert.equal(typeof event.type,'string');event.target=this;event.currentTarget=this;dispatches.set(event.type,(dispatches.get(event.type)||0)+1);events[event.type]?.(event);
     // Only input uses a DOM property handler in this fixture.
     if(event.type==='input')this.oninput?.(event);
-    for(const handler of [...listeners.get(event.type)||[]])if(listeners.get(event.type).has(handler)){calls.set(event.type,(calls.get(event.type)||0)+1);handler.call(this,event);}return true;
+    const snapshot=Array.from(listeners.get(event.type)||[]);
+    for(const handler of snapshot)if(listeners.get(event.type).has(handler)){calls.set(event.type,(calls.get(event.type)||0)+1);handler.call(this,event);}return true;
    },
    listenerCount:type=>listeners.get(type)?.size||0,
    eventStats:()=>({adds,removes,calls:Object.fromEntries(calls),dispatches:Object.fromEntries(dispatches)})
