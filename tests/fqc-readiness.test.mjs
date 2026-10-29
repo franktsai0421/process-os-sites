@@ -32,14 +32,16 @@ const master = { revision: 7, permissions: { view: true }, control: { activeVers
 const shared = { revision: 7, permissions: { view: true }, control: { workflow: { generation: 'fqc-generation', revision: 1 } } };
 function fixture() {
   const reads = { shared: queue(), master: queue(), equipment: queue(), permission: queue() };
-  let epoch = 1, active = true;
+  let epoch = 1, active = true, clock = 0, timerId = 0, focused = true;
+  const activeTimers = new Map();
   const owner = { id: 'ACTOR' }, sync = { identity: owner, identityGeneration: () => epoch, platformHeaders: () => ({}) };
   const results = { adopted: [], renders: [], polls: 0, fetches: [] }, events = {}, timers = []; 
   const button = {}, element = { innerHTML: '', querySelector: () => button };
   const client = { read: () => reads.shared.request(), permissions: () => reads.permission.request() };
   const box = {
-    Error, Array, Object, Promise, AbortSignal, clearTimeout() {}, clone,
-    setTimeout(callback) { timers.push(callback); results.polls++; return timers.length; },
+    Error, Array, Object, Promise, AbortSignal, clone,performance:{now:()=>clock},
+    clearTimeout(id) { activeTimers.delete(id); },
+    setTimeout(callback, delay) { assert.equal(typeof callback,'function');assert(Number.isFinite(delay)&&delay>=0);const id=++timerId,record={callback,due:clock+delay};activeTimers.set(id,record);timers.push(()=>{if(!activeTimers.has(id))return;activeTimers.delete(id);clock=Math.max(clock,record.due);return record.callback();});results.polls++;return id; },
     document: { visibilityState: 'visible', querySelector: () => null, activeElement: null },
     ui: { saving: false }, library: () => shared.control,
     window: { ProcessSync: sync, addEventListener: (name, callback) => { events[name] = callback; }, createSharedDraftClient: () => ({ read: () => reads.master.request() }) },
@@ -55,11 +57,15 @@ function fixture() {
     render: () => results.renders.push(box.state()), pollShared: () => results.polls++,
     read() { throw Error('STORAGE_ACCESS_REFUSED'); }
   };
+  // Real listener registration/dispatch semantics for the actual shared scheduler.
+  // Existing event handles remain available to original assertions; no scheduler stub.
+  for(const target of [box.window,box.document]){const listeners=new Map();target.addEventListener=(name,callback)=>{if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(callback);if(target===box.window)events[name]=()=>target.dispatchEvent({type:name});};target.removeEventListener=(name,callback)=>listeners.get(name)?.delete(callback);target.dispatchEvent=event=>{const pendingEvents=Array.from(listeners.get(event.type)||[]);for(const callback of pendingEvents)callback.call(target,event);return true;};}
+  box.document.hasFocus=()=>focused;
   vm.createContext(box);
   vm.runInContext(pauseSource, box);
   const pause = box.window.createScopedReadPause('FQC readiness fixture');
   client.canPoll = kind => pause.canPoll(kind);
-  vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=null,workspaceReady=()=>false;` +
+  vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=window.createForegroundPoll(),workspaceReady=()=>false;` +
     part('  async function loadShared(', '  function changes(') +
     part('  function pollShared()', '  const ui =') +
     part('  let equipmentCache =', '  function eqPhotoUrl(') +
@@ -69,7 +75,7 @@ function fixture() {
     `this.bind=bind;this.loadEquipment=loadEquipmentCatalog;this.loadMaster=loadMasterCatalog;
      this.state=()=>({equipment:equipmentCache,master:masterCatalogCache,masterActor:masterCatalogActor,error:equipmentLoadError});
      this.cached=getCachedEquipment;this.catalogRead=catalog;`, box);
-  return { box, reads, results, element, sync, button, events, timers, pause, epoch: value => { epoch = value; }, active: value => { active = value; } };
+  return { box, reads, results, element, sync, button, events, timers, pause, focus:value=>{focused=value;box.window.dispatchEvent({type:value?'focus':'blur'});}, visibility:value=>{box.document.visibilityState=value?'visible':'hidden';box.document.dispatchEvent({type:'visibilitychange'});}, epoch: value => { epoch = value; }, active: value => { active = value; } };
 }
 async function resolveContent(f, { sharedIndex = 0, masterIndex = 0, equipmentIndex = 0, revisions = [7, 7, 7] } = {}) {
   f.reads.shared.pending[sharedIndex].resolve({ ...clone(shared), revision: revisions[0] }); await flush();

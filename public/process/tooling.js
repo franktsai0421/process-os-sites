@@ -162,6 +162,7 @@
   finally{if(epoch===viewEpoch)polling=false;}
  }
  document.addEventListener('focusout',()=>{void Promise.resolve().then(flushChecks);});
- window.addEventListener('focus',()=>{void poll();});
- setInterval(poll,4000);
+ const foregroundPoll=window.createForegroundPoll();
+ async function pollTick(){try{await poll();}finally{foregroundPoll.schedule(pollTick);}}
+ foregroundPoll.schedule(pollTick);
 })();

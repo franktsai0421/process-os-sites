@@ -1,20 +1,74 @@
-## 2026-10-29 — Stacked IQC source delivery
+## 2026-10-29 — 明示回應精簡與製程索引 / Explicit response projections and process indexing
 
-IQC local diff/render/validation reuse, complete owner-bound fresh reads and explicit editing projection with fresh active-version retrieval. Old clients remain full; mixed tails and Save/Submit over 1 second remain disclosed.
+- IQC 新 client 明示 `iqc-edit-v1`：編輯時保留 working/saved 及完整權限/metadata，active 正文於每次切換時重新讀取、核目前身份/權限/revision/generation。無草稿初讀與舊 client 仍完整回應；dirty modal、舊回應、撤權、跨 revision 與重試守衛保留。此為延後讀取，不改 storage、歷史、CAS 或資料格式。
+- IPQC-C 新 client 僅對符合條件的 Save 明示精簡回應；權威 receipt/metadata 與相同 owner/base/working 才重建本次 saved/draft。舊 client、replay、非 Save、歷史修復/不匹配仍回 full。ACK 後有新輸入時不重送、不自動讀取覆蓋；pending notice 阻止新的寫入，保新鮮 permissions 檢查與拒絕後 poll pause，人工確認重新讀取或 owner reset 才解除；在途舊讀取不能清除 notice。伺服器完整驗證及既有 Save bounded 故障政策不變。
+- 製程 incoming index 僅在正常字串 ID/edge 資料上消除重複掃描，legacy/異常形狀保原路徑與 issues 順序。1000 個無 edge 合成 operation 的 Apply median/max 291/1377→219/237 ms；第二次 Submit 176/192→182/306 ms，不能稱全面 Submit 提速，普通 Save 不主張此收益。
 
-Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+### 隔離程式測量與未完成目標
 
-## 2026-10-29 — Stacked C source delivery
+同條件固定樣本、真 handler + memory SQLite/R2；不含網路/DOM paint，不是網站實測。IQC 5000 筆、兩種 storage 模式各 3 pairs：回應約 5.91→3.10 MB（-47.5%），典型耗時下降但部分尾端較慢；Save/Submit 未全面低於 1 秒。切 active 額外 1 次 fresh GET+解碼，archive median/max 338/395 ms、records 182/217 ms，回應 2.81 MB；不是免費省去資料。
 
-IPQC-C entry/Apply/coverage, approved Save-only bounded storage and explicit Save-response projection. Dirty ACK input is retained, new writes paused pending manual fresh reload; full server validation/CAS/history retained. C large Save remains above 1 second.
+C 1000 產品/3000 項、records/revocation OFF、3 pairs：Save POST+解碼 median/max 1939/2034→1207/1824 ms，回應 2,405,122→1,113 bytes；獨立驗證 GET 另列，不是新成功路徑必經。相同真 handler corpus 的 actual writeShared CPU（不含 render/network）36/45→206/246 ms，新重建成本不可忽略；兩批分離不合造成實測端到端。這些正常路徑資料測於 response 版，後續 pending-notice 安全 gate 由專屬負測驗證，不重跑挑數。
 
-Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+IQC immutable alias、C allocation reuse/dedup/digest、AB index/whole-wire 試驗均未採；保留原失敗與 mixed 結果。原 180 秒 IQC runner 因收據末尾才輸出而 timeout；唯一授權恢復改逐 pair JSONL/300 秒，原固定樣本/產品/斷言未變。效能數字不是 CI 門檻，不承諾全部操作 <1 秒；AB 最終接受版 1000 項 Save 確認另列。尚未 PR、合併、發布或進行瀏覽器/真資料驗收，第四 19 項整體不視為全部完成。
 
-## 2026-10-29 — Stacked AB source delivery
+## 2026-10-29 — 有界身份讀取重疊與 panel 局部重用 / Bounded identity reads and panel reuse
 
-IPQC-AB owner-bound reads, independent action/photo authorization, local diff indexing and deferred equipment entry. Single-owner shared read guards and foreground scheduler declarations are prerequisites; new Begin behavior remains in the later back-office layer.
+- 相鄰、已驗 reference 的 identity aggregates 最多兩個 GET 重疊；只有兩個 provider size 都是 0..256 KiB 整數時才預先 text/SHA，未知或大型仍依原順序讀 body。token collect/reuse/disabled 原路徑不套預取；最早錯誤、business hydration/adoption 順序、fresh ACL/revocation 保留。early failure 最多多一個合法 selected GET，未用 body 取消；不宣稱全部 Worker 記憶體上限或 live 提速。
+- Authoring panel 在原同步身份 reset 邊界之後，只於本次 mount/updateSaved 共用 dirty 結果；合成 saved panel workspace 序列化 6→4、dirty canvas 6→2，identity reset 2→2。無跨 render cache、請求／receipt／Submit 前驗證不減。
+- 第二輪 AB 結構索引、AB whole-read wire、C Submit digest memo 因 mixed timing／小資料回退或記憶體不確定未採用；不把 payload 下降當總耗時改善。原四層 freeze 與失敗／不改善實驗保留，僅本地整合、無發布。
 
-Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+## 2026-10-29 — IQC 單次送審驗證重用 / Single-pass IQC validation
+
+同一次 Submit adapter validate 只計算一次完整 issues，blocking 分類沿同一結果；helper 未傳結果時仍自行計算。錯誤內容／順序、設備政策、ACL、receipt、CAS、storage 與回應大小不變，無跨請求快取。
+
+固定 5000 筆 valid/invalid 各 4 組交替配對的合成測量，每組 3/4 較快；valid POST 中位 2536→2101 ms、invalid 2247→1831 ms。此為 memory SQLite/R2、signed fixture session、revocation OFF；不是 live/browser 延遲，Save 沒有新增改善。原失敗 setup 與前輪不改善數據保留。新增 portable 14-case 全 issues parity／call count 2→1 回歸；本地及外部最終 checks 分別記錄。
+
+## 2026-10-29 — Begin 有界回應與前景查詢 / Bounded Begin and foreground polling
+
+- Begin 專用等待 45 秒、忙碌與分類訊息保留 unknown；超時不代表安全取消，不自動重送。其他操作原 timeout/receipt、fresh ACL/CAS 不變。這是避免原 15 秒提前中止的緩解，不是後端速度修復或 live 根因證明。
+- 八個資料後台 owner 在 hidden/blur 暫停背景查詢，恢復前景即查，閒置 30 秒開始下一輪；舊回應與 finally 不得接管新 owner。單次慢 GET 並不因此變快。
+- FQC 本次 diff/render/catalog 局部計算重用、bootstrap 重複 authoritative readiness 移除；process review ACK 不等待後置 advisory，失敗提示真實並可由目前 owner 明確重讀，核准前驗證未減。IPQC assignment 查找維持 first-match/原順序。
+- 所有數據為 source/合成測試；未修改製程 Sync/Apply/Save/Submit 加速路徑，登入與部分入口/總延遲仍未測。不把整份 19 項清單標成已完成；browser/live/部署未做。
+
+## 2026-10-29 — C 初頁與 Save 有界讀取 / C entry and bounded Save
+
+- C 初頁必要資料並行，Apply 與送審涵蓋查找使用局部索引；原權限、順序、CAS、收據與保留歷史不變。固定 compact 測量未證完整 Submit 提速，不以 CPU 改善代表實站速度。
+- 僅 canonical draft Save 讀驗 C 所需依賴，無關 immutable body 不重讀、保留原 reference。已接受差異：無關 body 遺失不再阻擋 Save，但不修復該 body；必要依賴錯誤仍拒絕。其他 command/legacy/不適用配置沿原 full-read。
+- Synthetic 大無關 body 樣本 GET 26→22、讀取 1,822,854→79,694 bytes；完整 state/ref parity、ACL/CAS、legacy、opaque capability 與 PUT 失敗回歸，並非 live latency 或全故障等價。
+
+## 2026-10-29 — IPQC-C read ownership and coverage indexing / 讀取隔離與涵蓋計算
+
+- Local stacked candidate on the AB shared-client parent. C applies complete data/access reads only for the current actor/epoch/page; receipt-only ACK followed by read denial remains locked, with no automatic mutation replay.
+- Denied private editor state is quarantined and not automatically restored by retry. Actor changes cannot reuse the prior acknowledgement label or expose the prior form.
+- Coverage uses a per-calculation lookup preserving duplicates, NaN and output order. CPU work only; no claimed network or real-site timing gain.
+- Added portable synthetic DOM and coverage-parity regressions. Browser/real-data acceptance and external CI are not claimed. No schema, credentials, hosting, or data changes.
+
+## 2026-10-29 — IQC 單一新鮮讀取與局部索引 / Fresh combined IQC reads
+
+- IQC 初頁由兩個獨立 GET 改為現有 full workflow GET，完整 control 與九個 boolean 權限同次採用；missing/partial/non-JSON 401/403、actor/access fence、ACK 後讀取失敗仍隔離，沒有權限快取或寫入重播。
+- 同次 backend 結構 lookup 與畫面 filtered parts 重用保留 duplicate/first-match、錯誤順序與 HTML。固定 15 paired memory 樣本 I/O 未減，完整 Submit 未證提速；不主張 live latency。
+- 新 portable 入口、完整 payload、精確舊函式語義與 handler 差分回歸。此段取代下方較早候選的雙 GET 初頁方式；歷史測量保留，非 browser 驗收。
+
+## 2026-10-29 — IQC action/read boundaries / 獨立動作及讀取邊界
+
+- Local stacked candidate on AB's opt-in shared client. Save/Submit follow their existing adopted-draft operation grants; Begin/create/legacy adoption retain edit gating. Photo PUT uses edit, while view/origin/file/CAS and pending rules remain intact.
+- Independent model/permission reads start together, but publish only together for the current actor/epoch/entry. Denied follow-up reads quarantine private editors; receipt ACK is not misreported as a fresh read or newer unknown operation success. Retry is GET-only, not mutation replay.
+- Snapshot comparison uses per-call first-match indexes preserving strict IDs, duplicate order and patch/guard semantics. No claim of network or real-site seconds saved.
+- Five portable suites cover semantic parity, actual-handler action/photo rules, deferred read races, entry ownership and denied-read recovery. Browser/live-data and final external CI remain unclaimed. No schema/credential/hosting change.
+
+## 2026-10-29 — AB 首頁設備延後讀取 / Deferred AB equipment catalog
+
+- 初頁與寫後重讀延後設備清單；明確選設備時才以 AB 原 view-or-approval ACL 取得。原完整 GET、照片、CAS、receipt 與獨立操作權限保持，catalog 逾時有界且不重送寫入。
+- 固定 synthetic 201 工具樣本，初頁回應 62,078→14,187 bytes；Save/Submit 的回讀 payload 亦下降。3 個 memory/VM 樣本不代表實站速度，Apply 未提速，打開設備清單會另讀，並非省掉所有總成本。
+- 父 PR 同時承載 IQC 所需可選 full-read ownership/accepted-access 防護；未選用的 read、POST/receipt 契約保留。新增完整 portable 回歸；browser/live 未驗。詳見 [QUALITY](modules/QUALITY.md)。
+
+## 2026-10-29 — IPQC-AB 安全讀取與差異計算 / Owned AB reads and change indexing
+
+- AB 首次／切 scope 的資料與權限讀取可重疊，只有最新且完整成功的 owner 能投影；撤權、ACK 後讀取拒絕、modal／poll／revision 競態保持 fail closed，UNKNOWN 不重送。
+- Adopted draft Save/Submit use their independent operation permissions; photo PUT belongs to editing. Begin/create/legacy adoption retain edit authorization, with all server locks and integrity checks unchanged.
+- Shared access-result protection is opt-in and shipped once in the AB parent PR; C/IQC depend on this exact parent. CPU lookup improvement does not remove network/security checks.
+- 新可攜回歸涵蓋 shared default/opt-in、權限競態、AB modal／load／poll／ACK、正常角色／多 scope 及嚴格差異語義。Synthetic evidence is not native browser or live-performance acceptance. See [QUALITY](modules/QUALITY.md).
 
 ## 2026-10-28 — 依確認保留保護的檢具測試流程（隔離補驗）
 
