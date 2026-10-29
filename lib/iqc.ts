@@ -248,8 +248,8 @@ export function iqcSubmitErrors(snapshot: IqcSnapshot): string[] {
 }
 
 // Missing content is reviewable; supplied invalid values/references remain errors.
-export function iqcSubmitBlockingErrors(snapshot:IqcSnapshot):string[]{
-  const all=iqcSubmitErrors(snapshot),blocked=new Set<string>();
+export function iqcSubmitBlockingErrors(snapshot:IqcSnapshot,all:readonly string[]=iqcSubmitErrors(snapshot)):string[]{
+  const blocked=new Set<string>();
   for(const part of snapshot.parts.filter(p=>!p.isDeleted))if(part.categoryId&&!snapshot.categories.some(c=>c.id===part.categoryId))blocked.add(`${part.code} 尚未指定有效類別`);
   for(const item of snapshot.items.filter(i=>!i.isDeleted))for(const rule of item.rules){
     if(rule.cadence==='batch'&&(!['aql','fixed_count','batch_quantity','custom'].includes(rule.kind)||rule.kind!=='custom'&&text(rule.value).trim()&&(!Number.isFinite(Number(rule.value))||Number(rule.value)<=0)))blocked.add(`${item.checkNo} 按批次規則缺少有效數值或自訂名稱`);

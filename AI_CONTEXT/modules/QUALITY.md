@@ -1,3 +1,9 @@
+## 2026-10-29 — Stacked IQC source delivery
+
+IQC local diff/render/validation reuse, complete owner-bound fresh reads and explicit editing projection with fresh active-version retrieval. Old clients remain full; mixed tails and Save/Submit over 1 second remain disclosed.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
 ## 2026-10-29 — Stacked C source delivery
 
 IPQC-C entry/Apply/coverage, approved Save-only bounded storage and explicit Save-response projection. Dirty ACK input is retained, new writes paused pending manual fresh reload; full server validation/CAS/history retained. C large Save remains above 1 second.
