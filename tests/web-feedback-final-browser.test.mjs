@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
 
-const fixture=await createFeedbackFixture(),results=[],out='.sites-runtime/feedback-final';
+const fixture=await createFeedbackFixture(),results=[],out=process.env.FEEDBACK_PREPAINT_PROBE==='1'?'.sites-runtime/feedback-final-prepaint':'.sites-runtime/feedback-final';
 let browser;
 try {
  const bundled=chromium.executablePath();
@@ -94,7 +94,7 @@ try {
   await page.locator('[data-select]').click();await page.locator('#wf-marking-shield').waitFor();
   // The regular acceptance starts after the shield is painted. The opt-in
   // diagnostic retains the known pre-paint compositor race, without masking it.
-  if(process.env.FEEDBACK_PREPAINT_PROBE!=='1')await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  if(process.env.FEEDBACK_PREPAINT_PROBE!=='1')await page.locator('#wf-marking-shield[data-ready=true]').waitFor();
   await page.mouse.click(100,200);await page.locator('#wf-marking-shield').waitFor({state:'detached'});
   assert.deepEqual(await page.evaluate(()=>window.__frameActions),[]);
   await page.locator('[data-submit]').click();

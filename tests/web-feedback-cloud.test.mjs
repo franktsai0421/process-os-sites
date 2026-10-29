@@ -15,7 +15,7 @@ function fixture({enabled=true,boot=false,tab=null,autoScripts=true}={}){
  const context=vm.createContext({window,document,history,location,state:{view:tab?'data':'dashboard',dataTab:tab},console,URL,URLSearchParams,AbortController,Promise,Map,WeakSet,structuredClone,crypto:webcrypto,Blob,performance:{now:()=>10,timeOrigin:100},innerHeight:757,innerWidth:1180,requestAnimationFrame:window.requestAnimationFrame,MutationObserver:observer,PerformanceObserver:observer,ResizeObserver:observer,queueMicrotask,setTimeout,clearTimeout,sessionStorage:{getItem:()=>null,removeItem(){},setItem(){}},fetch:(url,options)=>{const pending=deferred();requests.push({url,options,...pending});return pending.promise;}});
  const coreCode=read('web-feedback.js').replace(' window.WebFeedback={open,admin,identityChanged,routeChanged};',`window.__core={setup(value){actor='A';draft=value;reportPhase='ready';panel=document.createElement('section');panel.id='wf-panel';document.body.append(panel);storage=window.__storage;draw();},setupBoard(){board=document.createElement('div');document.body.append(board);board.innerHTML='<div role="status"></div><button data-export></button><input data-pick="fixture" type="checkbox">';selected.add('fixture');},state:()=>({draft,actor,retained,exportOperation,persisting,busy,board,composing,storageFailed,epoch,reportPhase}),waitWrites(promise){persistChain=promise;},hold(value){busy=value.busy||false;composing=value.composing||false;},submit,exportZip,guard,request,draw,routeChanged,persist,selectLocation,showImage};\n window.WebFeedback={open,admin,identityChanged,routeChanged};`);
  window.__storage=async(mode,key,value)=>{if(mode==='readwrite')writes.set(key,structuredClone(value));return structuredClone(writes.get(key));};
- const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback4')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
+ const run=name=>vm.runInContext(name==='web-feedback.js'?coreCode:read(name).replace("import('./web-feedback-layout.mjs?v=20261029-feedback5')","Promise.resolve({createFeedbackPositioner:()=>({update(){},dispose(){},isReservedTarget(){return false;}})})"),context,{filename:name});
  document.head.onappend=node=>{calls.push(['asset',node.src||node.href]);if(autoScripts)queueMicrotask(()=>{if(node.tagName==='SCRIPT'){run(node.src.includes('loader')?'web-feedback-loader.js':'web-feedback.js');}node.onload?.();});};
  function invalidate(mode='event'){if(mode==='delivery'){generation++;return;}if(mode==='epoch'){epoch++;return;}sync.requiresReload=true;window.dispatchEvent({type:'process-delivery-invalidated'});if(mode==='actor')sync.identity={id:'B',role:'admin'};}
  return{...dom,window,sync,context,content,calls,requests,writes,frames,run,invalidate,location};
@@ -24,7 +24,7 @@ const sample=(images=[])=>({start:{view:'dashboard',tab:'',system:'process',disp
 const reply=(request,value,status=200)=>request.resolve({ok:status>=200&&status<300,status,json:async()=>value});
 
 void test('late cached entry initializes authenticated helper after UI-ready was already dispatched',async()=>{
- const f=fixture();f.window.dispatchEvent({type:'process-ui-ready'});f.run('web-feedback-entry.js');await tick();assert(f.document.querySelector('#wf-launcher'));assert.equal(f.requests.length,0);assert.equal(f.calls.filter(c=>String(c[1]).includes('web-feedback-loader')).length,1);
+ const f=fixture();f.window.dispatchEvent({type:'process-ui-ready'});f.run('web-feedback-entry.js');await tick();assert(f.document.querySelector('#wf-launcher'));assert.equal(f.requests.length,0);assert.equal(f.document.head.children.filter(n=>n.tagName==='SCRIPT'&&n.src?.includes('web-feedback-loader')).length,1);
 });
 
 void test('feedback explicit and fallback admission is opt-in, view-authorized and identity-only; login preserves intent',async()=>{
@@ -41,10 +41,10 @@ void test('ordinary UI-ready loads no disabled helper and enabled host only, nev
 });
 
 void test('cold feedback destination is non-circular and readiness waits for actual list; adapter is deduplicated',async()=>{
- const f=fixture({boot:true,tab:'web-feedback'});f.run('web-feedback-entry.js');f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);await tick();assert.equal(f.calls.length,0);
+ const f=fixture({boot:true,tab:'web-feedback'});f.run('web-feedback-entry.js');f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);await tick();assert.equal(f.calls.length,3);assert.equal(f.requests.length,0);assert.equal(f.window.WebFeedbackHost,undefined);
  f.document.documentElement.removeAttribute('data-process-boot');let ready=false;const task=f.window.ProcessFeedbackEntry.readyForDestination().then(()=>ready=true);await tick();assert.equal(ready,false);assert.equal(f.requests.length,1);assert.match(f.requests[0].url,/action=list/);assert.equal(f.writes.size,0);
  reply(f.requests[0],{issues:[],admin:true,permissions:{view:true,edit:true,exchange:true}});await task;assert.equal(ready,true);assert(f.content.querySelector('[data-board-tab]'));
- f.run('web-feedback-loader.js');f.window.dispatchEvent({type:'process-ui-ready'});await tick();assert.equal(f.calls.filter(c=>String(c[1]).includes('web-feedback-loader')).length,1);assert.equal(f.requests.length,1);
+ f.run('web-feedback-loader.js');f.window.dispatchEvent({type:'process-ui-ready'});await tick();assert.equal(f.document.head.children.filter(n=>n.tagName==='SCRIPT'&&n.src?.includes('web-feedback-loader')).length,1);assert.equal(f.requests.length,1);
 });
 
 void test('management entry uses coordinator, never a direct unindexed push',async()=>{
@@ -63,12 +63,16 @@ void test('cold board overlaps list with assets and does not render until both f
  assert(f.content.querySelector('[data-board-tab]'));assert.equal(f.requests.length,1);
 });
 
+void test('explicit destination preloads only public assets before identity; ordinary entry stays lazy',()=>{
+ for(const tab of ['web-feedback',null]){const f=fixture({boot:true,tab,autoScripts:false});f.sync.identity=null;f.run('web-feedback-entry.js');assert.equal(f.requests.length,0);assert.equal(f.writes.size,0);assert.equal(f.window.WebFeedback,undefined);assert.equal(f.window.WebFeedbackHost,undefined);assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,tab?3:0);}
+});
+
 void test('explicit cold entry starts one authorized list before host download and consumes it once',async()=>{
  const f=fixture({boot:true,tab:'web-feedback',autoScripts:false});f.run('web-feedback-entry.js');
  f.content.dataset.activeTab='web-feedback';f.window.ProcessFeedbackEntry.mount(f.content);assert.equal(f.requests.length,0);
  f.document.documentElement.removeAttribute('data-process-boot');const task=f.window.ProcessFeedbackEntry.readyForDestination();
  assert.equal(f.requests.length,1);assert.equal(f.window.WebFeedbackHost,undefined);
- assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,2);
+ assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,3);
  reply(f.requests[0],{issues:[],admin:true,permissions:{view:true}});await tick();assert.equal(f.content.querySelector('[data-board-tab]'),null);
  const entryScript=f.document.head.children.find(n=>n.src?.includes('loader'));
  f.run('web-feedback-loader.js');entryScript.onload();
@@ -87,7 +91,7 @@ void test('failed host discards prepared list; retry starts a fresh read without
   f.document.head.children.find(n=>n.src?.includes('loader')).onerror();await failed;
   assert.equal(f.window.ProcessFeedbackEntry.takePreparedList(f.content),null);
  }
- assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,2);assert.equal(f.writes.size,0);
+ assert.equal(f.document.head.children.filter(n=>n.rel==='preload').length,3);assert.equal(f.writes.size,0);
 });
 
 void test('401 during prepared entry invalidates identity before private board can appear',async()=>{

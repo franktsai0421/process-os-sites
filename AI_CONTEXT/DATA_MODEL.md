@@ -140,7 +140,7 @@ BOM 匯入 command.input 新增 `baseDigest` 與 `importMode:incremental-v1`；�
 
 ## 2026-10-09 網頁回報 V1（3020及日常Local明確啟用）
 
-獨立 web_feedback_store(id,revision,payload) 以 CAS 保存 issues／attachments／batches／handoffs；不加 shared_state 鍵，不變更製程／BOM／IPQC模型。Drizzle 0002納入schema；既有Local使用明確upgrade，空環境沿正常初始化，公開API不建表。本機日常已啟用，遠端未部署。STATE_ARCHIVE 使用 web-feedback/v1/ 原圖與 immutable ZIP，附件記錄 owner／原存取 envelope／SHA-256。瀏覽器 IndexedDB process-web-feedback-v1 保存按 origin＋核驗帳號隔離的 Blob 草稿及固定待確認批次。資料流與容量／授權限制見 [WEB_FEEDBACK](modules/WEB_FEEDBACK.md)，實測保全見 [交付](../docs/web-feedback/20261009-implementation.md)。
+獨立 web_feedback_store(id,revision,payload) 以 CAS 保存 issues／attachments／batches／handoffs；不加 shared_state 鍵，不變更製程／BOM／IPQC模型。Drizzle 0002納入schema；既有Local使用明確upgrade，空環境沿正常初始化，公開API不建表。本機日常已啟用，遠端未部署。STATE_ARCHIVE 使用 web-feedback/v1/ 原圖與 immutable ZIP，附件記錄 owner／原存取 envelope／SHA-256。瀏覽器 IndexedDB process-web-feedback-v1 保存按 origin＋核驗帳號隔離的 Blob 草稿及固定待確認批次。另以 sessionStorage 的 `<origin>|feedback-v1|<核驗帳號>|board` 保存同分頁清單 UI 偏好（篩選、勾選 ID、目前 ID、scrollTop），不含案件內容／私人備註；只在 fresh list 核驗後套用有效 ID，不能作為權限來源。資料流與容量／授權限制見 [WEB_FEEDBACK](modules/WEB_FEEDBACK.md)，實測保全見 [交付](../docs/web-feedback/20261009-implementation.md)。
 
 ## 2026-10-08 畫布本機 journal
 

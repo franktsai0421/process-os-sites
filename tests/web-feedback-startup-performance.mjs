@@ -19,12 +19,15 @@ try {
  const bundled=chromium.executablePath();
  browser=await chromium.launch({headless:true,...(process.env.FEEDBACK_BROWSER_PATH?{executablePath:process.env.FEEDBACK_BROWSER_PATH}:fs.existsSync(bundled)?{executablePath:bundled}:{channel:'chrome'})});
  const login=await browser.newContext();
- const page=await login.newPage();
+ const page=await login.newPage();page.setDefaultTimeout(15000);
  await page.route('**/*',r=>new URL(r.request().url()).origin===fixture.origin?r.continue():r.abort());
  await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');
  await page.locator('#id').fill('frank');await page.locator('#password').fill(fixture.password);
+ const loginStarted=performance.now(),loginResponse=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/platform-login');
  await page.locator('.site-entry-submit').click();await page.waitForSelector('.wf-row');
- const auth=await login.storageState();await login.close();
+ const loginFinished=performance.now(),loginResult=await loginResponse;const authTiming=loginResult.request().timing();
+ const loginTiming={totalToRowsMs:loginFinished-loginStarted,status:loginResult.status(),apiWaitMs:authTiming.responseStart-authTiming.requestStart,apiTotalMs:authTiming.responseEnd>=authTiming.requestStart?authTiming.responseEnd-authTiming.requestStart:null};
+ console.log('Login measurement complete');const auth=await login.storageState();await login.close();
  // Alternate order to separate shared machine/boot variance from the module's
  // request waterfall. Paired mode uses the same compiled backend for both arms.
  for(const delayMs of [0,120])for(let run=0;run<5;run++)for(const variant of (run%2?[...variants].reverse():variants)) {
@@ -36,7 +39,7 @@ try {
    if(assets.has(url.pathname))return r.fulfill({status:200,contentType:'text/javascript',body:assets.get(url.pathname)[variant]});
    return r.continue();
   });
-  const p=await context.newPage();
+  console.log('Cold sample '+delayMs+' '+run+' '+variant);const p=await context.newPage();p.setDefaultTimeout(15000);
   // Record rendering at the first animation frame containing actual rows.
   // No polling delay from Playwright's locator is included in readyMs.
   await p.addInitScript(()=>{
@@ -53,12 +56,14 @@ try {
   await p.waitForFunction(()=>[...document.querySelectorAll('.wf-detail img')].every(i=>i.complete));
   const result=await p.evaluate(()=>({
    readyMs:window.__feedbackFirstRows,
+   navigation:performance.getEntriesByType('navigation').map(e=>({responseStartMs:e.responseStart,responseEndMs:e.responseEnd,domInteractiveMs:e.domInteractive,domContentLoadedMs:e.domContentLoadedEventEnd}))[0],
+   sharedResources:performance.getEntriesByType('resource').filter(e=>!e.name.includes('web-feedback')&&['script','link','fetch'].includes(e.initiatorType)).map(e=>({path:new URL(e.name).pathname,type:e.initiatorType,startMs:e.startTime,endMs:e.responseEnd,waitMs:e.responseStart-e.requestStart,totalMs:e.duration,bytes:e.encodedBodySize})),
    resources:performance.getEntriesByType('resource').filter(e=>e.name.includes('web-feedback')).map(e=>({path:new URL(e.name).pathname,action:new URL(e.name).searchParams.get('action'),startMs:e.startTime,endMs:e.responseEnd,waitMs:e.responseStart-e.requestStart,totalMs:e.duration,bytes:e.encodedBodySize})),
    rows:document.querySelectorAll('.wf-row').length
   }));
   assert.equal(result.rows,60);
   assert.equal(result.resources.filter(e=>e.action==='list').length,1,'one authorized list request per cold entry');
-  for(const name of ['web-feedback.js','web-feedback.css'])assert.equal(result.resources.filter(e=>e.path==='/process/'+name).length,1,'preload must not duplicate '+name);
+  for(const name of ['web-feedback-loader.js','web-feedback.js','web-feedback.css'])assert.equal(result.resources.filter(e=>e.path==='/process/'+name).length,1,'preload must not duplicate '+name);
   samples.push({delayMs,run,variant,...result});
   fs.mkdirSync(out,{recursive:true});
   if(delayMs===0&&run===0&&variant==='candidate'){
@@ -74,6 +79,6 @@ try {
   const group=samples.filter(s=>s.delayMs===delayMs&&s.variant===variant);
   return {delayMs,variant,runs:group.length,medianReadyMs:median(group.map(s=>s.readyMs)),medianListWaitMs:median(group.map(s=>s.resources.find(r=>r.action==='list').waitMs)),medianRenderAfterListMs:median(group.map(s=>s.readyMs-s.resources.find(r=>r.action==='list').endMs))};
  }));
- fs.writeFileSync(out+'/'+label+'.json',JSON.stringify({label,reference:reference||null,pairedBackend:!!reference,browser:browser.version(),seedIssues:60,summary,samples},null,2));
+ fs.writeFileSync(out+'/'+label+'.json',JSON.stringify({label,reference:reference||null,pairedBackend:!!reference,browser:browser.version(),loginTiming,seedIssues:60,summary,samples},null,2));
  console.log(JSON.stringify({label,summary}));
 }finally{await browser?.close();await fixture.close();}

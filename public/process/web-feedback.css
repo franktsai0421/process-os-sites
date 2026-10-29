@@ -27,11 +27,15 @@
 #wf-panel button,.wf-admin button{white-space:normal;overflow-wrap:anywhere;min-height:34px}
 #wf-launcher{z-index:11002!important}
 #wf-marking-shield{position:fixed;inset:0;z-index:11000;cursor:crosshair;touch-action:none;background:transparent;outline:none}
+#wf-marking-shield:not([data-ready=true]){cursor:progress}
 #wf-panel :focus-visible,#wf-viewer :focus-visible,.wf-admin :focus-visible{outline:3px solid #ad6714;outline-offset:2px}
 .wf-admin{padding:14px;min-width:0}
 .wf-admin h2{font-size:20px;margin:0 0 10px}
 .wf-admin nav{gap:6px;border-bottom:1px solid #d6e1de;padding-bottom:10px}
 .wf-admin [data-counts]{font-size:12px;color:#365e61;flex:1;min-width:150px}
+.wf-progress{margin:0 0 6px;font-size:12px;line-height:1.5;color:#365e61;overflow-wrap:anywhere}
+.wf-tools{background:#fffefa;padding-bottom:8px}
+@media(min-width:900px){.wf-tools{position:sticky;top:var(--wf-toolbar-top,0px);z-index:3;box-shadow:0 3px 0 #fffefa}}
 .wf-admin .wf-filters{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(100px,1fr)) repeat(2,minmax(125px,1fr));gap:6px}
 .wf-admin .wf-filters>*{width:100%;min-width:0;font-size:13px;padding:7px}
 .wf-admin .wf-filters input[type=search]{min-width:0}

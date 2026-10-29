@@ -8,6 +8,18 @@
  const enabled=()=>!sync()?.requiresReload&&(sync()?.deliveryProjection?sync().features?.webFeedback===true:!!window.WebFeedbackHost);
  const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
  const owns=owner=>!!owner.id&&!sync()?.requiresReload&&owner.id===sync()?.identity?.id&&owner.epoch===sync()?.identityGeneration?.()&&(!owner.delivery||sync()?.isCurrentDelivery?.(owner.delivery)!==false);
+ // Public static bytes only: early hints must not execute the module, read
+ // records, verify accounts or open private IndexedDB drafts.
+ function preloadAssets(){
+  if(!assetsPreloaded){
+   assetsPreloaded=true;
+   for(const [as,name] of [['script','web-feedback-loader.js'],['script','web-feedback.js'],['style','web-feedback.css']]){
+    const link=document.createElement('link');link.rel='preload';link.as=as;link.href='/process/'+name+'?v=20261029-feedback5';document.head.append(link);
+   }
+  }
+ }
+ const initialURL=new URL(location.href);
+ if(initialURL.searchParams.get('view')==='data'&&initialURL.searchParams.get('dataTab')==='web-feedback'&&!sync()?.requiresReload)preloadAssets();
  function prepareList(host){
   if(window.WebFeedbackHost||!enabled())return null;
   if(prepared?.host===host&&owns(prepared.owner))return prepared;
@@ -21,12 +33,7 @@
    const value=await response.json();if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');
    if(!response.ok)throw Error(value.error||response.status);return {value};
   }).catch(error=>({error}));
-  if(!assetsPreloaded){
-   assetsPreloaded=true;
-   for(const [as,name] of [['script','web-feedback.js'],['style','web-feedback.css']]){
-    const link=document.createElement('link');link.rel='preload';link.as=as;link.href='/process/'+name+'?v=20261029-feedback4';document.head.append(link);
-   }
-  }
+  preloadAssets();
   return task;
  }
  function takePreparedList(host){const task=prepared;if(!task||task.host!==host)return null;prepared=null;return owns(task.owner)?task.result:null;}
@@ -35,7 +42,7 @@
   if(window.WebFeedbackHost)return window.WebFeedbackHost.active?.()===false?Promise.reject(Error('FEEDBACK_RELOAD_REQUIRED')):Promise.resolve(window.WebFeedbackHost);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
-   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback4';script.defer=true;
+   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback5';script.defer=true;
    script.onload=()=>window.WebFeedbackHost?resolve(window.WebFeedbackHost):fail();
    const fail=()=>{loading=null;script.remove();reject(Error('FEEDBACK_HOST_LOAD_FAILED'));};script.onerror=fail;document.head.append(script);
   });return loading;

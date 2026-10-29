@@ -242,6 +242,68 @@ PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chro
 
 只讀取與比對，不合併或接管以上分支。index 整合只保留本次 feedback entry 版本參數，其餘共用入口由 dot 語意整合；文件保留雙方條目。
 
+## 建議 1–4 實作與驗證（本輪基準 2b05c6f）
+
+使用者明確要求處理標記安全、首次載入、回報引導及大量清單操作。以 `2b05c6fc12d4fa8695e726c592ea6f405adb35ab` 繼續同一獨立分支；以下為最新狀態，前段紀錄保留為各輪歷史證據。
+
+### 實作及未解決範圍
+
+1. **標記安全：部分改善，未完整修復 iframe 首幀問題。** 現在先顯示「準備標記中」，兩個 animation frame 後才顯示可點選／十字游標；準備中的同頁事件仍攔截，尚未就緒不建立標記。這避免在遮罩剛插入 DOM 時就宣稱可選取，但不是跨來源 iframe 首幀保護的修復。嘗試過獨立合成環境的 native modal、提前 pointerdown、iframe inert／visibility 與合成層方案，仍有失敗且侵入原頁互動，均未納入產品。`tests/web-feedback-iframe-transition.diagnostic.mjs` 不等待就緒、立即實際座標點擊，最後 3 次皆送達 iframe 的 pointerdown/mousedown/click，回傳 FAIL；保留測試和失敗，不用正常就緒後通過取代。
+2. **首次載入：完成模組內調整與隔離量測，實站仍未驗證。** 明確 `view=data&dataTab=web-feedback` 網址，在 entry 載入時只預載公開 loader／core JS／CSS。沒有提前執行核心、讀 API、核驗帳號或開啟私人 IndexedDB；一般頁面不新增預載。授權 list 仍依原 owner／delivery、每次新鮮核驗且只消費一次。共用 `public/process/index.html` 僅版本參數更新為 `20261029-feedback5`，已在修改前說明；沒有重構 bootstrap／導航。
+3. **回報引導：完成。** 標記後聚焦原說明欄，不清除文字；顯示位置、附件張數、尚未送出／送出中／尚未確認成功。成功仍只以伺服器回覆判定。fallback 元件名稱改用中越文「圖片／輸入欄位／畫布／外部內容／網頁位置」，不顯示 DOM tag；內部 locator／位置備援照常保存。
+4. **清單操作：完成本次範圍。** 桌面工具列與篩選 sticky，窄螢幕保持正常流避免遮住畫面。同一分頁以 origin＋核驗帳號保存篩選、勾選 ID、目前問題與清單 scrollTop，跨交接頁、總覽／返回及重新整理恢復；不保存案件內容、私人備註或授權。每次成功取得 fresh list 後才套用，排除不存在／不可交接 ID，驗證日期／選項並 escape 文字。sessionStorage 不可用時不阻擋保存。維持完整讀取，沒有為加速省略資料或引入分頁。
+
+### 驗證
+
+- PASS：53 項 VM/layout（含新增公開資源預載在無登入時不取 API／草稿、不執行核心）；完整 TypeScript、typed lint、build/auth audit、source-only preflight。
+- PASS：既有 17 組主流程、6 組恢復、3 組真實剪貼簿、3 組收尾流程；新增 `tests/web-feedback-workspace-browser.test.mjs` 3 組，共 32 組正常瀏覽器情境。新增覆蓋篩選／勾選／選取／scroll 跨頁／重整、sticky 幾何、帳號隔離、無效 ID、惡意日期不插入 DOM、就緒後選取聚焦、中越文狀態、失敗重試。均為編譯 Worker、正常登入、隔離 D1/R2，shared_state 值與 revision 不變。
+- **FAIL**：上述首幀前跨來源 iframe 診斷 3／3；正常模式等待可選取訊號的 iframe 外框標記通過。兩者不是相同時序，不能合併成全面 PASS。
+- 後端程式未變更，沿用前輪 64 API 證據。真實站台、相同登入身分 Chrome／ChatGPT、實體裝置及原生 OS IME 仍尚未驗證；非本輪已通過清單。
+
+新證據：`.sites-runtime/feedback-workspace/results.json`、`.sites-runtime/feedback-iframe-transition/results.json`、原 browser/recovery/clipboard/final 的最新結果。新增診斷命令（目前預期會揭露失敗，不能標記通過）：
+
+```bash
+PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-iframe-transition.diagnostic.mjs
+```
+
+### 效能比較
+
+修改前先量一般冷啟動 579 ms、每個模組請求加 120 ms 時 694 ms（各五次）。完成後再使用同一編譯後端／60 筆合成資料／Chromium 154.0.8037.57，交替基準與候選前端、每輪翻轉先後順序，各 5 個全新 context；共享目前 CSS，差異在 entry/loader/core JS。以下為這個交替實驗的中位數，不能與前輪不同方法直接拼接。
+
+|毫秒|基準 2b05c6f 前端|本輪候選|
+|---|---:|---:|
+|一般首次列呈現|566.2|575.9|
+|一般範圍|560.7–595.4|531.7–584.3|
+|每模組請求加 120 ms：首次列呈現|687.5|668.6|
+|同延遲範圍|673.6–701.7|641.2–695.7|
+|一般 list API 回應開始等待|12.2|7.9|
+|一般 list 回應結束→首個列 frame|34.2|30.6|
+|延遲 list 回應開始等待（不含人工排程）|10.4|8.6|
+|延遲 list 回應結束→首個列 frame|31.6|21.6|
+|一般圖片請求合計|14.9|15.8|
+|延遲圖片請求合計|132.6|132.9|
+
+loader 請求開始一般 513→475 ms、延遲情境 521→463 ms；改善機制是重疊公開資源下載。一般首次沒有可宣稱的改善，延遲情境只有小幅樣本改善且範圍重疊，不作 SLA 或顯著性保證。清單 API 仍約 navigation 後 510–527 ms 才開始，共用啟動佔大部分；未越界修改共用入口流程。圖片沒有加速。
+
+測量腳本新增 navigation、共用資源時間與登入分段，沒有寫入產品畫面。登入一次樣本至問題列約 997 ms、API 回應開始等待約 7.1 ms；導航後 Playwright 未提供該登入請求結束時間，記為 null，不捏造 API total，也不把總時間當純登入服務時間。原始資料 `.sites-runtime/feedback-startup/round5-paired.json`；重現 `node tests/web-feedback-startup-performance.mjs <label> 2b05c6fc12d4fa8695e726c592ea6f405adb35ab`（先設正常 build 與瀏覽器環境變數）。
+
+### 整合與外部條件
+
+無 SQL migration 或共用讀寫／權限改動；新增資料僅模組自己的 sessionStorage UI 偏好。Draft PR／獨立公開預覽／實站測速仍缺原先列明的外部能力，沒有以分支或 localhost 冒充交付。
+
+最新 fetch main 仍是原基準；與尚未被 main 包含的遠端分支交集如下（非 PR 狀態，不代表 dot 未推送內容）：
+
+|分支|SHA|交集|
+|---|---|---|
+|`cloud/users-permissions-29102026`|`1f88a7e24936fa63b387eb40637e32aa0d892c6d`|`AI_CONTEXT/CHANGELOG.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/photo-standard-cloud-29102026`|`19855a067e89692a63376794160b67f5b1062499`|`AI_CONTEXT/CHANGELOG.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/preview-process-flow-cloud-29102026`|`929bed7b4929d974338ced74dbecafd2420d48a5`|`AI_CONTEXT/CHANGELOG.md`, `AI_CONTEXT/DATA_MODEL.md`, `HANDOFF.md`, `public/process/index.html`|
+|`codex/process-flow-cloud-29102026`|`ea20ffab7aa782f628d0107c99e0f150fc76aaf1`|`AI_CONTEXT/CHANGELOG.md`, `AI_CONTEXT/DATA_MODEL.md`, `HANDOFF.md`, `public/process/index.html`|
+|`fix/authoring-save-response-20261027`|`4674df6cc419b6cf14cbb6808d0f99061cbd8a5c`|`AI_CONTEXT/CHANGELOG.md`, `public/process/index.html`|
+|`fix/ipqc-ab-read-ownership-20261029`|`6b56bf68c0c892aa11cdfb7d266995d5dd7f921c`|`AI_CONTEXT/CHANGELOG.md`, `public/process/index.html`|
+
+未合併或接管以上工作；由 dot 整合 index 版本參數與文件條目，整合後須複驗原生輸入／捲動及三角色授權。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。
