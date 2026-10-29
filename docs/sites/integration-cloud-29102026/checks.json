@@ -1,6 +1,6 @@
 {
   "status": "PASS_PROPOSED_INDEX",
-  "preview": "929bed7b4929d974338ced74dbecafd2420d48a5",
+  "preview": "642d4defc8057c5d96e902070e39a6181a1afc17",
   "permissions": "1f88a7e24936fa63b387eb40637e32aa0d892c6d",
   "feedback": "2b05c6fc12d4fa8695e726c592ea6f405adb35ab",
   "scope": "Proposal only; no foreign task code merged into task branches",
@@ -20,5 +20,5 @@
   },
   "baseIndexSha256": "f9f7b023d6655667aaa8b6edb863f2976be38ef1a68bfd76ca122d2f365b56e3",
   "patchApplies": true,
-  "photoCandidate": "88ccd81"
+  "photoCandidate": "88ccd815ff341d80e23b573eea6c8016a93a430c"
 }

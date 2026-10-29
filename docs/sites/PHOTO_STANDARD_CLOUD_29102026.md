@@ -88,3 +88,5 @@ main 未提供「一般規格」選擇器；舊 1600px/WebP0.82 只剩過時文�
 執行：先在所測來源 `PROCESS_PROGRAM_COMMIT=<40字元commit> npm run build`，再 `node tests/photo-entry-browser.test.mjs`；預設跑 12 組品質／回報入口。完整流程＋照片預覽另以 `PHOTO_ENTRIES=fqc,iqc-part,iqc-item,ipqc-ab,ipqc-c,equipment,equipment-new,tooling,equipment-hierarchy,routine-report,routine-disposal,feedback,process-template,process-equipment,process-authoring` 執行 15 組，三個 process 案例對應兩候選整合後 UI。
 
 本輪額外檢查：photo-editor 5 組、lint、TypeScript、編譯與 diff check 通過。既有 policy／原生 API／權限保護驗證見前節，本次只增加檢視器及補驗，未修改那些後端路徑。
+
+獨立照片分支 `88ccd815ff341d80e23b573eea6c8016a93a430c` 再次獨立建置成功；預設 12 組品質／小幫手照片表單全部通過、零 pageerror，證明這部分不必先混入流程 PR 才能驗證。流程＋照片預覽產品來源為 `642d4defc8057c5d96e902070e39a6181a1afc17`。
