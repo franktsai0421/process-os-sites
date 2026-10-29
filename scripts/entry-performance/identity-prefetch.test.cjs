@@ -4,7 +4,7 @@ const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('nod
 const root=path.resolve(__dirname,'../..'),requireRepo=createRequire(path.join(root,'package.json')),ts=requireRepo('typescript');
 const hash=raw=>createHash('sha256').update(raw).digest('hex'),ref=raw=>({key:'state-records/v1/'+hash(raw)+'.json',sha256:hash(raw)});
 function load(source){const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(output,{module:mod,exports:mod.exports,require:id=>requireRepo(path.resolve(root,'lib',id)),crypto:webcrypto,TextEncoder,TextDecoder,console,structuredClone});return mod.exports;}
-const candidateSource=fs.readFileSync(path.join(root,'lib/state-records.ts'),'utf8');
+const candidateSource=fs.readFileSync(path.join(root,'lib/state-records.ts'),'utf8').replace(/\r\n/g,'\n');
 const inverse=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/identity-prefetch-reverse.json'),'utf8'));
 let baselineSource=candidateSource;
 for(const row of inverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'reviewed inverse span hash');assert.equal(baselineSource.split(row.candidate).length-1,1,'inverse source anchor must occur exactly once');baselineSource=baselineSource.replace(row.candidate,row.baseline);}

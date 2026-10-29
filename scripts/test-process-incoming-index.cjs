@@ -12,7 +12,7 @@ const eol=candidateCode.includes('\r\n')?'\r\n':'\n',indexBlock=[
 let baselineCode=replaceOnce(candidateCode,indexBlock,'');
 baselineCode=replaceOnce(baselineCode,'incoming=incomingById?incomingById.get(op.id)||[]:ops.filter(o=>o.nextIds?.includes(op.id))','incoming=ops.filter(o=>o.nextIds?.includes(op.id))');
 assert.notEqual(baselineCode,candidateCode,'two arms must not compare the same shipped source');
-assert.equal(createHash('sha256').update(baselineCode).digest('hex'),'dec94c800c7cd9c37bec240b9633825341f852cec004b170994400ede0d90fd5','inverse must reconstruct reviewed baseline source');
+assert.equal(createHash('sha256').update(baselineCode.replace(/\r?\n/g,'\r\n')).digest('hex'),'dec94c800c7cd9c37bec240b9633825341f852cec004b170994400ede0d90fd5','inverse must reconstruct reviewed baseline source');
 
 const original=fs.readFileSync(loaderFile,'utf8'),needle="fs.readFileSync(file,'utf8')";assert.equal(original.split(needle).length,2);const compiled=vm.runInThisContext('(function(module,exports,require,readSource){'+original.replace(needle,'readSource(file)')+'\n})',{filename:loaderFile});
 function arm(code){const mod={exports:{}};compiled(mod,mod.exports,createRequire(loaderFile),file=>path.resolve(file)===target?code:fs.readFileSync(file,'utf8'));return mod.exports()('lib/process-editor-integrity.ts');}

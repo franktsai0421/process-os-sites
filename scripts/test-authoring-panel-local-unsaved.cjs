@@ -1,7 +1,7 @@
 /* Source VM differential. No browser, server, real HTTP or business writes. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{createRequire}=require('node:module'),{createHash}=require('node:crypto');
 const root=process.env.PANEL_TEST_ROOT||path.resolve(__dirname,'..'),candidate=process.env.PANEL_CANDIDATE||path.join(root,'public/process/process-authoring-v3.js'),fixturePath=path.join(root,'scripts/test-authoring-save-validation-ui.cjs');
-const candidateSource=fs.readFileSync(candidate,'utf8');
+const candidateSource=fs.readFileSync(candidate,'utf8').replace(/\r\n/g,'\n');
 function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,'portable baseline requires one exact source anchor: '+from.slice(0,90));return source.replace(from,to);}
 let baselineSource=candidateSource;
 
