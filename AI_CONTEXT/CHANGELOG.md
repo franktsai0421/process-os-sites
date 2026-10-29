@@ -1,3 +1,9 @@
+## 2026-10-29 — Stacked AB source delivery
+
+IPQC-AB owner-bound reads, independent action/photo authorization, local diff indexing and deferred equipment entry. Single-owner shared read guards and foreground scheduler declarations are prerequisites; new Begin behavior remains in the later back-office layer.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
 ## 2026-10-28 — 依確認保留保護的檢具測試流程（隔離補驗）
 
 - 新增兩器具先正常核准才接收移轉；四模組分無草稿／已有草稿，加入退回後真正改選器具、新 Save、重送與獨立核准，正式標準只在核准後改變。
