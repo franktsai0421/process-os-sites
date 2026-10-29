@@ -1,6 +1,7 @@
 /* Actual final GET and exact published GET baseline; synthetic SQLite/R2, no server/network. */
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
+const {withoutApprovedExplicitRights,assertExplicitRightsContract}=require('./ipqc-c-explicit-rights-source-contract.cjs');
 const {makeLoader,baselineCommits,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT);CREATE TABLE process_revoked_sessions(token_digest TEXT PRIMARY KEY,expires_at INTEGER,revoked_at INTEGER)');
 const objects=new Map();let events=[],stateReads=0,onGet=null,onRevocation=null,lastState=null,lastReadOptions=null,writeAttempts=0;
@@ -9,7 +10,7 @@ const secret=randomBytes(32).toString('hex'),env={STATE_ARCHIVE:bucket,PROCESS_S
 const candidate=makeLoader(env),old=makeLoader(env,{baseline:['app/api/ipqc-c/route.ts','lib/process-state.ts']}),core=candidate('lib/process-state.ts'),records=candidate('lib/state-records.ts'),chunks=candidate('lib/state-chunks.ts');const originalRead=core.readState;core.readState=async (options,archive)=>{lastReadOptions=options;lastState=await originalRead(options,archive);return lastState;};
 const api=candidate('app/api/ipqc-c/route.ts'),beforeApi=old('app/api/ipqc-c/route.ts'),cells=(...yes)=>Object.fromEntries(accessKeys.map(k=>[k,yes.includes(k)]));
 const user=(id,permission,extra={})=>({id,name:id,role:'staff',enabled:true,authMode:'platform',authEpoch:1,inheritRole:false,accessOverrides:cells(permission),...extra});
-const users=[user('frank','',{role:'admin'}),user('admin-two','',{role:'admin',inheritRole:true,accessOverrides:undefined}),user('reader','ipqc-c.view'),user('approval','approval.view'),user('custom','',{role:'fixture-role',inheritRole:true,accessOverrides:undefined}),user('template-denied','',{role:'blocked-role',inheritRole:true,accessOverrides:undefined}),user('override-denied','',{role:'fixture-role',inheritRole:true}),user('other','fqc.view'),user('disabled','ipqc-c.view',{enabled:false}),user('deleted','ipqc-c.view',{deletedAt:'fixture'})];
+const users=[user('frank','',{role:'admin'}),user('admin-two','',{role:'admin',inheritRole:true,accessOverrides:undefined}),user('reader','ipqc-c.view'),user('approval','approval.view'),user('approval-reader','approval.view',{accessOverrides:cells('approval.view','ipqc-c.view')}),user('custom','',{role:'fixture-role',inheritRole:true,accessOverrides:undefined}),user('template-denied','',{role:'blocked-role',inheritRole:true,accessOverrides:undefined}),user('override-denied','',{role:'fixture-role',inheritRole:true}),user('other','fqc.view'),user('disabled','ipqc-c.view',{enabled:false}),user('deleted','ipqc-c.view',{deletedAt:'fixture'})];
 const fixture=require('./v3-quality-growth-fixture.cjs')('ipqc-c',[{id:'a'.repeat(64),bytes:0}],2,20),control=JSON.parse(fixture.values.ipqcCMasterControl);control.workflow.cases.push({...structuredClone(control.workflow.cases[0]),id:'pending',status:'pending'});control.workflow.cases.at(-1).content.items[0].description='Distinct pending content';control.workflow.pendingId='pending';
 const equipment={schemaVersion:1,activeVersionId:'eq-active',versions:[{id:'eq-active',status:'approved',equipment:[{id:'eq',assetCode:'EQ',pieceMark:'01',groupId:'group',name:'測試 Việt',enabled:true,photoId:'b'.repeat(64),spec:'spec'}],groups:[{id:'group',name:'group',categoryId:'category',subcategoryId:'sub'}],categories:[{id:'category',name:'category',code:'C01',photoId:'c'.repeat(64)}],subcategories:[{id:'sub',categoryId:'category',name:'sub'}],issues:[]}],issues:[],reservedMarks:{EQ:['01']}};
 const values={...fixture.values,ipqcCMasterControl:JSON.stringify(control),routineEquipmentControl:JSON.stringify(equipment),platformUsers:JSON.stringify(users),processCustomRoles:JSON.stringify(['fixture-role','blocked-role'].map(id=>({id,name:id,lines:[],views:[],permissions:[],access:cells('ipqc-c.view')}))),processRoleTemplateOverrides:JSON.stringify({'blocked-role':{access:cells()}}),processAccessControl:'{"audit":"private-access-sentinel"}',maintenanceMode:'0',unrelated:JSON.stringify({historical:'C-HIST-TIEN-L987-01',irrelevant:'測試 Việt'.repeat(10000)})};
@@ -23,9 +24,20 @@ await check('C1 adopted full/draft/pending/history/catalog/equipment parity and 
  baseline=(await run(request(),true)).metrics;reduced=(await run(request())).metrics;assert.deepEqual([...lastReadOptions.keys],['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','ipqcCMasterControl','masterDataControl','routineEquipmentControl']);assert.equal(lastReadOptions.modelKey,'ipqcCMasterControl');assert.equal(lastReadOptions.deferHistory,true);assert.equal(lastReadOptions.deferDependencyHistory,true);assert(reduced.gets<baseline.gets);assert(reduced.bytes<baseline.bytes);assert.equal(reduced.stateReads,1);assert(!events.some(([,k])=>k===refs.unrelated.key));
  const larger=await records.encodeRecordValues(bucket,{...values,unrelated:JSON.stringify({text:'large'.repeat(100000)})});install(larger);const grown=await run(request());assert.deepEqual(grown.metrics,reduced);install(raw);
 });
-await check('C2 exact actor/role/template/session response parity with no denied leakage',async()=>{
- for(const who of ['frank','admin-two','reader','approval','custom','template-denied','override-denied','other','disabled','deleted','']){const req=request(who,'?caseMetadata=1',{forged:!who}),a=await run(req),b=await run(req,true);assert.deepEqual(comparable(a),comparable(b));assert.equal(a.status,['frank','admin-two','reader','approval','custom'].includes(who)?200:403,who);if(a.status===403)assert(!JSON.stringify(a.body).includes('photoId')&&!JSON.stringify(a.body).includes('private-access-sentinel'));}
- for(const who of ['approval','reader'])assert.deepEqual(comparable(await run(request(who,''))),comparable(await run(request(who,''),true)));
+await check('C2 exact actor/role/template/session parity except explicit module-view denial',async()=>{
+ // #44 requires this module's view cell; approval.view alone no longer grants full data.
+ // Keep that actor denied rather than broadening its fixture or weakening the product gate.
+ const allowed=['frank','admin-two','reader','approval-reader','custom'];
+ for(const q of ['','?caseMetadata=0','?caseMetadata=1']){
+  for(const who of ['frank','admin-two','reader','approval-reader','custom','template-denied','override-denied','other','disabled','deleted','']){
+   const req=request(who,q,{forged:!who}),a=await run(req),b=await run(req,true);
+   assert.deepEqual(comparable(a),comparable(b));assert.equal(a.status,allowed.includes(who)?200:403,who);
+   if(a.status===403)assert(!JSON.stringify(a.body).includes('photoId')&&!JSON.stringify(a.body).includes('private-access-sentinel'));
+  }
+  const req=request('approval',q),denied=await run(req),prior=await run(req,true);
+  assert.equal(prior.status,200,'historical approval-only full read');assert.equal(prior.error,undefined);assert(prior.body.control);
+  assert.deepEqual(comparable(denied),{status:403,headers:[['cache-control','no-store'],['content-type','application/json; charset=utf-8'],['x-content-type-options','nosniff']],body:{error:'沒有查看 IPQC-C 的權限'},error:undefined},'exact denial has no DTO or private-data leakage');
+ }
  for(const options of [{expired:true},{epoch:2}])assert.equal((await run(request('reader','',options))).status,403);
 });
 await check('C3 revocation during hydration/authority and pinned-snapshot next-read semantics',async()=>{
@@ -52,7 +64,7 @@ await check('C7 loopback full-read historicalCodes and non-loopback bounded beha
  for(const origin of ['http://localhost:3040','http://127.0.0.1:3000'])for(const who of ['frank','reader']){const req=request(who,'?caseMetadata=1',{origin}),next=await run(req),prior=await run(req,true);assert.deepEqual(comparable(next),comparable(prior));assert(next.keys.includes(refs.unrelated.key));if(who==='frank')assert(next.body.historicalCodes.includes('C-HIST-TIEN-L987-01'));else assert.equal(next.body.historicalCodes,undefined);}
  const hosted=await run(request('frank'));assert.equal(hosted.body.historicalCodes,undefined);assert(!hosted.keys.includes(refs.unrelated.key));
 });
-await check('C9 exact approved legacy/photo auth deltas only; protected write bodies domain and image bytes retain v20 baseline',()=>{
+await check('C9 exact approved explicit-rights/legacy/photo auth deltas only; protected write bodies domain and image bytes retain v20 baseline',()=>{
  const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];
  // Git blobs remain byte-exact; checkout conversion may change CRLF, and nothing else.
  const checkoutBytes=bytes=>bytes.filter((byte,index)=>byte!==13||bytes[index+1]!==10);
@@ -76,7 +88,10 @@ await check('C9 exact approved legacy/photo auth deltas only; protected write bo
   const committed=execFileSync('git',['show','HEAD:'+file]),working=fs.readFileSync(file);
   assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
   const aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
-  const protectedBytes=aligned?withoutApprovedOperationAlignment(file,committed):committed;
+  const explicit=['app/api/ipqc-c/route.ts','app/api/ipqc-c/workflow/route.ts'].includes(file);
+  if(explicit)assertExplicitRightsContract(file,committed);
+  const explicitProtected=explicit?withoutApprovedExplicitRights(file,committed):committed;
+  const protectedBytes=aligned?withoutApprovedOperationAlignment(file,explicitProtected):explicitProtected;
   preserved(execFileSync('git',['show',base+':'+file]),protectedBytes,protectedBytes,file==='app/api/ipqc-c/workflow/route.ts'?'export async function POST(':file==='app/api/ipqc-c/route.ts');
  }
 });
