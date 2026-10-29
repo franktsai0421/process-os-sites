@@ -1,0 +1,42 @@
+name: Windows Miniflare four-request diagnostic
+on:
+  push:
+    branches: ['diagnostic/windows-miniflare-four-20261029']
+    paths:
+      - 'scripts/windows-miniflare-four.mjs'
+      - 'tests/windows-miniflare-four.test.mjs'
+      - '.github/workflows/windows-miniflare-four.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-miniflare:
+    if: ${{ github.repository == 'franktsai0421/process-os-sites' && github.ref == 'refs/heads/diagnostic/windows-miniflare-four-20261029' }}
+    runs-on: windows-latest
+    timeout-minutes: 6
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Normal locked install and unchanged source guard
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Pure SDK-callback regression (no server)
+        run: node --test tests/windows-miniflare-four.test.mjs
+      - name: One bounded Windows SDK run (four requests, no retry)
+        run: node scripts/windows-miniflare-four.mjs --run-windows-miniflare-four
