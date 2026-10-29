@@ -196,7 +196,7 @@
   {
     "head": "cloud/permissions-verified-29102026",
     "base": "cloud/permissions-review-polish-29102026",
-    "shaAtReport": null,
+    "shaAtReport": "384037d21329921ba8f6eb2367a6c39936110e5e",
     "title": "驗收、文件及 IQC 三行空白清理（無行為修改）",
     "draft": true,
     "status": "not_created_network_policy",
@@ -216,6 +216,22 @@
       "scripts/audit-users-page-permissions.mjs",
       "scripts/test-draft-restore-access.mjs",
       "tests/user-permissions-native.test.mjs"
+    ]
+  },
+  {
+    "head": "cloud/users-permissions-layout-29102026",
+    "base": "cloud/permissions-verified-29102026",
+    "shaAtReport": "33a1fd04a2abc9aeb2e2dd0477872f0ef2174223",
+    "title": "修正使用者權限詳細展開寬度並補驗最終畫面",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/users-permissions-layout.md",
+    "files": [
+      "public/process/user-access.css",
+      "public/process/index.html",
+      "scripts/test-users-cloud-browser.mjs",
+      "scripts/test-users-cloud-full-page.mjs",
+      "docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md"
     ]
   }
 ]

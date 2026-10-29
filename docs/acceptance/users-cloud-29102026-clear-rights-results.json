@@ -1,5 +1,5 @@
 {
-  "productionCommit": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+  "productionCommit": "33a1fd04a2abc9aeb2e2dd0477872f0ef2174223",
   "baseline": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
   "notDeployed": true,
   "isolatedOnly": true,
@@ -10876,14 +10876,14 @@
     ]
   },
   "operationsAfter": {
-    "label": "clear-ui-final",
+    "label": "layout-final",
     "source": {
-      "head": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+      "head": "33a1fd04a2abc9aeb2e2dd0477872f0ef2174223",
       "sha256": {
         "app/api/user-access/route.ts": "c69e866a987eed74150e0890335126d827f6c58fc242483a587f622195320816",
         "lib/user-access.ts": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
         "public/process/user-access.js": "87d24e7d409711c34c38eda27924e5e6272c4a5bb0b853f862814bd73b20fc4c",
-        "public/process/user-access.css": "0f54aee436b858a664674895fe46fb80413e95622717fbb5aa058da88dfb6f13"
+        "public/process/user-access.css": "810f4bfa72289f966e7ec7c3d4a650390610dca2156e9dd2bc85f6230192e05f"
       }
     },
     "conditions": {
@@ -10892,83 +10892,83 @@
     "summaries": {
       "first-entry": {
         "n": 5,
-        "median": 194.8,
-        "max": 327.3
+        "median": 212.2,
+        "max": 360
       },
       "reentry": {
         "n": 5,
-        "median": 100.4,
-        "max": 168.9
+        "median": 100.6,
+        "max": 154.2
       },
       "search": {
         "n": 5,
-        "median": 33.3,
-        "max": 33.6
+        "median": 33.4,
+        "max": 49.1
       },
       "filter-combine-clear": {
         "n": 5,
-        "median": 66.6,
-        "max": 67.1
+        "median": 66.1,
+        "max": 66.8
       },
       "open-user": {
         "n": 5,
-        "median": 100.1,
-        "max": 133
+        "median": 116.6,
+        "max": 133.3
       },
       "individual-toggle": {
         "n": 5,
-        "median": 83,
-        "max": 100
+        "median": 83.5,
+        "max": 85.7
       },
       "individual-save-readback": {
         "n": 5,
-        "median": 149.5,
-        "max": 153
+        "median": 166.3,
+        "max": 199.8
       },
       "disable-readback": {
         "n": 5,
-        "median": 200.2,
-        "max": 226.6
+        "median": 221.3,
+        "max": 242.1
       },
       "reenable-readback": {
         "n": 5,
         "median": 200.1,
-        "max": 300.3
+        "max": 249.8
       },
       "reset-password-readback": {
         "n": 5,
-        "median": 466.7,
-        "max": 999.8
+        "median": 499.6,
+        "max": 516.4
       },
       "roles-tab": {
         "n": 5,
-        "median": 83.2,
-        "max": 83.7
+        "median": 83.1,
+        "max": 99.5
       },
       "role-open": {
         "n": 5,
-        "median": 100.1,
-        "max": 100.3
+        "median": 100,
+        "max": 100.4
       },
       "role-save-readback": {
         "n": 5,
-        "median": 183.2,
-        "max": 183.4
+        "median": 167.5,
+        "max": 200.4
       },
       "users-tab": {
         "n": 5,
-        "median": 80.6,
-        "max": 83.6
+        "median": 83.2,
+        "max": 83.5
       },
       "delete-readback": {
         "n": 5,
-        "median": 195,
-        "max": 232.4
+        "median": 234.2,
+        "max": 286.4
       },
       "own-password-login-readback": {
         "n": 5,
-        "median": 1443.9,
-        "max": 1539
+        "median": 1468.4,
+        "max": 1485.2
       }
     },
     "checks": [
@@ -10984,39 +10984,39 @@
     "rows": [
       {
         "name": "first-entry",
-        "ms": 327.3
+        "ms": 360
       },
       {
         "name": "first-entry",
-        "ms": 216.8
+        "ms": 169
       },
       {
         "name": "first-entry",
-        "ms": 194.8
+        "ms": 212.2
       },
       {
         "name": "first-entry",
-        "ms": 152.5
+        "ms": 176.5
       },
       {
         "name": "first-entry",
-        "ms": 174
+        "ms": 224.3
       },
       {
         "name": "reentry",
-        "ms": 168.9
+        "ms": 154.2
       },
       {
         "name": "search",
-        "ms": 32.2
+        "ms": 49.1
       },
       {
         "name": "filter-combine-clear",
-        "ms": 67.1
+        "ms": 66
       },
       {
         "name": "open-user",
-        "ms": 133
+        "ms": 133.3
       },
       {
         "name": "individual-toggle",
@@ -11024,127 +11024,23 @@
       },
       {
         "name": "individual-save-readback",
-        "ms": 149.5
+        "ms": 183.7
       },
       {
         "name": "disable-readback",
-        "ms": 200.2
+        "ms": 197.4
       },
       {
         "name": "reenable-readback",
-        "ms": 300.3
+        "ms": 216.9
       },
       {
         "name": "reset-password-readback",
-        "ms": 483
+        "ms": 516.4
       },
       {
         "name": "roles-tab",
-        "ms": 83.7
-      },
-      {
-        "name": "role-open",
-        "ms": 100.1
-      },
-      {
-        "name": "role-save-readback",
-        "ms": 183
-      },
-      {
-        "name": "users-tab",
-        "ms": 83.6
-      },
-      {
-        "name": "reentry",
-        "ms": 100.4
-      },
-      {
-        "name": "search",
-        "ms": 33
-      },
-      {
-        "name": "filter-combine-clear",
-        "ms": 66.5
-      },
-      {
-        "name": "open-user",
-        "ms": 100.8
-      },
-      {
-        "name": "individual-toggle",
-        "ms": 83
-      },
-      {
-        "name": "individual-save-readback",
-        "ms": 149.3
-      },
-      {
-        "name": "disable-readback",
-        "ms": 226.1
-      },
-      {
-        "name": "reenable-readback",
-        "ms": 200.2
-      },
-      {
-        "name": "reset-password-readback",
-        "ms": 466.7
-      },
-      {
-        "name": "roles-tab",
-        "ms": 83.2
-      },
-      {
-        "name": "role-open",
-        "ms": 100.3
-      },
-      {
-        "name": "role-save-readback",
-        "ms": 183.4
-      },
-      {
-        "name": "users-tab",
-        "ms": 66.4
-      },
-      {
-        "name": "reentry",
-        "ms": 99.8
-      },
-      {
-        "name": "search",
-        "ms": 33.3
-      },
-      {
-        "name": "filter-combine-clear",
-        "ms": 66.5
-      },
-      {
-        "name": "open-user",
-        "ms": 86
-      },
-      {
-        "name": "individual-toggle",
-        "ms": 81.1
-      },
-      {
-        "name": "individual-save-readback",
-        "ms": 153
-      },
-      {
-        "name": "disable-readback",
-        "ms": 181.7
-      },
-      {
-        "name": "reenable-readback",
-        "ms": 200
-      },
-      {
-        "name": "reset-password-readback",
-        "ms": 999.8
-      },
-      {
-        "name": "roles-tab",
-        "ms": 83.2
+        "ms": 99.5
       },
       {
         "name": "role-open",
@@ -11152,71 +11048,19 @@
       },
       {
         "name": "role-save-readback",
-        "ms": 183.3
+        "ms": 183.6
       },
       {
         "name": "users-tab",
-        "ms": 66.4
-      },
-      {
-        "name": "reentry",
-        "ms": 116.6
-      },
-      {
-        "name": "search",
-        "ms": 33.5
-      },
-      {
-        "name": "filter-combine-clear",
-        "ms": 66.6
-      },
-      {
-        "name": "open-user",
-        "ms": 100.1
-      },
-      {
-        "name": "individual-toggle",
-        "ms": 100
-      },
-      {
-        "name": "individual-save-readback",
-        "ms": 150.1
-      },
-      {
-        "name": "disable-readback",
-        "ms": 226.6
-      },
-      {
-        "name": "reenable-readback",
-        "ms": 200.1
-      },
-      {
-        "name": "reset-password-readback",
-        "ms": 466.6
-      },
-      {
-        "name": "roles-tab",
         "ms": 83.2
       },
       {
-        "name": "role-open",
-        "ms": 99.8
-      },
-      {
-        "name": "role-save-readback",
-        "ms": 169.9
-      },
-      {
-        "name": "users-tab",
-        "ms": 80.6
-      },
-      {
         "name": "reentry",
-        "ms": 99.5
+        "ms": 100.4
       },
       {
         "name": "search",
-        "ms": 33.6
+        "ms": 32.9
       },
       {
         "name": "filter-combine-clear",
@@ -11224,83 +11068,239 @@
       },
       {
         "name": "open-user",
-        "ms": 99.8
-      },
-      {
-        "name": "individual-toggle",
-        "ms": 66.4
-      },
-      {
-        "name": "individual-save-readback",
-        "ms": 133.6
-      },
-      {
-        "name": "disable-readback",
-        "ms": 183.3
-      },
-      {
-        "name": "reenable-readback",
-        "ms": 200
-      },
-      {
-        "name": "reset-password-readback",
-        "ms": 466.6
-      },
-      {
-        "name": "roles-tab",
-        "ms": 83.5
-      },
-      {
-        "name": "role-open",
         "ms": 100.1
       },
       {
+        "name": "individual-toggle",
+        "ms": 83.1
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 166.3
+      },
+      {
+        "name": "disable-readback",
+        "ms": 206.5
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 249.8
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 484.1
+      },
+      {
+        "name": "roles-tab",
+        "ms": 82.6
+      },
+      {
+        "name": "role-open",
+        "ms": 100
+      },
+      {
         "name": "role-save-readback",
-        "ms": 183.2
+        "ms": 150.3
       },
       {
         "name": "users-tab",
+        "ms": 82.9
+      },
+      {
+        "name": "reentry",
+        "ms": 100.6
+      },
+      {
+        "name": "search",
+        "ms": 32.5
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 49.9
+      },
+      {
+        "name": "open-user",
+        "ms": 99.9
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 83.6
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 199.8
+      },
+      {
+        "name": "disable-readback",
+        "ms": 242.1
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 199.9
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 499.6
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.1
+      },
+      {
+        "name": "role-open",
+        "ms": 100.4
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 149.9
+      },
+      {
+        "name": "users-tab",
+        "ms": 83.5
+      },
+      {
+        "name": "reentry",
         "ms": 82.8
       },
       {
-        "name": "delete-readback",
-        "ms": 194.2
+        "name": "search",
+        "ms": 33.5
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.7
+      },
+      {
+        "name": "open-user",
+        "ms": 116.6
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 85.7
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 131.1
+      },
+      {
+        "name": "disable-readback",
+        "ms": 230.5
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 199.9
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 500.8
+      },
+      {
+        "name": "roles-tab",
+        "ms": 82.9
+      },
+      {
+        "name": "role-open",
+        "ms": 99.8
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 200.4
+      },
+      {
+        "name": "users-tab",
+        "ms": 83.3
+      },
+      {
+        "name": "reentry",
+        "ms": 116.6
+      },
+      {
+        "name": "search",
+        "ms": 33.4
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.1
+      },
+      {
+        "name": "open-user",
+        "ms": 117.4
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 65.7
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 150.5
+      },
+      {
+        "name": "disable-readback",
+        "ms": 221.3
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 200.1
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 466.3
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.3
+      },
+      {
+        "name": "role-open",
+        "ms": 99.7
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 167.5
+      },
+      {
+        "name": "users-tab",
+        "ms": 80.5
       },
       {
         "name": "delete-readback",
-        "ms": 232.4
+        "ms": 211.9
       },
       {
         "name": "delete-readback",
-        "ms": 199
+        "ms": 286.4
       },
       {
         "name": "delete-readback",
-        "ms": 195
+        "ms": 234.2
       },
       {
         "name": "delete-readback",
-        "ms": 191
+        "ms": 205.6
+      },
+      {
+        "name": "delete-readback",
+        "ms": 269
       },
       {
         "name": "own-password-login-readback",
-        "ms": 1495.8
+        "ms": 1468.4
       },
       {
         "name": "own-password-login-readback",
-        "ms": 973.6
+        "ms": 993.3
       },
       {
         "name": "own-password-login-readback",
-        "ms": 1539
+        "ms": 1482.5
       },
       {
         "name": "own-password-login-readback",
-        "ms": 1443.9
+        "ms": 1462.5
       },
       {
         "name": "own-password-login-readback",
-        "ms": 1422.5
+        "ms": 1485.2
       },
       {
         "name": "own-effective-permissions-visible",
@@ -11315,632 +11315,27 @@
       {
         "method": "GET",
         "status": 200,
-        "ms": 8.069091796875
+        "ms": 7.363037109375
       },
       {
         "method": "POST",
         "status": 200,
-        "ms": 16.93994140625
+        "ms": 13.912109375
       },
       {
         "method": "GET",
         "status": 200,
-        "ms": 7.488037109375
+        "ms": 9.450927734375
       },
       {
         "method": "GET",
         "status": 200,
-        "ms": 7.031982421875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 11.805908203125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.778076171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 9.592041015625
+        "ms": 6.693115234375
       },
       {
         "method": "POST",
         "status": 200,
-        "ms": 8.778076171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.428955078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.56298828125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 13.074951171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.93994140625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.06298828125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 265.87890625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.798095703125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.262939453125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 18.051025390625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.027099609375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.652099609375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.533935546875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 11.468017578125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 11.10009765625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.55908203125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 16.56494140625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.946044921875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.284912109375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 19.02490234375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 9.158935546875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.321044921875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 7.510009765625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.180908203125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.158935546875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 260.617919921875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.386962890625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.987060546875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 11.074951171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.02587890625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.489013671875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.77294921875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 13.39794921875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 10.14306640625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.10693359375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 10.154052734375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.595947265625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.384033203125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.906982421875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.6669921875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 4.951904296875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 9.52392578125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.64404296875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.303955078125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 279.114013671875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.547119140625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.697998046875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 14.876953125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.26611328125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.112060546875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.053955078125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.85302734375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 9.903076171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.7041015625
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 12.924072265625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.27490234375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.6689453125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 7.787109375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.157958984375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.991943359375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.928955078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.048095703125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.89208984375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 272.0029296875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.865966796875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.7548828125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 12.152099609375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 10.2548828125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.2548828125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.7470703125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.013916015625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.7939453125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.173095703125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 9.342041015625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.548095703125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.694091796875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.56494140625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 9.06103515625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 4.6708984375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 7.537109375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.257080078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.196044921875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 256.803955078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.402099609375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.676025390625
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 17.951904296875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.60205078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.885986328125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.0859375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.322021484375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 10.345947265625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.056884765625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.6708984375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.678955078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.714111328125
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 7.373046875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.444091796875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.68505859375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.638916015625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 9.702880859375
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 8.529052734375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.445068359375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.18701171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.0849609375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.405029296875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 9.455078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.654052734375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 11.468017578125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.218994140625
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.4169921875
-      },
-      {
-        "method": "POST",
-        "status": 200,
-        "ms": 7.4130859375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 8.612060546875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 5.318115234375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.385986328125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.507080078125
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.029052734375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 7.074951171875
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 6.952880859375
-      },
-      {
-        "method": "GET",
-        "status": 200,
-        "ms": 3.8720703125
+        "ms": 11.678955078125
       },
       {
         "method": "GET",
@@ -11950,7 +11345,612 @@
       {
         "method": "GET",
         "status": 200,
-        "ms": 6.782958984375
+        "ms": 7.551025390625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 10.056884765625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.39501953125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.235107421875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 6.907958984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.989013671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.76708984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 260.572021484375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.666015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.47509765625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 15.302978515625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.863037109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.43994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.9580078125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.660888671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 12.492919921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.591064453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.98388671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.5859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.282958984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 15.512939453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.993896484375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.798095703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.85205078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.462890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.8310546875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 263.44189453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.950927734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.97607421875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.638916015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.238037109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.696044921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.2880859375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 14.386962890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.881103515625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.33203125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.06103515625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.658935546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.81689453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.39404296875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.574951171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.31201171875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.31005859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.616943359375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.611083984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 271.85107421875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.337890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.111083984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.465087890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.9580078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.1630859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.69189453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.384033203125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.2548828125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.574951171875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 10.4580078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.612060546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.01904296875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.721923828125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.70703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.7939453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 10.39697265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.50390625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.85595703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 259.760986328125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.31005859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.64892578125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 16.85693359375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.777099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.68994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.10107421875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.7529296875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.947998046875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.06591796875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.5859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 11.76611328125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.8720703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.68310546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.363037109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.7080078125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.9130859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.968994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 4.885009765625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 254.138916015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.595947265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.306884765625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 18.907958984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.027099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.22900390625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.98193359375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.794921875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.799072265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.22802734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 11.428955078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.72705078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 4.987060546875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 22.27099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 13.033935546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.14208984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.0380859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.93994140625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 12.423095703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.3349609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.552001953125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.926025390625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.7470703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.208984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.637939453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.77294921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.218017578125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 14.2490234375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.97607421875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.614013671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.4580078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.591064453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.862060546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.262939453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.87890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.342041015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.033935546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 4.666015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.3701171875
       }
     ]
   },
@@ -13067,6 +13067,1675 @@
   },
   "loadAfter": {
     "status": "PASS",
+    "label": "layout-final",
+    "scope": "compiled application + Chromium; synthetic 4/200 accounts; loopback, no throttling; five new contexts each, cold HTTP cache then warm reload; login excluded; completion includes current data, navigation ready and two animation frames",
+    "sourceCommit": "33a1fd04a2abc9aeb2e2dd0477872f0ef2174223",
+    "buildEntrySha256": "bd9cf907d3169472d0309e5c2302a2a51c029129e4cf1eb7be2d2c11d0bf68ff",
+    "sourceSha256": {
+      "app/api/user-access/route.ts": "c69e866a987eed74150e0890335126d827f6c58fc242483a587f622195320816",
+      "public/process/user-access.js": "87d24e7d409711c34c38eda27924e5e6272c4a5bb0b853f862814bd73b20fc4c",
+      "public/process/user-access-initial-read.js": "79b352d4acbdc2ae622ddff06bda9e5d241a883bf8eef0c4a7f3a334e25813c9",
+      "public/process/user-access.css": "810f4bfa72289f966e7ec7c3d4a650390610dca2156e9dd2bc85f6230192e05f",
+      "public/process/index.html": "05a2530b6fbb39445bf304d5484a2631e55bbcf0fcf4b2818d4320106eb14d42"
+    },
+    "samples": [
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 831.4771289999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 379,
+          "assetsReadyMs": 743,
+          "readyMs": 752
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 318.5,
+            "ms": 25.199999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 554.6000000014901,
+            "ms": 55.5,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 308.1789490000001,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 133,
+          "assetsReadyMs": 248,
+          "readyMs": 260
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 93.30000000074506,
+            "ms": 14.599999997764826,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 190.80000000074506,
+            "ms": 61.80000000074506,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 687.7524389999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 307,
+          "assetsReadyMs": 626,
+          "readyMs": 633
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 258,
+            "ms": 19.300000000745058,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 445.5,
+            "ms": 134.30000000074506,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 361.58060799999976,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 146,
+          "assetsReadyMs": 270,
+          "readyMs": 280
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 104.10000000149012,
+            "ms": 13.699999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 194.40000000223517,
+            "ms": 62,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 690.6495439999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 307,
+          "assetsReadyMs": 625,
+          "readyMs": 632
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 245.90000000223517,
+            "ms": 18.099999997764826,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 481.6000000014901,
+            "ms": 27.600000001490116,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 411.24958400000014,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 128,
+          "assetsReadyMs": 321,
+          "readyMs": 327
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 90.39999999850988,
+            "ms": 13.399999998509884,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 195,
+            "ms": 36.099999997764826,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 704.8416689999995,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 329,
+          "assetsReadyMs": 637,
+          "readyMs": 643
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 274.8999999985099,
+            "ms": 12.800000000745058,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 486.69999999925494,
+            "ms": 52.80000000074506,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 378.4996940000001,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 134,
+          "assetsReadyMs": 298,
+          "readyMs": 303
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 87,
+            "ms": 14.199999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 212.69999999925494,
+            "ms": 59.400000002235174,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 789.285484,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 299,
+          "assetsReadyMs": 718,
+          "readyMs": 734
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 178.39999999850988,
+            "ms": 29.5,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 499.0999999977648,
+            "ms": 33,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 358.7184649999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 137,
+          "assetsReadyMs": 311,
+          "readyMs": 317
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 105.5,
+            "ms": 16.399999998509884,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 238.30000000074506,
+            "ms": 43.899999998509884,
+            "bytes": 4325
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 795.5198100000016,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 363,
+          "assetsReadyMs": 731,
+          "readyMs": 739
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 270.8999999985099,
+            "ms": 24.100000001490116,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 551.0999999977648,
+            "ms": 99.30000000074506,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 495.945142999999,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 161,
+          "assetsReadyMs": 318,
+          "readyMs": 415
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 107.5,
+            "ms": 21.400000002235174,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 237.30000000074506,
+            "ms": 93.69999999925494,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 760.1506639999989,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 337,
+          "assetsReadyMs": 683,
+          "readyMs": 693
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 280.5999999977648,
+            "ms": 25.800000000745058,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 474.80000000074506,
+            "ms": 129.89999999850988,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 444.2586279999996,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 138,
+          "assetsReadyMs": 267,
+          "readyMs": 368
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 103.69999999925494,
+            "ms": 16.900000002235174,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 184.30000000074506,
+            "ms": 128.59999999776483,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 849.142883999999,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 344,
+          "assetsReadyMs": 702,
+          "readyMs": 782
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 281.3999999985099,
+            "ms": 21.699999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 496,
+            "ms": 222.59999999776483,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 559.289514,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 132,
+          "assetsReadyMs": 335,
+          "readyMs": 475
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 94.30000000074506,
+            "ms": 19.199999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 234.09999999776483,
+            "ms": 156.20000000298023,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 725.8060069999992,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 284,
+          "assetsReadyMs": 657,
+          "readyMs": 667
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 238.69999999925494,
+            "ms": 20.600000001490116,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 433.9000000022352,
+            "ms": 133,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 428.7706450000005,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 152,
+          "assetsReadyMs": 284,
+          "readyMs": 379
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 107.59999999776483,
+            "ms": 25.600000001490116,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 211.89999999850988,
+            "ms": 109.5,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 838.143567000001,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 313,
+          "assetsReadyMs": 761,
+          "readyMs": 772
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 255.39999999850988,
+            "ms": 22.900000002235174,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 518.1999999992549,
+            "ms": 141.30000000074506,
+            "bytes": 26126
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 412.52840600000127,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 143,
+          "assetsReadyMs": 286,
+          "readyMs": 361
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 101.80000000074506,
+            "ms": 16.199999999254942,
+            "bytes": 1769
+          },
+          {
+            "path": "/api/user-access",
+            "start": 202,
+            "ms": 100.80000000074506,
+            "bytes": 26126
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": [
+      {
+        "size": 4,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 704.8416689999995,
+        "max": 831.4771289999999
+      },
+      {
+        "size": 4,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 361.58060799999976,
+        "max": 411.24958400000014
+      },
+      {
+        "size": 200,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 795.5198100000016,
+        "max": 849.142883999999
+      },
+      {
+        "size": 200,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 444.2586279999996,
+        "max": 559.289514
+      }
+    ]
+  },
+  "overlaps": [
+    {
+      "ref": "origin/codex/web-feedback-helper-20261029",
+      "sha": "f32523b66687036697aed297e72df82f390155d1",
+      "overlap": [
+        "AI_CONTEXT/CHANGELOG.md",
+        "HANDOFF.md",
+        "public/process/index.html"
+      ]
+    },
+    {
+      "ref": "origin/fix/ipqc-ab-read-ownership-20261029",
+      "sha": "6b56bf68c0c892aa11cdfb7d266995d5dd7f921c",
+      "overlap": [
+        "AI_CONTEXT/CHANGELOG.md",
+        "AI_CONTEXT/modules/QUALITY.md",
+        "public/process/index.html",
+        "public/process/ipqc-ab.js",
+        "public/process/shared-draft-client.js"
+      ]
+    }
+  ],
+  "workflowProductionCommit": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+  "operationsBeforeLayoutFix": {
+    "label": "clear-ui-final",
+    "source": {
+      "head": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+      "sha256": {
+        "app/api/user-access/route.ts": "c69e866a987eed74150e0890335126d827f6c58fc242483a587f622195320816",
+        "lib/user-access.ts": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+        "public/process/user-access.js": "87d24e7d409711c34c38eda27924e5e6272c4a5bb0b853f862814bd73b20fc4c",
+        "public/process/user-access.css": "0f54aee436b858a664674895fe46fb80413e95622717fbb5aa058da88dfb6f13"
+      }
+    },
+    "conditions": {
+      "runtime": "Node SQLite/R2 memory fixture; real Chromium; loopback, no throttling; 4 formal users; same session warm API; first entry includes fixture synthetic login; not hosted E2E"
+    },
+    "summaries": {
+      "first-entry": {
+        "n": 5,
+        "median": 194.8,
+        "max": 327.3
+      },
+      "reentry": {
+        "n": 5,
+        "median": 100.4,
+        "max": 168.9
+      },
+      "search": {
+        "n": 5,
+        "median": 33.3,
+        "max": 33.6
+      },
+      "filter-combine-clear": {
+        "n": 5,
+        "median": 66.6,
+        "max": 67.1
+      },
+      "open-user": {
+        "n": 5,
+        "median": 100.1,
+        "max": 133
+      },
+      "individual-toggle": {
+        "n": 5,
+        "median": 83,
+        "max": 100
+      },
+      "individual-save-readback": {
+        "n": 5,
+        "median": 149.5,
+        "max": 153
+      },
+      "disable-readback": {
+        "n": 5,
+        "median": 200.2,
+        "max": 226.6
+      },
+      "reenable-readback": {
+        "n": 5,
+        "median": 200.1,
+        "max": 300.3
+      },
+      "reset-password-readback": {
+        "n": 5,
+        "median": 466.7,
+        "max": 999.8
+      },
+      "roles-tab": {
+        "n": 5,
+        "median": 83.2,
+        "max": 83.7
+      },
+      "role-open": {
+        "n": 5,
+        "median": 100.1,
+        "max": 100.3
+      },
+      "role-save-readback": {
+        "n": 5,
+        "median": 183.2,
+        "max": 183.4
+      },
+      "users-tab": {
+        "n": 5,
+        "median": 80.6,
+        "max": 83.6
+      },
+      "delete-readback": {
+        "n": 5,
+        "median": 195,
+        "max": 232.4
+      },
+      "own-password-login-readback": {
+        "n": 5,
+        "median": 1443.9,
+        "max": 1539
+      }
+    },
+    "checks": [
+      {
+        "name": "own-effective-permissions-visible",
+        "pass": true
+      },
+      {
+        "name": "admin-old-password-required",
+        "pass": true
+      }
+    ],
+    "rows": [
+      {
+        "name": "first-entry",
+        "ms": 327.3
+      },
+      {
+        "name": "first-entry",
+        "ms": 216.8
+      },
+      {
+        "name": "first-entry",
+        "ms": 194.8
+      },
+      {
+        "name": "first-entry",
+        "ms": 152.5
+      },
+      {
+        "name": "first-entry",
+        "ms": 174
+      },
+      {
+        "name": "reentry",
+        "ms": 168.9
+      },
+      {
+        "name": "search",
+        "ms": 32.2
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 67.1
+      },
+      {
+        "name": "open-user",
+        "ms": 133
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 83.5
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 149.5
+      },
+      {
+        "name": "disable-readback",
+        "ms": 200.2
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 300.3
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 483
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.7
+      },
+      {
+        "name": "role-open",
+        "ms": 100.1
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 183
+      },
+      {
+        "name": "users-tab",
+        "ms": 83.6
+      },
+      {
+        "name": "reentry",
+        "ms": 100.4
+      },
+      {
+        "name": "search",
+        "ms": 33
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.5
+      },
+      {
+        "name": "open-user",
+        "ms": 100.8
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 83
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 149.3
+      },
+      {
+        "name": "disable-readback",
+        "ms": 226.1
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 200.2
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 466.7
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.2
+      },
+      {
+        "name": "role-open",
+        "ms": 100.3
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 183.4
+      },
+      {
+        "name": "users-tab",
+        "ms": 66.4
+      },
+      {
+        "name": "reentry",
+        "ms": 99.8
+      },
+      {
+        "name": "search",
+        "ms": 33.3
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.5
+      },
+      {
+        "name": "open-user",
+        "ms": 86
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 81.1
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 153
+      },
+      {
+        "name": "disable-readback",
+        "ms": 181.7
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 200
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 999.8
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.2
+      },
+      {
+        "name": "role-open",
+        "ms": 100.2
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 183.3
+      },
+      {
+        "name": "users-tab",
+        "ms": 66.4
+      },
+      {
+        "name": "reentry",
+        "ms": 116.6
+      },
+      {
+        "name": "search",
+        "ms": 33.5
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.6
+      },
+      {
+        "name": "open-user",
+        "ms": 100.1
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 100
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 150.1
+      },
+      {
+        "name": "disable-readback",
+        "ms": 226.6
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 200.1
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 466.6
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.2
+      },
+      {
+        "name": "role-open",
+        "ms": 99.8
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 169.9
+      },
+      {
+        "name": "users-tab",
+        "ms": 80.6
+      },
+      {
+        "name": "reentry",
+        "ms": 99.5
+      },
+      {
+        "name": "search",
+        "ms": 33.6
+      },
+      {
+        "name": "filter-combine-clear",
+        "ms": 66.8
+      },
+      {
+        "name": "open-user",
+        "ms": 99.8
+      },
+      {
+        "name": "individual-toggle",
+        "ms": 66.4
+      },
+      {
+        "name": "individual-save-readback",
+        "ms": 133.6
+      },
+      {
+        "name": "disable-readback",
+        "ms": 183.3
+      },
+      {
+        "name": "reenable-readback",
+        "ms": 200
+      },
+      {
+        "name": "reset-password-readback",
+        "ms": 466.6
+      },
+      {
+        "name": "roles-tab",
+        "ms": 83.5
+      },
+      {
+        "name": "role-open",
+        "ms": 100.1
+      },
+      {
+        "name": "role-save-readback",
+        "ms": 183.2
+      },
+      {
+        "name": "users-tab",
+        "ms": 82.8
+      },
+      {
+        "name": "delete-readback",
+        "ms": 194.2
+      },
+      {
+        "name": "delete-readback",
+        "ms": 232.4
+      },
+      {
+        "name": "delete-readback",
+        "ms": 199
+      },
+      {
+        "name": "delete-readback",
+        "ms": 195
+      },
+      {
+        "name": "delete-readback",
+        "ms": 191
+      },
+      {
+        "name": "own-password-login-readback",
+        "ms": 1495.8
+      },
+      {
+        "name": "own-password-login-readback",
+        "ms": 973.6
+      },
+      {
+        "name": "own-password-login-readback",
+        "ms": 1539
+      },
+      {
+        "name": "own-password-login-readback",
+        "ms": 1443.9
+      },
+      {
+        "name": "own-password-login-readback",
+        "ms": 1422.5
+      },
+      {
+        "name": "own-effective-permissions-visible",
+        "pass": true
+      },
+      {
+        "name": "admin-old-password-required",
+        "pass": true
+      }
+    ],
+    "api": [
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.069091796875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 16.93994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.488037109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.031982421875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.805908203125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.778076171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.592041015625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.778076171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.428955078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.56298828125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.074951171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.93994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.06298828125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 265.87890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.798095703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.262939453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 18.051025390625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.027099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.652099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.533935546875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.468017578125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 11.10009765625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.55908203125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 16.56494140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.946044921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.284912109375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 19.02490234375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.158935546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.321044921875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.510009765625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.180908203125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.158935546875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 260.617919921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.386962890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.987060546875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 11.074951171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.02587890625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.489013671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.77294921875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 13.39794921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 10.14306640625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.10693359375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 10.154052734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.595947265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.384033203125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.906982421875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.6669921875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 4.951904296875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.52392578125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.64404296875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.303955078125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 279.114013671875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.547119140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.697998046875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 14.876953125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.26611328125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.112060546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.053955078125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.85302734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.903076171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.7041015625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 12.924072265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.27490234375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.6689453125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.787109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.157958984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.991943359375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.928955078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.048095703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.89208984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 272.0029296875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.865966796875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.7548828125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 12.152099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 10.2548828125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.2548828125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.7470703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.013916015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.7939453125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.173095703125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.342041015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.548095703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.694091796875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.56494140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.06103515625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 4.6708984375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.537109375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.257080078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.196044921875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 256.803955078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.402099609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.676025390625
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 17.951904296875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.60205078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.885986328125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.0859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.322021484375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 10.345947265625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.056884765625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.6708984375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.678955078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.714111328125
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.373046875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.444091796875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.68505859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.638916015625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 9.702880859375
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 8.529052734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.445068359375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.18701171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.0849609375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.405029296875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 9.455078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.654052734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 11.468017578125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.218994140625
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.4169921875
+      },
+      {
+        "method": "POST",
+        "status": 200,
+        "ms": 7.4130859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 8.612060546875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 5.318115234375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.385986328125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.507080078125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.029052734375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.074951171875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.952880859375
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 3.8720703125
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 7.610107421875
+      },
+      {
+        "method": "GET",
+        "status": 200,
+        "ms": 6.782958984375
+      }
+    ]
+  },
+  "loadBeforeLayoutFix": {
+    "status": "PASS",
     "label": "clear-ui-final",
     "scope": "compiled application + Chromium; synthetic 4/200 accounts; loopback, no throttling; five new contexts each, cold HTTP cache then warm reload; login excluded; completion includes current data, navigation ready and two animation frames",
     "sourceCommit": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
@@ -13632,26 +15301,186 @@
       }
     ]
   },
-  "overlaps": [
-    {
-      "ref": "origin/codex/web-feedback-helper-20261029",
-      "sha": "f32523b66687036697aed297e72df82f390155d1",
-      "overlap": [
-        "AI_CONTEXT/CHANGELOG.md",
-        "HANDOFF.md",
-        "public/process/index.html"
-      ]
-    },
-    {
-      "ref": "origin/fix/ipqc-ab-read-ownership-20261029",
-      "sha": "6b56bf68c0c892aa11cdfb7d266995d5dd7f921c",
-      "overlap": [
-        "AI_CONTEXT/CHANGELOG.md",
-        "AI_CONTEXT/modules/QUALITY.md",
-        "public/process/index.html",
-        "public/process/ipqc-ab.js",
-        "public/process/shared-draft-client.js"
-      ]
-    }
-  ]
+  "browserUsersLayoutFinal": {
+    "status": "PASS",
+    "scope": "Chromium module UI + actual handlers in memory SQLite/R2; not full hosted navigation; IME events simulated, not physical input method",
+    "results": [
+      {
+        "actor": "frank",
+        "operation": "S1/S2 search promised fields, combine role/status, clear and matching count",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 254.9
+      },
+      {
+        "actor": "frank",
+        "operation": "S3 composition events preserve text/focus and apply once on composition end",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 83.4
+      },
+      {
+        "actor": "frank",
+        "operation": "V1 correct user, stable matrix nodes/scroll/focus on toggle and row select",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 619.4
+      },
+      {
+        "actor": "frank",
+        "operation": "U2 compact four columns, expanded source/reset, dependency warning and saved summary",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 497.9
+      },
+      {
+        "actor": "frank",
+        "operation": "E1 duplicate submit/Escape while saving makes one POST and verified persisted data",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 498.7
+      },
+      {
+        "actor": "frank",
+        "operation": "R4 missing view dependency rejects and preserves input",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 284.1
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 real CAS conflict preserves draft, read-only retry never overwrites changed target",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 425.3
+      },
+      {
+        "actor": "frank",
+        "operation": "E4 old GET cannot replace successful same-actor mutation",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 257.2
+      },
+      {
+        "actor": "frank",
+        "operation": "M3 delete cancel does not write; delete failure is not success",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 383
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 committed write with failed readback recovers using GET only",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 300.5
+      },
+      {
+        "actor": "frank",
+        "operation": "R1 role CRUD, user creation/assignment, assigned-role deletion protection and logical deletion",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 1883
+      },
+      {
+        "actor": "manager",
+        "operation": "P1 ordinary admin old password field and incorrect-password feedback",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 266.7
+      },
+      {
+        "actor": "manager",
+        "operation": "R2/R3 manager cannot edit own/Frank/peer roles or role definitions",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 201.1
+      },
+      {
+        "actor": "staff-one",
+        "operation": "V2 regular user own effective permission matrix is read-only/private",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 248.6
+      },
+      {
+        "actor": "frank",
+        "operation": "U1 desktop and narrow Vietnamese layout, long Unicode name, keyboard focus",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 717.6
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 unknown POST result preserves input, blocks repeat, read check never writes",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 388.3
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 POST deadline remains uncertain and cannot resubmit (virtual timer)",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 307
+      }
+    ],
+    "errors": []
+  },
+  "compiledUsersLayoutFinal": {
+    "status": "PASS_FULL_APPLICATION_BROWSER",
+    "scope": "real compiled application, normal login + full bootstrap; synthetic accounts and nonpersistent D1/R2 only",
+    "cases": [
+      {
+        "operation": "normal login → full users page ready",
+        "ms": 1054.168354,
+        "status": "PASS"
+      },
+      {
+        "operation": "compiled expanded permission matrix spans available width on desktop and narrow viewport",
+        "status": "PASS"
+      },
+      {
+        "operation": "full page save + independent browser reload/readback",
+        "status": "PASS"
+      },
+      {
+        "operation": "53-account pagination, search beyond page, clear and Vietnamese narrow viewport without document overflow",
+        "status": "PASS"
+      }
+    ],
+    "pageErrors": [],
+    "requests": [
+      {
+        "path": "/api/platform-login",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      }
+    ],
+    "disposed": true
+  },
+  "productionScope": "Final UI build 33a1fd0; workflow/account API code unchanged since compiled multi-module checks at 4b8c0d2. Final expanded layout, normal login/save/reload and n=5 UI/load timings reverified."
 }
