@@ -1,3 +1,5 @@
+最新產品來源 `b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc`，組成流程 `72e6de9`＋照片 `88ccd81`，含離開提醒修正。18 項離開補驗與最終三輪比較見 [紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。下方早期產品 commit 保留作歷史追蹤。
+
 # 流程資料驗收副本 CLOUD 29102026
 
 此 checkout 僅作本次隔離預覽，組成流程 74ab03f 與照片 88ccd81；衝突只在此預覽副本按功能整合，不改兩個 PR 或 main。需 dot 後續核對。

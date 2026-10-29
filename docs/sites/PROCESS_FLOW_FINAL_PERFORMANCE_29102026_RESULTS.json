@@ -1,0 +1,5191 @@
+{
+  "baselineCommit": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+  "finalCommit": "b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc",
+  "composition": {
+    "flow": "72e6de9",
+    "photos": "88ccd81"
+  },
+  "conditions": {
+    "network": "local loopback, no throttling",
+    "viewport": [
+      1365,
+      900
+    ],
+    "data": {
+      "stages": 2,
+      "templates": 30,
+      "equipment": 40,
+      "referencedOperations": 1
+    },
+    "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+    "browser": "154.0.8037.57",
+    "realData": false,
+    "measuredAt": "2026-10-29T12:50:00.382Z"
+  },
+  "execution": "alternating original/final, three runs each, no concurrent build/lint/browser tests",
+  "notes": [
+    "Baseline search timed out in all three runs; it is a failure, not a completed operation duration.",
+    "Fresh contexts with HTTP cache disabled by routing; again-entry is same-context reload, not warm HTTP cache.",
+    "API timing is browser request-to-responseEnd duration, not server CPU or database-only time. Redirects/requests without a responseEnd are omitted.",
+    "No new code-level microbenchmark in this round; prior name burst results are historical separate evidence.",
+    "Three runs are descriptive samples, not statistical significance or live-site speed."
+  ],
+  "summary": {
+    "first-entry": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 663,
+        "maxMs": 706,
+        "valuesMs": [
+          706,
+          663,
+          635
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 777,
+        "maxMs": 792,
+        "valuesMs": [
+          654,
+          777,
+          792
+        ]
+      }
+    },
+    "tab-switch": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 313,
+        "maxMs": 316,
+        "valuesMs": [
+          316,
+          313,
+          273
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 313,
+        "maxMs": 315,
+        "valuesMs": [
+          258,
+          313,
+          315
+        ]
+      }
+    },
+    "warm-entry": {
+      "baseline": {
+        "n": 9,
+        "medianMs": 435,
+        "maxMs": 617,
+        "valuesMs": [
+          453,
+          431,
+          417,
+          617,
+          435,
+          480,
+          417,
+          417,
+          452
+        ]
+      },
+      "final": {
+        "n": 9,
+        "medianMs": 447,
+        "maxMs": 579,
+        "valuesMs": [
+          405,
+          412,
+          417,
+          436,
+          485,
+          447,
+          519,
+          579,
+          468
+        ]
+      }
+    },
+    "begin": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 129,
+        "maxMs": 156,
+        "valuesMs": [
+          129,
+          156,
+          126
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 127,
+        "maxMs": 129,
+        "valuesMs": [
+          127,
+          129,
+          120
+        ]
+      }
+    },
+    "equipment-list": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 37,
+        "maxMs": 71,
+        "valuesMs": [
+          33,
+          71,
+          37
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 37,
+        "maxMs": 40,
+        "valuesMs": [
+          37,
+          40,
+          25
+        ]
+      }
+    },
+    "search": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 3022,
+        "maxMs": 3032,
+        "valuesMs": [
+          3018,
+          3032,
+          3022
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 28,
+        "maxMs": 30,
+        "valuesMs": [
+          21,
+          30,
+          28
+        ]
+      }
+    },
+    "edit-equipment": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 133,
+        "maxMs": 139,
+        "valuesMs": [
+          133,
+          105,
+          139
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 100,
+        "maxMs": 106,
+        "valuesMs": [
+          106,
+          100,
+          89
+        ]
+      }
+    },
+    "apply-equipment": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 141,
+        "maxMs": 167,
+        "valuesMs": [
+          141,
+          113,
+          167
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 121,
+        "maxMs": 129,
+        "valuesMs": [
+          121,
+          115,
+          129
+        ]
+      }
+    },
+    "save": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 97,
+        "maxMs": 108,
+        "valuesMs": [
+          97,
+          108,
+          94
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 101,
+        "maxMs": 117,
+        "valuesMs": [
+          85,
+          101,
+          117
+        ]
+      }
+    },
+    "reload-readback": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 417,
+        "maxMs": 442,
+        "valuesMs": [
+          381,
+          442,
+          417
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 403,
+        "maxMs": 434,
+        "valuesMs": [
+          386,
+          403,
+          434
+        ]
+      }
+    },
+    "name-input": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 86,
+        "maxMs": 93,
+        "valuesMs": [
+          86,
+          93,
+          83
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 104,
+        "maxMs": 125,
+        "valuesMs": [
+          104,
+          125,
+          80
+        ]
+      }
+    },
+    "photo-upload": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 182,
+        "maxMs": 201,
+        "valuesMs": [
+          182,
+          178,
+          201
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 185,
+        "maxMs": 203,
+        "valuesMs": [
+          160,
+          185,
+          203
+        ]
+      }
+    },
+    "save-photos": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 100,
+        "maxMs": 123,
+        "valuesMs": [
+          96,
+          100,
+          123
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 104,
+        "maxMs": 106,
+        "valuesMs": [
+          97,
+          106,
+          104
+        ]
+      }
+    },
+    "submit": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 187,
+        "maxMs": 231,
+        "valuesMs": [
+          168,
+          187,
+          231
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 196,
+        "maxMs": 199,
+        "valuesMs": [
+          188,
+          196,
+          199
+        ]
+      }
+    },
+    "withdraw": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 169,
+        "maxMs": 192,
+        "valuesMs": [
+          161,
+          169,
+          192
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 183,
+        "maxMs": 186,
+        "valuesMs": [
+          183,
+          186,
+          165
+        ]
+      }
+    },
+    "resubmit-withdrawn": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 205,
+        "maxMs": 210,
+        "valuesMs": [
+          187,
+          205,
+          210
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 198,
+        "maxMs": 227,
+        "valuesMs": [
+          188,
+          227,
+          198
+        ]
+      }
+    },
+    "review-entry": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 230,
+        "maxMs": 279,
+        "valuesMs": [
+          230,
+          279,
+          223
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 231,
+        "maxMs": 250,
+        "valuesMs": [
+          250,
+          231,
+          222
+        ]
+      }
+    },
+    "return": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 158,
+        "maxMs": 191,
+        "valuesMs": [
+          191,
+          158,
+          151
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 153,
+        "maxMs": 169,
+        "valuesMs": [
+          153,
+          152,
+          169
+        ]
+      }
+    },
+    "resubmit-returned": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 176,
+        "maxMs": 248,
+        "valuesMs": [
+          173,
+          248,
+          176
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 177,
+        "maxMs": 208,
+        "valuesMs": [
+          167,
+          208,
+          177
+        ]
+      }
+    },
+    "approve": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 174,
+        "maxMs": 233,
+        "valuesMs": [
+          233,
+          174,
+          163
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 155,
+        "maxMs": 162,
+        "valuesMs": [
+          155,
+          152,
+          162
+        ]
+      }
+    },
+    "effective-readback": {
+      "baseline": {
+        "n": 3,
+        "medianMs": 482,
+        "maxMs": 497,
+        "valuesMs": [
+          482,
+          409,
+          497
+        ]
+      },
+      "final": {
+        "n": 3,
+        "medianMs": 528,
+        "maxMs": 565,
+        "valuesMs": [
+          489,
+          565,
+          528
+        ]
+      }
+    }
+  },
+  "apiSummary": {
+    "baseline": {
+      "GET /api/process-bootstrap": {
+        "n": 33,
+        "medianMs": 30,
+        "maxMs": 75,
+        "valuesMs": [
+          34,
+          24,
+          30,
+          27,
+          22,
+          26,
+          26,
+          24,
+          26,
+          20,
+          32,
+          48,
+          40,
+          33,
+          75,
+          27,
+          42,
+          45,
+          30,
+          34,
+          25,
+          35,
+          37,
+          31,
+          21,
+          26,
+          32,
+          26,
+          32,
+          35,
+          22,
+          20,
+          35
+        ]
+      },
+      "GET /api/master/workflow": {
+        "n": 54,
+        "medianMs": 49.5,
+        "maxMs": 97,
+        "valuesMs": [
+          33,
+          29,
+          34,
+          57,
+          41,
+          57,
+          67,
+          15,
+          18,
+          35,
+          90,
+          92,
+          84,
+          24,
+          51,
+          51,
+          51,
+          86,
+          30,
+          31,
+          28,
+          24,
+          58,
+          66,
+          73,
+          18,
+          16,
+          30,
+          81,
+          82,
+          96,
+          21,
+          37,
+          94,
+          97,
+          38,
+          27,
+          27,
+          32,
+          76,
+          45,
+          58,
+          93,
+          18,
+          22,
+          32,
+          94,
+          95,
+          65,
+          17,
+          49,
+          50,
+          87,
+          68
+        ]
+      },
+      "POST /api/master/workflow begin": {
+        "n": 3,
+        "medianMs": 32,
+        "maxMs": 35,
+        "valuesMs": [
+          35,
+          32,
+          32
+        ]
+      },
+      "POST /api/master/workflow apply": {
+        "n": 9,
+        "medianMs": 35,
+        "maxMs": 40,
+        "valuesMs": [
+          40,
+          29,
+          29,
+          38,
+          35,
+          32,
+          35,
+          30,
+          38
+        ]
+      },
+      "POST /api/master/workflow save": {
+        "n": 6,
+        "medianMs": 30.0,
+        "maxMs": 38,
+        "valuesMs": [
+          30,
+          28,
+          29,
+          30,
+          31,
+          38
+        ]
+      },
+      "POST /api/master/workflow submit": {
+        "n": 9,
+        "medianMs": 33,
+        "maxMs": 38,
+        "valuesMs": [
+          26,
+          34,
+          33,
+          27,
+          32,
+          38,
+          38,
+          36,
+          33
+        ]
+      },
+      "POST /api/master/workflow withdraw": {
+        "n": 3,
+        "medianMs": 34,
+        "maxMs": 45,
+        "valuesMs": [
+          34,
+          32,
+          45
+        ]
+      },
+      "GET /api/bom/workflow": {
+        "n": 11,
+        "medianMs": 58,
+        "maxMs": 73,
+        "valuesMs": [
+          64,
+          16,
+          71,
+          58,
+          17,
+          70,
+          35,
+          73,
+          27,
+          69,
+          32
+        ]
+      },
+      "GET /api/routine-fqc": {
+        "n": 12,
+        "medianMs": 63.0,
+        "maxMs": 104,
+        "valuesMs": [
+          97,
+          30,
+          81,
+          45,
+          92,
+          29,
+          104,
+          28,
+          102,
+          22,
+          94,
+          24
+        ]
+      },
+      "POST /api/master/workflow return": {
+        "n": 3,
+        "medianMs": 29,
+        "maxMs": 34,
+        "valuesMs": [
+          34,
+          26,
+          29
+        ]
+      },
+      "POST /api/master/workflow approve": {
+        "n": 3,
+        "medianMs": 32,
+        "maxMs": 34,
+        "valuesMs": [
+          34,
+          32,
+          30
+        ]
+      }
+    },
+    "final": {
+      "GET /api/process-bootstrap": {
+        "n": 33,
+        "medianMs": 28,
+        "maxMs": 57,
+        "valuesMs": [
+          39,
+          22,
+          26,
+          31,
+          32,
+          27,
+          31,
+          22,
+          25,
+          21,
+          31,
+          42,
+          31,
+          23,
+          29,
+          26,
+          21,
+          32,
+          19,
+          41,
+          25,
+          38,
+          57,
+          24,
+          27,
+          39,
+          34,
+          27,
+          48,
+          29,
+          28,
+          20,
+          28
+        ]
+      },
+      "GET /api/master/workflow": {
+        "n": 54,
+        "medianMs": 52.5,
+        "maxMs": 107,
+        "valuesMs": [
+          32,
+          24,
+          25,
+          39,
+          45,
+          64,
+          68,
+          16,
+          16,
+          34,
+          106,
+          107,
+          72,
+          17,
+          25,
+          66,
+          67,
+          51,
+          36,
+          31,
+          31,
+          78,
+          58,
+          64,
+          70,
+          17,
+          16,
+          29,
+          84,
+          85,
+          80,
+          26,
+          31,
+          85,
+          86,
+          63,
+          31,
+          34,
+          32,
+          95,
+          81,
+          59,
+          61,
+          16,
+          15,
+          27,
+          82,
+          84,
+          54,
+          16,
+          40,
+          97,
+          98,
+          57
+        ]
+      },
+      "POST /api/master/workflow begin": {
+        "n": 3,
+        "medianMs": 29,
+        "maxMs": 37,
+        "valuesMs": [
+          26,
+          37,
+          29
+        ]
+      },
+      "GET /api/master/references": {
+        "n": 3,
+        "medianMs": 39,
+        "maxMs": 42,
+        "valuesMs": [
+          42,
+          36,
+          39
+        ]
+      },
+      "POST /api/master/workflow apply": {
+        "n": 9,
+        "medianMs": 32,
+        "maxMs": 40,
+        "valuesMs": [
+          33,
+          31,
+          28,
+          40,
+          32,
+          32,
+          36,
+          31,
+          28
+        ]
+      },
+      "POST /api/master/workflow save": {
+        "n": 6,
+        "medianMs": 33.5,
+        "maxMs": 36,
+        "valuesMs": [
+          28,
+          33,
+          35,
+          31,
+          36,
+          34
+        ]
+      },
+      "POST /api/master/workflow submit": {
+        "n": 9,
+        "medianMs": 29,
+        "maxMs": 32,
+        "valuesMs": [
+          30,
+          25,
+          27,
+          28,
+          31,
+          29,
+          32,
+          32,
+          25
+        ]
+      },
+      "POST /api/master/workflow withdraw": {
+        "n": 3,
+        "medianMs": 42,
+        "maxMs": 44,
+        "valuesMs": [
+          44,
+          42,
+          33
+        ]
+      },
+      "GET /api/bom/workflow": {
+        "n": 12,
+        "medianMs": 43.5,
+        "maxMs": 73,
+        "valuesMs": [
+          70,
+          27,
+          50,
+          30,
+          60,
+          26,
+          64,
+          37,
+          54,
+          27,
+          73,
+          32
+        ]
+      },
+      "GET /api/routine-fqc": {
+        "n": 12,
+        "medianMs": 50.5,
+        "maxMs": 110,
+        "valuesMs": [
+          110,
+          24,
+          72,
+          21,
+          91,
+          20,
+          93,
+          29,
+          90,
+          21,
+          104,
+          23
+        ]
+      },
+      "POST /api/master/workflow return": {
+        "n": 3,
+        "medianMs": 33,
+        "maxMs": 39,
+        "valuesMs": [
+          32,
+          39,
+          33
+        ]
+      },
+      "POST /api/master/workflow approve": {
+        "n": 3,
+        "medianMs": 29,
+        "maxMs": 33,
+        "valuesMs": [
+          27,
+          33,
+          29
+        ]
+      }
+    }
+  },
+  "runs": {
+    "baseline": [
+      {
+        "phase": "baseline",
+        "commit": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:49:47.805Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 706
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 316
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 453
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 431
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 417
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 129
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 33
+          },
+          {
+            "name": "search",
+            "status": "FAIL",
+            "ms": 3018,
+            "error": "page.waitForFunction: Timeout 3000ms exceeded."
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 133
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 141
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 97
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 381
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 86
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 182
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 96
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 168
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 161
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 187
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 230
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 191
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 173
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 233
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 482
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 33
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 57
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 41
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 57
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 40
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 30
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 67
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 15
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 34
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 18
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 34
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 35
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 64
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 90
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 92
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 97
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 34
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 84
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 33
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 20
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 51
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 51
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 51
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 71
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 81
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 45
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 34
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 86
+          }
+        ],
+        "errors": [],
+        "status": "FAIL"
+      },
+      {
+        "phase": "baseline",
+        "commit": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:50:20.439Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 663
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 313
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 617
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 435
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 480
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 156
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 71
+          },
+          {
+            "name": "search",
+            "status": "FAIL",
+            "ms": 3032,
+            "error": "page.waitForFunction: Timeout 3000ms exceeded."
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 105
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 113
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 108
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 442
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 93
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 178
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 100
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 187
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 169
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 205
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 279
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 158
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 248
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 174
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 409
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A12&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 48
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 40
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 33
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 28
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 75
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 58
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 42
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 66
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 38
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 29
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 45
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 73
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 18
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 58
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 81
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 82
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 92
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 17
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 26
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 96
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 38
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 25
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 37
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 70
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 94
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 97
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 104
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 28
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 38
+          }
+        ],
+        "errors": [],
+        "status": "FAIL"
+      },
+      {
+        "phase": "baseline",
+        "commit": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:50:33.477Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 635
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 273
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 417
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 417
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 452
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 126
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 37
+          },
+          {
+            "name": "search",
+            "status": "FAIL",
+            "ms": 3022,
+            "error": "page.waitForFunction: Timeout 3000ms exceeded."
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 139
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 167
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 94
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 417
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 83
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 201
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 123
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 231
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 192
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 210
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 223
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 151
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 176
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 163
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 497
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A12&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 37
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 76
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 45
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 58
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 93
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 38
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 38
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 18
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 38
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 45
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 36
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 73
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 94
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 95
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 102
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 29
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 65
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 17
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 33
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 20
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 49
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 50
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 69
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 87
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 94
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 30
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 35
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 68
+          }
+        ],
+        "errors": [],
+        "status": "FAIL"
+      }
+    ],
+    "final": [
+      {
+        "phase": "final-measured",
+        "commit": "b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:50:00.382Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 654
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 258
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 405
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 412
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 417
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 127
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 37
+          },
+          {
+            "name": "search",
+            "status": "PASS",
+            "ms": 21
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 106
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 121
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 85
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 386
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 104
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 160
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 97
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 188
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 183
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 188
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 250
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 153
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 167
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 155
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 489
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/references",
+            "query": "?scope=PROCESS&kind=equipment&id=A-CUT-EQ-19",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A12&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 39
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 25
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 39
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 45
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 64
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/references",
+            "method": "GET",
+            "action": "",
+            "ms": 42
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 33
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 28
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 68
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 33
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 44
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 25
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 22
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 70
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 106
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 107
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 110
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 25
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 72
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 17
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 27
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 25
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 50
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 66
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 67
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 72
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 30
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 27
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 51
+          }
+        ],
+        "errors": [],
+        "status": "PASS"
+      },
+      {
+        "phase": "final-measured",
+        "commit": "b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:50:09.848Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 777
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 313
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 436
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 485
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 447
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 129
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 40
+          },
+          {
+            "name": "search",
+            "status": "PASS",
+            "ms": 30
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 100
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 115
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 101
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 403
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 125
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 185
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 106
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 196
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 186
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 227
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 231
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 152
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 208
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 152
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 565
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/references",
+            "query": "?scope=PROCESS&kind=equipment&id=A-CUT-EQ-19",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A12&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 42
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 36
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 23
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 78
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 58
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 64
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 37
+          },
+          {
+            "path": "/api/master/references",
+            "method": "GET",
+            "action": "",
+            "ms": 36
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 40
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 35
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 70
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 17
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 42
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 19
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 60
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 84
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 85
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 91
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 20
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 39
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 41
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 80
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 26
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 29
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 25
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 64
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 85
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 86
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 93
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 37
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 33
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 38
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 63
+          }
+        ],
+        "errors": [],
+        "status": "PASS"
+      },
+      {
+        "phase": "final-measured",
+        "commit": "b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc",
+        "conditions": {
+          "network": "local loopback, no throttling",
+          "viewport": [
+            1365,
+            900
+          ],
+          "data": {
+            "stages": 2,
+            "templates": 30,
+            "equipment": 40,
+            "referencedOperations": 1
+          },
+          "cache": "HTTP cache disabled by Playwright routing; OS cache not cleared",
+          "browser": "154.0.8037.57",
+          "realData": false,
+          "measuredAt": "2026-10-29T12:50:46.233Z"
+        },
+        "samples": [
+          {
+            "name": "first-entry",
+            "status": "PASS",
+            "ms": 792
+          },
+          {
+            "name": "tab-switch",
+            "status": "PASS",
+            "ms": 315
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 519
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 579
+          },
+          {
+            "name": "warm-entry",
+            "status": "PASS",
+            "ms": 468
+          },
+          {
+            "name": "begin",
+            "status": "PASS",
+            "ms": 120
+          },
+          {
+            "name": "equipment-list",
+            "status": "PASS",
+            "ms": 25
+          },
+          {
+            "name": "search",
+            "status": "PASS",
+            "ms": 28
+          },
+          {
+            "name": "edit-equipment",
+            "status": "PASS",
+            "ms": 89
+          },
+          {
+            "name": "apply-equipment",
+            "status": "PASS",
+            "ms": 129
+          },
+          {
+            "name": "save",
+            "status": "PASS",
+            "ms": 117
+          },
+          {
+            "name": "reload-readback",
+            "status": "PASS",
+            "ms": 434
+          },
+          {
+            "name": "name-input",
+            "status": "PASS",
+            "ms": 80
+          },
+          {
+            "name": "photo-upload",
+            "status": "PASS",
+            "ms": 203
+          },
+          {
+            "name": "save-photos",
+            "status": "PASS",
+            "ms": 104
+          },
+          {
+            "name": "submit",
+            "status": "PASS",
+            "ms": 199
+          },
+          {
+            "name": "withdraw",
+            "status": "PASS",
+            "ms": 165
+          },
+          {
+            "name": "resubmit-withdrawn",
+            "status": "PASS",
+            "ms": 198
+          },
+          {
+            "name": "review-entry",
+            "status": "PASS",
+            "ms": 222
+          },
+          {
+            "name": "return",
+            "status": "PASS",
+            "ms": 169
+          },
+          {
+            "name": "resubmit-returned",
+            "status": "PASS",
+            "ms": 177
+          },
+          {
+            "name": "approve",
+            "status": "PASS",
+            "ms": 162
+          },
+          {
+            "name": "effective-readback",
+            "status": "PASS",
+            "ms": 528
+          },
+          {
+            "name": "viewport-1365",
+            "status": "PASS",
+            "ms": 0
+          },
+          {
+            "name": "viewport-390",
+            "status": "PASS",
+            "ms": 0
+          }
+        ],
+        "requests": [
+          {
+            "path": "/api/platform-login",
+            "query": "",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=line-admin",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/references",
+            "query": "?scope=PROCESS&kind=equipment&id=A-CUT-EQ-19",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=data&dataTab=process-master",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A10&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&permissions=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?system=process&view=approval",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=AB&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=C&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/routine-fqc",
+            "query": "",
+            "status": 404
+          },
+          {
+            "path": "/api/bom/workflow",
+            "query": "?caseMetadata=1&reviewMetadata=1&since=state%3A12&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "query": "?view=data&dataTab=process-master&system=process",
+            "status": 200
+          },
+          {
+            "path": "/api/master/workflow",
+            "query": "?scope=PROCESS&caseMetadata=1&compact=1",
+            "status": 200
+          }
+        ],
+        "apiTimings": [
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 57
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 31
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 24
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 39
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 95
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 34
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 81
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 59
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "begin",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/references",
+            "method": "GET",
+            "action": "",
+            "ms": 39
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 36
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 36
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 48
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 61
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 31
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "apply",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "save",
+            "ms": 34
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "withdraw",
+            "ms": 33
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 15
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 32
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 29
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 54
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 82
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 84
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 90
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 21
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 27
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "return",
+            "ms": 33
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 54
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 16
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "submit",
+            "ms": 25
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 20
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 40
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 73
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 97
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 98
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 104
+          },
+          {
+            "path": "/api/routine-fqc",
+            "method": "GET",
+            "action": "",
+            "ms": 23
+          },
+          {
+            "path": "/api/bom/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 32
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "POST",
+            "action": "approve",
+            "ms": 29
+          },
+          {
+            "path": "/api/process-bootstrap",
+            "method": "GET",
+            "action": "",
+            "ms": 28
+          },
+          {
+            "path": "/api/master/workflow",
+            "method": "GET",
+            "action": "",
+            "ms": 57
+          }
+        ],
+        "errors": [],
+        "status": "PASS"
+      }
+    ]
+  }
+}

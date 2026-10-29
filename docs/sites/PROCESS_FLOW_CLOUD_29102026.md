@@ -1,3 +1,5 @@
+最新補驗：流程離開提醒已局部修復，18 項原生情境通過；含照片放大的最終整合版 `b307b8d` 已與原版各重測三輪。見 [本輪完整結果](PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)，下方 `74ab03f` 表格保留為前次測量。
+
 # 流程資料頁面 CLOUD 29102026：驗收與整合紀錄
 
 ## 按鈕確認補驗（2026-10-29）
@@ -74,7 +76,8 @@
 |10|合成 Frank|設備有／無引用刪除|有引用拒絕、無引用可刪|引用不被自動清除|native 有引用 409；browser 無引用移除|見 API 證據／09|通過|
 |11|合成 Frank／editor|套用→儲存草稿→重新整理|顯示正確保存內容|Apply 只改 working；Save 固定 saved|native 確認未 Save 的內容不進 saved；browser 重整保留|116|通過|
 |12a|合成 Frank|設備未套用關閉，取消放棄|保留未套用欄位|不改 working|取消離開後輸入仍在|338|通過|
-|12b|一般使用者|所有其他離開方式（關分頁／裝置退出）|沿原離開提醒|不悄悄遺失|本輪未逐一測全部離開方式；既有 guard 未重寫|—|未測|
+|12b|合成 Frank|關分頁／重整／外部導向，取消及確認|原生提醒，取消保留輸入|離開檢查不套用、不 Save|補修後 18 項通過，詳見本輪紀錄|見補驗 JSON|通過|
+|12c|實體裝置|強制結束程式／斷電關機|瀏覽器不保證發出 beforeunload|不宣稱可攔截強制退出|實體硬體未測；僅測 Chromium 暫停／恢復|—|未測|
 |13|合成 Frank|上傳中斷後明確重試／連點／命令 replay|錯誤保留輸入；重試可完成|同 operationId 不再增加修訂|browser 中斷恢復；native 重放、stale guard 及程式層 ACK loss 通過|714|通過|
 |14|合成 Frank／editor|送審|PROCESS 正確案件並鎖定|pending 取最後 saved|browser 平台案件；native pending Apply 拒絕|184|通過|
 |15|送審者|撤回→原 saved 再送審|解鎖後可再送|保留案件歷史|browser 與 API 均可重送|178 / 186|通過|
@@ -142,7 +145,7 @@
 - 原 `test-master-workflow-v3.cjs` 的舊測試 harness 在本次及乾淨 main 均有 auth 503，列為既有 fixture 問題；不當作業務流程通過。補用真正正常登入的 compiled native 測試。
 - 原名稱 guard 測試的 DOM repaint fixture 及「未改 saved 仍可再次送審」假設不符目前 kernel，已更新到實際面板／有效 saved 改變；全 16 組通過，沒有刪除衝突或身分保護案例。
 - 已逐段自審本次 diff：授權前置及再次核對、CAS 引用重查、guard 基線只隨 ACK 前進、相同 receipt replay、跨節點 listener 拆除、資料名稱不翻譯及 scoped CSS。dot 的獨立程式碼審查／整合仍待完成。
-- 既有站版本／資料量／網路速度、真實 Frank/admin 矩陣、真手機拍照與設備文字照片、所有照片入口逐頁 UI、公開預覽均未驗；不可作發布依據。沒有 schema migration 或既有照片重壓。
+- 既有站版本／資料量／網路速度、真實 Frank/admin 矩陣、真手機拍照與設備文字照片、公開預覽均未驗；不可作發布依據。沒有 schema migration 或既有照片重壓。
 
 ## 照片獨立候選摘要
 

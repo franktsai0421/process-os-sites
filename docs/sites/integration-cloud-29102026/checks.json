@@ -1,6 +1,6 @@
 {
   "status": "PASS_PROPOSED_INDEX",
-  "preview": "642d4defc8057c5d96e902070e39a6181a1afc17",
+  "preview": "b307b8d5cc275ccb9d6ba9008296a2dc6fd081cc",
   "permissions": "1f88a7e24936fa63b387eb40637e32aa0d892c6d",
   "feedback": "2b05c6fc12d4fa8695e726c592ea6f405adb35ab",
   "scope": "Proposal only; no foreign task code merged into task branches",
@@ -10,15 +10,16 @@
     "master-data.js": "20261029-flowreview1",
     "master-review.js": "20261029-flowreview1",
     "bom-workspace.js": "20261029-flowreview1",
-    "app.js": "20261029-photo2",
+    "app.js": "20261029-flowleave1",
     "photo-viewer.css": "20261029-photo2",
-    "process-equipment.js": "20261029-preview2",
+    "process-equipment.js": "20261029-flowleave1",
     "fqc-master.js": "20261029-preview2",
     "user-access.js": "20261029-users-load3",
     "user-access-initial-read.js": "20261029-users-load2",
     "web-feedback-entry.js": "20261029-feedback4"
   },
-  "baseIndexSha256": "f9f7b023d6655667aaa8b6edb863f2976be38ef1a68bfd76ca122d2f365b56e3",
+  "baseIndexSha256": "a12aa9b7b35584a0affb3d3830dcedd70b763ed01e6a42854b68837591385f6e",
   "patchApplies": true,
-  "photoCandidate": "88ccd815ff341d80e23b573eea6c8016a93a430c"
+  "photoCandidate": "88ccd815ff341d80e23b573eea6c8016a93a430c",
+  "flowCandidate": "72e6de9"
 }
