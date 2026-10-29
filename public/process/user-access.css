@@ -134,3 +134,20 @@
  .ua-matrix tr>:first-child input{margin-block:11px}
  .ua-own{padding:16px}
 }
+
+/* Users/permissions CLOUD 29102026: compact module-scoped layout and clear read-only state. */
+.ua-page{gap:12px}
+.ua-page>header{padding:14px 18px}
+.ua-filters{grid-template-columns:minmax(180px,1.6fr) minmax(120px,1fr) minmax(140px,1fr) auto auto;gap:10px;padding:14px 16px}
+.ua-users th,.ua-users td{padding:12px}
+.ua-users td.ua-actions{min-height:64px}
+.ua-count{margin:0 2px;font-size:13px;color:var(--ua-muted)}
+.ua-notice,.ua-own-permissions>p{margin:0;color:var(--ua-muted);font-size:13px;line-height:1.6}
+.ua-own-permissions{min-width:0}
+.ua-own-permissions h3{margin:0 0 8px;font-size:16px}
+.ua-error button{display:block;margin-top:8px;white-space:normal;text-align:left}
+.ua-dialog[data-saving] .ua-error{color:var(--ua-accent)}
+.ua-dialog:has(.ua-own-permissions){width:min(1180px,96vw)}
+.ua-page button,.ua-dialog button{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:1000px){.ua-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.ua-filters{grid-template-columns:minmax(0,1fr)}.ua-page>header{padding:14px}.ua-users td{padding:7px 4px}.ua-users td.ua-actions{min-height:0}}

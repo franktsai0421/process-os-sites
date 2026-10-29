@@ -1,3 +1,11 @@
+## 2026-10-29 使用者與權限 CLOUD（隔離候選，未發布）
+
+使用者 API 的角色定義只在同一請求內重用，帳號 projection 避免重算啟用者 configuredCells；無跨請求授權快取或儲存格式變更。所有身分改自己密碼均驗證舊密碼。自身唯讀矩陣只增加本人的 roleCells 回應，不公開其他帳號或角色模板。
+
+user-access UI 修正 legacy 缺少 accessOverrides 的勾選錯誤、組字搜尋、有效人數、局部矩陣更新、同 actor 晚到 GET、重複提交、保存後讀回及讀回失敗的 GET-only 核對。衝突對象已變則保留輸入並禁止直接覆寫；不自動重送未知 POST。既有 identity/delivery invalidation 保持生效。資源版本只更新本模組兩個檔案。
+
+證據、計時、已知跨模組權限例外、外部預覽與 PR 阻礙集中在[驗收與交接](../../docs/acceptance/USERS_CLOUD_29102026.md)及[權限對照](../../docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。未修改既有站台、真實帳號、schema／migration、共用草稿或其他任務功能。
+
 ## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
 
 FQC destination 的 bootstrap keys、canonical fallback 與所有新鮮身分／撤權／revision 判定不變。僅 records-v1 的已驗 SHA aggregate，且 quality schema1、FQC versions array、workflow schema3／scope fqc／generation／revision 合格時，bootstrap 暫不投影 FQC library；保留其他 quality libraries 原資料。FQC 頁面仍必須完成自己原有的 workflow → AB catalog → equipment GET，且 owner/epoch/delivery 仍有效後才 adopt、render ready。未採用／缺失／不合格 header、inline/chunk 與其他 destination 維持原讀取。不新增 fake workflow、假空版本、notice 啟動或前端 API；publicState 本來就移除 FQC workflow，IQC-only／mixed notice 行為亦保留。

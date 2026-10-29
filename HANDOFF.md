@@ -1,3 +1,5 @@
+Current independent user-permissions candidate (CLOUD 29102026): [acceptance and handoff](docs/acceptance/USERS_CLOUD_29102026.md), [permission map](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md). Branch `cloud/users-permissions-29102026`, baseline `2cac307f29b8017a2bb6dc5229d47720f2deab33`. All writes use synthetic isolated fixtures; existing Site/data unchanged. Shared changes are limited to request-local role reuse, this module's asset versions, and current documentation. External preview / Draft PR access and cross-module permission exceptions remain explicitly tracked. No merge or publication is authorized by these test results.
+
 # Isolated Sites implementation handoff
 
 Current isolated performance candidate: [FQC readiness](AI_CONTEXT/modules/RUNTIME.md#2026-10-25-fqc-readiness-candidate-not-published).

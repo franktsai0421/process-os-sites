@@ -1,0 +1,402 @@
+{
+  "baselineSha": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+  "candidateSourceSha256": {
+    "app/api/user-access/route.ts": "ba4f1da044ac70c5058eb5e4656342d0d333ba45e9b487e82046e0cf2c190435",
+    "lib/user-access.ts": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+    "public/process/user-access.js": "324048a1c4ed1baed807115f3d2dc4619231bec8fac91ab44e9d2cee51f5d7fa",
+    "public/process/user-access.css": "d5b13eb492734d02947a6c908d92f8007f7a82d4ebebdc8bc84fd9fe66e9076f",
+    "public/process/index.html": "8f2953be82ef6e0d4406807449cef44b3be3c9a6db1f9e80395b30873cfdcd09"
+  },
+  "browser": {
+    "status": "PASS",
+    "scope": "Chromium module UI + actual handlers in memory SQLite/R2; not full hosted navigation; IME events simulated, not physical input method",
+    "results": [
+      {
+        "actor": "frank",
+        "operation": "S1/S2 search promised fields, combine role/status, clear and matching count",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 176.5
+      },
+      {
+        "actor": "frank",
+        "operation": "S3 composition events preserve text/focus and apply once on composition end",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 97.6
+      },
+      {
+        "actor": "frank",
+        "operation": "V1 correct user, stable matrix nodes/scroll/focus on toggle and row select",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 517.3
+      },
+      {
+        "actor": "frank",
+        "operation": "E1 duplicate submit/Escape while saving makes one POST and verified persisted data",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 466.5
+      },
+      {
+        "actor": "frank",
+        "operation": "R4 missing view dependency rejects and preserves input",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 283.2
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 real CAS conflict preserves draft, read-only retry never overwrites changed target",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 418.4
+      },
+      {
+        "actor": "frank",
+        "operation": "E4 old GET cannot replace successful same-actor mutation",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 214.6
+      },
+      {
+        "actor": "frank",
+        "operation": "M3 delete cancel does not write; delete failure is not success",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 383.5
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 committed write with failed readback recovers using GET only",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 283
+      },
+      {
+        "actor": "frank",
+        "operation": "R1 role CRUD, user creation/assignment, assigned-role deletion protection and logical deletion",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 1700.5
+      },
+      {
+        "actor": "manager",
+        "operation": "P1 ordinary admin old password field and incorrect-password feedback",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 266.4
+      },
+      {
+        "actor": "manager",
+        "operation": "R2/R3 manager cannot edit own/Frank/peer roles or role definitions",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 216.5
+      },
+      {
+        "actor": "staff-one",
+        "operation": "V2 regular user own effective permission matrix is read-only/private",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 283.1
+      },
+      {
+        "actor": "frank",
+        "operation": "U1 desktop and narrow Vietnamese layout, long Unicode name, keyboard focus",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 736
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 unknown POST result preserves input, blocks repeat, read check never writes",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 397.3
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 POST deadline remains uncertain and cannot resubmit (virtual timer)",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 270.5
+      }
+    ],
+    "errors": []
+  },
+  "compiled": {
+    "status": "PASS_COMPILED_USER_PERMISSIONS",
+    "cases": [
+      "own effective and inherited cells, no peers/templates/password disclosure",
+      "frank own password requires old password",
+      "manager own password requires old password",
+      "staff-one own password requires old password",
+      "primary/peer/self/DEMO and raw API escalation denied",
+      "manager own password: old login fails, new login succeeds, old session revoked",
+      "staff-one own password: old login fails, new login succeeds, old session revoked",
+      "frank own password: old login fails, new login succeeds, old session revoked",
+      "manager resets nonadmin without target old password; old session and password rejected",
+      "disable rejects login/session; reenable requires new login",
+      "ordinary admin grant ceiling, including inherit/reset and role assignment",
+      "role assignment/revocation persists and rejects old session/direct BOM mutation",
+      "individual override and reset inherit persisted role cells",
+      "logical deletion retains business history and prevents ID reuse/login",
+      "assigned role deletion refused, unassigned role deletion succeeds",
+      "stale revision and generic bypass create no writes"
+    ],
+    "requests": 186
+  },
+  "fullPage": {
+    "status": "PASS_FULL_APPLICATION_BROWSER",
+    "scope": "real compiled application, normal login + full bootstrap; synthetic accounts and nonpersistent D1/R2 only",
+    "cases": [
+      {
+        "operation": "normal login → full users page ready",
+        "ms": 1068.6767530000002,
+        "status": "PASS"
+      },
+      {
+        "operation": "full page save + independent browser reload/readback",
+        "status": "PASS"
+      },
+      {
+        "operation": "full shell narrow viewport without document overflow",
+        "status": "PASS"
+      }
+    ],
+    "pageErrors": [],
+    "requests": [
+      {
+        "path": "/api/platform-login",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      }
+    ],
+    "disposed": true
+  },
+  "timing": {
+    "baseline": {
+      "first-entry": {
+        "n": 5,
+        "median": 195.3,
+        "max": 296.9
+      },
+      "reentry": {
+        "n": 5,
+        "median": 100.8,
+        "max": 148
+      },
+      "search": {
+        "n": 5,
+        "median": 33.1,
+        "max": 33.6
+      },
+      "filter-combine-clear": {
+        "n": 5,
+        "median": 66.1,
+        "max": 67.5
+      },
+      "open-user": {
+        "n": 5,
+        "median": 99,
+        "max": 116.8
+      },
+      "individual-toggle": {
+        "n": 5,
+        "median": 100,
+        "max": 132.6
+      },
+      "individual-save-readback": {
+        "n": 5,
+        "median": 150.1,
+        "max": 150.4
+      },
+      "disable-readback": {
+        "n": 5,
+        "median": 218,
+        "max": 236.5
+      },
+      "reenable-readback": {
+        "n": 5,
+        "median": 217.2,
+        "max": 233.4
+      },
+      "reset-password-readback": {
+        "n": 5,
+        "median": 482.7,
+        "max": 500.1
+      },
+      "roles-tab": {
+        "n": 5,
+        "median": 83.4,
+        "max": 83.6
+      },
+      "role-open": {
+        "n": 5,
+        "median": 100,
+        "max": 101.4
+      },
+      "role-save-readback": {
+        "n": 5,
+        "median": 153,
+        "max": 166.7
+      },
+      "users-tab": {
+        "n": 5,
+        "median": 83.6,
+        "max": 100.3
+      },
+      "delete-readback": {
+        "n": 5,
+        "median": 227.1,
+        "max": 237.7
+      },
+      "own-password-login-readback": {
+        "n": 5,
+        "median": 1434.4,
+        "max": 1453.2
+      }
+    },
+    "candidate": {
+      "first-entry": {
+        "n": 5,
+        "median": 192.2,
+        "max": 306.9
+      },
+      "reentry": {
+        "n": 5,
+        "median": 100.5,
+        "max": 137.6
+      },
+      "search": {
+        "n": 5,
+        "median": 33.2,
+        "max": 49.7
+      },
+      "filter-combine-clear": {
+        "n": 5,
+        "median": 66.8,
+        "max": 84.8
+      },
+      "open-user": {
+        "n": 5,
+        "median": 99.7,
+        "max": 101.5
+      },
+      "individual-toggle": {
+        "n": 5,
+        "median": 80.5,
+        "max": 83.7
+      },
+      "individual-save-readback": {
+        "n": 5,
+        "median": 150.6,
+        "max": 200
+      },
+      "disable-readback": {
+        "n": 5,
+        "median": 186.8,
+        "max": 218.1
+      },
+      "reenable-readback": {
+        "n": 5,
+        "median": 200.3,
+        "max": 250.6
+      },
+      "reset-password-readback": {
+        "n": 5,
+        "median": 467.7,
+        "max": 982.2
+      },
+      "roles-tab": {
+        "n": 5,
+        "median": 82.8,
+        "max": 83.9
+      },
+      "role-open": {
+        "n": 5,
+        "median": 100.2,
+        "max": 100.7
+      },
+      "role-save-readback": {
+        "n": 5,
+        "median": 151.5,
+        "max": 170.6
+      },
+      "users-tab": {
+        "n": 5,
+        "median": 66.5,
+        "max": 83.5
+      },
+      "delete-readback": {
+        "n": 5,
+        "median": 204.8,
+        "max": 259.5
+      },
+      "own-password-login-readback": {
+        "n": 5,
+        "median": 1448.3,
+        "max": 1482.6
+      }
+    }
+  },
+  "api": {
+    "baseline": {
+      "4": {
+        "n": 10,
+        "median": 4.700759999999946,
+        "max": 8.801605000000109,
+        "sql": 1,
+        "r2": 0
+      },
+      "200": {
+        "n": 10,
+        "median": 185.50637900000015,
+        "max": 264.430564,
+        "sql": 1,
+        "r2": 0
+      }
+    },
+    "candidate": {
+      "4": {
+        "n": 10,
+        "median": 4.148064999999974,
+        "max": 8.790136999999959,
+        "sql": 1,
+        "r2": 0
+      },
+      "200": {
+        "n": 10,
+        "median": 116.25938399999995,
+        "max": 144.277196,
+        "sql": 1,
+        "r2": 0
+      }
+    }
+  }
+}
