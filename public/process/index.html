@@ -7,6 +7,13 @@
     <meta name="app-build" content="2026.09.15.7100" />
     <title>製程標準播放系統</title>
     <style>[data-process-boot] .app-shell,[data-process-boot] #login-root{visibility:hidden}#process-boot{position:fixed;inset:0;display:grid;place-content:center;background:#f6f3ea;color:#24312d;font:18px system-ui;z-index:99999;padding:24px}#process-boot button{min-height:44px;margin-top:16px}</style>
+    <!-- Display hint only: authorization and destination still come from bootstrap. -->
+    <script>
+      {const intent=new URLSearchParams(location.search);
+      if(intent.get('view')==='data'&&intent.get('dataTab')==='process-master')
+        document.documentElement.dataset.processBootLayout='process-master';}
+    </script>
+    <style>html[data-process-boot][data-process-boot-layout="process-master"] .app-shell{display:none}</style>
     <!-- Offline Local: use the existing system-font fallbacks. -->
     <link rel="stylesheet" href="styles.css?v=20260930-comments6" />
     <link rel="stylesheet" href="version-workflow.css?v=20260829-1425" />
