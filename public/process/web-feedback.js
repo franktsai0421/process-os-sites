@@ -90,6 +90,53 @@
  function resolveLocation(l){const p=page();if(l.view!==p.view||l.tab!==p.tab||l.system!==p.system||l.type!=='element')return null;const s=l.locator.id?'#'+CSS.escape(l.locator.id):l.locator.attribute?'['+l.locator.attribute+'="'+CSS.escape(l.locator.value)+'"]':'';if(!s)return null;const nodes=document.querySelectorAll(s),el=nodes[0];if(nodes.length!==1||el.tagName.toLowerCase()!==l.locator.tag)return null;if(l.locator.label!==undefined&&(el.getAttribute('aria-label')||(['BUTTON','A','LABEL','H1','H2','H3'].includes(el.tagName)?el.textContent:'')||'').trim().slice(0,80)!==l.locator.label)return null;const record=el.closest('[data-op-id],[data-node]');if(l.context?.recordId&&(record?.getAttribute('data-op-id')||record?.getAttribute('data-node'))!==l.context.recordId)return null;if(l.context?.stageCode&&el.closest('[data-stage]')?.getAttribute('data-stage')!==l.context.stageCode)return null;return el;}
  function outline(el,label){if(!el?.isConnected)return;const r=el.getBoundingClientRect();if(!r.width||!r.height)return;const box=document.createElement('div');box.className='wf-outline';box.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;const b=document.createElement('b');b.textContent=label;box.append(b);document.body.append(box);}
  function clearOutlines(){document.querySelectorAll('.wf-outline').forEach(e=>e.remove());}
+ // A newly painted overlay alone cannot revoke a remote frame's old compositor
+ // hit region. Remove its rendered surface synchronously, not its browsing
+ // context. The placeholder preserves layout and maps clicks to the outer frame.
+ function suspendSelectionFrames(){
+  const frames=new Map(),slots=new WeakMap();let observer=null;
+  const geometry=['position','inset','top','right','bottom','left','z-index','float','clear','vertical-align','width','height','min-width','max-width','min-height','max-height','box-sizing','margin-top','margin-right','margin-bottom','margin-left','padding-top','padding-right','padding-bottom','padding-left','border-top-width','border-right-width','border-bottom-width','border-left-width','border-top-style','border-right-style','border-bottom-style','border-left-style','border-radius','transform','transform-origin','translate','rotate','scale','order','flex-grow','flex-shrink','flex-basis','align-self','justify-self','grid-area','grid-column','grid-row'];
+  function suspend(el){
+   if(frames.has(el)||!el.isConnected||el.closest('#wf-panel,#wf-viewer'))return;
+   const style=getComputedStyle(el),rect=el.getBoundingClientRect();
+   const saved={display:el.style.getPropertyValue('display'),priority:el.style.getPropertyPriority('display'),hadStyle:el.hasAttribute('style'),slot:null};
+   if(rect.width>0&&rect.height>0&&style.display!=='none'){
+    const slot=document.createElement('span');slot.dataset.wfFramePlaceholder='';slot.setAttribute('aria-label',t('外部內容位置','Vị trí nội dung bên ngoài'));
+    for(const key of geometry)slot.style.setProperty(key,style.getPropertyValue(key));
+    slot.style.display=style.display==='inline'?'inline-block':style.display;
+    if(style.position==='static')slot.style.position='relative';
+    // Freeze the used box dimensions so intrinsic iframe sizing is retained.
+    slot.style.width=style.width;slot.style.height=style.height;
+    const label=document.createElement('span');label.textContent=t('外部內容暫停互動；可標記此位置','Tạm dừng tương tác; có thể đánh dấu vị trí này');slot.append(label);
+    el.before(slot);saved.slot=slot;slots.set(slot,el);
+   }
+   frames.set(el,saved);el.style.setProperty('display','none','important');observer?.observe(el,{attributes:true,attributeFilter:['style']});
+  }
+  function scan(root){if(root.matches?.('iframe'))suspend(root);root.querySelectorAll?.('iframe').forEach(suspend);}
+  observer=new MutationObserver(records=>{
+   let changed=false;
+   for(const record of records){
+    if(record.type==='attributes'){
+     const el=record.target,saved=frames.get(el);if(!saved)continue;
+     if(el.style.getPropertyValue('display')!=='none'||el.style.getPropertyPriority('display')!=='important'){
+      saved.display=el.style.getPropertyValue('display');saved.priority=el.style.getPropertyPriority('display');el.style.setProperty('display','none','important');changed=true;
+     }
+    }else for(const node of record.addedNodes)if(node.nodeType===1){const before=frames.size;scan(node);changed=changed||frames.size!==before;}
+   }
+   if(changed)void document.documentElement.offsetHeight;
+  });
+  scan(document.body);
+  observer.observe(document.body,{childList:true,subtree:true});
+  // Force layout before accepting another input event: the remote surface must
+  // be detached even when the new shield has not reached its first paint yet.
+  if(frames.size)void document.documentElement.offsetHeight;
+  return {
+   target:el=>slots.get(el?.closest?.('[data-wf-frame-placeholder]'))||el,
+   visible:el=>frames.get(el)?.slot||el,
+   contains:el=>frames.has(el),
+   restore(){observer.disconnect();for(const [el,saved] of frames){if(el.style.getPropertyValue('display')==='none'&&el.style.getPropertyPriority('display')==='important'){if(saved.display)el.style.setProperty('display',saved.display,saved.priority);else el.style.removeProperty('display');if(!saved.hadStyle&&!el.getAttribute('style'))el.removeAttribute('style');}saved.slot?.remove();}frames.clear();}
+  };
+ }
  function selectLocation(){
   const owner=captureOwner(),attempt=openAttempt,current=()=>reportPhase==='ready'&&attempt===openAttempt&&owns(owner);
   if(selecting||!current()||busy||draft?.pending)return;
@@ -97,12 +144,13 @@
   selecting=true;selectionReady=false;const previousFocus=document.activeElement;
   const shield=document.createElement('div');shield.id='wf-marking-shield';shield.tabIndex=0;shield.setAttribute('aria-label',t('點選任意位置標記；可捲動，Esc 取消','Chọn vị trí bất kỳ; có thể cuộn, Esc để hủy'));
   helperHost().append(shield);shield.focus({preventScroll:true});
+  const suspendedFrames=suspendSelectionFrames();
   const selectButton=panel.querySelector('[data-select]');selectButton.textContent=t('準備標記中…（Esc 取消）','Đang chuẩn bị… (Esc để hủy)');selectButton.onclick=()=>{endSelect();draw();};
   message(t('正在準備標記，請等候可點選提示。','Đang chuẩn bị; vui lòng chờ thông báo sẵn sàng.'));
   const controller=new AbortController(),options={capture:true,passive:false,signal:controller.signal};
   let gesture=null,hover=null,frame=null,readyFrame=null;
   const own=e=>e.target.closest?.('#wf-panel,#wf-launcher,#wf-viewer');
-  const underlying=(x,y)=>document.elementsFromPoint(x,y).find(el=>!el.closest('#wf-marking-shield,#wf-panel,#wf-launcher,#wf-viewer,.wf-outline'))||document.body;
+  const underlying=(x,y)=>suspendedFrames.target(document.elementsFromPoint(x,y).find(el=>!el.closest('#wf-marking-shield,#wf-panel,#wf-launcher,#wf-viewer,.wf-outline'))||document.body);
   const stop=e=>{e.preventDefault();e.stopImmediatePropagation();};
   function scrollTarget(el,dx,dy){
    for(let node=el;node&&node!==document.body;node=node.parentElement){const style=getComputedStyle(node),top=node.scrollTop,left=node.scrollLeft;
@@ -111,7 +159,7 @@
     if(node.scrollTop!==top||node.scrollLeft!==left)return;
    }window.scrollBy(dx,dy);
   }
-  const paint=()=>{frame=null;if(!current())return;clearOutlines();draft.markers.forEach((m,i)=>outline(resolveLocation(m.location),String(i+1)));if(hover)outline(hover,'+');};
+  const paint=()=>{frame=null;if(!current())return;clearOutlines();draft.markers.forEach((m,i)=>outline(suspendedFrames.visible(resolveLocation(m.location)),String(i+1)));if(hover)outline(suspendedFrames.visible(hover),'+');};
   const schedule=()=>{if(frame===null)frame=requestAnimationFrame(paint);};
   const down=e=>{if(!current()||own(e))return;stop(e);gesture={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,target:underlying(e.clientX,e.clientY),moved:false,touch:e.pointerType==='touch'};};
   const move=e=>{if(!current()||own(e))return;e.stopImmediatePropagation();hover=underlying(e.clientX,e.clientY);
@@ -121,12 +169,20 @@
   const touch=e=>{if(!current()||own(e))return;e.stopImmediatePropagation();};
   const wheel=e=>{if(!current()||own(e))return;stop(e);const scale=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;scrollTarget(underlying(e.clientX,e.clientY),e.deltaX*scale,e.deltaY*scale);schedule();};
   const key=e=>{if(!current())return;if(e.key==='Escape'){stop(e);endSelect();draw();}else if(!own(e)&&['Enter',' '].includes(e.key))stop(e);};
+  // A stale remote hit may transfer focus even though its hidden document gets
+  // no pointer event. Reclaim only suspended frames so Esc stays in this page;
+  // helper inputs and attachment pickers retain their normal focus behavior.
+  let focusTimer=null;
+  window.addEventListener('blur',()=>{
+   if(!current()||!selecting||!suspendedFrames.contains(document.activeElement))return;
+   clearTimeout(focusTimer);focusTimer=setTimeout(()=>{focusTimer=null;if(!current()||!selecting||!suspendedFrames.contains(document.activeElement))return;window.focus();shield.focus({preventScroll:true});},0);
+  },options);
   window.addEventListener('pointerdown',down,options);window.addEventListener('pointermove',move,options);window.addEventListener('click',click,options);
   for(const name of ['mousedown','mouseup','pointerup','dblclick','contextmenu','dragstart','selectstart'])window.addEventListener(name,block,options);
   for(const name of ['touchstart','touchmove','touchend'])window.addEventListener(name,touch,options);
   window.addEventListener('pointercancel',()=>{gesture={moved:true};},options);window.addEventListener('wheel',wheel,options);window.addEventListener('keydown',key,options);window.addEventListener('scroll',schedule,{capture:true,passive:true,signal:controller.signal});
   readyFrame=requestAnimationFrame(()=>{readyFrame=requestAnimationFrame(()=>{readyFrame=null;if(!current()||!selecting)return;selectionReady=true;shield.dataset.ready='true';const cancel=panel.querySelector('[data-select]');if(cancel)cancel.textContent=t('取消點選（Esc）','Hủy chọn (Esc)');message(t('現在可點選任意位置；捲動後仍可標記。跨來源框架只保存外框位置。','Có thể chọn vị trí và cuộn trang. Khung khác nguồn chỉ lưu vị trí bên ngoài.'));});});
-  selectionCleanup=()=>{controller.abort();shield.remove();if(readyFrame!==null)cancelAnimationFrame(readyFrame);if(frame!==null)cancelAnimationFrame(frame);if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});};schedule();
+  selectionCleanup=()=>{controller.abort();clearTimeout(focusTimer);suspendedFrames.restore();shield.remove();if(readyFrame!==null)cancelAnimationFrame(readyFrame);if(frame!==null)cancelAnimationFrame(frame);if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});};schedule();
  }
  function endSelect(){selectionCleanup?.();selectionCleanup=null;selecting=false;selectionReady=false;clearOutlines();}
  function close(options={}){if(options.force!==true&&holdBoard())return false;clearTimeout(highlightTimer);highlightTimer=null;window.removeEventListener('resize',positionPanel);dialogResize?.disconnect();dialogContent?.disconnect();dialogResize=null;dialogContent=null;positionedDialog=null;endSelect();if(panel)panel.hidden=true;document.removeEventListener('paste',paste,true);document.querySelector('#wf-viewer')?.remove();revoke();}

@@ -304,6 +304,37 @@ loader 請求開始一般 513→475 ms、延遲情境 521→463 ms；改善機�
 
 未合併或接管以上工作；由 dot 整合 index 版本參數與文件條目，整合後須複驗原生輸入／捲動及三角色授權。
 
+## 跨來源 iframe 切入瞬間修復（feedback6）
+
+本段取代前述「首幀診斷仍失敗」的目前狀態；前段保留歷史測試結果。修復前來源 `f29f0383a938cfa76ff47b897d72bcc9f382e0b3`，仍沿用原 main 基準與獨立分支。只有本模組核心／樣式與專屬測試變更；共用 `public/process/index.html` 僅將 helper query 由 feedback5 更新 feedback6，修改前已列出原因、最小改法與只影響 helper 載入快取的範圍。
+
+### 原因與修正
+
+iframe 的舊合成命中區在新遮罩第一幀前仍可能接收輸入；單靠新增遮罩、最後 click 或 iframe inert 不足。現在切入選取時，同步以 `display:none!important` 撤下 iframe 的渲染表面並完成 layout，同位置放置可選取的外框佔位。保留原 iframe 節點、src 與 browsing context，不移除、重建或重載它；跨來源內容暫時不顯示，介面明示「外部內容暫停互動；可標記此位置」。只識別外框與位置，不聲稱識別內部 DOM。
+
+舊命中區還可能轉移鍵盤焦點，即使其內容未收到 pointer/mouse/touch 事件。補測曾發現 Esc 因而失效；現在僅在焦點確實進入暫停中的 iframe 時，於下一 task 收回焦點，讓 Esc 可用。回收前再核對目前焦點，避免搶走小幫手輸入框／附件控制。完成、Esc、取消、關閉、導航及身分清理沿同一出口還原 iframe 的 display、刪除佔位、撤除 listener／observer／timer。
+
+標記期間新增 iframe 也暫停；外部腳本更新 display 時保留其新值，退出恢復。佔位維持位置及外層捲動區，可捲動後保存原 iframe ID／tag／座標。準備中第一次點擊可能不建立標記，但不觸發原功能；顯示可點選後正常建立標記。沒有改任何 API、權限、資料格式或資料庫，也沒有因本修復新增背景 API 請求。
+
+### 驗證與限制
+
+- 原始立即座標點擊診斷不增加 ready／paint 等待、不減少斷言：修復前 3／3 FAIL；修復後 3／3 PASS，iframe 內事件陣列皆空。舊結果保存於 `.sites-runtime/feedback-iframe-transition/before-f29f038.json`，新結果為同目錄 `results.json`。
+- 新增 `tests/web-feedback-frame-browser.test.mjs`：滑鼠、觸控、鍵盤三種進入方式各 3 次；立即點擊不穿透，退出／完成後原輸入保留、nonce 不變、iframe 載入次數保持 1，按鈕恢復。另測流式佔位的捲動與位置送到後端、動態 iframe／display 更新及取消後 observer 已清除，共 5 組。
+- 相關既有流程包含主要 17 組、收尾 3 組、真實 Clipboard API／Ctrl+V 3 組；涵蓋普通位置的早期事件攔截、捲動、多標記、圖片附件、回報與管理／交接、不累積監聽器及商業資料 revision 不變。結果在各 `.sites-runtime/feedback-*` 目錄，全部寫入為隔離合成 D1/R2。
+- PASS：TypeScript、typed lint、53 VM/layout（40 core＋13 layout）、build／auth audit 及 source-only preflight；沒有重跑未改動的 64 後端 API 情境，以先前通過結果為歷史證據。
+- 本輪首次平行回歸中，既有主要測試的「core 固定延遲 200 ms」先後斷言失敗；公開預載可能比 bootstrap 早超過 200 ms，固定睡眠不能可靠代表 API 是否等待 core。測試改成在 list 發起前保持 core 不回傳，10 秒上限仍會使錯誤依賴失敗；重試與單次讀取斷言保留，沒有改產品啟動邏輯。
+- 上述為雲端 Chromium 154／Playwright，跨來源 HTML 在本機 fulfill，沒有連到外站。使用者的 Chrome、實體觸控裝置、Safari／Firefox、實站同帳號、closed shadow root 內的 iframe 仍尚未驗證。顯示暫代外框不會停掉 iframe 自身背景 JavaScript；本修正保證的範圍是已測輸入攔截，非凍結外站程式。
+- 本輪不改初次載入／API 讀寫路徑，未新增效能提升數字；前後速度數據仍見前段，不以 iframe 攔截測試代替測速。
+
+重現（先正常 build；不需對外網路、正式帳號或業務資料）：
+
+```bash
+PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-iframe-transition.diagnostic.mjs
+PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) FEEDBACK_BROWSER_PATH=/usr/bin/chromium node tests/web-feedback-frame-browser.test.mjs
+```
+
+本輪 fetch 後 main 仍為 `2cac307f29b8017a2bb6dc5229d47720f2deab33`。photo 分支更新至 `d9b2eb7c42d6f8d7700472858c28923aef8b5f0b`，preview-process-flow 至 `0874e872acc226c5679845e99c8349d51a4a7445`，process-flow 至 `d4ef8118425c5623c7245f8e5711c614ca9f6293`；與本分支的交集仍是上表共用入口／文件，沒有合併他們的程式。dot 須保留其他入口 script 及本次 feedback6 版本，整合後重跑以上時序回歸。開啟中 PR／外部部署 webhook 狀態仍未取得；沒有發布既有 Site。
+
 ## dot 整合與外部限制
 
 - 已讀取 repo CI：兩份 workflow 都由 pull_request 觸發、測試用途；沒有 push／PR 自動發布命令。README／DEPLOYMENT 指明私人 GitHub source 與 Site-bound source 為不同目的地；本次不更新 `.openai/hosting.json`，不執行 release、merge 或 auto-merge。

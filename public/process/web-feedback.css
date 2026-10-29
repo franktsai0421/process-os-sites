@@ -28,6 +28,8 @@
 #wf-launcher{z-index:11002!important}
 #wf-marking-shield{position:fixed;inset:0;z-index:11000;cursor:crosshair;touch-action:none;background:transparent;outline:none}
 #wf-marking-shield:not([data-ready=true]){cursor:progress}
+[data-wf-frame-placeholder]{background:#edf3f2;color:#365e61;overflow:hidden}
+[data-wf-frame-placeholder]>span{position:absolute;inset:0;display:grid;place-items:center;padding:8px;font:13px/1.5 system-ui,sans-serif;text-align:center;overflow-wrap:anywhere;outline:1px dashed #789b94;outline-offset:-1px}
 #wf-panel :focus-visible,#wf-viewer :focus-visible,.wf-admin :focus-visible{outline:3px solid #ad6714;outline-offset:2px}
 .wf-admin{padding:14px;min-width:0}
 .wf-admin h2{font-size:20px;margin:0 0 10px}

@@ -32,10 +32,14 @@ try{
  });
  await check('cold list overlaps slow assets; failed list shows retry and performs one fresh read',async()=>{
   const core='**/process/web-feedback.js?*',list='**/api/web-feedback?action=list';
-  let coreReleased=false,readBeforeCore=false;
-  await page.route(core,async r=>{await new Promise(resolve=>setTimeout(resolve,200));coreReleased=true;await r.continue();});
-  await page.route(list,r=>{readBeforeCore=!coreReleased;return r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'SYNTHETIC_LIST_RETRY'})});},{times:1});
-  await page.reload();await page.getByText('SYNTHETIC_LIST_RETRY',{exact:true}).waitFor();
+  let coreReleased=false,readBeforeCore=false,releaseCore;
+  const coreGate=new Promise(resolve=>{releaseCore=resolve;}),deadline=setTimeout(()=>releaseCore(),10000);
+  // Public preloading can start long before bootstrap on a busy runner. Hold
+  // the core until list starts instead of assuming bootstrap takes <200 ms.
+  // If list depends on core, the deadline releases it and the assertion fails.
+  await page.route(core,async r=>{await coreGate;coreReleased=true;await r.continue();});
+  await page.route(list,r=>{readBeforeCore=!coreReleased;releaseCore();return r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'SYNTHETIC_LIST_RETRY'})});},{times:1});
+  try{await page.reload();await page.getByText('SYNTHETIC_LIST_RETRY',{exact:true}).waitFor();}finally{clearTimeout(deadline);releaseCore();}
   assert(readBeforeCore);assert.equal(await page.locator('.wf-row').count(),0);
   const before=report.api.filter(r=>r.action==='list').length;
   await page.locator('#data-content button').filter({hasText:/重試|Thử lại/}).click();await page.waitForSelector('.wf-row');

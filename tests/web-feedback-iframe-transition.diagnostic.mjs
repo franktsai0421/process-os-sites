@@ -1,7 +1,7 @@
-// Known failing boundary: pointer input before the newly inserted shield paints.
+// Regression for pointer input before the newly inserted shield paints.
 // This diagnostic deliberately does not wait for the visible ready state.
-// It is separate from normal acceptance, returns nonzero on penetration, and
-// must remain reported as FAIL until the compositor transition is protected.
+// Keep the immediate click and return nonzero on any remote-frame activation.
+// Do not add a ready-state or paint delay before that click.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright';

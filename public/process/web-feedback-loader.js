@@ -26,8 +26,8 @@
     const css=document.createElement('link');let script,styled=false;
     const fail=message=>{loading=null;css.remove();script?.remove();reject(Error(message));};
     const ready=()=>{if(styled&&window.WebFeedback)resolve(window.WebFeedback);};
-    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261029-feedback5';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
-    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261029-feedback5';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
+    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261029-feedback6';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
+    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261029-feedback6';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
   }));
   // The immediate shell contains only new input, never private draft data.
   function open(event) {
@@ -143,7 +143,7 @@
     diagnostics.ready=Math.round(performance.now());publish();
     requestAnimationFrame(()=>requestAnimationFrame(()=>{document.documentElement.dataset.feedbackPaintReady='1';publish();}));
     if(diagnostics.baseline)return;
-    void import('./web-feedback-layout.mjs?v=20261029-feedback5').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Right-side fallback remains, never hide the platform toolbar. */});
+    void import('./web-feedback-layout.mjs?v=20261029-feedback6').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Right-side fallback remains, never hide the platform toolbar. */});
     for(const name of ['render','renderLogin','enterPlatform']) {
       // Existing global function bindings are explicitly wrapped once; no DOM observer/polling.
       const original=window[name];if(typeof original!=='function')continue;

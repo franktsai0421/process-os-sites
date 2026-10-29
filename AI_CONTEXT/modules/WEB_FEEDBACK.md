@@ -2,8 +2,8 @@
 
 本次使用者授權取代下方歷史 Local-only 工作範圍；仍不允許 merge 或覆蓋既有站台。驗證與整合事項見 [本次交付](../../docs/web-feedback/20261029-isolated-helper.md)。
 
-- 本輪 1–4 項：明確回報網址在模組 entry 載入時，只預載公開 loader/core/CSS；不執行核心、不取 API／身分／草稿，登入後的 list 授權與 owner/delivery fence 保持。版本 `20261029-feedback5`。一般頁面不新增這些預載。
-- 標記先顯示準備中，兩個 animation frame 後才顯示可選取；完成點選後聚焦說明欄。位置／附件數／尚未送出或結果未確認分開提示；定位標籤使用中越文人類可讀文字，不顯示 tag 名稱。**這是就緒狀態改善，不是跨來源 iframe 第一幀前穿透的完整修復**，立即點擊診斷仍失敗，見交付。
+- 本輪 1–4 項：明確回報網址在模組 entry 載入時，只預載公開 loader/core/CSS；不執行核心、不取 API／身分／草稿，登入後的 list 授權與 owner/delivery fence 保持。版本 `20261029-feedback6`。一般頁面不新增這些預載。
+- 標記先顯示準備中，兩個 animation frame 後才顯示可選取；完成點選後聚焦說明欄。位置／附件數／尚未送出或結果未確認分開提示；定位標籤使用中越文人類可讀文字，不顯示 tag 名稱。跨來源 iframe 首幀保護改為同步暫停其渲染表面（不移除／重載 browsing context），以等尺寸外框佔位保存位置；結束時還原 display。僅選取期間監看新增 iframe／display 改變，退出清理 observer／listener／焦點計時器。舊命中區若偷轉焦點，下一 task 只從仍被暫停的 iframe 收回焦點，確保 Esc；不搶 helper 輸入框。原立即點擊診斷已通過，前後證據見交付最新段落。
 - 同分頁、origin＋核驗帳號的 sessionStorage 只保存篩選、勾選 ID、目前 ID 與清單捲動；不保存案件內容或私人備註。每次先取得新鮮授權清單，再恢復且排除無效／不可交接 ID。日期／選項檢查，文字輸出 escape；偏好儲存失敗不阻擋業務保存。桌面工具列與篩選在模組內 sticky，窄螢幕保持正常文件流。
 
 - 清單直接管理私人備註與狀態，移除「我的處理」及 helper 內問題清單入口。私人備註仍只由 ADMIN API 投影取得。
