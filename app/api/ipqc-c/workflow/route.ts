@@ -1,3 +1,4 @@
+import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
 import { parseIpqcControl, activeIpqc, openIpqc, copyIpqc } from '@/lib/ipqc-c';
@@ -5,19 +6,14 @@ import { beginIpqcWorkflow, applyIpqcWorkflow, ipqcWorkflowContext, publicIpqcWo
 import { DraftConflict, type DraftPermission } from '@/lib/shared-draft';
 import type { EquipmentVersion } from '@/lib/routine-equipment';
 import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,isWorkflowDigestFingerprint} from '@/lib/workflow-wire';
-import {otherReviewerAvailable,workflowInterfaceMetadata} from '@/lib/versioned-shared-workflow';
+import {otherReviewerAvailable,workflowInterfaceMetadata,workflowAccess} from '@/lib/versioned-shared-workflow';
 import {recordJSONResponse} from '@/lib/state-records-response';
 
 const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
 async function access(request:Request,state:State) {
-  const data=await can(request,state,'view:data'),review=await can(request,state,'view:approval');
-  const edit=data&&await can(request,state,'ipqc-c.edit');
-  return {view:data||review,edit,
-    save:data&&await can(request,state,'ipqc-c.save'),submit:data&&await can(request,state,'ipqc-c.submit'),
-    withdraw:data||review&&await can(request,state,'approval.withdraw'),
-    approve:review&&await can(request,state,'approval.approve'),return:review&&await can(request,state,'approval.reject'),
-    history:(data||review)&&await can(request,state,'approval.compare'),delete:edit&&await can(request,state,'master.delete')};
+  const rights=await workflowAccess(request,state);
+  return {...rights,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {
@@ -67,12 +63,13 @@ export async function GET(request:Request) {
       return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
     }
     if(query.has('restoreSaveId')){
-      if(!permissions.history||!permissions.edit)return reply({error:'FORBIDDEN'},403);
+      if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
       if(!flow||openIpqc(control)?.status!=='draft')return reply({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
       const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return reply({error:'SAVE_NOT_FOUND'},404);
       const context=ipqcWorkflowContext(control,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]},[]);
-      return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,
-        after:context.restoreContent!(copyIpqc(saved.content),flow.working),source:{actor:saved.actor,at:saved.at}});
+      const after=context.restoreContent!(copyIpqc(saved.content),flow.working);
+      await assertRestoreAccess(request,state,flow.working,after);
+      return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
     }
     if(query.get('history')==='cases') {
       if(!permissions.history)return reply({error:'FORBIDDEN'},403);
@@ -94,7 +91,7 @@ export async function GET(request:Request) {
       if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
       const action=JSON.parse(receipt.fingerprint).action;
       const permission=action==='apply'||action==='restore'?'edit':action;
-      if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission])return reply({error:'FORBIDDEN'},403);
+      if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);
       return reply({receipt:receipt.result});
     }
     const since=new URL(request.url).searchParams.get('since');
@@ -161,11 +158,15 @@ export async function POST(request:Request) {
       } else {
         if(!body.command)return reply({error:'COMMAND_REQUIRED'},422);
         if(!openIpqc(control)&&!control.workflow?.receipts[body.command.operationId])return reply({error:'BEGIN_REQUIRED'},409);
-        if(body.command.moduleAction?.startsWith('delete')&&!await can(request,state,'master.delete'))return reply({error:'FORBIDDEN'},403);
+        if(body.command.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
+        if(body.command.moduleAction?.startsWith('create')&&!permissions.create)return reply({error:'FORBIDDEN'},403);
+        if(body.command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
         if(body.command.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===body.command!.input?.productCode&&p.stages.includes(body.command!.input?.stageCode||'')))
           return reply({error:'PRODUCT_STAGE_INVALID'},422);
-        const alreadyAccepted=control.workflow?.receipts[body.command.operationId];
+        const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
         receipt=applyIpqcWorkflow(control,body.command,context);
+        if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
+        if(!alreadyAccepted&&body.command.action==='apply'){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
         if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});
         for(const item of control.workflow!.working.items)for(const photo of item.mediaItems)
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
