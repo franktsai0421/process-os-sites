@@ -1,5 +1,7 @@
 ## 2026-10-29 使用者與權限 CLOUD（隔離候選，未發布）
 
+第二輪載入優化：user-access API 的同請求角色／可編輯矩陣計算重用；初載 helper 在既有登入 gate 後重疊 users GET 和腳本初始化，採用前檢查 owner／generation／delivery；清單超過 50 人分頁，搜尋仍涵蓋全部資料。完整頁面 4／200 人各五次比較與限制見[第二輪載入驗證](../../docs/acceptance/USERS_CLOUD_LOADING_29102026.md)。沒有跨請求授權快取或共用導航改造。
+
 使用者 API 的角色定義只在同一請求內重用，帳號 projection 避免重算啟用者 configuredCells；無跨請求授權快取或儲存格式變更。所有身分改自己密碼均驗證舊密碼。自身唯讀矩陣只增加本人的 roleCells 回應，不公開其他帳號或角色模板。
 
 user-access UI 修正 legacy 缺少 accessOverrides 的勾選錯誤、組字搜尋、有效人數、局部矩陣更新、同 actor 晚到 GET、重複提交、保存後讀回及讀回失敗的 GET-only 核對。衝突對象已變則保留輸入並禁止直接覆寫；不自動重送未知 POST。既有 identity/delivery invalidation 保持生效。資源版本只更新本模組兩個檔案。
