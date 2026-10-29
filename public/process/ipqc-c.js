@@ -26,7 +26,7 @@
   function sharedTransport() {
     const actor=identity()?.id;
     if(!actor)throw Error(t('Cần đăng nhập','請先登入'));
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,permissionGates:{edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
+    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,permissionGates:{restore:'#ipqcc-case-restore',edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
     return sharedClient;
   }
   const workflowErrors={
@@ -551,7 +551,7 @@
     if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('restore')&&permitted('approval.compare')){
       const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';
       button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);
-      button.onclick=async()=>{try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){caseHistory.error=error.message;draw();}};
+      button.onclick=async()=>{if(!operationAllowed('restore'))return;try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){caseHistory.error=error.message;draw();}};
     }
     root.querySelectorAll('[data-ipqcc-case]').forEach(button=>button.addEventListener('click',()=>loadCase(button.dataset.ipqccCase)));
     for(const [id,delta] of [['prev',-1],['next',1]])root.querySelector(`#ipqcc-case-items-${id}`)?.addEventListener('click',()=>{caseHistory.itemPage+=delta;draw();});
