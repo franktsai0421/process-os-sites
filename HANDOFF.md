@@ -1,3 +1,5 @@
+首次進頁已拆量並局部減少遮罩後排版；五輪中位 708→658ms、最慢 759→927ms，完整流程 25 項通過，既有資產字串測試仍有 1 項失敗。見 [最新入口報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。未發布既有站台。
+
 流程資料補驗發現離開提醒缺口並局部修復；18 項原生離開／重整／背景恢復驗收通過。最後整合測速另見 [本輪紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
 
 流程 CLOUD 29102026 最新產品來源 `74ab03f`：已補修流程專屬 reviewer 的平台載入，10 項審核／取消驗收與 39 項完整流程通過。已實際核對權限／小幫手固定分支：前三個共用 JS 無同檔變更，index 的最小入口補丁及文件衝突見 [整合核對](docs/sites/integration-cloud-29102026/README.md)；仍未建立公開預覽或 Draft PR。

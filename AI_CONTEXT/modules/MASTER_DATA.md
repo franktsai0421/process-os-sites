@@ -1,3 +1,7 @@
+## 2026-10-29 首次進頁局部優化
+
+index 的 URL 顯示意圖僅控制 process-master boot 期間隱藏 shell 不參與排版；移除 boot 旗標後恢復。權限仍由 bootstrap/API 決定，其他頁面無此規則。速度與功能證據見 [入口報告](../../docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。
+
 ## 2026-10-29 流程資料離開提醒
 
 只在流程資料頁 beforeunload 檢查設備未套用、名稱組字／未確認、照片待處理及 working 相對 saved／active 差異，提示不寫入。乾淨／已 Save／待審不誤提示；原傳輸層保護保留。18 項 Chromium 結果見 [補驗](../../docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。

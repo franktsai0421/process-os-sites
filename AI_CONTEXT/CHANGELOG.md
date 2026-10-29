@@ -1,3 +1,7 @@
+## 2026-10-29 流程資料首次進頁
+
+入口僅在 process-master 的 boot 期間停用隱藏 shell 排版；不變更授權、資料請求或完成時點。五組交替測量與最慢未改善限制、回歸及既有測試失敗見 [報告](../docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。
+
 ## 2026-10-29 — 流程資料離開提醒補驗與修正（未發布）
 
 修復未套用設備及未手動保存 working 在關分頁／重整時沒有提醒；原生 Chromium 18 項通過，無自動套用或儲存。最終測速與限制見 [補驗](../docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
