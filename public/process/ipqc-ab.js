@@ -6,7 +6,9 @@
   const vi = () => document.documentElement.lang === 'vi';
   const t = (zh,vn) => vi() ? vn : zh;
   const headers = () => window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'};
-  const permitted = key => (window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : actor()?.role === 'admin');
+  const permitted = key => !accessBlocked&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : actor()?.role === 'admin');
+  const permittedAction = operation => !accessBlocked&&sharedClient?.permission(operation)!==false&&(typeof window.hasPermission==='function'?window.hasPermission('ipqc-ab.'+operation):actor()?.role==='admin');
+  let accessBlocked=null,lastCommandAcknowledgement=null,privateQuarantine=null;
   let host, reviewHost, control, catalog = {groups:[],products:[],stages:[]}, equipment = [], revision;
   let line = 'A', group = '', stage = '', errorId = '', versionId = '', working = null, busy = false;
   let pendingItemView = null;
@@ -41,15 +43,33 @@
   const actor = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
   const ownPending = v => v && ['pending','pending-test'].includes(v.status) && permitted('approval.withdraw');
   let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null,pollTimer,sourceEntryApplied=false;
-  function transport(){const id=actor()?.id,identityKey=id+':'+key();if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(key())+'&caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${key()}"]`,return:`[data-ab-reject="${key()}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
-  function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old)continue;for(const [field,value]of Object.entries(row)){if(['equipmentSnapshot'].includes(field)||JSON.stringify(value)===JSON.stringify(old[field]))continue;const path=[collection,{id:row.id},field];patches.push({op:'set',path,value});guards.push({path,value:old[field]});}}return{patches,guards};}
+  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${requestScope}"]`,return:`[data-ab-reject="${requestScope}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
+  function changes(base,next){
+    const patches=[],guards=[];
+    for(const collection of ['errors','items']){
+      // Keep find()'s first-match semantics; the index is local to this Apply.
+      const originals=new Map();
+      for(const row of base[collection])if(typeof row.id==='string'&&!originals.has(row.id))originals.set(row.id,row);
+      for(const row of next[collection]){
+        const old=typeof row.id==='string'?originals.get(row.id):base[collection].find(r=>r.id===row.id);
+        if(!old)continue;
+        for(const [field,value]of Object.entries(row)){
+          if(field==='equipmentSnapshot'||JSON.stringify(value)===JSON.stringify(old[field]))continue;
+          const path=[collection,{id:row.id},field];
+          patches.push({op:'set',path,value});guards.push({path,value:old[field]});
+        }
+      }
+    }
+    return{patches,guards};
+  }
   async function writeShared(action,detail={}){
+    if(accessBlocked)return null;
     if(busy)return null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=actor(),requestScope=key();let cancelled=false;try{
       // Save captures the server draft, not this modal. Retain its independent
       // input and original diff/generation baseline across the response render.
       if(action==='save'&&modal){captureModal();if(modal.type==='error'||modal.type==='new-error')modal.name=host.querySelector('#ab-error-name')?.value??modal.name;}
       const formWorking=action==='save'&&modal&&working?clone(working):null;
-      const client=transport();if(client.hasUnknown()){await client.resolveUnknown();await load(true);}
+      const client=transport();if(client.hasUnknown()){await client.resolveUnknown();if(await load(true)===false)return null;}
       if(!scope()?.workflow||action==='begin'){const started=await client.begin();if(actor()!==requestActor||key()!==requestScope){cancelled=true;return null;}control.scopes[requestScope]=started.control;revision=started.revision;if(!modalGeneration&&modal)modalGeneration=started.control.workflow.generation;if(action==='begin'){versionId=opened()?.id;working=clone(opened().snapshot);return started;}}
       const flow=scope().workflow;let commandAction=action,fields={};
       if(action==='apply') {fields=changes(modalBase||opened().snapshot,detail.snapshot||working);if(!fields.patches.length)return{control:scope()};}
@@ -64,7 +84,7 @@
       }else{commandAction='apply';fields={moduleAction:action,input:detail};}
       const result=await client.command(['apply','create-error','create-item'].includes(action)?modalGeneration||flow.generation:flow.generation,commandAction,fields);
       if(actor()!==requestActor||key()!==requestScope){cancelled=true;return null;}
-      if(result.control){control.scopes[requestScope]=result.control;revision=result.revision;}else await load(true);
+      if(result.control){control.scopes[requestScope]=result.control;revision=result.revision;}else if(await load(true)===false)return null;
       versionId=opened()?.id||active()?.id||versionId;working=formWorking&&modal?formWorking:opened()?.status==='draft'?clone(opened().snapshot):null;selectDefaults();issues=[];
       message=action==='save'?t('共用快照已儲存','Đã lưu bản chụp chung'):['apply','create-error','create-item','delete-item','delete-error'].includes(action)?t('已同步 · 尚未儲存','Đã đồng bộ · chưa lưu'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
       window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
@@ -82,21 +102,56 @@
     if (!errors().some(e => e.id === errorId)) errorId = errors()[0]?.id || '';
     if (!scope()?.versions.some(v => v.id === versionId)) versionId = opened()?.id || active()?.id || scope()?.versions.at(-1)?.id || '';
   }
+  let loadGeneration=0;
+  function loadedSelection(body,keep){
+    const next={control:body.control,catalog:body.catalog,equipment:body.equipment||[],revision:body.revision,line,group,stage,errorId,versionId,working};
+    const selectedScope=()=>next.control.scopes[`${next.line}:${next.group}`];
+    const openedVersion=()=>selectedScope()?.versions.find(v=>['draft','pending','pending-test'].includes(v.status));
+    const activeVersion=()=>selectedScope()?.versions.find(v=>v.id===selectedScope()?.activeVersionId);
+    const selectedVersion=()=>selectedScope()?.versions.find(v=>v.id===next.versionId)||openedVersion()||activeVersion()||selectedScope()?.versions.at(-1);
+    const content=()=>selectedVersion()?.status==='draft'&&next.working&&selectedVersion()?.id===openedVersion()?.id?next.working:selectedVersion()?.snapshot||{errors:[],items:[]};
+    const defaults=()=>{
+      if(!['A','B'].includes(next.line))next.line='A';
+      const groups=next.catalog.groups.filter(g=>g.line===next.line);
+      if(!groups.some(g=>g.name===next.group))next.group=groups[0]?.name||'';
+      const routes=[...new Set([...(next.catalog.groups.find(g=>g.line===next.line&&g.name===next.group)?.defaultStages||[]),...next.catalog.products.filter(p=>p.line===next.line&&p.category===next.group).flatMap(p=>p.stages)])];
+      const extras=showRouteExtras?[...new Set(content().errors.filter(e=>!e.deleted&&!routes.includes(e.stageCode)).map(e=>e.stageCode))]:[];
+      const available=new Set([...routes,...extras]),saved=content().errors.find(e=>!e.deleted&&available.has(e.stageCode));
+      if(!available.has(next.stage))next.stage=saved?.stageCode||[...available][0]||'';
+      const visibleErrors=content().errors.filter(e=>!e.deleted&&e.stageCode===next.stage);
+      if(!visibleErrors.some(e=>e.id===next.errorId))next.errorId=visibleErrors[0]?.id||'';
+      if(!selectedScope()?.versions.some(v=>v.id===next.versionId))next.versionId=openedVersion()?.id||activeVersion()?.id||selectedScope()?.versions.at(-1)?.id||'';
+    };
+    defaults();if(!keep||!next.working)next.working=openedVersion()?.status==='draft'?clone(openedVersion().snapshot):null;defaults();return next;
+  }
   async function load(keep = false) {
-    const delivery=window.ProcessSync?.captureDelivery?.();
-    const response = await fetch(API+'?caseMetadata=1',{headers:headers(),cache:'no-store'});
-    const body = await response.json().catch(()=>({}));
-    if (!response.ok || !body.control || !Number.isInteger(body.revision))
-      throw Error(body.error || t('IPQC-AB 載入失敗','Không tải được IPQC-AB'));
-    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
-    control = body.control; catalog = body.catalog; equipment = body.equipment || []; revision = body.revision;
-    selectDefaults();
-    if (!keep || !working) working = opened()?.status === 'draft' ? clone(opened().snapshot) : null;
-    selectDefaults();
-    await transport().permissions();
-    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    const generation=++loadGeneration,priorControl=control,priorRevision=revision,requestActor=actor(),requestHost=host,requestReviewHost=reviewHost,requestEpoch=window.ProcessSync?.identityGeneration?.(),selection=[line,group,stage,errorId,versionId,showRouteExtras],delivery=window.ProcessSync?.captureDelivery?.();
+    const owns=()=>generation===loadGeneration&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
+    if(privateQuarantine&&(privateQuarantine.actor!==requestActor||privateQuarantine.epoch!==requestEpoch))privateQuarantine=null;
+    if(lastCommandAcknowledgement&&(lastCommandAcknowledgement.actor!==requestActor||lastCommandAcknowledgement.epoch!==requestEpoch))lastCommandAcknowledgement=null;
+    try{
+      const response=await fetch(API+'?caseMetadata=1',{headers:headers(),cache:'no-store'});
+      const body=await response.json().catch(()=>({}));
+      if(!owns())return false;
+      if(!response.ok||!body.control||!Number.isInteger(body.revision))throw Object.assign(Error(body.error||t('IPQC-AB 載入失敗','Không tải được IPQC-AB')),{status:response.status});
+      const next=loadedSelection(body,keep);
+      // The opt-in shared boundary rejects obsolete access/gate results;
+      // retain the owner check before committing the staged module data.
+      await transport(`${next.line}:${next.group}`).permissions({isCurrent:owns});
+      if(!owns())return false;
+      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);accessBlocked=null;
+      return true;
+    }catch(error){if(!owns())return false;if([401,403].includes(error.status)){
+        const retainQuarantine=accessBlocked&&privateQuarantine?.actor===requestActor&&privateQuarantine?.epoch===requestEpoch;
+        accessBlocked={actor:requestActor,epoch:requestEpoch,delivery,status:error.status};
+        let captureFailed=false;
+        try{if(host?.isConnected&&modal&&!modal.readonly){captureModal();if(modal.type==='error'||modal.type==='new-error')modal.name=host.querySelector('#ab-error-name')?.value??modal.name;}}catch{captureFailed=true;}
+        if(!retainQuarantine)privateQuarantine={actor:requestActor,epoch:requestEpoch,working:clone(working),modal:clone(modal),reason,selection:[...selection],captureFailed};
+        modal=null;viewer=null;modalBase=null;modalGeneration=null;reason='';modalScrolls.clear();
+      }throw error;}
   }
   async function write(action, detail = {}) {
+    if(accessBlocked)return null;
     if(['approve','reject','withdraw'].includes(action)&&control?.moduleDraft?.workflow?.cases.some(c=>c.id===(detail.versionId||opened()?.id)))return moduleSave(action,detail);
     if(scope()?.workflow||!['pending','pending-test'].includes(opened()?.status))return writeShared(action,detail);
     if (busy) return null;
@@ -115,14 +170,14 @@
         body = await response.json().catch(()=>({}));
         if (response.status !== 409 || attempt || !['create-error','create-item'].includes(action)) break;
         const oldId=prior?.id, oldRevision=prior?.revision;
-        await load(true);
+        if(await load(true)===false)return null;
         if (opened()?.id !== oldId || opened()?.revision !== oldRevision) break;
       }
       if (!response.ok || !body.control) {
         if (body.issues) issues = body.issues;
         if (response.status === 409) {
           const unsaved = working;
-          await load(true);
+          if(await load(true)===false)return null;
           working = unsaved;
         }
         throw Error(body.error || `HTTP ${response.status}`);
@@ -139,22 +194,27 @@
   }
   const moduleDrafts=()=>control?.moduleDraft?.workflow?.pendingId?[]:Object.entries(control?.scopes||{}).filter(([,s])=>s.versions.some(v=>v.status==='draft'));
   let moduleClient=null,moduleActor='';
-  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',actorId:id,headers});}return moduleClient;}
+  function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',actorId:id,headers,guardAccessResults:true});}return moduleClient;}
   async function moduleSave(action,detail={}){
+    if(accessBlocked)return null;
     if(busy)return null;
     if(modal){message=t('請先套用或取消目前彈窗。','Hãy áp dụng hoặc hủy cửa sổ trước.');draw();return null;}
-    const identity=actor(),restoreView=window.VersionDraftUI.preserveView(host,reviewHost);busy=true;message='';
-    const valid=()=>actor()===identity;
+    const identity=actor(),identityEpoch=window.ProcessSync?.identityGeneration?.(),restoreView=window.VersionDraftUI.preserveView(host,reviewHost);let acknowledged=false;busy=true;message='';
+    const valid=()=>actor()===identity&&(!Number.isFinite(identityEpoch)||window.ProcessSync?.identityGeneration?.()===identityEpoch)&&!window.ProcessSync?.requiresReload;
     try{
       const client=moduleTransport();if(client.hasUnknown())await client.resolveUnknown();await client.flush();
-      let result=['approve','reject','withdraw'].includes(action)?await client.read():await client.begin();if(!valid())throw Error('IDENTITY_CHANGED');
+      let result=await client.read();if(!valid())throw Error('IDENTITY_CHANGED');
+      if(['save','submit'].includes(action)&&(!result.control?.workflow||!result.control.versions?.some(v=>['draft','pending','pending-test'].includes(v.status)))){
+        // Creating/adopting a new module draft still requires backend edit.
+        result=await client.begin();if(!valid())throw Error('IDENTITY_CHANGED');
+      }
       const flow=result.control?.workflow;if(!flow)throw Error('WORKFLOW_LOAD_FAILED');
       let fields={expectedRevision:flow.revision,input:{stateRevision:result.revision}},commandAction=action;
       if(action==='submit'){if(!flow.saved)throw Error('SUCCESSFUL_SAVE_REQUIRED');const why=await window.VersionDraftUI.confirmSubmit(reason,'IPQC-AB · '+Object.keys(flow.saved.content.scopes).join('、'));if(!why)return null;fields={...fields,savedId:flow.saved.id,reason:why};}
       if(['approve','reject','withdraw'].includes(action)){commandAction=action==='reject'?'return':action;const caseId=detail.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);const answer=await window.VersionDraftUI.confirmReview({action,scope:'IPQC-AB · '+caseId,selfReview:action!=='withdraw'&&c?.actor.id===identity.id});if(!answer)return null;fields={...fields,caseId,...answer};}
-      if(!valid())throw Error('IDENTITY_CHANGED');result=await client.command(flow.generation,commandAction,fields);
-      if(!valid())return null;await load(false);message='';toast(t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
-    }catch(error){if(valid())message=error.message;return null;}
+      if(!valid())throw Error('IDENTITY_CHANGED');result=await client.command(flow.generation,commandAction,fields);acknowledged=true;lastCommandAcknowledgement={actor:identity,epoch:identityEpoch,action,result};
+      if(!valid()){lastCommandAcknowledgement=null;return null;}if(await load(false)===false)return null;message='';toast(t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
+    }catch(error){if(valid())message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}
     finally{busy=false;if(valid()){draw();drawReview();restoreView();}}
   }
   async function save(action = 'save') {
@@ -167,16 +227,18 @@
     if (!working || JSON.stringify(working) === JSON.stringify(opened()?.snapshot)) return true;
     return !!await save('apply');
   }
-  function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
+  function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),pollActor=actor(),pollEpoch=window.ProcessSync?.identityGeneration?.(),pollHost=host,owns=()=>actor()===pollActor&&host===pollHost&&(!Number.isFinite(pollEpoch)||window.ProcessSync?.identityGeneration?.()===pollEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer=setTimeout(async()=>{
     if(!owns())return;
     if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;
-    try{if(!busy&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
-      const current=key(),flow=scope()?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(owns()&&key()===current&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
+    let readCurrent=owns;try{if(!accessBlocked&&!busy&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
+      const current=key(),flow=scope()?.workflow,priorControl=control,priorRevision=revision,priorLoad=loadGeneration;
+      readCurrent=()=>owns()&&!accessBlocked&&!busy&&key()===current&&control===priorControl&&revision===priorRevision&&loadGeneration===priorLoad;
+      const result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
+      if(readCurrent()&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
         if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;working=opened()?.status==='draft'?clone(opened().snapshot):null;}if(!host.contains(document.activeElement))draw();}
         else{const banner=host.querySelector('#ipqcab-shared-status');if(banner)banner.textContent=t('共用內容已更新，保留彈窗輸入；套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
-    }}catch(error){if(!owns())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
+    }}catch(error){if(!readCurrent())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
     finally{if(owns())scheduleRefresh();}
   },4000);}
   function photoButtons(photos,itemId,kind) {
@@ -226,8 +288,8 @@
         <div class="ipqcab-actions"><label>${t('選擇版本','Chọn phiên bản')}<select id="ipqcab-version">
           ${(scope()?.versions || []).slice().reverse().map(row=>`<option value="${h(row.id)}" ${row.id===v?.id?'selected':''}>V${row.number} · ${status(row.status)} · ${h(lastEdit(row)?.actorName || row.creatorName)} · ${h(new Date(lastEdit(row)?.at || row.createdAt).toLocaleString())}</option>`).join('')}</select></label>
           ${!opened() && permitted('approval.submit')?`<button type="button" id="ipqcab-begin">${t('開始修改','Bắt đầu sửa')}</button>`:''}
-          ${moduleDrafts().length&&permitted('approval.submit')?`<button type="button" id="ipqcab-save" ${busy?'disabled':''}>${t('儲存草稿','Lưu bản nháp')}</button>
-            <button type="button" class="signal" id="ipqcab-submit" ${busy?'disabled':''}>${t('送出審核','Gửi duyệt')}</button>`:''}
+          ${moduleDrafts().length&&permittedAction('save')?`<button type="button" id="ipqcab-save" ${busy?'disabled':''}>${t('儲存草稿','Lưu bản nháp')}</button>`:''}
+          ${moduleDrafts().length&&permittedAction('submit')?`<button type="button" class="signal" id="ipqcab-submit" ${busy?'disabled':''}>${t('送出審核','Gửi duyệt')}</button>`:''}
           ${ownPending(v)?`<button type="button" id="ipqcab-withdraw">${t('撤回','Rút hồ sơ')}</button>`:''}</div>
         ${editing()?`<label class="ipqcab-reason">${t('變更理由','Lý do thay đổi')}<input id="ipqcab-reason" value="${h(reason)}"></label>`:''}</section>
       ${message?`<p class="ipqcab-message" role="status">${h(displayDraftError(message))}</p>`:''}
@@ -320,7 +382,13 @@
     return `<div class="ipqcab-viewer"><div><button type="button" data-ab-close-viewer>×</button><img src="${h(photoUrl(photo))}" alt="${h(photo.note||photo.name)}">
       <p>${viewer.index+1} / ${photos.length} · ${h(photo.note||photo.name)}</p><button type="button" data-ab-prev>←</button><button type="button" data-ab-next>→</button></div></div>`;
   }
+  function renderAccessBlocked(target){
+    if(!target?.isConnected)return;
+    target.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(message||t('目前無法讀取 IPQC-AB；草稿暫存已保留，請重新核對權限。','Không thể đọc IPQC-AB; bản nháp được giữ riêng, hãy kiểm tra quyền.'))}</p><button type="button" data-ab-access-retry>${t('重新核對','Kiểm tra lại')}</button></section>`;
+    const retry=target.querySelector('[data-ab-access-retry]');if(retry)retry.onclick=async()=>{try{if(await load()===false)return;message=privateQuarantine?t('已重新讀取；先前輸入僅私有暫存，未自動套用，請先核對再修改。','Đã đọc lại; dữ liệu cũ chỉ được giữ riêng, chưa áp dụng tự động. Hãy kiểm tra trước khi sửa.'):'';draw();drawReview();}catch(error){message=error.message;renderAccessBlocked(target);}};
+  }
   function draw() {
+    if(accessBlocked){renderAccessBlocked(host);return;}
     if(modal&&!modalBase){modalBase=clone(opened()?.snapshot||{errors:[],items:[]});modalGeneration=scope()?.workflow?.generation||null;}
     if(!modal){modalBase=null;modalGeneration=null;}
     if (!host || !document.contains(host) || host.dataset.activeTab !== 'quality-ipqc-ab') return;
@@ -335,8 +403,8 @@
     }});
     const flow=scope()?.workflow;
     if(flow){const status=document.createElement('section');status.className='ipqcab-card';status.id='ipqcab-shared-status';status.setAttribute('role','status');status.innerHTML=`<b>${t('共用範圍','Phạm vi chung')}: ${h(key())}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)} · ${h(flow.saved.id)}</p>`:''}`;host.querySelector('#ipqcab-page')?.prepend(status);
-      if(permitted('approval.compare')){const button=document.createElement('button');button.id='ab-case-history';button.className='button ghost';button.textContent=t('送審案件','Hồ sơ gửi duyệt');button.onclick=()=>window.openSharedDraftHistory({client:control?.moduleDraft?moduleTransport():transport(),editable:()=>!control?.moduleDraft&&opened()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{await load();draw();}}).catch(e=>{message=e.message;draw();});status.append(button);}
-      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;button.onclick=async()=>{try{await transport()[method]();await load();}catch(e){message=e.message;}draw();};status.append(button);}
+      if(permitted('approval.compare')){const button=document.createElement('button');button.id='ab-case-history';button.className='button ghost';button.textContent=t('送審案件','Hồ sơ gửi duyệt');button.onclick=()=>window.openSharedDraftHistory({client:control?.moduleDraft?moduleTransport():transport(),editable:()=>!control?.moduleDraft&&opened()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{if(await load()===false)return;draw();}}).catch(e=>{message=e.message;draw();});status.append(button);}
+      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;button.onclick=async()=>{try{await transport()[method]();if(await load()===false)return;}catch(e){message=e.message;}draw();};status.append(button);}
     }
     window.VersionDraftUI?.mount(host,{header:'.ipqcab-version',historyClient:()=>control?.moduleDraft?moduleTransport():transport(),module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcab-history','#ab-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcab-shared-status']});
     const body = host.querySelector('.ipqcab-dialog-body');
@@ -372,6 +440,7 @@
       return old&&['cadence','kind','value','name'].every(field=>(old[field]||'')===next[field])?old:next;});
   }
   async function upload(files,kind) {
+    if(accessBlocked)return;
     const item = working.items.find(i=>i.id===modal.id);
     for (const file of files) {
       const response = await fetch(`${API}/photo`,{method:'PUT',headers:{...headers(),'Content-Type':file.type},body:file});
@@ -514,8 +583,9 @@
     q('[data-ab-prev]')?.addEventListener('click',()=>{viewer.index=(viewer.index-1+(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1))%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
     q('[data-ab-next]')?.addEventListener('click',()=>{viewer.index=(viewer.index+1)%(snapshot().items.find(i=>i.id===viewer.itemId)?.[viewer.kind==='standard'?'standardPhotos':'methodPhotos']?.length||1);draw();});
   }
-  let reviewLoading = false;
+  let reviewLoading = false,reviewLoadingOwner=null;
   function reviewHTML() {
+    if(accessBlocked)return `<section class="ipqcab-card"><p role="alert">${h(message||t('目前無法讀取 IPQC-AB；請重新核對權限。','Không thể đọc IPQC-AB; hãy kiểm tra quyền.'))}</p></section>`;
     const pending = Object.values(control?.scopes || {}).flatMap(s=>s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).map(v=>({scope:s,version:v})));
     const history = Object.values(control?.scopes || {}).flatMap(s=>s.versions.filter(v=>!v.wholeModuleCaseId&&['approved','superseded','tested','returned','withdrawn'].includes(v.status)).slice(-3).reverse().map(v=>({scope:s,version:v})));
     return `<section class="ipqcab-review ipqcab-card" data-i18n-skip="true"><h3>IPQC-AB · ${t('待確認','Chờ duyệt')} ${pending.length+Number(!!control?.moduleDraft?.workflow?.pendingId)}</h3>${message?`<p role="alert" class="ipqcab-message">${h(displayDraftError(message))}</p>`:''}
@@ -531,6 +601,7 @@
     return `<article class="vd-review-case"><details data-case-id="${h(c.id)}"><summary><b>IPQC-AB · ${t('整份案件','Hồ sơ toàn bộ')} · ${status(c.status)}</b></summary><p>${h(c.actor.name)} · ${h(c.reason)}</p>${Object.entries(members).map(([key,s])=>`<details><summary>${h(key)} · ${s.items.length} ${t('項目','hạng mục')}</summary>${s.items.filter(i=>!i.deleted).map(i=>`<p>${h(i.code)} · ${h(i.standard)}</p>`).join('')}</details>`).join('')}</details>${pending?`<div class="vd-actions"><button data-ab-module-action="approve" data-case-id="${h(c.id)}">${t('確認整份','Duyệt toàn bộ')}</button><button data-ab-module-action="reject" data-case-id="${h(c.id)}">${t('發回整份','Trả lại toàn bộ')}</button><button data-ab-module-action="withdraw" data-case-id="${h(c.id)}">${t('撤回整份','Rút toàn bộ')}</button></div>`:''}</article>`;
   }).join('');}
   function drawReview() {
+    if(accessBlocked){renderAccessBlocked(reviewHost);return;}
     if (!reviewHost || !document.contains(reviewHost)) return;
     const restore=window.VersionDraftUI.preserveView(reviewHost),section=reviewHost.querySelector('.ipqcab-review');
     if (section) section.outerHTML=reviewHTML();
@@ -539,7 +610,14 @@
   }
   function bindReview(root) {
     reviewHost=root;
-    if(!control){const delivery=window.ProcessSync?.captureDelivery?.();if(reviewLoading)return reviewLoading;const task=load().then(()=>{if(!delivery||window.ProcessSync.isCurrentDelivery(delivery))drawReview();}).catch(error=>{if(!delivery||window.ProcessSync.isCurrentDelivery(delivery)){navigationError=error;message=error.message;}}).finally(()=>{if(reviewLoading===task)reviewLoading=null;});reviewLoading=task;return task;}
+    if(accessBlocked){renderAccessBlocked(root);return;}
+    if(!control){
+      const identity=actor(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();
+      const current=()=>reviewHost===root&&root.isConnected&&actor()===identity&&(!Number.isFinite(epoch)||window.ProcessSync?.identityGeneration?.()===epoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+      if(reviewLoading&&reviewLoadingOwner===root)return reviewLoading;
+      const task=load().then(loaded=>{if(loaded!==false&&current())drawReview();}).catch(error=>{if(current()){navigationError=error;message=error.message;renderAccessBlocked(root);}}).finally(()=>{if(reviewLoading===task){reviewLoading=null;reviewLoadingOwner=null;}});
+      reviewLoading=task;reviewLoadingOwner=root;return task;
+    }
     sharedClient?.gatePermissions?.();
     root.querySelectorAll('[data-ab-module-action]').forEach(el=>{const action=el.dataset.abModuleAction,permission=action==='reject'?'approval.reject':action==='approve'?'approval.approve':'approval.withdraw';el.disabled=!permitted(permission);el.onclick=()=>moduleSave(action,{versionId:el.dataset.caseId});});
     root.querySelectorAll('[data-ab-approve],[data-ab-reject]').forEach(el=>el.addEventListener('click',async()=>{
@@ -574,13 +652,13 @@
     }
   });
   let navigationError=null;
-  window.IPQCABUI = { navigation:{canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){clearTimeout(pollTimer);host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  window.IPQCABUI = { navigation:{canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;clearTimeout(pollTimer);host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }
       document.querySelector('[data-quality-tab="quality-ipqc-ab"]')?.click();
     },
-    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{await load();if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
+    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
       host.querySelector('#ipqcab-retry').onclick=()=>window.IPQCABUI.mount(host);}},
     reviewHTML,bindReview,pendingCount:()=>Number(!!control?.moduleDraft?.workflow?.pendingId)+Object.values(control?.scopes||{}).reduce((n,s)=>n+s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).length,0) };
   new MutationObserver(()=>{

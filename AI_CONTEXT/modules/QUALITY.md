@@ -1,3 +1,13 @@
+## 2026-10-29 IPQC-AB 讀取歸屬、獨立操作權限與差異索引（隔離候選）
+
+AB 是本輪三個獨立 PR 的 shared-client 父層。`shared-draft-client` 的 access-result guard 僅由模組 opt in：權限投影綁 actor／identity generation／delivery／讀取 owner，撤權後已在途的較舊允許不能復活按鈕；過期 401/403 保留原 HTTP 錯誤但不得污染新 owner。未 opt-in 頁面的既有行為另作回歸。命令排隊、UNKNOWN／receipt、server ACL、CAS、pending、歷史及儲存語意不變。
+
+AB load 將獨立資料／目前權限讀取重疊，但只在兩者成功且 owner、scope、control／revision 均仍一致後投影；raw GET 401/403 立即隔離私有畫面／modal 並阻止寫入。已確認操作的 ACK 與後續讀取失敗分開呈現，不能因此重送操作；舊 scope、舊 revision、poll 或 ACK 不得接管新畫面。未套用內容保留在私有隔離狀態，不承諾新讀取後自動恢復。
+
+依本輪明確操作政策，已採用草稿的 Save／Submit 分別看 save／submit，不再要求額外 edit；Begin／新建／legacy 採用仍需 edit。照片 PUT 改用 view＋edit，既有來源、格式、大小與儲存保護保持。真帳號、角色設定及資料未變。
+
+Apply 的 `changes()` 使用本次呼叫的 first-match 索引，保留 patch／guard 順序、重複與特殊 ID／欄位行為；只改善同步 CPU，不減任何 server I/O 或檢查。測試是實際函式／handler＋synthetic DOM／memory storage，非 browser、實站速度或正式資料驗收。三 PR 最終 lint/type/build/CI 以各 exact tree 收據為準；本階段未上傳或發布，資料模型／schema 不變。
+
 ## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
 
 依使用者確認，正常流程調整為「新增兩器具→正常送審及獨立核准→四品質模組移轉草稿→明確保存／送審／退回修改／重新保存及重送核准」。無草稿時依權限 Begin；已有 editable draft 不多送 Begin。四模組的 pending／returned／revised saved 階段保持原正式標準，到原核准 route 成功才更新正式引用；返回案件內容及舊 save history／R2 bytes 不變。正常權限 actual route 回歸涵蓋四模組各一項標準；AB 採整份 module 審核，C 完整歷史內容由 fixture core.readState 核對，並非目的頁原生控件驗收。

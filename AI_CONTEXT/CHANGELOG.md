@@ -1,3 +1,10 @@
+## 2026-10-29 — IPQC-AB 安全讀取與差異計算 / Owned AB reads and change indexing
+
+- AB 首次／切 scope 的資料與權限讀取可重疊，只有最新且完整成功的 owner 能投影；撤權、ACK 後讀取拒絕、modal／poll／revision 競態保持 fail closed，UNKNOWN 不重送。
+- Adopted draft Save/Submit use their independent operation permissions; photo PUT belongs to editing. Begin/create/legacy adoption retain edit authorization, with all server locks and integrity checks unchanged.
+- Shared access-result protection is opt-in and shipped once in the AB parent PR; C/IQC depend on this exact parent. CPU lookup improvement does not remove network/security checks.
+- 新可攜回歸涵蓋 shared default/opt-in、權限競態、AB modal／load／poll／ACK、正常角色／多 scope 及嚴格差異語義。Synthetic evidence is not native browser or live-performance acceptance. See [QUALITY](modules/QUALITY.md).
+
 ## 2026-10-28 — 依確認保留保護的檢具測試流程（隔離補驗）
 
 - 新增兩器具先正常核准才接收移轉；四模組分無草稿／已有草稿，加入退回後真正改選器具、新 Save、重送與獨立核准，正式標準只在核准後改變。

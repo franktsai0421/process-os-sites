@@ -1,0 +1,5 @@
+/* Repository-relative isolated regression; Node SQLite memory + synthetic DOM only. */
+process.chdir(require('node:path').resolve(__dirname,'..'));
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const source=fs.readFileSync(path.join(__dirname,'../public/process/ipqc-ab.js'),'utf8');
+module.exports=(data,selectedLine='A')=>{const window={addEventListener(){},hasPermission:()=>true,ProcessSync:{identity:{id:'fixture',role:'admin'}},ProcessIPQC:{referenceMarkup:()=>''}},context={window,document:{documentElement:{lang:'zh'}},MutationObserver:class{observe(){}},structuredClone,URLSearchParams};vm.createContext(context);const injection=`window.renderFixture=(data,selectedLine)=>{control=data.control;catalog=data.catalog;equipment=data.equipment;revision=data.revision;line=selectedLine;group='';stage='';errorId='';versionId='';working=null;selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;return mainHTML();};`;vm.runInContext(source.replace(/\}\)\(\);\s*$/,injection+'})();'),context);return window.renderFixture(data,selectedLine);};

@@ -85,14 +85,35 @@
   const historyRowKey=(row,index)=>row.id||row.code||(row.line&&row.name?JSON.stringify([row.line,row.name]):'legacy-row:'+index);
   const permissionKeys={'approval.submit':'edit','approval.withdraw':'withdraw','approval.approve':'approve','approval.reject':'return','approval.compare':'history','master.delete':'delete'};
   window.sharedDraftPermissionAllowed=(client,key)=>client?.permission(permissionKeys[key]||key)!==false;
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false}) => {
     // Only the existing relative authoring route gets longer mutation tolerance.
     // Other/absolute endpoints retain 15s; GET remains 45s. This is not proof of
     // commit: unknown-result receipt validation and retry admission stay intact.
     const mutationDeadline=/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     const transportKey=actorId+':'+endpoint;
-    if(transports.has(transportKey)){const cached=transports.get(transportKey);if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
+    if(transports.has(transportKey)){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
+    // Opt-in UI access projection only; never order or alter command/receipt results.
+    let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
+    const captureAccess=options=>{const sync=window.ProcessSync;return {sequence:++accessIssued,epoch:accessEpoch,identity:sync?.identity,identityEpoch:accessGuard?sync?.identityGeneration?.():undefined,isCurrent:options?.isCurrent};};
+    const ownsAccess=owner=>{const sync=window.ProcessSync;return owner.epoch===accessEpoch&&(!sync||(!sync.requiresReload&&sync.identity?.id===actorId&&sync.identity===owner.identity&&(typeof owner.identityEpoch!=='number'||owner.identityEpoch===sync.identityGeneration?.())))&&(!owner.delivery||sync?.isCurrentDelivery?.(owner.delivery)!==false)&&(!owner.isCurrent||owner.isCurrent());};
+    function projectAccess(result,status,ok,owner){
+      if(!ownsAccess(owner))return false;
+      const denied=[401,403].includes(status),next=denied?Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,false])):ok&&result.permissions;
+      if(!next)return true;
+      const revision=Number.isSafeInteger(result.revision)?result.revision:null;
+      const restricted=owner.sequence<=accessFence||owner.sequence<accessObserved||(revision!==null&&revision<accessRevision);
+      const previous=access;
+      // Unversioned denial is never dismissed using client start order. An older
+      // success can tighten gates, but cannot grant over a newer observation.
+      access=denied?next:!restricted?{...access,...next}:{...access,...Object.fromEntries(Object.entries(next).filter(([,allowed])=>allowed===false))};
+      const revoked=previous&&Object.keys(access).some(key=>previous[key]===true&&access[key]===false);
+      accessObserved=Math.max(accessObserved,owner.sequence);
+      if(revision!==null)accessRevision=Math.max(accessRevision,revision);
+      if(denied||revoked)accessFence=accessIssued;
+      gateControls(denied||revoked);
+      return !restricted;
+    }
     const gateControls=(revoked=false)=>{if(!access||!gates)return;let changedElement=null;for(const [permission,selector]of Object.entries(gates))if(access[permission]===false)document.querySelectorAll?.(selector).forEach(element=>{if(!element.disabled)changedElement=element;element.disabled=true;element.setAttribute('aria-disabled','true');});if(revoked&&changedElement&&!permissionNotice?.isConnected){const root=changedElement.closest('#data-content,#fixture')||document.querySelector('#data-content');if(root){permissionNotice=document.createElement('p');permissionNotice.className='master-edit-note';permissionNotice.setAttribute('role','alert');permissionNotice.textContent=document.documentElement.lang==='vi'?'Quyền thao tác đã thay đổi; giữ đầu vào hiện tại. Tải lại và kiểm tra quyền trước khi tiếp tục.':'操作權限已變更；保留目前輸入，請重新載入核對權限後繼續。';root.prepend(permissionNotice);}}};
     const clientId=crypto.randomUUID(),syncFailures=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,recoveryInvalid=false,conditionalRead=null;
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
@@ -104,30 +125,36 @@
     try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null')); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
-    async function request(url,body) {
+    async function request(url,body,readOptions) {
       if(body)assertMutationAdmission();else assertOwner();
+      const accessOwner=captureAccess(readOptions);
       const readOwner=body?null:window.ProcessSync?.captureDelivery?.(),pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
+      accessOwner.delivery=readOwner||(accessGuard?window.ProcessSync?.captureDelivery?.():null);
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
       // non-authoring mutations at 15s and the receipt-first unknown policy.
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?mutationDeadline:45000);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1',{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
-        let result;try{result=await response.json();}catch(error){if(!body)readPause.denied(kind,response.status,pauseOwner,()=>request(url));throw error;}
+        let result;try{result=await response.json();}catch(error){if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));throw error;}
         assertOwner();
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
-        if(!body)readPause.denied(kind,response.status,pauseOwner,()=>request(url));
-        if(response.ok&&result.permissions){const revoked=access&&Object.keys(result.permissions).some(key=>access[key]===true&&result.permissions[key]===false);access=result.permissions;gateControls(revoked);}
+        if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
+        let acceptedAccess=true;
+        if(accessGuard){acceptedAccess=projectAccess(result,body?0:response.status,response.ok,accessOwner);}
+        else if(response.ok&&result.permissions){const revoked=access&&Object.keys(result.permissions).some(key=>access[key]===true&&result.permissions[key]===false);access=result.permissions;gateControls(revoked);}
         else if(!body&&[401,403].includes(response.status)){access=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,false]));gateControls(true);}
         if(result.wireVersion===1){const live=result.liveContent;if(!live||typeof live!=='object')throw Error('INVALID_WORKFLOW_RESPONSE');const expand=value=>{
           if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&typeof value.__liveContent==='string'){const [key,field]=value.__liveContent.split('#');if(!Object.hasOwn(live,key)||field&&(!live[key]||typeof live[key]!=='object'||!Object.hasOwn(live[key],field)))throw Error('INVALID_WORKFLOW_RESPONSE');return JSON.parse(JSON.stringify(field?live[key][field]:live[key]));}
           if(Array.isArray(value))return value.map(expand);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,child])=>[key,expand(child)]));return value;};
           const {liveContent:_live,wireVersion:_version,...body}=result;result=expand(body);}
         if(!response.ok)throw Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});
+        // Real HTTP errors above retain their original status even for stale ownership.
+        if(accessGuard&&!body&&(!ownsAccess(accessOwner)||kind==='permissions'&&!acceptedAccess))throw Error('ACCESS_READ_SUPERSEDED');
         // Pair a full owned projection with its state revision. Metadata-only
         // replies must never advance this token past a model the caller has seen.
         const flow=result.control?.workflow;
         if(flow&&Number.isSafeInteger(result.revision)&&typeof flow.generation==='string'&&Number.isSafeInteger(flow.revision)&&(!conditionalRead||result.revision>=conditionalRead.revision))conditionalRead={flowToken:flow.generation+':'+flow.revision,revision:result.revision};
-        if(!body)readPause.success(kind,pauseOwner);
+        if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.success(kind,pauseOwner);
         return result;
       } finally {clearTimeout(timer);}
     }
@@ -181,10 +208,12 @@
       gatePermissions:()=>{assertOwner();gateControls();},
       setPermissionGates(value){gates=value;gateControls();return client;},
       withLegacyArchive(){client.legacyHistory=before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`));client.legacyVersion=id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`));return client;},
-      invalidateReadState(){access=null;conditionalRead=null;validation=null;},
+      invalidateReadState(){accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
+      // Internal one-way cached-client upgrade; no downgrade or queue replacement.
+      useAccessResultGuard(){if(!accessGuard){accessGuard=true;accessEpoch++;}return client;},
       useStateRevision(){conditionalState=true;return client;},
       read: token=>request(token?query(`since=${encodeURIComponent(conditionalState&&conditionalRead?.flowToken===token?'state:'+conditionalRead.revision:token)}`):endpoint),
-      permissions:()=>request(query('permissions=1')),
+      permissions:options=>request(query('permissions=1'),undefined,options),
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),

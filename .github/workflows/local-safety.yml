@@ -306,6 +306,28 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/ipqc-c-operation-admission.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-access-result-races.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-access-default-regression.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-shared-access-optin-regression.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-modal-quarantine.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-load-control-race.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-poll-race.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-ack-deny.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-load-coupled.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-independent-permissions.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-multiscope-acceptance.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-changes-equivalence.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: IPQC-C bounded reads and compatibility
         id: head_validation_07
         if: ${{ !cancelled() && steps.head_validation_06.outcome == 'success' }}

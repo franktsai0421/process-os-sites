@@ -60,11 +60,10 @@ void test('node preview cancellation releases only untransferred URLs, including
  assert(read('routine-equipment.js').includes("addEventListener('click', cancelNodeDialog)"));assert(read('routine-equipment.js').includes("if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();"));
 });
 for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-ab.js','tooling.js'])void test(`${name} actual transport opts into existing conditional protocol only`,()=>{
- const source=read(name),functionName=name==='routine-equipment.js'?'sharedTransport':'transport',line=source.split('\n').find(s=>s.includes('function '+functionName+'()'));assert(line);
+ const source=read(name),functionName=name==='routine-equipment.js'?'sharedTransport':'transport';
+ const ast=ts.createSourceFile(name,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),functions=[];const collect=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.text===functionName)functions.push(node.getText(ast));ts.forEachChild(node,collect);};collect(ast);assert.equal(functions.length,1,'exact transport declaration');const text=functions[0];
  const options=[],box={identity:()=>({id:'actor'}),actor:()=>({id:'actor'}),key:()=> 'A:group',headers:()=>({}),API:'/api/ipqc-ab',api:'/api/routine-equipment',apiUrl:'/api/iqc',t:x=>x,sharedActor:'',sharedIdentity:'',sharedClient:null,control:null,selected:'',iqc:null,checks:null,caseVersionNumbers:new Map(),window:{ProcessSync:{identity:{id:'actor'}},createSharedDraftClient:o=>{options.push(o);return {};}}};
  if(name==='tooling.js')Object.assign(box,{actor:'',client:null,checksRun:null,checksStatus:'unchecked',beginRecovery:null,sessionStorage:{getItem:()=>null}});vm.createContext(box);
- // IQC's factory spans two physical lines; use its complete function body.
- const text=name==='iqc-master.js'?part(source,'  function transport()', '  const equal='):line;
  vm.runInContext(text+';this.call='+functionName+';',box);box.call();box.call();assert.equal(options.length,1);assert.equal(options[0].conditionalState,true);assert.equal(options[0].actorId,'actor');assert(options[0].endpoint.includes('caseMetadata=1'));
 });
 void test('custom IPQC-C conditional protocol is not opted in',()=>{const line=part(read('ipqc-c.js'),'  function sharedTransport()', '  const workflowErrors=');assert(!line.includes('conditionalState:true'));});
