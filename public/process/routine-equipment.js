@@ -2751,7 +2751,6 @@
     if (selectedGroup && !tree.groups.some(item => item.id === selectedGroup && item.subcategoryId === selectedSubcategory)) selectedGroup = '';
     const editingItem = editingEquipmentId ? rows.find(record => record.id === editingEquipmentId) : null;
     if (editingEquipmentId && !editingItem) { editingEquipmentId = ''; formSnapshot = null; }
-    const canEdit = editable();
     const changes = version?.history || [];
 
     host.innerHTML = `<section class="routine-page" id="routine-page" data-i18n-skip="true">
