@@ -118,3 +118,5 @@ PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) USER_PERMISSIONS_EVIDENCE=/tmp/user
 最後交付狀態：工作分支已上傳 GitHub，Draft PR 建立的實際 `gh pr create --draft` 回覆 `Post https://api.github.com/graphql: Forbidden`，未建立 PR。PR 文字已準備；必須先套用已存的網路設定，不能將新 PR 連結或分支連結冒充已建立 Draft PR。
 
 性能比較版本為 baseline SHA 與候選 `4c44ec210ff728f6221184f208a390ff3a6c6c50`；最後 code review 另修正清除搜尋後再貼上相同文字的事件狀態，並補瀏覽器回歸。此額外 Clear 按鈕分支未包含在前述用 input/select 清除的比較操作；沒有把其他版本的時數重新宣稱成新量測。最終 source SHA-256 與計時 source SHA-256 分別保存在結果 JSON。
+
+最後程式版本 `3be743ed2abfa3b475df95eac1b33d1136be497d` 再驗證：compiled API 16 組／186 次請求通過，完整應用正常登入、保存後重新整理及 390px 窄畫面通過，頁面錯誤 0；一次登入至可操作 1146ms（n=1，僅功能驗證）。收據列於 JSON 的 `finalCodeValidation`，不取代上述五次比較。後續本次文件提交只補收據，沒有變更執行程式。

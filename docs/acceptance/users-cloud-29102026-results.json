@@ -406,5 +406,83 @@
     "public/process/user-access.js": "324048a1c4ed1baed807115f3d2dc4619231bec8fac91ab44e9d2cee51f5d7fa",
     "public/process/user-access.css": "d5b13eb492734d02947a6c908d92f8007f7a82d4ebebdc8bc84fd9fe66e9076f",
     "public/process/index.html": "8f2953be82ef6e0d4406807449cef44b3be3c9a6db1f9e80395b30873cfdcd09"
+  },
+  "finalCodeValidation": {
+    "codeCommit": "3be743ed2abfa3b475df95eac1b33d1136be497d",
+    "compiled": {
+      "status": "PASS_COMPILED_USER_PERMISSIONS",
+      "cases": [
+        "own effective and inherited cells, no peers/templates/password disclosure",
+        "frank own password requires old password",
+        "manager own password requires old password",
+        "staff-one own password requires old password",
+        "primary/peer/self/DEMO and raw API escalation denied",
+        "manager own password: old login fails, new login succeeds, old session revoked",
+        "staff-one own password: old login fails, new login succeeds, old session revoked",
+        "frank own password: old login fails, new login succeeds, old session revoked",
+        "manager resets nonadmin without target old password; old session and password rejected",
+        "disable rejects login/session; reenable requires new login",
+        "ordinary admin grant ceiling, including inherit/reset and role assignment",
+        "role assignment/revocation persists and rejects old session/direct BOM mutation",
+        "individual override and reset inherit persisted role cells",
+        "logical deletion retains business history and prevents ID reuse/login",
+        "assigned role deletion refused, unassigned role deletion succeeds",
+        "stale revision and generic bypass create no writes"
+      ],
+      "requestCount": 186,
+      "disposed": true
+    },
+    "fullPage": {
+      "status": "PASS_FULL_APPLICATION_BROWSER",
+      "scope": "real compiled application, normal login + full bootstrap; synthetic accounts and nonpersistent D1/R2 only",
+      "cases": [
+        {
+          "operation": "normal login → full users page ready",
+          "ms": 1146.1510279999998,
+          "status": "PASS"
+        },
+        {
+          "operation": "full page save + independent browser reload/readback",
+          "status": "PASS"
+        },
+        {
+          "operation": "full shell narrow viewport without document overflow",
+          "status": "PASS"
+        }
+      ],
+      "pageErrors": [],
+      "requests": [
+        {
+          "path": "/api/platform-login",
+          "status": 200
+        },
+        {
+          "path": "/api/process-bootstrap",
+          "status": 200
+        },
+        {
+          "path": "/api/user-access",
+          "status": 200
+        },
+        {
+          "path": "/api/user-access",
+          "status": 200
+        },
+        {
+          "path": "/api/user-access",
+          "status": 200
+        },
+        {
+          "path": "/api/process-bootstrap",
+          "status": 200
+        },
+        {
+          "path": "/api/user-access",
+          "status": 200
+        }
+      ],
+      "disposed": true
+    },
+    "note": "Final compiled-source functional rerun; separate from the five-repeat performance comparison at timingCandidateCommit."
   }
 }
