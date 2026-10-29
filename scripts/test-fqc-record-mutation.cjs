@@ -28,7 +28,26 @@ async function setup(s,change){s.reset();s.objects.clear();const values=fixture(
 async function pair(name,change,cmd=command(),expect=200){const results=[];for(const s of sides){await setup(s,change);const before=s.row(),refs=JSON.parse(before.values).__processRecords,immutable=new Map(s.objects),r=await s.post(cmd);assert.equal(r.status,expect,`${name} ${s.old?'old':'new'} ${JSON.stringify(r.body)}`);if(r.status===200){const after=JSON.parse(s.row().values).__processRecords;for(const [k,v]of Object.entries(refs.values))if(k!=='qualityMasterControl')assert.deepEqual(after.values[k],v,name+' unrelated '+k);assert.deepEqual(after.legacySources,refs.legacySources);for(const[k,v]of Object.entries(refs.allocations||{}))if(k!=='qualityMasterControl')assert.deepEqual(after.allocations[k],v);for(const[k,v]of immutable)assert.deepEqual(s.objects.get(k),v,'old immutable bytes');}else assert.deepEqual(s.row(),before,'failed command no DB write');results.push(r);}assert.deepEqual(results[1].body,results[0].body,name+' DTO');assert.deepEqual(results[1].headers,results[0].headers,name+' headers');cases.push(name);return results;}
 function bodyRef(s,key,select){const env=JSON.parse(s.row().values),agg=JSON.parse(s.objects.get(env.__processRecords.values[key].key));return select(agg).__immutableBody;}
 (async()=>{try{
- normal=await pair('normal existing item Apply preserves DTO/permissions/manifest');assert(normal[1].metrics.gets<normal[0].metrics.gets);assert(normal[1].metrics.bytes<normal[0].metrics.bytes-500000);assert.equal(normal[1].metrics.revocationReads,normal[0].metrics.revocationReads);assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads);
+ normal=await pair('normal existing item Apply preserves DTO/permissions/manifest');assert(normal[1].metrics.gets<normal[0].metrics.gets);assert(normal[1].metrics.bytes<normal[0].metrics.bytes-500000);
+// The pinned pre-ACL baseline has no explicit restore/create metadata.
+// Each added can() still performs its own fresh identity/revocation lookup.
+// Keep an exact budget (not >= / an arbitrary tolerance), with independent
+// real-handler permission denials below and the original revocation/CAS races.
+ const explicitMetadataChecks=['restore:view','restore:edit','restore:restore','create:create'];
+ assert.equal(normal[1].metrics.revocationReads,normal[0].metrics.revocationReads+explicitMetadataChecks.length,'four additional explicit permission checks retain fresh revocation reads');
+ assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads+explicitMetadataChecks.length,'only the explicit permission checks add SQL reads');
+ for(const denied of ['view','edit','create','restore']){
+  await setup(next,values=>{const accounts=JSON.parse(values.platformUsers);accounts[0].accessOverrides['fqc.'+denied]=false;values.platformUsers=JSON.stringify(accounts);});
+  const auth=await next.request(command()),metadata=await next.route.GET(new Request(auth.url+'&permissions=1',{headers:auth.headers}));
+  assert.equal(metadata.status,denied==='view'?403:200,'metadata requires explicit '+denied);
+  if(denied!=='view'){const body=await metadata.json();assert.equal(body.permissions[denied],false,'metadata does not infer '+denied);if(denied==='edit'){assert.equal(body.permissions.create,false);assert.equal(body.permissions.restore,false);}}
+  const deniedCommand=denied==='create'?command({patches:[{op:'insert',path:['errors'],value:{id:'new',category:'QA',line:'A',name:'new'}}],guards:[]}):denied==='restore'?command({action:'restore',restoreSaveId:'missing-save'}):command();
+  const before=next.row(),blocked=await next.post(deniedCommand);assert.equal(blocked.status,403,'direct command requires explicit '+denied);assert.deepEqual(next.row(),before,'denied '+denied+' preserves DB');assert.equal(blocked.metrics.cas,0);assert.equal(blocked.metrics.puts,0);
+  if(denied==='restore')assert.equal(blocked.body.error,'RESTORE_PERMISSION_REQUIRED');
+  if(denied==='create'||denied==='restore'){const allowed=await next.post(command());assert.equal(allowed.status,200,'existing-item Apply remains independent of '+denied);const state=await next.core.readState();assert.equal(JSON.parse(state.values.qualityMasterControl).libraries.fqc.workflow.working.items[0].name,'Changed');}
+ }
+ cases.push('explicit view/edit/create/restore metadata and direct command denials preserve state; existing-item Apply does not acquire create/restore dependencies');
+
  await pair('matrix guarded product set',null,command({patches:[{op:'set',path:['items',{id:'i1'},'productCodes'],value:['P1','P2']}],guards:[{path:['items',{id:'i1'},'productCodes'],value:['P1']}]}));
  await pair('error parent set retains reserved allocation history',null,command({patches:[{op:'set',path:['items',{id:'i1'},'errorId'],value:'e2'}],guards:[{path:['items',{id:'i1'},'errorId'],value:'e1'}]}));
  for(const s of sides){const expanded=await s.core.readState(),index=JSON.parse(s.objects.get(JSON.parse(s.row().values).__processRecords.allocations.qualityMasterControl.key));assert(index.items.some(i=>i.errorId==='e1'));assert(index.items.some(i=>i.errorId==='e2'));assert.equal(JSON.parse(expanded.values.qualityMasterControl).libraries.fqc.workflow.working.items[0].errorId,'e2');}cases.push('old full reader reads new manifest and allocation union');
