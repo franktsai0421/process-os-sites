@@ -1,3 +1,5 @@
+2026-10-29 lines permission candidate: line-admin remains an entry to AB/C shared drafts. Choose an authorized AB/C scope before workflow read; with neither view, show an actionable permission notice without rejected fetch loops. Legacy action checks use selected AB/C cells; stored lines action values remain visible/read-only in settings and are not migrated into AB/C grants. No workflow partition or data change.
+
 ## 2026-10-16 既有欄位原值防護與名稱輸入鏈
 
 master AB／C／PROCESS、process authoring 及 equipment 的既有 set 欄位必須附對應 path 原值 guard，沿原 kernel 判斷 stale；不同欄位仍可合併。原 immutable codes、引用、角色、pending、CAS 與審核規則保留。master／authoring 對已有成功 receipt 的精確命令保留 replay 相容；仍核對 actor 與 fingerprint，沒有新無 guard 命令通道。authoring 原 whole-operation 相依 guard 仍有效，不能把同方塊不同欄位強行當成可合併。

@@ -82,10 +82,10 @@ export function managementRight(actor,target,action,cells){
 export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,r.id+'.'+op!=='users.view'&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
 export const editableCells=(actor,target,cells,action='edit')=>{const allowed=roleEditable(target.role),manage=!isPrimary(target)&&managementRight(actor,target,action,cells);return Object.fromEntries(accessKeys.map(key=>[key,allowed[key]&&manage&&(isPrimary(actor)||cells[key]===true)]));};
 // Reject invalid combinations rather than silently granting view or removing actions.
-export function invalidDependencies(cells){return catalog.filter(r=>r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}
+export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}
 // Existing inconsistent settings are reported, not silently rewritten. Writers
 // reject newly introduced dependencies so unrelated edits remain possible.
-export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>cells[r.id+'.'+op]).flatMap(op=>{
+export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>r.id!=='lines'&&cells[r.id+'.'+op]).flatMap(op=>{
  const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];
  return required.filter(need=>!cells[r.id+'.'+need]).map(need=>({key:r.id+'.'+op,requires:r.id+'.'+need}));
 }));}

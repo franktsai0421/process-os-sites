@@ -201,3 +201,5 @@
  .ua-permission-dialog .ua-dialog-body{padding:12px}
  .ua-permission-dialog footer{padding:12px}
 }
+
+.ua-lines-reference{font-size:12px;line-height:1.6}.ua-lines-reference summary{cursor:pointer;padding:8px 0}.ua-lines-reference .ua-cell{display:inline-block;margin:6px 12px 6px 0}@media(max-width:700px){.ua-simple .ua-lines-reference{grid-column:1/-1!important}}
