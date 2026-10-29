@@ -1,6 +1,6 @@
 // One catalog for the server, role matrix and individual matrix.
 export const PRIMARY_ADMIN_ID='frank';
-export const columns=[['view','查看','Xem'],['create','新增','Thêm'],['edit','編輯','Sửa'],['delete','刪除','Xóa'],['save','儲存草稿','Lưu nháp'],['submit','送審','Gửi duyệt'],['withdraw','撤回送審','Rút hồ sơ'],['approve','核准','Duyệt'],['return','發回','Trả lại'],['exchange','匯入／匯出','Nhập / xuất'],['settings','設定','Cài đặt']];
+export const columns=[['view','查看','Xem'],['create','新增','Thêm'],['edit','編輯','Sửa'],['delete','刪除','Xóa'],['save','儲存草稿','Lưu nháp'],['submit','送審','Gửi duyệt'],['withdraw','撤回送審','Rút hồ sơ'],['approve','核准','Duyệt'],['return','發回','Trả lại'],['exchange','匯入／匯出','Nhập / xuất'],['settings','設定','Cài đặt'],['restore','還原歷史至草稿','Khôi phục lịch sử vào bản nháp']];
 const draft=['view','create','edit','delete','save','submit','withdraw','approve','return','exchange'];
 const row=(id,group,zh,vi,view,ops,extra={})=>({id,group,zh,vi,view,ops,...extra});
 export const catalog=[
@@ -32,12 +32,16 @@ export const catalog=[
  row('user-status','system','帳號啟用／停用','Kích hoạt tài khoản','data',['edit'],{adminOnly:true}),
  row('user-password','system','重設普通帳號密碼','Đặt lại mật khẩu','data',['edit'],{adminOnly:true}),
 ];
+export const restoreModules=['ab','c','bom','templates','editor','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment'];
+for(const r of catalog)if(restoreModules.includes(r.id))r.ops=[...r.ops,'restore'];
 export const accessKeys=catalog.flatMap(r=>r.ops.map(op=>r.id+'.'+op));
 export const isPrimary=user=>user?.id===PRIMARY_ADMIN_ID&&user.role==='admin'&&!user.deletedAt&&user.enabled!==false&&user.authMode!=='demo';
 export const parse=(raw,fallback)=>{try{return typeof raw==='string'?JSON.parse(raw):raw??fallback;}catch{return fallback;}};
 export function templates(values,defaults){const custom=parse(values.processCustomRoles,[]),overrides=parse(values.processRoleTemplateOverrides,{});return Object.fromEntries(Object.entries({...defaults,...Object.fromEntries(custom.map(r=>[r.id,r]))}).map(([id,r])=>[id,{...r,...overrides[id]}]));}
 export function legacyAllowed(user,preset,module,op){
  const row=catalog.find(r=>r.id===module);if(!row||!row.ops.includes(op))return false;
+ // New restore capability is explicit opt-in; never infer it from edit/admin.
+ if(op==='restore')return false;
  const source=user.inheritRole===false?user:preset;if(!source)return false;
  if(row.adminOnly)return user.role==='admin';
  const perms=new Set(source.permissions||[]),views=new Set(source.views||[]);
@@ -79,6 +83,13 @@ export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(
 export const editableCells=(actor,target,cells,action='edit')=>{const allowed=roleEditable(target.role),manage=!isPrimary(target)&&managementRight(actor,target,action,cells);return Object.fromEntries(accessKeys.map(key=>[key,allowed[key]&&manage&&(isPrimary(actor)||cells[key]===true)]));};
 // Reject invalid combinations rather than silently granting view or removing actions.
 export function invalidDependencies(cells){return catalog.filter(r=>r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}
+// Existing inconsistent settings are reported, not silently rewritten. Writers
+// reject newly introduced dependencies so unrelated edits remain possible.
+export function dependencyIssues(cells){return catalog.flatMap(r=>r.ops.filter(op=>cells[r.id+'.'+op]).flatMap(op=>{
+ const required=[...(op!=='view'&&r.ops.includes('view')?['view']:[]),...(restoreModules.includes(r.id)&&['create','delete','restore'].includes(op)?['edit']:[])];
+ return required.filter(need=>!cells[r.id+'.'+need]).map(need=>({key:r.id+'.'+op,requires:r.id+'.'+need}));
+}));}
+export function newDependencyIssues(cells,previous={}){const old=new Set(dependencyIssues(previous).map(i=>i.key+':'+i.requires));return dependencyIssues(cells).filter(i=>!old.has(i.key+':'+i.requires));}
 export function moduleForURL(input){
  const url=new URL(input,'http://localhost'),p=url.pathname,q=url.searchParams;
  const api=[['/api/bom','bom'],['/api/ipqc-ab','ipqc-ab'],['/api/ipqc-c','ipqc-c'],['/api/iqc','iqc'],['/api/tooling','tooling'],['/api/routine-equipment','equipment'],['/api/routine-fqc','routine'],['/api/web-feedback','feedback'],['/api/process-authoring','editor'],['/api/process-ipqc','editor'],['/api/fqc','fqc']];

@@ -1,3 +1,5 @@
+2026-10-29 users-permissions candidate: [clear rights implementation and evidence](../../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md). Four common columns, detailed effective rights/source and explicit restore permission; isolated verification only, not deployed.
+
 ## 2026-10-29 使用者與權限 CLOUD（隔離候選，未發布）
 
 第二輪載入優化：user-access API 的同請求角色／可編輯矩陣計算重用；初載 helper 在既有登入 gate 後重疊 users GET 和腳本初始化，採用前檢查 owner／generation／delivery；清單超過 50 人分頁，搜尋仍涵蓋全部資料。完整頁面 4／200 人各五次比較與限制見[第二輪載入驗證](../../docs/acceptance/USERS_CLOUD_LOADING_29102026.md)。沒有跨請求授權快取或共用導航改造。

@@ -8,7 +8,7 @@ void (async () => {
   const stillInitial=()=>initialOwner==null||window.ProcessSync?.isCurrentDelivery?.(initialOwner)!==false;
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
-    window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261010-access3');
+    window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261029-clear-rights1');
     window.ProcessDeliveryPurpose=await import('./delivery-purpose.mjs?v=20261026-feedback1');
     await window.ProcessSync.ready;
     if (window.ProcessSync.importPending === true) {
