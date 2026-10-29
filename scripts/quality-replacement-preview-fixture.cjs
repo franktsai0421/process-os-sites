@@ -27,7 +27,7 @@ const allowed = {
   'iqc-only': ['equipment.view', 'iqc.view', 'iqc.edit'],
   'ab-only': ['equipment.view', 'ipqc-ab.view', 'ipqc-ab.edit'],
 };
-async function fixture(projection = {}) {
+async function fixture(projection = {}, { includeIPQCC = false } = {}) {
   const db = new DatabaseSync(':memory:'), objects = new Map(), trace = [];
   for (const file of fs.readdirSync('drizzle').filter(file => file.endsWith('.sql')).sort())
     db.exec(fs.readFileSync(path.join('drizzle', file), 'utf8'));
@@ -58,7 +58,7 @@ async function fixture(projection = {}) {
     role: id === 'admin' ? 'admin' : 'staff', enabled: true, inheritRole: false, authEpoch: 1,
     password, lines: ['A', 'B', 'C'], views: ['data', 'approval'],
     permissions: ['no-edit', 'no-view'].includes(id) ? ['approval.submit'] : [],
-    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key)])),
+    accessOverrides: Object.fromEntries(accessKeys.map(key => [key, keys.includes(key) || includeIPQCC && ['editor', 'reviewer'].includes(id) && (key === 'approval.view' || (id === 'editor' ? ops : ['view', 'approve', 'return']).some(operation => key === 'ipqc-c.' + operation))])),
   }));
   const values = { ...projection, platformUsers: JSON.stringify(users) };
   db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(
@@ -102,6 +102,6 @@ async function fixture(projection = {}) {
     const result = await call('quality-equipment-replacement', 'GET', undefined, who, expected, '?sourceId=source');
     assert.deepEqual(snapshot(), before, 'preview must be read-only'); return result;
   }
-  return { db, objects, load, core, flow, call, read, begin, command, promote, snapshot, preview, trace, close: () => db.close() };
+  return { db, objects, env, sessions, load, core, flow, call, read, begin, command, promote, snapshot, preview, trace, close: () => db.close() };
 }
 module.exports = { fixture, json, source };

@@ -24,6 +24,7 @@ export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingContr
      if('source'in old&&!same(old.source,'source'in next?next.source:undefined))throw new DraftConflict('TOOLING_SOURCE_IMMUTABLE',422);
     }
     for(const t of content.tools){const old=previous.tools.find(x=>x.id===t.id),formal=active.tools.find(x=>x.id===t.id);if(formal&&!same(t.location,formal.location))throw new DraftConflict('TOOLING_USE_TRANSFER',422);
+     if(!t.enabled&&!t.inactiveReason.trim()&&(!old||old.enabled!==t.enabled||old.inactiveReason!==t.inactiveReason))throw new DraftConflict('TOOLING_INACTIVE_REASON_REQUIRED',422);
      if(t.iqcIds.some(id=>!old?.iqcIds.includes(id)&&!iqcIds.has(id)))throw new DraftConflict('TOOLING_IQC_REFERENCE_NOT_APPROVED',422);
     }
     for(const group of ['categories','custodians','suppliers','manufacturers'] as const)for(const old of previous[group])if(!content[group].some(c=>c.id===old.id)&&content.tools.some(t=>t.categoryId===old.id||t.manufacturerId===old.id||t.location.holderId===old.id||content.transfers.some(x=>x.from.holderId===old.id||x.to.holderId===old.id)))throw new DraftConflict('TOOLING_CATALOG_REFERENCED',422);

@@ -44,26 +44,105 @@
   let problemSnapshot = null;
   let nodeDialog = null, viewDialog = null, formSnapshot = null, addingEquipment = false, newEquipmentForm = null, newEquipmentOwner = null, equipmentReadAttempt = null, transferDialog = null;
   const equipmentRefCache = new Map();
-  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll;
+  const equipmentRefReads = new Map();
+  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll,readIntent=0,beginEntryAttempt=null;
   function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
   function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
-      for(const old of base[collection]||[])if(!(next[collection]||[]).some(r=>r.id===old.id)){const path=[collection,{id:old.id}];patches.push({op:'remove',path});guards.push({path,value:old});}
-      for(const row of next[collection]||[]){const old=(base[collection]||[]).find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
+      const before=base[collection]||[],after=next[collection]||[];
+      // Local lookup only: preserve first-match identity and the original small/legacy path.
+      const indexed=before.length>=100&&after.length>=100&&before.every(row=>typeof row?.id==='string')&&after.every(row=>typeof row?.id==='string');
+      const firstById=indexed?new Map():null,nextIds=indexed?new Set():null;
+      if(indexed){for(const row of before)if(!firstById.has(row.id))firstById.set(row.id,row);for(const row of after)nextIds.add(row.id);}
+      for(const old of before)if(indexed?!nextIds.has(old.id):!after.some(r=>r.id===old.id)){const path=[collection,{id:old.id}];patches.push({op:'remove',path});guards.push({path,value:old});}
+      for(const row of after){const old=indexed?firstById.get(row.id):before.find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
         for(const field of fields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
       }
     }return{patches,guards};
   }
+  const beginRecoveryKey = actorId => 'routine-equipment-begin-recovery:' + actorId;
+  const beginRecoveryMessage = () => t('開始修改的結果尚未確認；目前內容已保留。請按「重新檢查並進入已存在草稿」唯讀核對，不要重送開始修改。', 'Chưa xác nhận kết quả bắt đầu sửa; giữ nội dung hiện tại. Chọn “Kiểm tra và vào bản nháp hiện có” để kiểm tra chỉ đọc; không gửi lại yêu cầu bắt đầu.');
+  function readBeginRecovery(actorId = identity()?.id) {
+    try {
+      const raw = sessionStorage.getItem(beginRecoveryKey(actorId));
+      if (raw === null) return null;
+      const record = JSON.parse(raw);
+      if (!record || typeof record !== 'object' || Array.isArray(record) || (record.schema !== 1 || record.actorId !== actorId || !(record.activeVersionId === null || typeof record.activeVersionId === 'string') || !(record.generation === null || typeof record.generation === 'string'))) throw Error('INVALID_BEGIN_RECOVERY');
+      return record;
+    } catch { throw Error(beginRecoveryMessage()); }
+  }
+  function confirmBeginRecovery(result, record) {
+    const next = result?.control, flow = next?.workflow, drafts = next?.versions?.filter(version => version.status === 'draft') || [];
+    if (!record || !Number.isSafeInteger(result?.revision) || result.permissions?.view !== true || result.permissions?.edit !== true ||
+        flow?.scope !== 'routine-equipment' || typeof flow.generation !== 'string' || !flow.generation || flow.pendingId || next.versions.some(version => ['pending', 'pending-test'].includes(version.status)) ||
+        (flow.active?.id || null) !== record.activeVersionId || (drafts[0]?.baseVersionId || null) !== record.activeVersionId ||
+        (next.activeVersionId || null) !== record.activeVersionId || (flow.baseId || null) !== record.activeVersionId ||
+        record.generation && flow.generation !== record.generation || drafts.length !== 1 || drafts[0].id !== 'shared-' + flow.generation ||
+        !(record.draftId && drafts[0].id === record.draftId || drafts[0].creatorId === record.actorId) ||
+        !['equipment', 'groups', 'categories', 'subcategories', 'issues'].every(key => Array.isArray(flow.working?.[key]) && Array.isArray(drafts[0][key]) && JSON.stringify(flow.working[key]) === JSON.stringify(drafts[0][key])))
+      throw Error(beginRecoveryMessage());
+    return result;
+  }
+  async function beginSharedDraft(client) {
+    const owner = captureTransferOwner(), owns = () => transferOwnerCurrent(owner) && sharedClient === client;
+    const assertOwned = () => { if (!owns()) throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED'); };
+    let record = readBeginRecovery(owner.actorId);
+    const recover = async () => {
+      assertOwned();
+      const result = await client.read();
+      assertOwned();
+      confirmBeginRecovery(result, record);
+      throw Error(beginRecoveryMessage());
+    };
+    if (record) return recover();
+    record = { schema: 1, actorId: owner.actorId, activeVersionId: control.activeVersionId || null, generation: control.workflow?.generation || null, draftId: open()?.status === 'draft' ? open().id : null };
+    try { sessionStorage.setItem(beginRecoveryKey(owner.actorId), JSON.stringify(record)); }
+    catch { throw Error(beginRecoveryMessage()); }
+    try {
+      const result = await client.begin();
+      assertOwned();
+      if (!result?.control?.workflow || !Number.isSafeInteger(result.revision)) throw Error('INVALID_BEGIN_RESPONSE');
+      if(result.control.workflow.pendingId || result.control.versions?.some(version=>version.status==='pending'))throw Object.assign(Error(t('目前案件待審中，不能開始修改；請先在版本確認平台處理。','Hồ sơ đang chờ duyệt; xử lý tại nền tảng xác nhận phiên bản trước khi sửa.')),{status:409});
+      sessionStorage.removeItem(beginRecoveryKey(owner.actorId));
+      return result;
+    } catch (error) {
+      if (!owns()) throw error;
+      if (error.status && error.status < 500) { sessionStorage.removeItem(beginRecoveryKey(owner.actorId)); throw error; }
+      try { return await recover(); } catch { throw Error(beginRecoveryMessage()); }
+    }
+  }
+  function hasBeginRecovery() { try { return !!readBeginRecovery(); } catch { return true; } }
+  async function enterExistingDraft() {
+    if (busy || !routineTabIsActive()) return;
+    const actor = identity(), actorId = actor?.id, epoch = window.ProcessSync?.identityGeneration?.(), delivery = window.ProcessSync?.captureDelivery?.(), page = host;
+    let versionId = selectedVersionId;
+    const owns = () => actorId === identity()?.id && (typeof epoch === 'number' ? epoch === window.ProcessSync?.identityGeneration?.() : actor === identity()) && (!delivery || window.ProcessSync.isCurrentDelivery(delivery)) && !window.ProcessSync?.requiresReload && host === page && routineTabIsActive() && selectedVersionId === versionId;
+    const local = working && (isDirty() || pendingPhotos.size) ? working : null, localBase = syncBase;
+    const attempt = {}; beginEntryAttempt = attempt; busy = true; readIntent++;
+    try {
+      const record = readBeginRecovery(actorId); if (!record) return;
+      const result = await sharedTransport().read(); if (!owns()) throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
+      confirmBeginRecovery(result, record);
+      // Explicit GET-only selection of an existing draft, not attribution of the unknown POST.
+      control = result.control; revision = result.revision; controlActor = actorId;
+      selectedVersionId = open().id; versionId = selectedVersionId; working = local || snapshotOf(open()); syncBase = local ? localBase : clone(working); syncGeneration = control.workflow.generation;
+      sessionStorage.removeItem(beginRecoveryKey(actorId)); readUnavailable = false;
+      message = t('已選擇核對過的既有共用草稿；先前開始修改的結果仍無法歸因，沒有重送或自動套用。', 'Đã chọn bản nháp chung hiện có đã kiểm tra; không quy kết kết quả yêu cầu trước, không gửi lại hoặc tự áp dụng.');
+      pollShared();
+    } catch (error) { if (owns()) { readUnavailable = true; message = error.message; } }
+    finally { if (beginEntryAttempt === attempt) { beginEntryAttempt = null; busy = false; } if (owns()) render(); }
+  }
   async function writeShared(action,more={}){
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
-    if(busy)return null;busy=true;
+    if(busy)return null;busy=true;readIntent++;
     const priorFocusedId=host?.contains(document.activeElement)?document.activeElement.id:'';
     host?.querySelectorAll('#routine-save,#routine-submit').forEach(button=>{button.disabled=true;});
     const saveButton=host?.querySelector('#routine-save');if(saveButton&&action==='save')saveButton.textContent=t('儲存中…','Đang lưu…');
     try{
       const client=sharedTransport();if(client.hasUnknown()){await client.resolveUnknown();throw Error(t('已查證前次操作，請重新載入核對後繼續','Đã xác minh thao tác trước; tải lại và đối chiếu trước khi tiếp tục'));}
+      if(action!=='begin'&&readBeginRecovery()){readUnavailable=true;throw Error(beginRecoveryMessage());}
       const local=working&&clone(working),base=syncBase||open()&&snapshotOf(open());
-      if(!control.workflow||action==='begin'){const r=await client.begin();control=r.control;revision=r.revision;if(!syncGeneration)syncGeneration=control.workflow.generation;if(action==='begin'){selectedVersionId=open()?.id;working=snapshotOf(open());syncBase=clone(working);return r;}}
+      if(!control.workflow||action==='begin'){const r=await beginSharedDraft(client);control=r.control;revision=r.revision;if(!syncGeneration)syncGeneration=control.workflow.generation;if(action==='begin'){selectedVersionId=open()?.id;working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;message=r.beginRecovered?t('已唯讀確認可安全恢復到匹配草稿；沒有重送開始修改。','Đã kiểm tra bản nháp chung bằng đọc; không gửi lại yêu cầu bắt đầu, có thể tiếp tục sửa.'):t('共用草稿已準備完成','Bản nháp chung đã sẵn sàng');return r;}if(r.beginRecovered){readUnavailable=true;throw Error(t('已核對共用草稿；請重新載入保留輸入後，再明確套用原表單。','Đã kiểm tra bản nháp chung; tải lại và giữ dữ liệu rồi áp dụng rõ ràng biểu mẫu.'));}}
       const flow=control.workflow;let commandAction=action,detail={};
       if(action==='apply'){
         for(const [id,pending]of pendingPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]).find(r=>r.id===id);if(row)row.photoId=await uploadImage(pending.file);}
@@ -85,6 +164,7 @@
       message=action==='save'?t('共用快照已儲存至伺服器','Đã lưu bản chụp chung trên máy chủ'):action==='apply'?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
       window.dispatchEvent(new CustomEvent('routine-equipment-updated',{detail:{revision,activeVersionId:control.activeVersionId,action}}));return result;
     }catch(error){
+      try { if(readBeginRecovery())readUnavailable=true; } catch { readUnavailable=true; }
       message=error.message;
       if(Array.isArray(error.details?.issues)){
         const flow=control.workflow;
@@ -213,12 +293,12 @@
     }
   }
 
-  function pollShared(){clearTimeout(sharedPoll);const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
+  function pollShared(){clearTimeout(sharedPoll);try{if(readBeginRecovery())return;}catch{return;}const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
     if(!owns())return;
     if(!routineTabIsActive())return;
     try{if(!busy&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')){
-      const flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(!owns())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
+      const intent=readIntent,flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
+      if(!owns()||intent!==readIntent||busy)return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
         if(editingEquipmentId||nodeDialog||addingEquipment||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}
         else{if(wasOpen){selectedVersionId=open()?.id||active()?.id;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}render();}
       }
@@ -341,22 +421,23 @@
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' };
 
   async function read(preserveInput=false) {
-    const actor=identity()?.id,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);
+    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>intent===readIntent&&actor===identity()?.id&&(typeof epoch==='number'?epoch===window.ProcessSync?.identityGeneration?.():actorObject===identity())&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     try {
     const response = await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'caseMetadata=1', { cache: 'no-store', headers: headers() });
     const body = await response.json().catch(() => ({}));
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
     if(actor!==identity()?.id)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('後端資料載入失敗', 'Không thể tải dữ liệu máy chủ'));
-    if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
-    control = body.control; revision = body.revision;controlActor=actor;
-    readUnavailable=false;
-    await sharedTransport().permissions();
+    const access=await sharedTransport().permissions();
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
+    const recovery=readBeginRecovery(actor);if(recovery){confirmBeginRecovery({...body,permissions:access.permissions},recovery);throw Error(beginRecoveryMessage());}
+    if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
+    control = body.control; revision = body.revision;controlActor=actor;readUnavailable=false;
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
     if(!preserveInput){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;
     syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}
+    if(recovery)pollShared();
     }catch(error){if(owns())readUnavailable=true;throw error;}
   }
 
@@ -1665,6 +1746,18 @@
       ipqcAB: { active: [], pending: [], draft: [], superseded: [] }
     };
     if (!eqId) return result;
+    // Display reads are independent: overlap their latency without broadening
+    // requested data. Destructive checks retain their fresh, fail-fast sequence.
+    const urls = ['/api/iqc', '/api/ipqc-c', '/api/ipqc-ab', `/api/quality-equipment-replacement?sourceId=${encodeURIComponent(eqId)}`];
+    const displayReads = strict ? null : new Map(urls.map(url => [url,
+      Promise.resolve().then(() => fetch(url, { cache: 'no-store', headers: headers(), signal: AbortSignal.timeout(45000) }))
+        .then(response => ({ response }), error => ({ error }))]));
+    const readReference = async url => {
+      if (!displayReads) return fetch(url);
+      const result = await displayReads.get(url);
+      if (result.error) throw result.error;
+      return result.response;
+    };
     const addUnique = (bucket, ref) => {
       const key = JSON.stringify([ref.scope || '', ref.versionId, ref.itemId]);
       if (!bucket.some(item => JSON.stringify([item.scope || '', item.versionId, item.itemId]) === key)) bucket.push(ref);
@@ -1708,7 +1801,7 @@
 
     // 2. IQC
     try {
-      const res = await fetch('/api/iqc');
+      const res = await readReference('/api/iqc');
       if (!res.ok) throw Error('EQUIPMENT_REFERENCE_CHECK_FAILED');
       if (res.ok) {
         const data = await res.json();
@@ -1738,7 +1831,7 @@
 
     // 3. IPQC-C: only a stable equipmentId is a confirmed relationship.
     try {
-      const res = await fetch('/api/ipqc-c');
+      const res = await readReference('/api/ipqc-c');
       if (!res.ok) throw Error('EQUIPMENT_REFERENCE_CHECK_FAILED');
       if (res.ok) {
         const data = await res.json();
@@ -1769,7 +1862,7 @@
     // IPQC-AB references are versioned per line and group. A stable equipmentId,
     // not the source Excel tool text, is the only confirmed relationship.
     try {
-      const res = await fetch('/api/ipqc-ab');
+      const res = await readReference('/api/ipqc-ab');
       if (!res.ok) throw Error('EQUIPMENT_REFERENCE_CHECK_FAILED');
       if (res.ok) {
         const data = await res.json();
@@ -1792,7 +1885,7 @@
     } catch (e) { if (strict) throw Error('EQUIPMENT_REFERENCE_CHECK_FAILED'); result.ipqcAB.unavailable = true; console.error('Error querying IPQC-AB references', e); }
 
     try {
-      const response = await fetch(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(eqId)}`);
+      const response = await readReference(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(eqId)}`);
       if (!response.ok) throw Error('EQUIPMENT_REFERENCE_CHECK_FAILED');
       if (response.ok) {
         const data = await response.json();
@@ -1814,14 +1907,29 @@
     return result;
   }
 
+  function invalidateEquipmentReferences(ids) {
+    for (const id of ids || new Set([...equipmentRefCache.keys(), ...equipmentRefReads.keys()])) {
+      equipmentRefCache.delete(id);
+      const entry = equipmentRefReads.get(id); if (entry) entry.invalidated = true;
+      equipmentRefReads.delete(id);
+    }
+  }
   async function loadEquipmentReferences(id, { renderAfter = true } = {}) {
     if (!id) return;
-    const actorId = identity()?.id;
-    const refs = await queryAllQualityReferences(id);
-    if (identity()?.id !== actorId) return;
-    equipmentRefCache.set(id, refs);
-    if (renderAfter && routineTabIsActive()) updateEquipmentReferenceSections(id);
-    return refs;
+    const owner = captureTransferOwner(), request = equipmentEditRequest;
+    if (!transferOwnerCurrent(owner)) return;
+    let entry = equipmentRefReads.get(id);
+    if (!entry || !transferOwnerCurrent(entry.owner)) {
+      entry = { owner, promise: queryAllQualityReferences(id) };
+      equipmentRefReads.set(id, entry);
+    }
+    try {
+      const refs = await entry.promise;
+      if (entry.invalidated || !transferOwnerCurrent(owner) || request !== equipmentEditRequest) return;
+      equipmentRefCache.set(id, refs);
+      if (renderAfter) updateEquipmentReferenceSections(id);
+      return refs;
+    } finally { if (equipmentRefReads.get(id) === entry) equipmentRefReads.delete(id); }
   }
 
   function updateEquipmentReferenceSections(id) {
@@ -1995,6 +2103,20 @@
     });
   }
 
+  function captureTransferOwner() {
+    return { actor: identity(), actorId: identity()?.id, epoch: window.ProcessSync?.identityGeneration?.(),
+      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,
+      generation: control?.workflow?.generation, activeVersionId: control?.activeVersionId };
+  }
+  function transferOwnerCurrent(owner) {
+    return !!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&
+      (typeof owner.epoch === 'number' ? owner.epoch === window.ProcessSync?.identityGeneration?.() : owner.actor === identity()) &&
+      !window.ProcessSync?.requiresReload && (!owner.delivery || window.ProcessSync?.isCurrentDelivery?.(owner.delivery) !== false) &&
+      host === owner.page && routineTabIsActive() && selectedVersionId === owner.versionId &&
+      control?.workflow?.generation === owner.generation && control?.activeVersionId === owner.activeVersionId;
+  }
+  function transferBusy(dialog = transferDialog) { return !!dialog && Object.values(dialog.moduleStatus).includes('saving'); }
+
   function openTransferModal(sourceId) {
     if (editingEquipmentId && isFormDirty()) {
       if (!confirm(t('編輯表單有未儲存的變更，移轉標準前請先儲存，或取消移轉繼續編輯。確定要開啟移轉視窗？', 'Biểu mẫu có thay đổi chưa lưu, vui lòng lưu trước khi chuyển tiêu chuẩn. Tiếp tục mở?'))) {
@@ -2012,6 +2134,7 @@
 
     equipmentEditRequest++;
     transferDialog = {
+      owner: captureTransferOwner(),
       sourceId,
       targetEqId: '',
       targetCat: '',
@@ -2030,12 +2153,14 @@
 
   async function loadTransferPreview() {
     const dialog = transferDialog;
-    if (!dialog) return;
+    if (!dialog || !transferOwnerCurrent(dialog.owner)) return;
+    const request = dialog.previewRequest = (dialog.previewRequest || 0) + 1;
+    const owns = () => transferDialog === dialog && transferOwnerCurrent(dialog.owner) && dialog.previewRequest === request;
     try {
-      const response = await fetch(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(dialog.sourceId)}`, { cache: 'no-store' });
+      const response = await fetch(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(dialog.sourceId)}`, { cache: 'no-store', headers: headers() });
       const data = await response.json();
       if (!response.ok) throw Error(data.error || `HTTP ${response.status}`);
-      if (transferDialog !== dialog) return;
+      if (!owns()) return;
       const firstPreview = !dialog.preview;
       dialog.preview = data;
       dialog.previewError = '';
@@ -2043,71 +2168,137 @@
         dialog.selection[uiKey] = new Set(data.modules.find(row => row.moduleId === apiKey)?.items.filter(item=>item.selectable!==false).map(item => item.id) || []);
       render();
     } catch (error) {
-      if (transferDialog !== dialog) return;
+      if (!owns()) return;
       dialog.previewError = error.message;
       render();
     }
   }
 
+  async function beginTransferDraft(client, endpoint, entry, scope, intent, owns) {
+    const actorId = identity()?.id, key = 'routine-equipment-target-begin:' + actorId + ':' + endpoint;
+    const unresolved = () => Object.assign(Error(t('目標草稿開始修改的結果尚未確認；本次沒有套用標準。請保持相同選取重新唯讀核對，勿重送開始修改。', 'Chưa xác nhận kết quả bắt đầu bản nháp đích; chưa áp dụng tiêu chuẩn. Giữ nguyên lựa chọn để kiểm tra chỉ đọc, không gửi lại yêu cầu bắt đầu.')), { beginUnresolved: true });
+    let record;
+    try { const raw = sessionStorage.getItem(key); record = raw === null ? null : JSON.parse(raw); if (raw !== null && (!record || typeof record !== 'object' || Array.isArray(record))) throw unresolved(); }
+    catch { throw unresolved(); }
+    const validRecord = value => value?.actorId === actorId && value.endpoint === endpoint && value.scope === scope && value.intent === intent &&
+      (value.activeVersionId === null || typeof value.activeVersionId === 'string') && (value.generation === null || typeof value.generation === 'string');
+    const assertOwned = () => { if (!owns()) throw unresolved(); };
+    const recover = async () => {
+      assertOwned(); let result = await client.read(); assertOwned();
+      // C's workflow GET intentionally contains only interface metadata. Read its
+      // normal public projection too; never infer ownership from that metadata.
+      if (scope === 'ipqc-c' && !result.control) {
+        const response = await fetch('/api/ipqc-c?caseMetadata=1', { cache: 'no-store', headers: headers() });
+        const projection = await response.json(); assertOwned();
+        if (!response.ok || projection.revision !== result.revision) throw unresolved();
+        result = { ...projection, permissions: result.permissions };
+      }
+      const next = result.control, flow = next?.workflow, drafts = next?.versions?.filter(version => version.status === 'draft') || [];
+      if (!validRecord(record) || result.permissions?.view !== true || result.permissions?.edit !== true || !Number.isSafeInteger(result.revision) ||
+          flow?.scope !== scope || !flow.generation || flow.pendingId || next.versions.some(version => ['pending', 'pending-test'].includes(version.status)) ||
+          (flow.active?.id || null) !== record.activeVersionId || (drafts[0]?.baseVersionId || null) !== record.activeVersionId || (next.activeVersionId || null) !== record.activeVersionId ||
+          (flow.baseId || null) !== record.activeVersionId || record.generation && flow.generation !== record.generation || drafts.length !== 1 || drafts[0].id !== 'shared-' + flow.generation ||
+          !(record.draftId && drafts[0].id === record.draftId || drafts[0].creatorId === actorId) ||
+          !Array.isArray(flow.working?.items) || !Array.isArray(drafts[0].snapshot?.items) || JSON.stringify(flow.working.items) !== JSON.stringify(drafts[0].snapshot.items)) throw unresolved();
+      return flow.generation;
+    };
+    if (record) {
+      if (!validRecord(record)) throw unresolved();
+      if (!confirm(t('重新檢查並進入已存在草稿？本次只讀取核對，不會移轉，也不代表先前開始修改已成功。', 'Kiểm tra và vào bản nháp hiện có? Lần này chỉ đọc, không chuyển và không xác nhận yêu cầu trước thành công.'))) throw unresolved();
+      try { await recover(); } catch { throw unresolved(); } sessionStorage.removeItem(key);
+      throw Object.assign(Error(t('已核對並選擇既有共用草稿，尚未移轉；請重新開啟清單核對後，再明確確認移轉。', 'Đã kiểm tra và chọn bản nháp chung hiện có, chưa chuyển; mở lại danh sách và xác nhận chuyển rõ ràng.')), { beginUnresolved: true });
+    }
+    if (entry?.workflow?.editable) return entry.workflow.generation;
+    record = { actorId, endpoint, scope, intent, activeVersionId: entry?.activeVersion?.id || null, generation: entry?.workflow?.generation || null, draftId: entry?.openVersion?.status === 'draft' ? entry.openVersion.id : null };
+    assertOwned();
+    try { sessionStorage.setItem(key, JSON.stringify(record)); } catch { throw unresolved(); }
+    try {
+      const result = await client.begin(); assertOwned();
+      if (!result?.control?.workflow?.generation) throw Error('INVALID_BEGIN_RESPONSE');
+      if (result.control.workflow.pendingId || result.control.versions?.some(version => ['pending', 'pending-test'].includes(version.status))) throw Object.assign(Error('PENDING_LOCKED'), { status: 409 });
+      sessionStorage.removeItem(key); return result.control.workflow.generation;
+    } catch (error) {
+      if (!owns()) throw error;
+      if (error.status && error.status < 500) { sessionStorage.removeItem(key); throw error; }
+      try { await recover(); } catch { /* keep unknown even if the GET failed */ } throw unresolved();
+    }
+  }
+
   async function executeTransfer(uiKey) {
     const dialog = transferDialog;
-    if (!dialog || !dialog.preview) return;
+    if (!dialog || !dialog.preview || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    const targetEqId = dialog.targetEqId;
+    const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
+    if (!target || targetEqId === dialog.sourceId) { dialog.moduleMessages[uiKey] = t('請重新選取目前生效且啟用的目標設備', 'Chọn lại thiết bị đích đang có hiệu lực và được bật'); render(); return; }
     const moduleId = uiKey === 'ipqcC' ? 'ipqc-c' : uiKey === 'ipqcAB' ? 'ipqc-ab' : uiKey;
     const ids = [...dialog.selection[uiKey]];
+    const owns = () => transferDialog === dialog && transferOwnerCurrent(dialog.owner) && dialog.targetEqId === targetEqId &&
+      JSON.stringify([...dialog.selection[uiKey]].sort((a,b)=>a.localeCompare(b))) === JSON.stringify([...ids].sort((a,b)=>a.localeCompare(b)));
+    const assertIntent = () => { if (!owns()) throw Error(t('移轉情境已變更；請重新開啟並核對後再操作', 'Ngữ cảnh chuyển đã thay đổi; mở lại và đối chiếu trước khi tiếp tục')); };
     if (!ids.length) { dialog.moduleMessages[uiKey] = t('請先勾選檢查項目', 'Hãy chọn hạng mục'); render(); return; }
     const selected=dialog.preview.modules.find(row=>row.moduleId===moduleId)?.items.filter(row=>ids.includes(row.id)) || [];
-    const overrides=selected.filter(row=>row.openStatus==='draft' && row.draftEquipmentId && row.draftEquipmentId!==dialog.sourceId && row.draftEquipmentId!==dialog.targetEqId).map(row=>row.id);
+    const overrides=selected.filter(row=>row.openStatus==='draft' && row.draftEquipmentId && row.draftEquipmentId!==dialog.sourceId && row.draftEquipmentId!==targetEqId).map(row=>row.id);
     if (selected.some(row=>row.selectable===false)) {dialog.moduleMessages[uiKey]=t('包含不可編輯項目，請重新選取','Có hạng mục không thể sửa; hãy chọn lại');render();return;}
     if (!confirm(t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
+    assertIntent();
     dialog.moduleStatus[uiKey] = 'saving'; render();
     try {
       // FQC's legacy editor persists through shared-state. Its pending local writes
       // must finish before the dedicated CAS route reads the same key.
       if (window.ProcessSync?.flush && await window.ProcessSync.flush() !== true)
         throw Error(t('本頁尚有未保存資料，請先處理同步狀態', 'Dữ liệu trang này chưa được lưu'));
-      const refreshed = await fetch(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(dialog.sourceId)}`, { cache: 'no-store' });
+      assertIntent();
+      const refreshed = await fetch(`/api/quality-equipment-replacement?sourceId=${encodeURIComponent(dialog.sourceId)}`, { cache: 'no-store', headers: headers() });
       const current = await refreshed.json();
+      assertIntent();
       if (!refreshed.ok) throw Error(current.error || `HTTP ${refreshed.status}`);
       const latest=current.modules.find(row=>row.moduleId===moduleId)?.items || [];
       if (selected.length!==ids.length || selected.some(row=>{
         const after=latest.find(item=>item.id===row.id);
         return !after || after.selectable===false || ['activeEquipmentId','draftEquipmentId','activeInspectionMode','draftInspectionMode','activeTool','draftTool','openStatus','openVersionId'].some(key=>after[key]!==row[key]);
       })) {dialog.preview=current;throw Error(t('項目已變更，請核對最新清單後再次確認移轉','Hạng mục đã thay đổi; kiểm tra danh sách mới rồi xác nhận lại'));}
-      const flow=current.modules.find(row=>row.moduleId===moduleId)?.workflow;
+      const targetEntry=current.modules.find(row=>row.moduleId===moduleId),flow=targetEntry?.workflow;
+      const transferIntent=JSON.stringify({sourceId:dialog.sourceId,targetEqId,ids:[...ids].sort((a,b)=>a.localeCompare(b))});
       let data;
       if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
-        for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);
-          try{const client=window.createSharedDraftClient({endpoint:'/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',actorId:identity()?.id,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
-            if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');const started=await client.begin(),patches=[],guards=[];
-            for(const row of group)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?dialog.targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
-            await client.command(started.control.workflow.generation,'apply',{patches,guards});data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'applied'})));
-          }catch(error){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'conflict',reason:error.message})));}
+        for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
+          try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+            scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');const scopeEntry=targetEntry.scopes?.find(entry=>entry.items.some(row=>row.scopeKey===scopeKey))||targetEntry;const generation=await beginTransferDraft(client,endpoint,scopeEntry,'ipqc-ab:'+scopeKey,transferIntent,owns),patches=[],guards=[];assertIntent();
+            for(const row of group)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
+            await client.flush();assertIntent();await client.command(generation,'apply',{patches,guards});assertIntent();data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'applied'})));
+          }catch(error){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'conflict',reason:error.message})));if(error.beginUnresolved||scopeClient?.hasUnknown()){data.results.push(...rows.filter(row=>!data.results.some(result=>result.itemId===row.itemId&&result.scopeKey===row.scopeKey)).map(row=>({itemId:row.itemId,scopeKey:row.scopeKey,status:'conflict',reason:t('前一範圍需先唯讀核對，本次未執行','Phạm vi trước cần kiểm tra chỉ đọc; chưa thực hiện lần này')})));break;}}
         }
       } else if(['ipqc-c','iqc','fqc'].includes(moduleId) && flow) {
         // Reuse the shared-draft transport and guarded atomic patch endpoint.
         // This syncs working content only; the successful manual save is untouched.
-        const client=window.createSharedDraftClient({endpoint:`/api/${moduleId}/workflow?caseMetadata=1`,actorId:identity()?.id,
+        const endpoint=`/api/${moduleId}/workflow?caseMetadata=1`,client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,
           headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+        assertIntent();
         if(client.hasUnknown())throw Error(t('前次結果待查證，請到目標模組查詢結果後再操作','Kết quả trước chưa rõ; mở mô-đun đích để kiểm tra trước khi tiếp tục'));
-        const targetGeneration=!flow.editable?(await client.begin()).control.workflow.generation:flow.generation;
+        await client.flush();assertIntent();
+        const targetGeneration=await beginTransferDraft(client,endpoint,targetEntry,moduleId,transferIntent,owns);
+        assertIntent();
         const rows=latest.filter(row=>ids.includes(row.id));
-        const patches=rows.map(row=>({op:'set',path:['items',{id:row.itemId},'equipmentId'],value:dialog.targetEqId}));
+        const patches=rows.map(row=>({op:'set',path:['items',{id:row.itemId},'equipmentId'],value:targetEqId}));
         const guards=rows.map(row=>({path:['items',{id:row.itemId},'equipmentId'],value:flow.editable?row.draftEquipmentId:row.activeEquipmentId}));
         if(moduleId==='iqc')for(const row of rows){const path=['items',{id:row.itemId},'inspectionMode'];patches.push({op:'set',path,value:'equipment'});guards.push({path,value:flow.editable?row.draftInspectionMode:row.activeInspectionMode});}
-        if(moduleId==='fqc'){const target=control?.versions.find(v=>v.id===control.activeVersionId)?.equipment.find(e=>e.id===dialog.targetEqId);if(!target||target.enabled===false)throw Error('EQUIPMENT_UNAVAILABLE');for(const row of rows){const path=['items',{id:row.itemId},'tool'];patches.push({op:'set',path,value:target.pieceMark||target.assetCode});guards.push({path,value:flow.editable?row.draftTool:row.activeTool});}}
+        if(moduleId==='fqc'){for(const row of rows){const path=['items',{id:row.itemId},'tool'];patches.push({op:'set',path,value:target.pieceMark||target.assetCode});guards.push({path,value:flow.editable?row.draftTool:row.activeTool});}}
+        await client.flush();assertIntent();
         await client.command(targetGeneration,'apply',{patches,guards});
-        data={results:rows.map(row=>({itemId:row.itemId,status:row.draftEquipmentId===dialog.targetEqId?'unchanged':'applied'}))};
+        data={results:rows.map(row=>({itemId:row.itemId,status:row.draftEquipmentId===targetEqId?'unchanged':'applied'}))};
       } else {
+      assertIntent();
       const response = await fetch('/api/quality-equipment-replacement', {
         method: 'POST', headers: { ...window.ProcessSync?.platformHeaders?.(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'apply', baseRevision: current.revision, moduleId,
-          sourceEquipmentId: dialog.sourceId, targetEquipmentId: dialog.targetEqId,
+          sourceEquipmentId: dialog.sourceId, targetEquipmentId: targetEqId,
           itemIds: ids, overrideItemIds: overrides })
       });
       data = await response.json();
       if (!response.ok) throw Error(data.error || `HTTP ${response.status}`);
       }
+      if (!owns()) return;
       const counts = { applied: 0, unchanged: 0, waiting: 0, conflict: 0 };
       for (const row of data.results || []) counts[row.status] = (counts[row.status] || 0) + 1;
       dialog.moduleStatus[uiKey] = counts.conflict ? 'error' : counts.waiting ? 'pending' : 'success';
@@ -2115,19 +2306,21 @@
         (data.results || []).filter(row => row.reason && row.status === 'conflict').map(row => `\n${row.scopeKey?row.scopeKey+' / ':''}${row.itemId}: ${row.reason}`).join('');
       if((flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
       await window.ProcessSync?.refresh?.();
-      equipmentRefCache.delete(dialog.sourceId); equipmentRefCache.delete(dialog.targetEqId);
+      if (!owns()) return;
+      invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });
       await loadTransferPreview();
     } catch (error) {
       dialog.moduleStatus[uiKey] = 'error';
       dialog.moduleMessages[uiKey] = error.message || t('替換失敗', 'Thay thế thất bại');
     }
-    if (transferDialog === dialog) render();
+    if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
 
   function transferDialogHTML() {
     if (!transferDialog) return '';
     const { sourceId, targetEqId } = transferDialog;
+    const inFlight = transferBusy();
     const tree = structure(visible());
     const allEq = visible()?.equipment || [];
     const sourceEq = allEq.find(e => e.id === sourceId) || (working?.equipment || []).find(e => e.id === sourceId);
@@ -2144,7 +2337,7 @@
     const ipqcABItems = previewItems('ipqc-ab');
     const replacementRow = (it, key) => `
       <div class="routine-transfer-item-row">
-        <label><input type="checkbox" data-transfer-check="${key}" value="${h(it.id)}" ${it.selectable===false?'disabled':transferDialog.selection[key].has(it.id) ? 'checked' : ''}>${t('選取', 'Chọn')}</label>
+        <label><input type="checkbox" data-transfer-check="${key}" value="${h(it.id)}" ${inFlight||it.selectable===false?'disabled':transferDialog.selection[key].has(it.id) ? 'checked' : ''}>${t('選取', 'Chọn')}</label>
         <code>${h(it.code)}</code><span class="name" data-i18n-skip="true">${h(it.name)}</span>${it.scopeKey?`<small>${h(it.scopeKey)}</small>`:''}
         <small>${t('生效', 'Hiệu lực')}: ${h(it.activeEquipmentId || '—')} · ${t('草稿', 'Bản nháp')}: ${h(it.draftEquipmentId || '—')} · ${h(it.openStatus || '—')}</small>
         ${it.selectable===false?`<small role="status">${h(t(it.unavailableReason || '目前不可編輯',['pending','pending-test'].includes(it.openStatus)?'Phạm vi đang chờ duyệt; hãy chọn lại sau khi kết thúc.':it.unavailableReason?.includes('V3')?'Phạm vi dùng bản nháp chung V3; hãy chọn thiết bị trong bản nháp chung.':'Không có quyền sửa bản nháp của mô-đun đích.'))}</small>`:''}
@@ -2187,11 +2380,11 @@
               <div class="routine-transfer-box target">
                 <h4>${t('替換目標設備（請選擇）', 'Thiết bị thay thế (Vui lòng chọn)')}</h4>
                 <div class="routine-transfer-picker-controls">
-                  <select id="routine-target-cat" class="routine-select">
+                  <select id="routine-target-cat" class="routine-select" ${inFlight ? 'disabled' : ''}>
                     <option value="">${t('全部類別', 'Tất cả nhóm')}</option>
                     ${tree.categories.map(c => `<option value="${h(c.id)}" ${transferDialog.targetCat === c.id ? 'selected' : ''}>${h(c.code)} · ${h(c.name)}</option>`).join('')}
                   </select>
-                  <select id="routine-target-eq-select" class="routine-select">
+                  <select id="routine-target-eq-select" class="routine-select" ${inFlight ? 'disabled' : ''}>
                     <option value="">${t('請選擇目標設備…', 'Chọn thiết bị đích…')}</option>
                     ${availableTargets.map(e => `
                       <option value="${h(e.id)}" ${e.id === targetEqId ? 'selected' : ''} data-i18n-skip="true">
@@ -2230,7 +2423,7 @@
                     ${transferDialog.moduleStatus.fqc === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${!targetEq || !fqcItems.length || transferDialog.moduleStatus.fqc === 'saving' ? 'disabled' : ''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${!targetEq || !fqcItems.length || inFlight ? 'disabled' : ''}>
                         ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 FQC 草稿', 'Xác nhận chuyển sang FQC')}
                       </button>
                     `}
@@ -2255,7 +2448,7 @@
                     ${transferDialog.moduleStatus.ipqcC === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${!targetEq || !ipqcCItems.length || transferDialog.moduleStatus.ipqcC === 'saving' ? 'disabled' : ''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-c" ${!targetEq || !ipqcCItems.length || inFlight ? 'disabled' : ''}>
                         ${transferDialog.moduleStatus.ipqcC === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IPQC-C 草稿', 'Xác nhận chuyển sang IPQC-C')}
                       </button>
                     `}
@@ -2280,7 +2473,7 @@
                     ${transferDialog.moduleStatus.iqc === 'success' ? `
                       <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${!targetEq || !iqcItems.length || transferDialog.moduleStatus.iqc === 'saving' ? 'disabled' : ''}>
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-iqc" ${!targetEq || !iqcItems.length || inFlight ? 'disabled' : ''}>
                         ${transferDialog.moduleStatus.iqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 IQC 草稿', 'Xác nhận chuyển sang IQC')}
                       </button>
                     `}
@@ -2295,7 +2488,7 @@
               </div>
               <div class="routine-transfer-module-card ${transferDialog.moduleStatus.ipqcAB}">
                 <div class="routine-transfer-module-head"><div><b>IPQC-AB</b><small>（${ipqcABItems.length} ${t('筆標準引用','mục tham chiếu')}）</small></div>
-                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${!targetEq||!ipqcABItems.length||transferDialog.moduleStatus.ipqcAB==='saving'?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):t('確認移轉至 IPQC-AB 草稿','Xác nhận chuyển sang IPQC-AB')}</button></div>
+                  <button type="button" class="button signal master-small" id="routine-confirm-transfer-ipqc-ab" ${!targetEq||!ipqcABItems.length||inFlight?'disabled':''}>${transferDialog.moduleStatus.ipqcAB==='saving'?t('儲存中…','Đang lưu...'):t('確認移轉至 IPQC-AB 草稿','Xác nhận chuyển sang IPQC-AB')}</button></div>
                 ${transferDialog.moduleMessages.ipqcAB?`<p class="routine-transfer-mod-msg">${h(transferDialog.moduleMessages.ipqcAB)}</p>`:''}
                 ${ipqcABItems.length?`<div class="routine-transfer-item-table">${ipqcABItems.map(it=>replacementRow(it,'ipqcAB')).join('')}</div>`:`<p class="routine-empty-hint">${t('無引用 IPQC-AB 標準','Không có tiêu chuẩn IPQC-AB tham chiếu')}</p>`}
               </div>
@@ -2533,10 +2726,12 @@
       host.innerHTML = `<section class="routine-page" data-i18n-skip="true">
         <div class="routine-card">
           <p>${h(loadError ? displayDraftError(loadError) : t('正在載入檢具資料…', 'Đang tải dữ liệu thiết bị…'))}</p>
+          ${hasBeginRecovery() ? `<button type="button" class="button signal" id="routine-begin-recheck">${t('重新檢查並進入已存在草稿', 'Kiểm tra và vào bản nháp hiện có')}</button>` : ''}
           ${loadError ? `<button type="button" class="button signal" id="routine-load-retry">${t('重新載入', 'Tải lại')}</button>` : ''}
         </div>
       </section>`;
-      host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {
+      host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
+    host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {
         message = '';
         render();
         try { await read(); render(); } catch (error) { message = error.message; render(); }
@@ -2569,6 +2764,7 @@
       </div>
 
       ${message ? `<div class="routine-message" role="${readUnavailable?'alert':'status'}">${h(displayDraftError(message))}</div>` : ''}
+      ${hasBeginRecovery()?`<button type="button" class="button signal" id="routine-begin-recheck" ${busy?'disabled':''}>${t('重新檢查並進入已存在草稿','Kiểm tra và vào bản nháp hiện có')}</button>`:''}
       ${readUnavailable?`<button type="button" class="button signal" id="routine-load-retry">${t('重新載入並保留輸入','Tải lại và giữ dữ liệu đang nhập')}</button>`:''}
 
       ${!version ? `<section class="routine-card">
@@ -2633,6 +2829,7 @@
       ${transferDialogHTML()}
       `}</section>`;
     bind();
+    host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
     host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});
     if(readUnavailable)host.querySelectorAll('#routine-save,#routine-submit,#routine-begin').forEach(button=>{button.disabled=true;});
     if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);
@@ -2751,21 +2948,21 @@
     });
 
     root.querySelector('#routine-target-cat')?.addEventListener('change', event => {
-      if (!transferDialog) return;
+      if (!transferDialog || transferBusy()) return;
       transferDialog.targetCat = event.target.value;
       transferDialog.targetEqId = '';
       render();
     });
 
     root.querySelector('#routine-target-eq-select')?.addEventListener('change', event => {
-      if (!transferDialog) return;
+      if (!transferDialog || transferBusy()) return;
       transferDialog.targetEqId = event.target.value;
       render();
     });
 
     root.querySelectorAll('[data-transfer-check]').forEach(chk => {
       chk.onchange = () => {
-        if (!transferDialog) return;
+        if (!transferDialog || transferBusy()) return;
         const mod = chk.dataset.transferCheck;
         const id = chk.value;
         if (chk.checked) transferDialog.selection[mod]?.add(id);
@@ -3082,7 +3279,7 @@
   async function reconcilePendingReplacements() {
     // Compatibility hook for old approval callers: refresh references only.
     // Historical waiting records never authorize automatic V3 writes.
-    equipmentRefCache.clear();
+    invalidateEquipmentReferences();
   }
   async function mount(element) {
     equipmentEditRequest++;navigationError=null;
@@ -3206,7 +3403,7 @@
     if (reviewHost?.isConnected) reviewRender();
   });
   async function refreshOpenEquipmentReferences() {
-    equipmentRefCache.clear();
+    invalidateEquipmentReferences();
     const openIds = new Set([
       editingEquipmentId,
       viewDialog?.kind === 'equipment' && !viewDialog.references ? viewDialog.data?.id : ''
@@ -3219,7 +3416,7 @@
 
   let navigationError=null;
   window.RoutineEquipmentUI = {
-    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;equipmentRefCache.clear();navigationError=null;}},
+    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,
@@ -3232,6 +3429,7 @@
     },
     async getEquipmentReferences(eqId, { refresh = false } = {}) {
       if (!refresh && equipmentRefCache.has(eqId)) return equipmentRefCache.get(eqId);
+      if (refresh) invalidateEquipmentReferences([eqId]);
       return loadEquipmentReferences(eqId, { renderAfter: false });
     },
     referencesHTML(eqId, refs, mode = 'view') {
