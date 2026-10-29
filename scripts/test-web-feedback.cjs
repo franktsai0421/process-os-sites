@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomUUID,createHash}=require('node:crypto');
 const root=process.argv[2];if(!root)throw Error('Evidence output directory required');fs.mkdirSync(root,{recursive:true});
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT)');db.exec(fs.readFileSync('scripts/web-feedback-schema.sql','utf8'));
-const users=['admin','admin2','employee','peer','other','disabled','restricted'].map(id=>({id,name:'Synthetic '+id,role:id.startsWith('admin')?'admin':'staff',enabled:id!=='disabled',inheritRole:false,views:id==='restricted'?['player']:id==='other'?['data']:['editor','data','dashboard'],lines:id==='other'?['B']:['A'],permissions:[]}));
+const users=['frank','admin','admin2','employee','peer','other','disabled','restricted'].map(id=>({id,name:'Synthetic '+id,role:id==='frank'||id.startsWith('admin')?'admin':'staff',enabled:id!=='disabled',inheritRole:false,views:id==='restricted'?['player']:id==='other'?['data']:['editor','data','dashboard'],lines:id==='other'?['B']:['A'],permissions:[]}));
 const originalValues=JSON.stringify({platformUsers:JSON.stringify(users),processAuthoringControl:'preserved-test-sentinel',bomData:'preserved-bom-sentinel'});db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(originalValues,'baseline');
 const objects=new Map();let failPut=false;
 const env={WEB_FEEDBACK_ENABLED:'1',PROCESS_SESSION_SECRET:randomUUID(),DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}},STATE_ARCHIVE:{async get(key){const b=objects.get(key);return b?{body:b,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.length)}:null;},async put(key,value){if(failPut)throw Error('synthetic R2 failure');objects.set(key,Buffer.from(value));}}};
@@ -57,6 +57,21 @@ pass('D1-safe capacity rejection does not partly update case',await call('update
 const race=await Promise.all(['admin','admin2'].map(user=>call('update',{id,version:3,status:'done',note:'race'},user)));assert.deepEqual(race.map(r=>r.status).sort((a,b)=>a-b),[200,409]);log.push({name:'Two-admin concurrent CAS exactly one winner',status:'PASS'});
 assert.equal(db.prepare('SELECT "values" FROM shared_state').get().values,originalValues);assert.equal(db.prepare('SELECT revision FROM shared_state').get().revision,1);log.push({name:'Business/shared draft values and revision unchanged',status:'PASS'});
 const stored=db.prepare('SELECT payload FROM web_feedback_store').get().payload;assert(!stored.includes('DO-NOT-COLLECT'));log.push({name:'Context allowlist excludes password/token fields',status:'PASS'});
+const deletionCase=await call('submit',{operationId:randomUUID(),markers:[{...m,id:randomUUID(),attachments:[],description:'Delete receipt fixture'}]});pass('Isolated deletion case created',deletionCase,201);
+const deleteId=deletionCase.body.ids[0],noteOperation={operationId:randomUUID(),id:deleteId,version:1,status:'done',note:'Exactly once 私人備註'};
+pass('Primary admin note update receipt',await call('update',noteOperation,'frank'));
+pass('Lost update response replay does not duplicate note',await call('update',noteOperation,'frank'));
+assert.equal(JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.find(i=>i.id===deleteId).notes.length,1);
+pass('Same update operation rejects changed text',await call('update',{...noteOperation,note:'changed'},'frank'),409);
+pass('Other admin cannot reuse owner note receipt',await call('update',noteOperation,'admin2'),409);
+for(const actor of ['admin','admin2','employee'])pass(actor+' cannot forge primary deletion',await call('delete',{id:deleteId,version:2,primary:true,role:'admin',name:'frank'},actor),403);
+pass('Primary deletion enforces expected version',await call('delete',{id:deleteId,version:1},'frank'),409);
+pass('Only primary Frank deletes',await call('delete',{id:deleteId,version:2},'frank'));
+pass('Deletion response retry is idempotent',await call('delete',{id:deleteId,version:2},'frank'));
+assert(!(await call('list')).body.issues.some(i=>i.id===deleteId));
+const deleted=JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.find(i=>i.id===deleteId);assert.equal(deleted.deletedBy,'frank');assert(deleted.deletedAt);assert.equal(deleted.notes.length,1);
+pass('Deleted case cannot be updated',await call('update',{id:deleteId,version:3,status:'open'},'frank'),404);
+pass('Deleted case cannot enter a new handoff',await call('export',{operationId:randomUUID(),ids:[deleteId]},'frank'),404);
 const revoked=JSON.parse(originalValues),revokedUsers=JSON.parse(revoked.platformUsers);revokedUsers.find(u=>u.id==='peer').enabled=false;revoked.platformUsers=JSON.stringify(revokedUsers);db.prepare('UPDATE shared_state SET revision=2,"values"=?').run(JSON.stringify(revoked));pass('Revision change revokes cached identity immediately',await call('image&id='+attachment.body.id,undefined,'peer'),401);
 revoked.maintenanceMode='1';db.prepare('UPDATE shared_state SET revision=3,"values"=?').run(JSON.stringify(revoked));pass('Revision change preserves maintenance gate',await call('update',{id,version:4,status:'open'},'admin'),503);
 

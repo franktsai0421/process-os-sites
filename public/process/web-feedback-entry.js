@@ -11,7 +11,7 @@
   if(window.WebFeedbackHost)return window.WebFeedbackHost.active?.()===false?Promise.reject(Error('FEEDBACK_RELOAD_REQUIRED')):Promise.resolve(window.WebFeedbackHost);
   if(loading)return loading;
   loading=new Promise((resolve,reject)=>{
-   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261026-hosted1';script.defer=true;
+   const script=document.createElement('script');script.src='/process/web-feedback-loader.js?v=20261029-feedback1';script.defer=true;
    script.onload=()=>window.WebFeedbackHost?resolve(window.WebFeedbackHost):fail();
    const fail=()=>{loading=null;script.remove();reject(Error('FEEDBACK_HOST_LOAD_FAILED'));};script.onerror=fail;document.head.append(script);
   });return loading;
@@ -40,4 +40,8 @@
   reset(){activeHost=null;window.WebFeedbackHost?.navigation?.reset?.();}};
  window.ProcessFeedbackEntry={enabled,mount,ensure,readyForDestination,navigation};
  window.addEventListener('process-ui-ready',()=>{if(enabled())void ensure().then(adapter=>adapter.refresh()).catch(()=>{/* On-demand management retry remains available. */});},{once:true});
+ // Cached/deferred assets can register after the one-shot UI-ready event.
+ // Admit only an already authenticated, enabled shell; never infer access from
+ // the browser, iframe host or a cached account.
+ if(!document.documentElement.hasAttribute('data-process-boot')&&sync()?.identity?.id&&enabled())queueMicrotask(()=>{if(enabled())void ensure().then(adapter=>adapter.refresh()).catch(()=>{});});
 })();

@@ -11,3 +11,53 @@
 
 /* Selection is independent from completion and ZIP checkboxes. */
 .wf-row{border-radius:8px;cursor:pointer;padding:8px;align-items:flex-start}.wf-row.wf-row-selected{background:#dcefe9;box-shadow:inset 4px 0 #24786d}.wf-row.wf-row-selected button{background:#dcefe9;color:#153f48}.wf-row button:focus-visible{outline:3px solid #dc9b38;outline-offset:2px}.wf-row [data-pick]{flex-shrink:0}.wf-row .wf-badge{border:1px solid #b6cec7;background:#fff;color:#31584f}
+
+/* Module-only layout: no application or business-module selectors. */
+#wf-panel{left:auto;right:12px;bottom:70px;width:360px;max-height:min(540px,calc(100dvh - 88px))}
+#wf-panel .wf-body{min-height:0;overflow-wrap:anywhere}
+#wf-panel .wf-file-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+#wf-panel .wf-file-button{display:block;width:fit-content;margin-top:5px;padding:6px 10px;border:1px solid #adc9c8;border-radius:5px;background:white;color:#164d50;cursor:pointer}
+#wf-panel label:focus-within .wf-file-button{outline:3px solid #ad6714;outline-offset:2px}
+#wf-location-notice{position:fixed;right:12px;bottom:72px;z-index:11003;box-sizing:border-box;max-width:calc(100vw - 24px);width:360px;max-height:65dvh;overflow:auto;padding:14px;background:#fffefa;border:1px solid #b5ceca;border-radius:10px;color:#153f48;font:14px/1.5 system-ui}
+#wf-location-notice p{white-space:pre-wrap;overflow-wrap:anywhere}
+#wf-location-notice button{font:inherit;border:1px solid #adc9c8;border-radius:5px;padding:6px 10px;background:white;color:#164d50}
+#wf-panel footer{display:flex;gap:8px;flex-wrap:wrap}
+#wf-panel footer button{flex:1;min-height:38px}
+#wf-panel textarea{min-height:88px;max-height:180px}
+#wf-panel button,.wf-admin button{white-space:normal;overflow-wrap:anywhere;min-height:34px}
+#wf-launcher{z-index:11002!important}
+#wf-marking-shield{position:fixed;inset:0;z-index:11000;cursor:crosshair;touch-action:none;background:transparent;outline:none}
+#wf-panel :focus-visible,#wf-viewer :focus-visible,.wf-admin :focus-visible{outline:3px solid #ad6714;outline-offset:2px}
+.wf-admin{padding:14px;min-width:0}
+.wf-admin h2{font-size:20px;margin:0 0 10px}
+.wf-admin nav{gap:6px;border-bottom:1px solid #d6e1de;padding-bottom:10px}
+.wf-admin [data-counts]{font-size:12px;color:#365e61;flex:1;min-width:150px}
+.wf-admin .wf-filters{display:grid;grid-template-columns:minmax(160px,2fr) repeat(3,minmax(100px,1fr)) repeat(2,minmax(125px,1fr));gap:6px}
+.wf-admin .wf-filters>*{width:100%;min-width:0;font-size:13px;padding:7px}
+.wf-admin .wf-filters input[type=search]{min-width:0}
+.wf-admin .wf-columns{grid-template-columns:minmax(220px,.85fr) minmax(0,1.4fr);gap:14px;align-items:start}
+.wf-admin .wf-list{max-height:65dvh;overscroll-behavior:contain;scrollbar-gutter:stable}
+.wf-admin .wf-row{gap:6px;padding:6px;margin-bottom:4px;min-width:0}
+.wf-admin .wf-row button{min-width:0;padding:8px}
+.wf-admin .wf-row button>div:not(.wf-thumbs){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.wf-admin .wf-detail{min-width:0;padding-left:14px}
+.wf-admin .wf-detail h3{font-size:15px;overflow-wrap:anywhere;margin:0 0 6px}
+.wf-admin .wf-detail p{margin:10px 0}
+.wf-admin .wf-detail h4{margin:16px 0 8px}
+.wf-admin .wf-detail button{margin:4px 4px 0 0}
+.wf-admin .wf-detail textarea{min-height:82px;resize:vertical}
+.wf-admin .wf-history{overflow-wrap:anywhere}
+.wf-admin .wf-history summary{cursor:pointer;padding:7px 0}
+.wf-admin .wf-danger{border-color:#b54432;background:#fff5f2;color:#962d20}
+.wf-admin [role=status]{font-size:13px;overflow-wrap:anywhere}
+@media(max-width:1000px){.wf-admin .wf-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){
+ #wf-panel{left:auto;right:12px;max-width:calc(100vw - 24px)}
+ .wf-admin .wf-columns{grid-template-columns:minmax(0,1fr);gap:12px}
+ .wf-admin .wf-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wf-admin .wf-filters [type=search]{grid-column:1/-1}
+ .wf-admin .wf-detail{border-left:0;padding-left:0}
+ .wf-admin .wf-list{max-height:32dvh}
+ .wf-admin nav{align-items:stretch}.wf-admin nav button{flex:1 1 auto}
+ .wf-admin [data-counts]{flex-basis:100%;order:2}
+}

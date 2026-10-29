@@ -4,12 +4,14 @@ import { readState, identity, can, sameOrigin, type State } from '@/lib/process-
 import { sha256, utf8, zipFiles } from '@/lib/web-feedback-zip';
 import { effectiveAccess } from '@/lib/user-access';
 
-type Location = { type: 'page' | 'element'; view: string; tab: string; system: string; display: string; locator: {id?: string; attribute?: string; value?: string; tag?: string}; context: Record<string,string> };
+type Location = { type: 'page' | 'element'; view: string; tab: string; system: string; display: string; locator: {id?: string; attribute?: string; value?: string; tag?: string; label?:string}; context: Record<string,string>; position?:Record<string,number> };
 type ImageAccess={adminOnly:boolean;lines:string[];views:string[];permissions:string[]};
 type Attachment = {id: string; owner: string; name: string; type: string; size: number; sha256: string; location: Location;access:ImageAccess};
-type Issue = {id: string; batchId: string; markerId: string; reporter: string; reporterId: string; createdAt: string; description: string; location: Location; attachments: string[]; status: 'open'|'done'; version: number; notes: {author: string; text: string; at: string}[]; environment: {build: string}; history: {status: string; author: string; at: string}[]};
+type Issue = {id: string; batchId: string; markerId: string; reporter: string; reporterId: string; createdAt: string; description: string; location: Location; attachments: string[]; status: 'open'|'done'; version: number; deletedAt?:string; deletedBy?:string; notes: {author: string; text: string; at: string}[]; environment: {build: string}; history: {status: string; author: string; at: string}[]};
 type Handoff = {id: string; operationId: string; owner: string; digest: string; generatedAt: string; status: 'generated'; issues: Issue[]; sha256: string; size: number};
 type Store = {issues: Issue[]; attachments: Attachment[]; batches: {key: string; digest: string; ids: string[]}[]; handoffs: Handoff[]};
+type UpdateReceipt={key:string;digest:string};
+type UpdatedIssue=Issue&{updateReceipts?:UpdateReceipt[]};
 const binding = env as typeof env & {WEB_FEEDBACK_ENABLED?: string};
 const views = new Set(['dashboard','editor','data','approval','dispatch','player','productStatus','quality-dashboard','quality-search','quality-reports','quality-inspections','quality-fpy']);
 const tabs = new Set(['','AB','C','bom','line-admin','process-master','users','quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c','quality-mold-equipment','quality-routine-reports','quality-routine-equipment','web-feedback']);
@@ -60,9 +62,12 @@ function locationOf(input: unknown): Location {
   if (/^[\w:-]{1,100}$/.test(sid)) locator.id = sid;
   if (['data-op-id','data-node','data-stage','data-tab','data-action','data-testid','data-feedback-id'].includes(attribute) && /^[\w .:-]{1,100}$/.test(value)) {locator.attribute=attribute;locator.value=value;}
   if (/^[a-z]{1,15}$/.test(tag)) locator.tag=tag;
+  if(typeof source.label==='string')locator.label=text(source.label,80);
   const context: Record<string,string> = {};
   for (const k of ['recordId','stageCode','line','mode']) {const value=text(objectOf(raw.context)[k],100);if (/^[\w .:-]{1,100}$/.test(value)) context[k]=value;}
-  return {type: raw.type === 'element' && (locator.id || locator.attribute) ? 'element' : 'page',view,tab,system:raw.system==='quality'?'quality':'process',display:text(raw.display,160),locator,context};
+  const point=objectOf(raw.position),position:Record<string,number>={};
+  for(const k of ['x','y','scrollX','scrollY','viewportWidth','viewportHeight','documentWidth','documentHeight'])if(typeof point[k]==='number'&&Number.isFinite(point[k])&&point[k]>=0&&point[k]<=10_000_000)position[k]=Math.round(point[k]);
+  return {type: raw.type === 'element' && (locator.id || locator.attribute) ? 'element' : 'page',view,tab,system:raw.system==='quality'?'quality':'process',display:text(raw.display,160),locator,context,...(Object.keys(position).length===8?{position}:{})};
 }
 function sourceAccess(state:State,user:Actor):ImageAccess {
   const stored=(JSON.parse(state.values.platformUsers||'[]') as Parameters<typeof effectiveAccess>[0][]).find(u=>u.id.toLowerCase()===user.id.toLowerCase());
@@ -100,8 +105,11 @@ export async function handleFeedback(request: Request) {
   const user=await identity(request,state); if(!user || user.role==='device') return json({error:'LOGIN_REQUIRED'},401);
   const admin=user.role==='admin', url=new URL(request.url), action=url.searchParams.get('action')||'list';
   const permissions=Object.fromEntries(await Promise.all(['view','create','edit','exchange'].map(async op=>[op,await can(request,state,'feedback.'+op)])));
+  // identity() derives primary from the stored account and verified session.
+  // Never trust a request name/role, a client flag, or an ordinary ADMIN.
+  permissions.delete=admin&&user.primary===true&&user.sessionType!=='demo';
   if(!permissions.view)return json({error:'FORBIDDEN'},403);
-  const operation=['upload','submit'].includes(action)?'create':action==='update'?'edit':['export','download','handoffs'].includes(action)?'exchange':null;
+  const operation=['upload','submit'].includes(action)?'create':action==='delete'?'delete':action==='update'?'edit':['export','download','handoffs'].includes(action)?'exchange':null;
   if(operation&&!permissions[operation])return json({error:'FORBIDDEN'},403);
   if(request.method!=='GET'&&!sameOrigin(request)) return json({error:'ORIGIN_DENIED'},403);
   if(request.method!=='GET'&&state.values.maintenanceMode==='1') return json({error:'MAINTENANCE'},503);
@@ -120,10 +128,11 @@ export async function handleFeedback(request: Request) {
     const object=await env.STATE_ARCHIVE.get(key(h.id)+'.zip'); if(!object) return json({error:'ZIP_MISSING'},503);
     return new Response(object.body,{headers:{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="WebFeedback_${h.id}.zip"`,'Cache-Control':'no-store'}});
    }
-   if(action==='handoffs') return admin?json({handoffs:data.handoffs.map(h=>({...h,latest:h.issues.map(i=>({id:i.id,status:data.issues.find(v=>v.id===i.id)?.status}))}))}):json({error:'ADMIN_REQUIRED'},403);
+   if(action==='handoffs') return admin?json({handoffs:data.handoffs.map(h=>({...h,latest:h.issues.map(i=>{const current=data.issues.find(v=>v.id===i.id);return {id:i.id,status:current?.deletedAt?'deleted':current?.status};})}))}):json({error:'ADMIN_REQUIRED'},403);
    if(action!=='list') return json({error:'UNKNOWN_ACTION'},404);
    const issues=[];
    for(const i of data.issues) {
+    if(i.deletedAt)continue;
     const attachments=[];
     for(const id of i.attachments) {const a=data.attachments.find(a=>a.id===id); if(a && await authorizedImage(request,state,user,a)) attachments.push({id:a.id,name:a.name,type:a.type,size:a.size,sha256:a.sha256});}
     issues.push(admin?{...i,attachments}:{id:i.id,batchId:i.batchId,reporter:i.reporter,createdAt:i.createdAt,description:i.description,status:i.status,location:{display:i.location.display,view:i.location.view,tab:i.location.tab,system:i.location.system},attachments,restrictedImages:i.attachments.length-attachments.length});
@@ -166,16 +175,30 @@ export async function handleFeedback(request: Request) {
    data.batches.push({key:batchKey,digest,ids});await write(revision,data);return json({ids,batchId},201);
   }
   if(!admin) return json({error:'ADMIN_REQUIRED'},403);
+  if(action==='delete') {
+   const issue=data.issues.find(i=>i.id===body.id);if(!issue)fail('NOT_FOUND',404);
+   if(issue.deletedAt)return json({id:issue.id,deleted:true,replayed:true});
+   if(issue.version!==body.version)fail('CASE_CHANGED_RELOAD',409);
+   issue.deletedAt=now();issue.deletedBy=user.id;issue.version++;
+   issue.history.push({status:'deleted',author:user.name,at:issue.deletedAt});
+   // Retain private notes, batch receipts, attachments and immutable handoff history.
+   await write(revision,data);return json({id:issue.id,deleted:true});
+  }
   if(action==='update') {
-   const issue=data.issues.find(i=>i.id===body.id);if(!issue) fail('NOT_FOUND',404);if(issue.version!==body.version) fail('CASE_CHANGED_RELOAD',409);
+   const issue=data.issues.find(i=>i.id===body.id&&!i.deletedAt) as UpdatedIssue|undefined;if(!issue) fail('NOT_FOUND',404);
+   const receipt=body.operationId===undefined?null:{key:user.id+':'+uuid(body.operationId),digest:await sha256(utf8(JSON.stringify({id:body.id,version:body.version,status:body.status,note:body.note})))};
+   const previous=receipt&&issue.updateReceipts?.find(item=>item.key===receipt.key);
+   const result=()=>({id:issue.id,version:issue.version,status:issue.status,notes:issue.notes,history:issue.history});
+   if(previous)return previous.digest===receipt?.digest?json({...result(),replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
+   if(issue.version!==body.version) fail('CASE_CHANGED_RELOAD',409);
    if(!['open','done'].includes(body.status))fail('INVALID_STATUS');
-   const at=now();issue.status=body.status;issue.version++;issue.history.push({status:body.status,author:user.name,at});if(text(body.note,4000).trim())issue.notes.push({author:user.name,text:text(body.note,4000),at});await write(revision,data);return json({id:issue.id,version:issue.version});
+   const at=now();issue.status=body.status;issue.version++;issue.history.push({status:body.status,author:user.name,at});if(text(body.note,4000).trim())issue.notes.push({author:user.name,text:text(body.note,4000),at});if(receipt)issue.updateReceipts=[...(issue.updateReceipts||[]),receipt].slice(-32);await write(revision,data);return json(result());
   }
   if(action==='export') {
    const operationId=uuid(body.operationId);if(!Array.isArray(body.ids)||!body.ids.length||body.ids.length>20||new Set(body.ids).size!==body.ids.length) fail('SELECT_1_TO_20');
    const digest=await sha256(utf8(JSON.stringify(body.ids))), previous=data.handoffs.find(h=>h.operationId===operationId&&h.owner===user.id);
    if(previous)return previous.digest===digest?json({id:previous.id,status:'generated',replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
-   const issues=body.ids.map((id:string)=>data.issues.find(i=>i.id===id)||fail('NOT_FOUND',404));
+   const issues=body.ids.map((id:string)=>data.issues.find(i=>i.id===id&&!i.deletedAt)||fail('NOT_FOUND',404));
    const id='H-'+crypto.randomUUID(),generatedAt=now(),files:{path:string;bytes:Uint8Array}[]=[], imageIndex:(Attachment & {issueId:string;relativePath:string})[]=[];let total=0;
    const add=(path:string,value:unknown)=>files.push({path,bytes:utf8(typeof value==='string'?value:JSON.stringify(value,null,2))});
    for(const issue of issues) {

@@ -1,8 +1,19 @@
+## 2026-10-29 隔離回報／小幫手修復（未發布）
+
+本次使用者授權取代下方歷史 Local-only 工作範圍；仍不允許 merge 或覆蓋既有站台。驗證與整合事項見 [本次交付](../../docs/web-feedback/20261029-isolated-helper.md)。
+
+- 清單直接管理私人備註與狀態，移除「我的處理」及 helper 內問題清單入口。私人備註仍只由 ADMIN API 投影取得。
+- 模組內 `delete` 僅接受正常 session 經 `identity()` 核驗的 `primary`（既有 Frank 規則）。其他 admin、顯示名稱 Frank、前端角色旗標皆無效。CAS 軟刪除保留案件、備註、附件及 immutable 交接 ZIP，不釋放既有容量上限。
+- `update` 可帶固定 operationId；每案最多 32 筆私有更新收據，回覆中斷重試不重複備註，過舊版本仍拒絕。成功回傳單筆狀態／備註，前端不重新讀全清單；新增回報會使清單失效並重新核驗讀取。
+- 右下角 helper 依 visualViewport 與實際平台工具列避讓，沒有工具列時不虛構遮擋區。延後載入入口會核對已登入／功能開關並補初始化。這不是既有 hosted Chrome 缺席原因的實站證明。
+- 標記使用模組透明攔截層及 window capture，阻止底層 pointer/mouse/touch/drag/form；wheel／touch 只捲動命中的隔離捲動區或頁面。任意位置保存頁面／座標備援，有穩定元件則保存標識與標籤；失效時顯示已保存回報而不改標其他元件。跨來源 iframe 僅能辨識外框。
+- Chromium 不支援以 oncompositionstart/oncompositionend 屬性綁定；模組以事件監聽橋接既有處理器。composition 期間不重畫搜尋／輸入；這不代替真實作業系統 IME 驗收。
+
 ## 2026-10-10 真實權限格
 
 2026-10-13只讀核來源：首次入口`session.start=capturePage()`，core首個await前取`openedPage`，權限等待期間切頁不偷換新草稿起始頁；既有草稿start仍保留。10/09私有proposed patch的「未套用」屬歷史，10/10[workspace定向驗證](../../docs/local-integration/20261010-ui-language-review.md)已記authorization測試PASS。本次不重播，完整browser／INP／實體手機範圍另列。
 
-feedback.view/create/edit/exchange分別核對讀取、上傳/送出、管理編輯、ZIP交接/下載；edit/exchange仍ADMIN-only。不存在feedback.delete命令，不列虛假刪除格。UI回報入口驗證create後才讀私人草稿，管理按鈕受對應格控制；原來源圖片envelope、维护、fresh identity及CAS保留。45合成case含取消勾選的實際API拒絕PASS；最新UI及生產未全面驗收。[權限規格](../../docs/specs/current/PERMISSIONS_ADMIN.md)。
+feedback.view/create/edit/exchange分別核對讀取、上傳/送出、管理編輯、ZIP交接/下載；edit/exchange仍ADMIN-only。當時尚無 feedback delete 命令；2026-10-29 模組專屬 primary 刪除以本頁最新段落為準。UI回報入口驗證create後才讀私人草稿，管理按鈕受對應格控制；原來源圖片envelope、维护、fresh identity及CAS保留。45合成case含取消勾選的實際API拒絕PASS；最新UI及生產未全面驗收。[權限規格](../../docs/specs/current/PERMISSIONS_ADMIN.md)。
 
 ## 2026-10-10 管理入口競態
 

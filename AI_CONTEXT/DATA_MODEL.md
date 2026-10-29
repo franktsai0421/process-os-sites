@@ -134,6 +134,10 @@ BOM 匯入 command.input 新增 `baseDigest` 與 `importMode:incremental-v1`；�
 
 新增獨立 `process_revoked_sessions(token_digest,expires_at,revoked_at)`，token_digest為SHA-256及主鍵；不含原cookie、password或業務ID。不新增shared_state鍵，不修改流程／BOM／IPQC／案件歷史。公開API不建schema，`PROCESS_SESSION_REVOCATION_ENABLED=1`在明確migration後啟用。3020用自身private SQLite ledger；經2026-10-09使用者明確授權，0002 migration已在日常3000新增表並保留原業務；切換與驗證見[整合報告](../docs/local-integration/20261009-3020-to-3000.md)。保全與fail-closed界線見[登入撤銷報告](../docs/ipqc-reference/20261009-session-revocation.md)。共用／產品專用項目仍沿原name/text/standard JSON欄位，無業務模型遷移。
 
+## 2026-10-29 網頁回報 payload 相容欄位
+
+僅 `web_feedback_store.payload` 的案件新增可選 `deletedAt/deletedBy` 與每案最多 32 筆 `updateReceipts`（核驗帳號＋operationId、payload digest）。刪除為 tombstone，不刪原案件、附件、批次與交接；一般清單排除已刪除案件，舊 ZIP 保持不可變。location 新增可選受界限檢查的頁面座標／視窗尺寸與 locator label，用於安全備援及拒絕錯貼。既有 payload 不需 migration；沒有 shared_state／業務表變更。舊前後端版本不理解刪除欄位，整合須一起部署此模組前後端，不能以舊 handler 回滾解讀已軟刪除清單。詳見 [模組](modules/WEB_FEEDBACK.md)。
+
 ## 2026-10-09 網頁回報 V1（3020及日常Local明確啟用）
 
 獨立 web_feedback_store(id,revision,payload) 以 CAS 保存 issues／attachments／batches／handoffs；不加 shared_state 鍵，不變更製程／BOM／IPQC模型。Drizzle 0002納入schema；既有Local使用明確upgrade，空環境沿正常初始化，公開API不建表。本機日常已啟用，遠端未部署。STATE_ARCHIVE 使用 web-feedback/v1/ 原圖與 immutable ZIP，附件記錄 owner／原存取 envelope／SHA-256。瀏覽器 IndexedDB process-web-feedback-v1 保存按 origin＋核驗帳號隔離的 Blob 草稿及固定待確認批次。資料流與容量／授權限制見 [WEB_FEEDBACK](modules/WEB_FEEDBACK.md)，實測保全見 [交付](../docs/web-feedback/20261009-implementation.md)。
