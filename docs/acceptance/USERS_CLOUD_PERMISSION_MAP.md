@@ -1,6 +1,8 @@
 # 權限設定 → 介面 → 後端對照（CLOUD 29102026）
 
-最新實測：[設定後各頁面權限核對](USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md)。604 次共用函式比對、600 次目的頁判定、87 組流程權限、11 個撤權會話及 IQC 實際頁面；已確認落差未修復，不能標為全站通過。
+草稿專項追加：[草稿頁面複核與修改建議](USERS_CLOUD_DRAFT_PERMISSION_AUDIT_29102026.md)。IQC 已確認僅保存／送審／撤回缺按鈕，以及還原可越過 delete 格造成草稿軟刪除；尚未修復。
+
+前輪實測：[設定後各頁面權限核對](USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md)。604 次共用函式比對、600 次目的頁判定、87 組流程權限、11 個撤權會話及 IQC 實際頁面；已確認落差未修復，不能標為全站通過。
 
 基準及驗收限制見 [主報告](USERS_CLOUD_29102026.md)。catalog 為 `public/process/access-policy.mjs`，27 列、151 個有效格。角色矩陣與個別矩陣沿用同一 catalog，未新增權限鍵。
 
