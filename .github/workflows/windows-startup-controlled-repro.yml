@@ -55,7 +55,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/sites-ci-preflight.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Build guarded source once (reference artifact must still match)
+      - name: Build guarded equivalent source once (record immutable artifact manifest)
         working-directory: source
         run: node scripts/local-build.mjs
       - name: Bounded original fixture reproduction (stop at first failure)

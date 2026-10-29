@@ -17,12 +17,25 @@ export function compareSourceTrees(reference,current){
  for(const [name,item]of before)if(DIAGNOSTIC_FILES.includes(name)||after.get(name)?.mode!==item.mode||after.get(name)?.blob!==item.blob)return false;
  return DIAGNOSTIC_FILES.every(name=>after.get(name)?.mode==='100644');
 }
+// Hash the normally built, complete dist tree once; recheck before/after each instance.
+// This is a source-equivalent rebuild, not a claim to possess the old CI binary.
+export function inspectBuild(sourceDir){
+ const root=path.join(sourceDir,'dist'),manifest=createHash('sha256');let buildFiles=0,buildBytes=0,distSha256=null;
+ const walk=(directory,relative='')=>{const parent=fs.lstatSync(directory);if(!parent.isDirectory()||parent.isSymbolicLink())throw Error('BUILD_DIRECTORY_INVALID');
+  for(const name of fs.readdirSync(directory).sort()){const file=path.join(directory,name),rel=relative?relative+'/'+name:name,stat=fs.lstatSync(file);
+   if(stat.isSymbolicLink())throw Error('BUILD_SYMLINK_REFUSED');if(stat.isDirectory()){walk(file,rel);continue;}
+   if(!stat.isFile()||stat.size>64*1024*1024||++buildFiles>10000||(buildBytes+=stat.size)>512*1024*1024)throw Error('BUILD_FILE_BOUND');
+   const bytes=fs.readFileSync(file);if(bytes.length!==stat.size)throw Error('BUILD_CHANGED_DURING_READ');const digest=hash(bytes);manifest.update(rel+'\0'+bytes.length+'\0'+digest+'\n');if(rel==='server/index.js')distSha256=digest;
+  }
+ };walk(root);if(!distSha256)throw Error('BUILD_ENTRY_MISSING');return{distSha256,buildManifestSha256:manifest.digest('hex'),buildFiles,buildBytes};
+}
+export function sameBuild(a,b){return !!a&&!!b&&['distSha256','buildManifestSha256','buildFiles','buildBytes'].every(key=>a[key]===b[key]);}
 export function inspectSource(sourceDir){
  const git=(...args)=>execFileSync('git',['-C',sourceDir,...args],{encoding:'utf8',timeout:10000,maxBuffer:LIMIT.outputBytes,stdio:['ignore','pipe','pipe']}).trim();
  const test=fs.readFileSync(path.join(sourceDir,PIN.test)),modules=fs.lstatSync(path.join(sourceDir,'node_modules'));
  const dependencies=modules.isDirectory()&&!modules.isSymbolicLink()&&[['miniflare','4.20260515.0'],['workerd','1.20260515.1'],['undici','7.30.1']].every(([name,version])=>JSON.parse(fs.readFileSync(path.join(sourceDir,'node_modules',name,'package.json'),'utf8')).version===version);
  git('merge-base','--is-ancestor',PIN.commit,'HEAD');
- return{head:git('rev-parse','HEAD'),tree:git('rev-parse','HEAD^{tree}'),eventHead:process.env.GITHUB_SHA,programCommit:process.env.PROCESS_PROGRAM_COMMIT,referenceTree:git('rev-parse',PIN.commit+'^{tree}'),runtimeSourceExact:compareSourceTrees(git('ls-tree','-rz',PIN.commit),git('ls-tree','-rz','HEAD')),clean:git('status','--porcelain','--untracked-files=no')==='',testSha256:normalizedSourceHash(test),testRawSha256:hash(test),distSha256:hash(fs.readFileSync(path.join(sourceDir,'dist/server/index.js'))),dependencies};
+ return{head:git('rev-parse','HEAD'),tree:git('rev-parse','HEAD^{tree}'),eventHead:process.env.GITHUB_SHA,programCommit:process.env.PROCESS_PROGRAM_COMMIT,referenceTree:git('rev-parse',PIN.commit+'^{tree}'),runtimeSourceExact:compareSourceTrees(git('ls-tree','-rz',PIN.commit),git('ls-tree','-rz','HEAD')),clean:git('status','--porcelain','--untracked-files=no')==='',testSha256:normalizedSourceHash(test),testRawSha256:hash(test),...inspectBuild(sourceDir),dependencies};
 }
 export function sourceVerdict(value){
  if(!value||typeof value!=='object')return'SOURCE_INSPECTION_FAILED';
@@ -30,11 +43,11 @@ export function sourceVerdict(value){
  if(value.referenceTree!==PIN.tree||value.runtimeSourceExact!==true)return'RUNTIME_REFERENCE_MISMATCH';
  if(value.testSha256!==PIN.testSha256)return'TEST_SOURCE_MISMATCH';
  if(value.dependencies!==true)return'DEPENDENCY_MISMATCH';
- if(value.distSha256!==PIN.distSha256)return'BUILD_HASH_MISMATCH';
+ if(!hex(value.distSha256,64)||!hex(value.buildManifestSha256,64)||!integer(value.buildFiles,1,10000)||!integer(value.buildBytes,1,512*1024*1024))return'BUILD_MANIFEST_INVALID';
  return null;
 }
 // Parse the last original JSON report, then rebuild only the fixed safe schema.
-export function parseReport(stdout){
+export function parseReport(stdout,expectedBuildSha256=PIN.distSha256){
  const line=stdout.toString('utf8').trimEnd().split(/\r?\n/).at(-1);let raw;
  try{raw=JSON.parse(line);}catch{return{reason:'MALFORMED_REPORT'};}
  if(!raw||typeof raw!=='object'||!['PASS_COMPILED_STARTUP_SUPPLEMENT','FAIL_COMPILED_STARTUP_SUPPLEMENT'].includes(raw.status)||!integer(raw.cases,0,7)||typeof raw.disposed!=='boolean'||!(hex(raw.buildEntrySha256,64)||raw.buildEntrySha256===undefined&&raw.status==='FAIL_COMPILED_STARTUP_SUPPLEMENT'))return{reason:'MALFORMED_REPORT'};
@@ -55,7 +68,7 @@ export function parseReport(stdout){
   rows.push(row);
  }
  report.transport={scope:t.scope,runtimeExit:t.runtimeExit,observerFault:t.observerFault,unsubscribed:t.unsubscribed,rows};
- if(report.buildEntrySha256!==null&&report.buildEntrySha256!==PIN.distSha256)return{report,reason:'BUILD_HASH_MISMATCH'};
+ if(report.buildEntrySha256!==null&&report.buildEntrySha256!==expectedBuildSha256)return{report,reason:'BUILD_HASH_MISMATCH'};
  if(!report.disposed)return{report,reason:'CLEANUP_UNCONFIRMED'};
  if(t.observerFault||!t.unsubscribed||rows.some(r=>r.evidence!=='observed_client_events'||r.ambiguous||r.invalid||r.created!==1||r.fetch==='resolved'&&(r.headerWrites!==1||r.responseHeaders!==1||r.socketId===null)||r.body==='resolved'&&(r.bodySent!==1||r.responseComplete!==1)||r.fetch==='rejected'&&r.errors===0||r.bodySent>0&&r.sentBytes!==r.expectedBodyBytes))return{report,reason:'OBSERVATION_INCONCLUSIVE'};
  if(report.status==='FAIL_COMPILED_STARTUP_SUPPLEMENT')return{report,reason:'FIXTURE_FAILURE'};
@@ -80,21 +93,24 @@ export function runNativeChild(sourceDir,{spawnChild=spawn,setTimer=setTimeout,c
   timerHandles.watchdog=setTimer(()=>{timedOut=true;terminate();},LIMIT.timeoutMs);
  });
 }
-export async function runControlled({sourceDir,platform=process.platform,inspect=inspectSource,runChild=runNativeChild,persist=()=>{}}){
- const summary={kind:'WINDOWS_STARTUP_CONTROLLED_REPRO',status:'STOPPED',reason:null,pin:{...PIN},limits:{...LIMIT},iterations:[],firstFailure:null,attemptsStarted:0,requestUpperBound:0,observedRequestRows:0};
+export async function runControlled({sourceDir,platform=process.platform,inspect=inspectSource,inspectArtifact=inspectBuild,runChild=runNativeChild,persist=()=>{}}){
+ const summary={kind:'WINDOWS_STARTUP_CONTROLLED_REPRO',status:'STOPPED',reason:null,buildContract:'SOURCE_EQUIVALENT_REBUILD_NOT_OLD_BINARY_REPLAY',referenceDifference:'VINEXT_RANDOM_BUILD_AND_RSC_IDS_EXIST_OLD_BINARY_UNAVAILABLE_NO_EXCLUSIVE_DIFF_PROOF',pin:{...PIN},limits:{...LIMIT},iterations:[],firstFailure:null,attemptsStarted:0,requestUpperBound:0,observedRequestRows:0};
  const stop=(reason,iteration=null)=>{summary.reason=reason;if(summary.firstFailure===null)summary.firstFailure={reason,iteration};return summary;};
  if(platform!=='win32')return stop('WINDOWS_REQUIRED');
  if(typeof sourceDir!=='string'||!path.isAbsolute(sourceDir))return stop('ABSOLUTE_SOURCE_REQUIRED');
  let source;try{source=await Promise.resolve(inspect(sourceDir));}catch{return stop('SOURCE_INSPECTION_FAILED');}
- summary.source={};for(const key of ['head','tree','eventHead','programCommit','referenceTree','testSha256','testRawSha256','distSha256'])if(hex(source?.[key],['head','tree','eventHead','programCommit','referenceTree'].includes(key)?40:64))summary.source[key]=source[key];
+ summary.source={};for(const key of ['head','tree','eventHead','programCommit','referenceTree','testSha256','testRawSha256','distSha256','buildManifestSha256'])if(hex(source?.[key],['head','tree','eventHead','programCommit','referenceTree'].includes(key)?40:64))summary.source[key]=source[key];
+ for(const key of ['buildFiles','buildBytes'])if(integer(source?.[key],1,512*1024*1024))summary.source[key]=source[key];
  summary.source.runtimeSourceExact=source?.runtimeSourceExact===true;summary.source.referenceArtifactExact=source?.distSha256===PIN.distSha256;
  const mismatch=sourceVerdict(source);if(mismatch)return stop(mismatch);
  for(let iteration=1;iteration<=LIMIT.iterations;iteration++){
+  let before;try{before=await Promise.resolve(inspectArtifact(sourceDir));}catch{return stop('BUILD_RECHECK_FAILED',iteration);}if(!sameBuild(source,before))return stop('BUILD_CHANGED_BEFORE_INSTANCE',iteration);
   summary.attemptsStarted++;summary.requestUpperBound+=43;let child;
   try{child=await runChild(sourceDir);}catch{return stop('CHILD_RUNNER_FAILED',iteration);}
   if(!child||!Buffer.isBuffer(child.stdout)||!integer(child.stdoutBytes,0,LIMIT.outputBytes)||!integer(child.stderrBytes,0,LIMIT.outputBytes)||child.stdoutBytes+child.stderrBytes>LIMIT.outputBytes||!hex(child.stdoutSha256,64)||!hex(child.stderrSha256,64)||child.stdoutBytes!==child.stdout.length||child.stdoutSha256!==hash(child.stdout)||['signaled','timedOut','overflow','spawnError','closed','exited','killRequested'].some(key=>typeof child[key]!=='boolean'))return stop('MALFORMED_CHILD_RESULT',iteration);
-  const parsed=parseReport(child.stdout),record={iteration,exitCode:integer(child.exitCode,0,255)?child.exitCode:null,signaled:child.signaled===true,stdoutBytes:child.stdoutBytes,stderrBytes:child.stderrBytes,stdoutSha256:child.stdoutSha256,stderrSha256:child.stderrSha256,timedOut:child.timedOut===true,overflow:child.overflow===true,spawnError:child.spawnError===true,closed:child.closed===true,exited:child.exited===true,killRequested:child.killRequested===true,descendantCleanup:'not_independently_observed',report:parsed.report??null};
-  const reason=record.timedOut?'CHILD_TIMEOUT':record.overflow?'OUTPUT_LIMIT':record.spawnError?'CHILD_SPAWN_FAILED':record.killRequested?'OWNED_CHILD_TERMINATION_REQUESTED':!record.exited?'CHILD_EXIT_UNCONFIRMED':!record.closed?'CHILD_CLOSE_UNCONFIRMED':record.signaled?'CHILD_SIGNALED':record.exitCode!==0?'CHILD_NONZERO':parsed.reason;
+  const parsed=parseReport(child.stdout,source.distSha256),record={iteration,exitCode:integer(child.exitCode,0,255)?child.exitCode:null,signaled:child.signaled===true,stdoutBytes:child.stdoutBytes,stderrBytes:child.stderrBytes,stdoutSha256:child.stdoutSha256,stderrSha256:child.stderrSha256,timedOut:child.timedOut===true,overflow:child.overflow===true,spawnError:child.spawnError===true,closed:child.closed===true,exited:child.exited===true,killRequested:child.killRequested===true,descendantCleanup:'not_independently_observed',report:parsed.report??null};
+  let reason=record.timedOut?'CHILD_TIMEOUT':record.overflow?'OUTPUT_LIMIT':record.spawnError?'CHILD_SPAWN_FAILED':record.killRequested?'OWNED_CHILD_TERMINATION_REQUESTED':!record.exited?'CHILD_EXIT_UNCONFIRMED':!record.closed?'CHILD_CLOSE_UNCONFIRMED':record.signaled?'CHILD_SIGNALED':record.exitCode!==0?'CHILD_NONZERO':parsed.reason;
+  let after;try{after=await Promise.resolve(inspectArtifact(sourceDir));record.buildRecheck=sameBuild(source,after)?'UNCHANGED':'CHANGED';}catch{record.buildRecheck='UNAVAILABLE';}if(record.buildRecheck!=='UNCHANGED'&&!reason)reason='BUILD_CHANGED_OR_UNAVAILABLE_AFTER_INSTANCE';
   record.reason=reason;record.reportReason=parsed.reason;summary.iterations.push(record);summary.observedRequestRows+=record.report?.transport?.rows.length??0;
   if(reason)stop(reason,iteration);
   try{await Promise.resolve(persist(record));}catch{if(!reason)stop('EVIDENCE_WRITE_FAILED',iteration);return summary;}
