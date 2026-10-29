@@ -1,0 +1,14 @@
+{
+  "github/cloud/users-permissions-29102026": {
+    "sha": "1f88a7e24936fa63b387eb40637e32aa0d892c6d",
+    "exit": 1,
+    "result": "c1456b7cd47f2d2610a84918c1e1eb36815e0284\nAI_CONTEXT/CHANGELOG.md\nAI_CONTEXT/modules/RUNTIME.md\nHANDOFF.md\n\nAuto-merging AI_CONTEXT/CHANGELOG.md\nCONFLICT (content): Merge conflict in AI_CONTEXT/CHANGELOG.md\nAuto-merging AI_CONTEXT/modules/RUNTIME.md\nCONFLICT (content): Merge conflict in AI_CONTEXT/modules/RUNTIME.md\nAuto-merging HANDOFF.md\nCONFLICT (content): Merge conflict in HANDOFF.md\nAuto-merging public/process/index.html\n",
+    "error": ""
+  },
+  "github/codex/web-feedback-helper-20261029": {
+    "sha": "2b05c6fc12d4fa8695e726c592ea6f405adb35ab",
+    "exit": 1,
+    "result": "0603546c954946586aa2607991faf6d0092803d5\nAI_CONTEXT/CHANGELOG.md\nHANDOFF.md\npublic/process/index.html\n\nAuto-merging AI_CONTEXT/CHANGELOG.md\nCONFLICT (content): Merge conflict in AI_CONTEXT/CHANGELOG.md\nAuto-merging AI_CONTEXT/DATA_MODEL.md\nAuto-merging HANDOFF.md\nCONFLICT (content): Merge conflict in HANDOFF.md\nAuto-merging public/process/index.html\nCONFLICT (content): Merge conflict in public/process/index.html\n",
+    "error": ""
+  }
+}

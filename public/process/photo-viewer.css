@@ -1,0 +1,7 @@
+/* Only the shared photo viewer; upload bytes and other page layouts are unchanged. */
+.media-lightbox figure{grid-template-columns:minmax(0,1fr)}
+.media-lightbox .media-lightbox-viewport{width:100%;height:100%;min-width:0;min-height:0;overflow:auto;display:grid;place-items:center;overscroll-behavior:contain;overflow-anchor:none}
+.media-lightbox .media-lightbox-viewport.is-expanded{display:block;place-items:start}
+.media-lightbox .media-lightbox-viewport.is-expanded img{display:block;place-self:start;max-width:none;max-height:none;width:auto;height:auto}
+.media-lightbox .media-lightbox-zoom{position:absolute;z-index:2;left:14px;top:14px;min-height:44px;padding:8px 14px;border:1px solid #ffffff73;border-radius:6px;background:#0a1f26ed;color:#fff;font:inherit;cursor:pointer}
+.media-lightbox .media-lightbox-zoom:focus-visible,.media-lightbox .media-lightbox-viewport:focus-visible{outline:3px solid #55d9d0;outline-offset:-3px}

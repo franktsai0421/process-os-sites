@@ -1,0 +1,24 @@
+{
+  "status": "PASS_PROPOSED_INDEX",
+  "preview": "929bed7b4929d974338ced74dbecafd2420d48a5",
+  "permissions": "1f88a7e24936fa63b387eb40637e32aa0d892c6d",
+  "feedback": "2b05c6fc12d4fa8695e726c592ea6f405adb35ab",
+  "scope": "Proposal only; no foreign task code merged into task branches",
+  "noLostAsset": true,
+  "conflictsResolvedInProposal": true,
+  "preserved": {
+    "master-data.js": "20261029-flowreview1",
+    "master-review.js": "20261029-flowreview1",
+    "bom-workspace.js": "20261029-flowreview1",
+    "app.js": "20261029-photo2",
+    "photo-viewer.css": "20261029-photo2",
+    "process-equipment.js": "20261029-preview2",
+    "fqc-master.js": "20261029-preview2",
+    "user-access.js": "20261029-users-load3",
+    "user-access-initial-read.js": "20261029-users-load2",
+    "web-feedback-entry.js": "20261029-feedback4"
+  },
+  "baseIndexSha256": "f9f7b023d6655667aaa8b6edb863f2976be38ef1a68bfd76ca122d2f365b56e3",
+  "patchApplies": true,
+  "photoCandidate": "88ccd81"
+}
