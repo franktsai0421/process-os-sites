@@ -80,7 +80,7 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
       const savedId=current.saved.id,generation=current.generation,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
-      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
+      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{dirty:!equal(current.saved.content,current.working),savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
       if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       if(flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error('SAVED_VERSION_CHANGED_RECONFIRM');
       return execute(scope,'submit',{savedId,reason});

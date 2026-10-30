@@ -161,7 +161,7 @@
     return;
   }
   async function saveDraft() {
-    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');render();return true;}catch(error){toast(displayDraftError(error));return false;}
+    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');renderMaster();return true;}catch(error){toast(displayDraftError(error));return false;}
   }
   function validateCatalog(catalog) {
     const errors = [],

@@ -212,7 +212,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-master-legacy-format-retention.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/lines-integration-compatibility.test.mjs
+          node --test tests/lines-integration-compatibility.test.mjs tests/lines-submit-snapshot-integration.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-master-active-catalog.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
