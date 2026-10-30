@@ -1,5 +1,32 @@
 {
-  "scope": "Synthetic Chromium controller/API retry acceptance, not full application shell",
+  "phase": "after",
+  "data": "synthetic, 1 product and 1 stage per scope; scope timing includes C then AB roundtrip",
+  "timings": {
+    "scope-C": {
+      "count": 5,
+      "medianMs": 33.86015700000007,
+      "maxMs": 85.979374,
+      "samplesMs": [
+        85.979374,
+        33.305955999999924,
+        49.77148699999998,
+        33.86015700000007,
+        32.71902399999999
+      ]
+    },
+    "open-stage-edit": {
+      "count": 5,
+      "medianMs": 67.16624999999999,
+      "maxMs": 83.16433800000004,
+      "samplesMs": [
+        83.16433800000004,
+        65.7691870000001,
+        67.16624999999999,
+        67.04891700000007,
+        82.31680199999983
+      ]
+    }
+  },
   "passed": [
     "late scope response cannot replace destination",
     "failed scope read retains selection; retry succeeds",
@@ -8,6 +35,7 @@
     "double apply with lost committed response recovers receipt, inserts once; active unchanged",
     "new unused stage deletion read back",
     "line children retained",
+    "server reference rejection displays authorized operation and navigation link without deleting stage",
     "390px Chinese/Vietnamese no horizontal document overflow"
   ],
   "errors": []

@@ -105,12 +105,25 @@
       return `<li>${h(label)} ${h(note)} <small>${h(actor)} · ${stamp(e.at)}</small></li>`;
     }
     const status = value => ({draft:t('草稿 · 未送審','Bản nháp · Chưa gửi'),pending:t('主管審核中','Đang chờ duyệt'),approved:t('已核准','Đã duyệt'),superseded:t('歷史核准','Bản đã duyệt trước')})[value] || value;
+    function showStageReferences(details){
+      document.querySelector('#master-stage-references')?.remove();
+      const dialog=document.createElement('dialog');dialog.id='master-stage-references';dialog.className='master-edit-dialog';
+      const body=document.createElement('div');body.className='master-dialog-body';
+      const heading=document.createElement('h2');heading.textContent=t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.');body.append(heading);
+      const list=document.createElement('ul');
+      for(const row of details?.references||[]){const item=document.createElement('li');item.textContent=`${row.stage} · ${row.source} · ${row.id} `;
+        if(row.resolveUrl?.startsWith('/process/?')){const link=document.createElement('a');link.href=row.resolveUrl;link.target='_blank';link.rel='noopener';link.textContent=t('前往查看','Mở để xem');item.append(link);}list.append(item);}
+      body.append(list);
+      if(details?.hidden||details?.truncated){const note=document.createElement('p');note.textContent=t('另有未顯示的引用；請由有權限的人員協助核對。','Còn tham chiếu chưa hiển thị; hãy nhờ người có quyền kiểm tra.');body.append(note);}
+      const close=document.createElement('button');close.type='button';close.className='button ghost';close.textContent=t('關閉','Đóng');close.onclick=()=>dialog.close();body.append(close);dialog.append(body);
+      dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();close.focus();
+    }
     async function commit(label,note,action) {
       if (!editable()) return false;
       const before = copy(selected().snapshot), history = copy(selected().history || []), updated = selected().updatedAt;
       try { action(editable()); record(selected(),label,note); if(state.masterValidationErrors?.length)state.masterValidationErrors=validateCatalog(editable()); await persist(); return true; }
       catch(error) { const dialog=document.querySelector('#master-edit-dialog');if(dialog&&error.rejectedDraftPaths?.length)dialog.rejectedDraftPaths=[...(dialog.rejectedDraftPaths||[]),...error.rejectedDraftPaths];selected().snapshot = before; selected().history = history; selected().updatedAt = updated;
-        if(error.message==='STAGE_IN_USE')window.alert(t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.')+'\n'+(error.details?.references||[]).slice(0,20).map(r=>`${r.stage} · ${r.source} · ${r.id}`).join('\n'));
+        if(error.message==='STAGE_IN_USE')showStageReferences(error.details);
         else if(['PROCESS_TEMPLATE_SCOPE_BUSY','LINKED_PROCESS_CASE_PENDING','PROCESS_SOURCE_VERSION_CHANGED'].includes(error.message)){
           const message=t('此工段操作會變更流程範本，但 PROCESS 有草稿或待審案件；請先處理。其他 AB／C 修改不受影響。','Thao tác này thay đổi mẫu quy trình, nhưng PROCESS có bản nháp hoặc hồ sơ chờ duyệt. Hãy xử lý trước; vẫn có thể sửa dữ liệu AB/C khác.');
           const target=document.querySelector('#master-edit-dialog .master-dialog-error')||document.querySelector('#data-content');

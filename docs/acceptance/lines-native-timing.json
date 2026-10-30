@@ -1,0 +1,2305 @@
+{
+  "fixture": {
+    "AB": {
+      "lines": 2,
+      "products": 2,
+      "initialStages": 2
+    },
+    "C": {
+      "lines": 1,
+      "products": 1,
+      "initialStages": 1
+    }
+  },
+  "samplesPerVersion": 5,
+  "execution": "main five sequential runs, then candidate five sequential runs; same local native workerd D1/R2 Chromium; no concurrent builds",
+  "scope": "browser end-to-end automation; not live-site, API-only or DB-only timing",
+  "summary": [
+    {
+      "label": "first-entry",
+      "beforeMedian": 875.2,
+      "beforeMax": 1690.1,
+      "afterMedian": 809.7,
+      "afterMax": 1258.1,
+      "medianChangePercent": 7.5
+    },
+    {
+      "label": "AB:begin",
+      "beforeMedian": 60.4,
+      "beforeMax": 105.0,
+      "afterMedian": 67.7,
+      "afterMax": 72.8,
+      "medianChangePercent": -12.2
+    },
+    {
+      "label": "AB:add-apply",
+      "beforeMedian": 134.4,
+      "beforeMax": 210.8,
+      "afterMedian": 163.2,
+      "afterMax": 218.1,
+      "medianChangePercent": -21.5
+    },
+    {
+      "label": "AB:save",
+      "beforeMedian": 70.3,
+      "beforeMax": 77.5,
+      "afterMedian": 64.4,
+      "afterMax": 78.5,
+      "medianChangePercent": 8.3
+    },
+    {
+      "label": "AB:submit",
+      "beforeMedian": 161.8,
+      "beforeMax": 204.6,
+      "afterMedian": 163.5,
+      "afterMax": 165.5,
+      "medianChangePercent": -1.1
+    },
+    {
+      "label": "AB:return",
+      "beforeMedian": 120.6,
+      "beforeMax": 258.3,
+      "afterMedian": 108.1,
+      "afterMax": 113.8,
+      "medianChangePercent": 10.4
+    },
+    {
+      "label": "AB:resubmit",
+      "beforeMedian": 163.9,
+      "beforeMax": 178.5,
+      "afterMedian": 155.3,
+      "afterMax": 174.8,
+      "medianChangePercent": 5.3
+    },
+    {
+      "label": "AB:withdraw",
+      "beforeMedian": 105.6,
+      "beforeMax": 106.8,
+      "afterMedian": 106.4,
+      "afterMax": 121.7,
+      "medianChangePercent": -0.8
+    },
+    {
+      "label": "AB:submit-final",
+      "beforeMedian": 148.0,
+      "beforeMax": 159.3,
+      "afterMedian": 148.9,
+      "afterMax": 180.2,
+      "medianChangePercent": -0.6
+    },
+    {
+      "label": "AB:approve",
+      "beforeMedian": 168.8,
+      "beforeMax": 175.0,
+      "afterMedian": 159.5,
+      "afterMax": 175.5,
+      "medianChangePercent": 5.5
+    },
+    {
+      "label": "C:begin",
+      "beforeMedian": 80.3,
+      "beforeMax": 128.8,
+      "afterMedian": 73.4,
+      "afterMax": 79.2,
+      "medianChangePercent": 8.5
+    },
+    {
+      "label": "C:add-apply",
+      "beforeMedian": 141.1,
+      "beforeMax": 190.4,
+      "afterMedian": 134.8,
+      "afterMax": 186.2,
+      "medianChangePercent": 4.4
+    },
+    {
+      "label": "C:save",
+      "beforeMedian": 59.3,
+      "beforeMax": 74.9,
+      "afterMedian": 58.6,
+      "afterMax": 73.8,
+      "medianChangePercent": 1.1
+    },
+    {
+      "label": "C:submit",
+      "beforeMedian": 166.4,
+      "beforeMax": 181.7,
+      "afterMedian": 153.1,
+      "afterMax": 171.0,
+      "medianChangePercent": 8.0
+    },
+    {
+      "label": "C:return",
+      "beforeMedian": 137.9,
+      "beforeMax": 148.1,
+      "afterMedian": 109.2,
+      "afterMax": 123.7,
+      "medianChangePercent": 20.8
+    },
+    {
+      "label": "C:resubmit",
+      "beforeMedian": 169.2,
+      "beforeMax": 193.6,
+      "afterMedian": 170.4,
+      "afterMax": 171.8,
+      "medianChangePercent": -0.7
+    },
+    {
+      "label": "C:withdraw",
+      "beforeMedian": 110.6,
+      "beforeMax": 213.4,
+      "afterMedian": 102.1,
+      "afterMax": 123.4,
+      "medianChangePercent": 7.7
+    },
+    {
+      "label": "C:submit-final",
+      "beforeMedian": 154.5,
+      "beforeMax": 186.7,
+      "afterMedian": 144.9,
+      "afterMax": 160.2,
+      "medianChangePercent": 6.2
+    },
+    {
+      "label": "C:approve",
+      "beforeMedian": 160.2,
+      "beforeMax": 204.4,
+      "afterMedian": 159.0,
+      "afterMax": 175.2,
+      "medianChangePercent": 0.7
+    }
+  ],
+  "before": [
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 853.1830749999999
+        },
+        {
+          "label": "AB:begin",
+          "ms": 58.32222999999976
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 134.35776399999986
+        },
+        {
+          "label": "AB:save",
+          "ms": 62.38420700000006
+        },
+        {
+          "label": "AB:submit",
+          "ms": 159.44411100000025
+        },
+        {
+          "label": "AB:return",
+          "ms": 120.641482
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 158.66590200000064
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 99.6394680000003
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 147.9865149999996
+        },
+        {
+          "label": "AB:approve",
+          "ms": 159.39760099999967
+        },
+        {
+          "label": "C:begin",
+          "ms": 73.22426199999973
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 141.07429499999944
+        },
+        {
+          "label": "C:save",
+          "ms": 72.89177299999938
+        },
+        {
+          "label": "C:submit",
+          "ms": 165.93849000000046
+        },
+        {
+          "label": "C:return",
+          "ms": 137.90268899999955
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 193.60012499999993
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 110.63207800000055
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 186.67122000000018
+        },
+        {
+          "label": "C:approve",
+          "ms": 156.71969399999944
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+      "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 1690.053981
+        },
+        {
+          "label": "AB:begin",
+          "ms": 105.00132399999984
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 210.83467299999938
+        },
+        {
+          "label": "AB:save",
+          "ms": 77.51160899999923
+        },
+        {
+          "label": "AB:submit",
+          "ms": 204.63913500000035
+        },
+        {
+          "label": "AB:return",
+          "ms": 147.890942
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 163.91749299999992
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 106.31129899999996
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 156.48074799999995
+        },
+        {
+          "label": "AB:approve",
+          "ms": 168.77717500000017
+        },
+        {
+          "label": "C:begin",
+          "ms": 82.91577900000084
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 127.59254999999939
+        },
+        {
+          "label": "C:save",
+          "ms": 57.611972000000605
+        },
+        {
+          "label": "C:submit",
+          "ms": 181.70534600000065
+        },
+        {
+          "label": "C:return",
+          "ms": 148.11915899999985
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 188.84097699999984
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 213.43748100000084
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 131.828250999999
+        },
+        {
+          "label": "C:approve",
+          "ms": 204.3662179999992
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+      "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 875.235177
+        },
+        {
+          "label": "AB:begin",
+          "ms": 58.038356999999905
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 125.14167999999972
+        },
+        {
+          "label": "AB:save",
+          "ms": 70.26457399999981
+        },
+        {
+          "label": "AB:submit",
+          "ms": 161.78484799999978
+        },
+        {
+          "label": "AB:return",
+          "ms": 258.3464780000004
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 164.64777500000037
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 105.5935870000003
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 159.34701399999994
+        },
+        {
+          "label": "AB:approve",
+          "ms": 174.27236399999947
+        },
+        {
+          "label": "C:begin",
+          "ms": 80.2607710000002
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 151.03059699999994
+        },
+        {
+          "label": "C:save",
+          "ms": 74.85434600000008
+        },
+        {
+          "label": "C:submit",
+          "ms": 166.43811900000037
+        },
+        {
+          "label": "C:return",
+          "ms": 122.55899700000009
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 167.29433400000016
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 174.769945
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 154.45619699999952
+        },
+        {
+          "label": "C:approve",
+          "ms": 160.24935200000073
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+      "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 782.2325370000001
+        },
+        {
+          "label": "AB:begin",
+          "ms": 60.36389300000019
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 148.55216000000019
+        },
+        {
+          "label": "AB:save",
+          "ms": 64.75160400000004
+        },
+        {
+          "label": "AB:submit",
+          "ms": 162.4087370000002
+        },
+        {
+          "label": "AB:return",
+          "ms": 106.06793500000003
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 153.73900199999935
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 106.81761499999993
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 142.8180740000007
+        },
+        {
+          "label": "AB:approve",
+          "ms": 175.02184000000034
+        },
+        {
+          "label": "C:begin",
+          "ms": 71.58635099999992
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 190.3611609999998
+        },
+        {
+          "label": "C:save",
+          "ms": 55.20749100000012
+        },
+        {
+          "label": "C:submit",
+          "ms": 168.94435800000065
+        },
+        {
+          "label": "C:return",
+          "ms": 107.52248599999984
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 168.30792399999882
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 91.47905899999932
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 155.83223100000032
+        },
+        {
+          "label": "C:approve",
+          "ms": 141.16855399999986
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+      "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 1335.965067
+        },
+        {
+          "label": "AB:begin",
+          "ms": 84.71973099999968
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 133.30589800000007
+        },
+        {
+          "label": "AB:save",
+          "ms": 77.15315999999984
+        },
+        {
+          "label": "AB:submit",
+          "ms": 161.66321200000039
+        },
+        {
+          "label": "AB:return",
+          "ms": 108.99276000000009
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 178.4962969999997
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 97.90979599999991
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 143.73808100000042
+        },
+        {
+          "label": "AB:approve",
+          "ms": 160.30049300000064
+        },
+        {
+          "label": "C:begin",
+          "ms": 128.83648999999969
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 115.269765
+        },
+        {
+          "label": "C:save",
+          "ms": 59.255317999999534
+        },
+        {
+          "label": "C:submit",
+          "ms": 162.1476049999992
+        },
+        {
+          "label": "C:return",
+          "ms": 138.00947000000087
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 169.20538000000124
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 97.14826400000129
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 146.04235400000107
+        },
+        {
+          "label": "C:approve",
+          "ms": 160.15375200000017
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+      "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+    }
+  ],
+  "after": [
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 1258.1220790000002
+        },
+        {
+          "label": "AB:begin",
+          "ms": 67.74965100000009
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 218.11565100000007
+        },
+        {
+          "label": "AB:save",
+          "ms": 78.50274400000035
+        },
+        {
+          "label": "AB:submit",
+          "ms": 159.97540100000015
+        },
+        {
+          "label": "AB:return",
+          "ms": 113.81186100000014
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 156.79269999999997
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 97.4776550000006
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 148.924129
+        },
+        {
+          "label": "AB:approve",
+          "ms": 161.5997500000003
+        },
+        {
+          "label": "C:begin",
+          "ms": 72.24019099999987
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 134.83835100000033
+        },
+        {
+          "label": "C:save",
+          "ms": 58.59002200000032
+        },
+        {
+          "label": "C:submit",
+          "ms": 170.96451499999966
+        },
+        {
+          "label": "C:return",
+          "ms": 123.70196400000077
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 171.82720300000074
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 99.83322800000133
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 146.0624260000004
+        },
+        {
+          "label": "C:approve",
+          "ms": 141.7329119999995
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+      "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 824.9989240000002
+        },
+        {
+          "label": "AB:begin",
+          "ms": 68.522559
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 163.18083699999988
+        },
+        {
+          "label": "AB:save",
+          "ms": 64.4394440000001
+        },
+        {
+          "label": "AB:submit",
+          "ms": 163.54634499999975
+        },
+        {
+          "label": "AB:return",
+          "ms": 108.05879300000015
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 154.90643699999964
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 121.66684799999985
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 180.171061
+        },
+        {
+          "label": "AB:approve",
+          "ms": 143.1072119999999
+        },
+        {
+          "label": "C:begin",
+          "ms": 73.4392600000001
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 186.21739199999956
+        },
+        {
+          "label": "C:save",
+          "ms": 57.79088200000024
+        },
+        {
+          "label": "C:submit",
+          "ms": 167.1739660000003
+        },
+        {
+          "label": "C:return",
+          "ms": 109.22901900000033
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 166.16487099999995
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 104.66031999999996
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 144.30067999999937
+        },
+        {
+          "label": "C:approve",
+          "ms": 175.21704399999908
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+      "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 783.1539460000001
+        },
+        {
+          "label": "AB:begin",
+          "ms": 64.86777299999994
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 194.08038799999986
+        },
+        {
+          "label": "AB:save",
+          "ms": 63.17267300000003
+        },
+        {
+          "label": "AB:submit",
+          "ms": 165.52444700000024
+        },
+        {
+          "label": "AB:return",
+          "ms": 109.26345399999991
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 155.28835100000015
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 106.41345899999942
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 152.97322000000077
+        },
+        {
+          "label": "AB:approve",
+          "ms": 175.48165900000004
+        },
+        {
+          "label": "C:begin",
+          "ms": 72.18612800000028
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 176.50844099999995
+        },
+        {
+          "label": "C:save",
+          "ms": 73.77374700000018
+        },
+        {
+          "label": "C:submit",
+          "ms": 143.94709199999943
+        },
+        {
+          "label": "C:return",
+          "ms": 106.40231600000061
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 168.9045929999993
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 123.38177299999916
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 143.43504700000085
+        },
+        {
+          "label": "C:approve",
+          "ms": 159.11296800000127
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+      "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 763.2836770000001
+        },
+        {
+          "label": "AB:begin",
+          "ms": 65.7681419999999
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 144.60676700000022
+        },
+        {
+          "label": "AB:save",
+          "ms": 70.66194300000006
+        },
+        {
+          "label": "AB:submit",
+          "ms": 139.93402000000015
+        },
+        {
+          "label": "AB:return",
+          "ms": 106.87053899999955
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 174.76286700000037
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 116.52507699999933
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 145.3850309999998
+        },
+        {
+          "label": "AB:approve",
+          "ms": 158.75412799999958
+        },
+        {
+          "label": "C:begin",
+          "ms": 79.21788699999979
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 132.15634599999976
+        },
+        {
+          "label": "C:save",
+          "ms": 57.00994100000025
+        },
+        {
+          "label": "C:submit",
+          "ms": 153.1448989999999
+        },
+        {
+          "label": "C:return",
+          "ms": 121.92949399999998
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 170.41003
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 102.07913400000052
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 144.85707600000023
+        },
+        {
+          "label": "C:approve",
+          "ms": 142.2865899999997
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+      "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+    },
+    {
+      "status": "PASS",
+      "realData": false,
+      "checks": [
+        "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+        "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+      ],
+      "timings": [
+        {
+          "label": "first-entry",
+          "ms": 809.6985400000001
+        },
+        {
+          "label": "AB:begin",
+          "ms": 72.793451
+        },
+        {
+          "label": "AB:add-apply",
+          "ms": 145.744639
+        },
+        {
+          "label": "AB:save",
+          "ms": 62.494091000000026
+        },
+        {
+          "label": "AB:submit",
+          "ms": 163.614145
+        },
+        {
+          "label": "AB:return",
+          "ms": 105.60446599999977
+        },
+        {
+          "label": "AB:resubmit",
+          "ms": 134.85449700000026
+        },
+        {
+          "label": "AB:withdraw",
+          "ms": 105.73417300000074
+        },
+        {
+          "label": "AB:submit-final",
+          "ms": 145.5200249999998
+        },
+        {
+          "label": "AB:approve",
+          "ms": 159.4892600000003
+        },
+        {
+          "label": "C:begin",
+          "ms": 74.24918100000014
+        },
+        {
+          "label": "C:add-apply",
+          "ms": 133.97133899999972
+        },
+        {
+          "label": "C:save",
+          "ms": 58.936697999999524
+        },
+        {
+          "label": "C:submit",
+          "ms": 149.38117299999976
+        },
+        {
+          "label": "C:return",
+          "ms": 107.44091899999967
+        },
+        {
+          "label": "C:resubmit",
+          "ms": 171.4686670000001
+        },
+        {
+          "label": "C:withdraw",
+          "ms": 84.50589900000068
+        },
+        {
+          "label": "C:submit-final",
+          "ms": 160.15634200000022
+        },
+        {
+          "label": "C:approve",
+          "ms": 159.02134300000034
+        }
+      ],
+      "pageErrors": [],
+      "permissions": [
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "apply",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "save",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "submit",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "withdraw",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "reader",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "AB",
+          "action": "return",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "approve",
+          "status": 403
+        },
+        {
+          "id": "staff",
+          "scope": "C",
+          "action": "return",
+          "status": 403
+        }
+      ],
+      "ui": [
+        {
+          "width": 1366,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 1366,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "zh-Hant",
+          "cancel": true,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "lang": "vi",
+          "cancel": true,
+          "overflow": false
+        }
+      ],
+      "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+      "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+    }
+  ]
+}

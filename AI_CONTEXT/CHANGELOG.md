@@ -1,3 +1,7 @@
+## 2026-10-30 — 線別與工段隔離修復（未發布，PR 延後）
+
+移除重複新增線別入口；新舊 API 阻擋連帶刪除子工段；scope 延遲回應不能覆蓋離頁目的地；Apply 回滾後以 stable ID 重找資料修復「重試關窗但未保存」。引用仍完整阻擋刪除，僅明細按目前查看權限過濾，提供模組連結。完整原生 AB/C 審核、權限、斷線收據恢復、下游選單與雙語窄版通過；保留五輪前後量測的正負波動，不宣稱全面加速。提供可重現本機隔離預覽；公開預覽／實站與剩餘驗收仍受限。無資料遷移；未改既有資料，未通知 DOT、merge 或發布。詳見 [本次驗收](../docs/acceptance/LINES_CLOUD_30102026.md)。
+
 ## 2026-10-29 — 網頁問題回報／小幫手隔離修復（未發布）
 
 - 畫面與呈現優化（feedback7）：明細成功保存局部更新、保留圖片／控制項；交接按需展開完整原文，初始 3,456→192 節點，HTML 建立 9.4→0.8 ms，但整體交接約 149 ms 無明顯差異。新增明細／交接／鍵盤與雙語窄版驗證及可重現量測，詳見交付最新段落。
@@ -869,6 +873,3 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
   failure without altering transport storage, navigation, backend validation or deadlines.
 - Add focused deferred-transport regression, exact cache expectation and CI command.
   This entry is local candidate documentation, not publication/native acceptance.
-
-
-2026-10-30 未發布候選：線別新增入口移除、子工段刪除保護及範圍讀取離頁保護；驗收限制見 docs/acceptance/LINES_CLOUD_30102026.md。無 schema 遷移。

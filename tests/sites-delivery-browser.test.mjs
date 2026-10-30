@@ -22,7 +22,7 @@ try{
  function addPhotos(value){if(!value||typeof value!=='object')return;if(Array.isArray(value.parts)&&value.parts[0]){const first=value.parts[0];value.parts=photoRows.map((photo,i)=>({...structuredClone(first),id:i?'part'+i:first.id,code:'P'+(i+1),photos:[photo]}));}for(const[key,row]of Object.entries(value)){if(key==='mediaItems'&&Array.isArray(row))value[key]=row.map(()=>photoRows[0]);else if(key!=='parts')addPhotos(row);}}
  addPhotos(iqcControl);values.iqcMasterControl=JSON.stringify(iqcControl);
  const raw=await records.encodeRecordValues(bucket,values);await fixture.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,700,?,?)').bind(raw,'synthetic').run();
- const bundled=chromium.executablePath(),launchTarget=fs.existsSync(bundled)?{executablePath:bundled}:{channel:'chrome'};
+ const bundled=chromium.executablePath(),launchTarget=process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:fs.existsSync(bundled)?{executablePath:bundled}:{channel:'chrome'};
  browser=await chromium.launch({headless:true,...launchTarget,args:['--disable-background-networking','--disable-component-update','--no-first-run']});
  const origin=fixture.url.origin;
  async function context(actor,normalLogin=false,writeIQC=false){

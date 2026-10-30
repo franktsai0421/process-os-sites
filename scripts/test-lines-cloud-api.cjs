@@ -56,5 +56,18 @@ void (async()=>{try{
   const result=refs({masterDataControl:JSON.stringify({active:{AB:{products:[{code:'P',stages:['A-HIDDEN']}],categoryGroups:[{name:'G',defaultStages:['A-HIDDEN']}]}}}),processAuthoringControl:JSON.stringify({workflow:{working:{workspaces:[{id:'hidden',stages:{'A-HIDDEN':[{id:'op'}]}}]}}})},['A-HIDDEN']);
   assert.equal(result.total,3);assert(result.references.some(r=>r.id==='op'));
  });
+ await check('delete remains blocked while reference details follow editor view permission',async()=>{
+  const current=await state(),updatedUsers=JSON.parse(current.s.values.platformUsers);
+  updatedUsers.find(u=>u.id==='a').accessOverrides={'editor.view':false};updatedUsers.find(u=>u.id==='b').accessOverrides={'editor.view':true};
+  const values={...current.s.values,platformUsers:JSON.stringify(updatedUsers),approvalVersions:JSON.stringify([{id:'private-version',status:'approved',stages:{[stage.code]:[{id:'private-operation'}]}}])};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(JSON.stringify(values));
+  await post('AB','a',{action:'begin'});
+  const currentStage=(await state()).root.workflowScopes.AB.working.lines.find(l=>l.id===emptyLine.id).stages[0];
+  const path=['lines',{id:emptyLine.id},'stages',{id:currentStage.id}];
+  const detail={patches:[{op:'remove',path}],guards:[{path,value:currentStage}]};
+  const hidden=await run('AB','a','apply',detail,409);assert.equal(hidden.error,'STAGE_IN_USE');assert.equal(hidden.details.hidden,true);assert(!JSON.stringify(hidden).includes('private-operation'));assert(!JSON.stringify(hidden).includes('private-version'));
+  const visible=await run('AB','b','apply',detail,409);assert.equal(visible.error,'STAGE_IN_USE');assert(visible.details.references.some(r=>r.id==='private-operation'&&r.resolveUrl==='/process/?system=process&view=editor'));
+  assert((await state()).root.workflowScopes.AB.working.lines.find(l=>l.id===emptyLine.id).stages.length===1);
+ });
  console.log(JSON.stringify({status:'PASS',checks,synthetic:true}));
  }catch(e){console.error(e);process.exitCode=1;}finally{db.close();}})();

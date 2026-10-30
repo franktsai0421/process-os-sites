@@ -99,6 +99,6 @@ AB/C/PROCESS V3 scopes are separate; line/stage management shares AB/C. Linked r
 BOM 離頁依實際欄位差異、待送修改、未套用匯入與未確認保存判定；空修改模式不視為未存。有匯入差異須先套用／放棄才可保存，詳見[20261010檢查點](../../docs/local-integration/20261010-bom-navigation.md)。
 
 
-2026-10-30 線別工段候選：移除新增線別 UI，保留新增工段；線別含子工段時前後端阻擋刪除。範圍讀取只由仍有效的原頁面／身分回呼更新。完整驗收尚未完成，見 [本次交接](../../docs/acceptance/LINES_CLOUD_30102026.md)。
+2026-10-30 線別工段候選：移除新增線別 UI，保留新增工段；線別含子工段時前端及新／舊 API 阻擋刪除。scope 回應只由仍有效的原頁面／身分採用。Apply 失敗後重試重新解析 stable ID；原工段已變更則拒絕覆寫。引用完整參與刪除阻擋，回傳明細才按最新模組查看權限過濾；無權內容只顯示一般提示，有權連結導向相應模組。
 
-2026-10-30 續作：工段 Apply 被拒絕後回滾會替換 snapshot；editStage 重試改以 stable ID 重新解析目標，若原工段已變更則拒絕覆寫。隔離新增／改名失敗重試與遺失回應 receipt 恢復已驗證，詳見本次交接。
+原生 D1/R2 完整 app 的 AB/C 審核、Save/Submit 遺失回應查收據、下游工段選單、授權／拒絕、雙語窄版與額外五輪量測已驗證。公開預覽與其餘驗收未完成，使用者已延後 PR；本次唯一交接來源為 [驗收紀錄](../../docs/acceptance/LINES_CLOUD_30102026.md)。無 schema 遷移。

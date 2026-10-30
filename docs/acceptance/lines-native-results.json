@@ -1,0 +1,239 @@
+{
+  "status": "PASS",
+  "realData": false,
+  "checks": [
+    "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+    "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+    "staff explicit C permissions: edit/apply/save/submit/own withdrawal accepted; review denied"
+  ],
+  "timings": [
+    {
+      "label": "first-entry",
+      "ms": 758.7607170000001
+    },
+    {
+      "label": "AB:begin",
+      "ms": 50.16402199999993
+    },
+    {
+      "label": "AB:add-apply",
+      "ms": 133.90648999999985
+    },
+    {
+      "label": "AB:save",
+      "ms": 59.29058799999984
+    },
+    {
+      "label": "AB:submit",
+      "ms": 165.57382300000017
+    },
+    {
+      "label": "AB:return",
+      "ms": 108.30464900000061
+    },
+    {
+      "label": "AB:resubmit",
+      "ms": 140.08446600000025
+    },
+    {
+      "label": "AB:withdraw",
+      "ms": 152.15196899999955
+    },
+    {
+      "label": "AB:submit-final",
+      "ms": 182.67940699999963
+    },
+    {
+      "label": "AB:approve",
+      "ms": 159.74210700000003
+    },
+    {
+      "label": "C:begin",
+      "ms": 72.64860999999928
+    },
+    {
+      "label": "C:add-apply",
+      "ms": 138.96941999999945
+    },
+    {
+      "label": "C:save",
+      "ms": 59.364771000000474
+    },
+    {
+      "label": "C:submit",
+      "ms": 150.58156000000054
+    },
+    {
+      "label": "C:return",
+      "ms": 108.44162099999994
+    },
+    {
+      "label": "C:resubmit",
+      "ms": 168.61295100000007
+    },
+    {
+      "label": "C:withdraw",
+      "ms": 103.88061599999946
+    },
+    {
+      "label": "C:submit-final",
+      "ms": 160.38274300000103
+    },
+    {
+      "label": "C:approve",
+      "ms": 158.57740899999953
+    }
+  ],
+  "pageErrors": [],
+  "permissions": [
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "apply",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "save",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "submit",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "withdraw",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "approve",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "AB",
+      "action": "return",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "apply",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "save",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "submit",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "withdraw",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "approve",
+      "status": 403
+    },
+    {
+      "id": "reader",
+      "scope": "C",
+      "action": "return",
+      "status": 403
+    },
+    {
+      "id": "staff",
+      "scope": "AB",
+      "action": "approve",
+      "status": 403
+    },
+    {
+      "id": "staff",
+      "scope": "AB",
+      "action": "return",
+      "status": 403
+    },
+    {
+      "id": "staff",
+      "scope": "C",
+      "action": "approve",
+      "status": 403
+    },
+    {
+      "id": "staff",
+      "scope": "C",
+      "action": "return",
+      "status": 403
+    }
+  ],
+  "ui": [
+    {
+      "width": 1366,
+      "lang": "zh-Hant",
+      "cancel": true,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "lang": "vi",
+      "cancel": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "lang": "zh-Hant",
+      "cancel": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "lang": "vi",
+      "cancel": true,
+      "overflow": false
+    }
+  ],
+  "recovery": [
+    "AB: approved stage appears in product and category selectors; cancellation leaves effective routes unchanged",
+    "C: approved stage appears in product and category selectors; cancellation leaves effective routes unchanged",
+    "unapplied input blocks navigation and remains editable",
+    "Save 422 retains working data; explicit retry persists once",
+    {
+      "action": "save",
+      "inFlightNavigationBlocked": true,
+      "unknownNavigationBlocked": true,
+      "posts": 1,
+      "receipts": 1,
+      "reloaded": true,
+      "readback": true
+    },
+    {
+      "action": "submit",
+      "inFlightNavigationBlocked": true,
+      "unknownNavigationBlocked": true,
+      "posts": 1,
+      "receipts": 1,
+      "reloaded": true,
+      "readback": true
+    },
+    "successful Save permits actual navigation to C"
+  ],
+  "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+  "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+}

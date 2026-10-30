@@ -1,6 +1,6 @@
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
-import {removedMasterStages,stageReferences} from './master-stage-references';
+import {removedMasterStages,stageReferences,removesLineWithStages} from './master-stage-references';
 import {assertStageTemplateAvailable} from './master-process-lock';
 import {stageProcessLink,assertProcessLinkAvailable,checkPinnedStageProcessLink,activateStageProcessLink,type StageProcessLink} from './master-stage-link';
 type Entity=Record<string,unknown>&{id:string};
@@ -80,8 +80,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      }else{
       // A line removal never implicitly removes its children, even when those
       // stages have no external references. Rechecked on each CAS attempt.
-      const retainedLines=new Set(rows(content.lines).map(line=>str(line.id||line.code)));
-      if(rows(previous.lines).some(line=>!retainedLines.has(str(line.id||line.code))&&rows(line.stages).length))
+      if(removesLineWithStages(previous,content))
        throw new DraftConflict('LINE_HAS_STAGES',409);
       const removed=removedMasterStages(previous,content),impact=stageReferences(removed.length&&state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values,removed,previous);
       if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);

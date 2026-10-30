@@ -1,0 +1,1011 @@
+{
+  "scope": "five cycles in one reset native fixture per build; browser automation including readback; not API/DB-only timing",
+  "summary": [
+    {
+      "label": "reload-existing-draft",
+      "beforeMedian": 388.9,
+      "beforeMax": 421.6,
+      "afterMedian": 404.8,
+      "afterMax": 417.8,
+      "medianChangePercent": -4.1
+    },
+    {
+      "label": "sidebar-data-to-lines",
+      "beforeMedian": 199.9,
+      "beforeMax": 226.6,
+      "afterMedian": 211.1,
+      "afterMax": 230.9,
+      "medianChangePercent": -5.6
+    },
+    {
+      "label": "data-tab-to-lines",
+      "beforeMedian": 99.0,
+      "beforeMax": 116.5,
+      "afterMedian": 100.1,
+      "afterMax": 101.5,
+      "medianChangePercent": -1.2
+    },
+    {
+      "label": "scope-to-C",
+      "beforeMedian": 52.2,
+      "beforeMax": 55.9,
+      "afterMedian": 49.0,
+      "afterMax": 52.2,
+      "medianChangePercent": 6.3
+    },
+    {
+      "label": "scope-to-AB",
+      "beforeMedian": 34.4,
+      "beforeMax": 35.7,
+      "afterMedian": 30.7,
+      "afterMax": 51.8,
+      "medianChangePercent": 10.7
+    },
+    {
+      "label": "open-filled-stage",
+      "beforeMedian": 38.5,
+      "beforeMax": 41.5,
+      "afterMedian": 42.1,
+      "afterMax": 43.3,
+      "medianChangePercent": -9.6
+    },
+    {
+      "label": "AB:new-stage-apply",
+      "beforeMedian": 189.6,
+      "beforeMax": 198.0,
+      "afterMedian": 185.0,
+      "afterMax": 205.7,
+      "medianChangePercent": 2.4
+    },
+    {
+      "label": "AB:rename-apply",
+      "beforeMedian": 183.7,
+      "beforeMax": 199.4,
+      "afterMedian": 174.2,
+      "afterMax": 189.5,
+      "medianChangePercent": 5.1
+    },
+    {
+      "label": "AB:unused-stage-delete-with-check",
+      "beforeMedian": 147.0,
+      "beforeMax": 149.5,
+      "afterMedian": 143.0,
+      "afterMax": 158.6,
+      "medianChangePercent": 2.7
+    },
+    {
+      "label": "C:new-stage-apply",
+      "beforeMedian": 191.9,
+      "beforeMax": 196.4,
+      "afterMedian": 189.1,
+      "afterMax": 200.8,
+      "medianChangePercent": 1.4
+    },
+    {
+      "label": "C:rename-apply",
+      "beforeMedian": 152.7,
+      "beforeMax": 182.5,
+      "afterMedian": 122.0,
+      "afterMax": 157.3,
+      "medianChangePercent": 20.1
+    },
+    {
+      "label": "C:unused-stage-delete-with-check",
+      "beforeMedian": 126.5,
+      "beforeMax": 134.4,
+      "afterMedian": 77.6,
+      "afterMax": 141.1,
+      "medianChangePercent": 38.6
+    }
+  ],
+  "before": {
+    "status": "PASS",
+    "realData": false,
+    "checks": [
+      "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+      "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+    ],
+    "timings": [
+      {
+        "label": "first-entry",
+        "ms": 832.6664310000001
+      },
+      {
+        "label": "AB:begin",
+        "ms": 75.3963090000002
+      },
+      {
+        "label": "AB:add-apply",
+        "ms": 214.24507399999993
+      },
+      {
+        "label": "AB:save",
+        "ms": 78.65898000000016
+      },
+      {
+        "label": "AB:submit",
+        "ms": 162.43090299999994
+      },
+      {
+        "label": "AB:return",
+        "ms": 120.21694500000012
+      },
+      {
+        "label": "AB:resubmit",
+        "ms": 150.2154270000001
+      },
+      {
+        "label": "AB:withdraw",
+        "ms": 111.46589099999983
+      },
+      {
+        "label": "AB:submit-final",
+        "ms": 162.1621610000002
+      },
+      {
+        "label": "AB:approve",
+        "ms": 138.77842099999998
+      },
+      {
+        "label": "C:begin",
+        "ms": 117.08594400000038
+      },
+      {
+        "label": "C:add-apply",
+        "ms": 125.80055600000014
+      },
+      {
+        "label": "C:save",
+        "ms": 57.48896100000002
+      },
+      {
+        "label": "C:submit",
+        "ms": 155.32387600000038
+      },
+      {
+        "label": "C:return",
+        "ms": 109.93716500000028
+      },
+      {
+        "label": "C:resubmit",
+        "ms": 167.56495599999835
+      },
+      {
+        "label": "C:withdraw",
+        "ms": 104.96814699999959
+      },
+      {
+        "label": "C:submit-final",
+        "ms": 148.38258499999938
+      },
+      {
+        "label": "C:approve",
+        "ms": 158.77232299999923
+      }
+    ],
+    "pageErrors": [],
+    "permissions": [
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "apply",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "save",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "submit",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "withdraw",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "apply",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "save",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "submit",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "withdraw",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "AB",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "AB",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "C",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "C",
+        "action": "return",
+        "status": 403
+      }
+    ],
+    "ui": [
+      {
+        "width": 1366,
+        "lang": "zh-Hant",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 1366,
+        "lang": "vi",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "lang": "zh-Hant",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "lang": "vi",
+        "cancel": true,
+        "overflow": false
+      }
+    ],
+    "extraTimings": [
+      {
+        "label": "reload-existing-draft",
+        "ms": 348.2651679999999
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 226.6350229999989
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 100.21773500000018
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 37.3662889999996
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 34.372166999999536
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 38.01859299999887
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 193.27318399999967
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 112.32846700000118
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 147.01134300000012
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 191.8817169999984
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 142.08037899999908
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 127.92876199999955
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 350.6547129999999
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 199.94049500000074
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 95.13660900000104
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 54.840353000001414
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 32.38102699999945
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 41.5061139999998
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 189.55044799999996
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 174.77167700000064
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 149.49126100000103
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 189.37786799999958
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 103.44460100000106
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 108.79922499999884
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 407.7549930000023
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 193.54911699999866
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 98.80288799999835
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 52.23824800000148
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 35.70479300000079
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 35.099749000000884
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 147.87707299999965
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 191.7253219999984
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 149.15322500000184
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 196.18635300000096
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 152.70249200000035
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 84.6482849999993
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 388.9121950000008
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 195.09306099999958
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 98.95565100000022
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 52.13741799999843
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 35.21776599999794
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 39.200691999998526
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 148.6365130000013
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 199.3590550000008
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 109.21046399999977
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 147.0707680000014
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 182.5046730000031
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 134.39724800000113
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 421.6352630000001
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 211.7117990000006
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 116.4763239999993
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 55.85782100000142
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 33.21648400000049
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 38.46010899999965
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 197.96144600000116
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 183.6715690000019
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 108.53061800000069
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 196.36033099999986
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 155.78284500000154
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 126.454773999998
+      }
+    ],
+    "buildEntrySha256": "df89487f16d9d878303333e72268902b34d631b103199f0c100c70cf9d1cf737",
+    "programCommit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1"
+  },
+  "after": {
+    "status": "PASS",
+    "realData": false,
+    "checks": [
+      "AB: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback",
+      "C: actual draft/apply/save/submit/review-return/resubmit/withdraw/resubmit/review-approve and D1 effective readback"
+    ],
+    "timings": [
+      {
+        "label": "first-entry",
+        "ms": 726.175749
+      },
+      {
+        "label": "AB:begin",
+        "ms": 84.7031820000002
+      },
+      {
+        "label": "AB:add-apply",
+        "ms": 163.9874719999998
+      },
+      {
+        "label": "AB:save",
+        "ms": 83.23541799999975
+      },
+      {
+        "label": "AB:submit",
+        "ms": 155.63499899999988
+      },
+      {
+        "label": "AB:return",
+        "ms": 111.29619600000024
+      },
+      {
+        "label": "AB:resubmit",
+        "ms": 147.82204000000002
+      },
+      {
+        "label": "AB:withdraw",
+        "ms": 116.82828599999993
+      },
+      {
+        "label": "AB:submit-final",
+        "ms": 161.42799000000014
+      },
+      {
+        "label": "AB:approve",
+        "ms": 158.47007099999973
+      },
+      {
+        "label": "C:begin",
+        "ms": 72.6640899999993
+      },
+      {
+        "label": "C:add-apply",
+        "ms": 185.9393480000008
+      },
+      {
+        "label": "C:save",
+        "ms": 65.53261199999997
+      },
+      {
+        "label": "C:submit",
+        "ms": 160.39804200000071
+      },
+      {
+        "label": "C:return",
+        "ms": 116.02406100000007
+      },
+      {
+        "label": "C:resubmit",
+        "ms": 175.54735000000073
+      },
+      {
+        "label": "C:withdraw",
+        "ms": 119.04295100000127
+      },
+      {
+        "label": "C:submit-final",
+        "ms": 140.5450669999991
+      },
+      {
+        "label": "C:approve",
+        "ms": 191.66593599999942
+      }
+    ],
+    "pageErrors": [],
+    "permissions": [
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "apply",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "save",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "submit",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "withdraw",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "AB",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "apply",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "save",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "submit",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "withdraw",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "reader",
+        "scope": "C",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "AB",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "AB",
+        "action": "return",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "C",
+        "action": "approve",
+        "status": 403
+      },
+      {
+        "id": "staff",
+        "scope": "C",
+        "action": "return",
+        "status": 403
+      }
+    ],
+    "ui": [
+      {
+        "width": 1366,
+        "lang": "zh-Hant",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 1366,
+        "lang": "vi",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "lang": "zh-Hant",
+        "cancel": true,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "lang": "vi",
+        "cancel": true,
+        "overflow": false
+      }
+    ],
+    "extraTimings": [
+      {
+        "label": "reload-existing-draft",
+        "ms": 377.02649399999973
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 230.9164550000005
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 98.633914
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 48.95805499999915
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 32.81562699999995
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 43.10949100000107
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 200.99482100000023
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 189.5488979999991
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 101.50889000000097
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 189.1489959999999
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 157.34565999999904
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 141.05476900000212
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 412.79650400000173
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 202.12052799999947
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 101.54839300000094
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 52.24880000000121
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 51.84680699999808
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 42.140816999999515
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 146.07004999999845
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 176.17189599999983
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 94.3381049999989
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 200.80970300000263
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 121.98817100000088
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 77.74376100000154
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 417.75547200000074
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 198.3266509999994
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 101.44190199999866
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 39.41997099999935
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 30.2274639999996
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 40.35458799999833
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 150.23163999999815
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 136.55286799999885
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 143.00345599999855
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 196.78437600000325
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 123.55788799999937
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 77.59560699999929
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 373.0349069999975
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 211.0860790000006
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 100.09544500000266
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 40.121290999999474
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 29.246769999997923
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 40.45692000000054
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 184.99375599999985
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 134.3054090000005
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 158.61827499999708
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 186.13537799999904
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 121.8535039999988
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 73.23087300000043
+      },
+      {
+        "label": "reload-existing-draft",
+        "ms": 404.7816440000024
+      },
+      {
+        "label": "sidebar-data-to-lines",
+        "ms": 212.56265200000053
+      },
+      {
+        "label": "data-tab-to-lines",
+        "ms": 96.04515099999844
+      },
+      {
+        "label": "scope-to-C",
+        "ms": 52.013192999998864
+      },
+      {
+        "label": "scope-to-AB",
+        "ms": 30.7028590000009
+      },
+      {
+        "label": "open-filled-stage",
+        "ms": 43.29980699999942
+      },
+      {
+        "label": "AB:new-stage-apply",
+        "ms": 205.68405899999925
+      },
+      {
+        "label": "AB:rename-apply",
+        "ms": 174.22000900000057
+      },
+      {
+        "label": "AB:unused-stage-delete-with-check",
+        "ms": 148.64706600000136
+      },
+      {
+        "label": "C:new-stage-apply",
+        "ms": 151.88330499999938
+      },
+      {
+        "label": "C:rename-apply",
+        "ms": 121.78084500000114
+      },
+      {
+        "label": "C:unused-stage-delete-with-check",
+        "ms": 73.27444000000105
+      }
+    ],
+    "buildEntrySha256": "74c509cc1ad1a19d2d7ebe6082e50d97e390cd1fb38c72b1db7ff77841c99324",
+    "programCommit": "a6b41a3838b9604f6694021fa57a7f65f660e490"
+  }
+}

@@ -9,21 +9,25 @@ export function masterStageCodes(catalog:unknown):string[]{
 export function removedMasterStages(before:unknown,after:unknown):string[]{
   const next=new Set(masterStageCodes(after));return masterStageCodes(before).filter(code=>!next.has(code));
 }
+export function removesLineWithStages(previous:unknown,next:unknown){
+ const retained=new Set(rows(object(next).lines).map(line=>str(line.id||line.code)));
+ return rows(object(previous).lines).some(line=>!retained.has(str(line.id||line.code))&&rows(line.stages).length>0);
+}
 // Read every protected source from the same CAS revision. Client route cleanup
 // cannot erase the evidence that a stage is still in use.
 export function stageReferences(values:Record<string,string>,codes:string[],previous?:unknown){
   if(!codes.length)return {total:0,references:[],truncated:false};
-  const wanted=new Set(codes),result:{stage:string;source:string;id:string;kind:string}[]=[],seen=new Set<string>();
-  const add=(stage:string,source:string,id:string,kind:string)=>{const key=JSON.stringify([stage,source,id,kind]);if(wanted.has(stage)&&!seen.has(key)){seen.add(key);result.push({stage,source,id,kind});}};
-  const catalog=(value:unknown,source:string)=>{for(const p of rows(object(value).products))for(const stage of Array.isArray(p.stages)?p.stages:[])add(str(stage),source,str(p.code||p.id),'product-route');
-    for(const group of rows(object(value).categoryGroups))for(const stage of Array.isArray(group.defaultStages)?group.defaultStages:[])add(str(stage),source,str(group.id||group.name),'group-route');};
-  const operations=(value:unknown,source:string)=>{const record=object(value);for(const [stage,list]of Object.entries(object(record.stages)))for(const op of rows(list))add(stage,source,str(op.id||op.number),'operation');
+  const wanted=new Set(codes),result:{stage:string;source:string;id:string;kind:string;module:string}[]=[],seen=new Set<string>();
+  const add=(stage:string,source:string,id:string,kind:string,module:string)=>{const key=JSON.stringify([stage,source,id,kind]);if(wanted.has(stage)&&!seen.has(key)){seen.add(key);result.push({stage,source,id,kind,module});}};
+  const catalog=(value:unknown,source:string,module:string)=>{for(const p of rows(object(value).products))for(const stage of Array.isArray(p.stages)?p.stages:[])add(str(stage),source,str(p.code||p.id),'product-route',module);
+    for(const group of rows(object(value).categoryGroups))for(const stage of Array.isArray(group.defaultStages)?group.defaultStages:[])add(str(stage),source,str(group.id||group.name),'group-route',module);};
+  const operations=(value:unknown,source:string)=>{const record=object(value);for(const [stage,list]of Object.entries(object(record.stages)))for(const op of rows(list))add(stage,source,str(op.id||op.number),'operation','editor');
     for(const workspace of rows(record.workspaces))operations(workspace,source+'/'+str(workspace.id));};
   const master=object(parse(values.masterDataControl));
-  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS')catalog(content,'master:active:'+scope);
-  for(const v of rows(master.versions))if(['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id));
-  for(const [scope,value]of Object.entries(object(master.workflowScopes))){const flow=object(value);catalog(flow.working,'master:working:'+scope);catalog(object(flow.saved).content,'master:saved:'+scope);}
-  if(previous)catalog(previous,'master:previous-working');
+  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS')catalog(content,'master:active:'+scope,scope.toLowerCase());
+  for(const v of rows(master.versions))if(['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());
+  for(const [scope,value]of Object.entries(object(master.workflowScopes))){const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}
+  if(previous)catalog(previous,'master:previous-working','current');
   if(!values.processAuthoringControl){
     for(const version of rows(parse(values.approvalVersions)))if(['approved','draft','pending','pending-test'].includes(String(version.status)))operations(version,'editor:'+String(version.status)+':'+String(version.id));
     for(const [key,raw]of Object.entries(values))if(key.startsWith('processEditor:'))operations(parse(raw),key);

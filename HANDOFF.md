@@ -1,3 +1,7 @@
+# 線別與工段 CLOUD 30102026 — 本分支續作
+
+使用者明確要求目前不建立 PR，之後自行安排 DOT；不等待 PR 才做本地驗證。本次分支 `codex/lines-stages-cloud-30102026` 基於 main `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`，未發布／未改真實資料。功能、原生瀏覽器、故障恢復、五輪效能表、相依與未完成項目以 [唯一驗收交接](docs/acceptance/LINES_CLOUD_30102026.md) 為準。新增本機隔離預覽 launcher，不代表已提供公開預覽；尚未通知 DOT。沒有資料遷移。
+
 本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
 
 # Isolated Sites implementation handoff
