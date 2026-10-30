@@ -4,6 +4,8 @@ import {versionedWorkflowRoute,workflowAccess} from '@/lib/versioned-shared-work
 import {readState,identity,can,responseHeaders} from '@/lib/process-state';
 import {DraftConflict} from '@/lib/shared-draft';
 import {masterCatalog,projectMasterCatalog,MasterCatalogLegacyFallback} from '@/lib/master-catalog';
+import {catalogReferences,visibleCatalogReferences} from '@/lib/master-product-references';
+import {effectiveAccess,type AccessUser} from '@/lib/user-access';
 
 const authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 async function catalogPermissions(request:Request,state:Awaited<ReturnType<typeof readState>>){
@@ -32,6 +34,21 @@ async function effectiveABCatalog(request:Request){
   return reply({revision:state.revision,permissions,control:masterCatalog(state.values.masterDataControl)});
  }catch(error){if(error instanceof MasterCatalogLegacyFallback)return legacyCatalog(request);return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}
 }
-export const GET=(request:Request)=>new URL(request.url).searchParams.get('catalog')==='effective'
+async function productReferences(request:Request){
+ const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
+ try {
+  const query=new URL(request.url).searchParams,scope=query.get('scope'),code=query.get('references');
+  if(!['AB','C'].includes(scope||'')||!code||code.length>200)return reply({error:'INVALID_REFERENCE_QUERY'},422);
+  const permission=scope==='AB'?'ab':'c';
+  const allowed=async(state:Awaited<ReturnType<typeof readState>>)=>!!await identity(request,state)&&await can(request,state,permission+'.view')&&await can(request,state,permission+'.delete');
+  if(!await allowed(await readState({keys:authKeys})))return reply({error:'FORBIDDEN'},403);
+  const state=await readState();if(!await allowed(state))return reply({error:'FORBIDDEN'},403);
+  const master=JSON.parse(state.values.masterDataControl||'{}');
+  if(![master.active?.[scope!],master.workflowScopes?.[scope!]?.working].some(catalog=>catalog?.products?.some((product:{code:string})=>product.code===code)))return reply({error:'PRODUCT_NOT_FOUND'},404);
+  const actor=await identity(request,state),users=JSON.parse(state.values.platformUsers||'[]') as AccessUser[],user=users.find(u=>u.id===actor?.id);
+  return reply({revision:state.revision,...visibleCatalogReferences(catalogReferences(state.values,[code]),user?effectiveAccess(user,state.values).cells:{})});
+ }catch{return reply({error:'REFERENCE_CHECK_UNAVAILABLE'},503);}
+}
+export const GET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
  ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request);
 export const POST=(request:Request)=>versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).POST(request);

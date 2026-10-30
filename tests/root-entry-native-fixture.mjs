@@ -2,9 +2,9 @@
 // Shared by the root-entry HTTP checks and the owned local browser preview.
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
 import {configureOfflineLocal} from '../lib/local-runtime.mjs';import {installLocalNetworkGuard} from '../lib/local-network-guard.mjs';import {denyLocalWorkerOutbound} from '../lib/local-worker-outbound.mjs';
-export async function createRootEntryFixture({programCommit=process.env.PROCESS_PROGRAM_COMMIT,syntheticBindings={}}={}){
+export async function createRootEntryFixture({programCommit=process.env.PROCESS_PROGRAM_COMMIT,syntheticBindings={},applicationRoot=path.resolve(import.meta.dirname,'..')}={}){
  assert.match(programCommit||'',/^[a-f0-9]{40}$/);
- const root=path.resolve(import.meta.dirname,'..'),runtime=fs.mkdtempSync(path.join(root,'.sites-runtime/root-entry-native-'));
+ const root=path.resolve(applicationRoot);fs.mkdirSync(path.join(root,'.sites-runtime'),{recursive:true});const runtime=fs.mkdtempSync(path.join(root,'.sites-runtime/root-entry-native-'));
  configureOfflineLocal(runtime);installLocalNetworkGuard(runtime);
  const require=createRequire(import.meta.url),{Miniflare,Log,LogLevel}=require('miniflare'),moduleRoot=path.join(root,'dist/server'),main=path.join(moduleRoot,'index.js'),files=[];
  function walk(directory){for(const name of fs.readdirSync(directory)){const file=path.join(directory,name),stat=fs.lstatSync(file);assert.equal(stat.isSymbolicLink(),false);if(stat.isDirectory())walk(file);else if(/\.(js|mjs)$/.test(name))files.push(file);}}

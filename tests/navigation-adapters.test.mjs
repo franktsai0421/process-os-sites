@@ -109,34 +109,34 @@ for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outco
 void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
-  'app.js':'20261030-photo-integrated1',
+  'app.js':'20261030-pr51-integrated1',
   'approval-tabs.js':'20261025-navigation2',
-  'bom-workspace.js':'20261030-flow-poll1',
+  'bom-workspace.js':'20261030-pr51-integrated1',
   'bootstrap.js':'20261030-access-fusion1',
   'canvas-local.js':'20261027-save-inspection1',
-  'delivery-navigation.js':'20261027-login-reentry1',
+  'delivery-navigation.js':'20261030-pr51-integrated1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
-  'fqc-master.js':'20261030-access-fusion1',
-  'ipqc-ab.js':'20261030-access-fusion1',
-  'ipqc-c.js':'20261030-access-fusion1',
-  'iqc-master.js':'20261030-access-fusion1',
-  'master-data.js':'20261030-access-fusion1',
-  'master-shared-client.js':'20261025-navigation2',
+  'fqc-master.js':'20261030-pr51-integrated1',
+  'ipqc-ab.js':'20261030-pr51-integrated1',
+  'ipqc-c.js':'20261030-pr51-integrated1',
+  'iqc-master.js':'20261030-pr51-integrated1',
+  'master-data.js':'20261030-pr51-integrated1',
+  'master-shared-client.js':'20261030-pr51-integrated1',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261029-panel-local1',
+  'process-authoring-v3.js':'20261030-pr51-integrated1',
   'quality-review-overview.js':'20261027-readscope-truthful1',
-  'routine-equipment.js':'20261030-access-fusion1',
+  'routine-equipment.js':'20261030-pr51-integrated1',
   'routine-fqc.js':'20261028-modern-unload1',
-  'shared-draft-client.js':'20261030-access-fusion1',
+  'shared-draft-client.js':'20261030-pr51-integrated1',
   'shared-state.js':'20261026-feedback1',
-  'tooling.js':'20261030-photo-integrated1',
+  'tooling.js':'20261030-pr51-integrated1',
   'user-access.js':'20261029-fqc-dependencies1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261029-begin-foreground1',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261030-photo-integrated1',
-  'process-editor.js':'20261029-flow1',
+  'process-editor.js':'20261030-pr51-integrated1',
   'master-review.js':'20261029-flowreview1',
   'process-equipment.css':'20261029-flow1',
   'photo-viewer.css':'20261029-photo2',
@@ -147,5 +147,28 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261025-navigation2"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261030-ab-c-draft1"));
+});
+
+// The FQC control wraps its shared flow inside the FQC library.
+void test('FQC departure detects only the mounted FQC library unsaved flow',()=>{
+ const text=source('fqc-master.js'),expression=part(text,'requiresSave:()=>','saveForDeparture:').slice('requiresSave:'.length).replace(/,$/,'');
+ const flow={unsaved:true},box={hostElement:{isConnected:true},control:{libraries:{fqc:{workflow:flow}}},window:{sharedDraftNeedsSave:value=>!!value?.unsaved}};
+ vm.createContext(box);const check=vm.runInContext(expression,box);assert.equal(check(),true);flow.unsaved=false;assert.equal(check(),false);flow.unsaved=true;box.hostElement.isConnected=false;assert.equal(check(),false);
+});
+
+void test('authoring departure cannot publish local canvas positions or connections',async()=>{
+ const text=source('process-authoring-v3.js'),start=text.indexOf('canSaveForDeparture:'),end=text.indexOf(',canLeave:',start),declaration=text.slice(start,end);
+ let dirty=true,changed=false,saves=0;
+ const box={busy:false,localFailure:false,editorChanged:()=>changed,modalOpen:()=>false,host:{ProcessCanvasLocal:{dirty:()=>dirty},ProcessEditorV2:{interacting:()=>false}},action:async name=>{assert.equal(name,'save');saves++;}};
+ vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);
+ assert.equal(adapter.canSaveForDeparture(),false);await adapter.saveForDeparture();assert.equal(saves,0);
+ dirty=false;changed=true;assert.equal(adapter.canSaveForDeparture(),false);await adapter.saveForDeparture();assert.equal(saves,0);
+ changed=false;assert.equal(adapter.canSaveForDeparture(),true);await adapter.saveForDeparture();assert.equal(saves,1);
+});
+
+void test('actual line-admin departure detects unsaved AB/C working content',()=>{
+ const text=source('master-data.js'),declaration=part(text,'      requiresSave(){','      async saveForDeparture(){').trim().replace(/,$/,'');
+ const flow={working:{name:'changed'},saved:{content:{name:'saved'}},active:{content:{name:'active'}}},box={state:{view:'data',dataTab:'line-admin',masterScope:'C'},shared:{flow:scope=>{assert.equal(scope,'C');return flow;}}};
+ vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);assert.equal(adapter.requiresSave(),true);flow.saved.content=flow.working;assert.equal(adapter.requiresSave(),false);box.state.view='editor';assert.equal(adapter.requiresSave(),false);
 });

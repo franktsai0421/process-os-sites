@@ -1,3 +1,11 @@
+## 2026-10-30 核准群組路線的空工段提示
+
+畫布保留已核准群組 defaultStages；以 effective 產品路線一次計數，各工段沒有適用產品時顯示中越文提醒。D 工段即使沒有產品經過，也保留既有方塊與歷史；不讀取未核准主資料草稿來改變適用範圍，不放寬新增引用或審核政策。規格見[群組路線](../../docs/specs/current/GROUP_ROUTES.md)，測試見[後續修正](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
+## 2026-10-30 群組預設與不適用的舊引用
+
+`app.categoryStageCodes` 優先讀 approved `ACTIVE_MASTER_CATEGORIES.defaultStages`，舊資料 fallback 最大聯集；僅改可見工段清單，不裁切 workspace。`process-editor` 的產品／BOM 新選項依產品有效路線篩選。伺服器 authoring structure 禁止新加入路線外產品及 BOM，允許原方塊保留舊引用並編輯其他欄位；validation 加入 `PRODUCT_ROUTE_CHANGED`，沿既有 process advisory 與審核者確認流程，允許送審。無新 schema、無舊內容批次改寫。見[驗收](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
 2026-10-29 dispatch permissions candidate: dispatchBoard POST now requires dispatch.view+dispatch.edit; readonly selectors/button and actual publish handler use the same cells. Production validation and shared-state CAS/flush remain unchanged. Isolated validation only; no deployment.
 
 ## 2026-10-29 第二輪：單次 panel dirty 計算重用

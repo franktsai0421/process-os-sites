@@ -160,7 +160,7 @@
     return;
   }
   async function saveDraft() {
-    try{await shared.execute(state.masterScope,'save');toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');render();}catch(error){toast(displayDraftError(error));}
+    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');render();return true;}catch(error){toast(displayDraftError(error));return false;}
   }
   function validateCatalog(catalog) {
     const errors = [],
@@ -951,7 +951,7 @@
     // Runtime dependencies and editable master scopes are distinct. Missing
     // permission scopes never become seeded master data or storage updates.
     const runtime=window.ProcessSync?.catalog;
-    const fallback=scope=>runtime?{products:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)).flatMap(line=>Object.values(runtime.routing.productRoutes).filter(row=>row.line===line.code)),lines:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)),categoryGroups:[]}:empty;
+    const fallback=scope=>runtime?{products:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)).flatMap(line=>Object.values(runtime.routing.productRoutes).filter(row=>row.line===line.code)),lines:runtime.routing.lines.filter(line=>scope==='C'?line.code==='C':['A','B'].includes(line.code)),categoryGroups:(runtime.categoryGroups||[]).filter(group=>scope==='C'?group.line==='C':['A','B'].includes(group.line))}:empty;
     const ab = control.active.AB || fallback('AB'),
       c = control.active.C || fallback('C'),
       all = [...clone(ab.products), ...clone(c.products)],
@@ -1138,6 +1138,18 @@
   window.MasterDataWorkflow = {
     control: () => control,
     canLeave:()=>!shared.busy(),
+    navigation:{
+      requiresSave(){
+        if(state.view!=='data'||!['AB','C','lines','line-admin','process-master'].includes(state.dataTab))return false;
+        const flow=shared.flow(state.dataTab==='process-master'?'PROCESS':state.masterScope);
+        return !!flow&&!flow.pendingId&&JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content??flow.active?.content);
+      },
+      async saveForDeparture(){
+        const scope=state.dataTab==='process-master'?'PROCESS':state.masterScope;
+        if(shared.permissions(scope)?.save!==true)throw Error('FORBIDDEN');
+        return shared.execute(scope,'save');
+      },
+    },
     resetProjection(){
       deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
@@ -1230,7 +1242,7 @@
         },
       });
       const reads=[];
-      if(masterActive){bindApprovalMaster();reads.push(dataReady);if(window.hasPermission?.('bom.view'))reads.push(window.BOMWorkspace?.loadReview());}
+      if(masterActive){bindApprovalMaster();reads.push(dataReady);if(window.hasPermission?.('bom.view'))reads.push(window.BOMWorkspace?.loadReview({forRender:true}));}
       if(state.approvalTab==='quality'){
         const panel=document.querySelector('#approval-panel-quality');
         window.QualityReviewOverview?.mount?.(panel);

@@ -36,6 +36,8 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   processFlowMutation?:boolean;
   fqcLifecycle8Mutation?:true;
   needsFullHistory?:(command:ModuleDraftCommand|undefined)=>boolean;
+  // Destructive catalog commands must inspect retained cross-module history.
+  needsReferenceHistory?:(command:ModuleDraftCommand|undefined)=>boolean;
   context:(control:C,state:State,base:Omit<DraftContext<T>,'structure'|'validate'|'semantic'|'activeId'>)=>DraftContext<T>;
   apply:(control:C,command:ModuleDraftCommand,context:DraftContext<T>)=>ReturnType<typeof applyDraftCommand<T>>|Promise<ReturnType<typeof applyDraftCommand<T>>>;
   photoIds:(content:T)=>string[];photoPrefix:string;
@@ -191,7 +193,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
-        const state=mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
+        const state=mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
         const permissions=await currentPermissions(request,state),control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});

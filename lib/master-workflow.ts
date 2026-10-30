@@ -2,6 +2,8 @@ import {removedProcessMasterTargets,processMasterReferences} from './process-mas
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {removedMasterStages,stageReferences} from './master-stage-references';
+import {removedCatalogReferences,visibleCatalogReferences} from './master-product-references';
+import {effectiveAccess,type AccessUser} from './user-access';
 import {assertStageTemplateAvailable} from './master-process-lock';
 import {stageProcessLink,assertProcessLinkAvailable,checkPinnedStageProcessLink,activateStageProcessLink,type StageProcessLink} from './master-stage-link';
 type Entity=Record<string,unknown>&{id:string};
@@ -30,6 +32,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
  let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false;
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
+  needsReferenceHistory:command=>scope!=='PROCESS'&&!!command&&(['restore','submit','approve'].includes(command.action)||command.action==='apply'&&(command.patches||[]).some(p=>p.op==='remove'||p.op==='set'&&(p.path[0]==='products'&&p.path.at(-1)==='code'||p.path[0]==='categoryGroups'&&(p.path.at(-1)==='name'||p.path.at(-1)==='line')))),
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
    root=(prepared||JSON.parse(raw)) as Root;if(!root.active?.[scope]||!Array.isArray(root.versions))throw new DraftConflict('MASTER_EXISTING_DATA_INVALID',422);
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
@@ -58,6 +61,15 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   context(control,state,base){
    values=state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values;
    const master=root;
+   const checkReferences=(previous:Snapshot,content:Snapshot)=>{
+    const oldProducts=rows(previous.products||[]),nextProducts=rows(content.products||[]),oldGroups=rows(previous.categoryGroups||[]),nextGroups=rows(content.categoryGroups||[]);
+    if(oldProducts.every(p=>nextProducts.some(n=>n.code===p.code))&&oldGroups.every(g=>nextGroups.some(n=>n.line===g.line&&n.name===g.name)))return;
+    const impact=removedCatalogReferences(state.values,previous,content);
+    if(!impact.total)return;
+    const user=(JSON.parse(state.values.platformUsers||'[]') as AccessUser[]).find(u=>u.id===base.actor.id),cells=user?effectiveAccess(user,state.values).cells:{};
+    // Do not leak names/IDs/paths from modules this actor cannot view.
+    throw new DraftConflict('CATALOG_IN_USE',409,visibleCatalogReferences(impact,cells));
+   };
    const stages=new Set(['AB','C'].flatMap(s=>rows(master.active[s]?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));
    return{...base,activeId:control.activeVersionId,
     semantic(content){const strip=(v:unknown):unknown=>Array.isArray(v)?v.map(strip):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>k!=='id').map(([k,x])=>[k,strip(x)])):v;return scope==='PROCESS'?content:strip(content);},
@@ -82,6 +94,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
        }
       }
      }else{
+      checkReferences(previous,content);
       const removed=removedMasterStages(previous,content),impact=stageReferences(removed.length&&state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values,removed,previous);
       if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
       assertStageTemplateAvailable(master,previous,content);
@@ -118,6 +131,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      if(scope==='PROCESS'){
       for(const stage of stages){const templates=rows(content[stage]||[]);if(presets.some(key=>!templates.some(t=>t.presetKey===key)))issues.push({kind:'missing',path:[stage],message:'REQUIRED_PROCESS_PRESETS_MISSING'});for(const template of templates){if(!str(template.name).trim())issues.push({kind:'missing',path:[stage,{id:template.id},'name'],message:'NAME_REQUIRED'});for(const e of rows(template.equipment||[]))if(!str(e.name).trim())issues.push({kind:'missing',path:[stage,{id:template.id},'equipment',{id:e.id},'name'],message:'NAME_REQUIRED'});}}
      }else{
+      checkReferences(master.active[scope],content);
       assertStageTemplateAvailable(master,master.active[scope],content,control.workflow?.pendingId||undefined);
       for(const product of rows(content.products))if(!str(product.name).trim()||!rows(content.lines).some(l=>l.code===product.line)||!Array.isArray(product.stages)||!product.stages.length)issues.push({kind:'missing',path:['products',{id:product.id}],message:'PRODUCT_NAME_ROUTE_REQUIRED'});
       // Only necessary topology changes are linked. PROCESS drafts/pending and

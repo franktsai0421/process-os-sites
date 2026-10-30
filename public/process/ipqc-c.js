@@ -889,5 +889,5 @@
     }
   });
   let navigationError=null;
-  window.IPQCCUI={navigation:{canLeave:()=>!busy&&!modal&&!saveInputNoticePending(),error:()=>navigationError,reset(){mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
+  window.IPQCCUI={navigation:{requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>!busy&&!modal&&!saveInputNoticePending(),error:()=>navigationError,reset(){mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
 })();
