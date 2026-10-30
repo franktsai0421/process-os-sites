@@ -1,0 +1,14 @@
+{
+  "scope": "Synthetic Chromium controller/API retry acceptance, not full application shell",
+  "passed": [
+    "late scope response cannot replace destination",
+    "failed scope read retains selection; retry succeeds",
+    "rejected stage insert retains input and retry persists",
+    "rejected rename retries against same stable stage identity",
+    "double apply with lost committed response recovers receipt, inserts once; active unchanged",
+    "new unused stage deletion read back",
+    "line children retained",
+    "390px Chinese/Vietnamese no horizontal document overflow"
+  ],
+  "errors": []
+}

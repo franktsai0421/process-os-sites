@@ -69,3 +69,18 @@ JSON 內是實際瀏覽器自動化端到端批次時間，不是 API 或資料�
 樣本見 [原始量測](lines-cloud-timing.json)。數值波動不作效能改善主張；本次修復以正確性為主。
 
 最終檢查：npm run lint、npx tsc --noEmit PASS；候選 build 與 post-build known-auth 檢查 PASS；完整全站瀏覽器驗收仍未完成。
+
+
+## 續作：失敗重試與回應遺失
+
+前次收尾過早；PR／公開預覽能力缺失不阻擋隔離驗收。補測先重現「新增工段被 422 拒絕，第二次套用關窗但資料未寫入」；原因為 commit 回滾替換 snapshot 後，modal closure 保留已脫離的 line 物件。
+
+修正只限 master-admin-ui.js 的 editStage：用原 stable ID 重新找目前線別／工段；既有工段若已變更就拒絕覆寫、要求重新開啟。重試不會把舊物件當現行草稿，並保留其他欄位與識別碼。
+
+新增實際 Chromium + 真實 API 驗收：
+- 範圍讀取 503：停留原 AB 選取、重試 C 成功。
+- 新增工段 422：輸入保留；重試後重新讀取 SQLite 確認新增成功。
+- 改名 422：保留相同 stable ID；重試後讀回新名稱。
+- 後端已寫入 Apply，但連線丟失回應：用既有 receipt 恢復；雙擊只建立一次。
+
+以上 PASS；不擴稱保存／送審逾時、所有導航按鈕或完整權限矩陣通過。剩餘項目沿用上表。

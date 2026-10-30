@@ -13,11 +13,11 @@ const original={active,versions:Object.entries(active).map(([scope,snapshot])=>(
 db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(JSON.stringify({platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify(original),processMasterData:JSON.stringify(active.PROCESS)}),'fixture');
 const load=harness(env),api=load('app/api/master/workflow/route.ts'),login=load('app/api/platform-login/route.ts'),core=load('lib/process-state.ts');
 const scripts=['shared-draft-client','master-shared-client','master-admin-ui','master-review','approval-tabs','master-data'],styles=['styles','master-data','master-data-extra','master-data-validation','master-admin-ui'];
-let loseApplyResponse=false,failReadOnce=false;
+let loseApplyResponse=false,failReadOnce=false,rejectApplyOnce=false;
 const server=http.createServer(async(req,res)=>{try{
  const u=new URL(req.url,'http://'+req.headers.host);let response;
  if(failReadOnce&&req.method==='GET'&&u.pathname==='/api/master/workflow'){failReadOnce=false;res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'ISOLATED_LOAD_FAILURE'}));return;}
- if(u.pathname.startsWith('/api/')){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks),request=new Request(u,{method:req.method,headers:req.headers,...(req.method==='POST'?{body}:{})});response=await(u.pathname==='/api/platform-login'?login:api)[req.method](request);
+ if(u.pathname.startsWith('/api/')){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks),request=new Request(u,{method:req.method,headers:req.headers,...(req.method==='POST'?{body}:{})});if(rejectApplyOnce&&req.method==='POST'&&JSON.parse(body.toString()).command?.action==='apply'){rejectApplyOnce=false;res.writeHead(422,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'SYNTHETIC_REJECTION'}));return;}response=await(u.pathname==='/api/platform-login'?login:api)[req.method](request);
  if(loseApplyResponse&&req.method==='POST'&&JSON.parse(body.toString()).command?.action==='apply'&&response.ok){loseApplyResponse=false;res.destroy();return;}
  res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;}
  const file=u.pathname.slice(1);if([...scripts.map(x=>x+'.js'),...styles.map(x=>x+'.css')].includes(file)){res.setHeader('Content-Type',(file.endsWith('.js')?'text/javascript':'text/css')+'; charset=utf-8');res.end(fs.readFileSync(path.join('public/process',file)));return;}
@@ -67,9 +67,20 @@ void (async()=>{try{
  assert.equal(await page.evaluate(()=>state.masterScope),'AB');assert.equal(await page.locator('#master-lines-scope').count(),0);results.push('late scope response cannot replace destination');
  await page.evaluate(()=>{state.dataTab='line-admin';state.masterSection='lines';render();});
  assert.equal(await page.locator('#add-master-line').count(),0);
+ failReadOnce=true;await page.locator('#master-lines-scope').selectOption('C');await page.waitForFunction(()=>!document.querySelector('#master-lines-scope').disabled);assert.equal(await page.locator('#master-lines-scope').inputValue(),'AB');
+ await page.locator('#master-lines-scope').selectOption('C');await page.waitForFunction(()=>state.masterScope==='C');await page.locator('#master-lines-scope').selectOption('AB');await page.waitForFunction(()=>state.masterScope==='AB');results.push('failed scope read retains selection; retry succeeds');
+ await page.locator('[data-stage-add="A"]').click();await page.locator('[name=code]').fill('A-RETRY');await page.locator('[name=name]').fill('Retry retained input');rejectApplyOnce=true;
+ await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog .master-dialog-error').filter({hasText:/./}).waitFor();assert.equal(await page.locator('[name=name]').inputValue(),'Retry retained input');
+ await page.locator('#master-edit-dialog [type=submit]').click();await page.waitForFunction(()=>!document.querySelector('#master-edit-dialog'));
+ assert(JSON.parse((await core.readState()).values.masterDataControl).workflowScopes.AB.working.lines[0].stages.some(s=>s.code==='A-RETRY'));results.push('rejected stage insert retains input and retry persists');
+ await page.locator('[data-stage-edit="A-RETRY"]').click();await page.locator('[name=name]').fill('Renamed after retry');rejectApplyOnce=true;
+ await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog .master-dialog-error').filter({hasText:/./}).waitFor();
+ await page.locator('#master-edit-dialog [type=submit]').click();await page.waitForFunction(()=>!document.querySelector('#master-edit-dialog'));
+ assert.equal(JSON.parse((await core.readState()).values.masterDataControl).workflowScopes.AB.working.lines[0].stages.find(s=>s.code==='A-RETRY').name,'Renamed after retry');results.push('rejected rename retries against same stable stage identity');
+ loseApplyResponse=true;
  await page.locator('[data-stage-add="A"]').click();await page.locator('[name=code]').fill('A-ISOLATED');await page.locator('[name=name]').fill('隔離工段 · Công đoạn thử nghiệm');
  await page.locator('#master-edit-dialog [type=submit]').dblclick();await page.waitForFunction(()=>!document.querySelector('#master-edit-dialog'));
- let root=JSON.parse((await core.readState()).values.masterDataControl);assert.equal(root.workflowScopes.AB.working.lines[0].stages.filter(s=>s.code==='A-ISOLATED').length,1);assert(!root.active.AB.lines[0].stages.some(s=>s.code==='A-ISOLATED'));results.push('double apply inserts once; active unchanged');
+ let root=JSON.parse((await core.readState()).values.masterDataControl);assert.equal(root.workflowScopes.AB.working.lines[0].stages.filter(s=>s.code==='A-ISOLATED').length,1);assert(!root.active.AB.lines[0].stages.some(s=>s.code==='A-ISOLATED'));assert.equal(loseApplyResponse,false);results.push('double apply with lost committed response recovers receipt, inserts once; active unchanged');
  await page.evaluate(()=>{state.dataTab='line-admin';state.masterSection='lines';render();});await page.locator('[data-stage-delete="A-ISOLATED"]').click();await page.waitForFunction(()=>!document.querySelector('[data-stage-edit="A-ISOLATED"]'));root=JSON.parse((await core.readState()).values.masterDataControl);assert(!root.workflowScopes.AB.working.lines[0].stages.some(s=>s.code==='A-ISOLATED'));results.push('new unused stage deletion read back');
  await page.locator('[data-line-delete="A"]').click();assert.equal(await page.locator('[data-stage-edit="A-CUT"]').count(),1);results.push('line children retained');
  for(const lang of ['zh-TW','vi']){await page.evaluate(lang=>document.documentElement.lang=lang,lang);await page.setViewportSize({width:390,height:844});await page.locator('#master-lines-scope').waitFor();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}results.push('390px Chinese/Vietnamese no horizontal document overflow');

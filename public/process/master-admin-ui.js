@@ -294,8 +294,14 @@
       if(!editable())return;
       modal(original?t('修改工段','Sửa công đoạn'):t('新增工段','Thêm công đoạn'),`<p>${h(line.code)} · ${val(line.name)}</p><div class="master-form-grid">${field(t('工段編號','Mã công đoạn'),'code',original?.code||`${line.code}-`,'required pattern="[A-Za-z0-9_-]+"')}${field(t('工段名稱','Tên công đoạn'),'name',original?.name,'required')}</div>`,async form=>{
         const code=form.get('code').trim().toUpperCase(),name=form.get('name').trim();
-        if(current().lines.flatMap(l=>l.stages).some(s=>s!==original&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB'].lines.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
-        return (await commit(original?'修改工段':'新增工段',code,c=>{const next={...original,code,name};if(!original){next.machine='待補';next.assetNumber='待補';next.operators=null;}if(original){const old=original.code;line.stages[line.stages.indexOf(original)]=next;c.products.forEach(p=>p.stages=p.stages.map(s=>s===old?code:s));(c.categoryGroups||[]).forEach(g=>{if(Array.isArray(g.defaultStages))g.defaultStages=g.defaultStages.map(s=>s===old?code:s);});}else line.stages.push(next);}))?'':t('無法儲存。','Không lưu được.');
+        // A rejected Apply restores the snapshot with fresh objects. Resolve the
+        // original stable identity again; never mutate the detached modal object.
+        const target=current().lines.find(item=>line.id?item.id===line.id:item.code===line.code);
+        const existing=original&&target?.stages.find(item=>original.id?item.id===original.id:item.code===original.code);
+        if(!target||target.code!==line.code||original&&(!existing||JSON.stringify(existing)!==JSON.stringify(original)))
+          return t('資料已變更，請重新開啟工段後再修改。','Dữ liệu đã thay đổi; hãy mở lại công đoạn để sửa.');
+        if(current().lines.flatMap(l=>l.stages).some(s=>s!==existing&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB'].lines.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
+        return (await commit(original?'修改工段':'新增工段',code,c=>{const next={...existing,code,name};if(!original){next.machine='待補';next.assetNumber='待補';next.operators=null;}if(original){const old=existing.code;target.stages[target.stages.indexOf(existing)]=next;c.products.forEach(p=>p.stages=p.stages.map(s=>s===old?code:s));(c.categoryGroups||[]).forEach(g=>{if(Array.isArray(g.defaultStages))g.defaultStages=g.defaultStages.map(s=>s===old?code:s);});}else target.stages.push(next);}))?'':t('無法儲存。','Không lưu được.');
       });
     }
     function sharedStatus(){const flow=shared.flow(state.masterScope);if(!flow)return '';
