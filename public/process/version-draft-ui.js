@@ -116,8 +116,8 @@
   function masterChanges(before={},after={}){
     const changes=[],compare=(kind,oldRows,newRows,prefix='')=>{
       const key=row=>row.id||row.code||JSON.stringify([row.line,row.name]);
-      const a=new Map((oldRows||[]).map(row=>[key(row),row])),b=new Map((newRows||[]).map(row=>[key(row),row]));const positions=kind==='stages'?[new Map((oldRows||[]).map((row,index)=>[key(row),index])),new Map((newRows||[]).map((row,index)=>[key(row),index]))]:null;
-      for(const id of new Set([...a.keys(),...b.keys()])){const old=a.get(id),next=b.get(id),moved=kind==='stages'&&old&&next&&positions[0].get(id)!==positions[1].get(id);if(JSON.stringify(old)===JSON.stringify(next)&&!moved)continue;const row=next||old;changes.push({kind,action:!old?'added':!next?'removed':'modified',label:prefix+(kind==='categoryGroups'&&row.line?row.line+' / ':'')+(row.code||row.name||id),fields:[...Object.keys({...old,...next}).filter(k=>JSON.stringify(old?.[k])!==JSON.stringify(next?.[k])),...(moved?['order']:[])]});}
+      const a=new Map((oldRows||[]).map(row=>[key(row),row])),b=new Map((newRows||[]).map(row=>[key(row),row]));const positions=[new Map((oldRows||[]).map((row,index)=>[key(row),index])),new Map((newRows||[]).map((row,index)=>[key(row),index]))];
+      for(const id of new Set([...a.keys(),...b.keys()])){const old=a.get(id),next=b.get(id),moved=old&&next&&positions[0].get(id)!==positions[1].get(id);if(JSON.stringify(old)===JSON.stringify(next)&&!moved)continue;const row=next||old;changes.push({kind,action:!old?'added':!next?'removed':'modified',label:prefix+(kind==='categoryGroups'&&row.line?row.line+' / ':'')+(row.code||row.name||id),fields:[...Object.keys({...old,...next}).filter(k=>JSON.stringify(old?.[k])!==JSON.stringify(next?.[k])),...(moved?['order']:[])]});}
     };
     for(const kind of ['products','categoryGroups','lines'])compare(kind,before?.[kind],after?.[kind]);
     const lines=new Map((before?.lines||[]).map(row=>[row.id||row.code,{before:row}]));for(const row of after?.lines||[]){const key=row.id||row.code;lines.set(key,{...lines.get(key),after:row});}
