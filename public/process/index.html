@@ -7,6 +7,13 @@
     <meta name="app-build" content="2026.09.15.7100" />
     <title>製程標準播放系統</title>
     <style>[data-process-boot] .app-shell,[data-process-boot] #login-root{visibility:hidden}#process-boot{position:fixed;inset:0;display:grid;place-content:center;background:#f6f3ea;color:#24312d;font:18px system-ui;z-index:99999;padding:24px}#process-boot button{min-height:44px;margin-top:16px}</style>
+    <!-- Display hint only: authorization and destination still come from bootstrap. -->
+    <script>
+      {const intent=new URLSearchParams(location.search);
+      if(intent.get('view')==='data'&&intent.get('dataTab')==='process-master')
+        document.documentElement.dataset.processBootLayout='process-master';}
+    </script>
+    <style>html[data-process-boot][data-process-boot-layout="process-master"] .app-shell{display:none}</style>
     <!-- Offline Local: use the existing system-font fallbacks. -->
     <link rel="stylesheet" href="styles.css?v=20260930-comments6" />
     <link rel="stylesheet" href="version-workflow.css?v=20260829-1425" />
@@ -22,7 +29,7 @@
     <link rel="stylesheet" href="approval-tabs.css?v=20261007-overview" />
     <link rel="stylesheet" href="bom-search.css?v=20260903-1540" />
     <link rel="stylesheet" href="bom-workspace.css?v=20261012-labels3" />
-    <link rel="stylesheet" href="process-equipment.css?v=20260911-6200" />
+    <link rel="stylesheet" href="process-equipment.css?v=20261029-flow1" />
     <link rel="stylesheet" href="dual-system.css?v=20260919-dual-system" />
     <link rel="stylesheet" href="fqc-master.css?v=20261028-matrix-rule-layout1" />
     <link rel="stylesheet" href="iqc-master.css?v=20260930-comments24" />
@@ -70,17 +77,17 @@
     <script data-process-src="version-return-policy.js?v=20260905-1500"></script>
     <script data-process-src="data-safety.js?v=20260907-2500"></script>
     <script data-process-src="master-admin-ui.js?v=20261010-review2"></script>
-    <script data-process-src="app.js?v=20261027-login-reentry1"></script>
+    <script data-process-src="app.js?v=20261029-flowleave1"></script>
     <script data-process-src="version-workflow.js?v=20261025-bounded-media1"></script>
     <script data-process-src="line-stage-excel.js?v=20260911-6000"></script>
     <script data-process-src="master-page-excel.js?v=20260911-6000"></script>
-    <script data-process-src="master-review.js?v=20261012-bom-incremental3"></script>
+    <script data-process-src="master-review.js?v=20261029-flowreview1"></script>
     <script data-process-src="approval-tabs.js?v=20261025-navigation2"></script>
     <script data-process-src="shared-draft-client.js?v=20261029-quality-projection1"></script>
     <script data-process-src="master-shared-client.js?v=20261025-navigation2"></script>
     <script data-process-src="web-feedback-entry.js?v=20261029-feedback7"></script>
-    <script data-process-src="master-data.js?v=20261029-begin-foreground1"></script>
-    <script data-process-src="process-equipment.js?v=20261026-input-lifecycle1"></script>
+    <script data-process-src="master-data.js?v=20261030-flow-poll1"></script>
+    <script data-process-src="process-equipment.js?v=20261029-flowleave1"></script>
     <script data-process-src="permission-controls.js?v=20261025-navigation2"></script>
     <script data-process-src="flow-zoom.js?v=20261002-v3"></script>
     <script data-process-src="editor-version-guard.js?v=20260919-workflow"></script>
@@ -89,7 +96,7 @@
     <script data-process-src="bom-search-engine.js?v=20260903-1540"></script>
     <script data-process-src="bom-excel.js?v=20260911-6000"></script>
     <script data-process-src="bom-search.js?v=20260903-1630"></script>
-    <script data-process-src="bom-workspace.js?v=20261029-begin-foreground1"></script>
+    <script data-process-src="bom-workspace.js?v=20261030-flow-poll1"></script>
     <link rel="stylesheet" href="data-safety.css?v=20261014-recovery1">
     <script data-process-src="data-safety-ui.js?v=20261027-login-reentry1"></script>
     <link rel="stylesheet" href="system-upgrade.css?v=20260912-6900">
@@ -115,7 +122,7 @@
     <link rel="stylesheet" href="process-editor.css?v=20261010-bom-search2">
     <script data-process-src="editor-graph.js?v=20261008-compact3"></script>
     <script data-process-src="canvas-local.js?v=20261027-save-inspection1"></script>
-    <script data-process-src="process-editor.js?v=20261027-c-query1"></script>
+    <script data-process-src="process-editor.js?v=20261029-flow1"></script>
     <link rel="stylesheet" href="interface-layout.css?v=20261014-mobile10">
     <link rel="stylesheet" href="user-access.css?v=20261013-permission-ui2">
     <script data-process-src="user-access.js?v=20261025-navigation2"></script>

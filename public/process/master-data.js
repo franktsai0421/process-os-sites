@@ -1127,7 +1127,7 @@
         },
       });
       approvalSection = review.view;
-      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
+      bindApprovalMaster = function(){review.bind();const missing=window.MasterReview.readableScopes().filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
     }
   }
   window.MasterDataWorkflow = {
@@ -1225,7 +1225,7 @@
         },
       });
       const reads=[];
-      if(masterActive){bindApprovalMaster();reads.push(dataReady,window.BOMWorkspace?.loadReview());}
+      if(masterActive){bindApprovalMaster();reads.push(dataReady);if(window.hasPermission?.('bom.view'))reads.push(window.BOMWorkspace?.loadReview());}
       if(state.approvalTab==='quality'){
         const panel=document.querySelector('#approval-panel-quality');
         window.QualityReviewOverview?.mount?.(panel);
@@ -1233,7 +1233,7 @@
       }
       if(state.approvalTab==='routine')reads.push(window.RoutineFQCUI?.bindReview?.(document.querySelector('#approval-panel-routine')));
       // This background count does not gate another panel's usable readiness.
-      if(state.approvalTab!=='routine')void window.RoutineFQCUI?.refreshPending?.();
+      if(state.approvalTab!=='routine'&&window.hasPermission?.('routine.view'))void window.RoutineFQCUI?.refreshPending?.();
       approvalReady=Promise.all(reads);approvalReady.catch(()=>{});
 
     }

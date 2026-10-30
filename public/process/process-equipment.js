@@ -7,6 +7,7 @@
     t = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh,
     h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
     copy = value => JSON.parse(JSON.stringify(value));
+  let committing = false;
   let search = '', lineFilter = '', stageFilter = '', editing = null, repaintGeneration = 0;
 
   function isMachineTemplate(template) {
@@ -27,7 +28,7 @@
   }
   function currentEquipmentMount(area, content, owner) {
     return !!area?.isConnected && document.querySelector('#data-content') === area &&
-      area.firstElementChild === content && !host.ProcessSync?.requiresReload &&
+      area.querySelector('#equipment-panel') === content && !host.ProcessSync?.requiresReload &&
       (!owner || host.ProcessSync?.isCurrentDelivery?.(owner) === true);
   }
   function repaint(showDialog = false, focusSearch = false, focusField = '') {
@@ -36,7 +37,7 @@
     const top = scrollY, owner = host.ProcessSync?.captureDelivery?.(), generation = ++repaintGeneration;
     area.innerHTML = processMasterView();
     bindDataInner('process-master');
-    const content = area.firstElementChild, input = area.querySelector('#equipment-search'),
+    const content = area.querySelector('#equipment-panel'), input = area.querySelector('#equipment-search'),
       dialog = area.querySelector('#equipment-editor-dialog'),
       field = focusField ? area.querySelector(`[data-equipment-field="${CSS.escape(focusField)}"]`) : null;
     requestAnimationFrame(() => {
@@ -118,7 +119,7 @@
     const usage = approvedUsage(equipment);
     return usage.length
       ? [...new Set(usage.map(item => item.number).filter(Boolean))].join('、')
-      : t('尚未核准使用','Chưa được duyệt sử dụng');
+      : t('開啟設備查看引用','Mở thiết bị để xem tham chiếu');
   }
   function thumbnail(equipment) {
     const photo = equipment.mediaItems?.[0];
@@ -132,7 +133,7 @@
   function editorModal(editable) {
     if (!editing) return '';
     const e = editing.record, usage = approvedUsage(e), canRemove = editable && canDeleteProcessMaster();
-    return `<dialog id="equipment-editor-dialog" class="equipment-editor-dialog" data-i18n-skip="true"><div class="equipment-dialog-head"><div><small>${editing.isNew ? t('新增設備','Thêm máy') : t('設備資料','Dữ liệu máy')}</small><h3>${h(e.number || e.name || t('尚未命名','Chưa đặt tên'))}</h3></div><button type="button" data-equipment-close aria-label="${t('關閉','Đóng')}">×</button></div><div class="equipment-dialog-body"><section class="equipment-dialog-photos"><h4>${t('設備照片','Ảnh thiết bị')}</h4><div class="equipment-modal-photo-grid">${(e.mediaItems || []).map((photo,index) => `<figure><button type="button" class="equipment-photo-preview" data-lightbox-src="${h(photo.src)}" data-lightbox-type="${h(photo.type || 'image/jpeg')}" data-lightbox-title="${h(`${e.number || e.name} · ${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}`)}" data-lightbox-group="equipment-${h(e.id)}"><img src="${h(photo.src)}" alt="${h(e.number || e.name)}"></button><figcaption>${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}</figcaption>${canRemove ? `<button type="button" data-equipment-remove-photo="${index}" aria-label="${t('移除照片','Xóa ảnh')}">×</button>` : ''}</figure>`).join('') || `<p>${t('尚無照片','Chưa có ảnh')}</p>`}</div>${editable ? `<div class="equipment-photo-actions"><label class="button ghost"><input type="file" data-equipment-photo-replace accept="image/*"><span>${t('更換主要照片','Đổi ảnh chính')}</span></label><label class="button ghost"><input type="file" data-equipment-photo-add accept="image/*" multiple><span>${t('＋ 增加照片','＋ Thêm ảnh')}</span></label></div><small>${t('點擊照片可放大查看；新照片會自動壓縮。','Nhấn ảnh để phóng to; ảnh mới sẽ tự động nén.')}</small>` : ''}</section><section class="equipment-dialog-fields">${modalField('number',t('機器編號','Mã máy'),e.number,editable)}${modalField('name',t('機器名稱（中文）','Tên máy (Trung)'),e.name,editable)}${modalField('nameVi',t('機器名稱（越南文）','Tên máy (Việt)'),e.nameVi,editable)}<label><span>${t('產線／工段','Chuyền / Công đoạn')}</span><select data-equipment-stage ${editable ? '' : 'disabled'}>${routing.lines.flatMap(line => line.stages.map(stage => `<option value="${h(stage.code)}" ${stage.code === e.stageCode ? 'selected' : ''}>${h(line.code)} · ${h(stage.code)} · ${h(stage.name)}</option>`)).join('')}</select></label>${modalField('machineType',t('機器類型','Loại máy'),e.machineType || '',editable)}${modalField('purpose',t('用途（中文）','Công dụng (Trung)'),e.purpose || '',editable)}${modalField('purposeVi',t('用途（越南文）','Công dụng (Việt)'),e.purposeVi || '',editable,true)}<label class="equipment-modal-wide"><span>${t('備註','Ghi chú')}</span><textarea data-equipment-field="note" ${editable ? '' : 'disabled'}>${h(e.note || '')}</textarea></label><div class="equipment-approved-usage equipment-modal-wide"><b>${t('已核准使用流程','Quy trình đã duyệt sử dụng')}</b>${usage.length ? `<ul>${usage.map(item => `<li>${h(`${item.number} ${item.name} · V${item.version}`)}</li>`).join('')}</ul>` : `<p>${t('目前留空。製程編輯台的方塊通過主管確認後，這裡會自動顯示流程名稱。','Hiện đang trống. Sau khi ô quy trình được duyệt, tên quy trình sẽ tự động hiển thị tại đây.')}</p>`}</div><small class="equipment-modal-wide">${t('來源','Nguồn')}: ${h(e.source?.sheet || t('手動新增','Thêm thủ công'))}${e.source?.row ? ` · ${t('第','Dòng')} ${e.source.row}` : ''}</small></section></div><div class="equipment-dialog-actions">${canRemove && !editing.isNew ? `<button type="button" class="button ghost danger" data-equipment-delete>${t('刪除設備','Xóa máy')}</button>` : '<span></span>'}<div><button type="button" class="button ghost" data-equipment-close>${t('取消','Hủy')}</button>${editable ? `<button type="button" class="button signal" data-equipment-save>${t('儲存設備草稿','Lưu thiết bị')}</button>` : ''}</div></div></dialog>`;
+    return `<dialog id="equipment-editor-dialog" class="equipment-editor-dialog" data-i18n-skip="true"><div class="equipment-dialog-head"><div><small>${editing.isNew ? t('新增設備','Thêm máy') : t('設備資料','Dữ liệu máy')}</small><h3>${h(e.number || e.name || t('尚未命名','Chưa đặt tên'))}</h3></div><button type="button" data-equipment-close aria-label="${t('關閉','Đóng')}">×</button></div><div class="equipment-dialog-body"><section class="equipment-dialog-photos"><h4>${t('設備照片','Ảnh thiết bị')}</h4><div class="equipment-modal-photo-grid">${(e.mediaItems || []).map((photo,index) => `<figure><button type="button" class="equipment-photo-preview" data-lightbox-src="${h(photo.src)}" data-lightbox-type="${h(photo.type || 'image/jpeg')}" data-lightbox-title="${h(`${e.number || e.name} · ${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}`)}" data-lightbox-group="equipment-${h(e.id)}"><img src="${h(photo.src)}" alt="${h(e.number || e.name)}"></button><figcaption>${index === 0 ? t('主要照片','Ảnh chính') : `${t('照片','Ảnh')} ${index + 1}`}</figcaption>${canRemove ? `<button type="button" data-equipment-remove-photo="${index}" aria-label="${t('移除照片','Xóa ảnh')}">×</button>` : ''}</figure>`).join('') || `<p>${t('尚無照片','Chưa có ảnh')}</p>`}</div>${editable ? `<div class="equipment-photo-actions"><label class="button ghost"><input type="file" data-equipment-photo-replace accept="image/*"><span>${t('更換主要照片','Đổi ảnh chính')}</span></label><label class="button ghost"><input type="file" data-equipment-photo-add accept="image/*" multiple><span>${t('＋ 增加照片','＋ Thêm ảnh')}</span></label></div><small>${t('點擊照片可放大查看；新照片會自動壓縮。','Nhấn ảnh để phóng to; ảnh mới sẽ tự động nén.')}</small>` : ''}</section><section class="equipment-dialog-fields">${modalField('number',t('機器編號','Mã máy'),e.number,editable)}${modalField('name',t('機器名稱（中文）','Tên máy (Trung)'),e.name,editable)}${modalField('nameVi',t('機器名稱（越南文）','Tên máy (Việt)'),e.nameVi,editable)}<label><span>${t('產線／工段','Chuyền / Công đoạn')}</span><select data-equipment-stage ${editable ? '' : 'disabled'}>${routing.lines.flatMap(line => line.stages.map(stage => `<option value="${h(stage.code)}" ${stage.code === e.stageCode ? 'selected' : ''}>${h(line.code)} · ${h(stage.code)} · ${h(stage.name)}</option>`)).join('')}</select></label>${modalField('machineType',t('機器類型','Loại máy'),e.machineType || '',editable)}${modalField('purpose',t('用途（中文）','Công dụng (Trung)'),e.purpose || '',editable)}${modalField('purposeVi',t('用途（越南文）','Công dụng (Việt)'),e.purposeVi || '',editable,true)}<label class="equipment-modal-wide"><span>${t('備註','Ghi chú')}</span><textarea data-equipment-field="note" ${editable ? '' : 'disabled'}>${h(e.note || '')}</textarea></label><div class="equipment-approved-usage equipment-modal-wide"><b>${t('已核准使用流程','Quy trình đã duyệt sử dụng')}</b>${usage.length ? `<ul>${usage.map(item => `<li>${h(`${item.number} ${item.name} · V${item.version}`)}</li>`).join('')}</ul>` : `<p>${t('目前留空。製程編輯台的方塊通過主管確認後，這裡會自動顯示流程名稱。','Hiện đang trống. Sau khi ô quy trình được duyệt, tên quy trình sẽ tự động hiển thị tại đây.')}</p>`}</div><small class="equipment-modal-wide">${t('來源','Nguồn')}: ${h(e.source?.sheet || t('手動新增','Thêm thủ công'))}${e.source?.row ? ` · ${t('第','Dòng')} ${e.source.row}` : ''}</small></section></div><div class="equipment-dialog-actions">${canRemove && !editing.isNew ? `<button type="button" class="button ghost danger" data-equipment-delete>${t('刪除設備','Xóa máy')}</button>` : '<span></span>'}<div><button type="button" class="button ghost" data-equipment-close>${t('取消','Hủy')}</button>${editable ? `<button type="button" class="button signal" data-equipment-save>${t('套用設備內容','Áp dụng thiết bị')}</button>` : ''}</div></div></dialog>`;
   }
   function panel() {
     const editable = Boolean(editableProcessMasterData()),
@@ -149,7 +150,7 @@
       const [line, stageCode] = key.split('\u0000'), stage = stageFor(stageCode);
       return `<section class="equipment-stage-group"><header><div><span class="line-badge">${h(line)}</span><h4>${h(stageCode)} · ${h(stage?.name || stageCode)}</h4></div><small>${equipment.length} ${t('台設備','máy')}</small></header><div class="equipment-table-wrap"><table class="equipment-summary-table"><thead><tr><th>${t('照片','Ảnh')}</th><th>${t('機器編號','Mã máy')}</th><th>${t('機器名稱','Tên máy')}</th><th>${t('線別／工段','Chuyền / Công đoạn')}</th><th>${t('已核准流程','Quy trình đã duyệt')}</th><th>${t('操作','Thao tác')}</th></tr></thead><tbody>${equipment.map(e => `<tr data-equipment-id="${h(e.id)}"><td><button type="button" class="equipment-thumb" data-equipment-edit="${h(e.id)}">${thumbnail(e)}</button></td><td><code>${h(e.number || t('待補編號','Chưa có mã'))}</code></td><td><b>${h(t(e.name || e.nameVi,e.nameVi || e.name))}</b></td><td>${h(e.line)} · ${h(e.stageCode)}</td><td><span class="equipment-usage-summary ${approvedUsage(e).length ? 'used' : ''}">${h(usageText(e))}</span></td><td><button type="button" class="button ghost compact" data-equipment-edit="${h(e.id)}">${editable ? t('編輯','Sửa') : t('查看','Xem')}</button></td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
-    return `<section class="equipment-panel" id="equipment-panel" data-i18n-skip="true"><header class="equipment-panel-head"><div><p class="eyebrow">EQUIPMENT MASTER</p><h3>${t('機器設定 · 設備總表','Cài đặt máy · Danh sách thiết bị')}</h3><p>${t('依線別與工段分類。流程欄只顯示已通過主管確認的製程方塊。','Phân loại theo chuyền và công đoạn. Cột quy trình chỉ hiển thị các ô đã được duyệt.')} ${rows.length} ${t('台','máy')}</p></div><div class="equipment-actions">${editable ? `<button type="button" class="button signal" id="add-equipment">${t('＋ 新增設備','＋ Thêm máy')}</button>` : ''}${sourceButton}</div></header><div class="equipment-filters"><label><span>${t('搜尋設備','Tìm thiết bị')}</span><input id="equipment-search" value="${h(search)}" placeholder="${t('機器編號、名稱或工段','Mã máy, tên hoặc công đoạn')}" type="search"></label><label><span>${t('線別','Chuyền')}</span><select id="equipment-line-filter"><option value="">${t('全部線別','Tất cả chuyền')}</option>${lines.map(line => `<option value="${h(line)}" ${line === lineFilter ? 'selected' : ''}>LINE ${h(line)}</option>`).join('')}</select></label><label><span>${t('工段','Công đoạn')}</span><select id="equipment-stage-filter"><option value="">${t('全部工段','Tất cả công đoạn')}</option>${availableStages.map(code => `<option value="${h(code)}" ${code === stageFilter ? 'selected' : ''}>${h(code)} · ${h(stageFor(code)?.name || code)}</option>`).join('')}</select></label><button type="button" class="button ghost" id="equipment-filter-clear">${t('清除篩選','Xóa bộ lọc')}</button></div><div class="equipment-summary">${groupHtml || `<div class="equipment-empty"><b>${t('沒有符合條件的設備','Không có thiết bị phù hợp')}</b><p>${t('請調整搜尋或篩選條件。','Hãy đổi điều kiện tìm kiếm hoặc bộ lọc.')}</p></div>`}</div>${editorModal(editable)}</section>`;
+    return `<section class="equipment-panel" id="equipment-panel" data-i18n-skip="true"><header class="equipment-panel-head"><div><p class="eyebrow">EQUIPMENT MASTER</p><h3>${t('機器設定 · 設備總表','Cài đặt máy · Danh sách thiết bị')}</h3><p>${t('依線別與工段分類。流程欄只顯示已通過主管確認的製程方塊。','Phân loại theo chuyền và công đoạn. Cột quy trình chỉ hiển thị các ô đã được duyệt.')} ${rows.length} ${t('台','máy')}</p></div><div class="equipment-actions">${editable && host.hasPermission?.('templates.create') ? `<button type="button" class="button signal" id="add-equipment">${t('＋ 新增設備','＋ Thêm máy')}</button>` : ''}${sourceButton}</div></header><div class="equipment-filters"><label><span>${t('搜尋設備','Tìm thiết bị')}</span><input id="equipment-search" value="${h(search)}" placeholder="${t('機器編號、名稱或工段','Mã máy, tên hoặc công đoạn')}" type="search"></label><label><span>${t('線別','Chuyền')}</span><select id="equipment-line-filter"><option value="">${t('全部線別','Tất cả chuyền')}</option>${lines.map(line => `<option value="${h(line)}" ${line === lineFilter ? 'selected' : ''}>LINE ${h(line)}</option>`).join('')}</select></label><label><span>${t('工段','Công đoạn')}</span><select id="equipment-stage-filter"><option value="">${t('全部工段','Tất cả công đoạn')}</option>${availableStages.map(code => `<option value="${h(code)}" ${code === stageFilter ? 'selected' : ''}>${h(code)} · ${h(stageFor(code)?.name || code)}</option>`).join('')}</select></label><button type="button" class="button ghost" id="equipment-filter-clear">${t('清除篩選','Xóa bộ lọc')}</button></div><div class="equipment-summary">${groupHtml || `<div class="equipment-empty"><b>${t('沒有符合條件的設備','Không có thiết bị phù hợp')}</b><p>${t('請調整搜尋或篩選條件。','Hãy đổi điều kiện tìm kiếm hoặc bộ lọc.')}</p></div>`}</div>${editorModal(editable)}</section>`;
   }
   async function saveVersion(label,before,next) {
     const draft = processMasterDraft();
@@ -169,10 +170,20 @@
       ? {record:copy(row.equipment), originalId:id, isNew:false}
       : {record:{id:`EQ-${crypto.randomUUID()}`,number:'',name:t('新設備','Máy mới'),nameVi:'',line:stageCode.split('-')[0],stageCode,kind:unifiedKind,machineType:'',mediaItems:[],purpose:'',purposeVi:'',note:''},originalId:'',isNew:true};
     editing.base=copy(editableProcessMasterData()||currentProcessMasterData());
+    editing.initial=JSON.stringify(editing.record);
     repaint(true, false, focusField);
+    const target=editing,box=document.querySelector('#equipment-editor-dialog .equipment-approved-usage'),actor=host.ProcessSync?.identity;
+    if(box&&!target.isNew){
+      box.textContent=t('正在查詢引用…','Đang kiểm tra tham chiếu…');
+      fetch('/api/master/references?scope=PROCESS&kind=equipment&id='+encodeURIComponent(id),{headers:host.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)}).then(async response=>{
+        if(!response.ok)throw Error('REFERENCE_CHECK_FAILED');const result=await response.json();
+        if(editing!==target||!box.isConnected||actor!==host.ProcessSync?.identity)return;
+        box.innerHTML='<b>'+t('引用位置','Vị trí tham chiếu')+'</b>'+(result.total?'<ul>'+result.references.map(ref=>'<li>'+h([ref.products.join(', '),ref.line,ref.category,ref.stage,ref.number,ref.name,ref.status].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>':'<p>'+t('目前沒有使用中的引用','Không có tham chiếu đang dùng')+'</p>')+(result.detailsRestricted?'<p>'+t('有引用，請交由有查看權限者處理。','Có tham chiếu; nhờ người có quyền xem xử lý.')+'</p>':'');
+      }).catch(()=>{if(editing===target&&box.isConnected)box.textContent=t('引用查詢失敗；請重新開啟設備重試。刪除時仍會重新檢查。','Không tra được tham chiếu; mở lại để thử. Khi xóa vẫn kiểm tra lại.');});
+    }
   }
   async function commitEditor() {
-    if (!editableProcessMasterData() || !editing) return;
+    if (!editableProcessMasterData() || !editing || committing || editing.uploading) return;
     const target = editing, submittedRecord = JSON.stringify(target.record);
     const snapshot=copy(target.base);
     const item = copy(target.record), template = targetTemplate(snapshot,item.stageCode);
@@ -187,7 +198,8 @@
     if (!template) { toast(`${item.stageCode}：${t('找不到機器設定流程','Không tìm thấy quy trình cài đặt máy')}`); return; }
     entries(snapshot).forEach(row => { row.template.equipment = (row.template.equipment || []).filter(e => e.id !== item.id); });
     (template.equipment ||= []).push(item);
-    if (!(await saveVersion(target.isNew ? t('新增設備','Thêm máy') : t('修改設備資料','Sửa dữ liệu máy'),target.base,snapshot))) return;
+    committing=true;
+    try { if (!(await saveVersion(target.isNew ? t('新增設備','Thêm máy') : t('修改設備資料','Sửa dữ liệu máy'),target.base,snapshot))) return; } finally { committing=false; }
     if (editing !== target) return;
     if (JSON.stringify(target.record) !== submittedRecord) { target.base = copy(snapshot); return; }
     editing = null;
@@ -232,9 +244,12 @@
     const dialog = document.querySelector('#equipment-editor-dialog');
     const actor = host.ProcessSync?.identity || (typeof currentUser === 'undefined' ? null : currentUser);
     const actorId = actor?.id;
-    if (!target || !files?.length || !working || !dialog?.open || !dialog.isConnected) return;
+    if (!target || target.uploading || !files?.length || !working || !dialog?.open || !dialog.isConnected) return;
+    target.uploading=true;dialog.querySelector('.equipment-photo-retry')?.remove();
+    const status=document.createElement('p');status.setAttribute('role','status');status.textContent=t('照片處理中…','Đang xử lý ảnh…');dialog.querySelector('.equipment-dialog-photos').append(status);
+    const pendingFiles=[...files];
     try {
-      const {items} = await prepareMediaUploads([...files]);
+      const {items} = await prepareMediaUploads(pendingFiles);
       const currentActor = host.ProcessSync?.identity || (typeof currentUser === 'undefined' ? null : currentUser);
       if (editing !== target || editableProcessMasterData() !== working || processMasterDraft() !== draft ||
           currentActor !== actor || currentActor?.id !== actorId || !dialog.open || !dialog.isConnected ||
@@ -242,7 +257,7 @@
       if (mode === 'replace') target.record.mediaItems = [items[0], ...(target.record.mediaItems || []).slice(1)];
       else target.record.mediaItems = [...(target.record.mediaItems || []), ...items];
       repaint(true);
-    } catch (error) { toast(error.message); }
+    } catch (error) { toast(error.message);if(editing===target&&dialog.isConnected){const retry=document.createElement('button');retry.type='button';retry.className='button ghost equipment-photo-retry';retry.textContent=t('重試照片上傳','Thử tải ảnh lại');retry.onclick=()=>updatePhotos(mode,pendingFiles);dialog.querySelector('.equipment-dialog-photos').append(retry);}}finally{target.uploading=false;status.remove();}
   }
   function bind() {
     document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
@@ -250,21 +265,28 @@
     bindEquipmentRows(document);
     const searchInput = document.querySelector('#equipment-search');
     if (searchInput) {
-      const area = document.querySelector('#data-content'), content = area?.firstElementChild, owner = host.ProcessSync?.captureDelivery?.();
+      const area = document.querySelector('#data-content'), content = area?.querySelector('#equipment-panel'), owner = host.ProcessSync?.captureDelivery?.();
       let composing = false;
       const updateSearch = event => {
         if (composing || event.isComposing || !currentEquipmentMount(area, content, owner) || !searchInput.isConnected || area.querySelector('#equipment-search') !== searchInput || search === searchInput.value) return;
         search = searchInput.value;
         refreshEquipmentSearch(area, searchInput, content, owner);
       };
-      searchInput.oncompositionstart = () => { composing = true; };
-      searchInput.oncompositionend = event => { composing = false; updateSearch(event); };
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers||[])searchInput.removeEventListener(type,handler);
+      searchInput.processEquipmentCompositionHandlers=[['compositionstart',()=>{composing=true;}],['compositionend',event=>{composing=false;updateSearch(event);}]];
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers)searchInput.addEventListener(type,handler);
       searchInput.oninput = updateSearch;
     }
     document.querySelector('#equipment-line-filter')?.addEventListener('change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
     document.querySelector('#equipment-stage-filter')?.addEventListener('change',event => { stageFilter = event.target.value; repaint(); });
     document.querySelector('#equipment-filter-clear')?.addEventListener('click',() => { search = lineFilter = stageFilter = ''; repaint(); });
-    document.querySelectorAll('[data-equipment-close]').forEach(button => button.onclick = () => { document.querySelector('#equipment-editor-dialog')?.close(); editing = null; });
+    const closeEditor = () => {
+      if (committing || editing?.uploading) return;
+      if (editing && JSON.stringify(editing.record)!==editing.initial && !confirm(t('設備內容尚未套用，確定放棄變更？','Nội dung máy chưa áp dụng. Bỏ thay đổi?'))) return;
+      document.querySelector('#equipment-editor-dialog')?.close(); editing=null;
+    };
+    document.querySelectorAll('[data-equipment-close]').forEach(button => button.onclick = closeEditor);
+    document.querySelector('#equipment-editor-dialog')?.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
     document.querySelectorAll('[data-equipment-field]').forEach(input => input.oninput = () => { if (editing) editing.record[input.dataset.equipmentField] = input.value; });
     document.querySelector('[data-equipment-stage]')?.addEventListener('change',event => { if (editing) { editing.record.stageCode = event.target.value; editing.record.line = event.target.value.split('-')[0]; } });
     document.querySelector('[data-equipment-photo-add]')?.addEventListener('change',event => updatePhotos('add',event.target.files));
@@ -274,7 +296,7 @@
     document.querySelector('[data-equipment-delete]')?.addEventListener('click',async() => {
       if (!editableProcessMasterData() || !editing || !canDeleteProcessMaster()) return;
       const target = editing, snapshot=copy(target.base);
-      if (!confirm(t(`刪除 ${editing.record.number || editing.record.name}？已核准製程的歷史快照會保留。`,`Xóa ${editing.record.number || editing.record.name}? Lịch sử quy trình đã duyệt vẫn được giữ.`))) return;
+      try{if(!await confirmProcessMasterRemoval('equipment',target.record.id,target.record.number||target.record.name))return;}catch(error){toast(error.message);return;}
       entries(snapshot).forEach(row => { row.template.equipment = (row.template.equipment || []).filter(item => item.id !== target.record.id); });
       if(!(await saveVersion(t('刪除設備','Xóa máy'),target.base,snapshot)))return;
       if (editing !== target) return;
@@ -402,7 +424,8 @@
     search = lineFilter = stageFilter = '';
     openEditor(id, field);
   }
-  host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate};
+  function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
+  host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };
