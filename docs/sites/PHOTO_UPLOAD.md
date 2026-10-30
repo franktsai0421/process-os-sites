@@ -1,3 +1,7 @@
+# 2026-10-29 unified new uploads
+
+FQC standard photo uploads now use the same browser policy. See [entry inventory and validation](PHOTO_STANDARD_CLOUD_29102026.md). Existing photos and non-photo attachments are unchanged.
+
 # Shared photo upload policy
 
 The IQC, IPQC-AB, IPQC-C, routine-equipment, routine-FQC and tooling photo PUT

@@ -1,3 +1,19 @@
+2026-10-29 users-permissions candidate: [clear rights implementation and evidence](../../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md). Four common columns, detailed effective rights/source and explicit restore permission; isolated verification only, not deployed.
+
+## 2026-10-29 使用者與權限 CLOUD（隔離候選，未發布）
+
+第二輪載入優化：user-access API 的同請求角色／可編輯矩陣計算重用；初載 helper 在既有登入 gate 後重疊 users GET 和腳本初始化，採用前檢查 owner／generation／delivery；清單超過 50 人分頁，搜尋仍涵蓋全部資料。完整頁面 4／200 人各五次比較與限制見[第二輪載入驗證](../../docs/acceptance/USERS_CLOUD_LOADING_29102026.md)。沒有跨請求授權快取或共用導航改造。
+
+使用者 API 的角色定義只在同一請求內重用，帳號 projection 避免重算啟用者 configuredCells；無跨請求授權快取或儲存格式變更。所有身分改自己密碼均驗證舊密碼。自身唯讀矩陣只增加本人的 roleCells 回應，不公開其他帳號或角色模板。
+
+user-access UI 修正 legacy 缺少 accessOverrides 的勾選錯誤、組字搜尋、有效人數、局部矩陣更新、同 actor 晚到 GET、重複提交、保存後讀回及讀回失敗的 GET-only 核對。衝突對象已變則保留輸入並禁止直接覆寫；不自動重送未知 POST。既有 identity/delivery invalidation 保持生效。資源版本只更新本模組兩個檔案。
+
+證據、計時、已知跨模組權限例外、外部預覽與 PR 阻礙集中在[驗收與交接](../../docs/acceptance/USERS_CLOUD_29102026.md)及[權限對照](../../docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。未修改既有站台、真實帳號、schema／migration、共用草稿或其他任務功能。
+
+## 2026-10-29 全站照片入口統一候選
+
+FQC `fileData` 新上傳先經 `prepareBrowserPhoto` 再保存 data URL；其他入口沿用現行 shared policy，PNG 無損、其餘支援格式保持編碼。介面不再顯示照片規格／壓縮方案。沒有持久 schema、附件識別、權限、歷史或既有照片轉換。共用照片燈箱另加原像素放大／適合視窗，樣式限定 media-lightbox；新實際表單測試含技術小字與 EXIF 樣本。詳見 [唯一盤點與驗證紀錄](../../docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
 ## 2026-10-29 第二輪：身份 immutable aggregate 有界重疊
 
 只針對 manifest 中相鄰且 selected 的四類身份 aggregate，先核 ref，再最多兩個 GET；不預讀任意 URL／foreign ref，也不新增 HEAD 或重讀。provider metadata 兩者 size 都為安全整數且不大於 256 KiB 時，可重疊 text/SHA；其他情況沿已取得 object 序列消費，原 parse／required body／projection／adoption 錯誤順序保留。token 路徑仍序列，bootstrap 最後無 token 的 fresh read 不被快取取代。

@@ -75,9 +75,9 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       }catch(error){if(action==='apply'&&(error.notSent||error.status&&error.status<500))error.rejectedDraftPaths=detail.patches?.map(patch=>patch.path)||[];throw error;}finally{busy=false;}
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
-      const savedId=current.saved.id,owner=host.ProcessSync?.identity,generation=current.generation;
+      const savedId=current.saved.id,owner=host.ProcessSync?.identity,generation=current.generation,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,{snapshot:{actor:current.saved.actor?.name,at:current.saved.at,dirty:!equal(current.working,current.saved.content)}});if(!reason)return null;
-      if(owner!==host.ProcessSync?.identity||flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error(t('已保存的快照已變更，請重新開啟送審確認。','Bản đã lưu đã thay đổi; hãy mở lại xác nhận gửi duyệt.'));
+      if(owner!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false||flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error(t('已保存的快照已變更，請重新開啟送審確認。','Bản đã lưu đã thay đổi; hãy mở lại xác nhận gửi duyệt.'));
       return execute(scope,'submit',{savedId,reason});
     }
     async function review(scope,action,caseId){const c=flow(scope)?.cases.find(row=>row.id===caseId);if(!c)throw Error('CASE_NOT_FOUND');
@@ -85,7 +85,7 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:scope+' · '+caseId,selfReview:action!=='withdraw'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
-    async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&permissions.get(scope)?.edit===true&&permissions.get(scope)?.delete===true,onApplied:async()=>{await load(scope);onChange?.();}});}
+    async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&['history','edit','restore'].every(key=>client(scope).permission(key)===true),onApplied:async()=>{await load(scope);onChange?.();}});}
     async function recover(scope){const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}await load(scope);onChange?.();}
     return{resetReads(){readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };

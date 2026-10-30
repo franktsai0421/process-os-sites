@@ -1,0 +1,222 @@
+{
+  "status": "COMPLETED_WITH_FINDINGS",
+  "programCommit": "91942a677fb3fc5d912437b65bd8f495972d70ea",
+  "buildEntrySha256": "dd8e2ba2eee8ff283dd803cb6514f7dafaa1719980a9ef760e728140c9ec136a",
+  "scope": "IQC representative actual UI and API; synthetic only; not acceptance of every draft module",
+  "cases": [
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.create"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": false,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": null,
+        "submit": null,
+        "withdraw": null,
+        "add-part": null
+      },
+      "apiStatus": 403,
+      "apiError": "FORBIDDEN",
+      "persisted": {
+        "revisionBefore": 0,
+        "revisionAfter": 0,
+        "saved": false,
+        "pending": false
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.delete"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": false,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": null,
+        "submit": null,
+        "withdraw": null,
+        "add-part": null
+      },
+      "apiStatus": 403,
+      "apiError": "FORBIDDEN",
+      "persisted": {
+        "revisionBefore": 0,
+        "revisionAfter": 0,
+        "saved": false,
+        "pending": false
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.edit"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": true,
+        "save": false,
+        "submit": false,
+        "withdraw": false,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": {
+          "visible": true,
+          "disabled": true
+        },
+        "submit": {
+          "visible": true,
+          "disabled": true
+        },
+        "withdraw": null,
+        "add-part": {
+          "visible": true,
+          "disabled": false
+        }
+      },
+      "apiStatus": 200,
+      "apiError": null,
+      "persisted": {
+        "revisionBefore": 0,
+        "revisionAfter": 1,
+        "saved": false,
+        "pending": false
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.save"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": false,
+        "save": true,
+        "submit": false,
+        "withdraw": false,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": null,
+        "submit": null,
+        "withdraw": null,
+        "add-part": null
+      },
+      "apiStatus": 200,
+      "apiError": null,
+      "persisted": {
+        "revisionBefore": 1,
+        "revisionAfter": 2,
+        "saved": true,
+        "pending": false
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.submit"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": true,
+        "withdraw": false,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": null,
+        "submit": null,
+        "withdraw": null,
+        "add-part": null
+      },
+      "apiStatus": 200,
+      "apiError": null,
+      "persisted": {
+        "revisionBefore": 2,
+        "revisionAfter": 3,
+        "saved": true,
+        "pending": true
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.withdraw"
+      ],
+      "permissions": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": true,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "buttons": {
+        "begin": null,
+        "save": null,
+        "submit": null,
+        "withdraw": null,
+        "add-part": null
+      },
+      "apiStatus": 200,
+      "apiError": null,
+      "persisted": {
+        "revisionBefore": 3,
+        "revisionAfter": 4,
+        "saved": true,
+        "pending": false
+      }
+    },
+    {
+      "granted": [
+        "iqc.view",
+        "iqc.edit"
+      ],
+      "operation": "restore saved history predating an error created through owner API",
+      "deleteGranted": false,
+      "apiStatus": 200,
+      "newErrorRetainedAsTombstone": true,
+      "historicalPreviewStatus": 200,
+      "finding": "RESTORE_CAN_SOFT_DELETE_WITHOUT_DELETE_CELL"
+    }
+  ],
+  "errors": []
+}

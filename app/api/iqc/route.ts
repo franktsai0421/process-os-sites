@@ -1,3 +1,4 @@
+import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import {readIqcImportSource} from '@/lib/iqc-import-source';
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
-    if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
+    if (!actor || !(await can(request, state, 'iqc.view')))
       return reply({ error: '沒有查看 IQC 資料的權限' }, 403);
     const body={ revision: state.revision, control: visibleSharedControl(parseIqcWorkflow(state.values[KEY],state.recordStorage?.models.get(KEY)),await can(request,state,'approval.compare'),caseMetadata) };
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
@@ -88,17 +89,9 @@ export async function POST(request: Request) {
       return reply({ error: '資料已由其他分頁更新，請重新載入後核對', revision: state.revision }, 409);
     const action = String(body.action || '');
     if(action==='import'&&!await maintenanceCredential(request))return reply({error:'NON_BOM_IMPORT_MAINTENANCE_ONLY'},403);
-    const editing = ['import','begin','save','createError','createItem','submit','withdraw'].includes(action);
-    const reviewing = ['approve','reject'].includes(action);
-    if (editing) {
-      const permission = action === 'import' ? 'master.import' : action === 'withdraw' ? 'approval.withdraw' : 'approval.submit';
-      if (!(await can(request, state, 'view:data')) || !(await can(request, state, permission)))
-        return reply({ error: '沒有 IQC 建檔或送審權限' }, 403);
-    } else if (reviewing) {
-      const permission = action === 'approve' ? 'approval.approve' : 'approval.reject';
-      if (!(await can(request, state, 'view:approval')) || !(await can(request, state, permission)))
-        return reply({ error: '沒有主管審核權限' }, 403);
-    } else return reply({ error: '不支援的操作' }, 400);
+    const required:Record<string,string[]>={import:['edit','exchange'],begin:['edit'],save:['edit','save'],submit:['edit','save','submit'],createError:['edit','create'],createItem:['edit','create'],withdraw:['withdraw'],approve:['approve'],reject:['return']};
+    if(!required[action])return reply({error:'不支援的操作'},400);
+    if(!await can(request,state,'iqc.view')||!(await Promise.all(required[action].map(op=>can(request,state,'iqc.'+op)))).every(Boolean))return reply({error:'FORBIDDEN'},403);
 
     const prepared=state.recordStorage?.models.get(KEY) as {workflow?:unknown}|undefined;
     if(prepared?.workflow||parse(state.values[KEY],{}).workflow)return reply({error:'WORKFLOW_V3_REQUIRED'},409);
@@ -173,6 +166,8 @@ export async function POST(request: Request) {
       let snapshot: IqcSnapshot;
       try { snapshot = checkedIqcSnapshot(version.snapshot, body.snapshot); checkEquipment(snapshot, version.snapshot, state.values); }
       catch (error) { return reply({ error: error instanceof Error ? error.message : 'IQC 草稿驗證失敗' }, 422); }
+      const effects=restoreEffects(version.snapshot,snapshot);
+      for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'iqc.'+op))return reply({error:'FORBIDDEN'},403);
       const priorErrorIds = new Set(version.snapshot.errors.map(item => item.id));
       const priorItemIds = new Set(version.snapshot.items.map(item => item.id));
       if (snapshot.errors.some(item => !priorErrorIds.has(item.id)) || snapshot.items.some(item => !priorItemIds.has(item.id)))

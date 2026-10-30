@@ -2,8 +2,9 @@ import {env} from 'cloudflare:workers';
 import {encodeValues,type State} from './process-state';
 import {initializeRecordValues,isImmutableRecordBody} from './state-records';
 
-// Only the authenticated master workflow writer calls this, after validation
-// and the fresh revision check. The existing global CAS publishes the manifest.
+// Deferred adoption design; production workflow writers do not call this helper.
+// Enabling requires a separately reviewed migration decision. Synthetic tests only.
+// A future caller must validate and use the existing global revision CAS.
 // Small legacy states and chunk storage keep their existing write format.
 export async function encodeMasterWorkflowValues(values:Record<string,string>,previous:State,models?:Map<string,unknown>){
  const master=values.masterDataControl;

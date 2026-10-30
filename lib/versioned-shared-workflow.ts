@@ -1,5 +1,5 @@
-import {encodeMasterWorkflowValues} from './master-workflow-storage';
 import {iqcEditingRequested,iqcEditingPayload} from './iqc-editing-projection';
+import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
 import {processFlowCommand,readProcessFlowMutationState,encodeProcessFlowMutationState} from './process-flow-record-mutation';
 import { env } from 'cloudflare:workers';
@@ -128,7 +128,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
-    return {...permissions,...limited,delete:limited.edit&&await can(request,state,workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
+    return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state),create:limited.edit&&!!workflowModule&&await can(request,state,workflowModule+'.create'),delete:limited.edit&&await can(request,state,workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
@@ -165,17 +165,18 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       }
       if(query.has('versionId')){const activeView=iqcEditingRequested(request,adapter.key,adapter.scope)&&query.get('versionId')===control.activeVersionId;if(!permissions.history&&!activeView)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply(activeView?{version,revision:state.revision,permissions,activeVersionId:control.activeVersionId,generation:flow?.generation||null}:{version}):reply({error:'VERSION_NOT_FOUND'},404);}
       if(query.has('restoreSaveId')){
-        if(!permissions.history||!permissions.edit)return reply({error:'FORBIDDEN'},403);
+        if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
         if(adapter.requiresDelete?.(control,{action:'restore'})&&!await can(request,state,'master.delete'))return reply({error:'FORBIDDEN'},403);
         if(!flow||openedVersion(control)?.status!=='draft')return reply({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
         const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return reply({error:'SAVE_NOT_FOUND'},404);
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
-        return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,
-          after:context.restoreContent?context.restoreContent(cloneDraft(saved.content),flow.working):saved.content,source:{actor:saved.actor,at:saved.at}});
+        const after=context.restoreContent?context.restoreContent(cloneDraft(saved.content),flow.working):saved.content;
+        await assertRestoreAccess(request,state,flow.working,after);
+        return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
       }
       if(query.has('operationId')){const receipt=flow?.receipts[query.get('operationId')!];if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
         const action=JSON.parse(receipt.fingerprint).action,permission=action==='apply'||action==='restore'?'edit':action;
-        if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission])return reply({error:'FORBIDDEN'},403);return reply({receipt:receipt.result});}
+        if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);return reply({receipt:receipt.result});}
       if(query.has('history')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const rows=[...(flow?.cases||[])].reverse(),before=query.get('before'),start=before?rows.findIndex(c=>c.id===before)+1:0;
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);return reply({cases:rows.slice(start,start+20).map(sharedCaseMetadata),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});}
       if(query.has('caseId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));return reviewCase?reply({reviewCase}):reply({error:'CASE_NOT_FOUND'},404);}
@@ -216,7 +217,10 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(deletes&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
           const workflowModule=moduleForURL(request.url),creates=command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');
           if(creates&&workflowModule&&accessKeys.includes(workflowModule+'.create')&&!await can(request,state,workflowModule+'.create'))return reply({error:'FORBIDDEN'},403);
-          const already=control.workflow.receipts[command.operationId];const result=await adapter.apply(control,command,context);control.workflow=result.state;receipt=result.receipt;
+          if(command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
+          const already=control.workflow.receipts[command.operationId],beforeRestore=command.action==='restore'?cloneDraft(control.workflow.working):null;const result=await adapter.apply(control,command,context);
+          if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
+          control.workflow=result.state;receipt=result.receipt;
           if(already)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,unchanged:true});
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
@@ -226,7 +230,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.
         const values={...state.values,...(!prepared?{[adapter.key]:adapter.serialize?adapter.serialize(control):JSON.stringify(control)}:{[adapter.key]:state.values[adapter.key]??'null'}),...adapter.projectValues?.(control)};
-        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)?encodeMasterWorkflowValues(values,state,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
+        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
         if(changed.meta.changes!==1)continue;
         return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,requestId});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);

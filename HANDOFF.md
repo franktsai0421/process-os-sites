@@ -1,6 +1,34 @@
+# PR #52 本地整合候選（未推送）
+
+一般線別／工段修正保留，首次 legacy→records-v1 自動轉換尚未接線；來源、決策及相依見[整合交接](docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+
 # 線別與工段：指定分支交接
 
 `handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、首次寫入 legacy→records-v1 條件／封存／失敗恢復及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
+
+測速／驗證工具補件（2026-10-30）：五個本機腳本已整理為參數化工具，輸出不覆寫歷史文件；規格、使用方式與針對性驗證見 [補件說明](scripts/benchmark/README.md)。產品功能與資料模型不變，圖片／trace 保留待安全附件交付。
+
+補件審查已修正 preview smoke 跨來源 redirect 缺口與新增測試的 typed lint；CI 增加 Python／Node 工具及兩個 loopback 的 redirect 回歸。等待 root 核對本地提交及遠端 CI，尚未由此修復任務 push、merge 或部署。完整 runner 的 Linux 限制與 Windows 清理未驗證範圍見補件說明。
+
+# 使用者權限 CLOUD 29102026 — 已修正，未部署
+
+最新：[清楚權限修復／驗收交接](docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)、[設定→頁面→API 對照](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。使用者確認方案後完成簡化矩陣、明確依賴、獨立還原、5 個品質模組單獨保存／送審／撤回、線別範圍說明及發送查看者拒寫。基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`；完整編譯瀏覽器版本 `4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6`；最終 UI build `33a1fd04a2abc9aeb2e2dd0477872f0ef2174223`（展開排列補修、完整頁面及五次測速補驗）；最終相依驗收分支 `cloud/users-permissions-layout-29102026`。各模組分支分開交接，不整檔覆蓋其他任務。
+
+只用隔離合成資料；原站／正式站沒有修改。外部預覽及 Draft PR 受工具／GitHub API 網路政策限制仍未建立，PR body／base-head 清單已備妥；嚴格100ms開啟設定目標仍未達，真站效能與實體輸入法未驗證。不能標完整交付或放行整合。dot 須先核對 web-feedback-helper 與 ipqc-ab-read-ownership 的共用 index／讀取所有權等重疊，詳見交接。沒有 merge、auto-merge 或發布。
+
+先前載入優化見[歷史載入報告](docs/acceptance/USERS_CLOUD_LOADING_29102026.md)；早期 audit-only 未修復狀態已由本輪候選取代，原始證據仍保留。
+
+本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。已補做實際照片表單及小字放大修正。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
+首次進頁已拆量並局部減少遮罩後排版；五輪中位 708→658ms、最慢 759→927ms，完整流程 25 項通過，既有資產字串測試仍有 1 項失敗。見 [最新入口報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。未發布既有站台。
+
+流程資料補驗發現離開提醒缺口並局部修復；18 項原生離開／重整／背景恢復驗收通過。最後整合測速另見 [本輪紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
+
+流程 CLOUD 29102026 最新產品來源 `74ab03f`：已補修流程專屬 reviewer 的平台載入，10 項審核／取消驗收與 39 項完整流程通過。已實際核對權限／小幫手固定分支：前三個共用 JS 無同檔變更，index 的最小入口補丁及文件衝突見 [整合核對](docs/sites/integration-cloud-29102026/README.md)；仍未建立公開預覽或 Draft PR。
+
+流程 CLOUD 29102026 續修已驗：產品來源 `212a730`、瀏覽器 39 記錄及 native 14 組；名稱 Apply 併寫與真實 IME 事件修正。完整逐步清單、前後三輪測速、未測與公開交付阻礙見 [驗收](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。原獨立分支與 dot 整合界線不變。
+
+本次獨立候選：流程資料頁面 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/process-flow-cloud-29102026`。照片 PR 獨立；未合併或發布既有站台。實作、逐步驗收與預覽阻礙見 [流程紀錄](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
 
 本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
 

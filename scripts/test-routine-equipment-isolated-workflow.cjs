@@ -18,10 +18,10 @@ async function upload(h, bytes, type) {
   const response = await h.load('app/api/routine-equipment/photo/route.ts').PUT(new Request('http://fixture/api/routine-equipment/photo', { method: 'PUT', headers: { ...h.sessions.editor, 'Content-Type': type }, body: bytes }));
   const body = await response.json(); assert.equal(response.status, 200, JSON.stringify(body)); assert.equal(body.id, createHash('sha256').update(bytes).digest('hex')); steps.push({ name: 'general photo PUT ' + type, isolatedHandlerMs: +(performance.now() - start).toFixed(2) }); return body.id;
 }
-async function seed() {
+async function seed({ iqcReferenceView = true } = {}) {
   const empty = { AB: { products: [], lines: [], categoryGroups: [] }, C: { products: [], lines: [], categoryGroups: [] }, PROCESS: {} };
   const master = { active: copy(empty), versions: Object.entries(empty).map(([scope, snapshot]) => ({ id: 'empty-' + scope, scope, number: 1, status: 'approved', snapshot, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] })) };
-  const h = await apiFixture({ masterDataControl: JSON.stringify(master), processMasterData: '{}' }), oldPhoto = await upload(h, gif, 'image/gif');
+  const h = await apiFixture({ masterDataControl: JSON.stringify(master), processMasterData: '{}' }, { iqcReferenceView }), oldPhoto = await upload(h, gif, 'image/gif');
   const originalCommand = h.command; h.command = (...args) => step('actual route ' + args[0] + ' ' + args[1] + ' ' + (args[2]?.patches?.map(patch => patch.path[0]).join(',') || ''), () => originalCommand(...args));
   await h.begin(moduleId);
   await h.command(moduleId, 'apply', { patches: [insert('categories', { id: 'old-cat', name: 'Existing synthetic category', photoId: oldPhoto }), insert('subcategories', { id: 'old-sub', categoryId: 'old-cat', name: 'Existing synthetic subcategory', photoId: oldPhoto }), insert('groups', { id: 'old-group', categoryId: 'old-cat', subcategoryId: 'old-sub', name: 'Existing synthetic group' })] });
@@ -69,6 +69,24 @@ if (require.main === module) (async () => {
       });
     } finally { h.close(); }
   }
+  // Cross-quality destructive checks need an explicit IQC read grant, never a fabricated empty response.
+  const deniedSeed = await seed({ iqcReferenceView: false });
+  try {
+    await check('missing IQC reference view denies deletion with zero POST and unchanged persisted draft', async () => {
+      const { h } = deniedSeed, f = await connect(h); assert(await f.test.writeShared('begin'));
+      await h.command(moduleId, 'apply', { patches: [insert('equipment', { id: 'denied-new-tool', assetCode: 'SYN-DENIED', name: 'Denied new tool', groupId: 'old-group', unit: '支', enabled: true, confirmed: true, calibrationMethod: 'none', calibratedAt: '', expiresAt: '', photoId: deniedSeed.oldPhoto })] });
+      await f.test.read(); f.test.render();
+      const before = h.snapshot(), posts = f.posts().length, requestStart = f.requests.length;
+      await f.test.deleteEquipment('denied-new-tool');
+      assert(f.requests.slice(requestStart).some(row => row.path === '/api/iqc' && row.method === 'GET' && row.status === 403));
+      assert.equal(f.posts().length, posts); assert.deepEqual(h.snapshot(), before);
+      assert(f.test.working.equipment.some(row => row.id === 'denied-new-tool'));
+      assert.match(f.test.message, /無法確認品質標準引用/); trace.push(...f.requests);
+      const path = ['equipment', { id: 'source' }], source = h.flow(await h.read(moduleId)).working.equipment.find(row => row.id === 'source');
+      const refusal = await h.command(moduleId, 'apply', { patches: [{ op: 'remove', path }], guards: [{ path, value: source }] }, 'editor', 422);
+      assert.equal(refusal.error, 'EFFECTIVE_EQUIPMENT_DELETE_FORBIDDEN'); assert.deepEqual(h.snapshot(), before);
+    });
+  } finally { deniedSeed.h.close(); }
   const seeded = await seed(), { h, oldPhoto, originalCase, originalActive, originalObjects } = seeded;
   try {
     const f = await connect(h); assert(await f.test.writeShared('begin'));
@@ -103,7 +121,9 @@ if (require.main === module) (async () => {
         f.host.querySelector('#routine-form-close')?.click();
       });
       await step('delete only the unapproved unreferenced second new tool through strict UI checks', async () => {
+        const requestStart = f.requests.length;
         await f.test.deleteEquipment('test-tool-2'); assert(!h.flow(await h.read(moduleId)).working.equipment.some(row => row.id === 'test-tool-2'));
+        assert(f.requests.slice(requestStart).some(row => row.path === '/api/iqc' && row.method === 'GET' && row.status === 200));
       });
       const current = h.flow(await h.read(moduleId)); assert.deepEqual(current.active, originalActive); assert.equal(current.working.equipment.filter(row => row.id.startsWith('test-tool')).length, 1); assert.equal(current.working.equipment.find(row => row.id === 'source').photoId, oldPhoto);
       assert.equal(current.working.categories.filter(row => row.id.startsWith('test-cat')).length, 1); assert.equal(current.working.subcategories.filter(row => row.id.startsWith('test-sub')).length, 1);

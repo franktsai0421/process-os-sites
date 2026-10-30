@@ -8,7 +8,7 @@ const secret=randomBytes(32).toString('hex'),env={STATE_ARCHIVE:bucket,PROCESS_S
 const candidate=makeLoader(env),old=makeLoader(env,{baseline:['app/api/routine-equipment/route.ts']}),core=candidate('lib/process-state.ts'),records=candidate('lib/state-records.ts'),chunks=candidate('lib/state-chunks.ts');const originalRead=core.readState;core.readState=async options=>{lastState=await originalRead(options);return lastState;};
 const api=candidate('app/api/routine-equipment/route.ts'),beforeApi=old('app/api/routine-equipment/route.ts'),cells=(...yes)=>Object.fromEntries(accessKeys.map(k=>[k,yes.includes(k)]));
 const user=(id,permission,extra={})=>({id,name:id,role:'staff',enabled:true,authMode:'platform',authEpoch:1,inheritRole:false,accessOverrides:cells(permission),...extra});
-const users=[user('frank','',{role:'admin'}),user('admin-two','',{role:'admin',inheritRole:true,accessOverrides:undefined}),user('reader','equipment.view'),user('approval','approval.view'),user('custom','',{role:'fixture-role',inheritRole:true,accessOverrides:undefined}),user('template-denied','',{role:'blocked-role',inheritRole:true,accessOverrides:undefined}),user('override-denied','',{role:'fixture-role',inheritRole:true}),user('other','fqc.view'),user('disabled','equipment.view',{enabled:false}),user('deleted','equipment.view',{deletedAt:'fixture'})];
+const users=[user('frank','',{role:'admin'}),user('admin-two','',{role:'admin',inheritRole:true,accessOverrides:undefined}),user('reader','equipment.view'),user('approval','approval.view'),user('approval-reader','approval.view',{accessOverrides:cells('approval.view','equipment.view')}),user('custom','',{role:'fixture-role',inheritRole:true,accessOverrides:undefined}),user('template-denied','',{role:'blocked-role',inheritRole:true,accessOverrides:undefined}),user('override-denied','',{role:'fixture-role',inheritRole:true}),user('other','fqc.view'),user('disabled','equipment.view',{enabled:false}),user('deleted','equipment.view',{deletedAt:'fixture'})];
 const fixture=require('./v3-quality-growth-fixture.cjs')('routine-equipment',[{id:'a'.repeat(64),bytes:0}],2,20),control=JSON.parse(fixture.values.routineEquipmentControl);control.workflow.cases.push({...structuredClone(control.workflow.cases[0]),id:'pending',status:'pending'});control.workflow.cases.at(-1).content.equipment[0].name='Distinct pending content';control.workflow.pendingId='pending';control.issues=[{status:'open',resolution:'preserve issue'}];control.reservedMarks={G0:['01','02']};
 const values={...fixture.values,routineEquipmentControl:JSON.stringify(control),platformUsers:JSON.stringify(users),processCustomRoles:JSON.stringify(['fixture-role','blocked-role'].map(id=>({id,name:id,lines:[],views:[],permissions:[],access:cells('equipment.view')}))),processRoleTemplateOverrides:JSON.stringify({'blocked-role':{access:cells()}}),processAccessControl:'{"audit":"private-access-sentinel"}',maintenanceMode:'0',unrelated:JSON.stringify({irrelevant:'測試 Việt'.repeat(10000)})};
 const install=(raw,revision=700)=>db.prepare('INSERT OR REPLACE INTO shared_state VALUES(1,?,?)').run(revision,raw);
@@ -21,9 +21,20 @@ await check('E1 adopted full/draft/pending/history parity and growth-independent
  baseline=(await run(request(),true)).metrics;reduced=(await run(request())).metrics;assert(reduced.gets<baseline.gets);assert(reduced.bytes<baseline.bytes);assert.equal(reduced.stateReads,1);assert(!events.some(([,k])=>k===refs.unrelated.key));
  const larger=await records.encodeRecordValues(bucket,{...values,unrelated:JSON.stringify({text:'large'.repeat(100000)})});install(larger);const grown=await run(request());assert.deepEqual(grown.metrics,reduced);install(raw);
 });
-await check('E2 exact actor/role/template/session response parity with no denied leakage',async()=>{
- for(const who of ['frank','admin-two','reader','approval','custom','template-denied','override-denied','other','disabled','deleted','']){const req=request(who,'?caseMetadata=1',{forged:!who}),a=await run(req),b=await run(req,true);assert.deepEqual(comparable(a),comparable(b));assert.equal(a.status,['frank','admin-two','reader','approval','custom'].includes(who)?200:403,who);if(a.status===403)assert(!JSON.stringify(a.body).includes('photoId')&&!JSON.stringify(a.body).includes('private-access-sentinel'));}
- for(const who of ['approval','reader'])assert.deepEqual(comparable(await run(request(who,''))),comparable(await run(request(who,''),true)));
+await check('E2 exact actor/role/template/session parity except explicit module-view denial',async()=>{
+ // #44 requires this module's view cell; approval.view alone no longer grants full data.
+ // Keep that actor denied rather than broadening its fixture or weakening the product gate.
+ const allowed=['frank','admin-two','reader','approval-reader','custom'];
+ for(const q of ['','?caseMetadata=0','?caseMetadata=1']){
+  for(const who of ['frank','admin-two','reader','approval-reader','custom','template-denied','override-denied','other','disabled','deleted','']){
+   const req=request(who,q,{forged:!who}),a=await run(req),b=await run(req,true);
+   assert.deepEqual(comparable(a),comparable(b));assert.equal(a.status,allowed.includes(who)?200:403,who);
+   if(a.status===403)assert(!JSON.stringify(a.body).includes('photoId')&&!JSON.stringify(a.body).includes('private-access-sentinel'));
+  }
+  const req=request('approval',q),denied=await run(req),prior=await run(req,true);
+  assert.equal(prior.status,200,'historical approval-only full read');assert.equal(prior.error,undefined);assert(prior.body.control);
+  assert.deepEqual(comparable(denied),{status:403,headers:[['cache-control','no-store'],['content-type','application/json; charset=utf-8'],['x-content-type-options','nosniff']],body:{error:'沒有查看檢具資料的權限'},error:undefined},'exact denial has no DTO or private-data leakage');
+ }
  for(const options of [{expired:true},{epoch:2}])assert.equal((await run(request('reader','',options))).status,403);
 });
 await check('E3 revocation during hydration/authority and pinned-snapshot next-read semantics',async()=>{

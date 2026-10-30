@@ -10,8 +10,8 @@ export function removedMasterStages(before:unknown,after:unknown):string[]{
   const next=new Set(masterStageCodes(after));return masterStageCodes(before).filter(code=>!next.has(code));
 }
 export function removesLineWithStages(previous:unknown,next:unknown){
- const retained=new Set(rows(object(next).lines).map(line=>str(line.id||line.code)));
- return rows(object(previous).lines).some(line=>!retained.has(str(line.id||line.code))&&rows(line.stages).length>0);
+ const retained=rows(object(next).lines);
+ return rows(object(previous).lines).some(line=>!retained.some(current=>line.id?current.id===line.id:current.code===line.code)&&rows(line.stages).length>0);
 }
 // Read every protected source from the same CAS revision. Client route cleanup
 // cannot erase the evidence that a stage is still in use.

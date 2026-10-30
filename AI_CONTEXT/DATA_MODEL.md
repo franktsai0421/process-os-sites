@@ -1,8 +1,18 @@
+## 2026-10-30 整合候選格式界線
+
+本候選一般 master writer 維持既有 encodeValues；下方來源交接中的首次 records-v1 轉換設計未接入正常 Begin/Apply/Save。既有 records-v1 仍正常讀寫，legacy 可沿既有路徑儲存 whole-R2；沒有 schema 或真實資料轉換。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+
 ## 2026-10-30 AB/C 大型 legacy 儲存表示轉換
 
 沒有新增 SQL schema／資料表／格式版本，但符合條件的首次正常 AB/C 寫入會轉換儲存表示：更新後 masterDataControl UTF-8 ≥512 KiB，原為完整 inline／單一 R2 legacy，全部 values 為 JSON 且無未驗證 immutable 指標，才採用既有 records-v1。小型、chunk、非標準資料保留舊路徑；PROCESS-only 不觸發，partial/read-only 仍禁寫。
 
 每個寫入前原始 value 字串以 immutable R2 物件封存於既有 legacySources；歷史、其他模組及舊物件保留。原 DB CAS 原子發布 manifest；上傳失敗／CAS 輸家不發布新指標或成功收據，可能留有未引用物件，不自動刪除。失 ACK 先查原 operationId 收據。封存不等於整個 DB 一鍵還原；首次成本及實站恢復未驗。[條件、測試與回復邊界](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+
+2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
+
+## 2026-10-29 流程類型與刪除引用候選
+
+PROCESS 工段模板的選用 `editorType` 為 entry/manual/inspection/machine/exit/custom；舊資料未填時沿 preset 或 custom 判斷，不批次遷移。設備仍內嵌於 PROCESS 機器設定模板，沒有新表、schema 或附件識別。`/api/master/references` 只讀，按 templates.view 與 editor.view 限制引用詳情；刪除檢查不更動產品、方塊、歷史與媒體。詳見 [流程紀錄](../docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
 
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 

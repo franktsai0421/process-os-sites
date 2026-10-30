@@ -1,3 +1,4 @@
+import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {removedMasterStages,stageReferences,removesLineWithStages} from './master-stage-references';
@@ -66,10 +67,13 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      const unique=(list:Entity[],field='id')=>{const seen=new Set<string>();for(const row of list){const key=str(row?.[field]);if(!key||seen.has(key))throw new DraftConflict('CATALOG_IDENTITY_INVALID',422);seen.add(key);}return seen;};
      if(scope==='PROCESS'){
       assertProcessLinkAvailable(root);
+      const removed=removedProcessMasterTargets(previous,content);
+      if(removed.length){const impact=processMasterReferences(values,removed);if(impact.total)throw new DraftConflict('PROCESS_MASTER_IN_USE',409,{total:impact.total});}
       const equipmentIds=new Set<string>();
       const previousEquipment=new Map(Object.values(previous).flatMap(v=>rows(v).flatMap(t=>rows(t.equipment||[]))).map(e=>[e.id,e]));
       for(const [stage,value]of Object.entries(content)){if(!stages.has(stage))throw new DraftConflict('STAGE_INVALID',422);const templates=rows(value);unique(templates);
        for(const template of templates){const old=rows(previous[stage]||[]).find(t=>t.id===template.id);if(old&&(old.presetKey!==template.presetKey||old.presetVersion!==template.presetVersion))throw new DraftConflict('PRESET_PROVENANCE_PROTECTED',422);
+        if(template.editorType!==undefined&&!['entry','manual','inspection','machine','exit','custom'].includes(str(template.editorType)))throw new DraftConflict('PROCESS_TEMPLATE_TYPE_INVALID',422);
         if(typeof template.name!=='string'||template.mediaItems!==undefined&&!Array.isArray(template.mediaItems))throw new DraftConflict('PROCESS_TEMPLATE_INVALID',422);
         if(template.equipment!==undefined){if(!['machine-assembly','machine-setting'].includes(str(template.presetKey)))throw new DraftConflict('EQUIPMENT_PARENT_INVALID',422);const equipment=rows(template.equipment);unique(equipment);if(equipment.some(e=>e.stageCode!==stage||e.line!==stage.split('-')[0]||e.kind!==template.presetKey||typeof e.name!=='string'||typeof e.number!=='string'||!Array.isArray(e.mediaItems)||e.mediaItems.some(p=>!p||typeof p.src!=='string')))throw new DraftConflict('EQUIPMENT_PARENT_INVALID',422);
          for(const e of equipment){if(equipmentIds.has(e.id))throw new DraftConflict('EQUIPMENT_ID_RESERVED',422);equipmentIds.add(e.id);
@@ -161,6 +165,10 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   }
    if(scope==='PROCESS')assertProcessLinkAvailable(root);
    const flow=control.workflow!,already=flow.receipts[command.operationId];
+   if(scope==='PROCESS'&&!already&&['submit','approve'].includes(command.action)&&context.allowed(command.action==='approve'?'approve':'submit')){
+    const candidate=command.action==='submit'?flow.saved?.content:flow.cases.find(c=>c.id===command.caseId)?.content;
+    if(candidate){const removed=removedProcessMasterTargets(root.active.PROCESS,candidate),impact=processMasterReferences(values,removed);if(impact.total)throw new DraftConflict('PROCESS_MASTER_IN_USE',409,{total:impact.total});}
+   }
    type LinkedCase=typeof flow.cases[number]&{linkedProcess?:StageProcessLink};
    let link:StageProcessLink|null=null;
    if(!already&&scope!=='PROCESS'){
