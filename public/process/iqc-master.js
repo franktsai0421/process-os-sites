@@ -8,7 +8,7 @@
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let control = null, revision = null, root = null, reviewRoot = null;
   let sharedClient=null,sharedActor='';const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null;
-  let loadSequence=0,mountSequence=0,reviewBindSequence=0,readDenied=null,reviewContainer=null;
+  let loadSequence=0,mountSequence=0,reviewBindSequence=0,mutationSequence=0,readDenied=null,reviewContainer=null;
   let versionReadSequence=0,versionReadError=null,activeDeferredId='';
   // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
   const editorOwners = new Set();
@@ -164,7 +164,7 @@
     if(readDenied)throw readDenied;
     if (ui.busy) throw Error('IQC 資料儲存中，請稍候');
     if (!Number.isInteger(revision)) throw Error('IQC 後端尚未載入，沒有寫入空資料');
-    ui.busy = true; render();
+    mutationSequence++;ui.busy = true; render();
     try {
       // Pending pre-V3 cases retain their exact legacy content until concluded.
       if(action!=='import'&&(control.workflow||!control.versions.some(v=>v.status==='pending'))){
@@ -353,15 +353,28 @@
   function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>pollTimer.isCurrent(pollScheduleOwner)&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{
     if(!current())return;
     if(!root?.isConnected&&!reviewRoot?.isConnected)return;
+    const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),loadOwner=loadSequence,mutationOwner=mutationSequence;
+    let ownedControl=control,ownedRevision=revision;
+    const ownerCurrent=()=>current()&&!ui.busy&&!window.ProcessSync?.requiresReload&&identity()===actor&&(typeof epoch!=='number'||window.ProcessSync?.identityGeneration?.()===epoch)&&loadSequence===loadOwner&&mutationSequence===mutationOwner;
+    const modelCurrent=()=>ownerCurrent()&&control===ownedControl&&revision===ownedRevision;
     try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
-      const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(!current())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);validateIqcPayload(result,true);versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';
+      const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'',{isCurrent:modelCurrent,requireAcceptedAccess:true});
+      if(!modelCurrent())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);validateIqcPayload(result,true);if(!modelCurrent())return;versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';
+        ownedControl=control;ownedRevision=revision;
         if(wasOpen)ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
-        if(selected()?.snapshotDeferred&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox')){const id=selected().id;await hydrateVersion(id,()=>selected()?.id===id);if(!current())return;}
+        if(selected()?.snapshotDeferred&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox')){
+          const id=selected().id,hydration=hydrateVersion(id,()=>modelCurrent()&&selected()?.id===id),hydrationSequence=versionReadSequence;
+          await hydration;
+          // Hydration legitimately replaces control; only its unchanged owner may render it.
+          if(!ownerCurrent()||revision!==ownedRevision||versionReadSequence!==hydrationSequence||selected()?.id!==id)return;
+          ownedControl=control;
+        }
+        if(!modelCurrent())return;
         if(!document.querySelector('.iqc-dialog-overlay')&&!root?.contains(document.activeElement))render();
         else {const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('共用內容已更新；彈窗輸入保留，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
-    }}catch(error){if(!current())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
+    }}catch(error){if(!modelCurrent())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
+    // A superseded model must not cancel this still-owned foreground scheduler.
     finally{if(current())scheduleRefresh();}
   });}
   function twoConfirm(label) {
