@@ -107,10 +107,14 @@
     const status = value => ({draft:t('草稿 · 未送審','Bản nháp · Chưa gửi'),pending:t('主管審核中','Đang chờ duyệt'),approved:t('已核准','Đã duyệt'),superseded:t('歷史核准','Bản đã duyệt trước')})[value] || value;
     async function commit(label,note,action) {
       if (!editable()) return false;
-      const before = copy(selected().snapshot), history = copy(selected().history || []), updated = selected().updatedAt;
+      const target=selected(),scope=state.masterScope,actor=window.ProcessSync?.identity,epoch=window.ProcessSync?.identityGeneration?.();
+      const owned=()=>actor===window.ProcessSync?.identity&&epoch===window.ProcessSync?.identityGeneration?.()&&scope===state.masterScope;
+      const before = copy(target.snapshot), history = copy(target.history || []), updated = target.updatedAt;
       try { action(editable()); record(selected(),label,note); if(state.masterValidationErrors?.length)state.masterValidationErrors=validateCatalog(editable()); await persist(); return true; }
-      catch(error) { const dialog=document.querySelector('#master-edit-dialog');if(dialog&&error.rejectedDraftPaths?.length)dialog.rejectedDraftPaths=[...(dialog.rejectedDraftPaths||[]),...error.rejectedDraftPaths];selected().snapshot = before; selected().history = history; selected().updatedAt = updated;
-        if(error.message==='STAGE_IN_USE')window.alert(t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.')+'\n'+(error.details?.references||[]).slice(0,20).map(r=>`${r.stage} · ${r.source} · ${r.id}`).join('\n'));
+      catch(error) { if(!owned())return false;const dialog=document.querySelector('#master-edit-dialog');if(dialog&&error.rejectedDraftPaths?.length)dialog.rejectedDraftPaths=[...(dialog.rejectedDraftPaths||[]),...error.rejectedDraftPaths];target.snapshot = before; target.history = history; target.updatedAt = updated;
+        if(!dialog&&error.rejectedDraftPaths?.length)shared.discardRejected(state.masterScope,error.rejectedDraftPaths);
+        if(error.message==='CATALOG_IN_USE')window.alert(t('仍有引用，未刪除。請先處理可解除的引用；歷史不可清除。','Còn tham chiếu, chưa xóa. Hãy xử lý các liên kết có thể gỡ; không xóa lịch sử.')+'\n'+(error.details?.references||[]).map(r=>`${r.module} · ${r.id||r.kind} · ${r.stage} · ${r.path}`).join('\n'));
+        else if(error.message==='STAGE_IN_USE')window.alert(t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.')+'\n'+(error.details?.references||[]).slice(0,20).map(r=>`${r.stage} · ${r.source} · ${r.id}`).join('\n'));
         else if(['PROCESS_TEMPLATE_SCOPE_BUSY','LINKED_PROCESS_CASE_PENDING','PROCESS_SOURCE_VERSION_CHANGED'].includes(error.message)){
           const message=t('此工段操作會變更流程範本，但 PROCESS 有草稿或待審案件；請先處理。其他 AB／C 修改不受影響。','Thao tác này thay đổi mẫu quy trình, nhưng PROCESS có bản nháp hoặc hồ sơ chờ duyệt. Hãy xử lý trước; vẫn có thể sửa dữ liệu AB/C khác.');
           const target=document.querySelector('#master-edit-dialog .master-dialog-error')||document.querySelector('#data-content');
@@ -119,6 +123,12 @@
         else toast(displayDraftError(error)||t('同步失敗，請重試。','Không đồng bộ được, vui lòng thử lại.')); return false; }
     }
     const small = (label,attrs='') => `<button type="button" class="master-small" ${attrs}>${label}</button>`;
+    function referenceNotice(impact){
+      const panel=document.createElement('section');panel.className='master-reference-impact';panel.setAttribute('role','alert');
+      const destinations={editor:'view=editor',fqc:'view=data&dataTab=quality-fqc',iqc:'view=data&dataTab=quality-iqc','ipqc-ab':'view=data&dataTab=quality-ipqc-ab','ipqc-c':'view=data&dataTab=quality-ipqc-c',bom:'view=data&dataTab=bom',dispatch:'view=dispatch',equipment:'view=data&dataTab=quality-routine-equipment',tooling:'view=data&dataTab=quality-mold-equipment',routine:'view=quality-inspections'};
+      panel.innerHTML=`<strong>${t('仍有引用，未刪除','Còn tham chiếu, chưa xóa')}</strong><p>${t('請先移除或替換可解除的引用；歷史資料必須保留。','Hãy gỡ hoặc thay liên kết có thể thay đổi; phải giữ lịch sử.')}</p><ul>${impact.references.map(r=>`<li>${h(r.module)} · ${h(r.id||r.kind)} · ${h(r.stage)} · ${h(r.path)} ${r.kind!=='restricted-reference'&&destinations[r.module]?`<a href="/process/?system=${['editor','bom','dispatch'].includes(r.module)?'process':'quality'}&${destinations[r.module]}" target="_blank" rel="noopener">${t('開啟模組（新視窗）','Mở mô-đun (cửa sổ mới)')}</a>`:''}</li>`).join('')}</ul>${impact.truncated?`<p>${t('引用超過顯示上限，仍全部受到保護。','Số tham chiếu vượt giới hạn hiển thị; tất cả vẫn được bảo vệ.')}</p>`:''}`;
+      document.querySelector('.master-reference-impact')?.remove();document.querySelector('.master-products-heading')?.after(panel);
+    }
     const options = (values,selectedValue) => values.map(v => `<option value="${h(typeof v === 'string' ? v : v.value)}" ${(typeof v === 'string' ? v : v.value) === selectedValue ? 'selected' : ''}>${val(typeof v === 'string' ? v : v.label)}</option>`).join('');
     function preserveView(){
       const root=document.querySelector('.master-organized');if(!root)return()=>{};
@@ -178,10 +188,11 @@
     async function removeCategory(group) {
       if(!canDelete()){toast(deletionNote());return;}
       const products=current().products.filter(p=>p.line===group.line&&p.category===group.name),count=products.length,impact=deletionImpact({products});
-      if(!confirm(`${t(`刪除 ${group.line} 線「${group.name}」及其 ${count} 筆產品？`,`Xóa nhóm ${group.name} của chuyền ${group.line} và ${count} sản phẩm?`)}\n\n${impact.message}\n\n${t('此變更只會先加入草稿，主管核准後才套用。確定繼續？','Thay đổi chỉ được thêm vào bản nháp và áp dụng sau khi quản lý duyệt. Tiếp tục?')}`))return;
+      const route=categoryEntries(current()).find(g=>g.line===group.line&&g.name===group.name)?.defaultStages;
+      if(count||route?.length){window.alert(t('此類別仍有產品或群組路線，不能刪除。請先移轉產品及明確移除路線設定。','Nhóm còn sản phẩm hoặc tuyến. Hãy chuyển sản phẩm và gỡ cấu hình tuyến trước khi xóa.')+'\n'+products.map(p=>p.code).join(', '));return;}
+      if(!confirm(`${t(`刪除 ${group.line} 線的空類別「${group.name}」？`,`Xóa nhóm trống ${group.name} của chuyền ${group.line}?`)}\n\n${impact.message}\n\n${t('此變更只會先加入草稿，主管核准後才套用。確定繼續？','Thay đổi chỉ được thêm vào bản nháp và áp dụng sau khi quản lý duyệt. Tiếp tục?')}`))return;
       if(await commit('刪除產品類別',`${group.line} · ${group.name}`,catalog=>{
         catalog.categoryGroups=categoryEntries(catalog).filter(g=>!(g.line===group.line&&g.name===group.name));
-        catalog.products=catalog.products.filter(p=>!(p.line===group.line&&p.category===group.name));
         selected().warnings.push(`刪除類別 ${group.line} / ${group.name}（${count} 筆產品）｜${impact.warning}`);
       })) {ui.category='';redraw();}
     }
@@ -197,10 +208,10 @@
       const groups=categoryEntries(current()).filter(g=>(!ui.line||g.line===ui.line)&&g.name===ui.category);
       if(!groups.length)return `<section class="master-group-route"><h3>${t('群組製程路線','Tuyến mặc định của nhóm')}</h3><p>${t('先選擇上方類別，查看或設定共同路線；各產品可另設例外。','Chọn nhóm phía trên để xem hoặc đặt tuyến chung; mỗi sản phẩm có thể dùng tuyến ngoại lệ.')}</p></section>`;
       return groups.map(g=>{const info=groupRoute(current(),g.line,g.name),different=!sameRoute(info.stages,info.maximum),maximumAdopted=info.configured&&!different;
-        return `<section class="master-group-route" data-route-group="${h(g.line+':'+g.name)}"><header><div><h3>${h(g.line)} · ${h(g.name)}</h3><span class="master-route-state">${t('群組最大路線','Tuyến đầy đủ của nhóm')} · ${maximumAdopted?t('已設為預設','Đã đặt mặc định'):t('待確認採用','Chờ áp dụng')}</span></div><div class="master-row-actions">${small(t('查看','Xem'),`data-group-route-view="${h(g.name)}" data-route-line="${h(g.line)}"`)}${editable()?`${!maximumAdopted?small(t('採用最大路線','Dùng tuyến đầy đủ'),`data-group-route-maximum="${h(g.name)}" data-route-line="${h(g.line)}"`):''}${small(t('修改路線','Sửa tuyến'),`data-group-route-edit="${h(g.name)}" data-route-line="${h(g.line)}"`)}`:''}${canDelete()&&info.configured?small(t('移除預設','Bỏ mặc định'),`data-group-route-remove="${h(g.name)}" data-route-line="${h(g.line)}"`):''}</div></header>
-        ${routeDiagram(info.maximum,g.line)}<p>${t('整合本群組全部產品工段並去重，優先保留產品先後順序；順序衝突時依工段設定排列，不改個別產品路線。','Gộp công đoạn, bỏ trùng và giữ thứ tự sản phẩm; khi mâu thuẫn dùng thứ tự cấu hình, không đổi tuyến sản phẩm.')}</p>
+        return `<section class="master-group-route" data-route-group="${h(g.line+':'+g.name)}"><header><div><h3>${h(g.line)} · ${h(g.name)}</h3><span class="master-route-state">${info.configured?t('群組預設路線 · 核准後決定畫布','Tuyến mặc định · quyết định sơ đồ sau khi duyệt'):t('尚無預設 · 採用產品最大聯集','Chưa có mặc định · dùng tuyến đầy đủ')}</span></div><div class="master-row-actions">${small(t('查看','Xem'),`data-group-route-view="${h(g.name)}" data-route-line="${h(g.line)}"`)}${editable()?`${!maximumAdopted?small(t('採用最大路線','Dùng tuyến đầy đủ'),`data-group-route-maximum="${h(g.name)}" data-route-line="${h(g.line)}"`):''}${small(t('修改路線','Sửa tuyến'),`data-group-route-edit="${h(g.name)}" data-route-line="${h(g.line)}"`)}`:''}${canDelete()&&info.configured?small(t('移除預設','Bỏ mặc định'),`data-group-route-remove="${h(g.name)}" data-route-line="${h(g.line)}"`):''}</div></header>
+        ${routeDiagram(info.configured?info.stages:info.maximum,g.line)}<p>${t('已設定的群組預設決定核准後畫布；未設定時使用產品最大聯集。產品例外保留各自路線。','Tuyến mặc định đã đặt quyết định sơ đồ sau duyệt; nếu chưa đặt, dùng tuyến đầy đủ. Giữ tuyến ngoại lệ từng sản phẩm.')}</p>
         ${info.conflicts.length?`<p class="master-route-warning">${t('部分產品順序不同，原路線保留：','Một số sản phẩm có thứ tự khác; giữ tuyến gốc: ')}${info.conflicts.map(h).join('、')}</p>`:''}
-        ${different?`<details><summary>${t('目前儲存的預設路線（採用前保留）','Tuyến mặc định đã lưu (giữ đến khi áp dụng)')}</summary>${routeDiagram(info.stages,g.line)}</details>`:''}
+        ${different?`<details><summary>${t('產品最大聯集（參考，不自動覆寫預設）','Tuyến đầy đủ sản phẩm (tham khảo, không ghi đè mặc định)')}</summary>${routeDiagram(info.maximum,g.line)}</details>`:''}
         <p>${t(`與目前預設相同 ${info.matches.length} 個產品 · 例外 ${info.exceptions.length} 個產品；核准後更新製程畫布工段。`,`Trùng mặc định hiện tại: ${info.matches.length} · Ngoại lệ: ${info.exceptions.length}; cập nhật sơ đồ sau khi duyệt.`)}</p>
         <details data-route-details="${h(g.line+':'+g.name)}"><summary>${t('查看產品例外','Xem sản phẩm ngoại lệ')} · ${info.exceptions.length}</summary>${info.exceptions.map(p=>`<div class="master-route-exception"><code>${h(p.code)}</code><span>${val(p.name)}<span class="master-product-route-path">${h((p.stages||[]).join(' → ')||t('尚無路線','Chưa có tuyến'))}</span></span></div>`).join('')||`<p>${t('全部產品使用預設路線','Tất cả sản phẩm dùng tuyến mặc định')}</p>`}</details></section>`;
       }).join('');
@@ -213,7 +224,7 @@
     function editGroupRoute(line,name,readonly=false){
       const info=groupRoute(current(),line,name),route=[...info.stages];
       const stages=current().lines.find(l=>l.code===line)?.stages||[];
-      const body=`<p>${t('核准後依全部產品的最大路線顯示畫布；產品例外維持各自路線。隱藏工段保留原流程，重新加入可恢復。','Sau khi duyệt, sơ đồ dùng tuyến đầy đủ của các sản phẩm; giữ tuyến ngoại lệ. Công đoạn ẩn giữ nguyên nội dung và hiện lại khi được thêm lại.')}</p>${readonly?routeDiagram(route,line):`<section class="master-route-picker"><div class="master-route-add"><select aria-label="${t('可選工段','Công đoạn có sẵn')}" data-group-stage></select>${small(t('加入工段','Thêm công đoạn'),'data-group-add')}</div><ol data-group-route-list></ol></section>`}<details open><summary>${t('本次沿用產品','Sản phẩm theo mặc định')} · ${info.inherited.length}</summary><p>${info.inherited.map(p=>h(p.code)).join('、')||'—'}</p></details><details><summary>${t('保留產品例外','Giữ sản phẩm ngoại lệ')} · ${info.exceptions.length}</summary><p>${info.exceptions.map(p=>h(p.code)).join('、')||'—'}</p></details>`;
+      const body=`<p>${t('核准後依群組預設顯示畫布；未設定預設才採產品最大聯集。產品例外維持各自路線。隱藏工段保留原流程，重新加入可恢復。','Sau khi duyệt, sơ đồ dùng tuyến mặc định của nhóm; nếu chưa đặt, dùng tuyến đầy đủ. Giữ tuyến ngoại lệ. Công đoạn ẩn giữ nội dung và hiện lại khi thêm lại.')}</p>${readonly?routeDiagram(route,line):`<section class="master-route-picker"><div class="master-route-add"><select aria-label="${t('可選工段','Công đoạn có sẵn')}" data-group-stage></select>${small(t('加入工段','Thêm công đoạn'),'data-group-add')}</div><ol data-group-route-list></ol></section>`}<details open><summary>${t('本次沿用產品','Sản phẩm theo mặc định')} · ${info.inherited.length}</summary><p>${info.inherited.map(p=>h(p.code)).join('、')||'—'}</p></details><details><summary>${t('保留產品例外','Giữ sản phẩm ngoại lệ')} · ${info.exceptions.length}</summary><p>${info.exceptions.map(p=>h(p.code)).join('、')||'—'}</p></details>`;
       modal(t('群組製程路線','Tuyến mặc định của nhóm')+' · '+h(line)+' / '+h(name),body,readonly?null:async()=>{
         const removed=info.inherited.filter(p=>p.stages.some(s=>!route.includes(s)));
         if(removed.length){if(!canDelete())return deletionNote();if(!window.confirmMasterDeletion(t(`移除路線工段將影響 ${removed.length} 個產品：${removed.map(p=>p.code).join('、')}。保留檢查標準、流程與歷史；核准後這些產品不再經過移除的工段。`,`Bỏ công đoạn ảnh hưởng ${removed.length} sản phẩm: ${removed.map(p=>p.code).join(', ')}. Giữ tiêu chuẩn, quy trình và lịch sử; sau khi duyệt sản phẩm không đi qua công đoạn đã bỏ.`)))return t('已取消','Đã hủy');}
@@ -246,7 +257,9 @@
         const error=validProduct(catalog,next,original?.code);
         const removedStages=(original?.stages||[]).filter(code=>!route.includes(code));
         if(removedStages.length){if(!canDelete())return deletionNote();if(!window.confirmMasterDeletion(`刪除產品 ${original.code} 路線中的工段：${removedStages.join('、')}。\n核准後將更新製程編輯台、產品狀態與產線播放的適用路線。`))return t('已取消路線刪除。','Đã hủy xóa tuyến.');}
-        if(control.active[state.masterScope==='AB'?'C':'AB'].products.some(p=>p.code===next.code))return t('另一個產線頁籤已使用此產品編號。','Mã sản phẩm đã dùng ở thẻ chuyền khác.');
+        // A purpose-scoped page need not contain the other catalog. The server
+        // rechecks both scopes in the same CAS; this local check is advisory.
+        if(control.active[state.masterScope==='AB'?'C':'AB']?.products?.some(p=>p.code===next.code))return t('另一個產線頁籤已使用此產品編號。','Mã sản phẩm đã dùng ở thẻ chuyền khác.');
         if(error) return error==='duplicate'?t('產品編號重複，請使用其他編號。','Mã sản phẩm đã tồn tại.'):error==='route'?t('請選擇有效線別及該線工段。','Chọn chuyền và công đoạn hợp lệ.'):t('請填寫產品編號與名稱。','Nhập mã và tên sản phẩm.');
         return (await commit(original?'修改產品':'新增產品',next.code,c=>{const g=groupRoute(c,next.line,next.category);if(mode==='group'&&(!g.configured||(adoptRoute&&!sameRoute(g.stages,route))))setGroupRoute(c,next.line,next.category,route,true);if(original)c.products[c.products.indexOf(original)]=next;else c.products.unshift(next);}))?'':t('無法儲存。','Không lưu được.');
       }, dialog=>{
@@ -282,7 +295,7 @@
         const code=form.get('code').trim().toUpperCase(),name=form.get('name').trim();
         if(current().lines.some(l=>l!==original&&l.code===code))return t('線別代碼重複。','Mã chuyền đã tồn tại.');
         const other=control.active[state.masterScope==='AB'?'C':'AB'];
-        if(other.lines.some(l=>l.code===code))return t('此線別已由另一個產線頁籤管理。','Chuyền được quản lý ở thẻ khác.');
+        if(other?.lines?.some(l=>l.code===code))return t('此線別已由另一個產線頁籤管理。','Chuyền được quản lý ở thẻ khác.');
         return (await commit(original?'修改線別':'新增線別',code,c=>{
           c.categoryGroups=categoryEntries(c);
           if(original){const old=original.code;original.code=code;original.name=name;c.products.forEach(p=>{if(p.line===old)p.line=code;});c.categoryGroups.forEach(g=>{if(g.line===old)g.line=code;});if(ui.line===old)ui.line=code;}
@@ -294,12 +307,12 @@
       if(!editable())return;
       modal(original?t('修改工段','Sửa công đoạn'):t('新增工段','Thêm công đoạn'),`<p>${h(line.code)} · ${val(line.name)}</p><div class="master-form-grid">${field(t('工段編號','Mã công đoạn'),'code',original?.code||`${line.code}-`,'required pattern="[A-Za-z0-9_-]+"')}${field(t('工段名稱','Tên công đoạn'),'name',original?.name,'required')}</div>`,async form=>{
         const code=form.get('code').trim().toUpperCase(),name=form.get('name').trim();
-        if(current().lines.flatMap(l=>l.stages).some(s=>s!==original&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB'].lines.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
+        if(current().lines.flatMap(l=>l.stages).some(s=>s!==original&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB']?.lines?.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
         return (await commit(original?'修改工段':'新增工段',code,c=>{const next={...original,code,name};if(!original){next.machine='待補';next.assetNumber='待補';next.operators=null;}if(original){const old=original.code;line.stages[line.stages.indexOf(original)]=next;c.products.forEach(p=>p.stages=p.stages.map(s=>s===old?code:s));(c.categoryGroups||[]).forEach(g=>{if(Array.isArray(g.defaultStages))g.defaultStages=g.defaultStages.map(s=>s===old?code:s);});}else line.stages.push(next);}))?'':t('無法儲存。','Không lưu được.');
       });
     }
     function sharedStatus(){const flow=shared.flow(state.masterScope);if(!flow)return '';
-      const saved=flow.saved,dirty=JSON.stringify(flow.working)!==JSON.stringify(saved?.content);
+      const saved=flow.saved,dirty=JSON.stringify(flow.working)!==JSON.stringify(saved?.content??flow.active?.content);
       return `<section class="master-edit-note" id="master-shared-status" role="status">${t('共用草稿範圍','Phạm vi bản nháp chung')}: ${h(state.masterScope)} · ${flow.pendingId?t('待審鎖定','Đang chờ duyệt · đã khóa'):dirty?t('尚未儲存','Chưa lưu'):t('已儲存','Đã lưu')} · ${t('儲存者','Người lưu')}: ${h(saved?.actor.name||'—')} · ${stamp(saved?.at)}
       <div class="master-version-actions"><button class="button ghost" id="master-shared-history">${t('送審案件／歷史還原','Hồ sơ / Khôi phục lịch sử')}</button><button class="button ghost" id="master-shared-recover">${t('查詢未知操作結果','Kiểm tra kết quả chưa rõ')}</button></div></section>`;
     }
@@ -335,9 +348,20 @@
       document.querySelectorAll('[data-product-edit]').forEach(b=>b.onclick=()=>editProduct(current().products.find(p=>p.code===b.dataset.productEdit)));
       document.querySelectorAll('[data-product-delete]').forEach(b=>b.onclick=async()=>{
         if(!canDelete()){toast(deletionNote());return;}
+        if(b.disabled)return;b.disabled=true;
+        const owner=window.ProcessSync?.identity,scope=state.masterScope,delivery=window.ProcessSync?.captureDelivery?.();
+        const owned=()=>owner===window.ProcessSync?.identity&&scope===state.masterScope&&(!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
+        try {
+        const response=await fetch('/api/master/workflow?scope='+encodeURIComponent(scope)+'&references='+encodeURIComponent(b.dataset.productDelete),{headers:window.ProcessSync?.platformHeaders?.()||{},cache:'no-store',signal:AbortSignal.timeout(45000)});
+        const references=await response.json();if(!owned())return;
+        if(!response.ok)throw Error(references.error||'REFERENCE_CHECK_UNAVAILABLE');
+        if(!Number.isSafeInteger(references.total)||!Array.isArray(references.references))throw Error('REFERENCE_CHECK_UNAVAILABLE');
+        if(references.total){referenceNotice(references);return;}
+        if(!canDelete())return;
         const product=current().products.find(p=>p.code===b.dataset.productDelete),impact=deletionImpact({products:product?[product]:[b.dataset.productDelete]});
         if(!confirm(`${t(`刪除產品 ${b.dataset.productDelete}？`,`Xóa sản phẩm ${b.dataset.productDelete}?`)}\n\n${impact.message}\n\n${t('主管核准後才會套用移除，確定加入草稿？','Chỉ xóa sau khi quản lý duyệt. Thêm vào bản nháp?')}`))return;
         if(await commit('刪除產品',b.dataset.productDelete,c=>{c.products=c.products.filter(p=>p.code!==b.dataset.productDelete);selected().warnings.push(`刪除產品 ${b.dataset.productDelete}｜${impact.warning}`);}))redraw();
+        }catch(error){if(owned())toast(displayDraftError(error));}finally{if(b.isConnected)b.disabled=false;}
       });
     }
     function bindMaster() {
@@ -372,7 +396,8 @@
       for(const b of document.querySelectorAll('[data-group-route-view],[data-group-route-edit],[data-group-route-remove],[data-group-route-maximum]'))b.onclick=()=>{const line=b.dataset.routeLine;if(b.hasAttribute('data-group-route-maximum'))void adoptMaximumRoute(line,b.dataset.groupRouteMaximum);else if(b.hasAttribute('data-group-route-remove'))void removeGroupRoute(line,b.dataset.groupRouteRemove);else editGroupRoute(line,b.dataset.groupRouteView||b.dataset.groupRouteEdit,b.hasAttribute('data-group-route-view'));};
       on('#master-line-filter','change',e=>{ui.line=e.target.value;ui.category='';ui.page=0;redraw();});
       on('#master-category-filter','change',e=>{ui.category=e.target.value;ui.page=0;redraw();});
-      on('#master-product-search','input',e=>{ui.search=e.target.value;ui.page=0;document.querySelector('.master-table tbody').innerHTML=productRows();document.querySelector('#master-result-count').textContent=`${filtered().length} / ${current().products.length}`;document.querySelector('#master-product-pagination').innerHTML=pagination();bindRows();});
+      const updateSearch=e=>{if(e.isComposing)return;ui.search=e.target.value;ui.page=0;document.querySelector('.master-table tbody').innerHTML=productRows();document.querySelector('#master-result-count').textContent=`${filtered().length} / ${current().products.length}`;document.querySelector('#master-product-pagination').innerHTML=pagination();bindRows();};
+      on('#master-product-search','input',updateSearch);on('#master-product-search','compositionend',updateSearch);
       on('#master-add-product','click',()=>editProduct());on('#add-master-category','click',()=>editCategory());
       document.querySelectorAll('[data-category-pick]').forEach(b=>b.onclick=async()=>{ui.line=b.dataset.categoryLine;ui.category=b.dataset.categoryPick;ui.page=0;redraw();document.querySelector('.master-group-route')?.scrollIntoView({block:'nearest'});});
       document.querySelectorAll('[data-category-edit]').forEach(b=>b.onclick=()=>editCategory(categoryEntries(current()).find(g=>g.line===b.dataset.categoryLine&&g.name===b.dataset.categoryEdit)));
@@ -395,7 +420,7 @@
       });
       on('#master-import','click',()=>{if(!permitted('master.import')){toast(t('此帳號沒有匯入權限。','Tài khoản này không có quyền nhập.'));return;}if(!editable()){toast(t('請先建立或切回草稿。','Hãy tạo hoặc mở bản nháp.'));return;}document.querySelector('#master-import-file').click();});
       on('#master-import-file','change',event=>{if(permitted('master.import'))importExcel(event);else event.target.value='';});on('#master-export','click',()=>{if(permitted('master.export'))exportExcel();else toast(t('此帳號沒有匯出權限。','Tài khoản này không có quyền xuất.'));});bindRows();
-      window.VersionDraftUI?.mount(document.querySelector('.master-organized'),{header:'.master-version-bar',historyClient:()=>shared.client(state.masterScope),module:state.masterSection==='lines'?t('線別與工段','Chuyền và công đoạn'):state.masterScope+t(' 產線與類別',' · Chuyền và nhóm'),scope:state.masterScope,version:selected(),versions:versions(),active:versions().find(v=>v.status==='approved'),flow:shared.flow(state.masterScope),actions:{begin:'#master-new-draft',back:'#master-return-draft',save:'#master-save-draft',submit:'#master-submit',review:'#master-view-review',withdraw:'#master-withdraw'},errors:'[data-shared-issue-kind="error"],.master-danger-list:has([data-fix-master])',missing:'[data-shared-issue-kind="missing"]',history:['.master-history','#master-shared-history','[data-shared-issue-kind="warning"]'],status:['#master-shared-status'],remove:['.master-delete-access','.master-danger-list:not(:has([data-fix-master]))']});
+      window.VersionDraftUI?.mount(document.querySelector('.master-organized'),{header:'.master-version-bar',historyClient:()=>shared.client(state.masterScope),module:state.masterSection==='lines'?t('線別與工段','Chuyền và công đoạn'):state.masterScope+t(' 產線與類別',' · Chuyền và nhóm'),scope:state.masterScope,version:selected(),versions:versions(),active:versions().find(v=>v.status==='approved'),flow:shared.flow(state.masterScope),actions:{begin:'#master-new-draft',back:'#master-return-draft',save:'#master-save-draft',submit:'#master-submit',review:'#master-view-review',withdraw:'#master-withdraw',recover:'#master-shared-recover'},errors:'[data-shared-issue-kind="error"],.master-danger-list:has([data-fix-master])',missing:'[data-shared-issue-kind="missing"]',history:['.master-history','#master-shared-history','[data-shared-issue-kind="warning"]'],status:['#master-shared-status'],remove:['.master-delete-access','.master-danger-list:not(:has([data-fix-master]))']});
     }
     let language=document.documentElement.lang;
     new MutationObserver(()=>{if(language!==document.documentElement.lang){language=document.documentElement.lang;if(document.querySelector('.master-organized')&&!document.querySelector('#master-edit-dialog'))redraw();}}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});

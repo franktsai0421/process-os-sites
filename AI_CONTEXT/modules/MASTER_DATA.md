@@ -1,3 +1,9 @@
+## 2026-10-30 AB／C、引用與草稿切頁
+
+目的頁投影可能沒有另一個 catalog；產品／線別／工段表單只作可用資料的本地重複提示，跨範圍唯一性仍由後端 CAS 強制檢查。`master-product-references.ts` 只掃描結構化產品／群組關係；刪除前 GET 提供依權限遮蔽的清單，正式 Apply、Restore、Submit、Approve 再查同一 revision 的完整歷史。無法載入歷史不放行。類別不能連鎖刪除產品／預設路線，具畫布引用的類別改名也拒絕，沒有自動搬遷舊 workspace。
+
+共用離頁 adapter 使用 working 對 saved（未保存則 active）判斷；橋接器拒絕過期身分／世代 ACK，結果查詢期間保持 busy 到新 saved 讀回。查詢按鈕在 AB／C 主操作區。IME 組字結束才更新產品結果。已核准群組預設隨 runtime catalog 傳到畫布；不把 editable draft 當生效依賴。驗收、效能及 dot 重疊檔案見[交接](../../docs/acceptance/AB_C_CLOUD_30102026.md)。
+
 ## 2026-10-16 既有欄位原值防護與名稱輸入鏈
 
 master AB／C／PROCESS、process authoring 及 equipment 的既有 set 欄位必須附對應 path 原值 guard，沿原 kernel 判斷 stale；不同欄位仍可合併。原 immutable codes、引用、角色、pending、CAS 與審核規則保留。master／authoring 對已有成功 receipt 的精確命令保留 replay 相容；仍核對 actor 與 fingerprint，沒有新無 guard 命令通道。authoring 原 whole-operation 相依 guard 仍有效，不能把同方塊不同欄位強行當成可合併。

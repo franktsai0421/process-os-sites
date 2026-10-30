@@ -1,3 +1,7 @@
+## 2026-10-30 AB／C 路線／引用補充
+
+沿用 `categoryGroups[].defaultStages`、`products[].stages`、穩定 stage code 及 V3 saved/case/version；沒有 schema migration。runtime catalog 增加已核准 `categoryGroups`（line/name/defaultStages），不輸出草稿。產品引用查詢為即時計算，涵蓋 authoring、舊製程、FQC／IQC／IPQC、設備／模具、定期 FQC、BOM 與 dispatch 的明確關係欄位及保護歷史，不建立第二份引用資料庫。刪除相關命令完整讀取相依歷史；普通頁面讀取不增加歷史載入。見[範圍與限制](../docs/acceptance/AB_C_CLOUD_30102026.md)。
+
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 
 製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。
