@@ -6,6 +6,12 @@
 
 `handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、首次寫入 legacy→records-v1 條件／封存／失敗恢復及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
 
+# PR #51 本地整合候選（未推送）
+
+保留最新 main 及 AB/C 成果；來源、衝突處理與驗證界線見[整合交接](docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。#52 及全站離頁新方案分開。
+
+本次 AB／C 產線與類別＋草稿切頁修復交給 dot 審查及建立 PR，最新公開來源交接見[AB／C 交接](docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。分支 `handoff/ab-c-final-20261030`，基準 `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`；不整合線別／工段任務，不合併或部署。原始本地成果與證據保留。
+
 測速／驗證工具補件（2026-10-30）：五個本機腳本已整理為參數化工具，輸出不覆寫歷史文件；規格、使用方式與針對性驗證見 [補件說明](scripts/benchmark/README.md)。產品功能與資料模型不變，圖片／trace 保留待安全附件交付。
 
 補件審查已修正 preview smoke 跨來源 redirect 缺口與新增測試的 typed lint；CI 增加 Python／Node 工具及兩個 loopback 的 redirect 回歸。等待 root 核對本地提交及遠端 CI，尚未由此修復任務 push、merge 或部署。完整 runner 的 Linux 限制與 Windows 清理未驗證範圍見補件說明。

@@ -8,6 +8,10 @@
 
 每個寫入前原始 value 字串以 immutable R2 物件封存於既有 legacySources；歷史、其他模組及舊物件保留。原 DB CAS 原子發布 manifest；上傳失敗／CAS 輸家不發布新指標或成功收據，可能留有未引用物件，不自動刪除。失 ACK 先查原 operationId 收據。封存不等於整個 DB 一鍵還原；首次成本及實站恢復未驗。[條件、測試與回復邊界](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
 
+## 2026-10-30 AB／C 路線／引用補充
+
+沿用 `categoryGroups[].defaultStages`、`products[].stages`、穩定 stage code 及 V3 saved/case/version；沒有 schema migration。runtime catalog 增加已核准 `categoryGroups`（line/name/defaultStages），不輸出草稿。產品引用查詢為即時計算，涵蓋 authoring、舊製程、FQC／IQC／IPQC、設備／模具、定期 FQC、BOM 與 dispatch 的明確關係欄位及保護歷史，不建立第二份引用資料庫。刪除相關命令完整讀取相依歷史；普通頁面讀取不增加歷史載入。見[範圍與限制](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
 2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
 
 ## 2026-10-29 流程類型與刪除引用候選

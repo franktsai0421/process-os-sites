@@ -14,7 +14,7 @@ export function createNavigationCoordinator(hooks) {
     return result;
   }
   async function run(target,options) {
-    if(!hooks.canLeave())return{status:'blocked'};
+    if(!hooks.canLeave()&&!hooks.prepareDeparture)return{status:'blocked'};
     const observedOwner=hooks.owner();if(!observedOwner?.id)return{status:'invalidated'};
     const owner=Object.freeze({id:observedOwner.id,epoch:observedOwner.epoch});
     active?.controller.abort();
@@ -25,6 +25,11 @@ export function createNavigationCoordinator(hooks) {
       owner};
     hooks.pending?.(target);
     try {
+      if(!hooks.canLeave()) {
+        const accepted=await hooks.prepareDeparture(context);
+        if(!context.current())return{status:'superseded'};
+        if(accepted!==true||!hooks.canLeave())return{status:'blocked'};
+      }
       const prepared=await hooks.prepare(target,context);
       if(!context.current())return{status:'superseded'};
       // The user may have begun editing while the target read was pending.

@@ -486,6 +486,10 @@ function syncProductRoute() {
   state.processes = processesForProduct(state.productCode);
 }
 function categoryStageCodes(category = state.category) {
+  const group=window.ACTIVE_MASTER_CATEGORIES?.find(row=>row.line===state.editorLine&&row.name===category);
+  // Approved defaults own visibility, never workspace storage. Legacy groups
+  // without a configured default continue to use the product-route union.
+  if(Array.isArray(group?.defaultStages))return [...group.defaultStages];
   const products = data.products
     .filter(product => product.category === category && routeFor(product.code)?.line === state.editorLine)
     .map(product => ({code:product.code,stages:routeFor(product.code)?.stages || []}));

@@ -32,3 +32,5 @@ html.pe-fullscreen{overflow:hidden;background:#f5faf8}
 
 /* BOM consumer: names and composition amount are distinct from stable occurrence IDs. */
 .pe-bom-description{min-width:0;flex:1}.pe-bom-description>code{display:block;font-size:13px;color:#37646a}.pe-bom-name{display:block;font-size:17px;line-height:1.4;margin:4px 0;overflow-wrap:anywhere}.pe-bom-quantity{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:6px}.pe-bom-quantity>strong{font-size:16px;color:#174f4a;white-space:nowrap}.pe-bom-quantity>small{margin:0}.pe-bom-row input{flex-shrink:0}
+
+.pe-no-route-products{color:#7b5a12}.pe-empty-route-note{margin:8px 0;padding:10px 12px;border:1px solid #dbc691;border-radius:8px;background:#fff9e8;color:#6b5018;overflow-wrap:anywhere}

@@ -286,7 +286,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-media-fast-path-routes.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/navigation-adapters.test.mjs tests/destination-transaction.test.mjs tests/bounded-media-loading.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
+          node --test tests/ab-c-route-reference.test.mjs tests/master-bridge-ownership.test.mjs tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/navigation-adapters.test.mjs tests/destination-transaction.test.mjs tests/bounded-media-loading.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-shared-draft-client-v3.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
