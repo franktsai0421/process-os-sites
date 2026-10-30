@@ -10,6 +10,24 @@
 - Frank primary 專屬軟刪除，私人備註／附件／歷史保持既有保護；無共用權限或業務 schema 變更。
 - API、VM、編譯 Worker＋Chromium 合成驗證與效能比較見 [交付](../docs/web-feedback/20261029-isolated-helper.md)。公開預覽、既有站台同帳號比較及 PR API 存取仍受環境限制。
 
+## 2026-10-29 — Stacked IQC source delivery
+
+IQC local diff/render/validation reuse, complete owner-bound fresh reads and explicit editing projection with fresh active-version retrieval. Old clients remain full; mixed tails and Save/Submit over 1 second remain disclosed.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
+## 2026-10-29 — Stacked C source delivery
+
+IPQC-C entry/Apply/coverage, approved Save-only bounded storage and explicit Save-response projection. Dirty ACK input is retained, new writes paused pending manual fresh reload; full server validation/CAS/history retained. C large Save remains above 1 second.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
+## 2026-10-29 — Stacked AB source delivery
+
+IPQC-AB owner-bound reads, independent action/photo authorization, local diff indexing and deferred equipment entry. Single-owner shared read guards and foreground scheduler declarations are prerequisites; new Begin behavior remains in the later back-office layer.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
 ## 2026-10-28 — 依確認保留保護的檢具測試流程（隔離補驗）
 
 - 新增兩器具先正常核准才接收移轉；四模組分無草稿／已有草稿，加入退回後真正改選器具、新 Save、重送與獨立核准，正式標準只在核准後改變。

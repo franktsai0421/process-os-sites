@@ -1,3 +1,4 @@
+import installForegroundPorts from '../scripts/entry-performance/fixture-ports.cjs';
 import test from 'node:test';
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 import * as policy from '../public/process/delivery-purpose.mjs';
@@ -32,11 +33,16 @@ async function fixture(){
  const context=vm.createContext({window,document,Storage,localStorage:new Storage(),sessionStorage:new Storage(),URL,URLSearchParams,AbortSignal,AbortController,Response,Promise,location,history,state:{view:'data',dataTab:'quality-iqc',approvalTab:'quality'},currentUser:{id:'synthetic'},coordinatorModule,CustomEvent:class{constructor(type,detail){this.type=type;this.detail=detail;}},setTimeout:()=>1,clearTimeout(){},setInterval:()=>2,console,performance:{now:()=>1},navigate(){},render(){},toast(){},fetch:(url,options)=>{calls.push(['STUB_FETCH_ONLY',url]);if(first){first=false;return Promise.resolve(Response.json(initial));}return new Promise(resolve=>pending.push({resolve,url,options}));}});
  vm.runInContext(src('shared-state.js'),context);await window.ProcessSync.ready;
  vm.runInContext(src('navigation-forms.js'),context);
+ // Preserve the existing shared-state/navigation event subscriptions while
+ // adding the scheduler's removal/dispatch dependency ports.
+ window.removeEventListener=(name,fn)=>events.set(name,(events.get(name)||[]).filter(listener=>listener!==fn));
+ document.dispatchEvent=event=>{const pendingEvents=Array.from(docEvents.get(event.type)||[]);for(const fn of pendingEvents)fn(event);return true;};
+ vm.runInContext(src('shared-draft-client.js'),context);installForegroundPorts(context);
  // Test-only export of unchanged actual functions, inside their original closure.
  // No source file is changed; actual reset and all IQC event registrations run.
  const iqc=src('iqc-master.js');assert(iqc.endsWith('})(window);\r\n')||iqc.endsWith('})(window);\n'));
  vm.runInContext(iqc.replace('})(window);','host.__testIqc={photoViewerPhotos,dialog};\n})(window);'),context);
- vm.runInContext(src('shared-draft-client.js'),context);
+
  vm.runInContext(src('effective-version-notice.js'),context);
  vm.runInContext(src('quality-review-overview.js'),context);
  for(const [object,key,label]of [[window.IQCMasterUI.navigation,'reset','IQC'],[window.EffectiveVersionNotice,'reset','effective'],[window.QualityReviewOverview,'dispose','overview']]){const original=object[key];object[key]=function(...args){resets[label]++;return original.apply(this,args);};}
