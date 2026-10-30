@@ -137,6 +137,12 @@ PROCESS_PROGRAM_COMMIT=$(git rev-parse HEAD) node scripts/preview-lines-cloud.mj
 
 可用 `CHROME_PATH` 指定 Chromium。launcher 輸出本機網址、密碼檔路徑、programCommit、build hash；build 與啟動必須來自同一乾淨 checkout。這是給具備此工作環境的人員使用的本機預覽，**沒有可交給使用者的公開預覽網址**。初始預覽提供 AB/C active 與不同權限帳號；草稿／待審／退回等可操作產生，未宣稱所有狀態與引用已預載。
 
+## 最終提交核對
+
+應用程式來源 `ea17970bddf831aab09ac2031d0469a6e216f325` 已通過安全建置，含 post-build known-auth 檢查。該編譯 entry SHA-256：`7f449299a90d39d922122c041b1d0e9262af886ae825236a1581aaf207008de4`。以此精確 build 再跑 AB/C 全流程、16 個拒絕權限案例、staff 允許流程、4 組雙語尺寸、下游選單與 Save/Submit 斷線收據恢復，全部 PASS、pageErrors 為空，見 `lines-native-results.json`。後續交接提交僅更新測試證據及本機 preview launcher 的關閉清理，不改編譯應用程式。
+
+預覽關閉檢查曾發現 native runtime 的既有 signal handler 先結束程序，清理回呼未執行；改用 prepend signal listener 與 exit fallback，實測 SIGINT、SIGTERM 皆刪除臨時密碼檔。測試預覽已關閉；不把短期 loopback URL 當作交付網址。lint、TypeScript、diff 檢查 PASS。文件檢查發現 MASTER_DATA 原有 `20261015-button-coverage.json` 連結缺檔，屬既有紀錄，本次新增交接連結皆存在。
+
 ## 仍未完成／整合條件
 
 - 沒有 Sites 公開預覽發布工具；獨立 hosted DB／附件／帳號與可公開開啟網址尚未建立。不能用本機網址或截圖代替此驗收。
