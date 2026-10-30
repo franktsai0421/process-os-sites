@@ -1,3 +1,5 @@
+本次 AB／C 產線與類別＋草稿切頁修復交給 dot 審查及建立 PR，最新公開來源交接見[AB／C 交接](docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。分支 `handoff/ab-c-final-20261030`，基準 `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`；不整合線別／工段任務，不合併或部署。原始本地成果與證據保留。
+
 本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
 
 # Isolated Sites implementation handoff

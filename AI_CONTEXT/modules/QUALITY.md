@@ -251,3 +251,5 @@ see [policy and verification boundary](../../docs/sites/PHOTO_UPLOAD.md).
 - `fqc-workflow.structure` 完成原 identity/collection 檢查後，單次呼叫建立 parent 索引；保留首筆匹配、錯誤順序、equipment snapshot、DTO、收據與原存檔路徑。
 - 30 組 paired synthetic 回歸比對兩個 stack 層各自的歷史 blob。資料量大且重複查找時減少比較工作；低基數早命中可增加索引工作，不能聲稱所有情境更快。
 - 不減 R2/SQL/fresh permission/CAS 次數，不改窄寫入依賴閉包，尚非實站 I/O 延遲或原生 UI 驗收。
+
+2026-10-30 AB/C 草稿切頁補驗：FQC navigation.requiresSave 使用 `control.libraries.fqc.workflow`，與 FQC 現行儲存 API 同一草稿來源；不讀外層不存在的 workflow。參見 `tests/ab-c-cross-module-browser.mjs` 與 AB/C acceptance 報告。

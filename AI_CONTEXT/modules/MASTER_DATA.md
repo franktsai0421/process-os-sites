@@ -1,3 +1,21 @@
+## 2026-10-30 AB／C 後續操作釐清與載入改善
+
+AB/C 送審視窗用 optional masterSnapshot 顯示本次 saved 時間／人員與未包含的 working 差異，每頁 10 筆，開啟焦點停在標題，避免跳過提醒；只提交原 savedId，既有送審版本過期拒絕保持。current selector 不追加歷史版本，統一歷史區去除舊快切按鈕、保留操作紀錄和唯讀／還原入口。masterChanges 分別計產品／類別／線別／工段，工段順序也算變更；還原無差異有停用原因。
+
+master preserveView 對新 DOM 不寫入零捲動，避免啟動強制排版；非零捲動和焦點仍還原。master 頁停用瀏覽器自動 scroll anchoring，避免外層頁籤裝飾在還原後再推移畫面。BOM 同 delivery／identity／revision 的成功摘要可供同頁重畫重用；輪詢、換頁、換身分、錯誤、未知結果與真正審核仍讀取。VersionDraftUI 歷史分頁讀取時鎖定控制，成功後才提交游標；失敗保留頁碼與內容，允許明確重試。XLSX 載入順序嘗試沒有穩定提速，已恢復原順序。無 API、設定、schema 或資料遷移。驗收見[後續修正](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
+## 2026-10-30 AB／C 操作說明與按鈕效能追加
+
+路線標示依既有 inherited 模式分成跟隨與獨立；獨立但同路線者仍列入獨立清單。每次 productRows 只對可見群組計算一次 groupRoute，Map 不跨 render 保留；重複產品檢查及穩定 ID 查找消除重複掃描。橋接器僅 Apply／必要的表單 Save 複製完整快照，原操作順序、ownership、guard、unknown 與 pending 保留。
+
+VersionDraftUI 以 optional masterScope 啟用 AB/C 範圍提醒與文案；DOM 使用 data-vd-master-scope，避免觸發既有 data-master-scope 導航。shared history／restore 同樣 opt-in，其他模組不更動呈現。規格見[群組路線](../../docs/specs/current/GROUP_ROUTES.md)，測量與驗收見[追加優化](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。共用歷史清單／案件載入期間禁用非關閉控制，避免較晚的清單回覆覆蓋已切換的封存頁；關閉／Escape 保留，沒有新增寫入通道。無 API／持久模型／遷移變更。
+
+## 2026-10-30 AB／C、引用與草稿切頁
+
+目的頁投影可能沒有另一個 catalog；產品／線別／工段表單只作可用資料的本地重複提示，跨範圍唯一性仍由後端 CAS 強制檢查。`master-product-references.ts` 只掃描結構化產品／群組關係；刪除前 GET 提供依權限遮蔽的清單，正式 Apply、Restore、Submit、Approve 再查同一 revision 的完整歷史。無法載入歷史不放行。類別不能連鎖刪除產品／預設路線，具畫布引用的類別改名也拒絕，沒有自動搬遷舊 workspace。
+
+共用離頁 adapter 使用 working 對 saved（未保存則 active）判斷；橋接器拒絕過期身分／世代 ACK，結果查詢期間保持 busy 到新 saved 讀回。查詢按鈕在 AB／C 主操作區。IME 組字結束才更新產品結果。已核准群組預設隨 runtime catalog 傳到畫布；不把 editable draft 當生效依賴。驗收、效能及 dot 重疊檔案見[交接](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
 ## 2026-10-16 既有欄位原值防護與名稱輸入鏈
 
 master AB／C／PROCESS、process authoring 及 equipment 的既有 set 欄位必須附對應 path 原值 guard，沿原 kernel 判斷 stale；不同欄位仍可合併。原 immutable codes、引用、角色、pending、CAS 與審核規則保留。master／authoring 對已有成功 receipt 的精確命令保留 replay 相容；仍核對 actor 與 fingerprint，沒有新無 guard 命令通道。authoring 原 whole-operation 相依 guard 仍有效，不能把同方塊不同欄位強行當成可合併。

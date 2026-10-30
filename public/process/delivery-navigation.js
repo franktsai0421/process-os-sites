@@ -10,18 +10,41 @@
   return shared.dirty||shared.inFlight||shared.paused||shared.blocked||drafts.queued||drafts.unknown||drafts.failed||sync.projectionWriteError;
  };
  const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay';
- function canLeave(){
+ const departureAdapters=()=>[window.MasterDataWorkflow?.navigation,...modules().map(api=>api.navigation)].filter(Boolean);
+ function canLeave(ignoreSaved=false){
   if(sync.requiresReload||draftsPending()||window.ProcessNavigationForms?.composing?.())return false;
   if(window.ProcessRuntimeProjection?.canLeave?.()===false||window.MasterDataWorkflow?.canLeave?.()===false)return false;
-  if(modules().some(api=>api.navigation?.canLeave?.()===false))return false;
+  if(modules().some(api=>api.navigation?.canLeave?.()===false&&!(ignoreSaved&&api.navigation.requiresSave?.()&&api.navigation.canSaveForDeparture?.()===true)))return false;
+  if(!ignoreSaved&&departureAdapters().some(adapter=>adapter.requiresSave?.()))return false;
   if(document.querySelector('dialog[open],.iqc-lightbox,.fqc-viewer-overlay'))return false;
   return ![...document.querySelectorAll(editingScopes)].some(node=>window.ProcessNavigationForms?.dirty?.(node));
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261025-navigation2');
+  const {createNavigationCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261030-ab-c-draft1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
+  let departureSave=null;
+  function prepareDeparture(){
+   if(departureSave)return departureSave;
+   if(!canLeave(true))return Promise.resolve(false);
+   const adapters=departureAdapters().filter(adapter=>adapter.requiresSave?.());
+   if(!adapters.length)return Promise.resolve(false);
+   const owner=sync.identity,epoch=sync.identityGeneration?.();
+   const owned=()=>owner===sync.identity&&epoch===sync.identityGeneration?.()&&!sync.requiresReload;
+   const message=document.documentElement.lang==='vi'?'Lưu bản nháp trước khi chuyển trang? Hủy để giữ nguyên trang và nội dung.':'尚有未儲存內容，要儲存草稿後切頁嗎？取消會留在原頁並保留內容。';
+   if(!window.confirm(message))return Promise.resolve(false);
+   departureSave=(async()=>{
+    for(const adapter of adapters){
+     if(!owned()||!canLeave(true))return false;
+     if(typeof adapter.saveForDeparture!=='function')return false;
+     await adapter.saveForDeparture();
+     if(!owned()||adapter.requiresSave?.())return false;
+    }
+    return owned()&&canLeave();
+   })().catch(error=>{if(owned())toast(window.sharedDraftErrorMessage?.(error)||error.message);return false;}).finally(()=>{departureSave=null;});
+   return departureSave;
+  }
   let historyIndex=Number.isSafeInteger(history.state?.processNavigationIndex)?history.state.processNavigationIndex:0;
   let committedURL=location.href,restoreIndex=null,physicalIndex=historyIndex,queuedAfterRestore=null;
   history.replaceState({...history.state,processNavigationIndex:historyIndex},'',location.href);
@@ -63,6 +86,7 @@
   }
   const coordinator=createNavigationCoordinator({
    initial,key:target=>navigationKey(target)+(target.view==='player'?JSON.stringify(target.display||{}):''),owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.()}),canLeave:()=>!broken&&canLeave(),
+   prepareDeparture:()=>!broken&&prepareDeparture(),
    prepare:(target,context)=>sync.prepareDestination(target,context.signal),validate:handle=>sync.validateDestination(handle),
    commit(handle,target,context,options){
     commitPhase=true;installing=true;

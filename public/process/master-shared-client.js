@@ -23,13 +23,15 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       const permissionsChanged=!equal(permissions.get(scope),result.permissions);if(result.permissions)permissions.set(scope,result.permissions);adopt(scope,result);return{...result,permissionsChanged};}
     async function patch(scope,patches,guards=[]){
       if(!flow(scope))throw Error('BEGIN_REQUIRED');
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       readOwners.delete(scope);
       const c=client(scope),result=await c.command(flow(scope).generation,'apply',{patches,guards});
-      readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,result.control?result:await c.read());return result;
+      const fresh=result.control?result:await c.read();if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      readOwners.delete(scope);readTokens.delete(actor?.id+':'+scope);adopt(scope,fresh);return result;
     }
     function identify(value,previous){
-      if(Array.isArray(value)){for(const row of value)if(row&&typeof row==='object'){
-        const old=(previous||[]).find(p=>row.id?p.id===row.id:row.code?p.code===row.code:p.line===row.line&&p.name===row.name);
+      if(Array.isArray(value)){const byId=new Map((previous||[]).map(row=>[row?.id,row]));for(const row of value)if(row&&typeof row==='object'){
+        const old=row.id?byId.get(row.id):(previous||[]).find(p=>row.code?p.code===row.code:p.line===row.line&&p.name===row.name);
         row.id ||= old?.id||crypto.randomUUID();identify(row,old);
       }}else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
     }
@@ -48,12 +50,14 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
     }
     async function execute(scope,action,detail={}){
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
+      const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
       readOwners.delete(scope);
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);
       try{const c=client(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
-        if(action==='begin'){const result=await c.begin();adopt(scope,result);return result;}
-        const before=copy(bases.get(scope)||draft(scope)?.snapshot||{}),next=copy(draft(scope)?.snapshot||before),generation=generations.get(scope);
-        if(!flow(scope)){adopt(scope,await c.begin());}
+        if(action==='begin'){const result=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);adopt(scope,result);return result;}
+        const before=action==='apply'||action==='save'&&(!flow(scope)||document.querySelector('#master-edit-dialog[open]'))?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);
+        if(!flow(scope)){const begun=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');adopt(scope,begun);}
         if(action==='apply'){identify(next,before);detail=diff(before,next);if(!detail.patches.length)return null;
           // A group route update includes every inheriting member. Guard membership
           // too: a concurrent insert must not silently miss the group-wide change.
@@ -62,14 +66,14 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
         const formVersion=action==='save'&&document.querySelector('#master-edit-dialog[open]')?draft(scope):null;
         if(action==='save'){await c.flush();if(formVersion&&!confirm(t('只儲存已同步內容，不包含尚未套用表單。繼續？','Chỉ lưu nội dung đã đồng bộ, không gồm biểu mẫu chưa áp dụng. Tiếp tục?')))return null;}
         const linkedApproval=action==='approve'&&flow(scope)?.cases.find(row=>row.id===detail.caseId)?.linkedProcess;
-        const result=await c.command(generation||flow(scope).generation,action,detail);readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,result.control?result:await c.read());
+        const result=await c.command(generation||flow(scope).generation,action,detail),fresh=result.control?result:await c.read();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,fresh);
         if(linkedApproval)await load('PROCESS');
         if(formVersion){const index=control.versions.findIndex(v=>v.id===formVersion.id);if(index>=0)control.versions[index]=formVersion;bases.set(scope,before);generations.set(scope,generation);}
         return result;
       }catch(error){if(action==='apply'&&(error.notSent||error.status&&error.status<500))error.rejectedDraftPaths=detail.patches?.map(patch=>patch.path)||[];throw error;}finally{busy=false;}
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
-      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope);if(!reason)return null;
+      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
       return execute(scope,'submit',{savedId:current.saved.id,reason});
     }
     async function review(scope,action,caseId){const c=flow(scope)?.cases.find(row=>row.id===caseId);if(!c)throw Error('CASE_NOT_FOUND');
@@ -77,8 +81,15 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:scope+' · '+caseId,selfReview:action!=='withdraw'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
-    async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&host.hasPermission?.('approval.submit')&&host.hasPermission?.('master.delete'),onApplied:async()=>{await load(scope);onChange?.();}});}
-    async function recover(scope){const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}await load(scope);onChange?.();}
+    async function history(scope){await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&host.hasPermission?.('approval.submit')&&host.hasPermission?.('master.delete'),onApplied:async()=>{await load(scope);onChange?.();}});}
+    async function recover(scope){
+      if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.();
+      const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.();
+      try{const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}
+        if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
+      }finally{busy=false;}
+    }
     return{resetReads(){readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);

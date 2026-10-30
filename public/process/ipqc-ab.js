@@ -676,7 +676,7 @@
     }
   });
   let navigationError=null;
-  window.IPQCABUI = { navigation:{canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  window.IPQCABUI = { navigation:{requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.moduleDraft?.workflow||scope()?.workflow),saveForDeparture:()=>save('save'),canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }
