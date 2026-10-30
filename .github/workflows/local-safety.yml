@@ -49,6 +49,20 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
+      - name: Isolated benchmark tools and preview redirect boundaries
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          # windows-latest provides Python; require the documented minimum.
+          python -c "import sys; assert sys.version_info >= (3, 10)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Explicit UTF-8 also applies to Python child fixture processes.
+          $env:PYTHONUTF8 = '1'
+          python -m unittest discover -s scripts/benchmark -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node node_modules/playwright/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Source-only history and upload safety
         id: head_validation_01
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' && (steps.normal_typed_lint.outcome == 'success' || steps.normal_typed_lint.outcome == 'failure') }}
