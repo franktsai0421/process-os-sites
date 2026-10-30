@@ -34,7 +34,11 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
       },
       semantic:content=>({...content,parts:content.parts.filter(p=>!p.isDeleted),errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
       structure(content,previous){
-        for(const item of content.items){const old=previous.items.find(i=>i.id===item.id);
+        // Request-local only; retain original strict equality for unusual IDs.
+        const indexed=previous.items.every(item=>typeof item.id==='string')&&content.items.every(item=>typeof item.id==='string');
+        const previousById=new Map<string,typeof previous.items[number]>();
+        if(indexed)for(const item of previous.items)if(!previousById.has(item.id))previousById.set(item.id,item);
+        for(const item of content.items){const old=indexed?previousById.get(item.id):previous.items.find(i=>i.id===item.id);
           if(!item.equipmentId){item.equipmentSnapshot=null;continue;}
           if(old?.equipmentId===item.equipmentId){item.equipmentSnapshot=old.equipmentSnapshot;continue;}
           const e=selected.get(item.equipmentId);if(!e||e.enabled===false)throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
@@ -42,8 +46,8 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         }
         try{checkedIqcSnapshot(previous,content,true);}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
       },
-      validate(content){const blocked=new Set(iqcSubmitBlockingErrors(content));return [
-        ...iqcSubmitErrors(content).map(message=>{
+      validate(content){const errors=iqcSubmitErrors(content),blocked=new Set(iqcSubmitBlockingErrors(content,errors));return [
+        ...errors.map(message=>{
           const item=content.items.find(row=>message.startsWith(row.checkNo+' ')),part=item?undefined:content.parts.find(row=>message.startsWith(row.code+' '));
           return{kind:blocked.has(message)?'error' as const:'missing' as const,path:item?['items',{id:item.id},'rules']:part?['parts',{id:part.id},message.endsWith('零件名稱空白')?'nameVi':'categoryId']:[],message};
         }),

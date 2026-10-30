@@ -1,0 +1,45 @@
+name: Windows Miniflare dispatch diagnostic (synthetic only)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/windows-miniflare-dispatch-diagnostic.mjs'
+      - 'tests/windows-miniflare-dispatch-diagnostic.test.mjs'
+      - '.github/workflows/windows-miniflare-dispatch-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-dispatch:
+    if: ${{ github.event.pull_request.number == 49 }}
+    runs-on: windows-latest
+    timeout-minutes: 6
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_SEND_ERROR_REPORTS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Normal locked install and unchanged source guard
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Pure dispatch regression (no service)
+        run: node --test tests/windows-miniflare-dispatch-diagnostic.test.mjs
+      - name: Four bounded public dispatchFetch requests (no warm-up or retry)
+        run: node scripts/windows-miniflare-dispatch-diagnostic.mjs --run-windows-dispatch
+# This added commit also triggers the unchanged Local safety workflow. Its
+# failures remain failures; this diagnostic is neither a bypass nor a repair.

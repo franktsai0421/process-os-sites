@@ -83,8 +83,11 @@ void (async () => {
     // The editor module is registered after app.js performs its initial render.
     // Reveal the authoritative canvas, not that early legacy/empty render.
     if(bootStatus)bootStatus.textContent=vi?'Đang tải nội dung làm việc đã xác thực…':'正在載入已驗證的工作內容…';
+    // The destination coordinator already awaits the authoritative editor
+    // readiness for this delivery. Do not repaint that same canvas a second time.
+    const editorReadyViaDestination=window.ProcessSync.destination.view==='editor'&&typeof window.ProcessDeliveryNavigation?.readyForDestination==='function';
     await window.ProcessDeliveryNavigation?.readyForDestination?.();
-    await window.ProcessAuthoringV3?.readyForEditor?.();
+    if(!editorReadyViaDestination)await window.ProcessAuthoringV3?.readyForEditor?.();
     await window.ProcessDualSystem?.readyForDestination?.();
     await window.ProcessDataTabs?.readyForDestination?.();
     if(window.ProcessSync.destination.dataTab==='bom')await window.BOMWorkspace?.readyForDestination?.();

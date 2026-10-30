@@ -1,3 +1,4 @@
+import {iqcEditingRequested,iqcEditingPayload} from './iqc-editing-projection';
 import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
 import {processFlowCommand,readProcessFlowMutationState,encodeProcessFlowMutationState} from './process-flow-record-mutation';
@@ -130,7 +131,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state),create:limited.edit&&!!workflowModule&&await can(request,state,workflowModule+'.create'),delete:limited.edit&&await can(request,state,workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
-    async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),{status,headers:responseHeaders});try{
+    async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
@@ -162,7 +163,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
         return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
       }
-      if(query.has('versionId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply({version}):reply({error:'VERSION_NOT_FOUND'},404);}
+      if(query.has('versionId')){const activeView=iqcEditingRequested(request,adapter.key,adapter.scope)&&query.get('versionId')===control.activeVersionId;if(!permissions.history&&!activeView)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply(activeView?{version,revision:state.revision,permissions,activeVersionId:control.activeVersionId,generation:flow?.generation||null}:{version}):reply({error:'VERSION_NOT_FOUND'},404);}
       if(query.has('restoreSaveId')){
         if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
         if(adapter.requiresDelete?.(control,{action:'restore'})&&!await can(request,state,'master.delete'))return reply({error:'FORBIDDEN'},403);
@@ -183,7 +184,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1'),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
       return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),env.STATE_ARCHIVE,responseHeaders):reply(body);
     }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}},
-    async POST(request:Request){let streamRecords=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const payload=compactWorkflowPayload(body,query.get('compact')==='1');return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
+    async POST(request:Request){let streamRecords=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const payload=iqcEditingPayload(compactWorkflowPayload(body,query.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope));return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
       const body=await commandBody(request),caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
       for(let attempt=0;attempt<4;attempt++){
         const mutationState=body.action===undefined&&adapter.recordMutation==='fqc-existing-set'&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcExistingSetCommand(body.command)?await readFqcMutationState(body.command):null;

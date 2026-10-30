@@ -1,6 +1,7 @@
 /* Actual final GET and exact published GET baseline; synthetic SQLite/R2, no server/network. */
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
+const {withoutComposedPerformance,assertComposedPerformanceContract}=require('./ipqc-c-composed-performance-source-contract.cjs');
 const {withoutApprovedExplicitRights,assertExplicitRightsContract}=require('./ipqc-c-explicit-rights-source-contract.cjs');
 const {makeLoader,baselineCommits,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT);CREATE TABLE process_revoked_sessions(token_digest TEXT PRIMARY KEY,expires_at INTEGER,revoked_at INTEGER)');
@@ -64,7 +65,7 @@ await check('C7 loopback full-read historicalCodes and non-loopback bounded beha
  for(const origin of ['http://localhost:3040','http://127.0.0.1:3000'])for(const who of ['frank','reader']){const req=request(who,'?caseMetadata=1',{origin}),next=await run(req),prior=await run(req,true);assert.deepEqual(comparable(next),comparable(prior));assert(next.keys.includes(refs.unrelated.key));if(who==='frank')assert(next.body.historicalCodes.includes('C-HIST-TIEN-L987-01'));else assert.equal(next.body.historicalCodes,undefined);}
  const hosted=await run(request('frank'));assert.equal(hosted.body.historicalCodes,undefined);assert(!hosted.keys.includes(refs.unrelated.key));
 });
-await check('C9 exact approved explicit-rights/legacy/photo auth deltas only; protected write bodies domain and image bytes retain v20 baseline',()=>{
+await check('C9 exact composed performance and explicit-rights spans; historical write/domain/image byte proofs retained',()=>{
  const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];
  // Git blobs remain byte-exact; checkout conversion may change CRLF, and nothing else.
  const checkoutBytes=bytes=>bytes.filter((byte,index)=>byte!==13||bytes[index+1]!==10);
@@ -87,10 +88,23 @@ await check('C9 exact approved explicit-rights/legacy/photo auth deltas only; pr
  for(const file of ['app/api/ipqc-c/route.ts','lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),working=fs.readFileSync(file);
   assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
+  // Retain the reviewed coverage-domain binding and its historical byte proof.
+  // Canonical Save/CPU/projection changes are exactly reversed before the
+  // unchanged #44 span negatives and original v20 proof, not ignored.
+  const approved={'lib/ipqc-c.ts':'c798ab16c8b16adedc4cf672064d422fbb744fb18b4682253f46740ae8b62243'};
+  let protectedSource=committed;
+  if(approved[file]){
+   assert.equal(createHash('sha256').update(committed).digest('hex'),approved[file],'Reviewed performance source binding changed');
+   protectedSource=execFileSync('git',['show','2cac307f29b8017a2bb6dc5229d47720f2deab33:'+file]);
+  }
+  if(file==='app/api/ipqc-c/workflow/route.ts'){
+   assertComposedPerformanceContract(committed);
+   protectedSource=withoutComposedPerformance(committed);
+  }
   const aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
   const explicit=['app/api/ipqc-c/route.ts','app/api/ipqc-c/workflow/route.ts'].includes(file);
-  if(explicit)assertExplicitRightsContract(file,committed);
-  const explicitProtected=explicit?withoutApprovedExplicitRights(file,committed):committed;
+  if(explicit)assertExplicitRightsContract(file,protectedSource);
+  const explicitProtected=explicit?withoutApprovedExplicitRights(file,protectedSource):protectedSource;
   const protectedBytes=aligned?withoutApprovedOperationAlignment(file,explicitProtected):explicitProtected;
   preserved(execFileSync('git',['show',base+':'+file]),protectedBytes,protectedBytes,file==='app/api/ipqc-c/workflow/route.ts'?'export async function POST(':file==='app/api/ipqc-c/route.ts');
  }

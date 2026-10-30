@@ -1,5 +1,9 @@
 2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
 
+## 2026-10-29 流程類型與刪除引用候選
+
+PROCESS 工段模板的選用 `editorType` 為 entry/manual/inspection/machine/exit/custom；舊資料未填時沿 preset 或 custom 判斷，不批次遷移。設備仍內嵌於 PROCESS 機器設定模板，沒有新表、schema 或附件識別。`/api/master/references` 只讀，按 templates.view 與 editor.view 限制引用詳情；刪除檢查不更動產品、方塊、歷史與媒體。詳見 [流程紀錄](../docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
+
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 
 製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。
@@ -136,9 +140,13 @@ BOM 匯入 command.input 新增 `baseDigest` 與 `importMode:incremental-v1`；�
 
 新增獨立 `process_revoked_sessions(token_digest,expires_at,revoked_at)`，token_digest為SHA-256及主鍵；不含原cookie、password或業務ID。不新增shared_state鍵，不修改流程／BOM／IPQC／案件歷史。公開API不建schema，`PROCESS_SESSION_REVOCATION_ENABLED=1`在明確migration後啟用。3020用自身private SQLite ledger；經2026-10-09使用者明確授權，0002 migration已在日常3000新增表並保留原業務；切換與驗證見[整合報告](../docs/local-integration/20261009-3020-to-3000.md)。保全與fail-closed界線見[登入撤銷報告](../docs/ipqc-reference/20261009-session-revocation.md)。共用／產品專用項目仍沿原name/text/standard JSON欄位，無業務模型遷移。
 
+## 2026-10-29 網頁回報 payload 相容欄位
+
+僅 `web_feedback_store.payload` 的案件新增可選 `deletedAt/deletedBy` 與每案最多 32 筆 `updateReceipts`（核驗帳號＋operationId、payload digest）。刪除為 tombstone，不刪原案件、附件、批次與交接；一般清單排除已刪除案件，舊 ZIP 保持不可變。location 新增可選受界限檢查的頁面座標／視窗尺寸與 locator label，用於安全備援及拒絕錯貼。既有 payload 不需 migration；沒有 shared_state／業務表變更。舊前後端版本不理解刪除欄位，整合須一起部署此模組前後端，不能以舊 handler 回滾解讀已軟刪除清單。詳見 [模組](modules/WEB_FEEDBACK.md)。
+
 ## 2026-10-09 網頁回報 V1（3020及日常Local明確啟用）
 
-獨立 web_feedback_store(id,revision,payload) 以 CAS 保存 issues／attachments／batches／handoffs；不加 shared_state 鍵，不變更製程／BOM／IPQC模型。Drizzle 0002納入schema；既有Local使用明確upgrade，空環境沿正常初始化，公開API不建表。本機日常已啟用，遠端未部署。STATE_ARCHIVE 使用 web-feedback/v1/ 原圖與 immutable ZIP，附件記錄 owner／原存取 envelope／SHA-256。瀏覽器 IndexedDB process-web-feedback-v1 保存按 origin＋核驗帳號隔離的 Blob 草稿及固定待確認批次。資料流與容量／授權限制見 [WEB_FEEDBACK](modules/WEB_FEEDBACK.md)，實測保全見 [交付](../docs/web-feedback/20261009-implementation.md)。
+獨立 web_feedback_store(id,revision,payload) 以 CAS 保存 issues／attachments／batches／handoffs；不加 shared_state 鍵，不變更製程／BOM／IPQC模型。Drizzle 0002納入schema；既有Local使用明確upgrade，空環境沿正常初始化，公開API不建表。本機日常已啟用，遠端未部署。STATE_ARCHIVE 使用 web-feedback/v1/ 原圖與 immutable ZIP，附件記錄 owner／原存取 envelope／SHA-256。瀏覽器 IndexedDB process-web-feedback-v1 保存按 origin＋核驗帳號隔離的 Blob 草稿及固定待確認批次。另以 sessionStorage 的 `<origin>|feedback-v1|<核驗帳號>|board` 保存同分頁清單 UI 偏好（篩選、勾選 ID、目前 ID、scrollTop），不含案件內容／私人備註；只在 fresh list 核驗後套用有效 ID，不能作為權限來源。資料流與容量／授權限制見 [WEB_FEEDBACK](modules/WEB_FEEDBACK.md)，實測保全見 [交付](../docs/web-feedback/20261009-implementation.md)。
 
 ## 2026-10-08 畫布本機 journal
 

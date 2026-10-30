@@ -1,0 +1,248 @@
+{
+  "realData": false,
+  "physicalDevice": false,
+  "cases": [
+    {
+      "name": "clean-close",
+      "status": "PASS",
+      "ms": 2698,
+      "dialogTypes": [],
+      "accepted": false
+    },
+    {
+      "name": "equipment-unapplied-close-cancel",
+      "status": "PASS",
+      "ms": 2324,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "equipment-unapplied-reload-cancel",
+      "status": "PASS",
+      "ms": 10684,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "equipment-unapplied-reload-confirm",
+      "status": "PASS",
+      "ms": 2978,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": true,
+      "unappliedDiscardedOnlyAfterConfirmation": true
+    },
+    {
+      "name": "working-unsaved-close-cancel",
+      "status": "PASS",
+      "ms": 2320,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "working-unsaved-reload-confirm",
+      "status": "PASS",
+      "ms": 2706,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": true,
+      "workingRestored": true,
+      "noImplicitSave": true
+    },
+    {
+      "name": "saved-reload-and-close",
+      "status": "PASS",
+      "ms": 3114,
+      "dialogTypes": [],
+      "accepted": false
+    },
+    {
+      "name": "queued-apply-close-cancel",
+      "status": "PASS",
+      "ms": 2665,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "failed-apply-close-cancel",
+      "status": "PASS",
+      "ms": 2396,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "begin-without-changes-close",
+      "status": "PASS",
+      "ms": 2226,
+      "dialogTypes": [],
+      "accepted": false
+    },
+    {
+      "name": "equipment-unchanged-close",
+      "status": "PASS",
+      "ms": 2378,
+      "dialogTypes": [],
+      "accepted": false
+    },
+    {
+      "name": "equipment-reverted-close",
+      "status": "PASS",
+      "ms": 2445,
+      "dialogTypes": [],
+      "accepted": false
+    },
+    {
+      "name": "equipment-unapplied-close-confirm",
+      "status": "PASS",
+      "ms": 4099,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": true,
+      "noImplicitWrite": true
+    },
+    {
+      "name": "equipment-unapplied-external-navigation-cancel",
+      "status": "PASS",
+      "ms": 2732,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "equipment-applied-unsaved-close-cancel",
+      "status": "PASS",
+      "ms": 2578,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "equipment-photo-unapplied-close-cancel",
+      "status": "PASS",
+      "ms": 2488,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "composing-name-close-cancel",
+      "status": "PASS",
+      "ms": 2665,
+      "dialogTypes": [
+        "beforeunload"
+      ],
+      "accepted": false
+    },
+    {
+      "name": "unapplied-background-freeze-resume",
+      "status": "PASS",
+      "ms": 2684,
+      "inputPreserved": true,
+      "noImplicitWrite": true,
+      "simulation": "Chromium freeze/resume, not physical device termination"
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "testedBaseCommit": "642d4defc8057c5d96e902070e39a6181a1afc17",
+  "sourceSha256": {
+    "public/process/app.js": "a7107173dbfae8060177ede069e63bd4447fa31c68381c41a719fbf72243b166",
+    "public/process/process-equipment.js": "f5aa7aa1285a86c3891f093d2d9a5d6ce00f546b13f18aedae53becc8d669746"
+  },
+  "baseline": {
+    "commit": "642d4defc8057c5d96e902070e39a6181a1afc17",
+    "realData": false,
+    "physicalDevice": false,
+    "cases": [
+      {
+        "name": "clean-close",
+        "status": "PASS",
+        "ms": 2868,
+        "dialogTypes": [],
+        "accepted": false
+      },
+      {
+        "name": "equipment-unapplied-close-cancel",
+        "status": "FAIL",
+        "error": "{\"action\":\"close\",\"dialogs\":[],\"closed\":true}\n\nfalse !== true\n",
+        "ms": 2498
+      },
+      {
+        "name": "equipment-unapplied-reload-cancel",
+        "status": "FAIL",
+        "error": "{\"action\":\"reload\",\"dialogs\":[],\"closed\":false}\n\nfalse !== true\n",
+        "ms": 2731
+      },
+      {
+        "name": "equipment-unapplied-reload-confirm",
+        "status": "FAIL",
+        "error": "{\"action\":\"reload\",\"dialogs\":[],\"closed\":false}\n\nfalse !== true\n",
+        "ms": 2665
+      },
+      {
+        "name": "working-unsaved-close-cancel",
+        "status": "FAIL",
+        "error": "{\"action\":\"close\",\"dialogs\":[],\"closed\":true}\n\nfalse !== true\n",
+        "ms": 2394
+      },
+      {
+        "name": "working-unsaved-reload-confirm",
+        "status": "FAIL",
+        "error": "{\"action\":\"reload\",\"dialogs\":[],\"closed\":false}\n\nfalse !== true\n",
+        "ms": 2630
+      },
+      {
+        "name": "saved-reload-and-close",
+        "status": "PASS",
+        "ms": 3154,
+        "dialogTypes": [],
+        "accepted": false
+      },
+      {
+        "name": "queued-apply-close-cancel",
+        "status": "PASS",
+        "ms": 2294,
+        "dialogTypes": [
+          "beforeunload"
+        ],
+        "accepted": false
+      },
+      {
+        "name": "failed-apply-close-cancel",
+        "status": "PASS",
+        "ms": 2280,
+        "dialogTypes": [
+          "beforeunload"
+        ],
+        "accepted": false
+      },
+      {
+        "name": "unapplied-background-freeze-resume",
+        "status": "PASS",
+        "ms": 2590,
+        "inputPreserved": true,
+        "noImplicitWrite": true,
+        "simulation": "Chromium freeze/resume, not physical device termination"
+      }
+    ],
+    "errors": [],
+    "status": "FAIL"
+  },
+  "limitation": "Headless desktop Chromium native beforeunload and CDP freeze/resume. OS power loss, mobile force-stop and physical-device shutdown are not tested or guaranteed to dispatch beforeunload."
+}

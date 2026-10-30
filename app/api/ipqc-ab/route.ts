@@ -105,16 +105,20 @@ function seedValidate(source: NonNullable<Body['source']>, catalog: AbCatalog, c
 
 export async function GET(request: Request) {
   try {
-    const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
-    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY,'masterDataControl','routineEquipmentControl'],modelKey:KEY,deferHistory:true,deferDependencyHistory:true}), actor = await identity(request,state);
-    if (!actor || !(await can(request,state,'view:data')) && !(await can(request,state,'view:approval')))
-      return reply({ error:'沒有查看 IPQC-AB 權限' },403);
+    const query=new URL(request.url).searchParams,equipmentOnly=query.get('catalog')==='equipment',deferred=query.get('equipment')==='deferred';
+    if(query.has('catalog')&&(query.getAll('catalog').length!==1||!equipmentOnly||[...query.keys()].some(key=>key!=='catalog'))||query.has('equipment')&&(query.getAll('equipment').length!==1||!deferred||[...query.keys()].some(key=>!['equipment','caseMetadata'].includes(key))))return reply({error:'INVALID_READ_QUERY'},400);
+    const caseMetadata=query.get('caseMetadata')==='1';
+    const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
+    const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
+    const state=await readState({keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
+    if(!actor||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);
+    if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});
     const catalog = catalogFromMaster(state.values.masterDataControl);
-    const equipment = equipmentChoices(state.values);
+    const equipment = deferred?undefined:equipmentChoices(state.values);
     const control=parseAbControl(state.values[KEY],state.recordStorage?.models.get(KEY)),history=await can(request,state,'approval.compare');
     for(const [key,scope]of Object.entries(control.scopes))control.scopes[key]=visibleSharedControl(scope as AbSharedScope,history,caseMetadata);
     const moduleControl=(control as AbModuleRoot).moduleDraft;if(moduleControl)(control as AbModuleRoot).moduleDraft=visibleSharedControl(moduleControl,history,caseMetadata);
-    const body={ revision:state.revision, control, catalog, equipment };
+    const body={ revision:state.revision, control, catalog, ...(deferred?{equipmentDeferred:true}:{equipment}) };
     return state.recordStorage&&!caseMetadata?recordJSONResponse(body,env.STATE_ARCHIVE,headers):reply(body);
   } catch (error) {
     console.error('[ipqc-ab] load failed',error);

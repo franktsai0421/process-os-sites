@@ -45,7 +45,7 @@
   let nodeDialog = null, viewDialog = null, formSnapshot = null, addingEquipment = false, newEquipmentForm = null, newEquipmentOwner = null, equipmentReadAttempt = null, transferDialog = null;
   const equipmentRefCache = new Map();
   const equipmentRefReads = new Map();
-  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll,readIntent=0,beginEntryAttempt=null;
+  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null;const sharedPoll=window.createForegroundPoll();let readIntent=0,beginEntryAttempt=null;
   function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
   function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
@@ -293,7 +293,7 @@
     }
   }
 
-  function pollShared(){clearTimeout(sharedPoll);try{if(readBeginRecovery())return;}catch{return;}const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);sharedPoll=setTimeout(async()=>{
+  function pollShared(){const pollScheduleOwner=sharedPoll.capture();try{if(readBeginRecovery()){sharedPoll.cancel();return;}}catch{sharedPoll.cancel();return;}const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>sharedPoll.isCurrent(pollScheduleOwner)&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));sharedPoll.schedule(async()=>{
     if(!owns())return;
     if(!routineTabIsActive())return;
     try{if(!busy&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')){
@@ -303,8 +303,8 @@
         else{if(wasOpen){selectedVersionId=open()?.id||active()?.id;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}render();}
       }
     }}catch(e){if(owns())showEquipmentReadRecovery(e);}
-    finally{if(owns())pollShared();}
-  },4000);}
+    finally{if(owns()&&sharedPoll.isCurrent(pollScheduleOwner))pollShared();}
+  });}
   const unitLabels = { '個': ['個','Cái'], '支': ['支','Cây'], '台': ['台','Máy'], '組': ['組','Bộ'] };
 
   function computeNextPieceMark(assetCode) {
@@ -3284,7 +3284,7 @@
   async function mount(element) {
     equipmentEditRequest++;navigationError=null;
     const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
-    clearTimeout(sharedPoll);
+    sharedPoll.cancel();
     const preserve = controlActor===identity()?.id&&(isDirty() || pendingPhotos.size > 0 || addingEquipment && newEquipmentForm);
     host = element;
     if (preserve) { message = t('本頁仍有未儲存草稿，已保留於工作區；請儲存或送審。', 'Trang này còn bản nháp chưa lưu; đã giữ trong vùng làm việc.'); render(); pollShared(); return; }
@@ -3416,7 +3416,7 @@
 
   let navigationError=null;
   window.RoutineEquipmentUI = {
-    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;clearTimeout(sharedPoll);equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

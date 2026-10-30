@@ -1,13 +1,32 @@
 /* Actual IPQC-AB history entry + real shared client/modal in isolated VM. GET-only memory responses; no SDK/network/browser/data writes. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const ts=require('typescript');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'public/process/ipqc-ab.js'),'utf8'),shared=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8');
 const results=[],at='2026-10-16T09:00:00Z';
 async function check(name,run){await run();results.push({name,status:'PASS'});}
-function actualParts(text){
- const lines=text.split(/\r?\n/),transport=lines.filter(l=>l.includes('function transport(){')),moduleLines=lines.filter(l=>l.includes('function moduleTransport(){')),entry=lines.filter(l=>l.includes("button.id='ab-case-history'"));
- assert.equal(transport.length,1);assert.equal(moduleLines.length,1);assert.equal(entry.length,1);return transport[0]+'\n'+moduleLines[0]+'\n'+entry[0];
+function sourceParts(text){
+ const ast=ts.createSourceFile('actual-ipqcab.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),found={transport:[],moduleTransport:[],entry:[]};
+ function visit(node){
+  if(ts.isFunctionDeclaration(node)&&['transport','moduleTransport'].includes(node.name?.text))found[node.name.text].push(node);
+  if(ts.isIfStatement(node)&&node.expression.getText(ast)==="permitted('approval.compare')"&&node.getText(ast).includes("button.id='ab-case-history'"))found.entry.push(node);
+  ts.forEachChild(node,visit);
+ }
+ visit(ast);
+ for(const [name,nodes]of Object.entries(found))assert.equal(nodes.length,1,'unique complete '+name+' anchor');
+ for(const name of ['transport','moduleTransport']){
+  const node=found[name][0];assert(node.body?.statements.length,'nonempty actual '+name);
+  const last=node.body.statements.at(-1);assert(ts.isReturnStatement(last)&&last.expression?.getText(ast)===(name==='transport'?'sharedClient':'moduleClient'),'complete actual '+name+' return');
+  if(name==='moduleTransport')assert.equal(node.parameters.length,0,'module transport signature');
+  else assert(node.parameters.length===0||node.parameters.length===1&&node.parameters[0].name.getText(ast)==='requestScope'&&node.parameters[0].initializer?.getText(ast)==='key()','known actual transport signature');
+ }
+ const entry=found.entry[0];assert(ts.isBlock(entry.thenStatement),'complete history entry block');
+ assert.equal(entry.thenStatement.statements.at(-1)?.getText(ast),'status.append(button);','complete history entry append');
+ const parts=Object.entries(found).map(([name,[node]])=>({name,start:node.getStart(ast),end:node.end,text:node.getText(ast)}));
+ new vm.Script(parts.map(part=>part.text).join('\n'),{filename:'complete-actual-ipqcab-parts.js'});
+ return parts;
 }
+function actualParts(text){return sourceParts(text).map(part=>part.text).join('\n');}
 function historyView(script,lang,events){
  const helpers=script.split(/\r?\n/).filter(l=>['  const h =','  const vi =','  const t ='].some(prefix=>l.startsWith(prefix)));assert.equal(helpers.length,3);
  const actual=script.match(/  function historyHTML\(\) \{[\s\S]*?\r?\n  \}/)?.[0];assert(actual,'actual source historyHTML');
@@ -55,6 +74,30 @@ async function fixture(script,{whole=true,mayEdit=true,mayHistory=true,restore}=
 }
 (async()=>{
  if(process.argv.length>2){assert.equal(process.argv.length,4);assert.equal(process.argv[2],'--before');const before=fs.readFileSync(path.resolve(process.argv[3]),'utf8');await check('old actual entry reproduces six group cases instead of four module cases',async()=>{const f=await fixture(before);assert.equal(f.overlay.querySelectorAll('[data-case]').length,6);assert(f.requests.every(r=>new URL(r.url).searchParams.get('scope')==='A:G1'));assert(!f.overlay.innerHTML.includes('module-1'));f.close();assert.match(historyView(before,'zh',[{action:'approved',actorName:'Actor',at,comment:'Reason'}]),/<p>approved · Actor/,'old actual source history exposes raw English');});}
+ await check('actual transport/module/history extraction is complete, unique and EOL-safe',async()=>{
+  const lf=source.replace(/\r\n/g,'\n'),crlf=lf.replace(/\n/g,'\r\n');
+  assert.equal(actualParts(crlf).replace(/\r\n/g,'\n'),actualParts(lf));
+  for(const script of [lf,crlf])for(const part of sourceParts(script)){
+   assert.throws(()=>actualParts(script.slice(0,part.start)+script.slice(part.end)),/unique complete/,'missing '+part.name);
+   assert.throws(()=>actualParts(script+'\n'+part.text),/unique complete/,'duplicate '+part.name);
+   if(part.name!=='entry'){
+    const empty=part.text.slice(0,part.text.indexOf('{'))+'{}';
+    assert.throws(()=>actualParts(script.slice(0,part.start)+empty+script.slice(part.end)),/nonempty actual/,'empty '+part.name);
+   }
+  }
+ });
+ await check('actual parameterized transport uses explicit scope and stable same-scope client',async()=>{
+  const f=await fixture(source,{whole:false});
+  const scoped=vm.runInContext("transport('B:G &2')",f.context);
+  assert.equal(vm.runInContext("transport('B:G &2')",f.context),scoped);
+  const before=f.requests.length;await scoped.history();
+  assert.equal(f.requests.length,before+1);
+  const query=new URL(f.requests.at(-1).url).searchParams;
+  assert.equal(query.get('scope'),'B:G &2');assert.equal(query.get('caseMetadata'),'1');assert.equal(query.has('module'),false);
+  const changed=vm.runInContext("transport('A:G1')",f.context);assert.notEqual(changed,scoped);
+  await changed.history();assert.equal(new URL(f.requests.at(-1).url).searchParams.get('scope'),'A:G1');
+  assert(f.requests.every(request=>request.method==='GET'));f.close();
+ });
  await check('actual entry and real client/modal list the four module cases at exact module endpoint',async()=>{const f=await fixture(source);assert.equal(f.overlay.querySelectorAll('[data-case]').length,4);assert(f.requests.every(r=>{const q=new URL(r.url).searchParams;return q.get('module')==='1'&&q.get('caseMetadata')==='1'&&!q.has('scope');}));assert.equal(f.options.editable(),false);assert(!f.overlay.innerHTML.includes('group-1'));await f.openCase();assert.match(f.overlay.innerHTML,/Module Reviewer/);assert.match(f.overlay.innerHTML,/Module decision 1/);assert.equal(f.overlay.querySelectorAll('[data-restore]').length,0);f.close();for(const lang of ['zh','vi']){
  const expected={'initial-import':['匯入初始資料','Nhập dữ liệu ban đầu'],begin:['開始修改','Bắt đầu sửa'],save:['儲存草稿','Lưu bản nháp'],submit:['送出審核','Gửi duyệt'],'submit-test':['送出試用確認','Gửi xác nhận thử nghiệm'],'create-error':['新增錯誤代碼','Thêm mã lỗi'],'create-item':['新增檢查項目','Thêm hạng mục kiểm tra'],'delete-error':['刪除錯誤代碼','Xóa mã lỗi'],'delete-item':['刪除檢查項目','Xóa hạng mục kiểm tra'],approve:['已核准','Đã duyệt'],approved:['已核准','Đã duyệt'],return:['已發回','Đã trả lại'],returned:['已發回','Đã trả lại'],reject:['已發回','Đã trả lại'],withdraw:['已撤回','Đã rút'],withdrawn:['已撤回','Đã rút']};
  const events=[...Object.keys(expected),'future<action>','constructor'].map(action=>({action,actorName:'Actor <safe>&',at,comment:'Reason <safe>& [self-review]'})),html=historyView(source,lang,events),escapedDate=new Date(at).toLocaleString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

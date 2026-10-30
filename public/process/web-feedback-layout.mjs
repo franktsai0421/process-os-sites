@@ -4,15 +4,15 @@ const box=(left,top,width,height)=>({left,top,width,height,right:left+width,bott
 export function feedbackPlacement({viewport,reserved=[],dialogTop,dialogBottom}){
  const x=viewport.left||0,y=viewport.top||0,w=Math.max(0,viewport.width),h=Math.max(0,viewport.height),gap=12;
  const obstacles=reserved.filter(r=>r&&r.right>r.left&&r.bottom>r.top);
- let launcher=box(x+gap,Math.min(y+h-24-46,Number.isFinite(dialogBottom)?dialogBottom-gap-46:Infinity),46,46);
- // Prefer the left side rather than competing with the observed bottom-right editor.
+ let launcher=box(x+w-gap-46,Math.min(y+h-gap-46,Number.isFinite(dialogBottom)?dialogBottom-gap-46:Infinity),46,46);
+ // Keep the requested right corner; move upward only for an observed obstacle.
  for(const obstacle of obstacles)if(overlap(launcher,box(obstacle.left-gap,obstacle.top-gap,obstacle.right-obstacle.left+2*gap,obstacle.bottom-obstacle.top+2*gap)))launcher=box(launcher.left,obstacle.top-gap-46,46,46);
  const launcherVisible=launcher.top>=Math.max(y+gap,Number.isFinite(dialogTop)?dialogTop+gap:y+gap)&&launcher.right<=x+w-gap&&!obstacles.some(r=>overlap(launcher,r));
- const width=Math.max(0,Math.min(260,w-2*gap)),left=x+gap;
+ const width=Math.max(0,Math.min(360,w-2*gap)),left=x+w-gap-width;
  const top=Math.max(y+gap,Number.isFinite(dialogTop)?dialogTop+gap:y+gap);
  let bottom=Math.min(launcher.top-8,Number.isFinite(dialogBottom)?dialogBottom-gap:Infinity);
  for(const obstacle of obstacles)if(left<obstacle.right+gap&&left+width>obstacle.left-gap&&bottom>obstacle.top-gap)bottom=Math.min(bottom,obstacle.top-gap);
- const height=Math.max(0,Math.min(340,bottom-top));
+ const height=Math.max(0,Math.min(540,bottom-top));
  let viewerBottom=y+h-gap;for(const obstacle of obstacles)viewerBottom=Math.min(viewerBottom,obstacle.top-gap);if(Number.isFinite(dialogBottom))viewerBottom=Math.min(viewerBottom,dialogBottom-gap);
  return {launcher,launcherVisible,panel:box(left,Math.max(top,bottom-height),width,height),viewer:box(x+gap,top,Math.max(0,w-2*gap),Math.max(0,viewerBottom-top))};
 }
@@ -51,11 +51,11 @@ export function createFeedbackPositioner({window,document}){
   launcher=nextLauncher;panel=nextPanel;if(disposed||!launcher?.isConnected)return;
   discover();const visual=window.visualViewport,viewport={left:visual?.offsetLeft||0,top:visual?.offsetTop||0,width:visual?.width||window.innerWidth,height:visual?.height||window.innerHeight};
   const measured=platform?rect(platform.button):null;
-  const obstacle=measured?.width>0&&measured?.height>0?measured:box(viewport.left+Math.max(0,viewport.width-200),viewport.top+Math.max(0,viewport.height-84),Math.min(200,viewport.width),Math.min(84,viewport.height));
+  const obstacle=measured?.width>0&&measured?.height>0?measured:null;
   const dialog=panel?.closest('dialog[open]'),header=dialog?.querySelector('[role=tablist]')||dialog?.querySelector('header'),footer=dialog&&[...dialog.querySelectorAll('footer')].find(node=>!node.closest('#wf-panel'));
-  const result=feedbackPlacement({viewport,reserved:[obstacle],dialogTop:header?.getBoundingClientRect().bottom,dialogBottom:footer?.getBoundingClientRect().top});
+  const result=feedbackPlacement({viewport,reserved:obstacle?[obstacle]:[],dialogTop:header?.getBoundingClientRect().bottom,dialogBottom:footer?.getBoundingClientRect().top});
   apply(launcher,result.launcher);launcher.style.visibility=result.launcherVisible?'':'hidden';
-  if(panel&&!panel.hidden){panel.style.width=result.panel.width+'px';panel.style.maxHeight=result.panel.height+'px';apply(panel,result.panel);}
+  if(panel&&!panel.hidden){panel.style.width=result.panel.width+'px';panel.style.maxHeight=result.panel.height+'px';const height=Math.min(result.panel.height,panel.getBoundingClientRect().height||result.panel.height);apply(panel,{...result.panel,top:result.panel.bottom-height});}
   const viewer=document.querySelector('#wf-viewer');if(viewer){viewer.style.width=result.viewer.width+'px';viewer.style.maxHeight=result.viewer.height+'px';apply(viewer,result.viewer);}
  }
  function schedule(){if(disposed||frame!==null)return;frame=window.requestAnimationFrame(()=>{frame=null;update();});}

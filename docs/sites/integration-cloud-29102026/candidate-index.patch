@@ -1,0 +1,30 @@
+--- a/public/process/index.html
++++ b/public/process/index.html
+@@ -69,6 +69,7 @@
+     <script data-process-src="data/line-c-master.js?v=20260903-1510"></script>
+     <script data-process-src="vendor/xlsx.full.min.js?v=20260903-1510"></script>
+     <script data-process-src="editor-line-selection.js?v=20260905-1100"></script>
++    <script data-process-src="user-access-initial-read.js?v=20261029-users-load2"></script>
+     <script data-process-src="version-return-policy.js?v=20260905-1500"></script>
+     <script data-process-src="data-safety.js?v=20260907-2500"></script>
+     <script data-process-src="master-admin-ui.js?v=20261010-review2"></script>
+@@ -80,7 +81,7 @@
+     <script data-process-src="approval-tabs.js?v=20261025-navigation2"></script>
+     <script data-process-src="shared-draft-client.js?v=20261027-scoped-read-pause1"></script>
+     <script data-process-src="master-shared-client.js?v=20261025-navigation2"></script>
+-    <script data-process-src="web-feedback-entry.js?v=20261026-hosted1"></script>
++    <script data-process-src="web-feedback-entry.js?v=20261029-feedback4"></script>
+     <script data-process-src="master-data.js?v=20261029-flowreview1"></script>
+     <script data-process-src="process-equipment.js?v=20261029-flowleave1"></script>
+     <script data-process-src="permission-controls.js?v=20261025-navigation2"></script>
+@@ -119,8 +120,8 @@
+     <script data-process-src="canvas-local.js?v=20261027-save-inspection1"></script>
+     <script data-process-src="process-editor.js?v=20261029-preview2"></script>
+     <link rel="stylesheet" href="interface-layout.css?v=20261014-mobile10">
+-    <link rel="stylesheet" href="user-access.css?v=20261013-permission-ui2">
+-    <script data-process-src="user-access.js?v=20261025-navigation2"></script>
++    <link rel="stylesheet" href="user-access.css?v=20261029-users-load3">
++    <script data-process-src="user-access.js?v=20261029-users-load3"></script>
+     <script data-process-src="navigation-forms.js?v=20261025-navigation2"></script>
+     <script data-process-src="delivery-navigation.js?v=20261027-login-reentry1"></script>
+     <script src="bootstrap.js?v=20261026-feedback1"></script>

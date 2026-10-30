@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import installForegroundPorts from './entry-performance/fixture-ports.cjs';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {canvasDOM} from './login-reentry-dom.mjs';
@@ -16,7 +17,7 @@ function fixture(language='zh-Hant',script=source){
   const {document}=canvasDOM();document.documentElement.lang=language;
   const forbidden=()=>{throw Error('NO_NETWORK_STORAGE_OR_TIMER_ALLOWED');};
   const context={document,console,localStorage:{getItem:forbidden,setItem:forbidden,removeItem:forbidden},fetch:forbidden,setTimeout:forbidden,clearTimeout(){},addEventListener(){}};
-  context.window=context;
+  context.window=context;installForegroundPorts(context);
   const end='})(window);';assert.equal(script.indexOf(end),script.lastIndexOf(end));
   vm.runInNewContext(script.replace(end,'window.__layout={matrixHTML,ruleSummaryHTML,ui};'+end),context);
   const host=document.createElement('section');document.body.append(host);
@@ -88,8 +89,8 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
 });
 check('JS and CSS retain their independently versioned local references',()=>{
   const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
-  const expected={'fqc-master.js':'20261029-fqc-dependencies1','fqc-master.css':'20261028-matrix-rule-layout1'};
-  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+  const expected={'fqc-master.js':'20261030-access-fusion1','fqc-master.css':'20261028-matrix-rule-layout1'};
+  const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
   for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });
 if(process.argv[2]==='--before')check('old actual renderer reproduces substituted marker and legacy mismatch',()=>{

@@ -1,0 +1,76 @@
+// EXACT PRE-FOURTH ORACLE SEGMENT: sharedFields
+const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
+
+// EXACT PRE-FOURTH ORACLE SEGMENT: changes
+  function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
+    for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
+  }return{patches,guards};}
+  async function sharedAction(
+
+// EXACT PRE-FOURTH ORACLE SEGMENT: productReferences
+selectedProducts.map(code => {
+          const product = catalog().products.find(item => item.code === code);
+          return { code, kind: product?.kind || 'unresolved', name: product?.name || '', specification: product?.specification || '' };
+        }),
+        reason, note
+
+// EXACT PRE-FOURTH ORACLE SEGMENT: matrixHTML
+  function matrixHTML(version, category, products, canEdit) {
+    const visibleProducts = products.filter(product => !ui.search || `${product.code} ${product.name}`.toLowerCase().includes(ui.search.toLowerCase()));
+    const items = itemRows(version, category);
+    const vi = isVi();
+    const selectedLabel = vi ? 'Đã chọn cho sản phẩm' : '已納入產品標準';
+    const excludedLabel = vi ? 'Chưa chọn cho sản phẩm' : '未納入產品標準';
+    const disabledLabel = vi ? 'Đã tắt' : '停用';
+    const enabledLabel = vi ? 'Đang dùng' : '啟用中';
+    const legend = `<div class="fqc-matrix-legend" data-i18n-skip="true"><span>✓ ${selectedLabel}</span><span>— ${excludedLabel}</span><span>${vi ? 'Đã tắt: chưa chọn “Kích hoạt tiêu chuẩn này”; lựa chọn sản phẩm được giữ nguyên.' : '停用：未勾選「啟用此標準」，不改變產品選擇。'}</span></div>`;
+    return `${legend}<div class="fqc-matrix-scroll"><table class="fqc-matrix-table"><thead><tr><th class="fqc-matrix-corner"><span class="fqc-matrix-corner-label">${vi ? 'FQC Mã / tên kiểm tra' : 'FQC 檢查編號／名稱'}</span></th>${visibleProducts.map(product => `<th class="fqc-matrix-prod-th" title="${h(`${product.code} ${product.name} ${product.specification || ''}`)}"><div class="matrix-prod-code"><code>${h(product.code)}</code></div><div class="matrix-prod-name" data-i18n-skip="true">${h(product.name)}</div>${product.specification ? `<div class="matrix-prod-spec" data-i18n-skip="true">${h(product.specification)}</div>` : ''}${product.kind === 'semi-finished' ? `<div class="matrix-prod-tag"><span class="semi-tag">${vi ? 'Bán thành phẩm' : '半成品'}</span></div>` : ''}</th>`).join('')}</tr></thead><tbody>${items.map(item => {
+      // Inclusion and item activation are independent; match the edit checkbox's legacy default.
+      const enabled = item.isEnabled !== false;
+      return `<tr><th class="fqc-matrix-item-th"><code class="fqc-matrix-item-code">${h(item.checkNo)}</code><span class="fqc-matrix-item-name" data-i18n-skip="true">${h(item.name)}</span>${enabled ? '' : `<span class="fqc-matrix-item-status" data-i18n-skip="true">${disabledLabel}</span>`}</th>${visibleProducts.map(product => {
+        const included = (item.productCodes || []).includes(product.code);
+        const symbol = included ? '✓' : '—';
+        const label = `${item.checkNo} ${product.code} · ${included ? selectedLabel : excludedLabel} · ${enabled ? enabledLabel : disabledLabel}`;
+        return `<td><button type="button" class="matrix-cell ${included ? 'included' : ''} ${enabled ? '' : 'disabled-item'}" data-matrix-item="${h(item.id)}" data-matrix-product="${h(product.code)}" ${canEdit ? '' : 'disabled'} aria-pressed="${included}" aria-label="${h(label)}" title="${h(label)}">${symbol}</button></td>`;
+      }).join('')}</tr>`;
+    }).join('') || `<tr><td colspan="${visibleProducts.length + 1}">${vi ? 'Chưa có hạng mục kiểm tra' : '尚無檢查項目'}</td></tr>`}</tbody></table></div>`;
+  }
+  function bindEvents(
+
+// EXACT PRE-FOURTH ORACLE SEGMENT: problemsCardHTML
+  function problemsCardHTML(version, kind = 'missing') {
+    const problems = getVersionProblems(version).filter(problem => (problem.type === 'error') === (kind === 'error'));
+    const vi = isVi();
+    const isOpen = ui.problemsOpen;
+    if (!problems.length) return '';
+    return `
+      <details class="master-history fqc-problems-card has-issues" data-fqc-issue-kind="${kind}" ${isOpen ? 'open' : ''} id="${kind === 'error' ? 'fqc-errors-details' : 'fqc-problems-details'}">
+        <summary>⚠️ <b>${kind === 'error' ? (vi ? 'Lỗi' : '報錯') : (vi ? 'Cần bổ sung / xác nhận' : '待補／待確認')} · ${problems.length} ${vi ? 'mục cần xử lý' : '項待處理'}</b></summary>
+        <div class="fqc-problems-banner">
+          <p>${vi ? 'Các mục dưới đây cần xác nhận hoặc xử lý theo hướng dẫn:' : '以下項目需要確認或依說明修正，完成後請儲存草稿：'}</p>
+        </div>
+        <div class="fqc-problems-list">
+          ${problems.map(p => `
+            <div class="fqc-problem-item">
+              <div class="fqc-problem-item-info">
+                <b>${h(p.target)}</b>
+                <p>${h(p.id === 'runtime-error' ? displayDraftError(p.message) : p.message)}</p>
+                ${p.advice ? `<small style="color:#03543f">💡 ${h(p.advice)}</small>` : ''}
+              </div>
+              ${p.action === 'fix' ? `
+                <button type="button" class="fqc-action-fix" data-fix-item="${h(p.itemId)}" data-fix-cat="${h(p.category)}" data-fix-err="${h(p.errorId)}">
+                  ${h(p.actionText)}
+                </button>
+              ` : p.action === 'retry' ? `
+                <button type="button" class="fqc-action-fix" id="fqc-retry-save">
+                  ${h(p.actionText)}
+                </button>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </details>
+    `;
+  }
+
+  function displayName(

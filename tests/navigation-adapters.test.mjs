@@ -29,19 +29,35 @@ for(const tab of ['quality-fqc','quality-iqc','quality-ipqc-ab','quality-ipqc-c'
 void test('cold destination keeps an installed quality tab ahead of an old display URL',()=>{const f=masterTabFixture('AB',{registered:true,selected:'quality-iqc'});f.box.bindData();assert.deepEqual(f.calls,[['quality','quality-iqc']]);assert.equal(f.state.dataTab,'quality-iqc');});
 for(const tab of ['AB','C'])void test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 void test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
-const iqcLoad=part(source('iqc-master.js'),'  async function load(owner) {','  async function post(');
-for(const stage of ['json','permissions'])void test('actual IQC load rejects old delivery after '+stage+' without installing model',async()=>{
- let epoch=1,permissionCalls=0;const json=deferred(),permissions=deferred();
- const box={control:null,revision:null,apiUrl:'/api/iqc',fetch:async()=>({ok:true,json:()=>json.promise}),window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch,platformHeaders:()=>({})}},transport:()=>({permissions:()=>{permissionCalls++;return permissions.promise;}})};
- vm.createContext(box);vm.runInContext(iqcLoad,box);const promise=box.load(),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);
- if(stage==='json')epoch++;
- json.resolve({control:{secret:'source'},revision:1});await new Promise(resolve=>setImmediate(resolve));
- if(stage==='permissions'){assert.equal(permissionCalls,1);epoch++;permissions.resolve({view:true});}
- await rejected;assert.equal(box.control,null);assert.equal(box.revision,null);
+const iqcSource=source('iqc-master.js'),iqcLoad=part(iqcSource,'  async function load(owner) {','  async function post(');
+const iqcAdmission=part(iqcSource,'  const completeSnapshot=','  async function hydrateVersion('),iqcSelected=part(iqcSource,'  const selected =','  const active =');
+assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includes('control?.versions.find'),'actual admission and selection source required');
+// IQC now admits one complete fresh response, not two independent reads.
+// Execute the shipped load body with explicit deferred client closure ports;
+// the full shared transport is exercised by the dedicated IQC race suites.
+function iqcLoadFixture(){
+ let epoch=1;const response=deferred(),events=[],actor={id:'synthetic'},options=[];
+ const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
+  window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch}},
+  transport:()=>({read:(token,opt)=>{assert.equal(token,undefined);assert.equal(opt.requireAcceptedAccess,true);assert.equal(opt.isCurrent(),true);events.push('combined');options.push(opt);return response.promise;}}),
+  denyRead:error=>{box.readDenied=error;}};
+ vm.createContext(box);vm.runInContext(iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
+}
+const iqcFull=()=>({revision:9,permissions:Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true])),control:{schemaVersion:1,versions:[],issues:[],reservedErrorCodes:[],reservedCheckNos:[]}});
+for(const kind of ['delivery','entry-owner'])void test('actual IQC load rejects old '+kind+' without installing model',async()=>{
+ const f=iqcLoadFixture();let current=true;const owner={assert(){if(!current)throw Error('DELIVERY_SUPERSEDED');}},promise=f.box.load(owner),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);
+ assert.deepEqual(f.events,['combined']);assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
+ if(kind==='delivery')f.invalidate();else current=false;assert.equal(f.options[0].isCurrent(),false);f.response.resolve(iqcFull());
+ await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert.deepEqual(f.events,['combined']);
 });
-void test('actual IQC keeps model read then permissions then adoption ordering',async()=>{
- const events=[],box={control:null,revision:null,apiUrl:'/api/iqc',fetch:async()=>{events.push('model');return{ok:true,json:async()=>({control:{workflow:{}},revision:9})};},window:{ProcessSync:{captureDelivery:()=>1,isCurrentDelivery:()=>true,platformHeaders:()=>({})}},transport:()=>({permissions:async()=>{events.push('permissions');assert.equal(box.control,null);}})};
- vm.createContext(box);vm.runInContext(iqcLoad,box);await box.load();assert.deepEqual(events,['model','permissions']);assert.equal(box.revision,9);
+void test('actual IQC waits for one complete combined response before adoption',async()=>{
+ const f=iqcLoadFixture(),promise=f.box.load(),full=iqcFull();assert.deepEqual(f.events,['combined']);
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
+ f.response.resolve(full);await promise;assert.equal(f.box.revision,9);assert.deepEqual(f.box.control,full.control);assert.deepEqual(f.events,['combined']);
+});
+for(const missing of ['control','permissions'])void test('actual IQC combined response missing '+missing+' cannot install model',async()=>{
+ const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/IQC/),full=iqcFull();delete full[missing];f.response.resolve(full);
+ await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
 });
 const accountSource=source('user-access.js');
 const accountRequest=part(accountSource,' async function requestValue(options={}){','\n function expireSession()');
@@ -93,36 +109,43 @@ for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outco
 void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
-  'app.js':'20261027-login-reentry1',
+  'app.js':'20261030-photo-integrated1',
   'approval-tabs.js':'20261025-navigation2',
-  'bom-workspace.js':'20261027-scoped-read-pause1',
-  'bootstrap.js':'20261026-feedback1',
+  'bom-workspace.js':'20261030-flow-poll1',
+  'bootstrap.js':'20261030-access-fusion1',
   'canvas-local.js':'20261027-save-inspection1',
   'delivery-navigation.js':'20261027-login-reentry1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
-  'fqc-master.js':'20261029-fqc-dependencies1',
-  'ipqc-ab.js':'20261029-draft-rights1',
-  'ipqc-c.js':'20261029-explicit-rights2',
-  'iqc-master.js':'20261029-clear-rights1',
-  'master-data.js':'20261029-lines-rights1',
+  'fqc-master.js':'20261030-access-fusion1',
+  'ipqc-ab.js':'20261030-access-fusion1',
+  'ipqc-c.js':'20261030-access-fusion1',
+  'iqc-master.js':'20261030-access-fusion1',
+  'master-data.js':'20261030-access-fusion1',
   'master-shared-client.js':'20261025-navigation2',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261027-scoped-read-pause1',
+  'process-authoring-v3.js':'20261029-panel-local1',
   'quality-review-overview.js':'20261027-readscope-truthful1',
-  'routine-equipment.js':'20261029-draft-rights1',
+  'routine-equipment.js':'20261030-access-fusion1',
   'routine-fqc.js':'20261028-modern-unload1',
-  'shared-draft-client.js':'20261029-restore-right3',
+  'shared-draft-client.js':'20261030-access-fusion1',
   'shared-state.js':'20261026-feedback1',
-  'tooling.js':'20261027-scoped-read-pause1',
+  'tooling.js':'20261030-photo-integrated1',
   'user-access.js':'20261029-fqc-dependencies1',
   'navigation-forms.js':'20261025-navigation2',
-  'process-ipqc.js':'20261027-scoped-read-pause1',
+  'process-ipqc.js':'20261029-begin-foreground1',
   'data-safety-ui.js':'20261027-login-reentry1',
-  'process-equipment.js':'20261026-input-lifecycle1',
-  'process-editor.js':'20261027-c-query1',
+  'process-equipment.js':'20261030-photo-integrated1',
+  'process-editor.js':'20261029-flow1',
+  'master-review.js':'20261029-flowreview1',
+  'process-equipment.css':'20261029-flow1',
+  'photo-viewer.css':'20261029-photo2',
+  'version-workflow.js':'20261030-access-fusion1',
+  'i18n.js':'20261029-photo1',
+  'user-access.css':'20261029-details2',
+  'user-access-initial-read.js':'20261029-users-load2',
  };
- const html=source('index.html'),references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261025-navigation2"));
 });

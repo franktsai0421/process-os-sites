@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto'),{execFileSync}=require('node:child_process');
 const {makeLoader,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
+const {withoutComposedPerformance,assertComposedPerformanceContract}=require('./ipqc-c-composed-performance-source-contract.cjs');
 const {withoutExplicitPermissionReadAlignment,assertPermissionReadSourceContract}=require('./ipqc-c-permissions-source-contract.cjs');
 const route='app/api/ipqc-c/workflow/route.ts',base='dc8c1c2238a6dd89c2707d50e050fe8ae674c9e8';
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT);CREATE TABLE process_revoked_sessions(token_digest TEXT PRIMARY KEY,expires_at INTEGER,revoked_at INTEGER)');
@@ -75,12 +76,14 @@ await check('P7 non-permissions GET preserves data/I/O with exact permission DTO
  const req=request('frank','?permissions=1&caseId=missing&restoreSaveId=missing');policyParity(await run(req),await run(req,true),'frank');
  const denied=request('admin-two','?restoreSaveId=save0'),a=await run(denied),b=await run(denied,true);assert.equal(b.status,200);assert.deepEqual(comparable(a),{status:403,headers:b.headers,body:{error:'FORBIDDEN'}},'ordinary admin cannot inherit restore from edit');assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations('admin-two'));
 });
-await check('P8 exact existing #44 permission/restore spans and historical read-selection delta; all other bytes preserved',async()=>{
+await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
  const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
  const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(committedBytes),'working tree differs beyond CRLF');
- assertPermissionReadSourceContract(committedBytes);
- const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(committedBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
+ assertComposedPerformanceContract(committedBytes);
+ const explicitBytes=withoutComposedPerformance(committedBytes);
+ assertPermissionReadSourceContract(explicitBytes);
+ const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(explicitBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
  const marker=Buffer.from('export async function POST('),a=priorBytes.indexOf(marker),b=candidateBytes.indexOf(marker);assert(a>=0&&b>=0);assert.deepEqual(candidateBytes.subarray(b),priorBytes.subarray(a));
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact existing #44 view/operation/restore permission deltas; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas are pinned, including denied actors and three extra checks for an authorized restore preview']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,baseline,reduced,grownBaseline,baselineCommit:base,baselineHashes:baselineHashes(),network:false,handlerWrites:0,limits:['Synthetic storage work counts, not live latency','Exact existing #44 view/operation/restore permission deltas; composed Save/performance spans reverse to native #44 before historical proof; other response data and read boundaries retained','Unrelated records failure isolation deliberately differs; required records remain fail closed','No authority cache; exact per-actor identity-check deltas are pinned, including denied actors and three extra checks for an authorized restore preview']}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
