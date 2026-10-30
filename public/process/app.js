@@ -3245,7 +3245,7 @@ function bindDataInner(tab) {
       },
     );
     const exportButton = document.querySelector('#export-process-master');
-    if (exportButton) exportButton.onclick = exportProcessMasterData;
+    if (exportButton) exportButton.onclick = window.ProcessSpreadsheet?.wrap('process-export',exportProcessMasterData,()=>selectedProcessMasterVersion()?.id)||exportProcessMasterData;
     const importButton = document.querySelector('#import-process-master'),
       importFile = document.querySelector('#process-master-import-file');
     if (importButton)
@@ -3269,6 +3269,7 @@ function bindDataInner(tab) {
         importFile.value = '';
         await importProcessMasterData(file);
       };
+    if(importFile&&window.ProcessSpreadsheet)importFile.onchange=window.ProcessSpreadsheet.wrap('process-import',importFile.onchange,()=>selectedProcessMasterVersion()?.id);
     document
       .querySelectorAll('[data-delete-template]')
       .forEach(

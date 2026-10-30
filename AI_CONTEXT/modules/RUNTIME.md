@@ -1,3 +1,13 @@
+2026-10-30 製程續修：共用導航新增單一待決定離頁協調，製程 adapter 持有表單／canvas lease 到導航 commit，Save／Discard／Stay 各自核對後端與 owner。busy 完成可恢復決策，history 先回來源再執行目前目標，最新取消不復活舊導航。bootstrap 在原 auth gate 後載入 owned ledger；未知 inverse 的最小 session marker 使 reload 只查原收據，不重送。原生 close 事件延後時同步解除已關表單的 ownership，避免 Discard 成功卻卡在來源。這些機制只完成製程接線，未代其他模組實作草稿 adapter。來源、驗收與速度見[製程續修](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)；下方前輪的「未接 UI」是歷史狀態。
+
+2026-10-30 最後收尾：authoring同範圍readiness合併同次load的中間paint，已採用未paint狀態保留到refresh/reset，owner／delivery／互動guard不省略；master-shared僅Apply需next深拷貝，Save before仍在Begin/flush前擷取；master正式基準比對重用既有sameDraftValue。未接UI的owned-revert只接受連續確定變更且涵蓋目前revision的本人收據，不能證明外部修改時拒絕。依完整可信帳本的限制仍在。詳見[最終實測與限制](../../docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)。
+
+2026-10-30 第三輪候選：公開政策模組並行載入，導航模組只在原授權 gate 後預載。XLSX 改為操作時載入；單飛至原 handler Promise 結束，owner／epoch／delivery／選取／檔案與 record 身分防止舊操作復活，不覆寫業務 disabled 或自動重送寫入。master-review 的版本索引、清單與日期 formatter 限單 render；PROCESS POST 使用既有 serializeModel 保留別名，引用 context 不重複字串化未使用 master。權限、CAS、歷史與內容檢查不變。詳見[第三輪報告](../../docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS_ROUND3.md)。
+
+2026-10-30 共用入口候選：build-only 合併 31 個樣式為 1 個、48 個門後腳本為 5 個；全域宣告檔保持獨立，private seeds 不進 bundle，內容 hash 更新 URL。bootstrap 要求 bundle 尾端完成記號，shared-state 在 stylesheet 前啟動，fresh authorization 與頁面 readiness 保留。原始 assets 仍逐檔維護；新 build outputs 仍受 auth boundary audit。前後數據、照片 Save／fixture 讀回區分與驗收限制見[500ms 報告](../../docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS.md)。
+
+2026-10-30：navigation coordinator 在 pending 去重之前檢查離頁狀態；新意圖被拒絕時取消尚未 commit 的舊交易，已 commit 的 readiness 不取消。詳見[本輪證據](../../docs/acceptance/performance-draft-20261030/README.md)。
+
 2026-10-29 users-permissions candidate: [clear rights implementation and evidence](../../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md). Four common columns, detailed effective rights/source and explicit restore permission; isolated verification only, not deployed.
 
 ## 2026-10-29 使用者與權限 CLOUD（隔離候選，未發布）

@@ -66,7 +66,12 @@ async function derivedValue(key,change,fn){const before=snap(),s=stored(),origin
  console.log(JSON.stringify({checkpoint:'BASELINE_DUPLICATE_VALIDATION_CONFIRMED',validation:baseline.validation,metrics:baseline.metrics,instrumentedNodeWallMs:baseline.instrumentedNodeWallMs}));
  const candidate=source,candidateCounters={validations:[],bomFactories:0,bomLookups:0,bomKeyComparisons:0},candidateLoad=require('../tests/helpers/authoring-contentissues-loader.cjs')(candidate,env,candidateCounters),targetApi=candidateLoad('app/api/process-authoring/workflow/route.ts');assert.equal(candidateCounters.routeBinding.overrideUsed,false);assert.equal(candidateCounters.routeBinding.sha256,hash(fs.readFileSync(path.join(candidate,routeKey))));
  async function pair(name,query='contentIssues=1',who='editor',expected=200,before){before ||= await measure(name+' baseline',api,counters,query,who,expected);const after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);assert.deepEqual(after.body,before.body,name+' DTO');assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);pairs.push({name,before:results.indexOf(before),after:results.indexOf(after),validationBefore:before.validation.validations.length,validationAfter:after.validation.validations.length});return{before,after};}
- const first=await pair('normal saved same content','contentIssues=1','editor',200,baseline);assert.equal(first.after.validation.validations.length,1);assert.equal(first.before.validation.bomKeyComparisons,first.after.validation.bomKeyComparisons*2);
+ const first=await pair('normal saved same content','contentIssues=1','editor',200,baseline);assert.equal(first.after.validation.validations.length,1);
+ // Both route versions use the current adapter's request-local BOM reader.
+ // Route validation still drops 2→1; BOM parsing/lookup is already reused by
+ // the shared context in both sides and must not be credited to this route.
+ for(const side of [first.before,first.after]){assert.equal(side.validation.bomFactories,1);assert.equal(side.validation.bomLookups,24);}
+ assert.equal(first.before.validation.bomKeyComparisons,first.after.validation.bomKeyComparisons);
  await move(41);const distinct=await pair('working changed after Save');assert.equal(distinct.after.validation.validations.length,2);
  await command('save');await command('submit');const pendingId=flow.pendingId;const pending=await pair('pending review fixed issues');assert.equal(pending.after.body.review.fixed,true);assert.equal(pending.after.validation.validations.length,1);
  await pair('explicit pending content case','contentIssues=1&contentCaseId='+pendingId);

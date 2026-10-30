@@ -8,8 +8,10 @@ void (async () => {
   const stillInitial=()=>initialOwner==null||window.ProcessSync?.isCurrentDelivery?.(initialOwner)!==false;
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
-    window.ProcessAccessPolicy=await import('./access-policy.mjs?v=20261029-fqc-dependencies1');
-    window.ProcessDeliveryPurpose=await import('./delivery-purpose.mjs?v=20261026-feedback1');
+    [window.ProcessAccessPolicy,window.ProcessDeliveryPurpose]=await Promise.all([
+      import('./access-policy.mjs?v=20261029-fqc-dependencies1'),
+      import('./delivery-purpose.mjs?v=20261026-feedback1'),
+    ]);
     await window.ProcessSync.ready;
     if (window.ProcessSync.importPending === true) {
       // The data gate runs before application identity. Do not claim a verified
@@ -52,6 +54,9 @@ void (async () => {
       if(/(?:^|\/)data\/(imported-data|line-process-data|line-c-master)\.js(?:\?|$)/.test(item.dataset.processSrc)){item.remove();return false;}
       return true;
     });
+    // The local ownership ledger contains no business cache. Load only after
+    // the authenticated data gate, concurrently with the classic-script fetches.
+    const ownedDraftModule=import('./owned-draft-ledger.mjs?v=20261030-platform5');
     // Wait for the gate before preloading: preload alone would request private
     // resources even if their later script execution were stopped.
     for (const item of scripts) {
@@ -61,12 +66,22 @@ void (async () => {
       preload.href = item.dataset.processSrc;
       document.head.append(preload);
     }
+    const navigationPreload=document.createElement('link');
+    navigationPreload.rel='modulepreload';
+    navigationPreload.href='./navigation-lifecycle.mjs?v=20261030-departure1';
+    document.head.append(navigationPreload);
     document.documentElement.dataset.processSharedReadyMs = Math.round(performance.now());
+    window.ProcessOwnedDraft=await ownedDraftModule;
     for (const item of scripts) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = item.dataset.processSrc;
-        script.onload = resolve;
+        script.onload = () => {
+          // A grouped classic script may stop on a runtime exception. Its tail
+          // receipt is required; missing registrations never mean "ready".
+          if(item.dataset.processBundle&&window.ProcessRuntimeBundles?.[item.dataset.processBundle]!==true){reject(Error('BOOTSTRAP_BUNDLE_INCOMPLETE'));return;}
+          resolve();
+        };
         script.onerror = reject;
         item.replaceWith(script);
       });

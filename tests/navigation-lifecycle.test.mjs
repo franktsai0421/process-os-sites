@@ -1,7 +1,31 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createNavigationCoordinator,navigationKey} from '../public/process/navigation-lifecycle.mjs';
 const turn=()=>new Promise(r=>setImmediate(r));
+void test('a blocked later intent cancels an uncommitted older navigation even after edits become clean',async()=>{
+ const f=fixture(),old=f.coordinator.navigate({view:'editor'});
+ f.allow(false);
+ assert.equal((await f.coordinator.navigate({view:'player'})).status,'blocked');
+ assert.equal(f.reads[0].c.signal.aborted,true);
+ assert.equal(f.coordinator.pending(),false);
+ f.allow(true);f.reads[0].resolve({});
+ assert.equal((await old).status,'superseded');
+ assert.equal(f.coordinator.current().view,'dashboard');
+ assert.equal(f.events.some(e=>e[0]==='commit'),false);
+});
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
+void test('blocked duplicate intent does not reuse an older pending destination',async()=>{
+ const f=fixture(),target={view:'editor'},old=f.coordinator.navigate(target);
+ f.allow(false);assert.equal((await f.coordinator.navigate(target)).status,'blocked');
+ f.allow(true);f.reads[0].resolve({});assert.equal((await old).status,'superseded');
+ assert.equal(f.reads.length,1);assert.equal(f.coordinator.current().view,'dashboard');
+});
+void test('blocked departure preserves readiness of an already committed page',async()=>{
+ const f=fixture(),ready=deferred();f.ready(()=>ready.promise);
+ const old=f.coordinator.navigate({view:'editor'});f.reads[0].resolve({});await turn();
+ f.allow(false);assert.equal((await f.coordinator.navigate({view:'player'})).status,'blocked');
+ assert.equal(f.reads[0].c.signal.aborted,false);
+ ready.resolve();assert.equal((await old).status,'ready');assert.equal(f.coordinator.current().view,'editor');
+});
 function fixture(){const reads=[],events=[];let allowed=true,owner={id:'actor',epoch:1},ready=async()=>{};const initial={view:'dashboard',system:'process'};
  const coordinator=createNavigationCoordinator({initial,canLeave:()=>allowed,owner:()=>owner,pending:t=>events.push(['pending',t?.view||null]),prepare:(target,c)=>{const q=deferred();reads.push({...q,target,c});return q.promise;},validate:p=>{if(p.invalid)throw Error('INVALID_PROJECTION');},commit:(p,t,c,o)=>{events.push(['commit',t.view,o.history]);return t;},ready:(t,c)=>ready(t,c),complete:t=>events.push(['ready',t.view]),failure:(e,s)=>events.push(['error',e.message,s.committed])});return{coordinator,reads,events,allow:v=>allowed=v,owner:v=>owner=v,ready:v=>ready=v};}
 void test('keeps current source until preparation, then commit precedes true readiness',async()=>{const f=fixture(),q=deferred();f.ready(()=>q.promise);const done=f.coordinator.navigate({view:'editor'},{history:'push'});assert.equal(f.coordinator.current().view,'dashboard');assert(!f.events.some(e=>e[0]==='commit'));f.reads[0].resolve({});await turn();assert.equal(f.coordinator.current().view,'editor');assert(!f.events.some(e=>e[0]==='ready'));q.resolve();assert.equal((await done).status,'ready');});

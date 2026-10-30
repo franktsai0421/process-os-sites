@@ -1,5 +1,5 @@
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
-import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {removedMasterStages,stageReferences} from './master-stage-references';
 import {assertStageTemplateAvailable} from './master-process-lock';
@@ -28,6 +28,13 @@ export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot
 }
 export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Library>{
  let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false;
+ const serializeMaster=(control:Library)=>{const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
+   root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
+    snapshot:!v.id.startsWith('shared-')&&!cases.has(v.id)&&legacy.has(v.id)?legacy.get(v.id)!.snapshot:v.snapshot}))];
+   if(control.activeVersionId)root.active[scope]=root.versions.find(v=>v.id===control.activeVersionId)!.snapshot;
+   root.workflowScopes={...root.workflowScopes,[scope]:control.workflow!};return root;
+ };
+
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
@@ -35,17 +42,16 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
    // reference; deep-copying every historical version here multiplies heap use.
    const versions=root.versions.filter(v=>v.scope===scope);legacy=new Map(versions.map(v=>[v.id,v]));
-   const matchingActive=(v:Version)=>v.status==='approved'&&stableDraftJSON(v.snapshot)===stableDraftJSON(root.active[scope]);
+   const matchingActive=(v:Version)=>v.status==='approved'&&sameDraftValue(v.snapshot,root.active[scope]);
    const active=versions.find(v=>v.id===root.workflowScopes?.[scope]?.active.id&&matchingActive(v))||versions.find(matchingActive);
    if(!active)throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
    return{activeVersionId:active.id,versions:versions.map(v=>({...v,snapshot:v.id===active.id||['draft','pending'].includes(v.status)?normalizeMasterSnapshot(v.snapshot,scope):v.snapshot})),workflow:root.workflowScopes?.[scope]};
   },
-  serialize(control){const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
-   root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
-    snapshot:!v.id.startsWith('shared-')&&!cases.has(v.id)&&legacy.has(v.id)?legacy.get(v.id)!.snapshot:v.snapshot}))];
-   if(control.activeVersionId)root.active[scope]=root.versions.find(v=>v.id===control.activeVersionId)!.snapshot;
-   root.workflowScopes={...root.workflowScopes,[scope]:control.workflow!};return JSON.stringify(root);
-  },
+  serialize(control){return JSON.stringify(serializeMaster(control));},
+  // PROCESS already owns an authorized request-local model with its existing
+  // deferred history references. Keep body aliases for the encoder, avoiding
+  // expansion of photos into JSON and immediately parsing independent copies.
+  ...(scope==='PROCESS'?{serializeModel:serializeMaster}:{}),
   projectValues():Record<string,string>{return scope==='PROCESS'||linkedActivated?{processMasterData:JSON.stringify(root.active.PROCESS)}:{};},
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
   requiresDelete(control,command){
@@ -56,7 +62,9 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      Array.isArray(row.stages)&&row.stages.some(stage=>!Array.isArray(p.value)||!p.value.includes(stage))));
   },
   context(control,state,base){
-   values=state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values;
+   // PROCESS reference checks consume authoring/published/legacy keys only; they
+   // never read masterDataControl. AB/C retain their materialized topology view.
+   values=scope!=='PROCESS'&&state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values;
    const master=root;
    const stages=new Set(['AB','C'].flatMap(s=>rows(master.active[s]?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));
    return{...base,activeId:control.activeVersionId,

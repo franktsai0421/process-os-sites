@@ -1,3 +1,13 @@
+2026-10-30 製程平台續修：Begin 不再等待非必要 advisory；同請求重用 authoring BOM／master、IPQC 錯誤索引，AB 標準明細按展開建立 DOM，審核提示局部更新保留操作按鈕；方塊 Apply 減少複製並增加離頁 ownership／lease 保護。製程三選項離頁依確定收據保存或本人撤銷；未知撤銷跨 reload 只查原收據，不重送。未發布，其他模組仍需各自接入及驗收。完整實測與限制見[本輪報告](../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。
+
+2026-10-30 最後效能收尾：減少editor冷載入重畫、非Apply命令無用草稿深拷貝、正式基準canonical JSON；修正未接線本人撤銷planner的ABA漏判並澄清舊整份文稿規則。完整Worker前後與同程式對照、流程細項及未完成三選項見[最終交接](../docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)。無schema／依賴／真資料／發布；效能波動不冒稱已全部改善。
+
+2026-10-30 第三輪效能：Excel 改為操作時載入並保留選檔／所有權與重試安全；審核清單消除重複掃描及日期格式器建立，PROCESS 重用請求內模型序列化。510 筆入口比較、逐項限制及 dot 交接見[第三輪報告](../docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS_ROUND3.md)。無遷移／真資料／發布；並非所有操作已達 500ms。
+
+2026-10-30：針對超過 500ms 的入口加入有序樣式／腳本建置合併與完整執行檢查，保留身分／資料 gate；510 筆五輪前後量測及瀏覽器回歸見[報告](../docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS.md)。多數項目仍未達 500ms，未發布。
+
+2026-10-30：修復被阻擋的新導航未取消舊 prepare、稍後可能切到過期目標的競態；詳見[本輪交接](../docs/acceptance/performance-draft-20261030/README.md)。全站三選項與效能任務尚未完成。
+
 2026-10-29 最後版面複核：修正詳細權限展開被壓在單欄，展開使用全矩陣寬度；桌面／390px compiled頁及17組UI重測通過，最新五次速度與未達100ms目標見下方交接。程式33a1fd0，未發布。
 
 ## 2026-10-29 清楚權限設定與草稿權限落差修復（未發布）

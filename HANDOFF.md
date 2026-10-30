@@ -1,3 +1,15 @@
+2026-10-30 公開來源分支交接：[dot 最新交接](docs/acceptance/performance-draft-20261030/DOT_GITHUB_HANDOFF.md)。依使用者新授權，僅將本任務必要程式、測試與文字報告提交至 `handoff/sitewide-performance-drafts-20261030`；保留原基準，不合併 main／#51／#52、不建立 PR 或部署。舊文「未 push」是各驗收時點紀錄，遠端交付以此次 Git HEAD 核對為準。
+
+2026-10-30 製程平台續修：最新狀態與完整交接以[本輪報告](docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)為準；[規則與剩餘建議](docs/acceptance/performance-draft-20261030/ROUND5_RULES_AND_REMAINING.md)、[獨立審查](docs/acceptance/performance-draft-20261030/ROUND5_INDEPENDENT_REVIEW.md)。接續原未提交工作，新增製程 Begin／Apply／Save 與 IPQC 讀取優化、製程三選項離頁及撤銷結果唯讀恢復。其餘模組不能沿用製程驗收。交 dot 統一上傳與整合，未 push／PR／merge／發布。下方各輪為保留的歷史交接，其「三選項未接入」是當輪狀態。
+
+2026-10-30 最後收尾：[讀取／寫入／載入與矛盾交接](docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)、[規則與未完成清單](docs/acceptance/performance-draft-20261030/FINAL_CONTRADICTIONS.md)。減少畫布／草稿／基準比對重複工作，補本人撤銷ABA保守拒絕；完整Worker測量與同程式對照顯示明顯波動，不宣稱全站穩定500ms。三選項UI仍未接入；交dot統一整合，未發布。
+
+2026-10-30 最新續作：[500ms 第三輪實測與完整交接](docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS_ROUND3.md)。本輪加入 Excel 按需載入、審核 render／PROCESS 序列化優化；入口 39／51 項中位 ≤500ms，仍有超標與回退。未發布，原三選項 UI 待完成。
+
+2026-10-30 續作：[500ms 入口優化、五輪前後量測與 dot 交接](docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS.md)。共用樣式／腳本建置合併已驗證；未發布，三選項離頁仍待完成。
+
+本輪進行中：[20261030 導航修復與待完成項目](docs/acceptance/performance-draft-20261030/README.md)。
+
 # 使用者權限 CLOUD 29102026 — 已修正，未部署
 
 最新：[清楚權限修復／驗收交接](docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)、[設定→頁面→API 對照](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。使用者確認方案後完成簡化矩陣、明確依賴、獨立還原、5 個品質模組單獨保存／送審／撤回、線別範圍說明及發送查看者拒寫。基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`；完整編譯瀏覽器版本 `4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6`；最終 UI build `33a1fd04a2abc9aeb2e2dd0477872f0ef2174223`（展開排列補修、完整頁面及五次測速補驗）；最終相依驗收分支 `cloud/users-permissions-layout-29102026`。各模組分支分開交接，不整檔覆蓋其他任務。

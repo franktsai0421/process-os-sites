@@ -109,22 +109,23 @@ for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outco
 void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
-  'app.js':'20261030-photo-integrated1',
+  'editor-line-selection.js':'20261030-platform5',
+  'app.js':'20261030-xlsx-lazy1',
   'approval-tabs.js':'20261025-navigation2',
-  'bom-workspace.js':'20261030-flow-poll1',
-  'bootstrap.js':'20261030-access-fusion1',
-  'canvas-local.js':'20261027-save-inspection1',
-  'delivery-navigation.js':'20261027-login-reentry1',
+  'bom-workspace.js':'20261030-xlsx-lazy1',
+  'bootstrap.js':'20261030-platform5',
+  'canvas-local.js':'20261030-platform5',
+  'delivery-navigation.js':'20261030-departure1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
   'fqc-master.js':'20261030-access-fusion1',
   'ipqc-ab.js':'20261030-access-fusion1',
   'ipqc-c.js':'20261030-access-fusion1',
   'iqc-master.js':'20261030-access-fusion1',
-  'master-data.js':'20261030-access-fusion1',
-  'master-shared-client.js':'20261025-navigation2',
+  'master-data.js':'20261030-xlsx-lazy1',
+  'master-shared-client.js':'20261030-clone1',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261029-panel-local1',
+  'process-authoring-v3.js':'20261030-platform5',
   'quality-review-overview.js':'20261027-readscope-truthful1',
   'routine-equipment.js':'20261030-access-fusion1',
   'routine-fqc.js':'20261028-modern-unload1',
@@ -133,11 +134,11 @@ void test('changed persistent-navigation executable references have coherent new
   'tooling.js':'20261030-photo-integrated1',
   'user-access.js':'20261029-fqc-dependencies1',
   'navigation-forms.js':'20261025-navigation2',
-  'process-ipqc.js':'20261029-begin-foreground1',
+  'process-ipqc.js':'20261030-platform5',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261030-photo-integrated1',
-  'process-editor.js':'20261029-flow1',
-  'master-review.js':'20261029-flowreview1',
+  'process-editor.js':'20261030-platform5',
+  'master-review.js':'20261030-review-render1',
   'process-equipment.css':'20261029-flow1',
   'photo-viewer.css':'20261029-photo2',
   'version-workflow.js':'20261030-access-fusion1',
@@ -147,5 +148,5 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261025-navigation2"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261030-departure1"));
 });

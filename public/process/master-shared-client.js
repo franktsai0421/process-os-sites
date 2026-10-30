@@ -52,7 +52,9 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);
       try{const c=client(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
         if(action==='begin'){const result=await c.begin();adopt(scope,result);return result;}
-        const before=copy(bases.get(scope)||draft(scope)?.snapshot||{}),next=copy(draft(scope)?.snapshot||before),generation=generations.get(scope);
+        // Save may open a form while auto-Begin waits; retain its original base
+        // now. Only Apply needs a second editable snapshot for identify/diff.
+        const before=action==='apply'||action==='save'?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);
         if(!flow(scope)){adopt(scope,await c.begin());}
         if(action==='apply'){identify(next,before);detail=diff(before,next);if(!detail.patches.length)return null;
           // A group route update includes every inheriting member. Guard membership

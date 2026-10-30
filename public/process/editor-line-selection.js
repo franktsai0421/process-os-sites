@@ -15,15 +15,27 @@ function changeEditorSelection(line,category){
   if(!editorLines().some(item=>item.code===line))return;
   const categories=editorCategories(line),nextCategory=categories.includes(category)?category:categories[0]||'';
   if(line===state.editorLine&&nextCategory===state.category)return;
-  editorRouteSelections.set(editorKey(),{versionId:state.editorVersionId,operation:state.selectedOperation});
-  state.editorLine=line;state.category=nextCategory;
-  const previous=editorRouteSelections.get(editorKey());
-  state.editorVersionId=previous?.versionId||null;state.selectedOperation=previous?.operation||null;
-  state.addingStage=null;state.editorSubmissionVersionId=null;state.editorSubmissionErrors=[];
-  state.productCode=data.products.find(p=>p.category===state.category&&routeFor(p.code)?.line===line)?.code||'';
-  if(state.productCode)syncProductRoute();
-  if(editorSelectionReady())ensureCategoryEditor();
-  render();
+  const run=()=>{
+    const currentCategories=editorCategories(line);
+    if(!editorLines().some(item=>item.code===line)||(nextCategory?!currentCategories.includes(nextCategory):currentCategories.length>0))throw Error('EDITOR_SELECTION_CHANGED');
+    editorRouteSelections.set(editorKey(),{versionId:state.editorVersionId,operation:state.selectedOperation});
+    state.editorLine=line;state.category=nextCategory;
+    const previous=editorRouteSelections.get(editorKey());
+    state.editorVersionId=previous?.versionId||null;state.selectedOperation=previous?.operation||null;
+    state.addingStage=null;state.editorSubmissionVersionId=null;state.editorSubmissionErrors=[];
+    state.productCode=data.products.find(p=>p.category===state.category&&routeFor(p.code)?.line===line)?.code||'';
+    if(state.productCode)syncProductRoute();
+    if(editorSelectionReady())ensureCategoryEditor();
+    render();
+  };
+  if(window.ProcessDeliveryNavigation?.guardAction){
+    // Native select already changed its visible value. Keep the current source
+    // selected until the one guarded intent actually runs; Stay does not redraw.
+    const lineSelect=document.querySelector('#editor-line-select'),categorySelect=document.querySelector('#category-select');
+    if(lineSelect)lineSelect.value=state.editorLine;if(categorySelect)categorySelect.value=state.category;
+    return window.ProcessDeliveryNavigation.guardAction({key:'editor-selection:'+JSON.stringify([line,nextCategory]),label:line+' / '+nextCategory,run});
+  }
+  return run();
 }
 function editorSelectionPath(stageCount=0,operationCount=0){
   const allowed=editorLines(),categories=editorCategories(),vi=document.documentElement.lang==='vi',h=escapeHtml;

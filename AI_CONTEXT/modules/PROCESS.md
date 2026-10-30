@@ -1,3 +1,15 @@
+## 2026-10-30 製程讀寫與離頁續修（隔離候選，未發布）
+
+審核頁的 advisory 狀態維持固定節點，以 textContent／hidden 更新；只變檢查提示時不替換查看／審核按鈕，真實案件、權限或錯誤變動仍完整更新。必要 fresh state、案件快照與審核檢查不變。
+
+Begin 在後端確認與必要權限就緒後開放操作，待補內容檢查繼續顯示自己的狀態；Submit 仍以最後成功 Save 快照及當下必要檢查為準。同次 authoring context 重用 BOM／master 解析與深比較；方塊 Apply 避免複製一次已私有化的工作區，晚到回覆不得覆蓋其他登入／工作區。
+
+製程編輯台接入三選項離頁。Save 依序套用最新表單、同步畫布、建立整平台快照，確認收據和內容一致才導航；期間凍結當前編輯。Discard 只用本分頁確定收據鏈撤銷本人尚未 Save 的修改，保留進頁前共享內容；不以整份 Save 覆蓋他人工作。未知、外部交錯、ABA、無法安全逆轉的刪除維持阻擋與明確說明。Stay 取消待執行導航並保留當前輸入。選線、左導航、系統切換及瀏覽器歷史共用單一待決定目標；refresh／close 使用原生提示。
+
+owned-draft-ledger 的完整帳本限記憶體；sessionStorage 只保留尚未確認撤銷的最小操作識別。重新載入只查原收據與 fresh read，絕不重送逆操作；收據確認但完整內容對照已不存在時要求核對後明確 Save。確認離開後不保證還原未套用的記憶體表單。其他模組未因此自動完成三選項接入。
+
+IPQC-AB/C 項目選取保留 fresh 核准來源與唯一占用規則；請求內重用錯誤索引及已驗證 master。AB 收合的標準明細於展開時建立 DOM，展開文字及圖片完成另計；C 查詢語意不變。實際前後速度、驗收、剩餘限制與完整差異見[本輪報告](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。無資料模型、遷移或依賴變更。
+
 2026-10-29 dispatch permissions candidate: dispatchBoard POST now requires dispatch.view+dispatch.edit; readonly selectors/button and actual publish handler use the same cells. Production validation and shared-state CAS/flush remain unchanged. Isolated validation only; no deployment.
 
 ## 2026-10-29 第二輪：單次 panel dirty 計算重用

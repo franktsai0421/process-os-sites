@@ -653,10 +653,10 @@
     });
     document
       .querySelector('#master-import-file')
-      ?.addEventListener('change', importExcel);
+      ?.addEventListener('change', window.ProcessSpreadsheet?.wrap('master-import',importExcel,()=>draft()?.id)||importExcel);
     document
       .querySelector('#master-export')
-      ?.addEventListener('click', exportExcel);
+      ?.addEventListener('click', window.ProcessSpreadsheet?.wrap('master-export',exportExcel,()=>draft()?.id)||exportExcel);
     bindMasterRows();
   };
   function bindMasterRows() {
