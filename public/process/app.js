@@ -1099,7 +1099,7 @@ function bindLightbox() {
           dialog.id = 'media-lightbox';
           dialog.className = 'media-lightbox';
           dialog.innerHTML =
-            '<button type="button" class="media-lightbox-close" aria-label="關閉大圖">×</button><button type="button" class="media-lightbox-nav previous" aria-label="上一個媒體">‹</button><figure><img alt="照片放大檢視"><video controls playsinline></video><figcaption></figcaption></figure><button type="button" class="media-lightbox-nav next" aria-label="下一個媒體">›</button>';
+            '<button type="button" class="media-lightbox-close" aria-label="關閉大圖">×</button><button type="button" class="media-lightbox-nav previous" aria-label="上一個媒體">‹</button><button type="button" class="media-lightbox-zoom" aria-pressed="false"></button><figure><div class="media-lightbox-viewport" tabindex="0"><img alt="照片放大檢視"><video controls playsinline></video></div><figcaption></figcaption></figure><button type="button" class="media-lightbox-nav next" aria-label="下一個媒體">›</button>';
           document.body.appendChild(dialog);
           dialog.querySelector('.media-lightbox-close').onclick = () =>
             dialog.close();
@@ -1108,6 +1108,17 @@ function bindLightbox() {
           };
           dialog.addEventListener('cancel', () => dialog.close());
         }
+        const viewport = dialog.querySelector('.media-lightbox-viewport'),
+          zoomButton = dialog.querySelector('.media-lightbox-zoom'),
+          viewerText = (zh, vi) => document.documentElement.lang === 'vi' ? vi : zh,
+          setZoom = (expanded) => {
+            viewport.classList.toggle('is-expanded', expanded);
+            viewport.scrollTo(0, 0);
+            zoomButton.setAttribute('aria-pressed', String(expanded));
+            zoomButton.textContent = expanded ? viewerText('適合視窗', 'Vừa cửa sổ') : viewerText('放大', 'Phóng to');
+          };
+        viewport.setAttribute('aria-label', viewerText('照片檢視區，可捲動查看放大照片', 'Vùng ảnh, có thể cuộn khi phóng to'));
+        zoomButton.onclick = () => setZoom(zoomButton.getAttribute('aria-pressed') !== 'true');
         const group = [
             ...document.querySelectorAll(
               `[data-lightbox-group="${CSS.escape(button.dataset.lightboxGroup || 'default')}"]`,
@@ -1120,6 +1131,8 @@ function bindLightbox() {
             const isVideo = current.dataset.lightboxType?.startsWith('video/'),
               image = dialog.querySelector('img'),
               video = dialog.querySelector('video');
+            setZoom(false);
+            zoomButton.hidden = !!isVideo;
             video.pause();
             image.hidden = isVideo;
             video.hidden = !isVideo;
@@ -2158,7 +2171,7 @@ function processMasterView() {
         const mediaItems = processTemplateMediaItems(template),
           key = processMasterTemplateKey(template),
           equipmentButton = window.ProcessEquipment?.cardButton(template) || '';
-        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div>${!template.presetKey ? `<label class="template-type-field" data-i18n-skip="true"><span>${processMasterText('方塊類型','Loại ô')}</span><select data-master-type ${editable?'':'disabled'}>${[['entry','開始','Bắt đầu'],['manual','一般作業','Thao tác'],['inspection','檢查','Kiểm tra'],['machine','機器','Máy'],['exit','結束','Kết thúc'],['custom','自訂','Tùy chỉnh']].map(([value,zh,vi])=>`<option value="${value}" ${value===(template.editorType||'custom')?'selected':''}>${processMasterText(zh,vi)}</option>`).join('')}</select></label>`:''}<div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><button type="button" class="process-template-preview" data-lightbox-src="${escapeHtml(item.src)}" data-lightbox-type="${escapeHtml(item.type||'image/png')}" data-lightbox-title="${escapeHtml(template.name)}" data-lightbox-group="template-${escapeHtml(key)}"><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}"></button>${editable?`<label class="process-template-replace" data-i18n-skip="true">${processMasterText('更換照片','Thay ảnh')}<input type="file" accept="image/*" data-master-media data-replace-index="${mediaIndex}"></label>`:''}${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span><small>照片會自動壓縮並套用到所有工段的新方塊。</small></label>' : ''}</article>`;
+        return `<article class="master-template photo-template" data-template-id="${escapeHtml(template.id)}" data-template-key="${escapeHtml(key)}"><div class="template-head"><span class="template-order">${index + 1}</span><div><label class="template-name-field"><span>流程名稱</span><input data-master-name value="${escapeHtml(template.name)}" maxlength="80" ${editable ? '' : 'disabled'}></label></div>${!template.presetKey ? `<label class="template-type-field" data-i18n-skip="true"><span>${processMasterText('方塊類型','Loại ô')}</span><select data-master-type ${editable?'':'disabled'}>${[['entry','開始','Bắt đầu'],['manual','一般作業','Thao tác'],['inspection','檢查','Kiểm tra'],['machine','機器','Máy'],['exit','結束','Kết thúc'],['custom','自訂','Tùy chỉnh']].map(([value,zh,vi])=>`<option value="${value}" ${value===(template.editorType||'custom')?'selected':''}>${processMasterText(zh,vi)}</option>`).join('')}</select></label>`:''}<div class="template-head-actions"><span class="template-auto-tag">${template.presetKey ? '標準流程 · 自動帶入方塊' : '自訂流程 · 自動帶入方塊'}</span>${equipmentButton}${editable && !template.presetKey && canDeleteProcessMaster() ? `<button class="button danger compact" type="button" data-delete-template="${escapeHtml(key)}">刪除流程</button>` : ''}</div></div>${mediaItems.length ? `<div class="master-template-media-grid">${mediaItems.map((item, mediaIndex) => `<figure><button type="button" class="process-template-preview" data-lightbox-src="${escapeHtml(item.src)}" data-lightbox-type="${escapeHtml(item.type||'image/png')}" data-lightbox-title="${escapeHtml(template.name)}" data-lightbox-group="template-${escapeHtml(key)}"><img decoding="async" loading="lazy" src="${escapeHtml(item.src)}" alt="${escapeHtml(template.name)}"></button>${editable?`<label class="process-template-replace" data-i18n-skip="true">${processMasterText('更換照片','Thay ảnh')}<input type="file" accept="image/*" data-master-media data-replace-index="${mediaIndex}"></label>`:''}${editable ? `<button type="button" data-remove-template-media="${mediaIndex}" aria-label="移除照片">×</button>` : ''}</figure>`).join('')}</div>` : `<div class="master-template-empty">此流程尚未設定照片</div>`}${editable ? '<label class="media-upload master-template-upload"><input data-master-media type="file" accept="image/*" multiple><span>＋ 上傳或加入更多照片</span></label>' : ''}</article>`;
       },
     )
     .join(
@@ -3045,13 +3058,13 @@ function renderInspector(operation) {
     if (!files.length) return;
     syncText();
     try {
-      const { items, compressedCount } = await prepareMediaUploads(files);
+      const { items } = await prepareMediaUploads(files);
       operation.mediaItems.push(...items);
       const first = operationWorkMediaItems(operation)[0];
       operation.media = first?.src || null;
       operation.mediaName = first?.name || '';
       operation.mediaType = first?.type || '';
-      if (compressedCount) toast('照片已自動壓縮後加入');
+      if (items.length) toast(document.documentElement.lang === 'vi' ? 'Đã thêm ảnh' : '已加入照片');
       renderInspector(operation);
     } catch (error) {
       console.warn('媒體上傳失敗', error);
@@ -3294,9 +3307,7 @@ function bindDataInner(tab) {
           processMasterView();
         bindDataInner('process-master');
         toast(
-          prepared.compressedCount
-            ? `已加入 ${prepared.items.length} 張照片，其中 ${prepared.compressedCount} 張已自動壓縮`
-            : `已加入 ${prepared.items.length} 張照片`,
+          document.documentElement.lang === 'vi' ? `Đã thêm ${prepared.items.length} ảnh` : `已加入 ${prepared.items.length} 張照片`,
         );
         }catch(error){toast(error.message);if(input.isConnected&&sameActor()){const retry=document.createElement('button');retry.type='button';retry.className='button ghost process-photo-retry';retry.textContent=processMasterText('重試照片上傳','Thử tải ảnh lại');retry.onclick=async()=>{const shared=window.MasterDataWorkflow.shared;if(shared.client('PROCESS').hasUnknown()){try{await shared.recover('PROCESS');if(!shared.client('PROCESS').hasUnknown())repaintProcessMasterPage();}catch(failure){toast(failure.message);}}else await input.onchange();};card.append(retry);}}finally{input.disabled=false;}
       };

@@ -1,3 +1,5 @@
+本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。已補做實際照片表單及小字放大修正。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
 首次進頁已拆量並局部減少遮罩後排版；五輪中位 708→658ms、最慢 759→927ms，完整流程 25 項通過，既有資產字串測試仍有 1 項失敗。見 [最新入口報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。未發布既有站台。
 
 流程資料補驗發現離開提醒缺口並局部修復；18 項原生離開／重整／背景恢復驗收通過。最後整合測速另見 [本輪紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。

@@ -410,6 +410,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-process-master-name-guards.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/photo-standard-entries.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: IPQC-C bounded reads and compatibility
         id: head_validation_07
         if: ${{ !cancelled() && steps.head_validation_06.outcome == 'success' }}

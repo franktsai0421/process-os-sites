@@ -1908,7 +1908,11 @@
     renderViewer();
     return closeViewer;
   }
-  function fileData(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+  async function fileData(file) {
+    const {prepareBrowserPhoto}=await import('./photo-policy.mjs?v=20261023-lossless1');
+    const {blob}=await prepareBrowserPhoto(file);
+    return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+  }
   function openExistingModal(productCode) {
     const version = editable();
     const cat = categoryName(version);

@@ -1,3 +1,7 @@
+## 2026-10-29 全站照片入口統一候選
+
+FQC `fileData` 新上傳先經 `prepareBrowserPhoto` 再保存 data URL；其他入口沿用現行 shared policy，PNG 無損、其餘支援格式保持編碼。介面不再顯示照片規格／壓縮方案。沒有持久 schema、附件識別、權限、歷史或既有照片轉換。共用照片燈箱另加原像素放大／適合視窗，樣式限定 media-lightbox；新實際表單測試含技術小字與 EXIF 樣本。詳見 [唯一盤點與驗證紀錄](../../docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
+
 ## 2026-10-29 第二輪：身份 immutable aggregate 有界重疊
 
 只針對 manifest 中相鄰且 selected 的四類身份 aggregate，先核 ref，再最多兩個 GET；不預讀任意 URL／foreign ref，也不新增 HEAD 或重讀。provider metadata 兩者 size 都為安全整數且不大於 256 KiB 時，可重疊 text/SHA；其他情況沿已取得 object 序列消費，原 parse／required body／projection／adoption 錯誤順序保留。token 路徑仍序列，bootstrap 最後無 token 的 fresh read 不被快取取代。
