@@ -1,12 +1,6 @@
 ## 2026-10-30 整合候選格式界線
 
-本候選一般 master writer 維持既有 encodeValues；下方來源交接中的首次 records-v1 轉換設計未接入正常 Begin/Apply/Save。既有 records-v1 仍正常讀寫，legacy 可沿既有路徑儲存 whole-R2；沒有 schema 或真實資料轉換。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
-
-## 2026-10-30 AB/C 大型 legacy 儲存表示轉換
-
-沒有新增 SQL schema／資料表／格式版本，但符合條件的首次正常 AB/C 寫入會轉換儲存表示：更新後 masterDataControl UTF-8 ≥512 KiB，原為完整 inline／單一 R2 legacy，全部 values 為 JSON 且無未驗證 immutable 指標，才採用既有 records-v1。小型、chunk、非標準資料保留舊路徑；PROCESS-only 不觸發，partial/read-only 仍禁寫。
-
-每個寫入前原始 value 字串以 immutable R2 物件封存於既有 legacySources；歷史、其他模組及舊物件保留。原 DB CAS 原子發布 manifest；上傳失敗／CAS 輸家不發布新指標或成功收據，可能留有未引用物件，不自動刪除。失 ACK 先查原 operationId 收據。封存不等於整個 DB 一鍵還原；首次成本及實站恢復未驗。[條件、測試與回復邊界](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+本次不包含舊資料自動轉換，新增首次轉換專用程式與驗收已移除。一般 master writer 維持既有 encodeValues，state-records codec 與 main 相同；既有 records-v1 正常讀寫，legacy 可沿既有路徑儲存 whole-R2，無 schema 或實際資料變更。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
 
 ## 2026-10-30 AB／C 路線／引用補充
 

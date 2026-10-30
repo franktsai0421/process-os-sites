@@ -1,18 +1,18 @@
 # #51 → #52 順序整合候選（僅本地）
 
-共同檔案已語意整合，首次轉換未接線；交付順序與保留行為見[整合紀錄](docs/acceptance/PR5152_SEQUENCE_INTEGRATION_20261030.md)。獨立兩候選均保留，遠端 PR/base 未改。
+共同檔案已語意整合，本次不包含舊資料自動轉換，新增轉換專用程式已移除；交付順序與保留行為見[整合紀錄](docs/acceptance/PR5152_SEQUENCE_INTEGRATION_20261030.md)。獨立兩候選均保留，遠端 PR/base 未改。
 
 # PR #52 本地整合候選（未推送）
 
-一般線別／工段修正保留，首次 legacy→records-v1 自動轉換尚未接線；來源、決策及相依見[整合交接](docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+一般線別／工段修正保留，本次不包含舊資料自動轉換，新增轉換專用程式已移除；來源、決策及相依見[整合交接](docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
 
 # 線別與工段：指定分支交接
 
-`handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、首次寫入 legacy→records-v1 條件／封存／失敗恢復及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
+`handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、既有格式相容及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
 
-# PR #51 本地整合候選（未推送）
+# PR #51 已推送候選（未合併）
 
-保留最新 main 及 AB/C 成果；來源、衝突處理與驗證界線見[整合交接](docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。#52 及全站離頁新方案分開。
+已正常 fast-forward 推送 e8c44a3855bc4cd2916f9a76903ae05b6875a413，保留最新 main 及 AB/C 成果；來源、衝突處理與驗證界線見[整合交接](docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。#52 及全站離頁新方案分開。
 
 本次 AB／C 產線與類別＋草稿切頁修復交給 dot 審查及建立 PR，最新公開來源交接見[AB／C 交接](docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。分支 `handoff/ab-c-final-20261030`，基準 `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`；不整合線別／工段任務，不合併或部署。原始本地成果與證據保留。
 

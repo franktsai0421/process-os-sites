@@ -1,10 +1,10 @@
 ## 2026-10-30 #52 整合界線
 
-一般線別／工段修正與既有 records-v1 prepared model 寫入保留；首次 legacy 自動轉換尚未啟用。新版權限矩陣、明確還原能力及 restore effects 保留，沒有批次權限或資料遷移。見[整合交接](../../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+一般線別／工段修正與既有 records-v1 prepared model 寫入保留；本次不包含舊資料自動轉換，轉換專用程式已移除。新版權限矩陣、明確還原能力及 restore effects 保留，沒有批次權限或資料遷移。見[整合交接](../../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
 
 ## 2026-10-30 線別／工段候選
 
-AB/C 管理頁使用既有共享草稿與審核；補齊錯誤重試、欄位驗證、引用明細權限、saved 快照確認與範圍／輪詢保護。大型 legacy 的合格正常寫入可初始化既有 records-v1，PROCESS-only 不主動觸發。保留原權限、guard、CAS、收據及不可變歷史。[交接、測試與整合邊界](../../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+AB/C 管理頁使用既有共享草稿與審核；補齊錯誤重試、欄位驗證、引用明細權限、saved 快照確認與範圍／輪詢保護。正常寫入不將 legacy 自動轉成 records-v1；既有 records-v1 相容性保留。保留原權限、guard、CAS、收據及不可變歷史。[交接、測試與整合邊界](../../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
 
 ## 2026-10-30 整合補充
 
