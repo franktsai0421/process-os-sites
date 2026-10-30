@@ -52,7 +52,7 @@ await check('C7 loopback full-read historicalCodes and non-loopback bounded beha
  for(const origin of ['http://localhost:3040','http://127.0.0.1:3000'])for(const who of ['frank','reader']){const req=request(who,'?caseMetadata=1',{origin}),next=await run(req),prior=await run(req,true);assert.deepEqual(comparable(next),comparable(prior));assert(next.keys.includes(refs.unrelated.key));if(who==='frank')assert(next.body.historicalCodes.includes('C-HIST-TIEN-L987-01'));else assert.equal(next.body.historicalCodes,undefined);}
  const hosted=await run(request('frank'));assert.equal(hosted.body.historicalCodes,undefined);assert(!hosted.keys.includes(refs.unrelated.key));
 });
-await check('C9 exact approved legacy/photo auth deltas only; protected write bodies domain and image bytes retain v20 baseline',()=>{
+await check('C9 historical write-byte proof retained; reviewed current coverage/Save and unchanged GET/access are bound',()=>{
  const fs=require('node:fs'),{execFileSync}=require('node:child_process'),base=baselineCommits['app/api/ipqc-c/route.ts'];
  // Git blobs remain byte-exact; checkout conversion may change CRLF, and nothing else.
  const checkoutBytes=bytes=>bytes.filter((byte,index)=>byte!==13||bytes[index+1]!==10);
@@ -75,8 +75,17 @@ await check('C9 exact approved legacy/photo auth deltas only; protected write bo
  for(const file of ['app/api/ipqc-c/route.ts','lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),working=fs.readFileSync(file);
   assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
-  const aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
-  const protectedBytes=aligned?withoutApprovedOperationAlignment(file,committed):committed;
+  const historical=execFileSync('git',['show','2cac307f29b8017a2bb6dc5229d47720f2deab33:'+file]);
+  const approved={ 'lib/ipqc-c.ts':'c798ab16c8b16adedc4cf672064d422fbb744fb18b4682253f46740ae8b62243', 'app/api/ipqc-c/workflow/route.ts':'d6e25989a7a35fa3e1603c7f0ec785c6789fad6f973296f43d06918a17d41076' };
+  // The reviewed coverage / canonical Save deltas intentionally change these
+  // two sources. Their contracts run in submit-coverage/save-boundary and explicit Save-projection tests;
+  // retain the old historical proof rather than claiming today's POST unchanged.
+  if(approved[file])assert.equal(createHash('sha256').update(committed).digest('hex'),approved[file],'Reviewed performance source binding changed');
+  if(file==='app/api/ipqc-c/workflow/route.ts')for(const [start,end] of [['async function access(','function readControl('],['export async function GET(','export async function POST(']]){
+   const span=bytes=>{const a=bytes.indexOf(start),b=bytes.indexOf(end,a+start.length);assert(a>=0&&b>a);assert.equal(bytes.indexOf(start,a+start.length),-1);return bytes.subarray(a,b);};assert.deepEqual(checkoutBytes(span(committed)),checkoutBytes(span(historical)),'Current GET/access changed beyond CRLF');
+  }
+  const protectedSource=approved[file]?historical:committed,aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
+  const protectedBytes=aligned?withoutApprovedOperationAlignment(file,protectedSource):protectedSource;
   preserved(execFileSync('git',['show',base+':'+file]),protectedBytes,protectedBytes,file==='app/api/ipqc-c/workflow/route.ts'?'export async function POST(':file==='app/api/ipqc-c/route.ts');
  }
 });
