@@ -360,9 +360,16 @@
       on('#master-new-draft','click',()=>{delete ui.versions[state.masterScope];beginDraft();});
       on('#master-save-draft','click',saveDraft);on('#master-submit','click',submitDraft);
       on('#master-view-review','click',()=>host.MasterReview.open(state.masterScope,selected()?.id));
-      on('#master-lines-scope','change',async e=>{const previous=state.masterScope,next=e.target.value;e.target.disabled=true;
-        try{await shared.load(next);state.masterScope=next;ui.line='';ui.category='';redraw();}
-        catch(error){e.target.value=previous;e.target.disabled=false;toast(displayDraftError(error));}
+      on('#master-lines-scope','change',async e=>{
+        const input=e.target,previous=state.masterScope,next=input.value,identity=window.ProcessSync?.identity,
+          actorId=identity?.id,epoch=window.ProcessSync?.identityGeneration?.();
+        if(window.MasterDataWorkflow?.canLeave?.()===false){input.value=previous;return;}
+        input.disabled=true;
+        const ownsView=()=>input.isConnected&&state.view==='data'&&state.masterSection==='lines'&&state.masterScope===previous
+          &&window.ProcessSync?.identity===identity&&window.ProcessSync?.identity?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch;
+        try{await shared.load(next);if(!ownsView())return;state.masterScope=next;ui.line='';ui.category='';redraw();}
+        catch(error){if(ownsView()){input.value=previous;toast(displayDraftError(error));}}
+        finally{if(input.isConnected){input.disabled=false;if(state.masterScope===previous)input.value=previous;}}
       });
       on('#master-line-export','click',()=>{if(!permitted('master.export')){toast(t('此帳號沒有匯出權限。','Tài khoản này không có quyền xuất.'));return;}LineStageExcel.exportFile(current().lines,state.masterScope);toast(t('線別與工段 Excel 匯出成功','Xuất Excel chuyền và công đoạn thành công'));});
       on('#master-line-import','click',()=>{if(!permitted('master.import')){toast(t('此帳號沒有匯入權限。','Tài khoản này không có quyền nhập.'));return;}if(!editable()){toast(t('請先建立新版本草稿再匯入','Hãy tạo bản nháp mới trước khi nhập'));return;}document.querySelector('#master-line-import-file').click();});

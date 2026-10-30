@@ -1,0 +1,74 @@
+{
+  "baseline": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1",
+  "before": {
+    "phase": "before",
+    "data": "synthetic, 1 product and 1 stage per scope; scope timing includes C then AB roundtrip",
+    "timings": {
+      "scope-C": {
+        "count": 5,
+        "medianMs": 84.0838920000001,
+        "maxMs": 134.85003000000006,
+        "samplesMs": [
+          134.85003000000006,
+          84.0838920000001,
+          65.05257400000005,
+          100.64840800000002,
+          66.09447
+        ]
+      },
+      "open-stage-edit": {
+        "count": 5,
+        "medianMs": 89.35431699999981,
+        "maxMs": 119.91188299999976,
+        "samplesMs": [
+          119.91188299999976,
+          93.22058599999991,
+          89.35431699999981,
+          73.97633599999972,
+          84.22362599999997
+        ]
+      }
+    },
+    "passed": [],
+    "errors": []
+  },
+  "after": {
+    "phase": "after",
+    "data": "synthetic, 1 product and 1 stage per scope; scope timing includes C then AB roundtrip",
+    "timings": {
+      "scope-C": {
+        "count": 5,
+        "medianMs": 48.64955699999996,
+        "maxMs": 99.44477200000006,
+        "samplesMs": [
+          99.44477200000006,
+          48.64955699999996,
+          33.808870999999954,
+          49.55025499999988,
+          33.11656999999991
+        ]
+      },
+      "open-stage-edit": {
+        "count": 5,
+        "medianMs": 66.52982600000018,
+        "maxMs": 82.53210899999999,
+        "samplesMs": [
+          82.53210899999999,
+          66.72543399999995,
+          66.52982600000018,
+          66.4348010000001,
+          66.299714
+        ]
+      }
+    },
+    "passed": [
+      "late scope response cannot replace destination",
+      "double apply inserts once; active unchanged",
+      "new unused stage deletion read back",
+      "line children retained",
+      "390px Chinese/Vietnamese no horizontal document overflow"
+    ],
+    "errors": []
+  },
+  "targetConfirmed": "Both measured fixture operations max <=150ms; other operations require baseline first"
+}

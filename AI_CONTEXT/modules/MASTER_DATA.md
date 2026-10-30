@@ -97,3 +97,6 @@ Important implementation areas:
 AB/C/PROCESS V3 scopes are separate; line/stage management shares AB/C. Linked route changes may publish a derived PROCESS version in the same CAS, but must not clear independent PROCESS draft/pending work. See models/V3 and current data-model routing.
 
 BOM 離頁依實際欄位差異、待送修改、未套用匯入與未確認保存判定；空修改模式不視為未存。有匯入差異須先套用／放棄才可保存，詳見[20261010檢查點](../../docs/local-integration/20261010-bom-navigation.md)。
+
+
+2026-10-30 線別工段候選：移除新增線別 UI，保留新增工段；線別含子工段時前後端阻擋刪除。範圍讀取只由仍有效的原頁面／身分回呼更新。完整驗收尚未完成，見 [本次交接](../../docs/acceptance/LINES_CLOUD_30102026.md)。

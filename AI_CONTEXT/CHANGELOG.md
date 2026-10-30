@@ -869,3 +869,6 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
   failure without altering transport storage, navigation, backend validation or deadlines.
 - Add focused deferred-transport regression, exact cache expectation and CI command.
   This entry is local candidate documentation, not publication/native acceptance.
+
+
+2026-10-30 未發布候選：線別新增入口移除、子工段刪除保護及範圍讀取離頁保護；驗收限制見 docs/acceptance/LINES_CLOUD_30102026.md。無 schema 遷移。
