@@ -1,3 +1,9 @@
+## 2026-10-29 — Stacked AB source delivery
+
+IPQC-AB owner-bound reads, independent action/photo authorization, local diff indexing and deferred equipment entry. Single-owner shared read guards and foreground scheduler declarations are prerequisites; new Begin behavior remains in the later back-office layer.
+
+Program-only evidence, not browser/live acceptance. Later layers are explicit dependencies, not yet included in this PR. No publication or source business data.
+
 ## 2026-10-28 核准後移轉／停用與退回修改流程補驗（使用者確認，未發布）
 
 依使用者確認，正常流程調整為「新增兩器具→正常送審及獨立核准→四品質模組移轉草稿→明確保存／送審／退回修改／重新保存及重送核准」。無草稿時依權限 Begin；已有 editable draft 不多送 Begin。四模組的 pending／returned／revised saved 階段保持原正式標準，到原核准 route 成功才更新正式引用；返回案件內容及舊 save history／R2 bytes 不變。正常權限 actual route 回歸涵蓋四模組各一項標準；AB 採整份 module 審核，C 完整歷史內容由 fixture core.readState 核對，並非目的頁原生控件驗收。
