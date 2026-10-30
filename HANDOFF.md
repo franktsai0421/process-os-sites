@@ -1,5 +1,17 @@
 本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。已補做實際照片表單及小字放大修正。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
 
+首次進頁已拆量並局部減少遮罩後排版；五輪中位 708→658ms、最慢 759→927ms，完整流程 25 項通過，既有資產字串測試仍有 1 項失敗。見 [最新入口報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。未發布既有站台。
+
+流程資料補驗發現離開提醒缺口並局部修復；18 項原生離開／重整／背景恢復驗收通過。最後整合測速另見 [本輪紀錄](docs/sites/PROCESS_FLOW_DEPARTURE_PERFORMANCE_29102026.md)。
+
+流程 CLOUD 29102026 最新產品來源 `74ab03f`：已補修流程專屬 reviewer 的平台載入，10 項審核／取消驗收與 39 項完整流程通過。已實際核對權限／小幫手固定分支：前三個共用 JS 無同檔變更，index 的最小入口補丁及文件衝突見 [整合核對](docs/sites/integration-cloud-29102026/README.md)；仍未建立公開預覽或 Draft PR。
+
+流程 CLOUD 29102026 續修已驗：產品來源 `212a730`、瀏覽器 39 記錄及 native 14 組；名稱 Apply 併寫與真實 IME 事件修正。完整逐步清單、前後三輪測速、未測與公開交付阻礙見 [驗收](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。原獨立分支與 dot 整合界線不變。
+
+本次獨立候選：流程資料頁面 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/process-flow-cloud-29102026`。照片 PR 獨立；未合併或發布既有站台。實作、逐步驗收與預覽阻礙見 [流程紀錄](docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
+
+本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
+
 # Isolated Sites implementation handoff
 
 Current isolated performance candidate: [FQC readiness](AI_CONTEXT/modules/RUNTIME.md#2026-10-25-fqc-readiness-candidate-not-published).

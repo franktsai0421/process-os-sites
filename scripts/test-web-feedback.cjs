@@ -2,10 +2,10 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomUUID,createHash}=require('node:crypto');
 const root=process.argv[2];if(!root)throw Error('Evidence output directory required');fs.mkdirSync(root,{recursive:true});
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT)');db.exec(fs.readFileSync('scripts/web-feedback-schema.sql','utf8'));
-const users=['admin','admin2','employee','peer','other','disabled','restricted'].map(id=>({id,name:'Synthetic '+id,role:id.startsWith('admin')?'admin':'staff',enabled:id!=='disabled',inheritRole:false,views:id==='restricted'?['player']:id==='other'?['data']:['editor','data','dashboard'],lines:id==='other'?['B']:['A'],permissions:[]}));
+const users=['frank','admin','admin2','employee','peer','other','disabled','restricted'].map(id=>({id,name:'Synthetic '+id,role:id==='frank'||id.startsWith('admin')?'admin':'staff',enabled:id!=='disabled',inheritRole:false,views:id==='restricted'?['player']:id==='other'?['data']:['editor','data','dashboard'],lines:id==='other'?['B']:['A'],permissions:[]}));
 const originalValues=JSON.stringify({platformUsers:JSON.stringify(users),processAuthoringControl:'preserved-test-sentinel',bomData:'preserved-bom-sentinel'});db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(originalValues,'baseline');
-const objects=new Map();let failPut=false;
-const env={WEB_FEEDBACK_ENABLED:'1',PROCESS_SESSION_SECRET:randomUUID(),DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}},STATE_ARCHIVE:{async get(key){const b=objects.get(key);return b?{body:b,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.length)}:null;},async put(key,value){if(failPut)throw Error('synthetic R2 failure');objects.set(key,Buffer.from(value));}}};
+const objects=new Map(),readCounts=new Map();let failPut=false,readDelay=0,activeReads=0,maxReads=0,puts=0;
+const env={WEB_FEEDBACK_ENABLED:'1',PROCESS_SESSION_SECRET:randomUUID(),DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};}},STATE_ARCHIVE:{async get(key){readCounts.set(key,(readCounts.get(key)||0)+1);activeReads++;maxReads=Math.max(maxReads,activeReads);try{if(readDelay)await new Promise(resolve=>setTimeout(resolve,readDelay));const b=objects.get(key);return b?{body:b,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.length)}:null;}finally{activeReads--;}} ,async put(key,value){puts++;if(failPut)throw Error('synthetic R2 failure');objects.set(key,Buffer.from(value));}}};
 const load=require('./ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts'),route=load('app/api/web-feedback/route.ts'),log=[];
 (async()=>{const cookies={};for(const u of users)cookies[u.id]='process_demo='+await core.demoSession(new Request('http://localhost:3020'),u.id,false);
 async function call(action,body,user='employee',extra={}){const start=performance.now(),method=body===undefined?'GET':'POST',headers={Cookie:cookies[user]||'',Origin:'http://localhost:3020','Content-Type':'application/json',...extra.headers};const res=await route[method](new Request('http://localhost:3020/api/web-feedback?action='+action,{method,headers,...(body===undefined?{}:{body:Buffer.isBuffer(body)?body:JSON.stringify(body)})}));const bytes=Buffer.from(await res.arrayBuffer());return{status:res.status,body:res.headers.get('content-type')?.includes('json')?JSON.parse(bytes):bytes,ms:performance.now()-start};}
@@ -57,11 +57,52 @@ pass('D1-safe capacity rejection does not partly update case',await call('update
 const race=await Promise.all(['admin','admin2'].map(user=>call('update',{id,version:3,status:'done',note:'race'},user)));assert.deepEqual(race.map(r=>r.status).sort((a,b)=>a-b),[200,409]);log.push({name:'Two-admin concurrent CAS exactly one winner',status:'PASS'});
 assert.equal(db.prepare('SELECT "values" FROM shared_state').get().values,originalValues);assert.equal(db.prepare('SELECT revision FROM shared_state').get().revision,1);log.push({name:'Business/shared draft values and revision unchanged',status:'PASS'});
 const stored=db.prepare('SELECT payload FROM web_feedback_store').get().payload;assert(!stored.includes('DO-NOT-COLLECT'));log.push({name:'Context allowlist excludes password/token fields',status:'PASS'});
+const deletionCase=await call('submit',{operationId:randomUUID(),markers:[{...m,id:randomUUID(),attachments:[],description:'Delete receipt fixture'}]});pass('Isolated deletion case created',deletionCase,201);
+const deleteId=deletionCase.body.ids[0],noteOperation={operationId:randomUUID(),id:deleteId,version:1,status:'done',note:'Exactly once 私人備註'};
+pass('Primary admin note update receipt',await call('update',noteOperation,'frank'));
+pass('Lost update response replay does not duplicate note',await call('update',noteOperation,'frank'));
+assert.equal(JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.find(i=>i.id===deleteId).notes.length,1);
+pass('Same update operation rejects changed text',await call('update',{...noteOperation,note:'changed'},'frank'),409);
+pass('Other admin cannot reuse owner note receipt',await call('update',noteOperation,'admin2'),409);
+for(const actor of ['admin','admin2','employee'])pass(actor+' cannot forge primary deletion',await call('delete',{id:deleteId,version:2,primary:true,role:'admin',name:'frank'},actor),403);
+pass('Primary deletion enforces expected version',await call('delete',{id:deleteId,version:1},'frank'),409);
+pass('Only primary Frank deletes',await call('delete',{id:deleteId,version:2},'frank'));
+pass('Deletion response retry is idempotent',await call('delete',{id:deleteId,version:2},'frank'));
+assert(!(await call('list')).body.issues.some(i=>i.id===deleteId));
+const deleted=JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.find(i=>i.id===deleteId);assert.equal(deleted.deletedBy,'frank');assert(deleted.deletedAt);assert.equal(deleted.notes.length,1);
+pass('Deleted case cannot be updated',await call('update',{id:deleteId,version:3,status:'open'},'frank'),404);
+pass('Deleted case cannot enter a new handoff',await call('export',{operationId:randomUUID(),ids:[deleteId]},'frank'),404);
 const revoked=JSON.parse(originalValues),revokedUsers=JSON.parse(revoked.platformUsers);revokedUsers.find(u=>u.id==='peer').enabled=false;revoked.platformUsers=JSON.stringify(revokedUsers);db.prepare('UPDATE shared_state SET revision=2,"values"=?').run(JSON.stringify(revoked));pass('Revision change revokes cached identity immediately',await call('image&id='+attachment.body.id,undefined,'peer'),401);
 revoked.maintenanceMode='1';db.prepare('UPDATE shared_state SET revision=3,"values"=?').run(JSON.stringify(revoked));pass('Revision change preserves maintenance gate',await call('update',{id,version:4,status:'open'},'admin'),503);
 
 delete revoked.maintenanceMode;const granularUsers=JSON.parse(revoked.platformUsers);granularUsers.find(u=>u.id==='admin2').accessOverrides={'feedback.edit':false,'feedback.exchange':false};granularUsers.find(u=>u.id==='employee').accessOverrides={'feedback.create':false};revoked.platformUsers=JSON.stringify(granularUsers);db.prepare('UPDATE shared_state SET revision=4,"values"=?').run(JSON.stringify(revoked));
 const preservedFeedback=db.prepare('SELECT payload FROM web_feedback_store').get().payload;pass('ADMIN edit checkbox denies update',await call('update',{id,version:4,status:'open'},'admin2'),403);pass('ADMIN exchange checkbox denies export',await call('export',{...exportBody,operationId:randomUUID()},'admin2'),403);pass('ADMIN exchange checkbox denies download',await call('download&id='+exported.body.id,undefined,'admin2'),403);pass('Create checkbox denies employee submit',await call('submit',{operationId:randomUUID(),markers:[m]},'employee'),403);pass('Create checkbox denies employee upload',await call(uploadAction,png,'employee',{headers:{'Content-Type':'image/png'}}),403);assert.equal((await call('capabilities')).body.enabled,false);assert.equal(db.prepare('SELECT payload FROM web_feedback_store').get().payload,preservedFeedback);
 granularUsers.find(u=>u.id==='admin2').accessOverrides['feedback.view']=false;revoked.platformUsers=JSON.stringify(granularUsers);db.prepare('UPDATE shared_state SET revision=5,"values"=?').run(JSON.stringify(revoked));pass('ADMIN view checkbox denies listing',await call('list',undefined,'admin2'),403);
+// Owned export fixtures: repeated attachment IDs must retain per-issue ZIP entries.
+db.prepare('UPDATE shared_state SET revision=6,"values"=?').run(originalValues);
+const exportFixture=JSON.parse(preservedFeedback),template=exportFixture.attachments[0];
+const fixtureImages=Array.from({length:8},(_,n)=>({...template,id:'ATT-bounded-'+n}));
+for(const a of fixtureImages)objects.set('web-feedback/v1/'+a.id,Buffer.from(savedPhoto));
+exportFixture.attachments.push(...fixtureImages);
+const fixtureIssues=Array.from({length:20},(_,n)=>({...exportFixture.issues[0],id:'FB-bounded-'+n,attachments:[fixtureImages[n%8].id,fixtureImages[(n+1)%8].id],notes:[],history:[]}));
+exportFixture.issues.push(...fixtureIssues);
+db.prepare('UPDATE web_feedback_store SET payload=?,revision=revision+1').run(JSON.stringify(exportFixture));
+const fixtureBody={operationId:randomUUID(),ids:fixtureIssues.map(i=>i.id)};
+readCounts.clear();readDelay=5;maxReads=0;
+pass('Bounded export preserves 20 selected issues',await call('export',fixtureBody,'frank'),201);
+assert.equal(readCounts.size,8);assert([...readCounts.values()].every(n=>n===1));assert.equal(maxReads,4);assert.equal(activeReads,0);
+log.push({name:'Shared originals read once per export with at most four concurrent R2 reads',status:'PASS'});
+const preservedExport=db.prepare('SELECT payload FROM web_feedback_store').get().payload;
+for(const failure of ['missing','hash']){
+ const objectKey='web-feedback/v1/'+fixtureImages[0].id,original=objects.get(objectKey),beforePuts=puts;
+ if(failure==='missing')objects.delete(objectKey);else objects.set(objectKey,Buffer.from('synthetic corrupted bytes'));
+ const failed=await call('export',{...fixtureBody,operationId:randomUUID()},'frank');pass(failure+' rejects export before ZIP or handoff write',failed,503);
+ assert.equal(failed.body.error,failure==='missing'?'IMAGE_MISSING_EXPORT_NOT_CREATED':'IMAGE_HASH_MISMATCH');assert.equal(puts,beforePuts);assert.equal(activeReads,0);assert.equal(db.prepare('SELECT payload FROM web_feedback_store').get().payload,preservedExport);
+ objects.set(objectKey,original);
+}
+const oversizedExport=JSON.parse(preservedExport);oversizedExport.attachments.find(a=>a.id===fixtureImages[0].id).size=31_000_000;
+db.prepare('UPDATE web_feedback_store SET payload=?').run(JSON.stringify(oversizedExport));readCounts.clear();
+pass('Export size bound includes repeated entries and rejects before reading originals',await call('export',{...fixtureBody,operationId:randomUUID()},'frank'),413);assert.equal(readCounts.size,0);
+db.prepare('UPDATE web_feedback_store SET payload=?').run(preservedExport);readDelay=0;
 fs.writeFileSync(path.join(root,'api-results.json'),JSON.stringify(log,null,2));fs.writeFileSync(path.join(root,'api-raw.log'),log.map(r=>JSON.stringify(r)).join('\n'));console.log(JSON.stringify({passed:log.length,zipBytes:downloaded.body.length,zipSHA256:createHash('sha256').update(downloaded.body).digest('hex'),log},null,2));db.close();
 })().catch(e=>{fs.writeFileSync(path.join(root,'api-failure.log'),e.stack);console.error(e);process.exitCode=1;});

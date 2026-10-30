@@ -173,7 +173,15 @@ export function submitIpqcIssues(version: IpqcVersion, base: IpqcVersion | undef
       add('items',item.id,'standard','STANDARD_REQUIRED',`${item.code}: 檢查標準或不適用原因待補`,true);
     try{checkedIpqcRule(item.rule);}catch{add('items',item.id,'rule','FREQUENCY_INVALID',`${item.code}: 已填檢查頻率格式不合法`);}
   }
-  for(const product of products)for(const stage of product.stages)if(!version.snapshot.items.some(i=>!i.deleted&&i.standardEnabled&&!i.notApplicable&&i.productCode===product.code&&i.stageCode===stage))add('products',product.code,stage,'IPQC_PRODUCT_COVERAGE',`${product.code} / ${stage}: 適用產品尚未完整涵蓋`,true);
+  // Per validation call: retain output order and strict-equality fallback for malformed keys.
+  const coverageItems=version.snapshot.items;
+  const stringCoverageKeys=coverageItems.every(item=>typeof item.productCode==='string'&&typeof item.stageCode==='string')&&products.every(product=>typeof product.code==='string'&&product.stages.every(stage=>typeof stage==='string'));
+  const covered=stringCoverageKeys?new Map<string,Set<string>>():null;
+  if(covered)for(const item of coverageItems){
+    if(item.deleted||!item.standardEnabled||item.notApplicable)continue;
+    let stages=covered.get(item.productCode);if(!stages){stages=new Set();covered.set(item.productCode,stages);}stages.add(item.stageCode);
+  }
+  for(const product of products)for(const stage of product.stages)if(!(covered?covered.get(product.code)?.has(stage):coverageItems.some(i=>!i.deleted&&i.standardEnabled&&!i.notApplicable&&i.productCode===product.code&&i.stageCode===stage)))add('products',product.code,stage,'IPQC_PRODUCT_COVERAGE',`${product.code} / ${stage}: 適用產品尚未完整涵蓋`,true);
   return issues;
 }
 export function submitIpqcErrors(version:IpqcVersion,base:IpqcVersion|undefined,products:Array<{code:string;stages:string[]}>){return submitIpqcIssues(version,base,products).filter(i=>i.kind==='error').map(i=>i.message);}

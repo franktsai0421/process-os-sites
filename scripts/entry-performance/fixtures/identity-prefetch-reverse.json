@@ -1,0 +1,27 @@
+{
+  "description": "Exact reviewed max2 provider-metadata fallback inverse; all other shipped code shared by candidate and baseline. Missing/changed/duplicate anchor fails closed.",
+  "reviewedCandidateSHA256": "ba88d9963248d943bdec1b97b12a3540505927725f1329c45738557e1da5aa9f",
+  "reviewedBaselineSHA256": "5245f6533dc253b220b3bf2b61c298138917e8b4dcab9a4ff1210e4edf741fcc",
+  "spans": [
+    {
+      "candidate": "get(key:string):Promise<{text():Promise<string>;size?:number;body?:{cancel():Promise<unknown>}}|null>",
+      "baseline": "get(key:string):Promise<{text():Promise<string>}|null>",
+      "candidateSHA256": "3d37ad7b0150d1bf24ae3c3b9740151c26aad2d44912b10a37b6417f1ae54d07"
+    },
+    {
+      "candidate": " // Prefetch only adjacent selected identity aggregates, never token reads.\n // GET metadata may overlap; speculative text/SHA is limited to two provider-\n // sized objects <=256KiB each. Large/unknown sizes consume text in old order.\n const entries=Object.entries(envelope.__processRecords.values).filter(([key])=>!options.keys||options.keys.includes(key));\n type StoredObject=Awaited<ReturnType<Bucket['get']>>;\n type Outcome<T>={ok:true;value:T}|{ok:false;error:unknown};\n const settle=<T,>(promise:Promise<T>):Promise<Outcome<T>>=>promise.then(value=>({ok:true,value}),error=>({ok:false,error}));\n const unwrap=<T,>(result:Outcome<T>):T=>{if(!result.ok)throw result.error;return result.value;};\n const small=(value:StoredObject)=>!!value&&Number.isSafeInteger(value.size)&&value.size!>=0&&value.size!<=262144;\n async function consume(value:StoredObject,ref:Ref){if(!value)throw Error('Immutable record missing');const raw=await value.text();if(await hash(raw)!==ref.sha256)throw Error('Immutable record corrupt');return raw;}\n let pendingIdentity:{key:string;ref:Ref;object:Promise<Outcome<StoredObject>>;raw?:Promise<Outcome<string>>;released?:boolean}|undefined;\n async function aggregate(index:number){\n  const [key,ref]=entries[index];\n  if(options.identityReadToken)return readIdentityAggregate(bucket,key,ref,options.identityReadToken);\n  if(pendingIdentity?.key===key){const pending=pendingIdentity;pendingIdentity=undefined;const object=await pending.object;return pending.raw?unwrap(await pending.raw):consume(unwrap(object),ref);}\n  const next=entries[index+1];\n  if(identityReadKeys.has(key)&&valid(ref)&&next&&identityReadKeys.has(next[0])&&valid(next[1])){\n   const current=settle(Promise.resolve().then(()=>bucket.get(ref.key)));pendingIdentity={key:next[0],ref:next[1],object:settle(Promise.resolve().then(()=>bucket.get(next[1].key)))};\n   const first=unwrap(await current);\n   if(small(first)){\n    const pending=pendingIdentity;\n    // Never delay the first text/SHA/failure on a slow second GET. Metadata\n    // admission for speculative second text is independent and rejection-safe.\n    void pending.object.then(second=>{if(!pending.released&&second.ok&&small(second.value))pending.raw=settle(consume(second.value,next[1]));}).catch(()=>{});\n   }\n   return consume(first,ref);\n  }\n  return read(bucket,ref);\n }\n function releasePendingIdentity(){\n  const pending=pendingIdentity;pendingIdentity=undefined;\n  // A late GET or cleanup rejection cannot replace the original traversal\n  // failure. No additional fetch/write; release an unused provider stream.\n  if(pending){pending.released=true;void pending.object.then(async result=>{if(result.ok&&result.value?.body)await result.value.body.cancel();}).catch(()=>{});}\n }\n",
+      "baseline": "",
+      "candidateSHA256": "0bd5a907fa5163d82de217fc835d257433be95c8b87f07c7f57c20ff10d93009"
+    },
+    {
+      "candidate": " try{for(let index=0;index<entries.length;index++){const [key,ref]=entries[index];deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await aggregate(index);",
+      "baseline": " for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await (options.identityReadToken?readIdentityAggregate(bucket,key,ref,options.identityReadToken):read(bucket,ref));",
+      "candidateSHA256": "cfeeafe297a49723ab69cef594406bc890b2872ac038d98e1537e3862ad908b5"
+    },
+    {
+      "candidate": " }}finally{releasePendingIdentity();}",
+      "baseline": " }",
+      "candidateSHA256": "1197afe2bfcc80af2971a6555abbf22b4372f828a43ffb2e9c72f33916f2f8a1"
+    }
+  ]
+}

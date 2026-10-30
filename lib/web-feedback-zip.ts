@@ -3,9 +3,12 @@ export const utf8 = (value: string) => new TextEncoder().encode(value);
 export async function sha256(bytes: Uint8Array) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes).buffer)), b => b.toString(16).padStart(2, '0')).join('');
 }
+const crcTable=Uint32Array.from({length:256},(_,value)=>{
+  let crc=value;for(let bit=0;bit<8;bit++)crc=(crc>>>1)^(0xedb88320&-(crc&1));return crc>>>0;
+});
 function crc32(bytes: Uint8Array) {
   let crc = 0xffffffff;
-  for (const b of bytes) { crc ^= b; for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1)); }
+  for (let i=0;i<bytes.length;i++)crc=(crc>>>8)^crcTable[(crc^bytes[i])&255];
   return (crc ^ 0xffffffff) >>> 0;
 }
 export function zipFiles(files: {path: string; bytes: Uint8Array}[]) {

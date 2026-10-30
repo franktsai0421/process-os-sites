@@ -1127,14 +1127,14 @@
         },
       });
       approvalSection = review.view;
-      bindApprovalMaster = function(){review.bind();const missing=['AB','C','PROCESS'].filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
+      bindApprovalMaster = function(){review.bind();const missing=window.MasterReview.readableScopes().filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
     }
   }
   window.MasterDataWorkflow = {
     control: () => control,
     canLeave:()=>!shared.busy(),
     resetProjection(){
-      deliveryGeneration++;clearTimeout(sharedPoll);shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
+      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
       seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};
       const incoming=readStore(STORAGE,null)||{active:{},versions:[]};
@@ -1146,18 +1146,18 @@
     applyActive,
     shared,
   };
-  let sharedPoll;
-  function pollMaster(){clearTimeout(sharedPoll);const generation=deliveryGeneration;sharedPoll=setTimeout(async()=>{
-    if(!ownsDelivery(generation))return;
+  const sharedPoll=window.createForegroundPoll();
+  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{
+    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;
     try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){
       const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
       if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
         const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation))return;changed ||= !result.unchanged||result.permissionsChanged;}
+        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}
         if(changed){applyActive();render();}
       }
-    }}catch(error){if(!ownsDelivery(generation))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation))pollMaster();}
-  },4000);}
+    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}
+  });}
   pollMaster();
   applyActive();
   window.addEventListener('process-shared-state-updated', () => {
@@ -1225,7 +1225,7 @@
         },
       });
       const reads=[];
-      if(masterActive){bindApprovalMaster();reads.push(dataReady,window.BOMWorkspace?.loadReview());}
+      if(masterActive){bindApprovalMaster();reads.push(dataReady);if(window.hasPermission?.('bom.view'))reads.push(window.BOMWorkspace?.loadReview());}
       if(state.approvalTab==='quality'){
         const panel=document.querySelector('#approval-panel-quality');
         window.QualityReviewOverview?.mount?.(panel);
@@ -1233,7 +1233,7 @@
       }
       if(state.approvalTab==='routine')reads.push(window.RoutineFQCUI?.bindReview?.(document.querySelector('#approval-panel-routine')));
       // This background count does not gate another panel's usable readiness.
-      if(state.approvalTab!=='routine')void window.RoutineFQCUI?.refreshPending?.();
+      if(state.approvalTab!=='routine'&&window.hasPermission?.('routine.view'))void window.RoutineFQCUI?.refreshPending?.();
       approvalReady=Promise.all(reads);approvalReady.catch(()=>{});
 
     }

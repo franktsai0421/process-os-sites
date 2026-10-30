@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+import path from 'node:path';import {pathToFileURL} from 'node:url';
+const deliveryPolicy=await import(pathToFileURL(path.resolve('public/process/delivery-purpose.mjs')).href);
+const baseline=fs.readFileSync(new URL('./fixtures/bootstrap.pre-fourth.js',import.meta.url),'utf8'),candidate=fs.readFileSync('public/process/bootstrap.js','utf8');
+const nav=fs.readFileSync('public/process/delivery-navigation.js','utf8');
+const navReady=nav.slice(nav.indexOf('  async function readyForDestination(target){'),nav.indexOf('  const coordinator=createNavigationCoordinator'));
+const drain=async()=>{for(let i=0;i<35;i++)await Promise.resolve();};
+function boot(source,{coordinator=true,fail=false}={}){let release,epoch=1,calls=0,paints=0,shellRemoved=false;const authoritative=new Promise(resolve=>release=resolve),attrs={};const gate={style:{},setAttribute(){},append(){},remove(){shellRemoved=true;}};
+ const window={ProcessSync:{ready:Promise.resolve(),identity:{id:'staff'},captureDelivery:()=>({epoch}),isCurrentDelivery:o=>o.epoch===epoch,destination:{view:'editor',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}},ProcessAuthoringV3:{async readyForEditor(){calls++;await authoritative;if(fail)throw Error('AUTHORING_LOAD_REQUIRED');paints++;},navigation:{error:()=>null}},dispatchEvent(){}};
+ if(coordinator){const ready=vm.runInNewContext(navReady+'\nreadyForDestination',{window,moduleNames:['FQCMasterUI','IQCMasterUI','IPQCABUI','IPQCCUI','ToolingUI','RoutineEquipmentUI']});window.ProcessDeliveryNavigation={initialized:Promise.resolve(),readyForDestination:()=>ready(window.ProcessSync.destination)};}
+ const document={querySelector:s=>s==='#view-root'?{prepend(){}}:shellRemoved?null:gate,querySelectorAll:()=>[],createElement:()=>({dataset:{},setAttribute(){},append(){}}),head:{append(){}},documentElement:{dataset:attrs,removeAttribute(){}}};
+ const text=source.replace("await import('./access-policy.mjs?v=20261010-access3')",'({})').replace("await import('./delivery-purpose.mjs?v=20261026-feedback1')",'deliveryPolicy').replace('void (async () =>','(async () =>');
+ const done=vm.runInNewContext(text,{window,document,deliveryPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},Event:class{},location:{href:'https://fixture.invalid/process/index.html?view=editor',reload(){}}});
+ return{done,release,attrs,get calls(){return calls;},get paints(){return paints;},get shellRemoved(){return shellRemoved;},invalidate(){epoch++;}};
+}
+let cases=0;async function test(name,run){await run();cases++;console.log('PASS '+name);}
+await test('baseline actual coordinator + bootstrap invokes authoritative readiness twice',async()=>{const f=boot(baseline);await drain();assert.equal(f.calls,1);f.release();await f.done;assert.equal(f.calls,2);assert.equal(f.paints,2);});
+await test('candidate invokes actual coordinator authoritative editor readiness once, not shell-as-ready',async()=>{const f=boot(candidate);await drain();assert.equal(f.calls,1);assert.equal(f.shellRemoved,true);assert.equal(f.paints,0);assert.equal(f.attrs.processReadyMs,undefined);f.release();await f.done;assert.equal(f.calls,1);assert.equal(f.paints,1);assert.equal(f.attrs.processReadyMs,10);});
+await test('without coordinator original authoring readiness still runs and gates ready',async()=>{const f=boot(candidate,{coordinator:false});await drain();assert.equal(f.calls,1);assert.equal(f.attrs.processReadyMs,undefined);f.release();await f.done;assert.equal(f.paints,1);assert.equal(f.attrs.processReadyMs,10);});
+await test('authoritative rejection remains error, never ready/extra paint',async()=>{const f=boot(candidate,{fail:true});await drain();f.release();await f.done;assert.equal(f.calls,1);assert.equal(f.paints,0);assert.equal(f.attrs.processReadyMs,undefined);assert.equal(f.attrs.processNavigationStatus,'error');});
+await test('newer delivery while authoritative read pending is not marked ready by old bootstrap',async()=>{const f=boot(candidate);await drain();f.invalidate();f.release();await f.done;assert.equal(f.calls,1);assert.equal(f.attrs.processReadyMs,undefined);assert.equal(f.attrs.processDestinationReadyGeneration,undefined);});
+console.log(JSON.stringify({status:'PASS',cases,actualBootstrap:true,actualCoordinatorReadiness:true,syntheticAuthoring:true,browser:false,network:false,wallTimeMeasured:false}));
