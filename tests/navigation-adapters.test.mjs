@@ -156,3 +156,13 @@ void test('FQC departure detects only the mounted FQC library unsaved flow',()=>
  const flow={unsaved:true},box={hostElement:{isConnected:true},control:{libraries:{fqc:{workflow:flow}}},window:{sharedDraftNeedsSave:value=>!!value?.unsaved}};
  vm.createContext(box);const check=vm.runInContext(expression,box);assert.equal(check(),true);flow.unsaved=false;assert.equal(check(),false);flow.unsaved=true;box.hostElement.isConnected=false;assert.equal(check(),false);
 });
+
+void test('authoring departure cannot publish local canvas positions or connections',async()=>{
+ const text=source('process-authoring-v3.js'),start=text.indexOf('canSaveForDeparture:'),end=text.indexOf(',canLeave:',start),declaration=text.slice(start,end);
+ let dirty=true,changed=false,saves=0;
+ const box={busy:false,localFailure:false,editorChanged:()=>changed,modalOpen:()=>false,host:{ProcessCanvasLocal:{dirty:()=>dirty},ProcessEditorV2:{interacting:()=>false}},action:async name=>{assert.equal(name,'save');saves++;}};
+ vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);
+ assert.equal(adapter.canSaveForDeparture(),false);await adapter.saveForDeparture();assert.equal(saves,0);
+ dirty=false;changed=true;assert.equal(adapter.canSaveForDeparture(),false);await adapter.saveForDeparture();assert.equal(saves,0);
+ changed=false;assert.equal(adapter.canSaveForDeparture(),true);await adapter.saveForDeparture();assert.equal(saves,1);
+});
