@@ -30,7 +30,7 @@ const master = { revision: 7, permissions: { view: true }, control: { activeVers
   { id: 'ab-v1', status: 'approved', snapshot: { products: [{ code: 'P' }], lines: [], categoryGroups: [] } }
 ] } };
 const shared = { revision: 7, permissions: { view: true }, control: { workflow: { generation: 'fqc-generation', revision: 1 } } };
-function fixture() {
+function fixture(cells = { 'ab.view': true, 'equipment.view': true }) {
   const reads = { shared: queue(), master: queue(), equipment: queue(), permission: queue() };
   let epoch = 1, active = true, clock = 0, timerId = 0, focused = true;
   const activeTimers = new Map();
@@ -61,6 +61,10 @@ function fixture() {
   // Existing event handles remain available to original assertions; no scheduler stub.
   for(const target of [box.window,box.document]){const listeners=new Map();target.addEventListener=(name,callback)=>{if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(callback);if(target===box.window)events[name]=()=>target.dispatchEvent({type:name});};target.removeEventListener=(name,callback)=>listeners.get(name)?.delete(callback);target.dispatchEvent=event=>{const pendingEvents=Array.from(listeners.get(event.type)||[]);for(const callback of pendingEvents)callback.call(target,event);return true;};}
   box.document.hasFocus=()=>focused;
+  // The real IIFE receives window as host. Model only the two explicit read
+  // dependencies; missing/false cells deny and no unrelated right is granted.
+  box.host = box.window;
+  box.window.hasPermission = key => cells[key] === true;
   vm.createContext(box);
   vm.runInContext(pauseSource, box);
   const pause = box.window.createScopedReadPause('FQC readiness fixture');
@@ -96,6 +100,23 @@ void test('preserves sequential FQC then AB then narrowed equipment reads, rende
   assert.equal(f.reads.permission.pending.length, 0);
   assert.equal(f.results.fetches[0].url, '/api/routine-equipment?catalog=effective');
   assert.equal(f.results.fetches[0].options.cache, 'no-store');
+});
+
+for (const dependency of ['ab.view', 'equipment.view']) for (const mode of ['missing', 'false', 'null']) void test(`${dependency} ${mode} blocks dependencies without partial render or authority changes`, async () => {
+  const cells = { 'ab.view': true, 'equipment.view': true };
+  if (mode === 'missing') delete cells[dependency]; else cells[dependency] = mode === 'null' ? null : false;
+  const before = clone(cells), f = fixture(cells), owner = f.sync.identity;
+  const done = f.box.bind(f.element);
+  assert.equal(f.reads.shared.pending.length, 1, 'retain the established initial FQC read');
+  f.reads.shared.pending[0].resolve(clone(shared)); await done;
+  assert.equal(f.reads.master.pending.length, 0); assert.equal(f.reads.equipment.pending.length, 0);
+  assert.equal(f.reads.permission.pending.length, 0); assert.equal(f.results.fetches.length, 0);
+  assert.equal(f.results.renders.length, 0); assert.equal(f.results.adopted.length, 0); assert.equal(f.results.polls, 0);
+  assert.equal(f.box.state().master, null); assert.equal(f.box.state().equipment, null);
+  assert.match(f.element.innerHTML, /FQC 載入目錄需要 AB 與檢具查看權限/);
+  assert.equal(f.sync.identity, owner); assert.equal(f.sync.identityGeneration(), 1);
+  assert.deepEqual(cells, before, 'dependency denial must not auto-grant a missing right');
+  assert.equal(f.box.window.hasPermission('users.view'), false);
 });
 
 void test('unrelated concurrent state revisions do not introduce a new whole-workspace retry gate', async () => {

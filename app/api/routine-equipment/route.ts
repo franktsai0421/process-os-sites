@@ -1,3 +1,4 @@
+import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import { emptyEquipmentControl, activeVersion, openVersion, reserveMarks, nextPieceMark, checkedSnapshot, submitProblems, hierarchy, fillRepresentativePhotos, type EquipmentControl, type Equipment, type EquipmentGroup } from '@/lib/routine-equipment';
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY],modelKey:KEY,deferHistory:true,deferDependencyHistory:true});
     const actor = await identity(request, state);
-    if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
+    if (!actor || !(await can(request, state, 'equipment.view')))
       return reply({ error: '沒有查看檢具資料的權限' }, 403);
     const prepared=state.recordStorage?.models.get(KEY),control=prepared?parseEquipmentWorkflow(state.values[KEY],prepared):controlFrom(state.values[KEY]);
     const body={ revision: state.revision, control:'workflow'in control?visibleSharedControl(parseEquipmentWorkflow(state.values[KEY],prepared),await can(request,state,'approval.compare'),caseMetadata):control };
@@ -85,20 +86,9 @@ export async function POST(request: Request) {
       return reply({ error: '資料已由其他分頁更新，請重新載入後核對', revision: state.revision }, 409);
     const action = String(body.action || '');
     if(['import','workbookImport'].includes(action)&&!await maintenanceCredential(request))return reply({error:'NON_BOM_IMPORT_MAINTENANCE_ONLY'},403);
-    const edit = ['begin','save','create','delete','submit','withdraw','workbookImport'].includes(action);
-    const review = ['approve','reject'].includes(action);
-    if (action === 'import') {
-      if (!(await can(request, state, 'view:data')) || !(await can(request, state, 'master.import')))
-        return reply({ error: '沒有匯入權限' }, 403);
-    } else if (edit) {
-      if (!(await can(request, state, 'view:data')) ||
-          !(await can(request, state, action === 'withdraw' ? 'approval.withdraw' : 'approval.submit')))
-        return reply({ error: '沒有建檔或送審權限' }, 403);
-    } else if (review) {
-      if (!(await can(request, state, 'view:approval')) ||
-          !(await can(request, state, action === 'approve' ? 'approval.approve' : 'approval.reject')))
-        return reply({ error: '沒有主管審核權限' }, 403);
-    } else return reply({ error: '不支援的操作' }, 400);
+    const required:Record<string,string[]>={import:['edit','exchange'],workbookImport:['edit','save','exchange','create'],begin:['edit'],save:['edit','save'],submit:['edit','save','submit'],create:['edit','create'],delete:['edit','delete'],withdraw:['withdraw'],approve:['approve'],reject:['return']};
+    if(!required[action])return reply({error:'不支援的操作'},400);
+    if(!await can(request,state,'equipment.view')||!(await Promise.all(required[action].map(op=>can(request,state,'equipment.'+op)))).every(Boolean))return reply({error:'FORBIDDEN'},403);
 
     const prepared=state.recordStorage?.models.get(KEY) as {workflow?:unknown}|undefined;
     if(prepared?.workflow||parse(state.values[KEY],{}).workflow)return reply({error:'WORKFLOW_V3_REQUIRED'},409);
@@ -187,6 +177,8 @@ export async function POST(request: Request) {
       let snapshot: ReturnType<typeof checkedSnapshot>;
       try { snapshot = checkedSnapshot(version, body.snapshot); }
       catch (error) { return reply({ error: error instanceof Error ? error.message : '草稿驗證失敗' }, 422); }
+      const effects=restoreEffects({equipment:version.equipment,groups:version.groups,categories:version.categories,subcategories:version.subcategories},snapshot);
+      for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'equipment.'+op))return reply({error:'FORBIDDEN'},403);
       const previousPhotos = new Map(version.equipment.map(item => [item.id, item.photoId]));
       for (const item of snapshot.equipment) if (item.photoId && (action === 'workbookImport' || item.photoId !== previousPhotos.get(item.id)) &&
           !(await env.STATE_ARCHIVE.head(`routine-equipment/photos/${item.photoId}`)))

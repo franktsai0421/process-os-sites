@@ -7,9 +7,9 @@ type AccessScope={id?:string; name?:string; lines:string[]; views:string[]; perm
 export type AccessUser=Partial<AccessScope> & {id:string; role:string; enabled?:boolean; inheritRole?:boolean; deletedAt?:string;authMode?:string;accessOverrides?:Record<string,boolean>};
 export type PlatformUser = AccessUser & { name: string; email?: string; password?: string; passwordHash?: string; authEpoch?: number };
 export function roleTemplates(values:Record<string,string>):Record<string,AccessScope> {return templates(values,roleDefaults);}
-export function effectiveAccess(user:AccessUser, values:Record<string,string>) {
+export function effectiveAccess(user:AccessUser, values:Record<string,string>, roles=roleTemplates(values)) {
   const role = user.role;
-  const roles = roleTemplates(values), preset = roles[role];
+  const preset = roles[role];
   const scope = user.inheritRole !== false ? preset : user;
   const enabled = user.enabled !== false && !user.deletedAt && !!preset;
   const cells=effectiveCells(user,roles),primary=isPrimary(user);

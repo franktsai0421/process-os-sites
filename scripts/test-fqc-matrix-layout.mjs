@@ -87,8 +87,11 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
   assert.equal(rules('.fqc-matrix-item-status')['white-space'],'nowrap');assert.equal(rules('.fqc-matrix-legend')['flex-wrap'],'wrap');assert(rules('.fqc-matrix .matrix-cell:focus-visible').outline);
   const inherited=fs.readFileSync(path.join(root,'public/process/master-admin-ui.css'),'utf8');assert.match(inherited,/\.master-history button\{[^}]*padding:10px/,'regression covers actual inherited padding');
 });
-check('composed photo JS and unchanged matrix CSS retain exact cache tags',()=>{
-  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');assert.match(html,/data-process-src="fqc-master\.js\?v=20261030-photo-integrated1"/);assert.match(html,/href="fqc-master\.css\?v=20261028-matrix-rule-layout1"/);
+check('JS and CSS retain their independently versioned local references',()=>{
+  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
+  const expected={'fqc-master.js':'20261030-access-fusion1','fqc-master.css':'20261028-matrix-rule-layout1'};
+  const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });
 if(process.argv[2]==='--before')check('old actual renderer reproduces substituted marker and legacy mismatch',()=>{
   const before=fs.readFileSync(process.argv[3],'utf8'),f=fixture('vi',before);

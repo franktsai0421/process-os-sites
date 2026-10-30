@@ -317,6 +317,11 @@
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
+    if(tab==='line-admin'){
+      const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
+      if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
+      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();content.innerHTML=`<section class="panel" data-line-permission-notice role="status"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Đây là lối vào bản nháp chung AB/C. Tài khoản cần quyền Xem AB hoặc C; lưu sẽ áp dụng cho toàn bộ mô-đun. Liên hệ quản trị viên để cấp quyền.':'這是 AB／C 共用草稿的管理入口。此帳號尚缺 AB 或 C 查看權限；保存會涵蓋所屬模組整份草稿。請由管理者調整對應權限。'}</p></section>`;bindTabButtons();return;}
+    }
     if(tab==='web-feedback'){
       content.dataset.activeTab=tab;
       window.ProcessFeedbackEntry?.mount?.(content);bindTabButtons();return;

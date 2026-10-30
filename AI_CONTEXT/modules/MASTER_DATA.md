@@ -1,3 +1,5 @@
+2026-10-29 lines permission candidate: line-admin remains an entry to AB/C shared drafts. Choose an authorized AB/C scope before workflow read; with neither view, show an actionable permission notice without rejected fetch loops. Legacy action checks use selected AB/C cells; stored lines action values remain visible/read-only in settings and are not migrated into AB/C grants. No workflow partition or data change.
+
 ## 2026-10-29 首次進頁局部優化
 
 index 的 URL 顯示意圖僅控制 process-master boot 期間隱藏 shell 不參與排版；移除 boot 旗標後恢復。權限仍由 bootstrap/API 決定，其他頁面無此規則。速度與功能證據見 [入口報告](../../docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。

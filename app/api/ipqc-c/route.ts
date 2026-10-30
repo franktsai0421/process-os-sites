@@ -1,3 +1,4 @@
+import {restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, parse, maintenanceCredential, responseHeaders as headers } from '@/lib/process-state';
 import { activeIpqc, checkedIpqcRule, checkedIpqcSnapshot, copyIpqc, nextErrorCode, nextItemCode,
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     const state = await readState({modelKey:KEY,deferHistory:true,deferDependencyHistory:true,...(!localHost(request)?{keys:readKeys}:{})});
     const actor = await identity(request, state);
-    if (!actor || !(await can(request, state, 'view:data')) && !(await can(request, state, 'view:approval')))
+    if (!actor || !(await can(request, state, 'ipqc-c.view')))
       return reply({ error: '沒有查看 IPQC-C 的權限' }, 403);
     const equipment = parse(state.values.routineEquipmentControl, null) as EquipmentControl | null;
     const effective = equipment?.versions?.find(v => v.id === equipment.activeVersionId && v.status === 'approved');
@@ -112,19 +113,19 @@ export async function POST(request: Request) {
       if (!localHost(request) || actor.role !== 'admin' || !(await can(request, state, 'master.import')))
         return reply({ error: '首次建置僅允許 Local ADMIN' }, 403);
     } else if (edit) {
-      const data=await can(request,state,'view:data');
+      const data=await can(request,state,'ipqc-c.view');
       // Legacy Save/Submit replace body.snapshot, unlike V3's separate working,
       // saved and fixed case commands. Require every operation they perform.
-      const required=action==='save'?['edit','save']:action==='submit'?['edit','save','submit']:['edit'];
+      const required=action==='save'?['edit','save']:action==='submit'?['edit','save','submit']:action.startsWith('create')?['edit','create']:['edit'];
       const allowed=action==='withdraw'
-        ? (data||await can(request,state,'view:approval'))&&await can(request,state,'approval.withdraw')
+        ? data&&await can(request,state,'ipqc-c.withdraw')
         : data&&(await Promise.all(required.map(op=>can(request,state,'ipqc-c.'+op)))).every(Boolean);
       if (!allowed)
         return reply({ error: '沒有 IPQC-C 編輯權限' }, 403);
       if (action.startsWith('delete') && !(await can(request, state, 'master.delete')))
         return reply({ error: '沒有刪除權限' }, 403);
     } else if (review) {
-      if (!(await can(request, state, 'view:approval')) ||
+      if (!(await can(request, state, 'ipqc-c.view')) ||
           !(await can(request, state, action === 'approve' ? 'approval.approve' : 'approval.reject')))
         return reply({ error: '沒有審核權限' }, 403);
     } else return reply({ error: '不支援的操作' }, 400);
@@ -200,6 +201,8 @@ export async function POST(request: Request) {
         catch (error) { return reply({ error: error instanceof Error ? error.message : '草稿格式錯誤' }, 422); }
         try { checkEquipment(snapshot, version.snapshot, state.values); }
         catch (error) { return reply({ error: error instanceof Error ? error.message : '檢具關聯無效' }, 422); }
+        const effects=restoreEffects(version.snapshot,snapshot);
+        for(const op of ['create','delete'] as const)if(effects[op]&&!await can(request,state,'ipqc-c.'+op))return reply({error:'FORBIDDEN'},403);
         const previousPhotos = new Set(version.snapshot.items.flatMap(item => item.mediaItems.map(photo => photo.id)));
         for (const photo of snapshot.items.flatMap(item => item.mediaItems))
           if (!previousPhotos.has(photo.id) && !await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))

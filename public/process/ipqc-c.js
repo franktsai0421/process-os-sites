@@ -12,7 +12,7 @@
     returned:t('Đã trả lại','已發回'), withdrawn:t('Đã rút lại','已撤回') })[value] || value;
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const identity = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
-  const permitted = key => !readAccessBlocked()&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : identity()?.role === 'admin');
+  const permitted = key => !readAccessBlocked()&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) : identity()?.role === 'admin');
   const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || { 'Content-Type':'application/json' }),'X-IPQC-C-Save-Projection':'1'});
   let host = null, reviewHost = null, control = null, catalog = { products:[], stages:[] }, equipmentGroups = [], equipment = [], revision = null;
   let working = null, selectedVersionId = '', productCode = '', stageCode = '', errorId = '', search = '';
@@ -38,7 +38,7 @@
   function sharedTransport() {
     const actor=identity()?.id;
     if(!actor)throw Error(t('Cần đăng nhập','請先登入'));
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,guardAccessResults:true,permissionGates:{edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
+    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:`${API}/workflow?caseMetadata=1`,legacyArchive:true,actorId:actor,headers,guardAccessResults:true,permissionGates:{restore:'#ipqcc-case-restore',edit:'#ipqcc-begin,#ipqcc-case-restore,[data-ipqcc-add],#ipqcc-editor button[type=submit],[data-ipqcc-edit-item],[data-ipqcc-edit-error]',save:'#ipqcc-save',submit:'#ipqcc-submit',withdraw:'#ipqcc-withdraw,[data-ipqcc-review="withdraw"]',approve:'[data-ipqcc-review="approve"]',return:'[data-ipqcc-review="reject"]',history:'#ipqcc-case-history',delete:'[data-ipqcc-delete-item],[data-ipqcc-delete-error]'}});}
     return sharedClient;
   }
   const workflowErrors={
@@ -51,7 +51,7 @@
     
     RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['Chưa xác định kết quả. Kiểm tra thao tác trước khi thử lại','結果未知，請先查證操作再重試'],
   };
-  const savePermissionKeys=['view','edit','save','submit','withdraw','approve','return','history','delete'];
+  const savePermissionKeys=['view','edit','save','submit','withdraw','approve','return','history','delete','create','restore'];
   function captureSaveProjection(transport){
     const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),base=control,flow=control?.workflow,local=working,
       mount=mountSequence,read=readSequence,baseRevision=revision,flowJSON=JSON.stringify(flow?.working),localJSON=JSON.stringify(local),snapshot=flowJSON?JSON.parse(flowJSON):null,
@@ -667,10 +667,10 @@
     root.querySelector('#ipqcc-case-back')?.addEventListener('click',()=>{caseHistory.reviewCase=null;draw();});
     root.querySelector('#ipqcc-case-all')?.addEventListener('click',()=>{caseHistory.showAll=!caseHistory.showAll;caseHistory.itemPage=0;draw();});
     const caseFooter=root.querySelector('#ipqcc-case-dialog footer');
-    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('edit')&&permitted('approval.compare')){
+    if(caseFooter&&caseHistory?.reviewCase&&operationAllowed('restore')&&permitted('approval.compare')){
       const button=document.createElement('button');button.type='button';button.id='ipqcc-case-restore';button.className='button ghost';
       button.textContent=t('Xem trước khôi phục','預覽還原');button.disabled=open()?.status!=='draft'||busy;caseFooter.prepend(button);
-      button.onclick=async()=>{try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){if(isReadSuperseded(error))return;caseHistory.error=error.message;draw();}};
+      button.onclick=async()=>{if(!operationAllowed('restore'))return;try{await window.previewSharedDraftRestore({client:sharedTransport(),savedId:caseHistory.reviewCase.savedId,onApplied:async()=>{caseHistory=null;await read(false);message=t('Đã khôi phục vào bản nháp · chưa lưu','已還原至草稿 · 尚未儲存');draw();}});}catch(error){if(isReadSuperseded(error))return;caseHistory.error=error.message;draw();}};
     }
     root.querySelectorAll('[data-ipqcc-case]').forEach(button=>button.addEventListener('click',()=>loadCase(button.dataset.ipqccCase)));
     for(const [id,delta] of [['prev',-1],['next',1]])root.querySelector(`#ipqcc-case-items-${id}`)?.addEventListener('click',()=>{caseHistory.itemPage+=delta;draw();});

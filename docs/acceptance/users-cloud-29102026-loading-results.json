@@ -1,0 +1,3555 @@
+{
+  "scope": "second loading optimization, synthetic only; original first-round measurements retained separately",
+  "validatedCodeCommit": "91942a677fb3fc5d912437b65bd8f495972d70ea",
+  "baseline": {
+    "status": "PASS",
+    "label": "before",
+    "scope": "compiled application + Chromium; synthetic 4/200 accounts; loopback, no throttling; five new contexts each, cold HTTP cache then warm reload; login excluded; completion includes current data, navigation ready and two animation frames",
+    "sourceCommit": "7af150adaf9f51c24fbb17e297fe812ebb92b995",
+    "buildEntrySha256": "694dffe2592befcd1ebfaeb041769373533899feaaf0c1995bf24effd788f37d",
+    "sourceSha256": {
+      "app/api/user-access/route.ts": "ba4f1da044ac70c5058eb5e4656342d0d333ba45e9b487e82046e0cf2c190435",
+      "public/process/user-access.js": "d5024e97d09761b603472e8bc55f5dd23eed52c20da46059ec51b37118845c33"
+    },
+    "samples": [
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 720.9606070000002,
+        "phases": {
+          "sharedReadyMs": 331,
+          "assetsReadyMs": 616,
+          "readyMs": 645
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 173.59999999962747,
+            "ms": 22.299999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 613.0999999996275,
+            "ms": 15.799999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 326.589348,
+        "phases": {
+          "sharedReadyMs": 123,
+          "assetsReadyMs": 250,
+          "readyMs": 270
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 86.29999999981374,
+            "ms": 15,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 247.5,
+            "ms": 14.700000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 736.4328059999998,
+        "phases": {
+          "sharedReadyMs": 315,
+          "assetsReadyMs": 646,
+          "readyMs": 673
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 186.20000000018626,
+            "ms": 32.799999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 643.4000000003725,
+            "ms": 11.299999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 362.02784399999973,
+        "phases": {
+          "sharedReadyMs": 128,
+          "assetsReadyMs": 290,
+          "readyMs": 310
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 84,
+            "ms": 14.300000000745058,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 288.40000000037253,
+            "ms": 12.099999999627471,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 763.5436159999999,
+        "phases": {
+          "sharedReadyMs": 333,
+          "assetsReadyMs": 661,
+          "readyMs": 694
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 266.40000000037253,
+            "ms": 28.799999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 657,
+            "ms": 14.599999999627471,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 380.1018299999996,
+        "phases": {
+          "sharedReadyMs": 129,
+          "assetsReadyMs": 283,
+          "readyMs": 306
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 95.59999999962747,
+            "ms": 11.599999999627471,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 280.59999999962747,
+            "ms": 14.299999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 715.8274160000001,
+        "phases": {
+          "sharedReadyMs": 271,
+          "assetsReadyMs": 620,
+          "readyMs": 663
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 220.09999999962747,
+            "ms": 20.40000000037253,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 617.0999999996275,
+            "ms": 20.300000000745058,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 480.37287300000025,
+        "phases": {
+          "sharedReadyMs": 121,
+          "assetsReadyMs": 386,
+          "readyMs": 405
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 84.90000000037253,
+            "ms": 14.399999999441206,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 384.1000000005588,
+            "ms": 12,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 695.4892060000002,
+        "phases": {
+          "sharedReadyMs": 296,
+          "assetsReadyMs": 611,
+          "readyMs": 634
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 245.20000000018626,
+            "ms": 22.299999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 606.0999999996275,
+            "ms": 12.200000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 310.73921900000005,
+        "phases": {
+          "sharedReadyMs": 119,
+          "assetsReadyMs": 253,
+          "readyMs": 272
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 78.90000000037253,
+            "ms": 12.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 250.70000000018626,
+            "ms": 13.299999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 820.8696630000013,
+        "phases": {
+          "sharedReadyMs": 271,
+          "assetsReadyMs": 565,
+          "readyMs": 766
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 165.70000000018626,
+            "ms": 27.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 562,
+            "ms": 103.6000000005588,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 580.6048389999996,
+        "phases": {
+          "sharedReadyMs": 147,
+          "assetsReadyMs": 310,
+          "readyMs": 532
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 109.90000000037253,
+            "ms": 13.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 308.30000000074506,
+            "ms": 98.3999999994412,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 874.285022,
+        "phases": {
+          "sharedReadyMs": 302,
+          "assetsReadyMs": 601,
+          "readyMs": 814
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 245.29999999981374,
+            "ms": 27.300000000745058,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 598.4000000003725,
+            "ms": 121.59999999962747,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 512.8520499999995,
+        "phases": {
+          "sharedReadyMs": 123,
+          "assetsReadyMs": 269,
+          "readyMs": 455
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 82.8999999994412,
+            "ms": 15.300000000745058,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 266,
+            "ms": 106.5,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 869.4882939999989,
+        "phases": {
+          "sharedReadyMs": 308,
+          "assetsReadyMs": 611,
+          "readyMs": 813
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 257.5,
+            "ms": 20.09999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 607.0999999996275,
+            "ms": 111.29999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 529.6533299999992,
+        "phases": {
+          "sharedReadyMs": 130,
+          "assetsReadyMs": 269,
+          "readyMs": 466
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 91.69999999925494,
+            "ms": 15.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 266.69999999925494,
+            "ms": 100.1000000005588,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 845.6540620000014,
+        "phases": {
+          "sharedReadyMs": 298,
+          "assetsReadyMs": 577,
+          "readyMs": 760
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 241,
+            "ms": 20,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 574.1000000005588,
+            "ms": 92.5,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 563.2862509999995,
+        "phases": {
+          "sharedReadyMs": 124,
+          "assetsReadyMs": 275,
+          "readyMs": 519
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 83.29999999981374,
+            "ms": 17.200000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 273.09999999962747,
+            "ms": 97.59999999962747,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 848.9092999999993,
+        "phases": {
+          "sharedReadyMs": 306,
+          "assetsReadyMs": 589,
+          "readyMs": 794
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 199.6000000005588,
+            "ms": 20.59999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 585.9000000003725,
+            "ms": 102.79999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 528.1976009999998,
+        "phases": {
+          "sharedReadyMs": 145,
+          "assetsReadyMs": 283,
+          "readyMs": 463
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 104.20000000018626,
+            "ms": 21.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 280.70000000018626,
+            "ms": 96.90000000037253,
+            "bytes": 24196
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": [
+      {
+        "size": 4,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 720.9606070000002,
+        "max": 763.5436159999999
+      },
+      {
+        "size": 4,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 362.02784399999973,
+        "max": 480.37287300000025
+      },
+      {
+        "size": 200,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 848.9092999999993,
+        "max": 874.285022
+      },
+      {
+        "size": 200,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 529.6533299999992,
+        "max": 580.6048389999996
+      }
+    ]
+  },
+  "intermediate": {
+    "status": "PASS",
+    "label": "after",
+    "scope": "compiled application + Chromium; synthetic 4/200 accounts; loopback, no throttling; five new contexts each, cold HTTP cache then warm reload; login excluded; completion includes current data, navigation ready and two animation frames",
+    "sourceCommit": "41b0927296d784b45ae0c97bb290f7f485b76a7e",
+    "buildEntrySha256": "ba876920b217f63d6eb72df83e2d6c78cd04e1dc32ad0100e71e12e6b9f5e402",
+    "sourceSha256": {
+      "app/api/user-access/route.ts": "dbd4a422bc2b83b7eeb4e09ad90c1a2b372e6f0720a645e09d8b0e02cb057c20",
+      "public/process/user-access.js": "7b467df66e9766951f61d576656be0c328e007a9d271a25a03762400a47cde1e",
+      "public/process/user-access-initial-read.js": "79b352d4acbdc2ae622ddff06bda9e5d241a883bf8eef0c4a7f3a334e25813c9",
+      "public/process/index.html": "a88ddeb61342623b54aa531f59414a0a462ae43460de859924632e655440bd51"
+    },
+    "samples": [
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 789.1935990000002,
+        "phases": {
+          "sharedReadyMs": 329,
+          "assetsReadyMs": 724,
+          "readyMs": 731
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 286.29999999981374,
+            "ms": 22.200000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 562,
+            "ms": 10.399999999441206,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 362.2221940000004,
+        "phases": {
+          "sharedReadyMs": 111,
+          "assetsReadyMs": 284,
+          "readyMs": 290
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 65.70000000018626,
+            "ms": 11.299999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 194.1000000005588,
+            "ms": 21.299999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 743.574869,
+        "phases": {
+          "sharedReadyMs": 328,
+          "assetsReadyMs": 675,
+          "readyMs": 684
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 214.59999999962747,
+            "ms": 15.900000000372529,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 519.8999999994412,
+            "ms": 43.90000000037253,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 378.91830800000025,
+        "phases": {
+          "sharedReadyMs": 145,
+          "assetsReadyMs": 301,
+          "readyMs": 306
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 102.20000000018626,
+            "ms": 15.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 226.70000000018626,
+            "ms": 27.09999999962747,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 701.0585840000003,
+        "phases": {
+          "sharedReadyMs": 295,
+          "assetsReadyMs": 631,
+          "readyMs": 639
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 247,
+            "ms": 21.59999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 474.5,
+            "ms": 61.5,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 362.4103580000001,
+        "phases": {
+          "sharedReadyMs": 184,
+          "assetsReadyMs": 305,
+          "readyMs": 313
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 139.79999999981374,
+            "ms": 22.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 234.09999999962747,
+            "ms": 67.09999999962747,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 729.4289800000006,
+        "phases": {
+          "sharedReadyMs": 323,
+          "assetsReadyMs": 641,
+          "readyMs": 674
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 200.3999999994412,
+            "ms": 18.800000000745058,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 482.70000000018626,
+            "ms": 176.79999999981374,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 329.82077800000025,
+        "phases": {
+          "sharedReadyMs": 126,
+          "assetsReadyMs": 272,
+          "readyMs": 283
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 85.79999999981374,
+            "ms": 11.400000000372529,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 195.5,
+            "ms": 28.200000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 705.4157889999997,
+        "phases": {
+          "sharedReadyMs": 298,
+          "assetsReadyMs": 641,
+          "readyMs": 648
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 252.40000000037253,
+            "ms": 15,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 476.70000000018626,
+            "ms": 43.700000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 366.0377870000002,
+        "phases": {
+          "sharedReadyMs": 142,
+          "assetsReadyMs": 309,
+          "readyMs": 316
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 101.59999999962747,
+            "ms": 15.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 222.90000000037253,
+            "ms": 48.299999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 783.3829089999999,
+        "phases": {
+          "sharedReadyMs": 299,
+          "assetsReadyMs": 723,
+          "readyMs": 726
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 187.1000000005588,
+            "ms": 23.799999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 506.5,
+            "ms": 90.1000000005588,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 480.1114379999999,
+        "phases": {
+          "sharedReadyMs": 136,
+          "assetsReadyMs": 410,
+          "readyMs": 416
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 92.6000000005588,
+            "ms": 12.399999999441206,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 200.6000000005588,
+            "ms": 92.8999999994412,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 806.8241069999985,
+        "phases": {
+          "sharedReadyMs": 323,
+          "assetsReadyMs": 741,
+          "readyMs": 750
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 266.3999999994412,
+            "ms": 23.90000000037253,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 464.09999999962747,
+            "ms": 149.79999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 463.48749300000054,
+        "phases": {
+          "sharedReadyMs": 134,
+          "assetsReadyMs": 392,
+          "readyMs": 397
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 92.80000000074506,
+            "ms": 17,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 207.90000000037253,
+            "ms": 65.29999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 767.0690250000007,
+        "phases": {
+          "sharedReadyMs": 287,
+          "assetsReadyMs": 686,
+          "readyMs": 695
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 235,
+            "ms": 19.799999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 442.3999999994412,
+            "ms": 127,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 429.52148600000146,
+        "phases": {
+          "sharedReadyMs": 126,
+          "assetsReadyMs": 275,
+          "readyMs": 383
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 80.70000000018626,
+            "ms": 16.90000000037253,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 187.6000000005588,
+            "ms": 105.09999999962747,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 828.4707980000003,
+        "phases": {
+          "sharedReadyMs": 281,
+          "assetsReadyMs": 752,
+          "readyMs": 759
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 166.29999999981374,
+            "ms": 13.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 521.2999999998137,
+            "ms": 87.90000000037253,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 412.42967600000156,
+        "phases": {
+          "sharedReadyMs": 107,
+          "assetsReadyMs": 344,
+          "readyMs": 349
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 76.90000000037253,
+            "ms": 11.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 178.70000000018626,
+            "ms": 74.79999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 821.443795000001,
+        "phases": {
+          "sharedReadyMs": 287,
+          "assetsReadyMs": 745,
+          "readyMs": 754
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 222.5,
+            "ms": 17.799999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 456.6000000005588,
+            "ms": 142.79999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 459.53004599999986,
+        "phases": {
+          "sharedReadyMs": 139,
+          "assetsReadyMs": 255,
+          "readyMs": 403
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 101.09999999962747,
+            "ms": 15.800000000745058,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 184.70000000018626,
+            "ms": 140.29999999981374,
+            "bytes": 24196
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": [
+      {
+        "size": 4,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 729.4289800000006,
+        "max": 789.1935990000002
+      },
+      {
+        "size": 4,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 362.4103580000001,
+        "max": 378.91830800000025
+      },
+      {
+        "size": 200,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 806.8241069999985,
+        "max": 828.4707980000003
+      },
+      {
+        "size": 200,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 459.53004599999986,
+        "max": 480.1114379999999
+      }
+    ]
+  },
+  "candidate": {
+    "status": "PASS",
+    "label": "paged",
+    "scope": "compiled application + Chromium; synthetic 4/200 accounts; loopback, no throttling; five new contexts each, cold HTTP cache then warm reload; login excluded; completion includes current data, navigation ready and two animation frames",
+    "sourceCommit": "91942a677fb3fc5d912437b65bd8f495972d70ea",
+    "buildEntrySha256": "dd8e2ba2eee8ff283dd803cb6514f7dafaa1719980a9ef760e728140c9ec136a",
+    "sourceSha256": {
+      "app/api/user-access/route.ts": "dbd4a422bc2b83b7eeb4e09ad90c1a2b372e6f0720a645e09d8b0e02cb057c20",
+      "public/process/user-access.js": "4157e8892b3f6a439258b13294c9a0379cdf39d0596a0ed466335b20338cc640",
+      "public/process/user-access-initial-read.js": "79b352d4acbdc2ae622ddff06bda9e5d241a883bf8eef0c4a7f3a334e25813c9",
+      "public/process/user-access.css": "cd65cc63613196bc06674860249b8f80920725cd7c5460b2880a31f320c4f41d",
+      "public/process/index.html": "10be2176005b0c8ff1ac58bda65e14323913c0cf4be655af5b3f1e7c1894a493"
+    },
+    "samples": [
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 790.0822949999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 363,
+          "assetsReadyMs": 696,
+          "readyMs": 703
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 226.90000000037253,
+            "ms": 17.5,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 510.29999999981374,
+            "ms": 44.90000000037253,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 344.59907799999974,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 130,
+          "assetsReadyMs": 284,
+          "readyMs": 292
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 86.09999999962747,
+            "ms": 17.600000000558794,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 202.59999999962747,
+            "ms": 24.700000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 668.1045319999998,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 293,
+          "assetsReadyMs": 599,
+          "readyMs": 606
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 238.1000000005588,
+            "ms": 25.09999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 460.6000000005588,
+            "ms": 32.799999999813735,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 326.8256879999999,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 109,
+          "assetsReadyMs": 238,
+          "readyMs": 245
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 77.8999999994412,
+            "ms": 13.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 177,
+            "ms": 32,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 643.8902389999994,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 291,
+          "assetsReadyMs": 583,
+          "readyMs": 590
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 232.90000000037253,
+            "ms": 21.299999999813735,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 456.70000000018626,
+            "ms": 33.60000000055879,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 362.10004200000003,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 131,
+          "assetsReadyMs": 285,
+          "readyMs": 290
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 89.80000000074506,
+            "ms": 18.899999999441206,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 205,
+            "ms": 33.80000000074506,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 684.0311229999998,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 269,
+          "assetsReadyMs": 599,
+          "readyMs": 606
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 219.90000000037253,
+            "ms": 16.09999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 431.6000000005588,
+            "ms": 66.29999999981374,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 394.94275500000003,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 122,
+          "assetsReadyMs": 274,
+          "readyMs": 313
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 89,
+            "ms": 13.899999999441206,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 200.3999999994412,
+            "ms": 12.700000000186265,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 656.965972,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 305,
+          "assetsReadyMs": 596,
+          "readyMs": 603
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 252.20000000018626,
+            "ms": 15.599999999627471,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 447.6000000005588,
+            "ms": 66.69999999925494,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 4,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 313.7212960000006,
+        "visibleRows": 4,
+        "phases": {
+          "sharedReadyMs": 120,
+          "assetsReadyMs": 266,
+          "readyMs": 271
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 80.70000000018626,
+            "ms": 13.700000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 188.70000000018626,
+            "ms": 42.40000000037253,
+            "bytes": 4129
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "cold-full-page",
+        "ms": 679.1278899999988,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 276,
+          "assetsReadyMs": 534,
+          "readyMs": 622
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 223.5,
+            "ms": 29.09999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 424.09999999962747,
+            "ms": 139.20000000018626,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 0,
+        "operation": "warm-full-reload",
+        "ms": 412.8157769999998,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 128,
+          "assetsReadyMs": 326,
+          "readyMs": 333
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 87.79999999981374,
+            "ms": 14.600000000558794,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 207.5,
+            "ms": 58.700000000186265,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "cold-full-page",
+        "ms": 731.776167,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 296,
+          "assetsReadyMs": 658,
+          "readyMs": 667
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 246.79999999981374,
+            "ms": 21.90000000037253,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 491.59999999962747,
+            "ms": 72.20000000018626,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 1,
+        "operation": "warm-full-reload",
+        "ms": 395.0283159999999,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 147,
+          "assetsReadyMs": 264,
+          "readyMs": 323
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 104.29999999981374,
+            "ms": 14.599999999627471,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 211.09999999962747,
+            "ms": 57.5,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "cold-full-page",
+        "ms": 696.3127120000008,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 263,
+          "assetsReadyMs": 633,
+          "readyMs": 641
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 223.3999999994412,
+            "ms": 19.90000000037253,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 417.59999999962747,
+            "ms": 126.5,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 2,
+        "operation": "warm-full-reload",
+        "ms": 392.8332849999988,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 125,
+          "assetsReadyMs": 251,
+          "readyMs": 338
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 77.69999999925494,
+            "ms": 15,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 171.5,
+            "ms": 115.19999999925494,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "cold-full-page",
+        "ms": 690.9931309999993,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 253,
+          "assetsReadyMs": 625,
+          "readyMs": 633
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 151.69999999925494,
+            "ms": 21.100000000558794,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 419.19999999925494,
+            "ms": 126.6000000005588,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 3,
+        "operation": "warm-full-reload",
+        "ms": 378.5428329999995,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 126,
+          "assetsReadyMs": 252,
+          "readyMs": 332
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 78.5,
+            "ms": 15.699999999254942,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 178.29999999981374,
+            "ms": 101.29999999981374,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "cold-full-page",
+        "ms": 687.3160029999999,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 261,
+          "assetsReadyMs": 615,
+          "readyMs": 623
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 172.40000000037253,
+            "ms": 21.09999999962747,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 428.40000000037253,
+            "ms": 116,
+            "bytes": 24196
+          }
+        ]
+      },
+      {
+        "size": 200,
+        "repeat": 4,
+        "operation": "warm-full-reload",
+        "ms": 378.7766279999996,
+        "visibleRows": 50,
+        "phases": {
+          "sharedReadyMs": 119,
+          "assetsReadyMs": 218,
+          "readyMs": 329
+        },
+        "requests": [
+          {
+            "path": "/api/process-bootstrap",
+            "start": 80.79999999981374,
+            "ms": 21.200000000186265,
+            "bytes": 1698
+          },
+          {
+            "path": "/api/user-access",
+            "start": 163,
+            "ms": 116.8999999994412,
+            "bytes": 24196
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": [
+      {
+        "size": 4,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 668.1045319999998,
+        "max": 790.0822949999999
+      },
+      {
+        "size": 4,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 344.59907799999974,
+        "max": 394.94275500000003
+      },
+      {
+        "size": 200,
+        "operation": "cold-full-page",
+        "n": 5,
+        "median": 690.9931309999993,
+        "max": 731.776167
+      },
+      {
+        "size": 200,
+        "operation": "warm-full-reload",
+        "n": 5,
+        "median": 392.8332849999988,
+        "max": 412.8157769999998
+      }
+    ]
+  },
+  "browser": {
+    "status": "PASS",
+    "scope": "Chromium module UI + actual handlers in memory SQLite/R2; not full hosted navigation; IME events simulated, not physical input method",
+    "results": [
+      {
+        "actor": "frank",
+        "operation": "S1/S2 search promised fields, combine role/status, clear and matching count",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 306.4
+      },
+      {
+        "actor": "frank",
+        "operation": "S3 composition events preserve text/focus and apply once on composition end",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 112.5
+      },
+      {
+        "actor": "frank",
+        "operation": "V1 correct user, stable matrix nodes/scroll/focus on toggle and row select",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 684.3
+      },
+      {
+        "actor": "frank",
+        "operation": "E1 duplicate submit/Escape while saving makes one POST and verified persisted data",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 452.7
+      },
+      {
+        "actor": "frank",
+        "operation": "R4 missing view dependency rejects and preserves input",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 330.8
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 real CAS conflict preserves draft, read-only retry never overwrites changed target",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 534.6
+      },
+      {
+        "actor": "frank",
+        "operation": "E4 old GET cannot replace successful same-actor mutation",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 336.6
+      },
+      {
+        "actor": "frank",
+        "operation": "M3 delete cancel does not write; delete failure is not success",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 460.9
+      },
+      {
+        "actor": "frank",
+        "operation": "E2 committed write with failed readback recovers using GET only",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 400.8
+      },
+      {
+        "actor": "frank",
+        "operation": "R1 role CRUD, user creation/assignment, assigned-role deletion protection and logical deletion",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 2582.2
+      },
+      {
+        "actor": "manager",
+        "operation": "P1 ordinary admin old password field and incorrect-password feedback",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 300.2
+      },
+      {
+        "actor": "manager",
+        "operation": "R2/R3 manager cannot edit own/Frank/peer roles or role definitions",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 216.7
+      },
+      {
+        "actor": "staff-one",
+        "operation": "V2 regular user own effective permission matrix is read-only/private",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 371.4
+      },
+      {
+        "actor": "frank",
+        "operation": "U1 desktop and narrow Vietnamese layout, long Unicode name, keyboard focus",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 762.9
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 unknown POST result preserves input, blocks repeat, read check never writes",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 383.4
+      },
+      {
+        "actor": "frank",
+        "operation": "E3 POST deadline remains uncertain and cannot resubmit (virtual timer)",
+        "actual": "expected assertions passed",
+        "status": "PASS",
+        "ms": 309.1
+      }
+    ],
+    "errors": []
+  },
+  "compiled": {
+    "status": "PASS_COMPILED_USER_PERMISSIONS",
+    "cases": [
+      "own effective and inherited cells, no peers/templates/password disclosure",
+      "frank own password requires old password",
+      "manager own password requires old password",
+      "staff-one own password requires old password",
+      "primary/peer/self/DEMO and raw API escalation denied",
+      "manager own password: old login fails, new login succeeds, old session revoked",
+      "staff-one own password: old login fails, new login succeeds, old session revoked",
+      "frank own password: old login fails, new login succeeds, old session revoked",
+      "manager resets nonadmin without target old password; old session and password rejected",
+      "disable rejects login/session; reenable requires new login",
+      "ordinary admin grant ceiling, including inherit/reset and role assignment",
+      "role assignment/revocation persists and rejects old session/direct BOM mutation",
+      "individual override and reset inherit persisted role cells",
+      "logical deletion retains business history and prevents ID reuse/login",
+      "assigned role deletion refused, unassigned role deletion succeeds",
+      "stale revision and generic bypass create no writes"
+    ],
+    "timings": [
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "frank",
+        "status": 200,
+        "ms": 43.4
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "manager",
+        "status": 200,
+        "ms": 15.1
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 200,
+        "ms": 14
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "rd-one",
+        "status": 200,
+        "ms": 11.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": null,
+        "status": 200,
+        "ms": 14.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 200,
+        "ms": 11.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 14.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "frank",
+        "target": "frank",
+        "status": 400,
+        "ms": 17.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 13.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "frank",
+        "target": "frank",
+        "status": 400,
+        "ms": 7.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 15.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "frank",
+        "target": "frank",
+        "status": 400,
+        "ms": 6.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "manager",
+        "status": 400,
+        "ms": 11.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "manager",
+        "status": 400,
+        "ms": 7.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "manager",
+        "status": 400,
+        "ms": 6.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 15.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "staff-one",
+        "status": 400,
+        "ms": 8.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 13.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "staff-one",
+        "status": 400,
+        "ms": 8.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "staff-one",
+        "status": 400,
+        "ms": 7.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-role",
+        "actor": "manager",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 13.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-role",
+        "actor": "manager",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 14.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-role",
+        "actor": "manager",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 5.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "frank",
+        "status": 403,
+        "ms": 5.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 13.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "manager",
+        "target": "frank",
+        "status": 403,
+        "ms": 5.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "manager",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "manager",
+        "status": 403,
+        "ms": 7.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "manager",
+        "target": "manager",
+        "status": 403,
+        "ms": 5.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "manager",
+        "target": "manager",
+        "status": 403,
+        "ms": 6.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-role",
+        "actor": "demo-admin",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 10
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-role",
+        "actor": "demo-admin",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 6.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-role",
+        "actor": "demo-admin",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 9.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "demo-admin",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "demo-admin",
+        "target": "frank",
+        "status": 403,
+        "ms": 7.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "demo-admin",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "demo-admin",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "demo-admin",
+        "target": "manager",
+        "status": 403,
+        "ms": 7.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "demo-admin",
+        "target": "manager",
+        "status": 403,
+        "ms": 9.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 17.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "demo-admin",
+        "target": "manager",
+        "status": 403,
+        "ms": 8.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "demo-admin",
+        "target": "manager",
+        "status": 403,
+        "ms": 14
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-role",
+        "actor": "staff-one",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 8.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 14.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-role",
+        "actor": "staff-one",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-role",
+        "actor": "staff-one",
+        "target": "custom_denied",
+        "status": 403,
+        "ms": 6.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "staff-one",
+        "target": "frank",
+        "status": 403,
+        "ms": 8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 13.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "frank",
+        "status": 403,
+        "ms": 7.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "staff-one",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "staff-one",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "staff-one",
+        "target": "manager",
+        "status": 403,
+        "ms": 6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "manager",
+        "status": 403,
+        "ms": 8.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "staff-one",
+        "target": "manager",
+        "status": 403,
+        "ms": 9.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 18.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "staff-one",
+        "target": "manager",
+        "status": 403,
+        "ms": 7.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "frank",
+        "target": "frank",
+        "status": 403,
+        "ms": 6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "frank",
+        "target": "frank",
+        "status": 403,
+        "ms": 6.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "frank",
+        "status": 403,
+        "ms": 8.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-user",
+        "actor": "manager",
+        "target": "elevated",
+        "status": 403,
+        "ms": 6.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 403,
+        "ms": 6.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 403,
+        "ms": 8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "staff-one",
+        "status": 400,
+        "ms": 6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "manager",
+        "status": 200,
+        "ms": 283.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "manager",
+        "target": null,
+        "status": 401,
+        "ms": 9.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "manager",
+        "status": 401,
+        "ms": 308.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "manager",
+        "status": 200,
+        "ms": 298.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "staff-one",
+        "target": "staff-one",
+        "status": 200,
+        "ms": 297.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 401,
+        "ms": 13.9
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 401,
+        "ms": 361.2
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 200,
+        "ms": 251.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "frank",
+        "target": "frank",
+        "status": 200,
+        "ms": 237.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 401,
+        "ms": 7.7
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "frank",
+        "status": 401,
+        "ms": 240.6
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "frank",
+        "status": 200,
+        "ms": 238.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "password",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 200,
+        "ms": 234.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 401,
+        "ms": 10.7
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 401,
+        "ms": 229.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 200,
+        "ms": 239.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 200,
+        "ms": 14.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 401,
+        "ms": 10.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 403,
+        "ms": 10.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "status-user",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 200,
+        "ms": 11.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 401,
+        "ms": 5.8
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 200,
+        "ms": 237.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 16.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "manager",
+        "status": 200,
+        "ms": 15.1
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "manager",
+        "status": 200,
+        "ms": 238.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "rd-one",
+        "status": 403,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "rd-one",
+        "status": 403,
+        "ms": 9.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "rd-one",
+        "status": 403,
+        "ms": 9.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 9.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "rd-one",
+        "status": 403,
+        "ms": 7.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "manager",
+        "target": "manager",
+        "status": 403,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 15.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-role",
+        "actor": "frank",
+        "target": "custom_usersqa",
+        "status": 200,
+        "ms": 16.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 200,
+        "ms": 12.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 401,
+        "ms": 11.7
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "rd-one",
+        "status": 200,
+        "ms": 7.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 200,
+        "ms": 6.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 19
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-role",
+        "actor": "frank",
+        "target": "custom_usersqa",
+        "status": 200,
+        "ms": 13.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 401,
+        "ms": 10.5
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "rd-one",
+        "status": 200,
+        "ms": 10.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 200,
+        "ms": 9.2
+      },
+      {
+        "path": "/api/bom/workflow",
+        "method": "POST",
+        "action": "begin",
+        "actor": "rd-one",
+        "target": null,
+        "status": 403,
+        "ms": 16.9
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 200,
+        "ms": 15.1
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "rd-one",
+        "status": 200,
+        "ms": 8.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 200,
+        "ms": 11.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 15
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 200,
+        "ms": 12.7
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "rd-one",
+        "status": 200,
+        "ms": 11.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "rd-one",
+        "target": null,
+        "status": 200,
+        "ms": 11.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 13.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-role",
+        "actor": "frank",
+        "target": "custom_usersqa",
+        "status": 400,
+        "ms": 10.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 10.5
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-user",
+        "actor": "manager",
+        "target": "staff-one",
+        "status": 200,
+        "ms": 17
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "staff-one",
+        "target": null,
+        "status": 401,
+        "ms": 6.7
+      },
+      {
+        "path": "/api/platform-login",
+        "method": "POST",
+        "action": null,
+        "actor": null,
+        "target": "staff-one",
+        "status": 404,
+        "ms": 9.7
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 15.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "create-user",
+        "actor": "frank",
+        "target": "staff-one",
+        "status": 400,
+        "ms": 7.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 11
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 200,
+        "ms": 10.3
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.1
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "delete-role",
+        "actor": "frank",
+        "target": "custom_usersqa",
+        "status": 200,
+        "ms": 12.4
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 12.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 7.8
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 200,
+        "ms": 12
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 8.6
+      },
+      {
+        "path": "/api/user-access",
+        "method": "POST",
+        "action": "update-user",
+        "actor": "frank",
+        "target": "rd-one",
+        "status": 409,
+        "ms": 9.2
+      },
+      {
+        "path": "/api/users",
+        "method": "POST",
+        "action": "update",
+        "actor": "frank",
+        "target": "frank",
+        "status": 410,
+        "ms": 5.2
+      },
+      {
+        "path": "/api/user-access",
+        "method": "GET",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 200,
+        "ms": 14
+      },
+      {
+        "path": "/api/shared-state",
+        "method": "POST",
+        "action": null,
+        "actor": "frank",
+        "target": null,
+        "status": 403,
+        "ms": 8.2
+      }
+    ],
+    "realData": false,
+    "realCredentials": false,
+    "remoteBindings": false,
+    "disposed": true
+  },
+  "fullPage": {
+    "status": "PASS_FULL_APPLICATION_BROWSER",
+    "scope": "real compiled application, normal login + full bootstrap; synthetic accounts and nonpersistent D1/R2 only",
+    "cases": [
+      {
+        "operation": "normal login → full users page ready",
+        "ms": 1007.5606520000001,
+        "status": "PASS"
+      },
+      {
+        "operation": "full page save + independent browser reload/readback",
+        "status": "PASS"
+      },
+      {
+        "operation": "53-account pagination, search beyond page, clear and Vietnamese narrow viewport without document overflow",
+        "status": "PASS"
+      }
+    ],
+    "pageErrors": [],
+    "requests": [
+      {
+        "path": "/api/platform-login",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      },
+      {
+        "path": "/api/process-bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/user-access",
+        "status": 200
+      }
+    ],
+    "disposed": true
+  },
+  "validation": {
+    "projectionPolicyComparisons": 140,
+    "accountApiCases": 48,
+    "initialReadOwnership": "PASS",
+    "responseFenceCases": 5,
+    "roleSessionCases": 6,
+    "ownProjectionCases": 3,
+    "accessNavigation": "PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "build": "PASS",
+    "sourceOnlyPreflight": "PASS",
+    "initialGetExactlyOnceAndOverlapsAssets": "PASS all 20 candidate loads"
+  },
+  "limitations": [
+    "Existing Site not deployed or benchmarked; version unknown",
+    "No externally accessible isolated preview or Draft PR yet",
+    "4-account cold maximum increased; no stable latency SLA claimed",
+    "200 accounts rendered as 50-row pages; all 200 remain searchable and API-authorized",
+    "Baseline persistent-shell navigation attempt remained on users; not included in load timing",
+    "Legacy aggregate test blocked by absent db/seed.json; not rerun",
+    "Physical devices and native input methods untested"
+  ]
+}

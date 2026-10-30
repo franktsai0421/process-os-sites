@@ -1,3 +1,5 @@
+2026-10-29 dispatch permissions candidate: dispatchBoard POST now requires dispatch.view+dispatch.edit; readonly selectors/button and actual publish handler use the same cells. Production validation and shared-state CAS/flush remain unchanged. Isolated validation only; no deployment.
+
 ## 2026-10-29 第二輪：單次 panel dirty 計算重用
 
 保留 metadata/error/recovery/client 同步 reset 的原先位置；之後同一次同步 mount 與 updateSaved 共用 localUnsaved，下一次 render 仍重新檢查，不跨事件快取。實際 controller 的 15 個合成差分 case 保留 saved/dirty/input、pending Save/Submit、ACK、身份變化、late advisory、完整 recovery/session 原始值。重建 saved panel 的 workspace 序列化 6→4、dirty canvas 6→2；身份 reset 路徑 2→2。whole-flow 序列化與網路／storage 工作不變，不能宣稱 Sync/Save/Submit 總延遲已達標或 browser 實測。

@@ -1,3 +1,11 @@
+# 使用者權限 CLOUD 29102026 — 已修正，未部署
+
+最新：[清楚權限修復／驗收交接](docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)、[設定→頁面→API 對照](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。使用者確認方案後完成簡化矩陣、明確依賴、獨立還原、5 個品質模組單獨保存／送審／撤回、線別範圍說明及發送查看者拒寫。基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`；完整編譯瀏覽器版本 `4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6`；最終 UI build `33a1fd04a2abc9aeb2e2dd0477872f0ef2174223`（展開排列補修、完整頁面及五次測速補驗）；最終相依驗收分支 `cloud/users-permissions-layout-29102026`。各模組分支分開交接，不整檔覆蓋其他任務。
+
+只用隔離合成資料；原站／正式站沒有修改。外部預覽及 Draft PR 受工具／GitHub API 網路政策限制仍未建立，PR body／base-head 清單已備妥；嚴格100ms開啟設定目標仍未達，真站效能與實體輸入法未驗證。不能標完整交付或放行整合。dot 須先核對 web-feedback-helper 與 ipqc-ab-read-ownership 的共用 index／讀取所有權等重疊，詳見交接。沒有 merge、auto-merge 或發布。
+
+先前載入優化見[歷史載入報告](docs/acceptance/USERS_CLOUD_LOADING_29102026.md)；早期 audit-only 未修復狀態已由本輪候選取代，原始證據仍保留。
+
 本次獨立候選：全站照片 CLOUD 29102026，基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`，分支 `codex/photo-standard-cloud-29102026`。已補做實際照片表單及小字放大修正。與流程修復 PR 分開，交 dot 按區塊整合；未合併或發布。入口與驗證見 [照片紀錄](docs/sites/PHOTO_STANDARD_CLOUD_29102026.md)。
 
 首次進頁已拆量並局部減少遮罩後排版；五輪中位 708→658ms、最慢 759→927ms，完整流程 25 項通過，既有資產字串測試仍有 1 項失敗。見 [最新入口報告](docs/sites/PROCESS_ENTRY_PROFILE_29102026.md)。未發布既有站台。

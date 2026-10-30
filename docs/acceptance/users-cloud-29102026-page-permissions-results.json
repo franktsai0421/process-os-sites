@@ -1,0 +1,7134 @@
+{
+  "sourceCommit": "92045fe30b065247f660de3f518a1c8c18c683a8",
+  "compiledProgramCommit": "91942a677fb3fc5d912437b65bd8f495972d70ea",
+  "scope": "Audit only; no production source changes. Settings sent through actual user-access API. Node harness signs synthetic sessions with stored authEpoch; compiled browser uses normal login. Findings are unresolved.",
+  "sha256": {
+    "public/process/access-policy.mjs": "ebdc1c9321e760579c26bb92bd8c3d3c166be6050e9c9acda0d140547ff199e5",
+    "public/process/permission-controls.js": "43dae5618d84d4300e30999f54f31d3cc94047fc9d81b40df7b9736bb376925f",
+    "public/process/dual-system.js": "251090d66eb58503679dbe2fde404b28696f9cf614ffd0dcb50bb8a4cd71787d",
+    "public/process/iqc-master.js": "cce04f6fb0543d5b230164b82ba2c3e6b4fa16f3b96fdb6ccd7285053afddf7a",
+    "lib/process-state.ts": "a3ac130483081b2f2e6b7e9e101ace44ad61d4d78553c4170741f8f0340d60d9",
+    "lib/destination-delivery.mjs": "9ca0d887d379685be551771adfaa3925d178a49e268f28fec5d0912581947468",
+    "lib/versioned-shared-workflow.ts": "f07a4b4541f74e49c8133b185d86ee3182ff998c66aca51221b1a10ae165f06c",
+    "app/api/user-access/route.ts": "dbd4a422bc2b83b7eeb4e09ad90c1a2b372e6f0720a645e09d8b0e02cb057c20",
+    "app/api/shared-state/route.ts": "37780fc985ad75fc781fb772e594c5fa801015d1a0fa80cc89579efff8d54ef3",
+    "app/api/ipqc-c/workflow/route.ts": "b04543331ef5a9e13548ab59d5a975b241fdbd89fe92e283aec02883b56acdf1"
+  },
+  "policyAndRoutes": {
+    "status": "COMPLETED_WITH_FINDINGS",
+    "scope": "actual account API + per-cell frontend/server resolvers + explicit destination admission + workflow permission metadata; Node SQLite/R2, synthetic only; not every business action or real Site",
+    "settingsWrites": 140,
+    "cellChecks": [
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "dashboard.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "player.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "dispatch.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "dispatch.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "status.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ab.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "c.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "bom.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "lines.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "templates.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "editor.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "approval.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "approval.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "approval.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "approval.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fqc.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "iqc.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-ab.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "ipqc-c.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "tooling.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine-reports.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "equipment.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "quality-dashboard.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "quality-search.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "quality-reports.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "fpy.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "routine.settings",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "feedback.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "feedback.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "feedback.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "feedback.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "users.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "users.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "users.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "users.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "user-status.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": false,
+        "key": "user-password.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "dashboard.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "player.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "dispatch.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "dispatch.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "status.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ab.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "c.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "bom.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "lines.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "templates.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "editor.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "approval.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "approval.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "approval.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "approval.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fqc.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "iqc.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-ab.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "ipqc-c.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "tooling.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine-reports.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "equipment.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "quality-dashboard.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "quality-search.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "quality-reports.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "fpy.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "routine.settings",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "feedback.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "feedback.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "feedback.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "feedback.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "users.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "users.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "users.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "users.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "user-status.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-staff",
+        "enabled": true,
+        "key": "user-password.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "dashboard.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "player.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "dispatch.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "dispatch.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "status.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ab.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "c.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "bom.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "lines.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "templates.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "editor.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "approval.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "approval.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "approval.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "approval.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fqc.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "iqc.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-ab.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "ipqc-c.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "tooling.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine-reports.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "equipment.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "quality-dashboard.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "quality-search.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "quality-reports.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "fpy.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.save",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.submit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.withdraw",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.approve",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.return",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "routine.settings",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "feedback.view",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "feedback.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "feedback.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "feedback.exchange",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "users.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "users.create",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "users.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "users.delete",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "user-status.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": false,
+        "key": "user-password.edit",
+        "effective": false,
+        "frontend": false,
+        "backend": false
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "dashboard.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "player.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "dispatch.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "dispatch.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "status.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ab.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "c.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "bom.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "lines.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "templates.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "editor.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "approval.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "approval.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "approval.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "approval.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fqc.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "iqc.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-ab.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "ipqc-c.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "tooling.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine-reports.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "equipment.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "quality-dashboard.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "quality-search.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "quality-reports.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "fpy.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.save",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.submit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.withdraw",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.approve",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.return",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "routine.settings",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "feedback.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "feedback.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "feedback.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "feedback.exchange",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "users.view",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "users.create",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "users.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "users.delete",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "user-status.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      },
+      {
+        "actor": "audit-admin",
+        "enabled": true,
+        "key": "user-password.edit",
+        "effective": true,
+        "frontend": true,
+        "backend": true
+      }
+    ],
+    "destinations": [
+      {
+        "module": "dashboard",
+        "grant": "dashboard.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "player",
+        "grant": "player.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "dispatch",
+        "grant": "dispatch.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "status",
+        "grant": "status.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "editor",
+        "grant": "editor.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "approval",
+        "grant": "approval.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "quality-dashboard",
+        "grant": "quality-dashboard.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "quality-search",
+        "grant": "quality-search.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "quality-reports",
+        "grant": "quality-reports.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "routine",
+        "grant": "routine.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "fpy",
+        "grant": "fpy.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "ab",
+        "grant": "ab.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "c",
+        "grant": "c.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "bom",
+        "grant": "bom.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "lines",
+        "grant": "lines.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "templates",
+        "grant": "templates.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "feedback",
+        "grant": "feedback.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "fqc",
+        "grant": "fqc.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "iqc",
+        "grant": "iqc.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "ipqc-ab",
+        "grant": "ipqc-ab.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "ipqc-c",
+        "grant": "ipqc-c.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "tooling",
+        "grant": "tooling.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "routine-reports",
+        "grant": "routine-reports.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      },
+      {
+        "module": "equipment",
+        "grant": "equipment.view",
+        "status": "MATCH",
+        "explicitURLsChecked": 25
+      }
+    ],
+    "workflows": [
+      {
+        "module": "ab",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ab",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "c",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "templates",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "bom",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "fqc",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "iqc",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-ab",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "view",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "edit",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "save",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "submit",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "approve",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          },
+          {
+            "operation": "approve",
+            "configured": true,
+            "api": false
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "return",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          },
+          {
+            "operation": "return",
+            "configured": true,
+            "api": false
+          }
+        ]
+      },
+      {
+        "module": "ipqc-c",
+        "granted": "delete",
+        "status": "MISMATCH",
+        "differences": [
+          {
+            "operation": "withdraw",
+            "configured": false,
+            "api": true
+          }
+        ]
+      },
+      {
+        "module": "tooling",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "tooling",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "equipment",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "view",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "edit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "save",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "submit",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "withdraw",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "approve",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "return",
+        "status": "MATCH",
+        "differences": []
+      },
+      {
+        "module": "editor",
+        "granted": "delete",
+        "status": "MATCH",
+        "differences": []
+      }
+    ],
+    "findings": [
+      {
+        "id": "DISPATCH_WRITE_WITH_VIEW_ONLY",
+        "configuredEdit": false,
+        "status": 200,
+        "persisted": true,
+        "revisionChanged": true
+      },
+      {
+        "id": "LINES_VIEW_VS_AB_ENDPOINT",
+        "pageAllowed": true,
+        "apiStatus": 403
+      },
+      {
+        "id": "IPQCC_REVIEW_CROSS_VIEW",
+        "configuredView": false,
+        "apiStatus": 200,
+        "permissions": {
+          "view": true,
+          "edit": false,
+          "save": false,
+          "submit": false,
+          "withdraw": false,
+          "approve": false,
+          "return": false,
+          "history": false,
+          "delete": false
+        }
+      }
+    ],
+    "sessions": [
+      {
+        "module": "ab",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "c",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "templates",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "bom",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "fqc",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "iqc",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "ipqc-ab",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "ipqc-c",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "tooling",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "equipment",
+        "oldSessionStatus": 403
+      },
+      {
+        "module": "editor",
+        "oldSessionStatus": 403
+      }
+    ],
+    "requests": 241,
+    "disposed": true
+  },
+  "compiledBrowser": {
+    "status": "COMPLETED_WITH_FINDINGS",
+    "buildEntrySha256": "dd8e2ba2eee8ff283dd803cb6514f7dafaa1719980a9ef760e728140c9ec136a",
+    "programCommit": "91942a677fb3fc5d912437b65bd8f495972d70ea",
+    "scope": "compiled application, real Chromium and normal login; synthetic IQC data only; one representative workflow, not all module buttons",
+    "cases": [
+      "saved IQC view-only: IQC enabled, BOM disabled, add hidden, direct begin denied without write",
+      "direct BOM URL rejected by bootstrap after IQC-only setting",
+      "actual account grant + new login enables existing-part edit; UI apply persisted and independently reread",
+      "saved revocation rejects old session; new normal login restores view-only UI"
+    ],
+    "findings": [
+      {
+        "id": "IQC_CREATE_BUTTON_WITHOUT_CREATE_CELL",
+        "configuredCreate": false,
+        "createButtonVisible": true,
+        "directCreateStatus": 403,
+        "denialPreservedData": true
+      }
+    ],
+    "errors": []
+  },
+  "existingIpqcCompatibility": {
+    "status": "PASS_C_OPERATION_ALIGNMENT_BOUNDED",
+    "groups": 7,
+    "directHandlerInvocations": 208,
+    "checks": [
+      {
+        "name": "Normal master/equipment/C approval and nonempty uploaded photo; distinct operation cells with unchanged view/review/history/withdraw DTO semantics",
+        "status": "PASS"
+      },
+      {
+        "name": "V3 view-only/partial/no-view cannot bypass own operation cells; edit-only guarded replacement preserves saved/effective/media; preview is read-only",
+        "status": "PASS"
+      },
+      {
+        "name": "Save-only snapshots existing working; submit-only submits exact saved; pending locks; existing withdrawal/return and independent approval preserve old full case and R2 bytes",
+        "status": "PASS"
+      },
+      {
+        "name": "Photo upload follows edit, not Submit; no-edit/unauth denied without persistence; photo GET and own-account authentication remain unchanged",
+        "status": "PASS"
+      },
+      {
+        "name": "Synthetic cell revocation appears even on unchanged:true refresh; next Apply/Save/Submit/upload fail closed without changing draft/history",
+        "status": "PASS"
+      },
+      {
+        "name": "Derived legacy compatibility: edit-only Begin/Create, edit+delete, compound Save/Submit gates, pending and existing review/withdraw/seed boundaries; old approved content retained",
+        "status": "PASS"
+      },
+      {
+        "name": "Adopted V3 still refuses fully authorized legacy whole-snapshot writes",
+        "status": "PASS"
+      }
+    ],
+    "permissionMatrix": {
+      "viewer": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": true,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "edit-only": {
+        "view": true,
+        "edit": true,
+        "save": false,
+        "submit": false,
+        "withdraw": true,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "save-only": {
+        "view": true,
+        "edit": false,
+        "save": true,
+        "submit": false,
+        "withdraw": true,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "submit-only": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": true,
+        "withdraw": true,
+        "approve": false,
+        "return": false,
+        "history": true,
+        "delete": false
+      },
+      "no-view": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": false,
+        "approve": true,
+        "return": true,
+        "history": false,
+        "delete": false
+      },
+      "reviewer": {
+        "view": true,
+        "edit": false,
+        "save": false,
+        "submit": false,
+        "withdraw": true,
+        "approve": true,
+        "return": true,
+        "history": true,
+        "delete": false
+      }
+    },
+    "trace": [
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-editor",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-save-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-save",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-submit",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-delete-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-delete",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-no-view",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-revocable",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "create-error",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "create-error",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "delete-error",
+        "who": "delete-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "delete-error",
+        "who": "edit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "delete-error",
+        "who": "edit-delete",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "edit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "edit-submit",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "edit-save",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "edit-save",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "edit-submit",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "approve",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "withdraw",
+        "who": "reviewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "withdraw",
+        "who": "editor",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "withdraw",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "reject",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "seed",
+        "who": "editor",
+        "status": 403
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-editor",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-save-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-save",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-submit",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-delete-only",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-edit-delete",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-no-view",
+        "status": 200
+      },
+      {
+        "endpoint": "platform-login",
+        "method": "POST",
+        "actor": "preview-revocable",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "master/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "routine-equipment/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "save-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "no-view",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "delete-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "edit-delete",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "save-only",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "no-view",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "edit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "edit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "delete-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "save-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "quality-equipment-replacement",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "edit-only",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "save-only",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "submit-only",
+        "status": 409
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "return",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "withdraw",
+        "who": "viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "return",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "submit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "approve",
+        "who": "reviewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "edit-only",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "viewer",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "save-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "submit-only",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "no-view",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "anonymous",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "GET",
+        "who": "viewer",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "anonymous",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "anonymous",
+        "status": 401
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "begin",
+        "who": "anonymous",
+        "status": 401
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "begin",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "revocable",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "revocable",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "apply",
+        "who": "revocable",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "save",
+        "who": "revocable",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "GET",
+        "who": "editor",
+        "status": 200
+      },
+      {
+        "endpoint": "ipqc-c/workflow",
+        "method": "POST",
+        "action": "submit",
+        "who": "revocable",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c/photo",
+        "method": "PUT",
+        "who": "revocable",
+        "status": 403
+      },
+      {
+        "endpoint": "ipqc-c",
+        "method": "POST",
+        "action": "save",
+        "who": "editor",
+        "status": 409
+      }
+    ],
+    "limits": [
+      "Private normal-login synthetic handlers, not native UI/live speed or real-user role audit.",
+      "C requires an explicit empty legacy draft bootstrap in this fixture; not blank-install acceptance.",
+      "Legacy compatibility source derives from normal approvals; no legacy import/seed performed.",
+      "Revocation injection changes only ephemeral synthetic account cells; not account-admin UI acceptance.",
+      "Snapshot assertions compare shared_state row and R2 key/body hashes, not every DB table or metadata."
+    ]
+  }
+}

@@ -39,14 +39,26 @@ try{
  await equipment('existing approved equipment preserved',200,approved);
  await test('forced equipment403 never returns cached empty success',async()=>{equipmentBox.reset();equipmentBox.fetch=async()=>({status:200,ok:true,json:async()=>copy(empty)});await equipmentBox.load();equipmentBox.fetch=async()=>({status:403,ok:false,json:async()=>({error:'FORBIDDEN'})});let refused=false;try{await equipmentBox.load({force:true});}catch{refused=true;}check(refused&&equipmentBox.state().equipmentLoadError!==null);});
  const box={Error,Map,mountSequence:0,console:{error(){}},isVi:()=>false,clone:copy,read:noStorage,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},window:{ProcessSync:{identity:{id:'TEST-ACTOR'},platformHeaders:()=>({'Content-Type':'application/json','x-test-header':'normal'})}}};
+ // Match the real IIFE host and grant only explicit AB/equipment read cells.
+ let dependencyCells={'ab.view':true,'equipment.view':true};
+ box.host=box.window;box.window.hasPermission=key=>dependencyCells[key]===true;
  box.identity=()=>box.window.ProcessSync.identity;
  vm.createContext(box);
  const abSource=slice(source,'  let masterCatalogCache =','  function snapshotFromCanonical(');
  vm.runInContext(ownerSource+abSource+';this.load=loadMasterCatalog;this.catalogRead=catalog;this.reset=()=>{masterCatalogCache=null;masterCatalogActor="";masterCatalogSequence=0;};this.state=()=>({cache:masterCatalogCache,actor:masterCatalogActor});',box);
  const ab={permissions:{view:true},control:{activeVersionId:'AB-APPROVED-V3',versions:[{id:'AB-APPROVED-V3',status:'approved',snapshot:{products:[{code:'TEST-P',name:'TEST PRODUCT',category:'TEST-CATEGORY',line:'QA-R20'}],lines:[{code:'QA-R20',stages:[]}],categoryGroups:[{name:'TEST-CATEGORY',line:'QA-R20'}]}},{id:'AB-DRAFT-V4',status:'draft',snapshot:{products:[{code:'NEVER-DRAFT'}],lines:[],categoryGroups:[]}}]}};
- function reset(){box.reset();box.window.ProcessSync.identity={id:'TEST-ACTOR'};}
+ function reset(){box.reset();box.window.ProcessSync.identity={id:'TEST-ACTOR'};dependencyCells={'ab.view':true,'equipment.view':true};}
  function normalClient(read){box.window.createSharedDraftClient=options=>{check(options.endpoint==='/api/master/workflow?scope=AB&catalog=effective'&&options.actorId==='TEST-ACTOR'&&options.legacyArchive===true);check(options.headers()['x-test-header']==='normal');return{read,...Object.fromEntries(['command','begin','retryUnknown','resolveUnknown'].map(key=>[key,()=>{throw Error('WRITE_API_REFUSED');}]))};};}
  async function abCase(name,mutate,reject=false){await test(name,async()=>{reset();const reply=copy(ab);mutate?.(reply);normalClient(async()=>reply);let failed=false;try{await box.load();}catch{failed=true;}check(failed===reject);if(reject)check(box.state().cache===null);else{const result=box.catalogRead();check(result.comparisonReady===true&&!result.products.some(row=>row.code==='NEVER-DRAFT'));if(reply.control.versions[0].snapshot.products.length)check(result.products[0].code==='TEST-P'&&result.categories[0].name==='TEST-CATEGORY'&&result.products[0].line==='QA-R20');}});}
+ for(const dependency of ['ab.view','equipment.view'])for(const mode of ['missing','false'])await test('AB dependency '+dependency+' '+mode+' refuses before any request without changing owner',async()=>{
+  reset();if(mode==='missing')delete dependencyCells[dependency];else dependencyCells[dependency]=false;
+  const owner=box.window.ProcessSync.identity,before=JSON.stringify(dependencyCells);let creates=0,reads=0,failure;
+  box.window.createSharedDraftClient=()=>{creates++;return{read:async()=>{reads++;return copy(ab);}};};
+  try{await box.load();}catch(error){failure=error;}
+  check(failure instanceof Error&&/FQC 載入目錄需要 AB 與檢具查看權限/.test(failure.message));
+  check(creates===0&&reads===0&&box.state().cache===null&&box.state().actor===''&&box.catalogRead().comparisonReady===false);
+  check(box.window.ProcessSync.identity===owner&&JSON.stringify(dependencyCells)===before&&box.window.hasPermission('users.view')===false);
+ });
  await abCase('effective AB approved snapshot instead of later draft',null);
  for(const [name,mutate] of [
  ['AB view denied',r=>r.permissions.view=false],['AB permissions missing',r=>delete r.permissions],['AB control missing',r=>delete r.control],

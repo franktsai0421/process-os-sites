@@ -228,7 +228,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs
+          node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs tests/shared-draft-restore-admission.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-module-history.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-feedback-races.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

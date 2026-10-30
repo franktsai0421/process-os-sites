@@ -7,7 +7,7 @@
   const t = (zh,vn) => vi() ? vn : zh;
   const headers = () => window.ProcessSync?.platformHeaders?.() || {'Content-Type':'application/json'};
   const permitted = key => !accessBlocked&&(window.sharedDraftPermissionAllowed?.(sharedClient,key)??true)&&(typeof window.hasPermission === 'function' ? window.hasPermission(key==='approval.submit'?'view:data':key) || key==='approval.withdraw'&&window.hasPermission('view:data') : actor()?.role === 'admin');
-  const permittedAction = operation => !accessBlocked&&sharedClient?.permission(operation)!==false&&(typeof window.hasPermission==='function'?window.hasPermission('ipqc-ab.'+operation):actor()?.role==='admin');
+  const permittedAction = operation => !accessBlocked&&sharedClient?.permission(operation)===true&&(typeof window.hasPermission==='function'?window.hasPermission('ipqc-ab.'+operation):actor()?.role==='admin');
   let accessBlocked=null,lastCommandAcknowledgement=null,privateQuarantine=null,equipmentLoadGeneration=0;
   let host, reviewHost, control, catalog = {groups:[],products:[],stages:[]}, equipment = [], revision;
   let line = 'A', group = '', stage = '', errorId = '', versionId = '', working = null, busy = false;
