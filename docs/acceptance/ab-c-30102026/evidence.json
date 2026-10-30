@@ -1,0 +1,186 @@
+{
+  "workflow": {
+    "status": "PASS_AB_C_NATIVE_WORKFLOW",
+    "checks": [
+      "AB viewer denied direct Begin and reference API",
+      "AB viewer cannot write lifecycle commands and outsider cannot view",
+      "AB Begin, Apply and Save have distinct persisted results",
+      "AB Submit, return, resubmit, withdraw, resubmit and approve preserve fixed content",
+      "AB stale field guard rejects a second writer without overwriting first ACK",
+      "AB unused product deletion succeeds; category cannot cascade-delete its members",
+      "C viewer denied direct Begin and reference API",
+      "C viewer cannot write lifecycle commands and outsider cannot view",
+      "C Begin, Apply and Save have distinct persisted results",
+      "C Submit, return, resubmit, withdraw, resubmit and approve preserve fixed content",
+      "C stale field guard rejects a second writer without overwriting first ACK",
+      "C unused product deletion succeeds; category cannot cascade-delete its members",
+      "new reference after preflight blocks product deletion and preserves historical payload"
+    ],
+    "cases": 13,
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409",
+    "realData": false
+  },
+  "authoring": {
+    "status": "PASS_AB_C_AUTHORING_NATIVE",
+    "checks": [
+      "A retain old invalid reference; reject new product and BOM reference",
+      "C retain old invalid reference; reject new product and BOM reference",
+      "visible route advisory permits fixed submission and reviewer approval; old nodes retained"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409",
+    "realData": false
+  },
+  "route-lifecycle": {
+    "status": "PASS_AB_C_ROUTE_LIFECYCLE_NATIVE",
+    "checks": [
+      "AB product ABC→ABCD→ABC and stage rename preserve stable editor content",
+      "AB approved ABCD→ABC→ABCD→ABCDE and reorder; working canvas and product exceptions retained",
+      "C product ABC→ABCD→ABC and stage rename preserve stable editor content",
+      "C approved ABCD→ABC→ABCD→ABCDE and reorder; working canvas and product exceptions retained",
+      "old canvas writer preserves independently approved group route"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+  },
+  "navigation": {
+    "status": "PASS_AB_C_NAVIGATION_BROWSER",
+    "checks": [
+      "Save 403 retains source and content",
+      "lost Save ACK keeps UNKNOWN and blocks departure without duplicate POST",
+      "explicit receipt recovery releases departure without resubmission"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+  },
+  "editor": {
+    "status": "PASS_AB_C_EDITOR_BROWSER",
+    "checks": [
+      "A configured D visible with retained operation",
+      "C configured D visible with retained operation",
+      "process editor Apply then shared Save-and-leave reaches C",
+      "editor return reads saved content"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+  },
+  "responsive": {
+    "status": "PASS_AB_C_RESPONSIVE_BROWSER",
+    "checks": [
+      "AB zh-Hant 390x844 scrollable form, footer, long input, Escape",
+      "AB vi 390x844 scrollable form, footer, long input, Escape",
+      "C zh-Hant 390x844 scrollable form, footer, long input, Escape",
+      "C vi 390x844 scrollable form, footer, long input, Escape"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+  },
+  "build": {
+    "format": "PROCESS_OS_SAFE_BUILD_RESULT_V1",
+    "status": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "childExitCode": 0,
+    "childSignal": null,
+    "spawnCode": null,
+    "exitCode": 0,
+    "stdoutBytes": 3584,
+    "stderrBytes": 784,
+    "memoryCaptureOverflow": false,
+    "warningLineCount": 0,
+    "errorLineCount": 0,
+    "unknownLineCount": 93,
+    "errorKinds": [],
+    "sourceLocations": [],
+    "postBuildAuthCheckPassCount": 1,
+    "postBuildAuthCheckFailureCount": 0,
+    "publicAuthViolationCategories": [],
+    "rawOutputForwarded": false,
+    "rawOutputPersisted": false,
+    "rawWindowsReturned": false,
+    "valueHashesReturned": false,
+    "serverPrivateAuthenticationPreserved": true,
+    "compiledServerPublicDistributionApproved": false,
+    "universalSecretAbsence": false,
+    "forwardedSignal": null,
+    "signalForwardFailed": false
+  },
+  "sourceSafety": {
+    "status": "PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE",
+    "head": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "commits": 219,
+    "uniqueBlobs": 2535,
+    "bytesTotal": 38270302,
+    "workingFiles": 1417,
+    "classifiedHistoricalFindings": 24,
+    "realDataOpened": false,
+    "credentialValuesReturned": false
+  },
+  "targeted": {
+    "pass": 167,
+    "fail": 0
+  },
+  "security": {
+    "pass": 18,
+    "scope": "VM synthetic only"
+  },
+  "lint": "PASS",
+  "typescript": "PASS",
+  "remoteCI": "NOT_AVAILABLE_API_403",
+  "publicPreview": {
+    "url": null,
+    "deployedCommit": null
+  },
+  "reviewBrowser": {
+    "status": "PASS",
+    "rounds": 5,
+    "checks": [
+      "AB browser return",
+      "AB browser withdraw",
+      "AB browser approve",
+      "AB fixed approved content read back in source page",
+      "C browser return",
+      "C browser withdraw",
+      "C browser approve",
+      "C fixed approved content read back in source page",
+      "AB browser return",
+      "AB browser withdraw",
+      "AB browser approve",
+      "AB fixed approved content read back in source page",
+      "C browser return",
+      "C browser withdraw",
+      "C browser approve",
+      "C fixed approved content read back in source page",
+      "AB browser return",
+      "AB browser withdraw",
+      "AB browser approve",
+      "AB fixed approved content read back in source page",
+      "C browser return",
+      "C browser withdraw",
+      "C browser approve",
+      "C fixed approved content read back in source page",
+      "AB browser return",
+      "AB browser withdraw",
+      "AB browser approve",
+      "AB fixed approved content read back in source page",
+      "C browser return",
+      "C browser withdraw",
+      "C browser approve",
+      "C fixed approved content read back in source page",
+      "AB browser return",
+      "AB browser withdraw",
+      "AB browser approve",
+      "AB fixed approved content read back in source page",
+      "C browser return",
+      "C browser withdraw",
+      "C browser approve",
+      "C fixed approved content read back in source page"
+    ],
+    "programCommit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+    "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+  },
+  "notes": [
+    "All business writes used synthetic nonpersistent storage.",
+    "Browser timings are local workerd, not real hosted/company data.",
+    "No merge, auto-merge or existing Site publication."
+  ]
+}

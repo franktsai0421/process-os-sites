@@ -1,0 +1,588 @@
+{
+  "commit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+  "samples": [
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 0,
+      "ms": 181
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 511
+    },
+    {
+      "scope": "AB",
+      "operation": "return",
+      "run": 0,
+      "ms": 107
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 0,
+      "ms": 142
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 435
+    },
+    {
+      "scope": "AB",
+      "operation": "withdraw",
+      "run": 0,
+      "ms": 104
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 0,
+      "ms": 144
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 470
+    },
+    {
+      "scope": "AB",
+      "operation": "approve",
+      "run": 0,
+      "ms": 94
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 0,
+      "ms": 162
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 534
+    },
+    {
+      "scope": "C",
+      "operation": "return",
+      "run": 0,
+      "ms": 106
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 0,
+      "ms": 161
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 528
+    },
+    {
+      "scope": "C",
+      "operation": "withdraw",
+      "run": 0,
+      "ms": 104
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 0,
+      "ms": 161
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 0,
+      "ms": 488
+    },
+    {
+      "scope": "C",
+      "operation": "approve",
+      "run": 0,
+      "ms": 111
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 1,
+      "ms": 153
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 523
+    },
+    {
+      "scope": "AB",
+      "operation": "return",
+      "run": 1,
+      "ms": 91
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 1,
+      "ms": 178
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 529
+    },
+    {
+      "scope": "AB",
+      "operation": "withdraw",
+      "run": 1,
+      "ms": 113
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 1,
+      "ms": 157
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 554
+    },
+    {
+      "scope": "AB",
+      "operation": "approve",
+      "run": 1,
+      "ms": 95
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 1,
+      "ms": 430
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 545
+    },
+    {
+      "scope": "C",
+      "operation": "return",
+      "run": 1,
+      "ms": 111
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 1,
+      "ms": 260
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 535
+    },
+    {
+      "scope": "C",
+      "operation": "withdraw",
+      "run": 1,
+      "ms": 104
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 1,
+      "ms": 160
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 1,
+      "ms": 535
+    },
+    {
+      "scope": "C",
+      "operation": "approve",
+      "run": 1,
+      "ms": 155
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 2,
+      "ms": 158
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 559
+    },
+    {
+      "scope": "AB",
+      "operation": "return",
+      "run": 2,
+      "ms": 93
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 2,
+      "ms": 165
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 530
+    },
+    {
+      "scope": "AB",
+      "operation": "withdraw",
+      "run": 2,
+      "ms": 100
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 2,
+      "ms": 158
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 492
+    },
+    {
+      "scope": "AB",
+      "operation": "approve",
+      "run": 2,
+      "ms": 106
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 2,
+      "ms": 150
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 530
+    },
+    {
+      "scope": "C",
+      "operation": "return",
+      "run": 2,
+      "ms": 115
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 2,
+      "ms": 151
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 476
+    },
+    {
+      "scope": "C",
+      "operation": "withdraw",
+      "run": 2,
+      "ms": 99
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 2,
+      "ms": 173
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 2,
+      "ms": 517
+    },
+    {
+      "scope": "C",
+      "operation": "approve",
+      "run": 2,
+      "ms": 121
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 3,
+      "ms": 143
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 543
+    },
+    {
+      "scope": "AB",
+      "operation": "return",
+      "run": 3,
+      "ms": 124
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 3,
+      "ms": 175
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 518
+    },
+    {
+      "scope": "AB",
+      "operation": "withdraw",
+      "run": 3,
+      "ms": 99
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 3,
+      "ms": 154
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 476
+    },
+    {
+      "scope": "AB",
+      "operation": "approve",
+      "run": 3,
+      "ms": 93
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 3,
+      "ms": 152
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 547
+    },
+    {
+      "scope": "C",
+      "operation": "return",
+      "run": 3,
+      "ms": 192
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 3,
+      "ms": 215
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 485
+    },
+    {
+      "scope": "C",
+      "operation": "withdraw",
+      "run": 3,
+      "ms": 116
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 3,
+      "ms": 163
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 3,
+      "ms": 479
+    },
+    {
+      "scope": "C",
+      "operation": "approve",
+      "run": 3,
+      "ms": 93
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 4,
+      "ms": 169
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 463
+    },
+    {
+      "scope": "AB",
+      "operation": "return",
+      "run": 4,
+      "ms": 93
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 4,
+      "ms": 152
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 545
+    },
+    {
+      "scope": "AB",
+      "operation": "withdraw",
+      "run": 4,
+      "ms": 112
+    },
+    {
+      "scope": "AB",
+      "operation": "submit",
+      "run": 4,
+      "ms": 237
+    },
+    {
+      "scope": "AB",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 668
+    },
+    {
+      "scope": "AB",
+      "operation": "approve",
+      "run": 4,
+      "ms": 106
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 4,
+      "ms": 156
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 495
+    },
+    {
+      "scope": "C",
+      "operation": "return",
+      "run": 4,
+      "ms": 92
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 4,
+      "ms": 155
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 485
+    },
+    {
+      "scope": "C",
+      "operation": "withdraw",
+      "run": 4,
+      "ms": 122
+    },
+    {
+      "scope": "C",
+      "operation": "submit",
+      "run": 4,
+      "ms": 162
+    },
+    {
+      "scope": "C",
+      "operation": "review-case-open",
+      "run": 4,
+      "ms": 587
+    },
+    {
+      "scope": "C",
+      "operation": "approve",
+      "run": 4,
+      "ms": 97
+    }
+  ],
+  "checks": [
+    "AB browser return",
+    "AB browser withdraw",
+    "AB browser approve",
+    "AB fixed approved content read back in source page",
+    "C browser return",
+    "C browser withdraw",
+    "C browser approve",
+    "C fixed approved content read back in source page",
+    "AB browser return",
+    "AB browser withdraw",
+    "AB browser approve",
+    "AB fixed approved content read back in source page",
+    "C browser return",
+    "C browser withdraw",
+    "C browser approve",
+    "C fixed approved content read back in source page",
+    "AB browser return",
+    "AB browser withdraw",
+    "AB browser approve",
+    "AB fixed approved content read back in source page",
+    "C browser return",
+    "C browser withdraw",
+    "C browser approve",
+    "C fixed approved content read back in source page",
+    "AB browser return",
+    "AB browser withdraw",
+    "AB browser approve",
+    "AB fixed approved content read back in source page",
+    "C browser return",
+    "C browser withdraw",
+    "C browser approve",
+    "C fixed approved content read back in source page",
+    "AB browser return",
+    "AB browser withdraw",
+    "AB browser approve",
+    "AB fixed approved content read back in source page",
+    "C browser return",
+    "C browser withdraw",
+    "C browser approve",
+    "C fixed approved content read back in source page"
+  ],
+  "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+}

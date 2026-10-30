@@ -1,0 +1,488 @@
+[
+  {
+    "scope": "AB",
+    "operation": "first-entry",
+    "median": 943,
+    "max": 1099,
+    "n": 5,
+    "baselineMedian": 947,
+    "baselineMax": 1203
+  },
+  {
+    "scope": "AB",
+    "operation": "reload",
+    "median": 428,
+    "max": 536,
+    "n": 5,
+    "baselineMedian": 431,
+    "baselineMax": 467
+  },
+  {
+    "scope": "AB",
+    "operation": "search",
+    "median": 55,
+    "max": 61,
+    "n": 5,
+    "baselineMedian": 49,
+    "baselineMax": 61
+  },
+  {
+    "scope": "AB",
+    "operation": "begin",
+    "median": 146,
+    "max": 158,
+    "n": 5,
+    "baselineMedian": 147,
+    "baselineMax": 152
+  },
+  {
+    "scope": "AB",
+    "operation": "open-product",
+    "median": 84,
+    "max": 91,
+    "n": 5,
+    "baselineMedian": 75,
+    "baselineMax": 86
+  },
+  {
+    "scope": "AB",
+    "operation": "apply-product",
+    "median": 141,
+    "max": 148,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "save-and-leave",
+    "median": 186,
+    "max": 201,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "save-unchanged",
+    "median": 109,
+    "max": 135,
+    "n": 5,
+    "baselineMedian": 126,
+    "baselineMax": 130
+  },
+  {
+    "scope": "AB",
+    "operation": "category-filter",
+    "median": 46,
+    "max": 51,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "open-route",
+    "median": 52,
+    "max": 62,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "reference-check",
+    "median": 40,
+    "max": 42,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "leave-after-save",
+    "median": 121,
+    "max": 144,
+    "n": 5,
+    "baselineMedian": 149,
+    "baselineMax": 174
+  },
+  {
+    "scope": "AB",
+    "operation": "category-create",
+    "median": 149,
+    "max": 268,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "category-rename",
+    "median": 136,
+    "max": 180,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "group-route-apply",
+    "median": 135,
+    "max": 148,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "product-create",
+    "median": 136,
+    "max": 186,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "product-exception-apply",
+    "median": 158,
+    "max": 337,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "adopt-maximum-route",
+    "median": 108,
+    "max": 419,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "view-product-exceptions",
+    "median": 42,
+    "max": 56,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "product-delete",
+    "median": 179,
+    "max": 192,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "group-route-remove",
+    "median": 119,
+    "max": 124,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "category-delete",
+    "median": 154,
+    "max": 325,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "submit",
+    "median": 158,
+    "max": 237,
+    "n": 15,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "review-case-open",
+    "median": 523,
+    "max": 668,
+    "n": 15,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "return",
+    "median": 93,
+    "max": 124,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "withdraw",
+    "median": 104,
+    "max": 113,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "AB",
+    "operation": "approve",
+    "median": 95,
+    "max": 106,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "first-entry",
+    "median": 412,
+    "max": 456,
+    "n": 5,
+    "baselineMedian": 430,
+    "baselineMax": 452
+  },
+  {
+    "scope": "C",
+    "operation": "reload",
+    "median": 391,
+    "max": 452,
+    "n": 5,
+    "baselineMedian": 383,
+    "baselineMax": 389
+  },
+  {
+    "scope": "C",
+    "operation": "search",
+    "median": 47,
+    "max": 51,
+    "n": 5,
+    "baselineMedian": 48,
+    "baselineMax": 64
+  },
+  {
+    "scope": "C",
+    "operation": "begin",
+    "median": 141,
+    "max": 146,
+    "n": 5,
+    "baselineMedian": 157,
+    "baselineMax": 346
+  },
+  {
+    "scope": "C",
+    "operation": "open-product",
+    "median": 80,
+    "max": 83,
+    "n": 5,
+    "baselineMedian": 73,
+    "baselineMax": 78
+  },
+  {
+    "scope": "C",
+    "operation": "apply-product",
+    "median": 137,
+    "max": 151,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "save-and-leave",
+    "median": 203,
+    "max": 218,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "save-unchanged",
+    "median": 111,
+    "max": 123,
+    "n": 5,
+    "baselineMedian": 122,
+    "baselineMax": 128
+  },
+  {
+    "scope": "C",
+    "operation": "category-filter",
+    "median": 47,
+    "max": 48,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "open-route",
+    "median": 45,
+    "max": 47,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "reference-check",
+    "median": 43,
+    "max": 100,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "leave-after-save",
+    "median": 127,
+    "max": 144,
+    "n": 5,
+    "baselineMedian": 134,
+    "baselineMax": 160
+  },
+  {
+    "scope": "C",
+    "operation": "category-create",
+    "median": 153,
+    "max": 181,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "category-rename",
+    "median": 139,
+    "max": 146,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "group-route-apply",
+    "median": 123,
+    "max": 142,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "product-create",
+    "median": 136,
+    "max": 170,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "product-exception-apply",
+    "median": 160,
+    "max": 173,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "adopt-maximum-route",
+    "median": 141,
+    "max": 145,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "view-product-exceptions",
+    "median": 39,
+    "max": 47,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "product-delete",
+    "median": 166,
+    "max": 178,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "group-route-remove",
+    "median": 125,
+    "max": 138,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "category-delete",
+    "median": 155,
+    "max": 166,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "submit",
+    "median": 161,
+    "max": 430,
+    "n": 15,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "review-case-open",
+    "median": 528,
+    "max": 587,
+    "n": 15,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "return",
+    "median": 111,
+    "max": 192,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "withdraw",
+    "median": 104,
+    "max": 122,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  },
+  {
+    "scope": "C",
+    "operation": "approve",
+    "median": 111,
+    "max": 155,
+    "n": 5,
+    "baselineMedian": null,
+    "baselineMax": null
+  }
+]

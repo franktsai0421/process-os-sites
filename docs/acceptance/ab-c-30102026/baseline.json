@@ -1,0 +1,488 @@
+{
+  "commit": "a870fc5882a1ec6ebe3308e540c1c69282e05dc1",
+  "environment": "Linux Node24 system Chromium local workerd; 40 synthetic products per scope; owner; no company data",
+  "samples": [
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 0,
+      "ms": 1203
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 0,
+      "ms": 431
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 0,
+      "ms": 61
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 0,
+      "ms": 152
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 0,
+      "ms": 86
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 0,
+      "ms": 116
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 0,
+      "ms": 140
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 0,
+      "ms": 451
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 0,
+      "ms": 384
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 0,
+      "ms": 64
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 0,
+      "ms": 126
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 0,
+      "ms": 73
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 0,
+      "ms": 118
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 0,
+      "ms": 134
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 1,
+      "ms": 975
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 1,
+      "ms": 428
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 1,
+      "ms": 52
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 1,
+      "ms": 146
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 1,
+      "ms": 67
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 1,
+      "ms": 130
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 1,
+      "ms": 149
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 1,
+      "ms": 378
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 1,
+      "ms": 369
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 1,
+      "ms": 54
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 1,
+      "ms": 157
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 1,
+      "ms": 78
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 1,
+      "ms": 122
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 1,
+      "ms": 160
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 2,
+      "ms": 874
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 2,
+      "ms": 417
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 2,
+      "ms": 46
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 2,
+      "ms": 151
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 2,
+      "ms": 77
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 2,
+      "ms": 126
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 2,
+      "ms": 142
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 2,
+      "ms": 394
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 2,
+      "ms": 383
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 2,
+      "ms": 48
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 2,
+      "ms": 134
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 2,
+      "ms": 60
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 2,
+      "ms": 128
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 2,
+      "ms": 122
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 3,
+      "ms": 920
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 3,
+      "ms": 450
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 3,
+      "ms": 45
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 3,
+      "ms": 140
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 3,
+      "ms": 75
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 3,
+      "ms": 129
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 3,
+      "ms": 155
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 3,
+      "ms": 430
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 3,
+      "ms": 381
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 3,
+      "ms": 41
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 3,
+      "ms": 175
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 3,
+      "ms": 74
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 3,
+      "ms": 107
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 3,
+      "ms": 136
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 4,
+      "ms": 947
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 4,
+      "ms": 467
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 4,
+      "ms": 49
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 4,
+      "ms": 147
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 4,
+      "ms": 55
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 4,
+      "ms": 119
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 4,
+      "ms": 174
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 4,
+      "ms": 452
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 4,
+      "ms": 389
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 4,
+      "ms": 46
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 4,
+      "ms": 346
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 4,
+      "ms": 72
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 4,
+      "ms": 122
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 4,
+      "ms": 130
+    }
+  ],
+  "failures": [
+    {
+      "scope": "AB",
+      "run": 0,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "C",
+      "run": 0,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "AB",
+      "run": 1,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "C",
+      "run": 1,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "AB",
+      "run": 2,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "C",
+      "run": 2,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "AB",
+      "run": 3,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "C",
+      "run": 3,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "AB",
+      "run": 4,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    },
+    {
+      "scope": "C",
+      "run": 4,
+      "operation": "apply-product",
+      "error": "Cannot read properties of undefined (reading 'products')"
+    }
+  ]
+}

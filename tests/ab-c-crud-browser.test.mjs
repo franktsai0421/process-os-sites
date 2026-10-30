@@ -14,10 +14,13 @@ try{for(let run=0;run<5;run++){
  await p.locator('#master-add-product').click();await p.locator('#master-edit-dialog [name=code]').fill(prefix+'NEW');await p.locator('#master-edit-dialog [name=name]').fill('New product');await measure(scope,'product-create',apply);
  await p.locator('[data-product-edit="'+prefix+'NEW"]').click();await p.locator('#master-edit-dialog [name=route-mode]').selectOption('exception');await p.locator('[data-route-remove="3"]').click();await measure(scope,'product-exception-apply',apply);
  assert.deepEqual(await p.evaluate(s=>MasterDataWorkflow.shared.flow(s).working.products.find(x=>x.code.endsWith('NEW')).stages,scope),['A','B','C'].map(s=>prefix+'-'+s));
+ await measure(scope,'adopt-maximum-route',async()=>{await p.locator('[data-group-route-maximum="RENAMED"]').click();await p.waitForFunction(s=>!MasterDataWorkflow.shared.busy()&&MasterDataWorkflow.shared.flow(s).working.categoryGroups.find(g=>g.name==='RENAMED').defaultStages.length===3,scope);});
+ assert.deepEqual(await p.evaluate(s=>MasterDataWorkflow.shared.flow(s).working.products.find(x=>x.code.endsWith('NEW')).stages,scope),['A','B','C'].map(s=>prefix+'-'+s));
+ await measure(scope,'view-product-exceptions',async()=>{await p.locator('[data-route-details] > summary').click();assert.equal(await p.locator('[data-route-details]').getAttribute('open'),'');});
  await measure(scope,'product-delete',async()=>{await p.locator('[data-product-delete="'+prefix+'NEW"]').click();await p.waitForFunction(s=>!MasterDataWorkflow.shared.busy()&&!MasterDataWorkflow.shared.flow(s).working.products.some(x=>x.code.endsWith('NEW')),scope);});
  await measure(scope,'group-route-remove',async()=>{await p.locator('[data-group-route-remove="RENAMED"]').click();await p.waitForFunction(s=>MasterDataWorkflow.shared.flow(s).working.categoryGroups.find(g=>g.name==='RENAMED').defaultStages===null&&!MasterDataWorkflow.shared.busy(),scope);});
  await measure(scope,'category-delete',async()=>{await p.locator('[data-category-delete="RENAMED"]').click();await p.waitForSelector('[data-category-delete="RENAMED"]',{state:'detached'});});
  await p.locator('#master-category-filter').selectOption('GROUP-1');const before=await p.evaluate(s=>JSON.stringify(MasterDataWorkflow.shared.flow(s).working),scope);await p.locator('[data-category-delete="GROUP-1"]').click();assert.equal(await p.evaluate(s=>JSON.stringify(MasterDataWorkflow.shared.flow(s).working),scope),before);
- report.checks.push(scope+' create/rename/delete category, group route, product create/exception/delete, nonempty category refused');
+ report.checks.push(scope+' create/rename/delete category, group route, product create/exception/delete, adopt maximum preserves routes, exception details, nonempty category refused');
  }await c.close();}finally{await f.close();}console.log('CRUD round',run+1);
 }}finally{fs.writeFileSync('.sites-runtime/ab-c-crud.json',JSON.stringify(report,null,2));await browser.close();}

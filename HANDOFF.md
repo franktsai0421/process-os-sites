@@ -1,3 +1,5 @@
+本次獨立任務：**AB／C 產線與類別＋草稿切頁修復 CLOUD 30102026**。基準 `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`，分支 `codex/ab-c-routes-draft-navigation-30102026`。實作、逐項驗收、網路／預覽阻礙與可轉交 dot 的摘要集中在 [AB／C 交接](docs/acceptance/AB_C_CLOUD_30102026.md)。沒有通知 dot、merge、auto-merge 或發布既有 Site；下方其他任務保留。
+
 本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
 
 # Isolated Sites implementation handoff

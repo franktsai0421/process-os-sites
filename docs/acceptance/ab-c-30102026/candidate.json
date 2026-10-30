@@ -1,0 +1,742 @@
+{
+  "commit": "e8b9e53db6c71d27e1a71550aa0c72e7e15e75eb",
+  "environment": "Linux Node24 system Chromium local workerd; 40 synthetic products per scope; owner; AB cold and C warm context; not real-data performance",
+  "samples": [
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 0,
+      "ms": 938
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 0,
+      "ms": 536
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 0,
+      "ms": 61
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 0,
+      "ms": 158
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 0,
+      "ms": 91
+    },
+    {
+      "scope": "AB",
+      "operation": "apply-product",
+      "run": 0,
+      "ms": 148
+    },
+    {
+      "scope": "AB",
+      "operation": "save-and-leave",
+      "run": 0,
+      "ms": 184
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 0,
+      "ms": 109
+    },
+    {
+      "scope": "AB",
+      "operation": "category-filter",
+      "run": 0,
+      "ms": 45
+    },
+    {
+      "scope": "AB",
+      "operation": "open-route",
+      "run": 0,
+      "ms": 62
+    },
+    {
+      "scope": "AB",
+      "operation": "reference-check",
+      "run": 0,
+      "ms": 35
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 0,
+      "ms": 115
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 0,
+      "ms": 402
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 0,
+      "ms": 349
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 0,
+      "ms": 47
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 0,
+      "ms": 136
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 0,
+      "ms": 83
+    },
+    {
+      "scope": "C",
+      "operation": "apply-product",
+      "run": 0,
+      "ms": 151
+    },
+    {
+      "scope": "C",
+      "operation": "save-and-leave",
+      "run": 0,
+      "ms": 176
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 0,
+      "ms": 96
+    },
+    {
+      "scope": "C",
+      "operation": "category-filter",
+      "run": 0,
+      "ms": 47
+    },
+    {
+      "scope": "C",
+      "operation": "open-route",
+      "run": 0,
+      "ms": 38
+    },
+    {
+      "scope": "C",
+      "operation": "reference-check",
+      "run": 0,
+      "ms": 43
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 0,
+      "ms": 129
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 1,
+      "ms": 918
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 1,
+      "ms": 428
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 1,
+      "ms": 50
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 1,
+      "ms": 130
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 1,
+      "ms": 75
+    },
+    {
+      "scope": "AB",
+      "operation": "apply-product",
+      "run": 1,
+      "ms": 130
+    },
+    {
+      "scope": "AB",
+      "operation": "save-and-leave",
+      "run": 1,
+      "ms": 190
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 1,
+      "ms": 103
+    },
+    {
+      "scope": "AB",
+      "operation": "category-filter",
+      "run": 1,
+      "ms": 43
+    },
+    {
+      "scope": "AB",
+      "operation": "open-route",
+      "run": 1,
+      "ms": 50
+    },
+    {
+      "scope": "AB",
+      "operation": "reference-check",
+      "run": 1,
+      "ms": 42
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 1,
+      "ms": 124
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 1,
+      "ms": 412
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 1,
+      "ms": 452
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 1,
+      "ms": 51
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 1,
+      "ms": 141
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 1,
+      "ms": 80
+    },
+    {
+      "scope": "C",
+      "operation": "apply-product",
+      "run": 1,
+      "ms": 133
+    },
+    {
+      "scope": "C",
+      "operation": "save-and-leave",
+      "run": 1,
+      "ms": 203
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 1,
+      "ms": 111
+    },
+    {
+      "scope": "C",
+      "operation": "category-filter",
+      "run": 1,
+      "ms": 42
+    },
+    {
+      "scope": "C",
+      "operation": "open-route",
+      "run": 1,
+      "ms": 46
+    },
+    {
+      "scope": "C",
+      "operation": "reference-check",
+      "run": 1,
+      "ms": 41
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 1,
+      "ms": 109
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 2,
+      "ms": 948
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 2,
+      "ms": 398
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 2,
+      "ms": 47
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 2,
+      "ms": 148
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 2,
+      "ms": 89
+    },
+    {
+      "scope": "AB",
+      "operation": "apply-product",
+      "run": 2,
+      "ms": 135
+    },
+    {
+      "scope": "AB",
+      "operation": "save-and-leave",
+      "run": 2,
+      "ms": 178
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 2,
+      "ms": 135
+    },
+    {
+      "scope": "AB",
+      "operation": "category-filter",
+      "run": 2,
+      "ms": 48
+    },
+    {
+      "scope": "AB",
+      "operation": "open-route",
+      "run": 2,
+      "ms": 59
+    },
+    {
+      "scope": "AB",
+      "operation": "reference-check",
+      "run": 2,
+      "ms": 34
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 2,
+      "ms": 121
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 2,
+      "ms": 418
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 2,
+      "ms": 449
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 2,
+      "ms": 44
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 2,
+      "ms": 146
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 2,
+      "ms": 69
+    },
+    {
+      "scope": "C",
+      "operation": "apply-product",
+      "run": 2,
+      "ms": 144
+    },
+    {
+      "scope": "C",
+      "operation": "save-and-leave",
+      "run": 2,
+      "ms": 174
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 2,
+      "ms": 105
+    },
+    {
+      "scope": "C",
+      "operation": "category-filter",
+      "run": 2,
+      "ms": 47
+    },
+    {
+      "scope": "C",
+      "operation": "open-route",
+      "run": 2,
+      "ms": 43
+    },
+    {
+      "scope": "C",
+      "operation": "reference-check",
+      "run": 2,
+      "ms": 58
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 2,
+      "ms": 127
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 3,
+      "ms": 943
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 3,
+      "ms": 406
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 3,
+      "ms": 55
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 3,
+      "ms": 138
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 3,
+      "ms": 81
+    },
+    {
+      "scope": "AB",
+      "operation": "apply-product",
+      "run": 3,
+      "ms": 141
+    },
+    {
+      "scope": "AB",
+      "operation": "save-and-leave",
+      "run": 3,
+      "ms": 186
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 3,
+      "ms": 105
+    },
+    {
+      "scope": "AB",
+      "operation": "category-filter",
+      "run": 3,
+      "ms": 46
+    },
+    {
+      "scope": "AB",
+      "operation": "open-route",
+      "run": 3,
+      "ms": 47
+    },
+    {
+      "scope": "AB",
+      "operation": "reference-check",
+      "run": 3,
+      "ms": 42
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 3,
+      "ms": 144
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 3,
+      "ms": 393
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 3,
+      "ms": 384
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 3,
+      "ms": 51
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 3,
+      "ms": 142
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 3,
+      "ms": 75
+    },
+    {
+      "scope": "C",
+      "operation": "apply-product",
+      "run": 3,
+      "ms": 137
+    },
+    {
+      "scope": "C",
+      "operation": "save-and-leave",
+      "run": 3,
+      "ms": 218
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 3,
+      "ms": 122
+    },
+    {
+      "scope": "C",
+      "operation": "category-filter",
+      "run": 3,
+      "ms": 48
+    },
+    {
+      "scope": "C",
+      "operation": "open-route",
+      "run": 3,
+      "ms": 47
+    },
+    {
+      "scope": "C",
+      "operation": "reference-check",
+      "run": 3,
+      "ms": 100
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 3,
+      "ms": 144
+    },
+    {
+      "scope": "AB",
+      "operation": "first-entry",
+      "run": 4,
+      "ms": 1099
+    },
+    {
+      "scope": "AB",
+      "operation": "reload",
+      "run": 4,
+      "ms": 469
+    },
+    {
+      "scope": "AB",
+      "operation": "search",
+      "run": 4,
+      "ms": 57
+    },
+    {
+      "scope": "AB",
+      "operation": "begin",
+      "run": 4,
+      "ms": 146
+    },
+    {
+      "scope": "AB",
+      "operation": "open-product",
+      "run": 4,
+      "ms": 84
+    },
+    {
+      "scope": "AB",
+      "operation": "apply-product",
+      "run": 4,
+      "ms": 148
+    },
+    {
+      "scope": "AB",
+      "operation": "save-and-leave",
+      "run": 4,
+      "ms": 201
+    },
+    {
+      "scope": "AB",
+      "operation": "save-unchanged",
+      "run": 4,
+      "ms": 114
+    },
+    {
+      "scope": "AB",
+      "operation": "category-filter",
+      "run": 4,
+      "ms": 51
+    },
+    {
+      "scope": "AB",
+      "operation": "open-route",
+      "run": 4,
+      "ms": 52
+    },
+    {
+      "scope": "AB",
+      "operation": "reference-check",
+      "run": 4,
+      "ms": 40
+    },
+    {
+      "scope": "AB",
+      "operation": "leave-after-save",
+      "run": 4,
+      "ms": 121
+    },
+    {
+      "scope": "C",
+      "operation": "first-entry",
+      "run": 4,
+      "ms": 456
+    },
+    {
+      "scope": "C",
+      "operation": "reload",
+      "run": 4,
+      "ms": 391
+    },
+    {
+      "scope": "C",
+      "operation": "search",
+      "run": 4,
+      "ms": 42
+    },
+    {
+      "scope": "C",
+      "operation": "begin",
+      "run": 4,
+      "ms": 133
+    },
+    {
+      "scope": "C",
+      "operation": "open-product",
+      "run": 4,
+      "ms": 80
+    },
+    {
+      "scope": "C",
+      "operation": "apply-product",
+      "run": 4,
+      "ms": 136
+    },
+    {
+      "scope": "C",
+      "operation": "save-and-leave",
+      "run": 4,
+      "ms": 209
+    },
+    {
+      "scope": "C",
+      "operation": "save-unchanged",
+      "run": 4,
+      "ms": 123
+    },
+    {
+      "scope": "C",
+      "operation": "category-filter",
+      "run": 4,
+      "ms": 42
+    },
+    {
+      "scope": "C",
+      "operation": "open-route",
+      "run": 4,
+      "ms": 45
+    },
+    {
+      "scope": "C",
+      "operation": "reference-check",
+      "run": 4,
+      "ms": 42
+    },
+    {
+      "scope": "C",
+      "operation": "leave-after-save",
+      "run": 4,
+      "ms": 124
+    }
+  ],
+  "checks": [
+    "AB round 0: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "C round 0: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "IME preserves input and defers filter",
+    "390px Vietnamese dialog and Escape cancellation",
+    "AB round 1: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "C round 1: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "AB round 2: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "C round 2: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "AB round 3: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "C round 3: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "AB round 4: unchanged departure, apply, cancel departure, saved departure, persisted content, route view",
+    "C round 4: unchanged departure, apply, cancel departure, saved departure, persisted content, route view"
+  ],
+  "failures": [],
+  "buildEntrySha256": "7e0890f69fdcb183baaa62c4664b0cf056ab110a88ad6cf73fa3b43eec778409"
+}
