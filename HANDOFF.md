@@ -1,3 +1,7 @@
+# #51 → #52 順序整合候選（僅本地）
+
+共同檔案已語意整合，首次轉換未接線；交付順序與保留行為見[整合紀錄](docs/acceptance/PR5152_SEQUENCE_INTEGRATION_20261030.md)。獨立兩候選均保留，遠端 PR/base 未改。
+
 # PR #52 本地整合候選（未推送）
 
 一般線別／工段修正保留，首次 legacy→records-v1 自動轉換尚未接線；來源、決策及相依見[整合交接](docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
