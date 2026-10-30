@@ -1,6 +1,7 @@
-/* Exact #44 DTO delta for the non-primary owner/reader fixtures only.
+/* Exact #44/#51 DTO deltas for the non-primary owner/reader fixtures only.
  * Construct the expected response from v20: retain every existing byte/field
- * and insert eleven denied restore cells at their fixed catalog positions.
+ * and insert eleven denied restore cells at their fixed catalog positions,
+ * plus the approved empty categoryGroups field for this fixed empty-group fixture.
  * Never strip candidate users/cells, derive grants, or replace the v20 loader. */
 const assert=require('node:assert/strict');
 const restoreAnchors=[['ab','exchange'],['c','exchange'],['bom','exchange'],['templates','exchange'],['editor','return'],['fqc','exchange'],['iqc','exchange'],['ipqc-ab','exchange'],['ipqc-c','exchange'],['tooling','exchange'],['equipment','exchange']];
@@ -26,8 +27,14 @@ function comparableBootstrap(response,candidate=false){
  const body=JSON.parse(response.text);
  if(candidate){
   assert.deepEqual(body.features,{webFeedback:true});delete body.features;
+  assert.deepEqual(body.catalog.categoryGroups,[],'Fixed fixture must expose exactly the approved empty category groups');
   const user=publicFixtureUser(body);for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
- }else{assert.equal(Object.hasOwn(body,'features'),false);expectedRestoreProjection(body);}
+ }else{
+  assert.equal(Object.hasOwn(body,'features'),false);expectedRestoreProjection(body);
+  assert.equal(Object.hasOwn(body.catalog,'categoryGroups'),false,'Pinned v20 must not contain category groups');
+  assert(Object.hasOwn(body.catalog,'loadedScopes'),'Pinned category group insertion anchor missing');
+  body.catalog=Object.fromEntries(Object.entries(body.catalog).flatMap(([key,value])=>key==='loadedScopes'?[[key,value],['categoryGroups',[]]]:[[key,value]]));
+ }
  return{status:response.status,headers:response.headers,text:JSON.stringify(body)};
 }
 function assertRestoreProjectionContract(before,after){
@@ -50,6 +57,12 @@ function assertRestoreProjectionContract(before,after){
  mutateUser(user=>{user.permissions.push('iqc.restore');});
  for(const key of ['processCustomRoles','processRoleTemplateOverrides','processAccessControl'])mutateBody(body=>{body.values[key]='synthetic-private';});
  mutateBody(body=>{body.extraDTO=true;});
+ mutateBody(body=>{delete body.catalog.categoryGroups;});
+ mutateBody(body=>{body.catalog.categoryGroups=null;});
+ mutateBody(body=>{body.catalog.categoryGroups=[{line:'A',name:'unexpected',defaultStages:['unapproved']}];});
+ mutateBody(body=>{body.catalog.categoryGroups={};});
+ mutateBody(body=>{const groups=body.catalog.categoryGroups;delete body.catalog.categoryGroups;body.catalog.categoryGroups=groups;});
+ mutateBody(body=>{body.catalog.unexpected='synthetic-private';});
  mutateBody(body=>{body.values.platformUsers=JSON.stringify([...JSON.parse(body.values.platformUsers),{id:'other-user'}]);});
  mutateBody(body=>Object.fromEntries(Object.entries(body).reverse()));
  reject({...after,status:403});reject({...after,headers:{...after.headers,'x-unexpected':'true'}});
