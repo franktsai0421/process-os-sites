@@ -293,7 +293,7 @@
   function lineEditor() {
     const catalog = current(),
       locked = !editable();
-    return `<details class="master-line-editor"><summary>線別與工段管理 · ${catalog.lines.length} 條線別 · ${catalog.lines.reduce((sum, line) => sum + line.stages.length, 0)} 個工段</summary>${catalog.lines.map((line) => `<section class="master-line-block" data-line="${safe(line.code)}"><div class="master-line-head"><input data-line-code value="${safe(line.code)}" ${locked ? 'disabled' : ''}><input data-line-name value="${safe(line.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-add-stage="${safe(line.code)}">＋ 新增工段</button><button class="master-small danger" data-delete-line="${safe(line.code)}">刪除線別</button>`}</div><div class="master-stage-grid">${line.stages.map((stage) => `<div class="master-stage-card" data-stage="${safe(stage.code)}"><input data-stage-code value="${safe(stage.code)}" ${locked ? 'disabled' : ''}><input data-stage-name value="${safe(stage.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-delete-stage="${safe(stage.code)}">刪除</button>`}</div>`).join('')}</div></section>`).join('')}${locked ? '' : `<div class="master-line-add"><button class="master-small" id="add-master-line">＋ 新增線別</button></div>`}</details>`;
+    return `<details class="master-line-editor"><summary>線別與工段管理 · ${catalog.lines.length} 條線別 · ${catalog.lines.reduce((sum, line) => sum + line.stages.length, 0)} 個工段</summary>${catalog.lines.map((line) => `<section class="master-line-block" data-line="${safe(line.code)}"><div class="master-line-head"><input data-line-code value="${safe(line.code)}" ${locked ? 'disabled' : ''}><input data-line-name value="${safe(line.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-add-stage="${safe(line.code)}">＋ 新增工段</button><button class="master-small danger" data-delete-line="${safe(line.code)}">刪除線別</button>`}</div><div class="master-stage-grid">${line.stages.map((stage) => `<div class="master-stage-card" data-stage="${safe(stage.code)}"><input data-stage-code value="${safe(stage.code)}" ${locked ? 'disabled' : ''}><input data-stage-name value="${safe(stage.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-delete-stage="${safe(stage.code)}">刪除</button>`}</div>`).join('')}</div></section>`).join('')}</details>`;
   }
   let masterView = function() {
     const catalog = current();
@@ -519,17 +519,6 @@
           rerenderMaster();
         }),
     );
-    document
-      .querySelector('#add-master-line')
-      ?.addEventListener('click', () => {
-        syncRows();
-        const catalog = editable(),
-          code = `${state.masterScope === 'C' ? 'C' : 'LINE'}-${catalog.lines.length + 1}`;
-        catalog.lines.push({ code, name: '待補', stages: [] });
-        record(draft(), '新增線別', code);
-        persist();
-        rerenderMaster();
-      });
     document.querySelectorAll('[data-delete-line]').forEach(
       (button) =>
         (button.onclick = () => {
