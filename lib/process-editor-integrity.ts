@@ -16,8 +16,12 @@ export function editorIntegrity(workspaces:Workspace[],master:Master,bom:(code:s
  const add=(w:Workspace,stage:string,op:Operation,code:string,detail:string)=>issues.push({code,workspace:w.id,stage,operation:op.id,detail,key:JSON.stringify([w.id,stage,op.id,code,detail])});
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
   const byId=new Map(ops.map(op=>[op.id,op]));
+  // Valid JSON graph rows can share one stage-local incoming lookup. Preserve
+  // original includes/filter semantics for every nonstandard legacy shape.
+  const incomingById=ops.every(op=>typeof op.id==='string'&&Array.isArray(op.nextIds)&&op.nextIds.every(id=>typeof id==='string'))?new Map<string,Operation[]>():null;
+  if(incomingById)for(const source of ops)for(const target of new Set(source.nextIds)){const list=incomingById.get(target)||[];list.push(source);incomingById.set(target,list);}
   for(const kind of ['entry','exit']){const found=ops.filter(o=>editorKind(o,master)===kind);if(found.length>1)for(const o of found)add(w,stage,o,'DUPLICATE_ENDPOINT',kind+':'+found.map(x=>x.id).sort((a, b) => { const left = String(a), right = String(b); return left < right ? -1 : left > right ? 1 : 0; }).join(','));}
-  for(const op of ops){const kind=editorKind(op,master),next=Array.isArray(op.nextIds)?op.nextIds:[],incoming=ops.filter(o=>o.nextIds?.includes(op.id));
+  for(const op of ops){const kind=editorKind(op,master),next=Array.isArray(op.nextIds)?op.nextIds:[],incoming=incomingById?incomingById.get(op.id)||[]:ops.filter(o=>o.nextIds?.includes(op.id));
    if(kind==='entry'&&incoming.length)add(w,stage,op,'ENTRY_HAS_INPUT',incoming.map(o=>o.id).sort((a, b) => { const left = String(a), right = String(b); return left < right ? -1 : left > right ? 1 : 0; }).join(','));
    if(kind==='exit'&&(next.length||incoming.length>1))add(w,stage,op,'EXIT_CONNECTION_INVALID',JSON.stringify([next,incoming.map(o=>o.id).sort((a, b) => { const left = String(a), right = String(b); return left < right ? -1 : left > right ? 1 : 0; })]));
    if(kind!=='entry'&&next.length>1)add(w,stage,op,'SINGLE_SUCCESSOR_REQUIRED',JSON.stringify(next));

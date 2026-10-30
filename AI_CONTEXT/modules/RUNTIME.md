@@ -1,3 +1,9 @@
+## 2026-10-29 第二輪：身份 immutable aggregate 有界重疊
+
+只針對 manifest 中相鄰且 selected 的四類身份 aggregate，先核 ref，再最多兩個 GET；不預讀任意 URL／foreign ref，也不新增 HEAD 或重讀。provider metadata 兩者 size 都為安全整數且不大於 256 KiB 時，可重疊 text/SHA；其他情況沿已取得 object 序列消費，原 parse／required body／projection／adoption 錯誤順序保留。token 路徑仍序列，bootstrap 最後無 token 的 fresh read 不被快取取代。
+
+首項失敗不等待第二項 metadata；多發最多一個合法 selected GET，未使用 stream 取消、cleanup failure 不蓋過原錯誤。42 個實際 decoder 虛擬 R2 回歸包含缺 size／大型／異常 size／首錯與取消。400→200 是四個等100ms metadata 的虛擬依賴等待，不是 live elapsed。小物件門只限制 speculative raw 工作，不保證 provider buffering 或整體 Worker 128 MiB；取樣 Node heap/RSS含harness，不能當精準峰值。原 bootstrap token 完整生命週期與 revocation ON handler checks 另驗。
+
 ## 2026-10-27 FQC 初載：只延後重複 active body（本機候選）
 
 FQC destination 的 bootstrap keys、canonical fallback 與所有新鮮身分／撤權／revision 判定不變。僅 records-v1 的已驗 SHA aggregate，且 quality schema1、FQC versions array、workflow schema3／scope fqc／generation／revision 合格時，bootstrap 暫不投影 FQC library；保留其他 quality libraries 原資料。FQC 頁面仍必須完成自己原有的 workflow → AB catalog → equipment GET，且 owner/epoch/delivery 仍有效後才 adopt、render ready。未採用／缺失／不合格 header、inline/chunk 與其他 destination 維持原讀取。不新增 fake workflow、假空版本、notice 啟動或前端 API；publicState 本來就移除 FQC workflow，IQC-only／mixed notice 行為亦保留。

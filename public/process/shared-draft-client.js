@@ -3,6 +3,14 @@
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      "BEGIN_RESPONSE_TIMEOUT_UNKNOWN": [
+        "開始草稿的回應等待逾時；伺服器可能已建立草稿，結果尚未確認。請先唯讀核對目前狀態，不要重複送出開始要求。",
+        "Hết thời gian chờ phản hồi mở bản nháp; máy chủ có thể đã tạo bản nháp nhưng kết quả chưa được xác nhận. Hãy kiểm tra trạng thái chỉ đọc trước, không gửi lại yêu cầu mở."
+      ],
+      "WORKFLOW_READ_TIMEOUT": [
+        "讀取等待逾時，尚未取得最新狀態。未自動重送任何寫入要求。",
+        "Hết thời gian chờ đọc, chưa lấy được trạng thái mới nhất. Không tự động gửi lại thao tác ghi nào."
+      ],
       "DEPENDENCY_CHANGED_RECONFIRM": [
         "此欄位或相關資料已被其他分頁／使用者更新，本次未套用。請先複製保留目前輸入，再重新開啟最新資料，核對後重新套用。",
         "Trường này hoặc dữ liệu liên quan đã được cập nhật từ tab hoặc người dùng khác. Thay đổi lần này chưa được áp dụng. Hãy sao chép nội dung đang nhập, mở lại dữ liệu mới nhất, đối chiếu rồi áp dụng lại."
@@ -73,7 +81,7 @@
   // Local Begin feedback only: retain forms and the existing module busy guards.
   // IDs survive VersionDraftUI's action relocation; no whole-page render here.
   const beginFeedbackOwners=new WeakMap();
-  function _beginFeedback(endpoint){
+  function beginFeedback(endpoint){
     const selectors={
       '/api/fqc/workflow':'#fqc-begin,#fqc-begin-empty',
       '/api/master/workflow':/[?&]scope=PROCESS(?:&|$)/.test(endpoint)?'#process-master-new-draft':'#master-new-draft',
@@ -154,8 +162,8 @@
   const permissionKeys={'approval.submit':'edit','approval.withdraw':'withdraw','approval.approve':'approve','approval.reject':'return','approval.compare':'history','master.delete':'delete'};
   window.sharedDraftPermissionAllowed=(client,key)=>client?.permission(permissionKeys[key]||key)!==false;
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection}) => {
-    // Only the existing relative authoring route gets longer mutation tolerance.
-    // Other/absolute endpoints retain 15s; GET remains 45s. This is not proof of
+    // Only the existing relative authoring route gets longer command tolerance.
+    // Other commands retain 15s; GET/Begin remain bounded at 45s. This is not proof of
     // commit: unknown-result receipt validation and retry admission stay intact.
     const mutationDeadline=/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     const transportKey=actorId+':'+endpoint;
@@ -183,7 +191,7 @@
       return !restricted;
     }
     const gateControls=(revoked=false)=>{if(!access||!gates)return;let changedElement=null;for(const [permission,selector]of Object.entries(gates))if(access[permission]===false)document.querySelectorAll?.(selector).forEach(element=>{if(!element.disabled)changedElement=element;element.disabled=true;element.setAttribute('aria-disabled','true');});if(revoked&&changedElement&&!permissionNotice?.isConnected){const root=changedElement.closest('#data-content,#fixture')||document.querySelector('#data-content');if(root){permissionNotice=document.createElement('p');permissionNotice.className='master-edit-note';permissionNotice.setAttribute('role','alert');permissionNotice.textContent=document.documentElement.lang==='vi'?'Quyền thao tác đã thay đổi; giữ đầu vào hiện tại. Tải lại và kiểm tra quyền trước khi tiếp tục.':'操作權限已變更；保留目前輸入，請重新載入核對權限後繼續。';root.prepend(permissionNotice);}}};
-    const clientId=crypto.randomUUID(),syncFailures=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,recoveryInvalid=false,conditionalRead=null;
+    const clientId=crypto.randomUUID(),syncFailures=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,beginPending=null,retryPending=null,recoveryInvalid=false,conditionalRead=null;
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
     const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
@@ -196,14 +204,18 @@
     async function request(url,body,readOptions) {
       if(body)assertMutationAdmission();else assertOwner();
       const accessOwner=captureAccess(readOptions);
-      const readOwner=body?null:window.ProcessSync?.captureDelivery?.(),pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
+      const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
       accessOwner.delivery=readOwner||(accessGuard?window.ProcessSync?.captureDelivery?.():null);
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
-      // non-authoring mutations at 15s and the receipt-first unknown policy.
-      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),body?mutationDeadline:45000);
+      // non-authoring commands at 15s and the receipt-first unknown policy.
+      // Begin is a bounded workflow load/adoption. Only this action receives
+      // the existing 45s read/authoring budget; other mutation budgets stay put.
+      const requestDeadline=body?.action==='begin'?45000:body?mutationDeadline:45000;
+      let deadlineExpired=false,phase='headers';
+      const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       try {
         const response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),{method:body?'POST':'GET',headers:headers(),cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body.command?{...body,command:packCommand(body.command)}:body)}:{})});
-        let result;try{result=await response.json();}catch(error){if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){if(accessGuard)projectAccess({},response.status,false,accessOwner);throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
+        phase='body';let result;try{result=await response.json();}catch(error){if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){if(accessGuard)projectAccess({},response.status,false,accessOwner);throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
         assertOwner();
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
@@ -224,6 +236,14 @@
         if(flow&&Number.isSafeInteger(result.revision)&&typeof flow.generation==='string'&&Number.isSafeInteger(flow.revision)&&(!conditionalRead||result.revision>=conditionalRead.revision))conditionalRead={flowToken:flow.generation+':'+flow.revision,revision:result.revision};
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.success(kind,pauseOwner);
         return result;
+      } catch(error) {
+        // Classify only this request's deadline abort, never navigation/actor
+        // invalidation or a server denial. Preserve the original cause/name.
+        if(deadlineExpired&&controller.signal.aborted&&(error===controller.signal.reason||error?.name==='AbortError')){
+          const code=body?.action==='begin'?'BEGIN_RESPONSE_TIMEOUT_UNKNOWN':body?'WORKFLOW_MUTATION_TIMEOUT_UNKNOWN':'WORKFLOW_READ_TIMEOUT';
+          throw Object.assign(Error(code,{cause:error}),{name:error?.name||'AbortError',code,phase,deadlineMs:requestDeadline,outcome:body?'unknown':'unavailable'});
+        }
+        throw error;
       } finally {clearTimeout(timer);}
     }
     function retain(command) {
@@ -250,6 +270,7 @@
       syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
     }
     async function post(command, retry = false) {
+      if(beginPending)throw Error('OPERATION_IN_PROGRESS');
       assertMutationAdmission();
       if(unknown && (!retry || unknown.operationId!==command.operationId)){
         const error=Error('PREVIOUS_OPERATION_UNKNOWN');
@@ -290,9 +311,17 @@
       ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),
       reviewCase: id=>request(query(`caseId=${encodeURIComponent(id)}`)),
       previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
-      begin:()=>request(endpoint,{action:'begin'}),
+      async begin(){
+        assertMutationAdmission();
+        if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');
+        if(beginPending||queued)throw Error('OPERATION_IN_PROGRESS');
+        const finishFeedback=beginFeedback(endpoint);
+        queued++;const operation=request(endpoint,{action:'begin'});beginPending=operation;
+        try{return await operation;}
+        finally{if(beginPending===operation)beginPending=null;queued--;finishFeedback();}
+      },
       resolveUnknown,
-      retryUnknown:async()=>{assertMutationAdmission();if(!unknown)return null;const command=unknown;const result=await post(command,true);syncFailures.delete(command.operationId);return result;},
+      retryUnknown:async()=>{assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=post(command,true);retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
       hasUnknown:()=>!!unknown||recoveryInvalid,
       hasSyncFailures:()=>!!syncFailures.size,
       // Explicit form cancellation can discard only confirmed rejections (or
@@ -307,6 +336,7 @@
       receipt:async (id,generation)=>{assertOwner();const expected=generation??(unknown?.operationId===id&&unknown.action==='apply'?unknown.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command) {
+        if(beginPending||retryPending)throw Error('OPERATION_IN_PROGRESS');
         assertMutationAdmission();const retry=unknown?.operationId===command.operationId;queued++;const {action}=command;
         const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
           if(action==='submit'){const advisory=await request(query('permissions=1'));assertMutationAdmission();if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
@@ -317,7 +347,7 @@
         }},error=>{if(action==='apply'&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
       },
       // Only this client's already queued operations are awaited, never other users.
-      flush:async()=>{assertOwner();await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
+      flush:async()=>{assertOwner();if(beginPending)await beginPending;if(retryPending)await retryPending;await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
     };
     transports.set(transportKey,client);return client;
   };

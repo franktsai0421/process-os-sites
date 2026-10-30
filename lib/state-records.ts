@@ -1,7 +1,7 @@
 // Explicit isolated conversion format. Immutable snapshot bodies are separate
 // from live aggregates; workflow requests need not reconstruct old history.
 import {effectiveDeliveryValue} from './effective-delivery.mjs';
-type Bucket={get(key:string):Promise<{text():Promise<string>}|null>;put(key:string,value:string,options?:{httpMetadata:{contentType:string}}):Promise<unknown>};
+type Bucket={get(key:string):Promise<{text():Promise<string>;size?:number;body?:{cancel():Promise<unknown>}}|null>;put(key:string,value:string,options?:{httpMetadata:{contentType:string}}):Promise<unknown>};
 type Ref={key:string;sha256:string};
 export type AllocationIndex={version:1;errors:Record<string,string>[];items:Record<string,string>[];equipment:{assetCode:string;pieceMark:string}[];categories:{code:string}[]};
 type Envelope={__processRecords:{version:1;values:Record<string,Ref>;legacySources?:Record<string,Ref>;allocations?:Record<string,Ref>};platformUsers?:string;maintenanceMode?:string};
@@ -163,9 +163,44 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
     for(const [key,value]of Object.entries(v))next[key]=await visit(value,key,ids,inheritedDeferred);
     return next;}return v;
  }
+ // Prefetch only adjacent selected identity aggregates, never token reads.
+ // GET metadata may overlap; speculative text/SHA is limited to two provider-
+ // sized objects <=256KiB each. Large/unknown sizes consume text in old order.
+ const entries=Object.entries(envelope.__processRecords.values).filter(([key])=>!options.keys||options.keys.includes(key));
+ type StoredObject=Awaited<ReturnType<Bucket['get']>>;
+ type Outcome<T>={ok:true;value:T}|{ok:false;error:unknown};
+ const settle=<T,>(promise:Promise<T>):Promise<Outcome<T>>=>promise.then(value=>({ok:true,value}),error=>({ok:false,error}));
+ const unwrap=<T,>(result:Outcome<T>):T=>{if(!result.ok)throw result.error;return result.value;};
+ const small=(value:StoredObject)=>!!value&&Number.isSafeInteger(value.size)&&value.size!>=0&&value.size!<=262144;
+ async function consume(value:StoredObject,ref:Ref){if(!value)throw Error('Immutable record missing');const raw=await value.text();if(await hash(raw)!==ref.sha256)throw Error('Immutable record corrupt');return raw;}
+ let pendingIdentity:{key:string;ref:Ref;object:Promise<Outcome<StoredObject>>;raw?:Promise<Outcome<string>>;released?:boolean}|undefined;
+ async function aggregate(index:number){
+  const [key,ref]=entries[index];
+  if(options.identityReadToken)return readIdentityAggregate(bucket,key,ref,options.identityReadToken);
+  if(pendingIdentity?.key===key){const pending=pendingIdentity;pendingIdentity=undefined;const object=await pending.object;return pending.raw?unwrap(await pending.raw):consume(unwrap(object),ref);}
+  const next=entries[index+1];
+  if(identityReadKeys.has(key)&&valid(ref)&&next&&identityReadKeys.has(next[0])&&valid(next[1])){
+   const current=settle(Promise.resolve().then(()=>bucket.get(ref.key)));pendingIdentity={key:next[0],ref:next[1],object:settle(Promise.resolve().then(()=>bucket.get(next[1].key)))};
+   const first=unwrap(await current);
+   if(small(first)){
+    const pending=pendingIdentity;
+    // Never delay the first text/SHA/failure on a slow second GET. Metadata
+    // admission for speculative second text is independent and rejection-safe.
+    void pending.object.then(second=>{if(!pending.released&&second.ok&&small(second.value))pending.raw=settle(consume(second.value,next[1]));}).catch(()=>{});
+   }
+   return consume(first,ref);
+  }
+  return read(bucket,ref);
+ }
+ function releasePendingIdentity(){
+  const pending=pendingIdentity;pendingIdentity=undefined;
+  // A late GET or cleanup rejection cannot replace the original traversal
+  // failure. No additional fetch/write; release an unused provider stream.
+  if(pending){pending.released=true;void pending.object.then(async result=>{if(result.ok&&result.value?.body)await result.value.body.cancel();}).catch(()=>{});}
+ }
  // Serial module loading bounds transient allocation. Per-request body sharing
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
- for(const [key,ref]of Object.entries(envelope.__processRecords.values)){if(options.keys&&!options.keys.includes(key))continue;deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await (options.identityReadToken?readIdentityAggregate(bucket,key,ref,options.identityReadToken):read(bucket,ref));
+ try{for(let index=0;index<entries.length;index++){const [key,ref]=entries[index];deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await aggregate(index);
   // Preserve the original manifest traversal/error order: required bodies are
   // hydrated now, before reading the next aggregate. Excluded bodies alone are
   // the approved fault-policy change; aggregate SHA/JSON still fail closed.
@@ -174,7 +209,7 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   if(raw===undefined)continue;
   if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
- }
+ }}finally{releasePendingIdentity();}
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
   return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
 }

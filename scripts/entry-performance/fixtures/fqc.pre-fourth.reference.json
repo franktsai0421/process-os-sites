@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "2cac307f29b8017a2bb6dc5229d47720f2deab33",
+  "sourceSha256": "df1fe10e329e000afdc100feaa94efd6fea206706bbf520f561b2e9207a61021",
+  "qualification": "Exact source spans plus explicit extraction boundary markers. Text fixture only, never a production module. Existing test slices and assertions unchanged.",
+  "segments": {
+    "sharedFields": "98b00932744a7e29a1b33d875171cf06fb4f6b6c55e571a84185993ecabaf339",
+    "changes": "ba7058584a0bb42930cd7601cd44ed7248e28b25ae09a633640ab53520299512",
+    "productReferences": "c88d65b2a7b67d37dbb9cc2bdb971056395f08863192d3e498d36049ec140fd0",
+    "matrixHTML": "6ea70f17ade82f7ed925b1ea47e5b9d2ca6a00040e79a0d2fe7ad78ae2a4d663",
+    "problemsCardHTML": "fc87a15b1939c57286056d9f849e6fc88394252b8e4969dd906c17c06e8fd5e1"
+  },
+  "oracleSha256": "683e5b8b4bcc10666d277c17a16993e5594d8cedd7b17d1cdf1bf4e2be62581f"
+}
