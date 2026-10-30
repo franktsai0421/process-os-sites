@@ -26,8 +26,8 @@
     const css=document.createElement('link');let script,styled=false;
     const fail=message=>{loading=null;css.remove();script?.remove();reject(Error(message));};
     const ready=()=>{if(styled&&window.WebFeedback)resolve(window.WebFeedback);};
-    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261026-hosted1';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
-    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261026-hosted1';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
+    css.rel='stylesheet';css.href='/process/web-feedback.css?v=20261029-feedback7';css.onload=()=>{styled=true;ready();};css.onerror=()=>fail(t('回報樣式載入失敗','Không tải được kiểu báo lỗi'));document.head.append(css);
+    if(!window.WebFeedback){script=document.createElement('script');script.src='/process/web-feedback.js?v=20261029-feedback7';script.onload=()=>window.WebFeedback?ready():fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));script.onerror=()=>fail(t('回報功能暫時無法載入','Không thể tải báo lỗi'));document.head.append(script);}
   }));
   // The immediate shell contains only new input, never private draft data.
   function open(event) {
@@ -45,8 +45,8 @@
     const footer=parent.tagName==='DIALOG'&&[...parent.querySelectorAll('footer')].find(el=>!el.closest('#wf-panel'));
     const topbar=parent.tagName==='DIALOG'&&(parent.querySelector('[role=tablist]')||parent.querySelector('header'));
     const bottom=footer?Math.max(72,Math.ceil(innerHeight-footer.getBoundingClientRect().top+12)):72;
-    const height=Math.min(340,Math.max(0,innerHeight-bottom-(topbar?topbar.getBoundingClientRect().bottom+12:12)));
-    panel.style.cssText='position:fixed;left:18px;bottom:'+bottom+'px;width:260px;max-width:calc(100vw - 24px);max-height:'+height+'px;background:#fffefa;color:#153f48;border:1px solid #b5ceca;border-radius:12px;box-shadow:0 8px 30px #163d432d;z-index:11001;display:flex;flex-direction:column;overflow:hidden;font:14px/1.5 system-ui,sans-serif;box-sizing:border-box';
+    const height=Math.min(540,Math.max(0,innerHeight-bottom-(topbar?topbar.getBoundingClientRect().bottom+12:12)));
+    panel.style.cssText='position:fixed;right:12px;bottom:'+bottom+'px;width:360px;max-width:calc(100vw - 24px);max-height:'+height+'px;background:#fffefa;color:#153f48;border:1px solid #b5ceca;border-radius:12px;box-shadow:0 8px 30px #163d432d;z-index:11001;display:flex;flex-direction:column;overflow:hidden;font:14px/1.5 system-ui,sans-serif;box-sizing:border-box';
     panel.innerHTML='<header style="background:#164d50;color:white;padding:8px 10px;display:flex;justify-content:space-between"><strong></strong><button type="button" data-close style="color:white;background:transparent;border:0;font-size:20px">−</button></header><div class="wf-body" style="padding:10px;overflow:auto"><label></label><textarea maxlength="4000" style="box-sizing:border-box;width:100%;min-height:58px;max-height:130px;font:inherit"></textarea><p role="status" aria-live="polite" style="font-size:12px"></p></div>';
     panel.querySelector('strong').textContent=t('問題回報','Báo lỗi');
     panel.querySelector('label').textContent=t('問題描述','Mô tả');
@@ -56,6 +56,7 @@
     panel.querySelector('[role=status]').textContent=t('可先輸入；正在確認登入身分及讀取草稿，尚未保存。','Có thể nhập; đang xác minh và tải bản nháp, chưa lưu.');
     const session={panel,input,owner,account:u.id,active:true,consumed:false,composing:false,started:start,start:capturePage()};
     shell=session;
+    if(!('oncompositionstart' in input))for(const type of ['compositionstart','compositionend'])input.addEventListener(type,event=>input['on'+type]?.(event));
     input.oncompositionstart=()=>{session.composing=true;};
     input.oncompositionend=()=>{session.composing=false;session.compositionEnd?.();};
     input.oninput=e=>{if(!session.typedMs){session.typedMs=Math.round(performance.now()-start);document.documentElement.dataset.feedbackShell=JSON.stringify({readyMs:session.readyMs,typedMs:session.typedMs,inputEventDelayMs:Math.round(performance.now()-e.timeStamp)});}};
@@ -85,7 +86,7 @@
     const logged = !!id && u.role !== 'device' && !document.querySelector('.app-shell.platform-locked');
     if (!button) {
       button = document.createElement('button'); button.id = 'wf-launcher'; button.type = 'button';
-      button.style.cssText = 'position:fixed;left:18px;bottom:18px;width:46px;height:46px;border:0;border-radius:50%;background:#164d50;color:white;box-shadow:0 3px 12px #0003;z-index:11000;cursor:pointer;font-size:24px;display:none';
+      button.style.cssText = 'position:fixed;right:12px;bottom:18px;width:46px;height:46px;border:0;border-radius:50%;background:#164d50;color:white;box-shadow:0 3px 12px #0003;z-index:11000;cursor:pointer;font-size:24px;display:none';
       button.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9h10M7 13h7" stroke="currentColor" stroke-width="1.6"/></svg>';
       button.onclick = open; document.body.append(button);
     }
@@ -116,7 +117,18 @@
     if(adminLoading?.host===host&&owns(adminLoading.owner))return adminLoading.promise;
     if(!host.querySelector('.wf-admin'))host.innerHTML='<section class="wf-admin" data-i18n-skip="true"><p role="status">'+t('正在載入問題回報…','Đang tải báo lỗi…')+'</p></section>';
     const request={host,owner};adminLoading=request;
-    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-board-tab]'));}).catch(e=>{
+    // Only a requested, authenticated board starts a read. Overlap its fresh
+    // server-authorized list with JS/CSS; ordinary helper startup reads nothing.
+    // Capture failures immediately so an asset failure cannot leave an unhandled
+    // rejected promise. Both the loader and core reject a stale identity/delivery.
+    const firstList=!host.querySelector('[data-board-tab]')?(window.ProcessFeedbackEntry?.takePreparedList?.(host)||fetch('/api/web-feedback?action=list',{cache:'no-store'}).then(async response=>{
+      if(owns(owner)&&response.status===401){sync()?.clearIdentity?.();invalidate();}
+      const value=await response.json();
+      if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');
+      if(!response.ok)throw Error(value.error||response.status);
+      return {value};
+    }).catch(error=>({error}))):null;
+    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-board-tab]'),firstList);}).catch(e=>{
       if(adminLoading===request&&host.isConnected&&owns(owner)&&host.dataset.activeTab==='web-feedback'){
         host.replaceChildren();const status=document.createElement('p'),retry=document.createElement('button');status.textContent=e.message;retry.textContent=t('重試','Thử lại');retry.onclick=()=>{void showAdmin(host).catch(()=>{});};host.append(status,retry);
       }throw e;
@@ -131,7 +143,7 @@
     diagnostics.ready=Math.round(performance.now());publish();
     requestAnimationFrame(()=>requestAnimationFrame(()=>{document.documentElement.dataset.feedbackPaintReady='1';publish();}));
     if(diagnostics.baseline)return;
-    void import('./web-feedback-layout.mjs?v=20261026-hosted1').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Left-side fallback remains, never hide the platform toolbar. */});
+    void import('./web-feedback-layout.mjs?v=20261029-feedback7').then(({createFeedbackPositioner})=>{if(!terminal){positioner=createFeedbackPositioner({window,document});place();}}).catch(()=>{/* Right-side fallback remains, never hide the platform toolbar. */});
     for(const name of ['render','renderLogin','enterPlatform']) {
       // Existing global function bindings are explicitly wrapped once; no DOM observer/polling.
       const original=window[name];if(typeof original!=='function')continue;

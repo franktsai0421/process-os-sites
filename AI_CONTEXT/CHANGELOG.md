@@ -1,3 +1,15 @@
+## 2026-10-29 — 網頁問題回報／小幫手隔離修復（未發布）
+
+- 畫面與呈現優化（feedback7）：明細成功保存局部更新、保留圖片／控制項；交接按需展開完整原文，初始 3,456→192 節點，HTML 建立 9.4→0.8 ms，但整體交接約 149 ms 無明顯差異。新增明細／交接／鍵盤與雙語窄版驗證及可重現量測，詳見交付最新段落。
+- 追加建議 1–4：回報網址只預載公開靜態資源、就緒提示／標記後聚焦、位置附件送出狀態、按帳號保留清單偏好及桌面 sticky 工具列。當輪 iframe 首幀失敗已由後續同步暫代外框修復；保留原失敗證據，立即點擊、焦點／Esc、原輸入與無重載驗證見交付最新段落。前後效能與既有 32 組正常流程見前段。
+- 補原生剪貼簿驗證：實際合成頁面截圖＋Clipboard API＋鍵盤 Ctrl+V，3 組圖片／中越文文字／草稿還原與送出後像素一致性通過；本次功能程式未變更，未冒稱已測使用者的實體截圖工具。
+- 操作恢復補驗重現並修復三項：交接超過 20 案造成鎖定、備註版本衝突缺少保留輸入的恢復入口、保存期間後續輸入被成功回覆清除。新增 6 組真實 Chromium 恢復檢查，連同既有 17 組流程通過；詳細失敗／修復證據見交付文件最新段落。
+- 右下角面板、任意位置標記攔截、中越文／組字、清單單筆更新與失 ACK 備註重試。
+- 追加首次載入並行：JS/CSS 與經授權清單讀取重疊。5 次隔離冷啟動中位數 596→566 ms；模組每請求固定延遲 120 ms 情境 1,021→859 ms，非實站速度。新增 stale owner／delivery、載入失敗重試與瀏覽器回歸。
+- 再追加讀取／交接優化：明確問題頁提前準備首讀及靜態資源，受控交替測試約 579→571 ms／延遲情境 811→678 ms；共用原圖每請求只讀一次、最多 4 個並行、ZIP CRC 查表。20 案／8 原圖／儲存延遲 40 ms 的合成生成時間 1,754→141 ms。一般備註保存無顯著改善；量測條件、原始波動與不變的權限／CAS 限制詳見交付文件。
+- Frank primary 專屬軟刪除，私人備註／附件／歷史保持既有保護；無共用權限或業務 schema 變更。
+- API、VM、編譯 Worker＋Chromium 合成驗證與效能比較見 [交付](../docs/web-feedback/20261029-isolated-helper.md)。公開預覽、既有站台同帳號比較及 PR API 存取仍受環境限制。
+
 ## 2026-10-29 — Stacked IQC source delivery
 
 IQC local diff/render/validation reuse, complete owner-bound fresh reads and explicit editing projection with fresh active-version retrieval. Old clients remain full; mixed tails and Save/Submit over 1 second remain disclosed.

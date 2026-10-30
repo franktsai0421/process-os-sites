@@ -30,12 +30,25 @@ function bomDraftActions(){
  console.log('PASS dirty/conflicted BOM cannot submit old save; conflict messages localized');
 }
 async function feedback(){
- let resolve;const shell={querySelector:()=>({textContent:''})},host={isConnected:true,innerHTML:'',querySelector:()=>shell};
- const ctx={captureOwner:()=>({}),owns:()=>true,guard:fn=>fn,holdBoard:()=>false,board:null,boardActor:'',epoch:0,issues:[],isAdmin:false,t:a=>a,request:()=>new Promise(r=>resolve=r),renders:0,renderBoard(){ctx.renders++;},document:{}};
- vm.createContext(ctx);vm.runInContext(between(source('web-feedback.js'),' async function admin(', '\n const filters=')+';this.open=admin;',ctx);
+ let resolve,actor='a';const saved=new Map(),list={scrollTop:37},shell={querySelector:()=>({textContent:''})};
+ const query=selector=>selector==='.wf-admin'?shell:selector==='.wf-list'?list:null,host={isConnected:true,innerHTML:'',querySelector:query};
+ const ctx={captureOwner:()=>({actor}),owns:owner=>owner.actor===actor,guard:fn=>fn,holdBoard:()=>false,board:null,boardActor:'',epoch:0,issues:[],isAdmin:false,boardPermissions:{},boardDirty:false,selected:new Set(),selectedIssue:'',listScroll:0,boardViewTimer:null,clearTimeout,location:{origin:'https://fixture.invalid'},sessionStorage:{getItem:key=>saved.get(key)??null,setItem:(key,value)=>saved.set(key,value)},t:a=>a,request:()=>new Promise(r=>resolve=r),renders:0,renderBoard(){ctx.renders++;},document:{}};
+ // Load the real preference helpers and filters with admin, not no-op stubs.
+ const s=source('web-feedback.js');vm.createContext(ctx);
+ vm.runInContext(between(s,' const localKey=', '\n const database='),ctx);
+ vm.runInContext(between(s,' async function admin(', '\n const filters=')+'\n'+between(s,' const filters=', '\n function ')+';this.open=admin;this.filters=filters;',ctx);
  let task=ctx.open(host,{id:'a'});host.querySelector=()=>null;resolve({issues:[{id:'late'}],admin:true});await task;assert.equal(ctx.renders,0);assert.equal(ctx.issues.length,0);
- host.querySelector=()=>shell;task=ctx.open(host,{id:'a'},true);ctx.epoch++;resolve({issues:[{id:'old-account'}],admin:true});await task;assert.equal(ctx.renders,0);
+ host.querySelector=query;task=ctx.open(host,{id:'a'},true);ctx.epoch++;resolve({issues:[{id:'old-account'}],admin:true});await task;assert.equal(ctx.renders,0);
  task=ctx.open(host,{id:'a'},true);resolve({issues:[{id:'current'}],admin:false});await task;assert.equal(ctx.renders,1);assert.equal(ctx.issues[0].id,'current');
+ ctx.filters.search='retained';ctx.selected.add('current');ctx.selectedIssue='current';
+ task=ctx.open(host,{id:'a'},true);const key='https://fixture.invalid|feedback-v1|a|board';
+ assert.deepEqual(JSON.parse(saved.get(key)),{filters:{search:'retained',status:'',module:'',page:'',from:'',to:''},selected:['current'],selectedIssue:'current',listScroll:37});
+ // Only the freshly authorized list may restore selected IDs.
+ saved.set(key,JSON.stringify({filters:{search:'restored'},selected:['current','missing'],selectedIssue:'current',listScroll:51}));
+ resolve({issues:[{id:'current'}],admin:true,permissions:{exchange:true}});await task;
+ assert.equal(ctx.filters.search,'restored');assert.deepEqual([...ctx.selected],['current']);assert.equal(ctx.selectedIssue,'current');assert.equal(ctx.listScroll,51);
+ task=ctx.open(host,{id:'a'},true);resolve({issues:[{id:'current'}],admin:false});await task;assert.equal(ctx.selected.size,0);
+ const renders=ctx.renders,issues=ctx.issues;task=ctx.open(host,{id:'a'},true);actor='b';resolve({issues:[{id:'wrong-owner'}],admin:true});await task;assert.equal(ctx.renders,renders);assert.equal(ctx.issues,issues);
  console.log('PASS feedback late route/account responses cannot replace current page');
 }
 function approval(){
