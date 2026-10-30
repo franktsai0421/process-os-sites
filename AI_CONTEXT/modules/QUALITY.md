@@ -1,3 +1,15 @@
+2026-10-29 FQC browser-discovered dependency: current catalog APIs require ab.view and equipment.view in addition to fqc.view. Settings now show these existing prerequisites and reject newly introduced incomplete combinations; the FQC page explains missing grants before fetching. No automatic grant or broadened catalog API access.
+
+2026-10-29 IPQC-C explicit-rights candidate (user approved): module view is required; view no longer grants withdraw, approval-platform view no longer grants module content, approve/return use their module cells. Restore is explicit and checked for create/delete effects. Legacy snapshot and owner/pending boundaries remain. Existing tests are updated to the accepted policy rather than retaining the earlier exception.
+
+2026-10-29 equipment permissions candidate: V3 Save/Submit rendering and handlers use each right, not editable(); legacy full snapshot writes require edit+save(+submit), explicit create/delete and diff checks. Narrow effective dependency catalog authorization is unchanged. No live data changes.
+
+2026-10-29 IPQC-AB permissions candidate: module Save/Submit use own rights; an existing whole-module draft is read without an unnecessary edit-gated begin POST. Initial draft creation still requires edit; group scopes, whole-module CAS/pending and membership fences remain. No data changes/publication.
+
+2026-10-29 FQC permissions candidate: save/submit buttons use their own rights on existing V3 draft; edit is still needed to begin a draft. No workflow kernel or business state change. Stacked on users/IQC candidates; acceptance tracked in clear-rights report.
+
+2026-10-29 IQC permissions candidate: V3 save/submit/withdraw buttons use their own rights, create uses create+edit; legacy snapshot writes require edit+save(+submit) and content create/delete checks. No data migration or publication. Depends on clear-rights shared permission foundation; browser acceptance recorded in users acceptance report.
+
 ## 2026-10-29 — 明示回應精簡與製程索引 / Explicit response projections and process indexing
 
 - IQC 新 client 明示 `iqc-edit-v1`：編輯時保留 working/saved 及完整權限/metadata，active 正文於每次切換時重新讀取、核目前身份/權限/revision/generation。無草稿初讀與舊 client 仍完整回應；dirty modal、舊回應、撤權、跨 revision 與重試守衛保留。此為延後讀取，不改 storage、歷史、CAS 或資料格式。

@@ -10,7 +10,8 @@ const load=harness(env),core=load('lib/process-state.ts'),records=load('lib/stat
 const {accessKeys}=require('../public/process/access-policy.mjs');
 const user=(id,permission)=>({id,name:id,role:'staff',enabled:true,authMode:'platform',authEpoch:1,inheritRole:false,accessOverrides:Object.fromEntries(accessKeys.map(k=>[k,k===permission]))});
 const editor=user('ab-editor','ab.view');for(const key of ['ab.edit','ab.delete'])editor.accessOverrides[key]=true;
-const users=[user('ab-reader','ab.view'),editor,user('fqc-only','fqc.view'),user('denied','')];
+const capabilities=(id,keys)=>{const account=user(id,'ab.view');for(const key of keys)account.accessOverrides[key]=true;return account;};
+const users=[user('ab-reader','ab.view'),editor,user('fqc-only','fqc.view'),user('denied',''),capabilities('ab-create',['ab.edit','ab.create']),capabilities('ab-restore',['ab.edit','ab.restore']),capabilities('ab-both',['ab.edit','ab.create','ab.restore']),capabilities('ab-no-edit',['ab.create','ab.restore']),capabilities('c-grants',['ab.edit','c.view','c.edit','c.create','c.restore'])];
 const snapshot={products:[{code:'QA-A',name:'Synthetic A',line:'A',category:'QA',stages:['A-CUT']}],lines:[{code:'A',name:'Synthetic A',stages:[{code:'A-CUT',name:'Cut'}]}],categoryGroups:[{line:'A',name:'QA'}]};
 const cSnapshot={products:[{code:'QA-C',name:'C',line:'C',category:'C',stages:['C-ST'],notes:'unneeded C '.repeat(20000)}],lines:[{code:'C',name:'C',stages:[{code:'C-ST',name:'C'}]}],categoryGroups:[]};
 const draftSnapshot={...structuredClone(snapshot),products:[{...snapshot.products[0],code:'DRAFT',notes:'unneeded draft '.repeat(20000)}]};
@@ -40,6 +41,14 @@ const checks=[],policyDifferences=[],legacyCosts=[];async function check(name,fn
  });
  await check('editor/delete metadata matches ordinary AB permissions without granting a write capability',async()=>{
   const full=await get(await request('ab-editor',fullPath)),narrow=await get(await request('ab-editor'));assert.equal(full.status,200);assert.equal(narrow.status,200);assert.deepEqual(narrow.body.permissions,full.body.permissions);assert.equal(narrow.body.permissions.edit,true);assert.equal(narrow.body.permissions.delete,true);
+ });
+ await check('explicit create/restore metadata matches full workflow without inferring edit or cross-scope grants',async()=>{
+  for(const [who,create,restore]of [['ab-reader',false,false],['ab-editor',false,false],['ab-create',true,false],['ab-restore',false,true],['ab-both',true,true],['ab-no-edit',false,false],['c-grants',false,false]]){
+   const full=await get(await request(who,fullPath)),narrow=await get(await request(who));assert.equal(full.status,200,who);assert.equal(narrow.status,200,who);assert.deepEqual(narrow.body.permissions,full.body.permissions,who+' exact permission DTO');assert.equal(narrow.body.permissions.create,create,who+' explicit create');assert.equal(narrow.body.permissions.restore,restore,who+' explicit restore');assert.equal(narrow.body.control.versions.length,1);assert.equal(narrow.body.control.workflow,undefined);assert.deepEqual(activeProjection(narrow.body),activeProjection(full.body));
+  }
+ });
+ await check('create/restore revocation between preflight and selected snapshot is reflected without granting a write',async()=>{
+  for(const key of ['ab.create','ab.restore'])for(const path of [fullPath,narrowPath]){install(raw);let hit=false;onGet=objectKey=>{if(objectKey===envelope.__processRecords.values.platformUsers.key&&!hit){hit=true;const changed=users.map(u=>u.id==='ab-both'?{...u,accessOverrides:{...u.accessOverrides,[key]:false}}:u);install(JSON.stringify({...values,platformUsers:JSON.stringify(changed)}),18);}};const result=await get(await request('ab-both',path));assert.equal(result.status,200);assert(hit);assert.equal(result.body.permissions[key.split('.')[1]],false);assert.equal(result.body.permissions.view,true);assert.equal(result.body.permissions.edit,true);assert.equal(result.body.revision,18);onGet=null;}install(raw);
  });
  await check('record projection reads no C/PROCESS or AB working/draft/history body',async()=>{
   metrics();const r=await get(await request());assert.equal(r.status,200);const aggregate=JSON.parse(objects.get(masterKey));

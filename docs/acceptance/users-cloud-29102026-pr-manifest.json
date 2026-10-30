@@ -1,0 +1,237 @@
+[
+  {
+    "head": "cloud/users-permissions-29102026",
+    "base": "main",
+    "shaAtReport": "ea8d19e55f44162c8468f541ecd82f9acee327b3",
+    "title": "使用者設定、角色範本與還原授權基礎",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/users-permissions.md",
+    "files": [
+      "AI_CONTEXT/CHANGELOG.md",
+      "AI_CONTEXT/modules/RUNTIME.md",
+      "HANDOFF.md",
+      "app/api/user-access/route.ts",
+      "docs/acceptance/USERS_CLOUD_29102026.md",
+      "docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md",
+      "docs/acceptance/USERS_CLOUD_DRAFT_PERMISSION_AUDIT_29102026.md",
+      "docs/acceptance/USERS_CLOUD_LOADING_29102026.md",
+      "docs/acceptance/USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md",
+      "docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md",
+      "docs/acceptance/users-cloud-29102026-draft-permissions-results.json",
+      "docs/acceptance/users-cloud-29102026-loading-results.json",
+      "docs/acceptance/users-cloud-29102026-operations-results.json",
+      "docs/acceptance/users-cloud-29102026-page-permissions-results.json",
+      "docs/acceptance/users-cloud-29102026-results.json",
+      "docs/specs/current/PERMISSIONS_ADMIN.md",
+      "docs/specs/current/SHARED_DRAFT.md",
+      "lib/draft-restore-access.ts",
+      "lib/user-access.ts",
+      "lib/versioned-shared-workflow.ts",
+      "public/process/access-policy.mjs",
+      "public/process/bootstrap.js",
+      "public/process/index.html",
+      "public/process/shared-draft-client.js",
+      "public/process/user-access-initial-read.js",
+      "public/process/user-access.css",
+      "public/process/user-access.js",
+      "scripts/audit-draft-permissions-browser.mjs",
+      "scripts/audit-users-page-browser.mjs",
+      "scripts/audit-users-page-permissions.mjs",
+      "scripts/test-draft-restore-access.mjs",
+      "scripts/test-role-effective-session.cjs",
+      "scripts/test-user-access-initial-read.mjs",
+      "scripts/test-user-access-projection-reuse.mjs",
+      "scripts/test-user-access-response-fence.mjs",
+      "scripts/test-user-access.mjs",
+      "scripts/test-users-cloud-browser.mjs",
+      "scripts/test-users-cloud-full-page.mjs",
+      "scripts/test-users-cloud-load.mjs",
+      "scripts/test-users-cloud-timing.mjs",
+      "scripts/user-access-ui-fixture-sync-core.mjs",
+      "tests/user-permissions-native.test.mjs"
+    ]
+  },
+  {
+    "head": "cloud/iqc-draft-rights-29102026",
+    "base": "cloud/users-permissions-29102026",
+    "shaAtReport": "343b2cb9ec513c4e3ad0a94fe81b2c6991b5b999",
+    "title": "IQC 按鈕與 legacy 快照權限",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/iqc-draft-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "app/api/iqc/route.ts",
+      "public/process/index.html",
+      "public/process/iqc-master.js"
+    ]
+  },
+  {
+    "head": "cloud/fqc-draft-rights-29102026",
+    "base": "cloud/iqc-draft-rights-29102026",
+    "shaAtReport": "f81948ecd82d250bb1285e7aa3ed7041c540a660",
+    "title": "FQC 保存／送審分開授權",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/fqc-draft-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "public/process/fqc-master.js",
+      "public/process/index.html"
+    ]
+  },
+  {
+    "head": "cloud/ipqc-ab-draft-rights-29102026",
+    "base": "cloud/fqc-draft-rights-29102026",
+    "shaAtReport": "385add4bf8bec279c2626b32db01aad1d4666485",
+    "title": "IPQC-AB 整份保存／送審",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/ipqc-ab-draft-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "public/process/index.html",
+      "public/process/ipqc-ab.js"
+    ]
+  },
+  {
+    "head": "cloud/equipment-draft-rights-29102026",
+    "base": "cloud/ipqc-ab-draft-rights-29102026",
+    "shaAtReport": "9314dfd6a2f1ea58215382515509a19e83a5d755",
+    "title": "檢具保存／送審／撤回與 legacy API",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/equipment-draft-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "app/api/routine-equipment/route.ts",
+      "public/process/index.html",
+      "public/process/routine-equipment.js"
+    ]
+  },
+  {
+    "head": "cloud/ipqc-c-explicit-rights-29102026",
+    "base": "cloud/equipment-draft-rights-29102026",
+    "shaAtReport": "d3c00b526cded5c9d86a7ed23144a591f86e294d",
+    "title": "IPQC-C 查看／撤回／審核／還原明確授權",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/ipqc-c-explicit-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "app/api/ipqc-c/route.ts",
+      "app/api/ipqc-c/workflow/route.ts",
+      "public/process/index.html",
+      "public/process/ipqc-c.js",
+      "scripts/ipqc-c-operation-fixture.cjs",
+      "scripts/test-ipqc-c-operation-permissions.cjs"
+    ]
+  },
+  {
+    "head": "cloud/lines-scope-rights-29102026",
+    "base": "cloud/ipqc-c-explicit-rights-29102026",
+    "shaAtReport": "2dddf1028fc67b9cac5e2b1bb8e6717e7584e552",
+    "title": "線別入口與 AB／C 範圍說明",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/lines-scope-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/MASTER_DATA.md",
+      "public/process/access-policy.mjs",
+      "public/process/bootstrap.js",
+      "public/process/index.html",
+      "public/process/master-data.js",
+      "public/process/permission-controls.js",
+      "public/process/user-access.css",
+      "public/process/user-access.js"
+    ]
+  },
+  {
+    "head": "cloud/dispatch-write-rights-29102026",
+    "base": "cloud/lines-scope-rights-29102026",
+    "shaAtReport": "d1b4b0a063adbc70201d35cb978fb5536abcacab",
+    "title": "發送介面查看不能寫入",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/dispatch-write-rights.md",
+    "files": [
+      "AI_CONTEXT/modules/PROCESS.md",
+      "app/api/shared-state/route.ts",
+      "public/process/index.html",
+      "public/process/permission-controls.js",
+      "public/process/version-workflow.js"
+    ]
+  },
+  {
+    "head": "cloud/fqc-dependencies-29102026",
+    "base": "cloud/dispatch-write-rights-29102026",
+    "shaAtReport": "0e66075a69f848423facc10a8db0caee64f2284c",
+    "title": "FQC 既有目錄查看依賴明列",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/fqc-dependencies.md",
+    "files": [
+      "AI_CONTEXT/modules/QUALITY.md",
+      "public/process/access-policy.mjs",
+      "public/process/bootstrap.js",
+      "public/process/fqc-master.js",
+      "public/process/index.html",
+      "public/process/user-access.js"
+    ]
+  },
+  {
+    "head": "cloud/permissions-review-polish-29102026",
+    "base": "cloud/fqc-dependencies-29102026",
+    "shaAtReport": "4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6",
+    "title": "共用還原拒絕訊息中越文化",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/permissions-review-polish.md",
+    "files": [
+      "public/process/index.html",
+      "public/process/shared-draft-client.js"
+    ]
+  },
+  {
+    "head": "cloud/permissions-verified-29102026",
+    "base": "cloud/permissions-review-polish-29102026",
+    "shaAtReport": "384037d21329921ba8f6eb2367a6c39936110e5e",
+    "title": "驗收、文件及 IQC 三行空白清理（無行為修改）",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/permissions-verified.md",
+    "files": [
+      "AI_CONTEXT/CHANGELOG.md",
+      "AI_CONTEXT/DATA_MODEL.md",
+      "HANDOFF.md",
+      "docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md",
+      "docs/acceptance/USERS_CLOUD_DRAFT_PERMISSION_AUDIT_29102026.md",
+      "docs/acceptance/USERS_CLOUD_PAGE_PERMISSION_AUDIT_29102026.md",
+      "docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md",
+      "docs/specs/current/PERMISSIONS_ADMIN.md",
+      "docs/specs/current/SHARED_DRAFT.md",
+      "docs/specs/current/WHOLE_MODULE_DRAFT.md",
+      "public/process/iqc-master.js",
+      "scripts/audit-users-page-permissions.mjs",
+      "scripts/test-draft-restore-access.mjs",
+      "tests/user-permissions-native.test.mjs"
+    ]
+  },
+  {
+    "head": "cloud/users-permissions-layout-29102026",
+    "base": "cloud/permissions-verified-29102026",
+    "shaAtReport": "33a1fd04a2abc9aeb2e2dd0477872f0ef2174223",
+    "title": "修正使用者權限詳細展開寬度並補驗最終畫面",
+    "draft": true,
+    "status": "not_created_network_policy",
+    "bodyFile": "docs/acceptance/pr-drafts/users-permissions-layout.md",
+    "files": [
+      "public/process/user-access.css",
+      "public/process/index.html",
+      "scripts/test-users-cloud-browser.mjs",
+      "scripts/test-users-cloud-full-page.mjs",
+      "docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md"
+    ]
+  }
+]

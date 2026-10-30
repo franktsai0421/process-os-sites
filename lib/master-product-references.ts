@@ -3,7 +3,7 @@ type Row=Record<string,unknown>;
 const object=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const rows=(v:unknown):Row[]=>Array.isArray(v)?v.map(object):[];
 const text=(v:unknown)=>typeof v==='string'?v:'';
-const sources:Record<string,string>={processAuthoringControl:'editor',approvalVersions:'editor',qualityMasterControl:'fqc',ipqcABMasterControl:'ipqc-ab',ipqcCMasterControl:'ipqc-c',iqcMasterControl:'iqc',routineEquipmentControl:'equipment',toolingMasterControl:'tooling',routineFqcControl:'routine',bomMasterControl:'bom',bomOverrides:'bom',dispatchBoard:'dispatch'};
+const sources:Record<string,string>={processAuthoringControl:'editor',publishedProcess:'editor',approvalVersions:'editor',qualityMasterControl:'fqc',ipqcABMasterControl:'ipqc-ab',ipqcCMasterControl:'ipqc-c',iqcMasterControl:'iqc',routineEquipmentControl:'equipment',toolingMasterControl:'tooling',routineFqcControl:'routine',bomMasterControl:'bom',bomOverrides:'bom',dispatchBoard:'dispatch'};
 export type CatalogReference={code:string;module:string;path:string;id:string;stage:string;kind:string};
 export function visibleCatalogReferences<T extends {references:CatalogReference[]}>(impact:T,cells:Record<string,boolean>):T {
  return {...impact,references:impact.references.map(ref=>ref.module==='catalog'||cells[ref.module+'.view']&&(!/^(approvalVersions)(?:\/|$)|\/(versions|cases|saves)\//.test(ref.path)||cells[ref.module+'.history'])?ref:{code:ref.code,module:ref.module,path:'',id:'',stage:'',kind:'restricted-reference'})};

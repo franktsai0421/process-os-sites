@@ -2,6 +2,12 @@
 
 沿用 `categoryGroups[].defaultStages`、`products[].stages`、穩定 stage code 及 V3 saved/case/version；沒有 schema migration。runtime catalog 增加已核准 `categoryGroups`（line/name/defaultStages），不輸出草稿。產品引用查詢為即時計算，涵蓋 authoring、舊製程、FQC／IQC／IPQC、設備／模具、定期 FQC、BOM 與 dispatch 的明確關係欄位及保護歷史，不建立第二份引用資料庫。刪除相關命令完整讀取相依歷史；普通頁面讀取不增加歷史載入。見[範圍與限制](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
 
+2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
+
+## 2026-10-29 流程類型與刪除引用候選
+
+PROCESS 工段模板的選用 `editorType` 為 entry/manual/inspection/machine/exit/custom；舊資料未填時沿 preset 或 custom 判斷，不批次遷移。設備仍內嵌於 PROCESS 機器設定模板，沒有新表、schema 或附件識別。`/api/master/references` 只讀，按 templates.view 與 editor.view 限制引用詳情；刪除檢查不更動產品、方塊、歷史與媒體。詳見 [流程紀錄](../docs/sites/PROCESS_FLOW_CLOUD_29102026.md)。
+
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 
 製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。

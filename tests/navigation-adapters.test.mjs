@@ -59,8 +59,12 @@ for(const missing of ['control','permissions'])void test('actual IQC combined re
  const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/IQC/),full=iqcFull();delete full[missing];f.response.resolve(full);
  await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
 });
-const accountSend=part(source('user-access.js'),' async function send(payload){','\n function paint()');
-function accountBox(response){const box={writing:0,writeUncertain:false,model:{actor:{id:'frank'},revision:1},modelStamp:{id:'frank'},identityStamp:()=>({id:'frank'}),sameIdentity:()=>true,fetch:async()=>response,window:{ProcessSync:{platformHeaders:()=>({})}},emitIdentity(){},calls:0};const fetch=box.fetch;box.fetch=async(...args)=>{box.calls++;return fetch(...args);};vm.createContext(box);vm.runInContext(accountSend,box);return box;}
+const accountSource=source('user-access.js');
+const accountRequest=part(accountSource,' async function requestValue(options={}){','\n function expireSession()');
+const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
+assert(accountRequest.startsWith(' async function requestValue(')&&accountRequest.includes('finally{clearTimeout(timer);}'));
+assert(accountSend.includes('writeEpoch++')&&accountSend.includes('finally{writing--;}'));
+function accountBox(response){const box={writing:0,writeUncertain:false,writeEpoch:0,AbortController,setTimeout,clearTimeout,model:{actor:{id:'frank'},revision:1},modelStamp:{id:'frank'},identityStamp:()=>({id:'frank'}),sameIdentity:()=>true,fetch:async()=>response,window:{ProcessSync:{platformHeaders:()=>({})}},emitIdentity(){},calls:0};const fetch=box.fetch;box.fetch=async(...args)=>{box.calls++;return fetch(...args);};vm.createContext(box);vm.runInContext(accountRequest+accountSend,box);return box;}
 for(const kind of ['network','body','500'])void test('actual account '+kind+' lost acknowledgement stays guarded and cannot replay',async()=>{
  const box=accountBox({ok:kind==='body',status:kind==='500'?500:200,json:async()=>{if(kind==='body')throw Error('lost body');return{error:'SERVER_FAILURE'};}});
  if(kind==='network')box.fetch=async()=>{box.calls++;throw Error('offline');};
@@ -69,6 +73,14 @@ for(const kind of ['network','body','500'])void test('actual account '+kind+' lo
 });
 void test('actual account definite 4xx rejection releases departure guard without retry',async()=>{const box=accountBox({ok:false,status:403,json:async()=>({error:'FORBIDDEN'})});await assert.rejects(box.send({}),/FORBIDDEN/);assert.equal(box.writeUncertain,false);assert.equal(box.calls,1);});
 void test('actual account acknowledged write releases departure guard',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({actor:{id:'frank'},revision:2})});await box.send({});assert.equal(box.writeUncertain,false);assert.equal(box.model.revision,2);assert.equal(box.calls,1);});
+void test('actual account request uses native abort signal and advances write epoch with finally cleanup',async()=>{
+ const box=accountBox({ok:true,status:200,json:async()=>({actor:{id:'frank'},revision:2})}),calls=[];
+ box.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,status:200,json:async()=>({actor:{id:'frank'},revision:2})};};
+ await box.send({action:'update'});
+ assert.equal(box.writing,0);assert.equal(box.writeEpoch,1);assert.equal(box.writeUncertain,false);assert.equal(calls.length,1);
+ assert.equal(calls[0].url,'/api/user-access');assert.equal(calls[0].options.method,'POST');assert(calls[0].options.signal instanceof AbortSignal);assert.equal(calls[0].options.signal.aborted,false);
+ assert.deepEqual(JSON.parse(calls[0].options.body),{action:'update',baseRevision:1});
+});
 void test('actual role refresh removes deleted custom names and old built-in overrides',()=>{
  const text=source('permission-controls.js'),refresh=part(text,'  function refresh(){','  refresh();');
  const values={processCustomRoles:[],processRoleTemplateOverrides:{}};
@@ -96,11 +108,45 @@ for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outco
 });
 void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
- const foregroundAssets=["bom-workspace.js", "bootstrap.js", "fqc-master.js", "ipqc-ab.js", "ipqc-c.js", "iqc-master.js", "master-data.js", "process-authoring-v3.js", "process-ipqc.js", "routine-equipment.js", "shared-draft-client.js", "tooling.js"];const readPaused=["shared-draft-client.js", "process-authoring-v3.js", "master-data.js", "fqc-master.js", "iqc-master.js", "ipqc-ab.js", "ipqc-c.js", "routine-equipment.js", "bom-workspace.js", "tooling.js", "effective-version-notice.js", "routine-fqc.js", "process-ipqc.js"];const html=source('index.html');for(const file of ['app.js','approval-tabs.js','bom-workspace.js','bootstrap.js','canvas-local.js','delivery-navigation.js','dual-system.js','effective-version-notice.js','fqc-master.js','ipqc-ab.js','ipqc-c.js','iqc-master.js','master-data.js','master-shared-client.js','permission-controls.js','process-authoring-v3.js','quality-review-overview.js','routine-equipment.js','routine-fqc.js','shared-draft-client.js','shared-state.js','tooling.js','user-access.js','navigation-forms.js'])assert(html.includes(file+'?v='+(['version-draft-ui.js','master-shared-client.js','shared-draft-client.js','master-admin-ui.js','master-data.js','process-editor.js','bom-workspace.js'].includes(file)?'20261030-ab-c-followup1':file==='shared-draft-client.js'?'20261030-ab-c-ux2':file==='master-shared-client.js'?'20261030-ab-c-ux1':file==='fqc-master.js'?'20261030-ab-c-draft2':['app.js','bom-workspace.js','delivery-navigation.js','fqc-master.js','ipqc-ab.js','ipqc-c.js','iqc-master.js','master-data.js','master-shared-client.js','process-authoring-v3.js','routine-equipment.js','shared-draft-client.js','tooling.js'].includes(file)?'20261030-ab-c-draft1':file==='iqc-master.js'?'20261030-iqc-poll-owner1':['shared-draft-client.js','iqc-master.js','ipqc-c.js'].includes(file)?'20261029-quality-projection1':file==='process-authoring-v3.js'?'20261029-panel-local1':foregroundAssets.includes(file)?'20261029-begin-foreground1':file==='ipqc-c.js'?'20261029-c-save-bounded1':file==='iqc-master.js'?'20261029-iqc-single-read1':file==='shared-draft-client.js'?'20261029-combined-read-guard1':file==='ipqc-ab.js'?'20261029-ab-entry-lazy1':file==='routine-fqc.js'?'20261028-modern-unload1':file==='fqc-master.js'?'20261028-matrix-rule-layout1':['fqc-master.js','master-data.js','quality-review-overview.js'].includes(file)?'20261027-readscope-truthful1':['fqc-master.js','routine-equipment.js'].includes(file)?'20261027-fqc-followon1':readPaused.includes(file)?'20261027-scoped-read-pause1':['app.js','delivery-navigation.js'].includes(file)?'20261027-login-reentry1':['shared-state.js','master-data.js','bootstrap.js'].includes(file)?'20261026-feedback1':file==='iqc-master.js'?'20261026-editor-terminal1':file==='ipqc-c.js'?'20261027-operation-permissions1':['process-authoring-v3.js','canvas-local.js'].includes(file)?'20261027-save-inspection1':file==='shared-draft-client.js'?'20261027-authoring-deadline1':['app.js','master-data.js'].includes(file)?'20261026-navigation4':'20261025-navigation2')),file);
- assert(html.includes("process-ipqc.js?v=20261029-begin-foreground1"));
- assert(html.includes("data-safety-ui.js?v=20261027-login-reentry1"));
- assert(html.includes("process-equipment.js?v=20261026-input-lifecycle1"));
- assert(html.includes("process-editor.js?v=20261030-ab-c-followup1"));
+ const expected={
+  'app.js':'20261030-pr51-integrated1',
+  'approval-tabs.js':'20261025-navigation2',
+  'bom-workspace.js':'20261030-pr51-integrated1',
+  'bootstrap.js':'20261030-access-fusion1',
+  'canvas-local.js':'20261027-save-inspection1',
+  'delivery-navigation.js':'20261030-pr51-integrated1',
+  'dual-system.js':'20261025-navigation2',
+  'effective-version-notice.js':'20261027-scoped-read-pause1',
+  'fqc-master.js':'20261030-pr51-integrated1',
+  'ipqc-ab.js':'20261030-pr51-integrated1',
+  'ipqc-c.js':'20261030-pr51-integrated1',
+  'iqc-master.js':'20261030-pr51-integrated1',
+  'master-data.js':'20261030-pr51-integrated1',
+  'master-shared-client.js':'20261030-pr51-integrated1',
+  'permission-controls.js':'20261029-dispatch-rights1',
+  'process-authoring-v3.js':'20261030-pr51-integrated1',
+  'quality-review-overview.js':'20261027-readscope-truthful1',
+  'routine-equipment.js':'20261030-pr51-integrated1',
+  'routine-fqc.js':'20261028-modern-unload1',
+  'shared-draft-client.js':'20261030-pr51-integrated1',
+  'shared-state.js':'20261026-feedback1',
+  'tooling.js':'20261030-pr51-integrated1',
+  'user-access.js':'20261029-fqc-dependencies1',
+  'navigation-forms.js':'20261025-navigation2',
+  'process-ipqc.js':'20261029-begin-foreground1',
+  'data-safety-ui.js':'20261027-login-reentry1',
+  'process-equipment.js':'20261030-photo-integrated1',
+  'process-editor.js':'20261030-pr51-integrated1',
+  'master-review.js':'20261029-flowreview1',
+  'process-equipment.css':'20261029-flow1',
+  'photo-viewer.css':'20261029-photo2',
+  'version-workflow.js':'20261030-access-fusion1',
+  'i18n.js':'20261029-photo1',
+  'user-access.css':'20261029-details2',
+  'user-access-initial-read.js':'20261029-users-load2',
+ };
+ const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261030-ab-c-draft1"));
 });
 

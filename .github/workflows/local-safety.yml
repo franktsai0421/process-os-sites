@@ -49,6 +49,20 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
+      - name: Isolated benchmark tools and preview redirect boundaries
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          # windows-latest provides Python; require the documented minimum.
+          python -c "import sys; assert sys.version_info >= (3, 10)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Explicit UTF-8 also applies to Python child fixture processes.
+          $env:PYTHONUTF8 = '1'
+          python -m unittest discover -s scripts/benchmark -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node node_modules/playwright/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Source-only history and upload safety
         id: head_validation_01
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' && (steps.normal_typed_lint.outcome == 'success' || steps.normal_typed_lint.outcome == 'failure') }}
@@ -228,7 +242,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs
+          node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs tests/shared-draft-restore-admission.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-ipqc-ab-module-history.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-feedback-races.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -403,6 +421,14 @@ jobs:
           node scripts/test-process-incoming-index.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-process-review-current.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/process-master-references.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-unified-master-review.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-master-name-guards.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules tests/photo-standard-entries.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: IPQC-C bounded reads and compatibility
         id: head_validation_07

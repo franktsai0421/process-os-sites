@@ -39,3 +39,11 @@ await test('legacy approval history and routine frozen product rows retain permi
  const values={approvalVersions:JSON.stringify([{id:'legacy',stages:{D:[{id:'private',productCodes:['P']}]}}]),routineFqcControl:JSON.stringify({documents:[{id:'report',source:{products:[{code:'P'}]}}]})};
  const impact=catalogReferences(values,['P']);assert.equal(impact.total,2);assert(visibleCatalogReferences(impact,{'editor.view':true}).references.every(r=>!r.id));
 });
+
+await test('published dispatch snapshot alone protects product and category with view-safe details',()=>{
+ const values={publishedProcess:JSON.stringify({A:{id:'published',line:'A',category:'G',stages:{'A-D':[{id:'live-op',productCodes:['P']}]}}})},original=JSON.stringify(values);
+ const impact=catalogReferences(values,['P'],[{line:'A',name:'G'}]);assert.equal(impact.total,2);
+ assert(visibleCatalogReferences(impact,{}).references.every(r=>r.id===''&&r.path===''));
+ assert(visibleCatalogReferences(impact,{'editor.view':true}).references.some(r=>r.id==='live-op'));
+ assert.equal(removedCatalogReferences(values,{products:[{code:'P'}],categoryGroups:[]},{products:[],categoryGroups:[]}).total,1);assert.equal(JSON.stringify(values),original);
+});

@@ -30,7 +30,7 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       readOwners.delete(scope);readTokens.delete(actor?.id+':'+scope);adopt(scope,fresh);return result;
     }
     function identify(value,previous){
-      if(Array.isArray(value)){const byId=new Map((previous||[]).map(row=>[row?.id,row]));for(const row of value)if(row&&typeof row==='object'){
+      if(Array.isArray(value)){const byId=new Map();for(const row of previous||[])if(!byId.has(row?.id))byId.set(row?.id,row);for(const row of value)if(row&&typeof row==='object'){
         const old=row.id?byId.get(row.id):(previous||[]).find(p=>row.code?p.code===row.code:p.line===row.line&&p.name===row.name);
         row.id ||= old?.id||crypto.randomUUID();identify(row,old);
       }}else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
@@ -73,15 +73,18 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       }catch(error){if(action==='apply'&&(error.notSent||error.status&&error.status<500))error.rejectedDraftPaths=detail.patches?.map(patch=>patch.path)||[];throw error;}finally{busy=false;}
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
+      const savedId=current.saved.id,generation=current.generation,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
-      return execute(scope,'submit',{savedId:current.saved.id,reason});
+      if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      if(flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error('SAVED_VERSION_CHANGED_RECONFIRM');
+      return execute(scope,'submit',{savedId,reason});
     }
     async function review(scope,action,caseId){const c=flow(scope)?.cases.find(row=>row.id===caseId);if(!c)throw Error('CASE_NOT_FOUND');
       if(action==='approve'&&c.linkedProcess&&!confirm(t('此案件同步核准必要 PROCESS 範本。來源 '+c.linkedProcess.baseVersionId+'；新增 '+c.linkedProcess.added.join(', ')+'；刪除 '+c.linkedProcess.removed.join(', ')+'。確認？','Hồ sơ này đồng thời duyệt các mẫu PROCESS bắt buộc. Nguồn '+c.linkedProcess.baseVersionId+'; thêm '+c.linkedProcess.added.join(', ')+'; xóa '+c.linkedProcess.removed.join(', ')+'. Xác nhận?')))return null;
       const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:scope+' · '+caseId,selfReview:action!=='withdraw'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
-    async function history(scope){await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&host.hasPermission?.('approval.submit')&&host.hasPermission?.('master.delete'),onApplied:async()=>{await load(scope);onChange?.();}});}
+    async function history(scope){await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&['history','edit','restore'].every(key=>client(scope).permission(key)===true),onApplied:async()=>{await load(scope);onChange?.();}});}
     async function recover(scope){
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
       const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.();

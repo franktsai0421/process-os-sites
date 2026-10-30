@@ -59,12 +59,13 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     const originalCaseId = await h.promote('ipqc-c'), originalCase = await caseRead(h, originalCaseId);
     const baseState = await h.core.readState(), original = await full(h), originalObjects = new Map(h.objects);
     const permissionMatrix = {};
-    for (const who of ['viewer', 'edit-only', 'save-only', 'submit-only', 'no-view', 'reviewer']) {
+    await unchanged(h,()=>h.call('ipqc-c/workflow','GET',undefined,'no-view',403,'?permissions=1'));
+    for (const who of ['viewer', 'edit-only', 'save-only', 'submit-only', 'reviewer','module-reviewer']) {
       const result = await h.read('ipqc-c', who, '&permissions=1'); permissionMatrix[who] = result.permissions;
       for (const operation of ['edit', 'save', 'submit']) assert.equal(result.permissions[operation], who === operation + '-only', who + ' ' + operation + ' must follow its own cell');
-      // Existing data-view withdrawal/history policy is deliberately not refactored.
-      assert.equal(result.permissions.view, true); assert.equal(result.permissions.withdraw, who !== 'no-view');
-      assert.equal(result.permissions.history, who !== 'no-view');
+      // Accepted explicit cells: viewing alone does not permit withdrawal.
+      assert.equal(result.permissions.view, true); assert.equal(result.permissions.withdraw, who === 'edit-only');
+      assert.equal(result.permissions.history, true);
     }
     assert.equal(permissionMatrix.reviewer.approve, true); assert.equal(permissionMatrix.reviewer.return, true);
     assert.equal(permissionMatrix.viewer.approve, false); assert.equal(permissionMatrix.viewer.return, false);
@@ -72,7 +73,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     assert.equal(deletionOnly.edit, false); assert.equal(deletionOnly.delete, false, 'delete DTO must match existing edit-plus-delete mutation requirement');
     const editableDeletion = (await h.read('ipqc-c', 'edit-delete', '&permissions=1')).permissions;
     assert.equal(editableDeletion.edit, true); assert.equal(editableDeletion.delete, true);
-    record('Normal master/equipment/C approval and nonempty uploaded photo; distinct operation cells with unchanged view/review/history/withdraw DTO semantics');
+    record('Normal master/equipment/C approval and nonempty uploaded photo; distinct operation cells with explicit view/review/history/withdraw DTO semantics');
     for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await unchanged(h, () => h.begin('ipqc-c', who, 403));
     await h.begin('ipqc-c', 'edit-only');
     const itemId = h.flow(await h.read('ipqc-c')).working.items[0].id;
@@ -95,7 +96,8 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     const saved = h.flow(await h.command('ipqc-c', 'save', {}, 'save-only')).saved;
     assert.equal(saved.content.items[0].equipmentId, 'target');
     await unchanged(h, () => h.call('ipqc-c/workflow', 'GET', undefined, 'save-only', 403, '?restoreSaveId=' + saved.id));
-    const restorePreview = await h.call('ipqc-c/workflow', 'GET', undefined, 'edit-only', 200, '?restoreSaveId=' + saved.id);
+    await unchanged(h,()=>h.call('ipqc-c/workflow','GET',undefined,'edit-only',403,'?restoreSaveId='+saved.id));
+    const restorePreview = await h.call('ipqc-c/workflow', 'GET', undefined, 'editor', 200, '?restoreSaveId=' + saved.id);
     assert.equal(restorePreview.after.items[0].equipmentId, 'target');
     const submitted = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic separate submit' }, 'submit-only');
     const fixed = await caseRead(h, submitted.receipt.caseId); assert.deepEqual(fixed.reviewCase.content, saved.content);
@@ -105,12 +107,13 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     }
     await unchanged(h, () => h.command('ipqc-c', 'approve', { caseId: submitted.receipt.caseId }, 'viewer', 403));
     await unchanged(h, () => h.command('ipqc-c', 'return', { caseId: submitted.receipt.caseId, reason: 'not allowed' }, 'viewer', 403));
-    await h.command('ipqc-c', 'withdraw', { caseId: submitted.receipt.caseId, reason: 'Existing view-authorized withdraw retained' }, 'viewer');
+    await unchanged(h,()=>h.command('ipqc-c','withdraw',{caseId:submitted.receipt.caseId,reason:'View must not authorize withdrawal'},'viewer',403));
+    await h.command('ipqc-c','withdraw',{caseId:submitted.receipt.caseId,reason:'Explicitly authorized withdrawal'},'edit-only');
     assert.equal((await caseRead(h, submitted.receipt.caseId)).reviewCase.status, 'withdrawn');
     const resubmitted = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic reviewer return' }, 'submit-only');
-    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic retained return' }, 'reviewer');
+    await h.command('ipqc-c', 'return', { caseId: resubmitted.receipt.caseId, reason: 'Synthetic retained return' }, 'module-reviewer');
     const finalSubmit = await h.command('ipqc-c', 'submit', { savedId: saved.id, reason: 'Synthetic independent adoption' }, 'submit-only');
-    await h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'reviewer');
+    await h.command('ipqc-c', 'approve', { caseId: finalSubmit.receipt.caseId }, 'module-reviewer');
     current = await full(h); assert.equal(current.workflow.active.content.items[0].equipmentId, 'target');
     assert.deepEqual(current.workflow.active.content.items[0].mediaItems, original.workflow.active.content.items[0].mediaItems);
     assert.deepEqual(await caseRead(h, originalCaseId), originalCase);
@@ -149,7 +152,8 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await unchanged(legacy, () => legacyCall('begin', who, 403));
       await legacyCall('begin', 'edit-only');
       await unchanged(legacy, () => legacyCall('create-error', 'submit-only', 403, { productCode: 'C100', stageCode: 'C-CUT', name: 'Denied' }));
-      await legacyCall('create-error', 'edit-only', 200, { productCode: 'C100', stageCode: 'C-CUT', name: 'Synthetic legacy added' });
+      await unchanged(legacy,()=>legacyCall('create-error','edit-only',403,{productCode:'C100',stageCode:'C-CUT',name:'Denied without create'}));
+      await legacyCall('create-error', 'editor', 200, { productCode: 'C100', stageCode: 'C-CUT', name: 'Synthetic legacy added' });
       let l = await full(legacy);const draft = l.versions.find(row => row.status === 'draft'),extraError = draft.snapshot.errors.at(-1);
       for (const who of ['delete-only', 'edit-only']) await unchanged(legacy, () => legacyCall('delete-error', who, 403, { id: extraError.id }));
       await legacyCall('delete-error', 'edit-delete', 200, { id: extraError.id });
@@ -171,7 +175,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       l = await full(legacy); assert.equal(l.versions.find(row => row.id === l.activeVersionId).snapshot.items[0].standard, '11 mm');
       assert.deepEqual(l.versions.find(row => row.id === originalCaseId).snapshot, original.workflow.active.content);
       await unchanged(legacy, () => legacyCall('seed', 'editor', 403));
-      record('Derived legacy compatibility: edit-only Begin/Create, edit+delete, compound Save/Submit gates, pending and existing review/withdraw/seed boundaries; old approved content retained');
+      record('Derived legacy compatibility: edit-only Begin and explicit Create, edit+delete, compound Save/Submit gates, pending and existing review/withdraw/seed boundaries; old approved content retained');
       trace.push(...legacy.trace);
     } finally { legacy.close(); }
     const version = (await full(h)).versions.find(row => row.status === 'draft');

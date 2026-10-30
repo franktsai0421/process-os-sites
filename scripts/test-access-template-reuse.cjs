@@ -1,6 +1,7 @@
 /* Pure actual-function equivalence; no request/authority result cache. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const {makeLoader}=require('./read-performance-harness.cjs');
+const {withoutPR44AccessChanges,assertAccessTemplateContract}=require('./access-template-source-contract.cjs');
 const current=makeLoader()('lib/user-access.ts'),prior=makeLoader({}, {baseline:['lib/user-access.ts']})('lib/user-access.ts');
 const custom=[{id:'custom',name:'Custom',views:['data','approval'],lines:['B'],permissions:['approval.compare','approval.submit'],access:{'ipqc-ab.view':true,'ipqc-ab.save':false,'feedback.exchange':true,'users.view':true}}];
 const values={processCustomRoles:JSON.stringify(custom),processRoleTemplateOverrides:JSON.stringify({staff:{access:{'ipqc-ab.view':true,'ipqc-ab.save':false}}})};
@@ -27,10 +28,14 @@ check('T4 next-call role/raw/enabled changes recompute; returned cells cannot po
  state.processRoleTemplateOverrides=JSON.stringify({custom:{access:{'ipqc-ab.view':false}}});same(user,state);assert.equal(current.effectiveAccess(user,state).cells['ipqc-ab.view'],false);
  user.role='staff';same(user,state);user.enabled=false;same(user,state);assert.equal(current.effectiveAccess(user,state).enabled,false);
 });
-check('T5 exact local substitution only; session/identity/revocation code remains untouched',()=>{
+check('T5 exact reuse plus pinned PR44 deltas; session/identity/revocation remain untouched',()=>{
  const base='dc8c1c2238a6dd89c2707d50e050fe8ae674c9e8',old=execFileSync('git',['show',base+':lib/user-access.ts']),now=execFileSync('git',['show','HEAD:lib/user-access.ts']);
- const expected=old.toString().replace('const preset = roleTemplates(values)[role];','const roles = roleTemplates(values), preset = roles[role];').replace('effectiveCells(user,roleTemplates(values))','effectiveCells(user,roles)');assert.deepEqual(now,Buffer.from(expected));
+ const expected=old.toString().replace('const preset = roleTemplates(values)[role];','const roles = roleTemplates(values), preset = roles[role];').replace('effectiveCells(user,roleTemplates(values))','effectiveCells(user,roles)');assert.deepEqual(withoutPR44AccessChanges('lib/user-access.ts',now),Buffer.from(expected));
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
- for(const file of ['lib/process-state.ts','lib/session-revocation.ts','public/process/access-policy.mjs'])assert.deepEqual(execFileSync('git',['show','HEAD:'+file]),execFileSync('git',['show',base+':'+file]));
+ for(const file of ['lib/process-state.ts','lib/session-revocation.ts'])assert.deepEqual(execFileSync('git',['show','HEAD:'+file]),execFileSync('git',['show',base+':'+file]));
+ const policy='public/process/access-policy.mjs',committedPolicy=execFileSync('git',['show','HEAD:'+policy]);
+ assert.deepEqual(withoutPR44AccessChanges(policy,committedPolicy),execFileSync('git',['show',base+':'+policy]));
+ assert.deepEqual(lf(fs.readFileSync(policy)),lf(committedPolicy));
+ for(const [file,bytes]of [['lib/user-access.ts',now],[policy,committedPolicy]])assertAccessTemplateContract(file,bytes);
 });
-console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','No page or action/data rights change']}));
+console.log(JSON.stringify({status:'PASS',groups:checks.length,checks,comparisons,oldParseCount,newParseCount,network:false,limits:['Pure local computation work only, not measured live bottleneck','No caching between calls or skipping identity/revocation checks','Reuse comparison shares the exact pinned PR44 policy; not pre-PR44 policy equivalence']}));
