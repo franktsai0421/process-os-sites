@@ -166,3 +166,9 @@ void test('authoring departure cannot publish local canvas positions or connecti
  dirty=false;changed=true;assert.equal(adapter.canSaveForDeparture(),false);await adapter.saveForDeparture();assert.equal(saves,0);
  changed=false;assert.equal(adapter.canSaveForDeparture(),true);await adapter.saveForDeparture();assert.equal(saves,1);
 });
+
+void test('actual line-admin departure detects unsaved AB/C working content',()=>{
+ const text=source('master-data.js'),declaration=part(text,'      requiresSave(){','      async saveForDeparture(){').trim().replace(/,$/,'');
+ const flow={working:{name:'changed'},saved:{content:{name:'saved'}},active:{content:{name:'active'}}},box={state:{view:'data',dataTab:'line-admin',masterScope:'C'},shared:{flow:scope=>{assert.equal(scope,'C');return flow;}}};
+ vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);assert.equal(adapter.requiresSave(),true);flow.saved.content=flow.working;assert.equal(adapter.requiresSave(),false);box.state.view='editor';assert.equal(adapter.requiresSave(),false);
+});

@@ -1140,7 +1140,7 @@
     canLeave:()=>!shared.busy(),
     navigation:{
       requiresSave(){
-        if(state.view!=='data'||!['AB','C','lines','process-master'].includes(state.dataTab))return false;
+        if(state.view!=='data'||!['AB','C','lines','line-admin','process-master'].includes(state.dataTab))return false;
         const flow=shared.flow(state.dataTab==='process-master'?'PROCESS':state.masterScope);
         return !!flow&&!flow.pendingId&&JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content??flow.active?.content);
       },
