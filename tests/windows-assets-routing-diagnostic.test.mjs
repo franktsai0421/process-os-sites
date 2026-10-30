@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 import {
   CELLS,LIMITS,LOCK_HASH,RESPONSE_BODY,VERSIONS,WORKER,
   runDiagnostic,runtimeOptions,safeCode,workingLockMatches,
@@ -300,8 +301,12 @@ void test('working lock permits only CRLF conversion, not content changes',() =>
   assert.equal(workingLockMatches(canonical,Buffer.from('{\n"locked":false\n}\n')),false);
 });
 
-void test('workflow has only exact diagnostic push, pinned actions, six-minute job and no bypass',() => {
-  const workflow = fs.readFileSync(new URL('../.github/workflows/windows-assets-routing-diagnostic.yml',import.meta.url),'utf8');
+function assertWorkflowSource(raw) {
+  // Accept checkout EOL conversion only, never erase semantic differences.
+  assert.doesNotMatch(raw,/\r(?!\n)/);
+  const workflow = raw.replace(/\r\n/g,'\n');
+  assert.equal(createHash('sha256').update(workflow).digest('hex'),
+    '223812f4b1c1a05096ea78c30aa488eecbc52d847e2d0f66fca699eae58d8d7a');
   assert.match(workflow,/on:\n  push:\n    branches: \['diagnostic\/windows-assets-pair-20261030'\]/);
   assert.equal((workflow.match(/^      - '(?:scripts|tests|\.github)\//gm) || []).length,3);
   assert.doesNotMatch(workflow,/^  (pull_request|workflow_dispatch|schedule):/m);
@@ -316,4 +321,34 @@ void test('workflow has only exact diagnostic push, pinned actions, six-minute j
   assert.match(script,/assert\.equal\(process\.versions\.node,'24\.22\.1'\)/);
   assert.match(workflow,/npm ci --no-audit --no-fund/);
   assert.match(workflow,/node scripts\/sites-ci-preflight.mjs/);
+}
+
+void test('workflow has only exact diagnostic push, pinned actions, six-minute job and no bypass',() => {
+  const source = fs.readFileSync(new URL('../.github/workflows/windows-assets-routing-diagnostic.yml',import.meta.url),'utf8');
+  const lf = source.replace(/\r\n/g,'\n');
+  assertWorkflowSource(source);
+  assertWorkflowSource(lf);
+  assertWorkflowSource(lf.replace(/\n/g,'\r\n'));
+});
+
+void test('EOL compatibility never accepts workflow trigger, limits, permissions or command mutations',() => {
+  const source = fs.readFileSync(new URL('../.github/workflows/windows-assets-routing-diagnostic.yml',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+  const mutations = [
+    ['  push:', '  workflow_dispatch:'],
+    ["branches: ['diagnostic/windows-assets-pair-20261030']", "branches: ['main']"],
+    ['timeout-minutes: 6', 'timeout-minutes: 60'],
+    ['contents: read', 'contents: write'],
+    ['persist-credentials: false', 'persist-credentials: true'],
+    ['node scripts/sites-ci-preflight.mjs', 'echo skip-preflight'],
+    ['--run-windows-assets-routing', '--run-windows-assets-routing --retry'],
+    ["node-version: '24.22.1'", "node-version: '24'"],
+  ];
+  for (const [before,after] of mutations) {
+    assert.equal(source.split(before).length,2,'mutation anchor must be unique');
+    const changed = source.replace(before,after);
+    for (const value of [changed,changed.replace(/\n/g,'\r\n')]) {
+      assert.throws(() => assertWorkflowSource(value),{code:'ERR_ASSERTION'});
+    }
+  }
+  assert.throws(() => assertWorkflowSource(source.replace('on:\n','on:\r')),{code:'ERR_ASSERTION'});
 });
