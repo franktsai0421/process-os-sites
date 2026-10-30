@@ -28,10 +28,16 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,result.control?result:await c.read());return result;
     }
     function identify(value,previous){
-      if(Array.isArray(value)){for(const row of value)if(row&&typeof row==='object'){
-        const old=(previous||[]).find(p=>row.id?p.id===row.id:row.code?p.code===row.code:p.line===row.line&&p.name===row.name);
-        row.id ||= old?.id||crypto.randomUUID();identify(row,old);
-      }}else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
+      if(Array.isArray(value)){
+        // First-match indexes preserve the legacy lookup rules without scanning
+        // every previous product once for each current product on every Apply.
+        const ids=new Map(),codes=new Map(),groups=new Map();
+        for(const p of previous||[]){if(!p||typeof p!=='object')continue;if(!ids.has(p.id))ids.set(p.id,p);if(!codes.has(p.code))codes.set(p.code,p);if(!groups.has(p.line))groups.set(p.line,new Map());const names=groups.get(p.line);if(!names.has(p.name))names.set(p.name,p);}
+        for(const row of value)if(row&&typeof row==='object'){
+          const old=row.id?ids.get(row.id):row.code?codes.get(row.code):groups.get(row.line)?.get(row.name);
+          row.id ||= old?.id||crypto.randomUUID();identify(row,old);
+        }
+      }else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
     }
     function diff(before,after,path=[],patches=[],guards=[]){
       if(equal(before,after))return{patches,guards};
@@ -69,15 +75,17 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       }catch(error){if(action==='apply'&&(error.notSent||error.status&&error.status<500))error.rejectedDraftPaths=detail.patches?.map(patch=>patch.path)||[];throw error;}finally{busy=false;}
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
-      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope);if(!reason)return null;
-      return execute(scope,'submit',{savedId:current.saved.id,reason});
+      const savedId=current.saved.id,owner=host.ProcessSync?.identity,generation=current.generation;
+      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,{snapshot:{actor:current.saved.actor?.name,at:current.saved.at,dirty:!equal(current.working,current.saved.content)}});if(!reason)return null;
+      if(owner!==host.ProcessSync?.identity||flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error(t('已保存的快照已變更，請重新開啟送審確認。','Bản đã lưu đã thay đổi; hãy mở lại xác nhận gửi duyệt.'));
+      return execute(scope,'submit',{savedId,reason});
     }
     async function review(scope,action,caseId){const c=flow(scope)?.cases.find(row=>row.id===caseId);if(!c)throw Error('CASE_NOT_FOUND');
       if(action==='approve'&&c.linkedProcess&&!confirm(t('此案件同步核准必要 PROCESS 範本。來源 '+c.linkedProcess.baseVersionId+'；新增 '+c.linkedProcess.added.join(', ')+'；刪除 '+c.linkedProcess.removed.join(', ')+'。確認？','Hồ sơ này đồng thời duyệt các mẫu PROCESS bắt buộc. Nguồn '+c.linkedProcess.baseVersionId+'; thêm '+c.linkedProcess.added.join(', ')+'; xóa '+c.linkedProcess.removed.join(', ')+'. Xác nhận?')))return null;
       const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:scope+' · '+caseId,selfReview:action!=='withdraw'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
-    async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&host.hasPermission?.('approval.submit')&&host.hasPermission?.('master.delete'),onApplied:async()=>{await load(scope);onChange?.();}});}
+    async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&permissions.get(scope)?.edit===true&&permissions.get(scope)?.delete===true,onApplied:async()=>{await load(scope);onChange?.();}});}
     async function recover(scope){const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}await load(scope);onChange?.();}
     return{resetReads(){readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };

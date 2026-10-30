@@ -1,3 +1,7 @@
+# 線別與工段：指定分支交接
+
+`handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、首次寫入 legacy→records-v1 條件／封存／失敗恢復及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
+
 本次獨立回報／小幫手工作： [隔離交付與 dot 整合事項](docs/web-feedback/20261029-isolated-helper.md)。分支 `codex/web-feedback-helper-20261029`；僅模組程式、專屬測試與文件，入口只更新 helper 快取版本。未 merge、未覆蓋任何 Site；公開預覽與 Draft PR 需要目前未提供的外部能力。建議 1–4 與 iframe 首幀修復證據見交付末段：同步暫代 iframe 畫面並恢復原節點，立即點擊診斷已通過；入口版本為 feedback7；最新明細局部更新、交接按需呈現及速度／雙語驗證見同一交付末段。下方其他工作的內容保持原樣。
 
 # Isolated Sites implementation handoff

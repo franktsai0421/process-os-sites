@@ -1,3 +1,9 @@
+## 2026-10-30 AB/C 大型 legacy 儲存表示轉換
+
+沒有新增 SQL schema／資料表／格式版本，但符合條件的首次正常 AB/C 寫入會轉換儲存表示：更新後 masterDataControl UTF-8 ≥512 KiB，原為完整 inline／單一 R2 legacy，全部 values 為 JSON 且無未驗證 immutable 指標，才採用既有 records-v1。小型、chunk、非標準資料保留舊路徑；PROCESS-only 不觸發，partial/read-only 仍禁寫。
+
+每個寫入前原始 value 字串以 immutable R2 物件封存於既有 legacySources；歷史、其他模組及舊物件保留。原 DB CAS 原子發布 manifest；上傳失敗／CAS 輸家不發布新指標或成功收據，可能留有未引用物件，不自動刪除。失 ACK 先查原 operationId 收據。封存不等於整個 DB 一鍵還原；首次成本及實站恢復未驗。[條件、測試與回復邊界](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+
 ## 2026-10-28 有界寫入能力 / Bounded mutation capabilities
 
 製程 guarded Apply／手動 Sync／Submit／Approve 與 FQC Save／Submit／Withdraw／Return／Approve 使用服務端固定必要 body 閉包及單次、snapshot-bound request-memory capability。所有 aggregate、必要完整來源、fresh auth/revocation、全域 CAS、收據與不可變歷史保留；只對指定 target overlay，public partial-save 禁止規則不變。不新增持久欄位、SQL schema、migration 或 shared_state key，不轉換既有資料。

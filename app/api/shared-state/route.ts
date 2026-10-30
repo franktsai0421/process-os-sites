@@ -1,3 +1,4 @@
+import {visibleStageReferences} from '@/lib/master-stage-reference-response';
 import {legacyJsonValueText,type JsonValue} from '@/lib/legacy-login-json';
 import {companyReader,companyState} from '@/lib/process-state';
 import {permitsAny} from '@/lib/site-security.mjs';
@@ -8,7 +9,7 @@ import { mediaState, restoreMediaUpdates, writeReceipt } from '@/lib/state-media
 import { stateRevisionIsCurrent } from '@/lib/process-state';
 import {DraftConflict,stableDraftJSON} from '@/lib/shared-draft';
 import {validateIPQCAssignments,legacyWorkspace} from '@/lib/process-ipqc';
-import {removedMasterStages,stageReferences} from '@/lib/master-stage-references';
+import {removedMasterStages,stageReferences,removesLineWithStages} from '@/lib/master-stage-references';
 import {assertStageTemplateAvailable} from '@/lib/master-process-lock';
 import {assertProcessLinkAvailable} from '@/lib/master-stage-link';
 import {
@@ -276,13 +277,17 @@ export async function POST(request: Request) {
     );
   const prior:LegacyMasterControl|null = parse(state.values.masterDataControl, null);
   if (prior && master && JSON.stringify(prior) !== JSON.stringify(master)) {
+    const removedChildLine=(['AB','C'] as const).some(scope=>removesLineWithStages(prior.active?.[scope],master.active?.[scope]))
+      ||(master.versions||[]).some(version=>['AB','C'].includes(version.scope)&&['draft','pending','approved'].includes(version.status)
+        &&removesLineWithStages(prior.versions?.find(v=>v.id===version.id)?.snapshot||prior.active?.[version.scope],version.snapshot));
+    if(removedChildLine)return Response.json({error:'LINE_HAS_STAGES'},{status:409,headers});
     const removedStages=new Set<string>();
     for(const scope of ['AB','C'] as const)removedMasterStages(prior.active?.[scope],master.active?.[scope]).forEach(code=>removedStages.add(code));
     for(const version of master.versions||[]){if(!['AB','C'].includes(version.scope)||!['draft','pending','approved'].includes(version.status))continue;
       const old=prior.versions?.find((v:{id:string})=>v.id===version.id);
       removedMasterStages(old?.snapshot||prior.active?.[version.scope],version.snapshot).forEach(code=>removedStages.add(code));}
     const impact=stageReferences(state.values,[...removedStages]);
-    if(impact.total)return Response.json({error:'STAGE_IN_USE',details:impact},{status:409,headers});
+    if(impact.total)return Response.json({error:'STAGE_IN_USE',details:await visibleStageReferences(request,impact)},{status:409,headers});
     try{
       for(const scope of ['AB','C'] as const)assertStageTemplateAvailable(prior,prior.active?.[scope],master.active?.[scope]);
       for(const version of master.versions||[]){if(!['AB','C'].includes(version.scope)||!['draft','pending','approved'].includes(version.status))continue;

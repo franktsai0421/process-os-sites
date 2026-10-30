@@ -1,3 +1,7 @@
+## 2026-10-30 線別／工段候選
+
+AB/C 管理頁使用既有共享草稿與審核；補齊錯誤重試、欄位驗證、引用明細權限、saved 快照確認與範圍／輪詢保護。大型 legacy 的合格正常寫入可初始化既有 records-v1，PROCESS-only 不主動觸發。保留原權限、guard、CAS、收據及不可變歷史。[交接、測試與整合邊界](../../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+
 ## 2026-10-16 既有欄位原值防護與名稱輸入鏈
 
 master AB／C／PROCESS、process authoring 及 equipment 的既有 set 欄位必須附對應 path 原值 guard，沿原 kernel 判斷 stale；不同欄位仍可合併。原 immutable codes、引用、角色、pending、CAS 與審核規則保留。master／authoring 對已有成功 receipt 的精確命令保留 replay 相容；仍核對 actor 與 fingerprint，沒有新無 guard 命令通道。authoring 原 whole-operation 相依 guard 仍有效，不能把同方塊不同欄位強行當成可合併。

@@ -1,4 +1,4 @@
-// Explicit isolated conversion format. Immutable snapshot bodies are separate
+// Existing records-v1 storage format. Immutable snapshot bodies are separate
 // from live aggregates; workflow requests need not reconstruct old history.
 import {effectiveDeliveryValue} from './effective-delivery.mjs';
 type Bucket={get(key:string):Promise<{text():Promise<string>;size?:number;body?:{cancel():Promise<unknown>}}|null>;put(key:string,value:string,options?:{httpMetadata:{contentType:string}}):Promise<unknown>};
@@ -86,9 +86,16 @@ export async function encodeRecordValues(bucket:Bucket,values:Record<string,stri
  if(previous?.partial)throw Error('Partial read cannot be saved');
  return encodeRecordValuesCore(bucket,values,previous,updatedModels);
 }
+// First master-workflow adoption keeps every pre-write legacy value verbatim
+// in the existing legacySources archive, alongside the new current projection.
+// It creates immutable objects only; the caller must publish with its usual CAS.
+export async function initializeRecordValues(bucket:Bucket,values:Record<string,string>,originalValues:Record<string,string>){
+ if(Object.keys(originalValues).some(key=>!Object.hasOwn(values,key)))throw Error('Initial record adoption cannot drop legacy keys');
+ return encodeRecordValuesCore(bucket,values,undefined,undefined,originalValues);
+}
 // Private encoding primitive. The ordinary writer above always rejects partial
 // state; the FQC overlay below supplies a server-issued, single-target handle.
-async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>,previous?:RecordStorage,updatedModels?:Map<string,unknown>){
+async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>,previous?:RecordStorage,updatedModels?:Map<string,unknown>,initialSources?:Record<string,string>){
  const refs:Record<string,Ref>={},allocations:Record<string,Ref>={...previous?.envelope.__processRecords.allocations},legacySources:Record<string,Ref>=previous?.envelope.__processRecords.legacySources||{},written=new Set<string>(),known=new Set(previous?.known||[]);
  const put=async(raw:string)=>{const sha256=await hash(raw),ref={key:prefix+sha256+'.json',sha256};if(!written.has(sha256)&&!known.has(sha256)){await bucket.put(ref.key,raw,{httpMetadata:{contentType:'application/json'}});written.add(sha256);}return ref;};
  const bodies=new WeakMap<object,Ref>();
@@ -111,7 +118,7 @@ async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>
  for(const [key,value]of Object.entries(values)){
   if(!updatedModels?.has(key)&&previous?.originalValues[key]===value){refs[key]=previous.envelope.__processRecords.values[key];continue;}
   if(typeof value!=='string')throw Error('Invalid shared-state value');
-  if(!previous)legacySources[key]=await put(value);
+  if(!previous)legacySources[key]=await put(initialSources?.[key]??value);
   // Trusted request-local models avoid expanding all live aliases into a JSON
   // string and parsing independent copies immediately before record encoding.
   const parsed=updatedModels?.has(key)?updatedModels.get(key):JSON.parse(value);

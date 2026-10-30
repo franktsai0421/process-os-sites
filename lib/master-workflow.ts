@@ -1,6 +1,6 @@
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
-import {removedMasterStages,stageReferences} from './master-stage-references';
+import {removedMasterStages,stageReferences,removesLineWithStages} from './master-stage-references';
 import {assertStageTemplateAvailable} from './master-process-lock';
 import {stageProcessLink,assertProcessLinkAvailable,checkPinnedStageProcessLink,activateStageProcessLink,type StageProcessLink} from './master-stage-link';
 type Entity=Record<string,unknown>&{id:string};
@@ -26,7 +26,13 @@ export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot
  return next;
 }
 export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Library>{
- let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false;
+ let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false,checkEnteredFields=false;
+ function serializeModel(control:Library){const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
+   root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
+    snapshot:!v.id.startsWith('shared-')&&!cases.has(v.id)&&legacy.has(v.id)?legacy.get(v.id)!.snapshot:v.snapshot}))];
+   if(control.activeVersionId)root.active[scope]=root.versions.find(v=>v.id===control.activeVersionId)!.snapshot;
+   root.workflowScopes={...root.workflowScopes,[scope]:control.workflow!};return root;
+  }
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
@@ -39,12 +45,8 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
    if(!active)throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
    return{activeVersionId:active.id,versions:versions.map(v=>({...v,snapshot:v.id===active.id||['draft','pending'].includes(v.status)?normalizeMasterSnapshot(v.snapshot,scope):v.snapshot})),workflow:root.workflowScopes?.[scope]};
   },
-  serialize(control){const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
-   root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
-    snapshot:!v.id.startsWith('shared-')&&!cases.has(v.id)&&legacy.has(v.id)?legacy.get(v.id)!.snapshot:v.snapshot}))];
-   if(control.activeVersionId)root.active[scope]=root.versions.find(v=>v.id===control.activeVersionId)!.snapshot;
-   root.workflowScopes={...root.workflowScopes,[scope]:control.workflow!};return JSON.stringify(root);
-  },
+  serialize:control=>JSON.stringify(serializeModel(control)),
+  serializeModel,
   projectValues():Record<string,string>{return scope==='PROCESS'||linkedActivated?{processMasterData:JSON.stringify(root.active.PROCESS)}:{};},
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
   requiresDelete(control,command){
@@ -55,7 +57,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      Array.isArray(row.stages)&&row.stages.some(stage=>!Array.isArray(p.value)||!p.value.includes(stage))));
   },
   context(control,state,base){
-   values=state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values;
+   values=state.values;
    const master=root;
    const stages=new Set(['AB','C'].flatMap(s=>rows(master.active[s]?.lines||[]).flatMap(l=>rows(l.stages).map(s=>str(s.code)))));
    return{...base,activeId:control.activeVersionId,
@@ -78,10 +80,30 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
        }
       }
      }else{
-      const removed=removedMasterStages(previous,content),impact=stageReferences(removed.length&&state.recordStorage?.models.has('masterDataControl')?{...state.values,masterDataControl:JSON.stringify(root)}:state.values,removed,previous);
+      // A line removal never implicitly removes its children, even when those
+      // stages have no external references. Rechecked on each CAS attempt.
+      if(removesLineWithStages(previous,content))
+       throw new DraftConflict('LINE_HAS_STAGES',409);
+      const removed=removedMasterStages(previous,content),impact=stageReferences(state.values,removed,previous,root);
       if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
       assertStageTemplateAvailable(master,previous,content);
       const products=rows(content.products),lines=rows(content.lines),categories=rows(content.categoryGroups);unique(products);unique(products,'code');unique(lines);const lineCodes=unique(lines,'code');unique(categories);
+      // Match the existing line/stage form rules for new or changed fields.
+      // Untouched legacy identifiers/names remain readable and are not migrated.
+      if(checkEnteredFields){
+      const previousLines=new Map(rows(previous.lines).map(line=>[line.id||line.code,line]));
+      for(const line of lines){
+       const prior=previousLines.get(line.id||line.code);
+       if((!prior||line.code!==prior.code)&&!/^[A-Za-z0-9_-]+$/.test(str(line.code)))throw new DraftConflict('LINE_CODE_INVALID',422);
+       if((!prior||line.name!==prior.name)&&!str(line.name).trim())throw new DraftConflict('NAME_REQUIRED',422);
+       const previousStages=new Map((prior?rows(prior.stages):[]).map(stage=>[stage.id||stage.code,stage]));
+       for(const stage of rows(line.stages)){
+        const old=previousStages.get(stage.id||stage.code);
+        if((!old||stage.code!==old.code)&&!/^[A-Za-z0-9_-]+$/.test(str(stage.code)))throw new DraftConflict('STAGE_CODE_INVALID',422);
+        if((!old||stage.name!==old.name)&&!str(stage.name).trim())throw new DraftConflict('NAME_REQUIRED',422);
+       }
+      }
+      }
       // UI duplicate checks are advisory. Recheck other scopes in the same CAS read,
       // including saved/pending/working values, so stale pages cannot claim their codes.
       const otherScope=scope==='AB'?'C':'AB';
@@ -123,7 +145,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      return issues;}
    };
   },
-  apply(control,command,context){if(command.action==='apply')for(const p of command.patches||[]){
+  apply(control,command,context){checkEnteredFields=command.action==='apply';if(command.action==='apply')for(const p of command.patches||[]){
    const path=p.path,first=path[0],field=path.at(-1);if(typeof first!=='string'||scope!=='PROCESS'&&!['products','lines','categoryGroups'].includes(first))throw new DraftConflict('INVALID_COLLECTION',422);
    if(p.op==='set'&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
    if(p.op==='set'&&(first==='lines'&&path.length===3&&field==='stages'||scope==='PROCESS'&&field==='equipment'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);

@@ -68,8 +68,9 @@
     const ui = {scope:state.masterScope,line:'',search:'',category:'',versions:{},linesOpen:true,page:0};
     const permitted=key=>typeof window.hasPermission==='function'?window.hasPermission(key):currentUser?.role==='admin';
     const hasPendingReview=()=>!!pending(state.masterScope);
-    const canDelete=()=>!!editable()&&permitted('master.delete')&&!hasPendingReview();
-    const deletionNote=()=>!permitted('master.delete')?t('只有主管可刪除主資料。','Chỉ quản lý được xóa dữ liệu gốc.'):hasPendingReview()?t('目前有主資料正在送審，為避免版本衝突，暫停刪除。','Đang có dữ liệu chờ duyệt; tạm khóa xóa để tránh xung đột.') : '';
+    const canDelete=()=>!!editable()&&(shared.permissions(state.masterScope)?.delete??permitted('master.delete'))&&!hasPendingReview();
+    const canCreate=()=>!!editable()&&permitted(state.masterScope.toLowerCase()+'.create');
+    const deletionNote=()=>!(shared.permissions(state.masterScope)?.delete??permitted('master.delete'))?t('此帳號沒有目前範圍的刪除權限。','Tài khoản không có quyền xóa trong phạm vi hiện tại.'):hasPendingReview()?t('目前有主資料正在送審，為避免版本衝突，暫停刪除。','Đang có dữ liệu chờ duyệt; tạm khóa xóa để tránh xung đột.') : '';
     function deletionAccess(){
       if(!permitted('master.delete'))return '';
       if(hasPendingReview())return `<section class="master-delete-access locked"><b>${t('刪除功能已暫停','Chức năng xóa đang tạm khóa')}</b><span>${deletionNote()}</span></section>`;
@@ -105,12 +106,26 @@
       return `<li>${h(label)} ${h(note)} <small>${h(actor)} · ${stamp(e.at)}</small></li>`;
     }
     const status = value => ({draft:t('草稿 · 未送審','Bản nháp · Chưa gửi'),pending:t('主管審核中','Đang chờ duyệt'),approved:t('已核准','Đã duyệt'),superseded:t('歷史核准','Bản đã duyệt trước')})[value] || value;
+    function showStageReferences(details){
+      document.querySelector('#master-stage-references')?.remove();
+      const dialog=document.createElement('dialog');dialog.id='master-stage-references';dialog.className='master-edit-dialog';
+      const body=document.createElement('div');body.className='master-dialog-body';
+      const heading=document.createElement('h2');heading.textContent=t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.');body.append(heading);
+      const list=document.createElement('ul');
+      for(const row of details?.references||[]){const item=document.createElement('li');item.textContent=`${row.stage} · ${row.source} · ${row.id} `;
+        if(row.resolveUrl?.startsWith('/process/?')){const link=document.createElement('a');link.href=row.resolveUrl+(row.detailQuery?'#stage-reference='+encodeURIComponent(row.detailQuery):'');link.target='_blank';link.rel='noopener';link.textContent=t('定位引用紀錄','Xem đúng bản ghi tham chiếu');item.append(link);}list.append(item);}
+      body.append(list);
+      if(details?.hidden||details?.truncated){const note=document.createElement('p');note.textContent=t('另有未顯示的引用；請由有權限的人員協助核對。','Còn tham chiếu chưa hiển thị; hãy nhờ người có quyền kiểm tra.');body.append(note);}
+      const close=document.createElement('button');close.type='button';close.className='button ghost';close.textContent=t('關閉','Đóng');close.onclick=()=>dialog.close();body.append(close);dialog.append(body);
+      dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();close.focus();
+    }
     async function commit(label,note,action) {
       if (!editable()) return false;
       const before = copy(selected().snapshot), history = copy(selected().history || []), updated = selected().updatedAt;
       try { action(editable()); record(selected(),label,note); if(state.masterValidationErrors?.length)state.masterValidationErrors=validateCatalog(editable()); await persist(); return true; }
       catch(error) { const dialog=document.querySelector('#master-edit-dialog');if(dialog&&error.rejectedDraftPaths?.length)dialog.rejectedDraftPaths=[...(dialog.rejectedDraftPaths||[]),...error.rejectedDraftPaths];selected().snapshot = before; selected().history = history; selected().updatedAt = updated;
-        if(error.message==='STAGE_IN_USE')window.alert(t('工段仍有引用，未刪除。','Công đoạn còn được sử dụng, không xóa.')+'\n'+(error.details?.references||[]).slice(0,20).map(r=>`${r.stage} · ${r.source} · ${r.id}`).join('\n'));
+        if(!dialog&&error.rejectedDraftPaths?.length)shared.discardRejected(state.masterScope,error.rejectedDraftPaths);
+        if(error.message==='STAGE_IN_USE')showStageReferences(error.details);
         else if(['PROCESS_TEMPLATE_SCOPE_BUSY','LINKED_PROCESS_CASE_PENDING','PROCESS_SOURCE_VERSION_CHANGED'].includes(error.message)){
           const message=t('此工段操作會變更流程範本，但 PROCESS 有草稿或待審案件；請先處理。其他 AB／C 修改不受影響。','Thao tác này thay đổi mẫu quy trình, nhưng PROCESS có bản nháp hoặc hồ sơ chờ duyệt. Hãy xử lý trước; vẫn có thể sửa dữ liệu AB/C khác.');
           const target=document.querySelector('#master-edit-dialog .master-dialog-error')||document.querySelector('#data-content');
@@ -123,21 +138,26 @@
     function preserveView(){
       const root=document.querySelector('.master-organized');if(!root)return()=>{};
       const key=ui.scope+':'+state.masterSection,x=window.scrollX,y=window.scrollY;
-      const focused=document.activeElement,focus=root.contains(focused)&&focused.id?{id:focused.id,start:focused.selectionStart,end:focused.selectionEnd}:null;
+      const focused=document.activeElement,focusKey=['data-stage-add','data-stage-edit','data-stage-delete','data-line-edit','data-line-delete','data-history-pick'].find(key=>focused?.hasAttribute?.(key));
+      const focus=root.contains(focused)&&(focused.id||focusKey)?{id:focused.id,selector:focusKey?'['+focusKey+'="'+CSS.escape(focused.getAttribute(focusKey))+'"]':null,parent:focused.dataset.parentLine,start:focused.selectionStart,end:focused.selectionEnd}:null;
       const positions=['.master-table-wrap',...Array.from(root.querySelectorAll('.master-category-group')).map((_,i)=>`.master-category-group:nth-child(${i+1})>div`)].map(selector=>{const e=root.querySelector(selector);return{selector,top:e?.scrollTop||0,left:e?.scrollLeft||0};});
       const details=[...root.querySelectorAll('details')].map(e=>({key:e.dataset.routeDetails||e.className,open:e.open}));
-      return()=>{if(key!==state.masterScope+':'+state.masterSection)return;const next=document.querySelector('.master-organized');if(!next)return;for(const p of positions){const e=next.querySelector(p.selector);if(e){e.scrollTop=p.top;e.scrollLeft=p.left;}}for(const e of next.querySelectorAll('details')){const old=details.find(d=>d.key===(e.dataset.routeDetails||e.className));if(old)e.open=old.open;}if(focus){const input=document.getElementById(focus.id);if(input&&next.contains(input)){input.focus({preventScroll:true});if(focus.start!==null&&typeof input.setSelectionRange==='function')input.setSelectionRange(focus.start,focus.end);}}window.scrollTo(x,y);};
+      return()=>{if(key!==state.masterScope+':'+state.masterSection)return;const next=document.querySelector('.master-organized');if(!next)return;for(const p of positions){const e=next.querySelector(p.selector);if(e){e.scrollTop=p.top;e.scrollLeft=p.left;}}for(const e of next.querySelectorAll('details')){const old=details.find(d=>d.key===(e.dataset.routeDetails||e.className));if(old)e.open=old.open;}if(focus){const input=focus.id?document.getElementById(focus.id):next.querySelector(focus.selector)||(focus.parent?next.querySelector('[data-stage-add="'+CSS.escape(focus.parent)+'"]'):null);if(input&&next.contains(input)){input.focus({preventScroll:true});if(focus.start!==null&&typeof input.setSelectionRange==='function')input.setSelectionRange(focus.start,focus.end);}}window.scrollTo(x,y);};
     }
     function redraw() { const content = document.querySelector('#data-content'); if(content) {const restore=preserveView();content.innerHTML = masterView(); bindMaster();restore();} }
     function modal(title,body,onSave,setup) {
       document.querySelector('#master-edit-dialog')?.close();
       const previous = document.activeElement, dialog = document.createElement('dialog');
+      const openerKey=['data-line-edit','data-stage-edit','data-stage-add'].find(key=>previous?.hasAttribute?.(key));
+      const openerCode=openerKey?previous.getAttribute(openerKey):null;
+      const openerRow=openerKey==='data-stage-edit'?current().lines.flatMap(line=>line.stages).find(stage=>stage.code===openerCode):current().lines.find(line=>line.code===openerCode);
+      const restoreOpener=()=>{let target=previous?.isConnected?previous:null;if(!target&&openerKey){const row=openerKey==='data-stage-edit'?current().lines.flatMap(line=>line.stages).find(stage=>stage.id===openerRow?.id):current().lines.find(line=>line.id===openerRow?.id);target=document.querySelector('['+openerKey+'="'+CSS.escape(row?.code||openerCode)+'"]');}target?.focus({preventScroll:true});};
       dialog.id = 'master-edit-dialog'; dialog.className = 'master-edit-dialog'; dialog.dataset.i18nSkip = 'true';
       dialog.setAttribute('aria-labelledby','master-dialog-title');
       dialog.innerHTML = `<form><header><h2 id="master-dialog-title">${title}</h2>${small('×','data-cancel aria-label="'+t('取消','Hủy')+'"')}</header><div class="master-dialog-body">${body}<p class="master-dialog-error" role="alert"></p></div><footer><small>${t('Esc 取消，不儲存變更','Esc để hủy, không lưu thay đổi')}</small>${small(t('取消','Hủy'),'data-cancel')}<button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`;
       document.body.appendChild(dialog);
       const dialogScope=state.masterScope,dialogActorId=window.ProcessSync?.identity?.id;
-      dialog.addEventListener('close',() => {if(dialog.rejectedDraftPaths?.length&&dialogActorId===window.ProcessSync?.identity?.id)shared.discardRejected(dialogScope,dialog.rejectedDraftPaths);dialog.remove(); if(previous?.isConnected) previous.focus({preventScroll:true});});
+      dialog.addEventListener('close',() => {if(dialog.rejectedDraftPaths?.length&&dialogActorId===window.ProcessSync?.identity?.id)shared.discardRejected(dialogScope,dialog.rejectedDraftPaths);dialog.remove();restoreOpener();});
       dialog.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => dialog.close());
       // Native dialog cancel (Escape) closes without ever invoking onSave.
       let applying=false;
@@ -278,24 +298,34 @@
     }
     function editLine(original) {
       if(!editable())return;
-      modal(original?t('修改線別','Sửa chuyền'):t('新增線別','Thêm chuyền'),field(t('線別代碼','Mã chuyền'),'code',original?.code,'required pattern="[A-Za-z0-9_-]+"')+field(t('線別名稱','Tên chuyền'),'name',original?.name,'required'),async form=>{
-        const code=form.get('code').trim().toUpperCase(),name=form.get('name').trim();
-        if(current().lines.some(l=>l!==original&&l.code===code))return t('線別代碼重複。','Mã chuyền đã tồn tại.');
+      modal(original?t('修改線別','Sửa chuyền'):t('新增線別','Thêm chuyền'),field(t('線別代碼','Mã chuyền'),'code',original?.code,original&&!/^[A-Za-z0-9_-]+$/.test(original.code)?'required':'required pattern="[A-Za-z0-9_\\-]+"')+field(t('線別名稱','Tên chuyền'),'name',original?.name,'required'),async form=>{
+        const entered=form.get('code').trim(),code=original&&entered===original.code?original.code:entered.toUpperCase(),name=form.get('name').trim();
+        const target=original&&current().lines.find(l=>original.id?l.id===original.id:l.code===original.code);
+        if(original&&(!target||target.code!==original.code||target.name!==original.name))return t('資料已變更，請重新開啟線別後再修改。','Dữ liệu đã thay đổi; hãy mở lại chuyền để sửa.');
+        if((!original||code!==original.code)&&!/^[A-Za-z0-9_-]+$/.test(code)||!name)return t('請填寫名稱；代碼只可包含英數字、底線或連字號。','Nhập tên; mã chỉ gồm chữ, số, dấu gạch dưới hoặc gạch nối.');
+        if(current().lines.some(l=>l!==target&&l.code===code))return t('線別代碼重複。','Mã chuyền đã tồn tại.');
         const other=control.active[state.masterScope==='AB'?'C':'AB'];
         if(other.lines.some(l=>l.code===code))return t('此線別已由另一個產線頁籤管理。','Chuyền được quản lý ở thẻ khác.');
         return (await commit(original?'修改線別':'新增線別',code,c=>{
           c.categoryGroups=categoryEntries(c);
-          if(original){const old=original.code;original.code=code;original.name=name;c.products.forEach(p=>{if(p.line===old)p.line=code;});c.categoryGroups.forEach(g=>{if(g.line===old)g.line=code;});if(ui.line===old)ui.line=code;}
+          if(original){const old=target.code;c.lines[c.lines.indexOf(target)]={...target,code,name};c.products.forEach(p=>{if(p.line===old)p.line=code;});c.categoryGroups.forEach(g=>{if(g.line===old)g.line=code;});if(ui.line===old)ui.line=code;}
           else c.lines.push({code,name,stages:[]});
         }))?'':t('無法儲存。','Không lưu được.');
       });
     }
     function editStage(line,original) {
       if(!editable())return;
-      modal(original?t('修改工段','Sửa công đoạn'):t('新增工段','Thêm công đoạn'),`<p>${h(line.code)} · ${val(line.name)}</p><div class="master-form-grid">${field(t('工段編號','Mã công đoạn'),'code',original?.code||`${line.code}-`,'required pattern="[A-Za-z0-9_-]+"')}${field(t('工段名稱','Tên công đoạn'),'name',original?.name,'required')}</div>`,async form=>{
-        const code=form.get('code').trim().toUpperCase(),name=form.get('name').trim();
-        if(current().lines.flatMap(l=>l.stages).some(s=>s!==original&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB'].lines.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
-        return (await commit(original?'修改工段':'新增工段',code,c=>{const next={...original,code,name};if(!original){next.machine='待補';next.assetNumber='待補';next.operators=null;}if(original){const old=original.code;line.stages[line.stages.indexOf(original)]=next;c.products.forEach(p=>p.stages=p.stages.map(s=>s===old?code:s));(c.categoryGroups||[]).forEach(g=>{if(Array.isArray(g.defaultStages))g.defaultStages=g.defaultStages.map(s=>s===old?code:s);});}else line.stages.push(next);}))?'':t('無法儲存。','Không lưu được.');
+      modal(original?t('修改工段','Sửa công đoạn'):t('新增工段','Thêm công đoạn'),`<p>${h(line.code)} · ${val(line.name)}</p><div class="master-form-grid">${field(t('工段編號','Mã công đoạn'),'code',original?.code||`${line.code}-`,original&&!/^[A-Za-z0-9_-]+$/.test(original.code)?'required':'required pattern="[A-Za-z0-9_\\-]+"')}${field(t('工段名稱','Tên công đoạn'),'name',original?.name,'required')}</div>`,async form=>{
+        const entered=form.get('code').trim(),code=original&&entered===original.code?original.code:entered.toUpperCase(),name=form.get('name').trim();
+        if((!original||code!==original.code)&&!/^[A-Za-z0-9_-]+$/.test(code)||!name)return t('請填寫名稱；代碼只可包含英數字、底線或連字號。','Nhập tên; mã chỉ gồm chữ, số, dấu gạch dưới hoặc gạch nối.');
+        // A rejected Apply restores the snapshot with fresh objects. Resolve the
+        // original stable identity again; never mutate the detached modal object.
+        const target=current().lines.find(item=>line.id?item.id===line.id:item.code===line.code);
+        const existing=original&&target?.stages.find(item=>original.id?item.id===original.id:item.code===original.code);
+        if(!target||target.code!==line.code||original&&(!existing||JSON.stringify(existing)!==JSON.stringify(original)))
+          return t('資料已變更，請重新開啟工段後再修改。','Dữ liệu đã thay đổi; hãy mở lại công đoạn để sửa.');
+        if(current().lines.flatMap(l=>l.stages).some(s=>s!==existing&&s.code===code)||control.active[state.masterScope==='AB'?'C':'AB'].lines.flatMap(l=>l.stages).some(s=>s.code===code))return t('工段編號重複。','Mã công đoạn đã tồn tại.');
+        return (await commit(original?'修改工段':'新增工段',code,c=>{const next={...existing,code,name};if(!original){next.machine='待補';next.assetNumber='待補';next.operators=null;}if(original){const old=existing.code;target.stages[target.stages.indexOf(existing)]=next;c.products.forEach(p=>p.stages=p.stages.map(s=>s===old?code:s));(c.categoryGroups||[]).forEach(g=>{if(Array.isArray(g.defaultStages))g.defaultStages=g.defaultStages.map(s=>s===old?code:s);});}else target.stages.push(next);}))?'':t('無法儲存。','Không lưu được.');
       });
     }
     function sharedStatus(){const flow=shared.flow(state.masterScope);if(!flow)return '';
@@ -314,7 +344,7 @@
     function lineExcelToolbar(){return '';}
     function lineEditor() {
       const lines = current()?.lines || [];
-      return `<details class="master-line-editor" ${ui.linesOpen?'open':''}><summary>${t('線別與工段管理','Quản lý chuyền và công đoạn')} · ${lines.length}</summary><div class="master-lines-toolbar">${editable()?small(t('＋ 新增線別','＋ Thêm chuyền'),'id="add-master-line"'):t('建立草稿後可新增、修改。','Tạo bản nháp để thêm hoặc sửa.')}</div>${editable()&&deletionNote()?`<p class="master-permission-note">${deletionNote()}</p>`:''}${lines.map(line=>`<section class="master-line-block"><div class="master-line-head"><b>${h(line.code)} · ${val(line.name)}</b><div>${editable()?`${small(t('修改','Sửa'),`data-line-edit="${h(line.code)}"`)}${small(t('＋ 新增工段','＋ Thêm công đoạn'),`data-stage-add="${h(line.code)}"`)}${canDelete()?small(t('刪除線別','Xóa chuyền'),`data-line-delete="${h(line.code)}"`):''}`:''}</div></div><div class="master-stage-grid">${line.stages.map(stage=>`<article class="master-stage-card"><span><code>${h(stage.code)}</code><b>${val(stage.name)}</b></span>${editable()?`<div>${small(t('修改','Sửa'),`data-stage-edit="${h(stage.code)}" data-parent-line="${h(line.code)}"`)}${canDelete()?small('×',`data-stage-delete="${h(stage.code)}" data-parent-line="${h(line.code)}" aria-label="${t('刪除工段','Xóa công đoạn')}"`):''}</div>`:''}</article>`).join('')||`<p>${t('尚無工段，請新增。','Chưa có công đoạn, hãy thêm mới.')}</p>`}</div></section>`).join('')||`<p class="master-empty">${t('尚無線別資料','Chưa có dữ liệu chuyền')}</p>`}</details>`;
+      return `<details class="master-line-editor" ${ui.linesOpen?'open':''}><summary>${t('線別與工段管理','Quản lý chuyền và công đoạn')} · ${lines.length}</summary><div class="master-lines-toolbar">${t('在既有線別中管理工段；新增、修改需先建立草稿。','Quản lý công đoạn trong chuyền hiện có; tạo bản nháp để thêm hoặc sửa.')}</div>${editable()&&deletionNote()?`<p class="master-permission-note">${deletionNote()}</p>`:''}${lines.map(line=>`<section class="master-line-block"><div class="master-line-head"><b>${h(line.code)} · ${val(line.name)}</b><div>${editable()?`${small(t('修改','Sửa'),`data-line-edit="${h(line.code)}"`)}${canCreate()?small(t('＋ 新增工段','＋ Thêm công đoạn'),`data-stage-add="${h(line.code)}"`):''}${canDelete()?small(t('刪除線別','Xóa chuyền'),`data-line-delete="${h(line.code)}"`):''}`:''}</div></div><div class="master-stage-grid">${line.stages.map(stage=>`<article class="master-stage-card"><span><code>${h(stage.code)}</code><b>${val(stage.name)}</b></span>${editable()?`<div>${small(t('修改','Sửa'),`data-stage-edit="${h(stage.code)}" data-parent-line="${h(line.code)}"`)}${canDelete()?small('×',`data-stage-delete="${h(stage.code)}" data-parent-line="${h(line.code)}" aria-label="${t('刪除工段','Xóa công đoạn')}"`):''}</div>`:''}</article>`).join('')||`<p>${t('尚無工段，請新增。','Chưa có công đoạn, hãy thêm mới.')}</p>`}</div></section>`).join('')||`<p class="master-empty">${t('尚無線別資料','Chưa có dữ liệu chuyền')}</p>`}</details>`;
     }
     function filtered() {const q=ui.search.trim().toLocaleLowerCase();return current().products.filter(p=>(!ui.line||p.line===ui.line)&&(!ui.category||p.category===ui.category)&&(!q||Object.values(p).flat().join(' ').toLocaleLowerCase().includes(q)));}
     function productRows() {const bad=new Set((state.masterValidationErrors||[]).map(e=>e.code));const products=filtered();ui.page=Math.min(ui.page,Math.max(0,Math.ceil(products.length/40)-1));return products.slice(ui.page*40,(ui.page+1)*40).map(p=>`<tr class="${bad.has(p.code)?'master-invalid-row':''}"><td>${val(p.category)}</td><td><code>${h(p.code)}</code></td><td>${val(p.name)}</td><td>${val(p.specification)}</td><td>${val(p.unit)}</td><td><span class="master-line-tag">${val(p.line)}</span></td><td>${productRouteSummary(p)}<div class="master-row-actions">${editable()?`${small(t('修改','Sửa'),`data-product-edit="${h(p.code)}"`)}${canDelete()?small(t('刪除','Xóa'),`data-product-delete="${h(p.code)}"`):''}`:''}</div></td></tr>`).join('')||`<tr><td colspan="7">${t('沒有符合的產品','Không có sản phẩm phù hợp')}</td></tr>`;}
@@ -323,7 +353,7 @@
       if(ui.scope!==state.masterScope){ui.scope=state.masterScope;ui.line='';ui.category='';ui.search='';}
       if(state.masterSection==='lines'){
         ui.line='';ui.category='';
-        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label>${lineExcelToolbar()}${lineEditor()}</div>`;
+        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label><details class="master-lines-rules"><summary>${t('保存、權限與刪除規則','Quy tắc lưu, quyền và xóa')}</summary><p>${t('套用只同步共用草稿；儲存草稿才建立送審快照；核准後才更新正式資料。送審涵蓋目前 AB 或 C 的整份已保存內容，不因畫面篩選縮小。','Áp dụng chỉ đồng bộ bản nháp; Lưu tạo bản gửi duyệt; phê duyệt mới cập nhật dữ liệu hiệu lực. Hồ sơ gồm toàn bộ bản AB hoặc C đã lưu, không giới hạn theo bộ lọc.')}</p><p>${t('線別頁入口使用「線別與工段管理」查看權限；新增、修改、刪除、保存及審核依目前 AB／C 範圍權限。','Quyền xem Chuyền và công đoạn mở trang; thêm, sửa, xóa, lưu và duyệt dùng quyền của phạm vi AB/C hiện tại.')}</p><p>${t('線別有子工段不能刪除。工段仍被生效路線、共用草稿、已保存草稿、待審案件或保留流程引用時，後端會再次阻擋。歷史核准版本保留唯讀，不因僅存在舊歷史就一律禁止刪除；歷史還原仍需重新檢查引用與權限。','Không xóa chuyền còn công đoạn. Tuyến hiệu lực, bản nháp, bản đã lưu, hồ sơ chờ duyệt và quy trình còn tham chiếu được kiểm tra lại trước khi xóa. Lịch sử cũ vẫn chỉ đọc, không tự chặn mọi thao tác xóa; khôi phục vẫn kiểm tra quyền và tham chiếu.')}</p></details>${lineExcelToolbar()}${lineEditor()}</div>`;
       }
       const catalog=current(),cats=categoryEntries(catalog).filter(g=>!ui.line||g.line===ui.line);
       if(ui.category&&!cats.some(g=>g.name===ui.category))ui.category='';
@@ -360,9 +390,17 @@
       on('#master-new-draft','click',()=>{delete ui.versions[state.masterScope];beginDraft();});
       on('#master-save-draft','click',saveDraft);on('#master-submit','click',submitDraft);
       on('#master-view-review','click',()=>host.MasterReview.open(state.masterScope,selected()?.id));
-      on('#master-lines-scope','change',async e=>{const previous=state.masterScope,next=e.target.value;e.target.disabled=true;
-        try{await shared.load(next);state.masterScope=next;ui.line='';ui.category='';redraw();}
-        catch(error){e.target.value=previous;e.target.disabled=false;toast(displayDraftError(error));}
+      on('#master-lines-scope','change',async e=>{
+        const input=e.target,previous=state.masterScope,next=input.value,identity=window.ProcessSync?.identity,
+          actorId=identity?.id,epoch=window.ProcessSync?.identityGeneration?.();
+        if(window.MasterDataWorkflow?.canLeave?.()===false){input.value=previous;return;}
+        input.disabled=true;
+        const ownsView=()=>input.isConnected&&state.view==='data'&&state.masterSection==='lines'&&state.masterScope===previous
+          &&window.ProcessSync?.identity===identity&&window.ProcessSync?.identity?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch
+          &&window.MasterDataWorkflow?.canLeave?.()!==false&&!document.querySelector('#master-edit-dialog[open]');
+        try{await (window.MasterDataWorkflow?.loadScope?window.MasterDataWorkflow.loadScope(next):shared.load(next));if(!ownsView())return;state.masterScope=next;ui.line='';ui.category='';redraw();}
+        catch(error){if(ownsView()){input.value=previous;toast(displayDraftError(error));}}
+        finally{if(input.isConnected){input.disabled=false;if(state.masterScope===previous)input.value=previous;}}
       });
       on('#master-line-export','click',()=>{if(!permitted('master.export')){toast(t('此帳號沒有匯出權限。','Tài khoản này không có quyền xuất.'));return;}LineStageExcel.exportFile(current().lines,state.masterScope);toast(t('線別與工段 Excel 匯出成功','Xuất Excel chuyền và công đoạn thành công'));});
       on('#master-line-import','click',()=>{if(!permitted('master.import')){toast(t('此帳號沒有匯入權限。','Tài khoản này không có quyền nhập.'));return;}if(!editable()){toast(t('請先建立新版本草稿再匯入','Hãy tạo bản nháp mới trước khi nhập'));return;}document.querySelector('#master-line-import-file').click();});
@@ -377,7 +415,7 @@
       document.querySelectorAll('[data-category-pick]').forEach(b=>b.onclick=async()=>{ui.line=b.dataset.categoryLine;ui.category=b.dataset.categoryPick;ui.page=0;redraw();document.querySelector('.master-group-route')?.scrollIntoView({block:'nearest'});});
       document.querySelectorAll('[data-category-edit]').forEach(b=>b.onclick=()=>editCategory(categoryEntries(current()).find(g=>g.line===b.dataset.categoryLine&&g.name===b.dataset.categoryEdit)));
       document.querySelectorAll('[data-category-delete]').forEach(b=>b.onclick=()=>removeCategory({line:b.dataset.categoryLine,name:b.dataset.categoryDelete}));
-      on('.master-line-editor','toggle',e=>ui.linesOpen=e.target.open);on('#add-master-line','click',()=>editLine());
+      on('.master-line-editor','toggle',e=>ui.linesOpen=e.target.open);
       document.querySelectorAll('[data-line-edit]').forEach(b=>b.onclick=()=>editLine(current().lines.find(l=>l.code===b.dataset.lineEdit)));
       document.querySelectorAll('[data-stage-add]').forEach(b=>b.onclick=()=>editStage(current().lines.find(l=>l.code===b.dataset.stageAdd)));
       document.querySelectorAll('[data-stage-edit]').forEach(b=>b.onclick=async()=>{const l=current().lines.find(l=>l.code===b.dataset.parentLine);editStage(l,l.stages.find(s=>s.code===b.dataset.stageEdit));});
@@ -385,8 +423,9 @@
         if(!canDelete()){toast(deletionNote());return;}
         const lineCode=b.dataset.lineDelete,stageCode=b.dataset.stageDelete,code=lineCode||stageCode;
         const products=current().products.filter(p=>lineCode?p.line===lineCode:p.stages.includes(stageCode)),affected=products.length,stages=lineCode?(current().lines.find(l=>l.code===lineCode)?.stages||[]).map(s=>s.code):[stageCode],impact=deletionImpact({products,stages});
+        if(lineCode&&stages.length){window.alert(t('線別仍有子工段，請先逐一檢查並移除工段。','Chuyền còn công đoạn con; hãy kiểm tra và xóa từng công đoạn trước.')+'\n'+stages.join('、'));return;}
         if(impact.blocked||lineCode&&categoryEntries(current()).some(g=>g.line===lineCode)){window.alert(t('仍有產品路線、正式作業、草稿或類別引用，禁止刪除。','Còn tuyến sản phẩm, thao tác chính thức, bản nháp hoặc nhóm đang tham chiếu. Không được xóa.')+'\n\n'+impact.message);return;}
-        if(!confirm(`${t(`刪除 ${code}？`,`Xóa ${code}?`)}\n\n${impact.message}\n\n${t('不會連鎖清除產品路線或編輯台內容；工段範本連動方案仍待確認。','Không xóa dây chuyền tuyến sản phẩm hay nội dung trình chỉnh sửa; liên kết mẫu còn chờ xác nhận.')}`))return;
+        if(!confirm(`${t(`刪除 ${code}？`,`Xóa ${code}?`)}\n\n${impact.message}\n\n${t('變更先加入草稿；核准時依既有規則連動流程範本，不會自動解除引用。','Thay đổi vào bản nháp; khi duyệt sẽ đồng bộ mẫu theo quy tắc hiện có, không tự gỡ tham chiếu.')}`))return;
         if(await commit(lineCode?'刪除線別':'刪除工段',code,c=>{
           if(lineCode){c.lines=c.lines.filter(l=>l.code!==lineCode);ui.line='';}
           else c.lines.forEach(l=>l.stages=l.stages.filter(s=>s.code!==stageCode));
