@@ -13,7 +13,7 @@ const input = {
   photoWidth: 640,
 };
 
-test('local preview requires explicit isolation and a bare loopback origin', () => {
+await test('local preview requires explicit isolation and a bare loopback origin', () => {
   assert.equal(validateConfig(input).origin, input.origin);
   assert.equal(
     validateConfig({ ...input, origin: 'http://[::1]:12345' }).origin,
@@ -32,7 +32,7 @@ test('local preview requires explicit isolation and a bare loopback origin', () 
   assert.throws(() => validateConfig({ ...input, isolationConfirmed: false }));
 });
 
-test('bad configuration emits no credentials, URL or raw error before loading browser dependencies', () => {
+await test('bad configuration emits no credentials, URL or raw error before loading browser dependencies', () => {
   const result = spawnSync(
     process.execPath,
     ['scripts/benchmark/preview-smoke.mjs'],

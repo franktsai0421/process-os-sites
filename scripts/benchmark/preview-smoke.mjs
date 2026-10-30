@@ -43,11 +43,34 @@ export async function smoke(input, options = {}) {
       viewport: { width: 1365, height: 900 },
       serviceWorkers: 'block',
     });
-    await context.route('**/*', (route) =>
-      new URL(route.request().url()).origin === config.origin
-        ? route.continue()
-        : route.abort(),
-    );
+    let blockedRequests = 0;
+    await context.route('**/*', async (route) => {
+      if (new URL(route.request().url()).origin !== config.origin) {
+        blockedRequests++;
+        await route.abort();
+        return;
+      }
+      // continue() does not intercept every redirect hop. Fetch exactly one
+      // response and refuse redirects, including same-origin redirect chains.
+      // This smoke requires a direct-response isolated fixture, not a proxy.
+      let response;
+      try {
+        response = await route.fetch({ maxRedirects: 0 });
+        if (response.status() >= 300 && response.status() < 400) {
+          blockedRequests++;
+          await route.abort();
+        } else {
+          await route.fulfill({ response });
+        }
+      } catch {
+        // Network failures may contain URLs or request details. Keep the
+        // failure inside the same fixed-diagnostic boundary as the CLI.
+        blockedRequests++;
+        await route.abort().catch(() => {});
+      } finally {
+        await response?.dispose().catch(() => {});
+      }
+    });
     // Check the isolated preview label before sending any login credentials.
     const response = await context.request.get(config.origin + '/process/', {
       maxRedirects: 0,
@@ -62,8 +85,11 @@ export async function smoke(input, options = {}) {
     let pageErrors = 0;
     page.on('pageerror', () => pageErrors++);
     await page.goto(config.origin + '/login?view=data&dataTab=process-master');
+    assert.equal(new URL(page.url()).origin, config.origin);
     await page.locator('#id').fill(config.account);
+    assert.equal(new URL(page.url()).origin, config.origin);
     await page.locator('#password').fill(config.password);
+    assert.equal(new URL(page.url()).origin, config.origin);
     await page.locator('.site-entry-submit').click();
     await page.locator('#add-master-template').waitFor();
     assert((await page.title()).includes(config.expectedTitle));
@@ -96,6 +122,7 @@ export async function smoke(input, options = {}) {
     );
     await page.locator('.media-lightbox-close').click();
     assert.equal(pageErrors, 0);
+    assert.equal(blockedRequests, 0);
     return {
       status: 'PASS_LOCAL_SYNTHETIC_PREVIEW',
       checks: [

@@ -58,17 +58,25 @@ node scripts/benchmark/preview-smoke.mjs < PRIVATE_LOCAL_CONFIG
 
 必要時以 `--browser-path BROWSER_EXECUTABLE` 指定已安裝瀏覽器，預設使用 Playwright 管理的 Chromium。只接受有明確 port 的 HTTP loopback origin；拒絕外部站、URL 帳密、路徑、query。先確認隔離標示才送登入；不產生 screenshot／trace。這個工具針對帶有兩種審核歷史及照片的專用 preview fixture，普通空白合成資料庫不會通過。
 
-工具檢查：`python -m unittest discover -s scripts/benchmark -p 'test_*.py'` 及 `node --test tests/benchmark-preview-smoke.test.mjs`。這些只驗證補件工具，不能代替當前 main 的完整產品驗收。
+預覽 fixture 必須直接回應，HTTP 3xx 一律拒絕（含同來源跳轉），不支援登入 redirect／代理鏈。每次被攔截的 HTTP 請求只取單一回應，確認沒有 redirect 才交回頁面；填帳號、填密碼及按登入前再次核對 origin。這避免 Playwright `route.continue()` 無法攔截後續 redirect 的缺口，包括保留 POST 帳密的 307／308。
+
+工具檢查：`python -m unittest discover -s scripts/benchmark -p 'test_*.py'` 及 `node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs`。瀏覽器回歸使用兩個臨時 loopback HTTP 伺服器、合成 HTML 與假帳密，不依賴產品 build；先以 `node node_modules/playwright/cli.js install chromium` 安裝鎖定版本的瀏覽器，或設定 `BENCHMARK_TEST_BROWSER_PATH` 指定已安裝的測試瀏覽器。這些只驗證補件工具，不能代替當前 main 的完整產品驗收。
+
+## 平台與 CI 邊界
+
+- Windows `Local safety` CI 保留原有檢查，另執行工具回歸與 redirect 回歸；明確要求 Python 3.10+、設定 `PYTHONUTF8=1` 讓測試及其子程序讀取中文 fixture，使用 Playwright 管理的 Chromium，不依賴 Linux 執行檔路徑。既有檔案與 symlink 保護測試不略過；CI 身分必須能建立測試 symlink。
+- POSIX SIGTERM 回歸僅在 POSIX 執行；Windows 不把跳過此項視為中斷清理已驗證。完整 runner 的 Windows 分支目前只終止直接子程序，沒有保證清理 Chromium／workerd 後代程序，請勿在 Windows 執行完整測速。
+- 完整 entry／workflow runner 委派的既有產品測試仍指定 `/usr/bin/chromium`，目前僅支援具備該 Chromium 與原生隔離 D1/R2 相依的 Linux checkout；這不影響純統計工具與上述 Windows 工具級假執行器回歸。Windows 完整 runner 及跨平台產品效能均未驗證。
 
 ## 本次補件核對
 
 補件基準：`ca6647977a8680038444ce2c1ba4e80f2343cd0a`（建立分支時的 GitHub main）。原流程／照片功能已合併，本補件不包含那些功能的重送。
 
 - Python 工具回歸 13 項通過：數據重算、敏感欄位排除、版本／配對拒絕、既有檔案保護、成功／失敗／逾時／SIGTERM 的 index 恢復、競爭鎖、外部修改保留及基準失敗分列。
-- Node 設定／敏感輸出回歸 2 項通過；變更的 JavaScript lint 與語法檢查通過。
+- Node 設定／敏感輸出／隔離瀏覽器回歸 7 項通過，含正向 smoke、跨來源 GET 302、POST 307／308 及同來源跳轉鏈；負向案例第二個 origin 零請求、零帳密接收。原始 2 個測試缺少 await 的 typed lint 已修正，完整 `npm run lint -- --format unix` 通過。
 - 兩個 summary CLI 以既有已提交 RESULTS 重算成功：首次進頁中位仍為 708／658ms、最慢 759／927ms；基準搜尋失敗不列入成功速度。這不是新一輪效能量測。
-- 新 smoke 在既有隔離合成預覽實際通過，含登入、版本、照片解碼／放大、40 設備、退回／撤回歷史；沒有產生 screenshot 或 trace。
+- 修正前 smoke 曾在既有隔離合成預覽通過，含登入、版本、照片解碼／放大、40 設備、退回／撤回歷史。redirect 修正後只重測工具級合成 HTML fixture 的 7 項 smoke 檢查，未重跑原產品預覽；兩者都沒有產生 screenshot 或 trace，不能混稱同一版本的產品驗收。
 - 完整測速編排的錯誤／中斷與資料保留，以工具級假執行器回歸驗證；本輪沒有重跑整套產品測速、產品 build 或 live-site 驗收。
 - 兩張銘牌截圖與舊 trace 的 SHA-256 與盤點時一致，原地保留；沒有複製到補件目錄。
 
-無資料模型、產品程式、權限或部署變更。待 dot 審查此補件分支後決定整合。
+本地驗證環境為 Linux、Python 3.12、Node 24、Chromium；Windows CI 已加入相同工具回歸，但本地沒有 Windows 執行結果。無資料模型、產品程式、權限或部署變更。待 dot 核對修正提交及遠端 CI 後決定整合。

@@ -1,5 +1,7 @@
 測速／驗證工具補件（2026-10-30）：五個本機腳本已整理為參數化工具，輸出不覆寫歷史文件；規格、使用方式與針對性驗證見 [補件說明](scripts/benchmark/README.md)。產品功能與資料模型不變，圖片／trace 保留待安全附件交付。
 
+補件審查已修正 preview smoke 跨來源 redirect 缺口與新增測試的 typed lint；CI 增加 Python／Node 工具及兩個 loopback 的 redirect 回歸。等待 root 核對本地提交及遠端 CI，尚未由此修復任務 push、merge 或部署。完整 runner 的 Linux 限制與 Windows 清理未驗證範圍見補件說明。
+
 # 使用者權限 CLOUD 29102026 — 已修正，未部署
 
 最新：[清楚權限修復／驗收交接](docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)、[設定→頁面→API 對照](docs/acceptance/USERS_CLOUD_PERMISSION_MAP.md)。使用者確認方案後完成簡化矩陣、明確依賴、獨立還原、5 個品質模組單獨保存／送審／撤回、線別範圍說明及發送查看者拒寫。基準 `2cac307f29b8017a2bb6dc5229d47720f2deab33`；完整編譯瀏覽器版本 `4b8c0d2ba5e6642f67eb13725a4c5212f4f5c9e6`；最終 UI build `33a1fd04a2abc9aeb2e2dd0477872f0ef2174223`（展開排列補修、完整頁面及五次測速補驗）；最終相依驗收分支 `cloud/users-permissions-layout-29102026`。各模組分支分開交接，不整檔覆蓋其他任務。
