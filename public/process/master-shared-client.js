@@ -23,9 +23,11 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       const permissionsChanged=!equal(permissions.get(scope),result.permissions);if(result.permissions)permissions.set(scope,result.permissions);adopt(scope,result);return{...result,permissionsChanged};}
     async function patch(scope,patches,guards=[]){
       if(!flow(scope))throw Error('BEGIN_REQUIRED');
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       readOwners.delete(scope);
       const c=client(scope),result=await c.command(flow(scope).generation,'apply',{patches,guards});
-      readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,result.control?result:await c.read());return result;
+      const fresh=result.control?result:await c.read();if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      readOwners.delete(scope);readTokens.delete(actor?.id+':'+scope);adopt(scope,fresh);return result;
     }
     function identify(value,previous){
       if(Array.isArray(value)){for(const row of value)if(row&&typeof row==='object'){
@@ -48,12 +50,14 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
     }
     async function execute(scope,action,detail={}){
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
+      const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
       readOwners.delete(scope);
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);
       try{const c=client(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
-        if(action==='begin'){const result=await c.begin();adopt(scope,result);return result;}
+        if(action==='begin'){const result=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);adopt(scope,result);return result;}
         const before=copy(bases.get(scope)||draft(scope)?.snapshot||{}),next=copy(draft(scope)?.snapshot||before),generation=generations.get(scope);
-        if(!flow(scope)){adopt(scope,await c.begin());}
+        if(!flow(scope)){const begun=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');adopt(scope,begun);}
         if(action==='apply'){identify(next,before);detail=diff(before,next);if(!detail.patches.length)return null;
           // A group route update includes every inheriting member. Guard membership
           // too: a concurrent insert must not silently miss the group-wide change.
@@ -62,7 +66,7 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
         const formVersion=action==='save'&&document.querySelector('#master-edit-dialog[open]')?draft(scope):null;
         if(action==='save'){await c.flush();if(formVersion&&!confirm(t('只儲存已同步內容，不包含尚未套用表單。繼續？','Chỉ lưu nội dung đã đồng bộ, không gồm biểu mẫu chưa áp dụng. Tiếp tục?')))return null;}
         const linkedApproval=action==='approve'&&flow(scope)?.cases.find(row=>row.id===detail.caseId)?.linkedProcess;
-        const result=await c.command(generation||flow(scope).generation,action,detail);readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,result.control?result:await c.read());
+        const result=await c.command(generation||flow(scope).generation,action,detail),fresh=result.control?result:await c.read();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);adopt(scope,fresh);
         if(linkedApproval)await load('PROCESS');
         if(formVersion){const index=control.versions.findIndex(v=>v.id===formVersion.id);if(index>=0)control.versions[index]=formVersion;bases.set(scope,before);generations.set(scope,generation);}
         return result;
@@ -78,7 +82,14 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       return execute(scope,action,{caseId,...answer});
     }
     async function history(scope){await host.openSharedDraftHistory({client:client(scope),editable:()=>!!draft(scope)&&host.hasPermission?.('approval.submit')&&host.hasPermission?.('master.delete'),onApplied:async()=>{await load(scope);onChange?.();}});}
-    async function recover(scope){const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}await load(scope);onChange?.();}
+    async function recover(scope){
+      if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
+      const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.();
+      const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.();
+      try{const c=client(scope);try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}
+        if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
+      }finally{busy=false;}
+    }
     return{resetReads(){readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);

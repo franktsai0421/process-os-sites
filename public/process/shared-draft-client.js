@@ -116,6 +116,9 @@
     };
   }
   const clients=new Set(),transports=new Map();
+  // Begin alone is not an unsaved edit. Pending cases are already fixed, while
+  // Apply and manual Save intentionally remain distinct operations.
+  window.sharedDraftNeedsSave=flow=>!!flow&&!flow.pendingId&&flow.working!==undefined&&JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content??flow.active?.content);
   window.invalidateSharedDraftReads=()=>{for(const client of transports.values())client.invalidateReadState();};
   function packCommand(command){
     const counts=new Map(),visit=value=>{if(typeof value==='string'&&value.length>=4096&&/^data:image\/(?:png|jpeg|webp|gif|avif);base64,[A-Za-z0-9+/=]+$/.test(value))counts.set(value,(counts.get(value)||0)+1);else if(value&&typeof value==='object')Object.values(value).forEach(visit);};visit(command);

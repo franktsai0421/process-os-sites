@@ -104,7 +104,7 @@
  }
  function renderReview(){window.dispatchEvent(new CustomEvent('bom-review-updated'));}
  window.BOMWorkspace={
-  navigation:{canLeave:()=>!(busy&&!loading)&&!hasUnsavedChanges(),error:()=>error?Error(error):null,reset(){runSequence++;readEpoch++;reviewEpoch++;loading=false;busy=false;polling=false;control=null;editor={};reviewState=null;reviewRevision=null;reviewLoading=null;fullRevision=0;cachedIndex=null;error='';initialReady=Promise.resolve();}},
+  navigation:{requiresSave:()=>!!document.querySelector('.bw-workspace')&&(hasUnsavedChanges()||window.sharedDraftNeedsSave?.(flow())),canSaveForDeparture:()=>!busy&&!unappliedImport()&&!client?.hasUnknown()&&!client?.hasSyncFailures?.(),saveForDeparture:()=>run(save),canLeave:()=>!(busy&&!loading)&&!hasUnsavedChanges(),error:()=>error?Error(error):null,reset(){runSequence++;readEpoch++;reviewEpoch++;loading=false;busy=false;polling=false;control=null;editor={};reviewState=null;reviewRevision=null;reviewLoading=null;fullRevision=0;cachedIndex=null;error='';initialReady=Promise.resolve();}},
   readyForReview:()=>reviewLoading||Promise.resolve(),
   pendingCount:()=>actor===window.ProcessSync?.identity?.id&&permission('view')!==false&&(reviewState?reviewState.workflow?.pendingId:flow()?.pendingId)?1:0,
   reviewError:()=>error,

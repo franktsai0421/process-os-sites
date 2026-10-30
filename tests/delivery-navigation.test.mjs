@@ -95,3 +95,26 @@ void test('feedback uses indexed navigation and Back/Forward with denial preserv
  f.location.href='https://fixture.invalid/process/index.html?system=process&view=dashboard';f.dispatchPop(0);f.finish(2);await turn();assert.equal(f.state.view,'dashboard');assert.equal(f.history.state.processNavigationIndex,0);
  f.location.href=url;f.dispatchPop(index);f.finish(3);await turn();assert.equal(f.state.dataTab,'web-feedback');assert.equal(f.history.state.processNavigationIndex,index);assert(!f.calls.includes('reload'));
 });
+
+void test('save-and-leave confirms once, waits for ACK and commits only the latest rapid target',async()=>{
+ const f=await fixture(),ack=deferred();let dirty=true,saves=0,confirms=0;
+ f.window.confirm=()=>{confirms++;return true;};
+ f.window.MasterDataWorkflow.navigation={requiresSave:()=>dirty,saveForDeparture:async()=>{saves++;await ack.promise;dirty=false;}};
+ f.api.navigate('data','AB');f.api.navigate('data','C');f.api.navigate('data','C');
+ assert.equal(saves,1);assert.equal(confirms,1);assert.equal(f.reads.length,0);assert.equal(f.state.view,'dashboard');
+ ack.resolve();await turn();assert.equal(f.reads.length,1);assert.equal(f.reads[0].target.dataTab,'C');f.finish(0);await turn();
+ assert.equal(f.state.dataTab,'C');assert.equal(f.calls.filter(c=>c==='commit').length,1);
+});
+for(const outcome of ['cancel','failure','unknown','still-dirty','new-local-input','identity-change'])void test('save departure retains source on '+outcome,async()=>{
+ const f=await fixture(),ack=deferred();let dirty=true,saves=0;
+ f.window.confirm=()=>outcome!=='cancel';
+ f.window.MasterDataWorkflow.navigation={requiresSave:()=>dirty,saveForDeparture:async()=>{saves++;await ack.promise;if(['failure','unknown'].includes(outcome))throw Error(outcome);if(outcome!=='still-dirty')dirty=false;}};
+ f.api.navigate('data','AB');
+ if(outcome==='new-local-input')f.window.MasterDataWorkflow.canLeave=()=>false;
+ if(outcome==='identity-change')f.sync.identity={id:'other'};
+ ack.resolve();await turn();
+ assert.equal(saves,outcome==='cancel'?0:1);assert.equal(f.reads.length,0);assert.equal(f.clearCount(),0);assert.equal(f.state.view,'dashboard');
+});
+void test('unknown transport and unapplied form block automatic Save rather than silently retry',async()=>{
+ for(const key of ['unknown','queued','failed']){const f=await fixture();let saves=0;f.drafts[key]=true;f.window.confirm=()=>true;f.window.MasterDataWorkflow.navigation={requiresSave:()=>true,saveForDeparture:()=>{saves++;}};f.api.navigate('data','C');await turn();assert.equal(saves,0);assert.equal(f.reads.length,0);}
+});
