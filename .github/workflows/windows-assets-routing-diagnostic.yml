@@ -1,0 +1,48 @@
+name: Windows assets routing diagnostic (two synthetic requests)
+on:
+  push:
+    branches: ['diagnostic/windows-assets-pair-20261030']
+    paths:
+      - 'scripts/windows-assets-routing-diagnostic.mjs'
+      - 'tests/windows-assets-routing-diagnostic.test.mjs'
+      - '.github/workflows/windows-assets-routing-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-assets-routing:
+    if: ${{ github.repository == 'franktsai0421/process-os-sites' && github.ref == 'refs/heads/diagnostic/windows-assets-pair-20261030' }}
+    runs-on: windows-latest
+    timeout-minutes: 6
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_SEND_ERROR_REPORTS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Normal locked install and unchanged source guard
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Pure fake regression (no service)
+        run: node --test tests/windows-assets-routing-diagnostic.test.mjs
+      - name: Focused normal project lint
+        run: npm run lint -- --format unix scripts/windows-assets-routing-diagnostic.mjs tests/windows-assets-routing-diagnostic.test.mjs
+      - name: One bounded assets OFF ON pair (two requests, no retry)
+        run: node scripts/windows-assets-routing-diagnostic.mjs --run-windows-assets-routing
+# Independent diagnostic branch only, with no PR. Existing PR-only workflows
+# are unchanged. This does not replace Local safety or clear any prior failure.
