@@ -7,7 +7,9 @@
   const photoUrl = '/api/iqc/photo';
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let control = null, revision = null, root = null, reviewRoot = null;
-  let sharedClient=null,sharedActor='',pollTimer=null,dialogBase=null,dialogGeneration=null;
+  let sharedClient=null,sharedActor='';const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null;
+  let loadSequence=0,mountSequence=0,reviewBindSequence=0,mutationSequence=0,readDenied=null,reviewContainer=null;
+  let versionReadSequence=0,versionReadError=null,activeDeferredId='';
   // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
   const editorOwners = new Set();
   function quarantineEditors() {
@@ -19,14 +21,18 @@
   function disposePhotoViewers() { const closing = Array.from(photoViewerDisposers); for (const close of closing) close(); }
   host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
+    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{edit:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-list-add,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
   }
   const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   function snapshotChanges(base,next){const patches=[],guards=[];
     for(const collection of ['categories','suppliers','parts','errors','items']){
-      for(const old of base[collection])if(!next[collection].some(row=>row.id===old.id)){const path=[collection,{id:old.id}];patches.push({op:'remove',path});guards.push({path,value:old});}
-      for(const row of next[collection]){const old=base[collection].find(value=>value.id===row.id);
+      // Preserve first-match semantics and source order while avoiding quadratic ID scans.
+      const indexed=base[collection].every(row=>typeof row.id==='string')&&next[collection].every(row=>typeof row.id==='string');
+      const nextIds=indexed?new Set(next[collection].map(row=>row.id)):null,baseById=new Map();
+      for(const old of indexed?base[collection]:[])if(!baseById.has(old.id))baseById.set(old.id,old);
+      for(const old of base[collection])if(indexed?!nextIds.has(old.id):!next[collection].some(row=>row.id===old.id)){const path=[collection,{id:old.id}];patches.push({op:'remove',path});guards.push({path,value:old});}
+      for(const row of next[collection]){const old=indexed?baseById.get(row.id):base[collection].find(value=>value.id===row.id);
         if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
         for(const [field,value]of Object.entries(row))if(field!=='equipmentSnapshot'&&value!==undefined&&!equal(value,old[field])){
           const path=[collection,{id:row.id},field];patches.push({op:'set',path,value});
@@ -36,9 +42,10 @@
     }return{patches,guards};
   }
   const identity = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
-  const mayEdit = () => !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,'approval.submit')??true) && (typeof window.hasPermission !== 'function' || window.hasPermission('view:data'));
-  const mayWithdraw = () => !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,'withdraw')??true) && (typeof window.hasPermission !== 'function' || window.hasPermission('view:data') || window.hasPermission('approval.withdraw'));
-  const mayReview = (permission='approval.approve') => !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,permission)??true) && (typeof window.hasPermission !== 'function' || window.hasPermission(permission));
+  const mayEdit = () => !readDenied && !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,'approval.submit')??true) && (typeof window.hasPermission !== 'function' || window.hasPermission('view:data'));
+  const mayDraftAction = action => !readDenied && (control?.workflow ? !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,action)??false) && (typeof window.hasPermission !== 'function' || window.hasPermission('view:data')) : mayEdit());
+  const mayWithdraw = () => !readDenied && !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,'withdraw')??true) && (typeof window.hasPermission !== 'function' || window.hasPermission('view:data') || window.hasPermission('approval.withdraw'));
+  const mayReview = (permission='approval.approve') => !readDenied && !!identity() && (window.sharedDraftPermissionAllowed?.(sharedClient,permission)??true) && (typeof window.hasPermission !== 'function' || window.hasPermission(permission));
   const lastEdit = version => [...(version?.history||[])].reverse().find(event=>!['submit','approve','reject','withdraw'].includes(event.action));
   const translations = new Map();
   const t = (zh, vi) => { translations.set(zh, vi); return document.documentElement.lang === 'vi' ? vi : zh; };
@@ -69,35 +76,102 @@
   const draft = () => selected()?.status === 'draft' ? selected() : null;
   const snap = () => selected()?.snapshot || { categories: [], suppliers: [], parts: [], errors: [], items: [] };
   const name = (rows, id) => rows.find(item => item.id === id)?.nameVi || '';
+  function nameIndex(rows) {
+    if(!rows.every(row=>typeof row.id==='string'))return id=>name(rows,id);
+    const first=new Map();for(const row of rows)if(!first.has(row.id))first.set(row.id,row.nameVi);
+    return id=>first.get(id)||'';
+  }
   function sharedStatus(){const flow=control?.workflow;if(!flow)return '';
     const saved=flow.saved,unsaved=!saved||!equal(flow.working,saved.content);
     return `<section class="iqc-panel" id="iqc-shared-status" role="status"><b>${t('共用範圍：IQC 全庫','Phạm vi chung: toàn bộ IQC')}</b> · ${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):unsaved?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}<br>${saved?`${t('儲存者','Người lưu')}: ${h(saved.actor.name)} · ${h(date(saved.at))} · ${h(saved.id)}`:t('尚無成功儲存快照','Chưa có bản chụp lưu thành công')}${sharedClient?.hasUnknown()?`<p role="alert">${t('上次操作結果未知，請查證後再繼續','Kết quả thao tác trước chưa rõ; kiểm tra trước khi tiếp tục')}</p><button id="iqc-operation-check">${t('查詢結果','Kiểm tra kết quả')}</button><button id="iqc-operation-retry">${t('重試同一操作','Thử lại cùng thao tác')}</button>`:''}</section>`;
   }
 
+  function renderReadDenied() {
+    if(!readDenied)return false;
+    const message=displayDraftError(readDenied)+(readDenied.operationAcknowledged?' · '+t('操作已確認；重新讀取遭拒，沒有重送。','Thao tác đã xác nhận; đọc lại bị từ chối, không gửi lại.'):'');
+    for(const node of new Set([root,reviewRoot]))if(node?.isConnected){
+      node.innerHTML=`<section class="iqc-panel iqc-alert" role="alert">${h(message)} <button id="iqc-read-retry">${t('重新載入','Tải lại')}</button></section>`;
+      const button=node.querySelector('#iqc-read-retry');if(button)button.onclick=async()=>{try{if(node===reviewRoot&&reviewContainer)await bindReview(reviewContainer);else {await load();render();}}catch(error){notice(displayDraftError(error));renderReadDenied();}};
+    }
+    return true;
+  }
+  function denyRead(error){
+    readDenied=error;navigationError=error;quarantineEditors();disposePhotoViewers();renderReadDenied();
+  }
+  const completeSnapshot=value=>value&&['categories','suppliers','parts','errors','items'].every(key=>Array.isArray(value[key]));
+  function validateIqcPayload(data,permissionsRequired){
+    const value=data.control,flow=value?.workflow,projection=data.iqcProjection;
+    const deferred=projection?.version===1&&projection.activeVersionId===value?.activeVersionId&&flow?.active?.id===value?.activeVersionId;
+    const deferredVersion=version=>deferred&&version?.id===value.activeVersionId&&version.snapshotDeferred==='iqc-active-v1'&&!Object.hasOwn(version,'snapshot');
+    if(projection&&(!deferred||!Array.isArray(value?.versions)||value.versions.filter(version=>version?.id===value.activeVersionId).length!==1||!deferredVersion(value.versions.find(version=>version?.id===value.activeVersionId))||flow.active.contentDeferred!=='iqc-active-v1'||Object.hasOwn(flow.active,'content'))||!Number.isInteger(data.revision)||value?.schemaVersion!==1||!['versions','issues','reservedErrorCodes','reservedCheckNos'].every(key=>Array.isArray(value[key]))||!value.versions.every(version=>completeSnapshot(version?.snapshot)||deferredVersion(version))||flow&&(typeof flow.generation!=='string'||!flow.generation||!Number.isInteger(flow.revision)||!Object.hasOwn(flow,'saved')||!completeSnapshot(flow.working)||!(completeSnapshot(flow.active?.content)||deferred&&flow.active.contentDeferred==='iqc-active-v1'&&!Object.hasOwn(flow.active,'content'))||flow.saved&&!completeSnapshot(flow.saved.content)||!Array.isArray(flow.cases))){const error=Error('IQC 載入失敗');denyRead(error);throw error;}
+    if(permissionsRequired){if(!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof data.permissions?.[key]==='boolean')){const error=Object.assign(Error('IQC_PERMISSION_PAYLOAD_INVALID'),{status:403});denyRead(error);throw error;}if(data.permissions.view!==true){const error=Object.assign(Error('FORBIDDEN'),{status:403});denyRead(error);throw error;}}
+  }
+  async function hydrateVersion(id,selectionCurrent=()=>true){
+    const version=control?.versions.find(v=>v.id===id);if(!version||!version.snapshotDeferred&&id!==activeDeferredId)return;
+    const sequence=++versionReadSequence,ownedControl=control,ownedRevision=revision,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=loadSequence;
+    const current=()=>sequence===versionReadSequence&&control===ownedControl&&revision===ownedRevision&&loadSequence===generation&&identity()===actor&&(typeof epoch!=='number'||window.ProcessSync?.identityGeneration?.()===epoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&selectionCurrent();
+    versionReadError=null;
+    try{
+      const data=await transport().version(id,{isCurrent:current,requireAcceptedAccess:true});if(!current())return;
+      if(data.revision!==ownedRevision||data.activeVersionId!==id||data.generation!==ownedControl.workflow?.generation||data.version?.id!==id)throw Error('IQC_VERSION_CHANGED_RELOAD');
+      if(!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof data.permissions?.[key]==='boolean')||data.permissions.view!==true)throw Object.assign(Error('IQC_PERMISSION_PAYLOAD_INVALID'),{status:403});
+      if(!completeSnapshot(data.version.snapshot))throw Object.assign(Error('IQC_VERSION_PAYLOAD_INVALID'),{status:403});
+      const {contentDeferred:_deferred,...activeMetadata}=ownedControl.workflow.active;
+      control={...ownedControl,versions:ownedControl.versions.map(v=>v.id===id?data.version:v),workflow:{...ownedControl.workflow,active:{...activeMetadata,content:copy(data.version.snapshot)}}};
+      versionReadError=null;navigationError=null;
+    }catch(error){if(!current())return;if(error.status===401||error.status===403)denyRead(error);else {versionReadError=error;navigationError=error;}throw error;}
+  }
+  async function selectVersion(id){
+    if(ui.busy||document.querySelector('.iqc-dialog-overlay,.iqc-lightbox')){notice(t('請先完成或關閉目前編輯，再切換版本。','Hoàn tất hoặc đóng cửa sổ sửa trước khi đổi phiên bản.'));render();return;}
+    versionReadSequence++;versionReadError=null;ui.versionId=id;ui.partCode='';ui.errorId='';
+    if(id===activeDeferredId){control={...control,versions:control.versions.map(v=>{if(v.id!==id)return v;const {snapshot:_snapshot,...metadata}=v;return{...metadata,snapshotDeferred:'iqc-active-v1'};})};}
+    render();
+    try{await hydrateVersion(id,()=>ui.versionId===id);if(ui.versionId===id)render();}catch(error){if(ui.versionId===id){render();notice(displayDraftError(error));}}
+  }
+  async function retrySelectedVersion(){
+    if(ui.busy||document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'))return;
+    if(versionReadError?.message!=='IQC_VERSION_CHANGED_RELOAD'){await selectVersion(selected().id);return;}
+    const id=ui.versionId,sequence=++versionReadSequence;
+    const owner={assert(){if(sequence!==versionReadSequence||ui.versionId!==id||document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'))throw Error('DELIVERY_SUPERSEDED');}};
+    versionReadError=null;
+    try{await load(owner);if(ui.versionId===id)render();}catch(error){if(ui.versionId===id&&error.message!=='DELIVERY_SUPERSEDED'){versionReadError=error;render();notice(displayDraftError(error));}}
+  }
   async function load(owner) {
     owner?.assert();
-    const delivery=window.ProcessSync?.captureDelivery?.();
-    const response = await fetch(apiUrl+'?caseMetadata=1', { headers: window.ProcessSync?.platformHeaders?.() || {} });
-    const data = await response.json();
-    owner?.assert();
-    if (!response.ok || !data.control || !Number.isInteger(data.revision)) throw Error(data.error || 'IQC 載入失敗');
-    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
-    await transport().permissions(); // Legacy and adopted libraries both use current server policy before rendering.
-    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
-    owner?.assert();
-    control = data.control; revision = data.revision;return data;
+    const sequence=++loadSequence,actor=identity(),actorId=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();
+    const delivery=window.ProcessSync?.captureDelivery?.(),client=transport();
+    const assertCurrent=()=>{
+      owner?.assert();
+      if(sequence!==loadSequence||window.ProcessSync?.requiresReload||identity()?.id!==actorId||
+        (typeof epoch==='number'?window.ProcessSync?.identityGeneration?.()!==epoch:identity()!==actor)||
+        delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    };
+    // The fresh workflow response authorizes this owner; admit control only
+    // after validating the complete permission contract and response shape.
+    const isCurrent=()=>{try{assertCurrent();return true;}catch{return false;}};
+    const rejectRead=error=>{if(isCurrent()&&(error.status===401||error.status===403))denyRead(error);throw error;};
+    // Full fresh workflow response includes both authorized control and permissions.
+    // No conditional token or cached grant is admitted on this load boundary.
+    const data=await client.read(undefined,{isCurrent,requireAcceptedAccess:true}).catch(rejectRead);
+    assertCurrent();
+    validateIqcPayload(data,true);
+    readDenied=null;navigationError=null;control=data.control;revision=data.revision;activeDeferredId=data.iqcProjection?.activeVersionId||'';
+    if(selected()?.snapshotDeferred){const id=selected().id;await hydrateVersion(id,()=>selected()?.id===id);}
+    return data;
   }
   async function post(action, extra = {}, owner) {
     owner?.assert();
+    if(readDenied)throw readDenied;
     if (ui.busy) throw Error('IQC 資料儲存中，請稍候');
     if (!Number.isInteger(revision)) throw Error('IQC 後端尚未載入，沒有寫入空資料');
-    ui.busy = true; render();
+    mutationSequence++;ui.busy = true; render();
     try {
       // Pending pre-V3 cases retain their exact legacy content until concluded.
       if(action!=='import'&&(control.workflow||!control.versions.some(v=>v.status==='pending'))){
         const client=transport();if(client.hasUnknown()){await client.resolveUnknown();owner?.assert();await load(owner);owner?.assert();}
+        if(!control.workflow&&['save','submit'].includes(action)&&!mayEdit())throw Error(t('舊版草稿須由具編輯權限者先啟用共用草稿','Bản nháp cũ cần người có quyền sửa chuyển sang bản nháp chung'));
         if(!control.workflow||action==='begin'){
-          owner?.assert();const started=await client.begin();owner?.assert();control=started.control;revision=started.revision;ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
+          owner?.assert();const started=await client.begin();owner?.assert();try{validateIqcPayload(started,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}versionReadSequence++;control=started.control;revision=started.revision;activeDeferredId=started.iqcProjection?.activeVersionId||'';ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
           if(dialogBase&&!dialogGeneration)dialogGeneration=control.workflow.generation;
           if(owner&&!owner.generation)owner.generation=control.workflow.generation;
           if(action==='begin')return started;
@@ -119,7 +193,7 @@
         owner?.assert();
         const result=await client.command(['applySnapshot','createError','createItem'].includes(action)?owner?.generation||dialogGeneration||flow.generation:flow.generation,commandAction,detail);
         owner?.assert();
-        if(result.control){control=result.control;revision=result.revision;}else await load(owner);
+        if(result.control){try{validateIqcPayload(result,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';}else {try{await load(owner);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}}
         owner?.assert();
         ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
         window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
@@ -137,12 +211,12 @@
       if (action === 'begin' || action === 'withdraw' || action === 'reject')
         ui.versionId = control.versions.find(version => version.status === 'draft')?.id || '';
       return data;
-    } finally { ui.busy = false; if(!owner||owner.current())render(); }
+    } finally { ui.busy = false; if(readDenied||!owner||owner.current())render(); }
   }
   function versionBar() {
     const v = selected();
     if (!v) return `<section class="iqc-panel iqc-version"><div><h2>IQC</h2><p class="iqc-muted">${t('尚無 IQC 草稿或生效版本', 'Chưa có bản nháp hoặc phiên bản IQC')}</p></div></section>`;
-    return `<section class="iqc-panel iqc-version"><div><small>IQC MASTER CONTROL</small><h2>IQC · V${v.number} <span class="iqc-status">${status(v.status)}</span></h2><p class="iqc-muted">${t('最後編輯', 'Người sửa cuối')}: <span data-i18n-skip="true">${h(lastEdit(v)?.actorName || v.creatorName)}</span> · ${date(lastEdit(v)?.at || v.createdAt)}<br>${t('目前生效', 'Đang hiệu lực')}: ${active() ? `V${active().number}` : t('尚無', 'Chưa có')}${v.submittedBy?`<br>${t('送審者','Người gửi')}: ${h(v.submittedBy)} · ${date(v.submittedAt)}`:''}${v.reviewedBy ? `<br>${t('確認／發回者', 'Người duyệt/trả')}: <span data-i18n-skip="true">${h(v.reviewedBy)}</span> · ${date(v.reviewedAt)} · <span data-i18n-skip="true">${h(v.reviewComment || '')}</span>` : ''}</p></div><div class="iqc-actions"><label>${t('選擇版本', 'Chọn phiên bản')}<select id="iqc-version">${[...control.versions].sort((a,b)=>b.number-a.number).map(item => `<option value="${h(item.id)}" ${v.id === item.id ? 'selected' : ''}>V${item.number} · ${status(item.status)} · ${h(lastEdit(item)?.actorName || item.creatorName)} · ${date(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select></label>${v.status === 'approved' && mayEdit() ? `<button class="button signal" id="iqc-begin">${t('開始修改','Bắt đầu sửa')}</button>` : ''}${v.status === 'draft' && mayEdit() ? `<button class="button ghost" id="iqc-save" ${ui.busy ? 'disabled' : ''}>${t('儲存草稿','Lưu bản nháp')}</button><button class="button signal" id="iqc-submit" ${ui.busy ? 'disabled' : ''}>${t('送出主管審核','Gửi quản lý duyệt')}</button>` : ''}${v.status === 'pending' && mayEdit() ? `<button class="button ghost" id="iqc-withdraw">${t('撤回送審','Rút hồ sơ')}</button>` : ''}</div></section>`;
+    return `<section class="iqc-panel iqc-version"><div><small>IQC MASTER CONTROL</small><h2>IQC · V${v.number} <span class="iqc-status">${status(v.status)}</span></h2><p class="iqc-muted">${t('最後編輯', 'Người sửa cuối')}: <span data-i18n-skip="true">${h(lastEdit(v)?.actorName || v.creatorName)}</span> · ${date(lastEdit(v)?.at || v.createdAt)}<br>${t('目前生效', 'Đang hiệu lực')}: ${active() ? `V${active().number}` : t('尚無', 'Chưa có')}${v.submittedBy?`<br>${t('送審者','Người gửi')}: ${h(v.submittedBy)} · ${date(v.submittedAt)}`:''}${v.reviewedBy ? `<br>${t('確認／發回者', 'Người duyệt/trả')}: <span data-i18n-skip="true">${h(v.reviewedBy)}</span> · ${date(v.reviewedAt)} · <span data-i18n-skip="true">${h(v.reviewComment || '')}</span>` : ''}</p></div>${v.status === 'draft' && !control.workflow && !mayEdit() ? `<p role="status" class="iqc-muted">${t('此舊版草稿須由具編輯權限者先啟用共用草稿，之後才能依獨立儲存／送審權限操作。','Bản nháp cũ cần người có quyền sửa chuyển sang bản nháp chung trước khi dùng quyền lưu/gửi riêng.')}</p>` : ''}<div class="iqc-actions"><label>${t('選擇版本', 'Chọn phiên bản')}<select id="iqc-version">${[...control.versions].sort((a,b)=>b.number-a.number).map(item => `<option value="${h(item.id)}" ${v.id === item.id ? 'selected' : ''}>V${item.number} · ${status(item.status)} · ${h(lastEdit(item)?.actorName || item.creatorName)} · ${date(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select></label>${v.status === 'approved' && mayEdit() ? `<button class="button signal" id="iqc-begin">${t('開始修改','Bắt đầu sửa')}</button>` : ''}${v.status === 'draft' && mayDraftAction('save') ? `<button class="button ghost" id="iqc-save" ${ui.busy ? 'disabled' : ''}>${t('儲存草稿','Lưu bản nháp')}</button>` : ''}${v.status === 'draft' && mayDraftAction('submit') ? `<button class="button signal" id="iqc-submit" ${ui.busy ? 'disabled' : ''}>${t('送出主管審核','Gửi quản lý duyệt')}</button>` : ''}${v.status === 'pending' && mayWithdraw() ? `<button class="button ghost" id="iqc-withdraw">${t('撤回送審','Rút hồ sơ')}</button>` : ''}</div></section>`;
   }
   function issuesPanel() {
     const issues = control?.issues || [];
@@ -182,17 +256,17 @@
       (!ui.category || part.categoryId === ui.category) &&
       (!ui.supplier || part.supplierIds.includes(ui.supplier)));
   }
-  function partRows() {
-    const data = snap();
-    return filteredParts().map(part => `<div class="iqc-part ${ui.partCode === part.code ? 'active' : ''}" data-select-part="${h(part.code)}" tabindex="0" role="button" aria-label="${h(part.code)} ${h(part.nameVi)}"><div class="iqc-part-media">${part.photos[0] ? `<button class="iqc-thumb-button" data-photo-part="${h(part.code)}" aria-label="${t('查看全部照片', 'Xem tất cả ảnh')}"><img decoding="async" loading="lazy" class="iqc-part-thumb" src="${h(part.photos[0].src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"></button>` : `<div class="iqc-part-thumb iqc-empty">${t('無圖', 'Không ảnh')}</div>`}${draft() && mayEdit() ? `<div class="iqc-part-tools"><button class="button ghost iqc-small" data-edit-part="${h(part.code)}">${t('修改', 'Sửa')}</button><button class="button iqc-danger iqc-small" data-delete-part="${h(part.code)}">${t('刪除', 'Xóa')}</button></div>` : ''}</div><div class="iqc-part-copy"><strong data-i18n-skip="true">${h(part.code)} ${h(part.nameVi)}</strong><span class="iqc-source"><b>${t('供應商', 'Nhà cung cấp')}:</b> <span data-i18n-skip="true">${h(part.supplierIds.length ? part.supplierIds.map(id => name(data.suppliers,id)).join(' → ') : t('待核對','Cần đối chiếu'))}</span></span><span class="iqc-category-label"><b>${t('類別', 'Nhóm')}:</b> <span data-i18n-skip="true">${h(name(data.categories,part.categoryId) || '—')}</span></span></div></div>`).join('') || `<div class="iqc-empty">${t('沒有符合條件的零件', 'Không có linh kiện phù hợp')}</div>`;
+  function partRows(data=snap(),parts=filteredParts()) {
+    const supplierName=nameIndex(data.suppliers),categoryName=nameIndex(data.categories);
+    return parts.map(part => `<div class="iqc-part ${ui.partCode === part.code ? 'active' : ''}" data-select-part="${h(part.code)}" tabindex="0" role="button" aria-label="${h(part.code)} ${h(part.nameVi)}"><div class="iqc-part-media">${part.photos[0] ? `<button class="iqc-thumb-button" data-photo-part="${h(part.code)}" aria-label="${t('查看全部照片', 'Xem tất cả ảnh')}"><img decoding="async" loading="lazy" class="iqc-part-thumb" src="${h(part.photos[0].src)}" alt="${t('零件照片', 'Ảnh linh kiện')}"></button>` : `<div class="iqc-part-thumb iqc-empty">${t('無圖', 'Không ảnh')}</div>`}${draft() && mayEdit() ? `<div class="iqc-part-tools"><button class="button ghost iqc-small" data-edit-part="${h(part.code)}">${t('修改', 'Sửa')}</button><button class="button iqc-danger iqc-small" data-delete-part="${h(part.code)}">${t('刪除', 'Xóa')}</button></div>` : ''}</div><div class="iqc-part-copy"><strong data-i18n-skip="true">${h(part.code)} ${h(part.nameVi)}</strong><span class="iqc-source"><b>${t('供應商', 'Nhà cung cấp')}:</b> <span data-i18n-skip="true">${h(part.supplierIds.length ? part.supplierIds.map(id => supplierName(id)).join(' → ') : t('待核對','Cần đối chiếu'))}</span></span><span class="iqc-category-label"><b>${t('類別', 'Nhóm')}:</b> <span data-i18n-skip="true">${h(categoryName(part.categoryId) || '—')}</span></span></div></div>`).join('') || `<div class="iqc-empty">${t('沒有符合條件的零件', 'Không có linh kiện phù hợp')}</div>`;
   }
   function listPanel() {
-    const data = snap(), parts = filteredParts();
+    const data = snap(), parts = filteredParts(),activeCount=data.parts.filter(part=>!part.isDeleted).length;
     const supplierOptions = [...data.suppliers].sort((a,b) => {
       const rank = x => x.nameVi === 'NƯỚC NGOÀI' ? 0 : x.nameVi === 'CÔNG TY' ? 1 : 2;
       return rank(a) - rank(b) || a.nameVi.localeCompare(b.nameVi, 'vi');
     });
-    return `<section class="iqc-panel iqc-list"><div class="iqc-field-head"><h3>${t('零件清單', 'Danh sách linh kiện')} (${data.parts.filter(part => !part.isDeleted).length})</h3>${mayEdit() ? `<button class="button signal iqc-small" id="iqc-add-part">${t('＋新增零件','＋Thêm linh kiện')}</button>` : ''}</div><div class="iqc-field"><label for="iqc-search">${t('搜尋零件編號或名稱', 'Tìm mã hoặc tên linh kiện')}</label><input id="iqc-search" value="${h(ui.search)}" placeholder="${t('搜尋零件編號或名稱', 'Tìm mã hoặc tên linh kiện')}"></div><div class="iqc-field"><div class="iqc-field-head"><label for="iqc-supplier">${t('供應商', 'Nhà cung cấp')}</label>${mayEdit() ? `<button class="button ghost iqc-small" id="iqc-manage-suppliers">${t('修改供應商清單','Sửa danh sách nhà cung cấp')}</button>` : ''}</div><select id="iqc-supplier"><option value="">${t('所有供應商', 'Tất cả nhà cung cấp')}</option>${supplierOptions.map(item => `<option value="${h(item.id)}" ${ui.supplier === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><div class="iqc-field"><div class="iqc-field-head"><label for="iqc-category">${t('零件類別', 'Nhóm linh kiện')}</label>${mayEdit() ? `<button class="button ghost iqc-small" id="iqc-manage-categories">${t('修改類別清單','Sửa danh sách nhóm')}</button>` : ''}</div><select id="iqc-category"><option value="">${t('所有類別', 'Tất cả nhóm')}</option>${data.categories.map(item => `<option value="${h(item.id)}" ${ui.category === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><p class="iqc-muted iqc-match-count" aria-live="polite">${t('符合', 'Phù hợp')} ${parts.length} / ${data.parts.filter(part => !part.isDeleted).length} ${t('個零件', 'linh kiện')}</p><div class="iqc-part-list">${partRows()}</div></section>`;
+    return `<section class="iqc-panel iqc-list"><div class="iqc-field-head"><h3>${t('零件清單', 'Danh sách linh kiện')} (${activeCount})</h3>${mayEdit() ? `<button class="button signal iqc-small" id="iqc-add-part">${t('＋新增零件','＋Thêm linh kiện')}</button>` : ''}</div><div class="iqc-field"><label for="iqc-search">${t('搜尋零件編號或名稱', 'Tìm mã hoặc tên linh kiện')}</label><input id="iqc-search" value="${h(ui.search)}" placeholder="${t('搜尋零件編號或名稱', 'Tìm mã hoặc tên linh kiện')}"></div><div class="iqc-field"><div class="iqc-field-head"><label for="iqc-supplier">${t('供應商', 'Nhà cung cấp')}</label>${mayEdit() ? `<button class="button ghost iqc-small" id="iqc-manage-suppliers">${t('修改供應商清單','Sửa danh sách nhà cung cấp')}</button>` : ''}</div><select id="iqc-supplier"><option value="">${t('所有供應商', 'Tất cả nhà cung cấp')}</option>${supplierOptions.map(item => `<option value="${h(item.id)}" ${ui.supplier === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><div class="iqc-field"><div class="iqc-field-head"><label for="iqc-category">${t('零件類別', 'Nhóm linh kiện')}</label>${mayEdit() ? `<button class="button ghost iqc-small" id="iqc-manage-categories">${t('修改類別清單','Sửa danh sách nhóm')}</button>` : ''}</div><select id="iqc-category"><option value="">${t('所有類別', 'Tất cả nhóm')}</option>${data.categories.map(item => `<option value="${h(item.id)}" ${ui.category === item.id ? 'selected' : ''} data-i18n-skip="true">${h(item.nameVi)}</option>`).join('')}</select></div><p class="iqc-muted iqc-match-count" aria-live="polite">${t('符合', 'Phù hợp')} ${parts.length} / ${activeCount} ${t('個零件', 'linh kiện')}</p><div class="iqc-part-list">${partRows(data,parts)}</div></section>`;
   }
   function detailPanel(data = snap(), state = ui, readOnly = false) {
     const part = data.parts.find(row => row.code === state.partCode && (readOnly || !row.isDeleted));
@@ -226,8 +300,15 @@
     </div>`;
   }
   function render() {
+    if(renderReadDenied())return;
     if (!root?.isConnected) return;
     if (!control) return;
+    if(selected()?.snapshotDeferred){
+      root.innerHTML=`${versionBar()}<section class="iqc-panel" role="${versionReadError?'alert':'status'}">${h(versionReadError?displayDraftError(versionReadError):t('正在讀取生效版本…','Đang đọc phiên bản hiệu lực…'))}<button id="iqc-active-retry">${t('重新讀取','Đọc lại')}</button></section>`;
+      root.querySelectorAll('button:not(#iqc-active-retry)').forEach(button=>button.disabled=true);
+      root.querySelector('#iqc-version')?.addEventListener('change',event=>{void selectVersion(event.target.value);});
+      root.querySelector('#iqc-active-retry')?.addEventListener('click',()=>{void retrySelectedVersion();});return;
+    }
     const listScroll = root.querySelector('.iqc-part-list')?.scrollTop || 0;
     const pageScroll = window.scrollY;
     root.innerHTML = `${versionBar()}${sharedStatus()}${issuesPanel()}${historyPanel()}${pendingPanel()}${importPanel()}<div class="iqc-grid">${listPanel()}${detailPanel()}</div>`;
@@ -256,35 +337,51 @@
   function refreshPartRows() {
     const list = root.querySelector('.iqc-part-list');
     if (!list) return;
-    list.innerHTML = partRows();
-    root.querySelector('.iqc-match-count').textContent = `${t('符合', 'Phù hợp')} ${filteredParts().length} / ${snap().parts.filter(part => !part.isDeleted).length} ${t('個零件', 'linh kiện')}`;
+    const data=snap(),parts=filteredParts();
+    list.innerHTML = partRows(data,parts);
+    root.querySelector('.iqc-match-count').textContent = `${t('符合', 'Phù hợp')} ${parts.length} / ${snap().parts.filter(part => !part.isDeleted).length} ${t('個零件', 'linh kiện')}`;
     bindPartRows();
   }
   function html() { return '<section class="iqc-page" id="iqc-page" data-i18n-skip="true"><div class="iqc-panel">正在載入 IQC 資料…</div></section>'; }
   async function mount(container) {
     root = container.querySelector('#iqc-page');
     if (!root) return;
-    const ownedRoot=root,delivery=window.ProcessSync?.captureDelivery?.(),current=()=>root===ownedRoot&&ownedRoot.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+    const mountToken=++mountSequence,mountLoadSequence=loadSequence+1,mountIdentity=identity(),mountEpoch=window.ProcessSync?.identityGeneration?.(),ownedRoot=root,delivery=window.ProcessSync?.captureDelivery?.(),current=()=>mountToken===mountSequence&&loadSequence===mountLoadSequence&&identity()===mountIdentity&&(typeof mountEpoch!=='number'||window.ProcessSync?.identityGeneration?.()===mountEpoch)&&!window.ProcessSync?.requiresReload&&root===ownedRoot&&ownedRoot.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     navigationError=null;try { await load();if(!current())return; render(); } catch (error) {if(!current())return;navigationError=error; root.innerHTML = `<section class="iqc-panel iqc-alert" role="alert">${h(displayDraftError(error))} <button class="button ghost" id="iqc-retry">${t('重新載入','Tải lại')}</button></section>`; root.querySelector('#iqc-retry').onclick = () => mount(container); }
     if(current())scheduleRefresh();
   }
-  function scheduleRefresh(){clearTimeout(pollTimer);const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);pollTimer=setTimeout(async()=>{
+  function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>pollTimer.isCurrent(pollScheduleOwner)&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{
     if(!current())return;
     if(!root?.isConnected&&!reviewRoot?.isConnected)return;
+    const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),loadOwner=loadSequence,mutationOwner=mutationSequence;
+    let ownedControl=control,ownedRevision=revision;
+    const ownerCurrent=()=>current()&&!ui.busy&&!window.ProcessSync?.requiresReload&&identity()===actor&&(typeof epoch!=='number'||window.ProcessSync?.identityGeneration?.()===epoch)&&loadSequence===loadOwner&&mutationSequence===mutationOwner;
+    const modelCurrent=()=>ownerCurrent()&&control===ownedControl&&revision===ownedRevision;
     try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
-      const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(!current())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
+      const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'',{isCurrent:modelCurrent,requireAcceptedAccess:true});
+      if(!modelCurrent())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);validateIqcPayload(result,true);if(!modelCurrent())return;versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';
+        ownedControl=control;ownedRevision=revision;
         if(wasOpen)ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
+        if(selected()?.snapshotDeferred&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox')){
+          const id=selected().id,hydration=hydrateVersion(id,()=>modelCurrent()&&selected()?.id===id),hydrationSequence=versionReadSequence;
+          await hydration;
+          // Hydration legitimately replaces control; only its unchanged owner may render it.
+          if(!ownerCurrent()||revision!==ownedRevision||versionReadSequence!==hydrationSequence||selected()?.id!==id)return;
+          ownedControl=control;
+        }
+        if(!modelCurrent())return;
         if(!document.querySelector('.iqc-dialog-overlay')&&!root?.contains(document.activeElement))render();
         else {const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('共用內容已更新；彈窗輸入保留，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
-    }}catch(error){if(!current())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
+    }}catch(error){if(!modelCurrent())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
+    // A superseded model must not cancel this still-owned foreground scheduler.
     finally{if(current())scheduleRefresh();}
-  },4000);}
+  });}
   function twoConfirm(label) {
     return confirm(`${label}？`) && confirm(`${label}。此操作會寫入 IQC 草稿，請再次確認。`);
   }
   function dialog(content) {
+    if(readDenied)throw readDenied;
     if(host.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
     if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=copy(snap());dialogGeneration=control?.workflow?.generation||null;}
     const opener = document.activeElement, actor = identity(), delivery = host.ProcessSync?.captureDelivery?.();
@@ -350,6 +447,7 @@
     const next = copy(owner?.base||dialogBase||draft().snapshot); change(next); await saveSnapshot(next, success, owner);
   }
   async function upload(file, owner) {
+    if(readDenied)throw readDenied;
     owner?.assert();
     const response = await fetch(photoUrl, { method: 'PUT', headers: { ...window.ProcessSync?.platformHeaders?.(), 'Content-Type': file.type }, body: file });
     owner?.assert();
@@ -398,7 +496,7 @@
 
   function bind() {
     const on = (selector, event, handler) => root.querySelectorAll(selector).forEach(node => node.addEventListener(event, handler));
-    on('#iqc-version', 'change', event => { ui.versionId = event.target.value; ui.partCode = ''; ui.errorId = ''; render(); });
+    on('#iqc-version', 'change', event => { void selectVersion(event.target.value); });
     const updateSearch = event => { if (event.isComposing || ui.search === event.target.value) return; ui.search = event.target.value; refreshPartRows(); };
     on('#iqc-search', 'input', updateSearch);
     on('#iqc-search', 'compositionend', updateSearch);
@@ -716,26 +814,32 @@
   }
 
   function reviewHTML() {
+    if(readDenied)return `<section class="iqc-review" role="alert">${h(displayDraftError(readDenied))}</section>`;
     const pending = (control?.versions || []).filter(v => v.status === 'pending');
     const history = (control?.versions || []).filter(v => ['approved','superseded','rejected','withdrawn'].includes(v.status)).slice().reverse();
     const caseButton = v => `<button class="iqc-review-case" data-iqc-review="${h(v.id)}"><strong>V${v.number} · ${status(v.status)}</strong><span data-i18n-skip="true">${h(v.creatorName)} · ${date(v.submittedAt || v.updatedAt)}</span></button>`;
     return `<section class="iqc-review"><h3>IQC · ${t('待確認','Chờ duyệt')} ${pending.length}</h3><div class="quality-review-pending-list">${pending.map(caseButton).join('') || `<p>${t('目前沒有待確認 IQC 案件','Không có hồ sơ IQC chờ duyệt')}</p>`}</div><details class="quality-review-history"><summary>${t('確認歷史與內容','Lịch sử duyệt và nội dung')} · ${history.length}</summary>${history.map(caseButton).join('') || `<p>${t('尚無確認歷史','Chưa có lịch sử duyệt')}</p>`}</details><div class="iqc-review-detail"></div></section>`;
   }
   function bindReview(panel) {
-    const initial = panel.querySelector('.iqc-review'), requestActor = identity()?.id;
-    reviewRoot = initial;
+    const initial = panel.querySelector('.iqc-review'), requestIdentity=identity(), requestActor=requestIdentity?.id, requestEpoch=window.ProcessSync?.identityGeneration?.(), requestDelivery=window.ProcessSync?.captureDelivery?.(), bindToken=++reviewBindSequence,reviewLoadSequence=loadSequence+1;
+    reviewRoot = initial;reviewContainer=panel;
     if (!initial) return;
+    const ownsInitial=()=>bindToken===reviewBindSequence&&loadSequence===reviewLoadSequence&&reviewRoot===initial&&initial.isConnected&&panel.querySelector('.iqc-review')===initial&&identity()===requestIdentity&&identity()?.id===requestActor&&(typeof requestEpoch!=='number'||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&(!requestDelivery||window.ProcessSync?.isCurrentDelivery?.(requestDelivery)!==false)&&!window.ProcessSync?.requiresReload;
     initial.querySelectorAll('[data-iqc-review]').forEach(button => { button.disabled = true; });
     const ready = async () => {
-      await load(); if (!initial.isConnected || identity()?.id !== requestActor) return;
+      await load(); if (!ownsInitial()) return;
+      navigationError=null;
       initial.outerHTML = reviewHTML(); const current = panel.querySelector('.iqc-review'); reviewRoot = current;
       const count = document.querySelector('#approval-tab-quality .approval-tab-count');
       if (count) count.textContent = String((window.FQCMasterUI?.pendingCount?.() || 0) + (window.RoutineEquipmentUI?.pendingCount?.() || 0) + pendingCount());
-      current.querySelectorAll('[data-iqc-review]').forEach(button => button.onclick = () => {
+      let detailVersionId='';
+      current.querySelectorAll('[data-iqc-review]').forEach(button => button.onclick = async () => {
         if (!current.isConnected || identity()?.id !== requestActor) return;
-        const v = control.versions.find(item => item.id === button.dataset.iqcReview);
-        if (!v) return;
+        const id=button.dataset.iqcReview;detailVersionId=id;versionReadSequence++;
         const detail = current.querySelector('.iqc-review-detail');
+        if(control.versions.find(item=>item.id===id)?.snapshotDeferred||id===activeDeferredId){detail.textContent=t('正在讀取生效版本…','Đang đọc phiên bản hiệu lực…');try{await hydrateVersion(id,()=>detailVersionId===id&&current.isConnected);}catch(error){if(detailVersionId===id&&current.isConnected)detail.textContent=displayDraftError(error);return;}}
+        if(detailVersionId!==id||!current.isConnected||identity()?.id!==requestActor)return;
+        const v=control.versions.find(item=>item.id===id);if(!v||v.snapshotDeferred)return;
         detail.innerHTML = `<h4>IQC V${v.number} · ${status(v.status)}</h4><p>${t('零件','Linh kiện')} ${v.snapshot.parts.filter(item=>!item.isDeleted).length} · ${t('錯誤代碼','Mã lỗi')} ${v.snapshot.errors.filter(item=>!item.isDeleted).length} · ${t('檢查項目','Hạng mục')} ${v.snapshot.items.filter(item=>!item.isDeleted).length}</p><p>${t('修改者','Người sửa')}: <span data-i18n-skip="true">${h(v.creatorName)}</span> · ${date(v.updatedAt)}<br>${t('送審者','Người gửi')}: <span data-i18n-skip="true">${h(v.submittedBy||'')}</span> · ${date(v.submittedAt)}${v.reviewedBy?`<br>${t('確認者','Người duyệt')}: ${h(v.reviewedBy)} · ${date(v.reviewedAt)}`:''}${v.reviewComment?`<br>${t('審核意見','Ý kiến')}: ${h(v.reviewComment)}`:''}</p>${(mayReview()||mayReview('approval.reject'))&&v.status==='pending' ? `<label>${t('審核意見（選填）','Ý kiến duyệt (không bắt buộc)')}<textarea id="iqc-review-comment" rows="3"></textarea></label><div class="iqc-actions"><button class="button ghost" id="iqc-review-reject">${t('發回','Trả lại')}</button><button class="button signal" id="iqc-review-approve">${t('確認','Duyệt')}</button></div>` : ''}`;
         if(v.status==='pending'&&mayWithdraw())detail.insertAdjacentHTML('beforeend',`<button class="button ghost" id="iqc-review-withdraw">${t('撤回送審','Rút hồ sơ')}</button>`);
         detail.insertAdjacentHTML('beforeend', `<button type="button" class="button ghost" id="iqc-review-content">${t('查看固定內容／前後差異','Xem nội dung / thay đổi')}</button>`);
@@ -756,10 +860,10 @@
       });
       current.querySelector('.quality-review-pending-list [data-iqc-review]')?.click();
     };
-    return ready().catch(error => { if(initial.isConnected && identity()?.id === requestActor){navigationError=error;initial.innerHTML = `<p role="alert">${h(displayDraftError(error))}</p>`;} });
+    return ready().catch(error => { if(ownsInitial()){navigationError=error;if(readDenied){renderReadDenied();return;}initial.innerHTML = `<p role="alert">${h(displayDraftError(error))}</p>`;} });
   }
-  function pendingCount() { return (control?.versions || []).filter(v => v.status === 'pending').length; }
-  function renderApprovedDetail(area,data,partId,onPhoto){const part=data.parts.find(p=>p.id===partId),state={partCode:part?.code||'',errorId:''};function draw(){area.innerHTML=detailPanel(data,state,true);area.querySelectorAll('[data-select-error]').forEach(b=>b.onclick=()=>{state.errorId=b.dataset.selectError;draw();});area.querySelectorAll('[data-photo-part]').forEach(b=>b.onclick=()=>onPhoto(part.photos[Number(b.dataset.photoIndex)]?.src));area.querySelectorAll('[data-item-photo]').forEach(b=>b.onclick=()=>onPhoto(data.items.find(i=>i.id===b.dataset.itemPhoto)?.mediaItems?.[Number(b.dataset.photoIndex)]?.src));}draw();}
+  function pendingCount() { return readDenied?0:(control?.versions || []).filter(v => v.status === 'pending').length; }
+  function renderApprovedDetail(area,data,partId,onPhoto){if(readDenied){area.innerHTML=`<p role="alert">${h(displayDraftError(readDenied))}</p>`;return;}const part=data.parts.find(p=>p.id===partId),state={partCode:part?.code||'',errorId:''};function draw(){area.innerHTML=detailPanel(data,state,true);area.querySelectorAll('[data-select-error]').forEach(b=>b.onclick=()=>{state.errorId=b.dataset.selectError;draw();});area.querySelectorAll('[data-photo-part]').forEach(b=>b.onclick=()=>onPhoto(part.photos[Number(b.dataset.photoIndex)]?.src));area.querySelectorAll('[data-item-photo]').forEach(b=>b.onclick=()=>onPhoto(data.items.find(i=>i.id===b.dataset.itemPhoto)?.mediaItems?.[Number(b.dataset.photoIndex)]?.src));}draw();}
   let navigationError=null;
-  host.IQCMasterUI = { navigation:{canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){disposePhotoViewers();clearTimeout(pollTimer);root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  host.IQCMasterUI = { navigation:{canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
 })(window);

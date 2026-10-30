@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import installForegroundPorts from './entry-performance/fixture-ports.cjs';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {canvasDOM} from './login-reentry-dom.mjs';
@@ -16,7 +17,7 @@ function fixture(language='zh-Hant',script=source){
   const {document}=canvasDOM();document.documentElement.lang=language;
   const forbidden=()=>{throw Error('NO_NETWORK_STORAGE_OR_TIMER_ALLOWED');};
   const context={document,console,localStorage:{getItem:forbidden,setItem:forbidden,removeItem:forbidden},fetch:forbidden,setTimeout:forbidden,clearTimeout(){},addEventListener(){}};
-  context.window=context;
+  context.window=context;installForegroundPorts(context);
   const end='})(window);';assert.equal(script.indexOf(end),script.lastIndexOf(end));
   vm.runInNewContext(script.replace(end,'window.__layout={matrixHTML,ruleSummaryHTML,ui};'+end),context);
   const host=document.createElement('section');document.body.append(host);
@@ -87,7 +88,7 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
   const inherited=fs.readFileSync(path.join(root,'public/process/master-admin-ui.css'),'utf8');assert.match(inherited,/\.master-history button\{[^}]*padding:10px/,'regression covers actual inherited padding');
 });
 check('JS and CSS cache tags advance together',()=>{
-  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');assert.match(html,/fqc-master\.js\?v=20261028-matrix-rule-layout1/);assert.match(html,/fqc-master\.css\?v=20261028-matrix-rule-layout1/);
+  const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');assert.match(html,/fqc-master\.js\?v=20261029-begin-foreground1/);assert.match(html,/fqc-master\.css\?v=20261028-matrix-rule-layout1/);
 });
 if(process.argv[2]==='--before')check('old actual renderer reproduces substituted marker and legacy mismatch',()=>{
   const before=fs.readFileSync(process.argv[3],'utf8'),f=fixture('vi',before);

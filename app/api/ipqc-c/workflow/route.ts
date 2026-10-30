@@ -1,3 +1,4 @@
+import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import { env } from 'cloudflare:workers';
 import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, parse, responseHeaders, type State } from '@/lib/process-state';
 import { parseIpqcControl, activeIpqc, openIpqc, copyIpqc } from '@/lib/ipqc-c';
@@ -122,7 +123,8 @@ export async function POST(request:Request) {
     if(body.command)body.command=expandWorkflowCommand(body.command) as IpqcWorkflowCommand;
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     for(let attempt=0;attempt<4;attempt++) {
-      const state=await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
+      const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
+      const state=saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       const permissions=await access(request,state),control=readControl(state);
@@ -141,8 +143,12 @@ export async function POST(request:Request) {
       context.structure=(content,previous)=>{
         try { originalStructure(content,previous); }
         catch { throw new DraftConflict('INVALID_STRUCTURE',422); }
+        // Build once per validation call; preserve Array.find first-match semantics.
+        const priorById=new Map<string,typeof previous.items[number]>();
+        const stringIds=previous.items.every(item=>typeof item.id==='string')&&content.items.every(item=>typeof item.id==='string');
+        if(stringIds)for(const item of previous.items)if(!priorById.has(item.id))priorById.set(item.id,item);
         for(const item of content.items) {
-          const old=previous.items.find(i=>i.id===item.id);
+          const old=stringIds?priorById.get(item.id):previous.items.find(i=>i.id===item.id);
           if(!item.equipmentId){item.equipmentSnapshot=null;continue;}
           if(old?.equipmentId===item.equipmentId){item.equipmentSnapshot=old.equipmentSnapshot;continue;}
           const choice=selected.get(item.equipmentId);if(!choice||choice.enabled===false)throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
@@ -152,6 +158,8 @@ export async function POST(request:Request) {
       const originalValidate=context.validate;
       context.validate=content=>[...originalValidate(content),...content.items.filter(i=>!i.deleted&&i.equipmentId&&(!selected.has(i.equipmentId)||selected.get(i.equipmentId)?.enabled===false))
         .map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];
+      const saveProjectionBase=request.headers.get('X-IPQC-C-Save-Projection')==='1'&&ipqcCSaveCommand(body.command)&&body.command.expectedRevision===control.workflow?.revision&&control.workflow?.pendingId===null&&new Set(control.versions.map(v=>v.id)).size===control.versions.length&&control.versions.filter(v=>v.status==='draft'||v.status==='pending').length===1&&openIpqc(control)?.id==='shared-'+control.workflow.generation&&openIpqc(control)?.status==='draft'
+        ?{revision:state.revision,flowRevision:control.workflow.revision,generation:control.workflow.generation,activeVersionId:control.activeVersionId,draftId:openIpqc(control)!.id,others:control.versions.filter(v=>v.id!==openIpqc(control)!.id).map(v=>{const {snapshot,...metadata}=v;return{id:v.id,snapshot,metadata:JSON.stringify(metadata)};})}:null;
       let receipt;
       if(body.action==='begin') {
         if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
@@ -175,8 +183,13 @@ export async function POST(request:Request) {
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
-        .bind(state.revision+1,await encodeValues(values,state,prepared),at,state.revision).run();
+        .bind(state.revision+1,await (saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
       if(changed.meta.changes!==1)continue;
+      const saved=control.workflow?.saved,draft=openIpqc(control),currentOthers=saveProjectionBase?control.versions.filter(v=>v.id!==saveProjectionBase.draftId):[];
+      if(saveProjectionBase&&receipt&&saved&&draft?.status==='draft'&&draft.id===saveProjectionBase.draftId&&control.workflow?.generation===saveProjectionBase.generation&&control.activeVersionId===saveProjectionBase.activeVersionId&&control.workflow.pendingId===null&&control.versions.length===saveProjectionBase.others.length+1&&saveProjectionBase.others.every((old,index)=>{const current=currentOthers[index];if(!current||current.id!==old.id||current.snapshot!==old.snapshot)return false;const {snapshot:_snapshot,...metadata}=current;return JSON.stringify(metadata)===old.metadata;})){
+        const {content:_savedContent,...savedMetadata}=saved,{snapshot:_draftSnapshot,...draftMetadata}=draft;
+        return reply({revision:state.revision+1,receipt,requestId,permissions,cSaveProjection:{version:1,baseStateRevision:saveProjectionBase.revision,baseFlowRevision:saveProjectionBase.flowRevision,generation:saveProjectionBase.generation,activeVersionId:saveProjectionBase.activeVersionId,flowRevision:control.workflow.revision,saved:savedMetadata,contributors:control.workflow.contributors,draft:draftMetadata}});
+      }
       return reply({revision:state.revision+1,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,requestId});
     }
     return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);

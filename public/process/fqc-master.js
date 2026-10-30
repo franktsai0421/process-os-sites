@@ -14,15 +14,18 @@
   const now = () => new Date().toISOString();
   let control = null, hostElement = null, mountSequence = 0;
   let workspaceReady = () => false, sharedStateCurrent = () => false, reviewReadSequence = 0;
-  let sharedClient,sharedActor='',syncBase=null,syncGeneration=null,sharedPoll,pendingCommandFeedback=null,activeSharedAction=null;
+  let sharedClient,sharedActor='',syncBase=null,syncGeneration=null;const sharedPoll=window.createForegroundPoll();let pendingCommandFeedback=null,activeSharedAction=null;
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
   function adopt(result,selectOpen=false){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner();}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
-  function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items'])for(const row of next[collection]){const old=base[collection].find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
+  function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items']){
+    // JSON snapshot rows use stable IDs. Keep find()'s first duplicate match.
+    const firstById=new Map();if(next[collection].length)for(const row of base[collection])if(!firstById.has(row.id))firstById.set(row.id,row);
+    for(const row of next[collection]){const old=Number.isNaN(row.id)?undefined:firstById.get(row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
     for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
-  }return{patches,guards};}
+  }}return{patches,guards};}
   async function sharedAction(action,detail={}){if(ui.saving)throw Error('OPERATION_IN_PROGRESS');const operation={owned:currentReadOwner()};activeSharedAction=operation;ui.saving=true;
     // A request must become visibly busy before its first await. Do not rebuild
     // the open item form just to acknowledge Save (its input is still unsaved).
@@ -44,11 +47,10 @@
     ui.lastError=null;
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
   }catch(error){if(operation.owned())ui.lastError=error.message;throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
-  function pollShared() {
-    clearTimeout(sharedPoll);
-    if (!workspaceReady()) return;
-    const owned = currentReadOwner(workspaceReady);
-    sharedPoll = setTimeout(async () => {
+  function pollShared() {const pollScheduleOwner=sharedPoll.capture();
+    if (!workspaceReady()) { sharedPoll.cancel(); return; }
+    const readOwner = currentReadOwner(workspaceReady), owned = () => sharedPoll.isCurrent(pollScheduleOwner) && readOwner();
+    sharedPoll.schedule(async () => {
       if (!owned()) return;
       try {
         if (!ui.saving && document.visibilityState !== 'hidden' && transport().canPoll('state')) {
@@ -63,8 +65,8 @@
           }
         }
       } catch (error) { if (owned()) ui.lastError = error.message; }
-      finally { if (owned()) pollShared(); }
-    }, 4000);
+      finally { if (owned() && sharedPoll.isCurrent(pollScheduleOwner)) pollShared(); }
+    });
   }
   const ui = { line: '', category: '', search: '', selectedErrorId: '', matrixOpen: true, problemsOpen: false, selectedVersionId: '', saving: false, lastError: null };
 
@@ -196,6 +198,12 @@
     });
     const categories = [...catMap.values()].sort((a, b) => a.name.localeCompare(b.name));
     return { products: [...productMap.values()], categories, productMap, comparisonReady };
+  }
+  // Rebuild once per synchronous form submission; never cache across owners.
+  function productReferences(codes) {
+    if(!codes.length)return [];
+    const products=catalog().productMap;
+    return codes.map(code=>{const product=Number.isNaN(code)?undefined:products.get(code);return{code,kind:product?.kind||'unresolved',name:product?.name||'',specification:product?.specification||''};});
   }
   function snapshotFromCanonical() {
     const records = canonicalRecords().filter(record => !record.deletedAt);
@@ -503,8 +511,8 @@
     return list;
   }
 
-  function problemsCardHTML(version, kind = 'missing') {
-    const problems = getVersionProblems(version).filter(problem => (problem.type === 'error') === (kind === 'error'));
+  function problemsCardHTML(version, kind = 'missing', allProblems = getVersionProblems(version)) {
+    const problems = allProblems.filter(problem => (problem.type === 'error') === (kind === 'error'));
     const vi = isVi();
     const isOpen = ui.problemsOpen;
     if (!problems.length) return '';
@@ -574,6 +582,7 @@
     if (!errors.some(error => error.id === ui.selectedErrorId)) ui.selectedErrorId = errors[0]?.id || '';
     const selectedError = errors.find(error => error.id === ui.selectedErrorId), items = itemRows(version, category, ui.selectedErrorId);
     const products = effectiveProducts(category), uncoveredProducts = uncovered(version, category), canEdit = version.status === 'draft' && canEditDraft() && (window.sharedDraftPermissionAllowed?.(sharedClient,'edit')??true);
+    const versionProblems=getVersionProblems(version);
     hostElement.innerHTML = `<section class="fqc-page" id="fqc-page">
       <section class="master-version-bar fqc-version-bar">
         <div>
@@ -591,7 +600,7 @@
           ${version.status === 'pending' && canWithdrawDraft() ? '<button class="button ghost" id="fqc-withdraw">解除送審</button>' : ''}
         </div>
       </section>
-      ${problemsCardHTML(version, 'error')}${problemsCardHTML(version)}
+      ${problemsCardHTML(version, 'error', versionProblems)}${problemsCardHTML(version, 'missing', versionProblems)}
       <details class="master-history fqc-activity"><summary>${isVi()?'Lịch sử thao tác':'歷史操作'} · ${(version.history||[]).length}</summary>${(version.history||[]).slice().reverse().map(event=>{const entry=historyDisplay(event);return `<p>${h(entry.label)} · ${h(entry.actor)} · ${formatDate(event.at)} ${entry.note?h(entry.note):''}</p>`;}).join('') || `<p>${isVi()?'Chưa có thao tác':'尚無操作紀錄'}</p>`}</details>
       <section class="master-toolbar fqc-toolbar">
         <div class="field">
@@ -749,8 +758,9 @@
     return `${legend}<div class="fqc-matrix-scroll"><table class="fqc-matrix-table"><thead><tr><th class="fqc-matrix-corner"><span class="fqc-matrix-corner-label">${vi ? 'FQC Mã / tên kiểm tra' : 'FQC 檢查編號／名稱'}</span></th>${visibleProducts.map(product => `<th class="fqc-matrix-prod-th" title="${h(`${product.code} ${product.name} ${product.specification || ''}`)}"><div class="matrix-prod-code"><code>${h(product.code)}</code></div><div class="matrix-prod-name" data-i18n-skip="true">${h(product.name)}</div>${product.specification ? `<div class="matrix-prod-spec" data-i18n-skip="true">${h(product.specification)}</div>` : ''}${product.kind === 'semi-finished' ? `<div class="matrix-prod-tag"><span class="semi-tag">${vi ? 'Bán thành phẩm' : '半成品'}</span></div>` : ''}</th>`).join('')}</tr></thead><tbody>${items.map(item => {
       // Inclusion and item activation are independent; match the edit checkbox's legacy default.
       const enabled = item.isEnabled !== false;
+      const selectedCodes=Array.isArray(item.productCodes)?new Set(item.productCodes):null;
       return `<tr><th class="fqc-matrix-item-th"><code class="fqc-matrix-item-code">${h(item.checkNo)}</code><span class="fqc-matrix-item-name" data-i18n-skip="true">${h(item.name)}</span>${enabled ? '' : `<span class="fqc-matrix-item-status" data-i18n-skip="true">${disabledLabel}</span>`}</th>${visibleProducts.map(product => {
-        const included = (item.productCodes || []).includes(product.code);
+        const included = selectedCodes?selectedCodes.has(product.code):(item.productCodes || []).includes(product.code);
         const symbol = included ? '✓' : '—';
         const label = `${item.checkNo} ${product.code} · ${included ? selectedLabel : excludedLabel} · ${enabled ? enabledLabel : disabledLabel}`;
         return `<td><button type="button" class="matrix-cell ${included ? 'included' : ''} ${enabled ? '' : 'disabled-item'}" data-matrix-item="${h(item.id)}" data-matrix-product="${h(product.code)}" ${canEdit ? '' : 'disabled'} aria-pressed="${included}" aria-label="${h(label)}" title="${h(label)}">${symbol}</button></td>`;
@@ -1794,10 +1804,7 @@
         isYearly: ruleCadence === 'time' && timeFrequency === 'yearly',
         isCustomPeriod: ruleCadence === 'time' && timeFrequency === 'custom',
         customPeriodText: ruleCadence === 'time' && timeFrequency === 'custom' ? customTimeText : '',
-        productCodes: selectedProducts, productRefs: selectedProducts.map(code => {
-          const product = catalog().products.find(item => item.code === code);
-          return { code, kind: product?.kind || 'unresolved', name: product?.name || '', specification: product?.specification || '' };
-        }),
+        productCodes: selectedProducts, productRefs: productReferences(selectedProducts),
         reason, note
       });
       if(existing){
@@ -2107,7 +2114,7 @@
   function bind(element) {
     const sequence = ++mountSequence;navigationError=null;
     workspaceReady = () => false;
-    clearTimeout(sharedPoll);
+    sharedPoll.cancel();
     hostElement = element;
     ensureControl();
     hostElement.innerHTML = html();
@@ -2264,7 +2271,7 @@
 
   function pendingCount() { return sharedStateCurrent()?ensureControl().libraries.fqc.versions.filter(version => version.status === 'pending').length:null; }
   let navigationError=null;
-  host.FQCMasterUI = { navigation:{canLeave:()=>!ui.saving&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;clearTimeout(sharedPoll);workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  host.FQCMasterUI = { navigation:{canLeave:()=>!ui.saving&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');

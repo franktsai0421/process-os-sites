@@ -33,8 +33,43 @@ async function fixture(){
   const fill=(node,value,composing=false)=>{node.value=value;node.oninput({isComposing:composing});};
   return{context,window,shared,logs,messages,storage,inputs,network,counters,input,fill,save:()=>context.saveProcessMasterDraft(),submit:()=>context.submitProcessMasterDraft(),applyLogs:()=>logs.filter(x=>x.command?.action==='apply'),saveLogs:()=>logs.filter(x=>x.command?.action==='save')};
  }
- const read=async()=>{const s=await core.readState();return JSON.parse(s.values.masterDataControl).workflowScopes.PROCESS;};return{db,objects,core,tab,read};
+ const read=async()=>{const s=await core.readState();return JSON.parse(s.values.masterDataControl).workflowScopes.PROCESS;};return{db,objects,core,tab,read,load,env,api,headers};
 }
+// Isolated records-encoded dependencies: each fixture has exactly one live
+// reference cell, or only closed history for the legitimate-delete controls.
+async function referenceDeleteFixture(kind,cell){
+ const f=await fixture(),copy=value=>JSON.parse(JSON.stringify(value));
+ try{
+  const state=await f.core.readState(),values={...state.values},root=JSON.parse(values.masterDataControl),flow=root.workflowScopes.PROCESS,stage=Object.keys(flow.working)[0];
+  let target,rowPath;
+  if(kind==='template'){target={id:'reference-delete-template',name:'Synthetic removable custom template',editorType:'custom',mediaItems:[]};flow.working[stage].push(target);rowPath=[stage,{id:target.id}];}
+  else{const parent=flow.working[stage].find(row=>row.presetKey==='machine-assembly');assert(parent,'actual equipment-capable preset');target={id:'reference-delete-equipment',number:'SYNTHETIC-M1',name:'Synthetic removable equipment',line:stage.split('-')[0],stageCode:stage,kind:parent.presetKey,mediaItems:[]};parent.equipment ||= [];parent.equipment.push(target);rowPath=[stage,{id:parent.id},'equipment',{id:target.id}];}
+  const draft=root.versions.find(version=>version.scope==='PROCESS'&&version.status==='draft');assert(draft);draft.snapshot=copy(flow.working);values.masterDataControl=JSON.stringify(root);
+  const empty={workspaces:[{id:JSON.stringify(['G','A']),line:'A',category:'G',stages:{[stage]:[]}}]},referenced=copy(empty);
+  referenced.workspaces[0].stages[stage].push({id:'unique-reference',name:'Synthetic reference',stageCode:stage,productCodes:['XA'],nextIds:[],instructionSteps:[],...(kind==='template'?{templateId:target.id}:{machineIds:[target.id]})});
+  const authoring=f.load('lib/shared-draft.ts').createSharedDraft('process:platform',empty,'reference-active',randomUUID()),stamp={actor:{id:'b',name:'Synthetic B',admin:true},at:'2026-10-30T00:00:00Z'};
+  authoring.saved={...stamp,id:'reference-saved',revision:0,contributors:{},content:copy(empty)};
+  authoring.cases=[{...stamp,id:'reference-pending',savedId:'pending-save',baseId:'reference-active',reason:'Synthetic pending',status:'pending',content:copy(empty),before:copy(empty)}];authoring.pendingId='reference-pending';
+  if(cell==='active')authoring.active.content=copy(referenced);if(cell==='working')authoring.working=copy(referenced);if(cell==='saved')authoring.saved.content=copy(referenced);if(cell==='pending')authoring.cases[0].content=copy(referenced);
+  // Closed cases/saves remain historical and must neither block nor be rewritten.
+  authoring.saves=[{...stamp,id:'closed-save',revision:0,contributors:{},content:copy(cell==='closed-only'?referenced:empty)}];
+  authoring.cases.push({...stamp,id:'closed-case',savedId:'closed-save',baseId:'reference-active',reason:'Closed synthetic history',status:'approved',content:copy(cell==='closed-only'?referenced:empty),before:copy(empty),result:{...stamp,reason:'Approved',selfReview:true}});
+  const authoringControl={activeVersionId:'reference-active',versions:[{id:'reference-active',status:'approved',number:1,snapshot:copy(authoring.active.content)},{id:'shared-'+authoring.generation,status:'draft',number:2,snapshot:copy(authoring.working)}],workflow:authoring};
+  values.processAuthoringControl=JSON.stringify(authoringControl);
+  const encoded=await f.load('lib/state-records.ts').encodeRecordValues(f.env.STATE_ARCHIVE,values),envelope=JSON.parse(encoded);assert.equal(envelope.__processRecords.version,1);assert.equal(envelope.processAuthoringControl,undefined,'dependency cannot remain inline');
+  const aggregateRef=envelope.__processRecords.values.processAuthoringControl;assert(aggregateRef&&f.objects.has(aggregateRef.key));const aggregate=JSON.parse(f.objects.get(aggregateRef.key).toString());
+  const cells={active:aggregate.workflow.active.content,working:aggregate.workflow.working,saved:aggregate.workflow.saved.content,pending:aggregate.workflow.cases.find(row=>row.status==='pending').content};
+  for(const [name,value]of Object.entries(cells)){assert.deepEqual(Object.keys(value),['__immutableBody']);const ref=value.__immutableBody;assert(f.objects.has(ref.key));const body=JSON.parse(f.objects.get(ref.key).toString());assert.equal(JSON.stringify(body).includes(target.id),name===cell,'only selected live cell may reference '+kind);}
+  f.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').run(encoded);
+  const writes={db:0,r2:0},readKeys=new Set(),prepare=f.env.DB.prepare.bind(f.env.DB),put=f.env.STATE_ARCHIVE.put.bind(f.env.STATE_ARCHIVE),get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);
+  f.env.DB.prepare=sql=>{const statement=prepare(sql),run=statement.run.bind(statement);statement.run=async(...args)=>{writes.db++;return run(...args);};return statement;};
+  f.env.STATE_ARCHIVE.put=async(...args)=>{writes.r2++;return put(...args);};f.env.STATE_ARCHIVE.get=async key=>{readKeys.add(key);return get(key);};
+  const command={operationId:randomUUID(),generation:flow.generation,clientId:'encoded-reference-delete',sequence:1,action:'apply',expectedRevision:flow.revision,patches:[{op:'remove',path:rowPath}],guards:[{path:rowPath,value:copy(target)}]};
+  return{...f,writes,readKeys,bodyRefs:cells,target,kind,cell,stage,rowPath,authoringControl,command,post:()=>f.api.POST(new Request('http://127.0.0.1/api/master/workflow?scope=PROCESS&caseMetadata=1',{method:'POST',headers:f.headers.a,body:JSON.stringify({command})}))};
+ }catch(error){f.db.close();throw error;}
+}
+function referenceStorageSnapshot(f){return{row:{...f.db.prepare('SELECT * FROM shared_state WHERE id=1').get()},changes:Number(f.db.prepare('SELECT total_changes() AS n').get().n),objects:[...f.objects].sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>[key,value.toString('base64')])};}
+
 function wireLanguageRerender(t){
  const equipment=fs.readFileSync('public/process/process-equipment.js','utf8'),start=equipment.indexOf('  function repaint('),end=equipment.indexOf('  function validate(',start),repaint=equipment.slice(start,end);
  assert(repaint.includes('area.innerHTML = processMasterView();'));
@@ -50,10 +85,10 @@ function wireLanguageRerender(t){
  vm.runInContext(needed+'\n'+mount+'\n'+repaint+'\n'+listener,t.context);
  return language=>{t.context.document.documentElement.lang=language;events.get('process-language-change')();};
 }
-const rerenderOnly=process.argv.includes('--rerender-only'),originalOnly=process.argv.includes('--original-only');
-if(rerenderOnly&&originalOnly)throw Error('ONE_TEST_SCOPE_REQUIRED');
+const rerenderOnly=process.argv.includes('--rerender-only'),originalOnly=process.argv.includes('--original-only'),referencesOnly=process.argv.includes('--references-only');
+if([rerenderOnly,originalOnly,referencesOnly].filter(Boolean).length>1)throw Error('ONE_TEST_SCOPE_REQUIRED');
 (async()=>{
-if(!rerenderOnly){
+if(!rerenderOnly&&!referencesOnly){
  await check('actual binder first rename accepted with rendered baseline and same-value input sends nothing',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input(),old=i.value;t.fill(i,old);await i.processMasterNameFlush();assert.equal(t.applyLogs().length,0);t.fill(i,old+' new');await i.processMasterNameFlush();assert.equal(t.applyLogs().length,1);assert.equal(t.applyLogs()[0].status,200);assert.equal(t.applyLogs()[0].command.guards[0].value,old);assert.equal(Object.values((await f.read()).working)[0][0].name,old+' new');}finally{f.db.close();}});
  await check('rapid typing serializes only ACK baselines; immediate Save waits entire chain and saves final text',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input(),old=i.value,hold=defer();t.network.hold=hold;t.fill(i,'A');t.fill(i,'AB');t.fill(i,'ABC');const saving=t.save();await until(()=>hold.started);assert.equal(t.saveLogs().length,0);hold.resolve();await saving;assert.equal(t.applyLogs().length,2);assert.deepEqual(t.applyLogs().map(x=>x.command.guards[0].value),[old,'A']);assert.equal(t.saveLogs().length,1);assert.equal(Object.values((await f.read()).saved.content)[0][0].name,'ABC');assert.equal(i.value,'ABC');}finally{f.db.close();}});
  await check('input queued at ACK settlement is drained before Save, without losing its newer value',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input();let once=false;t.context.updateProcessSharedStatus=()=>{if(!once){once=true;void Promise.resolve().then(()=>t.fill(i,'newer at settlement'));}};t.fill(i,'first command');await t.save();assert.equal(t.applyLogs().length,2);assert.equal(t.saveLogs().length,1);assert.equal(Object.values((await f.read()).saved.content)[0][0].name,'newer at settlement');}finally{f.db.close();}});
@@ -65,7 +100,7 @@ if(!rerenderOnly){
  await check('Submit waits pending name chain but never auto-Saves; existing confirmation submits only previous saved snapshot',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input(),old=i.value+' saved';t.fill(i,old);await i.processMasterNameFlush();await t.save();const hold=defer();t.network.hold=hold;t.fill(i,'new unsaved A');t.fill(i,'new unsaved AB');t.window.submitReason='Synthetic fixed saved snapshot';const submitting=t.submit();await until(()=>hold.started);assert.equal(t.logs.filter(x=>x.command?.action==='submit').length,0);hold.resolve();await submitting;assert.equal(t.saveLogs().length,1);assert.equal(t.logs.filter(x=>x.command?.action==='submit').length,1);const flow=await f.read();assert.equal(Object.values(flow.cases.find(x=>x.id===flow.pendingId).content)[0][0].name,old);assert.equal(Object.values(flow.working)[0][0].name,'new unsaved AB');}finally{f.db.close();}});
 
 }
-if(!originalOnly){
+if(!originalOnly&&!referencesOnly){
 
  await check('language repaint retains rejected visible text and failure lock through repeated language and Save/Submit',async()=>{const f=await fixture();try{const a=await f.tab(),b=await f.tab(),ia=a.input(),ib=b.input(),old=ib.value,key=ib.closest().dataset.templateKey,visible=old+' stale B';a.fill(ia,old+' new A');await ia.processMasterNameFlush();b.fill(ib,visible);await assert.rejects(ib.processMasterNameFlush(),/DEPENDENCY_CHANGED_RECONFIRM/);const posts=b.applyLogs().length,language=wireLanguageRerender(b);language('vi');let next=b.inputs.find(n=>n.closest().dataset.templateKey===key);assert.equal(next.value,visible);await b.save();b.window.submitReason='must not submit failed text';await b.submit();assert.equal(b.saveLogs().length,0);assert.equal(b.logs.filter(x=>x.command?.action==='submit').length,0);language('zh-Hant');next=b.inputs.find(n=>n.closest().dataset.templateKey===key);assert.equal(next.value,visible);b.fill(next,visible+' kept latest');language('vi');next=b.inputs.find(n=>n.closest().dataset.templateKey===key);assert.equal(next.value,visible+' kept latest');await assert.rejects(next.processMasterNameFlush(),/DEPENDENCY_CHANGED_RECONFIRM/);assert.equal(b.applyLogs().length,posts);assert.equal(Object.values((await f.read()).working)[0][0].name,old+' new A');}finally{f.db.close();}});
  await check('pending language handoff keeps latest visible value and original serial ACK baseline before immediate Save',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input(),old=i.value,key=i.closest().dataset.templateKey,hold=defer();t.network.hold=hold;t.fill(i,'pending A');t.fill(i,'pending AB');await until(()=>hold.started);const language=wireLanguageRerender(t);language('vi');const next=t.inputs.find(n=>n.closest().dataset.templateKey===key);assert.equal(next.value,'pending AB');assert.equal(Object.values((await f.read()).working)[0][0].name,old);const saving=t.save();assert.equal(t.saveLogs().length,0);hold.resolve();await saving;assert.equal(next.value,'pending AB');assert.deepEqual(t.applyLogs().map(x=>x.command.guards[0].value),[old,'pending A']);assert.equal(t.applyLogs().length,2);assert.equal(t.saveLogs().length,1);assert.equal(Object.values((await f.read()).saved.content)[0][0].name,'pending AB');}finally{f.db.close();}});
@@ -76,5 +111,14 @@ if(!originalOnly){
  await check('IME handoff preserves partial visible string but refuses Save and makes all old-node callbacks inert',async()=>{const f=await fixture();try{const t=await f.tab(),i=t.input(),old=i.value,key=i.closest().dataset.templateKey;i.oncompositionstart();t.fill(i,'中',true);const stale={start:i.oncompositionstart,input:i.oninput,end:i.oncompositionend},language=wireLanguageRerender(t);language('vi');const next=t.inputs.find(n=>n.closest().dataset.templateKey===key);assert.equal(next.value,'中');assert.equal(i.oninput,null);assert.equal(i.oncompositionstart,null);assert.equal(i.oncompositionend,null);stale.start();stale.input({isComposing:false});stale.end();await t.save();assert.equal(t.applyLogs().length,0);assert.equal(t.saveLogs().length,0);next.value='中文 Việt';next.oncompositionend();t.fill(next,'中文 Việt');await next.processMasterNameFlush();assert.equal(t.applyLogs().length,1);assert.equal(t.applyLogs()[0].command.guards[0].value,old);assert.equal(Object.values((await f.read()).working)[0][0].name,'中文 Việt');}finally{f.db.close();}});
 
 }
- console.log(JSON.stringify({status:'PASS_ACTUAL_PROCESS_MASTER_NAME_BINDER',scope:rerenderOnly?'rerender':originalOnly?'original':'all',groups:checks,results,GUI:'NOT_RUN',SDK:false,listeners:0,realTargetWrites:0}));
+
+if(!rerenderOnly&&!originalOnly){
+ for(const kind of ['template','equipment'])for(const cell of ['active','working','saved','pending'])await check('records-encoded '+kind+' removal rejects unique '+cell+' reference with zero DB/R2 writes',async()=>{
+  const f=await referenceDeleteFixture(kind,cell);try{const before=referenceStorageSnapshot(f),response=await f.post(),body=await response.json();assert.equal(response.status,409,JSON.stringify(body));assert.equal(body.error,'PROCESS_MASTER_IN_USE');assert.equal(body.details.total,1);assert(f.readKeys.has(f.bodyRefs[cell].__immutableBody.key),'actual API must read the encoded live reference body');assert.deepEqual(f.writes,{db:0,r2:0});assert.deepEqual(referenceStorageSnapshot(f),before,'409 must preserve complete state row, revision, all immutable bytes and SQLite changes');}finally{f.db.close();}
+ });
+ for(const kind of ['template','equipment'])await check('records-encoded '+kind+' unreferenced live removal succeeds while closed references remain immutable',async()=>{
+  const f=await referenceDeleteFixture(kind,'closed-only');try{const before=referenceStorageSnapshot(f),response=await f.post(),body=await response.json();assert.equal(response.status,200,JSON.stringify(body));assert.equal(body.receipt.operationId,f.command.operationId);assert.equal(body.receipt.unchanged,false);const after=referenceStorageSnapshot(f);assert.equal(after.row.revision,before.row.revision+1);assert.notEqual(after.row.values,before.row.values);assert(f.writes.db>0);assert(f.writes.r2>0);for(const [key,bytes]of before.objects)assert.equal(f.objects.get(key)?.toString('base64'),bytes,'immutable record must not be overwritten');const decoded=await f.core.readState(),masterRoot=JSON.parse(decoded.values.masterDataControl),working=masterRoot.workflowScopes.PROCESS.working,remaining=f.load('lib/process-master-references.ts').processMasterTargets(working);assert(!remaining.some(target=>target.kind===kind&&target.id===f.target.id));assert.deepEqual(JSON.parse(decoded.values.processAuthoringControl),JSON.parse(JSON.stringify(f.authoringControl)),'successful master deletion must not rewrite closed/current authoring snapshots');assert.equal(masterRoot.workflowScopes.PROCESS.revision,f.command.expectedRevision+1);}finally{f.db.close();}
+ });
+}
+ console.log(JSON.stringify({status:'PASS_ACTUAL_PROCESS_MASTER_NAME_BINDER',scope:referencesOnly?'references':rerenderOnly?'rerender':originalOnly?'original':'all',groups:checks,results,GUI:'NOT_RUN',SDK:false,listeners:0,realTargetWrites:0}));
 })().catch(error=>{console.error(error);process.exitCode=1;});
