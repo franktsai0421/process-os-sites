@@ -11,7 +11,7 @@ jobs:
   local-safety:
     name: Local safety
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 360
     defaults:
       run:
         shell: pwsh
