@@ -7,7 +7,7 @@
   const photoUrl = '/api/iqc/photo';
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let control = null, revision = null, root = null, reviewRoot = null;
-  let sharedClient=null,sharedActor='';const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null;
+  let sharedClient=null,sharedActor='',sharedClientOwner=null;const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null;
   let loadSequence=0,mountSequence=0,reviewBindSequence=0,mutationSequence=0,readDenied=null,reviewContainer=null;
   let versionReadSequence=0,versionReadError=null,activeDeferredId='';
   // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
@@ -21,7 +21,8 @@
   function disposePhotoViewers() { const closing = Array.from(photoViewerDisposers); for (const close of closing) close(); }
   host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
-    if(sharedActor!==actor){sharedActor=actor;sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
+    const person=identity(),epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
+    if(sharedActor!==actor||sharedClientOwner?.person!==person||sharedClientOwner?.epoch!==epoch||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.delivery&&host.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=actor;sharedClientOwner={person,epoch,delivery};sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',externalDurableBounded:{scope:'IQC'},responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
   }
   const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -165,6 +166,9 @@
     if(readDenied)throw readDenied;
     if (ui.busy) throw Error('IQC 資料儲存中，請稍候');
     if (!Number.isInteger(revision)) throw Error('IQC 後端尚未載入，沒有寫入空資料');
+    if(['save','submit'].includes(action)&&document.querySelector('.iqc-dialog-overlay'))throw Error(t('請先套用或取消目前表單，再儲存或送審。','Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.'));
+    const requestActor=identity(),requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.();
+    const requestCurrent=()=>identity()===requestActor&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     mutationSequence++;ui.busy = true; render();
     try {
       // Pending pre-V3 cases retain their exact legacy content until concluded.
@@ -177,24 +181,46 @@
           if(owner&&!owner.generation)owner.generation=control.workflow.generation;
           if(action==='begin')return started;
         }
-        let commandAction=action,detail={};const flow=control.workflow;
+        if(!requestCurrent())throw Error('IDENTITY_CHANGED');
+        let commandAction=action,detail={},submissionGeneration=null;const flow=control.workflow;
         if(action==='applySnapshot'){commandAction='apply';detail=snapshotChanges(extra.base,extra.snapshot);if(!detail.patches.length)return {control,revision};}
         else if(['createError','createItem'].includes(action)){commandAction='apply';detail={moduleAction:action,input:extra};}
-        else if(action==='save'){await client.flush();if(document.querySelector('.iqc-dialog-overlay')&&!confirm(t('只儲存共用草稿，不包含尚未套用的彈窗輸入。','Chỉ lưu bản nháp chung, không gồm nội dung cửa sổ chưa áp dụng.')))return;}
+        else if(action==='save'){await client.flush();}
         else if(action==='submit'){
-          if(!flow.saved)throw Error(t('請先成功儲存草稿','Hãy lưu bản nháp thành công trước'));
-          const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),'IQC');if(!reason)return;
-
-          detail={savedId:flow.saved.id,reason};
+          const submission=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
+          const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),'IQC',{savedVersion:{id:submission.savedId,revision:submission.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});if(!reason)return;
+          if(!requestCurrent())throw Error('IDENTITY_CHANGED');
+          if(control?.workflow?.generation!==submissionGeneration||control.workflow.revision!==submission.expectedRevision||control.workflow.saved?.id!==submission.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+          detail={...submission,reason};
         }else if(['approve','reject','withdraw'].includes(action)){
           commandAction=action==='reject'?'return':action;const caseId=extra.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);
           const answer=await window.VersionDraftUI.confirmReview({action,scope:'IQC · '+caseId,reason:extra.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===identity()?.id});if(!answer)return;
           detail={caseId,...answer};
         }
         owner?.assert();
-        const result=await client.command(['applySnapshot','createError','createItem'].includes(action)?owner?.generation||dialogGeneration||flow.generation:flow.generation,commandAction,detail);
-        owner?.assert();
-        if(result.control){try{validateIqcPayload(result,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';}else {try{await load(owner);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}}
+        if(!requestCurrent())throw Error('IDENTITY_CHANGED');
+        if(['save','submit'].includes(action)&&document.querySelector('.iqc-dialog-overlay'))throw Error(t('請先套用或取消目前表單，再儲存或送審。','Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.'));
+        const commandLoad=loadSequence,commandDenied=readDenied,commandRevision=revision,commandGeneration=control.workflow.generation,commandFlowRevision=control.workflow.revision;
+        const commandCurrent=()=>requestCurrent()&&sharedClient===client&&loadSequence===commandLoad&&readDenied===commandDenied;
+        const assertCommandCurrent=()=>{owner?.assert();if(!commandCurrent())throw Error('DELIVERY_SUPERSEDED');};
+        const pauseBefore=client.readPauseState?.('state');
+        let result;
+        try{result=await client.command(['applySnapshot','createError','createItem'].includes(action)?owner?.generation||dialogGeneration||flow.generation:submissionGeneration||flow.generation,commandAction,detail);}
+        catch(error){
+          // This is UI quarantine, never ACK/rejection/cleanup authority. A
+          // wrapped unknown error can lose HTTP status; use this exact client's
+          // real owned state-read denial plus its revoked permission instead.
+          let owned=false;try{assertCommandCurrent();owned=true;}catch{/* Preserve the original failure without changing newer UI state. */}
+          const pause=owned&&client.readPauseState?.('state');
+          if(owned&&!pauseBefore&&[401,403].includes(pause?.status)&&client.permission('view')===false)denyRead(error);
+          throw error;
+        }
+        assertCommandCurrent();
+        const data=client.verifiedReadback?.(result,result?.receipt?.operationId);
+        if(!data)throw Error('BOUNDED_READBACK_REQUIRED');
+        if(control.workflow?.generation!==commandGeneration||!Number.isInteger(revision)||revision<commandRevision||data.revision<revision||data.control?.workflow?.revision<commandFlowRevision||data.control?.workflow?.revision<control.workflow?.revision)throw Error('IQC_READBACK_SUPERSEDED');
+        try{validateIqcPayload(data,true);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}
+        versionReadSequence++;control=data.control;revision=data.revision;activeDeferredId=data.iqcProjection?.activeVersionId||'';
         owner?.assert();
         ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
         window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
@@ -385,7 +411,7 @@
     if(readDenied)throw readDenied;
     if(host.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
     if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=copy(snap());dialogGeneration=control?.workflow?.generation||null;}
-    const opener = document.activeElement, actor = identity(), delivery = host.ProcessSync?.captureDelivery?.();
+    const opener = document.activeElement, actor = identity(), actorId=actor?.id, epoch=host.ProcessSync?.identityGeneration?.(), delivery = host.ProcessSync?.captureDelivery?.();
     const overlay = document.createElement('div'); overlay.className = 'iqc-dialog-overlay'; overlay.dataset.i18nSkip = 'true';
     overlay.innerHTML = `<div class="iqc-dialog" role="dialog" aria-modal="true">${content}</div>`;
     if(control?.workflow){
@@ -399,7 +425,7 @@
       detach(){overlay.inert=true;document.removeEventListener('keydown',esc);overlay.remove();},
       current(){
         if(owner.terminal)return false;
-        if(host.ProcessSync?.requiresReload||identity()!==actor||(delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)){
+        if(host.ProcessSync?.requiresReload||identity()!==actor||identity()?.id!==actorId||host.ProcessSync?.identityGeneration?.()!==epoch||(delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)){
           owner.terminal=true;owner.detach();return false;
         }
         return overlay.isConnected;
@@ -407,7 +433,7 @@
       assert(){if(!owner.current())throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');}
     };
     editorOwners.add(owner);
-    const close = () => { if(!owner.current())return;owner.terminal=true;editorOwners.delete(owner);overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
+    const close = () => { if(!owner.current()||owner.beforeClose?.()===false)return;owner.onClose?.();owner.terminal=true;editorOwners.delete(owner);overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
     const esc = event => {
       if(!owner.current())return;
       if ([...document.querySelectorAll('.iqc-dialog-overlay')].at(-1) !== overlay || document.querySelector('.iqc-lightbox')) return;
@@ -533,7 +559,7 @@
     on('#iqc-import', 'click', importPreview);
     on('#iqc-begin', 'click', async () => { try { await post('begin'); notice(t('IQC 草稿已開啟','Đã mở bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-save', 'click', async () => { try { await post('save');notice(t('已儲存全員已同步的 IQC 草稿','Đã lưu toàn bộ bản nháp IQC đã đồng bộ của mọi người')); } catch (error) { notice(displayDraftError(error)); } });
-    on('#iqc-submit', 'click', async () => { if (!confirm(t('確定送出審核？送審後將無法編輯，須先撤回或發回。','Gửi duyệt? Sau khi gửi sẽ không thể chỉnh sửa cho đến khi rút hoặc được trả lại.'))) return; const v = draft(); try { await post('submit', { versionId: v.id, versionRevision: v.revision, snapshot: copy(v.snapshot) }); notice(t('IQC 草稿已送出主管審核','Đã gửi bản nháp IQC để quản lý duyệt')); } catch (error) { notice(displayDraftError(error)); } });
+    on('#iqc-submit', 'click', async () => { try { const result=await post('submit'); if(result)notice(t('IQC 草稿已送出主管審核','Đã gửi bản nháp IQC để quản lý duyệt')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-withdraw', 'click', async () => { try { await post('withdraw'); void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); notice(t('IQC 送審已撤回，仍保留同一草稿','Đã rút hồ sơ IQC; bản nháp được giữ lại')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-to-review', 'click', () => { document.querySelector('[data-dual-view="approval"]')?.click(); setTimeout(() => document.querySelector('#approval-tab-quality')?.click(), 0); });
     on('#iqc-manage-suppliers', 'click', () => withDraft(() => manageList('suppliers')));
@@ -617,11 +643,206 @@
     const numbers = reserved.filter(code => code.startsWith(prefix)).map(code => Number(code.slice(prefix.length))).filter(Number.isInteger);
     return prefix + String(Math.max(0, ...numbers) + 1).padStart(width, '0');
   }
+  // Initial recovery scope is one existing error name only. Other IQC forms,
+  // multi-row lists and all File/photo buffers remain document-lifetime only.
+  const errorRecoveryScope='IQC:error-name';
+  let errorRecoverySession=null,errorRecoveryOwner=null,errorRecoveryVerified=null,errorBatch=null,errorLocalRevision=0;
+  let errorBaseCache=null;
+  function errorBase(flow=control?.workflow,versionId=selected()?.id){const parts=[flow?.generation,flow?.revision,flow?.saved?.id||null,versionId];if(!errorBaseCache||parts.some((value,index)=>value!==errorBaseCache.parts[index]))errorBaseCache={parts,value:JSON.stringify(parts)};return errorBaseCache.value;}
+  function errorWorkspaceOwner(){
+    const actor=identity(),actorId=actor?.id,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.(),mount=mountSequence,load=loadSequence,versionId=selected()?.id;
+    return ()=>identity()===actor&&identity()?.id===actorId&&host.ProcessSync?.identityGeneration?.()===epoch&&mountSequence===mount&&loadSequence===load&&selected()?.id===versionId&&!readDenied&&!host.ProcessSync?.requiresReload&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
+  }
+  function errorChanged(batch=errorBatch){return !!batch&&batch.input.value!==batch.baseName;}
+  function errorRecoveryContext(owned){
+    const verified=errorRecoveryVerified,flow=verified?.owned()===true?verified.flow:control?.workflow;
+    return {actorId:identity()?.id,scope:errorRecoveryScope,epoch:host.ProcessSync?.identityGeneration?.(),baseVersion:errorBase(flow),canView:owned()&&sharedClient?.permission('view')===true,
+      canEdit:owned()&&sharedClient?.permission('edit')===true&&selected()?.status==='draft',pending:!!flow?.pendingId,verified:verified?.owned()===true,
+      hasLocalChanges:errorChanged()||[...editorOwners].some(owner=>owner!==errorBatch?.owner&&!owner.terminal&&owner.overlay.isConnected),localRevision:errorLocalRevision,
+      writeState:errorBatch?.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
+  }
+  function paintErrorRecovery(){
+    const batch=errorBatch;if(!batch?.owner.current())return;
+    const status=errorRecoverySession?.status(),node=batch.owner.overlay.querySelector('[data-iqc-local-status]');
+    if(node)node.textContent=[batch.pending?t('操作結果待確認；只查原回執，不會重送。','Chưa xác nhận kết quả; chỉ kiểm tra biên nhận, không gửi lại.'):errorChanged(batch)?status?.durable?t('名稱未套用 · 本機副本已儲存。','Tên chưa áp dụng · bản cục bộ đã lưu.'):t('名稱未套用 · 目前輸入保留在此頁。','Tên chưa áp dụng · đầu vào đang giữ trên trang.'): '',batch.error,status&&!status.canRecover?t('此瀏覽器僅保留本次輸入，無法恢復其他執行階段。','Trình duyệt chỉ giữ đầu vào mới; không khôi phục phiên khác.'): '',status&&!['OK','EMPTY','SCHEDULED'].includes(status.code)?status.code:''].filter(Boolean).join(' · ');
+    const submit=batch.owner.overlay.querySelector('button[type="submit"]');if(submit)submit.disabled=ui.busy||!!batch.pending||sharedClient?.permission('edit')!==true;
+  }
+  function prepareErrorRecovery(){
+    if(!control?.workflow||!identity()?.id)return null;
+    if(errorRecoverySession&&errorRecoveryOwner?.())return errorRecoverySession;
+    errorRecoverySession?.close();errorRecoveryVerified=null;errorRecoveryOwner=errorWorkspaceOwner();
+    if(!host.LocalDraftRecoverySession)throw Error('RECOVERY_HELPER_UNAVAILABLE');
+    const owned=errorRecoveryOwner,session=host.LocalDraftRecoverySession.create({current:owned,getContext:()=>errorRecoveryContext(owned),onStatus:status=>{if(session===errorRecoverySession&&owned()&&status.code!=='SCHEDULED')paintErrorRecovery();}});
+    errorRecoverySession=session;void session.ready.then(()=>{if(session===errorRecoverySession&&owned())paintErrorRecovery();});return session;
+  }
+  function errorProjection(batch=errorBatch){
+    if(!batch||!batch.owner.current()||!errorRecoveryOwner?.())throw Error('RECOVERY_CONTEXT_CHANGED');
+    const payload={kind:'error-name',versionId:batch.versionId,rowId:batch.rowId,baseName:batch.baseName,desiredName:batch.input.value};validateErrorProjection(payload);return payload;
+  }
+  function validateErrorProjection(payload,flow){
+    const keys=['kind','versionId','rowId','baseName','desiredName'];
+    if(!payload||Object.keys(payload).length!==keys.length||!keys.every(key=>Object.hasOwn(payload,key))||payload.kind!=='error-name'||!['versionId','rowId','baseName','desiredName'].every(key=>typeof payload[key]==='string'&&payload[key].length<=32768)||!payload.versionId||!payload.rowId)throw Error('INVALID_IQC_NAME_RECOVERY');
+    if(flow){const rows=flow.working.errors.filter(row=>row.id===payload.rowId&&!row.isDeleted);if(rows.length!==1||rows[0].nameVi!==payload.baseName)throw Error('IQC_NAME_BASE_CONFLICT');}
+    return payload;
+  }
+  function queueErrorRecovery(){
+    const batch=errorBatch,session=errorRecoverySession;if(!batch||!session)return;
+    const result=session.schedule(()=>{if(batch!==errorBatch||session!==errorRecoverySession)throw Error('RECOVERY_CONTEXT_CHANGED');return errorProjection(batch);});
+    if(!result.ok){batch.error=result.code;paintErrorRecovery();}
+  }
+  function persistErrorRecovery(batch){
+    if(batch!==errorBatch||!errorRecoverySession)throw Error('RECOVERY_UNAVAILABLE');queueErrorRecovery();const saved=errorRecoverySession.flush();if(!saved.ok||!saved.durable)throw Error(saved.code||'RECOVERY_STORAGE_UNAVAILABLE');
+  }
+  function checkErrorRead(result,versionId,edit=true){
+    const flow=result?.control?.workflow,current=control?.workflow;
+    if(!flow||flow.scope!=='iqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||result.permissions?.view!==true||!completeSnapshot(flow.working))throw Error('AUTHORITATIVE_READBACK_REQUIRED');
+    if(current&&(current.generation!==flow.generation||flow.revision<current.revision)||Number.isInteger(revision)&&result.revision<revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+    if(edit&&(result.permissions.edit!==true||flow.pendingId))throw Error(flow.pendingId?'PENDING_LOCKED':'FORBIDDEN');
+    if(edit&&!result.control.versions?.some(version=>version.id===versionId&&version.status==='draft'))throw Error('STALE_GENERATION');
+    return flow;
+  }
+  async function ensureErrorRecovery(session,owned){
+    await session.ready;if(!owned()||session!==errorRecoverySession)throw Error('RECOVERY_CONTEXT_CHANGED');
+    if(session.status().ready)return null;
+    const result=await transport().read(undefined,{isCurrent:owned,requireAcceptedAccess:true});if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');
+    const flow=checkErrorRead(result,selected()?.id,false);errorRecoveryVerified={owned,flow};
+    try{const ready=await session.resume();if(!ready.ok||!ready.ready)throw Error(ready.code);return result;}finally{errorRecoveryVerified=null;}
+  }
+  function errorActionOwner(batch=errorBatch,trackRevision=true){
+    const workspace=errorWorkspaceOwner(),localRevision=errorLocalRevision,session=errorRecoverySession,dialogOwner=batch?.owner;
+    return ()=>workspace()&&batch===errorBatch&&batch?.owner===dialogOwner&&dialogOwner?.current()&&session===errorRecoverySession&&(!trackRevision||localRevision===errorLocalRevision);
+  }
+  async function restoreErrorRecord(key,confirmPreview){
+    const batch=errorBatch,session=errorRecoverySession,owned=errorActionOwner();
+    const check=()=>{if(!owned()||ui.busy||batch.pending||errorChanged(batch))throw Error('RECOVERY_CONTEXT_CHANGED');};
+    try{
+      check();const resumed=await ensureErrorRecovery(session,owned);check();const claim=await session.claim(key);check();if(!claim.ok)throw Error(claim.code);
+      let preview=session.preview(key);if(!preview.ok||preview.kind!=='local')throw Error(preview.code||'RECEIPT_REQUIRED');
+      const result=resumed||await transport().read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const flow=checkErrorRead(result,batch.versionId),baseVersion=errorBase(flow,batch.versionId);
+      errorRecoveryVerified={owned,flow};preview=session.preview(key);if(!preview.ok||!preview.canRestore)throw Error(preview.reason||preview.code);
+      validateErrorProjection(preview.payload,flow);if(preview.payload.rowId!==batch.rowId||preview.payload.versionId!==batch.versionId)throw Error('IQC_RECOVERY_TARGET_MISMATCH');
+      if(!await confirmPreview(preview))return false;check();
+      const confirmed=await transport().read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const latest=checkErrorRead(confirmed,batch.versionId);
+      if(errorBase(latest,batch.versionId)!==baseVersion)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');validateErrorProjection(preview.payload,latest);
+      errorRecoveryVerified={owned,flow:latest};const restored=session.restore(preview.token);if(!restored.ok)throw Error(restored.code);check();validateErrorProjection(restored.payload,latest);
+      // Hydrate only this field after both owner-fenced GETs; do not replace the
+      // entire working model or dialog baseline with a historical snapshot.
+      batch.baseName=restored.payload.baseName;batch.input.value=restored.payload.desiredName;errorLocalRevision++;batch.error=t('已恢復至本機，仍須另按套用。','Đã khôi phục cục bộ; vẫn cần bấm Áp dụng.');queueErrorRecovery();paintErrorRecovery();return true;
+    }finally{errorRecoveryVerified=null;}
+  }
+  function discardErrorInput(batch=errorBatch){
+    if(!batch||batch!==errorBatch)return;
+    if(ui.busy||batch.pending||sharedClient?.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+    const session=errorRecoverySession;if(!session)return;
+    const cancelled=session.cancelScheduled();if(!cancelled.ok)throw Error(cancelled.code);
+    for(const source of ['memory','storage']){const preview=session.preview(session.key,source);if(preview.code==='NOT_FOUND')continue;if(!preview.ok||preview.kind!=='local')throw Error(preview.code||'RECEIPT_REQUIRED');const removed=session.discard(preview.token);if(!removed.ok)throw Error(removed.code);}
+    errorLocalRevision++;batch.error='';
+  }
+  async function discardErrorRecord(key,confirmPreview){
+    const session=errorRecoverySession,owned=errorActionOwner();if(ui.busy||errorBatch?.pending)throw Error('OPERATION_IN_PROGRESS');await ensureErrorRecovery(session,owned);
+    const claim=await session.claim(key);if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');if(!claim.ok)throw Error(claim.code);const preview=session.preview(key);
+    if(!preview.ok||!preview.canDiscard)throw Error(preview.reason||preview.code||'RECEIPT_REQUIRED');if(!await confirmPreview(preview))return false;if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');
+    const removed=session.discard(preview.token);if(!removed.ok)throw Error(removed.code);return true;
+  }
+  function finalizeErrorRejection(){
+    const batch=errorBatch,session=errorRecoverySession,cleanup=batch?.rejectionCleanup;if(ui.busy||!batch?.owner.current()||!errorRecoveryOwner?.()||!cleanup||batch.pending!==cleanup.command)throw Error('CONFIRMED_REJECTION_REQUIRED');
+    if(!cleanup.client.isConfirmedRejection(cleanup.error,cleanup.command))throw Error('CONFIRMED_REJECTION_REQUIRED');
+    if(!session.wasRejected(cleanup.reservation,cleanup.error)){const result=session.retryRejected(cleanup.reservation,cleanup.error);if(!result.ok)throw Error(result.code);}
+    if(cleanup.client.hasConfirmedRejection(cleanup.command))cleanup.client.finalizeRejected(cleanup.command);
+    if(!batch.owner.current()||errorBatch!==batch||errorRecoverySession!==session||cleanup.client.hasConfirmedRejection(cleanup.command))throw Error('REJECTION_CLEANUP_REQUIRED');
+    batch.pending=null;batch.rejectionCleanup=null;batch.error=displayDraftError(cleanup.error);persistErrorRecovery(batch);paintErrorRecovery();return true;
+  }
+  async function settleErrorRecord(key){
+    const batch=errorBatch,session=errorRecoverySession,owned=errorActionOwner(),client=transport();if(ui.busy)throw Error('OPERATION_IN_PROGRESS');await ensureErrorRecovery(session,owned);
+    const check=()=>{if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');};const claimed=await session.claim(key);check();if(!claimed.ok)throw Error(claimed.code);
+    const preview=session.preview(key);if(!preview.ok||preview.kind!=='unknown'&&!(preview.kind==='resolved'&&preview.outcome==='receipt'))throw Error(preview.code||'RECEIPT_REQUIRED');
+    const matching=key===session.key&&batch.pending?.operationId===preview.receipt.operationId&&batch.pending.generation===preview.receipt.generation;
+    if(batch.pending&&!matching)throw Error('DIFFERENT_OPERATION_UNRESOLVED');
+    try{const result=await client.receipt(preview.receipt.operationId,preview.receipt.generation);check();const read=client.verifiedReadback?.(result,result.receipt?.operationId)||await client.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const flow=checkErrorRead(read,null,false);validateIqcPayload(read,true);
+      errorRecoveryVerified={owned,flow};const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{receipt:result.receipt,workflow:{...flow,scope:errorRecoveryScope}});if(!settled.ok)throw Error(settled.code);
+      if(matching){const latest=flow.working.errors.find(row=>row.id===batch.rowId);if(!latest)throw Error('IQC_NAME_BASE_CONFLICT');batch.pending=null;batch.rejectionCleanup=null;batch.baseName=latest.nameVi;if(batch.input.value===batch.sentInput)batch.input.value=latest.nameVi;errorLocalRevision++;control=read.control;revision=read.revision;activeDeferredId=read.iqcProjection?.activeVersionId||'';}
+      batch.error=t('已確認原回執；沒有重送。','Đã xác nhận biên nhận gốc; không gửi lại.');if(matching&&errorChanged(batch))queueErrorRecovery();paintErrorRecovery();return true;
+    }finally{errorRecoveryVerified=null;}
+  }
+  async function applyErrorName(owner,value){
+    const batch=errorBatch,session=errorRecoverySession,owned=errorActionOwner(),retained=errorActionOwner(batch,false),client=transport();
+    if(!batch||!session)throw Error('RECOVERY_HELPER_UNAVAILABLE');
+    let pendingCommand=null;
+    const check=()=>{owner.assert();if(!owned()||batch.owner!==owner||pendingCommand&&batch.pending!==pendingCommand)throw Error('RECOVERY_CONTEXT_CHANGED');};check();
+    if(ui.busy||batch.pending||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+    await ensureErrorRecovery(session,owned);check();if(ui.busy||batch.pending||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+    if(client.permission('view')!==true||client.permission('edit')!==true||control.workflow.pendingId)throw Error('PENDING_OR_PERMISSION_LOCKED');
+    if(batch.input.value.trim()!==value)throw Error('LOCAL_CHANGED');
+    if(value===batch.baseName)return;
+    let reservation=null,dispatched=false;mutationSequence++;ui.busy=true;paintErrorRecovery();
+    try{
+      persistErrorRecovery(batch);const path=['errors',{id:batch.rowId},'nameVi'],command=client.prepareRecovery(control.workflow.generation,{patches:[{op:'set',path,value}],guards:[{path,value:batch.baseName}]}),rejectionProof=client.rejectionCapability(command);
+      const prepared=session.prepareWrite({operationId:command.operationId,generation:command.generation});reservation=prepared.reservation;if(!prepared.ok||!prepared.durable){if(reservation)session.cancelPrepared(reservation);throw Error(prepared.code||'RECOVERY_STORAGE_UNAVAILABLE');}
+      check();batch.pending=command;pendingCommand=command;batch.sentInput=batch.input.value;dispatched=true;
+      const result=await session.dispatchPrepared(reservation,command,sent=>client.sendPrepared(sent,{assertDispatch:sent=>owned()&&batch.pending===pendingCommand&&session.assertDispatch(sent)}),{rejectionProof});check();
+      const read=client.verifiedReadback?.(result,result.receipt?.operationId)||await client.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const flow=checkErrorRead(read,null,false);validateIqcPayload(read,true);
+      errorRecoveryVerified={owned,flow};const preview=session.preview(session.key);if(!preview.ok||preview.kind!=='unknown'&&!(preview.kind==='resolved'&&preview.outcome==='receipt'))throw Error(preview.code||'RECEIPT_REQUIRED');
+      const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{receipt:result.receipt,workflow:{...flow,scope:errorRecoveryScope}});if(!settled.ok)throw Error(settled.code);
+      batch.pending=null;batch.rejectionCleanup=null;batch.baseName=value;batch.input.value=value;batch.applied=true;batch.error='';errorLocalRevision++;control=read.control;revision=read.revision;activeDeferredId=read.iqcProjection?.activeVersionId||'';
+      notice(t('錯誤名稱已同步，尚未手動儲存。','Đã đồng bộ tên lỗi, chưa lưu thủ công.'));
+    }catch(error){
+      // A proven-unsent original flight may be released without overwriting
+      // newer input. ACK/hydration above still requires the exact input revision.
+      if(retained()&&(!pendingCommand||batch.pending===pendingCommand)){
+        if(!dispatched&&reservation){const cancelled=session.cancelPrepared(reservation);if(cancelled.ok)batch.pending=null;}
+        if(reservation&&batch.pending&&client.isConfirmedRejection(error,batch.pending)){if(session.wasRejected(reservation,error)&&!client.hasConfirmedRejection(batch.pending)){batch.pending=null;batch.rejectionCleanup=null;}else batch.rejectionCleanup={command:batch.pending,reservation,error,client};}else if(reservation&&session.wasRejected(reservation,error))batch.pending=null;
+        batch.error=displayDraftError(error);if(!batch.pending){try{persistErrorRecovery(batch);}catch(persistError){batch.error+=' · '+persistError.message;}}
+      }throw error;
+    }finally{errorRecoveryVerified=null;ui.busy=false;if(batch===errorBatch&&batch.owner.current())paintErrorRecovery();}
+  }
+  async function reconcileErrorName(confirmPreview){
+    const batch=errorBatch,session=errorRecoverySession,owned=errorActionOwner(),client=transport();
+    const check=()=>{if(!owned()||batch.pending||client.hasUnknown())throw Error('RECOVERY_CONTEXT_CHANGED');};
+    if(!batch||!session||ui.busy)throw Error('OPERATION_IN_PROGRESS');check();await ensureErrorRecovery(session,owned);check();if(ui.busy)throw Error('OPERATION_IN_PROGRESS');ui.busy=true;paintErrorRecovery();
+    try{
+      const result=await client.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const flow=checkErrorRead(result,batch.versionId),row=flow.working.errors.find(value=>value.id===batch.rowId&&!value.isDeleted);if(!row)throw Error('IQC_NAME_BASE_CONFLICT');
+      const comparison={base:batch.baseName,latest:row.nameVi,desired:batch.input.value};
+      if(!await confirmPreview(comparison))return false;check();
+      const confirmed=await client.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});check();const latest=checkErrorRead(confirmed,batch.versionId);if(errorBase(latest,batch.versionId)!==errorBase(flow,batch.versionId))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');validateIqcPayload(confirmed,true);
+      const current=latest.working.errors.filter(value=>value.id===batch.rowId&&!value.isDeleted);if(current.length!==1||current[0].nameVi!==comparison.latest)throw Error('IQC_NAME_BASE_CONFLICT');
+      const payload={kind:'error-name',versionId:batch.versionId,rowId:batch.rowId,baseName:current[0].nameVi,desiredName:batch.input.value};validateErrorProjection(payload,latest);
+      errorRecoveryVerified={owned,flow:latest};const rebased=await session.rebaseLocal({baseVersion:errorBase(latest,batch.versionId),workflow:{...latest,scope:errorRecoveryScope},localRevision:errorLocalRevision,payload});check();if(!rebased.ok||!rebased.durable)throw Error(rebased.code||'RECOVERY_STORAGE_UNAVAILABLE');
+      // The session atomically persists a same-lineage successor before changing
+      // its base; no delete-first gap or second best-effort persistence here.
+      batch.baseName=payload.baseName;batch.error=t('已核對最新基準；名稱仍未套用。','Đã đối chiếu giá trị mới; tên vẫn chưa áp dụng.');errorLocalRevision++;control=confirmed.control;revision=confirmed.revision;activeDeferredId=confirmed.iqcProjection?.activeVersionId||'';return true;
+    }finally{errorRecoveryVerified=null;ui.busy=false;if(batch===errorBatch&&batch.owner.current())paintErrorRecovery();}
+  }
+  async function openErrorRecovery(){
+    const batch=errorBatch,session=errorRecoverySession,owned=errorActionOwner();if(!batch||ui.busy)return;await ensureErrorRecovery(session,owned);if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');
+    const inventory=session.discover(),area=batch.owner.overlay.querySelector('[data-iqc-local-records]');area.replaceChildren();
+    const info=document.createElement('p');info.setAttribute('role','status');info.textContent=[inventory.ok?t('只支援既有錯誤名稱；不會自動填入或送出。','Chỉ hỗ trợ tên lỗi hiện có; không tự điền hoặc gửi.'):inventory.code,transport().legacyRecoveryUnsupported?.()?t('舊版整筆操作暫存保留原樣，未讀取、不支援恢復。','Bản thao tác đầy đủ cũ được giữ nguyên, không đọc và không hỗ trợ khôi phục.'): ''].filter(Boolean).join(' · ');area.append(info);
+    const show=preview=>{const node=document.createElement('pre');node.style.whiteSpace='pre-wrap';node.style.overflowWrap='anywhere';node.textContent=JSON.stringify(preview.kind==='local'?preview.payload:preview.receipt,null,2);area.append(node);};
+    const action=(parent,label,run)=>{const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=label;button.onclick=async()=>{if(!owned())return;try{await run();}catch(error){if(owned())info.textContent=displayDraftError(error);}};parent.append(button);};
+    for(const item of inventory.items||[]){const row=document.createElement('div');area.append(row);action(row,t('預覽本機紀錄','Xem bản cục bộ'),async()=>{const claimed=await session.claim(item.key);if(!owned())throw Error('RECOVERY_CONTEXT_CHANGED');if(!claimed.ok)throw Error(claimed.code);const preview=session.preview(item.key);if(!preview.ok)throw Error(preview.code);show(preview);});
+      action(row,t('恢復名稱','Khôi phục tên'),()=>restoreErrorRecord(item.key,preview=>{show(preview);return confirm(t('恢復此名稱至本機？仍須另按套用。','Khôi phục tên vào cục bộ? Vẫn cần bấm Áp dụng.'));}));
+      action(row,t('放棄此本機紀錄','Bỏ bản cục bộ này'),()=>discardErrorRecord(item.key,preview=>{show(preview);return confirm(t('只刪除所選本機紀錄？','Chỉ xóa bản cục bộ đã chọn?'));}));
+      action(row,t('查詢原回執','Kiểm tra biên nhận gốc'),()=>settleErrorRecord(item.key));
+    }
+    if(batch.rejectionCleanup)action(area,t('完成已拒絕操作清理','Hoàn tất dọn thao tác bị từ chối'),()=>finalizeErrorRejection());
+  }
+  function attachErrorRecovery(owner,old){
+    if(!control?.workflow)return;
+    const input=owner.overlay.querySelector('[name="nameVi"]'),batch={owner,input,versionId:selected()?.id,rowId:old.id,baseName:old.nameVi,pending:null,rejectionCleanup:null,error:''};
+    if(errorBatch&&errorBatch.owner.current())throw Error('IQC_NAME_EDITOR_ALREADY_OPEN');errorBatch=batch;errorLocalRevision++;
+    const area=document.createElement('section');area.innerHTML=`<p>${t('本機恢復僅支援此既有錯誤名稱，不含其他表單或照片。','Khôi phục cục bộ chỉ hỗ trợ tên lỗi này, không gồm biểu mẫu khác hoặc ảnh.')}</p><p data-iqc-local-status role="status"></p><button type="button" class="button ghost" data-iqc-local-reconcile>${t('核對最新名稱','Đối chiếu tên mới nhất')}</button><button type="button" class="button ghost" data-iqc-local-open>${t('查看本機名稱恢復','Xem khôi phục tên cục bộ')}</button><div data-iqc-local-records></div>`;owner.overlay.querySelector('form').append(area);
+    try{prepareErrorRecovery();}catch(error){batch.error=error.message;}
+    input.oninput=()=>{if(!owner.current()||batch!==errorBatch)return;batch.applied=false;errorLocalRevision++;queueErrorRecovery();};
+    owner.beforeClose=()=>{try{discardErrorInput(batch);if(!batch.applied){errorRecoverySession?.close();errorRecoverySession=null;errorRecoveryOwner=null;}return true;}catch(error){batch.error=displayDraftError(error);paintErrorRecovery();return false;}};
+    owner.onClose=()=>{if(errorBatch===batch){errorBatch=null;errorLocalRevision++;}};
+    area.querySelector('[data-iqc-local-reconcile]').onclick=()=>reconcileErrorName(value=>confirm(t('確認只更新比對基準，仍須另按套用。','Xác nhận chỉ cập nhật giá trị đối chiếu; vẫn cần bấm Áp dụng.')+'\n'+JSON.stringify(value,null,2))).catch(error=>{if(owner.current()){batch.error=displayDraftError(error);paintErrorRecovery();}});
+    area.querySelector('[data-iqc-local-open]').onclick=()=>openErrorRecovery().catch(error=>{if(owner.current()){batch.error=displayDraftError(error);paintErrorRecovery();}});paintErrorRecovery();
+  }
   function editError(id = '') {
     if(!id&&!mayCreate())return notice(t('沒有新增權限','Không có quyền thêm'));
     const old = snap().errors.find(item => item.id === id);
     const { overlay, close, owner } = dialog(`<h3>${old ? t('修改錯誤代碼', 'Sửa mã lỗi') : t('新增錯誤代碼', 'Thêm mã lỗi')}</h3><form id="iqc-error-form"><div class="iqc-field"><label>${t('錯誤代碼', 'Mã lỗi')}</label><input value="${h(old?.code || previewNumber(`${ui.partCode}-IQC-L`, control.reservedErrorCodes))}" readonly></div><div class="iqc-field"><label>${t('錯誤名稱（越文）', 'Tên lỗi (tiếng Việt)')}</label><input name="nameVi" required value="${h(old?.nameVi || '')}" data-i18n-skip="true"></div><p class="iqc-error" id="iqc-error-message"></p><footer><button type="button" class="button ghost" data-close>${t('取消', 'Hủy')}</button><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`);
-    overlay.querySelector('form').onsubmit = async event => { event.preventDefault();if(!owner.current())return; const value = formText(event.currentTarget, 'nameVi').trim(); try { if(!old&&!mayCreate())throw Error('FORBIDDEN'); if (old) await mutateSnapshot(next => { next.errors.find(item => item.id === id).nameVi = value; }, t('錯誤代碼已套用','Đã áp dụng mã lỗi'), owner); else { const v = draft(); await post('createError', { versionId: v.id, versionRevision: v.revision, partCode: ui.partCode, nameVi: value }, owner); if(!owner.current())return;notice(t('新增錯誤代碼已同步，尚未手動儲存','Đã đồng bộ mã lỗi mới, chưa lưu thủ công')); } close(); } catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-error-message').textContent = displayDraftError(error); } };
+    if(old)attachErrorRecovery(owner,old);
+    overlay.querySelector('form').onsubmit = async event => { event.preventDefault();if(!owner.current())return; const value = formText(event.currentTarget, 'nameVi').trim(); try { if(!old&&!mayCreate())throw Error('FORBIDDEN'); if (old&&control?.workflow) await applyErrorName(owner,value); else if (old) await mutateSnapshot(next => { next.errors.find(item => item.id === id).nameVi = value; }, t('錯誤代碼已套用','Đã áp dụng mã lỗi'), owner); else { const v = draft(); await post('createError', { versionId: v.id, versionRevision: v.revision, partCode: ui.partCode, nameVi: value }, owner); if(!owner.current())return;notice(t('新增錯誤代碼已同步，尚未手動儲存','Đã đồng bộ mã lỗi mới, chưa lưu thủ công')); } close(); } catch (error) { if(!owner.current())return;overlay.querySelector('#iqc-error-message').textContent = displayDraftError(error); } };
   }
 
   function editItem(id = '', errorId = '') {
@@ -869,5 +1090,12 @@
   function pendingCount() { return readDenied?0:(control?.versions || []).filter(v => v.status === 'pending').length; }
   function renderApprovedDetail(area,data,partId,onPhoto){if(readDenied){area.innerHTML=`<p role="alert">${h(displayDraftError(readDenied))}</p>`;return;}const part=data.parts.find(p=>p.id===partId),state={partCode:part?.code||'',errorId:''};function draw(){area.innerHTML=detailPanel(data,state,true);area.querySelectorAll('[data-select-error]').forEach(b=>b.onclick=()=>{state.errorId=b.dataset.selectError;draw();});area.querySelectorAll('[data-photo-part]').forEach(b=>b.onclick=()=>onPhoto(part.photos[Number(b.dataset.photoIndex)]?.src));area.querySelectorAll('[data-item-photo]').forEach(b=>b.onclick=()=>onPhoto(data.items.find(i=>i.id===b.dataset.itemPhoto)?.mediaItems?.[Number(b.dataset.photoIndex)]?.src));}draw();}
   let navigationError=null;
-  host.IQCMasterUI = { navigation:{requiresSave:()=>!!root?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  let moduleDeparture;
+  host.IQCMasterUI = { navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+    root:()=>root,flow:()=>control?.workflow,context:()=>[mountSequence,control?.workflow?.generation,ui.versionId,sharedClient?.permission('save'),sharedClient?.permission('edit')],
+    current:()=>!readDenied&&sharedActor===identity()?.id,busy:()=>ui.busy,unknown:()=>sharedClient?.hasUnknown(),failed:()=>sharedClient?.hasSyncFailures(),
+    local:()=>!!document.querySelector('.iqc-dialog-overlay'),canSave:()=>selected()?.status==='draft'&&!!mayDraftAction('save'),canDiscard:()=>mayEdit()&&sharedClient?.permission('edit')===true,
+    save:owner=>post('save',{},owner),dialogs:()=>[...document.querySelectorAll('.iqc-dialog-overlay')],
+    discard(){const owners=[...editorOwners].filter(owner=>!owner.terminal&&owner.overlay.isConnected);for(const owner of owners)owner.assert();if(errorBatch)discardErrorInput(errorBatch);for(const owner of owners){owner.onClose?.();owner.terminal=true;owner.detach();editorOwners.delete(owner);}dialogBase=null;dialogGeneration=null;render();},
+  });},requiresSave:()=>!!root?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox'),error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
 })(window);

@@ -569,7 +569,7 @@ body.fqc-modal-open{overflow:hidden}
 @media(max-width:720px){
   .fqc-toolbar,.fqc-form-grid{grid-template-columns:1fr}
   .fqc-version-select-wrap{width:100%;min-width:0}
-  .fqc-page{max-width:100%;overflow:hidden}
+  .fqc-page{max-width:100%;overflow:clip}
   .fqc-table-wrap{max-width:100%}
   .fqc-modal-overlay{padding:8px}
   .fqc-modal{width:calc(100vw - 16px);max-height:calc(100vh - 16px)}
@@ -837,3 +837,13 @@ body.fqc-modal-open{overflow:hidden}
 .fqc-readonly-products {
   margin-top: 14px;
 }
+
+/* Pending matrix choices remain visible even when the matrix is collapsed. */
+.fqc-matrix-actions{position:sticky;top:8px;z-index:20;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:12px 16px;background:#fff8df;border:1px solid #d6bc62;border-radius:8px;box-shadow:0 2px 8px #132e291a}
+.fqc-matrix-actions>div{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.fqc-matrix-actions button{min-height:44px}
+#fqc-matrix-message{flex:1;min-width:160px;color:#8c2e24;font-size:.875rem}
+.fqc-matrix .matrix-cell.matrix-local-change{box-shadow:inset 0 0 0 3px #d89b23}
+@media(max-width:600px){.fqc-matrix-actions{top:0;padding:8px;gap:6px}.fqc-matrix-actions>div{width:100%;margin-left:0}.fqc-matrix-actions button{flex:1;font-size:.8rem}.fqc-matrix-actions #fqc-matrix-message:empty{display:none}}
+
+.fqc-matrix-actions button[hidden]{display:none}

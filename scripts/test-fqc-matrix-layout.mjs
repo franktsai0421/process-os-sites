@@ -89,7 +89,7 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
 });
 check('JS and CSS retain their independently versioned local references',()=>{
   const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
-  const expected={'fqc-master.js':'20261030-pr51-integrated1','fqc-master.css':'20261028-matrix-rule-layout1'};
+  const expected={'fqc-master.js':'20261031-quality-recovery1','fqc-master.css':'20261030-manual-sharing-integrated1'};
   const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
   for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });

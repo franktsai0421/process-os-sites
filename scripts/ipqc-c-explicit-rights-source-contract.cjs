@@ -10,6 +10,7 @@ const contracts={
     "marker": "type Body =",
     "baselineHash": "ad153eb45826d8a029a5f1ce73eee8de1bfa0e9af627c54d5dcbffaf22946803",
     "rules": [
+      {"name": "fixed Save legacy submit refusal", "before": "    const prepared=state.recordStorage?.models.get(KEY) as {workflow?:unknown}|undefined;\n", "after": "    // The legacy submit body also replaces content; it cannot attest a fixed Save.\n    if(action==='submit')return reply({error:'WORKFLOW_V3_REQUIRED',code:'WORKFLOW_V3_REQUIRED',details:{reason:'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION'}},409);\n    const prepared=state.recordStorage?.models.get(KEY) as {workflow?:unknown}|undefined;\n"},
       {
         "name": "legacy edit/create/withdraw",
         "before": "      const data=await can(request,state,'view:data');\n      // Legacy Save/Submit replace body.snapshot, unlike V3's separate working,\n      // saved and fixed case commands. Require every operation they perform.\n      const required=action==='save'?['edit','save']:action==='submit'?['edit','save','submit']:['edit'];\n      const allowed=action==='withdraw'\n        ? (data||await can(request,state,'view:approval'))&&await can(request,state,'approval.withdraw')\n        : data&&(await Promise.all(required.map(op=>can(request,state,'ipqc-c.'+op)))).every(Boolean);\n      if (!allowed)\n        return reply({ error: '沒有 IPQC-C 編輯權限' }, 403);\n",
@@ -55,7 +56,7 @@ function projectedSource(file,original){
 }
 function withoutApprovedExplicitRights(file,bytes,original=execFileSync('git',['show',explicitRightsBase+':'+file])){
  const {contract,before,after}=projectedSource(file,original),text=bytes.toString('utf8'),start=protectedStart(text,contract.marker);
- assert.deepEqual(bytes.subarray(Buffer.byteLength(text.slice(0,start))),Buffer.from(after),'Explicit-rights protected bytes differ from exact five-span contract: '+file);
+ assert.deepEqual(bytes.subarray(Buffer.byteLength(text.slice(0,start))),Buffer.from(after),'Explicit-rights protected bytes differ from exact named-span contract: '+file);
  return Buffer.concat([bytes.subarray(0,Buffer.byteLength(text.slice(0,start))),Buffer.from(before)]);
 }
 function assertExplicitRightsContract(file,bytes,original=execFileSync('git',['show',explicitRightsBase+':'+file])){
@@ -71,7 +72,7 @@ function assertExplicitRightsContract(file,bytes,original=execFileSync('git',['s
   reject(left+rule.after+rule.after+right); // duplication
   reject(left+right+rule.after); // unchanged bytes moved out of position
  }
- assert(after.includes('sameOrigin'));reject(after.replace('sameOrigin','sameOrigiN')); // outside the five spans
+ assert(after.includes('sameOrigin'));reject(after.replace('sameOrigin','sameOrigiN')); // outside the named spans
  assert.throws(()=>withoutApprovedExplicitRights(file,bytes,Buffer.concat([original,Buffer.from(' ')])),/Explicit-rights baseline bytes changed/);negatives++;
  return {file,spans:contract.rules.length,negativeCases:negatives};
 }

@@ -158,6 +158,9 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     return { state: source, receipt: cloneDraft(oldReceipt.result) };
   }
   if (command.generation !== source.generation) fail('STALE_GENERATION');
+  // A new submission must refer to the draft actually shown for confirmation.
+  // Exact committed receipts above remain replayable across this policy change.
+  if(command.action==='submit'&&(typeof command.expectedRevision!=='number'||!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0))fail('DRAFT_REVISION_REQUIRED');
   if(command.expectedRevision!==undefined&&command.action!=='restore'&&command.expectedRevision!==source.revision)fail('DRAFT_REVISION_CHANGED_RECONFIRM');
   const clientKey = stableDraftJSON([ctx.actor.id, command.clientId]);
   if (command.sequence <= (source.sequences[clientKey] || 0)) fail('STALE_CLIENT_OPERATION');
@@ -227,6 +230,7 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
   } else if (command.action === 'submit') {
     if (!state.saved) fail('SUCCESSFUL_SAVE_REQUIRED');
     if (command.savedId !== state.saved.id) fail('SAVED_VERSION_CHANGED_RECONFIRM');
+    if (!same(state.working, state.saved.content)) fail('UNSAVED_CHANGES_SAVE_REQUIRED');
     if (!command.reason?.trim() && !(ctx.optionalReasonPolicy === 'routine-fqc' && source.scope.startsWith('routine-fqc:'))) fail('REASON_REQUIRED', 422);
     if (ctx.activeId !== state.baseId) fail('ACTIVE_VERSION_CHANGED');
     const issues=check(state.saved.content);

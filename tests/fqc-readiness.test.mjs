@@ -9,7 +9,7 @@ const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import
 // Keep the fixture's unrelated read ports, but execute the actual production poll gate.
 const sharedSource = fs.readFileSync(new URL('../public/process/shared-draft-client.js', import.meta.url), 'utf8');
 const pauseStart = sharedSource.indexOf('  window.createScopedReadPause = label => {');
-const pauseEnd = sharedSource.indexOf('  const clients=new Set(),transports=new Map();', pauseStart);
+const pauseEnd = sharedSource.indexOf('  const clients=new Set(),transports=new Map(),', pauseStart);
 assert(pauseStart >= 0 && pauseEnd > pauseStart);
 const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
 const part = (start, end) => {

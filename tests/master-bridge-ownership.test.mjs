@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
-const source=fs.readFileSync('public/process/master-shared-client.js','utf8');
+const source=fs.readFileSync('public/process/master-shared-client.js','utf8'),sharedSource=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 function fixture({openForm=false}={}){
  let resolve;const pending=new Promise(r=>resolve=r),flow={generation:'g',working:{products:[]},active:{content:{products:[]}}};
  const control={active:{AB:{products:[]}},versions:[{id:'draft',scope:'AB',status:'draft',snapshot:{products:[]}}],workflowScopes:{AB:flow}},original=JSON.stringify(control);
@@ -20,25 +20,43 @@ void test('Save with an unapplied form preserves its draft object while adopting
 void test('Save without an open form adopts the confirmed version projection',async()=>{const f=fixture(),p=f.bridge.execute('AB','save');f.resolve();await p;assert.equal(f.control.versions.some(v=>v.id==='draft'),false);assert.equal(f.control.workflowScopes.AB.saved.id,'saved');});
 
 function dialogFixture(){
- let answer,options,calls=0;const confirmed=new Promise(resolve=>answer=resolve),cells={history:true,edit:true,restore:true};
- const saved={id:'saved-original',at:'synthetic',actor:{name:'Synthetic'},content:{products:[]}},flow={generation:'g',working:{products:[]},saved};
+ let answer,options,submitOptions,calls=0,dialogs=0;const confirmed=new Promise(resolve=>answer=resolve),cells={submit:true,history:true,edit:true,restore:true};
+ const saved={id:'saved-original',at:'synthetic',actor:{name:'Synthetic'},content:{products:[]}},flow={generation:'g',revision:3,pendingId:null,working:{products:[]},saved};
  const control={active:{AB:{products:[]}},versions:[{id:'draft',scope:'AB',status:'draft',snapshot:flow.working}],workflowScopes:{AB:flow}};
  const sync={identity:{id:'writer'},epoch:1,delivery:1,identityGeneration(){return this.epoch;},captureDelivery(){return this.delivery;},isCurrentDelivery(value){return value===this.delivery;}};
  const client={hasUnknown:()=>false,permission:key=>cells[key]===true,command:async(generation,action,detail)=>{calls++;return{control:{versions:control.versions,workflow:flow},generation,action,detail};}};
- const window={ProcessSync:sync,createSharedDraftClient:()=>client,hasPermission:()=>false,VersionDraftUI:{reasonFor:()=>'',masterChanges:()=>[],confirmSubmit:()=>confirmed},openSharedDraftHistory:async value=>{options=value;}};
- const box={window,document:{documentElement:{lang:'zh'},querySelector:()=>null}};vm.runInNewContext(source,box);
- return{bridge:window.createMasterSharedBridge({control}),sync,flow,control,cells,answer:()=>answer('Synthetic reason'),get calls(){return calls;},get options(){return options;}};
+ const window={ProcessSync:sync,hasPermission:()=>false,VersionDraftUI:{reasonFor:()=>'',masterChanges:()=>[],confirmSubmit:(_reason,_scope,value)=>{dialogs++;submitOptions=value;return confirmed;}}};
+ const box={window,document:{documentElement:{lang:'zh'},querySelector:()=>null}};vm.createContext(box);
+ // Execute the real strict snapshot helper; only transport/dialog boundaries are
+ // synthetic. A missing saved version, invalid revision, pending or dirty shared
+ // content must be rejected by product code, not by a permissive helper mock.
+ vm.runInContext(sharedSource,box);window.createSharedDraftClient=()=>client;window.openSharedDraftHistory=async value=>{options=value;};vm.runInContext(source,box);
+ return{bridge:window.createMasterSharedBridge({control}),sync,flow,control,cells,answer:(reason='Synthetic reason')=>answer(reason),get calls(){return calls;},get dialogs(){return dialogs;},get submitOptions(){return submitOptions;},get options(){return options;}};
 }
-for(const change of ['identity','epoch','delivery','generation','saved'])void test('submit dialog refuses changed '+change+' without sending a command',async()=>{
+for(const change of ['identity','same-id-identity','epoch','delivery','generation','saved','revision'])void test('submit dialog refuses changed '+change+' without sending a command',async()=>{
  const f=dialogFixture(),pending=f.bridge.submit('AB');
- if(change==='identity')f.sync.identity={id:'new-writer'};else if(change==='epoch')f.sync.epoch++;else if(change==='delivery')f.sync.delivery++;else if(change==='generation')f.flow.generation='new-generation';else f.flow.saved={...f.flow.saved,id:'new-saved'};
- f.answer();await assert.rejects(pending,change==='saved'||change==='generation'?/SAVED_VERSION_CHANGED_RECONFIRM/:/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.calls,0);
+ if(change==='identity')f.sync.identity={id:'new-writer'};else if(change==='same-id-identity')f.sync.identity={id:'writer'};else if(change==='epoch')f.sync.epoch++;else if(change==='delivery')f.sync.delivery++;else if(change==='generation')f.flow.generation='new-generation';else if(change==='revision')f.flow.revision++;else f.flow.saved={...f.flow.saved,id:'new-saved'};
+ const before=JSON.stringify(f.control);f.answer();await assert.rejects(pending,change==='saved'||change==='generation'?/SAVED_VERSION_CHANGED_RECONFIRM/:change==='revision'?/DRAFT_REVISION_CHANGED_RECONFIRM/:/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.calls,0);assert.equal(JSON.stringify(f.control),before);assert.equal(f.bridge.busy(),false);
 });
-void test('submit dialog retains the confirmed saved snapshot when only working changes',async()=>{
- const f=dialogFixture(),pending=f.bridge.submit('AB');f.flow.working.products.push({id:'unsaved'});f.answer();const result=await pending;
- assert.equal(result.action,'submit');assert.equal(result.detail.savedId,'saved-original');assert.equal(f.calls,1);
+void test('submit dialog refuses a newer shared working revision and retains both saved and unsaved content',async()=>{
+ const f=dialogFixture(),pending=f.bridge.submit('AB'),saved=JSON.stringify(f.flow.saved);
+ // A real shared Apply advances revision; this is not a raw in-place mutation
+ // that invents changed server working content at the same revision.
+ f.flow.working.products.push({id:'unsaved'});f.flow.revision++;const before=JSON.stringify(f.control);f.answer();
+ await assert.rejects(pending,/DRAFT_REVISION_CHANGED_RECONFIRM/);assert.equal(f.calls,0);assert.equal(JSON.stringify(f.control),before);assert.equal(JSON.stringify(f.flow.saved),saved);assert.equal(f.flow.working.products[0].id,'unsaved');
+});
+for(const [change,code]of [['missing-saved','SUCCESSFUL_SAVE_REQUIRED'],['missing-revision','DRAFT_REVISION_REQUIRED'],['invalid-revision','DRAFT_REVISION_REQUIRED'],['pending','PENDING_LOCKED'],['unsaved','UNSAVED_CHANGES_SAVE_REQUIRED']])void test('actual Submit capture rejects '+change+' before confirmation without mutation',async()=>{
+ const f=dialogFixture();if(change==='missing-saved')f.flow.saved=null;else if(change==='missing-revision')delete f.flow.revision;else if(change==='invalid-revision')f.flow.revision=-1;else if(change==='pending')f.flow.pendingId='pending-case';else f.flow.working.products.push({id:'unsaved'});
+ const before=JSON.stringify(f.control);await assert.rejects(f.bridge.submit('AB'),error=>error.message===code);assert.equal(f.calls,0);assert.equal(f.dialogs,0);assert.equal(JSON.stringify(f.control),before);assert.equal(f.bridge.busy(),false);
+});
+void test('unchanged confirmation sends only its explicit savedId and draft revision',async()=>{
+ const f=dialogFixture(),pending=f.bridge.submit('AB');assert.equal(f.submitOptions.savedVersion.id,'saved-original');assert.equal(f.submitOptions.savedVersion.revision,3);f.answer();const result=await pending;
+ assert.equal(result.action,'submit');assert.equal(result.detail.savedId,'saved-original');assert.equal(result.detail.expectedRevision,3);assert.equal(f.calls,1);assert.equal(f.dialogs,1);
+});
+void test('cancelled Submit confirmation makes no command or local mutation',async()=>{
+ const f=dialogFixture(),before=JSON.stringify(f.control),pending=f.bridge.submit('AB');f.answer(null);assert.equal(await pending,null);assert.equal(f.calls,0);assert.equal(JSON.stringify(f.control),before);assert.equal(f.bridge.busy(),false);
 });
 void test('bridge history uses explicit restore capability without submit or blanket delete permission',async()=>{
- const f=dialogFixture();await f.bridge.history('AB');assert.equal(f.options.editable(),true);f.cells.restore=false;assert.equal(f.options.editable(),false);
+ const f=dialogFixture();f.cells.submit=false;await f.bridge.history('AB');assert.equal(f.options.editable(),true);f.cells.restore=false;assert.equal(f.options.editable(),false);
  f.cells.restore=true;f.cells.edit=false;assert.equal(f.options.editable(),false);f.cells.edit=true;f.cells.history=false;assert.equal(f.options.editable(),false);
 });

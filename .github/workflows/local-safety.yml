@@ -115,6 +115,11 @@ jobs:
         id: head_validation_02
         if: ${{ !cancelled() && steps.head_validation_01.outcome == 'success' }}
         run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Shared draft manual synchronization and submission contracts
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node --test tests/shared-draft-submit-contract.test.mjs tests/shared-draft-no-change.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-batch-http.test.mjs tests/master-manual-name-apply.test.cjs tests/fqc-matrix-batch.test.mjs tests/quality-submit-confirmation-pins.test.cjs tests/quality-submission-fences.test.mjs tests/lines-submit-snapshot-integration.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build exact checked-out commit
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}

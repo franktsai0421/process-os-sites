@@ -10,9 +10,10 @@
     begin:['開始修改草稿','Bắt đầu sửa bản nháp'], back:['返回共用草稿','Trở lại bản nháp chung'], save:['儲存草稿','Lưu bản nháp'], submit:['送出審核','Gửi duyệt'], withdraw:['撤回草稿','Rút bản nháp'], withdrawSubmitted:['撤回送審','Rút hồ sơ'], review:['查看送審案件','Xem hồ sơ gửi duyệt'],
     withdrawn:['已撤回','Đã rút'],returned:['已發回','Đã trả lại'],'pending-test':['待審','Chờ duyệt'],draft:['編輯中','Đang chỉnh sửa'], pending:['待審','Chờ duyệt'], approved:['正式版本','Bản có hiệu lực'], superseded:['歷史唯讀','Lịch sử · chỉ đọc'], history:['操作紀錄','Lịch sử thao tác'],
     errors:['報錯','Lỗi'], missing:['待補資料','Dữ liệu cần bổ sung'], unchecked:['尚未檢查','Chưa kiểm tra'], working:['目前工作內容','Nội dung đang làm'], snapshot:['已儲存快照','Bản chụp đã lưu'],
+    localOnly:['有本機未共享內容；共用已存版本不變','Có nội dung cục bộ chưa chia sẻ; bản chung đã lưu không đổi'],
     sync:['同步','Đồng bộ'], synced:['已同步','Đã đồng bộ'], syncing:['處理中','Đang xử lý'], failed:['結果未知／同步失敗','Kết quả chưa rõ / lỗi đồng bộ'], rejected:['請求未儲存','Yêu cầu chưa được lưu'], saveState:['儲存','Lưu'], saved:['已儲存','Đã lưu'], unsaved:['尚未儲存','Chưa lưu'], legacy:['舊版案件','Hồ sơ cũ'],
     submitter:['送審者與時間','Người gửi và thời gian'], scope:['共用草稿範圍','Phạm vi bản nháp chung'], filters:['篩選不縮小儲存與送審範圍','Bộ lọc không thu hẹp phạm vi lưu và gửi duyệt'],
-    cancel:['取消','Hủy'], apply:['套用至草稿','Áp dụng vào bản nháp'], reason:['整體變更理由（必填）','Lý do thay đổi tổng thể (bắt buộc)'], confirm:['只送出最後成功儲存的內容；尚未儲存的修改不包含在本次送審。','Chỉ gửi nội dung đã lưu thành công gần nhất; không bao gồm thay đổi chưa lưu.'],
+    cancel:['取消','Hủy'], apply:['套用至草稿','Áp dụng vào bản nháp'], reason:['整體變更理由（必填）','Lý do thay đổi tổng thể (bắt buộc)'], confirm:['送出下列已儲存版本；確認期間若有人修改共用草稿，會停止送審並請你重新確認。送審後整個範圍暫停修改。','Gửi phiên bản đã lưu bên dưới; nếu bản nháp chung thay đổi trong lúc xác nhận, cần kiểm tra và xác nhận lại. Toàn bộ phạm vi bị khóa sau khi gửi.'],
     prev:['上一頁','Trang trước'], next:['下一頁','Trang sau'], none:['尚無紀錄','Chưa có lịch sử'], locked:['待審鎖定、權限不足或尚未成功儲存；請核對目前狀態。','Đang khóa chờ duyệt, thiếu quyền hoặc chưa lưu thành công; hãy kiểm tra trạng thái.'], allFQC:['FQC 全庫','Toàn bộ FQC'],allIQC:['IQC 全庫','Toàn bộ IQC'],allC:['IPQC-C 全庫','Toàn bộ IPQC-C'],allEquipment:['檢具全庫','Toàn bộ thiết bị'],allProcess:['整個製程平台','Toàn bộ nền tảng quy trình'],editor:['製程編輯台','Trình chỉnh sửa quy trình'],equipment:['檢具與測試設備','Dưỡng kiểm và thiết bị đo'],lines:['線別與工段','Chuyền và công đoạn'],process:['PROCESS 流程資料','Dữ liệu quy trình PROCESS']
   };
   const t=key=>words[key]?.[document.documentElement.lang==='vi'?1:0]||key;
@@ -75,7 +76,7 @@
     const saveEvent=[...(v?.history||[])].reverse().find(e=>['save','saved','draft_saved'].includes(e.action));
     const saved=flow&&['draft','pending','pending-test'].includes(v?.status)?flow.saved:null;
     const saver=saved?.actor?.name||saveEvent?.actorName||saveEvent?.actor||t('unknown'),at=saved?.at||saveEvent?.at;
-    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;
+    const meta=create('div','vd-meta');meta.innerHTML=`<span>${t('active')}：${number(model.active)}</span><span data-vd-saver>${t('savedBy')}：${h(savedStamp(saver===t('unknown')?null:saver,at))}</span><span data-vd-sync>${t('sync')}：${model.failed?t(model.rejected?'rejected':'failed'):model.busy?t('syncing'):model.localUnsaved?t('localOnly'):flow?t(model.masterScope?'draftSynced':'synced'):t('unknown')}</span><span data-vd-saved>${t('saveState')}：${flow&&v?.status==='draft'?(!model.localUnsaved&&JSON.stringify(saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(saved?'saved':'unchanged'):t(model.masterScope?'draftUnsaved':'unsaved')):saved||saveEvent?t('saved'):t('unknown')}</span>`;
     if(pending){const c=flow?.cases?.find(row=>row.id===v.id);meta.append(create('span','',`${t('submitter')}：${c?.actor?.name||v.submittedBy||t('unknown')} · ${date(c?.at||v.submittedAt)}`));if(!flow)meta.append(create('span','vd-legacy',t('legacy')));}
     card.append(meta);const actions=create('div','vd-actions');
     const used=new Set();for(const key of ['begin','back','save','submit','review','withdraw','recover']){
@@ -126,8 +127,8 @@
   }
   function submitSnapshotHTML(snapshot){
     if(!snapshot)return '';
-    const vi=document.documentElement.lang==='vi',changes=snapshot.changes||[],dirty=snapshot.dirty??changes.length>0;
-    return `<section class="vd-submit-snapshot" data-submit-snapshot><strong>${vi?'Nội dung gửi lần này':'本次送審內容'}</strong><p>${vi?'Bản đã lưu':'已儲存快照'} · ${h(snapshot.savedAt?date(snapshot.savedAt):t('unknown'))} · ${h(snapshot.savedActor||t('unknown'))}</p><p>${dirty?(changes.length?(vi?`Có ${changes.length} mục thay đổi chưa lưu KHÔNG được gửi. Muốn gửi nội dung mới nhất, hãy hủy và lưu trước.`:`還有 ${changes.length} 筆未儲存變更不包含在本次送審。若要送出最新內容，請取消並先儲存。`):(vi?'Có thay đổi chưa lưu KHÔNG nằm trong hồ sơ này; hủy và lưu trước để gửi nội dung mới nhất.':'目前另有未儲存變更不包含在本次送審；若要送出最新內容，請取消並先儲存。')):(vi?'Nội dung bản nháp hiện tại trùng với bản đã lưu.':'目前共用草稿與這份已儲存內容相同。')}</p>${dirty?`<label><input data-submit-snapshot-ack type="checkbox" required> ${h(vi?'Tôi xác nhận chỉ gửi bản đã lưu ở trên.':'我確認只送出上述已保存快照。')}</label>`:''}${changes.length?`<div data-submit-change-list></div><nav class="vd-pages"><button type="button" data-submit-prev>${t('prev')}</button><span data-submit-page></span><button type="button" data-submit-next>${t('next')}</button></nav>`:''}</section>`;
+    const vi=document.documentElement.lang==='vi',changes=snapshot.changes||[];
+    return `<section class="vd-submit-snapshot" data-submit-snapshot><strong>${vi?'Nội dung gửi lần này':'本次送審內容'}</strong><p>${vi?'Bản đã lưu':'已儲存快照'} · ${h(snapshot.savedAt?date(snapshot.savedAt):t('unknown'))} · ${h(snapshot.savedActor||t('unknown'))}</p>${snapshot.id?`<p class="vd-snapshot-id">${vi?'Mã bản lưu':'儲存編號'}：${h(snapshot.id)}<br>${vi?'Lần sửa bản nháp':'草稿修訂'}：${h(snapshot.revision)}</p>`:''}<p>${vi?'Nội dung bản nháp hiện tại trùng với bản đã lưu.':'目前共用草稿與這份已儲存內容相同。'}</p>${changes.length?`<p>${vi?`So với bản chính thức: ${changes.length} mục thay đổi.`:`相較正式版，共 ${changes.length} 筆變更。`}</p><div data-submit-change-list></div><nav class="vd-pages"><button type="button" data-submit-prev>${t('prev')}</button><span data-submit-page></span><button type="button" data-submit-next>${t('next')}</button></nav>`:''}</section>`;
   }
   function bindSubmitSnapshot(dialog,snapshot){
     if(!snapshot?.changes?.length)return;let page=0;const vi=document.documentElement.lang==='vi',kind=vi?{products:'Sản phẩm',categoryGroups:'Nhóm sản phẩm',lines:'Chuyền',stages:'Công đoạn'}:{products:'產品',categoryGroups:'類別',lines:'線別',stages:'工段'},action=vi?{added:'Thêm',modified:'Sửa',removed:'Bỏ'}:{added:'新增',modified:'修改',removed:'移除'};
@@ -138,11 +139,13 @@
   const reasonInputs=new Map();
   const reasonFor=(version,flow)=>version?.reason||version?.changeReason||[...(version?.history||[])].reverse().find(e=>['submit','submitted'].includes(e.action))?.comment||flow?.cases?.find(c=>c.savedId===flow.saved?.id)?.reason||'';
   function confirmSubmit(reason='',scope='',options={}){
+    if(options.saveBeforeSubmit||options.masterSnapshot?.dirty)return Promise.reject(Error('UNSAVED_CHANGES_SAVE_REQUIRED'));
+    const snapshot=options.savedVersion?{...options.masterSnapshot,id:options.savedVersion.id,revision:options.savedVersion.revision,savedAt:options.savedVersion.at,savedActor:options.savedVersion.actor}:options.masterSnapshot;
     const reasonKey=(host.ProcessSync?.identity?.id||'')+':'+scope;
-    return new Promise(resolve=>{const opener=document.activeElement,dialog=create('dialog','vd-confirm');dialog.innerHTML=`<form><h2>${t('submit')}</h2><p>${h(scope)}</p><p>${options.saveBeforeSubmit?(document.documentElement.lang==='vi'?'Lưu toàn bộ nội dung đã áp dụng vào bản nháp chung, rồi gửi cùng một hồ sơ. Bộ lọc và trang đang xem không thu hẹp phạm vi.':'將已套用至共用草稿的全部內容儲存後一起送審；篩選與目前分頁不會縮小範圍。'):t('confirm')}</p>${submitSnapshotHTML(options.masterSnapshot)}${options.missingCount?`<p class="vd-advisory">${document.documentElement.lang==='vi'?`Còn ${options.missingCount} mục cần bổ sung. Hồ sơ vẫn có thể được duyệt; không có nghĩa mọi kiểm tra đã đạt.`:`仍有 ${options.missingCount} 項待補。仍可送審與核准，不代表所有檢查通過。`}</p>`:''}<label>${t('reason')}<textarea required rows="4"></textarea></label><div class="vd-actions"><button type="button" data-cancel class="button ghost">${t('cancel')}</button><button class="button signal" type="submit">${t('submit')}</button></div></form>`;bindSubmitSnapshot(dialog,options.masterSnapshot);dialog.querySelector('textarea').value=reasonInputs.get(reasonKey)??reason;dialog.querySelector('textarea').oninput=e=>reasonInputs.set(reasonKey,e.target.value);const close=value=>{dialog.close();dialog.remove();if(opener?.isConnected)opener.focus({preventScroll:true});resolve(value);};dialog.querySelector('[data-cancel]').onclick=()=>close(null);dialog.oncancel=e=>{e.preventDefault();close(null);};dialog.querySelector('form').onsubmit=e=>{e.preventDefault();const value=dialog.querySelector('textarea').value.trim();if(value)close(value);};document.body.append(dialog);dialog.showModal();if(options.masterSnapshot){const title=dialog.querySelector('h2');title.tabIndex=-1;title.focus({preventScroll:true});dialog.scrollTop=0;}else dialog.querySelector('textarea').focus();});
+    return new Promise(resolve=>{const opener=document.activeElement,dialog=create('dialog','vd-confirm');dialog.innerHTML=`<form><h2>${t('submit')}</h2><p>${h(scope)}</p><p>${t('confirm')}</p>${submitSnapshotHTML(snapshot)}${options.missingCount?`<p class="vd-advisory">${document.documentElement.lang==='vi'?`Còn ${options.missingCount} mục cần bổ sung. Hồ sơ vẫn có thể được duyệt; không có nghĩa mọi kiểm tra đã đạt.`:`仍有 ${options.missingCount} 項待補。仍可送審與核准，不代表所有檢查通過。`}</p>`:''}<label>${t('reason')}<textarea required rows="4"></textarea></label><div class="vd-actions"><button type="button" data-cancel class="button ghost">${t('cancel')}</button><button class="button signal" type="submit">${t('submit')}</button></div></form>`;bindSubmitSnapshot(dialog,snapshot);dialog.querySelector('textarea').value=reasonInputs.get(reasonKey)??reason;dialog.querySelector('textarea').oninput=e=>reasonInputs.set(reasonKey,e.target.value);const close=value=>{dialog.close();dialog.remove();if(opener?.isConnected)opener.focus({preventScroll:true});resolve(value);};dialog.querySelector('[data-cancel]').onclick=()=>close(null);dialog.oncancel=e=>{e.preventDefault();close(null);};dialog.querySelector('form').onsubmit=e=>{e.preventDefault();const value=dialog.querySelector('textarea').value.trim();if(value)close(value);};document.body.append(dialog);dialog.showModal();if(snapshot){const title=dialog.querySelector('h2');title.tabIndex=-1;title.focus({preventScroll:true});dialog.scrollTop=0;}else dialog.querySelector('textarea').focus();});
   }
   const updateSaved=(root,flow,localUnsaved=false)=>{if(!root||!flow)return;const saved=root.querySelector('[data-vd-saved]'),saver=root.querySelector('[data-vd-saver]');if(saved)saved.textContent=t('saveState')+'：'+(!localUnsaved&&JSON.stringify(flow.saved?.content??flow.active?.content)===JSON.stringify(flow.working)?t(flow.saved?'saved':'unchanged'):t('unsaved'));if(saver)saver.textContent=t('savedBy')+'：'+(flow.saved?.actor?.name||t('unknown'))+' · '+date(flow.saved?.at);};
-  const updateSync=(root,busy,failed)=>{const node=root?.querySelector('[data-vd-sync]');if(node)node.textContent=t('sync')+'：'+(failed?t('failed'):busy?t('syncing'):t(node.closest('[data-vd-master-scope]')?'draftSynced':'synced'));};
+  const updateSync=(root,busy,failed,localUnsaved=false)=>{const node=root?.querySelector('[data-vd-sync]');if(node)node.textContent=t('sync')+'：'+(failed?t('failed'):busy?t('syncing'):localUnsaved?t('localOnly'):t(node.closest('[data-vd-master-scope]')?'draftSynced':'synced'));};
   function preserveView(...roots){
     const y=window.scrollY,x=window.scrollX;
     const scrolling='.table-wrap,.bw-table,.bw-results,.bw-canvas,.master-diff-scroll,.master-review-list,.version-list,[data-scroll-key]';
@@ -164,7 +167,71 @@
       document.body.append(dialog);dialog.showModal();textarea.focus({preventScroll:true});
     });
   }
-  host.VersionDraftUI={masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
+  // Adapters describe module-local buffers; this coordinator never fabricates
+  // an inverse for shared changes or implicitly clicks Apply/Sync.
+  function createDeparture(config){
+    let operation=null;
+    const say=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
+    const messages={
+      context:()=>say('頁面、登入身分或權限已變更；輸入仍保留，請留頁重新核對。','Trang, phiên đăng nhập hoặc quyền đã đổi; giữ nội dung và kiểm tra lại.'),
+      busy:()=>say('正在處理或上傳，請稍候；輸入仍保留。','Đang xử lý hoặc tải ảnh; vui lòng chờ. Nội dung được giữ lại.'),
+      unknown:()=>say('上次操作結果尚未確認；請留頁查原操作收據，不會重新送出或放棄。','Chưa xác nhận thao tác trước; ở lại kiểm tra biên nhận gốc, không gửi lại hoặc bỏ.'),
+      failed:()=>say('尚有失敗或未完成的套用；請回原編輯區處理，輸入仍保留。','Có thao tác áp dụng lỗi hoặc chưa xong; xử lý tại vùng sửa, nội dung vẫn được giữ.'),
+      local:()=>say('尚有未套用輸入；請按「留在此頁」，回原表單明確套用或取消後再儲存。','Có nội dung chưa áp dụng; chọn ở lại, áp dụng hoặc hủy rõ ràng trong biểu mẫu trước khi lưu.'),
+      shared:()=>say('已有共享但尚未儲存的變更；儲存涵蓋整個模組。無個人安全撤回證據，不能整份放棄；請儲存或留頁處理。','Có thay đổi chung chưa lưu; lưu áp dụng cho toàn mô-đun. Không có bằng chứng hoàn tác riêng an toàn, không thể bỏ toàn bộ; hãy lưu hoặc ở lại xử lý.'),
+      pending:()=>say('草稿待審或唯讀鎖定；可保留輸入，或只放棄本人未送出的本機內容，不會代為撤回共享草稿。','Bản nháp chờ duyệt hoặc chỉ đọc; giữ nội dung hoặc chỉ bỏ dữ liệu cục bộ chưa gửi của mình, không rút bản nháp chung.'),
+      permission:()=>say('目前無套用權限；可留頁保留輸入，或只放棄本人未送出的本機輸入，不會修改共享內容。','Không có quyền áp dụng; ở lại giữ nội dung hoặc chỉ bỏ dữ liệu cục bộ chưa gửi của mình, không đổi nội dung chung.'),
+      save:()=>say('目前沒有儲存權限；輸入仍保留，請留頁確認權限。','Hiện không có quyền lưu; giữ nội dung, ở lại kiểm tra quyền.'),
+    };
+    const roots=()=>[config.root?.(),...(config.dialogs?.()||[])].filter(Boolean);
+    const context=()=>JSON.stringify(config.context?.()??config.flow?.()?.generation??null);
+    const sharedDirty=()=>config.sharedDirty?!!config.sharedDirty():!!host.sharedDraftNeedsSave?.(config.flow?.());
+    function inspect(){
+      const clean={state:'clean',canSave:false,canDiscard:false,reason:''};
+      if(operation&&!current(operation))return {...clean,state:'unknown',reason:messages.context()};
+      if(config.active?.()===false)return clean;
+      if(host.ProcessSync?.requiresReload||config.current?.()===false)return {...clean,state:'unknown',reason:messages.context()};
+      if(operation?.phase==='writing'||config.busy?.()||host.ProcessNavigationForms?.composing?.())return {...clean,state:'busy',reason:messages.busy()};
+      if(config.unknown?.())return {...clean,state:'unknown',reason:messages.unknown()};
+      if(config.failed?.())return {...clean,state:'blocked',reason:messages.failed()};
+      const local=!!config.local?.();
+      // Known transport scopes use this tab's successful ACKs, never actor names.
+      // Legacy/unsupported flows retain the conservative contributor fallback.
+      const owned=config.sharedOwned?config.sharedOwned():host.SharedDraftDeparture?.owns(config.flow?.());
+      let shared=owned===true;
+      if(typeof owned!=='boolean'){
+        const contributors=config.flow?.()?.contributors,actors=config.sharedActors?config.sharedActors():contributors&&typeof contributors==='object'&&!Array.isArray(contributors)?Object.values(contributors).map(stamp=>stamp?.actor?.id):null;
+        const othersOnly=Array.isArray(actors)&&actors.length>0&&actors.every(id=>typeof id==='string'&&id&&id!==host.ProcessSync?.identity?.id);
+        const readonly=config.canSave?.()!==true&&config.canDiscard?.()!==true;
+        shared=sharedDirty()&&!othersOnly&&!readonly;
+      }
+      if(!local&&!shared)return clean;
+      const canDiscard=local&&!shared&&typeof config.discard==='function';
+      if(config.locked?.()||config.flow?.()?.pendingId)return {...clean,state:'dirty',canDiscard,reason:messages.pending()};
+      const canSave=config.canSave?.()===true&&(!local||config.localSave?.()===true);
+      return {state:'dirty',canSave,canDiscard,reason:local&&!config.canDiscard?.()&&config.localSave?.()!==true?messages.permission():local&&config.localSave?.()!==true?(config.localReason?.()||messages.local()):!canSave?messages.save():shared?messages.shared():config.localReason?.()||say('這些輸入僅在本機；儲存會依原模組流程提交並固定版本，放棄只清除未送出的輸入。','Nội dung chỉ ở máy này; Lưu gửi và cố định phiên bản theo quy trình mô-đun, Bỏ chỉ xóa nội dung chưa gửi.')};
+    }
+    const capture=()=>({identity:host.ProcessSync?.identity,epoch:host.ProcessSync?.identityGeneration?.(),delivery:host.ProcessSync?.captureDelivery?.(),context:context(),root:config.root?.()});
+    const current=record=>record.identity===host.ProcessSync?.identity&&record.epoch===host.ProcessSync?.identityGeneration?.()&&record.context===context()&&record.root===config.root?.()&&!host.ProcessSync?.requiresReload&&(!record.delivery||host.ProcessSync?.isCurrentDelivery?.(record.delivery)!==false)&&config.current?.()!==false;
+    async function act(kind){
+      const status=inspect();if(operation||status.state!=='dirty'||!status[kind==='save'?'canSave':'canDiscard'])throw Error(status.reason||messages.context());
+      const record=capture(),locked=roots().map(node=>({node,inert:node.inert}));
+      operation=record;record.phase='writing';for(const {node} of locked)node.inert=true;
+      let released=false;record.release=()=>{if(released)return;released=true;for(const {node,inert} of locked)node.inert=inert;if(operation===record)operation=null;};
+      try{
+        if(!current(record))throw Error(messages.context());
+        // Discard is local-only and synchronous unless a module explicitly
+        // provides a checked implementation. No backend rollback lives here.
+        if(kind==='discard')await config.discard();else if(!await config.save({current:()=>current(record),assert(){if(!current(record))throw Error(messages.context());}}))throw Error(messages.failed());
+        if(!current(record))throw Error(messages.context());
+        record.phase='held';const after=inspect();
+        if(after.state!=='clean')throw Error(after.reason||messages.failed());
+        return {release:record.release};
+      }catch(error){record.release();throw error;}
+    }
+    return {inspect,ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(status.state!=='clean')throw Error(status.reason);config.closeClean?.();}};
+  }
+  host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
   const priorValidation=host.renderSharedDraftValidation;
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));
