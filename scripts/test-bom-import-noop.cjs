@@ -7,10 +7,12 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  for(const mode of ['identical','keep','accept']){
   const incoming=structuredClone(base);if(mode!=='identical')incoming.ROOT[1].itemName='New';
   const batch={...D.compare(base,incoming),sheets:[],file:'QA.xlsx'};for(const c of batch.changes)c.decision=mode==='accept'?'accept':'keep';
-  const existing={unrelated:true},context={D,editor:structuredClone(base),batch,pending:[existing]};vm.runInNewContext(fn,context);await context.finishImport();
-  assert.equal(context.batch,null);assert.equal(context.pending[0],existing);assert.equal(context.pending.length,mode==='accept'?2:1);
+  const existing={unrelated:true},context={D,editor:structuredClone(base),batch,pending:[existing],localRevision:0,workspaceOwner:()=>()=>true,editable:()=>true,permission:()=>true,changedLocal(){context.localRevision++;}};vm.runInNewContext(fn,context);await context.finishImport();
+  assert.equal(context.localRevision,1);assert.equal(context.batch,null);assert.equal(context.pending[0],existing);assert.equal(context.pending.length,mode==='accept'?2:1);
   assert.equal(context.editor.ROOT[1].itemName,mode==='accept'?'New':'Old');
   if(mode==='accept'){assert.equal(context.pending[1].input.baseDigest,await D.semanticDigest(base));assert.equal(context.pending[1].input.importMode,'incremental-v1');}
  }
- console.log(JSON.stringify({status:'PASS',cases:['identical import does not queue false changes','keeping all differences does not queue false changes','accepted change retains guarded import and existing queued work'],networkRequests:0}));
+ const missing={D,editor:structuredClone(base),batch:{...D.compare(base,base)},pending:[]};vm.runInNewContext(fn,missing);await assert.rejects(missing.finishImport(),/editable is not defined/);
+ for(const denied of ['permission','late-owner']){let owned=true,revision=0;const old=structuredClone(base),batch={...D.compare(base,base),sheets:[],file:'QA.xlsx'},context={D:denied==='late-owner'?{...D,semanticDigest:async value=>{owned=false;return D.semanticDigest(value);}}:D,editor:old,batch,pending:[],localRevision:revision,workspaceOwner:()=>()=>owned,editable:()=>true,permission:()=>denied!=='permission',changedLocal(){revision++;}};vm.runInNewContext(fn,context);await assert.rejects(context.finishImport(),denied==='permission'?/FORBIDDEN/:/RECOVERY_CONTEXT_CHANGED/);assert.equal(context.editor,old);assert.equal(context.batch,batch);assert.equal(context.pending.length,0);assert.equal(revision,0);}
+ console.log(JSON.stringify({status:'PASS',cases:['identical import does not queue false changes','keeping all differences does not queue false changes','accepted change retains guarded import and existing queued work','missing port fails closed','permission denial preserves RAM','late owner digest preserves RAM'],networkRequests:0}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

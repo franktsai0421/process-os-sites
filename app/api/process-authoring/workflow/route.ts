@@ -34,4 +34,4 @@ export async function GET(request:Request){
   return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,category:v.category,line:v.line,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
  }catch{return reply({error:'LEGACY_ARCHIVE_LOAD_FAILED'},503);}
 }
-export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter()).POST(request);
+export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter(new URL(request.url).searchParams.get('channel')==='canvas-v2')).POST(request);

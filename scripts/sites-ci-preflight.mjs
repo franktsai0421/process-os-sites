@@ -8,6 +8,14 @@ import {sourcePathDisposition} from '../lib/sites-source-boundary.mjs';
 const held=new Set(['scripts/dev-package-restore.mjs','scripts/u1-package.mjs','scripts/dev-package-update.mjs']);
 // Independently reviewed exact synthetic fixtures. No other commit, path,
 // blob or category is admitted by this supplement; the original anchor stays.
+// Only these exact historical synthetic rejection fixtures can receive a proof.
+// The proof is private and is minted below only after real Git ancestry/tree checks.
+const negativeFixtureReview={"commit":"f58d847d86e318f75631540656a4ae013103461a","entries":[{"path":"scripts/test-iqc-editing-projection-races.cjs","blob":"9874f0c059728373f9b8e60df6d74b167b9ecbf1","categories":["WORKSTATION_PATH"]},{"path":"scripts/test-iqc-editing-projection-ui.cjs","blob":"f4c1d47bb90371b329c2f53f0b55a3023c09de3e","categories":["WORKSTATION_PATH"]},{"path":"tests/multiuser-canvas-actual-transport.test.mjs","blob":"62de3828f3748c6544702062e835bc4942df338d","categories":["WORKSTATION_PATH"]},{"path":"tests/multiuser-iqc-local-recovery-composition.test.mjs","blob":"2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e","categories":["BEARER_LITERAL"]},{"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"e038d0aaddb80a09ff6fdff6a1d1a19de04e6e57","categories":["PRIVATE_KEY"]}]};
+for(const entry of negativeFixtureReview.entries){Object.freeze(entry.categories);Object.freeze(entry);}
+Object.freeze(negativeFixtureReview.entries);Object.freeze(negativeFixtureReview);
+const negativeFixtureProofs=new WeakMap();
+const proofKey=(file,blob,category)=>file+'\0'+blob+'\0'+category;
+const negativeFixtureKeys=Object.freeze(negativeFixtureReview.entries.flatMap(entry=>entry.categories.map(category=>proofKey(entry.path,entry.blob,category))));
 const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',entries:[
  {path:'scripts/test-integrated-bootstrap.cjs',blob:'c991cb7e3d377436df4780a7fa334b35472cd8f6',categories:['ASSIGNED_SECRET']},
  {path:'tests/sites-delivery-browser.test.mjs',blob:'ce58816f488382bfe41438ce629c15b6b0594c08',categories:['WORKSTATION_PATH']},
@@ -17,7 +25,7 @@ const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',en
 // future browser discovery no longer embeds an installation path.
 {commit:'705e92bf53b7cd4ed9667444bcd5289679a86234',entries:[
  {path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']},
-]}];
+]},negativeFixtureReview];
 const patterns=[
  ['PRIVATE_KEY',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
  ['GITHUB_TOKEN',/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,})\b/],
@@ -58,7 +66,18 @@ export function inspectSourceBytes(file,bytes,policy,{working=false}={}){
  const reviewed=policy.entries.find(item=>item.path===file&&(item.blob===oid||item.blob===canonical));
  const classified=[];
  for(const [category,pattern] of patterns)if(pattern.test(value)){
-  if(!reviewed?.categories.includes(category))throw Error('SOURCE_UNREVIEWED_'+category);
+  const sensitive=category==='PRIVATE_KEY'||category==='BEARER_LITERAL';
+  const key=proofKey(file,canonical,category),fixedNegative=negativeFixtureKeys.includes(key);
+  if(!reviewed?.categories.includes(category)||(sensitive&&!fixedNegative)||((sensitive||fixedNegative)&&!negativeFixtureProofs.get(policy)?.includes(key)))throw Error('SOURCE_UNREVIEWED_'+category);
+  // Hash/tuple authority is mandatory; these shapes are additional checks, not exemptions.
+  if(fixedNegative&&category==='BEARER_LITERAL'){
+   const matches=value.match(new RegExp(pattern.source,'g'))||[];
+   if(matches.length!==1||matches[0]!==['Bearer','abcdefghijklmnopqrstuvwxyz0123456789'].join(' '))throw Error('SOURCE_NEGATIVE_FIXTURE_SHAPE');
+  }
+  if(fixedNegative&&category==='PRIVATE_KEY'){
+   const marker=['-----BEGIN ','PRIVATE KEY-----'].join(''),matches=value.match(new RegExp(pattern.source,'g'))||[];
+   if(matches.length!==1||matches[0]!==marker||!value.includes("{ note: '"+marker+"' }")||value.includes(['-----END ','PRIVATE KEY-----'].join('')))throw Error('SOURCE_NEGATIVE_FIXTURE_SHAPE');
+  }
   classified.push(category);
  }
  return classified;
@@ -98,6 +117,12 @@ export function runPreflight(root=path.resolve(fileURLToPath(new URL('..',import
  }
  for(const item of policy.entries)if(!anchorPairs.has(item.path+'\0'+item.blob))throw Error('SOURCE_REVIEW_NOT_IN_ANCHOR');
  const authorizedPolicy=authorizeSupplementalReviews(policy,new Set(commits),supplementPairs);
+ // Unlike exported helper inputs, these Sets/Maps were obtained directly from Git
+ // for this real checkout. Missing public ancestry or exact tree membership refuses.
+ if(!commits.includes(negativeFixtureReview.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
+ for(const entry of negativeFixtureReview.entries)if(!supplementPairs.get(negativeFixtureReview.commit)?.has(entry.path+'\0'+entry.blob))throw Error('SOURCE_SUPPLEMENT_BLOB_MISMATCH');
+ negativeFixtureProofs.set(authorizedPolicy,negativeFixtureKeys);
+
  const list=[...objects.values()];let bytesTotal=0;
  for(let i=0;i<list.length;i+=8){const batch=list.slice(i,i+8);
   // Check declared sizes before asking cat-file for contents. At most 40 MiB per batch.

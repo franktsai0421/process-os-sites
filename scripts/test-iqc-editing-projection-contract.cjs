@@ -15,7 +15,7 @@ const load=harness(env),api=load('app/api/iqc/workflow/route.ts'),core=load('lib
 const seed=()=>{objects.clear();db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').run(JSON.stringify({platformUsers:JSON.stringify(users),iqcMasterControl:JSON.stringify(control)}),'fixture');};
 async function get(){const r=await api.GET(new Request(url,{headers:{cookie:cookies.admin}}));assert.equal(r.status,200);return r.json();}
 async function post(body,who='admin'){const r=await api.POST(new Request(url,{method:'POST',headers:{cookie:cookies[who],Origin:base,'Content-Type':'application/json'},body:JSON.stringify(body)}));return{status:r.status,body:await r.json()};}
-async function cmd(action,extra={}){return{operationId:randomUUID(),clientId:'role-fixture-'+sequence,generation:(await get()).control.workflow.generation,sequence:++sequence,action,...extra};}
+async function cmd(action,extra={}){const flow=(await get()).control.workflow;return{...(action==='submit'?{expectedRevision:flow.revision}:{}),operationId:randomUUID(),clientId:'role-fixture-'+sequence,generation:flow.generation,sequence:++sequence,action,...extra};}
 async function admin(action,extra={}){const r=await post({command:await cmd(action,extra)});assert.equal(r.status,200,JSON.stringify(r.body));return r.body;}
 async function begin(){const r=await post({action:'begin'});assert.equal(r.status,200);}
 async function edit(name='Changed'){const old=(await get()).control.workflow.working.parts[0].nameVi;return admin('apply',{patches:[{op:'set',path:['parts',{id:'part'},'nameVi'],value:name}],guards:[{path:['parts',{id:'part'},'nameVi'],value:old}]});}

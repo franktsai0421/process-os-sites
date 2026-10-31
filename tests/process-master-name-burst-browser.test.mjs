@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createProcessMasterFixture} from './process-master-cloud-fixture.mjs';
-const expected=Number(process.env.EXPECTED_APPLY_WRITES||2),phase=process.env.MEASUREMENT_PHASE||'optimized';
+const expected=Number(process.env.EXPECTED_APPLY_WRITES||1),phase=process.env.MEASUREMENT_PHASE||'optimized';
 const reports=[];
 for(let round=1;round<=3;round++){
  const fixture=await createProcessMasterFixture();let browser;
@@ -18,6 +18,12 @@ for(let round=1;round<=3;round++){
   });
   const text='ABCDEFGHIJKLMNOPQRST',start=performance.now();
   await page.locator('[data-master-name]').first().evaluate((input,value)=>{for(let index=1;index<=value.length;index++){input.value=value.slice(0,index);input.dispatchEvent(new InputEvent('input',{bubbles:true}));}},text);
+  assert.equal(applies,0,'typing must not Apply');assert.equal(saves,0);
+  await page.locator('#save-master-data').click();
+  assert.equal(applies,0,'Save must not Apply local names');assert.equal(saves,0,'local names must block Save');
+  await page.locator('.process-name-apply-bar [data-name-action="apply"]').first().click();
+  await page.waitForFunction(()=>document.querySelector('[data-master-name]')?.dataset.unapplied==='false');
+  assert.equal(applies,expected);assert.equal(saves,0);
   await page.locator('#save-master-data').click();
   await page.waitForFunction(value=>Object.values(MasterDataWorkflow.shared.flow('PROCESS').saved?.content||{}).flat().some(row=>row.name===value),text);
   const ms=Math.round(performance.now()-start);
@@ -26,5 +32,5 @@ for(let round=1;round<=3;round++){
   reports.push({round,ms,applies,saves,status:'PASS'});
  }finally{await browser?.close();await fixture.close();}
 }
-const result={phase,programCommit:process.env.PROCESS_PROGRAM_COMMIT,conditions:'20 input events; 150ms artificial response delay per Apply; immediate Save; isolated fixture',reports};
+const result={phase,programCommit:process.env.PROCESS_PROGRAM_COMMIT,conditions:'20 input events make zero writes; Save refuses local input; explicit Apply then Save; 150ms artificial Apply response delay; isolated fixture',reports};
 fs.writeFileSync('.sites-runtime/name-burst-'+phase+'.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));

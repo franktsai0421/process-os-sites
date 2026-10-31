@@ -65,6 +65,78 @@ async function read(role) {
   return { status: response.status, body: await response.json() };
 }
 
+
+const persisted = () => ({ row: { ...db.prepare('SELECT * FROM shared_state WHERE id=1').get() }, objects: structuredClone([...objects]) });
+async function rejectNewLegacySubmit(role, details) {
+  const before = persisted(), response = await call(role, 'submit', details);
+  assert.equal(response.status, 409, JSON.stringify(response.body));
+  assert.equal(response.body.code, 'WORKFLOW_V3_REQUIRED');
+  assert.equal(response.body.details.reason, 'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION');
+  assert.deepEqual(persisted(), before, 'new legacy Submit cannot change content, revision, history or R2');
+  return response;
+}
+// Historical pending compatibility only. A new legacy Submit is never used to
+// manufacture the old case; all submitted content was explicitly saved first.
+async function installHistoricalPendingFixture(role) {
+  const state = await core.readState(), control = JSON.parse(state.values.routineEquipmentControl);
+  const draft = control.versions.find(version => version.status === 'draft'); assert(draft);
+  const fixed = structuredClone({ equipment: draft.equipment, groups: draft.groups, categories: draft.categories, subcategories: draft.subcategories, issues: draft.issues });
+  const otherVersions = structuredClone(control.versions.filter(version => version.id !== draft.id));
+  const at = '2026-10-01T00:00:00.000Z';
+  draft.status = 'pending'; draft.submittedBy = 'Demo ' + role; draft.submittedAt = at; draft.updatedAt = at; draft.revision++;
+  draft.history.push({ action: 'submit', actorId: 'demo-' + role, actorName: 'Demo ' + role, at,
+    comment: 'Explicit historical pending fixture admitted under the previous policy; no new legacy Submit' });
+  state.values.routineEquipmentControl = JSON.stringify(control);
+  db.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1').run(state.revision + 1,
+    await core.encodeValues(state.values, state), at);
+  const response = await read('admin'), stored = response.body.control.versions.find(version => version.id === draft.id);
+  assert.deepEqual({ equipment: stored.equipment, groups: stored.groups, categories: stored.categories, subcategories: stored.subcategories, issues: stored.issues }, fixed);
+  assert.deepEqual(response.body.control.versions.filter(version => version.id !== draft.id), otherVersions);
+  return response;
+}
+async function checkV3InvalidDateSubmit(snapshot, equipmentId) {
+  // Separate ephemeral DB/R2 copy: preserve legacy compatibility coverage while
+  // validating the new strict Submit API, not replacing its422 with legacy409.
+  const beforeOriginal = persisted(), forkDb = new DatabaseSync(':memory:'), forkObjects = new Map(structuredClone([...objects]));
+  for (const name of fs.readdirSync('drizzle').filter(name => name.endsWith('.sql')).sort()) forkDb.exec(fs.readFileSync(path.join('drizzle', name), 'utf8'));
+  const row = beforeOriginal.row;
+  forkDb.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(?,?,?,?)').run(row.id, row.revision, row.values, row.updated_at);
+  const forkEnv = { ...env, DB: { prepare(sql) { let args = []; return { bind(...values) { args = values; return this; },
+    async run() { return { meta: { changes: Number(forkDb.prepare(sql).run(...args).changes) } }; },
+    async first() { return forkDb.prepare(sql).get(...args) || null; }, async all() { return { results: forkDb.prepare(sql).all(...args) }; }
+  }; } }, STATE_ARCHIVE: {
+    async head(key) { return forkObjects.has(key) ? {} : null; }, async put(key, value, options) { forkObjects.set(key, { value, options }); },
+    async get(key) { const item = forkObjects.get(key); if (!item) return null; const bytes = Buffer.from(item.value);
+      return { body: bytes, text: async () => bytes.toString(), httpMetadata: item.options?.httpMetadata }; }
+  } };
+  const forkLoad = require('./ipqc-ab-import-harness.cjs')(forkEnv), workflow = forkLoad('app/api/routine-equipment/workflow/route.ts'), wire = forkLoad('lib/workflow-wire.ts');
+  const url = base + '/api/routine-equipment/workflow?caseMetadata=1', headers = { Cookie: cookies.admin, Origin: base, 'Content-Type': 'application/json' };
+  let sequence = 0;
+  async function request(body, expected = 200) {
+    const response = await workflow[body ? 'POST' : 'GET'](new Request(url, { method: body ? 'POST' : 'GET', headers, ...(body ? { body: JSON.stringify(body) } : {}) }));
+    const value = wire.expandWorkflowPayload(await response.json()); assert.equal(response.status, expected, JSON.stringify(value)); return value;
+  }
+  async function command(action, detail = {}, expected = 200) {
+    const current = await request(), flow = current.control.workflow;
+    return request({ command: { action, operationId: randomUUID(), clientId: 'equipment-invalid-date-fixture', sequence: ++sequence,
+      generation: flow.generation, expectedRevision: flow.revision, ...detail } }, expected);
+  }
+  try {
+    await request({ action: 'begin' }); const flow = (await request()).control.workflow;
+    const target = snapshot.equipment.find(item => item.id === equipmentId), original = flow.working.equipment.find(item => item.id === equipmentId);
+    const fields = ['calibratedAt', 'expiresAt'];
+    await command('apply', { patches: fields.map(field => ({ op: 'set', path: ['equipment', { id: equipmentId }, field], value: target[field] })),
+      guards: fields.map(field => ({ path: ['equipment', { id: equipmentId }, field], value: original[field] })) });
+    const saved = (await command('save')).control.workflow.saved;
+    const forkState = () => ({ row: { ...forkDb.prepare('SELECT * FROM shared_state WHERE id=1').get() }, objects: structuredClone([...forkObjects]) });
+    const before = forkState(), rejected = await command('submit', { savedId: saved.id, reason: 'Synthetic invalid calibration dates' }, 422);
+    assert.equal(rejected.error, 'VALIDATION_FAILED');
+    assert(rejected.details.issues.some(issue => issue.kind === 'error' && issue.path[1]?.id === equipmentId && issue.path[2] === 'expiresAt'));
+    assert.deepEqual(forkState(), before, 'invalid-date strict Submit preserves full persisted state and R2');
+  } finally { forkDb.close(); }
+  assert.deepEqual(persisted(), beforeOriginal, 'V3 validation fork cannot change the independent legacy fixture');
+}
+
 (async () => {
   cookies = Object.fromEntries(await Promise.all(['admin','rd','staff'].map(async role => {
     const token = await core.demoSession(new Request(base), `demo-${role}`, true);
@@ -96,9 +168,11 @@ async function read(role) {
   const bad = await call('staff', 'save', { versionId: draftId, versionRevision: draft.revision,
     snapshot: { ...snapshot, equipment: snapshot.equipment.map(item => ({ ...item, groupId: 'MISSING' })) } });
   assert.equal(bad.status, 422); assert.equal((await read('admin')).body.revision, priorRevision);
-  // Submit includes unsaved last edit in the same revision-checked D1 update.
+  // New legacy Submit may not save a last edit implicitly. Explicit Save remains available.
   snapshot.equipment[0].name = 'Final edit';
-  response = await call('staff', 'submit', { versionId: draftId, versionRevision: draft.revision, snapshot });
+  await rejectNewLegacySubmit('staff', { versionId: draftId, versionRevision: draft.revision, snapshot });
+  response = await call('staff', 'save', { versionId: draftId, versionRevision: draft.revision, snapshot });assert.equal(response.status, 200);
+  response = await installHistoricalPendingFixture('staff');
   assert.equal(response.status, 200); assert.equal(response.body.control.versions[0].status, 'pending');
   assert.equal(response.body.control.versions[0].equipment[0].name, 'Final edit');
   assert.equal((await call('staff', 'submit', { versionId: draftId, versionRevision: draft.revision, snapshot }, priorRevision)).status, 409);
@@ -107,15 +181,15 @@ async function read(role) {
   assert.equal(response.status, 200); assert.equal(response.body.control.versions[0].status, 'draft');
   assert.equal(response.body.control.versions[0].reviewComment, '補充來源');
   draft = response.body.control.versions[0];
-  response = await call('staff', 'submit', { versionId: draftId, versionRevision: draft.revision,
+  await rejectNewLegacySubmit('staff', { versionId: draftId, versionRevision: draft.revision,
     snapshot: { equipment: draft.equipment, groups: draft.groups, categories: draft.categories, subcategories: draft.subcategories, issues: draft.issues } });
-  assert.equal(response.status, 200);
+  response = await installHistoricalPendingFixture('staff');assert.equal(response.status, 200);
   response = await call('admin', 'withdraw'); assert.equal(response.status, 200);
   assert.equal(response.body.control.versions[0].status, 'draft');
   draft = response.body.control.versions[0];
-  response = await call('staff', 'submit', { versionId: draftId, versionRevision: draft.revision,
+  await rejectNewLegacySubmit('staff', { versionId: draftId, versionRevision: draft.revision,
     snapshot: { equipment: draft.equipment, groups: draft.groups, categories: draft.categories, subcategories: draft.subcategories, issues: draft.issues } });
-  assert.equal(response.status, 200);
+  response = await installHistoricalPendingFixture('staff');assert.equal(response.status, 200);
   response = await call('rd', 'approve', { versionId: draftId, versionRevision: response.body.control.versions[0].revision, comment: '已核對' });
   assert.equal(response.status, 200); assert.equal(response.body.control.activeVersionId, draftId);
   assert.equal(response.body.control.versions[0].status, 'approved');
@@ -151,12 +225,11 @@ async function read(role) {
   assert.ok(missingDate);assert.notEqual(missingDate.blocking, true, 'Missing content remains advisory under whole-module draft policy');
   const invalidDateSnapshot = { ...nextSnapshot, equipment: nextSnapshot.equipment.map(item => item.pieceMark === '03' ? { ...item, calibratedAt: '2026-10-10', expiresAt: '2026-10-09' } : item) };
   const beforeInvalidSubmit = restored.body.revision;
-  const invalidSubmit = await call('admin', 'submit', { versionId: draft.id,
+  await rejectNewLegacySubmit('admin', { versionId: draft.id,
     versionRevision: photoSave.body.control.versions.find(version => version.status === 'draft').revision,
     snapshot: invalidDateSnapshot });
-  assert.equal(invalidSubmit.status, 422);
   assert.equal((await read('admin')).body.revision, beforeInvalidSubmit);
-  assert.ok(invalidSubmit.body.problems.some(problem => problem.id === draft.equipment.at(-1).id && problem.field === 'expiresAt' && problem.blocking === true));
+  await checkV3InvalidDateSubmit(invalidDateSnapshot, draft.equipment.at(-1).id);
   assert.equal(domain.availability({ ...draft.equipment.at(-1), enabled: true, confirmed: true,
     calibrationMethod: '內部＋外部 / Nội bộ + Bên ngoài' }), false);
   draft = (await read('admin')).body.control.versions.find(version => version.status === 'draft');
@@ -225,9 +298,9 @@ async function read(role) {
   assert.equal((await call('admin', 'begin', {}, currentRow.revision)).status, 500);
   assert.equal(db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values, JSON.stringify(corruptValues));
   verifyRetainedBackups();
-  console.log(JSON.stringify({ isolated: true, saveReload: true, submitIncludesLastEdit: true, invalidSaveAtomic: true,
-    duplicateSubmitBlocked: true, permission: true, rejectResubmitWithdrawApprove: true,
+  console.log(JSON.stringify({ isolated: true, saveReload: true, legacySubmitRejectedWithoutWrites: true, explicitSaveBeforeHistoricalFixture: true, invalidSaveAtomic: true,
+    duplicateSubmitBlocked: true, permission: true, historicalPendingRejectWithdrawApprove: true,
     historicalVersion: true, pieceMarkNoReuse: true, photoR2: true, photoReload: true,
-    singleCalibrationSubmitValidation: true, emptyHierarchyPersisted: true, hierarchyDeleteLocked: true,
+    strictV3CalibrationSubmitValidation: true, emptyHierarchyPersisted: true, hierarchyDeleteLocked: true,
     issueBlocksAvailability: true, issueAuditStamped: true, stableHierarchyRename: true, workbookImportIdempotent: true, concurrentCreateCAS: true, corruptLoadDoesNotOverwrite: true }));
 })().catch(error => { console.error(error); process.exitCode = 1; });

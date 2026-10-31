@@ -1126,10 +1126,25 @@
       bindApprovalMaster = function(){review.bind();const missing=window.MasterReview.readableScopes().filter(scope=>!sharedLoaded.has(scope)&&!sharedLoading.has(scope));if(!missing.length)return;const generation=deliveryGeneration;dataError=null;missing.forEach(s=>sharedLoading.add(s));dataReady=Promise.all(missing.map(s=>shared.load(s).then(()=>{if(ownsDelivery(generation))sharedLoaded.add(s);}))).then(()=>{if(ownsDelivery(generation))render();}).catch(e=>{if(ownsDelivery(generation)){dataError=e;toast(displayDraftError(e));}}).finally(()=>{if(ownsDelivery(generation))missing.forEach(s=>sharedLoading.delete(s));});};
     }
   }
+  let moduleDeparture;
+  const departureScope=()=>state.dataTab==='process-master'?'PROCESS':state.masterScope;
+  const departureDialogs=()=>[...document.querySelectorAll('#master-edit-dialog[open]')];
+  const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
     control: () => control,
-    canLeave:()=>!shared.busy(),
+    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),
     navigation:{
+      get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+        root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>departureScope()==='PROCESS',
+        context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
+        busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
+        local:()=>departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
+        canSave:()=>shared.permissions(departureScope())?.save===true,
+        canDiscard:()=>shared.permissions(departureScope())?.edit===true,
+        save:()=>shared.execute(departureScope(),'save'),
+        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();closeDepartureDialogs();},
+        dialogs:departureDialogs,closeClean:closeDepartureDialogs,
+      });},
       requiresSave(){
         if(state.view!=='data'||!['AB','C','lines','line-admin','process-master'].includes(state.dataTab))return false;
         const flow=shared.flow(state.dataTab==='process-master'?'PROCESS':state.masterScope);

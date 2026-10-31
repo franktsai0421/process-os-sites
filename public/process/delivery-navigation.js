@@ -9,15 +9,22 @@
   const shared=sync.pendingState?.()||{},drafts=window.sharedDraftAccountState?.()||{};
   return shared.dirty||shared.inFlight||shared.paused||shared.blocked||drafts.queued||drafts.unknown||drafts.failed||sync.projectionWriteError;
  };
- const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay';
+ const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-overlay,.routine-modal-backdrop,.routine-dialog-backdrop';
  const departureAdapters=()=>[window.MasterDataWorkflow?.navigation,...modules().map(api=>api.navigation)].filter(Boolean);
- const departureAdapter=()=>sync.destination?.view==='editor'?window.ProcessAuthoringV3?.navigation?.departure:null;
+ const departureAdapter=()=>{
+  const destination=sync.destination;
+  if(destination?.view==='editor')return window.ProcessAuthoringV3?.navigation?.departure;
+  if(destination?.view==='quality-inspections')return window.RoutineFQCUI?.navigation?.departure;
+  if(destination?.view!=='data')return null;
+  const moduleName=({'AB':'MasterDataWorkflow','C':'MasterDataWorkflow','lines':'MasterDataWorkflow','line-admin':'MasterDataWorkflow','process-master':'MasterDataWorkflow',bom:'BOMWorkspace','quality-fqc':'FQCMasterUI','quality-iqc':'IQCMasterUI','quality-ipqc-ab':'IPQCABUI','quality-ipqc-c':'IPQCCUI','quality-mold-equipment':'ToolingUI','quality-routine-equipment':'RoutineEquipmentUI'})[destination.dataTab];
+  return window[moduleName]?.navigation?.departure||null;
+ };
  const isDecision=node=>node?.dataset?.navigationDeparture==='true';
  const ownedDialog=(adapter,node)=>{try{return !!adapter?.ownsDialog?.(node);}catch{return false;}};
  function adapterState(adapter){try{const value=adapter.inspect();if(value&&['clean','dirty','busy','unknown','blocked'].includes(value.state))return value;}catch{}return{state:'unknown',canSave:false,canDiscard:false,reason:document.documentElement.lang==='vi'?'Chưa xác nhận trạng thái bản nháp. Hãy ở lại và đọc lại trạng thái hoặc kiểm tra biên nhận gốc.':'草稿狀態尚未確認，請留在原頁重新讀取狀態或查詢原操作收據。'};}
  function otherDepartureBlocked(adapter,ignoreSaved=false){
   if(sync.requiresReload||draftsPending()||window.ProcessNavigationForms?.composing?.())return true;
-  if(window.ProcessRuntimeProjection?.canLeave?.()===false||window.MasterDataWorkflow?.canLeave?.()===false)return true;
+  if(window.ProcessRuntimeProjection?.canLeave?.()===false&&!adapter?.ownsRuntimeLocal?.()||(window.MasterDataWorkflow?.navigation?.departure!==adapter&&window.MasterDataWorkflow?.canLeave?.()===false))return true;
   if(modules().some(api=>(!adapter||api.navigation?.departure!==adapter)&&api.navigation?.canLeave?.()===false&&!(ignoreSaved&&api.navigation.requiresSave?.()&&api.navigation.canSaveForDeparture?.()===true)))return true;
   if(!ignoreSaved&&departureAdapters().some(api=>(!adapter||api.departure!==adapter)&&api.requiresSave?.()))return true;
   if([...document.querySelectorAll('dialog[open],.iqc-lightbox,.fqc-viewer-overlay')].some(node=>!isDecision(node)&&!ownedDialog(adapter,node)))return true;
@@ -181,7 +188,7 @@
    const title=document.createElement('h2');title.id='process-navigation-departure-title';title.textContent=t('離開目前頁面','Rời trang hiện tại');dialog.append(title);
    for(const name of ['target','state','error']){const p=document.createElement('p');p.setAttribute('data-departure-'+name,'');if(name==='error')p.setAttribute('role','alert');dialog.append(p);}
    const choices=document.createElement('div');choices.style.cssText='display:flex;flex-direction:column;gap:.65rem';
-   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未儲存變更並離開','Bỏ thay đổi chưa lưu và rời đi'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
+   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未送出的修改並離開','Bỏ thay đổi chưa gửi và rời đi'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
    dialog.append(choices);dialog.oncancel=event=>{event.preventDefault();if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};dialog.onclose=()=>{if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};document.body.append(dialog);updateDecision(value);dialog.showModal();dialog.querySelector('[data-departure-choice="stay"]').focus();
   }
   const departure=createDepartureCoordinator({
@@ -302,7 +309,7 @@
   api.invalidateDeparture?.();
   // Admission blocks open dialogs before account requests. A late-created
   // overlay must not remain usable under the next session; retain its values.
-  for(const modal of document.querySelectorAll('body > dialog,.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay')){modal.inert=true;modal.hidden=true;modal.style.visibility='hidden';modal.style.pointerEvents='none';}
+  for(const modal of document.querySelectorAll('body > dialog,.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-overlay,.routine-modal-backdrop,.routine-dialog-backdrop')){modal.inert=true;modal.hidden=true;modal.style.visibility='hidden';modal.style.pointerEvents='none';}
   for(const value of [window.IMPORTED_DATA,window.LINE_PROCESS_DATA,window.LINE_C_MASTER])if(value&&typeof value==='object')for(const key of Object.keys(value))delete value[key];
   const shell=document.querySelector('.app-shell');if(shell){shell.replaceChildren();shell.hidden=true;}
   let gate=document.querySelector('#process-boot');if(!gate){gate=document.createElement('div');gate.id='process-boot';document.body.append(gate);}

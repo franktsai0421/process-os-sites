@@ -23,7 +23,7 @@ const harness=__esmRequire('./ipqc-ab-import-harness.cjs');
  const route=load('app/api/bom/workflow/route.ts'),headers={};for(const u of users)headers[u.id]={Cookie:'process_demo='+await core.demoSession(new Request('http://localhost'),u.id,false),Origin:'http://localhost','Content-Type':'application/json'};
  const req=async(method,body,user='editor')=>{const r=await route[method](new Request('http://localhost/api/bom/workflow',{method,headers:headers[user],...(body?{body:JSON.stringify(body)}:{})}));return{status:r.status,body:await r.json()};};
  let current,n=0;async function read(){const r=await req('GET');assert.equal(r.status,200,JSON.stringify(r.body));current=r.body.control;return r.body;}
- async function cmd(action,detail={},user='editor',status=200){const r=await req('POST',{command:{action,generation:current.workflow.generation,operationId:randomUUID(),clientId:'fixture-'+user,sequence:++n,...detail}},user);assert.equal(r.status,status,JSON.stringify(r.body));if(status===200)await read();return r;}
+ async function cmd(action,detail={},user='editor',status=200){const r=await req('POST',{command:{action,generation:current.workflow.generation,expectedRevision:current.workflow.revision,operationId:randomUUID(),clientId:'fixture-'+user,sequence:++n,...detail}},user);assert.equal(r.status,status,JSON.stringify(r.body));if(status===200)await read();return r;}
  assert.equal((await req('POST',{action:'begin'},'viewer')).status,403);assert.equal((await req('POST',{action:'begin'})).status,200);await read();
  const sheets=[{name:'ERP',rows:[D.columns,['001','0','','','Root','','PCS','0','0','0'],['001','.1','0020','P','Tên','','PCS','2','1','0'],['001','..2','0010','Q','Deep','','PCS','5','10','99']]}];
  const input={sheets,file:'employee.xlsx',base:{},decisions:[{decision:'accept'}]};
@@ -36,6 +36,10 @@ const harness=__esmRequire('./ipqc-ab-import-harness.cjs');
  await cmd('apply',{patches:[{op:'set',path:['bom','001',{id:r.id},'itemCode'],value:'FORGED'}]},'editor',422);
  await cmd('apply',{patches:[{op:'set',path:p,value:'Forbidden'}],guards:[{path:p,value:'Updated'}]},'viewer',403);
  await cmd('save');assert.equal(current.workflow.saved.content.bom['001'][1].itemName,'Updated');const saved=current.workflow.saved.id;
+ // A formerly accepted revision-less Submit is now explicitly rejected, without writes.
+ const beforeMissingRevision={state:await core.readState(),objects:structuredClone([...objects])};
+ const missingRevision=await cmd('submit',{savedId:saved,reason:'BOM fixture',expectedRevision:undefined},'editor',409);
+ assert.equal(missingRevision.body.error,'DRAFT_REVISION_REQUIRED');assert.deepEqual({state:await core.readState(),objects:structuredClone([...objects])},beforeMissingRevision);
  await cmd('submit',{savedId:saved,reason:'BOM fixture'});const caseId=current.workflow.pendingId;
  await cmd('apply',{patches:[]},'editor',409);
  await cmd('approve',{caseId,reason:'Reviewed'},'reviewer');assert.equal(current.activeVersionId,caseId);

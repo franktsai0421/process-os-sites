@@ -45,8 +45,13 @@
   let nodeDialog = null, viewDialog = null, formSnapshot = null, addingEquipment = false, newEquipmentForm = null, newEquipmentOwner = null, equipmentReadAttempt = null, transferDialog = null;
   const equipmentRefCache = new Map();
   const equipmentRefReads = new Map();
-  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null;const sharedPoll=window.createForegroundPoll();let readIntent=0,beginEntryAttempt=null;
-  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
+  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,inputOwner=null;const sharedPoll=window.createForegroundPoll();let readIntent=0,beginEntryAttempt=null;
+  function hasLocalDraftInput(){return !!(editingEquipmentId||nodeDialog||addingEquipment||pendingPhotos.size||working&&syncBase&&snapshotChanges(syncBase,working).patches.length);}
+  function inputPrincipalCurrent(){return !!inputOwner&&inputOwner.actor===identity()&&inputOwner.id===identity()?.id&&Number.isSafeInteger(inputOwner.epoch)&&inputOwner.epoch>=0&&inputOwner.epoch===window.ProcessSync?.identityGeneration?.();}
+  function inputTargetCurrent(){return !!inputOwner&&inputOwner.page===host&&inputOwner.tab===host?.dataset?.activeTab&&inputOwner.connected===host?.isConnected&&inputOwner.versionId===selectedVersionId&&inputOwner.generation===control?.workflow?.generation;}
+  function inputOwnerCurrent(){return inputPrincipalCurrent()&&inputTargetCurrent()&&!window.ProcessSync?.requiresReload&&!!inputOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(inputOwner.delivery)===true;}
+  function rememberInputOwner(delivery=window.ProcessSync?.captureDelivery?.()){inputOwner={actor:identity(),id:identity()?.id,epoch:window.ProcessSync?.identityGeneration?.(),delivery,page:host,tab:host?.dataset?.activeTab,connected:host?.isConnected,versionId:selectedVersionId,generation:control?.workflow?.generation};}
+  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
   function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
       const before=base[collection]||[],after=next[collection]||[];
@@ -83,8 +88,8 @@
       throw Error(beginRecoveryMessage());
     return result;
   }
-  async function beginSharedDraft(client) {
-    const owner = captureTransferOwner(), owns = () => transferOwnerCurrent(owner) && sharedClient === client;
+  async function beginSharedDraft(client, writeOwner) {
+    const owner = captureTransferOwner(), owns = () => transferOwnerCurrent(owner) && sharedClient === client && (!writeOwner || writeOwner());
     const assertOwned = () => { if (!owns()) throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED'); };
     let record = readBeginRecovery(owner.actorId);
     const recover = async () => {
@@ -99,6 +104,7 @@
     try { sessionStorage.setItem(beginRecoveryKey(owner.actorId), JSON.stringify(record)); }
     catch { throw Error(beginRecoveryMessage()); }
     try {
+      assertOwned();
       const result = await client.begin();
       assertOwned();
       if (!result?.control?.workflow || !Number.isSafeInteger(result.revision)) throw Error('INVALID_BEGIN_RESPONSE');
@@ -114,6 +120,7 @@
   function hasBeginRecovery() { try { return !!readBeginRecovery(); } catch { return true; } }
   async function enterExistingDraft() {
     if (busy || !routineTabIsActive()) return;
+    if(!inputOwnerCurrent()&&hasLocalDraftInput()){render();return;}
     const actor = identity(), actorId = actor?.id, epoch = window.ProcessSync?.identityGeneration?.(), delivery = window.ProcessSync?.captureDelivery?.(), page = host;
     let versionId = selectedVersionId;
     const owns = () => actorId === identity()?.id && (typeof epoch === 'number' ? epoch === window.ProcessSync?.identityGeneration?.() : actor === identity()) && (!delivery || window.ProcessSync.isCurrentDelivery(delivery)) && !window.ProcessSync?.requiresReload && host === page && routineTabIsActive() && selectedVersionId === versionId;
@@ -126,46 +133,138 @@
       // Explicit GET-only selection of an existing draft, not attribution of the unknown POST.
       control = result.control; revision = result.revision; controlActor = actorId;
       selectedVersionId = open().id; versionId = selectedVersionId; working = local || snapshotOf(open()); syncBase = local ? localBase : clone(working); syncGeneration = control.workflow.generation;
-      sessionStorage.removeItem(beginRecoveryKey(actorId)); readUnavailable = false;
+      sessionStorage.removeItem(beginRecoveryKey(actorId)); readUnavailable = false;rememberInputOwner(delivery);
       message = t('已選擇核對過的既有共用草稿；先前開始修改的結果仍無法歸因，沒有重送或自動套用。', 'Đã chọn bản nháp chung hiện có đã kiểm tra; không quy kết kết quả yêu cầu trước, không gửi lại hoặc tự áp dụng.');
       pollShared();
     } catch (error) { if (owns()) { readUnavailable = true; message = error.message; } }
     finally { if (beginEntryAttempt === attempt) { beginEntryAttempt = null; busy = false; } if (owns()) render(); }
   }
-  async function writeShared(action,more={}){
+  // Insert ACKs may contain server allocation/defaults. Compare every field;
+  // only the transformations in equipment-workflow/checkedSnapshot are allowed.
+  function confirmedEquipmentInsert(snapshot,patch){try{
+    const collection=patch.path[0],sent=patch.value,rows=snapshot?.[collection];
+    const validRows=rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string'&&!!row.id);
+    if(patch.path.length!==1||!sent||typeof sent.id!=='string'||!validRows(rows))return false;
+    const matches=rows.filter(row=>row?.id===sent.id);if(matches.length!==1)return false;
+    const actual=matches[0],same=(a,b)=>{
+      if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+      const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&same(a[key],b[key]));
+    };
+    if(collection==='subcategories')return same(actual,sent); // No canonical transformation.
+    const allocated=(value,prefix='')=>{if(typeof value!=='string'||!value.startsWith(prefix))return false;const number=Number(value.slice(prefix.length));return Number.isSafeInteger(number)&&number>0&&value===prefix+String(number).padStart(2,'0');};
+    const only=(row,keys)=>Object.keys(row).every(key=>keys.includes(key));
+    const one=(kind,id)=>{const rows=snapshot?.[kind];if(typeof id!=='string'||!id||!validRows(rows))return null;const found=rows.filter(row=>row.id===id);return found.length===1?found[0]:null;};
+    const parents=(categoryId,subcategoryId)=>{const category=one('categories',categoryId),sub=one('subcategories',subcategoryId);return category&&sub?.categoryId===categoryId&&[category.code,category.name,sub.name].every(value=>typeof value==='string'&&value.trim())?{categoryId,subcategoryId,categoryCode:category.code,category:category.name,subcategory:sub.name}:null;};
+    let expected;
+    if(collection==='categories'){
+      if(!allocated(actual.code,'C')||rows.filter(row=>row?.code===actual.code).length!==1)return false;
+      expected={...sent,code:actual.code};
+    }else if(collection==='groups'){
+      const fields=['id','name','nameZh','nameVi','categoryId','subcategoryId','categoryCode','category','subcategory','spec','sourceStatus','notes','photoId'];
+      if(!only(sent,fields)||Object.values(sent).some(value=>value!==null&&typeof value!=='string'))return false;
+      const derived=parents(sent.categoryId,sent.subcategoryId);if(!derived)return false;
+      expected={id:sent.id,name:sent.name||sent.nameVi||sent.nameZh||sent.id,nameZh:sent.nameZh??'',nameVi:sent.nameVi??'',...derived,spec:sent.spec??'',sourceStatus:sent.sourceStatus??'',notes:sent.notes??'',photoId:sent.photoId||''};
+    }else if(collection==='equipment'){
+      const defaults={id:sent.id,assetCode:String(sent.assetCode||'').trim().toUpperCase(),pieceMark:actual.pieceMark,groupId:'',calibrationMethod:'none',calibrationCycle:'',customCycle:'',calibratedAt:'',expiresAt:'',intakeDate:'',name:'',quantity:1,unit:'個',owner:'',enabled:true,confirmed:false,spec:'',notes:'',photoId:'',photoHidden:false};
+      const derivedFields=['categoryId','subcategoryId','categoryCode','category','subcategory'];
+      if(!only(sent,[...Object.keys(defaults),...derivedFields,'sourceRow','effectiveAt'])||['sourceRow','effectiveAt'].some(key=>Object.hasOwn(sent,key)&&sent[key]!==null))return false;
+      if(!allocated(actual.pieceMark)||rows.filter(row=>row?.assetCode===defaults.assetCode&&row?.pieceMark===actual.pieceMark).length!==1)return false;
+      const group=one('groups',sent.groupId),derived=group&&parents(group.categoryId,group.subcategoryId);if(!derived)return false;
+      // checkedSnapshot's mutableFields copy is after its constructors: an
+      // explicitly supplied null/empty value is not replaced with a default.
+      expected={...defaults};for(const key of Object.keys(defaults))if(!['id','assetCode','pieceMark'].includes(key)&&Object.hasOwn(sent,key))expected[key]=sent[key];
+      Object.assign(expected,derived);
+    }else return false;
+    return same(actual,expected);
+  }catch{return false;}} // Malformed ACK validation must latch readUnavailable, never invite another POST.
+  async function writeShared(action,more={},departureOwner){
+    departureOwner?.assert();
+    if(!inputOwnerCurrent()){readUnavailable=true;message=t('帳號或登入世代已變更；原輸入保留但不會載入或送到新帳號，請先重新核對。','Tài khoản hoặc phiên đăng nhập đã đổi; giữ dữ liệu cũ nhưng không hiển thị hay gửi bằng tài khoản mới. Hãy đối chiếu lại.');render();return null;}
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
-    if(busy)return null;busy=true;readIntent++;
+    if(busy)return null;
+    if(['save','submit'].includes(action)&&(editingEquipmentId||nodeDialog||addingEquipment||pendingPhotos.size||isFormDirty()||working&&syncBase&&snapshotChanges(syncBase,working).patches.length)){
+      message=t('請先套用或取消目前表單，再儲存或送審；輸入仍保留。','Áp dụng hoặc hủy biểu mẫu hiện tại trước khi lưu / gửi duyệt; dữ liệu nhập được giữ lại.');
+      const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=message;return null;
+    }
+    const actor=identity(),actorId=actor?.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),page=host,reviewPage=reviewHost,lifecycle=equipmentEditRequest,attempt={};
+    let versionId=selectedVersionId,generation=control?.workflow?.generation,activeId=control?.activeVersionId,modelRevision=revision,flowRevision=control?.workflow?.revision,client;
+    const tab=page?.dataset?.activeTab,connected=page?.isConnected;
+    const owns=()=>writeShared.attempt===attempt&&actor===identity()&&actorId===identity()?.id&&controlActor===actorId&&
+      (Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&
+      !window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&
+      host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
+      control?.workflow?.generation===generation&&control?.activeVersionId===activeId&&(!client||sharedClient===client)&&(!departureOwner||departureOwner.current());
+    const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
+    const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
+    const sentNodeDialog=nodeDialog,sentAddForm=newEquipmentForm,inputStamp=()=>JSON.stringify([nodeDialog,newEquipmentForm,editingEquipmentId]);
+    const local=working&&clone(working),sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
+    const uploadedPhotos=new Map(),samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};
+    writeShared.attempt=attempt;busy=true;readIntent++;
     const priorFocusedId=host?.contains(document.activeElement)?document.activeElement.id:'';
     host?.querySelectorAll('#routine-save,#routine-submit').forEach(button=>{button.disabled=true;});
     const saveButton=host?.querySelector('#routine-save');if(saveButton&&action==='save')saveButton.textContent=t('儲存中…','Đang lưu…');
     try{
-      const client=sharedTransport();if(client.hasUnknown()){await client.resolveUnknown();throw Error(t('已查證前次操作，請重新載入核對後繼續','Đã xác minh thao tác trước; tải lại và đối chiếu trước khi tiếp tục'));}
+      assertOwned();client=sharedTransport();assertOwned();
+      if(client.hasUnknown()){assertOwned();await client.resolveUnknown();assertOwned();throw Error(t('已查證前次操作，請重新載入核對後繼續','Đã xác minh thao tác trước; tải lại và đối chiếu trước khi tiếp tục'));}
       if(action!=='begin'&&readBeginRecovery()){readUnavailable=true;throw Error(beginRecoveryMessage());}
-      const local=working&&clone(working),base=syncBase||open()&&snapshotOf(open());
-      if(!control.workflow||action==='begin'){const r=await beginSharedDraft(client);control=r.control;revision=r.revision;if(!syncGeneration)syncGeneration=control.workflow.generation;if(action==='begin'){selectedVersionId=open()?.id;working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;message=r.beginRecovered?t('已唯讀確認可安全恢復到匹配草稿；沒有重送開始修改。','Đã kiểm tra bản nháp chung bằng đọc; không gửi lại yêu cầu bắt đầu, có thể tiếp tục sửa.'):t('共用草稿已準備完成','Bản nháp chung đã sẵn sàng');return r;}if(r.beginRecovered){readUnavailable=true;throw Error(t('已核對共用草稿；請重新載入保留輸入後，再明確套用原表單。','Đã kiểm tra bản nháp chung; tải lại và giữ dữ liệu rồi áp dụng rõ ràng biểu mẫu.'));}}
-      const flow=control.workflow;let commandAction=action,detail={};
+      if(!control.workflow||action==='begin'){
+        assertOwned();const r=await beginSharedDraft(client,owns);assertOwned();control=r.control;revision=r.revision;advance();
+        if(!syncGeneration)syncGeneration=control.workflow.generation;
+        if(action==='begin'){selectedVersionId=open()?.id;if(JSON.stringify(working)===JSON.stringify(sentInput)&&stamp===inputStamp()&&!pendingPhotos.size){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}else readUnavailable=true;advance();message=r.beginRecovered?t('已唯讀確認可安全恢復到匹配草稿；沒有重送開始修改。','Đã kiểm tra bản nháp chung bằng đọc; không gửi lại yêu cầu bắt đầu, có thể tiếp tục sửa.'):t('共用草稿已準備完成','Bản nháp chung đã sẵn sàng');return r;}
+        if(r.beginRecovered){readUnavailable=true;throw Error(t('已核對共用草稿；請重新載入保留輸入後，再明確套用原表單。','Đã kiểm tra bản nháp chung; tải lại và giữ dữ liệu rồi áp dụng rõ ràng biểu mẫu.'));}
+      }
+      const flow=control.workflow;let commandAction=action,detail={},submissionGeneration=null;
       if(action==='apply'){
-        for(const [id,pending]of pendingPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]).find(r=>r.id===id);if(row)row.photoId=await uploadImage(pending.file);}
+        // Only the captured photo entries belong to this dispatch. A later preview is a next batch.
+        for(const [id,pending]of sentPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);}}
         detail=snapshotChanges(base||flow.working,local);if(!detail.patches.length)return{control,revision};
       }else if(action==='save'){
-        await client.flush();if((editingEquipmentId||nodeDialog||addingEquipment)&&!confirm(t('只儲存已同步內容，不包含未套用表單。繼續？','Chỉ lưu nội dung đã đồng bộ, không gồm biểu mẫu chưa áp dụng. Tiếp tục?')))return null;
+        assertOwned();await client.flush();assertOwned();
       }else if(action==='submit'){
-        if(!flow.saved)throw Error('SUCCESSFUL_SAVE_REQUIRED');const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),t('檢具全庫','Toàn bộ thiết bị'));if(!reason)return null;
-        detail={savedId:flow.saved.id,reason};
+        const snapshot=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
+        assertOwned();const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),t('檢具全庫','Toàn bộ thiết bị'),{savedVersion:{id:snapshot.savedId,revision:snapshot.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});assertOwned();if(reason===null)return null;
+        if(readUnavailable||!client.permission('submit'))throw Error('DELIVERY_SUPERSEDED');
+        if(control.workflow?.generation!==submissionGeneration||control.workflow.revision!==snapshot.expectedRevision||control.workflow.saved?.id!==snapshot.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+        detail={...snapshot,reason};
       }else if(['approve','reject','withdraw'].includes(action)){
         commandAction=action==='reject'?'return':action;const caseId=more.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);
-        const answer=await window.VersionDraftUI.confirmReview({action,scope:t('檢具全庫','Toàn bộ thiết bị')+' · '+caseId,reason:more.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===identity()?.id});if(!answer)return null;detail={caseId,...answer};
+        assertOwned();const answer=await window.VersionDraftUI.confirmReview({action,scope:t('檢具全庫','Toàn bộ thiết bị')+' · '+caseId,reason:more.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===actorId});assertOwned();if(!answer)return null;detail={caseId,...answer};
       }
-      const result=await client.command(action==='apply'?syncGeneration||flow.generation:flow.generation,commandAction,detail);
-      if(result.control){control=result.control;revision=result.revision;}else await read();selectedVersionId=open()?.id||active()?.id||'';
+      const commandGeneration=action==='apply'?syncGeneration||flow.generation:submissionGeneration||flow.generation;
+      assertOwned();const result=await client.command(commandGeneration,commandAction,detail);assertOwned();
+      // A fallback read is metadata only; it must not reset RAM before settlement.
+      let confirmed=result;if(!confirmed.control){assertOwned();try{confirmed=await client.read();}catch(error){if(owns())readUnavailable=true;throw error;}assertOwned();if(confirmed.permissions?.view!==true){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}}
+      if(!confirmed.control?.workflow||!Number.isSafeInteger(confirmed.revision)||confirmed.revision<revision){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
+      if(action==='apply'){
+        const actual=confirmed.control.workflow.working,valueAt=(data,path)=>path.reduce((value,key)=>typeof key==='object'?value?.find(row=>row.id===key.id):value?.[key],data);
+        const hasInsert=detail.patches.some(patch=>patch.op==='insert');
+        try{
+        if(confirmed.control.workflow.generation!==commandGeneration||hasInsert&&!['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(actual?.[key]))||hasInsert&&(!result.receipt||result.receipt.unchanged!==false||result.receipt.generation!==commandGeneration||!Number.isSafeInteger(result.receipt.revision)||result.receipt.revision<=flow.revision||!Number.isSafeInteger(confirmed.control.workflow.revision)||confirmed.control.workflow.revision<result.receipt.revision)||!detail.patches.every(patch=>patch.op==='remove'?valueAt(actual,patch.path)===undefined:patch.op==='insert'?confirmedEquipmentInsert(actual,patch):JSON.stringify(valueAt(actual,patch.path))===JSON.stringify(patch.value))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
+        }catch(error){if(hasInsert){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}throw error;}
+      }
+      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='apply'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
+      control=confirmed.control;revision=confirmed.revision;selectedVersionId=open()?.id||active()?.id||'';advance();
       if(action!=='apply'){submitProblems=[];problemSnapshot=null;openErrors=false;}
-      if(action!=='save'||!editingEquipmentId&&!nodeDialog&&!addingEquipment){working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
-      if(action==='apply'){for(const p of pendingPhotos.values())URL.revokeObjectURL(p.url);pendingPhotos.clear();}
-      message=action==='save'?t('共用快照已儲存至伺服器','Đã lưu bản chụp chung trên máy chủ'):action==='apply'?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
-      window.dispatchEvent(new CustomEvent('routine-equipment-updated',{detail:{revision,activeVersionId:control.activeVersionId,action}}));return result;
+      if(nextInput){
+        // Never rebase next-input guards onto peer values from the ACK/readback.
+        if(action==='apply'){
+          for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
+            if(current&&before&&sent&&samePhoto(id,entry)&&current.photoId===before.photoId&&current.photoHidden===before.photoHidden)current.photoId=sent.photoId;
+          }
+          syncBase=clone(local);
+        }
+      }else{working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
+      if(action==='apply')for(const [id,entry]of uploadedPhotos)if(samePhoto(id,entry)){
+        if(nextInput&&nodeDialog===sentNodeDialog&&nodeDialog?.prior?.id===id&&nodeDialog.pendingPhoto===entry.entry){nodeDialog.pendingPhoto=null;nodeDialog.photoId=local[['categories','subcategories','groups'].find(key=>local[key]?.some(row=>row.id===id))]?.find(row=>row.id===id)?.photoId||'';}
+        if(nextInput&&newEquipmentForm===sentAddForm&&newEquipmentForm?.submittedEquipmentId===id&&newEquipmentForm.pendingPhoto===entry.entry)newEquipmentForm.pendingPhoto=null;
+        URL.revokeObjectURL(entry.url);pendingPhotos.delete(id);
+      }
+      message=nextInput?t('本批已確認；後續輸入仍未套用，請明確套用並核對來源。','Đã xác nhận đợt này; dữ liệu nhập sau chưa áp dụng, hãy áp dụng rõ ràng và đối chiếu nguồn.'):action==='save'?t('共用快照已儲存至伺服器','Đã lưu bản chụp chung trên máy chủ'):action==='apply'?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
+      window.dispatchEvent(new CustomEvent('routine-equipment-updated',{detail:{revision,activeVersionId:control.activeVersionId,action}}));return owns()?result:null;
     }catch(error){
+      if(!owns())return null;
       try { if(readBeginRecovery())readUnavailable=true; } catch { readUnavailable=true; }
-      message=error.message;
+      message=error.message==='SYNC_CONFIRMATION_REQUIRED'?t('同步回應尚未核對；輸入與原值保留，請先重新載入核對，不會自動重送。','Chưa đối chiếu phản hồi đồng bộ; giữ dữ liệu nhập và giá trị gốc, hãy tải lại đối chiếu; không tự gửi lại.'):error.message;
       if(Array.isArray(error.details?.issues)){
         const flow=control.workflow;
         problemSnapshot={kind:action==='submit'?'saved':'case',id:action==='submit'?flow.saved?.id:more.versionId||flow.pendingId,generation:flow.generation};
@@ -174,28 +273,36 @@
         message=t('已儲存的送審內容未通過驗證，請查看報錯與待補。修正後須手動儲存再送審。','Nội dung đã lưu để gửi duyệt chưa đạt kiểm tra. Xem lỗi và mục cần bổ sung; sửa rồi lưu thủ công trước khi gửi lại.');
       }
       return null;
-    }finally{busy=false;if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
+    }finally{const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
       const focusedId=host?.contains(document.activeElement)?document.activeElement.id:priorFocusedId,scrollX=window.scrollX,scrollY=window.scrollY;
       render();if(focusedId){document.getElementById(focusedId)?.focus({preventScroll:true});window.scrollTo(scrollX,scrollY);}
-    }}
+    }}}
   }
   // Preserve this unapplied drawer; renewal reads never acknowledge or replay it.
-  function captureAddEquipmentInput() {
+  function captureAddEquipmentInput(root=host) {
     if (!addingEquipment || !newEquipmentForm || !routineTabIsActive()) return;
     const fields = {assetCode:'asset-code',name:'name',unit:'unit',owner:'owner',calibrationMethod:'calibration-method',calibrationCycle:'calibration-cycle',customCycle:'custom-cycle',calibratedAt:'calibrated-at',expiresAt:'expires-at',intakeDate:'intake-date',spec:'spec',notes:'notes',groupId:'group-select'};
     for (const [field, id] of Object.entries(fields)) {
-      const input = host.querySelector('#routine-add-' + id);
+      const input = root.querySelector('#routine-add-' + id);
       if (input) newEquipmentForm[field] = input.value;
     }
     for (const field of ['enabled','confirmed']) {
-      const input = host.querySelector('#routine-add-' + field);
+      const input = root.querySelector('#routine-add-' + field);
       if (input) newEquipmentForm[field] = input.value === 'true';
     }
     // pendingPhoto retains the exact File and object URL; never clone/revoke/upload.
   }
+  // Keep an exact private drawer reference across quarantine; never attach it to another account.
+  function captureRetainedAddEquipmentInput() {
+    const record=bindAddEquipmentInput.forms?.get(newEquipmentForm);
+    if(!record||record.owner!==newEquipmentOwner||record.actor!==identity()||record.actorId!==identity()?.id||!Number.isSafeInteger(record.epoch)||record.epoch<0||record.epoch!==window.ProcessSync?.identityGeneration?.()||
+      record.page!==host||record.tab!==host?.dataset?.activeTab||record.connected!==host?.isConnected||record.versionId!==selectedVersionId||record.generation!==newEquipmentOwner?.generation)return;
+    captureAddEquipmentInput(record.drawer);
+  }
   function bindAddEquipmentInput() {
     const drawer = host?.querySelector('#routine-add-modal'), page = host, form = newEquipmentForm, owner = newEquipmentOwner;
     if (!drawer || drawer.dataset.routineInputBound || !form || !owner) return;
+    (bindAddEquipmentInput.forms ||= new WeakMap()).set(form,{drawer,page,owner,actor:identity(),actorId:identity()?.id,epoch:window.ProcessSync?.identityGeneration?.(),tab:page.dataset.activeTab,connected:page.isConnected,versionId:selectedVersionId,generation:owner.generation});
     const capture = event => {
       if (!drawer.isConnected || !drawer.contains(event.target) || !routineTabIsActive() || host !== page ||
           newEquipmentForm !== form || newEquipmentOwner !== owner || identity()?.id !== owner.actor ||
@@ -229,6 +336,7 @@
   }
   async function recoverAddEquipmentRead() {
     if (busy || equipmentReadAttempt || !addingEquipment || !newEquipmentForm || !routineTabIsActive()) return;
+    if(!inputOwnerCurrent()){captureRetainedAddEquipmentInput();render();return;}
     const actor = identity()?.id, epoch = window.ProcessSync?.identityGeneration?.(), page = host,
       form = newEquipmentForm, draft = working, base = syncBase, generation = syncGeneration,
       flowGeneration = control?.workflow?.generation, pendingId = control?.workflow?.pendingId,
@@ -296,11 +404,12 @@
   function pollShared(){const pollScheduleOwner=sharedPoll.capture();try{if(readBeginRecovery()){sharedPoll.cancel();return;}}catch{sharedPoll.cancel();return;}const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>sharedPoll.isCurrent(pollScheduleOwner)&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));sharedPoll.schedule(async()=>{
     if(!owns())return;
     if(!routineTabIsActive())return;
+    if(!inputOwnerCurrent()){render();return;}
     try{if(!busy&&document.visibilityState!=='hidden'&&sharedTransport().canPoll('state')){
       const intent=readIntent,flow=control?.workflow,result=await sharedTransport().read(flow?`${flow.generation}:${flow.revision}`:'');
       if(!owns()||intent!==readIntent||busy)return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);control=result.control;revision=result.revision;
-        if(editingEquipmentId||nodeDialog||addingEquipment||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}
-        else{if(wasOpen){selectedVersionId=open()?.id||active()?.id;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}render();}
+        if(editingEquipmentId||nodeDialog||addingEquipment||pendingPhotos.size||working&&syncBase&&snapshotChanges(syncBase,working).patches.length||document.activeElement?.matches('input,textarea,select')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=t('共用內容已更新，保留目前輸入，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu đang nhập và kiểm tra nguồn khi áp dụng.');}
+        else{if(wasOpen){selectedVersionId=open()?.id||active()?.id;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;rememberInputOwner();}render();}
       }
     }}catch(e){if(owns())showEquipmentReadRecovery(e);}
     finally{if(owns()&&sharedPoll.isCurrent(pollScheduleOwner))pollShared();}
@@ -394,7 +503,7 @@
   const active = () => control?.versions.find(version => version.id === control.activeVersionId);
   const selected = () => control?.versions.find(version => version.id === selectedVersionId) || open() || active() || control?.versions[0];
   const visible = () => selected()?.id === open()?.id && working ? working : selected();
-  const editable = () => !readUnavailable && selected()?.status === 'draft' && !!working && permitted('approval.submit');
+  const editable = () => !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');
   const status = value => ({
     draft: t('待確認草稿', 'Bản nháp chờ xác nhận'),
     pending: t('主管審核中', 'Quản lý đang duyệt'),
@@ -420,23 +529,34 @@
   const failed = error => { message = error?.message || t('操作失敗', 'Thao tác thất bại'); render(); };
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' };
 
-  async function read(preserveInput=false) {
-    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>intent===readIntent&&actor===identity()?.id&&(typeof epoch==='number'?epoch===window.ProcessSync?.identityGeneration?.():actorObject===identity())&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+  async function read(preserveInput=false,explicitDelivery=false) {
+    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;
+    const retainedWorking=working,retainedBase=syncBase,retainedNode=nodeDialog,retainedForm=newEquipmentForm,retainedOwner=inputOwner,deliveryRecheck=explicitDelivery&&hasLocalDraftInput()&&inputPrincipalCurrent()&&inputTargetCurrent()&&inputOwner.generation===syncGeneration&&!inputOwnerCurrent(),readClient=sharedClient;
     try {
+    if(inputOwner&&!inputOwnerCurrent())render();
+    if(!inputOwnerCurrent()&&hasLocalDraftInput()&&!deliveryRecheck)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    if(!owns())throw Error('DELIVERY_SUPERSEDED');
     const response = await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'caseMetadata=1', { cache: 'no-store', headers: headers() });
     const body = await response.json().catch(() => ({}));
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
     if(actor!==identity()?.id)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('後端資料載入失敗', 'Không thể tải dữ liệu máy chủ'));
-    const access=await sharedTransport().permissions();
+    const access=await (deliveryRecheck?readClient:sharedTransport()).permissions();
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
     const recovery=readBeginRecovery(actor);if(recovery){confirmBeginRecovery({...body,permissions:access.permissions},recovery);throw Error(beginRecoveryMessage());}
+    if(deliveryRecheck){
+      const flow=body.control.workflow,draft=body.control.versions?.find(item=>item.id===versionId);
+      if(inputOwner!==retainedOwner||working!==retainedWorking||syncBase!==retainedBase||nodeDialog!==retainedNode||newEquipmentForm!==retainedForm||sharedClient!==readClient||readClient.hasSyncFailures()&&!readClient.hasUnknown()||!Number.isSafeInteger(body.revision)||!inputPrincipalCurrent()||!inputTargetCurrent()||access.permissions?.view!==true||access.permissions?.edit!==true||flow?.scope!=='routine-equipment'||flow.generation!==retainedOwner.generation||flow.pendingId||body.control.versions.some(item=>['pending','pending-test'].includes(item.status))||draft?.status!=='draft'||!Number.isSafeInteger(flow.revision)||flow.revision<(control?.workflow?.revision||0)||body.revision<revision)throw Error('DELIVERY_RECHECK_REQUIRED');
+      preserveInput=true;
+    }else if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
     control = body.control; revision = body.revision;controlActor=actor;readUnavailable=false;
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
-    if(!preserveInput){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;
+    if(!preserveInput&&!editingEquipmentId&&!nodeDialog&&!addingEquipment&&!pendingPhotos.size&&!(working&&syncBase&&snapshotChanges(syncBase,working).patches.length)){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;
     syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}
+    rememberInputOwner(delivery);
+    if(deliveryRecheck)message=t('已重新核對此頁權限；原輸入與原值保留，請明確套用並核對衝突。','Đã kiểm tra lại quyền trang này; giữ dữ liệu nhập và giá trị gốc, hãy áp dụng rõ ràng và đối chiếu xung đột.');
     if(recovery)pollShared();
     }catch(error){if(owns())readUnavailable=true;throw error;}
   }
@@ -838,9 +958,9 @@
   }
 
   const canDraftAction=op=>!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
-  async function saveDraft(action) {
+  async function saveDraft(action,departureOwner) {
     if (!canDraftAction(action) || busy) return null;
-    if(control?.workflow||open()?.status!=='pending')return writeShared(action);
+    if(control?.workflow||open()?.status!=='pending')return writeShared(action,{},departureOwner);
     try {
       if (pendingPhotos.size) {
         busy = true; message = t('正在保存照片…', 'Đang lưu ảnh…'); render();
@@ -1185,8 +1305,9 @@
   }
 
   async function confirmNodeDialog() {
-    if (!nodeDialog || !editable()) return;
-    const { kind, prior } = nodeDialog;
+    if (!nodeDialog || !editable() || busy) return;
+    const dialog=nodeDialog;
+    const { kind, prior } = dialog;
 
     const nameInput = host.querySelector('#routine-dialog-name');
     const specInput = host.querySelector('#routine-dialog-spec');
@@ -1217,23 +1338,29 @@
       const rec = { id: newId, code, name, photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
+      dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
       selectedCategory = newId; selectedSubcategory = ''; selectedGroup = '';
     } else if (kind === 'subcategory') {
       const newId = crypto.randomUUID();
       const rec = { id: newId, categoryId: selectedCategory, name, photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
+      dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
       selectedSubcategory = newId; selectedGroup = '';
     } else {
       const newId = crypto.randomUUID();
       const rec = { id: newId, categoryId: selectedCategory, subcategoryId: selectedSubcategory, name, spec, notes: '', photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
+      dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
       selectedGroup = newId;
     }
 
     syncHierarchy();
+    dialog.name=name;dialog.spec=spec;
+    const sentDialog=JSON.stringify(dialog);
     if(!await writeShared('apply'))return;
+    if(nodeDialog!==dialog||JSON.stringify(dialog)!==sentDialog)return;
     nodeDialog = null;
     render();
   }
@@ -1265,8 +1392,7 @@
     if (kind === 'subcategory') { selectedSubcategory = ''; selectedGroup = ''; }
     if (kind === 'group') selectedGroup = '';
     message = t(`已從目前草稿刪除【${displayNameStr}】，尚未保存至伺服器。`, `Đã xóa 【${displayNameStr}】 khỏi bản nháp hiện tại, chưa lưu lên máy chủ.`);
-    await writeShared('apply');
-    render();
+    if(await writeShared('apply'))render();
   }
 
   async function deleteEquipment(id) {
@@ -1342,8 +1468,7 @@
     if (selectedEquipmentId === id) selectedEquipmentId = '';
     if (editingEquipmentId === id) { editingEquipmentId = ''; formSnapshot = null; }
     message = t(`已從目前草稿刪除【${title}】，尚未保存至伺服器。`, `Đã xóa 【${title}】 khỏi bản nháp hiện tại, chưa lưu lên máy chủ.`);
-    await writeShared('apply');
-    render();
+    if(await writeShared('apply'))render();
   }
 
   async function openEditEquipment(id) {
@@ -1418,7 +1543,9 @@
 
   async function confirmAddEquipment() {
     if (!addingEquipment || !newEquipmentForm || !editable() || busy) return;
-    const root = host;
+    const root = host,form=newEquipmentForm,lifecycle=equipmentEditRequest,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=control?.workflow?.generation,versionId=selectedVersionId,client=sharedClient;
+    const ownsForm=()=>host===root&&newEquipmentForm===form&&equipmentEditRequest===lifecycle&&identity()===actor&&controlActor===actor?.id&&window.ProcessSync?.identityGeneration?.()===epoch&&!window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&control?.workflow?.generation===generation&&selectedVersionId===versionId&&sharedClient===client;
+    if(form.submittedEquipmentId&&sharedClient?.hasUnknown()){await writeShared('apply');return;}
 
     const assetCode = String(root.querySelector('#routine-add-asset-code')?.value || '').trim().toUpperCase();
     const name = String(root.querySelector('#routine-add-name')?.value || '').trim();
@@ -1477,8 +1604,10 @@
       if (!group) throw new Error(t('所選規格群組無效', 'Nhóm quy cách không hợp lệ'));
       selectedGroup = group.id;
 
-      const mark = computeNextPieceMark(assetCode);
-      const newId = crypto.randomUUID();
+      const existing=form.submittedEquipmentId&&working.equipment.find(row=>row.id===form.submittedEquipmentId);
+      if(form.submittedEquipmentId&&(!existing||existing.assetCode!==assetCode))throw Error(t('已送出這筆檢具；保留輸入，請先核對原筆資料與固定資產編號。','Thiết bị này đã được gửi; giữ dữ liệu nhập, hãy đối chiếu bản ghi và mã tài sản trước.'));
+      const mark = existing?.pieceMark||computeNextPieceMark(assetCode);
+      const newId = existing?.id||crypto.randomUUID();
 
       const newRecord = {
         id: newId,
@@ -1504,7 +1633,7 @@
         intakeDate,
         spec,
         notes,
-        photoId: '',
+        photoId: existing?.photoId||'',
         sourceRow: null,
         effectiveAt: null,
       };
@@ -1519,10 +1648,15 @@
         control.reservedMarks[assetCode].push(mark);
       }
 
-      working.equipment.push(newRecord);
+      if(existing)Object.assign(existing,newRecord);else working.equipment.push(newRecord);
+      form.submittedEquipmentId=newId;
       syncHierarchy();
+      const sentForm=JSON.stringify(form);
       busy=false;
-      if(!await writeShared('apply')){working.equipment=working.equipment.filter(e=>e.id!==newId);newEquipmentForm.error=message;return;}
+      const result=await writeShared('apply');
+      if(!ownsForm())return;
+      if(!result){form.error=message;return;}
+      if(JSON.stringify(form)!==sentForm)return;
 
       addingEquipment = false;
       newEquipmentForm = null;
@@ -1532,10 +1666,9 @@
       message = t('新增檢具已同步，尚未手動儲存。', 'Đã đồng bộ thiết bị mới, chưa lưu thủ công.');
       render();
     } catch (err) {
-      newEquipmentForm.error = err.message || t('新增失敗', 'Thêm thất bại');
-      render();
+      if(ownsForm()){form.error = err.message || t('新增失敗', 'Thêm thất bại');render();}
     } finally {
-      busy = false;
+      if(ownsForm()&&!writeShared.attempt)busy = false;
     }
   }
 
@@ -2722,8 +2855,10 @@
 
   function render() {
     if (!routineTabIsActive()) return;
-    if (!control || controlActor!==identity()?.id) {
-      const loadError = message;
+    const ownerBlocked=inputOwner&&!inputOwnerCurrent();
+    if(ownerBlocked||bindAddEquipmentInput.forms?.get(newEquipmentForm)?.drawer?.isConnected===false)captureRetainedAddEquipmentInput();
+    if (!control || controlActor!==identity()?.id || ownerBlocked) {
+      const loadError = ownerBlocked?t('帳號或登入世代已變更；原輸入已隔離保留，請重新核對，不會送到新帳號。','Tài khoản hoặc phiên đăng nhập đã đổi; dữ liệu cũ được giữ riêng. Hãy đối chiếu lại; không gửi bằng tài khoản mới.'):message;
       host.innerHTML = `<section class="routine-page" data-i18n-skip="true">
         <div class="routine-card">
           <p>${h(loadError ? displayDraftError(loadError) : t('正在載入檢具資料…', 'Đang tải dữ liệu thiết bị…'))}</p>
@@ -2735,7 +2870,7 @@
     host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {
         message = '';
         render();
-        try { await read(); render(); } catch (error) { message = error.message; render(); }
+        try { await read(false,true); render(); } catch (error) { message = error.message; render(); }
       });
       return;
     }
@@ -2830,7 +2965,7 @@
       `}</section>`;
     bind();
     host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
-    host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});
+    host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});
     if(readUnavailable)host.querySelectorAll('#routine-save,#routine-submit,#routine-begin').forEach(button=>{button.disabled=true;});
     if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);
       if(permitted('approval.compare')){const b=document.createElement('button');b.id='routine-case-history';b.className='button ghost';b.textContent=t('送審案件','Hồ sơ gửi duyệt');b.onclick=()=>window.openSharedDraftHistory({client:sharedTransport(),editable:()=>open()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{await read();render();}}).catch(failed);panel.append(b);}
@@ -2855,6 +2990,7 @@
       equipmentEditRequest++;
       selectedVersionId = event.target.value;
       working = selected().status === 'draft' ? snapshotOf(selected()) : null;
+      rememberInputOwner();
       selectedEquipmentId = '';
       editingEquipmentId = '';
       formSnapshot = null;
@@ -2906,6 +3042,8 @@
     root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); });
 
     // Node dialog bindings
+    const boundNodeDialog=nodeDialog;
+    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;});
     root.querySelector('#routine-dialog-close')?.addEventListener('click', cancelNodeDialog);
     root.querySelector('#routine-dialog-cancel')?.addEventListener('click', cancelNodeDialog);
     root.querySelector('#routine-dialog-confirm')?.addEventListener('click', confirmNodeDialog);
@@ -3002,7 +3140,7 @@
       if (!issue) return;
       if (issue.status !== 'resolved' && !String(issue.resolution || '').trim()) { alert(t('請先填寫處理結果與依據', 'Hãy nhập kết quả và căn cứ trước')); return; }
       issue.status = issue.status === 'resolved' ? 'pending' : 'resolved';
-      await writeShared('apply');render();
+      if(await writeShared('apply'))render();
     });
 
     // Form handlers
@@ -3150,7 +3288,9 @@
           }
         }
 
+        const sentForm=JSON.stringify(item),sentFormSnapshot=formSnapshot,sentPhoto=pendingPhotos.get(item.id),sentPhotoFile=sentPhoto?.file,sentPhotoURL=sentPhoto?.url;
         if(!await writeShared('apply'))return;
+        if(editingEquipmentId!==item.id||formSnapshot!==sentFormSnapshot||JSON.stringify(item)!==sentForm||pendingPhotos.get(item.id)&&(pendingPhotos.get(item.id)!==sentPhoto||sentPhoto?.file!==sentPhotoFile||sentPhoto?.url!==sentPhotoURL))return;
         closeForm();
       });
 
@@ -3415,8 +3555,18 @@
   window.addEventListener('quality-equipment-references-updated', refreshOpenEquipmentReferences);
 
   let navigationError=null;
+  let moduleDeparture;
   window.RoutineEquipmentUI = {
-    navigation:{requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+    root:()=>host,flow:()=>control?.workflow,
+    context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
+    current:()=>controlActor===identity()?.id&&inputOwnerCurrent()&&!readUnavailable,busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
+    unknown:()=>sharedClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures(),
+    local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
+    canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
+    save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
+    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
+  });},requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

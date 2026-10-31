@@ -10,8 +10,14 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const html = combineProcessStyles(fs.readFileSync('public/process/index.html','utf8'), name => fs.readFileSync('public/process/'+name,'utf8')).html;
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
-  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 46);
+  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 49);
   assert(result.assets.some(asset=>asset.sources.includes('master-reference-viewer.js')),'latest52 reference viewer remains in source order');
+  const recoveryAsset=result.assets.find(asset=>asset.sources.includes('local-draft-recovery.js'));
+  assert(recoveryAsset,'local recovery helper stays in ordered bundle');
+  assert(recoveryAsset.sources.indexOf('local-draft-recovery-session.js')>recoveryAsset.sources.indexOf('local-draft-recovery.js'));
+  assert(result.html.indexOf(recoveryAsset.name)<result.html.indexOf('data-process-src="app.js?'),'recovery is available before PROCESS binder');
+  const canvasAsset=result.assets.find(asset=>asset.sources.includes('canvas-recovery-store.js'));
+  assert(canvasAsset.sources.indexOf('canvas-recovery-store.js')<canvasAsset.sources.indexOf('canvas-local.js'),'canvas store loads before runtime admission');
   for (const asset of result.assets) {
     let cursor = 0;
     for (const name of asset.sources) {

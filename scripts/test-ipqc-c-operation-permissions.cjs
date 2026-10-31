@@ -149,6 +149,22 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
         const state = await legacy.core.readState(), control = JSON.parse(state.values.ipqcCMasterControl), open = control.versions.find(row => row.status === 'draft' || row.status === 'pending');
         return legacy.call('ipqc-c', 'POST', { action, baseRevision: state.revision, versionId: open?.id, versionRevision: open?.revision, ...details }, who, expected);
       };
+      // Only stored pre-policy cases may still be decided through legacy routes.
+      // This explicit isolated fixture admission is not a successful new Submit.
+      async function installHistoricalPendingFixture() {
+        const state=await legacy.core.readState(),control=JSON.parse(state.values.ipqcCMasterControl),draft=control.versions.find(row=>row.status==='draft');assert(draft);
+        const content=json(draft.snapshot),otherVersions=json(control.versions.filter(row=>row.id!==draft.id)),at='2026-10-01T00:00:00.000Z';
+        draft.status='pending';draft.submittedBy='Synthetic editor';draft.submittedAt=at;draft.updatedAt=at;draft.revision++;
+        draft.history.push({action:'submit',actorId:'preview-editor',actorName:'Synthetic editor',at,comment:'Explicit historical pending fixture admitted under the previous policy; no new legacy Submit'});
+        state.values.ipqcCMasterControl=JSON.stringify(control);
+        legacy.db.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1').run(state.revision+1,await legacy.load('lib/state-records.ts').encodeRecordValues(legacy.env.STATE_ARCHIVE,state.values),at);
+        const stored=await full(legacy);assert.deepEqual(stored.versions.find(row=>row.id===draft.id).snapshot,content);assert.deepEqual(stored.versions.filter(row=>row.id!==draft.id),otherVersions);
+        return legacy.call('ipqc-c');
+      }
+      async function rejectNewLegacySubmit() {
+        const rejected=await unchanged(legacy,()=>legacyCall('submit','editor',409,{snapshot:legacySnapshot}));
+        assert.equal(rejected.code,'WORKFLOW_V3_REQUIRED');assert.equal(rejected.details.reason,'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION');
+      }
       for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await unchanged(legacy, () => legacyCall('begin', who, 403));
       await legacyCall('begin', 'edit-only');
       await unchanged(legacy, () => legacyCall('create-error', 'submit-only', 403, { productCode: 'C100', stageCode: 'C-CUT', name: 'Denied' }));
@@ -161,7 +177,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       for (const who of ['viewer', 'edit-only', 'save-only', 'submit-only', 'edit-submit', 'no-view']) await unchanged(legacy, () => legacyCall('save', who, 403, { snapshot: legacySnapshot }));
       await legacyCall('save', 'edit-save', 200, { snapshot: legacySnapshot });
       for (const who of ['viewer', 'save-only', 'submit-only', 'edit-save', 'edit-submit', 'no-view']) await unchanged(legacy, () => legacyCall('submit', who, 403, { snapshot: legacySnapshot }));
-      const legacyPending = await legacyCall('submit', 'editor', 200, { snapshot: legacySnapshot });
+      await rejectNewLegacySubmit();const legacyPending = await installHistoricalPendingFixture();
       const pending = legacyPending.control.versions.find(row => row.status === 'pending'); assert(pending);
       await unchanged(legacy, () => legacyCall('begin', 'editor', 409));
       await unchanged(legacy, () => legacyCall('save', 'editor', 409, { snapshot: legacySnapshot }));
@@ -170,12 +186,12 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
       await unchanged(legacy, () => legacyCall('withdraw', 'reviewer', 403));
       await unchanged(legacy, () => legacyCall('withdraw', 'editor', 403));
       await legacyCall('withdraw', 'edit-only');
-      await legacyCall('submit', 'editor', 200, { snapshot: legacySnapshot }); await legacyCall('reject', 'reviewer');
-      await legacyCall('submit', 'editor', 200, { snapshot: legacySnapshot }); await legacyCall('approve', 'reviewer');
+      await rejectNewLegacySubmit();await installHistoricalPendingFixture();await legacyCall('reject', 'reviewer');
+      await rejectNewLegacySubmit();await installHistoricalPendingFixture();await legacyCall('approve', 'reviewer');
       l = await full(legacy); assert.equal(l.versions.find(row => row.id === l.activeVersionId).snapshot.items[0].standard, '11 mm');
       assert.deepEqual(l.versions.find(row => row.id === originalCaseId).snapshot, original.workflow.active.content);
       await unchanged(legacy, () => legacyCall('seed', 'editor', 403));
-      record('Derived legacy compatibility: edit-only Begin and explicit Create, edit+delete, compound Save/Submit gates, pending and existing review/withdraw/seed boundaries; old approved content retained');
+      record('Derived legacy compatibility: edit-only Begin/Create/delete and compound Save/Submit403 gates retained; authorized new legacy Submit409 with no mutation; explicit historical pending fixtures retain review/withdraw/seed boundaries and old approved content');
       trace.push(...legacy.trace);
     } finally { legacy.close(); }
     const version = (await full(h)).versions.find(row => row.status === 'draft');

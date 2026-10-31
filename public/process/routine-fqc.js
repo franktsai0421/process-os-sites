@@ -110,14 +110,128 @@
   function html() {
     return '<section id="routine-fqc-root" class="rf-app" data-i18n-skip="true"><div class="rf-empty" role="status">FQC · 載入中 / Đang tải…</div></section>';
   }
+  // Only operation references are durable. Local report/plan/media buffers stay
+  // in RAM; this namespace never contains a command, patch, reason or header.
+  const routineReceiptPrefix='routine-fqc-receipt-v1:',receiptRuntime=id();
+  const receiptActions=['configure','generate','create-plan','create-report','draft','improve','followup','close','revoke-plan','discard-draft','delete-plan','restore-document','correct','resolve-impact'];
+  const receiptDraftActions=['apply','restore','save','submit','approve','return','withdraw'];
+  const receiptUUID=v=>typeof v==='string'&&/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(v);
+  const receiptText=v=>typeof v==='string'&&v.length>0&&v.length<=200;
+  const receiptInt=v=>Number.isSafeInteger(v)&&v>=0;
+  const receiptNullable=v=>v===null||receiptText(v);
+  const receiptNotice=()=>t('有寫入結果待確認；請查原操作收據，不會重送。未送出的內容只保留在目前頁面。','Có kết quả ghi cần xác minh; kiểm tra biên nhận gốc, không gửi lại. Nội dung chưa gửi chỉ còn trong trang này.');
+  const receiptStorageNotice=()=>t('本機操作收據儲存不可用或已損壞；可閱讀，暫停新寫入，原資料不會刪除。','Kho biên nhận cục bộ không khả dụng hoặc hỏng; vẫn đọc được, tạm dừng ghi mới, không xóa dữ liệu cũ.');
+  let receiptRecord=null,receiptInvalid=false,receiptLifecycle=0,receiptSuspended=false;
+  function receiptPin(actor=data?.identity?.id||window.ProcessSync?.identity?.id){const sync=window.ProcessSync;return {actor,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),page:root,life:receiptLifecycle};}
+  function receiptCurrent(pin){const sync=window.ProcessSync;return !receiptSuspended&&pin.life===receiptLifecycle&&pin.page===root&&receiptText(pin.actor)&&(!data?.identity||data.identity.id===pin.actor)&&(!sync?.identity||sync.identity.id===pin.actor)&&!sync?.requiresReload&&pin.epoch===sync?.identityGeneration?.()&&(!pin.delivery||typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(pin.delivery)===true);}
+  function receiptOwnedPin(pin){const sync=window.ProcessSync;return receiptCurrent(pin)&&sync?.identity?.id===pin.actor&&receiptInt(pin.epoch)&&pin.delivery!==null&&pin.delivery!==undefined&&typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(pin.delivery)===true;}
+  function receiptStore(){const storage=window.localStorage;if(!storage||!Number.isSafeInteger(storage.length)||storage.length<0||typeof storage.key!=='function')throw Error('ROUTINE_RECEIPT_STORAGE_UNAVAILABLE');return storage;}
+  const receiptActorPrefix=actor=>routineReceiptPrefix+encodeURIComponent(actor)+':';
+  function receiptValid(meta,key){
+    if(!meta||Object.getPrototypeOf(meta)!==Object.prototype||Object.keys(meta).sort().join(',')!=='action,actor,aggregateRevision,caseId,documentId,documentRevision,endpoint,epoch,generation,globalRevision,innerAction,operationId,pendingId,protocol,requestedRevision,restoreSaveId,runtime,savedId,submitSavedId')return false;
+    if(meta.protocol!==1||meta.endpoint!==endpoint||!receiptText(meta.actor)||!receiptUUID(meta.runtime)||typeof meta.operationId!=='string'||!/^[-\w]{8,100}$/.test(meta.operationId)||!receiptActions.includes(meta.action)||!receiptInt(meta.aggregateRevision)||!receiptInt(meta.globalRevision)||!(meta.epoch===null||receiptInt(meta.epoch))||key!==receiptActorPrefix(meta.actor)+meta.runtime+':'+meta.operationId)return false;
+    if(!['documentId','generation','caseId','savedId','pendingId','submitSavedId','restoreSaveId'].every(k=>receiptNullable(meta[k]))||!(meta.requestedRevision===null||receiptInt(meta.requestedRevision)))return false;
+    return meta.action==='draft'?receiptText(meta.documentId)&&receiptText(meta.generation)&&receiptInt(meta.documentRevision)&&receiptDraftActions.includes(meta.innerAction):meta.innerAction===null&&meta.documentRevision===null&&meta.generation===null;
+  }
+  function receiptRetry(meta){return {action:meta.action,operationId:meta.operationId,...(meta.documentId?{documentId:meta.documentId}:{}),...(meta.innerAction?{command:{action:meta.innerAction,operationId:meta.operationId,generation:meta.generation}}:{})};}
+  function receiptDiscover(actor){
+    const storage=receiptStore(),prefix=receiptActorPrefix(actor),keys=[];if(storage.length>10000)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');
+    // Discover only keys first; other-account values are never read.
+    for(let i=0;i<storage.length;i++){const key=storage.key(i);if(typeof key!=='string')throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');if(key.startsWith(prefix))keys.push(key);}
+    keys.sort();const records=[];
+    for(const key of keys){const raw=storage.getItem(key);if(typeof raw!=='string'||raw.length>4096)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');let meta;try{meta=JSON.parse(raw);}catch{throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');}if(!receiptValid(meta,key)||meta.actor!==actor)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');records.push({key,raw,meta,ram:null,terminal:null,pin:null,confirmed:null});}
+    return records;
+  }
+  function receiptInstall(actor){
+    if(receiptRecord&&receiptRecord.meta.actor!==actor){receiptRecord=null;s.retry=null;s.retryOwner=null;s.retryDeparture=null;}
+    try{const records=receiptDiscover(actor);if(receiptRecord&&!records.some(row=>row.key===receiptRecord.key&&row.raw===receiptRecord.raw)&&receiptStore().getItem(receiptRecord.key)!==null)throw Error('ROUTINE_RECEIPT_STORAGE_CHANGED');receiptInvalid=false;
+      if(!receiptRecord){receiptRecord=records[0]||null;s.retry=receiptRecord?receiptRetry(receiptRecord.meta):null;s.retryOwner=null;s.retryDeparture=null;}
+    }catch(error){receiptInvalid=true;if(!s.retry)s.retry={action:'receipt-unavailable'};throw error;}
+  }
+  function receiptWriteAllowed(body){const action=body.action==='draft'?(['apply','restore'].includes(body.command?.action)?'edit':body.command?.action):['close','resolve-impact'].includes(body.action)?'approve':'edit';return data?.permissions?.view===true&&data.permissions[action]===true;}
+  function receiptCreate(body,pin){
+    const flow=data?.control?.documents?.find(d=>d.id===body.documentId)?.flow,command=body.command;
+    const meta={protocol:1,endpoint,actor:pin.actor,runtime:receiptRuntime,epoch:receiptInt(pin.epoch)?pin.epoch:null,operationId:body.operationId,action:body.action,documentId:body.documentId||null,innerAction:body.action==='draft'?command?.action:null,generation:body.action==='draft'?command?.generation:null,documentRevision:body.action==='draft'?flow?.revision:null,aggregateRevision:data?.control?.revision,globalRevision:data?.revision,caseId:command?.caseId||body.caseId||null,savedId:flow?.saved?.id||null,pendingId:flow?.pendingId||null,submitSavedId:command?.savedId||null,restoreSaveId:command?.restoreSaveId||null,requestedRevision:command?.expectedRevision??body.expectedRevision??null};
+    const key=receiptActorPrefix(pin.actor)+receiptRuntime+':'+body.operationId,raw=JSON.stringify(meta);
+    if(!receiptValid(meta,key)||raw.length>4096||body.action==='draft'&&(command.operationId!==body.operationId||flow?.scope!=='routine-fqc:'+body.documentId||flow.generation!==command.generation))throw Error('ROUTINE_RECEIPT_METADATA_INVALID');
+    if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    const record={key,raw,meta,ram:body,pin,terminal:null,confirmed:null,notSent:true,rejectedCode:null};receiptRecord=record;s.retry=body;s.retryOwner=()=>receiptCurrent(pin);
+    const storage=receiptStore();if(storage.getItem(key)!==null)throw Error('ROUTINE_RECEIPT_STORAGE_CHANGED');storage.setItem(key,raw);if(storage.getItem(key)!==raw)throw Error('ROUTINE_RECEIPT_STORAGE_UNVERIFIED');
+    if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');return record;
+  }
+  function receiptTerminal(record,envelope,pin){
+    if(!receiptOwnedPin(pin)||record!==receiptRecord)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    const m=record.meta,r=envelope?.result;if(!Object.hasOwn(envelope||{},'result')||!receiptInt(envelope.revision)||envelope.revision<=m.aggregateRevision||!r||typeof r!=='object'||Array.isArray(r))throw Error('INVALID_OPERATION_RECEIPT');
+    if(m.action==='draft'){
+      const review=['approve','return','withdraw'].includes(m.innerAction);
+      if(r.operationId!==m.operationId||!receiptText(r.generation)||(!review&&r.generation!==m.generation)||(review&&r.generation===m.generation)||!receiptInt(r.revision)||typeof r.unchanged!=='boolean'||!receiptNullable(r.savedId)||!receiptNullable(r.caseId)||r.revision<m.documentRevision+(r.unchanged?0:1)||(['submit','approve','return','withdraw'].includes(m.innerAction)&&r.unchanged))throw Error('INVALID_OPERATION_RECEIPT');
+      if(['save','submit','restore'].includes(m.innerAction)&&m.requestedRevision!==null&&r.revision!==m.requestedRevision+(r.unchanged?0:1))throw Error('INVALID_OPERATION_RECEIPT');
+      if(m.innerAction==='submit'?(r.savedId!==m.submitSavedId||!receiptText(r.caseId)):r.caseId!==null)throw Error('INVALID_OPERATION_RECEIPT');
+      if(m.innerAction==='approve'?r.savedId!==null:m.innerAction==='save'?!receiptText(r.savedId)||(r.unchanged&&r.savedId!==m.savedId):m.innerAction!=='submit'&&(m.innerAction!=='apply'||r.revision===m.documentRevision+(r.unchanged?0:1))&&r.savedId!==m.savedId)throw Error('INVALID_OPERATION_RECEIPT');
+    }else if(['create-plan','create-report','followup','correct','discard-draft','delete-plan'].includes(m.action)){
+      if(!receiptText(r.documentId)||['discard-draft','delete-plan'].includes(m.action)&&r.documentId!==m.documentId)throw Error('INVALID_OPERATION_RECEIPT');
+    }else if(m.action==='generate'?!(receiptInt(r.generated)||r.ok===true):r.ok!==true)throw Error('INVALID_OPERATION_RECEIPT');
+    record.terminal={result:clone(r),aggregateRevision:envelope.revision,pin};return r;
+  }
+  function receiptClear(record,pin){
+    if(!receiptOwnedPin(pin)||record!==receiptRecord)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    const storage=receiptStore(),raw=storage.getItem(record.key);if(raw!==null&&raw!==record.raw)throw Error('ROUTINE_RECEIPT_STORAGE_CHANGED');if(raw!==null)storage.removeItem(record.key);if(storage.getItem(record.key)!==null)throw Error('ROUTINE_RECEIPT_CLEANUP_FAILED');
+    // A failed next-key discovery must keep the global unknown gate closed.
+    let remaining;try{remaining=receiptDiscover(pin.actor);}catch(error){receiptRecord=null;receiptInvalid=true;s.retry={action:'receipt-unavailable'};throw error;}
+    if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    record.confirmed?.(record.terminal?.result);receiptRecord=remaining[0]||null;receiptInvalid=false;s.retry=receiptRecord?receiptRetry(receiptRecord.meta):null;s.retryOwner=null;s.retryDeparture=null;
+  }
+  function receiptObserveRead(next,pin){
+    if(!receiptCurrent(pin)||next?.identity?.id!==pin.actor||next.permissions?.view!==true)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    try{receiptInstall(pin.actor);}catch(error){s.error=receiptStorageNotice();if(receiptRecord?.terminal)throw error;return;}
+    const record=receiptRecord,terminal=record?.terminal;if(!terminal)return;
+    const m=record.meta,r=terminal.result,flow=next.control?.documents?.find(d=>d.id===m.documentId)?.flow;
+    if(!receiptOwnedPin(terminal.pin)||!receiptInt(next.revision)||next.revision<=m.globalRevision||next.revision<(data?.revision||0)||!receiptInt(next.control?.revision)||next.control.revision<terminal.aggregateRevision||next.control.revision<(data?.control?.revision||0))throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    if(m.action==='draft'&&(!flow||flow.scope!=='routine-fqc:'+m.documentId||flow.generation!==r.generation||!receiptInt(flow.revision)||flow.revision<r.revision))throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    const live=data?.control?.documents?.find(d=>d.id===m.documentId)?.flow;
+    if(m.action==='draft'&&(!live||live.scope!=='routine-fqc:'+m.documentId||![m.generation,r.generation].includes(live.generation)||live.revision>flow.revision))throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    if(m.action==='draft'&&flow.revision===r.revision&&(flow.saved?.id||null)!==r.savedId)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    if(m.action==='draft'&&flow.revision===r.revision&&(flow.pendingId||null)!==r.caseId)throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    if(r.documentId&&!next.control.documents.some(d=>d.id===r.documentId))throw Error('ROUTINE_RECEIPT_READBACK_REQUIRED');
+    receiptClear(record,pin);
+  }
+  function receiptRejected(body,response,value){
+    if(!receiptUUID(value?.requestId))return false;
+    const status=response.status,code=value.error,has=(n,list)=>status===n&&list.split(',').includes(code),action=body.action,cmd=body.command;
+    if(has(422,'BODY_REQUIRED,RESERVED_CONTENT,OPERATION_ID_REQUIRED,FQC_DATA_INVALID')||has(409,'CONCURRENT_CHANGE_RETRY,DOCUMENT_CANCELLED')||has(403,'FORBIDDEN'))return true;
+    if(body.documentId&&has(422,'PHOTO_NOT_UPLOADED'))return true;
+    if(action==='draft'){
+      if(!cmd||cmd.operationId!==body.operationId||!body.documentId)return false;
+      if(has(404,'DOCUMENT_NOT_FOUND')||has(422,'COMMAND_REQUIRED,OPERATION_ID_MISMATCH,INVALID_OPERATION')||has(409,'FORMAL_DOCUMENT_IMMUTABLE,STALE_GENERATION,STALE_CLIENT_OPERATION'))return true;
+      if(cmd.action!=='restore'&&receiptInt(cmd.expectedRevision)&&has(409,'DRAFT_REVISION_CHANGED_RECONFIRM'))return true;
+      if(!['approve','return','withdraw'].includes(cmd.action)&&has(409,'PENDING_LOCKED'))return true;
+      if(cmd.action==='apply'&&(has(422,'PATCH_NOT_ALLOWED,DEPENDENCY_GUARD_REQUIRED,INVALID_PATCHES,INVALID_PATH,INVALID_ENTITY_PATH,INVALID_FIELD,INVALID_VALUE')||has(409,'ENTITY_REMOVED_OR_AMBIGUOUS')))return true;
+      if(cmd.action==='apply'&&has(409,'DEPENDENCY_CHANGED_RECONFIRM'))return Array.isArray(value.details?.path)&&cmd.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(value.details.path))===true;
+      if(['apply','restore'].includes(cmd.action)&&has(422,'CONTENT_INVALID,TEXT_INVALID,PHOTO_ID_INVALID,DOCUMENT_ITEMS_IMMUTABLE,SOURCE_SNAPSHOT_IMMUTABLE,RETEST_REQUIREMENT_IMMUTABLE,DUPLICATE_LINE,RESULTS_INVALID,RESULT_ID_INVALID,RESULT_INVALID,SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE,SINGLE_SAMPLE_REQUIRED,RETEST_SAMPLE_FIXED,UNABLE_MUST_NOT_HAVE_SAMPLES'))return true;
+      if(cmd.action==='restore'&&receiptText(cmd.restoreSaveId)&&receiptInt(cmd.expectedRevision)&&(has(409,'RESTORE_RECONFIRM')||has(404,'SAVE_NOT_FOUND')))return true;
+      if(cmd.action==='submit'&&(has(409,'DRAFT_REVISION_REQUIRED,SUCCESSFUL_SAVE_REQUIRED,SAVED_VERSION_CHANGED_RECONFIRM,UNSAVED_CHANGES_SAVE_REQUIRED,ACTIVE_VERSION_CHANGED')||has(422,'NO_SUBSTANTIVE_CHANGE,VALIDATION_FAILED')))return true;
+      if(['submit','approve'].includes(cmd.action)&&(has(422,'CASE_LINK_REQUIRED,CASE_LINK_INVALID')||has(409,'CASE_CHANGED_USE_CURRENT_FLOW')))return true;
+      if(['approve','return','withdraw'].includes(cmd.action)&&receiptText(cmd.caseId)&&(has(409,'CASE_NOT_PENDING')||cmd.action!=='withdraw'&&(has(409,'SELF_REVIEW_CONFIRM_REQUIRED')||has(403,'SELF_REVIEW_ADMIN_ONLY'))||cmd.action==='approve'&&(has(409,'ACTIVE_VERSION_CHANGED')||has(422,'VALIDATION_FAILED'))||cmd.action==='return'&&has(422,'REASON_REQUIRED')))return true;
+      return false;
+    }
+    const table={configure:[['REVISION_CONFLICT','START_DATE_LOCKED'],['DATE_INVALID']],generate:[[],['DATE_INVALID','SCHEDULE_RANGE_TOO_LARGE']],'create-plan':[['REVISION_CONFLICT','JOB_ALREADY_ASSIGNED'],['ITEM_REQUIRED']],'create-report':[['REVISION_CONFLICT','APPROVED_PLAN_REQUIRED','PLAN_NOT_CURRENTLY_ASSIGNED','REPORT_ALREADY_EXISTS'],['PLAN_ITEM_INVALID']],improve:[['REVISION_CONFLICT','CASE_CLOSED'],['REASON_REQUIRED']],followup:[['REVISION_CONFLICT','CASE_CLOSED','FOLLOWUP_OPEN'],['KIND_INVALID','WAIVER_ONLY_UNABLE','OPEN_FAILURE_REQUIRES_RETEST_OR_DISPOSAL','DISPOSAL_ONLY_FAIL','IMPROVEMENT_REQUIRED']],close:[['REVISION_CONFLICT','APPROVED_PASS_RETEST_REQUIRED'],['REASON_REQUIRED']],'revoke-plan':[['REVISION_CONFLICT','USE_CORRECTION_WITH_REPORTS'],['APPROVED_PLAN_REQUIRED','REASON_REQUIRED']],'discard-draft':[['REVISION_CONFLICT','WITHDRAW_BEFORE_DISCARD','DOCUMENT_HAS_DEPENDENCIES','DRAFT_ONLY'],[]],'delete-plan':[['REVISION_CONFLICT','WITHDRAW_BEFORE_DISCARD','DOCUMENT_HAS_DEPENDENCIES'],['APPROVED_PLAN_REQUIRED']],'restore-document':[['REVISION_CONFLICT','RESTORE_DISABLED'],[]],correct:[['REVISION_CONFLICT','CORRECTION_OPEN','CASE_CHANGED_USE_CURRENT_FLOW'],['FORMAL_DOCUMENT_REQUIRED','REASON_REQUIRED','CASE_LINK_REQUIRED','CASE_LINK_INVALID']],'resolve-impact':[['REVISION_CONFLICT'],['REASON_REQUIRED','NO_OPEN_IMPACT']]};
+    return !!table[action]&&(status===409&&table[action][0].includes(code)||status===422&&table[action][1].includes(code))||['discard-draft','delete-plan'].includes(action)&&receiptText(body.documentId)&&has(404,'DOCUMENT_NOT_FOUND');
+  }
+  window.addEventListener('pagehide',()=>{receiptSuspended=true;receiptLifecycle++;if(receiptRecord){receiptRecord.terminal=null;receiptRecord.confirmed=null;}});
+  window.addEventListener('pageshow',()=>{receiptSuspended=false;});
   let inFlightMutation=0,navigationError=null;
   const readPause=window.createScopedReadPause('例行 FQC / FQC định kỳ');
   async function read(query = '') {
-    const delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
+    const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
     const r = await fetch(endpoint + query, { cache: 'no-store' });let v;try{v=await r.json();}catch(error){readPause.denied(kind,r.status,pauseOwner,()=>read(query));if([401,403].includes(r.status))error.status=r.status;throw error;}
     if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
     if (!r.ok){readPause.denied(kind,r.status,pauseOwner,()=>read(query));throw Object.assign(Error(v.error || 'FQC_READ_FAILED'),{status:r.status});}
-    readPause.success(kind,pauseOwner);return v;
+    readPause.success(kind,pauseOwner);
+    if(kind==='state')receiptObserveRead(v,owner);
+    // Observing a document enables per-tab attribution, but never claims its
+    // existing contributors (including another tab using the same account).
+    if(kind==='state')for(const d of v.control?.documents||[])if(d.flow?.scope==='routine-fqc:'+d.id)window.SharedDraftDeparture?.register?.(d.flow.scope);
+    return v;
   }
   const issueNames = {
     IMPROVEMENT_REQUIRED: ['請先記錄本次不合格的改善措施，再建立複測。','Ghi cải thiện cho lần không đạt này trước khi tạo thử lại.'],
@@ -206,38 +320,37 @@
     inFlightMutation++;try{return await postOwned(command);}finally{inFlightMutation--;}
   }
   async function postOwned(command) {
-    const body = { ...command, operationId: command.operationId || id() };
-    let response, v;
-    try {
-      response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      v = await response.json();
-    } catch {
-      try {
-        const receipt = await read('?operationId=' + body.operationId);
-        s.retry = null;
-        return receipt.result;
-      } catch {
-        const err = Error(
-          t(
-            '寫入結果未知；輸入已保留。請重試相同操作。',
-            'Chưa rõ kết quả ghi; dữ liệu nhập được giữ lại. Thử lại cùng thao tác.',
-          ),
-        );
-        s.retry = body;
-        throw err;
-      }
+    const pin=receiptPin();if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    receiptInstall(pin.actor);if(receiptInvalid)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');
+    const original=receiptRecord;
+    if(original){
+      if(command?.operationId!==original.meta.operationId)throw Error('PREVIOUS_OPERATION_UNKNOWN');
+      if(original.ram&&JSON.stringify(command)!==JSON.stringify(original.ram))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
+      if(original.notSent||original.rejectedCode){const message=original.rejectedCode||'ROUTINE_OPERATION_NOT_SENT_RETRY_ACTION';receiptClear(original,pin);throw Error(message);}
+      const found=await read('?operationId='+encodeURIComponent(original.meta.operationId));
+      return receiptTerminal(original,found,pin);
     }
-    if (!response.ok) {
-      const e = Error(v.error || 'FQC_WRITE_FAILED');
-      e.details = v.details;
-      throw e;
+    const body=clone({...command,operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
+    const record=receiptCreate(body,pin),current=()=>receiptOwnedPin(pin)&&receiptRecord===record;
+    const departureOwner=window.SharedDraftDeparture?.capture?.(),scope='routine-fqc:'+body.documentId;
+    record.confirmed=result=>{const live=data?.control?.documents?.find(d=>d.id===body.documentId)?.flow;
+      if(!current()||body.action!=='draft'||!['apply','restore'].includes(body.command?.action)||live?.scope!==scope||live.generation!==record.meta.generation||result?.unchanged!==false)return;
+      window.SharedDraftDeparture?.register?.(scope);window.SharedDraftDeparture?.confirmed?.(scope,body.command,{receipt:result},departureOwner);
+    };
+    const receipt=async()=>{if(!current())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');const found=await read('?operationId='+encodeURIComponent(body.operationId));return receiptTerminal(record,found,pin);};
+    let response,value;
+    if(!current()||!receiptWriteAllowed(body)||receiptStore().getItem(record.key)!==record.raw)throw Error('ROUTINE_RECEIPT_DISPATCH_CHANGED');
+    try{record.notSent=false;response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});value=await response.json();}
+    catch{try{return await receipt();}catch{throw Error(receiptNotice());}}
+    if(!current())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    if(!response.ok){
+      // Only this actual first POST response can prove a narrow pre-CAS refusal.
+      // GET/fetch throws and public error flags never enter this classifier.
+      if(receiptRejected(body,response,value)){record.rejectedCode=value.error;receiptClear(record,pin);}
+      else if(response.status>=500){try{return await receipt();}catch{/* Keep the exact uncertain operation. */}}
+      throw Object.assign(Error(value?.error||'FQC_WRITE_FAILED'),{details:value?.details,status:response.status});
     }
-    s.retry = null;
-    return v.result || v;
+    return receiptTerminal(record,value,pin);
   }
   async function refresh(generate = false) {
     const next = await read();
@@ -251,12 +364,12 @@
     }
     data = next;
     reconcileSelection();
-    if (generate && s.tab !== 'history' && data.permissions.edit && data.control.startDate) {
+    if (generate && !s.retry && s.tab !== 'history' && data.permissions.edit && data.control.startDate) {
       await post({ action: 'generate' });
       const generated = await read();
       if (generated.control.revision >= data.control.revision) data = generated;
     }
-    s.error = '';
+    s.error = receiptInvalid ? receiptStorageNotice() : s.retry ? receiptNotice() : '';
     s.issues = [];
     paint();
   }
@@ -609,7 +722,7 @@
             )
             .join(
               '',
-            )}</div>${!c.startDate ? `<div class="rf-notice">${t('尚未開始管理。設定管理起始日並預覽後，才會產生應檢工作。', 'Chưa bắt đầu quản lý. Thiết lập ngày bắt đầu và xem trước lịch.')} ${btn('settings', t('設定起始日', 'Thiết lập ngày'), !p.settings)}</div>` : ''}${s.error ? `<div class="rf-notice error" role="alert">${h(s.error)} ${s.retry ? btn('retry', t('查證／重試原操作', 'Kiểm tra / thử lại thao tác')) : ''}</div>` : ''}${frequencyNotice()}${quickFilters()}${filters()}<div class="rf-layout ${s.wide ? 'rf-wide' : ''} ${s.selected ? 'has-selection' : ''}"><section class="rf-panel rf-list-panel">${list()}</section><section class="rf-panel rf-detail-panel ${s.tab === 'jobs' && !s.selected ? 'rf-selection-panel' : ''}"><div class="rf-detail">${btn('back', t('← 返回清單', '← Về danh sách'), false, 'rf-back')}${detail()}</div></section></div><p class="rf-footer-note">Asia/Ho_Chi_Minh · ${t('涵蓋產品與實測樣品分開記錄。歷史以當次正式快照為準。', 'Sản phẩm bao phủ và mẫu thực thử được lưu riêng; lịch sử dùng bản chụp đã duyệt.')}</p>`}`
+            )}</div>${!c.startDate ? `<div class="rf-notice">${t('尚未開始管理。設定管理起始日並預覽後，才會產生應檢工作。', 'Chưa bắt đầu quản lý. Thiết lập ngày bắt đầu và xem trước lịch.')} ${btn('settings', t('設定起始日', 'Thiết lập ngày'), !p.settings)}</div>` : ''}${s.error ? `<div class="rf-notice error" role="alert">${h(s.error)} ${s.retry ? btn('retry', t('查原操作收據（不重送）', 'Kiểm tra biên nhận (không gửi lại)')) : ''}</div>` : ''}${frequencyNotice()}${quickFilters()}${filters()}<div class="rf-layout ${s.wide ? 'rf-wide' : ''} ${s.selected ? 'has-selection' : ''}"><section class="rf-panel rf-list-panel">${list()}</section><section class="rf-panel rf-detail-panel ${s.tab === 'jobs' && !s.selected ? 'rf-selection-panel' : ''}"><div class="rf-detail">${btn('back', t('← 返回清單', '← Về danh sách'), false, 'rf-back')}${detail()}</div></section></div><p class="rf-footer-note">Asia/Ho_Chi_Minh · ${t('涵蓋產品與實測樣品分開記錄。歷史以當次正式快照為準。', 'Sản phẩm bao phủ và mẫu thực thử được lưu riêng; lịch sử dùng bản chụp đã duyệt.')}</p>`}`
     }</div>`;
     bind();
     if (s.tab === 'history' && historySearch) historySearch.bind(root);
@@ -934,7 +1047,7 @@
   }
   function caseDetail(a) {
     const j = data.control.jobs.find((j) => j.id === a.jobId);
-    return `<h3>${h(a.number)}</h3>${tag(a.status)} <p>${h(j.source.name)}</p>${coverage(j.source)}<p class="rf-subtle">${h(j.start + ' — ' + j.end)} · ${t('原不合格與每次複測都會保留', 'Lưu kết quả ban đầu và mọi lần thử lại')}</p><div class="rf-actions">${retestActions(a)}${btn('followup-waiver', t('申請本期免做', 'Đề nghị miễn kỳ'), done(a) || a.result !== 'unable' || a.unresolvedFailureSamples?.length || !data.permissions.edit)}${btn('followup-disposal', t('申請處置結案', 'Đề nghị đóng xử lý'), done(a) || (a.result !== 'fail' && !a.unresolvedFailureSamples?.length) || !data.permissions.edit)}${btn('close', t('確認結案', 'Xác nhận đóng'), a.status !== 'ready-close' || !data.permissions.approve, 'primary')}</div>${s.busy ? '<p role="status">' + t('正在處理，請稍候…','Đang xử lý, vui lòng chờ…') + '</p>' : ''}${s.error ? '<div class="rf-notice error" role="alert">' + h(s.error) + (s.retry ? btn('retry',t('查證／重試原操作','Kiểm tra / thử lại thao tác')) : '') + '</div>' : ''}<ol class="rf-timeline">${a.events.map((e) => `<li><b>${h(label(e.action))}</b><time>${h(e.at)} · ${h(e.actor.name)}</time><p>${h(e.reason)}</p>${e.documentId ? `<button class="rf-report-link" data-doc="${e.documentId}">${h(docs().find((d) => d.id === e.documentId)?.number || e.documentId)}</button>` : ''}</li>`).join('')}</ol>${a.improvements.map((i) => `<div class="rf-notice"><b>${t('改善紀錄', 'Ghi cải thiện')}</b><p>${h(i.notes)}</p><small>${h(i.actor.name + ' · ' + i.at)}</small><div class="rf-photos">${i.photos.map(photo).join('')}</div></div>`).join('')}`;
+    return `<h3>${h(a.number)}</h3>${tag(a.status)} <p>${h(j.source.name)}</p>${coverage(j.source)}<p class="rf-subtle">${h(j.start + ' — ' + j.end)} · ${t('原不合格與每次複測都會保留', 'Lưu kết quả ban đầu và mọi lần thử lại')}</p><div class="rf-actions">${retestActions(a)}${btn('followup-waiver', t('申請本期免做', 'Đề nghị miễn kỳ'), done(a) || a.result !== 'unable' || a.unresolvedFailureSamples?.length || !data.permissions.edit)}${btn('followup-disposal', t('申請處置結案', 'Đề nghị đóng xử lý'), done(a) || (a.result !== 'fail' && !a.unresolvedFailureSamples?.length) || !data.permissions.edit)}${btn('close', t('確認結案', 'Xác nhận đóng'), a.status !== 'ready-close' || !data.permissions.approve, 'primary')}</div>${s.busy ? '<p role="status">' + t('正在處理，請稍候…','Đang xử lý, vui lòng chờ…') + '</p>' : ''}${s.error ? '<div class="rf-notice error" role="alert">' + h(s.error) + (s.retry ? btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')) : '') + '</div>' : ''}<ol class="rf-timeline">${a.events.map((e) => `<li><b>${h(label(e.action))}</b><time>${h(e.at)} · ${h(e.actor.name)}</time><p>${h(e.reason)}</p>${e.documentId ? `<button class="rf-report-link" data-doc="${e.documentId}">${h(docs().find((d) => d.id === e.documentId)?.number || e.documentId)}</button>` : ''}</li>`).join('')}</ol>${a.improvements.map((i) => `<div class="rf-notice"><b>${t('改善紀錄', 'Ghi cải thiện')}</b><p>${h(i.notes)}</p><small>${h(i.actor.name + ' · ' + i.at)}</small><div class="rf-photos">${i.photos.map(photo).join('')}</div></div>`).join('')}`;
   }
   function choose(value, tab = s.tab) {
     const leavingReviewForCase = s.reviewPlatform && tab === 'cases';
@@ -1141,8 +1254,8 @@
     );
     root.querySelectorAll('.rf-upload').forEach((el) => el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.querySelector('input').click(); } });
   }
-  async function draft(action, extra = {}) {
-    const d = doc(),
+  async function draft(action, extra = {}, target = doc()) {
+    const d = target,
       operationId = id();
     return post({
       action: 'draft',
@@ -1158,9 +1271,23 @@
       },
     });
   }
-  async function save() {
-    const d = doc(),
-      c = buffer(d),
+  async function confirmSubmission() {
+    const d=doc();
+    if(!d||status(d)!=='draft'||data.permissions.submit!==true)throw Error('FORBIDDEN');
+    if(dirty(d))throw Error(t('目前輸入尚未儲存，請先儲存再送審；輸入仍保留。','Dữ liệu nhập chưa lưu; hãy lưu trước khi gửi duyệt. Dữ liệu được giữ lại.'));
+    const snapshot=window.captureSharedDraftSubmission(d.flow),generation=d.flow.generation,documentId=d.id,actorId=data.identity.id,identity=window.ProcessSync?.identity,identityEpoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),page=root;
+    const confirmed=await dialog(t('確認送審','Xác nhận gửi duyệt'),`<p>${h(d.number)}</p><p>${h(t('送審使用這份文件已儲存的固定版本；確認期間若有變更，請重新核對。','Gửi bản đã lưu cố định của hồ sơ này; nếu có thay đổi trong lúc xác nhận, hãy kiểm tra lại.'))}</p><small>${h(snapshot.savedId)} · ${snapshot.expectedRevision}</small><p>${h(t('儲存者','Người lưu'))}：${h(d.flow.saved.actor?.name||'—')} · ${h(t('儲存時間','Thời gian lưu'))}：${h(d.flow.saved.at||'—')}</p>`,t('送審','Gửi duyệt'));
+    if(!confirmed)return null;
+    if(root!==page||doc()?.id!==documentId||data?.identity?.id!==actorId||data.permissions.submit!==true||window.ProcessSync?.requiresReload||identity&&window.ProcessSync?.identity?.id!==actorId||(typeof identityEpoch==='number'?identityEpoch!==window.ProcessSync?.identityGeneration?.():identity!==window.ProcessSync?.identity)||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    if(doc().flow.generation!==generation||doc().flow.revision!==snapshot.expectedRevision||doc().flow.saved?.id!==snapshot.savedId||dirty(doc()))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+    return {...snapshot,generation,reason:''};
+  }
+  async function save(target = doc()) {
+    const d = target;
+    if(!d||status(d)!=='draft'||data.permissions.save!==true||dirty(d)&&data.permissions.edit!==true)throw Error('FORBIDDEN');
+    const page=root,identity=data.identity.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;
+    const current=()=>root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;
+    const c = clone(buffer(d)),
       base = s.bases.get(d.id),
       patches = [];
     for (const k of [
@@ -1192,14 +1319,25 @@
               ? base[p.path[0]]
               : base.lines.find((l) => l.id === p.path[1].id).results,
         })),
-      });
+      }, d);
+      if(!current())throw Error('DELIVERY_SUPERSEDED');
       const fresh = await read();
+      if(!current())throw Error('DELIVERY_SUPERSEDED');
       if (fresh.control.revision >= data.control.revision) data = fresh;
+      if(!current())throw Error('DELIVERY_SUPERSEDED');
       s.bases.set(d.id, clone(c));
     }
-    await draft('save', { expectedRevision: doc().flow.revision });
-    s.buffers.delete(d.id);
-    s.bases.delete(d.id);
+    if(!current())throw Error('DELIVERY_SUPERSEDED');
+    const latest=docs().find(row=>row.id===d.id);
+    const result=await draft('save', { expectedRevision: latest.flow.revision }, latest);
+    if(!current())throw Error('DELIVERY_SUPERSEDED');
+    const fresh=await read();if(!current())throw Error('DELIVERY_SUPERSEDED');
+    if(fresh.control.revision>=data.control.revision)data=fresh;
+    if(!current())throw Error('DELIVERY_SUPERSEDED');
+    const saved=docs().find(row=>row.id===d.id)?.flow;
+    if(!saved?.saved||JSON.stringify(saved.saved.content)!==JSON.stringify(saved.working))throw Error('SAVE_RECHECK_REQUIRED');
+    if(JSON.stringify(s.buffers.get(d.id))===JSON.stringify(c)){s.buffers.delete(d.id);s.bases.delete(d.id);}
+    return result;
   }
   function dialog(title, body, submit = t('確認', 'Xác nhận'), onready) {
     s.dialogOpen = true;
@@ -1397,7 +1535,7 @@
         }
         command = {action:'followup',caseId:a.id,kind,...(notes ? {notes} : {})};
       }
-      else if (action === 'submit') extra = { savedId: doc().flow.saved?.id, reason: '' };
+      else if (action === 'submit') { extra=await confirmSubmission();if(!extra)return; }
       else if (action === 'review') { openReview(doc()); return; }
       else if (action === 'approve' || action === 'return') {
         const pending = doc().flow.cases.find((c) => c.id === doc().flow.pendingId);
@@ -1417,6 +1555,7 @@
       else if (action === 'confirm-cancel') command = { action: status(doc()) === 'approved' ? 'delete-plan' : 'discard-draft', documentId: doc().id };
       s.busy = true;
       paint();
+      const mutationOwner=receiptPin(),mutationDocument=command?.documentId||doc()?.id;
       const result = command
         ? await post(
             action === 'retry'
@@ -1430,6 +1569,20 @@
         : action === 'save'
           ? await save()
           : await draft(action, extra);
+      if (result?.documentId && !['followup-report','confirm-recall-retest'].includes(action) && !(action === 'retry' && s.tab === 'cases' && ['followup','discard-draft'].includes(command?.action))) {
+        s.selected = result.documentId;
+        s.tab = 'documents';
+        s.checked.clear();
+      }
+      s.cancelConfirm = null;
+      s.error = '';
+      await refresh();
+      if(!receiptCurrent(mutationOwner))throw Error('DELIVERY_SUPERSEDED');
+      if (['approve', 'return', 'withdraw'].includes(action)) {
+        s.buffers.delete(mutationDocument);
+        s.bases.delete(mutationDocument);
+      }
+      if (command?.action === 'discard-draft') { s.buffers.delete(command.documentId); s.bases.delete(command.documentId); }
       if (
         action === 'retry' &&
         command?.action === 'draft' &&
@@ -1445,19 +1598,6 @@
               );
           }
       }
-      if (result?.documentId && !['followup-report','confirm-recall-retest'].includes(action) && !(action === 'retry' && s.tab === 'cases' && ['followup','discard-draft'].includes(command?.action))) {
-        s.selected = result.documentId;
-        s.tab = 'documents';
-        s.checked.clear();
-      }
-      if (['approve', 'return', 'withdraw'].includes(action)) {
-        s.buffers.delete(s.selected);
-        s.bases.delete(s.selected);
-      }
-      if (command?.action === 'discard-draft') { s.buffers.delete(command.documentId); s.bases.delete(command.documentId); }
-      s.cancelConfirm = null;
-      s.error = '';
-      await refresh();
       if (doc()) { s.tab = documentTab(doc()); s.cancelConfirm = null; s.selfReview = null; paint(); }
     } catch (e) {
       if (['JOB_ALREADY_ASSIGNED','FOLLOWUP_OPEN','IMPROVEMENT_REQUIRED','REVISION_CONFLICT'].includes(e.message)) {
@@ -1697,7 +1837,7 @@
   function paintReview() {
     const pending = liveDocs().filter((d) => status(d) === 'pending');
     const names = ['FQC', 'IQC', t('模具設備', 'Thiết bị khuôn'), t('檢具與測試設備', 'Dưỡng và thiết bị thử')];
-    root.innerHTML = `<header class="rf-hero"><div><div class="rf-eyebrow">ROUTINE INSPECTION APPROVAL</div><h2>${t('例行檢查送審', 'Duyệt kiểm tra định kỳ')}</h2><p>${t('計畫、執行報告／複測、免做與處置分別確認。', 'Duyệt riêng kế hoạch, báo cáo / thử lại, miễn và xử lý.')}</p></div>${btn('refresh', t('重新整理', 'Làm mới'))}</header><nav class="rf-modules">${names.map((name, i) => `<button type="button" class="${s.reviewModule === (i ? String(i) : 'FQC') ? 'active' : ''}" data-review-module="${i ? i : 'FQC'}">${name} ${t('例行檢查', 'định kỳ')}${i ? '' : ' · ' + pending.length}</button>`).join('')}</nav>${s.reviewModule !== 'FQC' ? `<div class="rf-empty">${t('功能建置中，尚無送審案件', 'Đang xây dựng, chưa có hồ sơ gửi duyệt')}</div>` : `<div class="rf-main">${s.error ? `<div class="rf-notice error" role="alert">${h(s.error)}</div>` : ''}<div class="rf-kind-tabs">${[['',t('全部', 'Tất cả')],['plan',label('plan')],['report',t('執行報告／複測', 'Báo cáo / thử lại')],['waiver',label('waiver')],['disposal',label('disposal')]].map(([key,text]) => `<button class="rf-btn ${s.documentKind === key ? 'primary' : ''}" data-kind="${key}">${text} · ${pending.filter((d) => !key || d.kind === key).length}</button>`).join('')}</div><div class="rf-layout has-selection"><section class="rf-panel"><div class="rf-panel-heading">${t('待審案件', 'Hồ sơ chờ duyệt')}</div><div class="rf-review-list">${pending.filter((d) => !s.documentKind || d.kind === s.documentKind).map((d) => `<button class="rf-review-card ${d.id === s.selected ? 'selected' : ''}" data-review-doc="${h(d.id)}"><b class="rf-number ${reportType(d)}">${h(displayNumber(d))}</b><span>${reportLabel(d)}${d.caseId ? ' · ' + t('異常後續', 'Theo dõi bất thường') : ''}</span><small>${h(d.flow.cases.find((c) => c.id === d.flow.pendingId)?.actor.name)} · ${h(content(d).date)}</small></button>`).join('') || `<p class="rf-empty">${t('目前無待審案件', 'Không có hồ sơ chờ duyệt')}</p>`}</div><details class="rf-review-history"><summary>${t('已處理與歷史', 'Đã xử lý & lịch sử')}</summary>${liveDocs().filter((d) => status(d) !== 'pending' && (!s.documentKind || d.kind === s.documentKind)).slice().reverse().map((d) => `<button class="rf-review-card" data-review-doc="${h(d.id)}"><b class="rf-number ${reportType(d)}">${h(displayNumber(d))}</b><span>${reportLabel(d)} · ${label(status(d))}</span></button>`).join('')}</details></section><section class="rf-panel rf-detail-panel"><div class="rf-detail">${doc() ? documentDetail(doc()) : empty()}</div></section></div></div>`}`;
+    root.innerHTML = `<header class="rf-hero"><div><div class="rf-eyebrow">ROUTINE INSPECTION APPROVAL</div><h2>${t('例行檢查送審', 'Duyệt kiểm tra định kỳ')}</h2><p>${t('計畫、執行報告／複測、免做與處置分別確認。', 'Duyệt riêng kế hoạch, báo cáo / thử lại, miễn và xử lý.')}</p></div>${btn('refresh', t('重新整理', 'Làm mới'))}</header><nav class="rf-modules">${names.map((name, i) => `<button type="button" class="${s.reviewModule === (i ? String(i) : 'FQC') ? 'active' : ''}" data-review-module="${i ? i : 'FQC'}">${name} ${t('例行檢查', 'định kỳ')}${i ? '' : ' · ' + pending.length}</button>`).join('')}</nav>${s.reviewModule !== 'FQC' ? `<div class="rf-empty">${t('功能建置中，尚無送審案件', 'Đang xây dựng, chưa có hồ sơ gửi duyệt')}</div>` : `<div class="rf-main">${s.error ? `<div class="rf-notice error" role="alert">${h(s.error)} ${s.retry ? btn('retry', t('查原操作收據（不重送）', 'Kiểm tra biên nhận (không gửi lại)')) : ''}</div>` : ''}<div class="rf-kind-tabs">${[['',t('全部', 'Tất cả')],['plan',label('plan')],['report',t('執行報告／複測', 'Báo cáo / thử lại')],['waiver',label('waiver')],['disposal',label('disposal')]].map(([key,text]) => `<button class="rf-btn ${s.documentKind === key ? 'primary' : ''}" data-kind="${key}">${text} · ${pending.filter((d) => !key || d.kind === key).length}</button>`).join('')}</div><div class="rf-layout has-selection"><section class="rf-panel"><div class="rf-panel-heading">${t('待審案件', 'Hồ sơ chờ duyệt')}</div><div class="rf-review-list">${pending.filter((d) => !s.documentKind || d.kind === s.documentKind).map((d) => `<button class="rf-review-card ${d.id === s.selected ? 'selected' : ''}" data-review-doc="${h(d.id)}"><b class="rf-number ${reportType(d)}">${h(displayNumber(d))}</b><span>${reportLabel(d)}${d.caseId ? ' · ' + t('異常後續', 'Theo dõi bất thường') : ''}</span><small>${h(d.flow.cases.find((c) => c.id === d.flow.pendingId)?.actor.name)} · ${h(content(d).date)}</small></button>`).join('') || `<p class="rf-empty">${t('目前無待審案件', 'Không có hồ sơ chờ duyệt')}</p>`}</div><details class="rf-review-history"><summary>${t('已處理與歷史', 'Đã xử lý & lịch sử')}</summary>${liveDocs().filter((d) => status(d) !== 'pending' && (!s.documentKind || d.kind === s.documentKind)).slice().reverse().map((d) => `<button class="rf-review-card" data-review-doc="${h(d.id)}"><b class="rf-number ${reportType(d)}">${h(displayNumber(d))}</b><span>${reportLabel(d)} · ${label(status(d))}</span></button>`).join('')}</details></section><section class="rf-panel rf-detail-panel"><div class="rf-detail">${doc() ? documentDetail(doc()) : empty()}</div></section></div></div>`}`;
     bind(); mountDraft();
     root.querySelectorAll('[data-review-doc]').forEach((b) => b.onclick = () => {
       s.selected = b.dataset.reviewDoc; s.reviewCase = doc().flow.pendingId; s.selfReview = null; s.cancelConfirm = null;
@@ -1711,7 +1851,7 @@
     const url = new URL(location.href);
     if (url.searchParams.get('rfDocument')) s.selected = url.searchParams.get('rfDocument');
     s.reviewCase = url.searchParams.get('rfCase'); s.selfReview = null;
-    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}
+    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}
   }
   function updatePendingBadge() {
     const count = liveDocs().filter((d) => status(d) === 'pending').length;
@@ -1719,8 +1859,23 @@
   }
   async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
 
+  let moduleDeparture;
+  const departureSharedOwned=d=>{const tracked=d.flow?.scope==='routine-fqc:'+d.id;if(tracked)window.SharedDraftDeparture?.register?.(d.flow.scope);const owned=tracked?window.SharedDraftDeparture?.owns?.(d.flow):null;if(typeof owned==='boolean')return owned;if(!window.sharedDraftNeedsSave?.(d.flow))return false;const stamps=d.flow.contributors,actors=stamps&&typeof stamps==='object'&&!Array.isArray(stamps)?Object.values(stamps).map(value=>value?.actor?.id):[];return !actors.length||actors.some(actor=>typeof actor!=='string'||!actor||actor===window.ProcessSync?.identity?.id);};
+  const departureDocuments=()=>docs().filter(d=>dirty(d)||departureSharedOwned(d));
   window.RoutineFQCUI = {
-    navigation:{canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
+    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+      root:()=>root,context:()=>[s.selected,data?.identity?.id,data?.permissions?.save,data?.permissions?.edit,docs().map(d=>[d.id,d.flow.generation])],
+      current:()=>!data?.identity||!window.ProcessSync?.identity||data.identity.id===window.ProcessSync.identity.id,
+      busy:()=>s.busy||!!inFlightMutation,unknown:()=>!!s.retry,
+      local:()=>docs().some(dirty)||s.dialogOpen,
+      sharedDirty:()=>docs().some(departureSharedOwned),
+      locked:()=>departureDocuments().some(d=>status(d)!=='draft'),
+      localSave:()=>!s.dialogOpen,
+      localReason:()=>s.dialogOpen?t('請留頁完成或取消目前視窗；不會代為確認建立、上傳或送審。','Ở lại hoàn tất hoặc hủy cửa sổ; không tự xác nhận tạo, tải ảnh hoặc gửi duyệt.'):t('儲存會依原日常 FQC 流程，逐份提交本機修改並固定各文件版本；不會送審或刪除文件。','Lưu gửi các thay đổi cục bộ và cố định phiên bản từng hồ sơ FQC; không gửi duyệt hoặc xóa hồ sơ.'),
+      canSave:()=>data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
+      async save(){s.busy=true;try{for(const d of departureDocuments())await save(d);return true;}finally{s.busy=false;paint();}},
+      discard(){for(const d of docs())if(dirty(d)){s.buffers.delete(d.id);s.bases.delete(d.id);}paint();},
+    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
     html,
     mount,
     reviewHTML,

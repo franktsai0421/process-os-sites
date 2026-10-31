@@ -5,7 +5,7 @@ function fixture(activeId='approved',seed){
  const actor={id:'editor',name:'Synthetic',admin:true};
  if(seed)state=seed(state,actor);
  const context=()=>({actor,at:'2026-10-25T00:00:00Z',id:randomUUID,allowed:()=>true,structure(){},validate:()=>[],semantic:content=>content.items,activeId:state.active.id});
- const command=(action,detail={})=>({operationId:randomUUID(),clientId:'synthetic-client',generation:state.generation,sequence:++sequence,action,...detail});
+ const command=(action,detail={})=>({operationId:randomUUID(),clientId:'synthetic-client',generation:state.generation,sequence:++sequence,action,...(action==='submit'?{expectedRevision:state.revision}:{}),...detail});
  const send=cmd=>{const result=applyDraftCommand(state,cmd,context());state=result.state;return result;};
  const run=(action,detail)=>send(command(action,detail));
  return{get state(){return state;},command,send,run};
