@@ -14,6 +14,8 @@ const negativeFixtureReview={"commit":"f58d847d86e318f75631540656a4ae013103461a"
 for(const entry of negativeFixtureReview.entries){Object.freeze(entry.categories);Object.freeze(entry);}
 Object.freeze(negativeFixtureReview.entries);Object.freeze(negativeFixtureReview);
 const negativeFixtureProofs=new WeakMap();
+const historicalSignerReview=Object.freeze({commit:'ae2ff91eca847faac12337e17cdcbfdfee78d789',entries:Object.freeze([Object.freeze({path:'tests/master-ab-auth-phase-fixture.mjs',blob:'e83221cf75f18c9cdcda72baa69476a78b298077',categories:Object.freeze(['ASSIGNED_SECRET'])})])});
+const historicalSignerProofs=new WeakSet();
 const proofKey=(file,blob,category)=>file+'\0'+blob+'\0'+category;
 const negativeFixtureKeys=Object.freeze(negativeFixtureReview.entries.flatMap(entry=>entry.categories.map(category=>proofKey(entry.path,entry.blob,category))));
 const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',entries:[
@@ -25,7 +27,7 @@ const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',en
 // future browser discovery no longer embeds an installation path.
 {commit:'705e92bf53b7cd4ed9667444bcd5289679a86234',entries:[
  {path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']},
-]},negativeFixtureReview];
+]},negativeFixtureReview,historicalSignerReview];
 const patterns=[
  ['PRIVATE_KEY',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
  ['GITHUB_TOKEN',/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,})\b/],
@@ -68,6 +70,10 @@ export function inspectSourceBytes(file,bytes,policy,{working=false}={}){
  for(const [category,pattern] of patterns)if(pattern.test(value)){
   const sensitive=category==='PRIVATE_KEY'||category==='BEARER_LITERAL';
   const key=proofKey(file,canonical,category),fixedNegative=negativeFixtureKeys.includes(key);
+  const historicalSigner=historicalSignerReview.entries[0];
+  if((file===historicalSigner.path||canonical===historicalSigner.blob)&&category==='ASSIGNED_SECRET'){
+   if(working||file!==historicalSigner.path||oid!==historicalSigner.blob||!historicalSignerProofs.has(policy))throw Error('SOURCE_UNREVIEWED_'+category);
+  }
   if(!reviewed?.categories.includes(category)||(sensitive&&!fixedNegative)||((sensitive||fixedNegative)&&!negativeFixtureProofs.get(policy)?.includes(key)))throw Error('SOURCE_UNREVIEWED_'+category);
   // Hash/tuple authority is mandatory; these shapes are additional checks, not exemptions.
   if(fixedNegative&&category==='BEARER_LITERAL'){
@@ -122,6 +128,10 @@ export function runPreflight(root=path.resolve(fileURLToPath(new URL('..',import
  if(!commits.includes(negativeFixtureReview.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
  for(const entry of negativeFixtureReview.entries)if(!supplementPairs.get(negativeFixtureReview.commit)?.has(entry.path+'\0'+entry.blob))throw Error('SOURCE_SUPPLEMENT_BLOB_MISMATCH');
  negativeFixtureProofs.set(authorizedPolicy,negativeFixtureKeys);
+ if(!commits.includes(historicalSignerReview.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
+ const historicalSigner=historicalSignerReview.entries[0];
+ if(!supplementPairs.get(historicalSignerReview.commit)?.has(historicalSigner.path+'\0'+historicalSigner.blob))throw Error('SOURCE_SUPPLEMENT_BLOB_MISMATCH');
+ historicalSignerProofs.add(authorizedPolicy);
 
  const list=[...objects.values()];let bytesTotal=0;
  for(let i=0;i<list.length;i+=8){const batch=list.slice(i,i+8);

@@ -5,7 +5,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import vm from 'node:vm';
 import {DatabaseSync} from 'node:sqlite';
-import {webcrypto, createHash} from 'node:crypto';
+import {webcrypto, createHash, randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -78,7 +78,8 @@ export async function fixture(options = {}) {
     if (handler) await handler(event);
   }
   const env = {
-    PROCESS_SESSION_SECRET: 'synthetic-master-ab-auth-phase-isolated-secret',
+    // Per-fixture, memory-only signing key; never a reusable checked-in credential.
+    PROCESS_SESSION_SECRET: randomBytes(32).toString('hex'),
     PROCESS_SESSION_REVOCATION_ENABLED: '1',
     STATE_ARCHIVE: {
       async get(key) {

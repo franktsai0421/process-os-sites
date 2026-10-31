@@ -25,7 +25,8 @@
         {"path":"tests/multiuser-iqc-local-recovery-composition.test.mjs","blob":"2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e","categories":["BEARER_LITERAL"]},
         {"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"e038d0aaddb80a09ff6fdff6a1d1a19de04e6e57","categories":["PRIVATE_KEY"]}
       ]
-    }
+    },
+    {"commit":"ae2ff91eca847faac12337e17cdcbfdfee78d789","entries":[{"path":"tests/master-ab-auth-phase-fixture.mjs","blob":"e83221cf75f18c9cdcda72baa69476a78b298077","categories":["ASSIGNED_SECRET"]}]}
   ],
   "entries": [
     {
