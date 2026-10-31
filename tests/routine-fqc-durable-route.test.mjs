@@ -204,7 +204,7 @@ async function rejectedWithoutCommit(f, command, status, code) {
   return response.body;
 }
 
-test('actual routine route: original rejection status/code provenance and pre-CAS atomicity', async (t) => {
+void test('actual routine route: original rejection status/code provenance and pre-CAS atomicity', async (t) => {
   const f = await fixture(t), planId = await f.createPlan();
   await t.test('draft apply: DEPENDENCY_CHANGED_RECONFIRM is 409', async () => {
     const body = await rejectedWithoutCommit(f, f.draft(planId, 'apply', {
@@ -257,7 +257,7 @@ test('actual routine route: original rejection status/code provenance and pre-CA
   f.verifyBackups();
 });
 
-test('actual routine route: Apply/Save receipt document revisions remain distinct from aggregate revision', async (t) => {
+void test('actual routine route: Apply/Save receipt document revisions remain distinct from aggregate revision', async (t) => {
   const f = await fixture(t), planId = await f.createPlan();
   const before = f.document(planId).flow;
   const aggregateBefore = f.control().revision;
@@ -458,17 +458,17 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   };
 }
 
-test('actual full routine UI → actual route: dirty Save is 2 POST + 2 GET and metadata-only durability', async (t) => {
+void test('actual full routine UI → actual route: dirty Save is 2 POST + 2 GET and metadata-only durability', async (t) => {
   const metrics = await runActualUISave(t, routineUISource);
   t.diagnostic('Current UI source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
   t.diagnostic('Synthetic actual UI/route bytes (not browser timing): ' + JSON.stringify(metrics));
 });
 
-test('actual full routine UI → actual route: input made during Apply remains the next unsent batch', async (t) => {
+void test('actual full routine UI → actual route: input made during Apply remains the next unsent batch', async (t) => {
   await runActualUISave(t, routineUISource, { nextInput: true });
 });
 
-test('actual full routine UI → actual route: independent peer Save before guarded Apply may advance savedId', async (t) => {
+void test('actual full routine UI → actual route: independent peer Save before guarded Apply may advance savedId', async (t) => {
   const f = await fixture(t, { withPeer: true }), planId = await f.createPlan();
   const applyNotes = (value) => f.accepted(f.draft(planId, 'apply', {
     patches: [{ op: 'set', path: ['notes'], value }],
@@ -562,7 +562,7 @@ test('actual full routine UI → actual route: independent peer Save before guar
 // Optional explicit local comparison input; core current-code tests above never
 // skip or depend on Git history. This turn supplies the exact ab520ee blob.
 if (process.env.ROUTINE_FQC_BASELINE_JS) {
-  test('explicit ab520ee baseline versus current full UI: same synthetic Save route counts and wire bytes', async (t) => {
+  void test('explicit ab520ee baseline versus current full UI: same synthetic Save route counts and wire bytes', async (t) => {
     const baseline = fs.readFileSync(process.env.ROUTINE_FQC_BASELINE_JS, 'utf8');
     const gitBlob = createHash('sha1').update('blob ' + Buffer.byteLength(baseline) + '\0').update(baseline).digest('hex');
     assert.equal(gitBlob, '12c50d4a6e2444d886f6be107cca273dbfd60462', 'baseline must be the exact ab520ee routine UI source');

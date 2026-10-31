@@ -37,7 +37,7 @@ const row=data=>data.control.workflow.working.equipment[0];
 const projection=data=>data.control.workflow.working;
 function expectRetained(x){assert.equal(x.commands.length,1);assert.equal(x.f.test.readUnavailable,true);assert.match(x.f.test.message,/尚未核對/);assert.equal(x.f.test.working.equipment.length,1);}
 
-test('actual bound Add + default client + real equipment adapter confirms canonical defaults and null provenance without extra reads',async()=>{
+void test('actual bound Add + default client + real equipment adapter confirms canonical defaults and null provenance without extra reads',async()=>{
  const x=await fixture();try{
   const before=x.f.requests.length;x.open();await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.f.test.readUnavailable,false,x.f.test.message);
@@ -50,7 +50,7 @@ test('actual bound Add + default client + real equipment adapter confirms canoni
  }finally{x.close();}
 });
 
-test('actual category/subcategory/group handlers confirm allocated codes, canonical group fields and key-order differences',async()=>{
+void test('actual category/subcategory/group handlers confirm allocated codes, canonical group fields and key-order differences',async()=>{
  const x=await fixture();try{
   // Reserve a code then remove only that unapproved empty category. The next UI
   // guess is stale; allocation remains the actual server's responsibility.
@@ -73,7 +73,7 @@ test('actual category/subcategory/group handlers confirm allocated codes, canoni
  }finally{x.close();}
 });
 
-test('real adapter mutableFields final copy preserves explicit whitespace/null, while reordered ACK keys still settle',async()=>{
+void test('real adapter mutableFields final copy preserves explicit whitespace/null, while reordered ACK keys still settle',async()=>{
  const x=await fixture();try{
   x.f.test.working.equipment.push({id:'raw',assetCode:'  syn-raw  ',groupId:'group',name:' untrimmed name ',owner:' untrimmed owner ',unit:'支',spec:null,enabled:true,confirmed:true,calibrationMethod:'none'});
   x.setReply(data=>{const r=row(data);data.control.workflow.working.equipment[0]=Object.fromEntries(Object.entries(r).reverse());});
@@ -103,11 +103,11 @@ for(const [name,mutate]of[
  ['no-op receipt',data=>{data.receipt.unchanged=true;}],
  ['stale receipt revision',data=>{data.receipt.revision=0;data.receipt.unchanged=true;}],
  ['ACK behind receipt',data=>{data.control.workflow.revision=data.receipt.revision-1;}],
-])test('insert ACK rejects '+name+' without losing RAM or creating a second POST',async()=>{
+])void test('insert ACK rejects '+name+' without losing RAM or creating a second POST',async()=>{
  const x=await fixture();try{x.open();x.setReply(mutate);await x.submit();expectRetained(x);const old=x.f.test.working;assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,old);}finally{x.close();}
 });
 
-for(const mismatch of ['operation','generation'])test('default transport rejects wrong '+mismatch+' receipt and retains UNKNOWN for original receipt GET only',async()=>{
+for(const mismatch of ['operation','generation'])void test('default transport rejects wrong '+mismatch+' receipt and retains UNKNOWN for original receipt GET only',async()=>{
  const x=await fixture();try{
   const tamper=data=>{if(mismatch==='operation')data.receipt.operationId='wrong-operation';else data.receipt.generation='wrong-generation';};tamper.blockReceipt=true;x.setReply(tamper);x.open();await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,1);assert.match(x.f.test.message,/RESULT_UNKNOWN|尚未確認|結果未知/);
@@ -117,7 +117,7 @@ for(const mismatch of ['operation','generation'])test('default transport rejects
  }finally{x.close();}
 });
 
-for(const change of ['actor','epoch','delivery'])test('late canonical insert ACK after '+change+' never adopts or closes the retained form',async()=>{
+for(const change of ['actor','epoch','delivery'])void test('late canonical insert ACK after '+change+' never adopts or closes the retained form',async()=>{
  const x=await fixture();try{
   const pause=x.pause();x.open();const action=x.submit();await pause.reached;const before=x.f.test.model,local=x.f.test.working;
   if(change==='actor')x.f.rotateActor();if(change==='epoch')x.f.rotateEpoch();if(change==='delivery')x.f.rotateDelivery();pause.release();await action;
@@ -125,7 +125,7 @@ for(const change of ['actor','epoch','delivery'])test('late canonical insert ACK
  }finally{x.close();}
 });
 
-test('input typed after canonical insertion remains on the same UUID and next explicit Apply updates instead of reinserting',async()=>{
+void test('input typed after canonical insertion remains on the same UUID and next explicit Apply updates instead of reinserting',async()=>{
  const x=await fixture();try{
   const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.field('name','Second explicit name');pause.release();await action;
   assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.commands.length,1);assert(x.f.host.querySelector('#routine-add-submit'));
@@ -136,7 +136,7 @@ test('input typed after canonical insertion remains on the same UUID and next ex
  }finally{x.close();}
 });
 
-for(const kind of ['category','subcategory','group'])test('actual new '+kind+' refuses peer-modified user name, not just equipment inserts',async()=>{
+for(const kind of ['category','subcategory','group'])void test('actual new '+kind+' refuses peer-modified user name, not just equipment inserts',async()=>{
  const x=await fixture();try{
   x.f.test.openNodeDialog(kind);const input=x.f.host.querySelector('#routine-dialog-name');input.value='User '+kind;input.dispatchEvent({type:'input',target:input});
   x.setReply((data,command)=>{const patch=command.patches.find(p=>p.op==='insert');projection(data)[patch.path[0]].find(r=>r.id===patch.value.id).name='Peer '+kind;});
@@ -144,7 +144,7 @@ for(const kind of ['category','subcategory','group'])test('actual new '+kind+' r
  }finally{x.close();}
 });
 
-test('receipt-only insertion ACK uses its original receipt and one existing fallback read without replay',async()=>{
+void test('receipt-only insertion ACK uses its original receipt and one existing fallback read without replay',async()=>{
  const x=await fixture();try{
   const before=x.f.requests.length;x.setReply(data=>{delete data.control;});x.open();await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.f.test.working.equipment.length,1);
@@ -152,7 +152,7 @@ test('receipt-only insertion ACK uses its original receipt and one existing fall
  }finally{x.close();}
 });
 
-test('next input after a real inserted row keeps sent guard and conflicts with peer change rather than rebasing',async()=>{
+void test('next input after a real inserted row keeps sent guard and conflicts with peer change rather than rebasing',async()=>{
  const x=await fixture();try{
   const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.field('name','My next name');
   const id=x.commands[0].patches[0].value.id,path=['equipment',{id},'name'];
@@ -164,7 +164,7 @@ test('next input after a real inserted row keeps sent guard and conflicts with p
  }finally{x.close();}
 });
 
-for(const code of ['C00','C001'])test('new category rejects impossible server allocation '+code,async()=>{
+for(const code of ['C00','C001'])void test('new category rejects impossible server allocation '+code,async()=>{
  const x=await fixture();try{
   x.f.test.openNodeDialog('category');const input=x.f.host.querySelector('#routine-dialog-name');input.value='User category';input.dispatchEvent({type:'input',target:input});
   x.setReply((data,command)=>{const sent=command.patches.find(p=>p.op==='insert').value;projection(data).categories.find(r=>r.id===sent.id).code=code;});
@@ -172,14 +172,14 @@ for(const code of ['C00','C001'])test('new category rejects impossible server al
  }finally{x.close();}
 });
 
-for(const collection of ['categories','subcategories','groups'])for(const shape of ['object','null','missing','null entry','primitive entry'])test('malformed insert parent '+collection+' '+shape+' latches confirmation before another explicit Apply',async()=>{
+for(const collection of ['categories','subcategories','groups'])for(const shape of ['object','null','missing','null entry','primitive entry'])void test('malformed insert parent '+collection+' '+shape+' latches confirmation before another explicit Apply',async()=>{
  const x=await fixture();try{
   x.open();x.setReply(data=>{const snapshot=projection(data);if(shape==='object')snapshot[collection]={};if(shape==='null')snapshot[collection]=null;if(shape==='missing')delete snapshot[collection];if(shape==='null entry')snapshot[collection].push(null);if(shape==='primitive entry')snapshot[collection].push('not a row');});
   await x.submit();expectRetained(x);const local=x.f.test.working;assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
  }finally{x.close();}
 });
 
-for(const shape of ['object','null row'])test('mixed existing set before insert rejects malformed target '+shape+' with zero repeated POST',async()=>{
+for(const shape of ['object','null row'])void test('mixed existing set before insert rejects malformed target '+shape+' with zero repeated POST',async()=>{
  const x=await fixture();try{
   await x.h.command('routine-equipment','apply',{patches:[insert('equipment',{id:'existing',assetCode:'SYN-EXISTING',groupId:'group',name:'Existing tool',unit:'支',enabled:true,confirmed:true,calibrationMethod:'none'})]});
   await x.f.test.read();x.f.test.render();x.f.test.working.equipment.find(r=>r.id==='existing').name='Edited existing';
@@ -190,14 +190,14 @@ for(const shape of ['object','null row'])test('mixed existing set before insert 
  }finally{x.close();}
 });
 
-for(const [collection,field,derived]of[['categories','code','categoryCode'],['categories','name','category'],['subcategories','name','subcategory']])for(const invalid of [null,7,'   '])test('same-graph canonical parent '+collection+'.'+field+' '+JSON.stringify(invalid)+' cannot bless malformed derived fields',async()=>{
+for(const [collection,field,derived]of[['categories','code','categoryCode'],['categories','name','category'],['subcategories','name','subcategory']])for(const invalid of [null,7,'   '])void test('same-graph canonical parent '+collection+'.'+field+' '+JSON.stringify(invalid)+' cannot bless malformed derived fields',async()=>{
  const x=await fixture();try{
   x.open();x.setReply(data=>{const snapshot=projection(data);snapshot[collection][0][field]=invalid;snapshot.groups[0][derived]=invalid;snapshot.equipment[0][derived]=invalid;});
   await x.submit();expectRetained(x);await x.f.test.writeShared('apply');assert.equal(x.commands.length,1);
  }finally{x.close();}
 });
 
-for(const missing of ['equipment object','issues missing'])test('category-only ACK rejects whole-model '+missing+' before adoption or another POST',async()=>{
+for(const missing of ['equipment object','issues missing'])void test('category-only ACK rejects whole-model '+missing+' before adoption or another POST',async()=>{
  const x=await fixture();try{
   x.f.test.openNodeDialog('category');const input=x.f.host.querySelector('#routine-dialog-name');input.value='New category';input.dispatchEvent({type:'input',target:input});
   x.setReply(data=>{if(missing==='equipment object')projection(data).equipment={};else delete projection(data).issues;});

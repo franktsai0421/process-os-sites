@@ -27,7 +27,7 @@ async function fixture(t){
  const client=box.createSharedDraftClient({endpoint:'/api/bom/workflow?caseMetadata=1',actorId:'actor1',headers:()=>headers,externalDurableBounded:{scope:'BOM'},guardAccessResults:true});await client.read();calls.length=0;
  return {db,objects,storage,calls,client,box,initial,sheets,generation:initial.control.workflow.generation,row:initial.control.workflow.working.bom.ROOT[1],state:()=>db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get()};
 }
-test('actual BOM route pre-CAS audited refusals leave DB/R2 unchanged and privately release original marker',async t=>{
+void test('actual BOM route pre-CAS audited refusals leave DB/R2 unchanged and privately release original marker',async t=>{
  const f=await fixture(t),path=['bom','ROOT',{id:f.row.id},'itemName'];
  const cases=[
   ['BOM_MANUAL_STRUCTURE_FORBIDDEN',422,{patches:[{op:'set',path:['bom','ROOT',{id:f.row.id},'itemCode'],value:'FORGED'}]}],
@@ -43,11 +43,11 @@ test('actual BOM route pre-CAS audited refusals leave DB/R2 unchanged and privat
  for(const [code,status,detail]of cases){const before=f.state(),beforeObjects=[...f.objects],command=f.client.prepareRecovery(f.generation,detail),cap=f.client.rejectionCapability(command),flight=f.client.sendPrepared(command,{assertDispatch:()=>true});let error;try{await flight;}catch(value){error=value;}assert.equal(error?.message,code);assert.equal(error.status,status);assert.match(error.requestId,/^[\da-f-]{36}$/i);assert.equal(f.client.hasUnknown(),false,code);assert.equal(f.box.SharedDraftRejectionProof.verify(cap,error,command,flight),true,code);assert.deepEqual(f.state(),before,code);assert.deepEqual([...f.objects],beforeObjects,code);}
  assert.equal(f.calls.filter(call=>call.method==='POST').length,cases.length);assert.equal(f.calls.filter(call=>call.method==='GET').length,0,'refused mutations do not auto retry/GET');
 });
-test('actual BOM selected Save and no-op Save retain receipt/base contract with one terminal GET each',async t=>{
+void test('actual BOM selected Save and no-op Save retain receipt/base contract with one terminal GET each',async t=>{
  const f=await fixture(t);for(let i=0;i<2;i++){const command=f.client.prepareRecoverySave(f.generation),before=f.calls.length,result=await f.client.sendPrepared(command,{assertDispatch:()=>true});assert.equal(result.receipt.unchanged,i===1);assert.equal(result.control.workflow.scope,'bom');assert.equal(result.control.workflow.generation,f.generation);const read=f.client.verifiedReadback(result,command.operationId);assert.equal(read.control.workflow.saved.id,result.receipt.savedId);assert.equal(read.control.workflow.revision,result.receipt.revision);assert.equal(read.permissions.view,true);assert.deepEqual(f.calls.slice(before).map(call=>call.method),['POST','GET']);assert.equal(f.client.hasUnknown(),false);}
 });
 
-test('actual BOM manual body-limit413 occurs before state reads/CAS/R2 and leaves full input only in RAM',async t=>{
+void test('actual BOM manual body-limit413 occurs before state reads/CAS/R2 and leaves full input only in RAM',async t=>{
  const f=await fixture(t),path=['bom','ROOT',{id:f.row.id},'itemName'],value='𠜎'.repeat(500_100),command=f.client.prepareRecovery(f.generation,{patches:[{op:'set',path,value}],guards:[{path,value:f.row.itemName}]}),cap=f.client.rejectionCapability(command),before=f.state(),objects=[...f.objects],prepare=f.db.prepare.bind(f.db),queries=[];
  f.db.prepare=sql=>{queries.push(sql);return prepare(sql);};const flight=f.client.sendPrepared(command,{assertDispatch:()=>true});let error;try{await flight;}catch(failure){error=failure;}const requestQueries=queries.slice();f.db.prepare=prepare;
  assert.equal(error?.status,413);assert.equal(error?.message,'COMMAND_TOO_LARGE');assert.match(error.requestId,/^[\da-f-]{36}$/i);assert.deepEqual(requestQueries,[],'commandBody rejects before any state SQL');assert.deepEqual(f.state(),before);assert.deepEqual([...f.objects],objects);assert.equal(f.client.hasUnknown(),false);assert.equal(f.box.SharedDraftRejectionProof.verify(cap,error,command,flight),true);assert.equal(command.patches[0].value,value);assert.equal(f.storage.size,0);assert.deepEqual(f.calls.map(call=>call.method),['POST']);assert(new TextEncoder().encode(f.calls[0].body).byteLength>2_000_000);

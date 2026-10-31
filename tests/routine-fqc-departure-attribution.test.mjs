@@ -79,7 +79,7 @@ function fixture(){
  return{tab,get server(){return server;}};
 }
 
-test('same-account tabs: only actual non-no-op Apply receipt owns departure, not reads or polling',async()=>{
+void test('same-account tabs: only actual non-no-op Apply receipt owns departure, not reads or polling',async()=>{
  const f=fixture(),writer=f.tab(),reader=f.tab();await writer.poll();await reader.poll();
  assert.equal(writer.owns(),false);assert.equal(reader.owns(),false);
  const receipt=await writer.apply();assert.equal(receipt.unchanged,false);assert.equal(writer.confirmed.length,1);
@@ -90,7 +90,7 @@ test('same-account tabs: only actual non-no-op Apply receipt owns departure, not
  assert.equal(reader.calls.every(call=>call.method==='GET'),true);
 });
 
-test('no-op Apply, Save, generate and disabled document restore never create tab writes',async()=>{
+void test('no-op Apply, Save, generate and disabled document restore never create tab writes',async()=>{
  const f=fixture(),writer=f.tab(),reader=f.tab();await writer.poll();await writer.apply();await reader.poll();
  const noop=await reader.apply('Mine');assert.equal(noop.unchanged,true);assert.equal(reader.owns(),false);
  await reader.post(reader.command('save',{expectedRevision:reader.doc().flow.revision}));await reader.poll();
@@ -99,7 +99,7 @@ test('no-op Apply, Save, generate and disabled document restore never create tab
  assert.equal(reader.confirmed.length,0);assert.equal(reader.owns(),false);
 });
 
-test('an observed Save covers this tab receipt even if another same-account tab subsequently changes the document',async()=>{
+void test('an observed Save covers this tab receipt even if another same-account tab subsequently changes the document',async()=>{
  const f=fixture(),writer=f.tab(),other=f.tab();await writer.poll();await writer.apply();await writer.poll();await other.poll();
  const ownRevision=writer.doc().flow.revision;
  await other.post(other.command('save',{expectedRevision:other.doc().flow.revision}));await other.poll();
@@ -109,7 +109,7 @@ test('an observed Save covers this tab receipt even if another same-account tab 
  assert.equal(writer.owns(),false);assert.equal(other.owns(),true);
 });
 
-test('actual history restore kernel receipt owns only the requesting tab and document',async()=>{
+void test('actual history restore kernel receipt owns only the requesting tab and document',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();await writer.apply('First');await writer.poll();
  await writer.post(writer.command('save',{expectedRevision:writer.doc().flow.revision}));await writer.poll();const savedId=writer.doc().flow.saved.id;
  await writer.apply('Second');await writer.poll();await writer.post(writer.command('save',{expectedRevision:writer.doc().flow.revision}));await writer.poll();assert.equal(writer.owns(),false);
@@ -118,7 +118,7 @@ test('actual history restore kernel receipt owns only the requesting tab and doc
  assert.equal(writer.box.departureSharedOwned(writer.doc('b')),false);
 });
 
-test('unknown Apply retains local input, then attributes only its exact receipt without another POST',async()=>{
+void test('unknown Apply retains local input, then attributes only its exact receipt without another POST',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();writer.s.buffers.set('a',{title:'Retained'});writer.mode('lost');
  await assert.rejects(writer.apply());const original=writer.s.retry,owner=writer.s.retryDeparture;assert(original);assert.equal(writer.confirmed.length,0);
  await assert.rejects(writer.post(original),/OPERATION_NOT_FOUND/);assert.equal(writer.s.retry,original);assert.equal(writer.s.retryDeparture,owner);
@@ -127,7 +127,7 @@ test('unknown Apply retains local input, then attributes only its exact receipt 
  assert.equal(writer.calls.filter(call=>call.url.includes('operationId=')).every(call=>call.url.endsWith(original.operationId)),true);
 });
 
-for(const change of ['actor','epoch','delivery','generation','scope','document'])test('late '+change+' cannot attribute the old Apply to the current document',async()=>{
+for(const change of ['actor','epoch','delivery','generation','scope','document'])void test('late '+change+' cannot attribute the old Apply to the current document',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();const original=clone(writer.doc().flow);
  writer.afterPost(()=>{if(change==='actor'){writer.box.data.identity.id='other';writer.sync.identity={id:'other'};}
   if(change==='epoch')writer.changeEpoch();if(change==='delivery')writer.changeDelivery();
@@ -137,28 +137,28 @@ for(const change of ['actor','epoch','delivery','generation','scope','document']
  assert.equal(writer.confirmed.length,0);assert.equal(writer.hook.owns(original),false);
 });
 
-for(const change of ['generation','scope'])test('receipt-only recovery retains the original '+change+' fence',async()=>{
+for(const change of ['generation','scope'])void test('receipt-only recovery retains the original '+change+' fence',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();writer.mode('lost');await assert.rejects(writer.apply());const original=writer.s.retry,flow=clone(writer.doc().flow);
  if(change==='generation')writer.doc().flow.generation='new-generation';else writer.doc().flow.scope='routine-fqc:other';
  writer.mode('ok');await writer.post(original);assert.equal(writer.confirmed.length,0);assert.equal(writer.hook.owns(flow),false);
  assert.equal(writer.calls.filter(call=>call.method==='POST').length,1);
 });
 
-for(const invalid of ['operationId','generation','revision','unchanged'])test('malformed '+invalid+' response cannot become attribution evidence',async()=>{
+for(const invalid of ['operationId','generation','revision','unchanged'])void test('malformed '+invalid+' response cannot become attribution evidence',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();writer.alterResult(result=>({...result,[invalid]:invalid==='revision'?'1':invalid==='unchanged'?undefined:'wrong'}));
  await assert.rejects(writer.apply(),/INVALID_OPERATION_RECEIPT/);const original=writer.s.retry;assert(original,'unknown remains a departure barrier');assert.equal(writer.box.departure.inspect().state,'unknown');await assert.rejects(writer.box.departure.save());await assert.rejects(writer.box.departure.discard());assert.equal(writer.confirmed.length,0);assert.equal(writer.owns(),false);
  await assert.rejects(writer.post(original),/INVALID_OPERATION_RECEIPT/);assert.equal(writer.s.retry,original);
  writer.alterResult(result=>result);await writer.post(original);await writer.poll();assert.equal(writer.s.retry,null);assert.equal(writer.owns(),true);assert.equal(writer.calls.filter(call=>call.method==='POST').length,1);
 });
 
-test('legacy/malformed flow keeps conservative fallback and local input still includes its document',async()=>{
+void test('legacy/malformed flow keeps conservative fallback and local input still includes its document',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();writer.doc().flow.working.title='Legacy';writer.doc().flow.contributors={field:{actor:{id:123}}};
  delete writer.doc().flow.scope;assert.equal(writer.owns(),true);
  writer.doc().flow.contributors={field:{actor:{id:'other'}}};assert.equal(writer.owns(),false);
  writer.s.buffers.set('a',{title:'Local'});assert.equal(writer.box.departureDocuments().length,1);assert.equal(writer.calls.filter(call=>call.method==='POST').length,0);
 });
 
-test('mismatched document scope cannot borrow another document receipt',async()=>{
+void test('mismatched document scope cannot borrow another document receipt',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();await writer.apply('Mine in B','b');await writer.poll();
  const malformed=writer.doc();malformed.flow.scope='routine-fqc:b';malformed.flow.generation=writer.doc('b').flow.generation;
  malformed.flow.working.title='Someone else';malformed.flow.contributors={field:{actor:{id:'other'}}};
@@ -166,12 +166,12 @@ test('mismatched document scope cannot borrow another document receipt',async()=
 });
 
 
-test('first POST registers its exact document even before a state read',async()=>{
+void test('first POST registers its exact document even before a state read',async()=>{
  const f=fixture(),writer=f.tab();assert.equal(writer.hook.owns(writer.doc().flow),null);
  await writer.apply();assert.equal(writer.owns(),true);assert.equal(writer.confirmed.length,1);
 });
 
-test('duplicate late receipt cannot retire a newer unknown command',async()=>{
+void test('duplicate late receipt cannot retire a newer unknown command',async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();writer.mode('lost');await assert.rejects(writer.apply());const old=writer.s.retry;
  writer.mode('ok');const release=[];writer.afterReceipt(()=>new Promise(resolve=>release.push(resolve)));
  const first=writer.post(old),second=writer.post(old);await new Promise(resolve=>setImmediate(resolve));assert.equal(release.length,2);
@@ -179,7 +179,7 @@ test('duplicate late receipt cannot retire a newer unknown command',async()=>{
  writer.mode('ok');release[1]();await assert.rejects(second,/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(writer.s.retry,newer);assert.equal(writer.s.retryDeparture,newerOwner);
  writer.afterReceipt(()=>{});await writer.post(newer);await writer.poll();assert.equal(writer.s.retry,null);assert.equal(writer.calls.filter(call=>call.method==='POST').length,2);
 });
-for(const action of ['apply','restore'])test(`routine non-no-op ${action} revision zero cannot clear POST or receipt-only unknown`,async()=>{
+for(const action of ['apply','restore'])void test(`routine non-no-op ${action} revision zero cannot clear POST or receipt-only unknown`,async()=>{
  const f=fixture(),writer=f.tab();await writer.poll();
  if(action==='restore'){await writer.post(writer.command('save',{expectedRevision:writer.doc().flow.revision}));await writer.poll();await writer.apply('Changed');await writer.poll();}
  const command=writer.command(action,action==='apply'?{patches:[{op:'set',path:['title'],value:'Mine'}],guards:[{path:['title'],value:writer.doc().flow.working.title}]}:{expectedRevision:writer.doc().flow.revision,restoreSaveId:writer.doc().flow.saved.id});
@@ -187,4 +187,4 @@ for(const action of ['apply','restore'])test(`routine non-no-op ${action} revisi
  await assert.rejects(writer.post(original),/INVALID_OPERATION_RECEIPT/);assert.equal(writer.s.retry,original);
  const posts=writer.calls.filter(call=>call.method==='POST').length;writer.alterResult(result=>result);await writer.post(original);await writer.poll();assert.equal(writer.s.retry,null);assert.equal(writer.calls.filter(call=>call.method==='POST').length,posts);
 });
-test('routine legitimate no-op revision zero remains valid and never claims a write',async()=>{const writer=fixture().tab();await writer.poll();const result=await writer.apply('Initial a');assert.equal(result.revision,0);assert.equal(result.unchanged,true);assert.equal(writer.s.retry,null);assert.equal(writer.owns(),false);});
+void test('routine legitimate no-op revision zero remains valid and never claims a write',async()=>{const writer=fixture().tab();await writer.poll();const result=await writer.apply('Initial a');assert.equal(result.revision,0);assert.equal(result.unchanged,true);assert.equal(writer.s.retry,null);assert.equal(writer.owns(),false);});

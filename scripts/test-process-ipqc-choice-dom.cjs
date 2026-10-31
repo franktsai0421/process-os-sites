@@ -5,6 +5,24 @@ const sources={baseline:fs.readFileSync(path.join(baseline,'public/process/proce
 const key=row=>JSON.stringify([row.source,row.scope,row.itemId]),copy=structuredClone;
 const tree=node=>({tag:node.tagName,attrs:{...node.attrs},text:node._text,checked:node.checked,disabled:node.disabled,children:node.children.map(tree)});
 const count=node=>1+node.children.reduce((sum,child)=>sum+count(child),0);
+function alignReviewedSourceLabel(before,after,lang){
+ const old=lang==='vi'?'Xem tiêu chuẩn, sản phẩm và ảnh':'查看標準、適用產品與照片';
+ const current=lang==='vi'?'Xem tiêu chuẩn nguồn hiện hành, sản phẩm và ảnh':'查看現行來源標準、適用產品與照片';
+ const a=before.querySelector('summary'),b=after.querySelector('summary');assert(a&&b);
+ assert.equal(a.children.length,1);assert.equal(b.children.length,1);
+ assert.equal(a.children[0].tagName,'SPAN');assert.equal(b.children[0].tagName,'SPAN');
+ assert.equal(a.children[0].textContent,old,'exact historical summary');assert.equal(b.children[0].textContent,current,'exact reviewed current-source summary');
+ a.children[0].textContent=current;
+}
+
+function alignReviewedManualFlowNotice(before,after,lang){
+ const old=lang==='vi'?'Chỉ phân công hạng mục. Áp dụng để đồng bộ, sau đó lưu bản nháp.':'此處僅分配項目；套用後同步，再手動儲存草稿。';
+ const current=lang==='vi'?'Chỉ phân công hạng mục. Hoàn tất để giữ cục bộ, rồi đồng bộ sơ đồ và lưu thủ công.':'此處僅分配項目；完成方塊後先留本機，再同步目前畫布、手動儲存。';
+ const a=before.children.filter(n=>n.tagName==='P'),b=after.children.filter(n=>n.tagName==='P');assert.equal(a.length,1);assert.equal(b.length,1);
+ assert.equal(a[0].children.length,1);assert.equal(b[0].children.length,1);assert.equal(a[0].children[0].tagName,'SPAN');assert.equal(b[0].children[0].tagName,'SPAN');
+ assert.equal(a[0].children[0].textContent,old,'exact historical manual-flow notice');assert.equal(b[0].children[0].textContent,current,'exact reviewed local-then-explicit-sync notice');
+ a[0].children[0].textContent=current;
+}
 function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'A:SYN',itemId:'item-'+i,sourceVersionId:'approved-1',code:'I'+i,errorId:'error-'+i%8,errorCode:'E'+i%8,errorName:'合成 lỗi '+i%8,productCodes:['P1','P2'],standard:'fresh standard '+i,description:'fresh description '+i,equipment:{assetCode:'EQ',pieceMark:'01',name:'Gauge'},rules:[{cadence:'batch',batchKind:'fixed_count',fixedCount:2}],frequency:'each',photos:[{id:'photo-'+i,name:'Photo '+i,note:'Note '+i}]}));}
 (async()=>{
  const {canvasDOM}=await import('./login-reentry-dom.mjs');
@@ -27,8 +45,8 @@ function choices(n=48){return Array.from({length:n},(_,i)=>({source:'AB',scope:'
   assert(after.panel.querySelectorAll('[data-ipqc-choice]').some(input=>input.dataset.ipqcChoice===key(after.rows[1])&&input.disabled));
   counts.push({language:lang,beforeNodes:count(before.panel),afterNodes:count(after.panel),items:49});assert(count(after.panel)<count(before.panel)*0.6);
   const a=before.panel.querySelectorAll('.process-ipqc-item-details'),b=after.panel.querySelectorAll('.process-ipqc-item-details');assert.equal(after.panel.querySelectorAll('.process-ipqc-photos').length,0);
-  for(let i=0;i<a.length;i++){before.open(a[i]);after.open(b[i]);assert.deepEqual(tree(b[i]),tree(a[i]),'expanded standard/rules/photos match exact row '+i);const size=count(b[i]);after.close(b[i]);after.open(b[i]);assert.equal(count(b[i]),size,'reopening does not duplicate DOM');}
-  assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
+  for(let i=0;i<a.length;i++){before.open(a[i]);after.open(b[i]);alignReviewedSourceLabel(a[i],b[i],lang);assert.deepEqual(tree(b[i]),tree(a[i]),'expanded standard/rules/photos match exact row '+i);const size=count(b[i]);after.close(b[i]);after.open(b[i]);assert.equal(count(b[i]),size,'reopening does not duplicate DOM');}
+  alignReviewedManualFlowNotice(before.panel,after.panel,lang);assert.deepEqual(tree(after.panel),tree(before.panel),'entire expanded UI matches except two explicitly asserted reviewed labels');assert.equal(after.requests.length,1,'expanding details has no extra fetch');checks.push(lang+' same choices, ownership, retained links, exact expanded details and no duplicate nodes');
   const input=after.panel.querySelectorAll('[data-ipqc-choice]').find(node=>node.dataset.ipqcChoice===key(after.rows[3]));input.checked=true;input.onchange();assert(after.op.ipqcAssignments.some(row=>row.itemId===after.rows[3].itemId));assert.equal(after.panel.querySelector('[data-ipqc-count="selected"]').textContent,'2');checks.push(lang+' assignment checkbox remains operative before any Save');
  }
  const stale=fixture('candidate');await stale.load();const retired=stale.panel.querySelector('.process-ipqc-item-details'),initial=count(retired);stale.c.ProcessSync.identity={id:'another'};stale.open(retired);assert.equal(count(retired),initial);checks.push('identity change prevents deferred private detail insertion');

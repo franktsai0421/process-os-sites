@@ -36,19 +36,19 @@ async function fixture(moduleName,tab){
 
 const cases=[['MasterDataWorkflow','AB'],['MasterDataWorkflow','C'],['MasterDataWorkflow','line-admin'],['MasterDataWorkflow','process-master'],['BOMWorkspace','bom'],['FQCMasterUI','quality-fqc'],['IQCMasterUI','quality-iqc'],['IPQCABUI','quality-ipqc-ab'],['IPQCCUI','quality-ipqc-c'],['RoutineEquipmentUI','quality-routine-equipment'],['ToolingUI','quality-mold-equipment'],['RoutineFQCUI','routine']];
 for(const [moduleName,tab] of cases){
- test(`${tab}: actual router selects module adapter, Stay preserves inputs and makes no request`,async()=>{
+ void test(`${tab}: actual router selects module adapter, Stay preserves inputs and makes no request`,async()=>{
   const f=await fixture(moduleName,tab);f.api.navigate('dashboard');assert(f.dialog());assert.equal(f.reads.length,0);f.choice('stay').click();assert.equal(f.input.value,'latest unsaved text');assert.equal(f.form.open,true);assert.equal(f.document.activeElement,f.input);assert.equal(f.stats().saves,0);assert.equal(f.stats().discards,0);
  });
- test(`${tab}: Save waits for acknowledgement, latest target wins, one save only`,async()=>{
+ void test(`${tab}: Save waits for acknowledgement, latest target wins, one save only`,async()=>{
   const f=await fixture(moduleName,tab);f.api.navigate('dashboard');f.choice('save').click();f.api.navigate('player');f.choice('save').click();assert.equal(f.stats().saves,1);assert.equal(f.reads.length,0);f.mutation.resolve();await turn();assert.equal(f.reads.length,1);assert.equal(f.reads[0].target.view,'player');f.finish(0);await turn();assert.equal(f.state.view,'player');assert.equal(f.stats().releases,1);
  });
- test(`${tab}: unknown does not save/discard/navigate and remains cancellable`,async()=>{
+ void test(`${tab}: unknown does not save/discard/navigate and remains cancellable`,async()=>{
   const f=await fixture(moduleName,tab);f.setStatus({state:'unknown',canSave:false,canDiscard:false,reason:'請查原操作收據'});f.api.navigate('dashboard');assert(f.dialog());assert.equal(f.choice('save').disabled,true);assert.equal(f.choice('discard').disabled,true);f.choice('save').click();f.choice('discard').click();assert.equal(f.stats().saves,0);assert.equal(f.stats().discards,0);assert.equal(f.reads.length,0);f.choice('stay').click();assert.equal(f.form.open,true);
  });
 }
-test('PROCESS names owned by adapter are not re-blocked by the legacy runtime local guard',async()=>{
+void test('PROCESS names owned by adapter are not re-blocked by the legacy runtime local guard',async()=>{
  const f=await fixture('MasterDataWorkflow','process-master');f.window.ProcessRuntimeProjection.canLeave=()=>false;f.adapter.ownsRuntimeLocal=()=>true;f.api.navigate('dashboard');assert.equal(f.choice('discard').disabled,false);f.choice('discard').click();f.mutation.resolve();await turn();assert.equal(f.reads.length,1);f.finish(0);await turn();assert.equal(f.state.view,'dashboard');
 });
-test('unowned runtime local input still blocks every other module adapter',async()=>{
+void test('unowned runtime local input still blocks every other module adapter',async()=>{
  const f=await fixture('IQCMasterUI','quality-iqc');f.window.ProcessRuntimeProjection.canLeave=()=>false;f.api.navigate('dashboard');assert.equal(f.choice('save').disabled,true);assert.equal(f.choice('discard').disabled,true);assert.equal(f.reads.length,0);f.choice('stay').click();
 });

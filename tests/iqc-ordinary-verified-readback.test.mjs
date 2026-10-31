@@ -34,7 +34,7 @@ async function start(f,{lost=false}={}){
   await tick();assert.equal(f.requests.at(-1).options.method,'GET');assert.doesNotMatch(f.requests.at(-1).url,/operationId=/);
   return {promise,receipt,terminal:f.requests.length-1,command};
 }
-for(const lost of [false,true])test(`ordinary Save adopts exact terminal GET without extra read (lost ACK=${lost})`,async()=>{
+for(const lost of [false,true])void test(`ordinary Save adopts exact terminal GET without extra read (lost ACK=${lost})`,async()=>{
   const f=await warm(),op=await start(f,{lost}),data=full(2,'g',9);f.respond(op.terminal,data);const result=await op.promise;
   assert.equal(result.message,undefined);assert.equal(result.recovered,lost?true:undefined);assert.equal(result.revision,undefined,'preserve receipt-only public shape');
   assert.equal(f.api.state().revision,9);assert.equal(f.api.state().control,data.control);assert.equal(f.api.state().readDenied,null);
@@ -46,7 +46,7 @@ for(const lost of [false,true])test(`ordinary Save adopts exact terminal GET wit
   assert.equal(f.requests.length,lost?4:3);assert.equal(f.markerCount(),0);assert.equal(f.clients[0].hasUnknown(),false);
   f.flip();assert.equal(f.clients[0].verifiedReadback(result,op.command.operationId),null,'old owner cannot use internal recovered proof');
 });
-for(const lost of [false,true])for(const status of [401,403])for(const nonJSON of [false,true])test(`terminal denial quarantines UI but preserves unknown (${lost}/${status}/${nonJSON})`,async()=>{
+for(const lost of [false,true])for(const status of [401,403])for(const nonJSON of [false,true])void test(`terminal denial quarantines UI but preserves unknown (${lost}/${status}/${nonJSON})`,async()=>{
   const f=await warm(),before=f.api.state().control,op=await start(f,{lost});
   if(nonJSON)f.requests[op.terminal].resolve({status,ok:false,json:async()=>{throw Error('INVALID_JSON');}});else f.respond(op.terminal,{error:'FORBIDDEN'},status);
   const error=await op.promise;assert.equal(error.operationAcknowledged,undefined);assert.equal(f.api.state().readDenied,error);assert.equal(f.api.state().control,before);
@@ -58,19 +58,19 @@ for(const lost of [false,true])for(const status of [401,403])for(const nonJSON o
   const retry=f.clients[0].retryUnknown().catch(error=>error);await tick();assert.match(f.requests.at(-1).url,/operationId=/);f.respond(f.requests.length-1,{error:'NOT_FOUND'},404);assert.equal((await retry).status,404);
   assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });
-for(const lost of [false,true])test(`old terminal denial cannot replace newer denied load (lost ACK=${lost})`,async()=>{
+for(const lost of [false,true])void test(`old terminal denial cannot replace newer denied load (lost ACK=${lost})`,async()=>{
   const f=await warm(),op=await start(f,{lost}),newer=f.api.load().catch(error=>error);await tick();f.respond(f.requests.length-1,{error:'NEW_LOAD_DENIED'},403);const newError=await newer;
   f.respond(op.terminal,{error:'OLD_READ_DENIED'},401);await op.promise;assert.equal(f.api.state().readDenied,newError);assert.equal(newError.operationAcknowledged,undefined);assert.equal(f.markerCount(),1);
 });
-for(const change of ['owner','mount','replacement'])test(`late terminal denial does not quarantine ${change}`,async()=>{
+for(const change of ['owner','mount','replacement'])void test(`late terminal denial does not quarantine ${change}`,async()=>{
   const f=await warm(),op=await start(f);if(change==='owner')f.flip();else if(change==='mount')f.api.changeMount();else{f.flip();f.api.replaceClient();f.api.transport();}
   f.respond(op.terminal,{error:'FORBIDDEN'},403);await op.promise;assert.equal(f.api.state().readDenied,null);assert.equal(f.markerCount(),1);
 });
-test('newer complete model defeats old terminal GET without rollback or clearing marker',async()=>{
+void test('newer complete model defeats old terminal GET without rollback or clearing marker',async()=>{
   const f=await warm(),op=await start(f),newer=f.api.load();await tick();const fresh=full(5,'g2',10);f.respond(f.requests.length-1,fresh);await newer;
   f.respond(op.terminal,full(2));await tick();assert.match(f.requests.at(-1).url,/operationId=/);f.respond(f.requests.length-1,{error:'NOT_FOUND'},404);const error=await op.promise;assert.ok(error.message);assert.equal(f.api.state().control,fresh.control);assert.equal(f.api.state().revision,10);assert.equal(f.api.state().readDenied,null);assert.equal(f.markerCount(),1);
 });
-for(const change of ['load','generation','globalRevision','flowRevision','clone'])test(`post-await exact adoption refuses ${change} change`,async()=>{
+for(const change of ['load','generation','globalRevision','flowRevision','clone'])void test(`post-await exact adoption refuses ${change} change`,async()=>{
   const f=await warm(),client=f.clients[0],original=client.command;let release,settled;const gate=new Promise(resolve=>{release=resolve;});
   client.command=(...args)=>original(...args).then(async result=>{settled=result;await gate;return change==='clone'?{...result}:result;});
   const op=await start(f);f.respond(op.terminal,full(2));await tick();assert.ok(settled);
@@ -78,18 +78,18 @@ for(const change of ['load','generation','globalRevision','flowRevision','clone'
   else if(change==='generation')f.api.setModel(full(3,'other',3));else if(change==='globalRevision')f.api.setModel(full(1,'g',20));else if(change==='flowRevision')f.api.setModel(full(3,'g',1));
   const before=f.api.state();release();const error=await op.promise;assert.match(error.message,/SUPERSEDED|READBACK_REQUIRED/);assert.equal(f.api.state().control,before.control);assert.equal(f.api.state().revision,before.revision);assert.equal(f.api.state().readDenied,null);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });
-for(const invalid of ['partialPermissions','wrongPermission','nullVersion'])test(`verified GET still requires complete IQC payload: ${invalid}`,async()=>{
+for(const invalid of ['partialPermissions','wrongPermission','nullVersion'])void test(`verified GET still requires complete IQC payload: ${invalid}`,async()=>{
   const f=await warm(),before=f.api.state().control,op=await start(f,{lost:true}),data=full(2);
   if(invalid==='partialPermissions')data.permissions={view:true};else if(invalid==='wrongPermission')data.permissions.delete='true';else data.control.versions=[null];
   f.respond(op.terminal,data);const error=await op.promise;assert.ok(error.operationAcknowledged);assert.equal(f.api.state().readDenied,error);assert.equal(f.api.state().control,before);assert.equal(f.api.mayEdit(),false);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });
-test('fabricated fetch status/permission event cannot act as owned state-read denial',async()=>{
+void test('fabricated fetch status/permission event cannot act as owned state-read denial',async()=>{
   const f=await warm(),write=f.api.post('save').catch(error=>error);await tick();const post=f.requests.length-1;
   const deniedPermissions=f.clients[0].permissions();await tick();f.respond(f.requests.length-1,{revision:1,permissions:{...permissions,view:false}});await deniedPermissions;
   f.requests[post].reject(Object.assign(Error('FAKE_STATUS'),{status:403,operationAcknowledged:true}));await write;
   assert.equal(f.clients[0].readPauseState('state'),null);assert.equal(f.api.state().readDenied,null);assert.equal(f.clients[0].hasUnknown(),true);assert.equal(f.markerCount(),1);
 });
-for(const action of ['approve','withdraw','reject'])test(`ordinary ${action} adopts legal review generation rotation`,async()=>{
+for(const action of ['approve','withdraw','reject'])void test(`ordinary ${action} adopts legal review generation rotation`,async()=>{
   const f=await warm();f.window.VersionDraftUI={confirmReview:async()=>({reason:'Synthetic reviewed reason',selfReviewConfirmed:true})};
   f.api.state().control.workflow.cases.push({id:'case1',actor:{id:'other'}});f.api.state().control.workflow.pendingId='case1';
   const promise=f.api.post(action,{versionId:'case1'}).catch(error=>error);await tick();const post=f.requests.length-1,command=JSON.parse(f.requests[post].options.body).command;

@@ -15,6 +15,16 @@
       "entries": [
         {"path":"tests/sites-delivery-browser.test.mjs","blob":"f7992a769f1e739ce60ec6887137348824a429e6","categories":["WORKSTATION_PATH"]}
       ]
+    },
+    {
+      "commit": "f58d847d86e318f75631540656a4ae013103461a",
+      "entries": [
+        {"path":"scripts/test-iqc-editing-projection-races.cjs","blob":"9874f0c059728373f9b8e60df6d74b167b9ecbf1","categories":["WORKSTATION_PATH"]},
+        {"path":"scripts/test-iqc-editing-projection-ui.cjs","blob":"f4c1d47bb90371b329c2f53f0b55a3023c09de3e","categories":["WORKSTATION_PATH"]},
+        {"path":"tests/multiuser-canvas-actual-transport.test.mjs","blob":"62de3828f3748c6544702062e835bc4942df338d","categories":["WORKSTATION_PATH"]},
+        {"path":"tests/multiuser-iqc-local-recovery-composition.test.mjs","blob":"2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e","categories":["BEARER_LITERAL"]},
+        {"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"e038d0aaddb80a09ff6fdff6a1d1a19de04e6e57","categories":["PRIVATE_KEY"]}
+      ]
     }
   ],
   "entries": [

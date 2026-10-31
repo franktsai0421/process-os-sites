@@ -157,6 +157,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/sites-ci-preflight.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/sites-ci-negative-review.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/sites-source-boundary.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --experimental-vm-modules tests/sites-fresh-source.test.mjs
