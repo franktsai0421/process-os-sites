@@ -19,7 +19,10 @@ function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'
   const control=readSource<AbControl|null>('ipqcABMasterControl',null),s=control?.scopes?.[scope],v=s?.versions.find(v=>v.id===s.activeVersionId&&v.status==='approved');
   if(!v)return{source,scope,reason:'SOURCE_NOT_APPROVED',choices};
   if(!Array.isArray(v.snapshot?.items)||!Array.isArray(v.snapshot?.errors))throw Error('IPQC_SOURCE_UNAVAILABLE');
-  for(const i of v.snapshot.items){const e=v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category),codes=i.productCodes.filter(p=>products.includes(p));
+  // A read owns this immutable source. Resolve repeated errors lazily so the
+  // first-match order and malformed-row failures remain those of Array.find.
+  const errors=new Map<string,AbError|undefined>();
+  for(const i of v.snapshot.items){if(!errors.has(i.errorId))errors.set(i.errorId,v.snapshot.errors.find((e:AbError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.line===w.line&&e.group===w.category));const e=errors.get(i.errorId),codes=i.productCodes.filter(p=>products.includes(p));
    if(!e||i.deleted||!i.isEnabled||!codes.length)continue;
    choices.push({source,scope,itemId:i.id,sourceVersionId:v.id,productCodes:codes,code:i.code,errorId:e.id,errorCode:e.code,errorName:e.name,standard:i.standard,description:i.methodText,inspection:[i.sourceTool,i.sourceMethod].filter(Boolean).join(' · '),equipment:i.equipmentSnapshot,rules:i.rules,frequency:i.sourceFrequency||'',photos:[...i.standardPhotos,...i.methodPhotos]});
   }
@@ -27,22 +30,25 @@ function ipqcChoicesFrom(readSource:ChoiceSourceReader,w:Pick<Workspace,'line'|'
   const c=readSource<IpqcControl|null>('ipqcCMasterControl',null),v=c?.versions.find(v=>v.id===c.activeVersionId&&v.status==='approved');
   if(!v)return{source,scope,reason:'SOURCE_NOT_APPROVED',choices};
   if(!Array.isArray(v.snapshot?.items)||!Array.isArray(v.snapshot?.errors))throw Error('IPQC_SOURCE_UNAVAILABLE');
-  for(const i of v.snapshot.items){const e=v.snapshot.errors.find((e:IpqcError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.productCode===i.productCode);
+  const errors=new Map<string,Map<string,IpqcError|undefined>>();
+  for(const i of v.snapshot.items){let productErrors=errors.get(i.errorId);if(!productErrors){productErrors=new Map();errors.set(i.errorId,productErrors);}if(!productErrors.has(i.productCode))productErrors.set(i.productCode,v.snapshot.errors.find((e:IpqcError)=>e.id===i.errorId&&!e.deleted&&e.stageCode===stage&&e.productCode===i.productCode));const e=productErrors.get(i.productCode);
    if(!e||i.deleted||i.notApplicable||!i.standardEnabled||i.stageCode!==stage||!products.includes(i.productCode))continue;
    choices.push({source,scope,itemId:i.id,sourceVersionId:v.id,productCodes:[i.productCode],code:i.code,errorId:e.id,errorCode:e.code,errorName:e.name,standard:i.standard,description:i.description,inspection:[i.tool,i.method].filter(Boolean).join(' · '),equipment:i.equipmentSnapshot,rules:i.rule?[i.rule]:[],frequency:i.frequency,photos:i.mediaItems});
   }
  }
  return{source,scope,reason:products.length?choices.length?'':'NO_MATCHING_ITEMS':'NO_PRODUCTS',choices};
 }
-export function ipqcChoices(values:Record<string,string>,w:Pick<Workspace,'line'|'category'>,stage:string,selected:string[]){
- return ipqcChoicesFrom((key,fallback)=>read(values,key,fallback),w,stage,selected);
+// Optional master is the caller's already parsed matching state value, never
+// client input or a cross-request cache. Other sources retain their lazy reads.
+export function ipqcChoices(values:Record<string,string>,w:Pick<Workspace,'line'|'category'>,stage:string,selected:string[],preparedMaster?:unknown){
+ return ipqcChoicesFrom((key,fallback)=>key==='masterDataControl'&&values[key]&&preparedMaster!==undefined?preparedMaster as typeof fallback:read(values,key,fallback),w,stage,selected);
 }
 export const assignments=(op:Operation):IPQCAssignment[]=>op.ipqcAssignments as IPQCAssignment[]||[];
-export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>){
+export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspace[],values:Record<string,string>,preparedMaster?:unknown){
  // Source strings are immutable within this synchronous call. Unchanged
  // historical links still skip decoding; no cache survives the invocation.
  const decoded=new Map<string,unknown>();
- const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
+ const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(key==='masterDataControl'&&preparedMaster!==undefined)return preparedMaster as typeof fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
   const occupied=new Map<string,Operation>();
   for(const op of ops){
@@ -63,12 +69,12 @@ export function validateIPQCAssignments(workspaces:Workspace[],previous:Workspac
   }
  }
 }
-export function ipqcIssues(workspaces:Workspace[],values:Record<string,string>):DraftIssue[]{
+export function ipqcIssues(workspaces:Workspace[],values:Record<string,string>,preparedMaster?:unknown):DraftIssue[]{
  const issues:DraftIssue[]=[];
  // This synchronous inspection owns immutable source strings. Decode lazily
  // once per call, never across requests, identities, or mutable working models.
  const decoded=new Map<string,unknown>();
- const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
+ const readSource:ChoiceSourceReader=(key,fallback)=>{if(!values[key])return fallback;if(key==='masterDataControl'&&preparedMaster!==undefined)return preparedMaster as typeof fallback;if(!decoded.has(key))decoded.set(key,read(values,key,fallback));return decoded.get(key) as typeof fallback;};
  for(const w of workspaces)for(const [stage,ops]of Object.entries(w.stages)){
   const found=ipqcChoicesFrom(readSource,w,stage,[...new Set(ops.flatMap(o=>o.productCodes||[]))]);
   const all=ops.flatMap(assignments),path:DraftIssue['path']=['workspaces',{id:w.id},'stages',stage];

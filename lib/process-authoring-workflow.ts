@@ -1,5 +1,5 @@
 import {parse} from './process-state';
-import {applyDraftCommand,DraftConflict,stableDraftJSON,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,sameDraftValue,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-workflow';
 import {effectiveAccess} from './user-access';
 import {validateIPQCAssignments,ipqcIssues} from './process-ipqc';
@@ -11,7 +11,7 @@ export type Workspace={id:string;category:string;line:string;stages:Record<strin
 type Content={workspaces:Workspace[]};
 export type AuthoringControl=VersionedControl<Content>;
 export const AUTHORING_ADVISORY_CODES=['PRODUCT_MISSING','NAME_REQUIRED','MACHINE_REQUIRED','INSTRUCTIONS_REQUIRED','STEP_STANDARD_REQUIRED','SINGLE_SUCCESSOR_REQUIRED','CONNECTION_TARGET_MISSING','DISCONNECTED_OPERATIONS','PRODUCT_ROUTE_CHANGED','PRODUCT_STAGE_REQUIRED','BOM_ASSIGNMENT_REQUIRED','EQUIPMENT_REFERENCE_MISSING','IPQC_UNASSIGNED','IPQC_REFERENCE_CHANGED','IPQC_SOURCE_NOT_APPROVED','EDITOR_LEGACY_REVIEW','PRODUCT_SELECTION_REQUIRED','ENTRY_REQUIRED','EXIT_REQUIRED'] as const;
-const equal=(a:unknown,b:unknown)=>stableDraftJSON(a)===stableDraftJSON(b);
+const equal=sameDraftValue;
 // Compatibility references still resolved by app.js's original machine catalog.
 const legacyMachineIds=['M-A-001','M-A-003','M-A-006','M-B-002','M-C-004'];
 const rows=<T>(v:unknown):T[]=>{if(!Array.isArray(v))throw new DraftConflict('AUTHORING_ARRAY_REQUIRED',422);return v;};
@@ -42,6 +42,13 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
    const user=parse(state.values.platformUsers,[]).find((u:Parameters<typeof effectiveAccess>[0])=>u.id===base.actor.id),access=user?effectiveAccess(user,state.values):null;
    const products=['AB','C'].flatMap(s=>master.active[s]?.products||[]),lines=['AB','C'].flatMap(s=>master.active[s]?.lines||[]);
    const equipmentIds=new Set([...legacyMachineIds,...Object.values(master.active.PROCESS||{}).flatMap(templates=>(templates as {equipment?:{id:string}[];machineIds?:string[]}[]).flatMap(t=>[...(t.equipment||[]).map(e=>e.id),...(t.machineIds||[])]))]);
+   // Dependencies are fixed for this context/CAS attempt. Construct at the
+   // original validation boundary so malformed-source precedence is retained.
+   let contextBom:((code:string)=>string[])|undefined;
+   const getBomRoots=()=>{
+    if(!contextBom){const read=bomRootReader(state.values),roots=new Map<string,string[]>();contextBom=code=>{const normalized=norm(code);if(!roots.has(normalized))roots.set(normalized,read(code));return roots.get(normalized)!;};}
+    return contextBom;
+   };
    return{...base,activeId:control.activeVersionId,semantic:content=>content,advisoryCodes:AUTHORING_ADVISORY_CODES,
     structure(content,previous){const ids=new Set<string>();for(const w of rows<Workspace>(content.workspaces)){
       if(typeof w.category!=='string'||typeof w.line!=='string'||w.id!==JSON.stringify([w.category,w.line])||ids.has(w.id))throw new DraftConflict('AUTHORING_SCOPE_INVALID',422);ids.add(w.id);
@@ -65,10 +72,10 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
       }
      }
      if(!base.actor.admin&&previous.workspaces.some(w=>!content.workspaces.some(next=>next.id===w.id)&&!access?.lines.includes(w.line)))throw new DraftConflict('LINE_EDIT_FORBIDDEN',403);
-     assertEditorIntegrity(content.workspaces,previous.workspaces,master.active.PROCESS||{},bomRootReader(state.values));
-     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values);
+     assertEditorIntegrity(content.workspaces,previous.workspaces,master.active.PROCESS||{},getBomRoots());
+     validateIPQCAssignments(content.workspaces,previous.workspaces,state.values,master);
     },
-    validate(content){const issues:DraftIssue[]=[],bomRoots=bomRootReader(state.values);for(const w of content.workspaces){const all=Object.entries(w.stages).flatMap(([stage,ops])=>ops.map(op=>({op,stage}))),participating=new Set(all.flatMap(({op})=>op.productCodes||[]));
+    validate(content){const issues:DraftIssue[]=[],bomRoots=getBomRoots();for(const w of content.workspaces){const all=Object.entries(w.stages).flatMap(([stage,ops])=>ops.map(op=>({op,stage}))),participating=new Set(all.flatMap(({op})=>op.productCodes||[]));
      const add=(stage:string,op:Operation|undefined,message:string,kind:DraftIssue['kind']='missing')=>issues.push({kind,path:['workspaces',{id:w.id},'stages',stage,...(op?[{id:op.id}]:[])],message});
      for(const [stage,ops]of Object.entries(w.stages)){if(ops.length){for(const endpoint of ['entry','exit'])if(!ops.some(o=>editorKind(o,master.active.PROCESS||{})===endpoint))add(stage,undefined,endpoint==='entry'?'ENTRY_REQUIRED':'EXIT_REQUIRED');for(const op of ops)if(!['entry','exit'].includes(editorKind(op,master.active.PROCESS||{}))&&!op.productCodes.length)add(stage,op,'PRODUCT_SELECTION_REQUIRED');}const used=ops.filter(op=>op.productCodes?.length),ids=new Set(used.map(op=>op.id)),edges=new Map(used.map(op=>[op.id,new Set<string>()]));
       for(const op of used){for(const code of op.productCodes)if(!products.some(p=>p.code===code))add(stage,op,'PRODUCT_MISSING:'+code);
@@ -87,7 +94,7 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
       const related=all.filter(({stage,op})=>product.stages.includes(stage)&&op.productCodes?.includes(code)),used=new Set(related.flatMap(({op})=>op.bomSelections?.[code]||(op.bomProductCode===code?op.bomItems||[]:[])).map(norm));
       if(bomRoots(String(code)).some(item=>item&&!used.has(item)))add('',undefined,'BOM_ASSIGNMENT_REQUIRED:'+code);
      }
-    }return [...issues,...editorIntegrity(content.workspaces,master.active.PROCESS||{},bomRoots).map(i=>({kind:'missing' as const,path:['workspaces',{id:i.workspace},'stages',i.stage,{id:i.operation}],message:'EDITOR_LEGACY_REVIEW:'+i.code+':'+i.detail})),...ipqcIssues(content.workspaces,state.values)];}
+    }return [...issues,...editorIntegrity(content.workspaces,master.active.PROCESS||{},bomRoots).map(i=>({kind:'missing' as const,path:['workspaces',{id:i.workspace},'stages',i.stage,{id:i.operation}],message:'EDITOR_LEGACY_REVIEW:'+i.code+':'+i.detail})),...ipqcIssues(content.workspaces,state.values,master)];}
    };
   },
   apply(control,command,ctx){if(command.action==='apply')for(const p of command.patches||[]){

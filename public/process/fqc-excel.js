@@ -102,12 +102,14 @@
   }
 
   async function parseFile(file, context) {
+    if(!host.XLSX&&host.ProcessSpreadsheet)return host.ProcessSpreadsheet.run('fqc-excel-import',()=>parseFile(file,context));
     const bytes = await file.arrayBuffer();
     const workbook = XLSX.read(bytes, { type: 'array', cellDates: false });
     return parseRoundTrip(workbook, context) || parseSource(workbook, context);
   }
 
   function exportWorkbook(version, context, history = []) {
+    if(!host.XLSX&&host.ProcessSpreadsheet)return host.ProcessSpreadsheet.run('fqc-excel-export',()=>exportWorkbook(version,context,history));
     const workbook = XLSX.utils.book_new();
     const photoRows = [];
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([

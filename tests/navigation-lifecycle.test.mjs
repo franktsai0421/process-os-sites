@@ -1,7 +1,31 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createNavigationCoordinator,navigationKey} from '../public/process/navigation-lifecycle.mjs';
 const turn=()=>new Promise(r=>setImmediate(r));
+void test('a blocked later intent cancels an uncommitted older navigation even after edits become clean',async()=>{
+ const f=fixture(),old=f.coordinator.navigate({view:'editor'});
+ f.allow(false);
+ assert.equal((await f.coordinator.navigate({view:'player'})).status,'blocked');
+ assert.equal(f.reads[0].c.signal.aborted,true);
+ assert.equal(f.coordinator.pending(),false);
+ f.allow(true);f.reads[0].resolve({});
+ assert.equal((await old).status,'superseded');
+ assert.equal(f.coordinator.current().view,'dashboard');
+ assert.equal(f.events.some(e=>e[0]==='commit'),false);
+});
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
+void test('blocked duplicate intent does not reuse an older pending destination',async()=>{
+ const f=fixture(),target={view:'editor'},old=f.coordinator.navigate(target);
+ f.allow(false);assert.equal((await f.coordinator.navigate(target)).status,'blocked');
+ f.allow(true);f.reads[0].resolve({});assert.equal((await old).status,'superseded');
+ assert.equal(f.reads.length,1);assert.equal(f.coordinator.current().view,'dashboard');
+});
+void test('blocked departure preserves readiness of an already committed page',async()=>{
+ const f=fixture(),ready=deferred();f.ready(()=>ready.promise);
+ const old=f.coordinator.navigate({view:'editor'});f.reads[0].resolve({});await turn();
+ f.allow(false);assert.equal((await f.coordinator.navigate({view:'player'})).status,'blocked');
+ assert.equal(f.reads[0].c.signal.aborted,false);
+ ready.resolve();assert.equal((await old).status,'ready');assert.equal(f.coordinator.current().view,'editor');
+});
 function fixture(){const reads=[],events=[];let allowed=true,owner={id:'actor',epoch:1},ready=async()=>{};const initial={view:'dashboard',system:'process'};
  const coordinator=createNavigationCoordinator({initial,canLeave:()=>allowed,owner:()=>owner,pending:t=>events.push(['pending',t?.view||null]),prepare:(target,c)=>{const q=deferred();reads.push({...q,target,c});return q.promise;},validate:p=>{if(p.invalid)throw Error('INVALID_PROJECTION');},commit:(p,t,c,o)=>{events.push(['commit',t.view,o.history]);return t;},ready:(t,c)=>ready(t,c),complete:t=>events.push(['ready',t.view]),failure:(e,s)=>events.push(['error',e.message,s.committed])});return{coordinator,reads,events,allow:v=>allowed=v,owner:v=>owner=v,ready:v=>ready=v};}
 void test('keeps current source until preparation, then commit precedes true readiness',async()=>{const f=fixture(),q=deferred();f.ready(()=>q.promise);const done=f.coordinator.navigate({view:'editor'},{history:'push'});assert.equal(f.coordinator.current().view,'dashboard');assert(!f.events.some(e=>e[0]==='commit'));f.reads[0].resolve({});await turn();assert.equal(f.coordinator.current().view,'editor');assert(!f.events.some(e=>e[0]==='ready'));q.resolve();assert.equal((await done).status,'ready');});
@@ -19,3 +43,9 @@ for(const step of ['dispose','install','history'])void test('throw during '+step
 
 void test('identical pending route intents reuse one read and one commit',async()=>{const f=fixture(),a=f.coordinator.navigate({view:'player'},{history:'push'}),b=f.coordinator.navigate({view:'player'},{history:'push'});assert.equal(a,b);assert.equal(f.reads.length,1);f.reads[0].resolve({});await Promise.all([a,b]);assert.equal(f.events.filter(e=>e[0]==='commit').length,1);});
 void test('duplicate route pop entries have distinct transaction ownership, not click dedupe',async()=>{const f=fixture(),a=f.coordinator.navigate({view:'player'},{history:'pop',index:2,url:'https://fixture.invalid/?view=player'}),b=f.coordinator.navigate({view:'player'},{history:'pop',index:0,url:'https://fixture.invalid/?view=player'});assert.notEqual(a,b);assert.equal(f.reads.length,2);assert(f.reads[0].c.signal.aborted);f.reads[1].resolve({});await b;f.reads[0].resolve({});assert.equal((await a).status,'superseded');});
+
+void test('latest master departure Save guard runs before target preparation and stale target never commits',async()=>{
+ let dirty=true,saves=0;const saving=deferred(),events=[];
+ const c=createNavigationCoordinator({initial:{view:'data'},owner:()=>({id:'a',epoch:1}),canLeave:()=>!dirty,prepareDeparture:async()=>{saves++;await saving.promise;return !dirty;},prepare:async target=>{events.push(['read',target.view]);return{};},commit:(_p,t)=>{events.push(['commit',t.view]);return t;},ready:async()=>{}});
+ const first=c.navigate({view:'editor'}),last=c.navigate({view:'player'});dirty=false;saving.resolve();assert.equal((await first).status,'superseded');assert.equal((await last).status,'ready');assert.deepEqual(events,[['read','player'],['commit','player']]);assert.equal(saves,2,'router adapter shares its one in-flight Save');
+});

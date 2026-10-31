@@ -5,11 +5,13 @@ export async function GET(request:Request){
  try{
   const preflight=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']});
   if(!await identity(request,preflight)||!await can(request,preflight,'templates.view'))return reply({error:'FORBIDDEN'},403);
-  const state=await readState({deferDependencyHistory:true,deferHistory:true});
+  const state=await readState({deferDependencyHistory:true,deferHistory:true,modelKey:'masterDataControl'});
   if(!await identity(request,state)||!await can(request,state,'templates.view'))return reply({error:'FORBIDDEN'},403);
   const q=new URL(request.url).searchParams,kind=q.get('kind'),id=q.get('id');
   if(!id||!['template','equipment'].includes(kind||'')||id.length>200)return reply({error:'INVALID_REFERENCE_TARGET'},422);
-  const root=JSON.parse(state.values.masterDataControl||'{}');
+  // The request-local decoder model retains the same verified bodies without
+  // serializing every photo into the master root and parsing it again here.
+  const root=state.recordStorage?.models.get('masterDataControl')??JSON.parse(state.values.masterDataControl||'{}');
   const snapshot=root.workflowScopes?.PROCESS?.working||root.active?.PROCESS||{};
   const targets=processMasterTargets(snapshot).filter(t=>t.kind===kind&&(t.id===id||kind==='template'&&Object.values(snapshot).flat().some((x)=>{const row=x as {id:string;catalogKey?:string;presetKey?:string};return row.id===t.id&&(row.catalogKey||row.presetKey||row.id)===id;})));
   if(!targets.length)return reply({error:'REFERENCE_TARGET_NOT_FOUND'},404);

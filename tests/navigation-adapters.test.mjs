@@ -110,22 +110,23 @@ void test('actual account malformed successful ACK stays guarded and describes n
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
-  'app.js':'20261030-pr51-integrated1',
+  'editor-line-selection.js':'20261030-pr54-integrated1',
+  'app.js':'20261030-pr54-integrated1',
   'approval-tabs.js':'20261025-navigation2',
-  'bom-workspace.js':'20261030-pr51-integrated1',
-  'bootstrap.js':'20261030-access-fusion1',
-  'canvas-local.js':'20261027-save-inspection1',
-  'delivery-navigation.js':'20261030-pr51-integrated1',
+  'bom-workspace.js':'20261030-pr54-integrated1',
+  'bootstrap.js':'20261030-pr54-integrated1',
+  'canvas-local.js':'20261030-pr54-integrated1',
+  'delivery-navigation.js':'20261030-pr54-integrated1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
   'fqc-master.js':'20261030-pr51-integrated1',
   'ipqc-ab.js':'20261030-pr51-integrated1',
   'ipqc-c.js':'20261030-pr51-integrated1',
   'iqc-master.js':'20261030-pr51-integrated1',
-  'master-data.js':'20261030-pr5152-integrated1',
-  'master-shared-client.js':'20261030-pr5152-integrated1',
+  'master-data.js':'20261030-pr54-integrated1',
+  'master-shared-client.js':'20261030-pr54-integrated1',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261030-pr51-integrated1',
+  'process-authoring-v3.js':'20261030-pr54-integrated1',
   'quality-review-overview.js':'20261027-readscope-truthful1',
   'routine-equipment.js':'20261030-pr51-integrated1',
   'routine-fqc.js':'20261028-modern-unload1',
@@ -134,11 +135,11 @@ void test('changed persistent-navigation executable references have coherent new
   'tooling.js':'20261030-pr51-integrated1',
   'user-access.js':'20261029-fqc-dependencies1',
   'navigation-forms.js':'20261025-navigation2',
-  'process-ipqc.js':'20261029-begin-foreground1',
+  'process-ipqc.js':'20261030-pr54-integrated1',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261030-photo-integrated1',
-  'process-editor.js':'20261030-pr51-integrated1',
-  'master-review.js':'20261029-flowreview1',
+  'process-editor.js':'20261030-pr54-integrated1',
+  'master-review.js':'20261030-pr54-integrated1',
   'process-equipment.css':'20261029-flow1',
   'photo-viewer.css':'20261029-photo2',
   'version-workflow.js':'20261030-access-fusion1',
@@ -148,7 +149,7 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261030-ab-c-draft1"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261030-departure1"));
 });
 
 // The FQC control wraps its shared flow inside the FQC library.

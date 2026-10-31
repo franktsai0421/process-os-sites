@@ -1,5 +1,5 @@
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
-import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {removedMasterStages,stageReferences,removesLineWithStages} from './master-stage-references';
 import {removedCatalogReferences,visibleCatalogReferences} from './master-product-references';
@@ -44,7 +44,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
    // reference; deep-copying every historical version here multiplies heap use.
    const versions=root.versions.filter(v=>v.scope===scope);legacy=new Map(versions.map(v=>[v.id,v]));
-   const matchingActive=(v:Version)=>v.status==='approved'&&stableDraftJSON(v.snapshot)===stableDraftJSON(root.active[scope]);
+   const matchingActive=(v:Version)=>v.status==='approved'&&sameDraftValue(v.snapshot,root.active[scope]);
    const active=versions.find(v=>v.id===root.workflowScopes?.[scope]?.active.id&&matchingActive(v))||versions.find(matchingActive);
    if(!active)throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
    return{activeVersionId:active.id,versions:versions.map(v=>({...v,snapshot:v.id===active.id||['draft','pending'].includes(v.status)?normalizeMasterSnapshot(v.snapshot,scope):v.snapshot})),workflow:root.workflowScopes?.[scope]};

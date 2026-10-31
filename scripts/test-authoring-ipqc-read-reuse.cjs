@@ -78,7 +78,10 @@ const beforeApproval=JSON.parse(values.approvalVersions);for(let i=0;i<ops.lengt
  assert.equal(candidateCounters.ipqcBinding.overrideUsed,false);assert.equal(candidateCounters.ipqcBinding.sha256,hash(fs.readFileSync(path.join(source,ipqcKey))));assert.notEqual(candidateCounters.ipqcBinding.sha256,counters.ipqcBinding.sha256);
  const summarize=c=>Object.fromEntries(['masterDataControl','ipqcABMasterControl','ipqcCMasterControl'].map(key=>{const r=c.ipqcReads.filter(x=>x.key===key&&x.present);return[key,{calls:r.length,totalBytes:r.reduce((s,r)=>s+r.bytes,0)}];}));
  async function pair(name,query='contentIssues=1',who='editor',expected=200){const before=await measure(name+' baseline',api,counters,query,who,expected),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,expected);assert.deepEqual(after.body,before.body,name+' DTO');assert.deepEqual(after.headers,before.headers,name+' headers');assertReadClosureIO(name,before,after);pairs.push({name,before:results.indexOf(before),after:results.indexOf(after),parseBefore:summarize(before.validation),parseAfter:summarize(after.validation)});return{before,after};}
- const healthy=await pair('normal saved content AB');assert.equal(healthy.before.validation.validations.length,1);assert.equal(healthy.after.validation.validations.length,1);assert.equal(healthy.before.validation.ipqcReads.length,50);assert.equal(healthy.after.validation.ipqcReads.length,2);
+ const healthy=await pair('normal saved content AB');assert.equal(healthy.before.validation.validations.length,1);assert.equal(healthy.after.validation.validations.length,1);assert.equal(healthy.before.validation.ipqcReads.length,50);
+ // Current authoring context supplies its already parsed master. The one
+ // remaining IPQC read is the AB dependency; its source checks remain intact.
+ assert.equal(healthy.after.validation.ipqcReads.length,1);assert.equal(healthy.after.validation.ipqcReads[0].key,'ipqcABMasterControl');
  console.log(JSON.stringify({checkpoint:'PAIRED_AB_REUSE_CONFIRMED',...pairs[0]}));
  commandApi=targetApi;await move(41);await command('save');
  const deniedCommands=[];

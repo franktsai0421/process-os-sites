@@ -1,3 +1,4 @@
+import { processStylesBuildPlugin } from './lib/process-styles-build.mjs';
 import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
@@ -60,6 +61,7 @@ export default defineConfig(async ({ command }) => {
     plugins: [
       ...(local ? [localFeaturesPlugin(process.cwd(), features)] : []),
       localBackupPlugin(process.cwd()),
+      ...(!local ? [processStylesBuildPlugin()] : []),
       ...(!local ? [buildAuthAudit.buildAuthAuditPlugin()] : []),
       vinext(),
       sites(),

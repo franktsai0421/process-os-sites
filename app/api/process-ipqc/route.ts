@@ -11,14 +11,14 @@ export async function GET(request:Request){
   const q=new URL(request.url).searchParams,candidates=q.get('mode')==='choices',historyPage=q.get('mode')==='history';
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides',...(candidates?['masterDataControl',q.get('line')==='C'?'ipqcCMasterControl':'ipqcABMasterControl']:[])];
   // Authenticate and compare revision before reading any process snapshot bodies.
-  const state=await readState({keys,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
+  const state=await readState({keys,deferHistory:true,deferDependencyHistory:true,modelKey:candidates?'masterDataControl':undefined}),actor=await identity(request,state);
   if(!actor)return Response.json({error:'LOGIN_REQUIRED'},{status:401,headers:responseHeaders});
   const editor=await can(request,state,'view:editor'),reviewer=await can(request,state,'view:approval'),data=await can(request,state,'view:data');
   if(candidates?!editor:!data&&!editor&&!reviewer)return Response.json({error:'VIEW_FORBIDDEN'},{status:403,headers:responseHeaders});
   const user=JSON.parse(state.values.platformUsers||'[]').find((u:{id:string})=>u.id===actor.id),access=effectiveAccess(user,state.values),allowed=(line:string)=>actor.role==='admin'||access.lines.includes(line);
   if(candidates){const line=q.get('line')||'',category=q.get('category')||'',stage=q.get('stage')||'';
    if(!allowed(line))return Response.json({error:'LINE_VIEW_FORBIDDEN'},{status:403,headers:responseHeaders});
-   return Response.json({revision:state.revision,...ipqcChoices(state.values,{line,category},stage,q.getAll('product'))},{headers:responseHeaders});
+   return Response.json({revision:state.revision,...ipqcChoices(state.values,{line,category},stage,q.getAll('product'),state.recordStorage?.models.get('masterDataControl'))},{headers:responseHeaders});
   }
   const privateView=editor||reviewer,canReadHistory=privateView&&await can(request,state,'approval.compare');
   if(historyPage&&!canReadHistory)return Response.json({error:'HISTORY_FORBIDDEN'},{status:403,headers:responseHeaders});

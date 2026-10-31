@@ -67,7 +67,7 @@
   const permitted=key=>typeof currentUser==='undefined'||window.hasPermission?.(key);
   function toolbar(){const canImport=permitted('master.import'),canExport=permitted('master.export');return `<section class="bom-excel-toolbar"><b>${t('本頁完整 Excel 資料','Dữ liệu Excel đầy đủ của trang')}</b><div><input hidden type="file" id="bom-excel-file" accept=".xlsx,.xls,.csv">${canImport?`<button class="bom-quiet" id="bom-excel-import">${t('匯入 Excel','Nhập Excel')}</button>`:''}${canExport?`<button class="bom-quiet" id="bom-excel-all">${t('匯出全部 Excel','Xuất toàn bộ Excel')}</button>`:''}</div><p>${canImport||canExport?t('匯出包含本頁全部 BOM；匯回同格式檔案可完整還原本頁資料。','Tệp xuất chứa toàn bộ BOM của trang; nhập lại cùng định dạng để khôi phục đầy đủ.'):t('只有主管可以匯入或匯出資料。','Chỉ quản lý được nhập hoặc xuất dữ liệu.')}</p></section>`;}
   function bind({repaint}){
-    const on=(id,event,fn)=>{const element=document.querySelector(id);if(element)element['on'+event]=fn;};
+    const on=(id,event,fn)=>{const element=document.querySelector(id),excel=['#bom-excel-all','#bom-excel-file'].includes(id);if(element)element['on'+event]=excel?(window.ProcessSpreadsheet?.wrap('bom-legacy:'+id,fn)||fn):fn;};
     const write=(bom,name)=>{try{XLSX.writeFile(workbook(bom),`${name}_${new Date().toISOString().slice(0,10)}.xlsx`);toast(t('已產生 Excel，請查看下載。','Đã tạo Excel, hãy xem tệp tải xuống.'));}catch{toast(t('Excel 匯出失敗，請重試。','Xuất Excel thất bại, hãy thử lại.'));}};
     on('#bom-excel-all','click',()=>{if(permitted('master.export'))write(data.bom,'BOM_ALL');});
     on('#bom-excel-import','click',()=>{if(permitted('master.import'))document.querySelector('#bom-excel-file').click();});
