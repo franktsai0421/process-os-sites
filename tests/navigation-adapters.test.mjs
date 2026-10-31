@@ -131,7 +131,7 @@ void test('changed persistent-navigation executable references have coherent new
   'quality-review-overview.js':'20261027-readscope-truthful1',
   'routine-equipment.js':'20261031-insert-ack1',
   'routine-fqc.js':'20261031-routine-receipt1',
-  'shared-draft-client.js':'20261031-ab-create1',
+  'shared-draft-client.js':'20261031-pagehide1',
   'shared-state.js':'20261026-feedback1',
   'tooling.js':'20261030-module-departure2',
   'user-access.js':'20261029-fqc-dependencies1',

@@ -1,5 +1,9 @@
 /* Shared V3 transport: one ordered client stream, bounded requests and unknown-result lookup. */
 (() => {
+  // One document-lifetime fence, not a retained callback per retired transport.
+  // A pagehide permanently invalidates captured generations, including BFCache.
+  let transportPagehideGeneration={};
+  window.addEventListener?.('pagehide',()=>{transportPagehideGeneration={};});
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
@@ -316,16 +320,15 @@
     const boundedExactRoute=['iqc','ipqc-c','bom'].includes(boundedScope);
     if(externalBounded){const [path,query='']=endpoint.split('?'),params=new URLSearchParams(query);if(externalCanvas||!boundedScope||boundedScope==='master:PROCESS'&&(path!=='/api/master/workflow'||params.getAll('scope').length!==1||params.get('scope')!=='PROCESS')||boundedScope==='fqc'&&path!=='/api/fqc/workflow'||boundedExactRoute&&(path!=='/api/'+boundedScope+'/workflow'||params.getAll('caseMetadata').length!==1)||[...params].some(([key,value])=>key!=='scope'&&!(key==='caseMetadata'&&value==='1'))||boundedScope!=='master:PROCESS'&&params.has('scope'))throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');}
     if(externalCanvas){const [path,query='']=endpoint.split('?'),channels=new URLSearchParams(query).getAll('channel');if(path!=='/api/process-authoring/workflow'||channels.length!==1||!['canvas','canvas-v2'].includes(channels[0])||typeof externalProof!=='function')throw Error('CANVAS_EXTERNAL_DURABILITY_REQUIRED');}
-    let externalActive=true;
+    const clientPagehideGeneration=transportPagehideGeneration;
     const externalOwner=externalStrict?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
-    const externalCurrent=()=>!externalStrict||externalActive&&departureOwnerCurrent(externalOwner)&&Number.isSafeInteger(externalOwner.epoch)&&externalOwner.epoch>=0&&externalOwner.identity===window.ProcessSync?.identity&&(!externalOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(externalOwner.delivery)!==false);
+    const externalCurrent=()=>!externalStrict||(!externalBounded||clientPagehideGeneration===transportPagehideGeneration)&&departureOwnerCurrent(externalOwner)&&Number.isSafeInteger(externalOwner.epoch)&&externalOwner.epoch>=0&&externalOwner.identity===window.ProcessSync?.identity&&(!externalOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(externalOwner.delivery)!==false);
     // A proof callback belongs to one runtime/owner, never the generic cache or
     // another Canvas instance created after identity/delivery invalidation.
     const transportKey=actorId+':'+endpoint+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
     window.SharedDraftDeparture.register(sessionScope);
     if(transports.has(transportKey)&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
-    if(externalBounded)window.addEventListener?.('pagehide',()=>{externalActive=false;});
     let boundedProjectionRetired=false;
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
@@ -363,9 +366,8 @@
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     // AB create alone: live, privately issued commands can prove a fixed-code
     // original POST refusal. Historical commands and public Error flags cannot.
-    const abCommands=new WeakMap(),abSelected=new Map(),abResponses=new WeakMap(),abFetchFailures=new WeakMap();let abActive=true;
-    if(abCreate)window.addEventListener?.('pagehide',()=>{abActive=false;});
-    const abCurrent=entry=>{const sync=window.ProcessSync,owner=entry?.owner;return abActive&&!!owner&&owner.identity===sync?.identity&&owner.id===actorId&&owner.id===sync?.identity?.id&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&owner.delivery!==undefined&&owner.delivery!==null&&typeof sync.isCurrentDelivery==='function'&&sync.isCurrentDelivery(owner.delivery)===true;};
+    const abCommands=new WeakMap(),abSelected=new Map(),abResponses=new WeakMap(),abFetchFailures=new WeakMap();
+    const abCurrent=entry=>{const sync=window.ProcessSync,owner=entry?.owner;return clientPagehideGeneration===transportPagehideGeneration&&!!owner&&owner.identity===sync?.identity&&owner.id===actorId&&owner.id===sync?.identity?.id&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===sync?.identityGeneration?.()&&!sync.requiresReload&&owner.delivery!==undefined&&owner.delivery!==null&&typeof sync.isCurrentDelivery==='function'&&sync.isCurrentDelivery(owner.delivery)===true;};
     function abAssert(entry,command){if(!entry||!abCurrent(entry)||entry.raw!==JSON.stringify(command))throw Error('AB_CREATE_OWNER_OR_COMMAND_CHANGED');}
     function abResponse(error,command,result){const entry=abSelected.get(command?.operationId);if(!entry||!abCurrent(entry)||entry.raw!==JSON.stringify(command)||!entry.flight||typeof result.error!=='string'||result.error!==error.message)return;
       const code=error.message,status=error.status,requestId=error.requestId,action=command.moduleAction;
@@ -785,7 +787,7 @@
       finalizeRejected(command){assertOwner();if(!client.hasConfirmedRejection(command))throw Error('CONFIRMED_REJECTION_REQUIRED');boundedClear(boundedRecord);syncFailures.delete(command.operationId);return true;},
       prepareRecovery(generation,details={}){assertOwner();if(!externalBounded)throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');const command=client.prepare(generation,'apply',details);boundedSelected.set(command.operationId,JSON.stringify(command));boundedSelectedObjects.set(command,JSON.stringify(command));return command;},
       prepareRecoverySave(generation){assertOwner();if(!externalBounded||boundedScope!=='bom')throw Error('BOM_RECOVERY_SAVE_REQUIRED');const command=client.prepare(generation,'save');boundedSelected.set(command.operationId,JSON.stringify(command));boundedSelectedObjects.set(command,JSON.stringify(command));return command;},
-      isCreateRuntimeCurrent:()=>abCreate&&abActive,
+      isCreateRuntimeCurrent:()=>abCreate&&clientPagehideGeneration===transportPagehideGeneration,
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
       prepare(generation,action,details={}) {assertOwner();const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
