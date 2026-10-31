@@ -23,7 +23,7 @@ export function stageProcessLink(root:Root,scope:string,content:Snapshot,values:
  const added=[...next].filter(code=>!old.has(code)&&!Object.hasOwn(process,code)),removed=[...old].filter(code=>!next.has(code)&&Object.hasOwn(process,code));
  if(!added.length&&!removed.length)return null;
  assertStageTemplateAvailable(root,root.active[scope],content,exceptCaseId);assertProcessLinkAvailable(root,exceptCaseId);
- const impact=stageReferences(values,removedMasterStages(root.active[scope],content),root.active[scope]);if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
+ const impact=stageReferences(values,removedMasterStages(root.active[scope],content),root.active[scope],root);if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
  const source=root.versions.find(v=>v.scope==='PROCESS'&&v.status==='approved'&&stableDraftJSON(v.snapshot)===stableDraftJSON(process));
  if(!source)throw new DraftConflict('PROCESS_EFFECTIVE_BASELINE_CONFLICT',409);
  const after={...process};for(const code of removed)delete after[code];for(const code of added)after[code]=stageDefaultTemplates(code);

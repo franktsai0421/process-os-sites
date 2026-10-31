@@ -10,27 +10,50 @@
   return shared.dirty||shared.inFlight||shared.paused||shared.blocked||drafts.queued||drafts.unknown||drafts.failed||sync.projectionWriteError;
  };
  const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-modal,.routine-dialog-overlay';
+ const departureAdapters=()=>[window.MasterDataWorkflow?.navigation,...modules().map(api=>api.navigation)].filter(Boolean);
  const departureAdapter=()=>sync.destination?.view==='editor'?window.ProcessAuthoringV3?.navigation?.departure:null;
  const isDecision=node=>node?.dataset?.navigationDeparture==='true';
  const ownedDialog=(adapter,node)=>{try{return !!adapter?.ownsDialog?.(node);}catch{return false;}};
  function adapterState(adapter){try{const value=adapter.inspect();if(value&&['clean','dirty','busy','unknown','blocked'].includes(value.state))return value;}catch{}return{state:'unknown',canSave:false,canDiscard:false,reason:document.documentElement.lang==='vi'?'Chưa xác nhận trạng thái bản nháp. Hãy ở lại và đọc lại trạng thái hoặc kiểm tra biên nhận gốc.':'草稿狀態尚未確認，請留在原頁重新讀取狀態或查詢原操作收據。'};}
- function otherDepartureBlocked(adapter){
+ function otherDepartureBlocked(adapter,ignoreSaved=false){
   if(sync.requiresReload||draftsPending()||window.ProcessNavigationForms?.composing?.())return true;
   if(window.ProcessRuntimeProjection?.canLeave?.()===false||window.MasterDataWorkflow?.canLeave?.()===false)return true;
-  if(modules().some(api=>(!adapter||api.navigation?.departure!==adapter)&&api.navigation?.canLeave?.()===false))return true;
+  if(modules().some(api=>(!adapter||api.navigation?.departure!==adapter)&&api.navigation?.canLeave?.()===false&&!(ignoreSaved&&api.navigation.requiresSave?.()&&api.navigation.canSaveForDeparture?.()===true)))return true;
+  if(!ignoreSaved&&departureAdapters().some(api=>(!adapter||api.departure!==adapter)&&api.requiresSave?.()))return true;
   if([...document.querySelectorAll('dialog[open],.iqc-lightbox,.fqc-viewer-overlay')].some(node=>!isDecision(node)&&!ownedDialog(adapter,node)))return true;
   return [...document.querySelectorAll(editingScopes)].some(node=>!isDecision(node)&&!ownedDialog(adapter,node)&&window.ProcessNavigationForms?.dirty?.(node));
  }
- function canLeave(){
+ function canLeave(ignoreSaved=false){
   const adapter=departureAdapter();
   if(adapter&&adapterState(adapter).state!=='clean')return false;
-  return !otherDepartureBlocked(adapter);
+  return !otherDepartureBlocked(adapter,ignoreSaved);
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
   const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261030-departure1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
+  let departureSave=null;
+  function prepareDeparture(){
+   if(departureSave)return departureSave;
+   if(!canLeave(true))return Promise.resolve(false);
+   const adapters=departureAdapters().filter(adapter=>adapter.requiresSave?.());
+   if(!adapters.length)return Promise.resolve(false);
+   const owner=sync.identity,epoch=sync.identityGeneration?.();
+   const owned=()=>owner===sync.identity&&epoch===sync.identityGeneration?.()&&!sync.requiresReload;
+   const message=document.documentElement.lang==='vi'?'Lưu bản nháp trước khi chuyển trang? Hủy để giữ nguyên trang và nội dung.':'尚有未儲存內容，要儲存草稿後切頁嗎？取消會留在原頁並保留內容。';
+   if(!window.confirm(message))return Promise.resolve(false);
+   departureSave=(async()=>{
+    for(const adapter of adapters){
+     if(!owned()||!canLeave(true))return false;
+     if(typeof adapter.saveForDeparture!=='function')return false;
+     await adapter.saveForDeparture();
+     if(!owned()||adapter.requiresSave?.())return false;
+    }
+    return owned()&&canLeave();
+   })().catch(error=>{if(owned())toast(window.sharedDraftErrorMessage?.(error)||error.message);return false;}).finally(()=>{departureSave=null;});
+   return departureSave;
+  }
   let historyIndex=Number.isSafeInteger(history.state?.processNavigationIndex)?history.state.processNavigationIndex:0;
   let committedURL=location.href,restoreIndex=null,physicalIndex=historyIndex,queuedAfterRestore=null,replayingPop=null;
   history.replaceState({...history.state,processNavigationIndex:historyIndex},'',location.href);
@@ -72,13 +95,12 @@
   }
   const coordinator=createNavigationCoordinator({
    initial,key:target=>navigationKey(target)+(target.view==='player'?JSON.stringify(target.display||{}):''),owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.()}),canLeave:()=>!broken&&canLeave(),
+   prepareDeparture:()=>!broken&&prepareDeparture(),
    prepare:(target,context)=>sync.prepareDestination(target,context.signal),validate:(handle,_target,_context,options)=>{sync.validateDestination(handle);if(options.departureTicket&&!departure.ticketCurrent(options.departureTicket))throw Error('DEPARTURE_CONTEXT_CHANGED');},
    commit(handle,target,context,options){
     commitPhase=true;installing=true;
     try{
      const destination={...handle.destination,approvalTab:target.approvalTab||'master',display:target.display};
-     // Only the adapter may close its clean forms/viewers. Keep them, and the
-     // source edit lease, intact throughout a failed target preparation.
      departureAdapter()?.closeClean?.();
      if(options.departureTicket)departure.committed(options.departureTicket);
      // Invalidate old GET ownership before detaching DOM or installing models.

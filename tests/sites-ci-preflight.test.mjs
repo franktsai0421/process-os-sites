@@ -87,12 +87,16 @@ test('batch framing hashes missing and extra content are checked',()=>{
  assert.deepEqual(inspectSourceBytes('tests/sites-delivery-browser.test.mjs',Buffer.from(source),empty),[]);
  const begin=source.indexOf(' const bundled='),end=source.indexOf(' const origin=fixture.url.origin;');assert.ok(begin>=0&&end>begin);
  const code=source.slice(begin,end),args=['--disable-background-networking','--disable-component-update','--no-first-run'];
- for(const exists of [true,false]){
-  const probes=[],options=await vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{fs:{existsSync:p=>(probes.push(p),exists)},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async options=>options}});
-  assert.deepEqual(probes,['/synthetic/bundled-browser']);assert.equal(options.headless,true);assert.deepEqual(JSON.parse(JSON.stringify(options.args)),args);
-  if(exists){assert.equal(options.executablePath,'/synthetic/bundled-browser');assert.equal(options.channel,undefined);}else{assert.equal(options.channel,'chrome');assert.equal(options.executablePath,undefined);}
+ for(const explicit of [undefined,'','/synthetic/explicit-browser'])for(const exists of [true,false]){
+  const env=explicit===undefined?{}:{CHROME_PATH:explicit},probes=[],options=await vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{process:{env},fs:{existsSync:p=>(probes.push(p),exists)},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async options=>options}});
+  assert.deepEqual(probes,explicit?[]:['/synthetic/bundled-browser']);assert.equal(options.headless,true);assert.deepEqual(JSON.parse(JSON.stringify(options.args)),args);
+  if(explicit||exists){assert.equal(options.executablePath,explicit||'/synthetic/bundled-browser');assert.equal(options.channel,undefined);}else{assert.equal(options.channel,'chrome');assert.equal(options.executablePath,undefined);}
  }
- await assert.rejects(vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{fs:{existsSync:()=>false},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async()=>{throw Error('BROWSER_UNAVAILABLE');}}}),/BROWSER_UNAVAILABLE/);
- tests.push('actual portable browser selector retains bundled priority channel discovery flags and hard launch failure');
+ for(const env of [{},{CHROME_PATH:''},{CHROME_PATH:'/synthetic/explicit-browser'}]){
+  const failure=Error('BROWSER_UNAVAILABLE');let launches=0;
+  await assert.rejects(vm.runInNewContext('(async()=>{let browser;'+code+'return browser;})()',{process:{env},fs:{existsSync:()=>false},chromium:{executablePath:()=>'/synthetic/bundled-browser',launch:async()=>{launches++;throw failure;}}}),error=>error===failure);
+  assert.equal(launches,1,'failed launch must not silently retry or fall back');
+ }
+ tests.push('actual portable browser selector retains explicit override bundled priority channel discovery flags and hard launch failure');
 }
 console.log(JSON.stringify({status:'PASS_SOURCE_ONLY_CI_NEGATIVE_FIXTURES',cases:tests.length,tests,realData:false,network:false}));

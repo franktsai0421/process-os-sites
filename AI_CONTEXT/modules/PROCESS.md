@@ -4,11 +4,19 @@
 
 Begin 在後端確認與必要權限就緒後開放操作，待補內容檢查繼續顯示自己的狀態；Submit 仍以最後成功 Save 快照及當下必要檢查為準。同次 authoring context 重用 BOM／master 解析與深比較；方塊 Apply 避免複製一次已私有化的工作區，晚到回覆不得覆蓋其他登入／工作區。
 
-製程編輯台接入三選項離頁。Save 依序套用最新表單、同步畫布、建立整平台快照，確認收據和內容一致才導航；期間凍結當前編輯。Discard 只用本分頁確定收據鏈撤銷本人尚未 Save 的修改，保留進頁前共享內容；不以整份 Save 覆蓋他人工作。未知、外部交錯、ABA、無法安全逆轉的刪除維持阻擋與明確說明。Stay 取消待執行導航並保留當前輸入。選線、左導航、系統切換及瀏覽器歷史共用單一待決定目標；refresh／close 使用原生提示。
+製程編輯台接入三選項離頁。離頁 Save 僅保存已同步共享內容；未套用表單或未同步畫布會阻擋，須先明確完成表單／手動同步，絕不由離頁 Save 暗中 Apply 或 Sync。確認儲存收據和內容一致才導航；期間凍結當前編輯。Discard 只用本分頁確定收據鏈撤銷本人尚未 Save 的修改，保留進頁前共享內容；不以整份 Save 覆蓋他人工作。未知、外部交錯、ABA、無法安全逆轉的刪除維持阻擋與明確說明。Stay 取消待執行導航並保留當前輸入。選線、左導航、系統切換及瀏覽器歷史共用單一待決定目標；refresh／close 使用原生提示。
 
 owned-draft-ledger 的完整帳本限記憶體；sessionStorage 只保留尚未確認撤銷的最小操作識別。重新載入只查原收據與 fresh read，絕不重送逆操作；收據確認但完整內容對照已不存在時要求核對後明確 Save。確認離開後不保證還原未套用的記憶體表單。其他模組未因此自動完成三選項接入。
 
 IPQC-AB/C 項目選取保留 fresh 核准來源與唯一占用規則；請求內重用錯誤索引及已驗證 master。AB 收合的標準明細於展開時建立 DOM，展開文字及圖片完成另計；C 查詢語意不變。實際前後速度、驗收、剩餘限制與完整差異見[本輪報告](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。無資料模型、遷移或依賴變更。
+
+## 2026-10-30 核准群組路線的空工段提示
+
+畫布保留已核准群組 defaultStages；以 effective 產品路線一次計數，各工段沒有適用產品時顯示中越文提醒。D 工段即使沒有產品經過，也保留既有方塊與歷史；不讀取未核准主資料草稿來改變適用範圍，不放寬新增引用或審核政策。規格見[群組路線](../../docs/specs/current/GROUP_ROUTES.md)，測試見[後續修正](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
+## 2026-10-30 群組預設與不適用的舊引用
+
+`app.categoryStageCodes` 優先讀 approved `ACTIVE_MASTER_CATEGORIES.defaultStages`，舊資料 fallback 最大聯集；僅改可見工段清單，不裁切 workspace。`process-editor` 的產品／BOM 新選項依產品有效路線篩選。伺服器 authoring structure 禁止新加入路線外產品及 BOM，允許原方塊保留舊引用並編輯其他欄位；validation 加入 `PRODUCT_ROUTE_CHANGED`，沿既有 process advisory 與審核者確認流程，允許送審。無新 schema、無舊內容批次改寫。見[驗收](../../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
 
 2026-10-29 dispatch permissions candidate: dispatchBoard POST now requires dispatch.view+dispatch.edit; readonly selectors/button and actual publish handler use the same cells. Production validation and shared-state CAS/flush remain unchanged. Isolated validation only; no deployment.
 

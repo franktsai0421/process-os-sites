@@ -21,7 +21,7 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
  const newStage={id:'stage:A-NEW',code:'A-NEW',name:'Công đoạn thử nghiệm'};
  await check('T45 necessary templates only, pinned fixed case; saved-only stage snapshot',async()=>{
   await run('AB','a','apply',{patches:[{op:'insert',path:['lines',{id:'lines:A'},'stages'],value:newStage}]});const saved=(await run('AB','b','save')).control.workflow.saved;
-  await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}]});
+  await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}],guards:[{path:['products',{id:'products:A1'},'name'],value:'Sản phẩm'}]});
   const submitted=await run('AB','a','submit',{savedId:saved.id,reason:'Thêm công đoạn và mẫu bắt buộc'}),record=(await get('AB','a','&caseId='+submitted.receipt.caseId)).reviewCase;
   assert.equal(record.linkedProcess.baseVersionId,'PROCESS-active');assert.deepEqual(record.linkedProcess.added,['A-NEW']);assert.deepEqual(record.linkedProcess.removed,[]);assert.deepEqual(record.linkedProcess.before,root.active.PROCESS);
   assert.deepEqual(record.linkedProcess.content['A-CUT'],root.active.PROCESS['A-CUT']);assert.deepEqual(record.linkedProcess.content['A-NEW'],copy(link.stageDefaultTemplates('A-NEW')));assert.equal(record.content.products[0].name,'Sản phẩm');
@@ -31,7 +31,7 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
   const before=await state();assert.equal((await post('PROCESS','b',{action:'begin'},409)).error,'LINKED_PROCESS_CASE_PENDING');
   const direct=await legacy.POST(new Request('http://fixture/api/shared-state',{method:'POST',headers:sessions.b,body:JSON.stringify({baseRevision:before.s.revision,updates:{processMasterData:JSON.stringify({...active.PROCESS,'A-NEW':[]})}})}));assert.equal(direct.status,409);assert.equal((await direct.json()).error,'LINKED_PROCESS_CASE_PENDING');
   assert.equal((await state()).s.revision,before.s.revision);
-  await run('C','b','apply',{patches:[{op:'set',path:['products',{id:'products:C1'},'name'],value:'Unrelated C edit'}]});
+  await run('C','b','apply',{patches:[{op:'set',path:['products',{id:'products:C1'},'name'],value:'Unrelated C edit'}],guards:[{path:['products',{id:'products:C1'},'name'],value:'Sản phẩm'}]});
   assert.equal((await run('C','b','apply',{patches:[{op:'insert',path:['lines',{id:'lines:C'},'stages'],value:{id:'stage:C-NEW',code:'C-NEW',name:'Mới'}}]},409)).error,'LINKED_PROCESS_CASE_PENDING');
  });
  await check('T19/T45 approval atomically activates AB + necessary PROCESS + mirror, fixed audit retained',async()=>{

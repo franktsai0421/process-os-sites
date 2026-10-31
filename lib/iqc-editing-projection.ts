@@ -9,7 +9,9 @@ const activeRef=(value:unknown)=>!!value&&typeof value==='object'&&(value as Rec
 export function iqcEditingPayload(payload:unknown,enabled:boolean):unknown{
  if(!enabled||!payload||typeof payload!=='object')return payload;
  const body=payload as ProjectionBody,control=body.control,flow=control?.workflow;
- if(!control||!flow||!Array.isArray(control.versions)||!flow.active?.id)return payload;
+ // Before the first Save, departure compares working with active. Retain that
+ // baseline; deferring it would falsely mark an unchanged Begin as an edit.
+ if(!control||!flow||!flow.saved?.content||!Array.isArray(control.versions)||!flow.active?.id)return payload;
  const open=control.versions.find(v=>['draft','pending','pending-test'].includes(v.status));
  if(!open||open.id===flow.active.id||flow.active.id!==control.activeVersionId)return payload;
  const active=control.versions.find(v=>v.id===control.activeVersionId);

@@ -60,7 +60,13 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
        for(const op of rows<Operation>(list)){if(!op||typeof op.id!=='string'||!op.id||operationIds.has(op.id))throw new DraftConflict('OPERATION_ID_INVALID',422);operationIds.add(op.id);
         const old=prior?.stages[stage]?.find(o=>o.id===op.id);if(equal(old,op))continue;
         if(op.stageCode!==stage||typeof op.name!=='string'||!Array.isArray(op.productCodes)||!Array.isArray(op.nextIds)||op.nextIds.some(id=>typeof id!=='string')||op.machineIds!==undefined&&(!Array.isArray(op.machineIds)||op.machineIds.some(id=>typeof id!=='string'))||op.instructionSteps!==undefined&&(!Array.isArray(op.instructionSteps)||op.instructionSteps.some(s=>!s||typeof s.text!=='string'||typeof s.standard!=='string'))||op.instructions!==undefined&&typeof op.instructions!=='string'||op.ipqc!==undefined&&typeof op.ipqc!=='string')throw new DraftConflict('OPERATION_STRUCTURE_INVALID',422);
-        if(op.productCodes.some((code:string)=>!products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line&&(p.stages||[]).includes(stage))))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
+        const routeAllows=(code:string)=>products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line&&(p.stages||[]).includes(stage));
+        // A later approved route may retire an existing selection. Retain it as
+        // an advisory issue; only new product/BOM selections are forbidden.
+        if(op.productCodes.some((code:string)=>!routeAllows(code)&&!old?.productCodes.includes(code)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
+        const beforeBom=old?.bomSelections??(old?.bomProductCode?{[old.bomProductCode]:old.bomItems||[]}:{});
+        const afterBom=op.bomSelections??(op.bomProductCode?{[op.bomProductCode]:op.bomItems||[]}:{});
+        for(const [code,items]of Object.entries(afterBom))if(!routeAllows(code)&&Array.isArray(items)&&items.some(item=>!beforeBom[code]?.includes(item)))throw new DraftConflict('OPERATION_PRODUCT_ROUTE_INVALID',422);
         if(op.mediaItems!==undefined&&(!Array.isArray(op.mediaItems)||op.mediaItems.some(m=>!m||typeof m.src!=='string'||!m.src)))throw new DraftConflict('OPERATION_MEDIA_INVALID',422);
        }
       }
@@ -73,6 +79,7 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
      const add=(stage:string,op:Operation|undefined,message:string,kind:DraftIssue['kind']='missing')=>issues.push({kind,path:['workspaces',{id:w.id},'stages',stage,...(op?[{id:op.id}]:[])],message});
      for(const [stage,ops]of Object.entries(w.stages)){if(ops.length){for(const endpoint of ['entry','exit'])if(!ops.some(o=>editorKind(o,master.active.PROCESS||{})===endpoint))add(stage,undefined,endpoint==='entry'?'ENTRY_REQUIRED':'EXIT_REQUIRED');for(const op of ops)if(!['entry','exit'].includes(editorKind(op,master.active.PROCESS||{}))&&!op.productCodes.length)add(stage,op,'PRODUCT_SELECTION_REQUIRED');}const used=ops.filter(op=>op.productCodes?.length),ids=new Set(used.map(op=>op.id)),edges=new Map(used.map(op=>[op.id,new Set<string>()]));
       for(const op of used){for(const code of op.productCodes)if(!products.some(p=>p.code===code))add(stage,op,'PRODUCT_MISSING:'+code);
+       if(op.productCodes.some(code=>products.some(p=>p.code===code)&&!products.some(p=>p.code===code&&p.category===w.category&&p.line===w.line&&(p.stages||[]).includes(stage))))add(stage,op,'PRODUCT_ROUTE_CHANGED','error');
        if(!op.name.trim())add(stage,op,'NAME_REQUIRED');if(op.mode==='machine'&&!op.machineIds?.length)add(stage,op,'MACHINE_REQUIRED');
        for(const id of op.machineIds||[])if(!equipmentIds.has(id)&&!(Array.isArray(op.machineDetails)&&op.machineDetails.some(m=>m&&(m.id===id||m.no===id))))add(stage,op,'EQUIPMENT_REFERENCE_MISSING:'+id);
        const steps=op.instructionSteps?.length?op.instructionSteps:op.instructions?.trim()?[{text:op.instructions,standard:op.ipqc||'依核准標準檢查'}]:[];

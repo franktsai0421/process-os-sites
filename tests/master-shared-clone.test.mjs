@@ -5,7 +5,7 @@ import test from 'node:test';
 
 const source=fs.readFileSync('public/process/master-shared-client.js','utf8');
 const oldDeclaration="const before=copy(bases.get(scope)||draft(scope)?.snapshot||{}),next=copy(draft(scope)?.snapshot||before),generation=generations.get(scope);";
-const newDeclaration="const before=action==='apply'||action==='save'?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);";
+const newDeclaration="const before=action==='apply'||action==='save'&&(!flow(scope)||document.querySelector('#master-edit-dialog[open]'))?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);";
 assert.equal(source.split(newDeclaration).length,2);
 // Execute the actual bridge in both variants. The default reference restores
 // only the previous declaration; an exact external pre-edit copy is optional.
@@ -45,7 +45,7 @@ void test('all execute actions and scopes retain identical command payloads and 
    if(action==='apply'){const guards=f.calls.find(c=>c.type==='command').detail.guards;assert(guards.some(g=>JSON.stringify(g.path)==='["products"]'));assert(guards.some(g=>JSON.stringify(g.path)==='["lines"]'));}
    return outcome(f,result);
   });
-  assert.equal(counts[0]-counts[1],action==='begin'||action==='apply'?0:action==='save'?1:2,scope+' '+action+' removed only unused deep copies');
+  assert.equal(counts[0]-counts[1],action==='begin'||action==='apply'?0:2,scope+' '+action+' removed only unused deep copies');
  }
 });
 

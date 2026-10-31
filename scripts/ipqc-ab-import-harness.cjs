@@ -15,7 +15,7 @@ module.exports=function harness(env={}) {
       const target=id.startsWith('@/')?path.resolve(id.slice(2)):path.resolve(path.dirname(file),id);
       if(target.endsWith('.json')) return JSON.parse(fs.readFileSync(target,'utf8'));
       return target.endsWith('.mjs')?require(target):load(target.endsWith('.ts')?target:target+'.ts');
-    },Request,Response,ReadableStream,Headers,URL,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});
+    },Request,Response,ReadableStream,Headers,URL,URLSearchParams,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});
     cache.set(file,mod.exports);return mod.exports;
   }
   return load;

@@ -12,7 +12,7 @@ export function createNavigationCoordinator(hooks) {
     // cancel preparation: a committed page still owns its readiness lifecycle.
     if(!hooks.canLeave()){
       if(active&&!active.committed)cancel();
-      return Promise.resolve({status:'blocked'});
+      if(!hooks.prepareDeparture)return Promise.resolve({status:'blocked'});
     }
     const key=keyOf(target),owner=hooks.owner(),history=options.history==='pop'?JSON.stringify(['pop',options.index,options.url]):options.history;
     if(active?.key===key&&active.history===history&&sameOwner(active.owner,owner))return active.result;
@@ -21,7 +21,7 @@ export function createNavigationCoordinator(hooks) {
     return result;
   }
   async function run(target,options) {
-    if(!hooks.canLeave())return{status:'blocked'};
+    if(!hooks.canLeave()&&!hooks.prepareDeparture)return{status:'blocked'};
     const observedOwner=hooks.owner();if(!observedOwner?.id)return{status:'invalidated'};
     const owner=Object.freeze({id:observedOwner.id,epoch:observedOwner.epoch});
     active?.controller.abort();
@@ -32,6 +32,11 @@ export function createNavigationCoordinator(hooks) {
       owner};
     hooks.pending?.(target);
     try {
+      if(!hooks.canLeave()) {
+        const accepted=await hooks.prepareDeparture(context);
+        if(!context.current())return{status:'superseded'};
+        if(accepted!==true||!hooks.canLeave())return{status:'blocked'};
+      }
       const prepared=await hooks.prepare(target,context);
       if(!context.current())return{status:'superseded'};
       // The user may have begun editing while the target read was pending.

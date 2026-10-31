@@ -1,3 +1,11 @@
+## 2026-10-30 整合候選格式界線
+
+本次不包含舊資料自動轉換，新增首次轉換專用程式與驗收已移除。一般 master writer 維持既有 encodeValues，state-records codec 與 main 相同；既有 records-v1 正常讀寫，legacy 可沿既有路徑儲存 whole-R2，無 schema 或實際資料變更。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+
+## 2026-10-30 AB／C 路線／引用補充
+
+沿用 `categoryGroups[].defaultStages`、`products[].stages`、穩定 stage code 及 V3 saved/case/version；沒有 schema migration。runtime catalog 增加已核准 `categoryGroups`（line/name/defaultStages），不輸出草稿。產品引用查詢為即時計算，涵蓋 authoring、舊製程、FQC／IQC／IPQC、設備／模具、定期 FQC、BOM 與 dispatch 的明確關係欄位及保護歷史，不建立第二份引用資料庫。刪除相關命令完整讀取相依歷史；普通頁面讀取不增加歷史載入。見[範圍與限制](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。
+
 2026-10-29 權限候選：仍使用既有角色／accessOverrides JSON 和 authEpoch／revision；catalog 增加11個明確restore鍵，原151格及舊線別值不批次遷移。新增鍵不從edit/admin推導，Frank例外；無schema變更。規則與驗證見[權限規格](../docs/specs/current/PERMISSIONS_ADMIN.md)及[交接](../docs/acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。
 
 ## 2026-10-29 流程類型與刪除引用候選

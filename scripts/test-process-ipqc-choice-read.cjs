@@ -4,6 +4,8 @@ const {DatabaseSync}=require('node:sqlite'),{webcrypto,randomUUID,createHash}=re
 const files=['lib/process-ipqc.ts','app/api/process-ipqc/route.ts'],baselineDir=process.env.IPQC_CHOICES_BASELINE_DIR;
 if(!baselineDir)throw Error('Set IPQC_CHOICES_BASELINE_DIR to the captured pre-edit source directory');
 const sources=Object.fromEntries(['baseline','candidate'].map(variant=>[variant,Object.fromEntries(files.map(file=>[file,fs.readFileSync(variant==='baseline'?path.join(baselineDir,file):file,'utf8')]))]));
+const sourceKey=(root,file,platform=path)=>platform.relative(root,file).split(platform.sep).join('/');
+for(const platform of [path.win32,path.posix])for(const file of files){const root=platform.resolve('synthetic-repo'),key=sourceKey(root,platform.join(root,...file.split('/')),platform);assert.equal(key,file);assert.notEqual(sources.baseline[key],sources.candidate[key],'paired variants must be distinct for '+key);}
 const stats={findCalls:0,errorVisits:0,masterParses:0,masterStringifications:0,masterStringifiedCodeUnits:0},events=[];
 let trackErrors=true;
 function reset(){for(const key of Object.keys(stats))stats[key]=0;events.length=0;}
@@ -15,7 +17,8 @@ function measuredErrors(value){
 function loader(env,variant){
  const cache=new Map(),json={parse(text,...args){const value=JSON.parse(text,...args);if(value?.active?.PROCESS&&Array.isArray(value.versions))stats.masterParses++;measuredErrors(value);return value;},stringify(value,...args){const result=JSON.stringify(value,...args);if(value?.active?.PROCESS&&Array.isArray(value.versions)){stats.masterStringifications++;stats.masterStringifiedCodeUnits+=result.length;}return result;}};
  function load(file){
-  file=path.resolve(file);if(cache.has(file))return cache.get(file);const relative=path.relative(process.cwd(),file),mod={exports:{}};cache.set(file,mod.exports);
+  file=path.resolve(file);if(cache.has(file))return cache.get(file);const relative=sourceKey(process.cwd(),file),mod={exports:{}};cache.set(file,mod.exports);
+  if(files.includes(relative))assert(Object.hasOwn(sources[variant],relative),'MISSING_PAIRED_SOURCE: '+relative);
   const raw=sources[variant][relative]??fs.readFileSync(file,'utf8'),code=ts.transpileModule(raw,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   vm.runInNewContext(code,{module:mod,exports:mod.exports,require(id){if(id==='cloudflare:workers')return{env};if(id.startsWith('node:'))return require(id);const target=id.startsWith('@/')?path.resolve(id.slice(2)):path.resolve(path.dirname(file),id);if(target.endsWith('.json'))return JSON.parse(fs.readFileSync(target,'utf8'));return target.endsWith('.mjs')?require(target):load(target.endsWith('.ts')?target:target+'.ts');},JSON:json,Request,Response,ReadableStream,Headers,URL,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});
   cache.set(file,mod.exports);return mod.exports;

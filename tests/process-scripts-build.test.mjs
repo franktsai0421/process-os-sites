@@ -10,7 +10,8 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const html = combineProcessStyles(fs.readFileSync('public/process/index.html','utf8'), name => fs.readFileSync('public/process/'+name,'utf8')).html;
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
-  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 45);
+  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 46);
+  assert(result.assets.some(asset=>asset.sources.includes('master-reference-viewer.js')),'latest52 reference viewer remains in source order');
   for (const asset of result.assets) {
     let cursor = 0;
     for (const name of asset.sources) {

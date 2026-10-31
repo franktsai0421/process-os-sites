@@ -1,3 +1,5 @@
+2026-10-30 dot 整合 #54：保留最新 #51/#52 主資料、IQC、引用與離頁 guard；製程離頁 Save 改為阻擋未同步畫布，不暗中 Apply/Sync。來源與驗證界線見[交接](../docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)，未發布。
+
 2026-10-30 製程平台續修：Begin 不再等待非必要 advisory；同請求重用 authoring BOM／master、IPQC 錯誤索引，AB 標準明細按展開建立 DOM，審核提示局部更新保留操作按鈕；方塊 Apply 減少複製並增加離頁 ownership／lease 保護。製程三選項離頁依確定收據保存或本人撤銷；未知撤銷跨 reload 只查原收據，不重送。未發布，其他模組仍需各自接入及驗收。完整實測與限制見[本輪報告](../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。
 
 2026-10-30 最後效能收尾：減少editor冷載入重畫、非Apply命令無用草稿深拷貝、正式基準canonical JSON；修正未接線本人撤銷planner的ABA漏判並澄清舊整份文稿規則。完整Worker前後與同程式對照、流程細項及未完成三選項見[最終交接](../docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)。無schema／依賴／真資料／發布；效能波動不冒稱已全部改善。
@@ -7,6 +9,36 @@
 2026-10-30：針對超過 500ms 的入口加入有序樣式／腳本建置合併與完整執行檢查，保留身分／資料 gate；510 筆五輪前後量測及瀏覽器回歸見[報告](../docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS.md)。多數項目仍未達 500ms，未發布。
 
 2026-10-30：修復被阻擋的新導航未取消舊 prepare、稍後可能切到過期目標的競態；詳見[本輪交接](../docs/acceptance/performance-draft-20261030/README.md)。全站三選項與效能任務尚未完成。
+
+## 2026-10-30 PR #52 整合 main（本地候選）
+
+保留新版權限與一般線別修正，本次不包含舊資料自動轉換；新增轉換專用程式與驗收已移除；補穩定 ID 相容與回歸。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。未發布。
+
+## 2026-10-30 線別／工段完整原始碼交接
+
+線別編輯重試、scope／輪詢保護、引用刪除與精確明細、權限說明及 saved 送審確認完成。一般 AB/C 寫入保留既有格式相容；新增首次自動轉換已依決定移出，既有 records-v1 讀寫與歷史／CAS／收據保留。公開交接整併原五個本機提交及後續未提交原始碼；無新 SQL schema，未改正式資料，未合併或部署。[版本與驗證](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+
+## 2026-10-30 PR #51 整合 main（本地候選）
+
+保留新版權限/還原/流程與 AB/C 功能；補 bridge 還原權限、送審確認所有權、publishedProcess 引用保護。見[整合交接](../docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。未發布。
+
+## 2026-10-30 AB／C 後續釐清與速度優化（本地候選，未發布）
+
+送審顯示 saved 時間／人員、分頁列出未送出的變更，整合歷史入口、分開線別／工段還原計數、解釋無差異停用與無產品經過工段。減少零捲動排版與同頁審核摘要重複讀取，歷史分頁讀取期間鎖定連點、失敗保留游標；補驗並修正整頁重畫後瀏覽器捲動錨定造成的 100px 跳動。驗收及完整前後速度見[後續修正](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。GitHub／PR／CI 由 dot 處理，沒有合併或發布。
+
+## 2026-10-30 AB／C 操作釐清與效能追加（本地候選）
+
+修正同路線獨立產品的標示，明示整份儲存／送審及還原範圍、未儲存取代提醒，區分歷史唯讀／還原入口與同步／儲存狀態。減少每列重算群組路線、重複掃描及不必要快照複製，保留伺服器保護。追加同條件全部按鈕、1000 產品及雙語窄版驗收；數字與限制見[追加優化](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。補驗再修正歷史載入中的快速切換競態，延遲回覆在修前 AB/C 均重現、修後通過。GitHub 由 dot 處理，未發布。
+
+## 2026-10-30 AB／C 產線與類別＋草稿切頁修復（獨立候選，未發布）
+
+修復目的頁投影下表單跨 scope 空值、儲存確認後切頁與 UNKNOWN 查詢競態；補結構化引用防刪、已核准群組路線畫布與舊引用 advisory。隔離瀏覽器／編譯 API 驗收和效能數據見[唯一交接](../docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。未 merge、未發布既有站台。
+
+## 2026-10-30 測速／驗證腳本補件
+
+整理五個本機工具，移除固定工作路徑與登入常數、歷史文件覆寫；新增輸出白名單及失敗／中斷保全檢查。詳見 [工具說明](../scripts/benchmark/README.md)。沒有重送已合併功能或部署。
+
+補件審查修正：預覽 smoke 拒絕 HTTP redirect，登入前核對 origin，阻止跨來源 GET 及 POST 307／308 傳遞；以兩個隔離 loopback fixture 驗證第二個來源零請求／零帳密。新增 CI 工具回歸並修正 Node 測試未 await 的 typed lint，完整測速仍限定既有 Linux 相依；Windows／正式站效能未驗證。
 
 2026-10-29 最後版面複核：修正詳細權限展開被壓在單欄，展開使用全矩陣寬度；桌面／390px compiled頁及17組UI重測通過，最新五次速度與未達100ms目標見下方交接。程式33a1fd0，未發布。
 
@@ -913,3 +945,9 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
   failure without altering transport storage, navigation, backend validation or deadlines.
 - Add focused deferred-transport regression, exact cache expectation and CI command.
   This entry is local candidate documentation, not publication/native acceptance.
+
+### 2026-10-30 — AB/C 完整按鈕補驗與 FQC 切頁草稿層級修正
+
+- 使用同一合成 fixture 比較 main 與候選的 AB/C 操作；補驗歷史、未知結果恢復、多人與跨模組切頁。
+- 修正 FQC 切頁 adapter 讀取 `libraries.fqc.workflow`，更新單一資源版本與回歸測試。
+- GitHub、PR 與後續整合由使用者指定 dot 處理；本輪只保留本地程式與證據，未發布。

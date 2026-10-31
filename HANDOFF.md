@@ -1,3 +1,7 @@
+# #54 dot 本地整合（未發布）
+
+最新來源、手動同步邊界與驗證進度見[本地交接](docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)。#51/#52成果保留；私人43條另候選。下方 #54 原始報告保留其當時版本與限制。
+
 2026-10-30 公開來源分支交接：[dot 最新交接](docs/acceptance/performance-draft-20261030/DOT_GITHUB_HANDOFF.md)。依使用者新授權，僅將本任務必要程式、測試與文字報告提交至 `handoff/sitewide-performance-drafts-20261030`；保留原基準，不合併 main／#51／#52、不建立 PR 或部署。舊文「未 push」是各驗收時點紀錄，遠端交付以此次 Git HEAD 核對為準。
 
 2026-10-30 製程平台續修：最新狀態與完整交接以[本輪報告](docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)為準；[規則與剩餘建議](docs/acceptance/performance-draft-20261030/ROUND5_RULES_AND_REMAINING.md)、[獨立審查](docs/acceptance/performance-draft-20261030/ROUND5_INDEPENDENT_REVIEW.md)。接續原未提交工作，新增製程 Begin／Apply／Save 與 IPQC 讀取優化、製程三選項離頁及撤銷結果唯讀恢復。其餘模組不能沿用製程驗收。交 dot 統一上傳與整合，未 push／PR／merge／發布。下方各輪為保留的歷史交接，其「三選項未接入」是當輪狀態。
@@ -9,6 +13,28 @@
 2026-10-30 續作：[500ms 入口優化、五輪前後量測與 dot 交接](docs/acceptance/performance-draft-20261030/PERFORMANCE_500MS.md)。共用樣式／腳本建置合併已驗證；未發布，三選項離頁仍待完成。
 
 本輪進行中：[20261030 導航修復與待完成項目](docs/acceptance/performance-draft-20261030/README.md)。
+
+# #51 → #52 順序整合候選（僅本地）
+
+共同檔案已語意整合，本次不包含舊資料自動轉換，新增轉換專用程式已移除；交付順序與保留行為見[整合紀錄](docs/acceptance/PR5152_SEQUENCE_INTEGRATION_20261030.md)。獨立兩候選均保留，遠端 PR/base 未改。
+
+# PR #52 本地整合候選（未推送）
+
+一般線別／工段修正保留，本次不包含舊資料自動轉換，新增轉換專用程式已移除；來源、決策及相依見[整合交接](docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
+
+# 線別與工段：指定分支交接
+
+`handoff/lines-stages-final-20261030` 收錄本任務五個既有本機提交及其後未提交成果的必要程式／測試，從原始基準 a870fc5882a1ec6ebe3308e540c1c69282e05dc1 整理，不合入其他 AB/C 任務。原始本機成果完整保留；公開分支排除資料、憑證、ZIP、截圖與產生報表。版本、測試、既有格式相容及未完成事項，統一見 [DOT 交接](docs/acceptance/LINES_STAGES_FINAL_20261030.md)。不授權合併／部署。
+
+# PR #51 已推送候選（未合併）
+
+已正常 fast-forward 推送 e8c44a3855bc4cd2916f9a76903ae05b6875a413，保留最新 main 及 AB/C 成果；來源、衝突處理與驗證界線見[整合交接](docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。#52 及全站離頁新方案分開。
+
+本次 AB／C 產線與類別＋草稿切頁修復交給 dot 審查及建立 PR，最新公開來源交接見[AB／C 交接](docs/acceptance/AB_C_DOT_HANDOFF_20261030.md)。分支 `handoff/ab-c-final-20261030`，基準 `a870fc5882a1ec6ebe3308e540c1c69282e05dc1`；不整合線別／工段任務，不合併或部署。原始本地成果與證據保留。
+
+測速／驗證工具補件（2026-10-30）：五個本機腳本已整理為參數化工具，輸出不覆寫歷史文件；規格、使用方式與針對性驗證見 [補件說明](scripts/benchmark/README.md)。產品功能與資料模型不變，圖片／trace 保留待安全附件交付。
+
+補件審查已修正 preview smoke 跨來源 redirect 缺口與新增測試的 typed lint；CI 增加 Python／Node 工具及兩個 loopback 的 redirect 回歸。等待 root 核對本地提交及遠端 CI，尚未由此修復任務 push、merge 或部署。完整 runner 的 Linux 限制與 Windows 清理未驗證範圍見補件說明。
 
 # 使用者權限 CLOUD 29102026 — 已修正，未部署
 

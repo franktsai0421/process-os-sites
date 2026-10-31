@@ -48,14 +48,16 @@ async function fixture(){
  for(const [object,key,label]of [[window.IQCMasterUI.navigation,'reset','IQC'],[window.EffectiveVersionNotice,'reset','effective'],[window.QualityReviewOverview,'dispose','overview']]){const original=object[key];object[key]=function(...args){resets[label]++;return original.apply(this,args);};}
  vm.runInContext(src('delivery-navigation.js').replace(/import\('\.\/navigation-lifecycle\.mjs\?v=[^']+'\)/,'Promise.resolve(coordinatorModule)'),context);await window.ProcessDeliveryNavigation.initialized;
  function open(){window.__testIqc.photoViewerPhotos([{src:'/fixture/old-synthetic-0.png'},{src:'/fixture/old-synthetic-1.png'}]);return [...nodes].find(n=>n.className==='iqc-lightbox');}
- function state(){return{identity:window.ProcessSync.identity,requiresReload:window.ProcessSync.requiresReload,destination:window.ProcessSync.destination,shellHidden:shell.hidden===true,viewers:[...nodes].filter(n=>n.className==='iqc-lightbox').length,keydownListeners:docEvents.get('keydown')?.size||0,reloadGates:[...nodes].filter(n=>n.id==='process-boot').length,resets:{...resets},dispatches:[...dispatches],stubFetchCalls:calls.filter(v=>Array.isArray(v)).length};}
- return{window,context,document,events,docEvents,nodes,pending,resets,open,state,calls};
+ const shellKeyListeners=new Set(docEvents.get('keydown')||[]);
+ const iqcKeys=()=>new Set([...(docEvents.get('keydown')||[])].filter(fn=>!shellKeyListeners.has(fn)));
+ function state(){return{identity:window.ProcessSync.identity,requiresReload:window.ProcessSync.requiresReload,destination:window.ProcessSync.destination,shellHidden:shell.hidden===true,viewers:[...nodes].filter(n=>n.className==='iqc-lightbox').length,keydownListeners:iqcKeys().size,reloadGates:[...nodes].filter(n=>n.id==='process-boot').length,resets:{...resets},dispatches:[...dispatches],stubFetchCalls:calls.filter(v=>Array.isArray(v)).length};}
+ return{window,context,document,events,docEvents,nodes,pending,resets,open,state,calls,iqcKeys};
 }
 for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])void test('IQC viewer is disposed by actual '+mode+' cascade without resetting editors/transports',async()=>{
  const f=await fixture();
  if(mode==='pendingNavigation401'){f.window.ProcessDeliveryNavigation.navigate('player');assert.equal(f.pending.length,1);}
- const viewer=f.open(),image=viewer.querySelector('img'),oldKey=[...f.docEvents.get('keydown')][0],oldNext=viewer.querySelector('#iqc-photo-next').onclick;
- assert.equal(f.docEvents.get('keydown').size,1);assert(image.getAttribute('src'));
+ const viewer=f.open(),image=viewer.querySelector('img'),oldKey=[...f.iqcKeys()][0],oldNext=viewer.querySelector('#iqc-photo-next').onclick;
+ assert.equal(f.iqcKeys().size,1);assert(image.getAttribute('src'));
  f.context.sessionStorage.setItem('synthetic-owned-unknown-receipt','retained');
  if(mode==='clearIdentity'){
   f.context.localStorage.setItem('dispatchBoard','{"unsaved":"synthetic"}');
@@ -80,9 +82,9 @@ void test('IQC denied target retains current viewer; normal close and repeated c
 });
 for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActorReplacement'])void test('actual '+mode+' cascade quarantines IQC editor without normal close or receipt cleanup',async()=>{
  const f=await fixture();if(mode==='pendingNavigation401'){f.window.ProcessDeliveryNavigation.navigate('player');assert.equal(f.pending.length,1);}
- const {overlay,owner,close}=f.window.__testIqc.dialog('<input value="synthetic pending text">'),input=overlay.querySelector('input'),files=[{name:'unsent.png'}];input.value='中文 Việt composing';input.files=files;const base=owner.base,html=overlay.innerHTML,key=[...f.docEvents.get('keydown')][0],focusCount=f.calls.filter(x=>x==='focus').length;
+ const {overlay,owner,close}=f.window.__testIqc.dialog('<input value="synthetic pending text">'),input=overlay.querySelector('input'),files=[{name:'unsent.png'}];input.value='中文 Việt composing';input.files=files;const base=owner.base,html=overlay.innerHTML,key=[...f.iqcKeys()][0],focusCount=f.calls.filter(x=>x==='focus').length;
  f.context.sessionStorage.setItem('synthetic-owned-unknown-receipt','exact retained bytes');
  if(mode==='clearIdentity')f.window.ProcessSync.clearIdentity();else if(mode==='sameActorReplacement')f.window.ProcessSync.setPlatformIdentity({id:'synthetic',role:'staff'});else if(mode==='refresh401'){const p=f.window.ProcessSync.refresh();await tick();f.pending[0].resolve(Response.json({error:'LOGIN_REQUIRED'},{status:401}));await p;}else{f.pending[0].resolve(Response.json({error:'LOGIN_REQUIRED'},{status:401}));await tick();await tick();}
- assert(f.window.ProcessSync.requiresReload);assert(owner.terminal);assert.equal(owner.current(),false);assert.equal(overlay.isConnected,false);assert.equal(overlay.innerHTML,html);assert.equal(input.value,'中文 Việt composing');assert.equal(input.files,files);assert.equal(owner.base,base);assert.equal(f.docEvents.get('keydown').size,0);assert.equal(f.resets.IQC,0);
+ assert(f.window.ProcessSync.requiresReload);assert(owner.terminal);assert.equal(owner.current(),false);assert.equal(overlay.isConnected,false);assert.equal(overlay.innerHTML,html);assert.equal(input.value,'中文 Việt composing');assert.equal(input.files,files);assert.equal(owner.base,base);assert.equal(f.iqcKeys().size,0);assert.equal(f.resets.IQC,0);
  close();key({key:'Escape',preventDefault(){}});assert.equal(f.calls.filter(x=>x==='focus').length,focusCount);assert.equal(f.context.sessionStorage.getItem('synthetic-owned-unknown-receipt'),'exact retained bytes');assert.equal(f.state().reloadGates,1);assert.equal(f.state().stubFetchCalls,mode==='refresh401'||mode==='pendingNavigation401'?2:1);
 });

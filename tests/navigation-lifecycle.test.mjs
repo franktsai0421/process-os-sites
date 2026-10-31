@@ -43,3 +43,9 @@ for(const step of ['dispose','install','history'])void test('throw during '+step
 
 void test('identical pending route intents reuse one read and one commit',async()=>{const f=fixture(),a=f.coordinator.navigate({view:'player'},{history:'push'}),b=f.coordinator.navigate({view:'player'},{history:'push'});assert.equal(a,b);assert.equal(f.reads.length,1);f.reads[0].resolve({});await Promise.all([a,b]);assert.equal(f.events.filter(e=>e[0]==='commit').length,1);});
 void test('duplicate route pop entries have distinct transaction ownership, not click dedupe',async()=>{const f=fixture(),a=f.coordinator.navigate({view:'player'},{history:'pop',index:2,url:'https://fixture.invalid/?view=player'}),b=f.coordinator.navigate({view:'player'},{history:'pop',index:0,url:'https://fixture.invalid/?view=player'});assert.notEqual(a,b);assert.equal(f.reads.length,2);assert(f.reads[0].c.signal.aborted);f.reads[1].resolve({});await b;f.reads[0].resolve({});assert.equal((await a).status,'superseded');});
+
+void test('latest master departure Save guard runs before target preparation and stale target never commits',async()=>{
+ let dirty=true,saves=0;const saving=deferred(),events=[];
+ const c=createNavigationCoordinator({initial:{view:'data'},owner:()=>({id:'a',epoch:1}),canLeave:()=>!dirty,prepareDeparture:async()=>{saves++;await saving.promise;return !dirty;},prepare:async target=>{events.push(['read',target.view]);return{};},commit:(_p,t)=>{events.push(['commit',t.view]);return t;},ready:async()=>{}});
+ const first=c.navigate({view:'editor'}),last=c.navigate({view:'player'});dirty=false;saving.resolve();assert.equal((await first).status,'superseded');assert.equal((await last).status,'ready');assert.deepEqual(events,[['read','player'],['commit','player']]);assert.equal(saves,2,'router adapter shares its one in-flight Save');
+});

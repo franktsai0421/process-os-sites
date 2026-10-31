@@ -49,6 +49,64 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
+      - name: Isolated benchmark tools and preview redirect boundaries
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          # windows-latest provides Python; require the documented minimum.
+          python -c "import sys; assert sys.version_info >= (3, 10)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Explicit UTF-8 also applies to Python child fixture processes.
+          $env:PYTHONUTF8 = '1'
+          python -m unittest discover -s scripts/benchmark -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node node_modules/playwright/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exact source baseline for paired performance contracts
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ca6647977a8680038444ce2c1ba4e80f2343cd0a
+          path: .sites-runtime/performance-baseline
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /lib/master-workflow.ts
+            /lib/process-authoring-workflow.ts
+            /lib/process-ipqc.ts
+            /app/api/master/references/route.ts
+            /app/api/process-ipqc/route.ts
+            /public/process/process-ipqc.js
+      - name: Performance and departure integration contracts
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        env:
+          IPQC_CHOICES_BASELINE_DIR: .sites-runtime/performance-baseline
+          MASTER_EQUALITY_BASELINE: .sites-runtime/performance-baseline/lib/master-workflow.ts
+          MASTER_BASELINE: .sites-runtime/performance-baseline/lib/master-workflow.ts
+          REFERENCES_BASELINE: .sites-runtime/performance-baseline/app/api/master/references/route.ts
+          AUTHORING_CONTEXT_BASELINE: .sites-runtime/performance-baseline/lib/process-authoring-workflow.ts
+          AUTHORING_IPQC_BASELINE: .sites-runtime/performance-baseline/lib/process-ipqc.ts
+        run: |
+          # Read exact Git blobs, not Windows CRLF-converted worktree bytes.
+          node scripts/materialize-performance-baseline.mjs .sites-runtime/performance-baseline .sites-runtime/performance-baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/performance-baseline.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/navigation-departure.test.mjs tests/delivery-departure.test.mjs tests/owned-draft-ledger.test.mjs tests/owned-draft-revert.test.mjs tests/owned-draft-recovery-transport.test.mjs tests/canvas-departure.test.mjs tests/process-editor-departure.test.mjs tests/editor-selection-departure.test.mjs tests/authoring-departure.test.mjs tests/authoring-begin-readiness.test.mjs tests/authoring-readiness-render.test.mjs tests/authoring-review-status.test.mjs tests/master-shared-clone.test.mjs tests/master-review-render-performance.test.mjs tests/process-scripts-build.test.mjs tests/process-styles-build.test.mjs tests/spreadsheet-loader.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-authoring-context-reuse.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-master-baseline-equality.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-master-prepared-model.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-master-references-prepared.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-ipqc-choice-dom.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-process-ipqc-choice-read.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Source-only history and upload safety
         id: head_validation_01
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' && (steps.normal_typed_lint.outcome == 'success' || steps.normal_typed_lint.outcome == 'failure') }}
@@ -190,6 +248,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-contentissues-readscope.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-lines-cloud-api.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-lines-legacy-api.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-lines-permission-matrix.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-master-legacy-format-retention.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/lines-integration-compatibility.test.mjs tests/lines-submit-snapshot-integration.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-master-active-catalog.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-truthful-review.cjs
@@ -262,7 +330,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-media-fast-path-routes.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/navigation-adapters.test.mjs tests/destination-transaction.test.mjs tests/bounded-media-loading.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
+          node --test tests/ab-c-route-reference.test.mjs tests/master-bridge-ownership.test.mjs tests/login-intent.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs tests/player-intent.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/navigation-adapters.test.mjs tests/destination-transaction.test.mjs tests/bounded-media-loading.test.mjs tests/shared-draft-no-change.test.mjs tests/ci-integrated-exit.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-shared-draft-client-v3.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

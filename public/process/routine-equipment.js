@@ -3416,7 +3416,7 @@
 
   let navigationError=null;
   window.RoutineEquipmentUI = {
-    navigation:{canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    navigation:{requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,
