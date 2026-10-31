@@ -31,9 +31,9 @@ export function restoreEffects(before:unknown, after:unknown) {
   walk(before,after);return effects;
 }
 
-export async function restoreAllowed(request:Request,state:State){
+export async function restoreAllowed(request:Request,state:State,allowed=(key:string):boolean|Promise<boolean>=>can(request,state,key)){
   const moduleId=moduleForURL(request.url);
-  return !!moduleId&&accessKeys.includes(moduleId+'.restore')&&await can(request,state,moduleId+'.view')&&await can(request,state,moduleId+'.edit')&&await can(request,state,moduleId+'.restore');
+  return !!moduleId&&accessKeys.includes(moduleId+'.restore')&&await allowed(moduleId+'.view')&&await allowed(moduleId+'.edit')&&await allowed(moduleId+'.restore');
 }
 export async function assertRestoreAccess(request:Request,state:State,before:unknown,after:unknown){
   if(!await restoreAllowed(request,state))throw new DraftConflict('RESTORE_PERMISSION_REQUIRED',403);

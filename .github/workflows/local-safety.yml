@@ -118,6 +118,9 @@ jobs:
       - name: Shared draft manual synchronization and submission contracts
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: |
+          # Both suites import master-ab-auth-phase-fixture.mjs; the fixture is not a zero-case suite.
+          node --test --test-concurrency=1 tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/shared-draft-pagehide-generation.test.mjs tests/shared-draft-submit-contract.test.mjs tests/shared-draft-no-change.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-batch-http.test.mjs tests/master-manual-name-apply.test.cjs tests/fqc-matrix-batch.test.mjs tests/quality-submit-confirmation-pins.test.cjs tests/quality-submission-fences.test.mjs tests/lines-submit-snapshot-integration.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build exact checked-out commit

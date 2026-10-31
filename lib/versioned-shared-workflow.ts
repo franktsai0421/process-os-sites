@@ -3,7 +3,7 @@ import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
 import {processFlowCommand,readProcessFlowMutationState,encodeProcessFlowMutationState} from './process-flow-record-mutation';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
+import { readState, identity, can, createMasterABPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
 import { createSharedDraft, applyDraftCommand, DraftConflict, cloneDraft, type SharedDraft, type DraftCommand, type DraftContext, type DraftPermission } from './shared-draft';
 import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,isWorkflowDigestFingerprint} from './workflow-wire';
 import {effectiveAccess} from './user-access';
@@ -97,15 +97,15 @@ export function visibleSharedControl<T,C extends VersionedControl<T>>(control:C,
   return {...control,versions:history&&!caseMetadata?control.versions:control.versions.filter(v=>v.id===control.activeVersionId||v.id===open?.id),
     workflow:{...flow,saves:[],receipts:{},sequences:{},cases:(history?flow.cases:flow.cases.filter(c=>c.id===flow.pendingId)).map(c=>caseMetadata?sharedCaseMetadata(c):c)}};
 }
-export async function workflowAccess(request:Request,state:State){
+export async function workflowAccess(request:Request,state:State,check=(key:string):boolean|Promise<boolean>=>can(request,state,key)){
   const workflowModule=moduleForURL(request.url);
   if(workflowModule&&accessKeys.includes(workflowModule+'.edit')){
-    const allowed=async(op:string)=>await can(request,state,workflowModule+'.'+op);
+    const allowed=async(op:string)=>await check(workflowModule+'.'+op);
     const view=await allowed('view');return {view,edit:view&&await allowed('edit'),save:view&&await allowed('save'),submit:view&&await allowed('submit'),withdraw:view&&await allowed('withdraw'),approve:view&&await allowed('approve'),return:view&&await allowed('return'),history:view};
   }
-  const data=await can(request,state,'view:data'),review=await can(request,state,'view:approval'),edit=data;
-  return {view:data||review,edit,save:edit,submit:edit,withdraw:data||review&&await can(request,state,'approval.withdraw'),
-    approve:review&&await can(request,state,'approval.approve'),return:review&&await can(request,state,'approval.reject'),history:(data||review)&&await can(request,state,'approval.compare')};
+  const data=await check('view:data'),review=await check('view:approval'),edit=data;
+  return {view:data||review,edit,save:edit,submit:edit,withdraw:data||review&&await check('approval.withdraw'),
+    approve:review&&await check('approval.approve'),return:review&&await check('approval.reject'),history:(data||review)&&await check('approval.compare')};
 }
 // Advisory only. Submission never requires another enabled reviewer; admin may
 // self-review with the existing confirmation/audit gates.
@@ -125,12 +125,14 @@ async function commandBody(request:Request){
   return body;
 }
 export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:WorkflowAdapter<T,C>){
-  async function currentPermissions(request:Request,state:State){
-    const defaults=await workflowAccess(request,state),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
+  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):null;
+  async function currentPermissions(request:Request,state:State,phase?:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null){
+    const check=phase?phase.allowed:(key:string)=>can(request,state,key);
+    const defaults=await workflowAccess(request,state,check),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
-    return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state),create:limited.edit&&!!workflowModule&&await can(request,state,workflowModule+'.create'),delete:limited.edit&&await can(request,state,workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
+    return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state,check),create:limited.edit&&!!workflowModule&&await check(workflowModule+'.create'),delete:limited.edit&&await check(workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
@@ -138,8 +140,8 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
         preflight=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']});
-        const actor=await identity(request,preflight),permissions=await currentPermissions(request,preflight);
-        if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
+        const phase=await phaseFor(request,preflight),actor=phase?phase.actor:await identity(request,preflight),permissions=await currentPermissions(request,preflight,phase);
+        if(!actor||!permissions.view||phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);
         if(selectors.has('permissions'))return reply({permissions,revision:preflight.revision,otherReviewerAvailable:otherReviewerAvailable(preflight,actor.id)});
         if(selectors.get('since')===`state:${preflight.revision}`)return reply({revision:preflight.revision,permissions,unchanged:true});
       }
@@ -148,8 +150,8 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // Recheck identity on the newly selected snapshot.
       // Legacy formats already read the entire snapshot; avoid reading it twice.
       const selectedKeys=adapter.permissionOnlyRead&&!selectors.has('restoreSaveId')?['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',adapter.key]:undefined;
-      const state=preflight&&!preflight.recordStorage?preflight:await readState({keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),actor=await identity(request,state),permissions=await currentPermissions(request,state);
-      if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
+      const state=preflight&&!preflight.recordStorage?preflight:await readState({keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state),permissions=await currentPermissions(request,state,phase);
+      if(!actor||!permissions.view||phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);
       const query=new URL(request.url).searchParams;
       if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
       // A catalog without an adopted draft has no generation token yet. Still
@@ -193,9 +195,11 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
-        const state=mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
+        const state=mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
-        const permissions=await currentPermissions(request,state),control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
+        const permissions=await currentPermissions(request,state,phase);
+        if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+        const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
         // Existing raw fingerprints remain replay-compatible. New receipts keep
         // a canonical digest rather than embedding complete command media.
@@ -223,16 +227,21 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           const already=control.workflow.receipts[command.operationId],beforeRestore=command.action==='restore'?cloneDraft(control.workflow.working):null;const result=await adapter.apply(control,command,context);
           if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
           control.workflow=result.state;receipt=result.receipt;
-          if(already)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,unchanged:true});
+          if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,unchanged:true});}
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
         projectSharedVersion(control,actor,at,body.command?.action==='approve');
         if(!await stateRevisionIsCurrent(state))continue;
+        if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
         const prepared=state.recordStorage&&(!adapter.serialize||adapter.serializeModel)?new Map([[adapter.key,adapter.serializeModel?adapter.serializeModel(control):control]]):undefined;
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.
         const values={...state.values,...(!prepared?{[adapter.key]:adapter.serialize?adapter.serialize(control):JSON.stringify(control)}:{[adapter.key]:state.values[adapter.key]??'null'}),...adapter.projectValues?.(control)};
-        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
+        const encoded=await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared));
+        // Immutable objects already written remain unreferenced on denial, as on
+        // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
+        if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+        const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;
         return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,requestId});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
