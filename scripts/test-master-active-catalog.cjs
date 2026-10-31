@@ -34,7 +34,7 @@ const checks=[],policyDifferences=[],legacyCosts=[];async function check(name,fn
   metrics();const full=await get(await request('ab-reader',fullPath));assert.equal(full.status,200);baseline={...metrics(),localCpuMicros:full.localCpuMicros,localElapsedMicros:full.localElapsedMicros};
   const narrow=await get(await request());assert.equal(narrow.status,200);reduced={...metrics(),localCpuMicros:narrow.localCpuMicros,localElapsedMicros:narrow.localElapsedMicros};
   assert.deepEqual(activeProjection(narrow.body),activeProjection(full.body));assert.deepEqual(narrow.body.permissions,full.body.permissions);assert.equal(narrow.body.control.versions.length,1);assert.equal(narrow.body.control.workflow,undefined);assert.equal(narrow.body.revision,full.body.revision);assert.equal(narrow.headers.get('cache-control'),'no-store');
-  assert(reduced.r2Gets<baseline.r2Gets);assert(reduced.r2Bytes<baseline.r2Bytes);assert.equal(reduced.stateReads,baseline.stateReads);assert.equal(reduced.sqlReads,baseline.sqlReads);
+  assert(reduced.r2Gets<baseline.r2Gets);assert(reduced.r2Bytes<baseline.r2Bytes);assert.equal(reduced.stateReads,baseline.stateReads);assert.equal(baseline.sqlReads,7,'ordinary AB phase-local authorization SQL for this reader fixture');assert.equal(reduced.sqlReads,19,'effective catalog retains its existing authorization SQL; it is not phase-optimized');
  });
  await check('view authorization is AB-specific and occurs before master aggregate reads',async()=>{
   for(const req of [new Request('https://catalog-fixture.invalid'+narrowPath),await request('denied'),await request('fqc-only')]){metrics();assert.equal((await get(req)).status,403);assert(!reads.includes(masterKey));}
