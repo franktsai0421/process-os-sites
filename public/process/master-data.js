@@ -71,6 +71,7 @@
   state.masterReviewId = state.masterReviewId || null;
   const sharedLoaded=new Set(),sharedLoading=new Set();
   let approvalReady=Promise.resolve();
+  let renderMaster=()=>render();
   let dataReady=Promise.resolve(), deliveryGeneration=0, dataError=null;
   const ownsDelivery=generation=>generation===deliveryGeneration&&!window.ProcessSync?.requiresReload;
   const shared=window.createMasterSharedBridge({control,onChange:()=>render()});
@@ -155,12 +156,12 @@
     version.updatedAt = now();
   }
   async function beginDraft() {
-    try{await shared.execute(state.masterScope,'begin');sharedLoaded.add(state.masterScope);render();}
+    try{await shared.execute(state.masterScope,'begin');sharedLoaded.add(state.masterScope);renderMaster();}
     catch(error){toast(displayDraftError(error));}
     return;
   }
   async function saveDraft() {
-    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');render();return true;}catch(error){toast(displayDraftError(error));return false;}
+    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');renderMaster();return true;}catch(error){toast(displayDraftError(error));return false;}
   }
   function validateCatalog(catalog) {
     const errors = [],
@@ -193,7 +194,7 @@
     return errors;
   }
   async function submitDraft() {
-    try{await shared.submit(state.masterScope);render();}catch(error){const focused=document.activeElement?.id,scroll=window.scrollY;render();document.getElementById(focused)?.focus({preventScroll:true});window.scrollTo(0,scroll);toast(displayDraftError(error));}
+    try{await shared.submit(state.masterScope);renderMaster();}catch(error){const focused=document.activeElement?.id,scroll=window.scrollY;render();document.getElementById(focused)?.focus({preventScroll:true});window.scrollTo(0,scroll);toast(displayDraftError(error));}
   }
   let syncRows = function() {
     const version = draft();
@@ -293,7 +294,7 @@
   function lineEditor() {
     const catalog = current(),
       locked = !editable();
-    return `<details class="master-line-editor"><summary>線別與工段管理 · ${catalog.lines.length} 條線別 · ${catalog.lines.reduce((sum, line) => sum + line.stages.length, 0)} 個工段</summary>${catalog.lines.map((line) => `<section class="master-line-block" data-line="${safe(line.code)}"><div class="master-line-head"><input data-line-code value="${safe(line.code)}" ${locked ? 'disabled' : ''}><input data-line-name value="${safe(line.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-add-stage="${safe(line.code)}">＋ 新增工段</button><button class="master-small danger" data-delete-line="${safe(line.code)}">刪除線別</button>`}</div><div class="master-stage-grid">${line.stages.map((stage) => `<div class="master-stage-card" data-stage="${safe(stage.code)}"><input data-stage-code value="${safe(stage.code)}" ${locked ? 'disabled' : ''}><input data-stage-name value="${safe(stage.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-delete-stage="${safe(stage.code)}">刪除</button>`}</div>`).join('')}</div></section>`).join('')}${locked ? '' : `<div class="master-line-add"><button class="master-small" id="add-master-line">＋ 新增線別</button></div>`}</details>`;
+    return `<details class="master-line-editor"><summary>線別與工段管理 · ${catalog.lines.length} 條線別 · ${catalog.lines.reduce((sum, line) => sum + line.stages.length, 0)} 個工段</summary>${catalog.lines.map((line) => `<section class="master-line-block" data-line="${safe(line.code)}"><div class="master-line-head"><input data-line-code value="${safe(line.code)}" ${locked ? 'disabled' : ''}><input data-line-name value="${safe(line.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-add-stage="${safe(line.code)}">＋ 新增工段</button><button class="master-small danger" data-delete-line="${safe(line.code)}">刪除線別</button>`}</div><div class="master-stage-grid">${line.stages.map((stage) => `<div class="master-stage-card" data-stage="${safe(stage.code)}"><input data-stage-code value="${safe(stage.code)}" ${locked ? 'disabled' : ''}><input data-stage-name value="${safe(stage.name || '待補')}" ${locked ? 'disabled' : ''}>${locked ? '' : `<button class="master-small" data-delete-stage="${safe(stage.code)}">刪除</button>`}</div>`).join('')}</div></section>`).join('')}</details>`;
   }
   let masterView = function() {
     const catalog = current();
@@ -524,17 +525,6 @@
           rerenderMaster();
         }),
     );
-    document
-      .querySelector('#add-master-line')
-      ?.addEventListener('click', () => {
-        syncRows();
-        const catalog = editable(),
-          code = `${state.masterScope === 'C' ? 'C' : 'LINE'}-${catalog.lines.length + 1}`;
-        catalog.lines.push({ code, name: '待補', stages: [] });
-        record(draft(), '新增線別', code);
-        persist();
-        rerenderMaster();
-      });
     document.querySelectorAll('[data-delete-line]').forEach(
       (button) =>
         (button.onclick = () => {
@@ -1102,6 +1092,7 @@
       validateCatalog,
       shared,
     });
+    renderMaster=()=>state.view==='data'&&state.masterSection==='lines'&&document.querySelector('.master-organized')?enhanced.redraw():render();
     current = enhanced.current;
     window.MasterAdminUI.preserveView=enhanced.preserveView;
     editable = enhanced.editable;
@@ -1150,6 +1141,7 @@
         return shared.execute(scope,'save');
       },
     },
+    async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
       deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};

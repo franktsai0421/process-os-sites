@@ -1,3 +1,6 @@
+import {visibleStageReferences} from '@/lib/master-stage-reference-response';
+import type {stageReferences} from '@/lib/master-stage-references';
+
 import {restoreAllowed} from '@/lib/draft-restore-access';
 import {masterWorkflowAdapter} from '@/lib/master-workflow';
 import {versionedWorkflowRoute,workflowAccess} from '@/lib/versioned-shared-workflow';
@@ -51,4 +54,12 @@ async function productReferences(request:Request){
 }
 export const GET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
  ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request);
-export const POST=(request:Request)=>versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).POST(request);
+export const POST=async(request:Request)=>{
+ const scope=new URL(request.url).searchParams.get('scope')||'';
+ const response=await versionedWorkflowRoute(masterWorkflowAdapter(scope)).POST(request);
+ if(response.status!==409)return response;
+ const body=await response.clone().json() as {error:string;details?:ReturnType<typeof stageReferences>;requestId?:string};
+ if(body.error!=='STAGE_IN_USE')return response;
+ const details=await visibleStageReferences(request,body.details,scope);
+ return Response.json({...body,details},{status:response.status,headers:response.headers});
+};

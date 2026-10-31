@@ -1,3 +1,11 @@
+## 2026-10-30 PR #52 整合 main（本地候選）
+
+保留新版權限與一般線別修正，本次不包含舊資料自動轉換；新增轉換專用程式與驗收已移除；補穩定 ID 相容與回歸。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。未發布。
+
+## 2026-10-30 線別／工段完整原始碼交接
+
+線別編輯重試、scope／輪詢保護、引用刪除與精確明細、權限說明及 saved 送審確認完成。一般 AB/C 寫入保留既有格式相容；新增首次自動轉換已依決定移出，既有 records-v1 讀寫與歷史／CAS／收據保留。公開交接整併原五個本機提交及後續未提交原始碼；無新 SQL schema，未改正式資料，未合併或部署。[版本與驗證](../docs/acceptance/LINES_STAGES_FINAL_20261030.md)。
+
 ## 2026-10-30 PR #51 整合 main（本地候選）
 
 保留新版權限/還原/流程與 AB/C 功能；補 bridge 還原權限、送審確認所有權、publishedProcess 引用保護。見[整合交接](../docs/acceptance/PR51_MAIN_INTEGRATION_20261030.md)。未發布。

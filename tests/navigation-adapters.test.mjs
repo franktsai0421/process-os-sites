@@ -109,6 +109,7 @@ for(const outcome of ['resolve','reject'])void test('actual FQC approval '+outco
 void test('actual account malformed successful ACK stays guarded and describes no-resubmit recovery',async()=>{const box=accountBox({ok:true,status:200,json:async()=>({revision:2})});await assert.rejects(box.send({}),/WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED/);assert.equal(box.writeUncertain,true);assert.equal(box.calls,1);});
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
+  'master-reference-viewer.js':'20261030-pr5152-integrated1',
   'app.js':'20261030-pr51-integrated1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261030-pr51-integrated1',
@@ -121,8 +122,8 @@ void test('changed persistent-navigation executable references have coherent new
   'ipqc-ab.js':'20261030-pr51-integrated1',
   'ipqc-c.js':'20261030-pr51-integrated1',
   'iqc-master.js':'20261030-pr51-integrated1',
-  'master-data.js':'20261030-pr51-integrated1',
-  'master-shared-client.js':'20261030-pr51-integrated1',
+  'master-data.js':'20261030-pr5152-integrated1',
+  'master-shared-client.js':'20261030-pr5152-integrated1',
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261030-pr51-integrated1',
   'quality-review-overview.js':'20261027-readscope-truthful1',

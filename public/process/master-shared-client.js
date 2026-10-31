@@ -30,10 +30,16 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
       readOwners.delete(scope);readTokens.delete(actor?.id+':'+scope);adopt(scope,fresh);return result;
     }
     function identify(value,previous){
-      if(Array.isArray(value)){const byId=new Map();for(const row of previous||[])if(!byId.has(row?.id))byId.set(row?.id,row);for(const row of value)if(row&&typeof row==='object'){
-        const old=row.id?byId.get(row.id):(previous||[]).find(p=>row.code?p.code===row.code:p.line===row.line&&p.name===row.name);
-        row.id ||= old?.id||crypto.randomUUID();identify(row,old);
-      }}else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
+      if(Array.isArray(value)){
+        // First-match indexes preserve the legacy lookup rules without scanning
+        // every previous product once for each current product on every Apply.
+        const ids=new Map(),codes=new Map(),groups=new Map();
+        for(const p of previous||[]){if(!p||typeof p!=='object')continue;if(!ids.has(p.id))ids.set(p.id,p);if(!codes.has(p.code))codes.set(p.code,p);if(!groups.has(p.line))groups.set(p.line,new Map());const names=groups.get(p.line);if(!names.has(p.name))names.set(p.name,p);}
+        for(const row of value)if(row&&typeof row==='object'){
+          const old=row.id?ids.get(row.id):row.code?codes.get(row.code):groups.get(row.line)?.get(row.name);
+          row.id ||= old?.id||crypto.randomUUID();identify(row,old);
+        }
+      }else if(value&&typeof value==='object')for(const [key,next]of Object.entries(value))if(key==='products'||key==='lines'||key==='categoryGroups'||key==='stages'&&Array.isArray(next)&&next.some(r=>typeof r==='object'))identify(next,previous?.[key]);
     }
     function diff(before,after,path=[],patches=[],guards=[]){
       if(equal(before,after))return{patches,guards};
@@ -74,7 +80,7 @@ if(!clients.has(key))clients.set(key,host.createSharedDraftClient({endpoint:'/ap
     }
     async function submit(scope){const current=flow(scope);if(!current?.saved)throw Error(t('請先成功儲存共用草稿。','Hãy lưu bản nháp chung thành công trước.'));
       const savedId=current.saved.id,generation=current.generation,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
-      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
+      const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,['AB','C'].includes(scope)?{masterSnapshot:{dirty:!equal(current.saved.content,current.working),savedAt:current.saved.at,savedActor:current.saved.actor?.name,changes:host.VersionDraftUI.masterChanges(current.saved.content,current.working)}}:{});if(!reason)return null;
       if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       if(flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==savedId)throw Error('SAVED_VERSION_CHANGED_RECONFIRM');
       return execute(scope,'submit',{savedId,reason});

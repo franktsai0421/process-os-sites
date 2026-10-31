@@ -22,11 +22,16 @@ function counts(io){return JSON.parse(JSON.stringify(io.window.__fixtureResource
 function descriptors(target){return Object.fromEntries(['createObjectURL','revokeObjectURL'].map(key=>[key,Object.getOwnPropertyDescriptor(target,key)]));}
 function restore(target,originals){Object.defineProperties(target,originals);assert.deepEqual(descriptors(target),originals);}
 
-void test('only native descriptor capture changes; wrappers and every delivery assertion retain canonical source across LF/CRLF checkouts',()=>{
+void test('only reviewed descriptor capture and browser selection change; wrappers and delivery assertions retain canonical source across LF/CRLF checkouts',()=>{
  const old='const create=URL.createObjectURL,revoke=URL.revokeObjectURL;';
  const next="const createDescriptor=Object.getOwnPropertyDescriptor(URL,'createObjectURL'),revokeDescriptor=Object.getOwnPropertyDescriptor(URL,'revokeObjectURL');\n   if(!createDescriptor||!revokeDescriptor||typeof createDescriptor.value!=='function'||typeof revokeDescriptor.value!=='function')throw Error('NATIVE_URL_DATA_METHODS_REQUIRED');\n   const create=createDescriptor.value,revoke=revokeDescriptor.value;";
- const check=value=>{const text=value.replace(/\r\n/g,'\n');assert.equal(text.split(next).length,2);assert.equal(text.replace(next,old),previous);};
+ const oldLaunch="const bundled=chromium.executablePath(),launchTarget=fs.existsSync(bundled)?{executablePath:bundled}:{channel:'chrome'};";
+ const nextLaunch="const bundled=chromium.executablePath(),launchTarget=process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:fs.existsSync(bundled)?{executablePath:bundled}:{channel:'chrome'};";
+ assert.equal(previous.split(oldLaunch).length,2);
+ const check=value=>{const text=value.replace(/\r\n/g,'\n');assert.equal(text.split(next).length,2);assert.equal(text.split(nextLaunch).length,2);assert.equal(text.replace(next,old).replace(nextLaunch,oldLaunch),previous);};
  check(current);check(current.replace(/\n/g,'\r\n'));assert.throws(()=>check(current.replace('urls.add(url)','urls.clear()')),{code:'ERR_ASSERTION'});
+ assert.throws(()=>check(current.replace('process.env.CHROME_PATH','process.env.OTHER_BROWSER')),{code:'ERR_ASSERTION'});
+ assert.throws(()=>check(current.replace('--disable-background-networking','--changed-networking')),{code:'ERR_ASSERTION'});
 });
 for(const mode of ['method','foreign','detached'])void test('original function, dynamic receiver, return and exact one call: '+mode,()=>{
  const outcomes=[];
