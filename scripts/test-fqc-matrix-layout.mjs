@@ -111,9 +111,16 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
   assert.equal(rules('.fqc-matrix-item-status')['white-space'],'nowrap');assert.equal(rules('.fqc-matrix-legend')['flex-wrap'],'wrap');assert(rules('.fqc-matrix .matrix-cell:focus-visible').outline);
   const inherited=fs.readFileSync(path.join(root,'public/process/master-admin-ui.css'),'utf8');assert.match(inherited,/\.master-history button\{[^}]*padding:10px/,'regression covers actual inherited padding');
 });
+check('CSS contract: matrix toolbar keeps 44px targets under the actual Vietnamese cascade',()=>{
+  const inherited=fs.readFileSync(path.join(root,'public/process/i18n.css'),'utf8');
+  assert.match(inherited,/\.lang-vi button,\.lang-vi \.button\{[^}]*min-height:38px/,'regression covers the actual higher-specificity global rule');
+  const selector='.fqc-matrix-actions button,.lang-vi .fqc-matrix-actions button';
+  assert.equal(rules(selector)['min-height'],'44px','scoped two-class plus element selector outranks global two-class button selector');
+  assert.equal(rules(selector)['min-height'].includes('!important'),false,'no global or important override');
+});
 check('JS and CSS retain their independently versioned local references',()=>{
   const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
-  const expected={'fqc-master.js':'20261031-quality-recovery1','fqc-master.css':'20261030-manual-sharing-integrated1'};
+  const expected={'fqc-master.js':'20261101-fqc-matrix-ui1','fqc-master.css':'20261101-fqc-matrix-ui1'};
   const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
   for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });
