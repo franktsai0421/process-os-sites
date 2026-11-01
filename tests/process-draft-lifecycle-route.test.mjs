@@ -238,3 +238,53 @@ void test('distinct reviewer bootstrap and workflow read preserve the exact pend
   for (const key of ['edit', 'create', 'delete', 'save', 'submit', 'withdraw', 'restore']) assert.equal(read.body.permissions[key], false);
   assert.equal(f.measurements.length - count, 2); assert(f.measurements.slice(count).every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
 });
+
+
+void test('reviewer initial approval read set has matching master baselines without changing effective permissions', async t => {
+  const f = await createProcessDraftLifecycleFixture(), original = await createProcessDraftLifecycleFixture({masterBaselines: 'missing'});
+  t.after(f.close); t.after(original.close);
+  assert.deepEqual(f.seed.actors, original.seed.actors, 'No role, line, legacy view or override changes');
+  const before = JSON.parse(original.seed.values.masterDataControl), after = JSON.parse(f.seed.values.masterDataControl);
+  assert.deepEqual(after.active, before.active); assert.deepEqual(before.versions, []);
+  assert.deepEqual(after.versions.map(version => version.scope), ['AB', 'C', 'PROCESS']);
+  for (const version of after.versions) {
+    assert.equal(version.status, 'approved'); assert.equal(version.number, 1); assert.equal(version.revision, 0);
+    assert.deepEqual(version.snapshot, after.active[version.scope]);
+  }
+  for (const key of Object.keys(f.seed.values).filter(key => key !== 'masterDataControl')) assert.equal(f.seed.values[key], original.seed.values[key], 'Only synthetic master versions change: ' + key);
+  const currentBootstrap = await unchanged(f, () => f.request({actor: 'reviewer', target: 'bootstrap', suffix: '?view=approval', label: 'matching-master-approval-bootstrap'}), 200);
+  const originalBootstrap = await unchanged(original, () => original.request({actor: 'reviewer', target: 'bootstrap', suffix: '?view=approval', label: 'original-missing-master-approval-bootstrap'}), 200);
+  assert.deepEqual(currentBootstrap.body.identity, originalBootstrap.body.identity);
+  assert.deepEqual(JSON.parse(currentBootstrap.body.values.platformUsers), JSON.parse(originalBootstrap.body.values.platformUsers), 'Complete sanitized actors/effective cells remain exactly the same');
+  const reviewer = JSON.parse(currentBootstrap.body.values.platformUsers).find(user => user.id === f.seed.actors.reviewer.id);
+  for (const key of ['ab.view', 'c.view', 'templates.view', 'bom.view', 'approval.view', 'editor.view', 'editor.approve', 'editor.return']) assert.equal(reviewer.cells[key], true, key);
+  for (const key of ['editor.edit', 'editor.create', 'editor.delete', 'editor.save', 'editor.submit', 'editor.withdraw', 'editor.restore']) assert.equal(reviewer.cells[key], false, key);
+  for (const scope of ['AB', 'C', 'PROCESS']) {
+    const result = await unchanged(f, () => f.request({actor: 'reviewer', target: 'master-' + scope, label: 'initial-review-master-' + scope}), 200);
+    assert.equal(result.body.permissions.view, true);
+    assert.equal(result.body.control.workflow, undefined, 'Read-only approved baseline must not create a shared draft');
+    assert.equal(result.body.control.activeVersionId, after.versions.find(version => version.scope === scope).id);
+    assert.deepEqual(result.body.control.versions.find(version => version.id === result.body.control.activeVersionId).snapshot, after.active[scope]);
+    assert(result.body.control.versions.every(version => version.scope === scope && version.status === 'approved'));
+  }
+  const bom = await unchanged(f, () => f.request({actor: 'reviewer', target: 'bom', label: 'initial-review-bom'}), 200);
+  assert.equal(bom.body.permissions.view, true); assert.ok(bom.body.review);
+  const currentRights = await unchanged(f, () => f.request({actor: 'reviewer', label: 'matching-master-process-rights'}), 200);
+  const originalRights = await unchanged(original, () => original.request({actor: 'reviewer', label: 'original-missing-master-process-rights'}), 200);
+  assert.deepEqual(currentRights.body.permissions, originalRights.body.permissions, 'All process workflow permissions unchanged');
+  assert(f.measurements.every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
+  assert(original.measurements.every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
+  t.diagnostic('Actual signed reviewer bootstrap + master AB/C/PROCESS + BOM reads 200, no DB/R2 writes; full effective user cells and process permissions exactly equal the original missing-baseline seed');
+});
+
+for (const masterBaselines of ['missing', 'mismatched']) void test(`reviewer master read rejects ${masterBaselines} approved baselines with the original 409 and no writes`, async t => {
+  const f = await createProcessDraftLifecycleFixture({masterBaselines}); t.after(f.close);
+  const bootstrap = await unchanged(f, () => f.request({actor: 'reviewer', target: 'bootstrap', suffix: '?view=approval', label: masterBaselines + '-baseline-bootstrap'}), 200);
+  assert.equal(bootstrap.body.identity.id, f.seed.actors.reviewer.id, 'Authenticated destination entry is not proof that master baseline reads succeed');
+  for (const scope of ['AB', 'C', 'PROCESS']) {
+    const result = await unchanged(f, () => f.request({actor: 'reviewer', target: 'master-' + scope, label: masterBaselines + '-baseline-' + scope}), 409, 'MASTER_EFFECTIVE_BASELINE_CONFLICT');
+    assert.equal(result.body.control, undefined); assert.equal(result.body.permissions, undefined);
+  }
+  await unchanged(f, () => f.request({actor: 'reviewer', target: 'bom', label: masterBaselines + '-baseline-bom-independent'}), 200);
+  assert(f.measurements.every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
+});

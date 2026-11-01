@@ -45,7 +45,12 @@ export function buildProcessDraftLifecycleSeed(createSharedDraft, {cycle = 1, pa
   const templates = {[ids.stage]: ['entry', 'manual', 'exit'].map(presetKey => ({id: 'life-template-' + presetKey, presetKey, presetVersion: 'synthetic-v1', name: 'Synthetic ' + presetKey, mode: 'human', mediaItems: []}))};
   const catalog = {products: [{id: 'life-product', code: ids.product, name: 'Synthetic lifecycle product', line: 'A', category: 'Synthetic Lifecycle', unit: 'pcs', stages: [ids.stage]}],
     lines: [{id: 'life-line', code: 'A', name: 'Synthetic line', stages: [{id: 'life-stage', code: ids.stage, name: 'Synthetic lifecycle stage'}]}], categoryGroups: [{id: 'life-category', line: 'A', name: 'Synthetic Lifecycle'}]};
-  const values = {platformUsers: JSON.stringify(Object.values(actors)), masterDataControl: JSON.stringify({active: {AB: catalog, C: {products: [], lines: [], categoryGroups: []}, PROCESS: templates}, versions: []}),
+  const masterActive = {AB: catalog, C: {products: [], lines: [], categoryGroups: []}, PROCESS: templates};
+  // The initial approval destination reads each already-authorized master scope.
+  // Its real adapter requires an approved version matching the active snapshot.
+  const masterVersions = Object.entries(masterActive).map(([scope, snapshot]) => ({...version,
+    id: 'life-master-' + scope + '-' + cycle, scope, snapshot: clone(snapshot)}));
+  const values = {platformUsers: JSON.stringify(Object.values(actors)), masterDataControl: JSON.stringify({active: masterActive, versions: masterVersions}),
     processMasterData: JSON.stringify(templates), bomOverrides: JSON.stringify({replaceAll: true, data: {[ids.product]: []}}), processAuthoringControl: JSON.stringify(control)};
   // Current validator excludes product-free endpoints from its target-ID set.
   // Keep this inherited advisory explicit rather than weakening approval consent.
@@ -79,7 +84,7 @@ function productionLoader(env) {
   return load;
 }
 
-export async function createProcessDraftLifecycleFixture({cycle = 1, storage = 'records-v1', reviewerApprovalView = true, reviewerLegacyApprovalView = true} = {}) {
+export async function createProcessDraftLifecycleFixture({cycle = 1, storage = 'records-v1', reviewerApprovalView = true, reviewerLegacyApprovalView = true, masterBaselines = 'matching'} = {}) {
   assert.ok(['records-v1', 'inline'].includes(storage));
   const sqlite = new DatabaseSync(':memory:'), objects = new Map(), measurements = [];
   for (const name of ['0000_conscious_skin.sql', '0002_local_feedback_sessions.sql']) sqlite.exec(readFileSync(path.join(root, 'drizzle', name), 'utf8'));
@@ -118,6 +123,17 @@ export async function createProcessDraftLifecycleFixture({cycle = 1, storage = '
     }},
   };
   const load = productionLoader(env), kernel = load('lib/shared-draft.ts'), seed = buildProcessDraftLifecycleSeed(kernel.createSharedDraft, {cycle});
+  assert.ok(['matching', 'missing', 'mismatched'].includes(masterBaselines));
+  if (masterBaselines !== 'matching') {
+    const master = JSON.parse(seed.values.masterDataControl);
+    if (masterBaselines === 'missing') master.versions = []; // Reproduce the original CI seed exactly.
+    else for (const version of master.versions) {
+      if (version.scope === 'PROCESS') version.snapshot[seed.ids.stage][0].name = 'Different synthetic approved template';
+      else version.snapshot.lines.push({id: 'different-synthetic-line', code: 'B', name: 'Different synthetic line', stages: []});
+    }
+    seed.values.masterDataControl = JSON.stringify(master);
+    seed.seedBytes = Buffer.byteLength(JSON.stringify(seed.values));
+  }
   // Only the negative/legacy bootstrap probes alter their own synthetic actor.
   if (reviewerApprovalView !== true || !reviewerLegacyApprovalView) {
     assert.ok([true, false, null].includes(reviewerApprovalView));
@@ -149,10 +165,16 @@ export async function createProcessDraftLifecycleFixture({cycle = 1, storage = '
   }
   async function request({method = 'GET', actor = 'editor', body, suffix = '', label = method, discardResponse = false, target = 'workflow'} = {}) {
     assert.ok(headers[actor]);
-    assert.ok(target === 'workflow' || target === 'bootstrap');
-    if (target === 'bootstrap') assert.equal(method, 'GET');
-    const selectedRoute = target === 'bootstrap' ? load('app/api/process-bootstrap/route.ts') : route;
-    const raw = body === undefined ? undefined : JSON.stringify(body), url = (target === 'bootstrap' ? new URL(seed.endpoint).origin + '/api/process-bootstrap' : seed.endpoint) + suffix;
+    const readTargets = {
+      bootstrap: ['app/api/process-bootstrap/route.ts', '/api/process-bootstrap'],
+      ...Object.fromEntries(['AB', 'C', 'PROCESS'].map(scope => ['master-' + scope,
+        ['app/api/master/workflow/route.ts', '/api/master/workflow?scope=' + scope + '&caseMetadata=1&compact=1']])),
+      bom: ['app/api/bom/workflow/route.ts', '/api/bom/workflow?caseMetadata=1&reviewMetadata=1&compact=1'],
+    };
+    assert.ok(target === 'workflow' || Object.hasOwn(readTargets, target));
+    if (target !== 'workflow') assert.equal(method, 'GET');
+    const selectedRoute = target === 'workflow' ? route : load(readTargets[target][0]);
+    const raw = body === undefined ? undefined : JSON.stringify(body), url = (target === 'workflow' ? seed.endpoint : new URL(seed.endpoint).origin + readTargets[target][1]) + suffix;
     reset(); recording = true;
     const started = performance.now();
     try {
