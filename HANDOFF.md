@@ -1,3 +1,7 @@
+# 登入專項獨立候選（未合併／未部署）
+
+從 GitHub main 268a8e49 建立獨立分支，登入頁只縮小 Tailwind utility 掃描，保留原驗證／撤權／權限。三段各五次隔離量測與 CSS bytes、未改善項及限制見[登入專項](docs/acceptance/LOGIN_PERFORMANCE_20261101.md)。最終 head／CI 以此獨立 Draft PR 為準；不代表實站 TTFB 或三段速度已達標。
+
 # #54 dot 本地整合（未發布）
 
 最新來源、手動同步邊界與驗證進度見[本地交接](docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)。#51/#52成果保留；私人43條另候選。下方 #54 原始報告保留其當時版本與限制。

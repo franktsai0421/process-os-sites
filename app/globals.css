@@ -1,4 +1,7 @@
-@import 'tailwindcss';
+/* Only routed React sources use this stylesheet. The standalone process SPA
+ * owns its CSS; unused components/ui templates must not inflate /login.
+ * When a route adopts an external component, register its sources here. */
+@import 'tailwindcss' source('./');
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 

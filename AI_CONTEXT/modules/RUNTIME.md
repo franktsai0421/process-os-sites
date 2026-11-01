@@ -1,3 +1,5 @@
+2026-11-01 登入專項候選：globals Tailwind utilities 只掃 routed React app，移除未使用 UI 樣板的登入下載負擔；theme／base／登入 CSS 與驗證、限流、session、撤權保持原樣。未來採用 app 外 component 時須明確註冊其 source。三段實測仍有時間波動、實站 TTFB 未解，見[登入量測與界線](../../docs/acceptance/LOGIN_PERFORMANCE_20261101.md)。沒有部署。
+
 2026-10-30 製程續修：共用導航新增單一待決定離頁協調，製程 adapter 持有表單／canvas lease 到導航 commit，Save／Discard／Stay 各自核對後端與 owner。busy 完成可恢復決策，history 先回來源再執行目前目標，最新取消不復活舊導航。bootstrap 在原 auth gate 後載入 owned ledger；未知 inverse 的最小 session marker 使 reload 只查原收據，不重送。原生 close 事件延後時同步解除已關表單的 ownership，避免 Discard 成功卻卡在來源。這些機制只完成製程接線，未代其他模組實作草稿 adapter。來源、驗收與速度見[製程續修](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)；下方前輪的「未接 UI」是歷史狀態。
 
 2026-10-30 最後收尾：authoring同範圍readiness合併同次load的中間paint，已採用未paint狀態保留到refresh/reset，owner／delivery／互動guard不省略；master-shared僅Apply需next深拷貝，Save before仍在Begin/flush前擷取；master正式基準比對重用既有sameDraftValue。未接UI的owned-revert只接受連續確定變更且涵蓋目前revision的本人收據，不能證明外部修改時拒絕。依完整可信帳本的限制仍在。詳見[最終實測與限制](../../docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)。

@@ -1,3 +1,5 @@
+2026-11-01 登入獨立候選：縮小全域 Tailwind 掃描至實際 React 頁面，減少登入 CSS；新增真正 hashed synthetic 登入的五輪三段計時、非登入入口樣式與 SPA bytes 回歸。時間未一致改善，不宣稱實站 TTFB 已解；驗證與限制見[報告](../docs/acceptance/LOGIN_PERFORMANCE_20261101.md)。未合併／未部署。
+
 2026-10-30 dot 整合 #54：保留最新 #51/#52 主資料、IQC、引用與離頁 guard；製程離頁 Save 改為阻擋未同步畫布，不暗中 Apply/Sync。來源與驗證界線見[交接](../docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)，未發布。
 
 2026-10-30 製程平台續修：Begin 不再等待非必要 advisory；同請求重用 authoring BOM／master、IPQC 錯誤索引，AB 標準明細按展開建立 DOM，審核提示局部更新保留操作按鈕；方塊 Apply 減少複製並增加離頁 ownership／lease 保護。製程三選項離頁依確定收據保存或本人撤銷；未知撤銷跨 reload 只查原收據，不重送。未發布，其他模組仍需各自接入及驗收。完整實測與限制見[本輪報告](../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。
