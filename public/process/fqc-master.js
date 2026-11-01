@@ -939,7 +939,6 @@
           ${version.status === 'pending' && canWithdrawDraft() ? '<button class="button ghost" id="fqc-withdraw">解除送審</button>' : ''}
         </div>
       </section>
-      ${matrixToolbarHTML()}
       ${problemsCardHTML(version, 'error', versionProblems)}${problemsCardHTML(version, 'missing', versionProblems)}
       <details class="master-history fqc-activity"><summary>${isVi()?'Lịch sử thao tác':'歷史操作'} · ${(version.history||[]).length}</summary>${(version.history||[]).slice().reverse().map(event=>{const entry=historyDisplay(event);return `<p>${h(entry.label)} · ${h(entry.actor)} · ${formatDate(event.at)} ${entry.note?h(entry.note):''}</p>`;}).join('') || `<p>${isVi()?'Chưa có thao tác':'尚無操作紀錄'}</p>`}</details>
       <section class="master-toolbar fqc-toolbar">
@@ -1038,8 +1037,9 @@
           </table>
         </div>
       </section>
+      ${matrixToolbarHTML()}
       <details class="master-history fqc-matrix" ${ui.matrixOpen ? 'open' : ''}>
-        <summary>產品與檢查項目矩陣 · ${category}</summary>
+        <summary data-i18n-skip="true">${isVi()?'Ma trận sản phẩm và hạng mục kiểm tra':'產品與檢查項目矩陣'} · ${h(category)}</summary>
         ${matrixHTML(version, category, products, canEdit)}
       </details>
       <section class="panel fqc-uncovered-panel">

@@ -1,4 +1,4 @@
-## 2026-11-01 — FQC matrix conflict Discard → Save (independent local candidate)
+## 2026-11-01 — FQC matrix conflict Discard → Save (#60 / local integration)
 
 Fixed the stale synchronization failure left after discarding a proven no-write same-field 409. Exact actor/operation/response proof plus fresh read, no generic failure reset or automatic POST. [Acceptance boundaries](../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data/schema/account/Site change or deployment.
 

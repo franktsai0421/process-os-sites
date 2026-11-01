@@ -1,6 +1,6 @@
-## 2026-11-01 — FQC conflict Discard recovery (independent local candidate)
+## 2026-11-01 — FQC conflict Discard recovery (#60 / local #59 integration)
 
-Based on merged #58 / `0008df7`; not the separate #56 tests-only handoff or #59 UI. The exact scoped repair and verification boundaries are maintained in [one acceptance note](docs/acceptance/fqc-conflict-discard-20261101/README.md). Unknown and other operations stay blocked; no employee data, permission, schema or deployment change. Native CI and cache-tag integration remain release gates.
+Original Draft #60 passed supported CI on merged #58 / `0008df7`. The local integration now preserves merged #59 / `77e62ce` UI and advances only the two changed JS cache versions; it is not yet published. The separate #56 tests-only handoff is not included. The exact scoped repair and verification boundaries are maintained in [one acceptance note](docs/acceptance/fqc-conflict-discard-20261101/README.md). Unknown and other operations stay blocked; no employee data, permission, schema or deployment change. Integrated exact-head native/CI and source review remain release gates.
 
 ## 2026-11-01 — FQC required dependencies (independent local follow-on)
 

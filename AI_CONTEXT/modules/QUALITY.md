@@ -1,6 +1,6 @@
-## 2026-11-01 FQC same-field conflict Discard recovery (local candidate)
+## 2026-11-01 FQC same-field conflict Discard recovery (#60 / local integration)
 
-Explicit matrix Discard now retires only exact current-client original pre-CAS guard409 failures after a fresh permitted draft read and local cleanup. It preserves peer data; Save remains explicit. Unknown/queued/in-flight/receipt and revoked/stale state remain blocked. [Implementation, tests and unrun native gates](../../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data-model or permission change; not deployed.
+Explicit matrix Discard now retires only exact current-client original pre-CAS guard409 failures after a fresh permitted draft read and local cleanup. It preserves peer data; Save remains explicit. Unknown/queued/in-flight/receipt and revoked/stale state remain blocked. [Implementation, original CI and remaining integrated gates](../../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data-model or permission change; not deployed.
 
 ## 2026-11-01 — FQC required-dependency follow-on (local candidate)
 
