@@ -77,6 +77,30 @@ check('repeat rendering and language switching keep selection and raw text',()=>
   for(const language of ['zh-Hant','vi','zh-Hant']){f.document.documentElement.lang=language;const host=f.paint(model,products);assert.equal(cell(host).textContent,'✓');assert.equal(host.querySelector('.fqc-matrix-item-name').textContent,model.snapshot.items[0].name);}
   assert.equal(JSON.stringify(model.snapshot.items[0].productCodes),'["P1"]');assert.equal(model.snapshot.items[0].isEnabled,false);assert.equal(JSON.parse(before).snapshot.items[0].isEnabled,false);
 });
+check('single matrix Apply toolbar sits immediately above the matrix and outside its disclosure',()=>{
+  const render=source.slice(source.indexOf('  function render() {'),source.indexOf('  function emptyHTML()'));
+  assert.equal((render.match(/\$\{matrixToolbarHTML\(\)\}/g)||[]).length,1,'one shared toolbar, no duplicate IDs');
+  assert.match(render,/\$\{matrixToolbarHTML\(\)\}\s*<details class="master-history fqc-matrix"/,'toolbar belongs immediately above the checkbox matrix, not the page header');
+  assert.doesNotMatch(render,/<summary>[^`]*\$\{matrixToolbarHTML\(\)\}/,'toolbar remains available when matrix is collapsed');
+});
+check('matrix heading uses exact locale while global i18n preserves the category verbatim',()=>{
+  const i18nSource=fs.readFileSync(path.join(root,'public/process/i18n.js'),'utf8');
+  const box={localStorage:{getItem:()=> 'vi'},Node:{ELEMENT_NODE:1}};
+  vm.runInNewContext(i18nSource.slice(0,i18nSource.indexOf('  function applyText('))+'this.i18n={translate,skipped};})();',box);
+  assert.equal(box.i18n.translate('產品與檢查項目矩陣 · SYN'),'Sản phẩm và Hạng mục kiểm tra矩陣 · SYN','historical global fallback leaves untranslated matrix text');
+  const render=source.slice(source.indexOf('  function render() {'),source.indexOf('  function emptyHTML()'));
+  const template=render.slice(render.indexOf('<details class="master-history fqc-matrix"')).match(/<summary[^>]*>[\s\S]*?<\/summary>/)[0];
+  const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  for(const category of ['SYN','產品標準 <QA & "原文">'])for(const vi of [true,false]){
+    const f=fixture(vi?'vi':'zh-Hant');
+    f.host.innerHTML=vm.runInNewContext('`'+template+'`',{isVi:()=>vi,category,h:escape});
+    const heading=f.host.querySelector('summary');
+    assert.equal(heading.textContent,(vi?'Ma trận sản phẩm và hạng mục kiểm tra':'產品與檢查項目矩陣')+' · '+category);
+    assert.equal(heading.getAttribute('data-i18n-skip'),'true','explicitly localized heading must not rewrite business category');
+    heading.nodeType=1;assert(box.i18n.skipped(heading),'actual global i18n skip predicate protects the category');
+    assert.equal(heading.querySelector('qa'),null,'category remains escaped text, not markup');
+  }
+});
 check('CSS contract: bounded wrapped rules and independent table scroller',()=>{
   const badge=rules('.fqc-rule-badge');assert.equal(badge['max-width'],'100%');assert.equal(badge['box-sizing'],'border-box');assert.equal(badge['white-space'],'normal');assert.equal(badge['overflow-wrap'],'anywhere');assert.equal(badge['word-break'],'normal');assert.equal(badge.overflow,undefined,'no clipping to hide a rule');
   assert.equal(rules('.fqc-table-wrap')['overflow-x'],'auto');assert.equal(rules('.fqc-table')['table-layout'],'fixed');assert.equal(rules('.fqc-item-table')['min-width'],'900px');assert.equal(rules('.fqc-item-table .master-row-actions')['flex-wrap'],'wrap');
@@ -87,9 +111,16 @@ check('CSS contract: fixed single-glyph touch target overrides master-history pa
   assert.equal(rules('.fqc-matrix-item-status')['white-space'],'nowrap');assert.equal(rules('.fqc-matrix-legend')['flex-wrap'],'wrap');assert(rules('.fqc-matrix .matrix-cell:focus-visible').outline);
   const inherited=fs.readFileSync(path.join(root,'public/process/master-admin-ui.css'),'utf8');assert.match(inherited,/\.master-history button\{[^}]*padding:10px/,'regression covers actual inherited padding');
 });
+check('CSS contract: matrix toolbar keeps 44px targets under the actual Vietnamese cascade',()=>{
+  const inherited=fs.readFileSync(path.join(root,'public/process/i18n.css'),'utf8');
+  assert.match(inherited,/\.lang-vi button,\.lang-vi \.button\{[^}]*min-height:38px/,'regression covers the actual higher-specificity global rule');
+  const selector='.fqc-matrix-actions button,.lang-vi .fqc-matrix-actions button';
+  assert.equal(rules(selector)['min-height'],'44px','scoped two-class plus element selector outranks global two-class button selector');
+  assert.equal(rules(selector)['min-height'].includes('!important'),false,'no global or important override');
+});
 check('JS and CSS retain their independently versioned local references',()=>{
   const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
-  const expected={'fqc-master.js':'20261031-quality-recovery1','fqc-master.css':'20261030-manual-sharing-integrated1'};
+  const expected={'fqc-master.js':'20261101-fqc-matrix-ui1','fqc-master.css':'20261101-fqc-matrix-ui1'};
   const references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
   for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
 });

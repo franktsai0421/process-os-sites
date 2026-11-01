@@ -543,7 +543,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/process-draft-lifecycle-browser.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs
+          node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/quality-review-readiness.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/fqc-draft-lifecycle-browser.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

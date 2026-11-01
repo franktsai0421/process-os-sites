@@ -98,7 +98,7 @@
    if(target.view==='approval'&&target.approvalTab==='master')await window.BOMWorkspace?.readyForReview?.();
    const relevant=target.view==='approval'?target.approvalTab==='quality'?moduleNames.slice(0,6):target.approvalTab==='routine'?['RoutineFQCUI']:target.approvalTab==='process'?['ProcessAuthoringV3']:['BOMWorkspace']:
     ({'quality-fqc':['FQCMasterUI'],'quality-iqc':['IQCMasterUI'],'quality-ipqc-ab':['IPQCABUI'],'quality-ipqc-c':['IPQCCUI'],'quality-mold-equipment':['ToolingUI'],'quality-routine-equipment':['RoutineEquipmentUI'],bom:['BOMWorkspace'],users:['ProcessUserAccess']})[target.dataTab]|| (target.view==='quality-inspections'?['RoutineFQCUI']:target.view==='editor'?['ProcessAuthoringV3']:[]);
-   for(const name of relevant){const error=window[name]?.navigation?.error?.();if(error)throw error;}
+   for(const name of relevant){if(target.view==='approval'&&target.approvalTab==='quality'&&window.QualityReviewOverview?.readerOmitted?.(name)===true)continue;const error=window[name]?.navigation?.error?.();if(error)throw error;}
   }
   const coordinator=createNavigationCoordinator({
    initial,key:target=>navigationKey(target)+(target.view==='player'?JSON.stringify(target.display||{}):''),owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.()}),canLeave:()=>!broken&&canLeave(),
