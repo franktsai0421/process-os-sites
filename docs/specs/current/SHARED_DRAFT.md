@@ -1,3 +1,7 @@
+## 2026-11-01 FQC necessary-dependency fault boundary
+
+User-approved FQC policy: an eligible operation checks necessary authorization, FQC, AB product and equipment dependencies rather than unrelated modules. Unread unrelated data is not certified healthy or repaired; its fault alone need not block that FQC operation. Necessary faults still fail closed. Apply is not Save or approval; per-field guards, actor/operation receipts, pending locks, fresh revocation and global revision/CAS remain mandatory. The initial local implementation limits this policy to ordinary records-v1 Apply/Save and complete selected aggregates; GET/review/restore and unsupported formats retain their existing behavior. [Implementation and test boundaries](../../FQC_REQUIRED_DEPENDENCIES.md).
+
 ## 2026-10-30 AB／C 送審與歷史操作說明
 
 AB/C 送審明示本次已儲存快照的時間／儲存者，分頁列出未包含的產品、類別、線別與工段變更；若要送最新內容，取消後先儲存。提示不自動儲存、不改原固定快照契約；確認期間被另存時仍須重新確認。版本選擇器處理目前版本／草稿，歷史區集中唯讀與還原，不重複提供歷史快切。歷史分頁讀取期間停用連點，成功後才更新游標；失敗保留原頁碼與內容，允許明確重試。還原影響分開列線別與工段數（含順序變動）；無差異明示無需還原並停用套用。篩選不縮小整份 scope。驗收見[後續修正](../../acceptance/AB_C_DOT_HANDOFF_20261030.md)。

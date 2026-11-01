@@ -1,0 +1,1488 @@
+{
+  "schema": "FQC_REQUIRED_DEPENDENCIES_PAIRED_V1",
+  "base": "848be13da54c7ae747bcdd96df19e01129fe980a",
+  "syntheticOnly": true,
+  "liveLatency": false,
+  "fixture": {
+    "requiredAggregateCount": 8,
+    "unrelatedAggregateCount": 24,
+    "unrelatedAggregatePadding": 16384,
+    "unrelatedBodyPadding": 32768,
+    "items": 256
+  },
+  "runtimeHashes": {
+    "lib/fqc-required-dependencies.ts": "594da55e9a1dafcfb56328801a42fe5b18873b0a36690b5180ced2ca737c53c6",
+    "lib/state-records.ts": "a3f046ee291f1dbfe66af4b529f8959f2d27573e403863b4ebb57446e1375f71",
+    "lib/versioned-shared-workflow.ts": "1b498a190a366fc0f319083026d2656e6826a6700cc18d4862050ca0ea962bfe",
+    "lib/fqc-workflow.ts": "87fc037457cf99eda8bb364d6bbdf34fce5fd3a6288ca00e592cd5fb2ab04765",
+    "public/process/shared-draft-client.js": "1da994ad57cde09fec53bc0d1d190b3b422d2cdbbdd3d6f84d4d6218297730d6",
+    "scripts/fqc-apply-fixture.cjs": "35c31dbffab3e072a02e0de886d72955d9fadb69c61dcc36954142401f77d17e",
+    "scripts/benchmark-fqc-required-dependencies.cjs": "038dea1ca63ab1290b1ec45c2d1a786ade5613e5f53349e45a3791adc9185aa9"
+  },
+  "note": "Same current transport and immutable fixtures. Main848 server sources are pinned. Response-clone evidence overhead is included. Artificial storage waits are labelled, no failed sample is discarded, terminal GET remains unchanged. No employee metadata/data or real deployment timing is used.",
+  "summary": [
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 61.69259500000044,
+        "median": 86.29951100000017,
+        "max": 88.07493399999998
+      },
+      "cpuMs": {
+        "min": 79.557,
+        "median": 116.038,
+        "max": 141.874
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 49,
+        "median": 49,
+        "max": 49
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 49,
+        "median": 49,
+        "max": 49
+      },
+      "bodyBytes": {
+        "min": 1032928,
+        "median": 1032928,
+        "max": 1032928
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 83.47602500000039,
+        "median": 93.39418699999987,
+        "max": 105.32166200000006
+      },
+      "cpuMs": {
+        "min": 100.226,
+        "median": 121.327,
+        "max": 152.685
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "bodyBytes": {
+        "min": 632844,
+        "median": 632844,
+        "max": 632844
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 65.75977700000021,
+        "median": 73.18118499999946,
+        "max": 99.46312399999988
+      },
+      "cpuMs": {
+        "min": 65.619,
+        "median": 71.635,
+        "max": 95.687
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "bodyReads": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "bodyBytes": {
+        "min": 2018971,
+        "median": 2018971,
+        "max": 2018971
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 88.0255589999997,
+        "median": 113.93980499999998,
+        "max": 117.76244899999983
+      },
+      "cpuMs": {
+        "min": 88.86,
+        "median": 113.357,
+        "max": 197.257
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 831769,
+        "median": 831769,
+        "max": 831769
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "soft-delete",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 62.81670499999973,
+        "median": 76.80957199999989,
+        "max": 89.62065799999982
+      },
+      "cpuMs": {
+        "min": 61.882,
+        "median": 71.412,
+        "max": 94.695
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "bodyBytes": {
+        "min": 2020128,
+        "median": 2020128,
+        "max": 2020128
+      },
+      "responseBytes": {
+        "min": 397602,
+        "median": 397602,
+        "max": 397602
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "soft-delete",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 82.45066899999983,
+        "median": 101.34185999999954,
+        "max": 112.42876700000033
+      },
+      "cpuMs": {
+        "min": 80.826,
+        "median": 115.891,
+        "max": 164.264
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 832926,
+        "median": 832926,
+        "max": 832926
+      },
+      "responseBytes": {
+        "min": 397602,
+        "median": 397602,
+        "max": 397602
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 101.86924799999997,
+        "median": 109.8183019999999,
+        "max": 117.62133699999958
+      },
+      "cpuMs": {
+        "min": 101.752,
+        "median": 107.3,
+        "max": 117.966
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 50,
+        "median": 50,
+        "max": 50
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "bodyReads": {
+        "min": 50,
+        "median": 50,
+        "max": 50
+      },
+      "bodyBytes": {
+        "min": 1235069,
+        "median": 1235069,
+        "max": 1235069
+      },
+      "responseBytes": {
+        "min": 795066,
+        "median": 795066,
+        "max": 795066
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 127.95299999999997,
+        "median": 143.97017500000038,
+        "max": 200.61892199999966
+      },
+      "cpuMs": {
+        "min": 136.329,
+        "median": 145.272,
+        "max": 215.353
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 834985,
+        "median": 834985,
+        "max": 834985
+      },
+      "responseBytes": {
+        "min": 795066,
+        "median": 795066,
+        "max": 795066
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 850.6468309999982,
+        "median": 862.3434840000009,
+        "max": 949.9459470000002
+      },
+      "cpuMs": {
+        "min": 90.044,
+        "median": 129.265,
+        "max": 211.099
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 49,
+        "median": 49,
+        "max": 49
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 49,
+        "median": 49,
+        "max": 49
+      },
+      "bodyBytes": {
+        "min": 1032928,
+        "median": 1032928,
+        "max": 1032928
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 513.6673109999974,
+        "median": 523.068124999998,
+        "max": 651.2447039999988
+      },
+      "cpuMs": {
+        "min": 130.361,
+        "median": 159.569,
+        "max": 182.659
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "bodyBytes": {
+        "min": 632844,
+        "median": 632844,
+        "max": 632844
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 1254.6069040000002,
+        "median": 1266.229489999998,
+        "max": 1281.5549580000006
+      },
+      "cpuMs": {
+        "min": 89.192,
+        "median": 91.833,
+        "max": 116.455
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "bodyReads": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "bodyBytes": {
+        "min": 2018971,
+        "median": 2018971,
+        "max": 2018971
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 526.1812869999994,
+        "median": 537.2645069999999,
+        "max": 717.7900630000004
+      },
+      "cpuMs": {
+        "min": 87.111,
+        "median": 114.24,
+        "max": 148.246
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 831769,
+        "median": 831769,
+        "max": 831769
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "soft-delete",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 1247.0678660000012,
+        "median": 1287.6872590000003,
+        "max": 1526.192385000002
+      },
+      "cpuMs": {
+        "min": 106.246,
+        "median": 140.585,
+        "max": 215.552
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 74,
+        "median": 74,
+        "max": 74
+      },
+      "bodyBytes": {
+        "min": 2020128,
+        "median": 2020128,
+        "max": 2020128
+      },
+      "responseBytes": {
+        "min": 397602,
+        "median": 397602,
+        "max": 397602
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "soft-delete",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 513.9381289999947,
+        "median": 557.6941029999998,
+        "max": 595.9585080000033
+      },
+      "cpuMs": {
+        "min": 83.539,
+        "median": 123.235,
+        "max": 156.402
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 832926,
+        "median": 832926,
+        "max": 832926
+      },
+      "responseBytes": {
+        "min": 397602,
+        "median": 397602,
+        "max": 397602
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "main848",
+      "n": 5,
+      "ms": {
+        "min": 879.3042300000016,
+        "median": 894.7367330000052,
+        "max": 907.3823249999987
+      },
+      "cpuMs": {
+        "min": 97.686,
+        "median": 121.274,
+        "max": 138.676
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 50,
+        "median": 50,
+        "max": 50
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "bodyReads": {
+        "min": 50,
+        "median": 50,
+        "max": 50
+      },
+      "bodyBytes": {
+        "min": 1235069,
+        "median": 1235069,
+        "max": 1235069
+      },
+      "responseBytes": {
+        "min": 795066,
+        "median": 795066,
+        "max": 795066
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 582.5582619999986,
+        "median": 633.4127499999995,
+        "max": 869.0433049999992
+      },
+      "cpuMs": {
+        "min": 158.482,
+        "median": 179.442,
+        "max": 235.5
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "bodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "bodyBytes": {
+        "min": 834985,
+        "median": 834985,
+        "max": 834985
+      },
+      "responseBytes": {
+        "min": 795066,
+        "median": 795066,
+        "max": 795066
+      }
+    }
+  ],
+  "measurementWindowUTC": [
+    "2026-11-01T07:23:42.001Z",
+    "2026-11-01T07:24:29.395Z"
+  ],
+  "sampleCount": 80,
+  "sampleTimings": [
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 88.07493399999998,
+      "cpuMs": 112.432
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 94.58111699999995,
+      "cpuMs": 95.687
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 76.80957199999989,
+      "cpuMs": 86.753
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main848",
+      "action": "save",
+      "ms": 109.8183019999999,
+      "cpuMs": 107.3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 105.32166200000006,
+      "cpuMs": 152.685
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 117.76244899999983,
+      "cpuMs": 197.257
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 112.42876700000033,
+      "cpuMs": 117.515
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 136.596266,
+      "cpuMs": 140.835
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 83.47602500000039,
+      "cpuMs": 100.226
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 88.0255589999997,
+      "cpuMs": 88.86
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 96.00228100000004,
+      "cpuMs": 115.891
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 127.95299999999997,
+      "cpuMs": 136.329
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 87.28609900000038,
+      "cpuMs": 141.874
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 65.75977700000021,
+      "cpuMs": 65.619
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 62.81670499999973,
+      "cpuMs": 61.882
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main848",
+      "action": "save",
+      "ms": 104.73551399999997,
+      "cpuMs": 117.966
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 85.96721799999978,
+      "cpuMs": 141.632
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 73.18118499999946,
+      "cpuMs": 70.126
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 70.2087249999995,
+      "cpuMs": 67.903
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main848",
+      "action": "save",
+      "ms": 101.86924799999997,
+      "cpuMs": 101.752
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 96.24837200000002,
+      "cpuMs": 113.341
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 113.93980499999998,
+      "cpuMs": 113.357
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 108.19235200000003,
+      "cpuMs": 164.264
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 143.97017500000038,
+      "cpuMs": 145.272
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 93.39418699999987,
+      "cpuMs": 121.327
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 114.25945799999954,
+      "cpuMs": 116.5
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 101.34185999999954,
+      "cpuMs": 102.903
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 200.61892199999966,
+      "cpuMs": 215.353
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 86.29951100000017,
+      "cpuMs": 116.038
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 73.08592299999964,
+      "cpuMs": 71.635
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 79.1096550000002,
+      "cpuMs": 71.412
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main848",
+      "action": "save",
+      "ms": 117.62133699999958,
+      "cpuMs": 103.027
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 61.69259500000044,
+      "cpuMs": 79.557
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 99.46312399999988,
+      "cpuMs": 78.439
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 89.62065799999982,
+      "cpuMs": 94.695
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main848",
+      "action": "save",
+      "ms": 114.58228400000007,
+      "cpuMs": 116.726
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 91.44208199999957,
+      "cpuMs": 130.773
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 92.53524700000162,
+      "cpuMs": 90.201
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 82.45066899999983,
+      "cpuMs": 80.826
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 163.9229009999999,
+      "cpuMs": 178.308
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 871.1133239999999,
+      "cpuMs": 141.488
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 1254.6069040000002,
+      "cpuMs": 89.192
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 1287.6872590000003,
+      "cpuMs": 106.246
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main848",
+      "action": "save",
+      "ms": 902.3598000000002,
+      "cpuMs": 121.274
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 651.2447039999988,
+      "cpuMs": 182.659
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 717.7900630000004,
+      "cpuMs": 148.246
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 557.6941029999998,
+      "cpuMs": 123.235
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 666.9449499999992,
+      "cpuMs": 235.5
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 523.068124999998,
+      "cpuMs": 159.569
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 558.4881199999982,
+      "cpuMs": 114.24
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 567.1352340000012,
+      "cpuMs": 138.741
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 633.4127499999995,
+      "cpuMs": 168.644
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 859.5780940000004,
+      "cpuMs": 99.11
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 1277.142393000002,
+      "cpuMs": 91.833
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 1247.0678660000012,
+      "cpuMs": 115.379
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main848",
+      "action": "save",
+      "ms": 879.3042300000016,
+      "cpuMs": 97.686
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 862.3434840000009,
+      "cpuMs": 129.265
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 1255.5559350000003,
+      "cpuMs": 91.721
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 1299.036508000001,
+      "cpuMs": 140.585
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main848",
+      "action": "save",
+      "ms": 907.3823249999987,
+      "cpuMs": 130.306
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 532.5848910000022,
+      "cpuMs": 171.853
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 529.6939859999984,
+      "cpuMs": 92.519
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 535.695251000001,
+      "cpuMs": 102.417
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 582.5582619999986,
+      "cpuMs": 158.482
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 515.1536309999974,
+      "cpuMs": 130.361
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 537.2645069999999,
+      "cpuMs": 114.615
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 595.9585080000033,
+      "cpuMs": 156.402
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 869.0433049999992,
+      "cpuMs": 188.237
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 949.9459470000002,
+      "cpuMs": 211.099
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 1266.229489999998,
+      "cpuMs": 94.241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 1526.192385000002,
+      "cpuMs": 215.552
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main848",
+      "action": "save",
+      "ms": 894.7367330000052,
+      "cpuMs": 109.967
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main848",
+      "action": "existing-apply",
+      "ms": 850.6468309999982,
+      "cpuMs": 90.044
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main848",
+      "action": "insert-apply",
+      "ms": 1281.5549580000006,
+      "cpuMs": 116.455
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main848",
+      "action": "soft-delete",
+      "ms": 1252.1135819999981,
+      "cpuMs": 174.417
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main848",
+      "action": "save",
+      "ms": 886.5508249999984,
+      "cpuMs": 138.676
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "ms": 513.6673109999974,
+      "cpuMs": 142.749
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "ms": 526.1812869999994,
+      "cpuMs": 87.111
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "soft-delete",
+      "ms": 513.9381289999947,
+      "cpuMs": 83.539
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "ms": 604.4255589999957,
+      "cpuMs": 179.442
+    }
+  ]
+}
