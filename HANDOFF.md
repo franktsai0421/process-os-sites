@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC Apply ACK acceleration follow-on
+
+Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.
+
 # FQC Apply reliability — independent candidate
 
 The current FQC early-abort repair, all-Apply caller coverage and verification boundaries are in [the isolated acceptance note](docs/acceptance/fqc-apply-20261101/README.md). It is based on merged #55 and does not incorporate routine-FQC, AB performance, login or canvas candidates. No Site/data/account change or deployment.

@@ -624,7 +624,7 @@
         }
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
-        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
+        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         phase='body';let result;try{result=await response.json();}catch(error){if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){if(accessGuard)projectAccess({},response.status,false,accessOwner);throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
         assertOwner();

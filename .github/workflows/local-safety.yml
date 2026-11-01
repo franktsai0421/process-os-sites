@@ -66,7 +66,7 @@ jobs:
       - name: FQC Apply reliability and actual native forms
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/fqc-apply-reliability.test.mjs
+          node --test tests/fqc-apply-reliability.test.mjs tests/fqc-apply-ack.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/fqc-apply-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

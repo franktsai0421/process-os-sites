@@ -7,7 +7,7 @@ const edit=(field,value,base)=>({patches:[{op:'set',path:['errors',{id:'error'},
 void test('actual FQC slow R2 Apply survives the former 15s cutoff, settles at 32s without retry',async()=>{
  const f=await fixture(),a=f.realm();
  try{
-  const begun=await a.client.begin();await a.client.read();let release,paused=false,activePost=false,serverFlight;
+  const begun=await a.client.begin();await a.client.read();let release,paused=false,activePost=false,serverFlight=Promise.resolve();
   f.hooks.get=async()=>{if(!activePost||paused)return;paused=true;await new Promise(resolve=>release=resolve);};
   a.intercept(async(url,o,send)=>{if(o.method!=='POST')return send();activePost=true;const operation=send();serverFlight=operation;return Promise.race([operation.finally(()=>activePost=false),new Promise((_,reject)=>o.signal.addEventListener('abort',()=>reject(o.signal.reason),{once:true}))]);});
   const pending=a.client.command(begun.control.workflow.generation,'apply',edit('name','Delayed edit','Synthetic error'));const outcome=pending.then(value=>({value}),error=>({error}));

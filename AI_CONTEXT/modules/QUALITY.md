@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC Apply acceleration follow-on
+
+Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.
+
 ## 2026-11-01 FQC Apply reliability candidate (not deployed)
 
 FQC bounded commands now share the 45-second Begin/read budget; other scopes keep their existing budgets. Exact FQC request-local permission phases reduce repeated revocation round trips while preserving fresh phase/persistence/CAS/replay checks and state-revision retry. All ordinary FQC Apply callers share this transport; unknown/receipt, owner/tab/generation and manual-Save boundaries remain. Actual-handler synthetic evidence and native-CI limits: [FQC Apply acceptance](../../docs/acceptance/fqc-apply-20261101/README.md). No live data or schema change; not a live-speed or deployment claim.
