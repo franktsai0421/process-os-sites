@@ -331,7 +331,7 @@ try {
     assert.equal(response.status, 200);
     assert.equal(JSON.parse(body).user.id, actor);
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    httpSamples.push({iteration, requests: 1, status: response.status(),
+    httpSamples.push({iteration, requests: 1, status: response.status,
       headersMs: round(headersAt - started), completeMs: round(finished - started),
       requestBodyBytes: Buffer.byteLength(requestBody), decodedResponseBodyBytes: Buffer.byteLength(body)});
   }
