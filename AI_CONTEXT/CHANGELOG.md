@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC matrix conflict Discard → Save (independent local candidate)
+
+Fixed the stale synchronization failure left after discarding a proven no-write same-field 409. Exact actor/operation/response proof plus fresh read, no generic failure reset or automatic POST. [Acceptance boundaries](../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data/schema/account/Site change or deployment.
+
 ## 2026-11-01 — FQC necessary-dependency candidate
 
 Separate follow-on to merged #57: ordinary records-v1 Apply/Save authorize from five verified identity aggregates before hydrating complete quality/AB/equipment dependencies from the same manifest. A private one-use immutable overlay preserves unread unrelated references; selected faults never fall back to another snapshot. New policy/capability tests cover denial before business reads, corruption, numbering, all ordinary Apply families, Save/reload and CAS. GET/terminal/receipt, review/restore and #57 transport stay unchanged. [Scope and validation](../docs/FQC_REQUIRED_DEPENDENCIES.md). No migration or live data change; unpublished candidate, not a live-speed claim.
