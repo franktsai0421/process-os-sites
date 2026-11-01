@@ -1,3 +1,7 @@
+## 2026-11-01 FQC same-field conflict Discard recovery (#60 / local integration)
+
+Explicit matrix Discard now retires only exact current-client original pre-CAS guard409 failures after a fresh permitted draft read and local cleanup. It preserves peer data; Save remains explicit. Unknown/queued/in-flight/receipt and revoked/stale state remain blocked. [Implementation, original CI and remaining integrated gates](../../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data-model or permission change; not deployed.
+
 ## 2026-11-01 — FQC required-dependency follow-on (local candidate)
 
 Merged #57 is the baseline. Ordinary records-v1 FQC Apply (insert/edit, batch/matrix, soft-delete, adopted equipment replacement) and Save now have a separate eight-key POST capability: auth five first, then complete quality/AB/equipment dependencies from the same row. Unrelated aggregate pointers are preserved as unverified, not read or marked healthy. Required faults, structural checks, numbering, receipts, manual Save, fresh revocation and global CAS remain; ordinary/receipt GET and review/restore routes are unchanged. Whole selected aggregates remain conservative, including their other libraries. No schema/data/account/Site change. Scope, approved fault-boundary differences and pending evidence: [FQC required dependencies](../../docs/FQC_REQUIRED_DEPENDENCIES.md). The earlier entries below are historical acceptance statements for their pinned sources.
