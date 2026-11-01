@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC required dependencies (independent local follow-on)
+
+Baseline is merged #57 / `848be13da54c7ae747bcdd96df19e01129fe980a`; that earlier release is not this candidate's acceptance. This branch implements the separately approved FQC necessary-dependency fault boundary for ordinary records-v1 Apply/Save only. GET/terminal freshness and all other commands remain unchanged. No employee data, schema, accounts, deployment/access or Site changes. Exact closure, tests, performance limitations and remaining gates are maintained in [one engineering note](docs/FQC_REQUIRED_DEPENDENCIES.md). Not yet published or deployed; older entries below retain their original historical context.
+
 ## 2026-11-01 — FQC Apply ACK acceleration follow-on
 
 Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.

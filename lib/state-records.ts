@@ -365,3 +365,71 @@ export async function encodeIpqcCSaveRecordMutation(bucket:Bucket,handle:IpqcCSa
  return JSON.stringify(next);
 }
 
+// FQC Apply/Save alone: authorized dependency faults still fail closed; opaque
+// unrelated aggregates remain unverified and are preserved, never fabricated.
+const fqcRequiredAuth=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
+type FqcRequiredSelection={action:'apply'|'save';allocate:boolean};
+type FqcRequiredOperation={actorId:string;operationId:string;clientId:string;sequence:number};
+type FqcRequiredState={revision:number;values:Record<string,string>;recordStorage:RecordStorage};
+export type FqcRequiredRecordMutationHandle={readonly __fqcRequiredRecordMutation:unique symbol};
+type FqcRequiredBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;visible:RecordStorage;values:Record<string,string>;known:string[];models:Map<string,unknown>;allocation:string;selection:FqcRequiredSelection;operation:FqcRequiredOperation;siblings:string|undefined;protectedFlow:string;flowRevision:number;saves:string[];saved:string|undefined;contributors:string|undefined;receipts:Record<string,string>;sequences:Record<string,unknown>;consumed:boolean};
+const fqcRequiredHandles=new WeakMap<object,FqcRequiredBinding>();
+function fqcRequiredFlow(model:unknown){return object(model)&&object(model.libraries)&&object(model.libraries.fqc)&&object(model.libraries.fqc.workflow)?model.libraries.fqc.workflow:null;}
+function fqcRequiredSiblings(model:unknown){return object(model)&&object(model.libraries)?JSON.stringify({...model,libraries:Object.fromEntries(Object.entries(model.libraries).filter(([key])=>key!=='fqc'))}):JSON.stringify(model);}
+function fqcProtectedFlow(flow:Record<string,unknown>|null,action:'apply'|'save'){
+ const mutable=action==='apply'?['working','contributors','revision','receipts','sequences']:['saved','saves','contributors','revision','receipts','sequences'];
+ return JSON.stringify(flow&&Object.fromEntries(Object.entries(flow).filter(([key])=>!mutable.includes(key))));
+}
+export async function readFqcRequiredRecordMutation(bucket:Bucket,envelope:Envelope,revision:number,selection:FqcRequiredSelection,authorize:(state:FqcRequiredState)=>Promise<FqcRequiredOperation>){
+ const manifest=envelope?.__processRecords;
+ if(!object(envelope)||!Object.hasOwn(envelope,'__processRecords'))return null;
+ if(!object(manifest)||manifest.version!==1||!object(manifest.values))throw Error('Invalid record manifest');
+ if(!Number.isSafeInteger(revision)||revision<0||manifest.legacySources!==undefined&&!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||!selection||!['apply','save'].includes(selection.action)||typeof selection.allocate!=='boolean'||selection.action==='save'&&selection.allocate||Object.keys(selection).some(key=>key!=='action'&&key!=='allocate'))throw Error('Invalid FQC required manifest');
+ const original=JSON.stringify(envelope),selectionRaw=JSON.stringify(selection),selected=Object.freeze({...selection});
+ if(envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string')throw Error('Invalid FQC inline authority');
+ // The optional users mirror is not identity authority; preserve its absence or
+// staleness. Defined maintenance retains the existing inline override priority.
+ if(envelope.platformUsers!==undefined)JSON.parse(envelope.platformUsers);if(envelope.maintenanceMode!==undefined)JSON.parse(envelope.maintenanceMode);
+ const auth=await decodeRecordValuesCore(bucket,envelope,{keys:fqcRequiredAuth,projectValue:(_key,raw)=>{
+  JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});return raw;
+ }});
+ const state:FqcRequiredState={revision,...auth},authRaw=JSON.stringify(auth.values),authKnown=[...auth.recordStorage.known];
+ const operation=Object.freeze({...await authorize(state)});
+ if(JSON.stringify(selection)!==selectionRaw||typeof operation.actorId!=='string'||!operation.actorId||typeof operation.operationId!=='string'||!operation.operationId||typeof operation.clientId!=='string'||!operation.clientId||Object.keys(operation).some(key=>!['actorId','operationId','clientId','sequence'].includes(key))||!Number.isSafeInteger(operation.sequence)||operation.sequence<1||state.revision!==revision||state.values!==auth.values||state.recordStorage!==auth.recordStorage||!state.recordStorage.partial||JSON.stringify(state.values)!==authRaw||JSON.stringify(state.recordStorage.originalValues)!==authRaw||state.recordStorage.models.size||state.recordStorage.allocations.size||state.recordStorage.known.size!==authKnown.length||authKnown.some(sha=>!state.recordStorage.known.has(sha))||JSON.stringify(envelope)!==original)throw Error('FQC authorization basis changed');
+ const target=await decodeRecordValuesCore(bucket,envelope,{keys:['qualityMasterControl','masterDataControl','routineEquipmentControl'],modelKey:'qualityMasterControl',deferHistory:true,deferDependencyHistory:true,...(selected.allocate?{allocationKey:'qualityMasterControl'}:{})});
+ if(JSON.stringify(envelope)!==original||JSON.stringify(selection)!==selectionRaw)throw Error('FQC selected manifest changed');
+ for(const raw of Object.values(target.values))JSON.parse(raw);
+ state.values={...auth.values,...target.values};state.recordStorage={...target.recordStorage,originalValues:{...state.values},known:new Set([...auth.recordStorage.known,...target.recordStorage.known]),partial:true};
+ const storage:RecordStorage={...state.recordStorage,envelope:JSON.parse(original),originalValues:{...state.values},known:new Set(state.recordStorage.known),models:new Map(state.recordStorage.models),allocations:new Map(state.recordStorage.allocations)};
+ const model=storage.models.get('qualityMasterControl'),flow=fqcRequiredFlow(model),handle=Object.freeze({}) as FqcRequiredRecordMutationHandle;
+ if(flow&&(flow.scope!=='fqc'||flow.schemaVersion!==3||typeof flow.generation!=='string'||!flow.generation||!Number.isSafeInteger(flow.revision)||Number(flow.revision)<0))throw Error('Invalid FQC required workflow');
+ fqcRequiredHandles.set(handle,{bucket,revision,manifest:original,envelope:storage.envelope,storage,visible:state.recordStorage,values:{...state.values},known:[...storage.known],models:new Map(storage.models),allocation:JSON.stringify([...storage.allocations]),selection:selected,operation,siblings:fqcRequiredSiblings(model),protectedFlow:fqcProtectedFlow(flow,selected.action),flowRevision:typeof flow?.revision==='number'?flow.revision:-1,saves:Array.isArray(flow?.saves)?flow.saves.map(save=>JSON.stringify(save)):[],saved:JSON.stringify(flow?.saved),contributors:JSON.stringify(flow?.contributors),receipts:object(flow?.receipts)?Object.fromEntries(Object.entries(flow.receipts).map(([key,value])=>[key,JSON.stringify(value)])):{},sequences:object(flow?.sequences)?JSON.parse(JSON.stringify(flow.sequences)):{},consumed:false});
+ return{state,handle};
+}
+export async function encodeFqcRequiredRecordMutation(bucket:Bucket,handle:FqcRequiredRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=fqcRequiredHandles.get(handle),flow=fqcRequiredFlow(model);
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visible!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value)||storage.known.size!==b.known.length||b.known.some(sha=>!storage.known.has(sha))||storage.models.size!==b.models.size||[...b.models].some(([key,value])=>storage.models.get(key)!==value)||JSON.stringify([...storage.allocations])!==b.allocation||fqcRequiredSiblings(model)!==b.siblings||!flow||fqcProtectedFlow(flow,b.selection.action)!==b.protectedFlow||!Number.isSafeInteger(flow.revision)||![b.flowRevision,b.flowRevision+1].includes(flow.revision as number)||!object(flow.receipts)||!object(flow.sequences))throw Error('Invalid FQC required mutation handle');
+ if(Object.entries(b.receipts).some(([key,raw])=>!Object.hasOwn(flow.receipts as object,key)||JSON.stringify((flow.receipts as Record<string,unknown>)[key])!==raw))throw Error('FQC cannot change existing receipts');
+ const receipts=flow.receipts,added=Object.keys(receipts).filter(key=>!Object.hasOwn(b.receipts,key)),client=JSON.stringify([b.operation.actorId,b.operation.clientId]);
+ const entry=receipts[added[0]];
+ if(added.length!==1||added[0]!==b.operation.operationId||!object(entry)||entry.actorId!==b.operation.actorId)throw Error('Invalid FQC receipt addition');
+ const receipt=entry.result;
+ if(!object(receipt)||receipt.operationId!==b.operation.operationId||receipt.generation!==flow.generation||receipt.revision!==flow.revision||receipt.savedId!==(object(flow.saved)?flow.saved.id:null)||receipt.caseId!==flow.pendingId||typeof receipt.unchanged!=='boolean'||flow.revision!==b.flowRevision+(receipt.unchanged?0:1))throw Error('Invalid FQC receipt transition');
+ for(const key of new Set([...Object.keys(b.sequences),...Object.keys(flow.sequences)])){
+  const prior=b.sequences[key],next=flow.sequences[key];if(JSON.stringify(prior)===JSON.stringify(next))continue;
+  if(key!==client||next!==b.operation.sequence||!Number.isFinite(Number(prior||0))||b.operation.sequence<=Number(prior||0))throw Error('FQC cannot change another client sequence');
+ }
+ if(flow.sequences[client]!==b.operation.sequence)throw Error('FQC receipt requires its command sequence');
+ if(b.selection.action==='save'){
+  const saves=flow.saves;
+  if(!Array.isArray(saves)||saves.length<b.saves.length||saves.length>b.saves.length+1||b.saves.some((raw,index)=>JSON.stringify(saves[index])!==raw))throw Error('FQC cannot change existing saves');
+  if(saves.length===b.saves.length&&(JSON.stringify(flow.saved)!==b.saved||JSON.stringify(flow.contributors)!==b.contributors||flow.revision!==b.flowRevision))throw Error('Invalid unchanged FQC Save');
+  if(saves.length>b.saves.length&&(flow.revision!==b.flowRevision+1||JSON.stringify(flow.contributors)!=='{}'||!object(flow.saved)||JSON.stringify(flow.saved)!==JSON.stringify(saves.at(-1))||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)||!object(flow.saved.actor)||flow.saved.actor.id!==b.operation.actorId))throw Error('Invalid FQC Save');
+ }
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{qualityMasterControl:b.values.qualityMasterControl},b.storage,new Map([['qualityMasterControl',model]]))) as Envelope;
+ // Preserve all opaque root/manifest metadata and every unrelated pointer. The
+// known set is selected provenance, never an integrity claim for unread modules.
+ return JSON.stringify({...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,qualityMasterControl:encoded.__processRecords.values.qualityMasterControl},...(encoded.__processRecords.allocations?.qualityMasterControl?{allocations:{...b.envelope.__processRecords.allocations,qualityMasterControl:encoded.__processRecords.allocations.qualityMasterControl}}:{})}});
+}
+

@@ -45,7 +45,7 @@ for(const cell of Object.keys(deniedActions))void test(`actual old/new FQC permi
  const meta=await f.call('/api/fqc/workflow?permissions=1');if(cell==='view')assert.equal(meta.status,403);else{assert.equal(meta.status,200);const dto=await meta.json();assert.equal(dto.permissions[cell],false);outcome.permissions=dto.permissions;}
  }finally{f.close();}}assert.deepEqual(outcomes[1],outcomes[0]);
 });
-for(const boundary of [2,3,4])for(const fail of [false,true])void test(`FQC fresh revocation boundary ${boundary} ${fail?'read fault':'revoked'} prevents CAS`,async()=>{
+for(const boundary of [2,3,4,5])for(const fail of [false,true])void test(`FQC fresh revocation boundary ${boundary} ${fail?'read fault':'revoked'} prevents CAS`,async()=>{
  const f=await fixture(),a=f.realm();try{const begun=await a.client.begin();let reads=0;f.hooks.sql=sql=>{if(sql.includes('process_revoked_sessions')&&++reads===boundary){if(fail)throw Error('SYNTHETIC_REVOCATION_UNAVAILABLE');f.revoke();}};
  const before=f.db.prepare('SELECT * FROM shared_state').get(),res=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:a.client.prepare(begun.control.workflow.generation,'apply',edit('name','Forbidden','Synthetic error'))})});assert.equal(res.status,401);assert.equal(reads,boundary);assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);
  }finally{f.close();}
@@ -114,9 +114,11 @@ void test('FQC operation fingerprint, actor attribution and replay fresh check a
  let reads=0;f.hooks.sql=sql=>{if(sql.includes('process_revoked_sessions')&&++reads===3)f.revoke();};const revoked=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command})});assert.equal(revoked.status,401);assert.equal(reads,3);assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),row);
  }finally{f.close();}
 });
-void test('paired main/current counts reduce fresh revocation round trips, not R2 reads or commit evidence',async()=>{
+// The required-dependency path adds one pre-business fresh gate; the fixed
+// eight-aggregate fixture has no unrelated aggregate to omit.
+void test('paired main/current counts retain pre-business freshness without dropping commit evidence',async()=>{
  const measurements=[];for(const baseline of [true,false]){const f=await fixture({baseline}),a=f.realm();try{let begun;const actions=[];for(const action of ['begin','edit','create','save','receipt','read']){f.events.length=0;if(action==='begin')begun=await a.client.begin();if(action==='edit')await a.client.command(begun.control.workflow.generation,'apply',edit('name','Measured','Synthetic error'));if(action==='create')await a.client.command(begun.control.workflow.generation,'apply',{patches:[{op:'insert',path:['errors'],value:{id:'new',name:'New',category:'SYN',line:'A'}}]});if(action==='save')await a.client.command(begun.control.workflow.generation,'save');if(action==='receipt')await a.client.receipt(f.requests.filter(r=>r.result.receipt).at(-1).result.receipt.operationId);if(action==='read')await a.client.read();actions.push({action,revocation:f.events.filter(e=>e.kind==='read'&&e.sql.includes('process_revoked_sessions')).length,r2:f.events.filter(e=>e.kind==='get').length});}measurements.push(actions);}finally{f.close();}}
- assert.deepEqual(measurements[0].map(x=>x.revocation),[13,39,40,39,26,26]);assert.deepEqual(measurements[1].map(x=>x.revocation),[4,8,9,8,4,4]);assert.deepEqual(measurements[1].map(x=>x.r2),measurements[0].map(x=>x.r2));console.log(JSON.stringify({measurement:'Synthetic actual-handler counts; Apply/Save include required terminal GET, not live latency',before:measurements[0],after:measurements[1]}));
+ assert.deepEqual(measurements[0].map(x=>x.revocation),[13,39,40,39,26,26]);assert.deepEqual(measurements[1].map(x=>x.revocation),[4,9,10,9,4,4]);assert.deepEqual(measurements[1].map(x=>x.r2),measurements[0].map(x=>x.r2));console.log(JSON.stringify({measurement:'Synthetic actual-handler counts; Apply/Save include required terminal GET, not live latency',before:measurements[0],after:measurements[1]}));
 });
 for(const [name,endpoint,scope,expected] of [
  ['bounded FQC','/api/fqc/workflow?caseMetadata=1','FQC',45000],

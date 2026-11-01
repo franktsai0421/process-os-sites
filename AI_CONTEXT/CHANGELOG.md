@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC necessary-dependency candidate
+
+Separate follow-on to merged #57: ordinary records-v1 Apply/Save authorize from five verified identity aggregates before hydrating complete quality/AB/equipment dependencies from the same manifest. A private one-use immutable overlay preserves unread unrelated references; selected faults never fall back to another snapshot. New policy/capability tests cover denial before business reads, corruption, numbering, all ordinary Apply families, Save/reload and CAS. GET/terminal/receipt, review/restore and #57 transport stay unchanged. [Scope and validation](../docs/FQC_REQUIRED_DEPENDENCIES.md). No migration or live data change; unpublished candidate, not a live-speed claim.
+
 ## 2026-11-01 — FQC Apply ACK acceleration
 
 Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.

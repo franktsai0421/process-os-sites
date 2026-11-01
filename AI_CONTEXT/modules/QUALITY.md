@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC required-dependency follow-on (local candidate)
+
+Merged #57 is the baseline. Ordinary records-v1 FQC Apply (insert/edit, batch/matrix, soft-delete, adopted equipment replacement) and Save now have a separate eight-key POST capability: auth five first, then complete quality/AB/equipment dependencies from the same row. Unrelated aggregate pointers are preserved as unverified, not read or marked healthy. Required faults, structural checks, numbering, receipts, manual Save, fresh revocation and global CAS remain; ordinary/receipt GET and review/restore routes are unchanged. Whole selected aggregates remain conservative, including their other libraries. No schema/data/account/Site change. Scope, approved fault-boundary differences and pending evidence: [FQC required dependencies](../../docs/FQC_REQUIRED_DEPENDENCIES.md). The earlier entries below are historical acceptance statements for their pinned sources.
+
 ## 2026-11-01 — FQC Apply acceleration follow-on
 
 Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.
