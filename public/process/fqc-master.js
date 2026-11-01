@@ -1013,7 +1013,7 @@
       </section>
       ${matrixToolbarHTML()}
       <details class="master-history fqc-matrix" ${ui.matrixOpen ? 'open' : ''}>
-        <summary>產品與檢查項目矩陣 · ${category}</summary>
+        <summary data-i18n-skip="true">${isVi()?'Ma trận sản phẩm và hạng mục kiểm tra':'產品與檢查項目矩陣'} · ${h(category)}</summary>
         ${matrixHTML(version, category, products, canEdit)}
       </details>
       <section class="panel fqc-uncovered-panel">

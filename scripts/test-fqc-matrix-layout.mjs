@@ -83,6 +83,24 @@ check('single matrix Apply toolbar sits immediately above the matrix and outside
   assert.match(render,/\$\{matrixToolbarHTML\(\)\}\s*<details class="master-history fqc-matrix"/,'toolbar belongs immediately above the checkbox matrix, not the page header');
   assert.doesNotMatch(render,/<summary>[^`]*\$\{matrixToolbarHTML\(\)\}/,'toolbar remains available when matrix is collapsed');
 });
+check('matrix heading uses exact locale while global i18n preserves the category verbatim',()=>{
+  const i18nSource=fs.readFileSync(path.join(root,'public/process/i18n.js'),'utf8');
+  const box={localStorage:{getItem:()=> 'vi'},Node:{ELEMENT_NODE:1}};
+  vm.runInNewContext(i18nSource.slice(0,i18nSource.indexOf('  function applyText('))+'this.i18n={translate,skipped};})();',box);
+  assert.equal(box.i18n.translate('產品與檢查項目矩陣 · SYN'),'Sản phẩm và Hạng mục kiểm tra矩陣 · SYN','historical global fallback leaves untranslated matrix text');
+  const render=source.slice(source.indexOf('  function render() {'),source.indexOf('  function emptyHTML()'));
+  const template=render.slice(render.indexOf('<details class="master-history fqc-matrix"')).match(/<summary[^>]*>[\s\S]*?<\/summary>/)[0];
+  const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  for(const category of ['SYN','產品標準 <QA & "原文">'])for(const vi of [true,false]){
+    const f=fixture(vi?'vi':'zh-Hant');
+    f.host.innerHTML=vm.runInNewContext('`'+template+'`',{isVi:()=>vi,category,h:escape});
+    const heading=f.host.querySelector('summary');
+    assert.equal(heading.textContent,(vi?'Ma trận sản phẩm và hạng mục kiểm tra':'產品與檢查項目矩陣')+' · '+category);
+    assert.equal(heading.getAttribute('data-i18n-skip'),'true','explicitly localized heading must not rewrite business category');
+    heading.nodeType=1;assert(box.i18n.skipped(heading),'actual global i18n skip predicate protects the category');
+    assert.equal(heading.querySelector('qa'),null,'category remains escaped text, not markup');
+  }
+});
 check('CSS contract: bounded wrapped rules and independent table scroller',()=>{
   const badge=rules('.fqc-rule-badge');assert.equal(badge['max-width'],'100%');assert.equal(badge['box-sizing'],'border-box');assert.equal(badge['white-space'],'normal');assert.equal(badge['overflow-wrap'],'anywhere');assert.equal(badge['word-break'],'normal');assert.equal(badge.overflow,undefined,'no clipping to hide a rule');
   assert.equal(rules('.fqc-table-wrap')['overflow-x'],'auto');assert.equal(rules('.fqc-table')['table-layout'],'fixed');assert.equal(rules('.fqc-item-table')['min-width'],'900px');assert.equal(rules('.fqc-item-table .master-row-actions')['flex-wrap'],'wrap');
