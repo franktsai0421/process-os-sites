@@ -1,3 +1,11 @@
+## 2026-11-01 — FQC Apply ACK acceleration
+
+Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.
+
+## 2026-11-01 — FQC Apply early-abort repair candidate
+
+The 15-second FQC mutation cutoff reproduced an unknown outcome with slow R2. Exact bounded FQC commands now wait up to 45 seconds, and FQC-only request-local authorization reduces repeated revocation round trips without changing permissions or receipt/CAS protections. New actual-handler/form, concurrency, timeout and authority regressions plus native CI coverage are documented in [acceptance](../docs/acceptance/fqc-apply-20261101/README.md). No schema/data migration or deployment; unresolved receipts are not cleared or replayed.
+
 2026-10-30 dot 整合 #54：保留最新 #51/#52 主資料、IQC、引用與離頁 guard；製程離頁 Save 改為阻擋未同步畫布，不暗中 Apply/Sync。來源與驗證界線見[交接](../docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)，未發布。
 
 2026-10-30 製程平台續修：Begin 不再等待非必要 advisory；同請求重用 authoring BOM／master、IPQC 錯誤索引，AB 標準明細按展開建立 DOM，審核提示局部更新保留操作按鈕；方塊 Apply 減少複製並增加離頁 ownership／lease 保護。製程三選項離頁依確定收據保存或本人撤銷；未知撤銷跨 reload 只查原收據，不重送。未發布，其他模組仍需各自接入及驗收。完整實測與限制見[本輪報告](../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)。

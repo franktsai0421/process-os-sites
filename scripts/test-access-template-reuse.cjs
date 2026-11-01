@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{execFileSync}=
 const {makeLoader}=require('./read-performance-harness.cjs');
 const {withoutPR44AccessChanges,assertAccessTemplateContract}=require('./access-template-source-contract.cjs');
 const {withoutMasterABPermissionPhase,assertMasterABPermissionPhaseContract}=require('./master-ab-auth-source-contract.cjs');
+const {withoutFqcPermissionPhase,assertFqcPermissionPhaseContract}=require('./fqc-permission-source-contract.cjs');
 const current=makeLoader()('lib/user-access.ts'),prior=makeLoader({}, {baseline:['lib/user-access.ts']})('lib/user-access.ts');
 const custom=[{id:'custom',name:'Custom',views:['data','approval'],lines:['B'],permissions:['approval.compare','approval.submit'],access:{'ipqc-ab.view':true,'ipqc-ab.save':false,'feedback.exchange':true,'users.view':true}}];
 const values={processCustomRoles:JSON.stringify(custom),processRoleTemplateOverrides:JSON.stringify({staff:{access:{'ipqc-ab.view':true,'ipqc-ab.save':false}}})};
@@ -29,15 +30,15 @@ check('T4 next-call role/raw/enabled changes recompute; returned cells cannot po
  state.processRoleTemplateOverrides=JSON.stringify({custom:{access:{'ipqc-ab.view':false}}});same(user,state);assert.equal(current.effectiveAccess(user,state).cells['ipqc-ab.view'],false);
  user.role='staff';same(user,state);user.enabled=false;same(user,state);assert.equal(current.effectiveAccess(user,state).enabled,false);
 });
-check('T5 exact reuse plus pinned PR44 and AB-phase deltas; outside-span session/identity/revocation remain untouched',()=>{
+check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-span session/identity/revocation remain untouched',()=>{
  const base='dc8c1c2238a6dd89c2707d50e050fe8ae674c9e8',old=execFileSync('git',['show',base+':lib/user-access.ts']),now=execFileSync('git',['show','HEAD:lib/user-access.ts']);
  const expected=old.toString().replace('const preset = roleTemplates(values)[role];','const roles = roleTemplates(values), preset = roles[role];').replace('effectiveCells(user,roleTemplates(values))','effectiveCells(user,roles)');assert.deepEqual(withoutPR44AccessChanges('lib/user-access.ts',now),Buffer.from(expected));
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
  for(const file of ['lib/process-state.ts','lib/session-revocation.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),original=execFileSync('git',['show',base+':'+file]);
-  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(committed,original):committed,original);
+  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(committed),original):committed,original);
   assert.deepEqual(lf(fs.readFileSync(file)),lf(committed),'working auth source differs from committed bytes');
-  if(file==='lib/process-state.ts')assert.equal(assertMasterABPermissionPhaseContract(committed,original),6);
+  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(committed),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(committed),original),6);}
  }
  const policy='public/process/access-policy.mjs',committedPolicy=execFileSync('git',['show','HEAD:'+policy]);
  assert.deepEqual(withoutPR44AccessChanges(policy,committedPolicy),execFileSync('git',['show',base+':'+policy]));

@@ -3,7 +3,7 @@ import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
 import {processFlowCommand,readProcessFlowMutationState,encodeProcessFlowMutationState} from './process-flow-record-mutation';
 import { env } from 'cloudflare:workers';
-import { readState, identity, can, createMasterABPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
+import { readState, identity, can, createMasterABPermissionPhase, createFqcPermissionPhase, sameOrigin, encodeValues, stateRevisionIsCurrent, responseHeaders, type State } from './process-state';
 import { createSharedDraft, applyDraftCommand, DraftConflict, cloneDraft, type SharedDraft, type DraftCommand, type DraftContext, type DraftPermission } from './shared-draft';
 import {compactWorkflowPayload,expandWorkflowCommand,workflowCommandFingerprint,isWorkflowDigestFingerprint} from './workflow-wire';
 import {effectiveAccess} from './user-access';
@@ -125,7 +125,7 @@ async function commandBody(request:Request){
   return body;
 }
 export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:WorkflowAdapter<T,C>){
-  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):null;
+  const phaseFor=(request:Request,state:State)=>adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&new URL(request.url).searchParams.get('scope')==='AB'?createMasterABPermissionPhase(request,state):adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!new URL(request.url).searchParams.has('scope')?createFqcPermissionPhase(request,state):null;
   async function currentPermissions(request:Request,state:State,phase?:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null){
     const check=phase?phase.allowed:(key:string)=>can(request,state,key);
     const defaults=await workflowAccess(request,state,check),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
@@ -188,8 +188,18 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1'),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
       return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),env.STATE_ARCHIVE,responseHeaders):reply(body);
     }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}},
-    async POST(request:Request){let streamRecords=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const payload=iqcEditingPayload(compactWorkflowPayload(body,query.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope));return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
+    async POST(request:Request){let streamRecords=false,applyAck=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const complete=iqcEditingPayload(compactWorkflowPayload(body,query.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope));
+      // Build the unchanged complete projection first, preserving its failures.
+      // Only wire serialization/transfer and the duplicate client expansion go.
+      const source=complete as {revision?:number;receipt?:unknown;requestId?:string;unchanged?:boolean};
+      const payload=applyAck&&status===200&&source.receipt?{revision:source.revision,receipt:source.receipt,...(source.requestId===undefined?{}:{requestId:source.requestId}),...(source.unchanged===undefined?{}:{unchanged:source.unchanged}),projection:'fqc-apply-ack-v1'}:complete;
+      return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
       const body=await commandBody(request),caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
+      // Exact versioned opt-in: bounded FQC Apply still requires its separate
+      // fresh terminal GET. Avoid returning live bodies twice, never skip reads,
+      // validation, response projection or authorization/fault checks. Legacy clients
+      // and every other action/route retain the original complete response.
+      applyAck=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')&&body.action===undefined&&body.command?.action==='apply'&&query.getAll('projection').length===1&&query.get('projection')==='fqc-apply-ack-v1'&&query.getAll('caseMetadata').length===1&&caseMetadata&&query.getAll('compact').length===1&&query.get('compact')==='1';
       for(let attempt=0;attempt<4;attempt++){
         const mutationState=body.action===undefined&&adapter.recordMutation==='fqc-existing-set'&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcExistingSetCommand(body.command)?await readFqcMutationState(body.command):null;
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
