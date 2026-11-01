@@ -10,7 +10,7 @@ db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(JSON.stringify({platf
 const url=scope=>'http://fixture/api/master/workflow?scope='+scope+'&caseMetadata=1';
 async function get(scope,who='a',query=''){const r=await api.GET(new Request(url(scope)+query,{headers:sessions[who]}));assert.equal(r.status,200);return r.json();}
 async function post(scope,who,body,expected=200){const r=await api.POST(new Request(url(scope),{method:'POST',headers:sessions[who],body:JSON.stringify(body)})),data=await r.json();assert.equal(r.status,expected,JSON.stringify(data));return data;}
-async function cmd(scope,who,action,detail={}){return{action,...detail,operationId:randomUUID(),clientId:'stage-link-'+who,sequence:seq[scope+who]=(seq[scope+who]||0)+1,generation:(await get(scope,who)).control.workflow.generation};}
+async function cmd(scope,who,action,detail={}){const flow=(await get(scope,who)).control.workflow;return{action,expectedRevision:flow.revision,...detail,operationId:randomUUID(),clientId:'stage-link-'+who,sequence:seq[scope+who]=(seq[scope+who]||0)+1,generation:flow.generation};}
 async function run(scope,who,action,detail={},expected=200){return post(scope,who,{command:await cmd(scope,who,action,detail)},expected);}
 async function state(){const s=await core.readState();return{s,root:JSON.parse(s.values.masterDataControl)};}
 

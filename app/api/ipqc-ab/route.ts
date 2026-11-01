@@ -158,6 +158,9 @@ export async function POST(request: Request) {
           !(await can(request,state,action === 'approve' ? 'approval.approve':'approval.reject')))
         return reply({ error:'沒有審核權限' },403);
     } else return reply({ error:'不支援的操作' },400);
+    // New submissions belong to the fixed whole-module workflow; legacy Save
+    // and review of existing pending groups remain available without conversion.
+    if(action==='submit')return reply({error:'WORKFLOW_V3_REQUIRED',code:'WORKFLOW_V3_REQUIRED',details:{reason:'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION'}},409);
     const prepared=(state.recordStorage?.models.get(KEY)||parse(state.values[KEY],{})) as {moduleDraft?:unknown;scopes?:Record<string,{workflow?:unknown}>};
     if(prepared.moduleDraft)return reply({error:'WHOLE_MODULE_ACTION_REQUIRED'},409);
     if(prepared.scopes?.[scopeKey(clean(body.line),clean(body.group))]?.workflow||['seed','reimport'].includes(action)&&Object.values(prepared.scopes||{}).some(s=>s.workflow))return reply({error:'WORKFLOW_V3_REQUIRED'},409);

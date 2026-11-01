@@ -118,7 +118,13 @@ if (require.main === module) (async () => {
         const input = f.host.querySelector('#routine-editor [data-field="name"]'); assert(input); input.value = 'Test tool 1 edited'; input.oninput();
         assert(await f.test.writeShared('apply'));
         assert.equal(h.flow(await h.read(moduleId)).working.equipment.find(row => row.id === 'test-tool-1').name, 'Test tool 1 edited');
-        f.host.querySelector('#routine-form-close')?.click();
+        // An applied but still-open form must not bypass the Save guard.
+        const appliedState=h.snapshot(),postCount=f.posts().length;
+        assert.equal(await f.test.writeShared('save'),null);assert.equal(f.posts().length,postCount);assert.deepEqual(h.snapshot(),appliedState);
+        const close=f.host.querySelector('#routine-form-cancel');assert(close,'actual bound equipment form Close button');close.click();
+        assert.equal(f.host.querySelector('#routine-editor'),null,'editor really closed, not an optional-selector no-op');
+        assert.equal(f.test.working.equipment.find(row=>row.id==='test-tool-1').name,'Test tool 1 edited');
+        assert.deepEqual(h.snapshot(),appliedState,'Close after successful Apply preserves shared value and complete persistence');
       });
       await step('delete only the unapproved unreferenced second new tool through strict UI checks', async () => {
         const requestStart = f.requests.length;

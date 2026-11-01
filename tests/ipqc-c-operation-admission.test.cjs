@@ -5,12 +5,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {webcrypto,createHash}=require('node:crypto');
 const sourceRoot=path.resolve(process.env.C_UI_SOURCE||process.cwd());
 const cSource=fs.readFileSync(path.join(sourceRoot,'public/process/ipqc-c.js'),'utf8');
-const clientSource=fs.readFileSync(path.join(sourceRoot,'public/process/shared-draft-client.js'),'utf8');
+const clientSource=fs.readFileSync(process.env.IPQCC_TRANSPORT_SOURCE||path.join(sourceRoot,'public/process/shared-draft-client.js'),'utf8');
 const digest=s=>createHash('sha256').update(s).digest('hex');
 const endpoint='/api/ipqc-c/workflow?caseMetadata=1',actor='synthetic-c-editor';
-const recoveryKey='shared-draft-v3-operation:'+actor+':'+endpoint;
+const recoveryOrigin='https://fixture.invalid',recoveryPath='/process/';
 const unknown={operationId:'synthetic-uncertain-op',clientId:'synthetic-prior-client',sequence:7,generation:'g-c',action:'apply',patches:[{op:'set',path:['items',{id:'fixture-item'},'note'],value:'保留 Việt'}]};
-const rawUnknown=JSON.stringify(unknown,null,2);
+// The production primary now persists receipt metadata in the key, not commands.
+const recoveryKey='shared-draft-receipt-only-v1:'+JSON.stringify([actor,endpoint,recoveryOrigin,recoveryPath,'synthetic-prior-runtime',1,unknown.operationId,'apply','g-c',3,'saved-c',null,null,null,null]);
+const rawUnknown='receipt-only-v1';
 const copy=x=>JSON.parse(JSON.stringify(x));
 const perms=(x={})=>({view:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false,history:true,delete:false,...x});
 const probeHook=`\nwindow.__cOperationTest={operationAllowed:typeof operationAllowed==='function'?operationAllowed:null,editing,mainHTML,writeShared,upload,submitEditor,bind,sharedTransport,
@@ -30,10 +32,11 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
  nodes.set('#ipqcc-page',page);nodes.set('#ipqcc-case-dialog footer',footer);
  for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit','ipqcc-editor','fixture-input'])nodes.set('#'+id,new Node(id));
  const document={documentElement:{lang:'zh'},visibilityState:'visible',activeElement:null,createElement:()=>new Node(),querySelector:s=>s==='#data-content'?null:nodes.get(s)||null,querySelectorAll:s=>s.split(',').flatMap(q=>nodes.has(q.trim())?[nodes.get(q.trim())]:[]),addEventListener(){},removeEventListener(){}};
- const sync={identity:{id:actor},requiresReload:false,platformHeaders:()=>({})};
+ const sync={identity:{id:actor},requiresReload:false,identityGeneration:()=>1,platformHeaders:()=>({})};
  const window={ProcessSync:sync,hasPermission:()=>true,VersionDraftUI:{preserveView:()=>()=>{},reasonFor:()=>'',confirmSubmit:async()=> 'synthetic explicit submit',confirmReview:async()=>({reason:'unused'}),date:()=>''},ProcessIPQC:{referenceMarkup:()=>'',mountReferences:async()=>{}},addEventListener(){},dispatchEvent:e=>events.push(e.type),alert:()=>{}};
- const snapshot={errors:[],items:[]};const working=copy(snapshot),control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
- const context=vm.createContext({window,document,console,crypto:webcrypto,AbortController,URL,URLSearchParams,FormData,Blob,CustomEvent:class{constructor(type){this.type=type;}},setTimeout,clearTimeout,confirm:()=>true,toast:()=>{},sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>{memory.set(k,v);storageWrites.push(['set',k,v]);},removeItem:k=>{memory.delete(k);storageWrites.push(['remove',k]);}},fetch:async(url,options={})=>{
+ const snapshot={errors:[],items:[]};const working=copy(snapshot),control={activeVersionId:null,versions:[{id:'draft-c',number:1,status:'draft',snapshot:copy(snapshot),history:[]}],...(adopted?{workflow:{scope:'ipqc-c',generation:'g-c',revision:3,working:copy(snapshot),saved:{id:'saved-c',content:copy(snapshot),actor:{id:actor,name:'Synthetic editor'},at:'2026-10-27T00:00:00Z'},pendingId:null,cases:[],receipts:{'prior-fixed':{result:'preserved'}}}}:{})};
+ let serverControl=copy(control);
+ const context=vm.createContext({window,document,console,location:{origin:recoveryOrigin,pathname:recoveryPath},crypto:webcrypto,AbortController,URL,URLSearchParams,FormData,Blob,CustomEvent:class{constructor(type){this.type=type;}},setTimeout,clearTimeout,confirm:()=>true,toast:()=>{},sessionStorage:{get length(){return memory.size;},key:i=>[...memory.keys()][i]??null,getItem:k=>memory.get(k)||null,setItem:(k,v)=>{memory.set(k,v);storageWrites.push(['set',k,v]);},removeItem:k=>{memory.delete(k);storageWrites.push(['remove',k]);}},fetch:async(url,options={})=>{
   const call={url,method:options.method||'GET',...(options.body&&typeof options.body==='string'?{body:JSON.parse(options.body)}:{})};calls.push(call);
   if(nextResponse){const next=nextResponse;nextResponse=null;return next(url,options);}
   if(call.method==='PUT')return Response.json({id:'a'.repeat(64)});
@@ -41,7 +44,7 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
    const command=call.body?.command;
    // Synthetic response projection, not a backend transition/authority test.
    // Bind all six receipt fields to the returned workflow; Begin is control-only.
-   const returned=copy(control),flow=returned.workflow;
+   const returned=copy(serverControl),flow=returned.workflow;
    if(command){
     flow.revision++;
     if(command.action==='save')flow.saved={...flow.saved,id:'saved-'+command.operationId,revision:flow.revision,content:copy(flow.working)};
@@ -53,11 +56,12 @@ function fixture({permissions=perms(),recovery=null,adopted=true,malformedReceip
     }
    }
    const receipt=command?(malformedReceipt?{operationId:command.operationId}:{operationId:command.operationId,generation:flow.generation,revision:flow.revision,savedId:flow.saved?.id||null,caseId:flow.pendingId||null,unchanged:false}):null;
-   return Response.json({revision:7,control:returned,...(receipt?{receipt}:{})});
+   serverControl=copy(returned);return Response.json({revision:7,control:returned,...(receipt?{receipt}:{})});
   }
   if(String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
-  if(String(url).startsWith('/api/ipqc-c?'))return Response.json({control:copy(control),revision:7,catalog:{products:[],stages:[]}});
-  return Response.json({permissions:caps,revision:7,unchanged:true,otherReviewerAvailable:true});
+  if(String(url).startsWith('/api/ipqc-c?'))return Response.json({control:copy(serverControl),revision:7,catalog:{products:[],stages:[]}});
+  const query=new URL(url,recoveryOrigin).searchParams;
+  return Response.json({permissions:caps,revision:7,otherReviewerAvailable:true,...(query.has('since')?{unchanged:true}:query.has('permissions')||query.has('restoreSaveId')?{}:{workflow:serverControl.workflow?{...copy(serverControl.workflow),editable:serverControl.versions[0]?.status==='draft'}:null})});
  }});
  vm.runInContext(clientSource,context,{filename:'actual-shared-draft-client.js'});
  const end=cSource.lastIndexOf('})();');assert(end>0,'IIFE hook anchor');
@@ -104,14 +108,20 @@ void test('edit-only allows Apply and photo but does not Save or Submit',async()
  await f.ui.writeShared('save');await f.ui.writeShared('submit');assert.equal(f.mutations().length,2,'no implicit Save/Submit');
 });
 
-void test('malformed successful Save ACK stays unknown with input retained and no repeated POST',async()=>{
- const f=fixture({permissions:perms({save:true}),malformedReceipt:true});await f.hydrate();f.setModal();
+void test('malformed successful Save ACK from a clean editor stays unknown with working retained and no repeated POST',async()=>{
+ const f=fixture({permissions:perms({save:true}),malformedReceipt:true});await f.hydrate();
  const before=f.state();assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);
  assert.deepEqual(f.mutations().map(c=>c.body.command.action),['save']);
  assert.equal(f.calls.filter(c=>c.method==='GET'&&c.url.includes('operationId=')).length,1,'receipt lookup follows malformed ACK');
- const recovery=f.memory.get(recoveryKey);assert(recovery);assert.equal(JSON.parse(recovery).operationId,f.mutations()[0].body.command.operationId);
+ const markerKey=[...f.memory.keys()].find(key=>key.startsWith('shared-draft-receipt-only-v1:')),recovery=f.memory.get(markerKey);assert(recovery);assert.equal(JSON.parse(markerKey.slice('shared-draft-receipt-only-v1:'.length))[6],f.mutations()[0].body.command.operationId);
  for(const key of ['control','working','modal'])assert.deepEqual(f.state()[key],before[key],key+' preserved');
- assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);assert.equal(f.mutations().length,1,'another Save does not blindly resend');assert.equal(f.memory.get(recoveryKey),recovery);
+ assert.equal(await f.ui.writeShared('save'),null);assert.equal(f.client.hasUnknown(),true);assert.equal(f.mutations().length,1,'another Save does not blindly resend');assert.equal(f.memory.get(markerKey),recovery);
+});
+
+void test('unapplied editor blocks Save and Submit without network or losing input',async()=>{
+ for(const action of ['save','submit']){const f=fixture({permissions:perms({edit:true,save:true,submit:true})});await f.hydrate();f.setModal();const before=stableInput(f),count=f.calls.length;
+  assert.equal(await f.ui.writeShared(action),null);noWrites(f,before,'unapplied '+action);assert.equal(f.calls.length,count,'no read or mutation needed for local form refusal');assert.match(f.state().message,/請先套用或取消/);
+ }
 });
 
 void test('unknown and denied edit block Begin Apply module mutations and photo with input intact',async()=>{
@@ -185,7 +195,7 @@ void test('terminal reload and actor mismatch cannot dispatch through C or lose 
 
 void test('Submit confirmation rechecks operation actor and delivery before dispatch',async()=>{
  for(const mode of ['revoke','actor','reload']){
-  const f=fixture({permissions:perms({submit:true})});await f.hydrate();f.setModal();const before=stableInput(f);
+  const f=fixture({permissions:perms({submit:true})});await f.hydrate();const before=stableInput(f);
   let confirm;f.window.VersionDraftUI.confirmSubmit=()=>new Promise(resolve=>{confirm=resolve;});
   const pending=f.ui.writeShared('submit');assert.equal(typeof confirm,'function','confirmation awaits user');
   if(mode==='revoke'){f.setCaps(perms());await f.client.read('g-c:3');}

@@ -11,8 +11,8 @@ export type AbModuleRoot=AbControl&{moduleDraft?:AbModuleControl};
 export function abModulePending(root:AbControl){return (root as AbModuleRoot).moduleDraft?.workflow?.pendingId;}
 export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbModuleControl>{
  let root:AbModuleRoot;
- const snapshot=(working:boolean):AbModuleSnapshot=>({
-  scopes:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>[key,cloneDraft(working?(s as AbSharedScope).workflow?.working||openAb(s)?.snapshot||activeAb(s)?.snapshot||{errors:[],items:[]}:activeAb(s)?.snapshot||{errors:[],items:[]})])),
+ const snapshot=(working:boolean,copy=true):AbModuleSnapshot=>({
+  scopes:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>{const content=working?(s as AbSharedScope).workflow?.working||openAb(s)?.snapshot||activeAb(s)?.snapshot||{errors:[],items:[]}:activeAb(s)?.snapshot||{errors:[],items:[]};return[key,copy?cloneDraft(content):content];})),
   bases:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>[key,s.activeVersionId]))
  });
  const conflict=()=>{const conflicts=Object.entries(root.scopes).filter(([,s])=>s.versions.some(v=>['pending','pending-test'].includes(v.status)&&!(v as AbVersion&{wholeModuleCaseId?:string}).wholeModuleCaseId));
@@ -57,6 +57,10 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   },
   apply(control,command,context){let flow=control.workflow!;
    if(command.action==='save'&&!flow.receipts[command.operationId]){const next=snapshot(true);context.structure(next,next);flow={...flow,working:next};}
+   // Group Apply does not advance the module workflow. Submit must compare the
+   // current group content, not the module's working copy from its last Save.
+   // The kernel clones this request-local view; this never saves implicitly.
+   if(command.action==='submit'&&!flow.receipts[command.operationId])flow={...flow,working:snapshot(true,false)};
    return applyDraftCommand(flow,command,context);
   }
  };

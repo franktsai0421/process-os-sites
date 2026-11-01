@@ -43,7 +43,7 @@
   const actor = () => window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null);
   const ownPending = v => v && ['pending','pending-test'].includes(v.status) && permitted('approval.withdraw');
   let sharedClient=null,sharedIdentity='',modalBase=null,modalGeneration=null;const pollTimer=window.createForegroundPoll();let sourceEntryApplied=false;
-  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${requestScope}"]`,return:`[data-ab-reject="${requestScope}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
+  function transport(requestScope=key()){const id=actor()?.id,identityKey=id+':'+requestScope;if(!id)throw Error('LOGIN_REQUIRED');if(sharedIdentity!==identityKey){sharedIdentity=identityKey;sharedClient=window.createSharedDraftClient({endpoint:API+'/workflow?scope='+encodeURIComponent(requestScope)+'&caseMetadata=1',legacyArchive:true,guardAccessResults:true,conditionalState:true,abCreateRejections:true,actorId:id,headers,permissionGates:{edit:'#ab-apply,#ipqcab-add-item,#ipqcab-add-error,[data-ab-edit-item],[data-ab-edit-error],[data-ab-matrix-item]',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw',history:'#ab-case-history',approve:`[data-ab-approve="${requestScope}"]`,return:`[data-ab-reject="${requestScope}"]`,delete:'[data-ab-delete-item],[data-ab-delete-error]'}});}return sharedClient;}
   function changes(base,next){
     const patches=[],guards=[];
     for(const collection of ['errors','items']){
@@ -62,33 +62,230 @@
     }
     return{patches,guards};
   }
+  // Caller-only RAM batch boundary. A terminal shared ACK is not permission
+  // to replace input typed after dispatch or to rebase its original guards.
+  let mutationLifetime=0,mutationSequence=0,activeMutation=null,localBatch=null,inputBasisOwner=null,receiptReadOwner=null;
+  const appliedInputs=new WeakMap(),pendingOperations=new WeakMap(),rejectedCreates=new WeakMap(),createdReservations=new WeakMap();
+  const batchNotice=()=>t('尚有未套用修改保留在目前頁面；顯示的是本機輸入。請明確套用或放棄，不會自動合併最新共享內容。','Còn thay đổi chưa áp dụng trong trang; đang hiển thị dữ liệu cục bộ. Hãy áp dụng hoặc bỏ rõ ràng; không tự hợp nhất dữ liệu chung mới.');
+  const sameInput=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  function inputOwner(client=sharedClient,module=false){const sync=window.ProcessSync;return {actor:actor(),actorId:actor()?.id,epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,hostConnected:host?.isConnected,hostTab:host?.dataset.activeTab,reviewHost,reviewConnected:reviewHost?.isConnected,scope:key(),generation:scope()?.workflow?.generation||null,lifetime:mutationLifetime,client,module};}
+  function inputOwnerCurrent(owner,generation=true){const sync=window.ProcessSync;return !!owner&&owner.actor===actor()&&owner.actorId===actor()?.id&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===sync?.identityGeneration?.()&&owner.delivery!==null&&owner.delivery!==undefined&&typeof sync?.isCurrentDelivery==='function'&&sync.isCurrentDelivery(owner.delivery)===true&&!sync.requiresReload&&owner.host===host&&owner.hostConnected===host?.isConnected&&owner.hostTab===host?.dataset.activeTab&&owner.reviewHost===reviewHost&&owner.reviewConnected===reviewHost?.isConnected&&owner.scope===key()&&owner.lifetime===mutationLifetime&&owner.client===(owner.module?moduleClient:sharedClient)&&(!generation||owner.generation===(scope()?.workflow?.generation||null));}
+  function mutationCurrent(owner,generation=true){return inputOwnerCurrent(owner,generation)&&owner.attempt===mutationSequence&&activeMutation===owner;}
+  function captureBatchInput(target=modal){
+    if(!target||target!==modal||target.readonly)return;
+    if(target.type==='item')captureModal();
+    else if(['error','new-error'].includes(target.type)){const value=host?.querySelector('#ab-error-name')?.value;if(value!==undefined){if(target.type==='error'){const row=working?.errors.find(e=>e.id===target.id);if(row)row.name=value;}else target.name=value;}}
+  }
+  function hasPrivateInput(){return !!localBatch||!!modal&&!modal.readonly||!!working&&!sameInput(working,opened()?.snapshot);}
+  function retainInputBase(owner=inputBasisOwner||inputOwner()){
+    if(!localBatch&&working&&!sameInput(working,opened()?.snapshot))localBatch={owner:{...owner,module:false,client:sharedClient},base:clone(modalBase||opened()?.snapshot||working)};
+  }
+  function rejectForeignBatch(){
+    if(!hasPrivateInput())return false;
+    const owner=localBatch?.owner||inputBasisOwner;if(owner&&inputOwnerCurrent(owner,false))return false;
+    // Keep the original detached DOM in private RAM, without reading it into a
+    // new owner's working model. The blocked panel must not destroy typed text.
+    if(!privateQuarantine)privateQuarantine={actor:owner?.actor,epoch:owner?.epoch,owner,base:clone(localBatch?.base||modalBase||opened()?.snapshot||working),working,modal,reason,nodes:owner?.host===host&&owner?.hostTab===host?.dataset.activeTab?[...host.childNodes||[]]:[]};
+    message='LOCAL_BATCH_RECONFIRM';accessBlocked={actor:actor(),epoch:window.ProcessSync?.identityGeneration?.(),status:409};
+    if(host?.dataset.activeTab==='quality-ipqc-ab')renderAccessBlocked(host);renderAccessBlocked(reviewHost);return true;
+  }
+  function retainedDeliveryCandidate(){
+    const previous=localBatch?.owner||inputBasisOwner;if(!previous||inputOwnerCurrent(previous))return null;
+    const current=inputOwner(previous.client,previous.module);
+    return inputOwnerCurrent({...previous,delivery:current.delivery})?{previous,current}:null;
+  }
+  async function reconfirmRetainedDelivery(){
+    const candidate=retainedDeliveryCandidate();if(!candidate||busy)return false;
+    rejectForeignBatch();
+    const batch=localBatch,basis=inputBasisOwner,quarantine=privateQuarantine,blocked=accessBlocked,initialModal=modal,owner=candidate.current,unknown=!!(sharedClient?.hasUnknown()||moduleClient?.hasUnknown()),receipts=[sharedClient,moduleClient].filter(client=>client?.hasUnknown()).map(client=>({client,operation:pendingOperations.get(client)}));
+    owner.modal=modal||quarantine?.modal;owner.attempt=++mutationSequence;activeMutation=owner;busy=true;
+    const gate={previous:candidate.previous,current:()=>mutationCurrent(owner)&&localBatch===batch&&inputBasisOwner===basis&&privateQuarantine===quarantine&&modal===initialModal&&unknown===!!(sharedClient?.hasUnknown()||moduleClient?.hasUnknown())&&receipts.every(({client,operation})=>client.hasUnknown()&&pendingOperations.get(client)===operation)};
+    try{
+      if(await load(true,owner,gate)===false||!gate.current())return false;
+      if(unknown){receiptReadOwner={...owner,receipts:receipts.filter(value=>value.operation)};accessBlocked=blocked||{actor:owner.actor,epoch:owner.epoch,status:409};message=t('已重新核對讀取權限；上次操作結果仍未知，請查詢原操作。','Đã kiểm tra quyền đọc; thao tác trước vẫn chưa rõ kết quả, hãy tra cứu thao tác gốc.');return true;}
+      receiptReadOwner=null;if(localBatch)localBatch.owner={...localBatch.owner,delivery:owner.delivery};
+      inputBasisOwner=basis&&{...basis,delivery:owner.delivery};
+      if(quarantine){
+        if(quarantine.nodes?.length)host.replaceChildren(...quarantine.nodes);
+        modal=owner.modal;modalBase=clone(quarantine.base);modalGeneration=candidate.previous.generation;privateQuarantine=null;
+      }
+      captureBatchInput(owner.modal);retainInputBase();message=batchNotice();return true;
+    }catch(error){if(mutationCurrent(owner))message=error.message;return false;}
+    finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)){if(accessBlocked)renderAccessBlocked(host);else{draw();drawReview();}}}}
+  }
+  async function queryRetainedReceipt(client,intent=null){
+    if(intent){const created=createdCheckContext();if(!created||created.proof.client!==client||created.reservation!==intent.reservation||created.proof!==intent.proof||created.proof.operation!==intent.operation||created.grant!==intent.grant)return false;return checkCreatedResult(intent.reservation);}
+    const grant=receiptReadOwner?.receipts?.find(value=>value.client===client);
+    if(busy||!inputOwnerCurrent(receiptReadOwner)||!grant||pendingOperations.get(client)!==grant.operation||![sharedClient,moduleClient].includes(client)||!client?.hasUnknown())return false;
+    const owner=inputOwner(client,client===moduleClient);owner.attempt=++mutationSequence;activeMutation=owner;busy=true;
+    try{await client.receipt(grant.operation.operationId,grant.operation.action==='apply'?grant.operation.generation:undefined);if(!mutationCurrent(owner))return false;message=t('原操作已查證；請再明確核對目前共用狀態，未自動套用修改。','Đã xác minh thao tác gốc; hãy kiểm tra lại dữ liệu chung, chưa tự áp dụng thay đổi.');return true;}
+    catch(error){if(mutationCurrent(owner))message=error.message;return false;}
+    finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner))renderAccessBlocked(host);}}
+  }
+  function applyBase(){if(localBatch){if(!inputOwnerCurrent(localBatch.owner)||scope()?.workflow?.pendingId)throw Error('LOCAL_BATCH_RECONFIRM');return localBatch.base;}return modalBase||opened().snapshot;}
+  function closeAppliedModal(result,target){
+    const proof=result&&appliedInputs.get(result);if(!proof||proof.modal!==target||modal!==target||!inputOwnerCurrent(proof.owner)||proof.attempt!==mutationSequence)return false;
+    captureBatchInput(target);return !localBatch&&sameInput(working,proof.input)&&sameInput(modal,proof.modalValue);
+  }
+  const createItemFields=['standard','methodText','inspectionMode','equipmentId','isEnabled','rules','standardPhotos','methodPhotos','productCodes','reason'];
+  function createdInputPlan(proof,result){
+    const {operation,owner,base,sent,target,targetValue,flowRevision}=proof,flow=result.control?.workflow,receipt=result.receipt;
+    if(!mutationCurrent(owner)||modal!==target||!target||target.readonly||operation.action!=='apply'||operation.generation!==owner.generation||
+      receipt?.operationId!==operation.operationId||receipt.generation!==operation.generation||receipt.unchanged!==false||!Number.isSafeInteger(receipt.revision)||receipt.revision<=flowRevision||
+      !Number.isSafeInteger(result.revision)||result.revision<revision||flow?.scope!=='ipqc-ab:'+owner.scope||flow.generation!==operation.generation||!Number.isSafeInteger(flow.revision)||flow.revision<receipt.revision||flow.pendingId||control?.moduleDraft?.workflow?.pendingId)throw Error('LOCAL_BATCH_RECONFIRM');
+    const drafts=result.control.versions?.filter(value=>value.status==='draft');
+    if(drafts?.length!==1||drafts[0].revision!==flow.revision||!sameInput(drafts[0].snapshot,flow.working))throw Error('LOCAL_BATCH_RECONFIRM');
+    const isItem=operation.moduleAction==='create-item',collection=isItem?'items':'errors',id=(isItem?'item-':'error-')+operation.operationId;
+    if(!['create-item','create-error'].includes(operation.moduleAction)||[flow.working,base,sent,working].some(value=>!Array.isArray(value?.errors)||!Array.isArray(value?.items)))throw Error('LOCAL_BATCH_RECONFIRM');
+    const rows=flow.working[collection].filter(row=>row?.id===id),row=rows[0];
+    if(rows.length!==1||row.deleted!==false||typeof row.code!=='string'||!row.code||flow.working[collection].filter(value=>value.code===row.code).length!==1||base[collection].some(value=>value.id===id)||working[collection].some(value=>value.id===id))throw Error('LOCAL_BATCH_RECONFIRM');
+    const defaults=isItem?{standard:'',methodText:'',inspectionMode:'visual',equipmentId:'',isEnabled:true,rules:[],standardPhotos:[],methodPhotos:[],productCodes:[],reason:''}:{name:''};
+    const fields=isItem?createItemFields:['name'],expected={...defaults};
+    for(const field of fields)if((isItem?operation.input?.item:operation.input)?.[field]!==undefined)expected[field]=(isItem?operation.input.item:operation.input)[field];
+    if(fields.some(field=>!sameInput(row[field],expected[field])))throw Error('LOCAL_BATCH_RECONFIRM');
+    const readonly=isItem?{id,code:row.code,errorId:operation.input?.errorId,equipmentSnapshot:row.equipmentSnapshot,sourceRows:[],sourceTool:'',sourceMethod:'',sourceFrequency:'',deleted:false}:{id,code:row.code,line,group,stageCode:operation.input?.stageCode,sourceRows:[],deleted:false};
+    if(!sameInput(Object.keys(row).sort(),[...Object.keys(readonly),...fields].sort())||Object.entries(readonly).some(([field,value])=>!sameInput(row[field],value)))throw Error('LOCAL_BATCH_RECONFIRM');
+    let live,prefix=`${line}-${group}-${operation.input?.stageCode?.slice(2)}-L`;
+    if(isItem){
+      if(targetValue.type!=='item'||target.type!=='item'||target.id!==targetValue.id||!target.id?.startsWith('temp-')||operation.input?.item?.id!==target.id||base.items.some(value=>value.id===target.id))throw Error('LOCAL_BATCH_RECONFIRM');
+      const originals=sent.items.filter(value=>value.id===target.id),locals=working.items.filter(value=>value.id===target.id);live=locals[0];
+      if(originals.length!==1||locals.length!==1||live.deleted!==false||!sameInput(originals[0],operation.input.item)||Object.keys(originals[0]).some(field=>!fields.includes(field)&&field!=='equipmentSnapshot'&&!sameInput(live[field],originals[0][field])))throw Error('LOCAL_BATCH_RECONFIRM');
+      const originalParent=sent.errors.find(value=>value.id===row.errorId);
+      if(typeof originalParent?.code!=='string'||!originalParent.code)throw Error('LOCAL_BATCH_RECONFIRM');prefix=originalParent.code+'-';
+      for(const content of [base,sent,working,flow.working]){
+        const parents=content.errors.filter(value=>value.id===row.errorId);if(parents.length!==1||parents[0].deleted||parents[0].line!==line||parents[0].group!==group||parents[0].code!==originalParent.code||parents[0].stageCode!==originalParent.stageCode)throw Error('LOCAL_BATCH_RECONFIRM');
+      }
+      const equipment=row.equipmentSnapshot;
+      if(row.inspectionMode==='visual'?row.equipmentId!==''||equipment!==null:row.inspectionMode!=='equipment'||!equipment||equipment.id!==row.equipmentId||!['id','assetCode','pieceMark','name'].every(field=>typeof equipment[field]==='string')||Object.keys(equipment).some(field=>!['id','assetCode','pieceMark','name','photoId'].includes(field))||equipment.photoId!==undefined&&!/^[a-f0-9]{64}$/.test(equipment.photoId))throw Error('LOCAL_BATCH_RECONFIRM');
+      // A later local equipment choice owns its own preview; never stamp the
+      // sent selection's derived snapshot over that newer editable selection.
+      if(live.inspectionMode!==row.inspectionMode||live.equipmentId!==row.equipmentId)delete readonly.equipmentSnapshot;
+    }else if(targetValue.type!=='new-error'||target.type!=='new-error'||typeof target.name!=='string'||targetValue.name!==operation.input?.name)throw Error('LOCAL_BATCH_RECONFIRM');
+    const suffix=row.code.slice(prefix.length),allocated=Number(suffix);
+    if(!row.code.startsWith(prefix)||!/^\d+$/.test(suffix)||!Number.isSafeInteger(allocated)||allocated<1||String(allocated).padStart(isItem?2:1,'0')!==suffix)throw Error('LOCAL_BATCH_RECONFIRM');
+    const nextBase=clone(base);nextBase[collection].push(clone(row));
+    return{base:nextBase,apply(){
+      // Preserve working, the original item and modal references: an in-flight
+      // upload holds those exact objects and must append into this same RAM.
+      if(isItem){const temporary=live.id;Object.assign(live,clone(readonly));if(viewer?.itemId===temporary)viewer.itemId=id;}
+      else{live={...clone(row),name:target.name};working.errors.push(live);}
+      Object.assign(target,{type:isItem?'item':'error',id,initial:clone(row)});modalBase=clone(nextBase);modalGeneration=operation.generation;
+    }};
+  }
+  function createdCheckContext(){
+    const reservation=localBatch?.created,proof=createdReservations.get(reservation);
+    if(!proof||proof.batch!==localBatch||proof.reservation!==reservation||modal!==proof.target||proof.client!==sharedClient||pendingOperations.get(proof.client)!==proof.operation)return null;
+    let authorization=localBatch.owner,grant=null;
+    if(accessBlocked||!inputOwnerCurrent(authorization)){
+      if(!inputOwnerCurrent(receiptReadOwner)||!receiptReadOwner.receipts?.some(value=>value.client===proof.client&&value.operation===proof.operation))return null;
+      authorization=receiptReadOwner;grant=receiptReadOwner;
+    }
+    // A new explicit check may use only the existing phase-two delivery grant,
+    // never relabel an old flight's actor/epoch/host/scope/client or generation.
+    if(!inputOwnerCurrent(authorization)||!inputOwnerCurrent({...proof.originOwner,delivery:authorization.delivery})||!inputOwnerCurrent({...localBatch.owner,delivery:authorization.delivery}))return null;
+    if(grant&&(!privateQuarantine||privateQuarantine.modal!==proof.target||privateQuarantine.working!==working))return null;
+    return{reservation,proof,batch:localBatch,grant,quarantine:privateQuarantine,blocked:accessBlocked};
+  }
+  function createdCheckButton(){return createdCheckContext()?`<button type="button" data-ab-create-check ${busy?'disabled':''}>${t('查證建立結果','Kiểm tra kết quả tạo')}</button>`:'';}
+  async function checkCreatedResult(reservation){
+    const context=createdCheckContext();if(busy||!context||context.reservation!==reservation)return false;
+    const {proof,batch,grant,quarantine,blocked}=context,client=proof.client,owner=inputOwner(client),priorControl=control,priorRevision=revision;
+    owner.modal=proof.target;owner.attempt=++mutationSequence;activeMutation=owner;busy=true;proof.checkAttempt=owner.attempt;
+    let staged=null,plan=null,mapped=false;
+    const owns=()=>mutationCurrent(owner)&&createdReservations.get(reservation)===proof&&localBatch===batch&&localBatch.created===reservation&&modal===proof.target&&pendingOperations.get(client)===proof.operation&&privateQuarantine===quarantine&&(!grant||receiptReadOwner===grant);
+    const before=()=>owns()&&control===priorControl&&revision===priorRevision;
+    try{
+      // Always query the original operation, even if an automatic receipt lookup
+      // already cleared transport unknown. No session command can mint this RAM proof.
+      const terminal=await client.receipt(proof.operation.operationId,proof.operation.generation);if(!before())return false;
+      proof.terminal={result:terminal,owner:{...owner}};
+      const gate={previous:proof.originOwner,current:before,beforeCommit(next){
+        if(!before()||next.working!==working)throw Error('LOCAL_BATCH_RECONFIRM');
+        if(grant&&quarantine.nodes?.length)host.replaceChildren(...quarantine.nodes);
+        captureBatchInput(proof.target);
+        plan=createdInputPlan({...proof,owner},{receipt:terminal.receipt,control:next.control.scopes[owner.scope],revision:next.revision});staged=next;
+        // Commit the already-validated projection and exact local mapping in the
+        // same synchronous turn; no nested await can insert a newer input between them.
+        return()=>{
+          plan.apply();localBatch={owner:{...owner,module:false,client},base:plan.base};
+          createdReservations.delete(reservation);rejectedCreates.delete(reservation);if(pendingOperations.get(client)===proof.operation)pendingOperations.delete(client);
+          if(grant&&receiptReadOwner===grant)receiptReadOwner=null;if(privateQuarantine===quarantine)privateQuarantine=null;accessBlocked=null;mapped=true;
+        };
+      }};
+      if(await load(true,owner,gate)===false||!mapped||!mutationCurrent(owner)||modal!==proof.target||control!==staged.control||revision!==staged.revision)return false;
+      message=t('建立結果已核對；請確認保留內容，未自動再次套用。','Đã kiểm tra kết quả tạo; hãy kiểm tra dữ liệu được giữ, chưa tự áp dụng lại.');return true;
+    }catch(error){if(mutationCurrent(owner)){message=error.message;if(blocked&&!accessBlocked)accessBlocked=blocked;}return false;}
+    finally{if(activeMutation===owner&&owner.attempt===mutationSequence){const paint=mapped||before();activeMutation=null;busy=false;if(inputOwnerCurrent(owner)){if(accessBlocked)renderAccessBlocked(host);else if(modal===proof.target&&paint){captureBatchInput(proof.target);draw();drawReview();}}}}
+  }
+  function settleRejectedCreate(reservation){
+    const proof=rejectedCreates.get(reservation);
+    const current=()=>!!proof&&localBatch===proof.batch&&localBatch.created===reservation&&modal===proof.target&&inputOwnerCurrent(proof.owner)&&(proof.owner.attempt===mutationSequence||createdReservations.get(reservation)?.checkAttempt===mutationSequence)&&(!activeMutation||activeMutation===proof.owner)&&sharedClient===proof.client&&pendingOperations.get(proof.client)===proof.operation;
+    if(!current())return false;
+    try{
+      // Only the transport's private exact-command/error/raw-flight proof may
+      // settle this reservation. Error flags and hasUnknown() grant nothing.
+      if(proof.client.finalizeRejectedCreate(proof.operation,proof.error,proof.flight)!==true)throw Error('CONFIRMED_CREATE_REJECTION_REQUIRED');
+      if(!current())return false;
+      delete localBatch.created;rejectedCreates.delete(reservation);createdReservations.delete(reservation);pendingOperations.delete(proof.client);return true;
+    }catch(error){if(current())message=error.message;return false;}
+  }
   async function writeShared(action,detail={}){
-    if(accessBlocked)return null;
-    if(busy)return null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=actor(),requestScope=key();let cancelled=false;try{
-      // Save captures the server draft, not this modal. Retain its independent
-      // input and original diff/generation baseline across the response render.
-      if(action==='save'&&modal){captureModal();if(modal.type==='error'||modal.type==='new-error')modal.name=host.querySelector('#ab-error-name')?.value??modal.name;}
-      const formWorking=action==='save'&&modal&&working?clone(working):null;
-      const client=transport();if(client.hasUnknown()){await client.resolveUnknown();if(await load(true)===false)return null;}
-      if(!scope()?.workflow||action==='begin'){const started=await client.begin();if(actor()!==requestActor||key()!==requestScope){cancelled=true;return null;}control.scopes[requestScope]=started.control;revision=started.revision;if(!modalGeneration&&modal)modalGeneration=started.control.workflow.generation;if(action==='begin'){versionId=opened()?.id;working=clone(opened().snapshot);return started;}}
-      const flow=scope().workflow;let commandAction=action,fields={};
-      if(action==='apply') {fields=changes(modalBase||opened().snapshot,detail.snapshot||working);if(!fields.patches.length)return{control:scope()};}
-      else if(action==='save'){await client.flush();if(modal&&!confirm(t('只儲存已同步共用內容，不包含尚未套用的彈窗。繼續？','Chỉ lưu nội dung chung đã đồng bộ, không gồm cửa sổ chưa áp dụng. Tiếp tục?')))return null;}
+    if(accessBlocked||rejectForeignBatch())return null;
+    if(localBatch&&!inputOwnerCurrent(localBatch.owner)){message='LOCAL_BATCH_RECONFIRM';return null;}
+    if(['save','submit'].includes(action)&&hasPrivateInput()){message=batchNotice();toast(message);return null;}
+    if(busy)return null;
+    if(localBatch?.created){if(settleRejectedCreate(localBatch.created)){message=t('原建立操作已確認未寫入；輸入已保留，請再次套用。','Đã xác nhận thao tác tạo chưa ghi; dữ liệu được giữ, hãy áp dụng lại.');draw();}else if(!message)message='LOCAL_BATCH_RECONFIRM';return null;}
+    const client=transport(),owner=inputOwner(client);owner.attempt=++mutationSequence;activeMutation=owner;
+    if(!mutationCurrent(owner)){activeMutation=null;message='IDENTITY_OR_SCOPE_CHANGED';return null;}
+    busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost);let cancelled=false,redraw=true,capturedCompletion=false,createProof=null,createFlight=null,createResolved=false;
+    const check=()=>{if(!mutationCurrent(owner))throw Error('IDENTITY_OR_SCOPE_CHANGED');};
+    try{
+      captureBatchInput();retainInputBase();
+      const sent=working&&clone(working),sentModal=modal,sentModalValue=modal&&clone(modal),inputBase=['create-error','create-item'].includes(action)?clone(localBatch?.base||modalBase||opened()?.snapshot||working):null;owner.modal=sentModal;
+      if(client.hasUnknown()){check();await client.resolveUnknown();check();message=batchNotice();return null;}
+      if(!scope()?.workflow||action==='begin'){
+        check();const started=await client.begin();check();
+        control.scopes[owner.scope]=started.control;revision=started.revision;owner.generation=started.control.workflow.generation;
+        if(!modalGeneration&&modal)modalGeneration=owner.generation;
+        if(action==='begin'){versionId=opened()?.id;if(!hasPrivateInput()){working=clone(opened().snapshot);inputBasisOwner=inputOwner();}return started;}
+      }
+      const flow=scope().workflow;let commandAction=action,fields={},submissionGeneration=null;
+      if(action==='apply'){fields=changes(applyBase(),sent);if(!fields.patches.length){
+        if(localBatch){if(localBatch.created||!sameInput(sent,localBatch.base))throw Error('LOCAL_BATCH_RECONFIRM');localBatch=null;working=clone(opened().snapshot);inputBasisOwner=inputOwner();if(modal){modalBase=clone(working);modalGeneration=owner.generation;}capturedCompletion=true;}
+        const result={control:scope()};appliedInputs.set(result,{owner:{...owner},attempt:owner.attempt,modal:sentModal,modalValue:sentModalValue,input:clone(working)});return result;
+      }}
+      else if(action==='save'){check();await client.flush();check();}
       else if(action==='submit'){
-        if(!flow.saved)throw Error('SUCCESSFUL_SAVE_REQUIRED');const why=await window.VersionDraftUI.confirmSubmit(reason||window.VersionDraftUI.reasonFor(version(),flow),key());if(!why)return null;
-        fields={savedId:flow.saved.id,reason:why};
+        const submission=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;check();const why=await window.VersionDraftUI.confirmSubmit(reason||window.VersionDraftUI.reasonFor(version(),flow),key(),{savedVersion:{id:submission.savedId,revision:submission.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});check();if(!why)return null;
+        if(scope()?.workflow?.generation!==submissionGeneration||scope().workflow.revision!==submission.expectedRevision||scope().workflow.saved?.id!==submission.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');fields={...submission,reason:why};
       }else if(['approve','reject','withdraw'].includes(action)){
-        commandAction=action==='reject'?'return':action;const caseId=detail.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId),selfReview=action!=='withdraw'&&c?.actor.id===requestActor.id;
-        const answer=await window.VersionDraftUI.confirmReview({action,scope:`IPQC-AB · ${requestScope} · ${caseId}`,reason:detail.comment||'',selfReview});if(!answer){cancelled=true;return null;}
-        if(actor()!==requestActor||key()!==requestScope)throw Error('IDENTITY_OR_SCOPE_CHANGED');fields={caseId,...answer};
-      }else{commandAction='apply';fields={moduleAction:action,input:detail};}
-      const result=await client.command(['apply','create-error','create-item'].includes(action)?modalGeneration||flow.generation:flow.generation,commandAction,fields);
-      if(actor()!==requestActor||key()!==requestScope){cancelled=true;return null;}
-      if(result.control){control.scopes[requestScope]=result.control;revision=result.revision;}else if(await load(true)===false)return null;
-      versionId=opened()?.id||active()?.id||versionId;working=formWorking&&modal?formWorking:opened()?.status==='draft'?clone(opened().snapshot):null;selectDefaults();issues=[];
-      message=action==='save'?t('共用快照已儲存','Đã lưu bản chụp chung'):['apply','create-error','create-item','delete-item','delete-error'].includes(action)?t('已同步 · 尚未儲存','Đã đồng bộ · chưa lưu'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
+        commandAction=action==='reject'?'return':action;const caseId=detail.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId),selfReview=action!=='withdraw'&&c?.actor.id===owner.actorId;
+        check();const answer=await window.VersionDraftUI.confirmReview({action,scope:`IPQC-AB · ${owner.scope} · ${caseId}`,reason:detail.comment||'',selfReview});check();if(!answer){cancelled=true;return null;}fields={caseId,...answer};
+      }else{commandAction='apply';fields={moduleAction:action,input:clone(detail)};}
+      check();if(['save','submit'].includes(action)&&hasPrivateInput())throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
+      const creating=['create-error','create-item'].includes(action),operation=creating?client.prepareCreate(modalGeneration||flow.generation,action,fields.input):client.prepare(action==='apply'?modalGeneration||flow.generation:submissionGeneration||flow.generation,commandAction,fields);pendingOperations.set(client,operation);
+      if(creating){const reservation={action,operationId:operation.operationId,modal:sentModal};localBatch={owner:{...owner},base:inputBase,created:reservation};createProof={operation,owner,base:inputBase,sent,target:sentModal,targetValue:sentModalValue,flowRevision:flow.revision,reservation,batch:localBatch};createdReservations.set(reservation,{...createProof,client,originOwner:{...owner}});}
+      let flight;try{flight=client.sendPrepared(operation);if(createProof)createFlight=flight;}catch(error){if(createProof&&mutationCurrent(owner)&&localBatch===createProof.batch&&localBatch.created===createProof.reservation){delete localBatch.created;createdReservations.delete(createProof.reservation);}throw error;}
+      const result=await flight;createResolved=true;check();if(!createProof&&pendingOperations.get(client)===operation)pendingOperations.delete(client);
+      let createdPlan=null;if(createProof){redraw=modal===sentModal;captureBatchInput(sentModal);capturedCompletion=true;createdPlan=createdInputPlan(createProof,result);}
+      if(result.control&&(!Number.isSafeInteger(result.revision)||result.revision<revision))throw Error('LOCAL_BATCH_RECONFIRM');
+      if(result.control){control.scopes[owner.scope]=result.control;revision=result.revision;owner.generation=result.control.workflow.generation;}
+      else{if(await load(true,owner)===false)return null;if(!mutationCurrent(owner,false))return null;if(scope()?.workflow?.generation!==result.receipt?.generation)throw Error('LOCAL_BATCH_RECONFIRM');owner.generation=scope().workflow.generation;}
+      check();redraw=modal===sentModal;captureBatchInput(sentModal);capturedCompletion=true;
+      if(createdPlan){createdPlan.apply();createdReservations.delete(createProof.reservation);if(pendingOperations.get(client)===operation)pendingOperations.delete(client);}
+      const changed=createdPlan?!sameInput(working,createdPlan.base)||departureUploads>0:modal!==sentModal||!sameInput(modal,sentModalValue)||!sameInput(working,sent);
+      versionId=opened()?.id||active()?.id||versionId;
+      if(changed){localBatch={owner:{...owner,module:false,client:sharedClient,generation:flow.generation},base:clone(createdPlan?createdPlan.base:action==='apply'?sent:localBatch?.base||sent),...(createdPlan?{}:{created:localBatch?.created})};}
+      else{working=opened()?.status==='draft'?clone(opened().snapshot):null;localBatch=null;inputBasisOwner=inputOwner();if(modal===sentModal&&modal){modalBase=working&&clone(working);modalGeneration=owner.generation;}}
+      selectDefaults();issues=[];
+      if(!changed)appliedInputs.set(result,{owner:{...owner},attempt:owner.attempt,modal:sentModal,modalValue:createdPlan?clone(modal):sentModalValue,input:clone(working)});
+      message=changed?batchNotice():action==='save'?t('共用快照已儲存','Đã lưu bản chụp chung'):['apply','create-error','create-item','delete-item','delete-error'].includes(action)?t('已同步 · 尚未儲存','Đã đồng bộ · chưa lưu'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
       window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
-    }catch(error){if(actor()===requestActor&&key()===requestScope)message=error.message;return null;}finally{busy=false;if(actor()===requestActor&&key()===requestScope){if(!cancelled){draw();drawReview();}restoreView();}}
+    }catch(error){
+      if(createProof&&createFlight&&!createResolved)rejectedCreates.set(createProof.reservation,{...createProof,client,error,flight:createFlight});
+      if(mutationCurrent(owner,false)){message=error.message;if(createProof&&createFlight&&!createResolved)settleRejectedCreate(createProof.reservation);}return null;
+    }
+    finally{if(activeMutation===owner&&owner.attempt===mutationSequence){if(!capturedCompletion&&inputOwnerCurrent(owner)&&modal===owner.modal){captureBatchInput(owner.modal);retainInputBase(owner);}activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&redraw&&modal===owner.modal){if(!cancelled){draw();drawReview();}restoreView();}}}
   }
 
   function selectDefaults() {
@@ -132,9 +329,10 @@
         if(!retainQuarantine)privateQuarantine={actor:requestActor,epoch:requestEpoch,working:clone(working),modal:clone(modal),reason,selection:[...selection],captureFailed};
         modal=null;viewer=null;modalBase=null;modalGeneration=null;reason='';modalScrolls.clear();
   }
-  async function load(keep = false) {
+  async function load(keep = false,mutationOwner=null,deliveryGate=null) {
+    if(deliveryGate?!deliveryGate.current():rejectForeignBatch())return false;
     const generation=++loadGeneration,priorControl=control,priorRevision=revision,requestActor=actor(),requestHost=host,requestReviewHost=reviewHost,requestEpoch=window.ProcessSync?.identityGeneration?.(),selection=[line,group,stage,errorId,versionId,showRouteExtras],delivery=window.ProcessSync?.captureDelivery?.();
-    const owns=()=>generation===loadGeneration&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
+    const owns=()=>generation===loadGeneration&&(!mutationOwner||mutationCurrent(mutationOwner))&&(!deliveryGate||deliveryGate.current())&&control===priorControl&&revision===priorRevision&&actor()===requestActor&&(!Number.isFinite(requestEpoch)||window.ProcessSync?.identityGeneration?.()===requestEpoch)&&!window.ProcessSync?.requiresReload&&host===requestHost&&reviewHost===requestReviewHost&&[line,group,stage,errorId,versionId,showRouteExtras].every((value,index)=>value===selection[index])&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false);
     if(privateQuarantine&&(privateQuarantine.actor!==requestActor||privateQuarantine.epoch!==requestEpoch))privateQuarantine=null;
     if(lastCommandAcknowledgement&&(lastCommandAcknowledgement.actor!==requestActor||lastCommandAcknowledgement.epoch!==requestEpoch))lastCommandAcknowledgement=null;
     const deny=error=>{if(owns()&&[401,403].includes(error.status))quarantineRead(error,requestActor,requestEpoch,delivery,selection);};
@@ -146,13 +344,25 @@
       const body=await response.json().catch(()=>({}));
       if(!owns())return false;
       if(!response.ok||!body.control||!Number.isInteger(body.revision))throw Object.assign(Error(body.error||t('IPQC-AB 載入失敗','Không tải được IPQC-AB')),{status:response.status});
-      const next=loadedSelection(body,keep);
+      if(!deliveryGate&&inputOwnerCurrent(localBatch?.owner||inputOwner())){captureBatchInput(mutationOwner?mutationOwner.modal:modal);retainInputBase();}
+      let next=loadedSelection(body,keep||hasPrivateInput());
+      if(deliveryGate&&`${next.line}:${next.group}`!==key())throw Error('LOCAL_BATCH_RECONFIRM');
       // The opt-in shared boundary rejects obsolete access/gate results;
       // retain the owner check before committing the staged module data.
-      if(permissionAttempt){const permissionResult=await permissionAttempt;if(!owns())return false;if(permissionResult.error&&([401,403].includes(permissionResult.error.status)||hintedScope===`${next.line}:${next.group}`))throw permissionResult.error;}
+      let freshPermissions=null;
+      if(permissionAttempt){const permissionResult=await permissionAttempt;freshPermissions=permissionResult.value?.permissions;if(!owns())return false;if(permissionResult.error&&([401,403].includes(permissionResult.error.status)||hintedScope===`${next.line}:${next.group}`))throw permissionResult.error;}
       if(!permissionAttempt||hintedScope!==`${next.line}:${next.group}`)await transport(`${next.line}:${next.group}`).permissions({isCurrent:owns});
       if(!owns())return false;
-      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);accessBlocked=null;
+      if(deliveryGate){
+        const selected=body.control.scopes?.[key()],incoming=selected?.workflow,drafts=selected?.versions?.filter(v=>v.status==='draft');
+        if(freshPermissions?.view!==true||freshPermissions?.edit!==true||!Number.isSafeInteger(body.revision)||body.revision<priorRevision||!incoming||incoming.scope!=='ipqc-ab:'+key()||incoming.generation!==deliveryGate.previous.generation||!Number.isSafeInteger(incoming.revision)||incoming.revision<scope().workflow.revision||incoming.pendingId!==null||body.control.moduleDraft?.workflow?.pendingId||drafts?.length!==1||!sameInput(drafts[0].snapshot,incoming.working))throw Error('LOCAL_BATCH_RECONFIRM');
+      }
+      // Permission awaits must not commit an earlier working reference over newer input.
+      if(!deliveryGate&&inputOwnerCurrent(localBatch?.owner||inputOwner())){captureBatchInput(mutationOwner?mutationOwner.modal:modal);retainInputBase();}
+      const preserveInput=hasPrivateInput();next=loadedSelection(body,keep||preserveInput);
+      if(hasPrivateInput()&&`${next.line}:${next.group}`!==key())throw Error('LOCAL_BATCH_RECONFIRM');
+      const commit=deliveryGate?.beforeCommit?.(next);if(!owns())return false;
+      ({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working}=next);commit?.();accessBlocked=null;if(!preserveInput&&!deliveryGate)inputBasisOwner=inputOwner();if(localBatch)message=batchNotice();
       return true;
     }catch(error){if(!owns())return false;deny(error);throw error;}
   }
@@ -217,26 +427,29 @@
   let moduleClient=null,moduleActor='';
   function moduleTransport(){const id=actor()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(moduleActor!==id){moduleActor=id;moduleClient=window.createSharedDraftClient({endpoint:API+'/workflow?module=1&caseMetadata=1',actorId:id,headers,guardAccessResults:true});}return moduleClient;}
   async function moduleSave(action,detail={}){
-    if(accessBlocked)return null;
-    if(busy)return null;
-    if(modal){message=t('請先套用或取消目前彈窗。','Hãy áp dụng hoặc hủy cửa sổ trước.');draw();return null;}
-    const identity=actor(),identityEpoch=window.ProcessSync?.identityGeneration?.(),restoreView=window.VersionDraftUI.preserveView(host,reviewHost);let acknowledged=false;busy=true;message='';
-    const valid=()=>actor()===identity&&(!Number.isFinite(identityEpoch)||window.ProcessSync?.identityGeneration?.()===identityEpoch)&&!window.ProcessSync?.requiresReload;
+    if(accessBlocked||busy||rejectForeignBatch())return null;
+    captureBatchInput();retainInputBase();
+    if(hasPrivateInput()){message=batchNotice();toast(message);return null;}
+    const client=moduleTransport(),owner=inputOwner(client,true);owner.modal=modal;owner.attempt=++mutationSequence;activeMutation=owner;
+    if(!mutationCurrent(owner)){activeMutation=null;message='IDENTITY_CHANGED';return null;}
+    const restoreView=window.VersionDraftUI.preserveView(host,reviewHost);let acknowledged=false;busy=true;message='';
+    const check=()=>{if(!mutationCurrent(owner))throw Error('IDENTITY_CHANGED');};
     try{
-      const client=moduleTransport();if(client.hasUnknown())await client.resolveUnknown();await client.flush();
-      let result=await client.read();if(!valid())throw Error('IDENTITY_CHANGED');
-      if(['save','submit'].includes(action)&&(!result.control?.workflow||!result.control.versions?.some(v=>['draft','pending','pending-test'].includes(v.status)))){
-        // Creating/adopting a new module draft still requires backend edit.
-        result=await client.begin();if(!valid())throw Error('IDENTITY_CHANGED');
-      }
+      if(client.hasUnknown()){check();await client.resolveUnknown();check();}
+      check();await client.flush();check();
+      let result=await client.read();check();
+      if(['save','submit'].includes(action)&&(!result.control?.workflow||!result.control.versions?.some(v=>['draft','pending','pending-test'].includes(v.status)))){result=await client.begin();check();}
       const flow=result.control?.workflow;if(!flow)throw Error('WORKFLOW_LOAD_FAILED');
-      let fields={expectedRevision:flow.revision,input:{stateRevision:result.revision}},commandAction=action;
-      if(action==='submit'){if(!flow.saved)throw Error('SUCCESSFUL_SAVE_REQUIRED');const why=await window.VersionDraftUI.confirmSubmit(reason,'IPQC-AB · '+Object.keys(flow.saved.content.scopes).join('、'));if(!why)return null;fields={...fields,savedId:flow.saved.id,reason:why};}
-      if(['approve','reject','withdraw'].includes(action)){commandAction=action==='reject'?'return':action;const caseId=detail.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);const answer=await window.VersionDraftUI.confirmReview({action,scope:'IPQC-AB · '+caseId,selfReview:action!=='withdraw'&&c?.actor.id===identity.id});if(!answer)return null;fields={...fields,caseId,...answer};}
-      if(!valid())throw Error('IDENTITY_CHANGED');result=await client.command(flow.generation,commandAction,fields);acknowledged=true;lastCommandAcknowledgement={actor:identity,epoch:identityEpoch,action,result};
-      if(!valid()){lastCommandAcknowledgement=null;return null;}if(await load(false)===false)return null;message='';toast(t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
-    }catch(error){if(valid())message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}
-    finally{busy=false;if(valid()){draw();drawReview();restoreView();}}
+      const commandGeneration=flow.generation;let fields={expectedRevision:flow.revision,input:{stateRevision:result.revision}},commandAction=action;
+      if(action==='submit'){const submission=window.captureSharedDraftSubmission(flow),confirmationControl=control,confirmationRevision=revision;check();const why=await window.VersionDraftUI.confirmSubmit(reason,'IPQC-AB · '+Object.keys(flow.saved.content.scopes).join('、'),{savedVersion:{id:submission.savedId,revision:submission.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});check();if(!why)return null;
+        if(control!==confirmationControl||revision!==confirmationRevision||flow.generation!==commandGeneration||flow.revision!==submission.expectedRevision||flow.saved?.id!==submission.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');fields={...fields,...submission,reason:why};}
+      if(['approve','reject','withdraw'].includes(action)){commandAction=action==='reject'?'return':action;const caseId=detail.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);check();const answer=await window.VersionDraftUI.confirmReview({action,scope:'IPQC-AB · '+caseId,selfReview:action!=='withdraw'&&c?.actor.id===owner.actorId});check();if(!answer)return null;fields={...fields,caseId,...answer};}
+      check();captureBatchInput(owner.modal);retainInputBase();if(['save','submit'].includes(action)&&hasPrivateInput())throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
+      const operation=client.prepare(commandGeneration,commandAction,fields);pendingOperations.set(client,operation);result=await client.sendPrepared(operation);check();if(pendingOperations.get(client)===operation)pendingOperations.delete(client);acknowledged=true;lastCommandAcknowledgement={actor:owner.actor,epoch:owner.epoch,action,result};
+      captureBatchInput(owner.modal);retainInputBase();if(await load(false,owner)===false)return null;
+      if(!mutationCurrent(owner,false))return null;owner.generation=scope()?.workflow?.generation||null;check();message=hasPrivateInput()?batchNotice():'';toast(hasPrivateInput()?batchNotice():t('IPQC-AB 整份操作已完成','Đã hoàn tất thao tác toàn bộ IPQC-AB'));return result;
+    }catch(error){if(mutationCurrent(owner,false))message=acknowledged?t(action==='save'?'已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。':'操作已由伺服器確認，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Thao tác đã được máy chủ xác nhận nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;return null;}
+    finally{if(activeMutation===owner&&owner.attempt===mutationSequence){activeMutation=null;busy=false;if(inputOwnerCurrent(owner)&&modal===owner.modal){draw();drawReview();restoreView();}}}
   }
   async function save(action = 'save') {
     if(['save','submit'].includes(action))return moduleSave(action);
@@ -249,14 +462,14 @@
     return !!await save('apply');
   }
   function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),pollActor=actor(),pollEpoch=window.ProcessSync?.identityGeneration?.(),pollHost=host,owns=()=>pollTimer.isCurrent(pollScheduleOwner)&&actor()===pollActor&&host===pollHost&&(!Number.isFinite(pollEpoch)||window.ProcessSync?.identityGeneration?.()===pollEpoch)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{
-    if(!owns())return;
+    if(!owns()||rejectForeignBatch())return;
     if(!host?.isConnected||host.dataset.activeTab!=='quality-ipqc-ab')return;
     let readCurrent=owns;try{if(!accessBlocked&&!busy&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
       const current=key(),flow=scope()?.workflow,priorControl=control,priorRevision=revision,priorLoad=loadGeneration;
       readCurrent=()=>owns()&&!accessBlocked&&!busy&&key()===current&&control===priorControl&&revision===priorRevision&&loadGeneration===priorLoad;
       const result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'');
-      if(readCurrent()&&!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
-        if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;working=opened()?.status==='draft'?clone(opened().snapshot):null;}if(!host.contains(document.activeElement))draw();}
+      if(readCurrent()&&!result.unchanged&&result.control){captureBatchInput();retainInputBase();const preserve=hasPrivateInput(),wasOpen=['draft','pending'].includes(version()?.status);control.scopes[current]=result.control;revision=result.revision;
+        if(!modal){if(wasOpen){versionId=opened()?.id||active()?.id;if(!preserve){working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner();}}if(preserve)message=batchNotice();if(!host.contains(document.activeElement))draw();}
         else{const banner=host.querySelector('#ipqcab-shared-status');if(banner)banner.textContent=t('共用內容已更新，保留彈窗輸入；套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
       }
     }}catch(error){if(!readCurrent())return;message=t('同步失敗，保留目前內容：','Đồng bộ thất bại, giữ nội dung hiện tại: ')+error.message;}
@@ -375,7 +588,7 @@
   }
   function modalHTML() {
     if (!modal) return '';
-    if (modal.type === 'new-error') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增錯誤代碼','Thêm mã lỗi')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><p>${t('錯誤代碼編號將於儲存時自動帶入。','Mã lỗi sẽ được cấp tự động khi lưu.')}</p><label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(modal.name||'')}" required></label>${message?`<p role="alert">${h(displayDraftError(message))}</p>`:''}</div><footer><button type="button" data-ab-close>${t('取消','Hủy')}</button><button type="button" class="signal" id="ab-apply">${t('建立並儲存','Tạo và lưu')}</button></footer></div></div>`;
+    if (modal.type === 'new-error') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增錯誤代碼','Thêm mã lỗi')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><p>${t('錯誤代碼編號將於儲存時自動帶入。','Mã lỗi sẽ được cấp tự động khi lưu.')}</p><label>${t('錯誤代碼名稱','Tên mã lỗi')}<input id="ab-error-name" value="${h(modal.name||'')}" required></label>${message?`<p role="alert">${h(displayDraftError(message))}</p>`:''}</div><footer><button type="button" data-ab-close>${t('取消','Hủy')}</button><button type="button" class="signal" id="ab-apply">${t('建立並儲存','Tạo và lưu')}</button>${createdCheckButton()}</footer></div></div>`;
     if (modal.type === 'creating-item') return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('新增檢查項目','Thêm hạng mục')}</h3></header><div class="ipqcab-dialog-body"><p role="status">${t('正在自動分配項目編號…','Đang cấp mã hạng mục tự động…')}</p></div></div></div>`;
     if (modal.type === 'equipment') {
       if(modal.loading||modal.error)return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${t('選擇檢具與測試設備','Chọn dưỡng kiểm và thiết bị')}</h3><button type="button" data-ab-close>×</button></header><div class="ipqcab-dialog-body"><p role="${modal.error?'alert':'status'}">${h(modal.error||t('正在載入設備清單…','Đang tải danh sách thiết bị…'))}</p>${modal.error?`<button type="button" id="ab-equipment-retry">${t('重試','Thử lại')}</button>`:''}</div></div></div>`;
@@ -394,7 +607,7 @@
     if (!row) return '';
     return `<div class="ipqcab-overlay"><div class="ipqcab-dialog"><header><h3>${modal.type==='error'?t('錯誤代碼','Mã lỗi'):t('檢查項目','Hạng mục')}</h3><button type="button" data-ab-close>×</button></header>
       <div class="ipqcab-dialog-body">${message?`<p role="alert">${h(displayDraftError(message))}</p>`:''}${modal.type==='error'?errorModal(row,modal.readonly):itemModal(row,modal.readonly)}</div>
-      <footer><button type="button" data-ab-close>${t('取消','Hủy')}</button>${modal.readonly?'':`<button type="button" class="signal" id="ab-apply">${window.VersionDraftUI.t('apply')}</button>`}</footer></div></div>`;
+      <footer><button type="button" data-ab-close>${t('取消','Hủy')}</button>${modal.readonly?'':`<button type="button" class="signal" id="ab-apply">${window.VersionDraftUI.t('apply')}</button>`}${createdCheckButton()}</footer></div></div>`;
   }
   function viewerHTML() {
     if (!viewer) return '';
@@ -407,8 +620,10 @@
   }
   function renderAccessBlocked(target){
     if(!target?.isConnected)return;
-    target.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(message||t('目前無法讀取 IPQC-AB；草稿暫存已保留，請重新核對權限。','Không thể đọc IPQC-AB; bản nháp được giữ riêng, hãy kiểm tra quyền.'))}</p><button type="button" data-ab-access-retry>${t('重新核對','Kiểm tra lại')}</button></section>`;
-    const retry=target.querySelector('[data-ab-access-retry]');if(retry)retry.onclick=async()=>{try{if(await load()===false)return;message=privateQuarantine?t('已重新讀取；先前輸入僅私有暫存，未自動套用，請先核對再修改。','Đã đọc lại; dữ liệu cũ chỉ được giữ riêng, chưa áp dụng tự động. Hãy kiểm tra trước khi sửa.'):'';draw();drawReview();}catch(error){message=error.message;renderAccessBlocked(target);}};
+    const created=createdCheckContext(),receiptClient=created?.proof.client||(inputOwnerCurrent(receiptReadOwner)?receiptReadOwner.receipts?.find(({client,operation})=>client?.hasUnknown()&&pendingOperations.get(client)===operation)?.client:null);
+    target.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(message||t('目前無法讀取 IPQC-AB；草稿暫存已保留，請重新核對權限。','Không thể đọc IPQC-AB; bản nháp được giữ riêng, hãy kiểm tra quyền.'))}</p><button type="button" data-ab-access-retry>${t('重新核對','Kiểm tra lại')}</button>${receiptClient?`<button type="button" data-ab-receipt-query>${t('查詢上次操作','Kiểm tra thao tác trước')}</button>`:''}</section>`;
+    const receiptButton=target.querySelector('[data-ab-receipt-query]');if(receiptButton)receiptButton.onclick=()=>queryRetainedReceipt(receiptClient,created&&{reservation:created.reservation,proof:created.proof,operation:created.proof.operation,grant:created.grant});
+    const retry=target.querySelector('[data-ab-access-retry]');if(retry)retry.onclick=async()=>{try{if(retainedDeliveryCandidate()){await reconfirmRetainedDelivery();return;}if(await load()===false)return;message=privateQuarantine?t('已重新讀取；先前輸入僅私有暫存，未自動套用，請先核對再修改。','Đã đọc lại; dữ liệu cũ chỉ được giữ riêng, chưa áp dụng tự động. Hãy kiểm tra trước khi sửa.'):'';draw();drawReview();}catch(error){message=error.message;renderAccessBlocked(target);}};
   }
   function draw() {
     if(accessBlocked){renderAccessBlocked(host);return;}
@@ -426,8 +641,9 @@
     }});
     const flow=scope()?.workflow;
     if(flow){const status=document.createElement('section');status.className='ipqcab-card';status.id='ipqcab-shared-status';status.setAttribute('role','status');status.innerHTML=`<b>${t('共用範圍','Phạm vi chung')}: ${h(key())}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)} · ${h(flow.saved.id)}</p>`:''}`;host.querySelector('#ipqcab-page')?.prepend(status);
+      if(localBatch){const note=document.createElement('p');note.textContent=batchNotice();status.append(note);if(!modal){const apply=document.createElement('button');apply.type='button';apply.textContent=t('套用保留修改','Áp dụng thay đổi được giữ');apply.disabled=busy||!inputOwnerCurrent(localBatch.owner)||!!scope()?.workflow?.pendingId||!!localBatch.created;apply.onclick=()=>save('apply');status.append(apply);}}
       if(permitted('approval.compare')){const button=document.createElement('button');button.id='ab-case-history';button.className='button ghost';button.textContent=t('送審案件','Hồ sơ gửi duyệt');button.onclick=()=>window.openSharedDraftHistory({client:control?.moduleDraft?moduleTransport():transport(),editable:()=>!control?.moduleDraft&&opened()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{if(await load()===false)return;draw();}}).catch(e=>{message=e.message;draw();});status.append(button);}
-      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;button.onclick=async()=>{try{await transport()[method]();if(await load()===false)return;}catch(e){message=e.message;}draw();};status.append(button);}
+      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const button=document.createElement('button');button.textContent=label;const reservation=createdReservations.has(localBatch?.created)?localBatch.created:null;button.onclick=async()=>{if(reservation)return checkCreatedResult(reservation);try{await transport()[method]();if(await load()===false)return;}catch(e){message=e.message;}draw();};status.append(button);}
     }
     window.VersionDraftUI?.mount(host,{header:'.ipqcab-version',historyClient:()=>control?.moduleDraft?moduleTransport():transport(),module:'IPQC-AB',moduleActions:true,scope:t('全部 IPQC-AB 草稿；A／B 全部群組與工段','Tất cả bản nháp IPQC-AB; mọi nhóm và công đoạn A/B'),version:version(),versions:scope()?.versions,active:active(),flow:control?.moduleDraft?.workflow||scope()?.workflow,busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#ipqcab-begin',save:'#ipqcab-save',submit:'#ipqcab-submit',withdraw:'#ipqcab-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-ab-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-ab-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{missing:true},history:['.ipqcab-history','#ab-case-history','[data-shared-issue-kind="warning"]'],status:['#ipqcab-shared-status']});
     const body = host.querySelector('.ipqcab-dialog-body');
@@ -464,13 +680,16 @@
   }
   async function upload(files,kind) {
     if(accessBlocked)return;
+    const target=modal,local=working,owner=actor(),epoch=window.ProcessSync?.identityGeneration?.();
+    const current=()=>modal===target&&working===local&&actor()===owner&&epoch===window.ProcessSync?.identityGeneration?.()&&!accessBlocked&&!window.ProcessSync?.requiresReload;
     const item = working.items.find(i=>i.id===modal.id);
-    for (const file of files) {
+    departureUploads++;try{for (const file of files) {
       const response = await fetch(`${API}/photo`,{method:'PUT',headers:{...headers(),'Content-Type':file.type},body:file});
       const body = await response.json().catch(()=>({}));
       if (!response.ok) throw Error(body.error || `HTTP ${response.status}`);
+      if(!current())throw Error('DELIVERY_SUPERSEDED');
       item[kind==='standard'?'standardPhotos':'methodPhotos'].push({id:body.id,name:file.name,note:''});
-    }
+    }}finally{departureUploads--;}
   }
   function confirmTwice(noun) {
     return window.confirm(`${t('確認刪除','Xác nhận xóa')} ${noun}?`) &&
@@ -478,11 +697,11 @@
   }
   function bind() {
     const q = selector => host.querySelector(selector);
-    q('#ipqcab-line')?.addEventListener('change',e=>{line=e.target.value;showRouteExtras=false;group='';stage='';errorId='';versionId='';working=null;selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;draw();});
-    q('#ipqcab-group')?.addEventListener('change',e=>{group=e.target.value;showRouteExtras=false;stage='';errorId='';versionId='';working=null;selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;draw();});
+    q('#ipqcab-line')?.addEventListener('change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}line=e.target.value;showRouteExtras=false;group='';stage='';errorId='';versionId='';working=null;selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
+    q('#ipqcab-group')?.addEventListener('change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}group=e.target.value;showRouteExtras=false;stage='';errorId='';versionId='';working=null;selectDefaults();working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
     q('#ipqcab-route-extras')?.addEventListener('click',()=>{showRouteExtras=!showRouteExtras;selectDefaults();draw();});
     q('#ipqcab-stage')?.addEventListener('change',e=>{stage=e.target.value;errorId='';selectDefaults();draw();});
-    q('#ipqcab-version')?.addEventListener('change',e=>{versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;draw();});
+    q('#ipqcab-version')?.addEventListener('change',e=>{if(busy||hasPrivateInput()){message=batchNotice();draw();return;}versionId=e.target.value;working=version()?.status==='draft'?clone(version().snapshot):null;inputBasisOwner=inputOwner(transport());draw();});
     q('#ipqcab-begin')?.addEventListener('click',()=>write('begin'));
     q('#ipqcab-save')?.addEventListener('click',()=>save());
     q('#ipqcab-submit')?.addEventListener('click',()=>void save('submit'));
@@ -522,6 +741,7 @@
     host.querySelectorAll('[data-ab-photo-item]').forEach(el=>el.addEventListener('click',()=>{
       viewer={itemId:el.dataset.abPhotoItem,kind:el.dataset.abPhotoKind,index:Number(el.dataset.abPhotoIndex)};draw();}));
     host.querySelectorAll('[data-ab-close]').forEach(el=>el.addEventListener('click',()=>{
+      if(localBatch?.created?.modal===modal){if(inputOwnerCurrent(localBatch.owner))captureBatchInput();message='LOCAL_BATCH_RECONFIRM';draw();return;}
       if (modal?.type==='equipment') {modal={type:'item',id:modal.itemId,initial:modal.initial};draw();return;}
       if (modal?.type==='item' && !modal.readonly) captureModal();
       const initial=modal?.initial;
@@ -534,23 +754,25 @@
         }
       }
       if(modal?.id?.startsWith('temp-'))working.items=working.items.filter(i=>i.id!==modal.id);
-      if(scope()?.workflow&&opened()?.status==='draft')working=clone(opened().snapshot);
+      if(!localBatch&&scope()?.workflow&&opened()?.status==='draft')working=clone(opened().snapshot);
       modal=null;draw();
     }));
+    const createReservation=createdCheckContext()?.reservation;q('[data-ab-create-check]')?.addEventListener('click',()=>checkCreatedResult(createReservation));
     q('#ab-apply')?.addEventListener('click',async()=>{
+      const applyingModal=modal;if(busy||!applyingModal)return;
       if (modal.type==='new-error') {
         const name=q('#ab-error-name')?.value?.trim();
         if (!name) {q('#ab-error-name')?.reportValidity();return;}
         modal.name=name;
         if (!await ensureSaved()) return;
         const result=await write('create-error',{stageCode:stage,name});
-        if (result) {errorId=opened().snapshot.errors.at(-1)?.id||errorId;modalBase=clone(opened().snapshot);modalGeneration=scope().workflow?.generation||null;modal={type:'error',id:errorId};draw();}
+        if(result&&closeAppliedModal(result,applyingModal)){const created=opened().snapshot.errors.filter(row=>row.id==='error-'+result.receipt?.operationId);if(created.length!==1){message='LOCAL_BATCH_RECONFIRM';return;}errorId=created[0].id;modalBase=clone(opened().snapshot);modalGeneration=scope().workflow?.generation||null;modal={type:'error',id:errorId};draw();}
         return;
       }
       if (modal.type==='error') working.errors.find(e=>e.id===modal.id).name = q('#ab-error-name').value;
       else captureModal();
       const saved = modal?.id?.startsWith('temp-')?await write('create-item',{errorId:working.items.find(i=>i.id===modal.id).errorId,item:working.items.find(i=>i.id===modal.id)}):await save('apply');
-      if (saved) { modal=null;draw(); }
+      if(saved&&closeAppliedModal(saved,applyingModal)){modal=null;draw();}
     });
     q('#ab-add-rule')?.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.push({id:crypto.randomUUID(),cadence:'batch',kind:'aql',value:'0.25'});draw();});
     host.querySelectorAll('[data-ab-remove-rule]').forEach(el=>el.addEventListener('click',()=>{captureModal();working.items.find(i=>i.id===modal.id).rules.splice(Number(el.dataset.abRemoveRule),1);draw();}));
@@ -676,13 +898,48 @@
     }
   });
   let navigationError=null;
-  window.IPQCABUI = { navigation:{requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.moduleDraft?.workflow||scope()?.workflow),saveForDeparture:()=>save('save'),canLeave:()=>!busy&&!modal&&(!working||JSON.stringify(working)===JSON.stringify(opened()?.snapshot)),error:()=>navigationError,reset(){loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
+  let moduleDeparture,departureUploads=0,departureSharedCache=null;
+  function departureSharedState(){
+    if(departureSharedCache?.control===control&&departureSharedCache.revision===revision)return departureSharedCache;
+    const moduleFlow=control?.moduleDraft?.workflow,groups=control?.scopes||{[key()]:scope()},actors=[];let dirty=false;
+    for(const [group,value]of Object.entries(groups)){const f=value?.workflow;if(!f)continue;const saved=moduleFlow?.saved?.content?.scopes?.[group]??f.saved?.content??f.active?.content;if(JSON.stringify(f.working)===JSON.stringify(saved))continue;dirty=true;const stamps=f.contributors,rows=stamps&&typeof stamps==='object'&&!Array.isArray(stamps)?Object.values(stamps):[];if(!rows.length)actors.push(null);else actors.push(...rows.map(stamp=>stamp?.actor?.id));}
+    return departureSharedCache={control,revision,dirty,actors};
+  }
+  let departureOwnershipCache=null;
+  function departureOwnShared(){
+    const tracker=window.SharedDraftDeparture;if(!tracker)return null;
+    const owner=tracker.capture(),cached=departureOwnershipCache;
+    if(cached?.control===control&&cached.revision===revision&&cached.tracker===tracker&&cached.version===tracker.version()&&cached.owner.id===owner.id&&cached.owner.epoch===owner.epoch&&cached.owner.identity===owner.identity)return cached.owned;
+    const remember=owned=>{departureOwnershipCache={control,revision,tracker,version:tracker.version(),owner,owned};return owned;};
+    let uncertain=false;
+    for(const [group,value]of Object.entries(control?.scopes||{[key()]:scope()})){
+      const f=value?.workflow;if(!f)continue;
+      // All AB group mutation routes pass through the instrumented transport,
+      // including groups not yet opened by this tab. Registration is not a write.
+      if(f.scope==='ipqc-ab:'+group)tracker.register(f.scope);
+      const owned=tracker.owns(f,{key:group,moduleFlow:control?.moduleDraft?.workflow});
+      if(owned===true)return remember(true);if(owned===null)uncertain=true;
+    }
+    return remember(uncertain?null:false);
+  }
+  window.IPQCABUI = { navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+    root:()=>host,flow:()=>control?.moduleDraft?.workflow||scope()?.workflow,
+    sharedOwned:departureOwnShared,sharedDirty:()=>departureSharedState().dirty,sharedActors:()=>departureSharedState().actors,
+    context:()=>[key(),versionId,scope()?.workflow?.generation,control?.moduleDraft?.workflow?.generation,permittedAction('save'),permittedAction('edit')],
+    current:()=>!accessBlocked&&!privateQuarantine&&sharedIdentity.startsWith(actor()?.id+':'),busy:()=>busy||departureUploads>0,
+    unknown:()=>sharedClient?.hasUnknown()||moduleClient?.hasUnknown(),failed:()=>sharedClient?.hasSyncFailures()||moduleClient?.hasSyncFailures(),
+    local:()=>hasPrivateInput(),
+    canSave:()=>permittedAction('save'),canDiscard:()=>permittedAction('edit'),save:()=>save('save'),
+    dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],
+    closeClean(){if(modal?.readonly){modal=null;viewer=null;draw();}},
+    discard(){localBatch=null;modal=null;viewer=null;modalBase=null;modalGeneration=null;working=opened()?.status==='draft'?clone(opened().snapshot):null;inputBasisOwner=inputOwner();draw();},
+  });},requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.moduleDraft?.workflow||scope()?.workflow),saveForDeparture:()=>save('save'),canLeave:()=>!busy&&!hasPrivateInput(),error:()=>navigationError,reset(){mutationLifetime++;mutationSequence++;activeMutation=null;localBatch=null;inputBasisOwner=null;receiptReadOwner=null;busy=false;loadGeneration++;accessBlocked=null;privateQuarantine=null;lastCommandAcknowledgement=null;pollTimer.cancel();host=null;reviewHost=null;control=null;catalog={groups:[],products:[],stages:[]};equipment=[];revision=null;working=null;modalBase=null;modalGeneration=null;sourceEntryApplied=false;reviewLoading=null;versionId='';navigationError=null;modalScrolls.clear();}},html:()=>'<section class="ipqcab-page" id="ipqcab-page">IPQC-AB…</section>',
     openItemView(requestedVersion,itemId,requestedScope=''){
       pendingItemView={versionId:requestedVersion,itemId,scope:requestedScope};
       if (host?.dataset.activeTab==='quality-ipqc-ab' && document.contains(host)) { showPendingItem();return; }
       document.querySelector('[data-quality-tab="quality-ipqc-ab"]')?.click();
     },
-    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
+    async mount(element){host=element;const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));navigationError=null;try{if(await load()===false)return;if(!current())return;const q=new URLSearchParams(location.search),requested=q.get('ipqcScope'),requestedStage=q.get('ipqcStage');if(requested&&!sourceEntryApplied&&control.scopes[requested]){sourceEntryApplied=true;const s=control.scopes[requested];line=s.line;group=s.group;versionId=opened()?.id||active()?.id||'';working=opened()?.status==='draft'?clone(opened().snapshot):null;if(requestedStage)stage=requestedStage;selectDefaults();inputBasisOwner=inputOwner(transport());}draw();showPendingItem();scheduleRefresh();}catch(error){if(!current())return;navigationError=error;host.innerHTML=`<section class="ipqcab-card"><p role="alert">${h(error.message)}</p><button type="button" id="ipqcab-retry">${t('重試','Thử lại')}</button></section>`;
       host.querySelector('#ipqcab-retry').onclick=()=>window.IPQCABUI.mount(host);}},
     reviewHTML,bindReview,pendingCount:()=>Number(!!control?.moduleDraft?.workflow?.pendingId)+Object.values(control?.scopes||{}).reduce((n,s)=>n+s.versions.filter(v=>!v.wholeModuleCaseId&&['pending','pending-test'].includes(v.status)).length,0) };
   new MutationObserver(()=>{

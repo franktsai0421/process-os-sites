@@ -1,5 +1,6 @@
 import installForegroundPorts from '../scripts/entry-performance/fixture-ports.cjs';
 import test from 'node:test';
+import {webcrypto} from 'node:crypto';
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 import * as policy from '../public/process/delivery-purpose.mjs';
 import * as coordinatorModule from '../public/process/navigation-lifecycle.mjs';
@@ -7,8 +8,9 @@ const src=file=>fs.readFileSync(new URL('../public/process/'+file,import.meta.ur
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 // Actual relevant application cascade, synthetic DOM/storage/fetch ports only.
 // No application origin, network listener, browser or real business data.
-async function fixture(){
- class Storage{constructor(){this.items=new Map();}getItem(k){return this.items.get(k)??null;}setItem(k,v){this.items.set(k,String(v));}removeItem(k){this.items.delete(k);}}
+async function fixture({bindTransport=true,enumerateStorage=true}={}){
+ class Storage{constructor(){this.items=new Map();}get length(){return this.items.size;}key(i){return [...this.items.keys()][i]??null;}getItem(k){return this.items.get(k)??null;}setItem(k,v){this.items.set(k,String(v));}removeItem(k){this.items.delete(k);}}
+ if(!enumerateStorage){delete Storage.prototype.key;delete Storage.prototype.length;}
  const events=new Map(),docEvents=new Map(),nodes=new Set(),pending=[],calls=[],dispatches=[],resets={IQC:0,effective:0,overview:0};
  function element(tag='div'){
   const controls=new Map(),attributes=new Map();let html='';
@@ -27,10 +29,10 @@ async function fixture(){
  const window={ProcessDeliveryPurpose:policy,addEventListener(n,f){if(!events.has(n))events.set(n,[]);events.get(n).push(f);},dispatchEvent(e){dispatches.push(e.type);for(const listener of events.get(e.type)||[])listener(e);},ProcessRuntimeProjection:{canLeave:()=>true,install(){}},MasterDataWorkflow:{canLeave:()=>true,resetProjection(){}},ProcessDualSystem:{activeSystem:'quality',installSystem(){},readyForDestination:async()=>{}},ProcessDataTabs:{readyForDestination:async()=>{}},sharedDraftAccountState:()=>({}),IMPORTED_DATA:{synthetic:'old'},LINE_PROCESS_DATA:{synthetic:'old'},LINE_C_MASTER:{synthetic:'old'}};
  const destination={view:'data',dataTab:'quality-iqc',module:'iqc',system:'quality'};destination.key=policy.destinationKey(destination);
  const initial={revision:10,values:{dispatchBoard:'{}',platformUsers:JSON.stringify([{id:'synthetic',role:'staff'}])},identity:{id:'synthetic',role:'staff'},serverProtected:true,deliveryProjection:true,writableKeys:['dispatchBoard'],catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{products:[]},routing:{lines:[]},lineC:{}},destination};
- const location={href:'https://fixture.invalid/process/index.html?system=quality&view=data&dataTab=quality-iqc',get search(){return new URL(this.href).search;},reload(){calls.push('reload');}};
+ const location={href:'https://fixture.invalid/process/index.html?system=quality&view=data&dataTab=quality-iqc',get origin(){return new URL(this.href).origin;},get pathname(){return new URL(this.href).pathname;},get search(){return new URL(this.href).search;},reload(){calls.push('reload');}};
  const history={state:{},replaceState(s,_t,url){this.state=s;location.href=String(url);},pushState(s,_t,url){this.state=s;location.href=String(url);},go(){}};
  let first=true;
- const context=vm.createContext({window,document,Storage,localStorage:new Storage(),sessionStorage:new Storage(),URL,URLSearchParams,AbortSignal,AbortController,Response,Promise,location,history,state:{view:'data',dataTab:'quality-iqc',approvalTab:'quality'},currentUser:{id:'synthetic'},coordinatorModule,CustomEvent:class{constructor(type,detail){this.type=type;this.detail=detail;}},setTimeout:()=>1,clearTimeout(){},setInterval:()=>2,console,performance:{now:()=>1},navigate(){},render(){},toast(){},fetch:(url,options)=>{calls.push(['STUB_FETCH_ONLY',url]);if(first){first=false;return Promise.resolve(Response.json(initial));}return new Promise(resolve=>pending.push({resolve,url,options}));}});
+ const context=vm.createContext({window,document,crypto:webcrypto,bindDataInner(){throw Error('UNEXPECTED_PROCESS_MASTER_BIND');},Storage,localStorage:new Storage(),sessionStorage:new Storage(),URL,URLSearchParams,AbortSignal,AbortController,Response,Promise,location,history,state:{view:'data',dataTab:'quality-iqc',approvalTab:'quality'},currentUser:{id:'synthetic'},coordinatorModule,CustomEvent:class{constructor(type,detail){this.type=type;this.detail=detail;}},setTimeout:()=>1,clearTimeout(){},setInterval:()=>2,console,performance:{now:()=>1},navigate(){},render(){},toast(){},fetch:(url,options)=>{calls.push(['STUB_FETCH_ONLY',url]);if(first){first=false;return Promise.resolve(Response.json(initial));}return new Promise(resolve=>pending.push({resolve,url,options}));}});
  vm.runInContext(src('shared-state.js'),context);await window.ProcessSync.ready;
  vm.runInContext(src('navigation-forms.js'),context);
  // Preserve the existing shared-state/navigation event subscriptions while
@@ -38,10 +40,15 @@ async function fixture(){
  window.removeEventListener=(name,fn)=>events.set(name,(events.get(name)||[]).filter(listener=>listener!==fn));
  document.dispatchEvent=event=>{const pendingEvents=Array.from(docEvents.get(event.type)||[]);for(const fn of pendingEvents)fn(event);return true;};
  vm.runInContext(src('shared-draft-client.js'),context);installForegroundPorts(context);
+ // Load the real dependency now used by IQC's departure getter, not a permissive adapter stub.
+ vm.runInContext(src('version-draft-ui.js'),context);
  // Test-only export of unchanged actual functions, inside their original closure.
  // No source file is changed; actual reset and all IQC event registrations run.
  const iqc=src('iqc-master.js');assert(iqc.endsWith('})(window);\r\n')||iqc.endsWith('})(window);\n'));
- vm.runInContext(iqc.replace('})(window);','host.__testIqc={photoViewerPhotos,dialog};\n})(window);'),context);
+ vm.runInContext(iqc.replace('})(window);','host.__testIqc={photoViewerPhotos,dialog,transport};\n})(window);'),context);
+ // Bind the actual transport to the existing actor as normal load does. This
+ // fixture does not mount an IQC data model or manufacture a clean owner flag.
+ if(bindTransport){const reads=calls.length;window.__testIqc.transport();assert.equal(calls.length,reads,'owner binding performs no fetch');assert.equal(window.IQCMasterUI.navigation.departure.inspect().state,'clean');}
 
  vm.runInContext(src('effective-version-notice.js'),context);
  vm.runInContext(src('quality-review-overview.js'),context);
@@ -88,3 +95,16 @@ for(const mode of ['clearIdentity','refresh401','pendingNavigation401','sameActo
  assert(f.window.ProcessSync.requiresReload);assert(owner.terminal);assert.equal(owner.current(),false);assert.equal(overlay.isConnected,false);assert.equal(overlay.innerHTML,html);assert.equal(input.value,'中文 Việt composing');assert.equal(input.files,files);assert.equal(owner.base,base);assert.equal(f.iqcKeys().size,0);assert.equal(f.resets.IQC,0);
  close();key({key:'Escape',preventDefault(){}});assert.equal(f.calls.filter(x=>x==='focus').length,focusCount);assert.equal(f.context.sessionStorage.getItem('synthetic-owned-unknown-receipt'),'exact retained bytes');assert.equal(f.state().reloadGates,1);assert.equal(f.state().stubFetchCalls,mode==='refresh401'||mode==='pendingNavigation401'?2:1);
 });
+
+for(const mode of ['unbound-owner','invalidated-owner'])void test('real IQC departure '+mode+' refuses Save/Discard without fetch or receipt cleanup',async()=>{
+ const f=await fixture({bindTransport:mode!=='unbound-owner'}),viewer=f.open();
+ f.context.sessionStorage.setItem('synthetic-owned-unknown-receipt','exact retained bytes');
+ if(mode==='invalidated-owner')f.window.ProcessSync.setPlatformIdentity({id:'synthetic',role:'staff'});
+ const adapter=f.window.IQCMasterUI.navigation.departure,before=JSON.stringify(f.state()),html=viewer.innerHTML;
+ assert.equal(adapter.inspect().state,'unknown');await assert.rejects(adapter.save());await assert.rejects(adapter.discard());
+ assert.equal(JSON.stringify(f.state()),before);assert.equal(viewer.innerHTML,html);
+ assert.equal(f.context.sessionStorage.getItem('synthetic-owned-unknown-receipt'),'exact retained bytes');
+ assert.equal(f.state().stubFetchCalls,1);
+});
+
+void test('missing WebStorage enumeration keeps actual IQC departure unknown without dispatch',async()=>{const f=await fixture({bindTransport:false,enumerateStorage:false}),before=f.state().stubFetchCalls;f.window.__testIqc.transport();const adapter=f.window.IQCMasterUI.navigation.departure;assert.equal(adapter.inspect().state,'unknown');await assert.rejects(adapter.save());await assert.rejects(adapter.discard());assert.equal(f.state().stubFetchCalls,before);});

@@ -45,3 +45,11 @@ void test('real transport confirmed receipt but marker cleanup failure remains r
  const f=fixture(),app=await f.start();f.phase('lost-committed');await assert.rejects(app.ledger.discard(app.client));const reloaded=f.realm(),posts=f.posts;f.phase('normal');f.denyRemove(true);await assert.rejects(reloaded.ledger.recoverDiscard(reloaded.client),/安全離頁紀錄/);assert.equal(reloaded.client.hasUnknown(),false);assert(reloaded.ledger.hasRevertRecovery());await assert.rejects(reloaded.ledger.resolve(reloaded.client,'retryUnknown'));assert.equal(f.posts,posts);
  f.denyRemove(false);const result=await reloaded.ledger.recoverDiscard(reloaded.client);assert.equal(result.ownedRevertNeedsReview,true);assert.equal(reloaded.ledger.hasRevertRecovery(),false);assert.equal(f.posts,posts);
 });
+
+void test('generic unknown retry and same prepared ID only read receipts; 404 never retransmits',async()=>{
+ const f=fixture(),app=f.realm();await app.load();f.phase('lost-uncommitted');const command=app.client.prepare(f.state.generation,'apply',{patches:[{op:'set',path:field,value:'never committed'}],guards:[{path:field,value:'saved'}]});
+ await assert.rejects(app.client.sendPrepared(command),/UNKNOWN/);const posts=f.posts;f.phase('normal');await assert.rejects(app.client.retryUnknown(),/OPERATION_NOT_FOUND/);await assert.rejects(app.client.sendPrepared(command),/OPERATION_NOT_FOUND/);assert.equal(f.posts,posts);assert(app.client.hasUnknown());assert.equal(f.state.working.rows[0].name,'saved');
+});
+void test('generic retry recovers a committed unknown by the exact receipt without another POST',async()=>{
+ const f=fixture(),app=f.realm();await app.load();f.phase('lost-committed');await assert.rejects(app.client.command(f.state.generation,'apply',{patches:[{op:'set',path:field,value:'committed'}],guards:[{path:field,value:'saved'}]}),/UNKNOWN/);const posts=f.posts;f.phase('normal');const result=await app.client.retryUnknown();assert(result.receipt.operationId);assert.equal(app.client.hasUnknown(),false);assert.equal(f.posts,posts);assert.equal(f.state.working.rows[0].name,'committed');
+});

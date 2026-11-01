@@ -1660,68 +1660,213 @@ window.addEventListener('beforeunload', event => {
 });
 function bindProcessMasterName(input) {
   const shared=window.MasterDataWorkflow.shared,owner=window.ProcessSync?.identity,generation=shared.flow('PROCESS')?.generation;
+  const ownerEpoch=window.ProcessSync?.identityGeneration?.()??0,delivery=window.ProcessSync?.captureDelivery?.();
   const key=input.closest('.master-template')?.dataset.templateKey,snapshot=editableProcessMasterData();
   if(!snapshot)return;
   const previous=[...processMasterNameBindings].find(binding=>binding.owner===owner&&binding.generation===generation&&binding.key===key&&!binding.input.isConnected&&!binding.clean());
   if(previous){previous.transfer(input);return;}
   const ids=new Set(processMasterCatalogMatches(snapshot,key).map(template=>template.id));
   let baseline=Object.entries(snapshot).flatMap(([stage,list])=>list.filter(template=>ids.has(template.id)).map(template=>({path:[stage,{id:template.id},'name'],value:template.name})));
-  let pending=Promise.resolve(),failure=null,lastQueued=input.value,composing=false,active=0,detachComposition=()=>{};
-  const owned=()=>input.isConnected&&window.ProcessSync?.identity===owner&&shared.flow('PROCESS')?.generation===generation&&Boolean(editableProcessMasterData());
-  const synchronize=()=>{
-    const value=input.value;
-    if(failure||lastQueued===value&&(active||baseline.every(row=>row.value===value)))return;
-    lastQueued=value;
-    if(active)return;
-    active++;
-    pending=pending.then(async()=>{
-      let sending=value;
-      // Keep the in-flight command intact; collapse only values not yet sent.
-      for(;;){
-        if(failure)return;
-        if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
-        const changed=baseline.filter(row=>row.value!==sending);
-        if(changed.length){
-          const patches=changed.map(row=>({op:'set',path:row.path,value:sending})),guards=changed.map(row=>({path:row.path,value:row.value}));
-          await shared.patch('PROCESS',patches,guards);
-          if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
-          baseline=baseline.map(row=>({path:row.path,value:sending}));
-          updateProcessSharedStatus();
-        }
-        if(composing||sending===lastQueued)break;
-        sending=lastQueued;
-      }
-    }).catch(error=>{if(!failure){failure=error;if(owned())toast(window.sharedDraftErrorMessage?.(error)||error.message);}}).finally(()=>{active--;if(!failure&&!composing&&owned()&&baseline.some(row=>row.value!==lastQueued))synchronize();});
+  let pending=Promise.resolve(),failure=null,desired=input.value,edited=false,composing=false,active=false,bar=null,detachComposition=()=>{};
+  let recovery=null,recoveryNotice='',recoveryVerified=false,recoveryBusy=false,localRevision=0,pendingCommand=null,pendingSending=null,recoveryDialog=null,rejectionCleanup=null;
+  const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
+  const ownerCurrent=()=>window.ProcessSync?.identity===owner&&(window.ProcessSync?.identityGeneration?.()??0)===ownerEpoch&&(!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==false)&&shared.flow('PROCESS')?.generation===generation;
+  const owned=()=>input.isConnected&&ownerCurrent()&&Boolean(editableProcessMasterData());
+  const dirty=()=>edited&&baseline.some(row=>row.value!==desired);
+  const baseVersion=flow=>JSON.stringify([flow?.generation,flow?.revision,flow?.saved?.id??null]);
+  const permission=name=>shared.client('PROCESS').permission?.(name)===true;
+  const message=error=>window.sharedDraftErrorMessage?.(error)||error?.message||String(error);
+  const storageMessage=()=>t('本機恢復存檔未完成；輸入仍在記憶體，請勿關閉或重新整理。','Chưa lưu khôi phục; nội dung còn trong bộ nhớ, đừng đóng hoặc tải lại.');
+  const requireResult=result=>{if(!result?.ok)throw Error(result?.code||'LOCAL_RECOVERY_UNAVAILABLE');return result;};
+  const requireOwner=()=>{if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');};
+  const requireViewer=()=>{if(!input.isConnected||!ownerCurrent()||!permission('view'))throw Error('DEPENDENCY_CHANGED_RECONFIRM');};
+  const latestValues=()=>baseline.map(row=>({path:row.path,value:shared.flow('PROCESS')?.working[row.path[0]]?.find(item=>item.id===row.path[1].id)?.name}));
+  const context=()=>({actorId:window.ProcessSync?.identity?.id||'',scope:'master:PROCESS:name:'+key,epoch:window.ProcessSync?.identityGeneration?.()??0,baseVersion:baseVersion(shared.flow('PROCESS')),
+    canView:ownerCurrent()&&permission('view'),canEdit:ownerCurrent()&&permission('edit'),pending:!!shared.flow('PROCESS')?.pendingId,verified:recoveryVerified,
+    hasLocalChanges:dirty()||composing,localRevision,writeState:pendingCommand||shared.client('PROCESS').hasUnknown()?'unknown':active?'pending':'idle'});
+  const status=()=>{
+    if(!bar?.isConnected)return;
+    const state=active?t('正在套用這批名稱；後續輸入留待下次套用。','Đang áp dụng tên; nội dung nhập thêm giữ cho lần sau.'):recoveryBusy?t('正在核對本機恢復；尚未套用。','Đang kiểm tra khôi phục; chưa áp dụng.'):rejectionCleanup?t('原操作已確認拒絕；請在本機恢復完成清理，輸入保留且不會重送。','Thao tác đã bị từ chối; hoàn tất dọn trong khôi phục cục bộ, giữ nội dung và không gửi lại.'):pendingCommand?t('原操作結果待確認；只能查詢原收據，不會重新送出。','Chưa rõ kết quả; chỉ kiểm tra biên nhận cũ, không gửi lại.'):failure?message(failure):dirty()?t('名稱尚未同步；按套用後同事才看得到。','Tên chưa đồng bộ; đồng nghiệp chỉ thấy sau khi áp dụng.'):t('名稱已同步至共用草稿；儲存版本是另一個步驟。','Tên đã đồng bộ vào bản nháp chung; lưu phiên bản là bước riêng.');
+    const notice=bar.querySelector('[data-name-state]'),text=state+(recoveryNotice?' '+recoveryNotice:'');if(notice.textContent!==text)notice.textContent=text;
+    for(const button of bar.querySelectorAll('button'))button.disabled=active||recoveryBusy||composing||!ownerCurrent()||(button.dataset.nameAction==='apply'&&(!owned()||!dirty()||!!failure||!!pendingCommand))||(button.dataset.nameAction==='discard'&&(!dirty()&&!failure||!!pendingCommand||shared.client('PROCESS').hasUnknown()));
+    bar.querySelector('[data-name-action="review"]').hidden=!failure||!!pendingCommand;
+    if(input.dataset&&input.dataset.unapplied!==String(dirty()))input.dataset.unapplied=String(dirty());
   };
-  const drain=async()=>{
-    let current;do{current=pending;await current;}while(current!==pending);
-    if(failure)throw failure;
-    if(composing)throw Error('OPERATION_IN_PROGRESS');
-    if(!owned())throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+  const payload=()=>{const value={templateKey:key,desired,baseline:baseline.map(row=>({path:[row.path[0],{id:row.path[1].id},'name'],value:row.value}))};if(!validPayload(value))throw Error('INVALID_NAME_RECOVERY');return value;};
+  const validPayload=value=>value?.templateKey===key&&typeof value.desired==='string'&&value.desired.length<=4096&&Array.isArray(value.baseline)&&value.baseline.length>0&&value.baseline.length<=512&&value.baseline.length===baseline.length&&value.baseline.every(row=>row&&Array.isArray(row.path)&&row.path.length===3&&typeof row.path[0]==='string'&&typeof row.path[1]?.id==='string'&&row.path[2]==='name'&&typeof row.value==='string'&&baseline.some(own=>own.path[0]===row.path[0]&&own.path[1].id===row.path[1].id))&&new Set(value.baseline.map(row=>JSON.stringify(row.path))).size===value.baseline.length;
+  const scheduleRecovery=()=>{
+    if(!recovery||active||pendingCommand||!ownerCurrent())return;
+    const result=recovery.schedule(payload);if(!result.ok&&result.code!=='RECOVERY_NOT_READY'){recoveryNotice=storageMessage()+' '+result.code;if(result.code==='BASE_CHANGED')failure=Error('DRAFT_REVISION_CHANGED_RECONFIRM');}
   };
-  const binding={input,owner,generation,key,drain,clean:()=>!active&&!failure&&!composing&&baseline.every(row=>row.value===lastQueued)};
+  const persist=()=>{
+    if(!recovery||!input.isConnected||!ownerCurrent()||active||pendingCommand)return;
+    if(dirty())scheduleRecovery();const result=recovery.flush();
+    if(dirty()&&(!result.ok||!result.durable))recoveryNotice=storageMessage()+' '+result.code;
+    status();
+  };
+  const startRecovery=()=>{
+    recovery?.close();recoveryVerified=false;
+    if(!window.LocalDraftRecoverySession){recovery=null;recoveryNotice=t('本機恢復工具未載入；不會自動恢復或送出。','Chưa tải công cụ khôi phục; không tự khôi phục hay gửi.');return;}
+    try{const session=window.LocalDraftRecoverySession.create({getContext:context,onStatus:result=>{
+      if(recovery!==session||!ownerCurrent())return;
+      if(!result.ok)recoveryNotice=storageMessage()+' '+result.code;
+      else if(result.durable&&recoveryNotice.startsWith(storageMessage()))recoveryNotice='';
+      status();
+    }});recovery=session;
+      void session.ready.then(result=>{if(recovery!==session||!ownerCurrent())return;recoveryNotice=result.canRecover?'':t('此瀏覽器無法取得獨占恢復鎖；新輸入可本機保存，不能讀取或恢復其他執行階段記錄。','Không lấy được khóa độc quyền; có thể lưu nội dung mới nhưng không đọc hay khôi phục bản từ phiên khác.');if(dirty())scheduleRecovery();status();}).catch(()=>{if(recovery===session&&ownerCurrent()){recoveryNotice=storageMessage();status();}});
+    }catch(error){recovery=null;recoveryNotice=storageMessage()+' '+message(error);}
+  };
+  const clearOwnRecord=()=>{
+    if(!recovery)return;const cancelled=recovery.cancelScheduled();
+    // A fresh runtime cannot have written before its initial lease resolves.
+    if(cancelled.code==='RUNTIME_NOT_READY')return;requireResult(cancelled);
+    for(const source of ['memory','storage']){const preview=recovery.preview(recovery.key,source);if(preview.ok&&preview.kind==='local')requireResult(recovery.discard(preview.token));}
+  };
+  const validateLatest=result=>{
+    requireOwner();const flow=result.control?.workflow;
+    if(!flow||flow.generation!==generation||!Number.isSafeInteger(flow.revision))throw Error('RECOVERY_READBACK_REQUIRED');
+    if(result.permissions?.view!==true||result.permissions?.edit!==true)throw Error('FORBIDDEN');
+    if(flow.pendingId)throw Error('PENDING_LOCKED');recoveryVerified=true;return result;
+  };
+  const readLatest=async()=>{requireOwner();const result=await shared.readRecovery('PROCESS');return validateLatest(result);};
+  const ensureRecoveryReady=async session=>{
+    if(!session||session!==recovery)throw Error('LOCAL_RECOVERY_UNAVAILABLE');await session.ready;if(session.status().ready)return null;
+    if(!input.isConnected||!ownerCurrent()||session!==recovery)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+    const read=await shared.readRecovery('PROCESS');if(!input.isConnected||!ownerCurrent()||session!==recovery||read.permissions?.view!==true)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+    recoveryVerified=true;try{requireResult(await session.resume());requireViewer();return read;}finally{recoveryVerified=false;}
+  };
+  const claimPreview=async recordKey=>{
+    const session=recovery;await ensureRecoveryReady(session);requireViewer();if(session!==recovery)throw Error('LOCAL_CHANGED');requireResult(await session.claim(recordKey));requireViewer();if(session!==recovery)throw Error('LOCAL_CHANGED');return requireResult(session.preview(recordKey));
+  };
+  const restoreRecovery=async recordKey=>{
+    if(active||recoveryBusy||composing)throw Error('OPERATION_IN_PROGRESS');if(dirty())throw Error('LOCAL_CHANGES_PRESENT');
+    const session=recovery,revision=localRevision;recoveryBusy=true;status();
+    try{const resumedRead=await ensureRecoveryReady(session),preview=await claimPreview(recordKey);if(preview.kind!=='local'||!validPayload(preview.payload))throw Error('INVALID_NAME_RECOVERY');
+      const first=resumedRead?validateLatest(resumedRead):await readLatest(),pin=baseVersion(first.control.workflow);if(composing||localRevision!==revision||dirty()||recovery!==session)throw Error('LOCAL_CHANGED');if(preview.baseVersion!==pin)throw Error('BASE_CONFLICT');
+      const matches=preview.payload.baseline.every(row=>first.control.workflow.working?.[row.path[0]]?.find(item=>item.id===row.path[1].id)?.name===row.value);if(!matches)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+      if(!confirm(t('將以下記錄恢復到本機名稱輸入？尚不套用／儲存：','Khôi phục bản sau vào ô tên cục bộ? Chưa áp dụng/lưu:')+'\n\n'+preview.payload.desired))return false;
+      requireOwner();if(composing||localRevision!==revision||dirty()||recovery!==session)throw Error('LOCAL_CHANGED');
+      const second=await readLatest();if(baseVersion(second.control.workflow)!==pin||localRevision!==revision||composing||dirty()||recovery!==session)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      const restored=requireResult(session.restore(preview.token));if(!validPayload(restored.payload))throw Error('INVALID_NAME_RECOVERY');
+      baseline=restored.payload.baseline;desired=restored.payload.desired;edited=true;failure=null;localRevision++;input.value=desired;
+      recoveryVerified=false;scheduleRecovery();recoveryNotice=t('已明確恢復至本機；仍需按「套用名稱變更」才共享。','Đã khôi phục vào máy; vẫn cần nhấn Áp dụng tên để chia sẻ.');return true;
+    }finally{recoveryVerified=false;recoveryBusy=false;status();}
+  };
+  const discardRecovery=async recordKey=>{
+    if(active||recoveryBusy||composing)throw Error('OPERATION_IN_PROGRESS');recoveryBusy=true;status();
+    try{const preview=await claimPreview(recordKey);if(preview.kind!=='local')throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+      if(!confirm(t('只刪除這筆預覽過的本機恢復記錄？目前輸入及其他記錄不變。','Chỉ xóa bản khôi phục đã xem này? Giữ nội dung đang nhập và các bản khác.')))return false;
+      requireViewer();requireResult(recovery.discard(preview.token));return true;
+    }finally{recoveryVerified=false;recoveryBusy=false;status();}
+  };
+  const receiptRecovery=async recordKey=>{
+    if(active||recoveryBusy||composing)throw Error('OPERATION_IN_PROGRESS');recoveryBusy=true;status();
+    try{if(dirty()&&!pendingCommand)throw Error('LOCAL_CHANGES_PRESENT');const revision=localRevision,ownPending=pendingCommand;const preview=await claimPreview(recordKey);if(preview.kind!=='unknown'&&!(preview.kind==='resolved'&&preview.outcome==='receipt'))throw Error('RECEIPT_REQUIRED');
+      if(ownPending&&(ownPending.operationId!==preview.receipt.operationId||ownPending.generation!==preview.receipt.generation))throw Error('DIFFERENT_OPERATION_UNRESOLVED');
+      const result=await shared.receiptRecovery('PROCESS',preview.receipt);requireViewer();if(!ownPending&&(composing||dirty()||localRevision!==revision))throw Error('LOCAL_CHANGED');recoveryVerified=true;
+      requireResult(preview.kind==='resolved'?recovery.finalizeDisposition(preview.token):recovery.settleReceipt(preview.token,{receipt:result.receipt,workflow:{...result.control.workflow,scope:'master:PROCESS:name:'+key}}));
+      if(pendingCommand?.operationId===preview.receipt.operationId&&pendingCommand.generation===preview.receipt.generation){baseline=baseline.map(row=>({path:row.path,value:pendingSending}));edited=desired!==pendingSending;pendingCommand=null;pendingSending=null;failure=null;}
+      else{const latest=latestValues();if(latest.some(row=>typeof row.value!=='string'))throw Error('ENTITY_REMOVED');baseline=latest;desired=latest[0]?.value??'';edited=false;failure=null;input.value=desired;}
+      if(recovery.status().baseVersion!==baseVersion(shared.flow('PROCESS'))&&permission('edit')&&!shared.flow('PROCESS')?.pendingId){const rebased=requireResult(await recovery.rebaseLocal({baseVersion:baseVersion(shared.flow('PROCESS')),workflow:{...result.control.workflow,scope:'master:PROCESS:name:'+key},localRevision,payload:payload()}));if(!rebased.durable)throw Error('RECOVERY_NOT_DURABLE');}recoveryVerified=false;if(dirty())scheduleRecovery();return true;
+    }finally{recoveryVerified=false;recoveryBusy=false;status();}
+  };
+  const finalizeRejectedRecovery=()=>{
+    if(active||recoveryBusy||composing)throw Error('OPERATION_IN_PROGRESS');requireViewer();const cleanup=rejectionCleanup;
+    if(!cleanup||pendingCommand!==cleanup.command||!shared.isConfirmedRejection('PROCESS',cleanup.error,cleanup.command))throw Error('CONFIRMED_REJECTION_REQUIRED');
+    if(!recovery.wasRejected(cleanup.reservation,cleanup.error))requireResult(recovery.retryRejected(cleanup.reservation,cleanup.error));
+    if(shared.hasConfirmedRejection('PROCESS',cleanup.command))shared.finalizeRejected('PROCESS',cleanup.command);
+    requireViewer();if(shared.hasConfirmedRejection('PROCESS',cleanup.command)||pendingCommand!==cleanup.command)throw Error('REJECTION_CLEANUP_REQUIRED');
+    pendingCommand=null;pendingSending=null;rejectionCleanup=null;failure=cleanup.error;recoveryNotice=t('已完成原拒絕操作的本機清理；輸入保留，沒有重送。','Đã dọn thao tác bị từ chối; giữ nội dung, không gửi lại.');if(dirty())scheduleRecovery();status();return true;
+  };
+  const finalizeRecovery=async recordKey=>{
+    if(rejectionCleanup&&recordKey===recovery?.key)return finalizeRejectedRecovery();
+    if(active||recoveryBusy||composing)throw Error('OPERATION_IN_PROGRESS');
+    const preview=await claimPreview(recordKey);if(preview.kind!=='resolved')throw Error('LOCAL_FINALIZATION_REQUIRED');
+    if(pendingCommand&&(pendingCommand.operationId!==preview.receipt.operationId||pendingCommand.generation!==preview.receipt.generation))throw Error('DIFFERENT_OPERATION_UNRESOLVED');
+    if(!confirm(t('只完成這筆已確認本機記錄的清理？不恢復、不重送。','Chỉ hoàn tất dọn bản đã xác nhận? Không khôi phục hay gửi lại.')))return false;
+    requireViewer();if(preview.outcome==='receipt')return receiptRecovery(recordKey);
+    if(preview.outcome!=='aborted')throw Error('LOCAL_FINALIZATION_REQUIRED');
+    requireResult(recovery.finalizeDisposition(preview.token));if(pendingCommand?.operationId===preview.receipt.operationId&&pendingCommand.generation===preview.receipt.generation){pendingCommand=null;pendingSending=null;if(dirty())scheduleRecovery();status();}return true;
+  };
+  const showRecovery=async()=>{
+    if(recovery&&!recovery.status().ready)await ensureRecoveryReady(recovery);requireViewer();if(!recovery)throw Error('LOCAL_RECOVERY_UNAVAILABLE');
+    const inventory=recovery.discover();if(!inventory.ok&&inventory.code!=='SCAN_LIMIT')throw Error(inventory.code);
+    recoveryDialog?.remove();const dialog=document.createElement('dialog');recoveryDialog=dialog;dialog.className='process-reference-dialog';dialog.setAttribute('data-i18n-skip','true');
+    const heading=document.createElement('h3');heading.textContent=t('本機名稱恢復：先查看，再明確恢復','Khôi phục tên cục bộ: xem trước rồi xác nhận');dialog.append(heading);
+    const notice=document.createElement('p');notice.textContent=t('不會自動恢復、套用或送出；先取得獨占鎖才讀取預覽；其他分頁使用中的記錄不可讀取、恢復或刪除。','Không tự khôi phục, áp dụng hay gửi; phải lấy khóa độc quyền trước khi xem. Không đọc, khôi phục hay xóa bản đang dùng ở tab khác.');dialog.append(notice);
+    const detail=document.createElement('pre');detail.style.whiteSpace='pre-wrap';detail.style.overflowWrap='anywhere';dialog.append(detail);
+    for(const item of inventory.items||[]){
+      const line=document.createElement('section'),choose=document.createElement('button'),actions=document.createElement('span');choose.type='button';choose.className='button ghost';
+      choose.textContent=item.issue||t('預覽本機記錄','Xem bản cục bộ')+' · '+item.runtimeId;choose.disabled=item.claimable===false;
+      choose.onclick=async()=>{try{
+        const preview=await claimPreview(item.key);if(recoveryDialog!==dialog||!dialog.isConnected)return;requireViewer();actions.replaceChildren();
+        detail.textContent=preview.kind==='unknown'||preview.kind==='resolved'?t('僅保留原操作回執：','Chỉ giữ mã biên nhận cũ:')+' '+preview.receipt.operationId:preview.payload?.desired??'';
+        const choices=preview.kind==='unknown'?[[t('查原收據','Kiểm tra biên nhận'),receiptRecovery]]:preview.kind==='resolved'?[[t('完成已確認記錄清理','Hoàn tất dọn bản đã xác nhận'),finalizeRecovery]]:[[t('恢復至本機','Khôi phục cục bộ'),restoreRecovery],[t('放棄此記錄','Bỏ bản này'),discardRecovery]];
+        for(const [label,action] of choices){const button=document.createElement('button');button.type='button';button.className='button ghost';button.textContent=label;button.onclick=()=>Promise.resolve(action(item.key)).then(ok=>{if(ok)dialog.close();}).catch(error=>{if(ownerCurrent()&&dialog.isConnected)detail.textContent=message(error);});actions.append(button);}
+      }catch(error){if(ownerCurrent()&&dialog.isConnected)detail.textContent=message(error);}};line.append(choose,actions);dialog.append(line);
+    }
+    if(rejectionCleanup){const cleanup=document.createElement('button');cleanup.type='button';cleanup.className='button ghost';cleanup.textContent=t('完成已拒絕操作清理','Hoàn tất dọn thao tác bị từ chối');cleanup.onclick=()=>{try{if(finalizeRejectedRecovery())dialog.close();}catch(error){if(ownerCurrent())detail.textContent=message(error);}};dialog.append(cleanup);}
+    if(!inventory.items?.length){const empty=document.createElement('p');empty.textContent=t('目前沒有可供查看的記錄。','Hiện không có bản để xem.');dialog.append(empty);}
+    if(inventory.incomplete)notice.textContent+=' '+t('記錄清單未完整，請先處理可見記錄；不會刪除其他資料。','Danh sách chưa đầy đủ; xử lý các bản đang thấy, không xóa dữ liệu khác.');
+    const legacy=document.createElement('p');legacy.textContent=t('舊版暫存沒有獨占鎖證據，保留原樣但不讀取、不自動匯入。','Bản cũ không có bằng chứng khóa độc quyền; giữ nguyên, không đọc hay tự nhập.');dialog.append(legacy);
+    const close=document.createElement('button');close.type='button';close.className='button ghost';close.textContent=t('關閉','Đóng');close.onclick=()=>dialog.close();dialog.append(close);dialog.onclose=()=>{dialog.remove();if(recoveryDialog===dialog)recoveryDialog=null;};document.body.append(dialog);dialog.showModal();close.focus();return inventory;
+  };
+  const drain=async()=>{await pending.catch(()=>{});if(failure)throw failure;if(pendingCommand)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');if(composing||active||recoveryBusy)throw Error('OPERATION_IN_PROGRESS');requireOwner();if(dirty())throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');};
+  const apply=()=>{
+    if(active)return pending;if(composing||recoveryBusy)return Promise.reject(Error('OPERATION_IN_PROGRESS'));if(failure)return Promise.reject(failure);if(pendingCommand)return Promise.reject(Error('UNKNOWN_OPERATION_CHECK_REQUIRED'));
+    if(!owned())return Promise.reject(Error('DEPENDENCY_CHANGED_RECONFIRM'));
+    const sending=desired,changed=edited?baseline.filter(row=>row.value!==sending):[];if(!changed.length)return Promise.resolve();
+    active=true;status();pending=(async()=>{let reservation=null;try{
+      if(!recovery)throw Error('LOCAL_RECOVERY_UNAVAILABLE');await recovery.ready;requireOwner();
+      const command=shared.preparePatch('PROCESS',changed.map(row=>({op:'set',path:row.path,value:sending})),changed.map(row=>({path:row.path,value:row.value})));
+      const rejectionProof=shared.rejectionCapability('PROCESS',command),prepared=recovery.prepareWrite({operationId:command.operationId,generation:command.generation});
+      if(!prepared.ok||!prepared.durable){if(prepared.reservation)recovery.cancelPrepared(prepared.reservation);throw Error(prepared.code||'RECOVERY_STORAGE_UNAVAILABLE');}
+      reservation=prepared.reservation;
+      try{requireOwner();if(!permission('edit'))throw Error('FORBIDDEN');}
+      catch(error){recovery.cancelPrepared(reservation);throw error;}
+      pendingCommand=command;pendingSending=sending;
+      const response=await recovery.dispatchPrepared(reservation,command,preparedCommand=>shared.dispatchPreparedPatch('PROCESS',preparedCommand,{assertDispatch:sent=>recovery.assertDispatch(sent)}),{rejectionProof});requireOwner();const result=await shared.finishPreparedPatch('PROCESS',command,response);requireOwner();recoveryVerified=true;
+      const preview=requireResult(recovery.preview(recovery.key));requireResult(recovery.settleReceipt(preview.token,{receipt:result.receipt,workflow:{...result.control.workflow,scope:'master:PROCESS:name:'+key}}));pendingCommand=null;pendingSending=null;
+      baseline=baseline.map(row=>({path:row.path,value:sending}));edited=desired!==sending;failure=null;
+      if(!edited)window.ProcessNavigationForms?.acknowledge(input.closest('.template-name-field'));recoveryVerified=false;updateProcessSharedStatus();
+    }catch(error){if(reservation&&pendingCommand&&ownerCurrent()&&shared.isConfirmedRejection('PROCESS',error,pendingCommand)){if(recovery.wasRejected(reservation,error)&&!shared.hasConfirmedRejection('PROCESS',pendingCommand)){pendingCommand=null;pendingSending=null;rejectionCleanup=null;}else rejectionCleanup={command:pendingCommand,reservation,error};}else if(reservation&&recovery.wasRejected?.(reservation,error)){pendingCommand=null;pendingSending=null;}failure=error;if(owned())toast(message(error));throw error;}finally{recoveryVerified=false;active=false;if(dirty()&&!pendingCommand)scheduleRecovery();status();}})();return pending;
+  };
+  const discard=()=>{
+    if(active||composing||recoveryBusy)throw Error('OPERATION_IN_PROGRESS');if(pendingCommand||shared.client('PROCESS').hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+    if(!input.isConnected||!ownerCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(failure&&!shared.discardRejected('PROCESS',baseline.map(row=>row.path)))throw failure;
+    const latest=latestValues();if(latest.some(row=>typeof row.value!=='string'))throw Error('ENTITY_REMOVED');clearOwnRecord();baseline=latest;failure=null;edited=false;localRevision++;
+    desired=baseline[0]?.value??'';input.value=desired;window.ProcessNavigationForms?.acknowledge(input.closest('.template-name-field'));startRecovery();status();
+  };
+  const review=async()=>{
+    if(active||composing||recoveryBusy)throw Error('OPERATION_IN_PROGRESS');if(pendingCommand||shared.client('PROCESS').hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');requireOwner();
+    const read=await readLatest();requireOwner();if(composing)throw Error('OPERATION_IN_PROGRESS');
+    const latest=latestValues(),revision=shared.flow('PROCESS').revision,reviewedDesired=desired;if(latest.some(row=>typeof row.value!=='string'))throw Error('ENTITY_REMOVED');
+    const text=latest.map((row,i)=>`${row.path[0]}\n${t('原值','Ban đầu')}: ${baseline[i].value}\n${t('共用最新','Bản chung mới nhất')}: ${row.value}\n${t('我的輸入','Nội dung của tôi')}: ${reviewedDesired}`).join('\n\n');
+    if(!confirm(text+'\n\n'+t('保留我的輸入並使用上述最新值重新核對？之後仍需按套用才共享。','Giữ nội dung và đối chiếu bản mới? Vẫn cần nhấn Áp dụng để chia sẻ.')))return;
+    if(!owned()||composing||shared.flow('PROCESS').revision!==revision||desired!==reviewedDesired)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+    const session=recovery,choiceRevision=localRevision,confirmed=await readLatest();requireOwner();if(composing||localRevision!==choiceRevision||desired!==reviewedDesired||recovery!==session||baseVersion(confirmed.control.workflow)!==baseVersion(read.control.workflow))throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+    if(failure&&!shared.discardRejected('PROCESS',baseline.map(row=>row.path)))throw failure;recoveryVerified=true;try{const rebased=requireResult(await session.rebaseLocal({baseVersion:baseVersion(confirmed.control.workflow),workflow:{...confirmed.control.workflow,scope:'master:PROCESS:name:'+key},localRevision,payload:{templateKey:key,desired:reviewedDesired,baseline:latest}}));if(!rebased.durable)throw Error('RECOVERY_NOT_DURABLE');requireOwner();if(recovery!==session||localRevision!==choiceRevision)throw Error('LOCAL_CHANGED');}finally{recoveryVerified=false;}baseline=latest;failure=null;localRevision++;status();
+  };
+  const invalidateRecoveryView=()=>{if(!ownerCurrent()){recoveryDialog?.remove();recoveryDialog=null;}};
+  const binding={input,owner,generation,key,drain,apply,discard,closeRecovery(){persist();recovery?.close();recoveryDialog?.remove();for(const event of ['process-delivery-invalidated','process-sync-status','process-shared-state-updated'])window.removeEventListener?.(event,invalidateRecoveryView);},clean:()=>!active&&!failure&&!pendingCommand&&!recoveryBusy&&!composing&&!dirty()};
   const attach=()=>{
-    const attached=input;
-    input.processMasterNameFlush=drain;
-    const startComposition=()=>{if(input===attached)composing=true;};
-    const endComposition=()=>{if(input!==attached)return;composing=false;synchronize();};
-    input.oninput=event=>{if(input!==attached)return;if(event.isComposing)composing=true;if(!composing)synchronize();};
-    input.addEventListener('compositionstart',startComposition);
-    input.addEventListener('compositionend',endComposition);
-    detachComposition=()=>{attached.removeEventListener('compositionstart',startComposition);attached.removeEventListener('compositionend',endComposition);};
+    const attached=input;input.processMasterNameFlush=drain;input.processMasterNameApply=apply;input.processMasterNameDiscard=discard;input.processMasterNameReview=review;
+    input.processMasterNameListRecovery=()=>recovery?.discover();input.processMasterNamePreviewRecovery=claimPreview;input.processMasterNameRestoreRecovery=restoreRecovery;input.processMasterNameDiscardRecovery=discardRecovery;input.processMasterNameReceiptRecovery=receiptRecovery;input.processMasterNameFinalizeRecovery=finalizeRecovery;input.processMasterNameFinalizeRejectedRecovery=finalizeRejectedRecovery;input.processMasterNameShowRecovery=showRecovery;
+    const startComposition=()=>{if(input===attached&&owned()){composing=true;localRevision++;status();}};
+    const endComposition=()=>{if(input===attached&&owned()){composing=false;desired=input.value;edited=true;localRevision++;scheduleRecovery();status();}};
+    input.oninput=event=>{if(input!==attached||!owned())return;if(event.isComposing)composing=true;desired=input.value;edited=true;localRevision++;scheduleRecovery();status();};
+    input.addEventListener('compositionstart',startComposition);input.addEventListener('compositionend',endComposition);detachComposition=()=>{attached.removeEventListener('compositionstart',startComposition);attached.removeEventListener('compositionend',endComposition);};
+    const label=input.closest('.template-name-field');if(label?.after){bar=document.createElement('div');bar.className='process-name-apply-bar';bar.dataset.i18nSkip='true';const notice=document.createElement('span');notice.dataset.nameState='';notice.setAttribute('role','status');bar.append(notice);
+      for(const [action,zh,vi,callback] of [['apply','套用名稱變更','Áp dụng tên',apply],['discard','放棄未套用名稱','Bỏ tên chưa áp dụng',discard],['review','核對最新內容','Đối chiếu bản mới',review],['recovery','查看本機恢復','Xem khôi phục cục bộ',showRecovery]]){const button=document.createElement('button');button.type='button';button.className='button '+(action==='apply'?'signal':'ghost');button.dataset.nameAction=action;button.textContent=t(zh,vi);button.onclick=()=>Promise.resolve().then(callback).catch(error=>{if(ownerCurrent())toast(message(error));});bar.append(button);}label.after(bar);status();}
   };
-  binding.transfer=next=>{
-    const visible=input.value;
-    detachComposition();input.oninput=null;
-    input=next;binding.input=next;input.value=visible;attach();
-  };
-  processMasterNameBindings.add(binding);attach();
+  binding.transfer=next=>{const visible=composing?input.value:desired;edited=edited||composing;composing=false;desired=visible;detachComposition();input.oninput=null;bar?.remove();input=next;binding.input=next;input.value=visible;attach();};
+  processMasterNameBindings.add(binding);startRecovery();attach();for(const event of ['process-delivery-invalidated','process-sync-status','process-shared-state-updated'])window.addEventListener?.(event,invalidateRecoveryView);
 }
 async function flushProcessMasterNames() {
   const owner=window.ProcessSync?.identity,generation=window.MasterDataWorkflow.shared.flow('PROCESS')?.generation,waiting=[];
   for(const binding of processMasterNameBindings){
-    if(binding.owner!==owner||binding.generation!==generation){if(binding.input.isConnected)throw Error('DEPENDENCY_CHANGED_RECONFIRM');processMasterNameBindings.delete(binding);continue;}
-    if(!binding.input.isConnected&&binding.clean()){processMasterNameBindings.delete(binding);continue;}
+    if(binding.owner!==owner||binding.generation!==generation){if(binding.input.isConnected)throw Error('DEPENDENCY_CHANGED_RECONFIRM');binding.closeRecovery?.();processMasterNameBindings.delete(binding);continue;}
+    if(!binding.input.isConnected&&binding.clean()){binding.closeRecovery?.();processMasterNameBindings.delete(binding);continue;}
     waiting.push(binding.drain());
   }
   await Promise.all(waiting);
@@ -1779,6 +1924,10 @@ function validateProcessMasterSnapshot(snapshot) {
   return errors;
 }
 window.ProcessMasterVersioning = {
+  departureNames:{
+    dirty:()=>[...processMasterNameBindings].some(binding=>!binding.clean()),
+    discard(){for(const binding of processMasterNameBindings)if(!binding.clean())binding.discard();},
+  },
   validate: validateProcessMasterSnapshot,
   showVersion(id) {
     state.processMasterVersionId = id;
@@ -3603,7 +3752,7 @@ window.ProcessRuntimeProjection={
     currentUser={...stored,...actor};window.normalizePlatformUser?.(currentUser);
     state.published=readStore('publishedProcess',null);state.processes=[];state.editorByCategory={};state.selectedOperation=null;state.addingStage=null;state.editorProblemPlaceholder=null;state.editorVersionId=null;
     state.category=data.categories?.[0]||'';state.productCode=data.products?.[0]?.code||'';state.editorLine=routing.lines?.[0]?.code||'';state.masterStage=routing.lines?.[0]?.stages?.[0]?.code||'';
-    for(const binding of processMasterNameBindings){binding.input.oninput=binding.input.oncompositionstart=binding.input.oncompositionend=null;}processMasterNameBindings.clear();
+    for(const binding of processMasterNameBindings){binding.closeRecovery?.();binding.input.oninput=binding.input.oncompositionstart=binding.input.oncompositionend=null;}processMasterNameBindings.clear();
     window.ProcessRoles?.refresh?.();applyPlatformIdentity();
   }
 };

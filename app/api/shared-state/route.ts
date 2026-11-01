@@ -27,6 +27,23 @@ import {
 } from '@/lib/process-state';
 
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
+// Generic legacy writes have no fixed Save token. Keep existing pending cases
+// reviewable, but do not let an old client create a new submission by replacing
+// the aggregate. Only the changed workflow key is inspected, never all state.
+function hasNewLegacySubmission(key:string,beforeRaw:string|undefined,afterRaw:string|null){
+  if(!['masterDataControl','qualityMasterControl','approvalVersions'].includes(key)||afterRaw===null)return false;
+  const before=parse(beforeRaw,null),after=parse(afterRaw,null);
+  type Version={id?:unknown;scope?:unknown;status?:unknown};
+  const pending=(row:Version)=>row?.status==='pending'||row?.status==='pending-test';
+  const newPending=(old:unknown,next:unknown,scoped=false)=>{
+    if(!Array.isArray(next))return false;
+    const prior=new Set((Array.isArray(old)?old:[]).filter(pending).map((row:Version)=>JSON.stringify([scoped?row.scope:null,row.id])));
+    return next.some((row:Version)=>pending(row)&&!prior.has(JSON.stringify([scoped?row.scope:null,row.id])));
+  };
+  if(key==='approvalVersions')return newPending(before,after);
+  if(key==='masterDataControl')return newPending(before?.versions,after?.versions,true);
+  return Object.entries(after?.libraries||{}).some(([name,library])=>newPending(before?.libraries?.[name]?.versions,(library as {versions?:unknown})?.versions));
+}
 const processPresetKeys = [
   'entry',
   'manual',
@@ -204,6 +221,8 @@ export async function POST(request: Request) {
         { error: '目前角色沒有修改此資料的權限' },
         { status: 403, headers },
       );
+    if(hasNewLegacySubmission(key,state.values[key],value))
+      return Response.json({error:'WORKFLOW_V3_REQUIRED',code:'WORKFLOW_V3_REQUIRED',details:{reason:'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION'}},{status:409,headers});
     if (value === null) delete values[key];
     else values[key] = value as string;
   }

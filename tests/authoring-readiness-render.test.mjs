@@ -68,7 +68,7 @@ void test('separate ready calls with an owned flow still repaint after later mod
   assert.equal(f.paints().length,3);assert.equal(f.requests.length,1);
 });
 
-void test('owned-flow readiness does not swallow or wait for a different background read repaint',async()=>{
+void test('owned-flow readiness does not wait for a background read or silently replace the local canvas',async()=>{
   const f=fixture();await f.load();
   const poll=f.api.load();let completed=false;
   const ready=f.api.readyForEditor().then(()=>{completed=true;});
@@ -76,14 +76,14 @@ void test('owned-flow readiness does not swallow or wait for a different backgro
   assert.equal(f.paints().length,2);assert.equal(f.paints().at(-1).x,10);
   f.model.workflow.revision=2;f.model.workflow.working.workspaces[0].stages.A[0].x=99;
   f.requests[1].resolve();await poll;
-  assert.equal(f.paints().length,3);assert.equal(f.paints().at(-1).x,99);
+  assert.equal(f.paints().length,2);assert.equal(f.paints().at(-1).x,10);assert.equal(f.api.flow().working.workspaces[0].stages.A[0].x,99);
 });
 
-void test('ordinary polling retains changed-workspace repaint and metadata-only suppression',async()=>{
+void test('ordinary polling retains local workspace and does not redraw on shared changes',async()=>{
   const f=fixture();await f.load();f.model.workflow.revision=2;await f.load();
   assert.equal(f.paints().length,1);
   f.model.workflow.revision=3;f.model.workflow.working.workspaces[0].stages.A[0].x=99;await f.load();
-  assert.equal(f.paints().length,2);assert.equal(f.paints().at(-1).x,99);
+  assert.equal(f.paints().length,1);assert.equal(f.paints().at(-1).x,10);assert.equal(f.api.flow().working.workspaces[0].stages.A[0].x,99);
 });
 
 void test('approval process reads retain their own repaint without editor readiness',async()=>{

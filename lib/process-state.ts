@@ -229,24 +229,46 @@ export async function companyState(request:Request,state:State) {
   if(!reader)throw Error('LOGIN_REQUIRED');
   return projectCompanyState(publicState(state,reader.actor.id),reader.actor,reader.canRead);
 }
-export async function can(request: Request, state: State, key: string) {
-  const user = await identity(request, state);
-  if (!user) return false;
+type PermissionActor = Awaited<ReturnType<typeof identity>>;
+// One evaluator, shared by the ordinary per-call checker and the narrow AB
+// authorization phase. This preserves the exact primary/legacy/module policy.
+function permissionEvaluator(request:Request,state:State,user:PermissionActor){
+  if(!user)return (_key:string)=>false;
   const stored = readPlatformUsers(state.values.platformUsers).find((item) => normalizeUserId(item.id) === user.id);
   const role = stored ? effectiveAccess(stored, state.values) : null;
-  if(stored&&isPrimary(stored))return true;
-  // Preview actors retain existing business preview access, never account access.
-  if(!stored&&user.id==='admin')return !key.startsWith('users.')&&!key.startsWith('user-');
-  const workflowModule=moduleForURL(request.url),op=operationForLegacy(key);
-  if(role&&workflowModule&&op&&accessKeys.includes(workflowModule+'.'+op))return role.cells[workflowModule+'.'+op]===true;
-  if(role&&accessKeys.includes(key))return role.cells[key]===true;
-  if(role&&workflowModule&&key==='view:data'&&catalog.find(row=>row.id===workflowModule)?.view==='data')return role.cells[workflowModule+'.view']===true;
-  return (
-    !!role &&
-    (key.startsWith('view:')
-      ? role.views?.includes(key.slice(5))
-      : role.permissions?.includes(key))
-  );
+  const workflowModule=moduleForURL(request.url);
+  return (key:string)=>{
+    if(stored&&isPrimary(stored))return true;
+    // Preview actors retain existing business preview access, never account access.
+    if(!stored&&user.id==='admin')return !key.startsWith('users.')&&!key.startsWith('user-');
+    const op=operationForLegacy(key);
+    if(role&&workflowModule&&op&&accessKeys.includes(workflowModule+'.'+op))return role.cells[workflowModule+'.'+op]===true;
+    if(role&&accessKeys.includes(key))return role.cells[key]===true;
+    if(role&&workflowModule&&key==='view:data'&&catalog.find(row=>row.id===workflowModule)?.view==='data')return role.cells[workflowModule+'.view']===true;
+    return !!role&&(key.startsWith('view:')?role.views?.includes(key.slice(5)):role.permissions?.includes(key));
+  };
+}
+export async function can(request: Request, state: State, key: string) {
+  return permissionEvaluator(request,state,await identity(request,state))(key);
+}
+// Server-only, exact master AB opt-in. The handle lives for one request-local
+// selected State/phase only; it is never shared with another read or CAS retry.
+// End-of-phase and pre-persistence/CAS checks still perform fresh session reads.
+export async function createMasterABPermissionPhase(request:Request,state:State){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/master/workflow'||url.searchParams.get('scope')!=='AB')throw Error('INVALID_PERMISSION_PHASE');
+  const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
+  const auth=keys.map(key=>state.values[key]),revision=state.revision;
+  const headers=['cookie','oai-authenticated-user-email','oai-authenticated-user-id','x-process-admin-id','x-process-admin-password'];
+  const credentials=headers.map(key=>request.headers.get(key));
+  const basisCurrent=()=>state.revision===revision&&keys.every((key,index)=>state.values[key]===auth[index])&&headers.every((key,index)=>request.headers.get(key)===credentials[index]);
+  const initial=await identity(request,state),actor=basisCurrent()?initial:null;
+  const allowed=permissionEvaluator(request,state,actor);
+  return Object.freeze({actor,allowed:(key:string)=>basisCurrent()&&allowed(key),async current(){
+    if(!actor||!basisCurrent())return false;
+    const fresh=await identity(request,state);
+    return basisCurrent()&&!!fresh&&fresh.id===actor.id&&fresh.name===actor.name&&fresh.role===actor.role&&fresh.primary===actor.primary&&fresh.authMode===actor.authMode&&fresh.sessionType===actor.sessionType;
+  }});
 }
 export function publicState(state: State,actorId?:string) {
   const values = { ...state.values };

@@ -3,8 +3,9 @@
   const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
  const copy=v=>structuredClone(v),t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
  const enabled=()=>!!localStorage.getItem('processAuthoringControl');
- let inspection=null,inspectionOwner=null,inspectionRun=null,pendingSave=null,pendingSubmit=null,issueRows=[],beginRecovery=null,submitPreparation=null,savePreparation=null,activeIntent=null,localContextEpoch=0,submitStateUnconfirmed=null,canvasEditEpoch=0,lastError=null;
+ let inspection=null,inspectionOwner=null,inspectionRun=null,pendingSave=null,pendingSubmit=null,issueRows=[],beginRecovery=null,submitPreparation=null,savePreparation=null,activeIntent=null,localContextEpoch=0,submitStateUnconfirmed=null,canvasEditEpoch=0,lastError=null,remoteCanvasUpdate=false;
  let archiveVersions=null,control=null,localBase=null,permissions={},transport=null,actorId=null,loadedStamp=null,busy=false,loading=null,loadError='',loadIssues=[],validationSavedId=null,localFailure=false,rejectedPaths=[],savedEquivalent=false,rendering=false;
+ let canvasPostSource=null;
  const flow=()=>control?.workflow,modalOpen=()=>!!document.querySelector('#inspector-form')?.closest('dialog[open]');
  const identityStamp=()=>({id:host.ProcessSync?.identity?.id,epoch:host.ProcessSync?.identityGeneration?.(),identity:host.ProcessSync?.identity,delivery:host.ProcessSync?.captureDelivery?.()});
  const sameStamp=(a,b)=>!!a&&(!a.delivery||host.ProcessSync?.isCurrentDelivery?.(a.delivery)!==false)&&a.id===b.id&&(typeof a.epoch==='number'&&typeof b.epoch==='number'?a.epoch===b.epoch:a.identity===b.identity);
@@ -38,7 +39,7 @@ function client(){const id=host.ProcessSync?.identity?.id;if(!id)throw Error('LO
   }
   return changes;
  }
-function adopt(result,replace=true){if(result.control&&flow()&&result.control.workflow?.generation===flow().generation&&result.control.workflow.revision<flow().revision)return;if(result.permissions)permissions=result.permissions;if(result.control){control=result.control;savedEquivalent=!!flow()?.saved&&JSON.stringify(flow().saved.content)===JSON.stringify(flow().working);if(replace){localBase=copy(flow()?.working);state.editorByCategory={};for(const w of flow()?.working.workspaces||[])state.editorByCategory[w.category+':'+w.line]=copy(w.stages);}}if(!loadIssues.length||validationSavedId!==flow()?.saved?.id){loadError='';loadIssues=[];validationSavedId=null;}operationLedger()?.observe(flow());host.ProcessCanvasLocal?.accept(flow());host.VersionDraftUI?.updateSaved(document.querySelector('#authoring-v3-panel'),flow());}
+function adopt(result,replace=true){if(result.control&&flow()&&result.control.workflow?.generation===flow().generation&&result.control.workflow.revision<flow().revision)return;if(result.permissions)permissions=result.permissions;if(result.control){control=result.control;canvasPostSource={source:result,model:control};savedEquivalent=!!flow()?.saved&&JSON.stringify(flow().saved.content)===JSON.stringify(flow().working);if(replace){localBase=copy(flow()?.working);state.editorByCategory={};for(const w of flow()?.working.workspaces||[])state.editorByCategory[w.category+':'+w.line]=copy(w.stages);}}if(!loadIssues.length||validationSavedId!==flow()?.saved?.id){loadError='';loadIssues=[];validationSavedId=null;}operationLedger()?.observe(flow());host.ProcessCanvasLocal?.accept(flow());host.VersionDraftUI?.updateSaved(document.querySelector('#authoring-v3-panel'),flow());}
  function refresh(){if(rendering)return;rendering=true;try{render();if(state.view==='editor')editorAwaitingPaint=false;}finally{rendering=false;}}
  function error(e){loadError=e.message||'SYNC_FAILED';loadIssues=Array.isArray(e.details?.issues)?e.details.issues:[];validationSavedId=loadIssues.length?flow()?.saved?.id:null;lastError={requestId:e.requestId,operationId:e.operationId};toast(displayDraftError(loadError));panel();}
  function errorMarkup(){
@@ -101,8 +102,8 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   const canvas=stage&&document.querySelector(`[data-stage-canvas="${CSS.escape(stage)}"]`);(canvas||document.querySelector('#authoring-v3-panel'))?.scrollIntoView({block:'center'});toast(t('已切換到此問題的產品類別與線別；請依待補清單處理。','Đã mở đúng nhóm sản phẩm và chuyền; hãy xử lý theo danh sách cần bổ sung.'));
  }
  function load(){if(submitStateUnconfirmed)return loading;if(!enabled()||!['editor','approval'].includes(state.view)||state.view==='approval'&&state.approvalTab!=='process'||!host.ProcessSync?.identity?.id)return loading;client();if(loading||busy||departureOperation||modalOpen()||(document.querySelector('.gesture-active')||host.ProcessEditorV2?.interacting?.())||localFailure||editorChanged())return loading;const view=state.view,category=state.category,line=state.editorLine,tab=state.approvalTab,contextEpoch=localContextEpoch,contextCurrent=()=>contextEpoch===localContextEpoch&&state.view===view&&state.category===category&&state.editorLine===line&&state.approvalTab===tab;const delivery=host.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||host.ProcessSync.isCurrentDelivery(delivery);const pending=(async()=>{try{const previousWorkspace=JSON.stringify(state.editorByCategory[editorKey()]||{}),c=client(),owner=identityStamp(),f=ownFlow()?flow():null,result=await c.read(f?f.generation+':'+f.revision:'');if(c!==transport||actorId!==host.ProcessSync?.identity?.id||!sameStamp(owner,identityStamp())||!contextCurrent())return;if(result.permissions)permissions=result.permissions;
-    if(modalOpen()||(document.querySelector('.gesture-active')||host.ProcessEditorV2?.interacting?.())||editorChanged())return;if(!result.unchanged)adopt(result);loadedStamp=owner;beginRecovery=null;
-    if(!result.unchanged&&(state.view!=='editor'||previousWorkspace!==JSON.stringify(state.editorByCategory[editorKey()]||{}))&&['editor','approval'].includes(state.view)&&!modalOpen()&&!editorChanged()&&!(document.querySelector('.gesture-active')||host.ProcessEditorV2?.interacting?.())&&!document.activeElement?.matches('input,textarea,select')){
+    if(modalOpen()||(document.querySelector('.gesture-active')||host.ProcessEditorV2?.interacting?.())||editorChanged())return;if(!result.unchanged){const holdCanvas=state.view==='editor'&&!!localBase&&!!f;adopt(result,!holdCanvas);if(holdCanvas){remoteCanvasUpdate=true;host.ProcessCanvasLocal?.update?.();}}loadedStamp=owner;beginRecovery=null;
+    if(!remoteCanvasUpdate&&!result.unchanged&&(state.view!=='editor'||previousWorkspace!==JSON.stringify(state.editorByCategory[editorKey()]||{}))&&['editor','approval'].includes(state.view)&&!modalOpen()&&!editorChanged()&&!(document.querySelector('.gesture-active')||host.ProcessEditorV2?.interacting?.())&&!document.activeElement?.matches('input,textarea,select')){
       // The matching readiness caller paints this adopted canvas once, after
       // its required read settles. Ordinary polls keep their own repaint.
       if(!(currentEditorReadiness(editorReadiness)&&editorReadiness.read===pending))refresh();
@@ -129,27 +130,22 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   }).finally(()=>{if(editorReadiness===r)editorReadiness=null;});
   return r.promise;
  }
- async function sync(extraGuards=[]){if(submitStateUnconfirmed)throw Error('SUBMIT_STATE_UNCONFIRMED');if(!enabled())return false;
-  if(loading){
-   const requestActor=identityStamp(),requestCategory=state.category,requestLine=state.editorLine,
-    requestGeneration=flow()?.generation,requestWorkspace=ensureCategoryEditor();
-   await loading;
-   if(!sameStamp(requestActor,identityStamp()) || state.category!==requestCategory || state.editorLine!==requestLine ||
-    flow()?.generation!==requestGeneration || ensureCategoryEditor()!==requestWorkspace)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+ // Legacy editor hooks still call sync() after a local operation. Collect those
+ // changes into the journal; only ProcessCanvasLocal.sync may issue a POST.
+ async function sync(extraGuards=[]){
+  if(submitStateUnconfirmed)throw Error('SUBMIT_STATE_UNCONFIRMED');if(!enabled())return false;if(!host.ProcessAuthoringV3.canEditLocalCanvas())throw Error('PENDING_OR_PERMISSION_LOCKED');
+  const id=JSON.stringify([state.category,state.editorLine]),before=localBase?.workspaces.find(w=>w.id===id)?.stages||{},next=ensureCategoryEditor(),local=host.ProcessCanvasLocal;
+  for(const stage of new Set([...Object.keys(before),...Object.keys(next)])){
+   const oldRows=before[stage]||[],newRows=next[stage]||[],projected=local.project(id,stage,oldRows);
+   for(const old of oldRows)if(!newRows.some(o=>o.id===old.id))local.remove(id,stage,old.id);
+   for(const after of newRows){const old=oldRows.find(o=>o.id===after.id),current=projected.find(o=>o.id===after.id);if(!old){local.operation(id,stage,after,null);continue;}
+    const changed=authoringDiff({stages:{[stage]:[old]}},{stages:{[stage]:[after]}},['workspaces',{id}]).patches;
+    if(changed.length){const desired=copy(current||old);for(const field of Object.keys(after))if(JSON.stringify(after[field])!==JSON.stringify(old[field]))desired[field]=copy(after[field]);local.operation(id,stage,desired,current);}
+   }
   }
-  if(busy)throw Error('OPERATION_IN_PROGRESS');if(!flow())throw Error('AUTHORING_LOAD_REQUIRED');if(!permissions.edit||flow().pendingId)throw Error('PENDING_OR_PERMISSION_LOCKED');
-  const before=localBase||flow().working,next={...before,workspaces:[...before.workspaces]},id=JSON.stringify([state.category,state.editorLine]),stages=copy(ensureCategoryEditor()),index=next.workspaces.findIndex(w=>w.id===id),w={id,category:state.category,line:state.editorLine,stages};if(index<0)next.workspaces.push(w);else next.workspaces[index]=w;
-  // Older clients created empty stages from every line sharing this category.
-  const allowedStages=new Set(lineFor(state.editorLine).stages.map(s=>s.code)),priorStages=before.workspaces.find(row=>row.id===id)?.stages||{};for(const [stage,ops]of Object.entries(w.stages))if(!allowedStages.has(stage)&&!Object.hasOwn(priorStages,stage)&&Array.isArray(ops)&&!ops.length)delete w.stages[stage];
-  const changes=index<0?{patches:[{op:'insert',path:['workspaces'],value:w}],guards:[]}:authoringDiff(before.workspaces[index],w,['workspaces',{id}]),at=(value,path)=>path.reduce((v,p)=>typeof p==='string'?v?.[p]:Array.isArray(v)?v.find(row=>row.id===p.id):undefined,value);
-  // A remote user may already have applied the same normalized form value.
-  // Do not send an unchanged value or its stale dependency guard back to them.
-  const redundant=changes.patches.filter(p=>p.op==='set'&&JSON.stringify(at(flow().working,p.path))===JSON.stringify(p.value)).map(p=>JSON.stringify(p.path));
-  changes.patches=changes.patches.filter(p=>!redundant.includes(JSON.stringify(p.path)));changes.guards=changes.guards.filter(g=>!redundant.includes(JSON.stringify(g.path)));
-  if(!changes.patches.length){host.ProcessAuthoringV3?.cancelUnapplied();return true;}
-  changes.guards.push(...extraGuards);
-  busy=true;try{const c=client(),result=await trackedCommand(c,flow().generation,'apply',changes);adopt(result.control?result:await c.read());localFailure=false;inspectLater();return true;}
-  catch(e){localFailure=true;rejectedPaths=changes.patches.map(p=>p.path);error(e);throw e;}finally{busy=false;panel();}
+  // These dependency guards came from the legacy form; operation() retains its
+  // original entire-node guard, so no older entry gets a weaker field-only guard.
+  void extraGuards;state.editorByCategory[editorKey()]=copy(before);localFailure=false;panel();return true;
  }
  // A successful Begin is not an authority response. Recover missing authority
  // without replacing the acknowledged model or an unsynchronized canvas journal.
@@ -171,8 +167,8 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   const c=client(),owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine,before=flow(),workspace=state.editorByCategory[editorKey()],missing=!ownFlow()||typeof permissions.edit!=='boolean';
   const current=()=>beginOwner(c,owner,view,category,line)&&flow()===before&&state.editorByCategory[editorKey()]===workspace;
   try{const ledger=operationLedger();if(ledger?.hasRevertRecovery?.())throw Error(ledger.inspect().reason||t('請先核對放棄操作的原收據；結果未確認前不可開始新的共用修改。','Hãy kiểm tra biên nhận bỏ thay đổi trước; không bắt đầu chỉnh sửa chung mới khi chưa xác nhận kết quả.'));const result=await c.begin();if(!current())return false;
-   if(host.ProcessCanvasLocal?.dirty()||modalOpen()||editorChanged())throw Error('CANVAS_UNSYNCHRONIZED');
-   adopt(result);if(!missing)return true;
+   if(host.ProcessCanvasLocal?.pending?.()||modalOpen()||editorChanged())throw Error('CANVAS_UNSYNCHRONIZED');
+   adopt(result,!host.ProcessCanvasLocal?.dirty());if(!missing)return true;
    permissions={};loadedStamp=null;
    const r=beginRecovery={client:c,owner,view,category,line,flow:flow(),generation:flow()?.generation,flowRevision:flow()?.revision,pendingId:flow()?.pendingId,workspace:state.editorByCategory[editorKey()],stateRevision:result.revision};
    if(!Number.isSafeInteger(r.stateRevision)||r.stateRevision<0){beginRecovery=null;throw Error('AUTHORING_AUTHORITY_READ_REQUIRED');}
@@ -192,14 +188,14 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   if(name==='save'){
    const c=client();if(busy){if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');throw Error('OPERATION_IN_PROGRESS');}const r={client:c,owner:identityStamp(),generation:flow()?.generation,contextEpoch:localContextEpoch},owns=()=>r.client===transport&&sameStamp(r.owner,identityStamp())&&!host.ProcessSync?.requiresReload&&r.contextEpoch===localContextEpoch;
    savePreparation=r;busy=true;panel();
-   try{if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');if(c.hasSyncFailures()||localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');
-    if(host.ProcessCanvasLocal?.dirty()){const canvas=await host.ProcessCanvasLocal.beforeSave();if(canvas===null)return false;detail={...detail,...canvas};}
+   try{if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');if(c.hasSyncFailures()||localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');const preparedDeparture=departure&&currentDeparture(departure)&&host.ProcessEditorV2?.departure?.inspect?.().state==='clean'&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty();if((modalOpen()&&!preparedDeparture)||editorChanged())throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(departure&&!preparedDeparture)throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+    if(!departure&&host.ProcessCanvasLocal?.beforeSave){const canvas=await host.ProcessCanvasLocal.beforeSave();if(canvas===null)return false;detail={...detail,...canvas};}
     if(loading)await loading;if(!owns())return false;if(flow()?.generation!==r.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
    }catch(e){if(owns())error(e);return false;}finally{if(savePreparation===r){savePreparation=null;if(owns()){busy=false;panel();}}}
   }else if(loading)await loading;
   if(busy)throw Error('OPERATION_IN_PROGRESS');
   busy=true;panel();let currentBegin=()=>true,intent=null;try{const c=client();if(['save','submit'].includes(name)){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine,contextEpoch=localContextEpoch;intent={client:c,owner,contextEpoch,generation:flow()?.generation,scope:flow()?.scope,revision:flow()?.revision,caseIds:(flow()?.cases||[]).map(row=>row.id)};activeIntent=intent;currentBegin=()=>activeIntent===intent&&contextEpoch===localContextEpoch&&beginOwner(c,owner,view,category,line);}if(name==='begin'){const owner=identityStamp(),view=state.view,category=state.category,line=state.editorLine;currentBegin=()=>beginOwner(c,owner,view,category,line);}if(detail.canvasGeneration&&detail.canvasGeneration!==flow()?.generation)throw Error('CANVAS_GENERATION_CHANGED');delete detail.canvasGeneration;if(name==='begin'){if(!await beginDraft())return;}else{
-    if(name==='save'){if(localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');await c.flush();const preparedDeparture=departure&&currentDeparture(departure)&&host.ProcessEditorV2?.departure?.inspect?.().state==='clean'&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty();if(departure&&!preparedDeparture)throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(modalOpen()&&!preparedDeparture&&!confirm(t('只儲存已同步內容，不包含尚未套用表單。繼續？','Chỉ lưu nội dung đã đồng bộ, không gồm biểu mẫu chưa áp dụng. Tiếp tục?')))return;}
+    if(name==='save'){if(localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');await c.flush();const preparedDeparture=departure&&currentDeparture(departure)&&host.ProcessEditorV2?.departure?.inspect?.().state==='clean'&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty();if(departure&&!preparedDeparture)throw Error('DEPENDENCY_CHANGED_RECONFIRM');if((modalOpen()&&!preparedDeparture)||editorChanged())throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(host.ProcessCanvasLocal?.dirty())throw Error('CANVAS_UNSYNCHRONIZED');}
     let result;
     if(name==='save'){
      // retain(command) also exists during a normal pending POST. Mask only that
@@ -299,16 +295,19 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
  async function submitSaved(){
   if(ownIntentPending()){panel();return false;}if(submitStateUnconfirmed)throw Error('SUBMIT_STATE_UNCONFIRMED');const c=client();if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');if(c.hasSyncFailures()||localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');if(busy)throw Error('OPERATION_IN_PROGRESS');
   const f=flow();if(!ownFlow()||host.ProcessSync?.requiresReload||!f?.saved||f.pendingId||permissions.submit!==true||permissions.view!==true||!savedInspectionReady())throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+  if(modalOpen()||editorChanged())throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(host.ProcessCanvasLocal?.dirty())throw Error('CANVAS_UNSYNCHRONIZED');
+  if(host.ProcessCanvasLocal?.isReady?.()===false)throw Error('CANVAS_LOAD_REQUIRED');
+  const submission=host.captureSharedDraftSubmission(f);
   const r={client:c,owner:identityStamp(),contextEpoch:localContextEpoch,flow:f,generation:f.generation,revision:f.revision,savedId:f.saved.id,view:state.view,category:state.category,line:state.editorLine,workspace:ensureCategoryEditor(),editor:JSON.stringify(ensureCategoryEditor()),canvasEpoch:canvasEditEpoch};
   const owns=()=>r.contextEpoch===localContextEpoch&&r.client===transport&&actorId===r.owner.id&&sameStamp(r.owner,identityStamp())&&!host.ProcessSync?.requiresReload;
   const current=()=>owns()&&state.view===r.view&&state.category===r.category&&state.editorLine===r.line&&flow()===r.flow&&flow()?.generation===r.generation&&flow()?.revision===r.revision&&flow()?.saved?.id===r.savedId&&!flow()?.pendingId&&permissions.submit===true&&permissions.view===true&&c.permission('submit')!==false&&c.permission('view')!==false&&ensureCategoryEditor()===r.workspace&&JSON.stringify(ensureCategoryEditor())===r.editor&&canvasEditEpoch===r.canvasEpoch;
   const check=()=>{if(c.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');if(c.hasSyncFailures()||localFailure)throw Error('SYNC_FAILED_RETRY_REQUIRED');if(!current())throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');};
   const missingCount=inspection.saved.issues.length;submitPreparation=r;busy=true;panel();
   try{
-   const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(control.versions.find(v=>v.status==='draft'),f),t('整個製程平台','Toàn bộ nền tảng quy trình'),{missingCount});if(!reason)return;
+   const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(control.versions.find(v=>v.status==='draft'),f),t('整個製程平台','Toàn bộ nền tảng quy trình'),{missingCount,savedVersion:{id:submission.savedId,revision:submission.expectedRevision,at:f.saved.at,actor:f.saved.actor?.name}});if(!reason)return;
    check();if(loading)await loading;check();await inspect();check();if(!savedInspectionReady())throw Error('CONTENT_ISSUES_SNAPSHOT_MISMATCH');
    // No await between releasing this preparation and the existing guarded action.
-   submitPreparation=null;busy=false;await action('submit',{savedId:r.savedId,reason});
+   submitPreparation=null;busy=false;await action('submit',{...submission,reason});
   }catch(e){if(owns())error(e);}finally{if(submitPreparation===r){submitPreparation=null;if(owns()){busy=false;panel();}}}
  }
  async function reviewDecision(name,caseId){
@@ -356,7 +355,7 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   let target=document.querySelector('#authoring-v3-panel');if(!target){target=document.createElement('section');target.id='authoring-v3-panel';target.className='editor-version-panel';target.dataset.i18nSkip='true';const anchor=state.view==='editor'?document.querySelector('.editor-toolbar'):(document.querySelector('#approval-panel-process')||document.querySelector('.approval-page'));if(!anchor)return;if(state.view==='approval')anchor.replaceChildren(target);else anchor.after(target);}
   const f=flow(),pending=f?.pendingId,open=control?.versions.some(v=>v.status==='draft'),locked=!!submitStateUnconfirmed||!f||!permissions.edit||!!pending||!open,revertRecoveryPending=operationLedger()?.hasRevertRecovery?.()===true;
   const effective=control?.versions.find(v=>v.id===control.activeVersionId),metadata=`<p>${t('目前正式版本','Phiên bản có hiệu lực')}: ${escapeHtml(effective?'V'+effective.number:'—')} · ${t('目前查看','Đang xem')}: ${pending?t('送審固定內容','Nội dung gửi duyệt cố định'):locked?t('唯讀','Chỉ đọc'):t('共用工作內容','Nội dung làm việc chung')}</p>${f?.saved?`<p>${t('最後成功儲存','Lần lưu thành công cuối')}: ${escapeHtml(f.saved.actor.name)} · ${escapeHtml(f.saved.at)} · ${t('修訂','Sửa đổi')} ${f.saved.revision}<br>${savedEquivalent&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty()?t('已儲存；無後續同步修改','Đã lưu; không có thay đổi đồng bộ sau đó'):t('已同步；有尚未手動儲存內容','Đã đồng bộ; có nội dung chưa lưu thủ công')}</p>`:''}`;
-const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nền tảng quy trình · Bản nháp chung')}</h3><p>${pending?t('待審鎖定','Đang chờ duyệt · đã khóa'):f?.saved?t('已儲存版本與未儲存工作分開','Bản đã lưu và thay đổi chưa lưu được tách riêng'):t('尚未建立 V3 儲存快照；舊已儲存版本仍保留於封存，目前工作內容可能含未儲存修改','Chưa tạo bản lưu V3; các bản đã lưu trước đây vẫn còn trong kho cũ. Nội dung đang làm có thể gồm thay đổi chưa lưu')}</p><p role="status">${escapeHtml(loadError ? displayDraftError(loadError) : t('已同步','Đã đồng bộ'))}</p>${errorMarkup()}${issueMarkup()}</div><div class="toolbar">${!f||!open&&!pending?`<button class="button" data-av3="begin" ${revertRecoveryPending?'disabled':''}>${t('開始共用修改','Bắt đầu sửa chung')}</button>`:''}<button class="button" data-av3="save" ${locked?'disabled':''}>${t('儲存共用草稿','Lưu bản nháp chung')}</button><button class="button signal" data-av3="submit" ${locked||!f?.saved||!permissions.submit||!savedInspectionReady()?'disabled':''}>${t('送出已儲存版本','Gửi bản đã lưu')}</button>${pending&&permissions.withdraw?`<button class="button" data-av3="withdraw">${t('撤回','Rút hồ sơ')}</button>`:''}${permissions.history?`<button class="button" data-av3="legacy">${t('查看舊已儲存版本／封存','Xem bản đã lưu / kho phiên bản cũ')}</button><button class="button" data-av3="history">${t('歷史與還原','Lịch sử / khôi phục')}</button>`:''}${submitStateUnconfirmed?`<button class="button ghost" data-av3="confirm-submit-state">${t('重新讀取送審狀態（唯讀）','Đọc lại trạng thái gửi duyệt (chỉ đọc)')}</button>`:''}<button class="button ghost" data-av3="retry">${recoveryKind()}</button></div>`;
+const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nền tảng quy trình · Bản nháp chung')}</h3><p>${pending?t('待審鎖定','Đang chờ duyệt · đã khóa'):f?.saved?t('已儲存版本與未儲存工作分開','Bản đã lưu và thay đổi chưa lưu được tách riêng'):t('尚未建立 V3 儲存快照；舊已儲存版本仍保留於封存，目前工作內容可能含未儲存修改','Chưa tạo bản lưu V3; các bản đã lưu trước đây vẫn còn trong kho cũ. Nội dung đang làm có thể gồm thay đổi chưa lưu')}</p><p role="status">${escapeHtml(loadError ? displayDraftError(loadError) : t('已同步','Đã đồng bộ'))}</p>${remoteCanvasUpdate?'<p role="status">'+t('共享內容有更新；目前製作畫面保留。可唯讀查看最新共享內容，衝突將在同步時核對。','Nội dung chung đã cập nhật; giữ nguyên màn hình đang soạn. Có thể xem bản chung chỉ đọc; kiểm tra xung đột khi đồng bộ.')+'</p>':''}${errorMarkup()}${issueMarkup()}</div><div class="toolbar">${!f||!open&&!pending?`<button class="button" data-av3="begin" ${revertRecoveryPending?'disabled':''}>${t('開始共用修改','Bắt đầu sửa chung')}</button>`:''}<button class="button" data-av3="save" ${locked?'disabled':''}>${t('儲存共用草稿','Lưu bản nháp chung')}</button><button class="button signal" data-av3="submit" ${locked||!f?.saved||!permissions.submit||!savedInspectionReady()?'disabled':''}>${t('送出已儲存版本','Gửi bản đã lưu')}</button>${pending&&permissions.withdraw?`<button class="button" data-av3="withdraw">${t('撤回','Rút hồ sơ')}</button>`:''}${permissions.history?`<button class="button" data-av3="legacy">${t('查看舊已儲存版本／封存','Xem bản đã lưu / kho phiên bản cũ')}</button><button class="button" data-av3="history">${t('歷史與還原','Lịch sử / khôi phục')}</button>`:''}${submitStateUnconfirmed?`<button class="button ghost" data-av3="confirm-submit-state">${t('重新讀取送審狀態（唯讀）','Đọc lại trạng thái gửi duyệt (chỉ đọc)')}</button>`:''}<button class="button ghost" data-av3="retry">${recoveryKind()}</button></div>`;
   const completeMarkup='<section class="av3-header">'+markup.replace('</h3>','</h3>'+metadata).replace('role="status"','id="authoring-live-status" role="status"')+'</section>';
   if(target.__authoringMarkup!==completeMarkup){target.innerHTML=completeMarkup;target.__authoringMarkup=completeMarkup;for(const b of target.querySelectorAll('[data-av3]'))b.__authoringDisabled=b.disabled;}
   target.querySelector('[role="status"]').textContent=loadError ? displayDraftError(loadError) : '';
@@ -388,7 +387,7 @@ const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nề
   target.querySelector('[role="status"]').textContent=loadError?displayDraftError(loadError):inspectionStatus();
   host.VersionDraftUI.updateSaved(target,f,localUnsaved);
   host.VersionDraftUI.updateSync(target,busy,!!loadError||localFailure||client().hasUnknown()&&!admittedCommandPending());
-  host.ProcessEditorV2?.updateControls?.();host.ProcessCanvasLocal?.update();
+  host.ProcessEditorV2?.updateControls?.();host.ProcessCanvasLocal?.update?.();
   if(state.view==='editor'){const page=document.querySelector('.editor-page');page?.classList.toggle('editor-readonly',locked);page?.classList.toggle('editor-submitted-lock',locked);
    document.querySelectorAll('.add-operation,.auto-layout-stage,.arrange-all-stages,.operation-delete,#undo-layout,[data-add-template],[data-add-custom]').forEach(e=>{e.disabled=locked||busy||e.id==='undo-layout'&&!state.positionUndo;e.style.pointerEvents=locked||busy?'none':'';});
    const save=document.querySelector('#save-process');if(save){save.hidden=true;save.disabled=locked||busy;save.onclick=()=>action('save');}
@@ -396,6 +395,87 @@ const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nề
   }
  }
  function bindMutations(){if(!enabled())return;document.querySelectorAll('[data-add-template],[data-add-custom],.operation-delete,#delete-operation').forEach(button=>{const old=button.onclick;if(old?.authoringV3)return;const handler=async event=>{try{if(loading)await loading;if(busy)throw Error('OPERATION_IN_PROGRESS');if(!permissions.edit||flow()?.pendingId)throw Error('PENDING_OR_PERMISSION_LOCKED');await old?.call(button,event);await sync();refresh();}catch(e){error(e);}};handler.authoringV3=true;button.onclick=handler;});}
+ // Explicit local-recovery reads do not adopt, repaint, or replace local input.
+ // Only this module can mint a single-use admission for its authoritative GET.
+ const canvasRecoveryReads=new WeakMap(),canvasRecoveryPins=new WeakMap(),canvasPostPins=new WeakMap(),canvasPostReads=new WeakMap();
+ const canvasRecoveryView=()=>({view:state.view,category:state.category,line:state.editorLine,tab:state.approvalTab,workspace:JSON.stringify([state.category,state.editorLine]),stage:host.ProcessEditorV2?.currentCanvas?.()?.stage??null});
+ function recoveryAuthority(){
+  const current=ownFlow()&&!host.ProcessSync?.requiresReload,model=current?flow():null;
+  return {canView:current&&permissions.view===true,canEdit:current&&permissions.edit===true&&!submitStateUnconfirmed&&!!control?.versions.some(v=>v.status==='draft'),pending:!!model?.pendingId,hasOpenForm:modalOpen()||host.ProcessEditorV2?.departure?.inspect?.().hasDialog===true,interacting:host.ProcessEditorV2?.interacting?.()===true,busy:busy||!!departureOperation,
+   generation:model?.generation??null,revision:model?.revision??null,savedId:model?.saved?.id??null,contextEpoch:localContextEpoch,localEditEpoch:canvasEditEpoch,currentView:canvasRecoveryView()};
+ }
+ function canvasRecoveryPin(){
+  const authority=recoveryAuthority();if(!enabled()||!authority.canView||state.view!=='editor'||!Number.isSafeInteger(authority.revision)||!authority.generation||!transport)throw Error('CANVAS_RECOVERY_AUTHORITY_REQUIRED');
+  return {client:transport,owner:identityStamp(),contextEpoch:localContextEpoch,view:canvasRecoveryView(),generation:authority.generation,revision:authority.revision,localEditEpoch:canvasEditEpoch,localBase,permissionSignature:JSON.stringify(permissions)};
+ }
+ function requireCanvasRecovery(pin,result){
+  if(pin.client!==transport||pin.owner.identity!==host.ProcessSync?.identity||!sameStamp(pin.owner,identityStamp())||host.ProcessSync?.requiresReload||pin.contextEpoch!==localContextEpoch||JSON.stringify(pin.view)!==JSON.stringify(canvasRecoveryView())||!ownFlow())throw Error('CANVAS_RECOVERY_CONTEXT_CHANGED');
+  const current=flow(),next=result?.control?.workflow;
+  if(JSON.stringify(permissions)!==pin.permissionSignature)throw Error('CANVAS_RECOVERY_AUTHORITY_CHANGED');
+  if(current?.generation!==pin.generation||!Number.isSafeInteger(current.revision)||current.revision<pin.revision)throw Error('CANVAS_RECOVERY_VERSION_CHANGED');
+  if(result&&(result.permissions?.view!==true||!Array.isArray(result.control?.versions)||!next?.working||!Array.isArray(next.working.workspaces)||next.generation!==pin.generation||!Number.isSafeInteger(next.revision)||next.revision<Math.max(pin.revision,current.revision)||next.revision===current.revision&&((next.saved?.id??null)!==(current.saved?.id??null)||(next.pendingId??null)!==(current.pendingId??null))))throw Error('CANVAS_RECOVERY_READBACK_REQUIRED');
+ }
+ function captureCanvasRecovery(){const token=Object.freeze({});canvasRecoveryPins.set(token,canvasRecoveryPin());return token;}
+ async function readCanvasRecovery(token){
+  const pin=token===undefined?canvasRecoveryPin():canvasRecoveryPins.get(token);if(!pin)throw Error('CANVAS_RECOVERY_PIN_REQUIRED');requireCanvasRecovery(pin);
+  if(permissions.view!==true)throw Error('CANVAS_RECOVERY_AUTHORITY_REQUIRED');
+  const result=await pin.client.read();requireCanvasRecovery(pin,result);
+  // The caller can inspect its copy without gaining write access to the private
+  // response retained for adoption. No JSON/raw-media serialization is needed.
+  const trusted={control:copy(result.control),permissions:copy(result.permissions)},preview=copy(trusted);
+  canvasRecoveryReads.set(preview,{pin,trusted,source:result});return preview;
+ }
+ // Separate ACK admission: never brands a POST as an authoritative GET.
+ function prepareCanvasPost(token,target,command){
+  try{const pin=canvasRecoveryPins.get(token);if(!pin)return null;requireCanvasRecovery(pin);
+   const selected=JSON.parse(command.source.slice('canvas-v2:'.length));
+   if(canvasPostSource?.model!==control||permissions.view!==true||permissions.edit!==true||flow().pendingId||busy||selected[0]!==pin.view.workspace||selected[1]!==pin.view.stage)return null;
+   const anchor=host.SharedDraftCanvasAuthority?.capture(transport,canvasPostSource.source,control),armed=anchor&&host.SharedDraftCanvasAuthority.arm(target,command,anchor);if(!armed)return null;
+   const ticket=Object.freeze({});canvasPostPins.set(ticket,{pin,target,command,armed,model:control});return ticket;
+  }catch{return null;}
+ }
+ function previewCanvasPost(ticket,result){
+  try{const p=canvasPostPins.get(ticket);if(!p||p.model!==control)return null;requireCanvasRecovery(p.pin);
+   const proof=host.SharedDraftCanvasAuthority?.verify(p.target,result,p.command,p.armed,control);if(!proof||proof.response!==result)return null;
+   const trusted={control:copy(result.control),permissions:copy(proof.priorPermissions)};requireCanvasRecovery(p.pin,trusted);
+   const preview=copy(trusted);canvasPostReads.set(preview,{p,ticket,result,trusted});return preview;
+  }catch{return null;}
+ }
+ function acceptCanvasPost(preview){
+  const a=canvasPostReads.get(preview),p=a?.p;if(!p||canvasPostPins.get(a.ticket)!==p||p.model!==control)throw Error('CANVAS_POST_AUTHORITY_REQUIRED');
+  requireCanvasRecovery(p.pin,a.trusted);
+  const successor=host.SharedDraftCanvasAuthority?.accept(transport,p.target,a.result,p.command,p.armed,control);if(!successor)throw Error('CANVAS_POST_AUTHORITY_REQUIRED');
+  canvasPostReads.delete(preview);canvasPostPins.delete(a.ticket);adopt(a.trusted,false);canvasPostSource={source:successor,model:control};remoteCanvasUpdate=true;host.ProcessEditorV2?.updateControls?.();return recoveryAuthority();
+ }
+ function acceptCanvasRecovery(preview,options={}){
+  const admission=canvasRecoveryReads.get(preview);if(!admission)throw Error('CANVAS_RECOVERY_READ_REQUIRED');
+  requireCanvasRecovery(admission.pin,admission.trusted);
+  const replace=options.replaceEditor===true;
+  if(replace&&(modalOpen()||host.ProcessEditorV2?.departure?.inspect?.().hasDialog===true||host.ProcessEditorV2?.interacting?.()||editorChanged()||admission.pin.localEditEpoch!==canvasEditEpoch||admission.pin.localBase!==localBase))throw Error('CANVAS_RECOVERY_LOCAL_CHANGED');
+  canvasRecoveryReads.delete(preview);adopt(admission.trusted,replace);canvasPostSource={source:admission.source,model:control};remoteCanvasUpdate=!replace;host.ProcessEditorV2?.updateControls?.();return recoveryAuthority();
+ }
+ async function readSharedCanvas(workspace,stage){
+  const c=client(),stamp=identityStamp(),generation=flow()?.generation,result=await c.read();if(c!==transport||!sameStamp(stamp,identityStamp())||result.permissions?.view!==true||flow()?.generation!==generation)throw Error('LOGIN_REQUIRED');
+  const shared=result.control?.workflow;if(!shared?.working||shared.generation!==generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+  const list=shared.working.workspaces?.find(w=>w.id===workspace)?.stages?.[stage]||[],local=host.ProcessCanvasLocal;
+  const review=local.pending()?null:local.prepareReview(workspace,stage,shared.working);
+  const dialog=document.createElement('dialog');dialog.className='pe-shared-preview';dialog.dataset.i18nSkip='true';
+  const add=(tag,text,parent=dialog)=>{const node=document.createElement(tag);node.textContent=text;parent.append(node);return node;};
+  add('h2',t('核對目前畫布 · 不會自動同步','Đối chiếu sơ đồ · không tự đồng bộ'));add('p',workspace+' / '+stage+' · '+t('共享修訂 ','Bản chung ')+shared.revision);
+  const labels={name:['名稱','Tên'],number:['編號','Mã'],x:['水平位置','Vị trí ngang'],y:['垂直位置','Vị trí dọc'],nextIds:['連線出口','Liên kết ra'],productCodes:['適用產品','Sản phẩm'],bomSelections:['BOM 分配','Phân công BOM'],machineIds:['設備','Máy'],instructionSteps:['作業項目','Mục thao tác'],mediaItems:['照片／影片','Ảnh / video'],ipqcAssignments:['IPQC 分配','Phân công IPQC'],operation:['整個方塊相依內容','Nội dung phụ thuộc của bước'],$node:['新增／刪除方塊','Thêm / xóa bước']};
+  const label=key=>labels[key]?t(...labels[key]):key;
+  const format=value=>value===undefined||value===null?t('無／已移除','Không có / đã xóa'):typeof value==='string'?value:typeof value==='object'?JSON.stringify(value,null,2):String(value);
+  if(review?.changes.length){add('p',t('請核對本畫布這整批變更。採用最新會撤掉這批本機變更；保留我的變更只更新核對基準，之後仍須手動同步。其他畫布與未完成表單保留。','Kiểm tra cả lô thay đổi của sơ đồ này. Dùng bản mới sẽ bỏ lô cục bộ; giữ bản của tôi chỉ cập nhật cơ sở đối chiếu, vẫn cần đồng bộ thủ công. Giữ các sơ đồ khác và biểu mẫu chưa hoàn tất.'));
+   for(const change of review.changes){const section=add('section',''),operation=list.find(o=>o.id===change.id);add('h3',(operation?.number||change.id)+' · '+label(change.field)+(change.conflict?t(' · 有衝突',' · Xung đột'):''),section);const values=add('div','',section);values.className='pe-review-values';for(const [title,value]of [[t('原值','Giá trị gốc'),change.before],[t('共享最新','Bản chung mới'),change.latest],[t('我的內容','Nội dung của tôi'),change.mine]]){const cell=add('section','',values);add('h4',title,cell);add('pre',format(value),cell);}}
+  }else if(!review)add('p',t('原批次結果尚未確認，請先查原收據；現在僅供唯讀比較。','Kết quả lô cũ chưa xác nhận; hãy kiểm tra biên nhận trước. Hiện chỉ xem đối chiếu.'));
+  else for(const operation of list){const item=add('details','');add('summary',(operation.number||operation.id)+' · '+operation.name,item);for(const [field,value]of Object.entries(operation)){if(['id','stageCode'].includes(field))continue;add('h4',label(field),item);add('pre',format(value),item);}}
+  const alert=add('p','');alert.setAttribute('role','alert');const actions=add('div','');actions.className='pe-review-actions';
+  const button=(text,fn)=>{const node=add('button',text,actions);node.type='button';node.onclick=fn;return node;};
+  const current=()=>c===transport&&sameStamp(stamp,identityStamp())&&!host.ProcessSync?.requiresReload&&flow()?.generation===generation&&flow()?.revision<=shared.revision&&state.view==='editor'&&JSON.stringify([state.category,state.editorLine])===workspace;
+  function resolve(decision){try{if(!current()||local.pending())throw Error('CANVAS_REVIEW_CHANGED');local.resolveReview(review,decision);adopt(result,false);const stageRows=copy(list),base=localBase?.workspaces.find(w=>w.id===workspace);if(base)base.stages[stage]=copy(stageRows);state.editorByCategory[editorKey()]||={};state.editorByCategory[editorKey()][stage]=stageRows;dialog.close();refresh();}catch(e){alert.textContent=displayDraftError(e);}}
+  if(review?.changes.length){button(t('採用最新，撤掉這批本機變更','Dùng bản mới, bỏ lô cục bộ'),()=>resolve('latest'));const keep=button(t('保留我的變更，更新核對基準','Giữ thay đổi của tôi, cập nhật cơ sở'),()=>resolve('mine'));if(review.blockers.length){keep.disabled=true;alert.textContent=t('以下變更不能安全更新基準，輸入仍保留；請採用最新後明確重新編輯：','Không thể cập nhật cơ sở an toàn; giữ nguyên đầu vào. Dùng bản mới rồi sửa lại rõ ràng: ')+review.blockers.map(b=>b.id+' · '+(b.reason==='OPERATION_REMOVED'?t('方塊已被刪除','Bước đã bị xóa'):b.reason==='NEW_INCOMING_CONNECTION'?t('出現新的連入方塊 ','Có liên kết vào mới ')+b.source:t('方塊 ID 已存在','ID bước đã tồn tại'))).join('；');}}
+  button(t('關閉，繼續編輯','Đóng, tiếp tục sửa'),()=>dialog.close());document.body.append(dialog);dialog.onclose=()=>dialog.remove();dialog.showModal();
+ }
  function formalNotice(){
   document.querySelector('.vd-formal-issues')?.remove();if(!enabled()||!['player','dispatch','productStatus'].includes(state.view))return;
   const raw=control||JSON.parse(localStorage.getItem('processAuthoringControl')||'null'),active=raw?.versions.find(v=>v.id===raw.activeVersionId),issues=active?.contentIssues?.issues||[],missing=(state.view==='player'?dispatchBoard[state.deviceLine]||[]:[]).filter(code=>!data.products.some(p=>p.code===code));
@@ -404,7 +484,7 @@ const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nề
  const previousBind=bindView;bindView=function(){previousBind();panel();bindMutations();formalNotice();};
  const previousInspector=renderInspector;renderInspector=function(op){previousInspector(op);bindMutations();};
  document.addEventListener('click',event=>{if(enabled()&&event.target.closest('[data-view="editor"],[data-view="approval"],[data-review-tab="process"]'))void load();});
- host.ProcessAuthoringV3={get ownedLedger(){return operationLedger();},navigation:{departure,requiresSave:()=>state.view==='editor'&&ownFlow()&&(editorChanged()||host.ProcessCanvasLocal?.dirty()||window.sharedDraftNeedsSave?.(flow())),canSaveForDeparture:()=>!busy&&!localFailure&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty()&&!modalOpen()&&!host.ProcessEditorV2?.interacting?.(),saveForDeparture:()=>!editorChanged()&&!host.ProcessCanvasLocal?.dirty()?action('save'):false,canLeave:()=>!busy&&!localFailure&&!editorChanged()&&!modalOpen()&&!host.ProcessCanvasLocal?.dirty()&&!host.ProcessEditorV2?.interacting?.(),error:()=>loadError?Error(loadError):null,reset(){localContextEpoch++;editorReadiness=null;editorAwaitingPaint=false;activeIntent=null;beginRecovery=null;clearTimeout(inspectionTimer);inspection=null;inspectionOwner=null;inspectionRun=null;pendingSave=null;pendingSubmit=null;issueRows=[];archiveVersions=null;control=null;localBase=null;permissions={};loadedStamp=null;loadError='';loadIssues=[];validationSavedId=null;loading=null;host.ProcessCanvasLocal?.resetClean?.();}},enabled,updateLocalSaveState,pendingCount:()=>ownFlow()&&flow()&&permissions.view===true?(flow().pendingId?1:0):null,load,readyForEditor,sync,flow,acceptCanvas(result){adopt(result,!modalOpen());panel();},canEditCanvas:()=>!submitStateUnconfirmed&&actorId===host.ProcessSync?.identity?.id&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),save:()=>action('save'),canMutate:()=>!submitStateUnconfirmed&&!busy&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),cancelUnapplied(){if(!localFailure||editorChanged()||busy)return;if(client().discardRejected(rejectedPaths)){localFailure=false;rejectedPaths=[];loadError='';loadIssues=[];panel();}},workspace:(category,line)=>flow()?.working.workspaces.find(w=>w.category===category&&w.line===line),
+ host.ProcessAuthoringV3={get ownedLedger(){return operationLedger();},navigation:{departure,requiresSave:()=>state.view==='editor'&&ownFlow()&&(editorChanged()||host.ProcessCanvasLocal?.dirty()||window.sharedDraftNeedsSave?.(flow())),canSaveForDeparture:()=>!busy&&!localFailure&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty()&&!modalOpen()&&!host.ProcessEditorV2?.interacting?.(),saveForDeparture:()=>!editorChanged()&&!host.ProcessCanvasLocal?.dirty()?action('save'):false,canLeave:()=>!busy&&!localFailure&&!editorChanged()&&!modalOpen()&&!host.ProcessCanvasLocal?.dirty()&&!host.ProcessEditorV2?.interacting?.(),error:()=>loadError?Error(loadError):null,reset(){remoteCanvasUpdate=false;localContextEpoch++;editorReadiness=null;editorAwaitingPaint=false;activeIntent=null;beginRecovery=null;clearTimeout(inspectionTimer);inspection=null;inspectionOwner=null;inspectionRun=null;pendingSave=null;pendingSubmit=null;issueRows=[];archiveVersions=null;control=null;localBase=null;permissions={};loadedStamp=null;loadError='';loadIssues=[];validationSavedId=null;loading=null;host.ProcessCanvasLocal?.resetClean?.();}},enabled,updateLocalSaveState,pendingCount:()=>ownFlow()&&flow()&&permissions.view===true?(flow().pendingId?1:0):null,load,readyForEditor,sync,flow,recoveryAuthority,captureCanvasRecovery,readCanvasRecovery,acceptCanvasRecovery,prepareCanvasPost,previewCanvasPost,acceptCanvasPost,readSharedCanvas,acceptCanvas(result){adopt(result,!modalOpen());remoteCanvasUpdate=false;panel();},canEditLocalCanvas:()=>!submitStateUnconfirmed&&!host.ProcessSync?.requiresReload&&ownFlow()&&!!permissions.edit&&!!flow()&&!flow().pendingId&&control?.versions.some(v=>v.status==='draft'),canEditCanvas:()=>!submitStateUnconfirmed&&actorId===host.ProcessSync?.identity?.id&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),save:()=>action('save'),canMutate:()=>!submitStateUnconfirmed&&!busy&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),cancelUnapplied(){if(!localFailure||editorChanged()||busy)return;if(client().discardRejected(rejectedPaths)){localFailure=false;rejectedPaths=[];loadError='';loadIssues=[];panel();}},workspace:(category,line)=>flow()?.working.workspaces.find(w=>w.category===category&&w.line===line),
   approved(category,line){const raw=control||JSON.parse(localStorage.getItem('processAuthoringControl')||'null'),active=raw?.versions.find(v=>v.id===raw.activeVersionId),w=active?.snapshot.workspaces.find(w=>w.category===category&&w.line===line);return w?{...w,id:active.id,number:active.number,status:'approved',contentIssues:active.contentIssues}:null;}};
  setInterval(()=>{if(document.visibilityState!=='hidden'&&enabled()&&host.ProcessSync?.identity?.id&&client().canPoll('state')&&['editor','approval'].includes(state.view)&&!document.activeElement?.matches('input,textarea,select'))void load();},4000);
  if(enabled())void load();

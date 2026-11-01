@@ -41,13 +41,17 @@ void (async()=>{try{
   await post('AB','a',{command},409);assert.equal((await state()).root.workflowScopes.AB.working.lines.find(l=>l.id===emptyLine.id).stages.length,1);
  });
  await check('save/submit/return/resubmit/withdraw/resubmit/approve keeps active isolated until approval',async()=>{
-  const saved=(await run('AB','a','save')).control.workflow.saved;
-  let sent=await run('AB','a','submit',{savedId:saved.id,reason:'Synthetic stage review'});
+  let flow=(await run('AB','a','save')).control.workflow;const saved=flow.saved;
+  const beforeMissing=await state(),missing=await run('AB','a','submit',{savedId:saved.id,reason:'Missing revision must fail'},409);
+  assert.equal(missing.error,'DRAFT_REVISION_REQUIRED');assert.deepEqual((await state()).s.values,beforeMissing.s.values);assert.equal((await state()).s.revision,beforeMissing.s.revision);
+  let sent=await run('AB','a','submit',{savedId:saved.id,expectedRevision:flow.revision,reason:'Synthetic stage review'});
   assert(!((await state()).root.active.AB.lines.some(l=>l.id===emptyLine.id)));
   await run('AB','reviewer','return',{caseId:sent.receipt.caseId,reason:'Synthetic return'});
-  sent=await run('AB','a','submit',{savedId:saved.id,reason:'Synthetic resubmit'});
+  flow=(await get('AB')).control.workflow;
+  sent=await run('AB','a','submit',{savedId:saved.id,expectedRevision:flow.revision,reason:'Synthetic resubmit'});
   await run('AB','a','withdraw',{caseId:sent.receipt.caseId,reason:'Synthetic withdrawal'});
-  sent=await run('AB','a','submit',{savedId:saved.id,reason:'Synthetic final submission'});
+  flow=(await get('AB')).control.workflow;
+  sent=await run('AB','a','submit',{savedId:saved.id,expectedRevision:flow.revision,reason:'Synthetic final submission'});
   await run('AB','reviewer','approve',{caseId:sent.receipt.caseId});
   const final=await state();assert(final.root.active.AB.lines.some(l=>l.id===emptyLine.id));assert(final.root.active.PROCESS[stage.code]);
  });

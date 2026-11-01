@@ -83,3 +83,12 @@
 .process-ipqc-reference-status[data-status=pending]{color:#8b6226}
 @media(max-width:560px){.process-ipqc-panel{padding:10px;gap:12px}.process-ipqc-overview{gap:6px}.process-ipqc-metric{padding:10px 6px;flex-direction:column;gap:5px;text-align:center}.process-ipqc-metric strong{font-size:1.4rem}.process-ipqc-metric span{font-size:.73rem}.process-ipqc-group>summary{padding:12px 10px;gap:7px}.process-ipqc-progress{font-size:.68rem;padding:5px 6px}.process-ipqc-choice{margin:8px;padding:12px}.process-ipqc-choice>label>span{gap:6px}.process-ipqc-context{padding:12px}.process-ipqc-group-title b{font-size:.8rem}}
 @media(prefers-reduced-motion:reduce){.process-ipqc-panel *{transition:none}}
+
+/* Explicit source comparison is local-only; no photo previews. */
+.process-ipqc-source-review{min-width:0;overflow-wrap:anywhere}
+.process-ipqc-source-review button,[data-ipqc-compare]{min-height:44px;max-width:100%;white-space:normal}
+.process-ipqc-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.process-ipqc-diff>section{min-width:0;padding:12px;border:1px solid #c9d9d2;border-radius:8px;background:white}
+.process-ipqc-diff p{display:grid;gap:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.process-ipqc-diff b{font-size:.85em}
+@media(max-width:560px){.process-ipqc-diff{grid-template-columns:minmax(0,1fr)}}

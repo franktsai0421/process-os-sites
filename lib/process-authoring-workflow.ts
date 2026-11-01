@@ -1,5 +1,5 @@
 import {parse} from './process-state';
-import {applyDraftCommand,DraftConflict,sameDraftValue,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,sameDraftValue,type DraftIssue,type DraftCommand,type DraftPath} from './shared-draft';
 import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-workflow';
 import {effectiveAccess} from './user-access';
 import {validateIPQCAssignments,ipqcIssues} from './process-ipqc';
@@ -34,7 +34,31 @@ export function bomRootReader(values:Record<string,string>){
  return (branches.sort((a,b)=>b.length-a.length)[0]||[]).filter(r=>r.relativeLevel===1).map(r=>norm(r.itemCode));
  };
 }
-export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringControl>{
+// canvas-v2 retains the ordinary workflow CAS, permission, receipt and integrity
+// transaction. This admission check only narrows the explicit manual batch scope.
+export function assertCanvasBatch(control:AuthoringControl,command:DraftCommand){
+ if(command.action!=='apply'||!command.source?.startsWith('canvas-v2:'))throw new DraftConflict('CANVAS_SCOPE_REQUIRED',422);
+ let selected:unknown;try{selected=JSON.parse(command.source.slice('canvas-v2:'.length));}catch{throw new DraftConflict('CANVAS_SCOPE_INVALID',422);}
+ if(!Array.isArray(selected)||selected.length!==2||selected.some(v=>typeof v!=='string'||!v||['__proto__','prototype','constructor'].includes(v)))throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+ const [workspace,stage]=selected as [string,string],existing=control.workflow!.working.workspaces.find(w=>w.id===workspace);
+ const fields=new Set(['x','y','nextIds','number','name','templateId','editorType','mode','people','productCodes','bomSelections','bomProductCode','bomItems','machineIds','machineId','machineDetails','instructionSteps','instructions','ipqc','productInstructionSteps','productInstructions','mediaItems','media','mediaName','mediaType','productMediaItems','ipqcAssignments','ipqcQueryEnabled']);
+ const within=(path:DraftPath)=>path[0]==='workspaces'&&typeof path[1]==='object'&&path[1]?.id===workspace&&path[2]==='stages'&&path[3]===stage;
+ for(const patch of command.patches||[]){const p=patch.path;
+  if(patch.op==='insert'&&p.length===1&&p[0]==='workspaces'){
+   const value=patch.value as unknown as Workspace;
+   if(existing||value.id!==workspace||value.id!==JSON.stringify([value.category,value.line])||!value.stages||Object.keys(value.stages).length!==1||!Array.isArray(value.stages[stage])||value.stages[stage].length)throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+   continue;
+  }
+  if(!within(p))throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+  if(patch.op==='insert'&&p.length===4&&patch.value.stageCode===stage&&typeof patch.value.id==='string')continue;
+  if(patch.op==='remove'&&p.length===5&&typeof p[4]==='object')continue;
+  if(patch.op==='set'&&p.length===4&&Array.isArray(patch.value)&&!patch.value.length&&existing&&!Object.hasOwn(existing.stages,stage))continue;
+  if(patch.op==='set'&&p.length===6&&typeof p[4]==='object'&&typeof p[5]==='string'&&fields.has(p[5]))continue;
+  throw new DraftConflict('CANVAS_PATCH_INVALID',422);
+ }
+ for(const guard of command.guards||[])if(!within(guard.path)||guard.path.length<4||guard.path.length>6)throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+}
+export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,AuthoringControl>{
  return{key:'processAuthoringControl',scope:'process:platform',recordMutation:'process-save',processFlowMutation:true,empty:()=>({workspaces:[]}),photoIds:()=>[],photoPrefix:'',deletePermission:'approval.submit',preparedModel:true,permissionOnlyRead:true,
   parse(raw,prepared){if(!raw&&!prepared)throw new DraftConflict('AUTHORING_CONVERSION_REQUIRED',409);const c=prepared||JSON.parse(raw!);if(!c.workflow||c.workflow.scope!=='process:platform'||!Array.isArray(c.versions))throw new DraftConflict('AUTHORING_CONTROL_INVALID',422);return c;},
   async access(_request,_state,p){return p;},
@@ -97,7 +121,7 @@ export function processAuthoringAdapter():WorkflowAdapter<Content,AuthoringContr
     }return [...issues,...editorIntegrity(content.workspaces,master.active.PROCESS||{},bomRoots).map(i=>({kind:'missing' as const,path:['workspaces',{id:i.workspace},'stages',i.stage,{id:i.operation}],message:'EDITOR_LEGACY_REVIEW:'+i.code+':'+i.detail})),...ipqcIssues(content.workspaces,state.values,master)];}
    };
   },
-  apply(control,command,ctx){if(command.action==='apply')for(const p of command.patches||[]){
+  apply(control,command,ctx){if(!control.workflow?.receipts[command.operationId]&&(canvasV2||command.source?.startsWith('canvas-v2:')))assertCanvasBatch(control,command);if(command.action==='apply')for(const p of command.patches||[]){
    const emptyStage=p.op==='set'&&p.path.length===4&&p.path[2]==='stages'&&Array.isArray(p.value)&&p.value.length===0;
    if(p.path[0]!=='workspaces'||p.op==='set'&&!emptyStage&&(p.path.length<6||p.path[2]!=='stages'||typeof p.path[4]!=='object'))throw new DraftConflict('AUTHORING_PATCH_INVALID',422);
    const last=p.path.at(-1),field=typeof last==='string'?last:'';

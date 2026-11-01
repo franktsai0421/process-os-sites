@@ -93,6 +93,10 @@ export async function POST(request: Request) {
     if(!required[action])return reply({error:'不支援的操作'},400);
     if(!await can(request,state,'iqc.view')||!(await Promise.all(required[action].map(op=>can(request,state,'iqc.'+op)))).every(Boolean))return reply({error:'FORBIDDEN'},403);
 
+    // Legacy snapshots do not prove a separate successful Save. Preserve them
+    // for explicit shared-workflow adoption; Submit must never save implicitly.
+    if(action==='submit')return reply({error:'WORKFLOW_V3_REQUIRED',code:'WORKFLOW_V3_REQUIRED',details:{reason:'LEGACY_SUBMIT_CANNOT_VERIFY_SAVED_VERSION'}},409);
+
     const prepared=state.recordStorage?.models.get(KEY) as {workflow?:unknown}|undefined;
     if(prepared?.workflow||parse(state.values[KEY],{}).workflow)return reply({error:'WORKFLOW_V3_REQUIRED'},409);
     if(state.recordStorage){state=await readState();if(state.revision!==body.baseRevision)return reply({error:'資料已更新，請重新核對'},409);}
