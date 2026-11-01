@@ -6,8 +6,16 @@ const hash=raw=>createHash('sha256').update(raw).digest('hex'),ref=raw=>({key:'s
 function load(source){const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(output,{module:mod,exports:mod.exports,require:id=>requireRepo(path.resolve(root,'lib',id)),crypto:webcrypto,TextEncoder,TextDecoder,console,structuredClone});return mod.exports;}
 const candidateSource=fs.readFileSync(path.join(root,'lib/state-records.ts'),'utf8').replace(/\r\n/g,'\n');
 const inverse=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/identity-prefetch-reverse.json'),'utf8'));
-let baselineSource=candidateSource;
+// The separately reviewed FQC writer is append-only and is not exercised by
+// this identity-read fixture. Remove exactly that fixed suffix on the baseline
+// side, then retain the original whole-file and inverse-span pins below.
+const tail=inverse.reviewedFqcRequiredTail,tailAt=candidateSource.indexOf(tail.marker);
+assert.equal(candidateSource.split(tail.marker).length-1,1,'reviewed FQC tail marker must occur exactly once');
+assert.equal(hash(candidateSource.slice(tailAt)),tail.sha256,'reviewed FQC complete appended tail hash');
+let baselineSource=candidateSource.slice(0,tailAt);
+assert.equal(hash(baselineSource),inverse.reviewedCandidateSHA256,'reviewed complete prefix before FQC tail');
 for(const row of inverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'reviewed inverse span hash');assert.equal(baselineSource.split(row.candidate).length-1,1,'inverse source anchor must occur exactly once');baselineSource=baselineSource.replace(row.candidate,row.baseline);}
+assert.equal(hash(baselineSource),inverse.reviewedBaselineSHA256,'original complete identity baseline hash');
 const baseline=load(baselineSource),candidate=load(candidateSource);
 const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode'];
 function setup(size=64){const objects=new Map(),values={};for(let i=0;i<keys.length;i++){const raw=JSON.stringify({index:i,text:'x'.repeat(size)}),r=ref(raw);objects.set(r.key,raw);values[keys[i]]=r;}return{objects,envelope:{__processRecords:{version:1,values}}};}

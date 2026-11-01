@@ -36,6 +36,22 @@ for (const test of cases) {
   assert.equal(canonical(lf.candidate), canonical(crlf.candidate), test.name + ' LF/CRLF complete candidate bytes');
   assert.equal(hash(canonical(lf.baseline)), test.baselineHash, test.name + ' reviewed complete baseline hash');
   checks += 2;
+  if(test.name==='identity'){
+    assert.equal(lf.candidate,raw,'complete FQC candidate remains unchanged');
+    const proof=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/identity-prefetch-reverse.json'),'utf8'));
+    const at=raw.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=raw.slice(0,at),tail=raw.slice(at);
+    const corruptions=[
+      ['missing tail',prefix],
+      ['changed tail',raw.replace('const fqcRequiredAuth=','const fqcRequiredAuthChanged=')],
+      ['duplicate tail',raw+tail],
+      ['extra suffix',raw+'\n// unreviewed suffix\n'],
+      ['changed original prefix',raw.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
+      ['relocated tail',tail+prefix],
+      ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
+    ];
+    for(const[name,source]of corruptions){assert.notEqual(source,raw,name+' mutation is effective');assert.throws(()=>execute(source),{code:'ERR_ASSERTION'},name+' must be rejected');}
+    checks+=corruptions.length+1;
+  }
   assert.throws(() => execute(raw.replace(test.marker, test.marker + ' changed')), { code: 'ERR_ASSERTION' }, test.name + ' changed source anchor is rejected');
   assert.throws(() => execute(raw + '\n' + raw), { code: 'ERR_ASSERTION' }, test.name + ' duplicate source anchors are rejected');
   checks += 2;

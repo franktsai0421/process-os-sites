@@ -1,7 +1,11 @@
 {
-  "description": "Exact reviewed max2 provider-metadata fallback inverse; all other shipped code shared by candidate and baseline. Missing/changed/duplicate anchor fails closed.",
+  "description": "Exact reviewed max2 provider-metadata fallback inverse. Baseline alone excludes the separately pinned append-only FQC required writer; this fixture does not claim FQC writer parity. All original prefix/spans/whole-baseline pins remain; missing/changed/duplicate anchors fail closed.",
   "reviewedCandidateSHA256": "ba88d9963248d943bdec1b97b12a3540505927725f1329c45738557e1da5aa9f",
   "reviewedBaselineSHA256": "5245f6533dc253b220b3bf2b61c298138917e8b4dcab9a4ff1210e4edf741fcc",
+  "reviewedFqcRequiredTail": {
+    "marker": "// FQC Apply/Save alone:",
+    "sha256": "80f7d3a0bebc2e2dbfc3dc323ca52eca2760aea2604dc20acbfecc51163de92f"
+  },
   "spans": [
     {
       "candidate": "get(key:string):Promise<{text():Promise<string>;size?:number;body?:{cancel():Promise<unknown>}}|null>",
