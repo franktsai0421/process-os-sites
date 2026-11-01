@@ -639,7 +639,7 @@
           if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&typeof value.__liveContent==='string'){const [key,field]=value.__liveContent.split('#');if(!Object.hasOwn(live,key)||field&&(!live[key]||typeof live[key]!=='object'||!Object.hasOwn(live[key],field)))throw Error('INVALID_WORKFLOW_RESPONSE');return JSON.parse(JSON.stringify(field?live[key][field]:live[key]));}
           if(Array.isArray(value))return value.map(expand);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,child])=>[key,expand(child)]));return value;};
           const {liveContent:_live,wireVersion:_version,...body}=result;result=expand(body);}
-        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&body.command.action==='apply'&&!body.command.moduleAction&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
+        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&body.command.action==='apply'&&!body.command.moduleAction&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
         // Real HTTP errors above retain their original status even for stale ownership.
         if(accessGuard&&!body&&(!ownsAccess(accessOwner)||(kind==='permissions'||readOptions?.requireAcceptedAccess===true)&&!acceptedAccess))throw Error('ACCESS_READ_SUPERSEDED');
         // Pair a full owned projection with its state revision. Metadata-only
@@ -731,6 +731,25 @@
         catch {throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY'),{operationId:command.operationId});}
       }
     }
+    // Explicit FQC matrix discard only: the exact original, settled pre-CAS
+    // guard conflict may be retired. Never infer safety from status or paths
+    // alone, and never clear another operation, queue or receipt obligation.
+    function hasConfirmedMatrixConflict(command,error){
+      const failure=syncFailures.get(command?.operationId),proof=error&&boundedResponses.get(error);
+      if(!externalBounded||boundedScope!=='fqc'||!failure||failure.error!==error||JSON.stringify(failure.command)!==JSON.stringify(command)||!client.isConfirmedRejection(error,command)||!boundedRejected.has(error)||!proof||proof.status!==409||proof.code!=='DEPENDENCY_CHANGED_RECONFIRM'||proof.path!==JSON.stringify(error.details?.path)||error.status!==409||error.message!=='DEPENDENCY_CHANGED_RECONFIRM'||command.action!=='apply'||!Array.isArray(command.patches)||!command.patches.length)return false;
+      return !command.patches.some(p=>p.op!=='set'||p.path?.length!==3||p.path[0]!=='items'||typeof p.path[1]?.id!=='string'||!['productCodes','productRefs','products'].includes(p.path[2]))&&command.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details?.path))===true;
+    }
+    function canDiscardMatrixConflicts(rejections){
+      if(!externalBounded||boundedScope!=='fqc'||!externalCurrent()||window.ProcessSync?.requiresReload||recoveryInvalid||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||!Array.isArray(rejections)||!rejections.length)return false;
+      const ids=new Set();
+      return rejections.every(entry=>{
+        if(!entry||typeof entry!=='object')return false;const {command,error}=entry;
+        if(!hasConfirmedMatrixConflict(command,error)||ids.has(command.operationId))return false;
+        const proof=boundedResponses.get(error);
+        if(!boundedKnown||boundedKnown.generation!==command.generation||boundedKnown.revision<proof.record.beforeRevision||boundedKnown.pendingId||access?.view!==true||access?.edit!==true)return false;
+        ids.add(command.operationId);return true;
+      });
+    }
     const client={
       canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
@@ -770,6 +789,8 @@
       verifiedReadback:(result,operationId)=>boundedText(operationId)?verifiedBoundedReadback(result,operationId):null,
       verifiedApplyAuthority:(result,operationId)=>boundedText(operationId)?verifiedBomApplyAuthority(result,operationId):null,
       hasSyncFailures:()=>!!syncFailures.size,
+      hasConfirmedMatrixConflict,canDiscardMatrixConflicts,
+      discardMatrixConflicts(rejections){assertOwner();if(!canDiscardMatrixConflicts(rejections))throw Error('CONFIRMED_MATRIX_CONFLICT_REQUIRED');for(const {command}of rejections)syncFailures.delete(command.operationId);return true;},
       // Explicit form cancellation can discard only confirmed rejections (or
       // commands never sent), never uncertain requests or unrelated fields.
       discardRejected:paths=>{assertOwner();if(unknown)return false;const allowed=new Set(paths.map(path=>JSON.stringify(path)));

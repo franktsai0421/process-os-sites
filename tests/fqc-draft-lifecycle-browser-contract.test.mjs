@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
-import {fqcBrowserActions, fqcEditorReady, fqcPendingReady, fqcReviewReady, fqcPageDiagnostic} from './fqc-draft-lifecycle-browser.mjs';
+import {fqcBrowserActions, fqcEditorReady, fqcPendingReady, fqcReviewReady, fqcPageDiagnostic, observeFqcSetup, fqcFixtureRevisionDiagnostic} from './fqc-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 const source = readFileSync(new URL('./fqc-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
 const product = readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
@@ -129,4 +129,49 @@ for (const lang of ['zh', 'vi']) void test('actual overview keeps async pending 
   assert.equal(doc.activeElement, fqc.querySelector('summary'));
   assert.equal(fqc.querySelectorAll('[data-quality-review="case"]').length, 1);
   assert.deepEqual(count, {fqc: 1, iqc: 0}, 'presentation click neither changes model nor grants permissions');
+});
+
+function setupEvents() {
+  const handlers = new Map(); let time = 0;
+  const page = {on(name, fn) { const values = handlers.get(name) || new Set(); values.add(fn); handlers.set(name, values); },
+    off(name, fn) { handlers.get(name)?.delete(fn); }, emit(name, value) { for (const fn of handlers.get(name) || []) fn(value); }};
+  const observer = observeFqcSetup(page, 'https://synthetic.invalid', () => time);
+  const request = (pathname = '/api/process-bootstrap?secret=SYNTHETIC_PRIVATE', method = 'GET') => ({url: () => 'https://synthetic.invalid' + pathname, method: () => method,
+    failure: () => ({errorText: 'net::ERR_ABORTED'}), headers() { throw Error('MUST_NOT_READ_HEADERS'); }, postData() { throw Error('MUST_NOT_READ_BODY'); }});
+  return {page, observer, request, time(value) { time = value; }, listeners: () => [...handlers.values()].reduce((sum, values) => sum + values.size, 0)};
+}
+void test('passive setup diagnostics distinguish missing headers, pending body, completed and failed requests without exposing secrets', () => {
+  const f = setupEvents(), bootstrap = f.request(), asset = f.request('/process/bootstrap.js?v=SYNTHETIC_PRIVATE'), unknown = f.request('/api/private/SYNTHETIC_PRIVATE');
+  f.page.emit('request', bootstrap); f.time(5); f.page.emit('request', asset); f.page.emit('request', unknown);
+  assert.equal(f.observer.snapshot().pending, 3); assert.equal(f.observer.snapshot().requests[0].status, null);
+  f.time(10); f.page.emit('response', {request: () => bootstrap, status: () => 200, body() { throw Error('MUST_NOT_READ_BODY'); }});
+  assert.equal(f.observer.snapshot().requests[0].responseMs, 10); assert.equal(f.observer.snapshot().requests[0].finishedMs, null);
+  f.time(12); f.page.emit('requestfinished', bootstrap); f.page.emit('requestfailed', asset);
+  f.page.emit('console', {type: () => 'warning', text: () => '共用資料服務無法連線 SYNTHETIC_PRIVATE'});
+  const snapshot = f.observer.snapshot(); assert.equal(snapshot.pending, 1); assert.equal(snapshot.requests[1].failed, true);
+  assert.equal(snapshot.requests[1].failureCode, 'net::ERR_ABORTED'); assert.equal(snapshot.sharedLoadWarning, true);
+  assert.equal(snapshot.consoleCounts.warning, 1); assert.equal(snapshot.requests[2].path, 'other-api');
+  assert.equal(JSON.stringify(snapshot).includes('SYNTHETIC_PRIVATE'), false);
+  f.observer.stop(); assert.equal(f.listeners(), 0); f.time(100); assert.equal(f.observer.snapshot().elapsedMs, 12);
+});
+void test('setup diagnostics remain bounded, isolate listener errors and cannot hide or approve a failed readiness gate', () => {
+  const f = setupEvents();
+  f.page.emit('request', {url() { throw Error('SYNTHETIC_PRIVATE'); }});
+  for (let i = 0; i < 260; i++) f.page.emit('request', f.request('/process/shared-state.js?i=' + i));
+  const result = f.observer.stop(); assert.equal(result.requests.length, 256); assert.equal(result.dropped, 4); assert.equal(result.observationErrors, 1);
+  assert.equal(result.pending, 256, 'stopping observation is not request completion');
+  f.page.emit('request', f.request()); assert.deepEqual(f.observer.snapshot(), result);
+  assert.match(source, /page\.setDefaultTimeout\(30000\)/, 'original timeout is not extended');
+  assert.match(source, /await page\.waitForFunction\(fqcShellReady/); assert.match(source, /await idle\(page\); setup\.stop\(\)/);
+  assert(source.indexOf('const setup = observeFqcSetup') < source.indexOf('await page.goto'));
+  assert.match(source, /FAIL_CI_SYNTHETIC_FQC_LIFECYCLE/); assert.match(source, /setupNetwork: item\.setup\.snapshot/);
+  assert.match(source, /diagnosticUnavailable: true, setupNetwork: item\.setup\.snapshot\(\)/, 'failed page evaluation still retains the independent request ledger');
+});
+void test('fixture revision failure probe reads only synthetic revision and bounds failure without supplying a readiness result', async () => {
+  const sql = [];
+  assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare(query) { sql.push(query); return {first: async () => ({revision: 14, secret: 'SYNTHETIC_PRIVATE'})}; }}), {status: 'available', revision: 14});
+  assert.deepEqual(sql, ['SELECT revision FROM shared_state WHERE id=1']);
+  assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare: () => ({first: async () => ({revision: '14'})})}), {status: 'malformed'});
+  assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare() { throw Error('SYNTHETIC_PRIVATE'); }}), {status: 'rejected'});
+  assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare: () => ({first: () => new Promise(() => {})})}, 1), {status: 'timeout'});
 });

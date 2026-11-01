@@ -22,6 +22,51 @@ const formCancel = formSelector + ' footer [data-close]';
 const confirmSelector = '.vd-confirm[open] button[type="submit"]';
 const flowOf = () => window.FQCMasterUI?.control?.libraries?.fqc?.workflow;
 
+// Passive setup-only diagnostics: no headers, cookies, query values, response
+// bodies or raw console text. These observations never satisfy a readiness gate.
+export function observeFqcSetup(page, origin, clock = () => performance.now()) {
+  const started = clock(), entries = new Map(), rows = [], consoleCounts = {};
+  let stopped = false, stoppedAt = null, dropped = 0, observationErrors = 0, sharedLoadWarning = false;
+  const elapsed = () => Math.max(0, clock() - started);
+  const safely = callback => value => { try { callback(value); } catch { observationErrors++; } };
+  const path = url => ['/process/', '/process/index.html', '/api/process-bootstrap'].includes(url.pathname) ? url.pathname :
+    /^\/process\/[a-z0-9-]+\.(?:js|mjs|css)$/i.test(url.pathname) ? url.pathname : url.pathname.startsWith('/api/') ? 'other-api' : 'other-resource';
+  const request = safely(req => {
+    const url = new URL(req.url()); if (url.origin !== origin) return;
+    if (rows.length >= 256) { dropped++; return; }
+    const row = {path: path(url), method: ['GET', 'HEAD', 'POST'].includes(req.method()) ? req.method() : 'OTHER',
+      startedMs: elapsed(), responseMs: null, finishedMs: null, status: null, failed: false, failureCode: null};
+    entries.set(req, row); rows.push(row);
+  });
+  const response = safely(res => { const row = entries.get(res.request()); if (row) { row.status = res.status(); row.responseMs = elapsed(); } });
+  const finished = safely(req => { const row = entries.get(req); if (row) row.finishedMs = elapsed(); });
+  const failed = safely(req => { const row = entries.get(req); if (!row) return;
+    const code = req.failure()?.errorText;
+    row.failed = true; row.finishedMs = elapsed();
+    row.failureCode = ['net::ERR_ABORTED', 'net::ERR_FAILED', 'net::ERR_CONNECTION_REFUSED', 'net::ERR_CONNECTION_RESET', 'net::ERR_TIMED_OUT'].includes(code) ? code : 'OTHER';
+  });
+  const consoleEvent = safely(message => {
+    const raw = message.type(), type = ['error', 'warning', 'warn', 'log', 'info', 'debug'].includes(raw) ? raw : 'other';
+    consoleCounts[type] = (consoleCounts[type] || 0) + 1;
+    if (message.text().startsWith('共用資料服務無法連線')) sharedLoadWarning = true;
+  });
+  const listeners = {request, response, requestfinished: finished, requestfailed: failed, console: consoleEvent};
+  for (const [name, listener] of Object.entries(listeners)) page.on(name, listener);
+  const snapshot = () => ({stopped, elapsedMs: stoppedAt ?? elapsed(), dropped, observationErrors, sharedLoadWarning, consoleCounts: {...consoleCounts},
+    requests: rows.map(row => ({...row})), pending: rows.filter(row => row.finishedMs === null).length});
+  return {snapshot, stop() { if (!stopped) { stoppedAt = elapsed(); stopped = true; for (const [name, listener] of Object.entries(listeners)) page.off(name, listener); } return snapshot(); }};
+}
+export async function fqcFixtureRevisionDiagnostic(db, timeoutMs = 2000) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => db.prepare('SELECT revision FROM shared_state WHERE id=1').first()).then(row =>
+        Number.isSafeInteger(row?.revision) && row.revision >= 0 ? {status: 'available', revision: row.revision} : {status: 'malformed'}, () => ({status: 'rejected'})),
+      new Promise(resolve => { timer = setTimeout(() => resolve({status: 'timeout'}), timeoutMs); }),
+    ]);
+  } finally { clearTimeout(timer); }
+}
+
 // Serialized probes only inspect genuine rendered controls/current public model.
 export function fqcShellReady({actor, view}) {
   return window.ProcessSync?.identity?.id === actor && window.ProcessSync?.destination?.view === view &&
@@ -72,7 +117,10 @@ export function fqcPageDiagnostic({actor, view}) {
   const modules = panel?.querySelectorAll('details[data-review-module="fqc"]');
   return {path: location.pathname, expectedView: view, identityMatches: sync?.identity?.id === actor,
     actualView: sync?.destination?.view ?? null, navigationStatus: document.documentElement.dataset.processNavigationStatus ?? null,
-    bootPresent: !!document.querySelector('#process-boot'), activeTab: host?.dataset.activeTab ?? null,
+    bootPresent: !!document.querySelector('#process-boot'), bootRole: document.querySelector('#process-boot')?.getAttribute('role') === 'alert' ? 'alert' : 'status-or-absent',
+    syncPresent: !!sync, syncStatus: ['loading', 'ready', 'synced', 'offline', 'readonly', 'saving'].includes(sync?.status) ? sync.status : 'other-or-absent',
+    syncLoadError: !!sync?.loadError, syncExpired: sync?.expired === true, syncLoginRequired: sync?.loginRequired === true, syncImportPending: sync?.importPending === true,
+    syncBootstrapping: sync?.bootstrapping === true, activeTab: host?.dataset.activeTab ?? null,
     fqcPagePresent: !!host?.querySelector('#fqc-page'), loadErrorPresent: !!document.querySelector('#fqc-load-retry,#fqc-review-retry'),
     selectedStatus: c?.versions?.find(row => row.id === select?.value)?.status ?? null,
     qualityTabCount: tabs.length, qualityTabSelected: tabs.length === 1 && tabs[0].getAttribute('aria-selected') === 'true',
@@ -130,7 +178,8 @@ export async function runFqcDraftBrowser() {
         });
         const payload = Buffer.from(JSON.stringify({version: 2, id: actor.id, sessionType: 'platform', authEpoch: 1, expires: Date.now() + 600000, nonce: 'fqc-lifecycle-' + cycle + '-' + actor.id})).toString('base64');
         await context.addCookies([{name: 'process_demo', value: payload + '.' + createHmac('sha256', secret).update(payload).digest('hex'), url: origin, httpOnly: true, sameSite: 'Lax'}]);
-        const page = await context.newPage(); page.setDefaultTimeout(30000); pages.push({page, actor: actor.id, view, label});
+        const page = await context.newPage(); page.setDefaultTimeout(30000);
+        const setup = observeFqcSetup(page, origin); pages.push({page, actor: actor.id, view, label, setup});
         page.on('pageerror', error => report.pageErrors.push({stage, name: error.name}));
         page.on('dialog', dialog => { report.pageErrors.push({stage, name: 'UnexpectedNativeDialog', type: dialog.type()}); void dialog.dismiss(); });
         await page.goto(origin + '/process/index.html?view=' + view + (view === 'data' ? '&dataTab=quality-fqc' : ''), {waitUntil: 'domcontentloaded'});
@@ -145,7 +194,7 @@ export async function runFqcDraftBrowser() {
         } else {
           stage = cycle + ':' + label + ':fqc-ready'; await page.waitForFunction(fqcEditorReady, {actor: actor.id});
         }
-        await idle(page); return {context, page};
+        await idle(page); setup.stop(); return {context, page};
       }
       const reader = await open(seed.actors.reader, 'data', 'reader-entry');
       assert.equal(await reader.page.locator('#fqc-begin,#fqc-save,#fqc-submit,#fqc-withdraw,#fqc-add-item,#fqc-add-error,[data-edit-item],[data-edit-error]').count(), 0, 'Read-only account has no mutable workflow/form controls');
@@ -288,12 +337,14 @@ export async function runFqcDraftBrowser() {
   } catch (error) {
     report.status = 'FAIL_CI_SYNTHETIC_FQC_LIFECYCLE'; report.failedStage = stage; report.pageDiagnostics = [];
     for (const item of pages.filter(item => !item.page.isClosed())) {
-      try { report.pageDiagnostics.push({label: item.label, ...await item.page.evaluate(fqcPageDiagnostic, {actor: item.actor, view: item.view})}); }
-      catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true}); }
+      try { report.pageDiagnostics.push({label: item.label, ...await item.page.evaluate(fqcPageDiagnostic, {actor: item.actor, view: item.view}), setupNetwork: item.setup.snapshot()}); }
+      catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true, setupNetwork: item.setup.snapshot()}); }
     }
+    if (fixture) report.fixtureRevision = await fqcFixtureRevisionDiagnostic(fixture.db);
     report.failure = {name: error.name, message: String(error.message).replaceAll(secret, '[redacted]').slice(0, 500)};
     report.summary = summarizeActions(report.samples, fqcBrowserActions);
   } finally {
+    for (const item of pages) item.setup.stop();
     for (const context of contexts) await context.close(); if (browser) await browser.close(); if (fixture) await fixture.close(); report.disposed = true;
   }
   fs.mkdirSync('.sites-runtime', {recursive: true}); fs.writeFileSync('.sites-runtime/fqc-draft-lifecycle-browser-result.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report)); return report;

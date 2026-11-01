@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC conflict Discard recovery (#60 / local #59 integration)
+
+Original Draft #60 passed supported CI on merged #58 / `0008df7`. The local integration now preserves merged #59 / `77e62ce` UI and advances only the two changed JS cache versions; it is not yet published. The separate #56 tests-only handoff is not included. The exact scoped repair and verification boundaries are maintained in [one acceptance note](docs/acceptance/fqc-conflict-discard-20261101/README.md). Unknown and other operations stay blocked; no employee data, permission, schema or deployment change. Integrated exact-head native/CI and source review remain release gates.
+
 ## 2026-11-01 — FQC required dependencies (independent local follow-on)
 
 Baseline is merged #57 / `848be13da54c7ae747bcdd96df19e01129fe980a`; that earlier release is not this candidate's acceptance. This branch implements the separately approved FQC necessary-dependency fault boundary for ordinary records-v1 Apply/Save only. GET/terminal freshness and all other commands remain unchanged. No employee data, schema, accounts, deployment/access or Site changes. Exact closure, tests, performance limitations and remaining gates are maintained in [one engineering note](docs/FQC_REQUIRED_DEPENDENCIES.md). Not yet published or deployed; older entries below retain their original historical context.
