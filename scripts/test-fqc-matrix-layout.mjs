@@ -77,6 +77,12 @@ check('repeat rendering and language switching keep selection and raw text',()=>
   for(const language of ['zh-Hant','vi','zh-Hant']){f.document.documentElement.lang=language;const host=f.paint(model,products);assert.equal(cell(host).textContent,'✓');assert.equal(host.querySelector('.fqc-matrix-item-name').textContent,model.snapshot.items[0].name);}
   assert.equal(JSON.stringify(model.snapshot.items[0].productCodes),'["P1"]');assert.equal(model.snapshot.items[0].isEnabled,false);assert.equal(JSON.parse(before).snapshot.items[0].isEnabled,false);
 });
+check('single matrix Apply toolbar sits immediately above the matrix and outside its disclosure',()=>{
+  const render=source.slice(source.indexOf('  function render() {'),source.indexOf('  function emptyHTML()'));
+  assert.equal((render.match(/\$\{matrixToolbarHTML\(\)\}/g)||[]).length,1,'one shared toolbar, no duplicate IDs');
+  assert.match(render,/\$\{matrixToolbarHTML\(\)\}\s*<details class="master-history fqc-matrix"/,'toolbar belongs immediately above the checkbox matrix, not the page header');
+  assert.doesNotMatch(render,/<summary>[^`]*\$\{matrixToolbarHTML\(\)\}/,'toolbar remains available when matrix is collapsed');
+});
 check('CSS contract: bounded wrapped rules and independent table scroller',()=>{
   const badge=rules('.fqc-rule-badge');assert.equal(badge['max-width'],'100%');assert.equal(badge['box-sizing'],'border-box');assert.equal(badge['white-space'],'normal');assert.equal(badge['overflow-wrap'],'anywhere');assert.equal(badge['word-break'],'normal');assert.equal(badge.overflow,undefined,'no clipping to hide a rule');
   assert.equal(rules('.fqc-table-wrap')['overflow-x'],'auto');assert.equal(rules('.fqc-table')['table-layout'],'fixed');assert.equal(rules('.fqc-item-table')['min-width'],'900px');assert.equal(rules('.fqc-item-table .master-row-actions')['flex-wrap'],'wrap');
