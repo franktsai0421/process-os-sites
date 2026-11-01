@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
-import {fqcBrowserActions, fqcEditorReady, fqcPendingReady, fqcReviewReady, fqcPageDiagnostic, observeFqcSetup, fqcFixtureRevisionDiagnostic} from './fqc-draft-lifecycle-browser.mjs';
+import {fqcBrowserActions, fqcEditorReady, fqcPendingReady, fqcReviewReady, fqcPageDiagnostic, observeFqcSetup, fqcFixtureRevisionDiagnostic, readFqcFixtureValues} from './fqc-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 const source = readFileSync(new URL('./fqc-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
 const product = readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
@@ -174,4 +174,31 @@ void test('fixture revision failure probe reads only synthetic revision and boun
   assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare: () => ({first: async () => ({revision: '14'})})}), {status: 'malformed'});
   assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare() { throw Error('SYNTHETIC_PRIVATE'); }}), {status: 'rejected'});
   assert.deepEqual(await fqcFixtureRevisionDiagnostic({prepare: () => ({first: () => new Promise(() => {})})}, 1), {status: 'timeout'});
+});
+
+void test('fixture read phase identifies D1, JSON and record decode failures without retrying or substituting values', async () => {
+  for (const failure of ['shared-row', 'row-json', 'record-decode', null]) {
+    const phases = [], calls = [], failureObject = Error('SYNTHETIC_PRIVATE'), bucket = {};
+    const db = {prepare(sql) { calls.push(sql); return {first() { if (failure === 'shared-row') throw failureObject; return Promise.resolve({values: failure === 'row-json' ? '{' : '{"synthetic":true}'}); }}; }};
+    const records = {decodeRecordValues(actualBucket, envelope) { calls.push('record-decode'); assert.equal(actualBucket, bucket); assert.deepEqual(envelope, {synthetic: true}); if (failure === 'record-decode') throw failureObject; return Promise.resolve({values: {synthetic: 'original'}}); }};
+    const task = readFqcFixtureValues(db, records, bucket, phase => phases.push(phase));
+    if (failure) { await assert.rejects(task, error => failure === 'row-json' ? error instanceof SyntaxError : error === failureObject); assert.equal(phases.at(-1), failure); }
+    else { assert.deepEqual(await task, {synthetic: 'original'}); assert.deepEqual(phases, ['shared-row', 'row-json', 'record-decode', 'complete']); }
+    assert.equal(calls.filter(sql => sql.startsWith('SELECT')).length, 1, 'no automatic retry of fixture transport');
+    assert.equal(calls.filter(sql => sql === 'record-decode').length, ['record-decode', null].includes(failure) ? 1 : 0);
+  }
+});
+void test('native failure metadata uses existing bounded cause-code sanitizer and preserves distinct post-action cleanup stages', async () => {
+  const {nativeFailureDiagnostics} = await import('./root-entry-native-fixture.mjs');
+  const error = Object.assign(Error('SYNTHETIC_PRIVATE'), {code: 'SECRET_CODE', cause: Object.assign(Error('SYNTHETIC_PRIVATE'), {code: 'ECONNRESET'})});
+  const result = nativeFailureDiagnostics(error); assert.deepEqual(result.causeCodes, ['ECONNRESET']);
+  assert.equal(JSON.stringify(result).includes('SYNTHETIC_PRIVATE'), false); assert.equal(JSON.stringify(result).includes('SECRET_CODE'), false);
+  for (const stage of ['final-read-values', 'verify-unrelated-values', 'final-read-case-statuses', 'editor-close']) assert(source.includes("':" + stage + "'"));
+  assert.match(source, /':review-' \+ kind \+ '-close'/);
+  assert.match(source, /report\.runtimeFailure = nativeFailureDiagnostics\(error\)/);
+  assert.match(source, /report\.fixtureRead = fixtureRead/);
+  assert.equal((source.match(/fixture\.close\(\)/g) || []).length, 1, 'worker remains alive through every cycle; only the run finally disposes it');
+  assert(source.indexOf('if (fixture) await fixture.close()') > source.indexOf('} finally {\n    for (const item of pages)'));
+  assert.match(source, /page\.setDefaultTimeout\(30000\)/);
+  assert.equal((source.match(/final-read-case-statuses/g) || []).length, 1);
 });

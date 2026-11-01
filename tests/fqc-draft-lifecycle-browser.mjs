@@ -56,6 +56,13 @@ export function observeFqcSetup(page, origin, clock = () => performance.now()) {
     requests: rows.map(row => ({...row})), pending: rows.filter(row => row.finishedMs === null).length});
   return {snapshot, stop() { if (!stopped) { stoppedAt = elapsed(); stopped = true; for (const [name, listener] of Object.entries(listeners)) page.off(name, listener); } return snapshot(); }};
 }
+export async function readFqcFixtureValues(db, records, bucket, mark) {
+  mark('shared-row');
+  const row = await db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
+  mark('row-json'); const envelope = JSON.parse(row.values);
+  mark('record-decode'); const decoded = await records.decodeRecordValues(bucket, envelope);
+  mark('complete'); return decoded.values;
+}
 export async function fqcFixtureRevisionDiagnostic(db, timeoutMs = 2000) {
   let timer;
   try {
@@ -143,14 +150,14 @@ const idle = page => page.waitForFunction(() => { const s = window.sharedDraftAc
 export async function runFqcDraftBrowser() {
   assert.equal(process.env.CI, 'true', 'Native FQC acceptance requires the authorized CI capability, not a local browser bypass');
   const {chromium} = await import('playwright');
-  const {createRootEntryFixture} = await import('./root-entry-native-fixture.mjs');
+  const {createRootEntryFixture, nativeFailureDiagnostics} = await import('./root-entry-native-fixture.mjs');
   const secret = randomBytes(32).toString('hex');
   const report = {status: 'RUNNING', layer: 'CI_SYNTHETIC_BROWSER', module: 'fqc', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
     realData: false, realCredentials: false, samples: [], summary: [], cycles: [], pageErrors: [],
     boundary: 'Mandatory genuine DOM click through usable UI plus two frames; text entry and authoritative DB checks excluded. Draft selection includes automation selectOption after its real select click. API window includes background requests. No FQC HTTP error is implicitly ignored.',
     storageConditions: {perCycle: 'reset shared_state row and fresh contexts', reusedAcrossCycles: 'same nonpersistent compiled Worker and R2 bucket; prior immutable objects retained', cacheClassification: 'not classified cold/warm'},
     limitations: ['Synthetic desktop CI, not employee site, physical mobile or live HTTPS.', 'No before/after timing baseline or guarantee of <1000ms.', 'Includes ready polling/IPC and two-frame observation; not isolated CPU.', 'Does not reuse the prior process/canvas 90 samples.', 'Import/export, deletion, history restore, photo upload and equipment picker subflows remain separately listed, not implicitly covered by scalar forms.', 'No new matrix UI approval is implied by these unchanged-control scenarios.']};
-  let fixture, browser, stage = 'fixture'; const contexts = new Set(), pages = [];
+  let fixture, browser, fixtureRead = null, readSequence = 0, stage = 'fixture'; const contexts = new Set(), pages = [];
   try {
     fixture = await createRootEntryFixture({syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
     const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
@@ -162,9 +169,9 @@ export async function runFqcDraftBrowser() {
       const seed = buildFqcDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle});
       const raw = await records.encodeRecordValues(bucket, seed.values);
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic FQC lifecycle').run();
-      const readValues = async () => {
-        const row = await fixture.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
-        return (await records.decodeRecordValues(bucket, JSON.parse(row.values))).values;
+      const readValues = () => {
+        const sequence = ++readSequence;
+        return readFqcFixtureValues(fixture.db, records, bucket, phase => { fixtureRead = {cycle, sequence, phase}; });
       };
       const control = async () => JSON.parse((await readValues()).qualityMasterControl).libraries.fqc;
       const forms = {errorName: 'Edited synthetic error ' + cycle, newErrorName: 'Created synthetic error ' + cycle,
@@ -320,17 +327,20 @@ export async function runFqcDraftBrowser() {
           assert.equal(c.workflow.pendingId, null); assert.equal(row.status, kind === 'approve' ? 'approved' : 'returned'); assert.equal(row.result.actor.id, seed.actors.reviewer.id);
           if (kind === 'approve') assert.deepEqual(c.versions.find(x => x.id === c.activeVersionId).snapshot, saved.content);
         }, 1);
+        stage = cycle + ':review-' + kind + '-close';
         await reviewer.context.close(); contexts.delete(reviewer.context);
       }
       await review('return'); await editor.context.close(); contexts.delete(editor.context);
       editor = await open(seed.actors.editor, 'data', 'returned-editor-entry'); await submit('returned-submit'); await review('approve');
-      const finalValues = await readValues();
+      stage = cycle + ':final-read-values'; const finalValues = await readValues();
+      stage = cycle + ':verify-unrelated-values';
       for (const key of Object.keys(seed.values).filter(key => key !== 'qualityMasterControl')) assert.equal(finalValues[key], seed.values[key], 'Unrelated scope preserved: ' + key);
       const finalQuality = JSON.parse(finalValues.qualityMasterControl), initialQuality = JSON.parse(seed.values.qualityMasterControl);
       for (const key of Object.keys(initialQuality.libraries).filter(key => key !== 'fqc')) assert.deepEqual(finalQuality.libraries[key], initialQuality.libraries[key]);
       assert.deepEqual(report.pageErrors, []);
-      report.cycles.push({cycle, status: 'PASS', seedBytes: seed.seedBytes, contentBytes: seed.contentBytes, persistedSavedReadback: true, readOnlyUIVerified: true, cases: (await control()).workflow.cases.map(row => row.status)});
-      await editor.context.close(); contexts.delete(editor.context);
+      stage = cycle + ':final-read-case-statuses'; const cases = (await control()).workflow.cases.map(row => row.status);
+      report.cycles.push({cycle, status: 'PASS', seedBytes: seed.seedBytes, contentBytes: seed.contentBytes, persistedSavedReadback: true, readOnlyUIVerified: true, cases});
+      stage = cycle + ':editor-close'; await editor.context.close(); contexts.delete(editor.context);
     }
     report.summary = summarizeActions(report.samples, fqcBrowserActions); assert(report.summary.every(row => row.status === 'PASS_FUNCTION_MEASURED'));
     report.status = 'PASS_CI_SYNTHETIC_FQC_LIFECYCLE';
@@ -341,6 +351,7 @@ export async function runFqcDraftBrowser() {
       catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true, setupNetwork: item.setup.snapshot()}); }
     }
     if (fixture) report.fixtureRevision = await fqcFixtureRevisionDiagnostic(fixture.db);
+    report.runtimeFailure = nativeFailureDiagnostics(error); report.fixtureRead = fixtureRead;
     report.failure = {name: error.name, message: String(error.message).replaceAll(secret, '[redacted]').slice(0, 500)};
     report.summary = summarizeActions(report.samples, fqcBrowserActions);
   } finally {
