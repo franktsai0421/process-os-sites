@@ -1,3 +1,7 @@
+## 2026-11-01 — FQC Apply/Save scoped immutable overlay
+
+The follow-on to merged #57 adds no persistent field, table, schema, key, binding or migration. An in-memory, one-use capability for ordinary records-v1 FQC Apply/Save pins the original manifest, actor/operation and exact adapter result, then overlays only quality and its derived allocation pointer. Unread unrelated aggregate references/metadata remain unchanged and explicitly unverified; required auth/quality/AB/equipment faults still reject. GET/review/restore remain on their previous readers. This narrowly supersedes the older “all aggregate” requirement for the eligible FQC POSTs only; complete selected quality/master/equipment bodies remain conservative. See [exact boundaries](../docs/FQC_REQUIRED_DEPENDENCIES.md).
+
 ## 2026-10-30 整合候選格式界線
 
 本次不包含舊資料自動轉換，新增首次轉換專用程式與驗收已移除。一般 master writer 維持既有 encodeValues，state-records codec 與 main 相同；既有 records-v1 正常讀寫，legacy 可沿既有路徑儲存 whole-R2，無 schema 或實際資料變更。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。

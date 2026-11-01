@@ -1,0 +1,1715 @@
+{
+  "schema": "FQC_PAIRED_APPLY_DIAGNOSTIC_V1",
+  "syntheticOnly": true,
+  "liveLatency": false,
+  "runtimeHashes": {
+    "lib/process-state.ts": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
+    "lib/versioned-shared-workflow.ts": "cdcea56246d15e811cc5d648f475e33b6ee8a4bc291d0a17a431fa90de772c72",
+    "public/process/shared-draft-client.js": "1da994ad57cde09fec53bc0d1d190b3b422d2cdbbdd3d6f84d4d6218297730d6",
+    "scripts/fqc-apply-fixture.cjs": "8c787a1d7938eddb4669114d4598568af1c9c3f2de6b7004212e02c631dbc319"
+  },
+  "base": "268a8e49ec751bb6849033e20a27d30194aad67c",
+  "fixture": {
+    "errors": 1,
+    "items": 256,
+    "itemDescriptionPadding": 512
+  },
+  "note": "All variants use the same current transport; main server overrides exact process-state/versioned main bytes, current-server-legacy-full strips only the opt-in on the same candidate server. 45s is not the measured optimization. Controlled waits are explicitly not deployed timings. Failed samples abort rather than silently disappear. Raw successful samples retained.",
+  "summary": [
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 82.03874900000028,
+        "median": 92.72982199999933,
+        "max": 121.15839600000072
+      },
+      "cpuMs": {
+        "min": 101.869,
+        "median": 132.069,
+        "max": 262.015
+      },
+      "sql": {
+        "min": 44,
+        "median": 44,
+        "max": 44
+      },
+      "revocation": {
+        "min": 39,
+        "median": 39,
+        "max": 39
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 801066,
+        "median": 801066,
+        "max": 801066
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 66.34121200000027,
+        "median": 67.27713099999983,
+        "max": 72.17466800000011
+      },
+      "cpuMs": {
+        "min": 80.445,
+        "median": 90.267,
+        "max": 117.925
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 801066,
+        "median": 801066,
+        "max": 801066
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 47.19316400000025,
+        "median": 54.18263399999978,
+        "max": 60.61956200000168
+      },
+      "cpuMs": {
+        "min": 62.983,
+        "median": 86.35,
+        "max": 101.364
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 400825,
+        "median": 400825,
+        "max": 400825
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 84.37233399999968,
+        "median": 88.78870899999947,
+        "max": 97.3165009999999
+      },
+      "cpuMs": {
+        "min": 83.368,
+        "median": 88.691,
+        "max": 102.729
+      },
+      "sql": {
+        "min": 45,
+        "median": 45,
+        "max": 45
+      },
+      "revocation": {
+        "min": 40,
+        "median": 40,
+        "max": 40
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 801442,
+        "median": 801442,
+        "max": 801442
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 59.36380099999997,
+        "median": 66.23315999999977,
+        "max": 76.29857400000037
+      },
+      "cpuMs": {
+        "min": 59.459,
+        "median": 75.529,
+        "max": 103.258
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 801442,
+        "median": 801442,
+        "max": 801442
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 48.28325799999948,
+        "median": 52.41250199999922,
+        "max": 61.87303299999985
+      },
+      "cpuMs": {
+        "min": 48.245,
+        "median": 52.572,
+        "max": 87.933
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 401013,
+        "median": 401013,
+        "max": 401013
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 102.72538200000054,
+        "median": 107.16064499999993,
+        "max": 111.61890799999992
+      },
+      "cpuMs": {
+        "min": 109.629,
+        "median": 120.33,
+        "max": 122.968
+      },
+      "sql": {
+        "min": 44,
+        "median": 44,
+        "max": 44
+      },
+      "revocation": {
+        "min": 39,
+        "median": 39,
+        "max": 39
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 76.0189620000001,
+        "median": 85.66201799999999,
+        "max": 152.0553440000001
+      },
+      "cpuMs": {
+        "min": 76.796,
+        "median": 84.707,
+        "max": 224.759
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 72.24469999999928,
+        "median": 79.66361400000005,
+        "max": 88.01073900000029
+      },
+      "cpuMs": {
+        "min": 73.519,
+        "median": 82.133,
+        "max": 86.019
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "receipt",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 23.007575999999972,
+        "median": 26.856270000000222,
+        "max": 27.659493999999995
+      },
+      "cpuMs": {
+        "min": 22.031,
+        "median": 24.955,
+        "max": 31.714
+      },
+      "sql": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "revocation": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "receipt",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 8.417457999999897,
+        "median": 10.745256999999583,
+        "max": 26.89080899999999
+      },
+      "cpuMs": {
+        "min": 7.69,
+        "median": 10.447,
+        "max": 12.098
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "receipt",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 8.503429999999753,
+        "median": 8.855144999999538,
+        "max": 14.488280000000486
+      },
+      "cpuMs": {
+        "min": 8.332,
+        "median": 9.046,
+        "max": 13.457
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "terminal-read",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 34.56164800000079,
+        "median": 39.339946000000054,
+        "max": 42.831686999999874
+      },
+      "cpuMs": {
+        "min": 33.794,
+        "median": 37.427,
+        "max": 41.312
+      },
+      "sql": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "revocation": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "terminal-read",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 22.943543999999747,
+        "median": 24.679683000000068,
+        "max": 41.93048099999987
+      },
+      "cpuMs": {
+        "min": 22.674,
+        "median": 24.323,
+        "max": 31.919
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "terminal-read",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 21.332597000000078,
+        "median": 23.59794099999999,
+        "max": 25.46036499999991
+      },
+      "cpuMs": {
+        "min": 21.173,
+        "median": 23.844,
+        "max": 25.233
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 679.5292400000035,
+        "median": 694.7706089999992,
+        "max": 696.8944090000005
+      },
+      "cpuMs": {
+        "min": 118.152,
+        "median": 151.025,
+        "max": 182.095
+      },
+      "sql": {
+        "min": 44,
+        "median": 44,
+        "max": 44
+      },
+      "revocation": {
+        "min": 39,
+        "median": 39,
+        "max": 39
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 801066,
+        "median": 801066,
+        "max": 801066
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 479.23666700000103,
+        "median": 485.0418239999999,
+        "max": 493.3412040000003
+      },
+      "cpuMs": {
+        "min": 86.638,
+        "median": 94.372,
+        "max": 265.904
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 801066,
+        "median": 801066,
+        "max": 801066
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 467.7935010000001,
+        "median": 477.23581900000136,
+        "max": 485.55850400000054
+      },
+      "cpuMs": {
+        "min": 77.109,
+        "median": 99.205,
+        "max": 109.218
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "r2BodyReads": {
+        "min": 25,
+        "median": 25,
+        "max": 25
+      },
+      "r2BodyBytes": {
+        "min": 638220,
+        "median": 638220,
+        "max": 638220
+      },
+      "requestBytes": {
+        "min": 361,
+        "median": 361,
+        "max": 361
+      },
+      "responseBytes": {
+        "min": 400825,
+        "median": 400825,
+        "max": 400825
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 702.4512319999994,
+        "median": 720.5354289999996,
+        "max": 735.6082009999991
+      },
+      "cpuMs": {
+        "min": 107.487,
+        "median": 130.709,
+        "max": 133.365
+      },
+      "sql": {
+        "min": 45,
+        "median": 45,
+        "max": 45
+      },
+      "revocation": {
+        "min": 40,
+        "median": 40,
+        "max": 40
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 801442,
+        "median": 801442,
+        "max": 801442
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 505.41297100000156,
+        "median": 513.5932019999964,
+        "max": 516.4571259999993
+      },
+      "cpuMs": {
+        "min": 71.975,
+        "median": 106.058,
+        "max": 108.213
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 801442,
+        "median": 801442,
+        "max": 801442
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 491.38697200000024,
+        "median": 501.7431990000041,
+        "max": 534.5191669999986
+      },
+      "cpuMs": {
+        "min": 55.828,
+        "median": 69.456,
+        "max": 92.287
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 838913,
+        "median": 838913,
+        "max": 838913
+      },
+      "requestBytes": {
+        "min": 306,
+        "median": 306,
+        "max": 306
+      },
+      "responseBytes": {
+        "min": 401013,
+        "median": 401013,
+        "max": 401013
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 714.2091769999988,
+        "median": 716.9597869999998,
+        "max": 721.8082429999995
+      },
+      "cpuMs": {
+        "min": 135.911,
+        "median": 140.488,
+        "max": 262.739
+      },
+      "sql": {
+        "min": 44,
+        "median": 44,
+        "max": 44
+      },
+      "revocation": {
+        "min": 39,
+        "median": 39,
+        "max": 39
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 503.31205300000147,
+        "median": 508.1998730000014,
+        "max": 521.8652430000002
+      },
+      "cpuMs": {
+        "min": 86.375,
+        "median": 92.235,
+        "max": 98.59
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 498.2532429999992,
+        "median": 508.83974599999783,
+        "max": 519.2896419999997
+      },
+      "cpuMs": {
+        "min": 84.068,
+        "median": 91.286,
+        "max": 105.526
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "r2BodyReads": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2BodyBytes": {
+        "min": 840923,
+        "median": 840923,
+        "max": 840923
+      },
+      "requestBytes": {
+        "min": 197,
+        "median": 197,
+        "max": 197
+      },
+      "responseBytes": {
+        "min": 801888,
+        "median": 801888,
+        "max": 801888
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "receipt",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 345.43741800000134,
+        "median": 352.67812200000117,
+        "max": 366.47553999999946
+      },
+      "cpuMs": {
+        "min": 33.259,
+        "median": 38.954,
+        "max": 55.065
+      },
+      "sql": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "revocation": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "receipt",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 207.59881200000018,
+        "median": 207.78334899999754,
+        "max": 212.26686100000006
+      },
+      "cpuMs": {
+        "min": 10.543,
+        "median": 11.979,
+        "max": 14.664
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "receipt",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 207.43560399999842,
+        "median": 208.44213500000114,
+        "max": 219.25670499999978
+      },
+      "cpuMs": {
+        "min": 10.423,
+        "median": 11.016,
+        "max": 19.283
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "terminal-read",
+      "variant": "main268a-server",
+      "n": 5,
+      "ms": {
+        "min": 356.5984099999987,
+        "median": 362.3116270000028,
+        "max": 368.65671700000166
+      },
+      "cpuMs": {
+        "min": 48.247,
+        "median": 50.411,
+        "max": 51.525
+      },
+      "sql": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "revocation": {
+        "min": 26,
+        "median": 26,
+        "max": 26
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "terminal-read",
+      "variant": "current-server-legacy-full",
+      "n": 5,
+      "ms": {
+        "min": 222.31957700000203,
+        "median": 223.52764699999534,
+        "max": 225.99749500000325
+      },
+      "cpuMs": {
+        "min": 24.867,
+        "median": 28.092,
+        "max": 29.37
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "terminal-read",
+      "variant": "candidate-ack",
+      "n": 5,
+      "ms": {
+        "min": 221.4193809999997,
+        "median": 222.5154379999949,
+        "max": 228.54202500000247
+      },
+      "cpuMs": {
+        "min": 24.523,
+        "median": 25.715,
+        "max": 32.385
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "r2BodyReads": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "r2BodyBytes": {
+        "min": 417799,
+        "median": 417799,
+        "max": 417799
+      },
+      "requestBytes": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "responseBytes": {
+        "min": 400945,
+        "median": 400945,
+        "max": 400945
+      }
+    }
+  ],
+  "samples": 150,
+  "script": "node scripts/benchmark-fqc-apply.cjs",
+  "measurementWindowUTC": {
+    "start": "2026-11-01T05:26:31Z",
+    "end": "2026-11-01T05:27:25Z"
+  },
+  "timingBoundary": "Actual Node handler + transport + response consumption on ephemeral SQLite/R2; no native browser/network/employee data. 45-second budget is not a timing gain. Full server projection validation remains before ACK serialization.",
+  "postWireRepresentative": {
+    "beforeBytes": 400515,
+    "afterBytes": 274,
+    "requestBytes": 361,
+    "requestsPerApply": 2,
+    "responseModel": "one error, 256 items with synthetic 512-character description padding"
+  },
+  "instrumentation": "Fixture call() also parses a cloned HTTP response for wire evidence. Wall/CPU include this diagnostic cost; use byte/query counts as exact facts, not these milliseconds as deployed estimates."
+}

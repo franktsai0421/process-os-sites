@@ -306,10 +306,11 @@
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections}) => {
-    // Only the existing relative authoring route gets longer command tolerance.
-    // Other commands retain 15s; GET/Begin remain bounded at 45s. This is not proof of
-    // commit: unknown-result receipt validation and retry admission stay intact.
-    const mutationDeadline=/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
+    // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
+    // exact bounded FQC route shares authoring's 45s budget, not an unbounded
+    // retry. Timeout still means unknown and only the original receipt is read.
+    const fqcMutation=externalDurableBounded?.scope==='FQC'&&/^\/api\/fqc\/workflow(?:\?|$)/.test(endpoint);
+    const mutationDeadline=fqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     // Canvas alone may delegate durable intent to its claimed recovery store.
     // The synchronous proof is rechecked immediately before fetch, after queueing.
     // Never import, rewrite or erase the generic session command in this mode.
@@ -601,7 +602,7 @@
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
       accessOwner.delivery=readOwner||(accessGuard?window.ProcessSync?.captureDelivery?.():null);
       // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
-      // non-authoring commands at 15s and the receipt-first unknown policy.
+      // other command scopes at 15s and the receipt-first unknown policy.
       // Begin is a bounded workflow load/adoption. Only this action receives
       // the existing 45s read/authoring budget; other mutation budgets stay put.
       const requestDeadline=body?.action==='begin'?45000:body?mutationDeadline:45000;
@@ -623,7 +624,7 @@
         }
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
-        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
+        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         phase='body';let result;try{result=await response.json();}catch(error){if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){if(accessGuard)projectAccess({},response.status,false,accessOwner);throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
         assertOwner();

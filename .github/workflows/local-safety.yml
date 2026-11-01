@@ -63,6 +63,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: FQC Apply reliability and actual native forms
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/fqc-apply-reliability.test.mjs tests/fqc-apply-ack.test.mjs tests/fqc-required-dependencies.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/fqc-apply-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exact source baseline for paired performance contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -535,6 +542,12 @@ jobs:
           node --test --test-concurrency=1 tests/draft-action-measurement.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-draft-lifecycle-route.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/process-draft-lifecycle-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/fqc-draft-lifecycle-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/fqc-matrix-multiuser-browser.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Dormant native staging authority and synthetic transport
         id: head_validation_12
