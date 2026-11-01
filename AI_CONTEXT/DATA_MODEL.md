@@ -1,4 +1,17 @@
+## IPQC-C／定期 FQC read-only scope（2026-11-01 候選）
+
+兩個 GET 的 records-v1 採一次 D1 snapshot：authority5先驗與授權，C僅 `ipqcCMasterControl`，routine為enabled/control/quality/master四keys。原required body、原selector與讀後fresh checks不減；C permissions仍auth-only。回傳`deliveryOnly`＋`partial`，普通writer拒絕，沒有migration、持久cache或寫入能力。無關未讀ref完整性為unknown且原manifest不改；HEAD／legacy格式保持full reader。必要row缺失直接拒絕，不能另SELECT拼快照。見[範圍與驗證](../docs/acceptance/SCOPED_WORKFLOW_GET_20261101.md)。
+
 ## 2026-10-30 整合候選格式界線
+
+## Master AB Save scoped capability（2026-11-01 候選，未部署）
+
+相容性補正：optional `platformUsers` inline mirror 不參與授權，缺省或合法 stale 值精確保留；defined mirror 的 JSON 語法及 maintenance override 優先序不變。authority 只拒原 exact immutable body reference，普通 literal 名稱／描述不當成引用。無 schema／資料轉換。
+
+`master-ab-save-v1` 僅供 exact master AB canonical Save；五 authority keys 先以同一 D1 row 解碼與授權，整個 master 仍沿原 decoder/adapter，最後私有 single-use handle 只 overlay master aggregate ref。其他 module refs/legacySources/allocations與非 AB root siblings、未知欄位精確保留；普通 partial writer仍禁止。新 Save只可新增自己的receipt，舊receipts不可改；只有同verified actor/client的canonical新sequence可單調更新。原fresh gates/CAS/retry/unknown receipt規則保留，新增pre-business fresh fence。
+
+已選authority/target損壞拒絕；未讀無關aggregate/body的故障不再全域阻擋Save，這是owner同意的fault-isolation政策，不是完整故障等價。原refs與revision/scope診斷保留，未讀資料完整性是unknown，不自動刪除、補值、修復或搬移。master內C/PROCESS仍讀，legacy整體格式仍full fallback；此階段沒有scope拆分/schema/migration。完整量測與安全界線見[驗證報告](../docs/acceptance/MASTER_AB_SAVE_SCOPE_20261101.md)。
+
 
 本次不包含舊資料自動轉換，新增首次轉換專用程式與驗收已移除。一般 master writer 維持既有 encodeValues，state-records codec 與 main 相同；既有 records-v1 正常讀寫，legacy 可沿既有路徑儲存 whole-R2，無 schema 或實際資料變更。見[整合交接](../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。
 

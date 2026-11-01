@@ -1,3 +1,7 @@
+# Slow-operation integration on merged FQC #57 — local only
+
+Master AB Save, C/routine GET scope and permission phases, and routine first-read de-duplication are integrated on public main848. Exact source boundaries, sequential evidence, remaining AB Apply work and unrun publication/browser gates are in [the integration note](docs/acceptance/SLOW_WEB_FQC57_INTEGRATION_20261101.md). This candidate does not include the separately developing next FQC required-dependency policy. No new publication or deployment is authorized here.
+
 ## 2026-11-01 — FQC Apply ACK acceleration follow-on
 
 Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.

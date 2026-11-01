@@ -4,3 +4,7 @@ data/canonical/** text eol=lf
 .githooks/* text eol=lf
 
 data/canonical/assets/web/*.webp binary
+scripts/scoped-read-phase-baseline.json text eol=lf
+
+# Exact Save test registration inverse is byte-pinned across Windows checkouts.
+tests/master-ab-save-record-mutation.test.mjs text eol=lf

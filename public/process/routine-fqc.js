@@ -352,8 +352,9 @@
     }
     return receiptTerminal(record,value,pin);
   }
-  async function refresh(generate = false) {
-    const next = await read();
+  async function refresh(generate = false, initial = null, owns = () => true) {
+    const owner = receiptPin(), next = initial || await read();
+    if (!owns() || !receiptCurrent(owner)) return;
     // A read started before a review/cancellation may finish after a newer read.
     // Never publish that older aggregate into the active document or checklist.
     if (data && next.identity.id === data.identity.id && next.control.revision < data.control.revision) return;
@@ -366,7 +367,9 @@
     reconcileSelection();
     if (generate && !s.retry && s.tab !== 'history' && data.permissions.edit && data.control.startDate) {
       await post({ action: 'generate' });
+      if (!owns() || !receiptCurrent(owner)) return;
       const generated = await read();
+      if (!owns() || !receiptCurrent(owner)) return;
       if (generated.control.revision >= data.control.revision) data = generated;
     }
     s.error = receiptInvalid ? receiptStorageNotice() : s.retry ? receiptNotice() : '';
@@ -381,27 +384,37 @@
     }
   }
   async function mount(container, historyMode = false) {
-    const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);navigationError=null;
+    navigationError=null;
     s.reviewPlatform = false;
     root = container.matches?.('#routine-fqc-root')
       ? container
       : container.querySelector('#routine-fqc-root');
     if (!root) return;
+    const owner=receiptPin();
     if (historyMode) s.tab = 'history';
     if (loading) return;
-    loading = true;
+    const attempt = {};
+    loading = attempt;
+    const owns=()=>loading===attempt&&receiptCurrent(owner);
     try {
-      const a = await read('?availability=1');if(!owns())return;
-      if (!a.enabled) {
+      // The full state read already checks availability. Reuse only this mount's
+      // result; later refreshes and post-generate confirmation still read fresh.
+      let initial;
+      try { initial = await read(); }
+      catch (error) {
+        if (!owns()) return;
+        if (error.status !== 404 || error.message !== 'FQC_NOT_ENABLED') throw error;
         root.innerHTML = `<div class="rf-empty"><b>${t('例行檢查準備中', 'Đang chuẩn bị kiểm tra định kỳ')}</b>${t('3040 完成驗收後啟用', 'Kích hoạt sau nghiệm thu 3040')}</div>`;
         return;
       }
+      if(!owns())return;
       await ensureHistorySearch();if(!owns())return;
-      await refresh(true);
+      await refresh(true, initial, owns);
     } catch (e) {
       if(owns()){navigationError=e;fault(e);}
     } finally {
-      if(owns())loading = false;
+      // A superseded owner may release its own busy state, never a newer mount.
+      if(loading===attempt)loading = false;
     }
   }
   const docs = () => data?.control.documents || [],

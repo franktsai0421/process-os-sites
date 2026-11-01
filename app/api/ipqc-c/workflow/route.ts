@@ -1,3 +1,4 @@
+import {readScopedWorkflowState,scopedWorkflowPermissionPhase} from '@/lib/scoped-workflow-read';
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
@@ -12,9 +13,9 @@ import {recordJSONResponse} from '@/lib/state-records-response';
 
 const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
-async function access(request:Request,state:State) {
-  const rights=await workflowAccess(request,state);
-  return {...rights,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
+async function access(request:Request,state:State,allowed=(key:string):boolean|Promise<boolean>=>can(request,state,key)) {
+  const rights=await workflowAccess(request,state,allowed);
+  return {...rights,restore:rights.edit&&await restoreAllowed(request,state,allowed),create:rights.edit&&await allowed('ipqc-c.create'),delete:rights.edit&&await allowed('ipqc-c.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {
@@ -48,62 +49,67 @@ function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},a
   }
 }
 export async function GET(request:Request) {
+  let phase:ReturnType<typeof scopedWorkflowPermissionPhase>=null;
+  const deliver=async(body:unknown,status=200)=>{
+    try{if(phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);return reply(body,status);}
+    catch{return reply({error:'WORKFLOW_LOAD_FAILED'},503);}
+  };
   try {
     const query=new URL(request.url).searchParams;
-    const state=await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
-    if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
-    if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
+    const state=(request.method==='GET'?await readScopedWorkflowState(request,'ipqc-c-workflow'):null)||await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')});phase=scopedWorkflowPermissionPhase(request,state);const actor=phase?phase.actor:await identity(request,state),permissions=await access(request,state,phase?.allowed);
+    if(!actor||!permissions.view)return deliver({error:'FORBIDDEN'},403);
+    if(query.has('permissions'))return deliver({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;
-    if(query.has('uiHistory'))return permissions.history?reply(workflowInterfaceMetadata(control,query)):reply({error:'FORBIDDEN'},403);
-    if(query.has('versionId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply({version}):reply({error:'VERSION_NOT_FOUND'},404);}
+    if(query.has('uiHistory'))return permissions.history?deliver(workflowInterfaceMetadata(control,query)):deliver({error:'FORBIDDEN'},403);
+    if(query.has('versionId')){if(!permissions.history)return deliver({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?deliver({version}):deliver({error:'VERSION_NOT_FOUND'},404);}
     if(query.has('legacyHistory')||query.has('legacyVersionId')){
-      if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+      if(!permissions.history)return deliver({error:'FORBIDDEN'},403);
       const caseIds=new Set(flow?.cases.map(c=>c.id)||[]),rows=control.versions.filter(v=>!v.id.startsWith('shared-')&&!caseIds.has(v.id)).slice().reverse();
-      if(query.has('legacyVersionId')){const version=rows.find(v=>v.id===query.get('legacyVersionId'));return version?reply({legacyVersion:version}):reply({error:'VERSION_NOT_FOUND'},404);}
-      const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
-      return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
+      if(query.has('legacyVersionId')){const version=rows.find(v=>v.id===query.get('legacyVersionId'));return version?deliver({legacyVersion:version}):deliver({error:'VERSION_NOT_FOUND'},404);}
+      const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return deliver({error:'HISTORY_CURSOR_INVALID'},409);
+      return deliver({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
     }
     if(query.has('restoreSaveId')){
-      if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
-      if(!flow||openIpqc(control)?.status!=='draft')return reply({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
-      const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return reply({error:'SAVE_NOT_FOUND'},404);
+      if(!permissions.history||!permissions.restore)return deliver({error:'FORBIDDEN'},403);
+      if(!flow||openIpqc(control)?.status!=='draft')return deliver({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
+      const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return deliver({error:'SAVE_NOT_FOUND'},404);
       const context=ipqcWorkflowContext(control,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]},[]);
       const after=context.restoreContent!(copyIpqc(saved.content),flow.working);
-      await assertRestoreAccess(request,state,flow.working,after);
-      return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
+      await assertRestoreAccess(request,state,flow.working,after,phase?.allowed);
+      return deliver({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
     }
     if(query.get('history')==='cases') {
-      if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+      if(!permissions.history)return deliver({error:'FORBIDDEN'},403);
       const cases=[...(flow?.cases||[])].reverse(),before=query.get('before');
       const start=before?cases.findIndex(c=>c.id===before)+1:0;
-      if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
+      if(before&&!start)return deliver({error:'HISTORY_CURSOR_INVALID'},409);
       const rows=cases.slice(start,start+20);
-      return reply({cases:rows.map(c=>({id:c.id,savedId:c.savedId,baseId:c.baseId,actor:c.actor,at:c.at,reason:c.reason,status:c.status,result:c.result})),
+      return deliver({cases:rows.map(c=>({id:c.id,savedId:c.savedId,baseId:c.baseId,actor:c.actor,at:c.at,reason:c.reason,status:c.status,result:c.result})),
         next:cases.length>start+20?rows.at(-1)?.id:null,total:cases.length});
     }
     if(query.has('caseId')) {
-      if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+      if(!permissions.history)return deliver({error:'FORBIDDEN'},403);
       const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));
-      return reviewCase?reply({reviewCase,currentDraftId:openIpqc(control)?.id||null}):reply({error:'CASE_NOT_FOUND'},404);
+      return reviewCase?deliver({reviewCase,currentDraftId:openIpqc(control)?.id||null}):deliver({error:'CASE_NOT_FOUND'},404);
     }
     const operationId=query.get('operationId');
     if(operationId) {
       const receipt=flow?.receipts[operationId];
-      if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
+      if(!receipt)return deliver({error:'OPERATION_NOT_FOUND'},404);
       const action=JSON.parse(receipt.fingerprint).action;
       const permission=action==='apply'||action==='restore'?'edit':action;
-      if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);
-      return reply({receipt:receipt.result});
+      if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return deliver({error:'FORBIDDEN'},403);
+      return deliver({receipt:receipt.result});
     }
     const since=new URL(request.url).searchParams.get('since');
-    if(flow&&since===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
-    return reply({revision:state.revision,permissions,workflow:flow ? {
+    if(flow&&since===`${flow.generation}:${flow.revision}`)return deliver({revision:state.revision,permissions,unchanged:true});
+    return deliver({revision:state.revision,permissions,workflow:flow ? {
       scope:flow.scope,generation:flow.generation,revision:flow.revision,working:flow.working,
       saved:flow.saved ? {id:flow.saved.id,revision:flow.saved.revision,actor:flow.saved.actor,at:flow.saved.at}:null,
       pendingId:flow.pendingId,activeId:flow.active.id,contributors:flow.contributors,
       editable:openIpqc(control)?.status==='draft',
     }:null});
-  } catch(error) {return error instanceof DraftConflict?reply({error:error.code},error.status):reply({error:'WORKFLOW_LOAD_FAILED'},503);}
+  } catch(error) {return error instanceof DraftConflict?deliver({error:error.code},error.status):deliver({error:'WORKFLOW_LOAD_FAILED'},503);}
 }
 export async function POST(request:Request) {
   let streamRecords=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const payload=compactWorkflowPayload(body,query.get('compact')==='1');return streamRecords&&status===200&&query.get('caseMetadata')!=='1'?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):Response.json(payload,{status,headers:responseHeaders});};

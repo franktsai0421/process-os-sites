@@ -70,6 +70,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/fqc-apply-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Routine initial read and actual-route integration contracts
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --experimental-vm-modules --test --test-concurrency=1 tests/routine-fqc-initial-read.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-unload-contract.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs tests/routine-fqc-initial-route-integration.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Isolated intercepted API/direct mount, not deployed HTTPS or full navigation timing.
+          node tests/routine-fqc-initial-read.browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exact source baseline for paired performance contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -122,6 +130,17 @@ jobs:
         id: head_validation_02
         if: ${{ !cancelled() && steps.head_validation_01.outcome == 'success' }}
         run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Exact scoped-read HEAD bytes and portable baseline proof
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node scripts/materialize-scoped-read-head.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-scoped-read-head-materialization.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-scoped-read-phase-baseline.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/scoped-read-phase-baseline.cjs .sites-runtime/scoped-read-baseline-bytes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Shared draft manual synchronization and submission contracts
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: |
@@ -130,6 +149,82 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/shared-draft-pagehide-generation.test.mjs tests/shared-draft-submit-contract.test.mjs tests/shared-draft-no-change.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-batch-http.test.mjs tests/master-manual-name-apply.test.cjs tests/fqc-matrix-batch.test.mjs tests/quality-submit-confirmation-pins.test.cjs tests/quality-submission-fences.test.mjs tests/lines-submit-snapshot-integration.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exact main baseline for scoped master AB Save
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: 268a8e49ec751bb6849033e20a27d30194aad67c
+          path: .sites-runtime/master-ab-save-baseline
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Exact current main848 baseline for integrated scoped GETs
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: 848be13da54c7ae747bcdd96df19e01129fe980a
+          path: .sites-runtime/scoped-integration-main848-baseline
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Scoped master AB Save capability and pinned-source comparison
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node scripts/test-master-ab-save-registration.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/run-scoped-read-contracts.cjs tests/master-ab-save-record-mutation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --max-old-space-size=384 --test tests/master-ab-save-authority-compat.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --max-old-space-size=128 tests/master-ab-save-authority-compat.test.mjs --paired --baseline .sites-runtime/master-ab-save-baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/master-ab-save-record-benchmark.mjs --baseline .sites-runtime/master-ab-save-baseline > .sites-runtime/master-ab-save-paired.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $paired = Get-Content -Raw .sites-runtime/master-ab-save-paired.json | ConvertFrom-Json
+          $paired | Select-Object status,baselineCommit,rows,limitations | ConvertTo-Json -Depth 12
+          $paired.baseline.sourceHashes | ConvertTo-Json
+          $paired.candidate.sourceHashes | ConvertTo-Json
+      - name: Current main848 integrated AB Save paired comparison
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node --max-old-space-size=128 tests/master-ab-save-authority-compat.test.mjs --paired --baseline-main848 .sites-runtime/scoped-integration-main848-baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/master-ab-save-record-benchmark.mjs --baseline-main848 .sites-runtime/scoped-integration-main848-baseline > .sites-runtime/master-ab-save-main848-paired.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $saved = Get-Content -Raw .sites-runtime/master-ab-save-main848-paired.json | ConvertFrom-Json
+          $saved | Select-Object status,baselineMode,baselineCommit,baselineTree,rows,limitations | ConvertTo-Json -Depth 12
+          $saved.baseline.sourceHashes | ConvertTo-Json
+          $saved.candidate.sourceHashes | ConvertTo-Json
+      - name: Scoped C and routine GET contracts and pinned-source comparison
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node scripts/run-scoped-read-contracts.cjs tests/scoped-workflow-read.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --max-old-space-size=384 tests/scoped-workflow-read-benchmark.mjs --baseline .sites-runtime/master-ab-save-baseline > .sites-runtime/scoped-workflow-read-paired.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $scoped = Get-Content -Raw .sites-runtime/scoped-workflow-read-paired.json | ConvertFrom-Json
+          $scoped | Select-Object status,baselineCommit,totalTimedSamples,rows,limitations | ConvertTo-Json -Depth 12
+          $scoped.baseline.sourceHashes | ConvertTo-Json
+          $scoped.candidate.sourceHashes | ConvertTo-Json
+      - name: Current main848 integrated scoped GET full paired comparison
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node --max-old-space-size=384 tests/scoped-workflow-read-benchmark.mjs --baseline-main848 .sites-runtime/scoped-integration-main848-baseline > .sites-runtime/scoped-integration-main848-paired.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $integrated = Get-Content -Raw .sites-runtime/scoped-integration-main848-paired.json | ConvertFrom-Json
+          $integrated | Select-Object status,baselineMode,baselineCommit,baselineTree,totalTimedSamples,rows,limitations | ConvertTo-Json -Depth 12
+          $integrated.baseline.sourceHashes | ConvertTo-Json
+          $integrated.candidate.sourceHashes | ConvertTo-Json
+      - name: Scoped GET permission phase complete shards and baseline-bytes comparison
+        if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
+        run: |
+          node scripts/run-scoped-read-contracts.cjs tests/scoped-read-permission-phase.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:PHASE_REPORT_DIRECTORY = '.sites-runtime/scoped-permission-child-reports'
+          node --max-old-space-size=384 tests/scoped-read-permission-benchmark.mjs --baseline-bytes .sites-runtime/scoped-read-baseline-bytes --main-baseline .sites-runtime/master-ab-save-baseline > .sites-runtime/scoped-read-permission-paired.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $phase = Get-Content -Raw .sites-runtime/scoped-read-permission-paired.json | ConvertFrom-Json -Depth 100
+          $phase | Select-Object status,baselineCommit,baselineProvenance,totalTimedSamples,rows,limitations | ConvertTo-Json -Depth 15
+          $phase.before.sourceHashes | ConvertTo-Json
+          $phase.after.sourceHashes | ConvertTo-Json
       - name: Build exact checked-out commit
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}

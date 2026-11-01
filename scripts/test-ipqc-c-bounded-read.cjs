@@ -2,6 +2,8 @@
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
 const {withoutComposedPerformance,assertComposedPerformanceContract}=require('./ipqc-c-composed-performance-source-contract.cjs');
+const {withoutScopedReadPermissionPhase,assertScopedReadPermissionPhaseContract}=require('./scoped-read-permission-source-contract.cjs');
+const {withoutScopedWorkflowReadScope,assertScopedWorkflowReadScopeContract}=require('./scoped-workflow-read-source-contract.cjs');
 const {withoutApprovedExplicitRights,assertExplicitRightsContract}=require('./ipqc-c-explicit-rights-source-contract.cjs');
 const {makeLoader,baselineCommits,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
 const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT);CREATE TABLE process_revoked_sessions(token_digest TEXT PRIMARY KEY,expires_at INTEGER,revoked_at INTEGER)');
@@ -98,8 +100,10 @@ await check('C9 exact composed performance and explicit-rights spans; historical
    protectedSource=execFileSync('git',['show','2cac307f29b8017a2bb6dc5229d47720f2deab33:'+file]);
   }
   if(file==='app/api/ipqc-c/workflow/route.ts'){
-   assertComposedPerformanceContract(committed);
-   protectedSource=withoutComposedPerformance(committed);
+   assert.equal(assertScopedReadPermissionPhaseContract(file,committed),15);
+   const scopedBytes=withoutScopedReadPermissionPhase(file,committed);assert.equal(assertScopedWorkflowReadScopeContract(scopedBytes),11);
+   const composedBytes=withoutScopedWorkflowReadScope(scopedBytes);assertComposedPerformanceContract(composedBytes);
+   protectedSource=withoutComposedPerformance(composedBytes);
   }
   const aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
   const explicit=['app/api/ipqc-c/route.ts','app/api/ipqc-c/workflow/route.ts'].includes(file);

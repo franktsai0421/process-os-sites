@@ -29,7 +29,7 @@ void test('AB actual compact records GET and Apply/Save SQL/R2 counters', async 
   assert.deepEqual(stored.workflowScopes.AB.cases, f.master.workflowScopes.AB.cases);
   assert.equal(f.row().revision, before.revision + 2);
   t.diagnostic(JSON.stringify({sourceRoot, get, apply, save}));
-  for (const [actual, expected] of [[get, {state: 2, revision: 0, cas: 0, get: 6, head: 0, put: 0}], [apply, {state: 1, revision: 1, cas: 1, get: 7, head: 0, put: 2}], [save, {state: 1, revision: 1, cas: 1, get: 8, head: 0, put: 1}]]) {
+  for (const [actual, expected] of [[get, {state: 2, revision: 0, cas: 0, get: 6, head: 0, put: 0}], [apply, {state: 1, revision: 1, cas: 1, get: 7, head: 0, put: 2}], [save, {state: 1, revision: 1, cas: 1, get: isBaseline ? 8 : 6, head: 0, put: 1}]]) {
     for (const [key, value] of Object.entries(expected)) assert.equal(actual[key], value, key);
     assert.equal(actual.other, 0);
   }
@@ -38,7 +38,8 @@ void test('AB actual compact records GET and Apply/Save SQL/R2 counters', async 
     for (const write of [apply, save]) { assert.equal(write.sql, 16); assert.equal(write.revocation, 13); }
   } else {
     assert.equal(get.sql, 6); assert.equal(get.revocation, 4);
-    for (const write of [apply, save]) { assert.equal(write.sql, 7); assert.equal(write.revocation, 4); }
+    assert.equal(apply.sql, 7); assert.equal(apply.revocation, 4);
+    assert.equal(save.sql, 8); assert.equal(save.revocation, 5);
   }
 });
 

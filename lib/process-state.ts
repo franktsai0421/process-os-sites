@@ -280,6 +280,27 @@ async function createWorkflowPermissionPhase(request:Request,state:State){
     return basisCurrent()&&!!fresh&&fresh.id===actor.id&&fresh.name===actor.name&&fresh.role===actor.role&&fresh.primary===actor.primary&&fresh.authMode===actor.authMode&&fresh.sessionType===actor.sessionType;
   }});
 }
+// Exact records-backed read phases only. This reuses pure policy evaluation,
+// never session/revocation results across fences, requests, or selected States.
+// The older AB phase above and all ordinary can() callers remain unchanged.
+export async function createScopedWorkflowReadPermissionPhase(request:Request,state:State){
+  const url=request.url,method=request.method,path=new URL(url).pathname;
+  if(method!=='GET'||!['/api/ipqc-c/workflow','/api/routine-fqc'].includes(path)||!state.deliveryOnly||!state.recordStorage?.partial)throw Error('INVALID_SCOPED_READ_PERMISSION_PHASE');
+  const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
+  const auth=keys.map(key=>state.values[key]),revision=state.revision;
+  const headers=['cookie','oai-authenticated-user-email','oai-authenticated-user-id','x-process-admin-id','x-process-admin-password'];
+  const credentials=headers.map(key=>request.headers.get(key));
+  const basisCurrent=()=>request.url===url&&request.method===method&&state.deliveryOnly===true&&state.recordStorage?.partial===true&&state.revision===revision&&keys.every((key,index)=>state.values[key]===auth[index])&&headers.every((key,index)=>request.headers.get(key)===credentials[index]);
+  const initial=await identity(request,state),actor=basisCurrent()&&initial?Object.freeze(initial):null;
+  const allowed=permissionEvaluator(request,state,actor);
+  return Object.freeze({actor,allowed:(key:string)=>basisCurrent()&&allowed(key),async current(){
+    if(!actor||!basisCurrent())return false;
+    // Same selected snapshot, not a newly selected authority row. Each fence
+    // still independently checks signature/expiry/per-token revocation storage.
+    const fresh=await identity(request,state);
+    return basisCurrent()&&!!fresh&&fresh.id===actor.id&&fresh.name===actor.name&&fresh.role===actor.role&&fresh.primary===actor.primary&&fresh.authMode===actor.authMode&&fresh.sessionType===actor.sessionType;
+  }});
+}
 export function publicState(state: State,actorId?:string) {
   const values = { ...state.values };
   delete values.routineFqcControl;

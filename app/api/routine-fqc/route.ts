@@ -1,3 +1,4 @@
+import {readScopedWorkflowState,scopedWorkflowPermissionPhase} from '@/lib/scoped-workflow-read';
 import { env } from 'cloudflare:workers';
 import {workflowAccess} from '@/lib/versioned-shared-workflow';
 import {
@@ -33,9 +34,10 @@ import {
 async function access(
   request: Request,
   state: Awaited<ReturnType<typeof readState>>,
+  allowed=(key:string):boolean|Promise<boolean>=>can(request,state,key),
 ) {
-  const granular=await workflowAccess(request,state);
-  return {...granular,settings:granular.view&&await can(request,state,'routine.settings'),revoke:granular.approve&&await can(request,state,'approval.revoke'),revise:granular.edit&&await can(request,state,'approval.revise')};
+  const granular=await workflowAccess(request,state,allowed);
+  return {...granular,settings:granular.view&&await allowed('routine.settings'),revoke:granular.approve&&await allowed('approval.revoke'),revise:granular.edit&&await allowed('approval.revise')};
 }
 const reply = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: responseHeaders });
@@ -47,22 +49,28 @@ const enabled = (
     new URL(request.url).port === '3040') ||
   state.values.routineFqcEnabled === '1';
 export async function GET(request: Request) {
+  let phase:ReturnType<typeof scopedWorkflowPermissionPhase>=null;
+  const deliver=async(body:unknown,status=200)=>{
+    try{if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply(body,status);}
+    catch{return reply({error:'FQC_READ_FAILED'},503);}
+  };
   try {
-    const state = await readState({
+    const state = (request.method==='GET'?await readScopedWorkflowState(request,'routine-fqc'):null) || await readState({
         deferHistory: true,
         deferDependencyHistory: true,
-      }),
-      actor = await identity(request, state),
-      permissions = await access(request, state);
-    if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
-    if (!permissions.view) return reply({ error: 'FORBIDDEN' }, 403);
+      });
+    phase=scopedWorkflowPermissionPhase(request,state);
+    const actor = phase?phase.actor:await identity(request, state),
+      permissions = await access(request, state,phase?.allowed);
+    if (!actor) return deliver({ error: 'LOGIN_REQUIRED' }, 401);
+    if (!permissions.view) return deliver({ error: 'FORBIDDEN' }, 403);
     const c = parseRoutine(state.values[RF_KEY]),
       sources = routineSources(state),
       query = new URL(request.url).searchParams;
     if (query.has('availability'))
-      return reply({ enabled: enabled(request, state) });
+      return deliver({ enabled: enabled(request, state) });
     if (!enabled(request, state))
-      return reply({ error: 'FQC_NOT_ENABLED' }, 404);
+      return deliver({ error: 'FQC_NOT_ENABLED' }, 404);
     // Search is a read-only projection under routine.view. It does not grant
     // schedule settings access and never persists preview jobs.
     if (query.has('search-preview')) {
@@ -82,11 +90,11 @@ export async function GET(request: Request) {
         return schedulePreview(virtual, [source], start, horizon)
           .filter((j) => j.end > today).slice(0, 1);
       });
-      return reply({ jobs, revision: c.revision,
+      return deliver({ jobs, revision: c.revision,
         unresolved: sources.filter((source) => !source.frequency) });
     }
     if (query.has('preview')) {
-      if (!permissions.settings) return reply({ error: 'FORBIDDEN' }, 403);
+      if (!permissions.settings) return deliver({ error: 'FORBIDDEN' }, 403);
       const start = query.get('start') || c.startDate || companyDate();
       const jobs = sources.flatMap((source) => {
         const last = c.jobs
@@ -99,13 +107,13 @@ export async function GET(request: Request) {
           .at(-1)!;
         return schedulePreview(c, [source], start, horizon);
       });
-      return reply({ jobs, unresolved: sources.filter((s) => !s.frequency) });
+      return deliver({ jobs, unresolved: sources.filter((s) => !s.frequency) });
     }
     if (query.has('operationId')) {
       const receipt = c.receipts[query.get('operationId')!];
       if (!receipt || receipt.actorId !== actor.id)
-        return reply({ error: 'OPERATION_NOT_FOUND' }, 404);
-      return reply({ result: receipt.result, revision: c.revision });
+        return deliver({ error: 'OPERATION_NOT_FOUND' }, 404);
+      return deliver({ result: receipt.result, revision: c.revision });
     }
     const documents = c.documents.map((d) => ({
       ...d,
@@ -127,11 +135,11 @@ export async function GET(request: Request) {
       },
     }));
     if (query.has('export')) {
-      if (!permissions.history) return reply({ error: 'FORBIDDEN' }, 403);
+      if (!permissions.history) return deliver({ error: 'FORBIDDEN' }, 403);
       const d = documents.find((d) => d.id === query.get('export'));
       if (!d || docStatus(d) !== 'approved')
-        return reply({ error: 'FORMAL_DOCUMENT_REQUIRED' }, 409);
-      return reply({
+        return deliver({ error: 'FORMAL_DOCUMENT_REQUIRED' }, 409);
+      return deliver({
         document: d,
         content: d.flow.active.content,
         cases: c.cases.filter((a) => a.reportIds.includes(d.id)),
@@ -139,7 +147,7 @@ export async function GET(request: Request) {
         timezone: 'Asia/Ho_Chi_Minh',
       });
     }
-    return reply({
+    return deliver({
       control: {
         ...c,
         documents,
@@ -157,7 +165,7 @@ export async function GET(request: Request) {
       revision: state.revision,
     });
   } catch (error) {
-    return reply(
+    return deliver(
       {
         error: error instanceof DraftConflict ? error.code : 'FQC_READ_FAILED',
       },

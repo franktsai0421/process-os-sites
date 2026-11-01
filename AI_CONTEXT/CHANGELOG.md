@@ -1,3 +1,7 @@
+## 2026-11-01 — slow-operation first batch integrated on FQC #57
+
+Preserve merged FQC phase/deadline/ACK while integrating exact AB Save, records-only C/routine GET closure and request-local permission phases, plus routine initial-read de-duplication. Dual strict source inverses, complete Save sharding and an actual-route/frontend seam make the combined source verifiable without unpublished baseline Git objects. Current-main synthetic GET comparison reduces C SQL14→5/R2 26→8 and routine SQL12→5/R2 26→15; not deployed timing. General/destructive AB Apply remains open; no schema/data migration. [Integration scope and evidence](../docs/acceptance/SLOW_WEB_FQC57_INTEGRATION_20261101.md).
+
 ## 2026-11-01 — FQC Apply ACK acceleration
 
 Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged full projection validation; full fresh terminal GET, receipts, ownership and all fault/CAS checks remain. Synthetic n5 existing Apply 92.73→54.18 ms, wire 801,066→400,825 bytes; R2 counts unchanged, no live timing claim. See `docs/acceptance/fqc-apply-20261101/README.md` and reproducible benchmark. First CI lint found one test-only await diagnostic; fixed without weakening assertions. No migration/data/Site/deployment change.
@@ -5,6 +9,14 @@ Exact versioned Apply-only ACK omits duplicate POST live bodies after unchanged 
 ## 2026-11-01 — FQC Apply early-abort repair candidate
 
 The 15-second FQC mutation cutoff reproduced an unknown outcome with slow R2. Exact bounded FQC commands now wait up to 45 seconds, and FQC-only request-local authorization reduces repeated revocation round trips without changing permissions or receipt/CAS protections. New actual-handler/form, concurrency, timeout and authority regressions plus native CI coverage are documented in [acceptance](../docs/acceptance/fqc-apply-20261101/README.md). No schema/data migration or deployment; unresolved receipts are not cleared or replayed.
+
+2026-11-01 IPQC-C／定期 FQC GET 分階段候選：同 D1 row 先驗五 authority keys，再讀固定 C1／routine4 business keys；保原後置 fresh checks、selector、readonly writer 拒絕、POST 不變。owner 已同意的無關模組故障隔離不代表未讀資料已驗完整性；HEAD／legacy 保原 full reader，必要 row 缺失不 retry。驗證與未部署界線見[GET 範圍報告](../docs/acceptance/SCOPED_WORKFLOW_GET_20261101.md)。
+
+2026-11-01 Master AB Save 候選相容性補正：保合法缺省／stale users mirror（仍不作授權）、保名稱／描述 literal `__immutableBody`；真正 authority body ref 與壞 JSON 仍 fail-closed。保留 530b 兩個真反例，10 組 main 配對與 14 個新案驗證；不把舊性能觀測改稱新 source 已部署成績，見[範圍報告](../docs/acceptance/MASTER_AB_SAVE_SCOPE_20261101.md)。
+
+同批後續亦保必要 shared_state row 缺失立即拒絕，不再 fallback 第二 SELECT 接受新建 row；最末相容套件 15/15 PASS，保留先前真競態反例。
+
+2026-11-01 Master AB Save 分階段效能候選：同 D1 snapshot 先完整讀權限／fresh fence，再讀整個 master；以單次私有 capability 僅 overlay master ref，保其他模組 manifest／refs、非 AB siblings、既有 receipts、別 client sequences。採 owner 同意的無關模組故障隔離，不把未讀內容當已驗完整性。代表合成 fixture GET18→10／decoded bytes151343→6419，但 SQL7→8、零等待 CPU／elapsed 回退；非實站速度。無 migration／員工資料／發布，見[範圍與驗證](../docs/acceptance/MASTER_AB_SAVE_SCOPE_20261101.md)。
 
 2026-10-30 dot 整合 #54：保留最新 #51/#52 主資料、IQC、引用與離頁 guard；製程離頁 Save 改為阻擋未同步畫布，不暗中 Apply/Sync。來源與驗證界線見[交接](../docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)，未發布。
 

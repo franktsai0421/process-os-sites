@@ -3,7 +3,7 @@ import test from 'node:test';
 import {fixture} from './master-ab-auth-phase-fixture.mjs';
 
 for (const action of ['apply', 'save']) {
-  void test('AB replay keeps exact ' + action + ' response and adds only a fresh terminal identity check', async t => {
+  void test('AB replay keeps exact ' + action + ' response with the terminal and scoped-Save pre-body identity fences', async t => {
     const f = await fixture(); t.after(f.close);
     const command = f.command(action), first = await f.request('POST', command);
     assert.equal(first.status, 200, JSON.stringify(first.body));
@@ -16,8 +16,8 @@ for (const action of ['apply', 'save']) {
     assert.deepEqual(replay.body.control, first.body.control);
     assert.equal(replay.body.requestId, undefined);
     assert.deepEqual(f.row(), before); assert.deepEqual([...f.objects], objects);
-    assert.equal(f.stats.state, 1); assert.equal(f.stats.revocation, 3);
-    assert.equal(f.stats.sql, 4); assert.equal(f.stats.revision, 0);
+    assert.equal(f.stats.state, 1); assert.equal(f.stats.revocation, action === 'save' ? 4 : 3);
+    assert.equal(f.stats.sql, action === 'save' ? 5 : 4); assert.equal(f.stats.revision, 0);
     assert.equal(f.stats.cas, 0); assert.equal(f.stats.put, 0); assert.equal(f.stats.head, 0);
   });
 }

@@ -365,3 +365,71 @@ export async function encodeIpqcCSaveRecordMutation(bucket:Bucket,handle:IpqcCSa
  return JSON.stringify(next);
 }
 
+
+// Explicit module-fault-isolation policy, not a general partial-state writer.
+// One D1 snapshot: authority is fully read first; the route authorizes that exact
+// State before any master GET. Other aggregate refs remain unverified, unchanged
+// and traceable in the original manifest. Master itself retains its full decoder.
+const masterABSaveAuthKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
+export type MasterABSaveRecordMutationHandle={readonly __masterABSaveRecordMutation:unique symbol};
+export type MasterABSaveOperation={actorId:string;clientId:string;sequence:number;operationId:string};
+type MasterABSaveState={revision:number;values:Record<string,string>;recordStorage:RecordStorage};
+type MasterABSaveBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;visibleStorage:RecordStorage;values:Record<string,string>;known:string[];model:unknown;siblings:string;flow:string;saves:string[];saved:string|undefined;contributors:string|undefined;receipts:Record<string,string>;sequences:Record<string,unknown>;operation:MasterABSaveOperation|null;flowRevision:number;consumed:boolean};
+const masterABSaveHandles=new WeakMap<object,MasterABSaveBinding>();
+function masterABSaveSiblings(model:unknown){
+ if(!object(model))return JSON.stringify(model);
+ const {active,versions,workflowScopes,...other}=model;
+ const withoutAB=(value:unknown)=>object(value)?Object.fromEntries(Object.entries(value).filter(([key])=>key!=='AB')):value;
+ return JSON.stringify({other,active:withoutAB(active),versions:Array.isArray(versions)?versions.filter(row=>!object(row)||row.scope!=='AB'):versions,workflowScopes:withoutAB(workflowScopes)});
+}
+function masterABSaveFlow(model:unknown){return object(model)&&object(model.workflowScopes)&&object(model.workflowScopes.AB)?model.workflowScopes.AB:null;}
+function masterABSaveProtectedFlow(flow:Record<string,unknown>|null){return JSON.stringify(flow&&Object.fromEntries(Object.entries(flow).filter(([key])=>!['saved','saves','contributors','sequences','receipts','revision'].includes(key))));}
+export async function readMasterABSaveRecordMutation(bucket:Bucket,envelope:Envelope,revision:number,authorize:(state:MasterABSaveState)=>Promise<MasterABSaveOperation|void>){
+ const manifest=envelope?.__processRecords;
+ // Unsupported envelopes alone retain the existing compatibility reader. Do not
+ // catch integrity/domain faults and then read unrelated sensitive objects.
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||!object(manifest)||manifest.version!==1||!object(manifest.values)||!object(manifest.legacySources)||manifest.allocations!==undefined&&!object(manifest.allocations)||Object.keys(envelope).some(key=>!['__processRecords','platformUsers','maintenanceMode'].includes(key))||Object.keys(manifest).some(key=>!['version','values','legacySources','allocations'].includes(key)))return null;
+ const original=JSON.stringify(envelope);
+ if(envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string')throw Error('Invalid master Save inline authority');
+ if(envelope.platformUsers!==undefined)JSON.parse(envelope.platformUsers);if(envelope.maintenanceMode!==undefined)JSON.parse(envelope.maintenanceMode);
+ const auth=await decodeRecordValuesCore(bucket,envelope,{keys:masterABSaveAuthKeys,projectValue:(_key,raw)=>{
+  // Authority aggregates cannot introduce body reads before authorization.
+  JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid master Save authority body');return value;});return raw;
+ }});
+ // The optional platformUsers mirror is not identity authority. Keep its raw
+ // bytes, including absence/staleness; maintenance retains decoder priority.
+ const state:MasterABSaveState={revision,...auth},authValues=JSON.stringify(state.values),authStorage=state.recordStorage,authKnown=[...authStorage.known];
+ const authorizedOperation=await authorize(state);
+ const operation=authorizedOperation?Object.freeze({...authorizedOperation}):null;
+ if(operation&&(typeof operation.actorId!=='string'||!operation.actorId||typeof operation.clientId!=='string'||!operation.clientId||typeof operation.operationId!=='string'||!operation.operationId||!Number.isSafeInteger(operation.sequence)||operation.sequence<1))throw Error('Invalid master Save operation binding');
+ if(state.revision!==revision||state.values!==auth.values||state.recordStorage!==authStorage||!authStorage.partial||JSON.stringify(authStorage.originalValues)!==authValues||authStorage.models.size!==0||authStorage.allocations.size!==0||authStorage.known.size!==authKnown.length||authKnown.some(sha=>!authStorage.known.has(sha))||JSON.stringify(state.values)!==authValues||JSON.stringify(envelope)!==original)throw Error('Master Save authorization basis changed');
+ if(!valid(manifest.values.masterDataControl))throw Error('Invalid master Save target reference');
+ const target=await decodeRecordValuesCore(bucket,envelope,{keys:['masterDataControl'],modelKey:'masterDataControl',deferHistory:true,deferDependencyHistory:true});
+ const model=target.recordStorage.models.get('masterDataControl'),flow=masterABSaveFlow(model);
+ // The existing adapter/parser remains responsible for domain errors and legacy
+ // active-version matching; no catch-to-empty or guessed active snapshot here.
+ state.values={...auth.values,...target.values};
+ state.recordStorage={...target.recordStorage,originalValues:{...state.values},known:new Set([...auth.recordStorage.known,...target.recordStorage.known]),partial:true};
+ const privateStorage:RecordStorage={...state.recordStorage,envelope:JSON.parse(original),originalValues:{...state.values},known:new Set(state.recordStorage.known),models:new Map(state.recordStorage.models),allocations:new Map(state.recordStorage.allocations)};
+ const handle=Object.freeze({}) as MasterABSaveRecordMutationHandle;
+ masterABSaveHandles.set(handle,{bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,visibleStorage:state.recordStorage,values:{...state.values},known:[...state.recordStorage.known],model,siblings:masterABSaveSiblings(model),flow:masterABSaveProtectedFlow(flow),saves:Array.isArray(flow?.saves)?flow.saves.map(value=>JSON.stringify(value)):[],saved:JSON.stringify(flow?.saved),contributors:JSON.stringify(flow?.contributors),receipts:object(flow?.receipts)?Object.fromEntries(Object.entries(flow.receipts).map(([key,value])=>[key,JSON.stringify(value)])):{},sequences:object(flow?.sequences)?JSON.parse(JSON.stringify(flow.sequences)):{},operation,flowRevision:typeof flow?.revision==='number'?flow.revision:-1,consumed:false});
+ return{state,handle};
+}
+export async function encodeMasterABSaveRecordMutation(bucket:Bucket,handle:MasterABSaveRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=masterABSaveHandles.get(handle),flow=masterABSaveFlow(model),saves=flow?.saves;
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value)||storage.known.size!==b.known.length||b.known.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('masterDataControl')!==b.model||model!==b.model||storage.allocations.size!==0||masterABSaveSiblings(model)!==b.siblings||masterABSaveProtectedFlow(flow)!==b.flow||!flow||!Array.isArray(saves)||saves.length<b.saves.length||saves.length>b.saves.length+1||b.saves.some((raw,index)=>JSON.stringify(saves[index])!==raw)||!Number.isSafeInteger(flow.revision)||![b.flowRevision,b.flowRevision+1].includes(flow.revision as number))throw Error('Invalid master AB Save mutation handle');
+ if(!object(flow.receipts)||!object(flow.sequences)||Object.entries(b.receipts).some(([key,raw])=>!Object.hasOwn(flow.receipts as object,key)||JSON.stringify((flow.receipts as Record<string,unknown>)[key])!==raw))throw Error('Master Save cannot alter existing receipts');
+ const added=Object.keys(flow.receipts).filter(key=>!Object.hasOwn(b.receipts,key)),client=b.operation?JSON.stringify([b.operation.actorId,b.operation.clientId]):null;
+ if(added.length>1||added.some(key=>key!==b.operation?.operationId||!object((flow.receipts as Record<string,unknown>)[key])||(flow.receipts as Record<string,Record<string,unknown>>)[key].actorId!==b.operation?.actorId))throw Error('Invalid master Save receipt addition');
+ for(const key of new Set([...Object.keys(b.sequences),...Object.keys(flow.sequences)])){
+  const prior=b.sequences[key],next=flow.sequences[key];if(JSON.stringify(prior)===JSON.stringify(next))continue;
+  if(key!==client||!b.operation||next!==b.operation.sequence||!Number.isFinite(Number(prior||0))||b.operation.sequence<=Number(prior||0))throw Error('Master Save cannot alter another client sequence');
+ }
+ if(added.length&&(!b.operation||flow.sequences[client!]!==b.operation.sequence))throw Error('Master Save receipt requires its command sequence');
+ if(saves.length===b.saves.length&&(JSON.stringify(flow.saved)!==b.saved||JSON.stringify(flow.contributors)!==b.contributors||flow.revision!==b.flowRevision))throw Error('Invalid unchanged master AB Save snapshot');
+ if(saves.length>b.saves.length&&(flow.revision!==b.flowRevision+1||JSON.stringify(flow.contributors)!=='{}'||!object(flow.saved)||JSON.stringify(flow.saved)!==JSON.stringify(saves.at(-1))||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)))throw Error('Invalid master AB Save snapshot');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{masterDataControl:b.values.masterDataControl},b.storage,new Map([['masterDataControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,masterDataControl:encoded.__processRecords.values.masterDataControl}}};
+ return JSON.stringify(next);
+}

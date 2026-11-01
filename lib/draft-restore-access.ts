@@ -35,9 +35,9 @@ export async function restoreAllowed(request:Request,state:State,allowed=(key:st
   const moduleId=moduleForURL(request.url);
   return !!moduleId&&accessKeys.includes(moduleId+'.restore')&&await allowed(moduleId+'.view')&&await allowed(moduleId+'.edit')&&await allowed(moduleId+'.restore');
 }
-export async function assertRestoreAccess(request:Request,state:State,before:unknown,after:unknown){
-  if(!await restoreAllowed(request,state))throw new DraftConflict('RESTORE_PERMISSION_REQUIRED',403);
+export async function assertRestoreAccess(request:Request,state:State,before:unknown,after:unknown,allowed=(key:string):boolean|Promise<boolean>=>can(request,state,key)){
+  if(!await restoreAllowed(request,state,allowed))throw new DraftConflict('RESTORE_PERMISSION_REQUIRED',403);
   const moduleId=moduleForURL(request.url)!,effects=restoreEffects(before,after);
-  for(const op of ['create','delete'] as const)if(effects[op]&&accessKeys.includes(moduleId+'.'+op)&&!await can(request,state,moduleId+'.'+op))throw new DraftConflict(op==='delete'?'RESTORE_DELETE_PERMISSION_REQUIRED':'RESTORE_CREATE_PERMISSION_REQUIRED',403);
+  for(const op of ['create','delete'] as const)if(effects[op]&&accessKeys.includes(moduleId+'.'+op)&&!await allowed(moduleId+'.'+op))throw new DraftConflict(op==='delete'?'RESTORE_DELETE_PERMISSION_REQUIRED':'RESTORE_CREATE_PERMISSION_REQUIRED',403);
   return effects;
 }

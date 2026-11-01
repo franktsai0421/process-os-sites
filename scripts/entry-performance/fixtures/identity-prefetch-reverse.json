@@ -1,7 +1,7 @@
 {
-  "description": "Exact reviewed max2 provider-metadata fallback inverse; all other shipped code shared by candidate and baseline. Missing/changed/duplicate anchor fails closed.",
-  "reviewedCandidateSHA256": "ba88d9963248d943bdec1b97b12a3540505927725f1329c45738557e1da5aa9f",
-  "reviewedBaselineSHA256": "5245f6533dc253b220b3bf2b61c298138917e8b4dcab9a4ff1210e4edf741fcc",
+  "description": "Exact default-decoder identity-prefetch inverse; master AB Save and its authority compatibility handling are not exercised by this oracle. Current whole-file hashes include the shared Save code, with all original inverse spans unchanged. Scoped Save performance uses the real pinned main checkout instead.",
+  "reviewedCandidateSHA256": "2140595b11d54ae37ed979ae6d176bb739193ec3117da30023861a1346a7a6ce",
+  "reviewedBaselineSHA256": "b27c0c30ac42de23e15cd12eb1f0091b2b8b2fe635cde1ebad545c47ff98fd19",
   "spans": [
     {
       "candidate": "get(key:string):Promise<{text():Promise<string>;size?:number;body?:{cancel():Promise<unknown>}}|null>",

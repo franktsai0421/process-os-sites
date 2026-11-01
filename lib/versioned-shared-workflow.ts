@@ -1,3 +1,4 @@
+import {masterABSaveCommand,readMasterABSaveMutationState,encodeMasterABSaveMutationState} from './master-ab-save-record-mutation';
 import {iqcEditingRequested,iqcEditingPayload} from './iqc-editing-projection';
 import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
 import {fqcLifecycle8Command,readFqcLifecycle8MutationState,encodeFqcLifecycle8MutationState} from './fqc-lifecycle8-record-mutation';
@@ -201,13 +202,21 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // and every other action/route retain the original complete response.
       applyAck=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')&&body.action===undefined&&body.command?.action==='apply'&&query.getAll('projection').length===1&&query.get('projection')==='fqc-apply-ack-v1'&&query.getAll('caseMetadata').length===1&&caseMetadata&&query.getAll('compact').length===1&&query.get('compact')==='1';
       for(let attempt=0;attempt<4;attempt++){
+        let masterABSavePhase:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null=null,masterABSavePermissions:Awaited<ReturnType<typeof currentPermissions>>|null=null;
+        const masterABSaveState=adapter.key==='masterDataControl'&&adapter.scope==='master:AB'&&new URL(request.url).pathname==='/api/master/workflow'&&query.get('scope')==='AB'&&body.action===undefined&&Object.keys(body).every(key=>key==='command')&&masterABSaveCommand(body.command)?await readMasterABSaveMutationState(body.command,async selected=>{
+          const selectedPhase=await phaseFor(request,selected);if(!selectedPhase?.actor)throw new DraftConflict('LOGIN_REQUIRED',401);
+          if(selected.values.maintenanceMode==='1')throw new DraftConflict('MAINTENANCE',503);
+          const selectedPermissions=await currentPermissions(request,selected,selectedPhase);if(!selectedPermissions.view||!selectedPermissions.save)throw new DraftConflict('FORBIDDEN',403);
+          if(!await selectedPhase.current())throw new DraftConflict('LOGIN_REQUIRED',401);
+          masterABSavePhase=selectedPhase;masterABSavePermissions=selectedPermissions;return selectedPhase.actor.id;
+        }):null;
         const mutationState=body.action===undefined&&adapter.recordMutation==='fqc-existing-set'&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcExistingSetCommand(body.command)?await readFqcMutationState(body.command):null;
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
-        const state=mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
+        const state=masterABSaveState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=masterABSaveState?masterABSavePhase:await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
-        const permissions=await currentPermissions(request,state,phase);
+        const permissions=masterABSaveState?masterABSavePermissions!:await currentPermissions(request,state,phase);
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
         const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
@@ -247,7 +256,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.
         const values={...state.values,...(!prepared?{[adapter.key]:adapter.serialize?adapter.serialize(control):JSON.stringify(control)}:{[adapter.key]:state.values[adapter.key]??'null'}),...adapter.projectValues?.(control)};
-        const encoded=await (mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared));
+        const encoded=await (masterABSaveState?encodeMasterABSaveMutationState(state,values,prepared):mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared));
         // Immutable objects already written remain unreferenced on denial, as on
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
