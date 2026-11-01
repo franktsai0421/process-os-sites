@@ -1,3 +1,7 @@
+# FQC Apply reliability — independent candidate
+
+The current FQC early-abort repair, all-Apply caller coverage and verification boundaries are in [the isolated acceptance note](docs/acceptance/fqc-apply-20261101/README.md). It is based on merged #55 and does not incorporate routine-FQC, AB performance, login or canvas candidates. No Site/data/account change or deployment.
+
 # #54 dot 本地整合（未發布）
 
 最新來源、手動同步邊界與驗證進度見[本地交接](docs/acceptance/PR54_DOT_INTEGRATION_20261030.md)。#51/#52成果保留；私人43條另候選。下方 #54 原始報告保留其當時版本與限制。

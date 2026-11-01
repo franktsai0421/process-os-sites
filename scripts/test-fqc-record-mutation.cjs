@@ -29,13 +29,12 @@ async function pair(name,change,cmd=command(),expect=200){const results=[];for(c
 function bodyRef(s,key,select){const env=JSON.parse(s.row().values),agg=JSON.parse(s.objects.get(env.__processRecords.values[key].key));return select(agg).__immutableBody;}
 (async()=>{try{
  normal=await pair('normal existing item Apply preserves DTO/permissions/manifest');assert(normal[1].metrics.gets<normal[0].metrics.gets);assert(normal[1].metrics.bytes<normal[0].metrics.bytes-500000);
-// The pinned pre-ACL baseline has no explicit restore/create metadata.
-// Each added can() still performs its own fresh identity/revocation lookup.
-// Keep an exact budget (not >= / an arbitrary tolerance), with independent
-// real-handler permission denials below and the original revocation/CAS races.
- const explicitMetadataChecks=['restore:view','restore:edit','restore:restore','create:create'];
- assert.equal(normal[1].metrics.revocationReads,normal[0].metrics.revocationReads+explicitMetadataChecks.length,'four additional explicit permission checks retain fresh revocation reads');
- assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads+explicitMetadataChecks.length,'only the explicit permission checks add SQL reads');
+// The exact FQC phase keeps four fresh identity/revocation boundaries: initial,
+// permissions complete, pre-encoding, and pre-CAS. The pre-ACL baseline performs
+// nine per-cell reads; explicit-rights denial behavior is tested below unchanged.
+ assert.equal(normal[0].metrics.revocationReads,9);
+ assert.equal(normal[1].metrics.revocationReads,4);
+ assert.equal(normal[1].metrics.sqlReads,normal[0].metrics.sqlReads-5);
  for(const denied of ['view','edit','create','restore']){
   await setup(next,values=>{const accounts=JSON.parse(values.platformUsers);accounts[0].accessOverrides['fqc.'+denied]=false;values.platformUsers=JSON.stringify(accounts);});
   const auth=await next.request(command()),metadata=await next.route.GET(new Request(auth.url+'&permissions=1',{headers:auth.headers}));

@@ -257,6 +257,16 @@ export async function can(request: Request, state: State, key: string) {
 export async function createMasterABPermissionPhase(request:Request,state:State){
   const url=new URL(request.url);
   if(url.pathname!=='/api/master/workflow'||url.searchParams.get('scope')!=='AB')throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
+// FQC alone adopts the same request-local phase. Never broaden another route
+// through a caller-provided scope or reuse the handle across selected states.
+export async function createFqcPermissionPhase(request:Request,state:State){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/fqc/workflow'||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
+async function createWorkflowPermissionPhase(request:Request,state:State){
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
   const auth=keys.map(key=>state.values[key]),revision=state.revision;
   const headers=['cookie','oai-authenticated-user-email','oai-authenticated-user-id','x-process-admin-id','x-process-admin-password'];

@@ -1,3 +1,7 @@
+## 2026-11-01 FQC Apply reliability candidate (not deployed)
+
+FQC bounded commands now share the 45-second Begin/read budget; other scopes keep their existing budgets. Exact FQC request-local permission phases reduce repeated revocation round trips while preserving fresh phase/persistence/CAS/replay checks and state-revision retry. All ordinary FQC Apply callers share this transport; unknown/receipt, owner/tab/generation and manual-Save boundaries remain. Actual-handler synthetic evidence and native-CI limits: [FQC Apply acceptance](../../docs/acceptance/fqc-apply-20261101/README.md). No live data or schema change; not a live-speed or deployment claim.
+
 2026-10-29 FQC browser-discovered dependency: current catalog APIs require ab.view and equipment.view in addition to fqc.view. Settings now show these existing prerequisites and reject newly introduced incomplete combinations; the FQC page explains missing grants before fetching. No automatic grant or broadened catalog API access.
 
 2026-10-29 IPQC-C explicit-rights candidate (user approved): module view is required; view no longer grants withdraw, approval-platform view no longer grants module content, approve/return use their module cells. Restore is explicit and checked for create/delete effects. Legacy snapshot and owner/pending boundaries remain. Existing tests are updated to the accepted policy rather than retaining the earlier exception.
