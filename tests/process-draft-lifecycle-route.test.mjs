@@ -209,3 +209,32 @@ void test('seed keeps the legacy reviewer advisory separate from actual per-modu
   assert.equal(f.measurements.length, 2);
   for (const request of f.measurements) { assert.equal(request.method, 'GET'); assert.equal(request.committed, 0); assert.equal(request.r2put, 0); }
 });
+
+void test('distinct reviewer bootstrap and workflow read preserve the exact pending case after withdraw and resubmit', async t => {
+  const f = await createProcessDraftLifecycleFixture(); t.after(f.close);
+  let result = await f.request({method: 'POST', body: {action: 'begin'}, label: 'review-entry-begin'});
+  assert.equal(result.status, 200); let flow = result.body.control.workflow;
+  result = await ok(f, f.apply(flow, 'name', operation(flow.working, f.seed.ids).name, 'Synthetic reviewer entry'), 'editor', {label: 'review-entry-apply'}); flow = result.control.workflow;
+  result = await ok(f, f.command('save', flow), 'editor', {label: 'review-entry-save'}); flow = result.control.workflow;
+  const saved = structuredClone(flow.saved);
+  result = await ok(f, f.command('submit', flow, {savedId: saved.id, reason: 'Synthetic first submission'}), 'editor', {label: 'review-entry-submit'}); flow = result.control.workflow;
+  const oldCase = flow.pendingId;
+  result = await ok(f, f.command('withdraw', flow, {caseId: oldCase, reason: 'Synthetic withdrawal'}), 'editor', {label: 'review-entry-withdraw'}); flow = result.control.workflow;
+  result = await ok(f, f.command('submit', flow, {savedId: saved.id, reason: 'Synthetic resubmission'}), 'editor', {label: 'review-entry-resubmit'}); flow = result.control.workflow;
+  const expected = structuredClone(flow), count = f.measurements.length;
+  const bootstrap = await unchanged(f, () => f.request({actor: 'reviewer', target: 'bootstrap', suffix: '?view=approval', label: 'review-entry-approval-shell'}), 200);
+  assert.equal(bootstrap.body.identity.id, f.seed.actors.reviewer.id); assert.equal(bootstrap.body.destination.view, 'approval');
+  assert.equal(bootstrap.body.destination.module, 'approval'); assert.equal(bootstrap.body.deliveryProjection, true);
+  const read = await unchanged(f, () => f.request({actor: 'reviewer', label: 'review-entry-process-workflow'}), 200);
+  assert.equal(read.body.control.workflow.scope, 'process:platform'); assert.equal(read.body.control.workflow.generation, expected.generation);
+  assert.equal(read.body.control.workflow.pendingId, expected.pendingId); assert.notEqual(expected.pendingId, oldCase);
+  assert.equal(read.body.control.workflow.saved.id, saved.id); assert.deepEqual(read.body.control.workflow.saved.content, saved.content);
+  const pending = read.body.control.workflow.cases.find(row => row.id === expected.pendingId);
+  assert.equal(pending.status, 'pending'); assert.equal(pending.savedId, saved.id);
+  assert.equal(pending.content, undefined, 'Actual caseMetadata projection retains linkage, not full case content');
+  assert.deepEqual((await f.inspect()).control.workflow.cases.find(row => row.id === expected.pendingId).content, saved.content);
+  assert.equal(pending.actor.id, f.seed.actors.editor.id); assert.notEqual(pending.actor.id, f.seed.actors.reviewer.id);
+  for (const key of ['view', 'history', 'approve', 'return']) assert.equal(read.body.permissions[key], true);
+  for (const key of ['edit', 'create', 'delete', 'save', 'submit', 'withdraw', 'restore']) assert.equal(read.body.permissions[key], false);
+  assert.equal(f.measurements.length - count, 2); assert(f.measurements.slice(count).every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
+});

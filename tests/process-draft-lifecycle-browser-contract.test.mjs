@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady} from './process-draft-lifecycle-browser.mjs';
+import {processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic} from './process-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 
@@ -77,4 +77,57 @@ void test('actual pending mount removes draft writes; readiness requires linked 
   const extra = dom.document.createElement('button'); extra.setAttribute('data-av3', 'withdraw'); panel.append(extra); assert.equal(ready(), false); extra.remove();
   extra.setAttribute('data-av3', 'save'); panel.append(extra); assert.equal(ready(), false); extra.remove();
   withdraw.remove(); assert.equal(ready(), false, 'Missing controls alone are never proof of a locked pending view');
+});
+
+void test('actual approval tab contract requires an explicit process selection, not an assumed initial deep link', () => {
+  const dom = canvasDOM(), calls = [], state = {};
+  dom.Node.prototype.appendChild = function (node) { this.append(node); return node; };
+  Object.defineProperty(dom.Node.prototype, 'childNodes', {get() { return this.children; }});
+  Object.defineProperty(dom.Node.prototype, 'firstChild', {get() { return this.children[0] || null; }});
+  const page = dom.document.createElement('section'); page.className = 'approval-page'; dom.document.body.append(page);
+  const context = {document: dom.document, state, URL, location: {href: 'https://synthetic.invalid/process/index.html?view=approval&approvalTab=process'},
+    MutationObserver: class { observe() {} }, ProcessDeliveryNavigation: {approval(tab) { calls.push(tab); }}}; context.window = context;
+  vm.createContext(context);
+  const master = fs.readFileSync(new URL('../public/process/master-data.js', import.meta.url), 'utf8');
+  const initialSelection = master.slice(master.indexOf("  if (new URL(location.href).searchParams.get('approvalTab')"), master.indexOf('  render = function ()', master.indexOf('  const priorRender = render;')));
+  assert(initialSelection.includes("=== 'routine'")); vm.runInContext(initialSelection, context);
+  vm.runInContext(fs.readFileSync(new URL('../public/process/approval-tabs.js', import.meta.url), 'utf8'), context);
+  const mount = () => context.ApprovalTabs.mount({page, state, masterHTML: '', masterPending: 0, processPending: 1});
+  mount(); const tab = page.querySelector('[data-review-tab="process"]');
+  assert.equal(state.approvalTab, 'master'); assert.equal(tab.getAttribute('aria-selected'), 'false');
+  tab.click(); assert.deepEqual(calls, ['process'], 'Actual tab calls the existing navigation coordinator');
+  assert.equal(state.approvalTab, 'master', 'The callback request itself is not proof that navigation completed');
+  state.approvalTab = 'process'; mount();
+  assert.equal(page.querySelector('[data-review-tab="process"]').getAttribute('aria-selected'), 'true');
+  assert.equal(page.querySelector('#approval-panel-process').hidden, false);
+  // This test documents the initial-link gap; it does not fix product routing.
+});
+
+void test('reviewer readiness requires exact actor, selected visible tab, pending case and readonly workflow; diagnostics exclude credentials/content', () => {
+  const dom = canvasDOM();
+  const flow = {scope: 'process:platform', generation: 'g1', revision: 7, pendingId: 'case1', saved: {id: 'save1', content: {private: 'DO_NOT_REPORT'}}, cases: [{id: 'case1', status: 'pending', savedId: 'save1'}]};
+  const api = {flow: () => flow, canMutate: () => false, canEditLocalCanvas: () => false};
+  const sync = {identity: {id: 'reviewer', password: 'DO_NOT_REPORT'}, destination: {view: 'approval'}};
+  dom.document.body.innerHTML = '<button data-review-tab="process" aria-selected="true">Process</button><section id="approval-panel-process"><button data-process-review="view">Review</button></section>';
+  dom.document.documentElement.dataset.processNavigationStatus = 'ready';
+  const tab = dom.document.querySelector('[data-review-tab="process"]'), panel = dom.document.querySelector('#approval-panel-process'), review = panel.querySelector('[data-process-review="view"]');
+  panel.getClientRects = review.getClientRects = () => [{}];
+  const context = {document: dom.document, ProcessSync: sync, ProcessAuthoringV3: api, URL, location: {href: 'https://synthetic.invalid/process/index.html?view=approval&approvalTab=process&secret=DO_NOT_REPORT'}}; context.window = context;
+  vm.createContext(context);
+  const args = {view: 'approval', actor: 'reviewer', pendingId: 'case1', generation: 'g1'};
+  const invoke = fn => vm.runInContext('(' + fn.toString() + ')(' + JSON.stringify(args) + ')', context);
+  assert.equal(invoke(processShellReady), true); assert.equal(invoke(reviewerProcessUIReady), true);
+  for (const [target, key, bad] of [[sync.identity, 'id', 'editor'], [sync.destination, 'view', 'editor'], [dom.document.documentElement.dataset, 'processNavigationStatus', 'loading'], [panel, 'hidden', true], [review, 'disabled', true], [tab, 'disabled', true], [flow, 'scope', 'wrong'], [flow, 'generation', 'old'], [flow, 'pendingId', 'other'], [flow.saved, 'id', 'other'], [flow.cases[0], 'status', 'returned']]) {
+    const prior = target[key]; target[key] = bad; assert.equal(invoke(reviewerProcessUIReady), false, key); target[key] = prior;
+  }
+  tab.setAttribute('aria-selected', 'false'); assert.equal(invoke(reviewerProcessUIReady), false); tab.setAttribute('aria-selected', 'true');
+  for (const node of [panel, review]) { node.getClientRects = () => []; assert.equal(invoke(reviewerProcessUIReady), false); node.getClientRects = () => [{}]; }
+  for (const name of ['canMutate', 'canEditLocalCanvas']) { api[name] = () => true; assert.equal(invoke(reviewerProcessUIReady), false); api[name] = () => false; }
+  const boot = dom.document.createElement('section'); boot.id = 'process-boot'; dom.document.body.append(boot); assert.equal(invoke(processShellReady), false); assert.equal(invoke(reviewerProcessUIReady), false); boot.remove();
+  const duplicate = dom.document.createElement('button'); duplicate.setAttribute('data-process-review', 'view'); panel.append(duplicate); assert.equal(invoke(reviewerProcessUIReady), false); duplicate.remove();
+  const diagnostic = invoke(processPageDiagnostic); assert.equal(diagnostic.identityMatches, true); assert.equal(diagnostic.expectedPendingMatches, true);
+  assert.equal(diagnostic.processTabSelected, true); assert.equal(diagnostic.reviewButtonCount, 1);
+  assert.doesNotMatch(JSON.stringify(diagnostic), /DO_NOT_REPORT|password|secret|content|cookie/i);
+  api.flow = () => null; assert.equal(invoke(processShellReady), true, 'Shell entry does not pretend the unselected module has loaded');
+  assert.equal(invoke(reviewerProcessUIReady), false); assert.equal(invoke(processPageDiagnostic).flowPresent, false);
 });

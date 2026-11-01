@@ -44,6 +44,39 @@ export function pendingProcessUIReady({savedId, generation}) {
     api.canMutate() === false && api.canEditLocalCanvas() === false && writes?.length === 0 && withdraw?.length === 1 &&
     !withdraw[0].disabled && withdraw[0].getClientRects().length > 0;
 }
+// Serialized browser probes expose only identity equality and bounded state metadata.
+export function processShellReady({view, actor}) {
+  return window.ProcessSync?.identity?.id === actor && window.ProcessSync?.destination?.view === view &&
+    document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot');
+}
+export function reviewerProcessUIReady({actor, pendingId, generation}) {
+  const sync = window.ProcessSync, api = window.ProcessAuthoringV3, flow = api?.flow();
+  const tab = document.querySelectorAll('[data-review-tab="process"]'), panel = document.querySelector('#approval-panel-process');
+  const reviews = panel?.querySelectorAll('[data-process-review="view"]'), row = flow?.cases?.find(item => item.id === pendingId);
+  return sync?.identity?.id === actor && sync.destination?.view === 'approval' &&
+    document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') &&
+    tab.length === 1 && tab[0].getAttribute('aria-selected') === 'true' && !tab[0].disabled &&
+    panel?.hidden === false && panel.getClientRects().length > 0 && reviews?.length === 1 &&
+    !reviews[0].disabled && reviews[0].getClientRects().length > 0 && flow?.scope === 'process:platform' &&
+    flow.generation === generation && flow.pendingId === pendingId && row?.status === 'pending' &&
+    !!flow.saved?.id && row.savedId === flow.saved.id && api.canMutate() === false && api.canEditLocalCanvas() === false;
+}
+export function processPageDiagnostic({view, actor, pendingId = null}) {
+  const sync = window.ProcessSync, flow = window.ProcessAuthoringV3?.flow(), url = new URL(location.href);
+  const tab = document.querySelectorAll('[data-review-tab="process"]'), panel = document.querySelector('#approval-panel-process');
+  return {path: url.pathname, requestedView: url.searchParams.get('view'), requestedApprovalTab: url.searchParams.get('approvalTab'),
+    expectedView: view, identityMatches: sync?.identity?.id === actor, actualView: sync?.destination?.view ?? null,
+    navigationStatus: document.documentElement.dataset.processNavigationStatus ?? null,
+    destinationGeneration: document.documentElement.dataset.processDestinationGeneration ?? null,
+    readyGeneration: document.documentElement.dataset.processDestinationReadyGeneration ?? null,
+    bootPresent: !!document.querySelector('#process-boot'), processTabCount: tab.length,
+    processTabSelected: tab.length === 1 && tab[0].getAttribute('aria-selected') === 'true',
+    processPanelPresent: !!panel, processPanelHidden: panel?.hidden ?? null,
+    reviewButtonCount: panel?.querySelectorAll('[data-process-review="view"]').length ?? 0,
+    flowPresent: !!flow, flowScope: flow?.scope ?? null, flowRevision: flow?.revision ?? null,
+    expectedPendingMatches: pendingId === null ? null : flow?.pendingId === pendingId,
+    pendingCaseStatus: flow?.cases?.find(row => row.id === pendingId)?.status ?? null};
+}
 const requireVisible = async (page, selector) => {
   const control = page.locator(selector); await control.waitFor({state: 'visible'});
   assert.equal(await control.count(), 1, 'Mandatory unique control: ' + selector);
@@ -69,10 +102,10 @@ export async function runProcessDraftBrowser() {
     realData: false, realCredentials: false, samples: [], summary: [], cycles: [], pageErrors: [],
     boundary: 'Real DOM click through asserted usable UI plus two frames; reason typing and authoritative fixture inspection excluded. Same-window API counts include background API requests, never imply exclusive command attribution.',
     storageConditions: {perCycle: 'reset shared_state row and new browser contexts', reusedAcrossCycles: 'same owned nonpersistent Worker and R2 bucket; prior-cycle immutable objects retained', cacheClassification: 'not classified cold/warm; no cache reset claim'},
-    limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.'],
+    limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.', 'Reviewer entry explicitly clicks the process tab; approvalTab=process initial deep-link selection is not accepted as verified by this runner.'],
   };
   let fixture, browser, stage = 'fixture';
-  const contexts = new Set();
+  const contexts = new Set(), pageContexts = [];
   try {
     fixture = await createRootEntryFixture({syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
     const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
@@ -95,7 +128,8 @@ export async function runProcessDraftBrowser() {
       const control = async () => JSON.parse((await readValues()).processAuthoringControl);
       const operation = content => content.workspaces.find(row => row.id === seed.ids.workspace).stages[seed.ids.stage].find(row => row.id === seed.ids.operation);
       const nativeConfirmations = [], nativeNotices = [];
-      async function open(actor, view) {
+      async function open(actor, view, label, expected = {}) {
+        stage = cycle + ':' + label + ':shell';
         const context = await browser.newContext({serviceWorkers: 'block', viewport: {width: 1365, height: 900}}); contexts.add(context);
         await context.route('**/*', route => {
           const req = route.request(), url = new URL(req.url());
@@ -105,6 +139,7 @@ export async function runProcessDraftBrowser() {
         const payload = Buffer.from(JSON.stringify({version: 2, id: actor.id, sessionType: 'platform', authEpoch: 1, expires: Date.now() + 600000, nonce: 'lifecycle-' + cycle + '-' + actor.id})).toString('base64');
         await context.addCookies([{name: 'process_demo', value: payload + '.' + createHmac('sha256', secret).update(payload).digest('hex'), url: origin, httpOnly: true, sameSite: 'Lax'}]);
         const page = await context.newPage(); page.setDefaultTimeout(30000);
+        pageContexts.push({page, args: {view, actor: actor.id, pendingId: expected.pendingId ?? null}, label});
         page.on('pageerror', error => report.pageErrors.push({stage, name: error.name}));
         // Current source has a pinned false-positive endpoint advisory. This exact
         // scenario must take its real confirmation and the fixed submit advisory.
@@ -116,12 +151,22 @@ export async function runProcessDraftBrowser() {
             nativeNotices.push({cycle, stage, type: 'alert', kind: 'NO_OTHER_LEGACY_REVIEWER_ADVISORY'}); void dialog.accept();
           } else { report.pageErrors.push({stage, name: 'UnexpectedNativeDialog', type: dialog.type(), message: dialog.message().replaceAll(secret, '[redacted]').slice(0, 500)}); void dialog.dismiss(); }
         });
-        await page.goto(origin + '/process/index.html?view=' + view + (view === 'approval' ? '&approvalTab=process' : ''), {waitUntil: 'domcontentloaded'});
-        await page.waitForFunction(({view, actor}) => window.ProcessSync?.identity?.id === actor && window.ProcessSync?.destination?.view === view && document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') && !!window.ProcessAuthoringV3?.flow(), {view, actor: actor.id});
+        await page.goto(origin + '/process/index.html?view=' + view, {waitUntil: 'domcontentloaded'});
+        await page.waitForFunction(processShellReady, {view, actor: actor.id});
+        if (view === 'approval') {
+          stage = cycle + ':' + label + ':process-tab';
+          // Mandatory real tab navigation, not a direct API command or an assumed deep link.
+          await (await requireVisible(page, '[data-review-tab="process"]')).click();
+          stage = cycle + ':' + label + ':process-ready';
+          await page.waitForFunction(reviewerProcessUIReady, {actor: actor.id, ...expected});
+        } else {
+          stage = cycle + ':' + label + ':editor-ready';
+          await page.waitForFunction(() => !!window.ProcessAuthoringV3?.flow());
+        }
         await idle(page);
         return {context, page};
       }
-      let editor = await open(seed.actors.editor, 'editor');
+      let editor = await open(seed.actors.editor, 'editor', 'editor-entry');
       const changedName = 'Synthetic completed cycle ' + cycle;
       async function measure(page, action, selector, ready, verify, expectedPost) {
         stage = cycle + ':' + action;
@@ -179,7 +224,8 @@ export async function runProcessDraftBrowser() {
       }, 1);
       await submit('resubmit');
       async function review(kind) {
-        const id = (await control()).workflow.pendingId, reviewer = await open(seed.actors.reviewer, 'approval');
+        const expected = (await control()).workflow, id = expected.pendingId;
+        const reviewer = await open(seed.actors.reviewer, 'approval', 'review-' + kind + '-entry', {pendingId: id, generation: expected.generation});
         await measure(reviewer.page, 'review-' + kind + '-open', '[data-process-review="view"]', () => reviewer.page.locator('[data-history-review="' + kind + '"]').waitFor(), async () => assert.equal((await control()).workflow.pendingId, id), 0);
         await measure(reviewer.page, kind + '-open', '[data-history-review="' + kind + '"]', () => reviewer.page.locator('.vd-confirm[open]').waitFor(), async () => assert.equal((await control()).workflow.pendingId, id), 0);
         assert.equal(await reviewer.page.locator('.vd-confirm .vd-self-review').count(), 0, 'Distinct reviewer is not a self-review path');
@@ -201,7 +247,7 @@ export async function runProcessDraftBrowser() {
       }
       await review('return');
       // Re-enter with a new UI read, not a programmatic product command or fake model.
-      await editor.context.close(); contexts.delete(editor.context); editor = await open(seed.actors.editor, 'editor');
+      await editor.context.close(); contexts.delete(editor.context); editor = await open(seed.actors.editor, 'editor', 'returned-editor-entry');
       await submit('returned-submit'); await review('approve');
       const finalValues = await readValues();
       for (const key of Object.keys(seed.values).filter(key => key !== 'processAuthoringControl')) assert.equal(finalValues[key], seed.values[key], 'Unrelated scope preserved: ' + key);
@@ -215,6 +261,11 @@ export async function runProcessDraftBrowser() {
     report.status = 'PASS_CI_SYNTHETIC_PROCESS_LIFECYCLE';
   } catch (error) {
     report.status = 'FAIL_CI_SYNTHETIC_PROCESS_LIFECYCLE'; report.failedStage = stage;
+    report.pageDiagnostics = [];
+    for (const item of pageContexts.filter(item => !item.page.isClosed())) {
+      try { report.pageDiagnostics.push({label: item.label, ...await item.page.evaluate(processPageDiagnostic, item.args)}); }
+      catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true}); }
+    }
     report.failure = {name: error.name, message: String(error.message).replaceAll(secret, '[redacted]').slice(0, 500)};
     report.summary = summarizeActions(report.samples, processBrowserActions);
   } finally {
