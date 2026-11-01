@@ -197,3 +197,15 @@ void test('canonical seed reaches actual editor/approval bootstrap; explicit app
   missingReport.status = 'PASS';
   t.diagnostic('actual signed editor bootstrap 200 with three nodes; reviewer/reader approval 200; absent override remains 200 under legacy views; explicit denial or absent effective approval.view 403, no data or writes');
 });
+
+void test('seed keeps the legacy reviewer advisory separate from actual per-module approval rights', async t => {
+  const f = await createProcessDraftLifecycleFixture(); t.after(f.close);
+  const editor = await unchanged(f, () => f.request({suffix: '&permissions=1', label: 'submit-legacy-reviewer-advisory'}), 200);
+  assert.equal(editor.body.permissions.submit, true);
+  assert.equal(editor.body.otherReviewerAvailable, false, 'Existing advisory checks legacy permissions, not the explicit editor.approve cell');
+  const reviewer = await unchanged(f, () => f.request({actor: 'reviewer', suffix: '&permissions=1', label: 'distinct-reviewer-module-rights'}), 200);
+  assert.equal(reviewer.body.permissions.approve, true); assert.equal(reviewer.body.permissions.return, true);
+  for (const name of ['edit', 'create', 'delete', 'save', 'submit', 'withdraw', 'restore']) assert.equal(reviewer.body.permissions[name], false);
+  assert.equal(f.measurements.length, 2);
+  for (const request of f.measurements) { assert.equal(request.method, 'GET'); assert.equal(request.committed, 0); assert.equal(request.r2put, 0); }
+});

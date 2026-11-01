@@ -17,6 +17,33 @@ export const processBrowserActions = Object.freeze([
 ]);
 const mainSelector = action => '#authoring-v3-panel [data-av3="' + action + '"]';
 const confirmSelector = '.vd-confirm[open] button[type="submit"]';
+// Exact existing shared-client advisory; not a success notice or an ACL grant.
+export const noReviewerMessages = Object.freeze([
+  '目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。',
+  'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.',
+]);
+export function expectedSubmitNotice({cycle, stage, actorId, editorId, type, message, notices}) {
+  return Number.isInteger(cycle) && cycle >= 1 && cycle <= REQUIRED_SAMPLES && actorId === editorId &&
+    ['submit-confirm', 'resubmit-confirm', 'returned-submit-confirm'].some(action => stage === cycle + ':' + action) &&
+    type === 'alert' && noReviewerMessages.includes(message) && !notices.some(row => row.stage === stage);
+}
+export function assertSubmitNotice(notices, stage) {
+  assert.equal(notices.filter(row => row.stage === stage).length, 1, 'This seeded legacy advisory must occur exactly once for this Submit');
+}
+// Serialized into the browser: require the pending case, fixed Save and locked
+// visible view together. The production mount removes Save/Submit when pending.
+export function pendingProcessUIReady({savedId, generation}) {
+  const api = window.ProcessAuthoringV3, flow = api?.flow(), id = flow?.pendingId;
+  const pending = flow?.cases?.find(row => row.id === id), panel = document.querySelector('#authoring-v3-panel');
+  const page = document.querySelector('.editor-page'), select = panel?.querySelector('#authoring-version-choice');
+  const writes = panel?.querySelectorAll('[data-av3="save"],[data-av3="submit"]');
+  const withdraw = panel?.querySelectorAll('[data-av3="withdraw"]');
+  return typeof id === 'string' && !!id && flow.scope === 'process:platform' && flow.generation === generation &&
+    flow.saved?.id === savedId && pending?.status === 'pending' && pending.savedId === savedId && select?.value === id &&
+    page?.classList.contains('editor-readonly') === true && page.classList.contains('editor-submitted-lock') &&
+    api.canMutate() === false && api.canEditLocalCanvas() === false && writes?.length === 0 && withdraw?.length === 1 &&
+    !withdraw[0].disabled && withdraw[0].getClientRects().length > 0;
+}
 const requireVisible = async (page, selector) => {
   const control = page.locator(selector); await control.waitFor({state: 'visible'});
   assert.equal(await control.count(), 1, 'Mandatory unique control: ' + selector);
@@ -67,7 +94,7 @@ export async function runProcessDraftBrowser() {
       };
       const control = async () => JSON.parse((await readValues()).processAuthoringControl);
       const operation = content => content.workspaces.find(row => row.id === seed.ids.workspace).stages[seed.ids.stage].find(row => row.id === seed.ids.operation);
-      const nativeConfirmations = [];
+      const nativeConfirmations = [], nativeNotices = [];
       async function open(actor, view) {
         const context = await browser.newContext({serviceWorkers: 'block', viewport: {width: 1365, height: 900}}); contexts.add(context);
         await context.route('**/*', route => {
@@ -80,11 +107,14 @@ export async function runProcessDraftBrowser() {
         const page = await context.newPage(); page.setDefaultTimeout(30000);
         page.on('pageerror', error => report.pageErrors.push({stage, name: error.name}));
         // Current source has a pinned false-positive endpoint advisory. This exact
-        // scenario must take its real confirmation; every other native dialog fails.
+        // scenario must take its real confirmation and the fixed submit advisory.
+        // Wrong stage/actor/text/type or a duplicate notice still fails.
         page.on('dialog', dialog => {
           if (stage === cycle + ':approve-confirm' && actor.id === seed.actors.reviewer.id && seed.expectedContentIssues.length === 1 && dialog.type() === 'confirm' && /待補|cần bổ sung/.test(dialog.message())) {
             nativeConfirmations.push({cycle, action: 'approve-confirm', type: 'confirm', accepted: true}); void dialog.accept();
-          } else { report.pageErrors.push({stage, name: 'UnexpectedNativeDialog', type: dialog.type()}); void dialog.dismiss(); }
+          } else if (expectedSubmitNotice({cycle, stage, actorId: actor.id, editorId: seed.actors.editor.id, type: dialog.type(), message: dialog.message(), notices: nativeNotices})) {
+            nativeNotices.push({cycle, stage, type: 'alert', kind: 'NO_OTHER_LEGACY_REVIEWER_ADVISORY'}); void dialog.accept();
+          } else { report.pageErrors.push({stage, name: 'UnexpectedNativeDialog', type: dialog.type(), message: dialog.message().replaceAll(secret, '[redacted]').slice(0, 500)}); void dialog.dismiss(); }
         });
         await page.goto(origin + '/process/index.html?view=' + view + (view === 'approval' ? '&approvalTab=process' : ''), {waitUntil: 'domcontentloaded'});
         await page.waitForFunction(({view, actor}) => window.ProcessSync?.identity?.id === actor && window.ProcessSync?.destination?.view === view && document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') && !!window.ProcessAuthoringV3?.flow(), {view, actor: actor.id});
@@ -122,7 +152,7 @@ export async function runProcessDraftBrowser() {
         const c = await control(); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working); assert.equal(operation(c.workflow.saved.content).name, changedName);
       }, 1);
       async function submit(prefix) {
-        const saved = (await control()).workflow.saved;
+        const before = (await control()).workflow, saved = before.saved;
         await measure(editor.page, prefix + '-open', mainSelector('submit'), async () => {
           await editor.page.locator('.vd-confirm[open] [data-submit-snapshot]').waitFor();
           assert((await editor.page.locator('.vd-confirm .vd-snapshot-id').innerText()).includes(saved.id));
@@ -130,9 +160,9 @@ export async function runProcessDraftBrowser() {
         await editor.page.locator('.vd-confirm[open] textarea').fill('Synthetic lifecycle ' + prefix);
         await measure(editor.page, prefix + '-confirm', confirmSelector, async () => {
           await editor.page.locator('.vd-confirm').waitFor({state: 'detached'});
-          await editor.page.waitForFunction(() => !!window.ProcessAuthoringV3.flow()?.pendingId); await idle(editor.page);
-          assert.equal(await editor.page.locator(mainSelector('save')).isDisabled(), true);
+          await editor.page.waitForFunction(pendingProcessUIReady, {savedId: saved.id, generation: before.generation}); await idle(editor.page);
         }, async () => {
+          assertSubmitNotice(nativeNotices, cycle + ':' + prefix + '-confirm');
           const c = await control(), pending = c.workflow.cases.find(row => row.id === c.workflow.pendingId);
           assert(pending); assert.equal(pending.status, 'pending'); assert.equal(pending.savedId, saved.id); assert.deepEqual(pending.content, saved.content);
           assert.deepEqual(pending.contentIssues?.issues || [], seed.expectedContentIssues, 'Only the source-proven canonical endpoint advisory is accepted');
@@ -176,7 +206,8 @@ export async function runProcessDraftBrowser() {
       const finalValues = await readValues();
       for (const key of Object.keys(seed.values).filter(key => key !== 'processAuthoringControl')) assert.equal(finalValues[key], seed.values[key], 'Unrelated scope preserved: ' + key);
       assert.deepEqual(report.pageErrors, []);
-      report.cycles.push({cycle, status: 'PASS', contentBytes: seed.contentBytes, seedBytes: seed.seedBytes, cases: (await control()).workflow.cases.map(row => row.status), nativeConfirmations, expectedContentIssues: seed.expectedContentIssues});
+      assert.equal(nativeNotices.length, 3, 'Exactly the three explicit Submit actions show their legacy reviewer advisory');
+      report.cycles.push({cycle, status: 'PASS', contentBytes: seed.contentBytes, seedBytes: seed.seedBytes, cases: (await control()).workflow.cases.map(row => row.status), nativeConfirmations, nativeNotices, expectedContentIssues: seed.expectedContentIssues});
       await editor.context.close(); contexts.delete(editor.context);
     }
     report.summary = summarizeActions(report.samples, processBrowserActions);
