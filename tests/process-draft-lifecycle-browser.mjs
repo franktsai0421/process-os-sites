@@ -61,6 +61,18 @@ export function reviewerProcessUIReady({actor, pendingId, generation}) {
     flow.generation === generation && flow.pendingId === pendingId && row?.status === 'pending' &&
     !!flow.saved?.id && row.savedId === flow.saved.id && api.canMutate() === false && api.canEditLocalCanvas() === false;
 }
+// This probe never makes a request or grants a permission. It confines the one
+// expected disabled-module badge response to this signed review page, before
+// and after the action. Unknown HTTP failures still fail the collector.
+export function disabledRoutineReviewContext({reviewer}) {
+  const sync = window.ProcessSync, api = window.ProcessAuthoringV3;
+  const tabs = document.querySelectorAll('[data-review-tab="process"]'), panel = document.querySelector('#approval-panel-process');
+  return typeof reviewer === 'string' && !!reviewer && sync?.identity?.id === reviewer && sync.destination?.view === 'approval' &&
+    document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') &&
+    tabs.length === 1 && tabs[0].getAttribute('aria-selected') === 'true' && !tabs[0].disabled && tabs[0].getClientRects().length > 0 &&
+    panel?.hidden === false && panel.getClientRects().length > 0 && api?.flow()?.scope === 'process:platform' &&
+    api.canMutate() === false && api.canEditLocalCanvas() === false;
+}
 export function processPageDiagnostic({view, actor, pendingId = null}) {
   const sync = window.ProcessSync, flow = window.ProcessAuthoringV3?.flow(), url = new URL(location.href);
   const tab = document.querySelectorAll('[data-review-tab="process"]'), panel = document.querySelector('#approval-panel-process');
@@ -100,7 +112,7 @@ export async function runProcessDraftBrowser() {
   const report = {
     status: 'RUNNING', layer: 'CI_SYNTHETIC_BROWSER', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
     realData: false, realCredentials: false, samples: [], summary: [], cycles: [], pageErrors: [],
-    boundary: 'Real DOM click through asserted usable UI plus two frames; reason typing and authoritative fixture inspection excluded. Same-window API counts include background API requests, never imply exclusive command attribution.',
+    boundary: 'Real DOM click through asserted usable UI plus two frames; reason typing and authoritative fixture inspection excluded. Same-window API counts include background API requests, never imply exclusive command attribution. Only exact observed FQC_NOT_ENABLED-only 404 badge reads in the disabled synthetic reviewer Return/Approve context are classified as expected background; they retain request/byte/timing accounting and do not prove the action succeeded.',
     storageConditions: {perCycle: 'reset shared_state row and new browser contexts', reusedAcrossCycles: 'same owned nonpersistent Worker and R2 bucket; prior-cycle immutable objects retained', cacheClassification: 'not classified cold/warm; no cache reset claim'},
     limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.', 'Reviewer entry explicitly clicks the process tab; approvalTab=process initial deep-link selection is not accepted as verified by this runner.'],
   };
@@ -171,7 +183,13 @@ export async function runProcessDraftBrowser() {
       async function measure(page, action, selector, ready, verify, expectedPost) {
         stage = cycle + ':' + action;
         await waitEnabled(page, selector);
-        return measureAction({page, origin, action, cycle, selector, ready, verify, expectedPost, samples: report.samples});
+        let disabledRoutineBackground;
+        if (['return-confirm', 'approve-confirm'].includes(action)) {
+          disabledRoutineBackground = {seedDisabled: !Object.hasOwn(seed.values, 'routineFqcEnabled'),
+            before: await page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id}),
+            current: () => page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})};
+        }
+        return measureAction({page, origin, action, cycle, selector, ready, verify, expectedPost, samples: report.samples, disabledRoutineBackground});
       }
       await measure(editor.page, 'begin', mainSelector('begin'), async () => {
         await waitEnabled(editor.page, mainSelector('save')); await idle(editor.page);

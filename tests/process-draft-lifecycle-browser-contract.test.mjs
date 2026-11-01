@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic} from './process-draft-lifecycle-browser.mjs';
+import {processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic, disabledRoutineReviewContext} from './process-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 
@@ -130,4 +130,32 @@ void test('reviewer readiness requires exact actor, selected visible tab, pendin
   assert.doesNotMatch(JSON.stringify(diagnostic), /DO_NOT_REPORT|password|secret|content|cookie/i);
   api.flow = () => null; assert.equal(invoke(processShellReady), true, 'Shell entry does not pretend the unselected module has loaded');
   assert.equal(invoke(reviewerProcessUIReady), false); assert.equal(invoke(processPageDiagnostic).flowPresent, false);
+});
+
+
+void test('disabled routine badge classification requires the original reviewer and visible ready process panel', () => {
+  const dom = canvasDOM(), sync = {identity: {id: 'reviewer'}, destination: {view: 'approval'}}, flow = {scope: 'process:platform'};
+  const api = {flow: () => flow, canMutate: () => false, canEditLocalCanvas: () => false};
+  dom.document.body.innerHTML = '<button data-review-tab="process" aria-selected="true">Process</button><section id="approval-panel-process"></section>';
+  dom.document.documentElement.dataset.processNavigationStatus = 'ready';
+  const tab = dom.document.querySelector('[data-review-tab="process"]'), panel = dom.document.querySelector('#approval-panel-process');
+  tab.getClientRects = panel.getClientRects = () => [{}];
+  const context = {document: dom.document, ProcessSync: sync, ProcessAuthoringV3: api}; context.window = context; vm.createContext(context);
+  const read = () => vm.runInContext('(' + disabledRoutineReviewContext.toString() + ')({reviewer:"reviewer"})', context);
+  assert.equal(read(), true);
+  for (const [target, key, value] of [[sync.identity, 'id', 'editor'], [sync.destination, 'view', 'editor'], [flow, 'scope', 'routine-fqc:x'],
+    [dom.document.documentElement.dataset, 'processNavigationStatus', 'error'], [tab, 'disabled', true], [panel, 'hidden', true]]) {
+    const old = target[key]; target[key] = value; assert.equal(read(), false, key); target[key] = old;
+  }
+  tab.setAttribute('aria-selected', 'false'); assert.equal(read(), false); tab.setAttribute('aria-selected', 'true');
+  for (const node of [tab, panel]) { node.getClientRects = () => []; assert.equal(read(), false); node.getClientRects = () => [{}]; }
+  for (const name of ['canMutate', 'canEditLocalCanvas']) { api[name] = () => true; assert.equal(read(), false); api[name] = () => false; }
+  const boot = dom.document.createElement('div'); boot.id = 'process-boot'; dom.document.body.append(boot); assert.equal(read(), false); boot.remove();
+  const extra = dom.document.createElement('button'); extra.setAttribute('data-review-tab', 'process'); dom.document.body.append(extra); assert.equal(read(), false); extra.remove();
+  panel.remove(); assert.equal(read(), false);
+  const source = fs.readFileSync(new URL('./process-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
+  assert(source.includes("if (['return-confirm', 'approve-confirm'].includes(action))"));
+  assert(source.includes("seedDisabled: !Object.hasOwn(seed.values, 'routineFqcEnabled')"));
+  assert(source.includes('before: await page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
+  assert(source.includes('current: () => page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
 });

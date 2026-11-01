@@ -70,7 +70,7 @@ export function captureRequests(page, origin, {responseDeadlineMs = 5000} = {}) 
   const request = req => {
     const url = new URL(req.url());
     if (url.origin !== origin || !url.pathname.startsWith('/api/')) return;
-    entries.set(req, {method: req.method(), path: url.pathname, status: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
+    entries.set(req, {method: req.method(), path: url.pathname, queryEmpty: url.search === '', status: null, observedBodyContract: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
     completions.set(req, new Promise(resolve => finishers.set(req, resolve)));
   };
   const response = res => {
@@ -79,7 +79,12 @@ export function captureRequests(page, origin, {responseDeadlineMs = 5000} = {}) 
     row.status = res.status();
     void (async () => {
       try {
-        row.responseBytes = (await res.body()).length;
+        const body = await res.body(); row.responseBytes = body.length;
+        // Preserve only this bounded known body contract, never response content.
+        // A 404 alone, a receipt query or an additional JSON field is not proof.
+        if (row.method === 'GET' && row.path === '/api/routine-fqc' && row.queryEmpty && row.status === 404 && body.length <= 64) {
+          if (body.toString('utf8') === '{"error":"FQC_NOT_ENABLED"}') row.observedBodyContract = 'FQC_NOT_ENABLED_ONLY';
+        }
         const timing = res.request().timing?.();
         if (timing) row.clientTiming = Object.fromEntries(['startTime', 'domainLookupStart', 'domainLookupEnd', 'connectStart', 'secureConnectionStart', 'connectEnd', 'requestStart', 'responseStart', 'responseEnd'].filter(key => Number.isFinite(timing[key])).map(key => [key, timing[key]]));
         // Missing Server-Timing is null, not invented DB/CPU duration.
@@ -111,7 +116,7 @@ export function captureRequests(page, origin, {responseDeadlineMs = 5000} = {}) 
   };
 }
 
-export async function measureAction({page, origin, action, cycle, selector, ready, verify, samples, expectedPost}) {
+export async function measureAction({page, origin, action, cycle, selector, ready, verify, samples, expectedPost, disabledRoutineBackground}) {
   const stop = captureRequests(page, origin);
   let outcome, error, network;
   try {
@@ -120,7 +125,17 @@ export async function measureAction({page, origin, action, cycle, selector, read
     const ms = await browserReadyTime(page);
     network = await stop();
     assert.equal(network.networkComplete, true, 'Incomplete action request accounting');
-    assert(network.requests.rows.every(row => !row.failed && row.status < 400), 'Unexpected failed API in successful action');
+    const failedRows = network.requests.rows.filter(row => row.failed || row.status >= 400);
+    let allowDisabledBadge = false;
+    if (failedRows.length && ['return-confirm', 'approve-confirm'].includes(action) && expectedPost === 1 &&
+      disabledRoutineBackground?.seedDisabled === true && disabledRoutineBackground.before === true && typeof disabledRoutineBackground.current === 'function') {
+      allowDisabledBadge = await disabledRoutineBackground.current() === true;
+    }
+    for (const row of failedRows) {
+      assert(allowDisabledBadge && !row.failed && row.method === 'GET' && row.path === '/api/routine-fqc' && row.queryEmpty === true &&
+        row.status === 404 && row.observedBodyContract === 'FQC_NOT_ENABLED_ONLY', 'Unexpected failed API in successful action');
+      row.classification = 'EXPECTED_DISABLED_BACKGROUND';
+    }
     if (expectedPost !== undefined) assert.equal(network.requests.POST, expectedPost, 'Unexpected POST count for ' + action);
     // Authoritative DB inspection is a correctness oracle, outside the UI timing window.
     await verify();

@@ -288,3 +288,22 @@ for (const masterBaselines of ['missing', 'mismatched']) void test(`reviewer mas
   await unchanged(f, () => f.request({actor: 'reviewer', target: 'bom', label: masterBaselines + '-baseline-bom-independent'}), 200);
   assert(f.measurements.every(row => row.method === 'GET' && row.committed === 0 && row.r2put === 0));
 });
+
+
+void test('unconfigured routine background badge has the exact disabled response without granting rights or writing state', async t => {
+  const f = await createProcessDraftLifecycleFixture(); t.after(f.close);
+  assert.equal(Object.hasOwn(f.seed.values, 'routineFqcEnabled'), false);
+  const bootstrap = await unchanged(f, () => f.request({actor: 'reviewer', target: 'bootstrap', suffix: '?view=approval', label: 'disabled-routine-reviewer-bootstrap'}), 200);
+  const actor = JSON.parse(bootstrap.body.values.platformUsers).find(row => row.id === f.seed.actors.reviewer.id);
+  assert.equal(actor.cells['routine.view'], true, 'Existing effective view is not a new grant from the collector');
+  const route = f.load('app/api/routine-fqc/route.ts'), before = f.row(), objects = [...f.objects];
+  for (const query of ['?availability=1', '']) {
+    const request = new Request('https://lifecycle.synthetic.invalid/api/routine-fqc' + query);
+    const token = await f.core.demoSession(request, f.seed.actors.reviewer.id, false, f.seed.actors.reviewer.authEpoch);
+    const cookie = f.core.sessionCookie(request, token).split(';')[0];
+    const result = await route.GET(new Request(request, {headers: {Cookie: cookie}})), raw = await result.text();
+    assert.equal(result.status, query ? 200 : 404);
+    assert.equal(raw, query ? '{"enabled":false}' : '{"error":"FQC_NOT_ENABLED"}');
+    assert.deepEqual(f.row(), before); assert.deepEqual([...f.objects], objects);
+  }
+});

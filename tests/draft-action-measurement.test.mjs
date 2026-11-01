@@ -77,3 +77,53 @@ void test('missing required button produces an explicit failed measurement, not 
   await assert.rejects(measureAction({page, origin: 'https://fixture.invalid', action: 'begin', cycle: 1, selector: '#begin', ready: async () => {}, verify: async () => {}, samples}));
   assert.equal(samples.length, 1); assert.equal(samples[0].status, 'FAIL'); assert.equal(samples[0].ms, null); assert.equal(samples[0].mandatoryClick, false);
 });
+
+
+async function disabledBackgroundCase({action = 'return-confirm', method = 'GET', path = '/api/routine-fqc', status = 404,
+  body = '{"error":"FQC_NOT_ENABLED"}', failed = false, bodyThrows = false, postCount = 1, policy = {}, expectedPost = 1, omitPostAssertion = false, verifyThrows = false} = {}) {
+  const page = new EventEmitter(), samples = []; let verified = 0;
+  page.evaluate = async () => 25;
+  page.locator = () => ({count: async () => 1, isVisible: async () => true, isEnabled: async () => true, click: async () => {
+    for (const entry of [...Array.from({length: postCount}, () => ({method: 'POST', path: '/api/process-authoring/workflow', status: 200, body: '{}'})), {method, path, status, body, failed, bodyThrows}]) {
+      const req = {url: () => 'https://fixture.invalid' + entry.path, method: () => entry.method, postData: () => entry.method === 'POST' ? '{}' : null,
+        timing: () => ({startTime: 100, responseStart: 20, responseEnd: 21})};
+      page.emit('request', req);
+      page.emit('response', {request: () => req, status: () => entry.status, body: async () => { if (entry.bodyThrows) throw Error('BODY_UNAVAILABLE'); return Buffer.from(entry.body); }});
+      if (entry.failed) page.emit('requestfailed', req);
+    }
+  }});
+  const run = measureAction({page, origin: 'https://fixture.invalid', action, cycle: 1, selector: '#confirm', ready: async () => {},
+    verify: async () => { verified++; if (verifyThrows) throw Error('STATE_NOT_CORRECT'); }, samples, expectedPost: omitPostAssertion ? undefined : expectedPost,
+    disabledRoutineBackground: policy === null ? undefined : {seedDisabled: true, before: true, current: async () => true, ...policy}});
+  return {run, samples, verified: () => verified};
+}
+for (const action of ['return-confirm', 'approve-confirm']) void test('exact observed disabled badge response is counted, not dropped: ' + action, async () => {
+  const f = await disabledBackgroundCase({action}); await f.run;
+  const row = f.samples[0]; assert.equal(row.status, 'PASS'); assert.equal(row.stateVerified, true); assert.equal(f.verified(), 1);
+  assert.equal(row.requests.POST, 1); assert.equal(row.requests.GET, 1); assert.equal(row.requests.responseBytes, 29); assert.equal(row.requests.requestBytes, 2);
+  assert.equal(row.requests.rows[1].status, 404); assert.equal(row.requests.rows[1].observedBodyContract, 'FQC_NOT_ENABLED_ONLY');
+  assert.equal(row.requests.rows[1].classification, 'EXPECTED_DISABLED_BACKGROUND'); assert.equal(row.requests.rows[1].clientTiming.responseEnd, 21);
+});
+for (const [name, options] of [
+  ['default strict collector', {policy: null}], ['wrong phase', {action: 'save'}], ['no post assertion', {omitPostAssertion: true}],
+  ['enabled or unknown fixture', {policy: {seedDisabled: false}}], ['wrong initial reviewer page', {policy: {before: false}}],
+  ['late actor or page change', {policy: {current: async () => false}}], ['missing current probe', {policy: {current: null}}],
+  ['wrong endpoint', {path: '/api/process-authoring/workflow'}], ['receipt query', {path: '/api/routine-fqc?operationId=original'}],
+  ['availability query', {path: '/api/routine-fqc?availability=1'}], ['wrong method', {method: 'POST'}],
+  ['unknown 404', {body: '{"error":"OPERATION_NOT_FOUND"}'}], ['server 500', {status: 500}], ['forbidden 403', {status: 403}],
+  ['extra body field', {body: '{"error":"FQC_NOT_ENABLED","secret":"DO_NOT_REPORT"}'}], ['wrong code type', {body: '{"error":["FQC_NOT_ENABLED"]}'}],
+  ['duplicate key', {body: '{"error":"OTHER","error":"FQC_NOT_ENABLED"}'}],
+  ['bare code', {body: '"FQC_NOT_ENABLED"'}], ['malformed body', {body: '{'}], ['oversized body', {body: ' '.repeat(65) + '{"error":"FQC_NOT_ENABLED"}'}],
+  ['network failure', {failed: true}], ['body read failure', {bodyThrows: true}], ['wrong POST count contract', {expectedPost: 0}], ['additional POST', {postCount: 2}], ['missing POST', {postCount: 0}],
+]) {
+  if (typeof name !== 'string') throw Error('INVALID_TEST_CASE_NAME');
+  void test('disabled background exception refuses ' + name, async () => {
+  const f = await disabledBackgroundCase(options); await assert.rejects(f.run);
+  assert.equal(f.samples[0].status, 'FAIL'); assert.equal(f.samples[0].ms, null); assert.equal(f.verified(), 0);
+  assert.equal(JSON.stringify(f.samples).includes('DO_NOT_REPORT'), false);
+  });
+}
+void test('expected badge response never substitutes for authoritative state validation', async () => {
+  const f = await disabledBackgroundCase({verifyThrows: true}); await assert.rejects(f.run, /STATE_NOT_CORRECT/);
+  assert.equal(f.verified(), 1); assert.equal(f.samples[0].status, 'FAIL'); assert.equal(f.samples[0].ms, null);
+});
