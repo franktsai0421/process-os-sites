@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 import {fqcBrowserActions, fqcEditorReady, fqcPendingReady, fqcReviewReady, fqcPageDiagnostic} from './fqc-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 const source = readFileSync(new URL('./fqc-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
@@ -16,12 +17,15 @@ function probes() {
   let writes = [], error = null;
   const host = node({dataset: {activeTab: 'quality-fqc'}, querySelector: selector => selector === '#fqc-version' ? select : selector === '#fqc-page' ? node() : null,
     querySelectorAll: selector => selector === '#fqc-withdraw' ? [withdraw] : writes});
+  const wrapper = node({open: true, contains: value => value === review, querySelector: selector => selector === '[data-quality-review-state="ready"]' ? node() : null});
+  let wrappers = [wrapper];
   const panel = node({querySelector: selector => selector === '[data-quality-review-state="ready"]' ? node() : null,
-    querySelectorAll: selector => selector === '[data-quality-review="case"]' ? [review] : []});
+    querySelectorAll: selector => selector === '[data-quality-review="case"]' ? [review] : selector === 'details[data-review-module="fqc"]' ? wrappers : []});
   const context = {window: {ProcessSync: {identity: {id: actor}, destination: {view: 'data'}}, FQCMasterUI: {control: {libraries: {fqc: c}}, navigation: {error: () => error}}},
     document: {documentElement: {dataset: {processNavigationStatus: 'ready'}}, querySelector: selector => ({'#data-content': host, '#approval-panel-quality': panel})[selector] || null,
       querySelectorAll: selector => selector === '[data-review-tab="quality"]' ? [tab] : []}, location: {pathname: '/process/index.html'}};
   return {context, actor, reviewer, generation, savedId, pendingId, flow, c, select, withdraw, tab, review, host, panel,
+    wrapper, wrappers(value) { wrappers = value; },
     writes(value) { writes = value; }, error(value) { error = value; }, run(fn, args) { return vm.runInNewContext('(' + fn.toString() + ')(args)', {...context, args}); }};
 }
 void test('FQC phases independently require five real browser samples; prior canvas rows do not satisfy them', () => {
@@ -75,4 +79,54 @@ void test('native FQC runner uses compiled application, real inputs, exact write
   for (const id of ['fqc-begin', 'fqc-save', 'fqc-submit', 'fqc-withdraw', 'fqc-add-error', 'fqc-add-item', 'fqc-version', 'fqc-matrix-apply', 'fqc-matrix-discard', 'quality-reject', 'quality-approve']) assert(product.includes(id), id + ' actual source');
   assert.match(product, /confirmSubmit/); assert.match(product, /confirmReview/);
   assert.match(source, /Unrelated scope preserved/); assert.match(source, /snapshot, saved\.content/);
+});
+
+void test('review readiness rejects closed, absent, duplicate or wrong FQC disclosure even with nonzero child rectangles', () => {
+  const f = probes(); f.context.window.ProcessSync.identity.id = f.reviewer; f.context.window.ProcessSync.destination.view = 'approval';
+  const args = {actor: f.reviewer, pendingId: f.pendingId, generation: f.generation};
+  assert.equal(f.review.getClientRects().length, 1, 'rectangle presence is not a closed-details visibility proof');
+  f.wrapper.open = false; assert.equal(f.run(fqcReviewReady, args), false, 'closed FQC disclosure');
+  f.wrapper.open = true; assert.equal(f.run(fqcReviewReady, args), true);
+  f.wrappers([]); assert.equal(f.run(fqcReviewReady, args), false, 'missing/wrong module');
+  f.wrappers([f.wrapper, f.wrapper]); assert.equal(f.run(fqcReviewReady, args), false, 'duplicate FQC module');
+  f.wrappers([node({open: true, querySelector: () => node(), contains: () => false})]); assert.equal(f.run(fqcReviewReady, args), false, 'case belongs to a different module');
+});
+void test('review setup requires a genuine visible enabled unique FQC overview click before the original ready probe', () => {
+  const block = source.slice(source.indexOf("if (view === 'approval') {"), source.indexOf("} else {", source.indexOf("if (view === 'approval') {")));
+  const tab = block.indexOf("requireVisible(page, '[data-review-tab=\"quality\"]')"),
+    card = block.indexOf("requireVisible(page, '[data-review-jump=\"fqc\"]')"), ready = block.indexOf('page.waitForFunction(fqcReviewReady');
+  assert(tab >= 0 && card > tab && ready > card, 'tab -> mandatory FQC module card -> pending ready');
+  assert.match(block, /quality-fqc-open/);
+  assert.match(block, /await requireVisible\(page, '\[data-quality-review=/);
+  assert.match(block, /expected\.pendingId/);
+  assert.doesNotMatch(block, /force:|\.open\s*=|dispatchEvent|evaluate/);
+  assert.match(source, /Mandatory unique control/); assert.match(source, /Mandatory enabled control/);
+  assert.equal(fqcBrowserActions.length, 33, 'setup disclosure is not an invented action timing sample');
+});
+for (const lang of ['zh', 'vi']) void test('actual overview keeps async pending collapsed and opens exact FQC only on its card click ' + lang, () => {
+  const dom = canvasDOM(), doc = dom.document; doc.documentElement.lang = lang;
+  dom.Node.prototype.before = function (node) { const p = this.parentElement; node.remove(); node.parentElement = p; p.children.splice(p.children.indexOf(this), 0, node); };
+  let update;
+  const identity = {id: 'synthetic-reviewer'}, delivery = {}, count = {fqc: 0, iqc: 0};
+  const context = {document: doc, ProcessSync: {identity, identityGeneration: () => 1, captureDelivery: () => delivery, isCurrentDelivery: token => token === delivery},
+    MutationObserver: class { constructor(fn) { update = fn; } observe() {} disconnect() {} },
+    FQCMasterUI: {bindReview() {}, pendingCount: () => count.fqc}, IQCMasterUI: {bindReview() {}, pendingCount: () => count.iqc}};
+  context.window = context; vm.createContext(context);
+  vm.runInContext(readFileSync(new URL('../public/process/quality-review-overview.js', import.meta.url), 'utf8'), context);
+  const panel = doc.createElement('section');
+  panel.innerHTML = context.QualityReviewOverview.html() + '<div id="review-fqc">FQC ready <button data-quality-review="case">Case</button></div><div id="review-iqc">IQC ready</div>';
+  doc.body.append(panel); context.QualityReviewOverview.mount(panel);
+  const fqc = panel.querySelectorAll('details').find(row => row.dataset.reviewModule === 'fqc'), iqc = panel.querySelectorAll('details').find(row => row.dataset.reviewModule === 'iqc');
+  assert(fqc && iqc); assert.notEqual(fqc.open, true);
+  context.QualityReviewOverview.track(panel, 'FQCMasterUI', undefined);
+  count.fqc = 1; update();
+  assert.equal(panel.querySelector('[data-overview-count="fqc"]').textContent, '1');
+  assert.notEqual(fqc.open, true, 'pending count must not auto-expand a section under the user');
+  panel.querySelector('[data-review-jump="iqc"]').click();
+  assert.equal(iqc.open, true); assert.notEqual(fqc.open, true, 'wrong module card cannot reveal FQC');
+  const button = panel.querySelectorAll('[data-review-jump="fqc"]'); assert.equal(button.length, 1);
+  button[0].click(); assert.equal(fqc.open, true);
+  assert.equal(doc.activeElement, fqc.querySelector('summary'));
+  assert.equal(fqc.querySelectorAll('[data-quality-review="case"]').length, 1);
+  assert.deepEqual(count, {fqc: 1, iqc: 0}, 'presentation click neither changes model nor grants permissions');
 });

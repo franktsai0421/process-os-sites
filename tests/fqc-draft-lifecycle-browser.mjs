@@ -55,25 +55,29 @@ export function fqcReviewReady({actor, pendingId, generation}) {
   const sync = window.ProcessSync, c = window.FQCMasterUI?.control?.libraries?.fqc, f = c?.workflow;
   const tabs = document.querySelectorAll('[data-review-tab="quality"]'), panel = document.querySelector('#approval-panel-quality');
   const row = f?.cases?.find(item => item.id === pendingId), button = panel?.querySelectorAll('[data-quality-review="' + pendingId + '"]');
+  const modules = panel?.querySelectorAll('details[data-review-module="fqc"]'), wrapper = modules?.[0];
   return sync?.identity?.id === actor && sync.destination?.view === 'approval' &&
     document.documentElement.dataset.processNavigationStatus === 'ready' && !document.querySelector('#process-boot') &&
     tabs.length === 1 && tabs[0].getAttribute('aria-selected') === 'true' && !tabs[0].disabled &&
     panel?.hidden === false && panel.getClientRects().length > 0 &&
-    panel.querySelector('[data-quality-review-state="ready"]') !== null && !panel.querySelector('#fqc-review-retry') &&
-    button?.length === 1 && !button[0].disabled && button[0].getClientRects().length > 0 &&
+    modules?.length === 1 && wrapper.open === true &&
+    wrapper.querySelector('[data-quality-review-state="ready"]') !== null && !panel.querySelector('#fqc-review-retry') &&
+    button?.length === 1 && wrapper.contains(button[0]) && !button[0].disabled && button[0].getClientRects().length > 0 &&
     f?.scope === 'fqc' && f.generation === generation && f.pendingId === pendingId && row?.status === 'pending' && row.savedId === f.saved?.id;
 }
 export function fqcPageDiagnostic({actor, view}) {
   const sync = window.ProcessSync, c = window.FQCMasterUI?.control?.libraries?.fqc, flow = c?.workflow;
   const host = document.querySelector('#data-content'), select = host?.querySelector('#fqc-version');
   const panel = document.querySelector('#approval-panel-quality'), tabs = document.querySelectorAll('[data-review-tab="quality"]');
+  const modules = panel?.querySelectorAll('details[data-review-module="fqc"]');
   return {path: location.pathname, expectedView: view, identityMatches: sync?.identity?.id === actor,
     actualView: sync?.destination?.view ?? null, navigationStatus: document.documentElement.dataset.processNavigationStatus ?? null,
     bootPresent: !!document.querySelector('#process-boot'), activeTab: host?.dataset.activeTab ?? null,
     fqcPagePresent: !!host?.querySelector('#fqc-page'), loadErrorPresent: !!document.querySelector('#fqc-load-retry,#fqc-review-retry'),
     selectedStatus: c?.versions?.find(row => row.id === select?.value)?.status ?? null,
     qualityTabCount: tabs.length, qualityTabSelected: tabs.length === 1 && tabs[0].getAttribute('aria-selected') === 'true',
-    panelPresent: !!panel, panelHidden: panel?.hidden ?? null, flowScope: flow?.scope ?? null,
+    panelPresent: !!panel, panelHidden: panel?.hidden ?? null, fqcModuleCount: modules?.length ?? 0,
+    fqcModuleOpen: modules?.length === 1 ? modules[0].open === true : null, flowScope: flow?.scope ?? null,
     flowRevision: flow?.revision ?? null, pending: typeof flow?.pendingId === 'string',
     formCount: document.querySelectorAll('.fqc-modal-form').length, confirmCount: document.querySelectorAll('.vd-confirm[open]').length};
 }
@@ -133,7 +137,11 @@ export async function runFqcDraftBrowser() {
         await page.waitForFunction(fqcShellReady, {view, actor: actor.id});
         if (view === 'approval') {
           stage = cycle + ':' + label + ':quality-tab'; await (await requireVisible(page, '[data-review-tab="quality"]')).click();
+          // The overview deliberately keeps pending modules collapsed. Follow
+          // the user's real card navigation; setup is not a timed action sample.
+          stage = cycle + ':' + label + ':quality-fqc-open'; await (await requireVisible(page, '[data-review-jump="fqc"]')).click();
           stage = cycle + ':' + label + ':quality-ready'; await page.waitForFunction(fqcReviewReady, {actor: actor.id, ...expected});
+          await requireVisible(page, '[data-quality-review="' + expected.pendingId + '"]');
         } else {
           stage = cycle + ':' + label + ':fqc-ready'; await page.waitForFunction(fqcEditorReady, {actor: actor.id});
         }
