@@ -2,8 +2,29 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
-import {navigationTimingLoader} from '../lib/navigation-timing-loader.mjs';
+import path from 'node:path';
+import {loadConfigFromFile} from 'vite';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
+// Vite bundles its config before invoking hooks. Function.toString() therefore
+// differs from a direct Node import; derive from that same compiled hook, not from served HTML.
+async function compiledTimingLoader(root,runtime) {
+ const loaded=await loadConfigFromFile({command:'build',mode:'production'},path.join(root,'vite.config.ts'),root,'silent',undefined,'bundle');
+ assert(loaded);
+ const matches=(loaded.config.plugins||[]).flat(Infinity).filter(plugin=>plugin&&typeof plugin==='object'&&'name' in plugin&&plugin.name==='process-os:ordered-shell-styles');
+ assert.equal(matches.length,1);
+ const hook=matches[0].buildApp,handler=typeof hook==='function'?hook:hook?.handler;assert.equal(typeof handler,'function');
+ const directory=fs.mkdtempSync(path.join(runtime,'shell-source-oracle-')),out=path.join(directory,'client/process');
+ try {
+  fs.mkdirSync(out,{recursive:true});
+  const marker='<script data-process-navigation-timing></script>',css='/* synthetic source-only oracle */';
+  const input='<link rel="stylesheet" href="oracle.css" />'+marker;
+  fs.writeFileSync(path.join(out,'index.html'),input);fs.writeFileSync(path.join(out,'oracle.css'),css);
+  await Reflect.apply(handler,undefined,[{config:{root:directory},environments:{client:{isBuilt:true,config:{build:{outDir:'client'}}}}}]);
+  const prefix=combineProcessStyles(input,()=>css).html.replace(marker,'')+'<script>',suffix='</script>';
+  const output=fs.readFileSync(path.join(out,'index.html'),'utf8');assert(output.startsWith(prefix)&&output.endsWith(suffix));
+  const loader=output.slice(prefix.length,-suffix.length);assert(loader.length>0);assert.doesNotMatch(loader,/<\/script/i);return loader;
+ } finally {fs.rmSync(directory,{recursive:true,force:true});}
+}
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
 // These requests intentionally reject before consuming input. Use explicit
@@ -23,6 +44,7 @@ try{
  // the Worker. Keep that routing unchanged; do not force Worker-first in tests.
  const readSource=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
  const sourceHTML=readSource('index.html'),styles=combineProcessStyles(sourceHTML,readSource),scripts=combineProcessScripts(styles.html,readSource);
+ const navigationTimingLoader=await compiledTimingLoader(path.resolve(import.meta.dirname,'..'),f.runtime);
  const timingMarker='<script data-process-navigation-timing></script>';
  const finalProgramShell=html=>{assert.equal(html.split(timingMarker).length,2,'PROCESS_TIMING_MARKER');return html.replace(timingMarker,'<script>'+navigationTimingLoader+'</script>');};
  const expectedHTML=finalProgramShell(scripts.html);
