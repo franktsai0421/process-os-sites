@@ -26,7 +26,7 @@ async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generat
  const stats={posts:0,reads:0,stateReads:0,writes:0,renders:0,adopts:0,commands:[],notices:[],statuses:[],syncStatuses:[]};
  const store={get length(){return records.size;},key:i=>[...records.keys()][i]??null,getItem:key=>records.get(key)??null,setItem:(key,value)=>{stats.writes++;if(writeFail&&key.startsWith('process-local-draft-'))throw Object.assign(Error('synthetic quota'),{name:'QuotaExceededError'});records.set(key,String(value));},removeItem:key=>records.delete(key)};
  const client={permission:()=>true,rejectionCapability:()=>null,isConfirmedRejection:()=>false,hasUnknown:()=>unknown,canPoll:()=>true,flush:async()=>{},prepareRecovery:(generation,detail)=>({...detail,generation,action:'apply',operationId:'operation-'+(++sequence)}),
-  sendPrepared:async(cmd,options)=>{assert.equal(options.assertDispatch(cmd),true);stats.posts++;stats.commands.push(clone(cmd));for(const guard of cmd.guards){const row=remote.items.find(x=>x.id===guard.path[1].id);if(JSON.stringify(row?.[guard.path[2]])!==JSON.stringify(guard.value))throw Object.assign(Error('DEPENDENCY_CHANGED_RECONFIRM'),{status:409,requestId:'fbd95cef-43d9-4229-a623-c8e0ab785db1',details:{path:clone(guard.path)}});}for(const patch of cmd.patches)remote.items.find(x=>x.id===patch.path[1].id)[patch.path[2]]=clone(patch.value);remoteRevision++;
+  sendPrepared:async(cmd,options)=>{assert.equal(options.assertDispatch(cmd),true);stats.posts++;stats.commands.push(clone(cmd));assert.equal(cmd.moduleAction,'replace-matrix-v1');for(const selection of cmd.input.items){const row=remote.items.find(x=>x.id===selection.id);row.productCodes=clone(selection.productCodes);for(const key of ['productRefs','products']){if(key==='products'&&row.products===undefined)continue;const old=new Map((row[key]||[]).map(ref=>[ref.code,ref]));row[key]=selection.productCodes.map(code=>old.get(code)||{code,kind:'product',name:products.find(p=>p.code===code)?.name||'',specification:products.find(p=>p.code===code)?.specification||''});}}remoteRevision++;
    receipt={operationId:cmd.operationId,generation:cmd.generation,revision:remoteRevision,savedId:'save1',caseId:null,unchanged:false};
    if(mode==='wait'){unknown=true;return new Promise(resolve=>{deferred=()=>{unknown=false;resolve({receipt});};});}if(mode==='unknown'){unknown=true;throw Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY');}return{receipt};},
   resolveUnknown:async()=>{stats.reads++;if(mode==='unknown')throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});unknown=false;return{receipt};},
@@ -35,7 +35,7 @@ async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generat
   read:async()=>{stats.stateReads++;return{permissions:{view:client.permission('view')===true,edit:client.permission('edit')===true},control:{...clone(library),workflow:{...library.workflow,revision:remoteRevision,working:clone(remote)},versions:library.versions.map(v=>({...v,snapshot:clone(remote)}))}};}};
  const box={console,Map,Set,JSON,Error,Object,Array,Number,String,TextEncoder,Uint8Array,setTimeout,clearTimeout,sessionStorage:store,localStorage:store,CustomEvent:class{constructor(type){this.type=type;}},document,ui:{saving:false},hostElement:area,sharedClient:client,activeSharedAction:null,pendingCommandFeedback:null,
   clone,h:String,isVi:()=>document.documentElement.lang==='vi',identity:()=>actor,editable:()=>library.versions[0],library:()=>library,transport:()=>client,canEditDraft:()=>client.permission('edit')===true,
-  currentReadOwner:()=>{const original=actor,e=epoch;return()=>actor===original&&epoch===e;},catalog:()=>({products,productMap:new Map(products.map(p=>[p.code,p]))}),
+  currentReadOwner:()=>{const original=actor,e=epoch;return()=>actor===original&&epoch===e;},catalog:()=>({comparisonReady:true,products,productMap:new Map(products.map(p=>[p.code,p]))}),
   adopt:r=>{stats.adopts++;if(r.control)Object.assign(library,r.control);},render:()=>stats.renders++,toast:m=>stats.notices.push(m),displayDraftError:e=>e?.message||e,
   workspaceReady:()=>true,sharedPoll:{capture:()=>1,isCurrent:()=>true,schedule:fn=>{poll=fn;},cancel(){}},
   window:{crypto:webcrypto,setTimeout,clearTimeout,localStorage:store,sessionStorage:store,navigator:lockSupported?{locks}:{},confirm:()=>true,
@@ -58,13 +58,12 @@ void test('100 matrix clicks send zero commands, preserve source and avoid full 
  assert.equal(f.stats.posts,0);assert.equal(f.stats.renders,0);assert.equal(f.api.getBatch().count,100);assert.equal(JSON.stringify(f.version),before);assert.match(f.area.querySelector('#fqc-matrix-count').textContent,/100/);
  f.api.toggleMatrixChoice(f.button(0));assert.equal(f.api.getBatch().count,99);assert.equal(f.button(0).getAttribute('aria-pressed'),'false');
 });
-void test('one explicit Apply sends all choices with original guards, then clears only acknowledged batch',async()=>{
+void test('one explicit Apply sends complete choices, then clears only acknowledged batch',async()=>{
  const f=await fixture();for(const i of [1,3,5])f.api.toggleMatrixChoice(f.button(i));await f.api.applyMatrixChoices();
- assert.equal(f.stats.posts,1);assert.equal(f.stats.commands[0].action,'apply');assert.deepEqual(f.remote.items[0].productCodes,['P1','P3','P5']);assert(f.stats.commands[0].guards.every(g=>Array.isArray(g.value)&&g.value.length===0));assert.equal(f.api.matrixDirty(),false);
+ assert.equal(f.stats.posts,1);assert.equal(f.stats.commands[0].action,'apply');assert.deepEqual(f.remote.items[0].productCodes,['P1','P3','P5']);assert.equal(f.stats.commands[0].input.products.length,100);assert.equal(f.stats.commands[0].guards,undefined);assert.equal(f.api.matrixDirty(),false);
 });
-void test('remote same-field conflict retains every choice and original guards',async()=>{
- const f=await fixture();for(const i of [2,4])f.api.toggleMatrixChoice(f.button(i));f.remote.items[0].productCodes=['P8'];await f.api.applyMatrixChoices();
- assert.equal(f.api.getBatch().count,2);assert.deepEqual([...f.api.getBatch().rows.get('I1').codes],['P2','P4']);assert.equal(f.stats.adopts,0);assert.match(f.api.getBatch().error,/DEPENDENCY_CHANGED/);assert.deepEqual(f.remote.items[0].productCodes,['P8']);
+void test('remote same-field update is replaced by the explicitly applied whole selection',async()=>{
+ const f=await fixture();for(const i of [2,4])f.api.toggleMatrixChoice(f.button(i));f.remote.items[0].productCodes=['P8'];await f.api.applyMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.deepEqual(f.remote.items[0].productCodes,['P2','P4']);
 });
 void test('Apply retains existing product reference snapshots when upstream catalogue name/spec changed',async()=>{
  const f=await fixture(),oldRef={code:'P0',kind:'product',name:'Original name',specification:'Original spec',custom:'retained'},oldLegacy={...oldRef,name:'Legacy snapshot'};
@@ -142,29 +141,8 @@ void test('reloaded unknown is receipt-only; 404 retains it and a terminal recei
  second.client.receipt=async operationId=>({receipt:{operationId,generation:'gen1',revision:4,savedId:'save1',caseId:null,unchanged:false}});second.remoteRevision(4);await second.api.resolveMatrixRecord(key);assert.equal(second.stats.posts,0);assert.equal(second.records.has(key),false);
 });
 
-function reconciliationResult(f,revision=4){const control=clone(f.library);control.workflow.revision=revision;control.workflow.working=clone(f.remote);control.versions[0].snapshot=clone(f.remote);return{control,permissions:{view:true,edit:true}};}
-void test('explicit reconciliation shows three values, keeps other actor choices, and never applies automatically',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.remote.items[0].productCodes=['P8'];await f.api.applyMatrixChoices();assert.equal(f.api.getBatch().count,1);
- f.client.read=async()=>reconciliationResult(f);const checking=f.api.reconcileMatrixChoices();await new Promise(setImmediate);
- const overlay=f.document.querySelector('.fqc-modal-overlay');assert(overlay,f.api.getBatch().error);assert.match(overlay.textContent,/原值/);assert.match(overlay.textContent,/共享最新/);assert.match(overlay.textContent,/我的選擇/);assert.match(overlay.textContent,/P8/);assert.match(overlay.textContent,/P2/);
- overlay.querySelector('[data-matrix-review-confirm]').click();await checking;assert.equal(f.stats.posts,1,'only original rejected Apply');assert.deepEqual([...f.api.getBatch().rows.get('I1').codes],['P8','P2']);assert.deepEqual(clone(f.api.getBatch().rows.get('I1').base.productCodes),['P8']);assert.equal(f.api.getBatch().count,1);assert.equal(f.stats.statuses.at(-1),true);assert.equal(f.stats.syncStatuses.at(-1).dirty,true);assert.equal(f.stats.syncStatuses.at(-1).failed,false);
- await f.api.applyMatrixChoices();assert.equal(f.stats.posts,2);assert.deepEqual(f.remote.items[0].productCodes,['P8','P2']);
-});
-void test('reconciliation cancellation keeps original guards and all local intent',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));const before=clone(f.api.getBatch().rows.get('I1').base);f.client.read=async()=>reconciliationResult(f);const checking=f.api.reconcileMatrixChoices();await new Promise(setImmediate);f.document.querySelector('[data-matrix-review-cancel]').click();await checking;assert.deepEqual(clone(f.api.getBatch().rows.get('I1').base),before);assert.equal(f.api.getBatch().count,1);assert.equal(f.stats.posts,0);assert.equal(f.box.ui.saving,false);
-});
-void test('revision changing while confirming reconciliation retains original guards and requires recheck',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));let reads=0;f.client.read=async()=>reconciliationResult(f,4+reads++);const checking=f.api.reconcileMatrixChoices();await new Promise(setImmediate);f.document.querySelector('[data-matrix-review-confirm]').click();await checking;assert.equal(f.api.getBatch().count,1);assert.deepEqual(clone(f.api.getBatch().rows.get('I1').base.productCodes),[]);assert.match(f.api.getBatch().error,/REVISION_CHANGED/);assert.equal(f.stats.posts,0);
-});
-void test('reconciliation rejects deleted row, pending scope, new generation and unknown without dropping choices',async()=>{
- for(const kind of ['deleted','pending','generation','unknown']){const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.client.read=async()=>{const result=reconciliationResult(f);if(kind==='deleted')result.control.workflow.working.items=[];if(kind==='pending')result.control.workflow.pendingId='case';if(kind==='generation')result.control.workflow.generation='other';return result;};if(kind==='unknown')f.client.hasUnknown=()=>true;await f.api.reconcileMatrixChoices();assert.equal(f.api.getBatch().count,1,kind);assert.equal(f.stats.posts,0,kind);assert.equal(f.document.querySelector('.fqc-modal-overlay'),null,kind);assert(f.api.getBatch().error,kind);}
-});
-void test('actor change during reconciliation read cannot adopt values or leave operation locked',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.client.read=async()=>{f.actor('B');return reconciliationResult(f);};await f.api.reconcileMatrixChoices();assert.equal(f.stats.adopts,0);assert.equal(f.api.getBatch().count,1);assert.equal(f.box.ui.saving,false);assert.equal(f.stats.posts,0);
-});
-void test('removal reconciliation preserves other actor references and waits for explicit Apply',async()=>{
- const f=await fixture();Object.assign(f.version.snapshot.items[0],{productCodes:['P2'],productRefs:[{code:'P2',name:'Original'}]});f.api.toggleMatrixChoice(f.button(2));const otherRef={code:'P8',kind:'product',name:'Other actor snapshot',specification:'Other spec'};Object.assign(f.remote.items[0],{productCodes:['P2','P8'],productRefs:[{code:'P2',name:'Original'},clone(otherRef)]});f.client.read=async()=>reconciliationResult(f);
- const checking=f.api.reconcileMatrixChoices();await new Promise(setImmediate);f.document.querySelector('[data-matrix-review-confirm]').click();await checking;assert.equal(f.stats.posts,0);assert.deepEqual([...f.api.getBatch().rows.get('I1').codes],['P8']);await f.api.applyMatrixChoices();assert.equal(f.stats.posts,1);assert.deepEqual(f.remote.items[0].productRefs,[otherRef]);
+void test('whole matrix choices cannot enter legacy per-row reconciliation or silently merge peer choices',async()=>{
+ const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.remote.items[0].productCodes=['P8'];const before=clone(f.api.getBatch().completeMatrix);await f.api.reconcileMatrixChoices();assert.equal(f.stats.posts,0);assert.equal(f.stats.stateReads,0);assert.equal(f.document.querySelector('.fqc-modal-overlay'),null);assert.deepEqual(clone(f.api.getBatch().completeMatrix),before);await f.api.applyMatrixChoices();assert.deepEqual(f.remote.items[0].productCodes,['P2']);
 });
 
 // Fixed before/after CPU/request-count sample. Dependency ports omit network and

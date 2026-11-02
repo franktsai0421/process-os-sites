@@ -1,3 +1,7 @@
+## 2026-11-02 — FQC complete-matrix relation projection
+
+No persistent schema or shared-draft model change. FQC `apply` with `moduleAction: replace-matrix-v1` accepts complete live item ID/category/productCodes and effective product code/category sets; the server validates membership and derives only productCodes/productRefs/legacy products from latest rows before existing CAS. Saved snapshots and review states are unchanged. Browser recovery adds a completeMatrix payload; old incomplete copies are retained but cannot be converted silently into whole-matrix overwrites. [Behavior and limits](../docs/acceptance/fqc-matrix-last-apply-20261102/README.md).
+
 ## 2026-11-01 — FQC Apply/Save scoped immutable overlay
 
 The follow-on to merged #57 adds no persistent field, table, schema, key, binding or migration. An in-memory, one-use capability for ordinary records-v1 FQC Apply/Save pins the original manifest, actor/operation and exact adapter result, then overlays only quality and its derived allocation pointer. Unread unrelated aggregate references/metadata remain unchanged and explicitly unverified; required auth/quality/AB/equipment faults still reject. GET/review/restore remain on their previous readers. This narrowly supersedes the older “all aggregate” requirement for the eligible FQC POSTs only; complete selected quality/master/equipment bodies remain conservative. See [exact boundaries](../docs/FQC_REQUIRED_DEPENDENCIES.md).

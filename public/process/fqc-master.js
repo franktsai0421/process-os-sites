@@ -25,7 +25,7 @@
   const matrixBase=(flow,versionId=editable()?.id)=>JSON.stringify([flow?.generation,flow?.revision,flow?.saved?.id||null,versionId]);
   const matrixStorageMessage=()=>isVi()?'Không lưu được bản khôi phục; giữ lựa chọn trên trang này, đừng đóng hoặc tải lại.':'本機恢復存檔失敗；目前勾選仍保留，請勿關閉或重新整理。';
   const recoveryMessage=code=>(isVi()?'Khôi phục cục bộ: ':'本機恢復：')+code;
-  function matrixSnapshot(batch){return{versionId:batch.versionId,rows:[...batch.rows].map(([id,row])=>({id,baseCodes:row.base.productCodes||[],codes:[...row.codes],changed:[...row.changed]}))};}
+  function matrixSnapshot(batch){return{versionId:batch.versionId,completeMatrix:batch.completeMatrix,rows:[...batch.rows].map(([id,row])=>({id,baseCodes:row.base.productCodes||[],codes:[...row.codes],changed:[...row.changed]}))};}
   function recoveryContext(owned){
     const flow=library().workflow,actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),verified=matrixRecoveryVerified;
     return{actorId:actor?.id,scope:'FQC:matrix',epoch,baseVersion:verified?.owned()===true?verified.baseVersion:matrixBase(flow),
@@ -82,6 +82,10 @@
   }
   window.addEventListener?.('beforeunload',()=>{if(matrixOwner()&&matrixRecoverySession){const result=matrixRecoverySession.flush();if(!result.ok)matrixBatch.storageError=matrixStorageMessage()+' '+result.code;}});
   function matrixRestoreRows(payload,flow){
+    if(!payload?.completeMatrix)throw Error('MATRIX_COMPLETE_SNAPSHOT_REQUIRED');
+    const latest=matrixCompleteSnapshot(flow.working),old=payload.completeMatrix;
+    const scope=value=>JSON.stringify({products:value.products.map(p=>JSON.stringify(p)).sort(),items:value.items.map(r=>JSON.stringify([r.id,r.category])).sort()});
+    if(scope(latest)!==scope(old))throw Error('FQC_MATRIX_SCOPE_CHANGED');
     if(!payload||typeof payload.versionId!=='string'||!Array.isArray(payload.rows)||payload.rows.length>4000)throw Error('INVALID_MATRIX_RECOVERY');
     const rows=new Map();let count=0;
     for(const row of payload.rows){
@@ -132,7 +136,7 @@
       if(matrixBase(latest,preview.payload.versionId)!==baseVersion)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
       matrixRecoveryVerified={owned,flow:latest,baseVersion};const restored=session.restore(preview.token);if(!restored.ok)throw Error(restored.code);check();
       const data=matrixRestoreRows(restored.payload,latest);
-      adopt(confirmed);matrixBatch={actorId:identity().id,epoch:window.ProcessSync?.identityGeneration?.(),generation:latest.generation,versionId:restored.payload.versionId,rows:data.rows,count:data.count,pending:null,error:'',storageError:''};
+      adopt(confirmed);matrixBatch={actorId:identity().id,epoch:window.ProcessSync?.identityGeneration?.(),generation:latest.generation,versionId:restored.payload.versionId,rows:data.rows,count:data.count,completeMatrix:clone(restored.payload.completeMatrix),pending:null,error:'',storageError:''};
       matrixChoiceRevision++;matrixRecoveryNote=isVi()?'Đã khôi phục vào vùng cục bộ; vẫn cần bấm Áp dụng.':'已明確恢復至本機勾選；仍須另按套用才共享。';
       matrixRecoveryBase=baseVersion;matrixRecoveryReady=session.status().ready===true;
       // Keep the adopted source lineage leased by this same session. The source
@@ -216,7 +220,7 @@
   const unappliedMessage=()=>isVi()?'Hãy áp dụng hoặc bỏ thay đổi đang nhập trước khi lưu / gửi duyệt.':'請先套用或放棄尚未套用的修改，再儲存／送審。';
   function assertNoUnapplied(){if(matrixDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
   function matrixSelected(item,versionId){const row=matrixOwner()&&matrixBatch.versionId===versionId?matrixBatch.rows.get(item.id):null;return row?.codes||(Array.isArray(item.productCodes)?new Set(item.productCodes):null);}
-  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận chưa áp dụng':'未套用矩陣變更'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></section>`;}
+  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận chưa áp dụng':'未套用矩陣變更'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><details id="fqc-matrix-more"><summary>${isVi()?'Tùy chọn chỉnh sửa / khôi phục':'編輯／復原選項'}</summary><div><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></details></div></section>`;}
   const matrixCanEdit=()=>!!editable()&&!library().workflow?.pendingId&&canEditDraft()&&sharedClient?.permission('edit')!==false;
   function paintMatrixActions(){
     window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,matrixDirty());
@@ -229,10 +233,13 @@
     const recoveryStatus=matrixRecoverySession?.status();
     const persistFailure=recoveryStatus&&!['OK','EMPTY','SCHEDULED'].includes(recoveryStatus.code)&&recoveryStatus.code!=='RUNTIME_ACQUIRING'?recoveryMessage(recoveryStatus.code):'';
     const rejectedCleanup=batch?.rejectionCleanup?(isVi()?'Thao tác đã bị từ chối; hoàn tất dọn trong khôi phục cục bộ, không gửi lại.':'原操作已確認拒絕；請在本機恢復完成清理，不會重送。'):'';
-    message.textContent=[matrixRecoveryError,batch?.storageError,batch?.error,persistFailure,matrixRecoveryNote,rejectedCleanup].filter(Boolean).join(' ');
-    apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thay đổi đã chọn':'套用勾選變更');
+    const flow=library().workflow,savedCurrent=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'&&flow?.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working);
+    const note=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'?(savedCurrent?(isVi()?'Đã cập nhật bản nháp chung; đã lưu bản chụp.':'已更新共用草稿；快照已儲存。'):(isVi()?'Đã cập nhật bản nháp chung; chưa lưu bản chụp.':'已更新共用草稿；尚未儲存快照。')):matrixRecoveryNote;
+    message.textContent=[matrixRecoveryError,batch?.storageError,batch?.error,persistFailure,note,rejectedCleanup].filter(Boolean).join(' ');
+    apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thiết lập ma trận mới':'套用新矩陣設定');
     discard.textContent=isVi()?'Bỏ thay đổi chưa áp dụng':'放棄未套用變更';
-    if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
+    const more=hostElement?.querySelector('#fqc-matrix-more');if(more&&(unknown||batch?.error||batch?.storageError||matrixRecoveryError))more.open=true;
+    if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!!batch?.completeMatrix||!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
     apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
   }
   function toggleMatrixChoice(button){
@@ -244,25 +251,30 @@
     // infer a replacement array from characters or silently migrate stored data.
     if(!Array.isArray(item.productCodes)){toast('PRODUCT_CODES_FORMAT_UNSUPPORTED');return;}
     const flow=library().workflow;if(!flow){toast(isVi()?'Hãy bắt đầu bản nháp chung trước.':'請先開始共用草稿。');return;}
-    if(!matrixOwner())matrixBatch={actorId:identity().id,epoch:window.ProcessSync?.identityGeneration?.(),generation:flow.generation,versionId:version.id,rows:new Map(),count:0,pending:null,error:'',storageError:''};
+    if(!matrixOwner()||!matrixBatch.count&&!matrixBatch.pending&&!hasMatrixConflicts(matrixBatch)){
+      let completeMatrix;try{completeMatrix=matrixCompleteSnapshot(version.snapshot);}catch{toast(isVi()?'Không thể đọc toàn bộ ma trận; hãy tải lại trước khi áp dụng.':'無法讀取完整矩陣，請重新載入後再套用。');return;}
+      matrixBatch={actorId:identity().id,epoch:window.ProcessSync?.identityGeneration?.(),generation:flow.generation,versionId:version.id,completeMatrix,rows:new Map(),count:0,pending:null,error:'',storageError:''};
+    }
     const batch=matrixBatch;if(batch.generation!==flow.generation||batch.versionId!==version.id){batch.error=isVi()?'Bản nháp đã đổi; giữ lựa chọn, hãy đối chiếu hoặc bỏ thay đổi.':'草稿已變更；勾選仍保留，請核對或放棄未套用變更。';paintMatrixActions();return;}
     let row=batch.rows.get(item.id);if(!row){const base={};for(const key of ['productCodes','productRefs','products'])base[key]=item[key]===undefined?undefined:clone(item[key]);row={base,codes:new Set(item.productCodes||[]),changed:new Set()};batch.rows.set(item.id,row);}
     const code=button.dataset.matrixProduct,included=!row.codes.has(code);if(included)row.codes.add(code);else row.codes.delete(code);
     if(row.changed.has(code)){row.changed.delete(code);batch.count--;}else{row.changed.add(code);batch.count++;}
-    if(!row.changed.size)batch.rows.delete(item.id);batch.error='';
+    if(!row.changed.size)batch.rows.delete(item.id);batch.error='';matrixRecoveryNote='';
     button.classList.toggle('included',included);button.classList.toggle('matrix-local-change',row.changed.has(code));button.setAttribute('aria-pressed',String(included));button.textContent=included?'✓':'—';
     const label=`${item.checkNo} ${code} · ${included?(isVi()?'Đã chọn cho sản phẩm':'已納入產品標準'):(isVi()?'Chưa chọn cho sản phẩm':'未納入產品標準')} · ${item.isEnabled!==false?(isVi()?'Đang dùng':'啟用中'):(isVi()?'Đã tắt':'停用')}`;button.setAttribute('aria-label',label);button.title=label;
     matrixChoiceRevision++;queueMatrixPersistence();paintMatrixActions();
   }
+  function matrixCompleteSnapshot(snapshot){
+    const cat=catalog();if(!cat.comparisonReady)throw Error('MATRIX_COMPLETE_SNAPSHOT_REQUIRED');
+    if(!Array.isArray(snapshot?.items)||snapshot.items.some(row=>!row.isDeleted&&!Array.isArray(row.productCodes)))throw Error('MATRIX_COMPLETE_SNAPSHOT_REQUIRED');
+    return {products:cat.products.map(p=>({code:p.code,category:p.category||''})),items:snapshot.items.filter(row=>!row.isDeleted).map(row=>({id:row.id,category:row.category,productCodes:clone(row.productCodes)}))};
+  }
   function matrixCommand(batch){
-    const patches=[],guards=[],products=catalog().productMap;
-    for(const [id,row]of batch.rows){const codes=[...row.codes],baseCodes=new Set(row.base.productCodes||[]);
-      const refsFor=original=>{const prior=new Map();for(const ref of original||[]){const code=typeof ref==='string'?ref:ref?.code;if(code&&!prior.has(code))prior.set(code,ref);}return codes.map(code=>{if(baseCodes.has(code)&&prior.has(code))return clone(prior.get(code));const product=products.get(code);return{code,kind:product?.kind||'unresolved',name:product?.name||'',specification:product?.specification||''};});};
-      const values={productCodes:codes,productRefs:refsFor(row.base.productRefs),...(row.base.products!==undefined?{products:refsFor(row.base.products)}:{})};
-      for(const [field,value]of Object.entries(values)){if(JSON.stringify(value)===JSON.stringify(row.base[field]))continue;const path=['items',{id},field];patches.push({op:'set',path,value});guards.push({path,value:row.base[field]});}
-    }
-    if(patches.length>256)throw Error(isVi()?'Đợt này có quá nhiều hạng mục; hãy bỏ bớt lựa chọn rồi áp dụng. Các lựa chọn còn lại được giữ.':'本批檢查項目超過單次套用上限；請取消部分勾選後再套用，其餘勾選會保留。');
-    return{patches,guards};
+    if(!batch.completeMatrix)throw Error('MATRIX_COMPLETE_SNAPSHOT_REQUIRED');
+    const input=clone(batch.completeMatrix);
+    for(const row of input.items){const changed=batch.rows.get(row.id);if(changed)row.productCodes=[...changed.codes];}
+    if(new TextEncoder().encode(JSON.stringify(input)).length>1_800_000)throw Error('FQC_MATRIX_TOO_LARGE');
+    return {moduleAction:'replace-matrix-v1',input};
   }
   function confirmMatrixReconcile(rows){
     const overlay=document.createElement('div');overlay.className='fqc-modal-overlay';
@@ -272,6 +284,7 @@
   }
   async function reconcileMatrixChoices(){
     if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
+    if(matrixBatch.completeMatrix)return;
     const batch=matrixBatch,owned=currentReadOwner(),client=transport(),choiceRevision=matrixChoiceRevision,localRevision=library().workflow?.revision,operation={owned};let refreshed=false;activeSharedAction=operation;ui.saving=true;paintMatrixActions();
     const checkCurrent=()=>{if(!owned()||matrixBatch!==batch)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(matrixChoiceRevision!==choiceRevision||library().workflow?.revision!==localRevision||library().workflow?.generation!==batch.generation)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');if(batch.pending||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
     const checkFlow=result=>{const flow=result?.control?.workflow;if(!flow||flow.generation!==batch.generation)throw Error('STALE_GENERATION');if(flow.pendingId)throw Error('PENDING_LOCKED');if(!result.control.versions?.some(version=>version.id===batch.versionId&&version.status==='draft'))throw Error('STALE_GENERATION');for(const id of batch.rows.keys())if(!flow.working?.items?.some(item=>item.id===id&&!item.isDeleted))throw Error(isVi()?'Hạng mục đã bị xóa; giữ lựa chọn, không thể đối chiếu tự động.':'檢查項目已刪除；勾選仍保留，無法自動核對。');return flow;};
@@ -318,14 +331,14 @@
       matrixRecoveryVerified={owned,flow,baseVersion:matrixBase(flow)};
       const preview=session.preview(session.key);if(!preview.ok||preview.kind!=='unknown'&&!(preview.kind==='resolved'&&preview.outcome==='receipt'))throw Error(preview.code||'RECEIPT_REQUIRED');
       const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{receipt:result?.receipt,workflow:{...flow,scope:'FQC:matrix'}});if(!settled.ok)throw Error(settled.code);
-      batch.rows.clear();batch.count=0;batch.pending=null;batch.rejectedConflicts=(batch.rejectedConflicts||[]).filter(item=>item.client.hasConfirmedMatrixConflict(item.command,item.error));batch.error='';matrixRecoveryNote='';adopt(read);ui.lastError=null;
+      batch.rows.clear();batch.count=0;batch.pending=null;batch.rejectedConflicts=(batch.rejectedConflicts||[]).filter(item=>item.client.hasConfirmedMatrixConflict(item.command,item.error));batch.error='';matrixRecoveryNote='MATRIX_SHARED_APPLIED';adopt(read);ui.lastError=null;
       matrixRecoveryVerified=null;matrixRecoveryBase=matrixBase(flow,batch.versionId);matrixRecoveryReady=session.status().ready===true;
       window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));
     }catch(error){
       if(!owned()||matrixBatch!==batch)return;
       if(!querying&&!dispatched&&reservation){const cancelled=session.cancelPrepared(reservation);if(cancelled.ok)batch.pending=null;}
       if(!querying&&reservation&&batch.pending&&client.isConfirmedRejection(error,batch.pending)){if(session.wasRejected(reservation,error)&&!client.hasConfirmedRejection(batch.pending)){rememberMatrixConflict(batch,client,batch.pending,error);batch.pending=null;batch.rejectionCleanup=null;}else batch.rejectionCleanup={command:batch.pending,reservation,error,client};}else if(!querying&&reservation&&session.wasRejected(reservation,error))batch.pending=null;
-      batch.error=displayDraftError(error);ui.lastError=error.message;
+      batch.error=error.message==='FQC_MATRIX_SCOPE_CHANGED'?(isVi()?'Danh sách sản phẩm hoặc hạng mục đã đổi; giữ lựa chọn, hãy bỏ bản cục bộ và tải lại trước khi áp dụng.':'產品或檢查項目清單已變更；勾選保留，請放棄本次勾選並重新載入後再套用。'):displayDraftError(error);ui.lastError=error.message;
       // After dispatch, even an uncorrelated 4xx is not proof of no mutation.
       // Keep the original reference; neither this catch nor a 404 re-POSTs it.
       if(!batch.pending)persistMatrixChoices(batch);

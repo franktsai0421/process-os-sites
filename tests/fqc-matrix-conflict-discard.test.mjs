@@ -22,9 +22,10 @@ async function conflicted(f,intercept,beforeApply){
   await ui.main.querySelector('[data-matrix-item="item"]').click();
   const peer=f.realm('other');await peer.client.read();
   await peer.client.command(ui.library.workflow.generation,'apply',assignment('item',['SYN-P'],[]));
+  await f.mutate(values=>{const m=JSON.parse(values.masterDataControl);m.active.AB.products.push({...m.active.AB.products[0],code:'SYN-NEW'});m.versions[0].snapshot=plain(m.active.AB);values.masterDataControl=JSON.stringify(m);});
   beforeApply?.(ui);
   await ui.c.__fqcTest.applyMatrixChoices();
-  assert.equal(posts(f).at(-1).status,409);assert.equal(posts(f).at(-1).result.error,'DEPENDENCY_CHANGED_RECONFIRM');
+  assert.equal(posts(f).at(-1).status,409);assert.equal(posts(f).at(-1).result.error,'FQC_MATRIX_SCOPE_CHANGED');
   assert.equal(ui.c.sharedDraftAccountState().failed,true);assert.equal(ui.c.__fqcTest.matrixDirty(),true);
   return {ui,peer,client,rejections};
 }
@@ -35,7 +36,7 @@ async function discard(ui){
 
 // Actual module/recovery/shared client and signed route over isolated SQLite/R2.
 // DOM, timing and mount are synthetic; this is not native/browser acceptance.
-void test('confirmed same-cell 409 → actual Discard → actual Save preserves fresh peer data without replay',async()=>{
+void test('confirmed matrix-scope 409 → actual Discard → actual Save preserves fresh peer data without replay',async()=>{
   const f=await routeFixture();try{
     const {ui,peer}=await conflicted(f),before=posts(f).length;
     await peer.client.command(ui.library.workflow.generation,'apply',{patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'Peer latest'}],guards:[{path:['errors',{id:'error'},'name'],value:'Synthetic error'}]});
@@ -96,7 +97,7 @@ void test('a later successful Apply receipt retains the earlier independent conf
       if(armed&&lost&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
       return send();
     });
-    await peer.client.command(ui.library.workflow.generation,'apply',assignment('item',[],['SYN-P']));armed=true;
+    await peer.client.command(ui.library.workflow.generation,'apply',assignment('item',[],['SYN-P']));await f.mutate(values=>{const m=JSON.parse(values.masterDataControl);m.active.AB.products=m.active.AB.products.filter(p=>p.code!=='SYN-NEW');m.versions[0].snapshot=plain(m.active.AB);values.masterDataControl=JSON.stringify(m);});armed=true;
     await ui.c.__fqcTest.applyMatrixChoices();assert.equal(client.hasUnknown(),true);const before=posts(f).length,operationId=JSON.parse(posts(f).at(-1).body).command.operationId;
     armed=false;await ui.c.__fqcTest.applyMatrixChoices();assert.equal(client.hasUnknown(),false);assert.equal(client.hasSyncFailures(),true);
     assert.equal(ui.c.__fqcTest.matrixDirty(),true);assert.equal(ui.main.querySelector('#fqc-matrix-discard').disabled,false);

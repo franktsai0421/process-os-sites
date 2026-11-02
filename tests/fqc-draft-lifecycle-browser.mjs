@@ -257,6 +257,7 @@ export async function runFqcDraftBrowser() {
         assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), true);
       }, async () => assert.deepEqual(await control(), beforeMatrix), 0);
       await matrixChoice('matrix-discard-choice');
+      await (await requireVisible(editor.page, '#fqc-matrix-more>summary')).click();
       await measure(editor.page, 'matrix-discard', '#fqc-matrix-discard', async () => {
         assert.equal(await editor.page.locator(cell).getAttribute('aria-pressed'), 'false');
         assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), false);

@@ -37,7 +37,7 @@ async function mount(f, actor, intercept = null, session) {
   assert.equal(initial.status, 200);
   const wire = [];
   const ui = await moduleFixture({initialControl:(await initial.json()).control,
-    identityUser:{id:actor,name:'Synthetic '+actor,role:'staff'}, session,
+    identityUser:{id:actor,name:'Synthetic '+actor,role:'staff'}, session,catalogProducts:['SYN-P','SYN-Q','SYN-R'].map(code=>({code,name:code,category:'SYN',line:'A'})),
     send:async (url,options={}) => {
       const start = performance.now();
       const request = {actor, method:options.method||'GET', url:String(url), requestBytes:Buffer.byteLength(options.body||'')}; wire.push(request);
@@ -82,14 +82,14 @@ function report(t, ui, name) {
     syntheticVmMs:ui.wire.reduce((n,r)=>n+r.syntheticVmMs,0),notLiveLatency:true}));
 }
 
-void test('two signed actors overlap different-row matrix Apply at real CAS; both survive and neither saves', async t => {
+void test('two signed actors overlap different-row matrix Apply at real CAS; last CAS winner replaces the whole matrix and neither saves', async t => {
   const f=await seed(); try {
     const {a,b}=await pair(f),before=posts(f).length;
     await choose(a,'item'); await choose(b,'item2'); assert.equal(posts(f).length,before);
     const gate=await holdFirstCas(f), first=a.c.__fqcTest.applyMatrixChoices(); await gate.wait();
     await b.c.__fqcTest.applyMatrixChoices(); gate.release(); await first;
     const flow=(await f.state()).workflow;
-    assert.deepEqual(codes(flow),['SYN-P']); assert.deepEqual(codes(flow,'item2'),['SYN-P']); assert.equal(flow.saved,null);
+    assert.deepEqual(codes(flow),['SYN-P']); assert.deepEqual(codes(flow,'item2'),[]); assert.equal(flow.saved,null);
     assert.equal(a.c.__fqcTest.matrixDirty(),false); assert.equal(b.c.__fqcTest.matrixDirty(),false);
     const sent=posts(f).slice(before); assert.equal(sent.length,2); assert.deepEqual(new Set(sent.map(r=>r.actor)),new Set(['editor','other']));
     assert.notEqual(command(sent[0]).operationId,command(sent[1]).operationId); assert.notEqual(command(sent[0]).clientId,command(sent[1]).clientId);
@@ -99,68 +99,19 @@ void test('two signed actors overlap different-row matrix Apply at real CAS; bot
   } finally {f.close();}
 });
 
-void test('two signed actors overlap the same matrix cell: stale guard is 409, input retained, zero overwrite/autosave', async t => {
-  const f=await seed(); try {
-    const {a,b}=await pair(f); await choose(a); await choose(b); const before=posts(f).length;
-    const gate=await holdFirstCas(f), first=a.c.__fqcTest.applyMatrixChoices(); await gate.wait();
-    await b.c.__fqcTest.applyMatrixChoices(); const winner=plain((await f.state()).workflow);
-    gate.release(); await first;
-    assert.deepEqual(plain((await f.state()).workflow),winner);
-    const sent=posts(f).slice(before); assert.equal(sent.length,2);
-    const refused=sent.find(r=>r.actor==='editor'); assert.equal(refused.status,409); assert.equal(refused.result.error,'DEPENDENCY_CHANGED_RECONFIRM');
-    assert.equal(a.c.__fqcTest.matrixDirty(),true); assert.equal(a.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
-    assert.match(a.main.querySelector('#fqc-matrix-message').textContent,/重新|核對|DEPENDENCY|變更/);
-    assert.equal(a.c.__fqcTest.transport().hasUnknown(),false); assert.equal(winner.saved,null);
-    assert.equal(a.main.querySelector('#fqc-matrix-reconcile').hidden,false);
-    report(t,a,'same-cell-rejected');
-  } finally {f.close();}
+void test('same matrix selections may commit twice without guard conflict or automatic snapshot',async()=>{
+ const f=await seed();try{const {a,b}=await pair(f);await choose(a);await choose(b);const before=posts(f).length;await a.c.__fqcTest.applyMatrixChoices();await b.c.__fqcTest.applyMatrixChoices();assert(posts(f).slice(before).every(r=>r.status===200));assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(b.c.__fqcTest.matrixDirty(),false);assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);}finally{f.close();}
 });
 
 function assignment(id, next, previous) {
   return {patches:[{op:'set',path:['items',{id},'productCodes'],value:next}],guards:[{path:['items',{id},'productCodes'],value:previous}]};
 }
-void test('different cells on the SAME row conflict as one guarded productCodes field; explicit reconcile preserves both intentions', async t => {
-  const f=await seed(); try {
-    const {a,b}=await pair(f); await choose(a); const peer=b.c.__fqcTest.transport(),g=b.library.workflow.generation;
-    await peer.command(g,'apply',assignment('item',['SYN-Q'],[]));
-    await a.c.__fqcTest.applyMatrixChoices(); assert.equal(posts(f).at(-1).status,409);
-    assert.deepEqual(codes((await f.state()).workflow),['SYN-Q']); assert.equal(a.c.__fqcTest.matrixDirty(),true);
-    const before=posts(f).length, beforeWire=a.wire.length,button=a.main.querySelector('#fqc-matrix-reconcile');
-    assert.equal(button.hidden,false); assert.equal(button.disabled,false); button.click();
-    await until(()=>!!a.doc.querySelector('[data-matrix-review-confirm]'),'actual comparison dialog');
-    assert.equal(posts(f).length,before); assert.equal(a.c.__fqcTest.matrixDirty(),true);
-    a.doc.querySelector('[data-matrix-review-confirm]').click(); await until(()=>!a.c.__fqcTest.ui.saving,'explicit two-read reconciliation');
-    assert.equal(posts(f).length,before); assert.equal(a.wire.slice(beforeWire).filter(r=>r.method==='GET').length,2);
-    assert.equal(a.c.__fqcTest.matrixDirty(),true); assert.equal(a.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
-    assert.deepEqual(codes((await f.state()).workflow),['SYN-Q'],'reconcile does not send local changes');
-    await assert.rejects(a.c.__fqcTest.sharedAction('save')); assert.equal(posts(f).length,before,'Save cannot swallow unapplied matrix');
-    await a.c.__fqcTest.applyMatrixChoices(); assert.equal(posts(f).length,before+1);
-    assert.deepEqual(new Set(codes((await f.state()).workflow)),new Set(['SYN-P','SYN-Q']));
-    assert.equal((await f.state()).workflow.saved,null); assert.deepEqual(command(posts(f).at(-1)).guards.find(g=>g.path.at(-1)==='productCodes').value,['SYN-Q']);
-    report(t,a,'same-row-explicit-reconcile');
-  } finally {f.close();}
+void test('stale whole matrix explicitly replaces another product on the same row',async()=>{
+ const f=await seed();try{const {a,b}=await pair(f);await choose(a);await b.c.__fqcTest.transport().command(b.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));await a.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).at(-1).status,200);assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.main.querySelector('#fqc-matrix-reconcile').hidden,true);assert.equal((await f.state()).workflow.saved,null);}finally{f.close();}
 });
 
-void test('manual reconciliation Cancel keeps unsent selection and original guard; a changing second read cannot rebase', async () => {
-  const f=await seed(); try {
-    let changed=false,reads=0; const a=await mount(f,'editor',async(url,o,send)=>{
-      if(changed && o.method!=='POST' && !String(url).includes('operationId=') && ++reads===2) {
-        const peer=f.realm('other');await peer.client.read();await peer.client.command(a.library.workflow.generation,'apply',assignment('item',['SYN-Q','SYN-R'],['SYN-Q']));
-      } return send();
-    });
-    await a.c.__fqcTest.sharedAction('begin'); await choose(a);
-    const peer=f.realm('other');await peer.client.read();await peer.client.command(a.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));
-    await a.c.__fqcTest.applyMatrixChoices(); const before=posts(f).length;
-    a.main.querySelector('#fqc-matrix-reconcile').click();await until(()=>!!a.doc.querySelector('[data-matrix-review-cancel]'),'cancel comparison');
-    a.doc.querySelector('[data-matrix-review-cancel]').click();await until(()=>!a.c.__fqcTest.ui.saving,'cancelled reconciliation');
-    assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.matrixDirty(),true);
-    changed=true;reads=0;a.main.querySelector('#fqc-matrix-reconcile').click();await until(()=>!!a.doc.querySelector('[data-matrix-review-confirm]'),'new comparison');
-    a.doc.querySelector('[data-matrix-review-confirm]').click();await until(()=>!a.c.__fqcTest.ui.saving,'stale second comparison');
-    assert.equal(a.c.__fqcTest.matrixDirty(),true);assert.equal(a.c.__fqcTest.ui.lastError,'DRAFT_REVISION_CHANGED_RECONFIRM');
-    await a.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).at(-1).status,409);
-    assert.deepEqual(command(posts(f).at(-1)).guards.find(g=>g.path.at(-1)==='productCodes').value,[],'no implicit guard rewrite');
-    assert.deepEqual(codes((await f.state()).workflow),['SYN-Q','SYN-R']);
-  } finally {f.close();}
+void test('discarding unsent whole selection adopts peer changes without applying or merging',async()=>{
+ const f=await seed();try{const {a,b}=await pair(f);await choose(a);await b.c.__fqcTest.transport().command(b.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));const before=posts(f).length;await a.main.querySelector('#fqc-matrix-discard').click();await until(()=>!a.c.__fqcTest.ui.saving,'discard');assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.deepEqual(codes((await f.state()).workflow),['SYN-Q']);}finally{f.close();}
 });
 
 void test('matrix Apply then manual Save is visible to a fresh other-actor module; later unsaved input remains separate', async t => {
@@ -372,12 +323,12 @@ void test('native matrix readiness requires exact actor, actual visible enabled 
 });
 void test('native matrix suite is CI-only, two real contexts, five complete cycles, no product auth or optional-button bypass',()=>{
  const source=readFileSync(new URL('./fqc-matrix-multiuser-browser.mjs',import.meta.url),'utf8');
- assert.equal(matrixMultiuserActions.length,15);assert.equal(new Set(matrixMultiuserActions).size,15);
+ assert.equal(matrixMultiuserActions.length,12);assert.equal(new Set(matrixMultiuserActions).size,12);
  assert.match(source,/assert\.equal\(process\.env\.CI,'true'/);assert.match(source,/createRootEntryFixture/);assert.match(source,/cycle<=REQUIRED_SAMPLES/);
  assert.match(source,/const b=await open\(seed\.actors\.peer\)/);assert.match(source,/await browser\.newContext/);assert.match(source,/assert\.notEqual\(await a\.page\.evaluate/);
  assert.match(source,/allowed=new WeakMap/);assert.match(source,/await route\.fetch\(\)/);assert.match(source,/assert\.equal\(res\.status\(\),200\)/);
  assert.doesNotMatch(source,/hasPermission\s*=|executablePath|localhost:\d|if\s*\([^\n]*\.count\(/);
- assert.match(source,/assert\.equal\(posted\.filter\(row=>row\.status===409\)\.length,1\)/);assert.match(source,/one automatic plus one explicit receipt lookup/);
+ assert.match(source,/assert\.equal\(posted\.filter\(row=>row\.status===409\)\.length,0\)/);assert.match(source,/one automatic plus one explicit receipt lookup/);
 });
 
 import {EventEmitter} from 'node:events';

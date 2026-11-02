@@ -1,5 +1,6 @@
+import {replaceFqcMatrix} from './fqc-matrix';
 import {parse} from './process-state';
-import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftPatch,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftPatch,type DraftIssue,type DraftContext} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {isImmutableRecordBody} from './state-records';
 type Row=Record<string,unknown>&{id:string;category:string;line:string;name:string;isDeleted?:boolean};
@@ -10,6 +11,7 @@ const fields={errors:['name','isDeleted'],items:['name','description','errorId',
 const text=(value:unknown)=>typeof value==='string'?value:typeof value==='number'?String(value):'';
 export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  let root:{schemaVersion:number;libraries:Record<string,FqcLibrary>},numbers:Map<string,number|string>,abGuard:{versionId:string;codes:string[]}|null=null;
+ const matrixCatalog=new WeakMap<object,{code:string;category?:string;name?:string;specification?:string}[]|null>();
  return{key:'qualityMasterControl',scope:'fqc',empty:()=>({errors:[],items:[]}),photoPrefix:'fqc/photos/',photoIds:()=>[],
    preparedModel:true,permissionOnlyRead:true,recordMutation:'fqc-existing-set',fqcLifecycle8Mutation:true,
   needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
@@ -21,9 +23,11 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
   context(control,state,base){
    const master=parse(state.values.masterDataControl,null),effective=master?.versions?.find((v:{scope:string;status:string})=>v.scope==='AB'&&v.status==='approved');
    abGuard=effective&&stableDraftJSON(effective.snapshot)===stableDraftJSON(master.active?.AB)?{versionId:effective.id,codes:master.active.AB.products.map((p:{code:string})=>p.code).sort()}:null;
+   // Retain this CAS attempt's parsed catalog without cloning or mutating it for ordinary operations.
+   const matrixProducts=abGuard&&Array.isArray(master?.active?.AB?.products)?master.active.AB.products:null;
    const eq=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
    const choices=new Map((eq.versions?.find(v=>v.id===eq.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
-   return{...base,activeId:control.activeVersionId,
+   const result:DraftContext<FqcSnapshot>={...base,activeId:control.activeVersionId,
     semantic:content=>({errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
     structure(content,previous){
@@ -70,8 +74,17 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
       const r=i.rule;if(i.isEnabled&&i.productCodes.length&&(r?.cadence==='pending_confirmation'||r?.cadence==='batch'&&!(r.batchKind==='aql'?text(r.aqlValue).trim():r.batchKind==='fixed_count'?Number.isInteger(r.fixedCount)&&Number(r.fixedCount)>0:r.batchKind==='batch_quantity'?Number(r.batchQuantity)>0:r.batchKind==='custom'&&text(r.customBatchText).trim())||r?.cadence==='time'&&r.timeFrequency==='custom'&&!text(r.customTimeText).trim()))issues.push({kind:'missing',path:['items',{id:i.id},'rule'],message:'FREQUENCY_REQUIRED'});
      }return issues;}
    };
+   matrixCatalog.set(result,matrixProducts);return result;
   },
   apply(control,command,context){const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+   if(command.action==='apply'&&command.moduleAction==='replace-matrix-v1'){
+    const matrixProducts=matrixCatalog.get(context);
+    if(command.patches!==undefined||command.guards!==undefined||command.expectedRevision!==undefined||!matrixProducts)throw new DraftConflict('INVALID_FQC_MATRIX',422);
+    const items=replaceFqcMatrix(flow.working.items,matrixProducts,command.input);
+    // One internal projection built from the latest server rows, never client item bodies.
+    // Generic field guards and patch limits remain unchanged for every other caller.
+    return applyDraftCommand(flow,{...command,patches:[{op:'set',path:['items'],value:items}],guards:[]},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command)});
+   }
    if(command.input?.expectedAB&&(!abGuard||stableDraftJSON(command.input.expectedAB)!==stableDraftJSON(abGuard)))throw new DraftConflict('AB_EFFECTIVE_CHANGED_RECONFIRM');
    if(command.action!=='apply')return applyDraftCommand(flow,command,context);
    const patches:DraftPatch[]=cloneDraft(command.patches||[]),allocate=patches.some(p=>p.op==='insert');
