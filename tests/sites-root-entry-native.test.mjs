@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {combineProcessStyles} from '../lib/process-styles-build.mjs';
 import {combineProcessScripts} from '../lib/process-scripts-build.mjs';
+import {navigationTimingLoader} from '../lib/navigation-timing-loader.mjs';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 const origin='https://root-entry.synthetic.invalid',tests=[],report={programCommit:process.env.PROCESS_PROGRAM_COMMIT,realData:false,realCredentials:false,remoteBindings:false,externalNetwork:false};let f,stage='startup',lastRequest;
 async function test(name,run){stage=name;await run();tests.push(name);}
@@ -22,7 +23,12 @@ try{
  // the Worker. Keep that routing unchanged; do not force Worker-first in tests.
  const readSource=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
  const sourceHTML=readSource('index.html'),styles=combineProcessStyles(sourceHTML,readSource),scripts=combineProcessScripts(styles.html,readSource);
- await test('static program shell matches the exact source-derived build transformation',async()=>{const r=await request('/process/index.html');assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/html/);assert.notEqual(scripts.html,sourceHTML);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(scripts.html));});
+ const timingMarker='<script data-process-navigation-timing></script>';
+ const finalProgramShell=html=>{assert.equal(html.split(timingMarker).length,2,'PROCESS_TIMING_MARKER');return html.replace(timingMarker,'<script>'+navigationTimingLoader+'</script>');};
+ const expectedHTML=finalProgramShell(scripts.html);
+ assert.throws(()=>finalProgramShell(scripts.html.replace(timingMarker,'')),/PROCESS_TIMING_MARKER/);
+ assert.throws(()=>finalProgramShell(scripts.html+timingMarker),/PROCESS_TIMING_MARKER/);
+ await test('static program shell matches the exact source-derived build transformation',async()=>{const r=await request('/process/index.html');assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/html/);assert.notEqual(scripts.html,sourceHTML);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(expectedHTML));});
  await test('served stylesheet bundle preserves exact source bytes and cascade order',async()=>{const r=await request('/process/'+styles.name);assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^text\/css/);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(styles.css));});
  await test('served script bundles preserve exact source order and completion receipts',async()=>{assert.equal(scripts.assets.length,2);assert.equal(scripts.assets.reduce((n,a)=>n+a.sources.length,0),49);for(const asset of scripts.assets){const r=await request('/process/'+asset.name);assert.equal(r.status,200);assert.match(r.headers.get('Content-Type'),/^(?:text|application)\/javascript/);assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from(asset.source));}});
  await test('compiled login page remains reachable with no DEMO entry',async()=>{const r=await request('/login'),html=await r.text();assert.equal(r.status,200);assert.ok(html.includes('Đăng nhập')&&html.includes('name="password"'));assert.doesNotMatch(html,/demoRole|DEMO_ROLE/);});
