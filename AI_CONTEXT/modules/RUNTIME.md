@@ -434,3 +434,10 @@ separate acceptance; this local candidate is not a release.
   and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
   mount is a model/status port. It is not native browser, authenticated backend,
   real timeout-duration, or original unknown-operation recovery acceptance.
+
+
+## 2026-11-01 navigation timing diagnostics (unpublished)
+
+The compiled Site may expose an existing-admin diagnostic UI at `/navigation-timing`; explicit server flag + short expiry and same-tab opt-in are required. Request-local timings preserve native binding receivers and existing auth/CAS/readback. Safe numeric/fixed-label summaries use Server-Timing; only streamed tails use existing Worker logs. No new metric DB/store or third-party telemetry. [Source of truth, bounds and verification](../../docs/acceptance/navigation-timing-20261101/README.md). Business data model and deployment are unchanged.
+
+Diagnostic hardening: sample admission reuses existing current non-demo-admin identity with no extra API auth reads; quota is consumed only for successful authorized responses. Start/Refresh/Export recheck the config gate; missing authorized timing stops the recorder. Inactive diagnostic UI reads rows without installing hooks; repeated teardown preserves other fetch owners. Token revocation follows the existing rollout flag and no background polling is added. See the same acceptance source above.

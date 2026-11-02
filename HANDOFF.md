@@ -1,3 +1,11 @@
+## 2026-11-01 — navigation diagnostic authorization hardening (HOLD)
+
+The independent diagnostic candidate now reuses verified non-demo-admin identity for sample admission and consumes quota only after successful authorization. Start/Refresh/Export revalidate current access; missing authorized samples stop browser recording. Inactive diagnostic pages install no hooks, and teardown is idempotent. No permission, business data model, credential or deployment change. Exact verification and remaining cost proposal are maintained in [navigation acceptance](docs/acceptance/navigation-timing-20261101/README.md). Parent review remains required; no public upload.
+
+## 2026-11-01 — bounded navigation diagnostics (local, not deployed)
+
+Independent `diag/cloud-navigation-timing` on merged main `c129318`; rejected speed candidates remain archived and withdrawn. Adds explicit, expiring diagnostic UI at `/navigation-timing`, safe request-local intervals and bounded synthetic verification. [Scope, controls, evidence and limitations](docs/acceptance/navigation-timing-20261101/README.md). Parent coordinates existing test Site review/CI/deployment and live observation; this worker made no live request, account/data change or publication.
+
 ## 2026-11-01 — FQC conflict Discard recovery (#60 / local #59 integration)
 
 Original Draft #60 passed supported CI on merged #58 / `0008df7`. The local integration now preserves merged #59 / `77e62ce` UI and advances only the two changed JS cache versions; it is not yet published. The separate #56 tests-only handoff is not included. The exact scoped repair and verification boundaries are maintained in [one acceptance note](docs/acceptance/fqc-conflict-discard-20261101/README.md). Unknown and other operations stay blocked; no employee data, permission, schema or deployment change. Integrated exact-head native/CI and source review remain release gates.

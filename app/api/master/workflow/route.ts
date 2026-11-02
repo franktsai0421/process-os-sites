@@ -1,3 +1,6 @@
+import {timingJSON} from '@/lib/navigation-timing';
+import {navigationTiming,timingEnabled} from '@/lib/navigation-timing';
+import {env} from 'cloudflare:workers';
 import {visibleStageReferences} from '@/lib/master-stage-reference-response';
 import type {stageReferences} from '@/lib/master-stage-references';
 
@@ -22,7 +25,7 @@ function legacyCatalog(request:Request){
  return versionedWorkflowRoute(masterWorkflowAdapter('AB')).GET(new Request(url,request));
 }
 async function effectiveABCatalog(request:Request){
- const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
+ const reply=(body:unknown,status=200)=>timingJSON(body,{status,headers:responseHeaders});
  try{
   if(new URL(request.url).searchParams.get('scope')!=='AB')throw new DraftConflict('SCOPE_INVALID',422);
   // Keep the generic master route's permission-only preflight, then fresh
@@ -38,7 +41,7 @@ async function effectiveABCatalog(request:Request){
  }catch(error){if(error instanceof MasterCatalogLegacyFallback)return legacyCatalog(request);return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}
 }
 async function productReferences(request:Request){
- const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
+ const reply=(body:unknown,status=200)=>timingJSON(body,{status,headers:responseHeaders});
  try {
   const query=new URL(request.url).searchParams,scope=query.get('scope'),code=query.get('references');
   if(!['AB','C'].includes(scope||'')||!code||code.length>200)return reply({error:'INVALID_REFERENCE_QUERY'},422);
@@ -52,7 +55,7 @@ async function productReferences(request:Request){
   return reply({revision:state.revision,...visibleCatalogReferences(catalogReferences(state.values,[code]),user?effectiveAccess(user,state.values).cells:{})});
  }catch{return reply({error:'REFERENCE_CHECK_UNAVAILABLE'},503);}
 }
-export const GET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
+const timedGET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
  ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request);
 export const POST=async(request:Request)=>{
  const scope=new URL(request.url).searchParams.get('scope')||'';
@@ -61,5 +64,7 @@ export const POST=async(request:Request)=>{
  const body=await response.clone().json() as {error:string;details?:ReturnType<typeof stageReferences>;requestId?:string};
  if(body.error!=='STAGE_IN_USE')return response;
  const details=await visibleStageReferences(request,body.details,scope);
- return Response.json({...body,details},{status:response.status,headers:response.headers});
+ return timingJSON({...body,details},{status:response.status,headers:response.headers});
 };
+
+export const GET=(request:Request)=>navigationTiming(request,timingEnabled(env as typeof env & {PROCESS_NAVIGATION_TIMING?:string;PROCESS_NAVIGATION_TIMING_UNTIL?:string}),()=>timedGET(request));

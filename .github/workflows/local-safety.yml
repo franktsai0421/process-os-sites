@@ -138,6 +138,15 @@ jobs:
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: node scripts/local-build.mjs
+      - name: Opt-in navigation diagnostic privacy and native UI
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node --test tests/navigation-timing.test.mjs tests/navigation-timing-auth.test.mjs tests/navigation-timing-client.test.mjs tests/navigation-timing-source-contract.test.mjs tests/navigation-timing-page.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/navigation-timing-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/navigation-timing-controls-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Synthetic source, snapshot and authorization regressions
         id: head_validation_04
         if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}

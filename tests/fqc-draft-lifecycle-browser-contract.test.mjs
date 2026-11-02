@@ -289,3 +289,61 @@ void test('native record oracle uses the same isolated D1/R2 and full production
     }
   } finally { if (fixture) await fixture.close(); fs.rmSync(directory, {recursive: true, force: true}); }
 });
+
+void test('oracle bundler retains only the exact native async_hooks dependency and rejects unlisted builtins', async () => {
+  const fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const {fileURLToPath} = await import('node:url');
+  const {createNativeRecordOracleWorker} = await import('./native-record-oracle.mjs');
+  const worker = await createNativeRecordOracleWorker(fileURLToPath(new URL('../', import.meta.url)));
+  assert.deepEqual(worker.compatibilityFlags, ['nodejs_compat']);
+  assert.match(worker.script, /import\s*\{\s*AsyncLocalStorage\s*\}\s*from\s*["']node:async_hooks["']/);
+  assert.match(worker.script, /new AsyncLocalStorage\(/);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oracle-unlisted-builtin-'));
+  try {
+    fs.mkdirSync(path.join(directory, 'lib'));
+    fs.writeFileSync(path.join(directory, 'lib/state-records.ts'), 'import {readFile} from "node:fs"; export function decodeRecordValues(){return readFile("synthetic-never-read",()=>{});}');
+    await assert.rejects(createNativeRecordOracleWorker(directory), /Could not resolve "node:fs"/);
+  } finally { fs.rmSync(directory, {recursive: true, force: true}); }
+});
+
+void test('real workerd nodejs_compat isolates concurrent native ALS and production diagnostic spans', async () => {
+  const {createRequire} = await import('node:module'), {fileURLToPath} = await import('node:url');
+  const require = createRequire(import.meta.url), {build} = require('esbuild'), {Miniflare, Log, LogLevel} = require('miniflare');
+  const {createNativeRecordOracleWorker} = await import('./native-record-oracle.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const oracle = await createNativeRecordOracleWorker(root);
+  // This isolated native-binding probe uses real production timing code, not an
+  // ALS stub or a route-auth test. The preceding oracle test covers real decoder/data boundaries.
+  const entry = `import {AsyncLocalStorage} from 'node:async_hooks';
+import {navigationTiming,timingAuthority,timingSpan} from './lib/navigation-timing.ts';
+const local=new AsyncLocalStorage();
+export default {async fetch(request){
+ const actor=new URL(request.url).searchParams.get('actor');
+ const before=local.getStore()??null;
+ const values=await local.run(actor,()=>Promise.all([1,2].map(n=>local.run(actor+':'+n,async()=>{
+   await new Promise(resolve=>setTimeout(resolve,n===1?15:1));return local.getStore();
+ }))));
+ const after=local.getStore()??null;
+ const timed=new Request('http://synthetic.invalid/api/fqc/workflow',{headers:{'X-Process-Timing':'1'}});
+ return navigationTiming(timed,true,async()=>{
+   timingAuthority({role:actor==='admin'?'admin':'staff'});
+   await timingSpan(actor==='admin'?'parse':'decode',async()=>{await new Promise(resolve=>setTimeout(resolve,actor==='admin'?15:1));});
+   return Response.json({actor,before,values,after});
+ });
+}};`;
+  const built = await build({stdin: {contents: entry, resolveDir: root, sourcefile: 'native-als-contract.mjs'}, bundle: true, write: false,
+    platform: 'neutral', external: ['node:async_hooks'], format: 'esm', target: 'es2022', logLevel: 'silent'});
+  assert.equal(built.outputFiles.length, 1);
+  const mf = new Miniflare({host: '127.0.0.1', port: 0, modules: true, script: built.outputFiles[0].text,
+    compatibilityDate: oracle.compatibilityDate, compatibilityFlags: oracle.compatibilityFlags,
+    cf: false, log: new Log(LogLevel.NONE), outboundService: () => { throw Error('No external requests in native ALS contract'); }});
+  try {
+    const [admin, staff] = await Promise.all(['admin', 'staff'].map(actor => mf.dispatchFetch('http://synthetic.invalid/?actor=' + actor)));
+    assert.equal(admin.status, 200); assert.equal(staff.status, 200);
+    assert.deepEqual(await admin.json(), {actor: 'admin', before: null, values: ['admin:1', 'admin:2'], after: null});
+    assert.deepEqual(await staff.json(), {actor: 'staff', before: null, values: ['staff:1', 'staff:2'], after: null});
+    assert.match(admin.headers.get('Server-Timing'), /parse/);
+    assert(!admin.headers.get('Server-Timing').includes('decode'), 'staff spans must not leak into the admin trace');
+    assert.equal(staff.headers.get('Server-Timing'), null, 'staff cannot inherit the concurrent admin trace');
+  } finally { await mf.dispose(); }
+});

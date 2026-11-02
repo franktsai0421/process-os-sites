@@ -1,3 +1,4 @@
+import {timingBinding,timingSpan,timingParse,timingAuthority} from './navigation-timing';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import { env } from 'cloudflare:workers';
 import { effectiveAccess, type PlatformUser } from './user-access';
@@ -119,32 +120,33 @@ export async function encodeValues(values:Record<string,string>,previous?:State,
   return JSON.stringify({__processR2:{key,sha256:digest},platformUsers:values.platformUsers,...(values.maintenanceMode!==undefined?{maintenanceMode:values.maintenanceMode}:{})});
 }
 export async function decodeValues(raw:string):Promise<Record<string,string>> {
-  const stored=JSON.parse(raw);
-  if(stored.__processRecords)return (await decodeRecordValues(env.STATE_ARCHIVE,stored)).values;
-  if(stored.__processChunks)return (await decodeChunkedValues(env.STATE_ARCHIVE,stored)).values;
+  const stored=timingParse(raw);
+  if(stored.__processRecords)return (await decodeRecordValues(timingBinding(env.STATE_ARCHIVE,'r2'),stored)).values;
+  if(stored.__processChunks)return (await timingSpan('decode',()=>decodeChunkedValues(timingBinding(env.STATE_ARCHIVE,'r2'),stored))).values;
   if(!stored.__processR2)return stored;
   const ref=stored.__processR2;
   if(!/^snapshots\/[a-f0-9]{64}\.json$/.test(ref.key))throw Error('Invalid snapshot reference');
-  const object=await env.STATE_ARCHIVE?.get(ref.key);
+  const object=await timingBinding(env.STATE_ARCHIVE,'r2')?.get(ref.key);
   if(!object)throw Error('Snapshot unavailable; database was not modified');
   const bytes=await object.arrayBuffer();
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
   if(digest!==ref.sha256)throw Error('Snapshot integrity check failed');
-  const values=JSON.parse(new TextDecoder().decode(bytes));
+  const values=timingParse(new TextDecoder().decode(bytes));
   if(stored.maintenanceMode!==undefined)values.maintenanceMode=stored.maintenanceMode;
   return values;
 }
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
-export async function readState(options:RecordRead={}): Promise<State> {
-  const deliver=(state:State):State=>options.effectiveOnly?{...state,values:effectiveDeliveryValues(state.values),deliveryOnly:true}:state;
+export function readState(options:RecordRead={}): Promise<State> {return timingSpan('state',()=>readStateMeasured(options));}
+async function readStateMeasured(options:RecordRead={}): Promise<State> {
+  const deliver=(state:State):State=>options.effectiveOnly?{...state,values:timingSpan('projection',()=>effectiveDeliveryValues(state.values)),deliveryOnly:true}:state;
   // Schema is owned by the checked-in Drizzle migrations, never by public reads.
-  const row = await env.DB.prepare(
+  const row = await timingBinding(env.DB,'db').prepare(
     'SELECT revision,"values" FROM shared_state WHERE id=1',
   ).first<{ revision: number; values: string }>();
   if (!row) throw Error('Current state is missing; explicit initialization is required');
-  const stored=JSON.parse(row.values);
-  if(stored.__processRecords){pinIdentityReadToken(options.identityReadToken,row.revision,row.values,env.STATE_ARCHIVE);return deliver({revision:row.revision,...await decodeRecordValues(env.STATE_ARCHIVE,stored,options)});}
-  if(stored.__processChunks)return deliver({revision:row.revision,...await decodeChunkedValues(env.STATE_ARCHIVE,stored)});
+  const stored=timingParse(row.values);
+  if(stored.__processRecords){pinIdentityReadToken(options.identityReadToken,row.revision,row.values,timingBinding(env.STATE_ARCHIVE,'r2'));return deliver({revision:row.revision,...await decodeRecordValues(timingBinding(env.STATE_ARCHIVE,'r2'),stored,options)});}
+  if(stored.__processChunks)return deliver({revision:row.revision,...await timingSpan('decode',()=>decodeChunkedValues(timingBinding(env.STATE_ARCHIVE,'r2'),stored))});
   // Inline legacy state is already decoded. Avoid parsing large captured JSON
   // twice; R2 envelopes still pass through integrity-checked decodeValues.
   if(!stored.__processR2)return deliver({revision:row.revision,values:stored});
@@ -153,7 +155,8 @@ export async function readState(options:RecordRead={}): Promise<State> {
 }
 export const readPlatformUsers = (raw: string | undefined): PlatformUser[] => parse(raw, []);
 
-export async function identity(request: Request, state: State,report?:AuthDiagnostic) {
+export async function identity(request:Request,state:State,report?:AuthDiagnostic){const actor=await timingSpan('auth',()=>measuredIdentity(request,state,report));timingAuthority(actor);return actor;}
+async function measuredIdentity(request: Request, state: State,report?:AuthDiagnostic) {
   const session = await verifiedSession(request,report);
   if (session) {
     const user = readPlatformUsers(state.values.platformUsers).find((u)=>normalizeUserId(u.id)===session.id && u.enabled!==false && !u.deletedAt);
