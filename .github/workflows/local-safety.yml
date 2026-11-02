@@ -540,7 +540,19 @@ jobs:
       - name: Compiled destination pages in an isolated browser with synthetic identities
         id: head_validation_11
         if: ${{ !cancelled() && steps.head_validation_10.outcome == 'success' }}
-        run: node tests/sites-delivery-browser.test.mjs
+        run: |
+          node tests/sites-delivery-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/draft-action-measurement.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-draft-lifecycle-route.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/process-draft-lifecycle-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/fqc-draft-lifecycle-browser-contract.test.mjs tests/fqc-draft-lifecycle-route.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/quality-review-readiness.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/fqc-draft-lifecycle-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/fqc-matrix-multiuser-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Dormant native staging authority and synthetic transport
         id: head_validation_12
         if: ${{ !cancelled() && steps.head_validation_11.outcome == 'success' }}
