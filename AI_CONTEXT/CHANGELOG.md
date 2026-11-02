@@ -1,3 +1,11 @@
+## 2026-11-01 — navigation diagnostic authorization hardening (HOLD)
+
+The independent diagnostic candidate now reuses verified non-demo-admin identity for sample admission and consumes quota only after successful authorization. Start/Refresh/Export revalidate current access; missing authorized samples stop browser recording. Inactive diagnostic pages install no hooks, and teardown is idempotent. No permission, business data model, credential or deployment change. Exact verification and remaining cost proposal are maintained in [navigation acceptance](../docs/acceptance/navigation-timing-20261101/README.md). Parent review remains required; no public upload.
+
+## 2026-11-01 — opt-in navigation diagnostics candidate
+
+Add bounded, default-off request timings and authenticated diagnostic UI/export without changing business protocols. No acceleration claim, migration, persistent credential or Site action. [Controls and verification](../docs/acceptance/navigation-timing-20261101/README.md).
+
 ## 2026-11-01 — FQC matrix conflict Discard → Save (#60 / local integration)
 
 Fixed the stale synchronization failure left after discarding a proven no-write same-field 409. Exact actor/operation/response proof plus fresh read, no generic failure reset or automatic POST. [Acceptance boundaries](../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data/schema/account/Site change or deployment.

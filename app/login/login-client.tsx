@@ -7,6 +7,7 @@ export default function LoginClient({initialSystem,initialLine}:{initialSystem:s
   const [system,setSystem]=useState(initialSystem),[line,setLine]=useState(initialLine);
   const account=useRef<HTMLInputElement>(null),attempt=useRef(0);
   useEffect(()=>()=>{attempt.current++;},[]);
+  useEffect(()=>{window.ProcessNavigationTiming?.loginReady?.();},[]);
   async function submit(event:SyntheticEvent<HTMLFormElement>){
     event.preventDefault();if(busy)return;
     const form=new FormData(event.currentTarget);

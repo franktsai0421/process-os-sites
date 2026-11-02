@@ -1,3 +1,4 @@
+import {timingBinding,timingJSON,timingSpan} from './navigation-timing';
 import {fqcRequiredDependencyCommand,readFqcRequiredMutationState,captureFqcRequiredBasis,captureFqcRequiredResult,encodeFqcRequiredMutationState} from './fqc-required-dependencies';
 import {iqcEditingRequested,iqcEditingPayload} from './iqc-editing-projection';
 import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
@@ -136,7 +137,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state,check),create:limited.edit&&!!workflowModule&&await check(workflowModule+'.create'),delete:limited.edit&&await check(workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
-    async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
+    async GET(request:Request){const reply=(body:unknown,status=200)=>timingJSON(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
@@ -158,7 +159,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // A catalog without an adopted draft has no generation token yet. Still
       // recheck identity/permissions before skipping an unchanged full projection.
       if(query.get('since')===`state:${state.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
-      const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),flow=control.workflow;
+      const control=timingSpan('projection',()=>adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key))),flow=control.workflow;
       if(query.has('reviewMetadata'))return reply({revision:state.revision,permissions,review:workflowReviewMetadata(control,permissions.history)});
       if(query.has('uiHistory'))return permissions.history?reply(workflowInterfaceMetadata(control,query)):reply({error:'FORBIDDEN'},403);
       if(query.has('legacyHistory')||query.has('legacyVersionId')){
@@ -187,7 +188,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       if(query.has('caseId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));return reviewCase?reply({reviewCase}):reply({error:'CASE_NOT_FOUND'},404);}
       if(flow&&query.get('since')===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
       const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1'),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
-      return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),env.STATE_ARCHIVE,responseHeaders):reply(body);
+      return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),timingBinding(env.STATE_ARCHIVE,'r2'),responseHeaders):reply(body);
     }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}},
     async POST(request:Request){let streamRecords=false,applyAck=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const complete=iqcEditingPayload(compactWorkflowPayload(body,query.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope));
       // Build the unchanged complete projection first, preserving its failures.
