@@ -226,6 +226,101 @@ void test('server permission revocation rejects peer matrix Apply and keeps loca
 });
 
 // Native runner contracts only: importing this module never starts Chromium.
+void test('pending peer matrix stays disabled after ready/repaint; backend still rejects and Withdraw restores editing',async t=>{
+ const f=await seed();try {
+  const {a}=await pair(f);await choose(a);await a.c.__fqcTest.applyMatrixChoices();await a.c.__fqcTest.sharedAction('save');
+  const flow=(await f.state()).workflow,client=a.c.__fqcTest.transport();
+  const submitted=await client.command(flow.generation,'submit',{savedId:flow.saved.id,expectedRevision:flow.revision,reason:'Synthetic pending UI check'});
+  const b=await mount(f,'other');assert.equal(b.c.__fqcTest.selected().status,'pending');assert.equal(b.library.workflow.pendingId,submitted.control.workflow.pendingId);
+  const before=f.db.prepare('SELECT * FROM shared_state').get(),objects=[...f.objects].map(([k,v])=>[k,v.toString('base64')]),beforePosts=posts(f).length;
+  const cell=b.main.querySelector('[data-matrix-item="item2"]');assert(cell);await cell.onclick();
+  assert.equal(b.c.__fqcTest.matrixDirty(),false);assert.equal(posts(f).length,beforePosts,'Even direct handler invocation cannot create a pending batch');
+  const attempted=b.c.__fqcTest.transport().prepare(flow.generation,'apply',assignment('item2',['SYN-P'],[]));
+  const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:attempted})},'other');
+  assert.equal(response.status,409);assert.equal((await response.json()).error,'PENDING_LOCKED');
+  assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.deepEqual([...f.objects].map(([k,v])=>[k,v.toString('base64')]),objects);
+  for(let paint=0;paint<3;paint++){
+   const cells=[...b.main.querySelectorAll('[data-matrix-item]')];assert(cells.length>0);assert.equal(cells.filter(n=>!n.disabled).length,0,'Pending controls must stay disabled after recovery ready and same-root repaint');
+   b.c.__fqcTest.render();await tick();
+  }
+  await client.command(flow.generation,'withdraw',{caseId:submitted.control.workflow.pendingId,reason:'Synthetic reopen'});
+  const fresh=await mount(f,'other');assert.equal(fresh.c.__fqcTest.selected().status,'draft');assert.equal(fresh.library.workflow.pendingId,null);
+  assert.notEqual(fresh.library.workflow.generation,flow.generation);await choose(fresh,'item2');
+  t.diagnostic(JSON.stringify({pendingReceived:true,uiBlocked:true,backend:'409 PENDING_LOCKED',stateUnchanged:true,withdrawFreshDraftEditable:true,layer:'ACTUAL_MODULE_ROUTE_SYNTHETIC_DOM'}));
+ }finally{f.close();}
+});
+
+void test('approved and history matrix projections stay read-only while an explicitly selected healthy draft remains editable',async()=>{
+ const f=await seed();try {
+  const a=await mount(f,'editor');assert.equal(a.c.__fqcTest.selected().status,'approved');
+  await a.c.__fqcTest.sharedAction('begin');const draftId=a.c.__fqcTest.selected().id,approved=a.library.versions.find(v=>v.id===a.library.activeVersionId);assert(approved);
+  for(const status of ['approved','superseded']){
+   // Read-only display-state coverage uses the actual module with a synthetic
+   // history projection; it is not a server history transition acceptance.
+   approved.status=status;a.c.__fqcTest.ui.selectedVersionId=approved.id;a.c.__fqcTest.render();await tick();
+   const cells=[...a.main.querySelectorAll('[data-matrix-item]')];assert(cells.length>0);assert(cells.every(n=>n.disabled));
+   const before=posts(f).length;await cells[0].onclick();assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.matrixDirty(),false);
+  }
+  a.c.__fqcTest.ui.selectedVersionId=draftId;a.c.__fqcTest.render();await choose(a);assert.equal(a.c.__fqcTest.selected().status,'draft');
+ }finally{f.close();}
+});
+
+void test('read-only draft grant cannot be re-enabled by matrix recovery status or repaint',async()=>{
+ const f=await seed();try {
+  await pair(f);await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users.find(u=>u.id==='other').accessOverrides['fqc.edit']=false;values.platformUsers=JSON.stringify(users);});
+  const b=await mount(f,'other');assert.equal(b.library.workflow.pendingId,null);assert.equal(b.c.__fqcTest.selected().status,'draft');assert.equal(b.c.__fqcTest.transport().permission('edit'),false);
+  for(let paint=0;paint<2;paint++){
+   b.c.__fqcTest.render();await tick();const cells=[...b.main.querySelectorAll('[data-matrix-item]')];assert(cells.length>0);assert(cells.every(n=>n.disabled));
+   const before=posts(f).length;await cells[0].onclick();assert.equal(posts(f).length,before);assert.equal(b.c.__fqcTest.matrixDirty(),false);
+  }
+ }finally{f.close();}
+});
+
+void test('same-root busy repaint reapplies matrix gate to new DOM and restores normal draft without extra network',async()=>{
+ const f=await seed();try {
+  const {a}=await pair(f),before=a.wire.length;a.c.__fqcTest.ui.saving=true;
+  for(let paint=0;paint<3;paint++){a.c.__fqcTest.render();const cells=[...a.main.querySelectorAll('[data-matrix-item]')];assert(cells.length>0);assert(cells.every(n=>n.disabled));}
+  a.c.__fqcTest.ui.saving=false;a.c.__fqcTest.render();await tick();assert.equal(a.wire.length,before);await choose(a);
+ }finally{f.close();}
+});
+
+void test('same-root repaint stays disabled while real recovery admission is delayed, then ready enables only the draft',async()=>{
+ const f=await seed();try {
+  const a=await mount(f,'editor'),original=a.c.LocalDraftRecoverySession;let release;
+  // Keep the real helper/session/lease methods; only delay the readiness signal
+  // to exercise DOM replacement before admission completes. No write is sent
+  // using this scheduling port, and no fake success replaces helper admission.
+  a.c.LocalDraftRecoverySession={create(options){const session=original.create(options);let released=false;
+   const ready=new Promise(resolve=>{release=async()=>{const status=await session.ready;released=true;resolve(status);};});
+   return {...session,ready,status(){const status=session.status();return {...status,ready:released&&status.ready};}};
+  }};
+  await a.c.__fqcTest.sharedAction('begin');assert.equal(typeof release,'function');const before=a.wire.length;let previous=a.main.querySelector('[data-matrix-item]');
+  for(let paint=0;paint<3;paint++){
+   a.c.__fqcTest.render();const cells=[...a.main.querySelectorAll('[data-matrix-item]')];assert(cells.length>0);assert.notEqual(cells[0],previous);previous=cells[0];assert.equal(a.wire.length,before);assert(cells.every(n=>n.disabled),'Fresh DOM must receive the closed recovery gate even if cached gate is already false');
+  }
+  await release();await tick();assert.equal(a.c.__fqcTest.selected().status,'draft');assert.equal(a.c.__fqcTest.recoverySession().status().ready,true);
+  assert([...a.main.querySelectorAll('[data-matrix-item]')].every(n=>!n.disabled));assert.equal(a.wire.length,before);
+ }finally{f.close();}
+});
+
+void test('unknown matrix result remains GET-only queryable on a read-only selected version',async()=>{
+ const f=await seed();try {
+  let lost=false;
+  const a=await mount(f,'editor',async(url,o,send)=>{
+   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='apply'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
+   if(lost&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
+   return send();
+  });
+  await a.c.__fqcTest.sharedAction('begin');await choose(a);await a.c.__fqcTest.applyMatrixChoices();assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);
+  a.c.__fqcTest.ui.selectedVersionId=a.library.activeVersionId;a.c.__fqcTest.render();await tick();assert.equal(a.c.__fqcTest.selected().status,'approved');
+  assert([...a.main.querySelectorAll('[data-matrix-item]')].every(n=>n.disabled));
+  const query=a.main.querySelector('#fqc-matrix-apply');assert.equal(query.disabled,false);assert.match(query.textContent,/查詢|Kiểm tra/);
+  const before=posts(f).length,reads=a.wire.filter(r=>r.url.includes('operationId=')).length,marker=[...a.records];
+  query.click();await until(()=>a.wire.filter(r=>r.url.includes('operationId=')).length>reads&&!a.c.__fqcTest.ui.saving,'explicit unknown receipt check');
+  assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);assert.equal(a.c.__fqcTest.matrixDirty(),true);assert.deepEqual([...a.records],marker);
+ }finally{f.close();}
+});
+
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {buildFqcDraftLifecycleSeed} from './fqc-draft-lifecycle-route-fixture.mjs';

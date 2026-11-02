@@ -217,11 +217,12 @@
   function assertNoUnapplied(){if(matrixDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
   function matrixSelected(item,versionId){const row=matrixOwner()&&matrixBatch.versionId===versionId?matrixBatch.rows.get(item.id):null;return row?.codes||(Array.isArray(item.productCodes)?new Set(item.productCodes):null);}
   function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận chưa áp dụng':'未套用矩陣變更'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></section>`;}
+  const matrixCanEdit=()=>!!editable()&&!library().workflow?.pendingId&&canEditDraft()&&sharedClient?.permission('edit')!==false;
   function paintMatrixActions(){
     window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,matrixDirty());
     window.VersionDraftUI?.updateSync?.(hostElement,ui.saving,!!ui.lastError,matrixDirty());
     const batch=matrixOwner()?matrixBatch:null,count=batch?.count||0,unknown=!!batch?.pending;
-    const gate=matrixRecoveryReady&&!ui.saving&&canEditDraft()&&!matrixRecoveryBlocked;if(!matrixRecoveryGate||matrixRecoveryGate.root!==hostElement||matrixRecoveryGate.open!==gate){matrixRecoveryGate={root:hostElement,open:gate};for(const button of hostElement?.querySelectorAll('[data-matrix-item]')||[])button.disabled=!gate;}
+    const gate=matrixRecoveryReady&&!ui.saving&&matrixCanEdit()&&!matrixRecoveryBlocked;if(!matrixRecoveryGate||matrixRecoveryGate.root!==hostElement||matrixRecoveryGate.open!==gate){matrixRecoveryGate={root:hostElement,open:gate};for(const button of hostElement?.querySelectorAll('[data-matrix-item]')||[])button.disabled=!gate;}
     if(matrixActions?.root!==hostElement||!matrixActions?.status?.isConnected)matrixActions={root:hostElement,status:hostElement?.querySelector('#fqc-matrix-count'),message:hostElement?.querySelector('#fqc-matrix-message'),apply:hostElement?.querySelector('#fqc-matrix-apply'),discard:hostElement?.querySelector('#fqc-matrix-discard'),reconcile:hostElement?.querySelector('#fqc-matrix-reconcile')};
     const {status,message,apply,discard,reconcile}=matrixActions;if(!status)return;
     status.textContent=isVi()?`Chưa đồng bộ: ${count} lựa chọn`:`未同步 ${count} 筆`;
@@ -232,11 +233,11 @@
     apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thay đổi đã chọn':'套用勾選變更');
     discard.textContent=isVi()?'Bỏ thay đổi chưa áp dụng':'放棄未套用變更';
     if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
-    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!canEditDraft();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
+    apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
   }
   function toggleMatrixChoice(button){
     if(!restoreMatrixChoices()){paintMatrixActions();return;}
-    const version=editable();if(!version||ui.saving||!canEditDraft()||sharedClient?.permission('edit')===false)return;
+    const version=editable();if(!version||ui.saving||!matrixCanEdit())return;
     if(transport().hasUnknown()||matrixOwner()&&matrixBatch.pending){ui.lastError='UNKNOWN_OPERATION_CHECK_REQUIRED';paintMatrixActions();return;}
     const item=version.snapshot.items.find(row=>row.id===button.dataset.matrixItem);if(!item||item.isDeleted)return;
     // Historical non-array values keep their read-only display semantics; never
@@ -1068,7 +1069,7 @@
         </div>
       </section>
     </section>`;
-    bindEvents();paintMatrixActions();
+    matrixRecoveryGate=null;bindEvents();paintMatrixActions();
     if(library().workflow){const flow=library().workflow,bar=document.createElement('section');bar.className='master-version-bar';bar.innerHTML=`<p id="fqc-shared-status" role="status">${h(ui.lastError ? displayDraftError(ui.lastError) : `${isVi()?'Bản nháp chung toàn bộ FQC':'FQC 全庫共用草稿'} · ${flow.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working)?(isVi()?'Đã lưu':'已儲存'):(isVi()?'Chưa lưu':'尚未儲存')} · ${isVi()?'Người lưu':'儲存者'}: ${flow.saved?.actor.name||'—'}`)}</p><button id="fqc-cases" class="button ghost">${isVi()?'Hồ sơ gửi duyệt':'送審案件'}</button>${transport().hasUnknown()?'<button id="fqc-check-result">'+(isVi()?'Kiểm tra kết quả':'查詢前次結果')+'</button>':''}`;hostElement.querySelector('#fqc-page').prepend(bar);
       bar.querySelector('#fqc-cases').onclick=()=>window.openSharedDraftHistory({client:transport(),editable:()=>!!editable()&&identity()?.role==='admin',onApplied:async r=>{adopt(r);render();}}).catch(e=>toast(displayDraftError(e)));
       bar.querySelector('#fqc-check-result')?.addEventListener('click',async()=>{try{if(matrixDirty()&&matrixBatch.pending){await applyMatrixChoices();return;}await transport().resolveUnknown();await loadShared();render();}catch(e){toast(displayDraftError(e));}});
