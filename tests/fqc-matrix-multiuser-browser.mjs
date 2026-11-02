@@ -96,14 +96,14 @@ export async function runMatrixMultiuserBrowser() {
       'No source timing baseline, Server-Timing guarantee, or claim that all FQC/module buttons are covered.']};
   let fixture,browser,stage='fixture';const sessions=new Set();
   try {
-    fixture=await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_OWNER_BOOTSTRAP_ENABLED:'0',PROCESS_SESSION_SECRET:secret,PROCESS_SESSION_REVOCATION_ENABLED:'1',DEMO_LOGIN_ENABLED:'false'}});
+    fixture=await createRootEntryFixture({recordOracle:true,syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_OWNER_BOOTSTRAP_ENABLED:'0',PROCESS_SESSION_SECRET:secret,PROCESS_SESSION_REVOCATION_ENABLED:'1',DEMO_LOGIN_ENABLED:'false'}});
     assert.equal(fixture.url.hostname,'127.0.0.1');const origin=fixture.url.origin,bucket=await fixture.mf.getR2Bucket('STATE_ARCHIVE');
     const load=createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE:bucket}),codec=load('lib/state-records.ts');
-    browser=await chromium.launch({headless:true});report.buildEntrySha256=fixture.buildEntrySha256;
+    browser=await chromium.launch({headless:true});report.buildEntrySha256=fixture.buildEntrySha256;report.recordOracleSha256=fixture.recordOracleSha256;
     for(let cycle=1;cycle<=REQUIRED_SAMPLES;cycle++) {
       stage=`${cycle}:seed`;const seed=buildMatrixMultiuserSeed(load('lib/shared-draft.ts').createSharedDraft,{cycle});
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(await codec.encodeRecordValues(bucket,seed.values),'synthetic FQC matrix multiuser').run();
-      const values=async()=>{const row=await fixture.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();return(await codec.decodeRecordValues(bucket,JSON.parse(row.values))).values;};
+      const values=()=>fixture.readRecordValues();
       const control=async()=>JSON.parse((await values()).qualityMasterControl).libraries.fqc;
       const codes=async(id)=>((await control()).workflow.working.items.find(row=>row.id===id)).productCodes;
       const allowed=new WeakMap();

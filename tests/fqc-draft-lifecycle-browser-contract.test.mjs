@@ -202,3 +202,90 @@ void test('native failure metadata uses existing bounded cause-code sanitizer an
   assert.match(source, /page\.setDefaultTimeout\(30000\)/);
   assert.equal((source.match(/final-read-case-statuses/g) || []).length, 1);
 });
+
+void test('native record oracle transport makes one request and never hides transport/body/HTTP/shape failure', async () => {
+  const {bindNativeRecordOracle} = await import('./native-record-oracle.mjs');
+  const original = Error('synthetic transport failure');
+  for (const mode of ['fetch', 'body', 'http', 'null', 'array', 'nonstring', 'extra', 'success']) {
+    let calls = 0; const phases = [];
+    const read = bindNativeRecordOracle({async fetch(url, options) {
+      calls++; assert.equal(url, 'http://synthetic-record-oracle.invalid/values'); assert.deepEqual(options, {method: 'GET'});
+      if (mode === 'fetch') throw original;
+      return {status: mode === 'http' ? 500 : 200, async json() {
+        if (mode === 'body') throw original;
+        return mode === 'http' ? {error: 'RECORD_ORACLE_FAILED', phase: 'record-decode'} : mode === 'null' ? null :
+          mode === 'array' ? {values: []} : mode === 'nonstring' ? {values: {wrong: 1}} :
+          mode === 'extra' ? {values: {}, error: 'ignored'} : {values: {synthetic: 'complete'}};
+      }};
+    }});
+    if (mode === 'success') assert.deepEqual(await read(phase => phases.push(phase)), {synthetic: 'complete'});
+    else await assert.rejects(read(phase => phases.push(phase)), error => ['fetch', 'body'].includes(mode) ? error === original : error instanceof Error);
+    assert.equal(calls, 1); assert.equal(phases.includes('complete'), mode === 'success');
+    if (mode === 'http') assert.equal(phases.at(-1), 'record-decode');
+  }
+});
+
+void test('native record oracle uses the same isolated D1/R2 and full production decoder with fail-closed corruption', async () => {
+  const fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const {createRequire} = await import('node:module'), {createRootEntryFixture} = await import('./root-entry-native-fixture.mjs');
+  const {buildFqcDraftLifecycleSeed} = await import('./fqc-draft-lifecycle-route-fixture.mjs');
+  const {nativeRecordOracleName} = await import('./native-record-oracle.mjs');
+  // This tiny Worker tests the fixture/binding transport, not compiled UI routes.
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'record-oracle-contract-'));
+  fs.mkdirSync(path.join(directory, 'server')); fs.mkdirSync(path.join(directory, 'client'));
+  fs.writeFileSync(path.join(directory, 'server/index.js'), 'export default {async fetch(request,env){if(new URL(request.url).pathname==="/oracle-contract-revision")return Response.json(await env.DB.prepare("SELECT revision FROM shared_state WHERE id=1").first());return new Response("not an application route",{status:404})}}');
+  let fixture;
+  try {
+    fixture = await createRootEntryFixture({programCommit: '0'.repeat(40), recordOracle: true, buildDirectory: directory});
+    assert.match(fixture.recordOracleSha256, /^[a-f0-9]{64}$/);
+    const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
+    const load = createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE: bucket});
+    const records = load('lib/state-records.ts'), createDraft = load('lib/shared-draft.ts').createSharedDraft;
+    const install = raw => fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic oracle only').run();
+    const readRow = () => fixture.db.prepare('SELECT * FROM shared_state WHERE id=1').first();
+    let original, envelope;
+    for (let cycle = 1; cycle <= 5; cycle++) {
+      const seed = buildFqcDraftLifecycleSeed(createDraft, {cycle});
+      original = await records.encodeRecordValues(bucket, seed.values); envelope = JSON.parse(original); await install(original);
+      const before = await readRow();
+      const appRead = await fixture.mf.dispatchFetch('http://local/oracle-contract-revision');
+      assert.equal(appRead.status, 200); assert.deepEqual(await appRead.json(), {revision: 1});
+      const legacy = await readFqcFixtureValues(fixture.db, records, bucket, () => {}), actual = await fixture.readRecordValues();
+      assert.deepEqual(actual, seed.values); assert.deepEqual(actual, JSON.parse(JSON.stringify(legacy)));
+      assert.deepEqual(await readRow(), before, 'oracle may not mutate state');
+    }
+    const historyValues = {...buildFqcDraftLifecycleSeed(createDraft, {cycle: 5}).values,
+      oracleHistoryCoverage: JSON.stringify({versions: [{id: 'synthetic-old-version', status: 'approved', snapshot: {oldValue: 'synthetic full history'}}]})};
+    original = await records.encodeRecordValues(bucket, historyValues); envelope = JSON.parse(original); await install(original);
+    assert.deepEqual(await fixture.readRecordValues(), historyValues);
+    const full = JSON.parse(JSON.stringify(envelope));
+    for (const mode of ['aggregate-corrupt', 'aggregate-missing', 'unrelated-aggregate-corrupt', 'body-corrupt', 'body-missing', 'malformed-manifest', 'malformed-row']) {
+      await install(original);
+      let key, restore;
+      if (mode.startsWith('aggregate')) key = full.__processRecords.values.qualityMasterControl.key;
+      if (mode === 'unrelated-aggregate-corrupt') key = full.__processRecords.values.routineEquipmentControl.key;
+      if (mode.startsWith('body')) {
+        const aggregate = JSON.parse(await (await bucket.get(full.__processRecords.values.oracleHistoryCoverage.key)).text());
+        const refs = []; const visit = value => { if (!value || typeof value !== 'object') return; if (value.__immutableBody) refs.push(value.__immutableBody.key); else Object.values(value).forEach(visit); }; visit(aggregate);
+        assert.equal(refs.length, 1); key = refs[0]; // Unrelated approved historic snapshot must still be fully verified.
+      }
+      if (key) { restore = await (await bucket.get(key)).text(); if (mode.endsWith('missing')) await bucket.delete(key); else await bucket.put(key, 'synthetic corrupt bytes'); }
+      if (mode === 'malformed-manifest') await install('{"__processRecords":{"version":99,"values":{}}}');
+      if (mode === 'malformed-row') await install('{');
+      const before = await readRow(), phases = [];
+      await assert.rejects(readFqcFixtureValues(fixture.db, records, bucket, () => {}));
+      await assert.rejects(fixture.readRecordValues(phase => phases.push(phase)), /Synthetic record oracle failed: HTTP 500/);
+      assert.equal(phases.includes('complete'), false); assert.deepEqual(await readRow(), before);
+      if (key) { assert.equal(await bucket.get(key) === null, mode.endsWith('missing')); await bucket.put(key, restore); }
+    }
+    await fixture.db.prepare('DELETE FROM shared_state WHERE id=1').run();
+    await assert.rejects(fixture.readRecordValues(), /HTTP 500/);
+    const internal = await fixture.mf.getWorker(nativeRecordOracleName);
+    for (const [url, method] of [['http://synthetic-record-oracle.invalid/values?keys=fqc', 'GET'], ['http://synthetic-record-oracle.invalid/values', 'POST'], ['http://synthetic-record-oracle.invalid/other', 'GET']]) {
+      const response = await internal.fetch(url, {method}); assert.equal(response.status, 404); await response.text();
+    }
+    for (const target of ['http://local/values', 'http://synthetic-record-oracle.invalid/values']) {
+      const external = await fixture.mf.dispatchFetch(target); assert.equal(external.status, 404); await external.text();
+    }
+  } finally { if (fixture) await fixture.close(); fs.rmSync(directory, {recursive: true, force: true}); }
+});

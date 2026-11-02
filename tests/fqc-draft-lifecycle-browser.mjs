@@ -56,13 +56,7 @@ export function observeFqcSetup(page, origin, clock = () => performance.now()) {
     requests: rows.map(row => ({...row})), pending: rows.filter(row => row.finishedMs === null).length});
   return {snapshot, stop() { if (!stopped) { stoppedAt = elapsed(); stopped = true; for (const [name, listener] of Object.entries(listeners)) page.off(name, listener); } return snapshot(); }};
 }
-export async function readFqcFixtureValues(db, records, bucket, mark) {
-  mark('shared-row');
-  const row = await db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
-  mark('row-json'); const envelope = JSON.parse(row.values);
-  mark('record-decode'); const decoded = await records.decodeRecordValues(bucket, envelope);
-  mark('complete'); return decoded.values;
-}
+export {readFqcFixtureValues} from './native-record-oracle.mjs';
 export async function fqcFixtureRevisionDiagnostic(db, timeoutMs = 2000) {
   let timer;
   try {
@@ -159,11 +153,11 @@ export async function runFqcDraftBrowser() {
     limitations: ['Synthetic desktop CI, not employee site, physical mobile or live HTTPS.', 'No before/after timing baseline or guarantee of <1000ms.', 'Includes ready polling/IPC and two-frame observation; not isolated CPU.', 'Does not reuse the prior process/canvas 90 samples.', 'Import/export, deletion, history restore, photo upload and equipment picker subflows remain separately listed, not implicitly covered by scalar forms.', 'No new matrix UI approval is implied by these unchanged-control scenarios.']};
   let fixture, browser, fixtureRead = null, readSequence = 0, stage = 'fixture'; const contexts = new Set(), pages = [];
   try {
-    fixture = await createRootEntryFixture({syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
+    fixture = await createRootEntryFixture({recordOracle: true, syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
     const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
     const load = createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE: bucket});
     const records = load('lib/state-records.ts'), origin = fixture.url.origin;
-    assert.equal(fixture.url.hostname, '127.0.0.1'); browser = await chromium.launch({headless: true}); report.buildEntrySha256 = fixture.buildEntrySha256;
+    assert.equal(fixture.url.hostname, '127.0.0.1'); browser = await chromium.launch({headless: true}); report.buildEntrySha256 = fixture.buildEntrySha256; report.recordOracleSha256 = fixture.recordOracleSha256;
     for (let cycle = 1; cycle <= REQUIRED_SAMPLES; cycle++) {
       stage = 'seed-' + cycle; assert.equal(contexts.size, 0);
       const seed = buildFqcDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle});
@@ -171,7 +165,7 @@ export async function runFqcDraftBrowser() {
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic FQC lifecycle').run();
       const readValues = () => {
         const sequence = ++readSequence;
-        return readFqcFixtureValues(fixture.db, records, bucket, phase => { fixtureRead = {cycle, sequence, phase}; });
+        return fixture.readRecordValues(phase => { fixtureRead = {cycle, sequence, phase}; });
       };
       const control = async () => JSON.parse((await readValues()).qualityMasterControl).libraries.fqc;
       const forms = {errorName: 'Edited synthetic error ' + cycle, newErrorName: 'Created synthetic error ' + cycle,
