@@ -115,11 +115,31 @@
   api.identityGeneration = () => identityEpoch;
   api.captureDelivery = () => ({id:api.identity?.id,identityEpoch,deliveryEpoch});
   api.isCurrentDelivery = owner => !!owner && !api.requiresReload && owner.id===api.identity?.id && owner.identityEpoch===identityEpoch && owner.deliveryEpoch===deliveryEpoch;
+  // Only an authenticated bootstrap can establish a known-denied review reader.
+  // This is not a grant, a module response, or a way to forgive a failed read.
+  const qualityViewKeys=Object.freeze({FQCMasterUI:'fqc.view',IQCMasterUI:'iqc.view',IPQCABUI:'ipqc-ab.view',IPQCCUI:'ipqc-c.view',RoutineEquipmentUI:'equipment.view',ToolingUI:'tooling.view'});
+  const qualityDenials=new WeakMap();
+  let qualityAccessBasis=null,qualityReadSequence=0;
+  function establishQualityAccess(shared){
+    qualityAccessBasis=null;
+    if(shared.serverProtected!==true||shared.deliveryProjection!==true||!Number.isSafeInteger(shared.revision)||shared.revision<0||shared.identity!==api.identity||typeof api.identity?.id!=='string'||!api.identity.id||shared.destination?.view!=='approval'||!['process','quality'].includes(shared.destination.system)||shared.destination.key!=='approval')return;
+    try{
+      const users=JSON.parse(shared.values?.platformUsers),user=Array.isArray(users)&&users.length===1?users[0]:null,cells=user?.cells;
+      if(user?.id!==api.identity.id||user.enabled!==true||user.deletedAt||!cells||Array.isArray(cells)||typeof cells!=='object'||!Object.values(qualityViewKeys).every(key=>Object.hasOwn(cells,key)&&typeof cells[key]==='boolean'))return;
+      qualityAccessBasis={identity:api.identity,id:api.identity.id,epoch:identityEpoch,delivery:deliveryEpoch,baseline,destination:api.destination,key:shared.destination.key,system:shared.destination.system,denied:new Set(Object.keys(qualityViewKeys).filter(name=>cells[qualityViewKeys[name]]===false))};
+    }catch{/* Missing/malformed effective cells remain unknown, never denied. */}
+  }
+  function qualityAccessCurrent(basis){return !!basis&&basis===qualityAccessBasis&&ready&&!api.loadError&&!api.expired&&!api.requiresReload&&api.protected===true&&api.deliveryProjection===true&&api.identity===basis.identity&&api.identity?.id===basis.id&&identityEpoch===basis.epoch&&deliveryEpoch===basis.delivery&&baseline===basis.baseline&&api.destination===basis.destination&&api.destination?.view==='approval'&&api.destination.key===basis.key&&api.destination.system===basis.system;}
+  api.qualityReviewDenial=name=>{
+    const basis=qualityAccessBasis;if(!qualityAccessCurrent(basis)||!basis.denied.has(name))return null;
+    const token=Object.freeze({});qualityDenials.set(token,{basis,name});return token;
+  };
+  api.isCurrentQualityReviewDenial=(token,name)=>{const entry=qualityDenials.get(token);return !!entry&&entry.name===name&&qualityAccessCurrent(entry.basis);};
   const preparedDestinations=new WeakMap();
   const destinationError=(message,status)=>Object.assign(Error(message),{status});
   api.prepareDestination = async (target,signal) => {
     if(api.requiresReload||!api.identity?.id)throw destinationError('LOGIN_REQUIRED',401);
-    const owner=api.captureDelivery(),query=new URLSearchParams();
+    const qualityRead=++qualityReadSequence,qualityIdentity=api.identity,owner=api.captureDelivery(),query=new URLSearchParams();qualityAccessBasis=null;
     for(const key of ['system','view','dataTab'])if(typeof target[key]==='string'&&target[key])query.set(key,target[key]);
     const response=await fetch('/api/process-bootstrap?'+query,{cache:'no-store',headers:{'X-Process-Media':'deferred-v1',...authHeaders()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});
     const payload=await response.json().catch(()=>null);
@@ -132,7 +152,7 @@
     const policy=window.ProcessDeliveryPurpose,destination=payload.destination;
     if(payload.deliveryProjection!==true||!Number.isSafeInteger(payload.revision)||!payload.values||Array.isArray(payload.values)||typeof payload.values!=='object'||!Object.values(payload.values).every(v=>typeof v==='string')||payload.catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!destination||!policy||!(destination.view==='data'?Object.hasOwn(policy.deliveryTabs,destination.dataTab):Object.hasOwn(policy.deliveryViews,destination.view))||destination.key!==policy.destinationKey(destination)||!['process','quality'].includes(destination.system)||target.view&&target.view!==destination.view||target.dataTab&&target.dataTab!==destination.dataTab)throw destinationError('BOOTSTRAP_INVALID_PROJECTION',503);
     const handle=Object.freeze({destination:Object.freeze({...destination})});
-    preparedDestinations.set(handle,{payload,owner,signal});return handle;
+    preparedDestinations.set(handle,{payload,owner,signal,qualityIdentity,qualityRead});return handle;
   };
   api.validateDestination = handle => {
     const prepared=preparedDestinations.get(handle);
@@ -141,9 +161,9 @@
     return true;
   };
   api.commitDestination = handle => {
-    api.validateDestination(handle);const {payload}=preparedDestinations.get(handle);preparedDestinations.delete(handle);
+    api.validateDestination(handle);const {payload,qualityIdentity,qualityRead}=preparedDestinations.get(handle),qualityOwnerCurrent=api.identity===qualityIdentity&&qualityRead===qualityReadSequence;preparedDestinations.delete(handle);
     deliveryEpoch++;api.identity=payload.identity;api.protected=!!payload.serverProtected;api.demoEnabled=!!payload.demoEnabled;
-    apply(payload);return api.destination;
+    apply(payload);if(qualityOwnerCurrent)establishQualityAccess(payload);return api.destination;
   };
   api.suspendDestination=()=>{deliveryEpoch++;api.requiresReload=true;api.projectionWriteError='DESTINATION_INSTALL_FAILED';api.catalog=null;api.writableKeys=[];sharedValues.clear();baseline={};baselineOwner=null;};
   api.pendingState=()=>({dirty:Object.keys(dirty).length,inFlight:posting,paused,blocked});
@@ -201,6 +221,7 @@
     window.dispatchEvent(new CustomEvent('process-delivery-invalidated'));
   }
   function apply(shared) {
+    qualityReadSequence++;qualityAccessBasis=null;
     api.loadError = null;
     api.saveError = null;
     api.projectionWriteError = null;
@@ -238,6 +259,7 @@
     api.revision = revision;
   }
   async function load() {
+   const qualityRead=++qualityReadSequence,qualityIdentity=api.identity;qualityAccessBasis=null;
    if(api.requiresReload)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
    const generation=identityEpoch,route=deliveryEpoch,oldActor=api.identity?.id;
    api.importPending = false;
@@ -252,10 +274,11 @@
       const shared = await request.json();
       if(generation!==identityEpoch||route!==deliveryEpoch)return;
       if(ready&&api.deliveryProjection&&oldActor!==shared.identity?.id){quarantinePending();identityEpoch++;api.identity=null;invalidateDelivery();return;}
+      const qualityOwnerCurrent=api.identity===qualityIdentity&&qualityRead===qualityReadSequence;
       api.identity = shared.identity || null;
       api.protected = !!shared.serverProtected;
       api.demoEnabled = !!shared.demoEnabled;
-      apply(shared);
+      apply(shared);if(qualityOwnerCurrent)establishQualityAccess(shared);
     } else if (request.status === 401) {
       if(ready&&api.deliveryProjection){quarantinePending();identityEpoch++;invalidateDelivery();}
       api.protected = true;
