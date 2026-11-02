@@ -1,0 +1,169 @@
+{
+  "status": "PRIVATE_CANDIDATE_TARGETED_CHECKS_PASS_NOT_DEPLOYED",
+  "base": "52d38af93df420c81201d8d6f2de5e63721aec26",
+  "branch": "fix/fqc-matrix-last-successful-apply-20261102",
+  "checks": [
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 24,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-matrix-last-apply.test.mjs",
+      "receipt": "last-apply-core-24.log",
+      "receipt_sha256": "e7ee567d84626cb2ec4324e5cf31685ff4e8e74a21e835c77e429b0f76da4301",
+      "receipt_bytes": 7360
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 82,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-matrix-last-apply.test.mjs tests/fqc-matrix-apply-lifecycle.test.mjs tests/fqc-matrix-batch.test.mjs",
+      "receipt": "last-apply-final-core-lifecycle.log",
+      "receipt_sha256": "f7db3c3e013f502232ae3f088954cac2b15b6b0b9057776bd5dc65b4f843a36a",
+      "receipt_bytes": 24866
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 105,
+      "command": "node --test tests/fqc-matrix-batch.test.mjs tests/fqc-matrix-conflict-discard.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/fqc-matrix-rejection.test.mjs",
+      "receipt": "last-apply-regression2.log",
+      "receipt_sha256": "7dc23215bccf834e92948d6b64000ab6dccf07c41ddb10ad21060a508132571d",
+      "receipt_bytes": 28396
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 72,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-matrix-apply-lifecycle.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/fqc-draft-lifecycle-browser-contract.test.mjs",
+      "receipt": "last-apply-lifecycle-final.log",
+      "receipt_sha256": "1d6cd6cc3fef40f56327b172b00062164504afee151666b1da8a6db102747b2c",
+      "receipt_bytes": 26840
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 156,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-apply-reliability.test.mjs tests/fqc-apply-ack.test.mjs tests/fqc-required-dependencies.test.mjs tests/fqc-draft-lifecycle-route.test.mjs",
+      "receipt": "last-apply-backend-regression.log",
+      "receipt_sha256": "944bf2c765f3e7c9cfbaf8c885a792aabcc9aa092bfcde06ebc85c9b85868f37",
+      "receipt_bytes": 108583
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 4,
+      "command": "CI=true PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-matrix-conflict-discard-browser.test.mjs",
+      "receipt": "last-apply-native-scope.log",
+      "receipt_sha256": "7acc09f34d5e6a70033f6bbe48700d6d6713f8ed5df20287a36e9993d037523a",
+      "receipt_bytes": 2009
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 6,
+      "command": "CI=true PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --max-old-space-size=256 --test --test-reporter=tap tests/fqc-matrix-browser.test.mjs",
+      "receipt": "last-apply-ui-final.log",
+      "receipt_sha256": "d2c2b1dc63410181486f6eaa704df863dc98d01846b15999f04d90b1aff10319",
+      "receipt_bytes": 4814
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 25,
+      "command": "node scripts/test-fqc-feedback-races.cjs",
+      "receipt": "last-apply-feedback.log",
+      "receipt_sha256": "1ed1cb0633aecdc1a76bded40a7252c34e4af23ae6d98f15f88d33467b53bb9b",
+      "receipt_bytes": 5542
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 4,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap --test-name-pattern='Apply immediately|second edit|search-hidden|100 matrix clicks' tests/fqc-matrix-apply-lifecycle.test.mjs tests/fqc-matrix-last-apply.test.mjs tests/fqc-matrix-batch.test.mjs",
+      "receipt": "last-apply-final-message.log",
+      "receipt_sha256": "bb7a031f63bf8131c053463597e5bbe09529a7e17e87a74e623b081e5a69797a",
+      "receipt_bytes": 1958
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": 3,
+      "command": "node --max-old-space-size=256 --test --test-reporter=tap --test-name-pattern='stale entire|concurrent CAS|non-matrix' tests/fqc-matrix-last-apply.test.mjs",
+      "receipt": "last-apply-final-catalog.log",
+      "receipt_sha256": "92d2a1ecb62d1cbb2c22819696e142450f741d10c5a8bab22ff9b36827f2d6de",
+      "receipt_bytes": 1726
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": null,
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "receipt": "last-apply-types-final.log",
+      "receipt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "receipt_bytes": 0
+    },
+    {
+      "status": "PASS",
+      "exit_code": 0,
+      "count": null,
+      "command": "node node_modules/oxlint/bin/oxlint lib/fqc-matrix.ts lib/fqc-workflow.ts public/process/fqc-master.js public/process/shared-draft-client.js scripts/test-fqc-feedback-races.cjs tests/fqc-matrix-*.mjs tests/fqc-draft-lifecycle-browser.mjs",
+      "receipt": "last-apply-lint-final.log",
+      "receipt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "receipt_bytes": 0
+    }
+  ],
+  "source_sha256": {
+    "lib/fqc-matrix.ts": "5d1b1d0a19f17fc392709ea3e45fe48e2e1052b000ff7b0b21100bac91661e0e",
+    "lib/fqc-workflow.ts": "a2ef1cbbdb07995743ae0532dca4569d58b1df7ff1b9a505082d7206875c467b",
+    "public/process/fqc-master.js": "6e64ac2332e89165bf0638ab0772a807f9de90fc88a716c1876613c64cbc1d8b",
+    "public/process/shared-draft-client.js": "ff18529ca045d4130201b0d24b0a5a1887dbb8a03902f3e8b01adb099341015e",
+    "public/process/fqc-master.css": "c8563137bf1841b09a41a71860deab42a0ed3a2a711a08cbb27b0996f1a35739",
+    "scripts/test-fqc-feedback-races.cjs": "bfa936d836afdc700befd8d6beb09e963b1ffee5a50b18aafb94f0deaa06cd78"
+  },
+  "root_cause": {
+    "receipt": "rejection-before.log",
+    "sha256": "bc3c1c148dd39a3ec1b85563e513111543a6197190d7856a46a334f8a1e70b8b",
+    "meaning": "Expected pre-fix failure: correlated stale-row rejection became unknown then nonexistent receipt lookup; separate from latest whole-matrix behavior."
+  },
+  "coverage": [
+    "old screen B replaces A across all rows",
+    "actual CAS retry follows successful commit order",
+    "repeat clicks one POST",
+    "old successful replay returns original receipt without rewriting newer state",
+    "removed receipt retains sequence replay protection",
+    "add/delete/category/product scope refusal without resurrection",
+    "forged/incomplete payload refusal",
+    "hidden filtered product selection preserved in complete payload",
+    "600-row complete matrix with all nonrelation fields preserved",
+    "pending/generation/server permissions",
+    "lost ACK, unavailable receipts, exact operation query, no re-POST",
+    "missing response request identity stays unknown",
+    "fresh Discard exact-proof cleanup and unrelated failure isolation",
+    "Save latest peer matrix snapshot without reapplying own old matrix",
+    "Save failure and lost Save ACK",
+    "departure shared content cannot be individually discarded",
+    "manual Save then Submit lock; withdraw/generation regression",
+    "restore/reload/owner/epoch/quota recovery boundaries",
+    "Chinese/Vietnamese 320/390/1280 viewport UI; native scope discard390/1280"
+  ],
+  "not_run": [
+    "full hosted Windows/GitHub CI",
+    "full compiled Worker fqc-draft-lifecycle-browser.mjs runner",
+    "full compiled Worker fqc-matrix-multiuser-browser.mjs runner",
+    "employee/live Site acceptance",
+    "physical iPhone/IME",
+    "live latency benchmarking",
+    "comparison against unavailable original user image"
+  ],
+  "notes": [
+    "Counts overlap; do not add them as unique tests.",
+    "Broad runs preceded final lint-only fixes, success-note short-circuit and removal of an unnecessary catalog clone. Final message/filter/second-edit and CAS/nonmatrix narrow checks plus tsc/lint cover final affected paths.",
+    "Old local-stage tests were replaced by immediate Apply lifecycle and last-apply suites in the existing CI step; exact failure exit and existing gates remain. Obsolete same-row reconciliation assertions were replaced by whole-matrix replacement checks; unknown/discard/permission coverage retained.",
+    "Early development runs failed due to old guard/local-stage expectations and incomplete fixture catalog; later runs corrected fixture/expectations. Shared departure discard was correctly blocked and its test updated to require rejection. Search test corrected to product filtering. Initial lint findings corrected. These were not successful acceptance runs.",
+    "Browser screenshots retained locally, not uploaded with this handoff; they are synthetic module UI and do not establish live deployment.",
+    "New matrix command uses conservative full-state reader; no speed improvement or necessary-dependency optimization claim.",
+    "No schema/migration/live data/account/permission change; no push/PR/merge/deploy."
+  ],
+  "record_applies_to_commit": "869a08249c63784dc46a45a151e2f9a243c82593",
+  "subsequent_integration": "INTEGRATION.md and frozen external integration receipts"
+}

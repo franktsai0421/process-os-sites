@@ -521,6 +521,9 @@
     function boundedRejection(error,command){
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(boundedScope==='fqc'&&action==='apply'&&command.moduleAction==='replace-matrix-v1'&&command.input&&command.patches===undefined&&command.guards===undefined){
+        if(error.status===409&&code==='FQC_MATRIX_SCOPE_CHANGED'||error.status===422&&code==='INVALID_FQC_MATRIX')return true;
+      }
       // Audited pre-CAS failures from versioned-shared-workflow + shared-draft.
       // Receipt GETs, proxy-shaped errors and OPERATION_ID_REUSED are excluded.
       if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return action==='apply'&&Array.isArray(error.details?.path)&&command.guards?.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
@@ -529,6 +532,10 @@
       if(action==='apply'&&Array.isArray(command.patches)&&command.patches.length){
         if(boundedScope==='master:PROCESS'&&error.status===409&&code==='PROCESS_MASTER_IN_USE')return true;
         if(boundedScope==='fqc'&&error.status===409&&code==='AB_EFFECTIVE_CHANGED_RECONFIRM')return !!command.input?.expectedAB&&typeof command.input.expectedAB==='object';
+        // FQC matrix-only stale rows are rejected by the adapter before any CAS.
+        // Keep the original POST/command/runtime proof above; receipt 404s and
+        // unrelated editor errors cannot establish that a write did not happen.
+        if(boundedScope==='fqc'&&error.status===409&&code==='ENTITY_REMOVED_OR_AMBIGUOUS')return command.patches.every(p=>p.op==='set'&&p.path?.length===3&&p.path[0]==='items'&&typeof p.path[1]?.id==='string'&&['productCodes','productRefs','products'].includes(p.path[2]));
         if(boundedScope==='fqc'&&error.status===422&&code==='EQUIPMENT_UNAVAILABLE')return true;
       }
       // IQC/C route-adapter failures below are exact pre-CAS outcomes, never
@@ -732,12 +739,14 @@
       }
     }
     // Explicit FQC matrix discard only: the exact original, settled pre-CAS
-    // guard conflict may be retired. Never infer safety from status or paths
+    // guard conflict or removed-row rejection may be retired. Never infer safety from status or paths
     // alone, and never clear another operation, queue or receipt obligation.
     function hasConfirmedMatrixConflict(command,error){
       const failure=syncFailures.get(command?.operationId),proof=error&&boundedResponses.get(error);
-      if(!externalBounded||boundedScope!=='fqc'||!failure||failure.error!==error||JSON.stringify(failure.command)!==JSON.stringify(command)||!client.isConfirmedRejection(error,command)||!boundedRejected.has(error)||!proof||proof.status!==409||proof.code!=='DEPENDENCY_CHANGED_RECONFIRM'||proof.path!==JSON.stringify(error.details?.path)||error.status!==409||error.message!=='DEPENDENCY_CHANGED_RECONFIRM'||command.action!=='apply'||!Array.isArray(command.patches)||!command.patches.length)return false;
-      return !command.patches.some(p=>p.op!=='set'||p.path?.length!==3||p.path[0]!=='items'||typeof p.path[1]?.id!=='string'||!['productCodes','productRefs','products'].includes(p.path[2]))&&command.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details?.path))===true;
+      if(externalBounded&&boundedScope==='fqc'&&failure?.error===error&&JSON.stringify(failure.command)===JSON.stringify(command)&&client.isConfirmedRejection(error,command)&&boundedRejected.has(error)&&proof&&proof.code===error.message&&proof.status===error.status&&command.action==='apply'&&command.moduleAction==='replace-matrix-v1'&&command.patches===undefined&&command.guards===undefined)return proof.status===409&&proof.code==='FQC_MATRIX_SCOPE_CHANGED'||proof.status===422&&proof.code==='INVALID_FQC_MATRIX';
+      if(!externalBounded||boundedScope!=='fqc'||!failure||failure.error!==error||JSON.stringify(failure.command)!==JSON.stringify(command)||!client.isConfirmedRejection(error,command)||!boundedRejected.has(error)||!proof||proof.status!==409||error.status!==409||proof.code!==error.message||command.action!=='apply'||!Array.isArray(command.patches)||!command.patches.length)return false;
+      if(command.patches.some(p=>p.op!=='set'||p.path?.length!==3||p.path[0]!=='items'||typeof p.path[1]?.id!=='string'||!['productCodes','productRefs','products'].includes(p.path[2])))return false;
+      return proof.code==='ENTITY_REMOVED_OR_AMBIGUOUS'||proof.code==='DEPENDENCY_CHANGED_RECONFIRM'&&proof.path===JSON.stringify(error.details?.path)&&command.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details?.path))===true;
     }
     function canDiscardMatrixConflicts(rejections){
       if(!externalBounded||boundedScope!=='fqc'||!externalCurrent()||window.ProcessSync?.requiresReload||recoveryInvalid||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||!Array.isArray(rejections)||!rejections.length)return false;

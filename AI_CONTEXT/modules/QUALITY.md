@@ -1,3 +1,7 @@
+## 2026-11-02 FQC whole-matrix Apply candidate
+
+The primary matrix button sends `replace-matrix-v1`: the complete captured item/product selection replaces shared relations on the last successful CAS commit. The adapter projects only relation fields from current server rows; collection changes reject. Save separately snapshots the latest whole FQC working draft. Other forms retain guarded Apply. Narrow original refusal proof prevents nonexistent-receipt queries without weakening unknown outcomes. The new command currently uses the conservative full-state reader. [Implementation, recovery and evidence](../../docs/acceptance/fqc-matrix-last-apply-20261102/README.md). Private candidate, not deployed; supersedes the local-stage proposal.
+
 ## 2026-11-01 FQC same-field conflict Discard recovery (#60 / local integration)
 
 Explicit matrix Discard now retires only exact current-client original pre-CAS guard409 failures after a fresh permitted draft read and local cleanup. It preserves peer data; Save remains explicit. Unknown/queued/in-flight/receipt and revoked/stale state remain blocked. [Implementation, original CI and remaining integrated gates](../../docs/acceptance/fqc-conflict-discard-20261101/README.md). No data-model or permission change; not deployed.

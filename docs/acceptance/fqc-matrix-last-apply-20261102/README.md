@@ -1,0 +1,32 @@
+# FQC whole-matrix Apply candidate — 2026-11-02
+
+This original acceptance record applies to `869a082`. See [latest main integration and public-source boundary](INTEGRATION.md) for subsequent integration.
+
+Private isolated candidate, not pushed, merged or deployed. Base: GitHub main `52d38af93df420c81201d8d6f2de5e63721aec26`. Branch: `fix/fqc-matrix-last-successful-apply-20261102`. PR #61 and live Site data are excluded. The earlier unpublished local-stage proposal is superseded by the user's explicit whole-matrix overwrite rule; its original evidence remains in the prior private handoff and commit history.
+
+## Operation-not-found root cause (separate from new overwrite behavior)
+
+Actual TypeScript route/client with synthetic SQLite/R2 reproduced: peer deletes an item, stale legacy guarded matrix Apply gets original pre-CAS POST 409 `ENTITY_REMOVED_OR_AMBIGUOUS`, then old client treats it as unknown and queries a receipt never created, returning `OPERATION_NOT_FOUND`. The retained narrow original-response proof recognizes this exact matrix refusal. This demonstrates a real defect path; the user's unseen original live POST has not been inspected.
+
+The new complete-matrix command also recognizes only correlated original `FQC_MATRIX_SCOPE_CHANGED` 409 / `INVALID_FQC_MATRIX` 422 as pre-CAS refusals. It does not turn receipt 404, missing request identity, fabricated errors or lost transport into success. Explicit Discard retires exact current-client proven failures after a fresh permitted read; unrelated failures remain.
+
+## Confirmed behavior
+
+- Checkbox clicks remain local and durable for explicit recovery. The single primary `套用新矩陣設定` / `Áp dụng thiết lập ma trận mới` button immediately POSTs the entire captured matrix to shared working. Confirmed success plus readback says `已更新共用草稿；尚未儲存快照。` After confirmed Save/readback it says `已更新共用草稿；快照已儲存。`
+- First click captures every live FQC item and all effective AB products, including hidden categories and search-filtered products. The changed checkboxes overlay this complete selection; filtering never means unselected. The next edit after a successful Apply captures the latest adopted model again.
+- Last successful server CAS commit wins for **all matrix selections**. Stale screen B replaces prior A, even on rows B did not edit. Client clock and request-start order are not the authority. CAS retries recompute only relation fields against latest server rows.
+- The server requires exact live item IDs/categories and full product codes/categories. Adds/deletes/category changes reject with preserved input and require discard/reload. Deleted rows cannot be resurrected. Existing unknown legacy product codes may only be retained when still associated on that same current row.
+- The backend builds productCodes/productRefs/optional legacy products from current server items. Existing surviving reference snapshots are retained; new references come from the current product catalog. Names, descriptions, errors, rules, media, equipment, deletion state and other FQC fields come from the latest server state, not the stale client payload.
+- Other users can read the shared working matrix immediately after successful Apply; an already-open clean screen uses its existing poll/read behavior. An editor with unsent input retains that screen until explicit action. Save remains a separate whole-FQC shared snapshot; it does not reapply this actor's former matrix. Neither Apply nor Save approves formal standards.
+- Upper Save failure leaves successful shared working intact with old saved snapshot. True unknown Apply/Save is receipt-only until resolved, never blind re-POST. Replay of an older successful command returns its original receipt without overwriting a newer matrix. Rapid clicks remain single-flight.
+- Unsent input still blocks upper Save/Submit until applied or discarded. Once applied, the shared matrix cannot be discarded as personal input during departure; the existing whole-module Save/Stay protections apply. To change shared selections, edit and explicitly Apply again.
+- Reload does not hydrate or replay automatically. Claimed recovery validates actor/generation/base and complete collection scope before restoring local choices. Old recovery copies without a complete matrix remain preserved and are refused for automatic conversion to whole-matrix writes. Unknown historical operations remain queryable. Storage failure prevents dispatch and success feedback.
+- Normal recovery/discard controls stay collapsed; errors/unknown expand them. Legacy per-row reconciliation is unavailable for complete-matrix batches. Generic guarded forms and global conflict protections remain unchanged. Older already-open client tabs keep their old guarded behavior until reloaded; the new command does not weaken that backward-compatible API.
+
+## Model, performance and limits
+
+No DB schema, migration, persistent business field, account, permission or shared-draft model change. A new FQC-only command action `replace-matrix-v1` carries selection/scope data, and browser recovery stores `completeMatrix`. The existing workflow engine owns identity, pending locks, generation, operation receipts, sequences and atomic CAS. Internally the server projects one items patch, permitting complete matrices over the generic 256 client-patch limit without accepting arbitrary client item bodies. The generic patch limit is unchanged.
+
+This new module action currently uses the existing full-state reader, not the narrower ordinary guarded Apply/Save necessary-dependency optimization. It may read more immutable data and be blocked by unrelated storage corruption that an optimized ordinary command would skip. No live speed improvement is claimed. Client input is capped at 1.8 MB before recovery reservation/dispatch, below the existing 2 MB request cap; very large complete matrices need a separately reviewed size strategy rather than chunked partial overwrites.
+
+Tests use isolated synthetic data. Native module tests use actual Chromium with production UI/client and real TS route over fixture SQLite/R2; they are not the full compiled Worker, employee live acceptance or physical-phone testing. Full compiled application lifecycle/multiuser runners have been updated but are not claimed executed here. See `verification.json` for exact receipts and remaining gates. No new live screenshot claim: 使用者附圖未能取得，因此未驗證畫面對照。Earlier local-stage screenshots do not represent this candidate.

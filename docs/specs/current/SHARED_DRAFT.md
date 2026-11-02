@@ -1,3 +1,7 @@
+## 2026-11-02 FQC matrix interaction clarification
+
+User-confirmed rule: pressing matrix Apply immediately writes the entire captured matrix selection to shared working. Last successful server commit wins, including replacing choices from an earlier editor's stale screen; only matrix relations may be overwritten. Hidden/search-filtered data remains part of the full selection. Changed product/item collections reject and require reload. Upper Save separately saves the latest whole FQC shared snapshot; approval stays separate. Permissions, pending locks, original receipts, safe unknown-result query and other forms' guarded conflicts remain. [Candidate details and verification](../../acceptance/fqc-matrix-last-apply-20261102/README.md).
+
 ## 2026-11-01 FQC necessary-dependency fault boundary
 
 User-approved FQC policy: an eligible operation checks necessary authorization, FQC, AB product and equipment dependencies rather than unrelated modules. Unread unrelated data is not certified healthy or repaired; its fault alone need not block that FQC operation. Necessary faults still fail closed. Apply is not Save or approval; per-field guards, actor/operation receipts, pending locks, fresh revocation and global revision/CAS remain mandatory. The initial local implementation limits this policy to ordinary records-v1 Apply/Save and complete selected aggregates; GET/review/restore and unsupported formats retain their existing behavior. [Implementation and test boundaries](../../FQC_REQUIRED_DEPENDENCIES.md).
