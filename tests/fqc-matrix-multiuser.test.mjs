@@ -324,7 +324,7 @@ void test('unknown matrix result remains GET-only queryable on a read-only selec
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {buildFqcDraftLifecycleSeed} from './fqc-draft-lifecycle-route-fixture.mjs';
-import {buildMatrixMultiuserSeed,exactMatrixFailure,matrixSelectionReady,matrixMultiuserActions,observeMatrixPage} from './fqc-matrix-multiuser-browser.mjs';
+import {buildMatrixMultiuserSeed,exactMatrixFailure,matrixSelectionReady,matrixReceiptQueryReady,matrixMultiuserActions,observeMatrixPage} from './fqc-matrix-multiuser-browser.mjs';
 void test('native two-context seed adds one peer with exact editor rights; existing actor rights and unrelated values are unchanged',async()=>{
  const f=await routeFixture();try {
   const factory=f.load('lib/shared-draft.ts').createSharedDraft;
@@ -446,4 +446,42 @@ void test('native teardown token expires on clean stop and a modified expected r
  f.allowed.set(request,rule);f.page.emit('request',request);f.page.emit('response',{request:()=>request,status:()=>409,body:async()=>Buffer.from(JSON.stringify({error:'DEPENDENCY_CHANGED_RECONFIRM',requestId:'12345678-1234-4234-8234-123456789abc',details:{path:['items',{id:'row'},'productCodes']}}))});
  await f.observer.drain();const token=f.observer.rejectedTeardownToken(request);assert(token);rule.itemId='other';assert.equal(f.observer.permitsRejectedTeardown(token),false);rule.itemId='row';assert.equal(f.observer.permitsRejectedTeardown(token),true);
  await f.observer.stop(()=>true);assert.equal(f.observer.permitsRejectedTeardown(token),false);assert.equal(f.observer.rejectedTeardownToken(request),null);
+});
+
+
+void test('native receipt query readiness requires exact supported locale, owner, scope and visible unique enabled unknown control',()=>{
+ function probe(language,change=()=>{}) {
+  const button={textContent:language==='vi'?'Kiểm tra kết quả áp dụng':'查詢套用結果',disabled:false,getClientRects:()=>[{}]};
+  const state={actor:'editor',identity:{id:'editor'},lang:language,flow:{scope:'fqc'},account:{queued:0,unknown:true},button,
+   host:{isConnected:true,dataset:{activeTab:'quality-fqc'},querySelectorAll:()=>[button]}};change(state);
+  return vm.runInNewContext('('+matrixReceiptQueryReady.toString()+')({actor})',{actor:state.actor,document:{documentElement:{lang:state.lang},querySelector:()=>state.host},
+   window:{ProcessSync:{identity:state.identity},FQCMasterUI:{control:{libraries:{fqc:{workflow:state.flow}}}},sharedDraftAccountState:()=>state.account}});
+ }
+ for(const language of ['vi','zh','zh-Hant'])assert.equal(probe(language),true);
+ for(const language of ['','en','vi-VN'])assert.equal(probe(language),false);
+ for(const language of ['vi','zh-Hant'])for(const change of [s=>s.actor='',s=>s.actor=null,s=>s.identity.id='other',s=>s.flow.scope='other',
+  s=>s.host.isConnected=false,s=>s.host.dataset.activeTab='other',s=>s.account.queued=1,s=>s.account.queued=undefined,s=>s.account.unknown=false,
+  s=>s.button.disabled=true,s=>s.button.getClientRects=()=>[],s=>s.button.textContent+=' ',s=>s.button.textContent=language==='vi'?'查詢套用結果':'Kiểm tra kết quả áp dụng',
+  s=>s.host.querySelectorAll=()=>[],s=>s.host.querySelectorAll=()=>[s.button,s.button]])assert.equal(probe(language,change),false);
+});
+for(const language of ['zh-Hant','vi'])void test('actual matrix lost ACK stays explicitly queryable in '+language+' without resending',async()=>{
+ const f=await seed();try{
+  let lost=false,unavailable=true;
+  const a=await mount(f,'editor',async(url,o,send)=>{
+   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='apply'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
+   if(lost&&unavailable&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});return send();
+  });
+  a.c.document.documentElement.lang=language;
+  await a.c.__fqcTest.sharedAction('begin');await choose(a);await a.c.__fqcTest.applyMatrixChoices();
+  const button=a.main.querySelector('#fqc-matrix-apply');button.getClientRects=()=>[{}]; // VM visibility port, not native layout evidence.
+  const ready=()=>vm.runInContext('('+matrixReceiptQueryReady.toString()+')({actor:"editor"})',a.c);
+  assert.equal(ready(),true);const sent=posts(f).at(-1),op=command(sent).operationId,count=posts(f).length,markers=[...a.records];
+  await button.click();await until(()=>!a.c.__fqcTest.ui.saving,'explicit original receipt check');
+  assert.equal(ready(),true);assert.equal(posts(f).length,count);assert.deepEqual([...a.records],markers);
+  const reads=a.wire.filter(r=>r.url.includes('operationId='));assert.equal(reads.length,2);assert(reads.every(r=>new URL(r.url,'https://synthetic.invalid').searchParams.get('operationId')===op));
+  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
+  unavailable=false;await button.click();await until(()=>!a.c.__fqcTest.ui.saving,'original receipt resolves');
+  assert.equal(posts(f).length,count);assert.equal(a.c.__fqcTest.transport().hasUnknown(),false);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.records.size,0);
+  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
+ }finally{f.close();}
 });

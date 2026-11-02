@@ -42,6 +42,18 @@ export function matrixSelectionReady({actor,itemId,product,pressed,dirty}) {
     nodes[0].getAttribute('aria-pressed')===String(pressed)&&!nodes[0].disabled&&nodes[0].getClientRects().length>0&&
     window.FQCMasterUI.navigation.hasLocalChanges()===dirty&&account?.queued===0&&!account.unknown;
 }
+// A fresh production page defaults to Vietnamese. Require the exact label for
+// its supported locale, not a Chinese-only wait or a substring success hint.
+export function matrixReceiptQueryReady({actor}) {
+  const host=document.querySelector('#data-content'),flow=window.FQCMasterUI?.control?.libraries?.fqc?.workflow;
+  const buttons=host?.querySelectorAll('#fqc-matrix-apply'),account=window.sharedDraftAccountState?.();
+  const lang=String(document.documentElement.lang||'').toLowerCase();
+  const label=lang==='vi'?'Kiểm tra kết quả áp dụng':lang==='zh'||lang.startsWith('zh-')?'查詢套用結果':null;
+  return typeof actor==='string'&&!!actor&&window.ProcessSync?.identity?.id===actor&&
+    host?.isConnected===true&&host.dataset.activeTab==='quality-fqc'&&flow?.scope==='fqc'&&
+    account?.queued===0&&account.unknown===true&&buttons?.length===1&&label!==null&&
+    buttons[0].textContent===label&&!buttons[0].disabled&&buttons[0].getClientRects().length>0;
+}
 // Test observation owns its lifecycle. Setup/teardown may end observation only
 // after every admitted API body settles and the caller proves no private input,
 // queued command or unknown operation. Action failures are never hidden.
@@ -232,8 +244,8 @@ export async function runMatrixMultiuserBrowser() {
             assert.equal(u.searchParams.get('operationId'),lostOperation);if(receipt404){allowed.set(req,{kind:'receipt404',operationId:lostOperation});return route.fulfill({status:404,contentType:'application/json',body:'{"error":"OPERATION_NOT_FOUND"}'});}
           }return route.continue();
         };
-        await click(a,'#fqc-matrix-apply');await a.page.waitForFunction(()=>{const s=window.sharedDraftAccountState();return !s.queued&&s.unknown&&document.querySelector('#fqc-matrix-apply')?.textContent==='查詢套用結果';});
-        await click(a,'#fqc-matrix-apply');await a.page.waitForFunction(()=>!document.querySelector('#fqc-matrix-apply').disabled&&window.sharedDraftAccountState().unknown);
+        await click(a,'#fqc-matrix-apply');await a.page.waitForFunction(matrixReceiptQueryReady,{actor:a.actor.id});
+        await click(a,'#fqc-matrix-apply');await a.page.waitForFunction(matrixReceiptQueryReady,{actor:a.actor.id});
         assert.equal(postAttempts,1);assert.deepEqual(new Set(await codes(seed.ids.secondItem)),new Set([seed.ids.product,seed.ids.product2]));assert.deepEqual((await control()).workflow.saved,saved);
       });
       receipt404=false;
