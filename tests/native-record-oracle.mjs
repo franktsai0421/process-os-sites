@@ -26,7 +26,7 @@ export default {async fetch(request, env) {
  catch {return Response.json({error:'RECORD_ORACLE_FAILED',phase},{status:500});}
 }};`;
   const bundled = await build({stdin: {contents: entry, resolveDir: applicationRoot, sourcefile: 'synthetic-record-oracle.mjs'}, bundle: true, write: false,
-    platform: 'neutral', format: 'esm', target: 'es2022', logLevel: 'silent'});
+    platform: 'neutral', external: ['node:async_hooks'], format: 'esm', target: 'es2022', logLevel: 'silent'});
   assert.equal(bundled.outputFiles.length, 1);
   return {name: nativeRecordOracleName, modules: true, script: bundled.outputFiles[0].text,
     compatibilityDate: '2026-05-15', compatibilityFlags: ['nodejs_compat'],
