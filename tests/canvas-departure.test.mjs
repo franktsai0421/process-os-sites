@@ -41,3 +41,9 @@ void test('unknown canvas write keeps journal, refuses departure clearing, and r
 void test('lease and local discard fail closed after account/generation changes',async()=>{
  const f=await setup();f.edit();const lease=f.local.lockForDeparture();f.context.ProcessSync.identity={id:'other'};assert.equal(lease.current(),false);await assert.rejects(f.local.discardForDeparture(f.model,lease),/CANVAS_DEPARTURE_LOCKED/);assert.equal(f.local.dirty(),true);lease.release();
 });
+
+void test('local abandonment checks persisted deletion and keeps input if the store refuses',async()=>{
+ const f=await setup();f.edit(80);const lease=f.local.lockForDeparture(),before=f.posts;
+ f.context.localStorage.setItem=()=>{throw Error('SYNTHETIC_QUOTA');};
+ await assert.rejects(f.local.discardForDeparture(f.model,lease));assert.equal(f.x(),80);assert.equal(f.local.dirty(),true);assert.equal(f.posts,before);lease.release();
+});

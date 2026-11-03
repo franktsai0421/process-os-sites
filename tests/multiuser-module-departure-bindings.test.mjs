@@ -132,3 +132,9 @@ for(const name of ['ipqc-ab','routine-equipment'])for(const reason of ['same-id 
  b[key]=async(...args)=>{const result=await save(...args);ownerChanges[reason](b);return result;};
  await assert.rejects(f.adapter.save());assert.equal(f.writes,1);assert.equal(b.root.inert,false,'a stale completion cannot retain a departure lease');
 });
+
+for(const name of modules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
+ const f=fixture(name),before=JSON.stringify(f.flow);assert.equal(f.adapter.inspect().canAbandon,true);
+ const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
+ f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,'dirty');
+});

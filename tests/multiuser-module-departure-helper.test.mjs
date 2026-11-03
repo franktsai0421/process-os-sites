@@ -291,3 +291,15 @@ void test('viewer with missing legacy attribution and no local/unknown operation
 void test('different-actor dirty plus local-only discard leaves shared data untouched',async()=>{const f=fixture({local:true});f.flow.contributors={field:{actor:{id:'actor-b'}}};const before=structuredClone(f.flow),lease=await f.adapter.discard();assert.equal(f.adapter.inspect().state,'clean');assert.deepEqual(f.flow,before);assert.equal(f.calls.post,0);lease.release();});
 void test('unknown own operation still blocks a viewer despite only peer-attributed shared changes',async()=>{const f=fixture({canSave:false,canDiscard:false,unknown:true});f.flow.contributors={field:{actor:{id:'actor-b'}}};assert.equal(f.adapter.inspect().state,'unknown');await assert.rejects(f.adapter.discard());assert.equal(f.calls.post,0);});
 void test('known own actor changes and missing attribution stay conservative; never authorize whole-scope rollback',()=>{for(const contributors of [undefined,{}, {field:{actor:{id:'actor-a'}}}]){const f=fixture();f.flow.contributors=contributors;assert.equal(f.adapter.inspect().state,'dirty');assert.equal(f.adapter.inspect().canDiscard,false);}});
+
+void test('explicit abandonment drops unsent local input alongside shared edits without save or inverse',async()=>{
+ const f=fixture({local:true,shared:true}),before=JSON.stringify(f.flow);assert(f.adapter.inspect().canAbandon);
+ const lease=await f.adapter.abandon();assert.equal(f.calls.discard,1);assert.equal(f.state.local,false);assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.calls.post,0);assert.equal(JSON.stringify(f.flow),before);lease.release();
+});
+for(const flag of ['busy','unknown','failed','composing'])void test(`abandonment does not bypass ${flag}`,async()=>{
+ const f=fixture({local:true,[flag]:true});await assert.rejects(f.adapter.abandon());assert.equal(f.state.local,true);assert.equal(f.calls.post,0);
+});
+
+for(const flag of ['local','failed'])void test(`new ${flag} during target preparation invalidates abandonment`,async()=>{
+ const f=fixture({local:true,shared:true});const lease=await f.adapter.abandon();f.state[flag]=true;assert.notEqual(f.adapter.inspect().state,'departing');assert.throws(()=>f.adapter.closeClean());lease.release();assert.equal(f.calls.post,0);
+});

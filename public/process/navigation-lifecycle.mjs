@@ -121,7 +121,7 @@ export function createDepartureCoordinator(hooks){
     if(record.phase==='handoff'||!['save','discard','abandon'].includes(action))return {status:'busy'};
     const status=hooks.inspect(record.owner);
     if(status.state==='clean'){handoff(record);return {status:'accepted'};}
-    if(action==='abandon'?status.state!=='unknown'||status.canAbandon!==true:status.state!=='dirty'||!status[action==='save'?'canSave':'canDiscard']){record.error=status.reason;update(record);return {status:'blocked'};}
+    if(action==='abandon'?!['unknown','dirty'].includes(status.state)||status.canAbandon!==true:status.state!=='dirty'||!status[action==='save'?'canSave':'canDiscard']){record.error=status.reason;update(record);return {status:'blocked'};}
     record.phase='mutating';record.error='';update(record);
     try{
       const lease=await hooks.act(action,record.owner);

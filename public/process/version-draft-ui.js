@@ -178,7 +178,7 @@
       unknown:()=>say('上次操作結果尚未確認；請留頁查原操作收據，不會重新送出或放棄。','Chưa xác nhận thao tác trước; ở lại kiểm tra biên nhận gốc, không gửi lại hoặc bỏ.'),
       failed:()=>say('尚有失敗或未完成的套用；請回原編輯區處理，輸入仍保留。','Có thao tác áp dụng lỗi hoặc chưa xong; xử lý tại vùng sửa, nội dung vẫn được giữ.'),
       local:()=>say('尚有未套用輸入；請按「留在此頁」，回原表單明確套用或取消後再儲存。','Có nội dung chưa áp dụng; chọn ở lại, áp dụng hoặc hủy rõ ràng trong biểu mẫu trước khi lưu.'),
-      shared:()=>say('已有共享但尚未儲存的變更；儲存涵蓋整個模組。無個人安全撤回證據，不能整份放棄；請儲存或留頁處理。','Có thay đổi chung chưa lưu; lưu áp dụng cho toàn mô-đun. Không có bằng chứng hoàn tác riêng an toàn, không thể bỏ toàn bộ; hãy lưu hoặc ở lại xử lý.'),
+      shared:()=>say('可放棄未送出的本機輸入後離開。已套用的共享內容會保留；儲存涵蓋整個模組，離頁不會另存快照或撤回他人的修改。','Có thể bỏ đầu vào cục bộ chưa gửi rồi rời đi. Nội dung chung đã áp dụng được giữ; rời trang không lưu ảnh chụp hay hoàn tác thay đổi của người khác.'),
       pending:()=>say('草稿待審或唯讀鎖定；可保留輸入，或只放棄本人未送出的本機內容，不會代為撤回共享草稿。','Bản nháp chờ duyệt hoặc chỉ đọc; giữ nội dung hoặc chỉ bỏ dữ liệu cục bộ chưa gửi của mình, không rút bản nháp chung.'),
       permission:()=>say('目前無套用權限；可留頁保留輸入，或只放棄本人未送出的本機輸入，不會修改共享內容。','Không có quyền áp dụng; ở lại giữ nội dung hoặc chỉ bỏ dữ liệu cục bộ chưa gửi của mình, không đổi nội dung chung.'),
       save:()=>say('目前沒有儲存權限；輸入仍保留，請留頁確認權限。','Hiện không có quyền lưu; giữ nội dung, ở lại kiểm tra quyền.'),
@@ -194,6 +194,7 @@
       if(operation?.phase==='writing'||config.busy?.()||host.ProcessNavigationForms?.composing?.())return {...clean,state:'busy',reason:messages.busy()};
       if(config.unknown?.())return {...clean,state:'unknown',reason:messages.unknown()};
       if(config.failed?.())return {...clean,state:'blocked',reason:messages.failed()};
+      if(operation?.kind==='abandon'&&operation.phase==='held'&&!config.local?.())return {...clean,state:'departing',departureId:operation.id,reason:messages.shared()};
       const local=!!config.local?.();
       // Known transport scopes use this tab's successful ACKs, never actor names.
       // Legacy/unsupported flows retain the conservative contributor fallback.
@@ -206,30 +207,30 @@
         shared=sharedDirty()&&!othersOnly&&!readonly;
       }
       if(!local&&!shared)return clean;
-      const canDiscard=local&&!shared&&typeof config.discard==='function';
-      if(config.locked?.()||config.flow?.()?.pendingId)return {...clean,state:'dirty',canDiscard,reason:messages.pending()};
+      const canDiscard=local&&!shared&&typeof config.discard==='function',canAbandon=!local||typeof config.discard==='function';
+      if(config.locked?.()||config.flow?.()?.pendingId)return {...clean,state:'dirty',canDiscard,canAbandon,reason:messages.pending()};
       const canSave=config.canSave?.()===true&&(!local||config.localSave?.()===true);
-      return {state:'dirty',canSave,canDiscard,reason:local&&!config.canDiscard?.()&&config.localSave?.()!==true?messages.permission():local&&config.localSave?.()!==true?(config.localReason?.()||messages.local()):!canSave?messages.save():shared?messages.shared():config.localReason?.()||say('這些輸入僅在本機；儲存會依原模組流程提交並固定版本，放棄只清除未送出的輸入。','Nội dung chỉ ở máy này; Lưu gửi và cố định phiên bản theo quy trình mô-đun, Bỏ chỉ xóa nội dung chưa gửi.')};
+      return {state:'dirty',canSave,canDiscard,canAbandon,reason:local&&!config.canDiscard?.()&&config.localSave?.()!==true?messages.permission():local&&config.localSave?.()!==true?(config.localReason?.()||messages.local()):!canSave?messages.save():shared?messages.shared():config.localReason?.()||say('這些輸入僅在本機；儲存會依原模組流程提交並固定版本，放棄只清除未送出的輸入。','Nội dung chỉ ở máy này; Lưu gửi và cố định phiên bản theo quy trình mô-đun, Bỏ chỉ xóa nội dung chưa gửi.')};
     }
     const capture=()=>({identity:host.ProcessSync?.identity,epoch:host.ProcessSync?.identityGeneration?.(),delivery:host.ProcessSync?.captureDelivery?.(),context:context(),root:config.root?.()});
     const current=record=>record.identity===host.ProcessSync?.identity&&record.epoch===host.ProcessSync?.identityGeneration?.()&&record.context===context()&&record.root===config.root?.()&&!host.ProcessSync?.requiresReload&&(!record.delivery||host.ProcessSync?.isCurrentDelivery?.(record.delivery)!==false)&&config.current?.()!==false;
     async function act(kind){
-      const status=inspect();if(operation||status.state!=='dirty'||!status[kind==='save'?'canSave':'canDiscard'])throw Error(status.reason||messages.context());
-      const record=capture(),locked=roots().map(node=>({node,inert:node.inert}));
+      const status=inspect();if(operation||status.state!=='dirty'||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||messages.context());
+      const record={...capture(),kind,id:{}},locked=roots().map(node=>({node,inert:node.inert}));
       operation=record;record.phase='writing';for(const {node} of locked)node.inert=true;
       let released=false;record.release=()=>{if(released)return;released=true;for(const {node,inert} of locked)node.inert=inert;if(operation===record)operation=null;};
       try{
         if(!current(record))throw Error(messages.context());
         // Discard is local-only and synchronous unless a module explicitly
         // provides a checked implementation. No backend rollback lives here.
-        if(kind==='discard')await config.discard();else if(!await config.save({current:()=>current(record),assert(){if(!current(record))throw Error(messages.context());}}))throw Error(messages.failed());
+        if(kind==='abandon'){if(config.local?.())await config.discard();}else if(kind==='discard')await config.discard();else if(!await config.save({current:()=>current(record),assert(){if(!current(record))throw Error(messages.context());}}))throw Error(messages.failed());
         if(!current(record))throw Error(messages.context());
         record.phase='held';const after=inspect();
-        if(after.state!=='clean')throw Error(after.reason||messages.failed());
-        return {release:record.release};
+        if(kind==='abandon'?(after.state!=='departing'||config.local?.()):after.state!=='clean')throw Error(after.reason||messages.failed());
+        return {departureId:kind==='abandon'?record.id:undefined,release:record.release};
       }catch(error){record.release();throw error;}
     }
-    return {inspect,ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(status.state!=='clean')throw Error(status.reason);config.closeClean?.();}};
+    return {inspect,ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),abandon:()=>act('abandon'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(!['clean','departing'].includes(status.state))throw Error(status.reason);config.closeClean?.();}};
   }
   host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
   const priorValidation=host.renderSharedDraftValidation;

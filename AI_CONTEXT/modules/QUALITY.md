@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+The shared departure adapter offers input abandonment even beside acknowledged shared changes; it leaves shared content untouched. Routine FQC dialog cancellation is included. Non-FQC custom unknown paths remain blocked and need separate evidence contracts. [Scope, evidence and blockers](../../docs/acceptance/simple-draft-departure-20261103.md).
+
 ## 2026-11-03 — FQC abandonment and unknown results
 
 Explicitly abandoning unsent input permits SPA browsing while the original unknown Apply remains locked. The new client drops inputs without copying or restoring them; target preparation failure keeps the source. Original receipt lookup, generation/CAS and later collaborator changes remain authoritative. Other module departures require separate validation. [Evidence and limits](../../docs/acceptance/fqc-authority-body-20261103.md).

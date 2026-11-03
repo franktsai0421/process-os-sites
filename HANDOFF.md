@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+A separate stacked draft branch extends simple input abandonment across ordinary draft adapters and process authoring. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).
+
 ## 2026-11-03 — FQC PR #65 departure simplification
 
 Current task follows the user’s later preference: abandon unsent input and browse other pages, with no new input archive or restore UI. The unmerged checkpoint implementation was removed. All-draft-page support is a separate expansion because process canvas discard can perform server rollback. PR #65 and the old live v37 session are not declared deployed/fixed; complete CI and independent review remain gates. [Evidence and limits](docs/acceptance/fqc-authority-body-20261103.md).

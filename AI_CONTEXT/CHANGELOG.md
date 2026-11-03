@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+Added a scoped simple-abandonment navigation path for common draft pages and a process-canvas local-only path that never submits a server inverse. No checkpoint/archive feature. Original unknown protections remain; non-FQC unknown navigation is still explicitly blocked. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).
+
 ## 2026-11-03 — FQC explicit input abandonment
 
 User clarified that unsent inputs should be discarded, without checkpoint or restoration. Removed the unmerged full-input archive feature. FQC unknown Apply now has a separate verified navigation lease: it drops current form buffers at successful handoff while retaining receipt identity and write locks. No automatic resend, 404 settlement or shared rollback. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).
