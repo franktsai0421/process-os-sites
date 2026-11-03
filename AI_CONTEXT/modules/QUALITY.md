@@ -1,3 +1,7 @@
+## 2026-11-03 — IPQC-AB create unknown candidate
+
+Unknown create outcomes no longer become an internal refusal-proof error. Private rejection checks still gate cleanup, and receipt 404 remains inconclusive. Exact prepared creates use a bounded 45-second budget; generic mutation budgets and receipt-only recovery remain unchanged. No backend/data-model changes. [Evidence and limits](../../docs/acceptance/ipqc-ab-create-unknown-20261103/README.md).
+
 ## 2026-11-03 FQC unknown-result form recovery candidate
 
 Open forms keep detached input baselines and submit guarded field deltas after model readback. Only a matching confirmed original operation advances that form's baseline; other editors' later values stay protected. Explicit in-dialog receipt lookup clears errors after authoritative readback, keeps input, and never re-POSTs. Matrix receipt lookup can settle with a form open. Stable creation IDs prevent duplicate inserts. Shared drafts, Save/review boundaries, permissions and schema are unchanged. [Evidence and live-incident limits](../../docs/acceptance/fqc-unknown-recovery-20261103/README.md).

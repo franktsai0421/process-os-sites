@@ -114,7 +114,7 @@ async function fixture(text = source, { twoScopes = false } = {}) {
   window.createForegroundPoll = () => ({ capture: () => 1, isCurrent: value => value === 1,
     schedule: task => { pollTask = task; }, cancel() {} });
   const anchor = '  window.IPQCABUI = {'; assert.equal(text.split(anchor).length, 2);
-  const hook = `__test:{writeShared,save,moduleSave,load,bind,upload,transport,moduleTransport,scheduleRefresh,reconfirmRetainedDelivery:typeof reconfirmRetainedDelivery==='undefined'?null:reconfirmRetainedDelivery,
+  const hook = `__test:{displayDraftError,writeShared,save,moduleSave,load,bind,upload,transport,moduleTransport,scheduleRefresh,reconfirmRetainedDelivery:typeof reconfirmRetainedDelivery==='undefined'?null:reconfirmRetainedDelivery,
     init(value,page){control=value.control;catalog=value.catalog;equipment=[];revision=value.revision;host=page;line='A';group='QA';stage='S01';errorId='error-1';versionId=opened().id;working=clone(opened().snapshot);},
     get(){return{control,revision,working,busy,message,modal,modalBase,viewer,host,accessBlocked,privateQuarantine,client:sharedClient,localBatch:typeof localBatch==='undefined'?null:localBatch};},
     replaceReservation(){localBatch={...localBatch,created:{...localBatch.created}};},setStage(value){stage=value;},setViewer(value){viewer=value;},setWorking(value){working=value;},setModal(value){modal=value;modalBase=clone(opened().snapshot);modalGeneration=scope().workflow.generation;},
@@ -263,4 +263,41 @@ void test('trusted create rejection and correction never rebase another unsent r
   assert.equal(f.ui.get().localBatch.base.items[0].methodText,'Initial method');assert.equal(await f.ui.save('apply'),null);
   assert.equal(posts(f).length,3);assert.equal(posts(f)[2].status,409);assert.deepEqual(posts(f)[2].body.command.guards,[{path:['items',{id:'item-1'},'methodText'],value:'Initial method'}]);
   assert.equal(f.state().working.items[0].methodText,'Peer while rejected create');
+});
+
+void test('lost create ACK and receipt 404 preserve the unknown error and input, never expose a rejection-proof failure',async()=>{
+  const f=await fixture();openCreate(f,'error');f.losePost();
+  f.readReply((url,value)=>url.searchParams.has('operationId')?{status:404,value:{error:'OPERATION_NOT_FOUND',requestId:randomUUID()}}:{status:200,value});
+  const target=f.ui.get().modal;await f.apply.click();
+  assert.equal(f.ui.get().message,'RESULT_UNKNOWN_CHECK_BEFORE_RETRY');
+  assert.equal(f.ui.get().modal,target);assert.equal(target.name,'Sent created error');
+  const reservation=callerCreated(f),markers=recoveryKeys(f).map(key=>[key,f.box.sessionStorage.getItem(key)]);
+  assert(reservation);assert.equal(f.ui.get().client.hasUnknown(),true);
+  await f.apply.click();
+  assert.equal(f.ui.get().message,'RESULT_UNKNOWN_CHECK_BEFORE_RETRY');
+  assert.equal(callerCreated(f),reservation);assert.equal(posts(f).length,1);
+  assert.deepEqual(recoveryKeys(f).map(key=>[key,f.box.sessionStorage.getItem(key)]),markers);
+});
+
+void test('AB create unknown guidance is local, bilingual and never calls a 404 a confirmed rejection',async()=>{
+  const f=await fixture();
+  for(const lang of ['zh','vi']){
+    f.box.document.documentElement.lang=lang;
+    const unknown=f.ui.displayDraftError('RESULT_UNKNOWN_CHECK_BEFORE_RETRY');
+    const missing=f.ui.displayDraftError('OPERATION_NOT_FOUND');
+    const timeout=f.ui.displayDraftError('WORKFLOW_MUTATION_TIMEOUT_UNKNOWN');
+    assert.match(unknown,lang==='zh'?/查證原操作結果.*不要重複送出/:/không gửi lại/);
+    assert.match(missing,lang==='zh'?/仍不能確認是否寫入/:/chưa thể xác nhận/);
+    assert.match(timeout,lang==='zh'?/結果仍未知/:/kết quả vẫn chưa rõ/);
+  }
+  assert.equal(f.ui.displayDraftError('UNRELATED_ERROR'),'UNRELATED_ERROR');
+});
+
+void test('a cached older transport without the rejection probe keeps the create blocked without throwing',async()=>{
+  const f=await fixture();delete f.ui.get().client.isConfirmedCreateRejection;
+  openCreate(f,'error');f.losePost();
+  f.readReply((url,value)=>url.searchParams.has('operationId')?{status:404,value:{error:'OPERATION_NOT_FOUND'}}:{status:200,value});
+  await f.apply.click();assert.equal(f.ui.get().message,'RESULT_UNKNOWN_CHECK_BEFORE_RETRY');
+  assert(callerCreated(f));assert.equal(f.ui.get().client.hasUnknown(),true);
+  await f.apply.click();assert.equal(posts(f).length,1);
 });

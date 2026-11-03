@@ -63,6 +63,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: IPQC AB create unknown recovery
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/ab-create-deadline-diagnostics.test.mjs tests/ab-create-rejection-transport.test.mjs tests/ab-create-rejection-caller.test.mjs tests/ab-create-auto-receipt.test.mjs tests/ab-create-unknown-map.test.mjs tests/ab-create-next-batch.test.mjs tests/ab-sent-batch.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC Apply reliability and actual native forms
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |

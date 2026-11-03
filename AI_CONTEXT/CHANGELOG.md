@@ -1,3 +1,7 @@
+## 2026-11-03 — IPQC-AB create unknown candidate
+
+Local-only: preserve unknown/error causes and input, avoid refusal-proof error masking, and extend only prepared-create deadline to 45 seconds. No replay/data/schema change; not deployed. [Verification and limits](../docs/acceptance/ipqc-ab-create-unknown-20261103/README.md).
+
 ## 2026-11-03 — Remove PR #61 speed diagnostics
 
 Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.

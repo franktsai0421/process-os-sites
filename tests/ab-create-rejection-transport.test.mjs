@@ -32,3 +32,13 @@ void test('only exact canonical endpoint bytes share the opted-in transport cont
 void test('negative-only preparation and refusal cleanup require no workflow GET and grant no permissions',async t=>{const f=await setup(t,{readBaseline:false});assert.equal(f.client.permission('edit'),undefined);const p=await rejection(f);assert.equal(finalize(f,p),true);assert.equal(f.client.permission('edit'),undefined);assert.deepEqual(f.calls.map(c=>c.method),['POST']);});
 void test('a later denied view remains denied after exact noncommit cleanup; no authority is adopted',async t=>{const f=await setup(t),p=await rejection(f);f.hooks.transform=async(r,o)=>o.method==='GET'?Response.json({error:'FORBIDDEN'},{status:403}):r;await assert.rejects(f.client.permissions(),/FORBIDDEN/);assert.equal(f.client.permission('edit'),false);assert.equal(f.client.permission('view'),false);assert.equal(finalize(f,p),true);assert.equal(f.client.permission('edit'),false);assert.equal(f.client.permission('view'),false);assert.deepEqual(f.calls.map(c=>c.method),['POST','GET']);});
 for(const change of ['identity','epoch','delivery'])void test('new '+change+' preparation cannot inherit the old owner refusal proof',async t=>{const f=await setup(t,{readBaseline:false}),p=await rejection(f);if(change==='identity')f.box.ProcessSync.identity={id:'preview-editor'};if(change==='epoch')f.box.ProcessSync.identityGeneration=()=>2;if(change==='delivery'){f.box.ProcessSync.captureDelivery=()=>2;f.box.ProcessSync.isCurrentDelivery=value=>value===2;}const next=f.prepare('create-error',detail);assert(next.operationId);assert.throws(()=>finalize(f,p));assert.throws(()=>f.client.finalizeRejectedCreate(next,p.error,p.flight));await assert.rejects(f.client.sendPrepared(next),/PREVIOUS_OPERATION_UNKNOWN/);assert.equal(f.client.permission('edit'),undefined);assert.equal(f.client.hasUnknown(),true);assert.deepEqual(f.calls.map(c=>c.method),['POST']);});
+
+void test('non-mutating create rejection probe requires the same private command, error and flight',async t=>{
+ const f=await setup(t),p=await rejection(f),bytes=[...f.storage],count=f.calls.length;
+ assert.equal(f.client.isConfirmedCreateRejection(p.command,p.error,p.flight),true);
+ assert.equal(f.client.isConfirmedCreateRejection({...p.command},p.error,p.flight),false);
+ assert.equal(f.client.isConfirmedCreateRejection(p.command,Object.assign(Error(p.error.message),p.error),p.flight),false);
+ assert.equal(f.client.isConfirmedCreateRejection(p.command,p.error,p.flight.catch(()=>{})),false);
+ assert.deepEqual([...f.storage],bytes);assert.equal(f.calls.length,count);assert.equal(f.client.hasUnknown(),true);
+ assert.equal(finalize(f,p),true);assert.equal(f.client.isConfirmedCreateRejection(p.command,p.error,p.flight),false);
+});

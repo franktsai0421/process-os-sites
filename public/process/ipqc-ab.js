@@ -1,5 +1,13 @@
 (() => {
-  const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
+  const abRecoveryMessages = {
+    RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['尚未確認前次操作是否完成；輸入仍保留。請查證原操作結果，不要重複送出。','Chưa xác nhận thao tác trước đã hoàn tất; nội dung nhập vẫn được giữ. Hãy kiểm tra kết quả của thao tác gốc, không gửi lại.'],
+    WORKFLOW_MUTATION_TIMEOUT_UNKNOWN:['等待伺服器回應逾時，結果仍未知；輸入仍保留。請查詢原操作，不要重複送出。','Hết thời gian chờ máy chủ; kết quả vẫn chưa rõ và nội dung nhập được giữ. Hãy tra cứu thao tác gốc, không gửi lại.'],
+    OPERATION_NOT_FOUND:['目前查不到原操作收據，仍不能確認是否寫入。請稍後再查詢；不會重送或清除輸入。','Hiện chưa tìm thấy biên nhận của thao tác gốc nên chưa thể xác nhận đã ghi hay chưa. Hãy kiểm tra lại sau; không gửi lại hoặc xóa nội dung nhập.'],
+  };
+  const displayDraftError = error => {
+    const raw=typeof error==='string'?error:error?.message||String(error??'');
+    return Object.hasOwn(abRecoveryMessages,raw)?abRecoveryMessages[raw][vi()?1:0]:window.sharedDraftErrorMessage?.(error)??raw;
+  };
   const API = '/api/ipqc-ab';
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -220,7 +228,7 @@
   function settleRejectedCreate(reservation){
     const proof=rejectedCreates.get(reservation);
     const current=()=>!!proof&&localBatch===proof.batch&&localBatch.created===reservation&&modal===proof.target&&inputOwnerCurrent(proof.owner)&&(proof.owner.attempt===mutationSequence||createdReservations.get(reservation)?.checkAttempt===mutationSequence)&&(!activeMutation||activeMutation===proof.owner)&&sharedClient===proof.client&&pendingOperations.get(proof.client)===proof.operation;
-    if(!current())return false;
+    if(!current()||proof.client.isConfirmedCreateRejection?.(proof.operation,proof.error,proof.flight)!==true)return false;
     try{
       // Only the transport's private exact-command/error/raw-flight proof may
       // settle this reservation. Error flags and hasUnknown() grant nothing.

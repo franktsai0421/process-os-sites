@@ -379,11 +379,13 @@
     function abMarker(entry,command){abAssert(entry,command);const owns=()=>unknown?.operationId===command.operationId&&JSON.stringify(unknown)===entry.raw&&!!entry.markerRaw;if(!owns())throw Error('RECOVERY_RECORD_CHANGED');const stored=sessionStorage.getItem(key);abAssert(entry,command);if(!owns()||stored!==entry.markerRaw&&!(entry.removeAttempted&&stored===null))throw Error('RECOVERY_RECORD_CHANGED');return stored;}
     function abClear(entry,command){const stored=abMarker(entry,command);if(stored!==null){entry.removeAttempted=true;sessionStorage.removeItem(key);}if(abMarker(entry,command)!==null)throw Error('RECOVERY_REMOVE_NOT_VERIFIED');unknown=null;unknownOwner=null;syncFailures.delete(command.operationId);entry.consumed=true;abSelected.delete(command.operationId);}
     async function abRecover(entry,command,owner){abMarker(entry,command);const result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.generation,command.action);abClear(entry,command);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);return {...result,recovered:true};}
-    function abFinalize(command,error,flight){const entry=abCommands.get(command),proof=abResponses.get(error);abAssert(entry,command);
+    function abRejectionProof(command,error,flight){const entry=abCommands.get(command),proof=abResponses.get(error);abAssert(entry,command);
       if(entry.consumed||!proof||proof.entry!==entry||proof.flight!==flight||entry.flight!==flight||!flight||error.message!==proof.code||error.status!==proof.status||error.requestId!==proof.requestId||unknown?.operationId!==command.operationId||JSON.stringify(unknown)!==entry.raw||!entry.markerRaw)throw Error('AB_CREATE_REJECTION_PROOF_REQUIRED');
       const failure=syncFailures.get(command.operationId);if(!failure||failure.error!==error||JSON.stringify(failure.command)!==entry.raw)throw Error('AB_CREATE_REJECTION_PROOF_REQUIRED');
-      abClear(entry,command);return true;
+      return entry;
     }
+    function abFinalize(command,error,flight){abClear(abRejectionProof(command,error,flight),command);return true;}
+    function abHasRejection(command,error,flight){try{abRejectionProof(command,error,flight);return true;}catch{return false;}}
     const boundedPrefix='shared-draft-receipt-only-v1:',boundedSentinel='receipt-only-v1',boundedSelected=new Map(),boundedSelectedObjects=new WeakMap(),boundedCapabilities=new Map(),boundedProofs=new Map(),boundedResponses=new WeakMap(),boundedRejected=new WeakSet(),boundedReadbacks=new WeakMap(),boundedPostAuthorities=new WeakMap();
     let boundedRecord=null,boundedKnown=null,boundedKnownVersion=0,boundedLegacy=false,boundedDiscovered=[];
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
@@ -629,11 +631,11 @@
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
       accessOwner.delivery=readOwner||(accessGuard?window.ProcessSync?.captureDelivery?.():null);
-      // Hosted immutable-state reads can exceed 15s (measured ~24s). Keep
-      // other command scopes at 15s and the receipt-first unknown policy.
-      // Begin is a bounded workflow load/adoption. Only this action receives
-      // the existing 45s read/authoring budget; other mutation budgets stay put.
-      const requestDeadline=body?.action==='begin'?45000:body?mutationDeadline:45000;
+      // Hosted immutable-state reads can exceed 15s (measured ~24s). Begin
+      // and privately prepared AB creates use that bounded 45s budget.
+      // Ordinary AB Apply/Save and every other existing deadline stay unchanged.
+      // Timeout remains unknown; it never grants permission to replay a create.
+      const requestDeadline=body?.action==='begin'||abSelected.has(body?.command?.operationId)?45000:body?mutationDeadline:45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       try {
@@ -738,7 +740,7 @@
         let error=caught;
         // Preserve only the existing no-status fetch-loss receipt lookup.
         // Parsing, validation, headers and public error flags cannot opt in.
-        const abEntry=abSelected.get(command.operationId);if(abEntry){if(abFetchFailures.get(error)!==abEntry)throw error;try{return await abRecover(abEntry,command,owner);}catch{throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY'),{operationId:command.operationId});}}
+        const abEntry=abSelected.get(command.operationId);if(abEntry){if(abFetchFailures.get(error)!==abEntry)throw error;try{return await abRecover(abEntry,command,owner);}catch(recoveryCause){throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',{cause:error}),{operationId:command.operationId,recoveryCause});}}
         if(error.message==='ACCOUNT_CHANGED_REOPEN_REQUIRED'||externalStrict&&!externalCurrent())throw error;
         if(externalStrict&&externalUnsent.has(error)){if(externalBounded){boundedRegisterRejection(error,command,preparedFlights.get(command.operationId)?.promise);try{if(unknown?.operationId===command.operationId)retain(null);}catch(cleanup){error.recoveryCleanupRequired=true;error.recoveryCleanupError=cleanup;}}else if(unknown?.operationId===command.operationId)retain(null);throw error;}
         if(externalStrict&&error.notSent===true)error=Error(error.message,{cause:error}); // A fetch failure cannot manufacture pre-dispatch proof.
@@ -851,6 +853,7 @@
       prepareRecoverySave(generation){assertOwner();if(!externalBounded||boundedScope!=='bom')throw Error('BOM_RECOVERY_SAVE_REQUIRED');const command=client.prepare(generation,'save');boundedSelected.set(command.operationId,JSON.stringify(command));boundedSelectedObjects.set(command,JSON.stringify(command));return command;},
       isCreateRuntimeCurrent:()=>abCreate&&clientPagehideGeneration===transportPagehideGeneration,
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
+      isConfirmedCreateRejection:abHasRejection,
       finalizeRejectedCreate:abFinalize,
       prepare(generation,action,details={}) {assertOwner();const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
       receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
