@@ -36,6 +36,13 @@ for (const test of cases) {
   assert.equal(canonical(lf.candidate), canonical(crlf.candidate), test.name + ' LF/CRLF complete candidate bytes');
   assert.equal(hash(canonical(lf.baseline)), test.baselineHash, test.name + ' reviewed complete baseline hash');
   checks += 2;
+  if(test.name==='panel'){
+    const proof=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/authoring-departure-inverse.json'),'utf8'));
+    assert.equal(lf.candidate,raw,'complete departure candidate remains unchanged');
+    for(const row of proof.spans)for(const replacement of [row.candidate.replace(/\S/,'?'),'',row.candidate+row.candidate]){
+      assert.throws(()=>execute(raw.replace(row.candidate,replacement)),{code:'ERR_ASSERTION'},'changed/missing/duplicate departure inverse must be rejected');checks++;
+    }
+  }
   if(test.name==='identity'){
     assert.equal(lf.candidate,raw,'complete FQC candidate remains unchanged');
     const proof=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/identity-prefetch-reverse.json'),'utf8'));
