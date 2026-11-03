@@ -43,7 +43,7 @@ void test('lease and local discard fail closed after account/generation changes'
 });
 
 void test('local abandonment checks persisted deletion and keeps input if the store refuses',async()=>{
- const f=await setup();f.edit(80);const lease=f.local.lockForDeparture(),before=f.posts;
+ const f=await setup(),status={textContent:''};f.context.document.querySelector=selector=>selector==='.pe-local-status'?status:null;f.edit(80);const lease=f.local.lockForDeparture(),before=f.posts;
  f.context.localStorage.setItem=()=>{throw Error('SYNTHETIC_QUOTA');};
- await assert.rejects(f.local.discardForDeparture(f.model,lease));assert.equal(f.x(),80);assert.equal(f.local.dirty(),true);assert.equal(f.posts,before);lease.release();
+ await assert.rejects(f.local.discardForDeparture(f.model,lease));assert.equal(f.x(),80);assert.equal(f.local.dirty(),true);assert.equal(f.posts,before);assert.match(status.textContent,/目前畫布 1 項/);lease.release();
 });

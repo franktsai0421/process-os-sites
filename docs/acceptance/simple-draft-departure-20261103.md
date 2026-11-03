@@ -1,5 +1,21 @@
 # Simple draft departure — scoped follow-up to FQC PR #65
 
+## Independent PR #66 follow-up, 2026-11-03
+
+Review started from GitHub head `b42294f0d884992be6d72f841450e439ab8d8f82` in a new standalone Linux checkout. The previous writer stopped modifying #66. GitHub reports this PR as draft with no submitted reviews; prerequisite #65 remains open and has newer changes. Do not resolve that stack by overwriting either branch. After #65 merges, integrate its final main state and rerun the affected checks before requesting final review/merge. A green historical run is not verification of that future integration.
+
+Independent review reproduced a canvas handoff defect: apply a form locally without Sync, choose abandonment, then fail the target preparation. The local journal was correctly discarded but the retained source card still displayed the discarded name and retained the old card handler. The controller now refreshes the source canvas after checked local cleanup, before handing navigation over. This does not restore discarded input, save, submit an inverse, or change shared data. A compiled-browser regression checks the displayed card, reopening the form, empty local journal, unchanged server content and zero extra POSTs at 390px/Vietnamese and 1280px/Traditional Chinese. The first probe incorrectly assumed the public `navigate` helper returned a Promise; after fixing that test setup, the content mismatch was reproduced and then fixed.
+
+New verification in the isolated Linux checkout:
+
+- PASS: locked dependency installation and normal collaboration-hook setup in this standalone checkout; no previous hook was replaced. This is dependency/bootstrap setup only, not employee data-package acceptance.
+- PASS: 303 focused module-binding, controller, canvas, navigation, cache-tag and source-EOL tests. Added 18 local-plus-shared abandonment cases across nine actual adapter configurations, including revoked edit access, and 36 late identity/epoch/unknown/reload cases. Existing canvas storage-failure coverage now also checks the visible retained-input count.
+- PASS: 15 historical authoring panel/performance equivalence cases, typed lint, source boundaries and build. The exact SHA-pinned departure inverse was updated only for the new refresh statement; the original whole-baseline hash and performance assertions remain intact.
+- PASS before this fix: the five existing compiled-browser departure tests at the reviewed head. The new failure case passed after the fix; final committed-source browser/CI results are recorded in the PR.
+- PENDING: latest-head full GitHub CI, independent re-review of this follow-up fix, integration after #65 merges, and Frank's final review. No merge, deployment, real account, live business data or schema change.
+
+Coverage limits remain explicit: the nine extracted real adapter configurations are master-data, BOM, FQC, IQC, IPQC-AB, IPQC-C, routine equipment, tooling and routine FQC. They are binding tests with synthetic transport, not end-to-end browser acceptance of every page/subtab. Compiled native coverage here is AB/C departure, process authoring and user forms. Unknown-result paths outside the inherited FQC contract, Feedback, all-module photo/new-tooling workflows, real IME, physical devices, and true cross-computer acceptance remain NOT_RUN or outside #66's implemented scope. #68 owns its separate unknown-result expansion; none of its unreviewed code was imported here.
+
 The user asks to abandon unsent changes and browse other pages without retaining a copy or offering restoration. Abandonment does not undo acknowledged shared changes or cancel an unknown request. This follow-up is stacked on `fix/fqc-authority-body-recovery-20261103`; it must not be treated as independent main-ready code until that prerequisite is reviewed/merged and this branch is rebased/rechecked.
 
 ## Implemented boundary
