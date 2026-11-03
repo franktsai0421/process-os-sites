@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+The shared departure adapter offers input abandonment even beside acknowledged shared changes; it leaves shared content untouched. Routine FQC dialog cancellation is included. Non-FQC custom unknown paths remain blocked and need separate evidence contracts. [Scope, evidence and blockers](../../docs/acceptance/simple-draft-departure-20261103.md).
+
 2026-11-03 IQC language follow-up: targeted pending-label/message text updates preserve open details and unsaved forms during same-page Chinese/Vietnamese switching; browser reproduction and verification are recorded in the IQC acceptance note.
 
 2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.

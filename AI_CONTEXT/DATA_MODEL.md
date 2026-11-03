@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+No new server/browser schema, storage key or migration. Departure consumes only existing current local cleanup; shared drafts and original unknown receipt evidence remain. Canvas cleanup now checks its durable result before reporting success. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).
+
 ## 2026-11-03 — FQC departure data boundary
 
 No server model/schema/migration changes and no new browser input archive. The proposed fqc-input-checkpoint-v1 feature has been removed before merge. Existing unknown receipt markers remain unchanged; runtime-only navigation coverage never authorizes writes or settles an operation. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).

@@ -4,6 +4,10 @@ const root=process.env.PANEL_TEST_ROOT||path.resolve(__dirname,'..'),candidate=p
 const candidateSource=fs.readFileSync(candidate,'utf8').replace(/\r\n/g,'\n');
 function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,'portable baseline requires one exact source anchor: '+from.slice(0,90));return source.replace(from,to);}
 let baselineSource=candidateSource;
+// Reconstruct the pinned historical panel baseline without changing the
+// executed candidate. Departure behavior has separate controller/native tests.
+const departureInverse=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/authoring-departure-inverse.json'),'utf8'));
+for(const row of departureInverse.spans){assert.equal(createHash('sha256').update(row.candidate).digest('hex'),row.candidateSHA256,'authoring departure inverse span hash');baselineSource=replaceOnce(baselineSource,row.candidate,row.baseline);}
 
 baselineSource=replaceOnce(baselineSource,"  // Markup helpers may reset an obsolete owner; cache only after that boundary.\n  // The following mount/updateSaved calls only paint this synchronous render.\n  const localUnsaved=!!host.ProcessCanvasLocal?.dirty()||editorChanged();\n",'');
 baselineSource=replaceOnce(baselineSource,'localUnsaved:localUnsaved,failed:','localUnsaved:editorChanged()||!!host.ProcessCanvasLocal?.dirty(),failed:');

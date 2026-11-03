@@ -1294,9 +1294,10 @@
     const roots=()=>[hostElement,...document.querySelectorAll('.fqc-modal-overlay')];
     const verified=()=>!!held&&held.coverage.current();
     return {...base,
-      otherDraftsPending:()=>!unknownDepartureEligible()||sharedClient.otherDeparturePending(),
+      otherDraftsPending:()=>base.inspect().state==='dirty'?window.sharedDraftDepartureBlocked():!unknownDepartureEligible()||sharedClient.otherDeparturePending(),
       inspect(){if(verified())return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:departureNotice()};const status=base.inspect();return status.state==='unknown'&&unknownDepartureEligible()?{...status,canAbandon:true,reason:departureNotice()}:status;},
       async abandon(){
+        if(base.inspect().state==='dirty')return base.abandon();
         if(held||!unknownDepartureEligible())throw Error('DEPARTURE_CONTEXT_CHANGED');
         const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),anchor=sharedClient.departureUnknown(),locked=roots().map(node=>({node,inert:node.inert}));
         const record={id:crypto.randomUUID(),committed:false};

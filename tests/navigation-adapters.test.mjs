@@ -114,32 +114,32 @@ void test('changed persistent-navigation executable references have coherent new
   'app.js':'20261031-quality-recovery1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261031-bom-ram-save1',
-  'bootstrap.js':'20261103-fqc-approval1',
-  'canvas-local.js':'20261031-canvas-post-authority1',
+  'bootstrap.js':'20261103-simple-approval1',
+  'canvas-local.js':'20261103-simple-departure1',
   'canvas-recovery-store.js':'20261031-canvas-recovery1',
-  'delivery-navigation.js':'20261103-fqc-approval1',
+  'delivery-navigation.js':'20261103-simple-approval1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
-  'fqc-master.js':'20261103-fqc-departure5',
+  'fqc-master.js':'20261103-fqc-departure6',
   'ipqc-ab.js':'20261031-ab-create1',
   'ipqc-c.js':'20261031-quality-recovery1',
   'iqc-master.js':'20261103-iqc-content-issues3',
   'master-data.js':'20261103-approval-deeplink1',
   'master-shared-client.js':'20261031-bounded-recovery2',
   'permission-controls.js':'20261029-dispatch-rights1',
-  'process-authoring-v3.js':'20261031-canvas-post-authority1',
+  'process-authoring-v3.js':'20261103-simple-departure3',
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261031-insert-ack1',
-  'routine-fqc.js':'20261031-routine-receipt1',
+  'routine-fqc.js':'20261103-simple-departure1',
   'shared-draft-client.js':'20261103-navigation-identity1',
   'shared-state.js':'20261103-navigation-identity1',
   'tooling.js':'20261030-module-departure2',
-  'user-access.js':'20261029-fqc-dependencies1',
+  'user-access.js':'20261103-simple-departure1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261031-bom-ab-recovery1',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261030-photo-integrated1',
-  'process-editor.js':'20261031-bom-ab-recovery1',
+  'process-editor.js':'20261103-simple-departure1',
   'master-review.js':'20261030-pr54-integrated1',
   'process-ipqc.css':'20261031-bom-ab-recovery1',
   'process-equipment.css':'20261029-flow1',
@@ -151,7 +151,7 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-fqc-departure2"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-simple-departure1"));
 });
 
 // The FQC control wraps its shared flow inside the FQC library.

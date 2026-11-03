@@ -228,22 +228,26 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   if(!ownedLedger)return {...result,state:'unknown',reason:t('安全離頁元件尚未載入，請留在本頁重新載入後再操作。','Thành phần rời trang an toàn chưa tải; hãy ở lại và tải lại trước khi tiếp tục.')};
   const proof=ownedLedger.inspect(),local=form.state==='dirty'||editorChanged()||!!canvas?.dirty();
   if(proof.state==='busy'||proof.state==='unknown'&&!proof.canSave)return {...result,state:proof.state,reason:proof.reason};
-  if(f.pendingId)return local?{...result,state:'dirty',reason:t('送審內容已鎖定，本機仍有未套用修改；請先處理原編輯內容，或依原流程撤回。','Hồ sơ đã khóa để duyệt nhưng còn thay đổi cục bộ; hãy xử lý nội dung gốc hoặc rút theo quy trình.')} : result;
+  if(departureOperation?.kind==='abandon'&&departureOperation.phase==='held'){
+   if(!currentDeparture(departureOperation)||departureOperation.canvasLease?.current()!==true)return {...result,state:'unknown',reason:t('離頁期間編輯狀態已變更；請留頁重新確認。','Trạng thái chỉnh sửa đã đổi khi rời trang; hãy ở lại và kiểm tra lại.')};
+   if(!local)return {...result,state:'departing',departureId:departureOperation.id,reason:t('未送出輸入已放棄；共享內容保留，不另存或撤回。','Đã bỏ đầu vào chưa gửi; giữ nội dung chung, không lưu hoặc hoàn tác.')};
+  }
+  if(f.pendingId)return local?{...result,state:'dirty',canAbandon:true,reason:t('送審內容已鎖定，本機仍有未套用修改；請先處理原編輯內容，或依原流程撤回。','Hồ sơ đã khóa để duyệt nhưng còn thay đổi cục bộ; hãy xử lý nội dung gốc hoặc rút theo quy trình.')} : result;
   // Merely viewing another person's synchronized working data is not proof
   // of this viewer's own unsaved command. Do not rewrite its saved badge.
   if(!local&&!proof.ownChanges&&permissions.edit!==true)return result;
   const canSave=proof.canSave&&permissions.save===true&&c?.permission?.('save')!==false&&!local;
   const canDiscard=(proof.state==='clean'||proof.canDiscard)&&(!proof.ownChanges||permissions.edit===true&&c?.permission?.('edit')!==false)&&(!proof.requiresDelete||permissions.delete===true);
-  if(local||proof.state==='dirty'||proof.state==='unknown')return {...result,state:'dirty',reason:local?(proof.reason?proof.reason+' ':'')+t('尚有未套用或未同步內容；請先完成表單並手動同步畫布，再儲存離開。','Còn nội dung chưa áp dụng hoặc đồng bộ; hãy hoàn tất biểu mẫu và đồng bộ thủ công trước khi lưu để rời đi.'):proof.reason||'',canSave:!!canSave,canDiscard:!!canDiscard};
+  if(local||proof.state==='dirty'||proof.state==='unknown')return {...result,state:'dirty',reason:local?(proof.reason?proof.reason+' ':'')+t('尚有未套用或未同步內容；請先完成表單並手動同步畫布，再儲存離開。','Còn nội dung chưa áp dụng hoặc đồng bộ; hãy hoàn tất biểu mẫu và đồng bộ thủ công trước khi lưu để rời đi.'):proof.reason||'',canSave:!!canSave,canDiscard:!!canDiscard,canAbandon:true};
   return {...result,reason:proof.reason||''};
  }
- function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}
+ function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||r.kind!=='abandon'&&flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}
  function startDeparture(kind){
   if(departureOperation)throw Error('OPERATION_IN_PROGRESS');
-  const status=departureStatus();if(status.state!=='dirty'||!status[kind==='save'?'canSave':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');
+  const status=departureStatus();if(status.state!=='dirty'||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');
   const editor=host.ProcessEditorV2?.departure,canvas=host.ProcessCanvasLocal;
   if(!editor||!canvas?.lockForDeparture||!canvas?.settleForDeparture||!canvas?.saveForDeparture||!canvas?.discardForDeparture)throw Error('AUTHORING_LOAD_REQUIRED');
-  const r={kind,phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;
+  const r={kind,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;
   let released=false;r.release=()=>{if(released)return;released=true;try{r.formRelease?.();}finally{try{r.canvasLease?.release();}finally{if(departureOperation===r)departureOperation=null;}}};
   try{r.formRelease=editor.freeze();r.canvasLease=canvas.lockForDeparture();departureCheck(r);return r;}catch(e){r.release();throw e;}
  }
@@ -266,7 +270,16 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
    r.phase='held';const status=departureStatus();if(status.state!=='clean')throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');if(status.reason)toast(status.reason);refresh();panel();return {release:r.release};
   }catch(e){r.release();panel();throw e;}
  }
- const departure={inspect:departureStatus,save:saveDeparture,discard:discardDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(){const status=departureStatus();if(status.state!=='clean')throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();}};
+ async function abandonDeparture(){
+  const r=startDeparture('abandon');try{
+   // Drop local canvas/forms only. Never call the ledger's server inverse.
+   departureCheck(r);await r.canvas.discardForDeparture(flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();
+   r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+   host.ProcessEditorV2?.refreshRecovery?.();
+   return {departureId:r.id,release:r.release};
+  }catch(error){r.release();panel();throw error;}
+ }
+ const departure={inspect:departureStatus,save:saveDeparture,discard:discardDeparture,abandon:abandonDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(){const status=departureStatus();if(!['clean','departing'].includes(status.state))throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();}};
  async function recoverDiscardResult(){
   if(busy||departureOperation)throw Error('OPERATION_IN_PROGRESS');
   const ledger=ownedLedger,c=client(),owner=identityStamp(),contextEpoch=localContextEpoch;

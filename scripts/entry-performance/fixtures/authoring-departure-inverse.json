@@ -1,0 +1,36 @@
+{
+  "sourceBaseCommit": "f23fb5e9cce9e4c1cb89e556151e8d5ff229d830",
+  "description": "Exact local-input departure inverse solely for the historical panel performance baseline. The full current candidate is executed unchanged. This fixture does not establish departure parity; actual-controller and native departure tests cover the intentionally new behavior. Original full-baseline hash is retained. New spans require PR review.",
+  "spans": [
+    {
+      "candidate": "  if(departureOperation?.kind==='abandon'&&departureOperation.phase==='held'){\n   if(!currentDeparture(departureOperation)||departureOperation.canvasLease?.current()!==true)return {...result,state:'unknown',reason:t('離頁期間編輯狀態已變更；請留頁重新確認。','Trạng thái chỉnh sửa đã đổi khi rời trang; hãy ở lại và kiểm tra lại.')};\n   if(!local)return {...result,state:'departing',departureId:departureOperation.id,reason:t('未送出輸入已放棄；共享內容保留，不另存或撤回。','Đã bỏ đầu vào chưa gửi; giữ nội dung chung, không lưu hoặc hoàn tác.')};\n  }\n  if(f.pendingId)return local?{...result,state:'dirty',canAbandon:true,reason:t('送審內容已鎖定，本機仍有未套用修改；請先處理原編輯內容，或依原流程撤回。','Hồ sơ đã khóa để duyệt nhưng còn thay đổi cục bộ; hãy xử lý nội dung gốc hoặc rút theo quy trình.')} : result;\n",
+      "baseline": "  if(f.pendingId)return local?{...result,state:'dirty',reason:t('送審內容已鎖定，本機仍有未套用修改；請先處理原編輯內容，或依原流程撤回。','Hồ sơ đã khóa để duyệt nhưng còn thay đổi cục bộ; hãy xử lý nội dung gốc hoặc rút theo quy trình.')} : result;\n",
+      "candidateSHA256": "768e07c84a0a0532a49588d0bfc9eee91eeb6853a8081b78aa31b6af795fd5a1"
+    },
+    {
+      "candidate": "  if(local||proof.state==='dirty'||proof.state==='unknown')return {...result,state:'dirty',reason:local?(proof.reason?proof.reason+' ':'')+t('尚有未套用或未同步內容；請先完成表單並手動同步畫布，再儲存離開。','Còn nội dung chưa áp dụng hoặc đồng bộ; hãy hoàn tất biểu mẫu và đồng bộ thủ công trước khi lưu để rời đi.'):proof.reason||'',canSave:!!canSave,canDiscard:!!canDiscard,canAbandon:true};\n",
+      "baseline": "  if(local||proof.state==='dirty'||proof.state==='unknown')return {...result,state:'dirty',reason:local?(proof.reason?proof.reason+' ':'')+t('尚有未套用或未同步內容；請先完成表單並手動同步畫布，再儲存離開。','Còn nội dung chưa áp dụng hoặc đồng bộ; hãy hoàn tất biểu mẫu và đồng bộ thủ công trước khi lưu để rời đi.'):proof.reason||'',canSave:!!canSave,canDiscard:!!canDiscard};\n",
+      "candidateSHA256": "3c267a3d6b2ada372c5de0f44b0e449818ec07cb24fa2d0180babaaa9778a228"
+    },
+    {
+      "candidate": " function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||r.kind!=='abandon'&&flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}\n",
+      "baseline": " function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}\n",
+      "candidateSHA256": "9c4d8dfad15561e075a702b9f0fb6f24e9e03a53d4a6bd85cbd5c38edfb8bb23"
+    },
+    {
+      "candidate": "  const status=departureStatus();if(status.state!=='dirty'||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');\n",
+      "baseline": "  const status=departureStatus();if(status.state!=='dirty'||!status[kind==='save'?'canSave':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');\n",
+      "candidateSHA256": "0ed62eb2b1b64f6d68e4fe3b9d3d3a4b556247cac2ecb8cebac3648127591cfe"
+    },
+    {
+      "candidate": "  const r={kind,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;\n",
+      "baseline": "  const r={kind,phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;\n",
+      "candidateSHA256": "17a84b3a6f061216a07a380de56e6404d2b9c98686a1171730479e4a9df3b29a"
+    },
+    {
+      "candidate": " async function abandonDeparture(){\n  const r=startDeparture('abandon');try{\n   // Drop local canvas/forms only. Never call the ledger's server inverse.\n   departureCheck(r);await r.canvas.discardForDeparture(flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();\n   r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');\n   host.ProcessEditorV2?.refreshRecovery?.();\n   return {departureId:r.id,release:r.release};\n  }catch(error){r.release();panel();throw error;}\n }\n const departure={inspect:departureStatus,save:saveDeparture,discard:discardDeparture,abandon:abandonDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(){const status=departureStatus();if(!['clean','departing'].includes(status.state))throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();}};\n",
+      "baseline": " const departure={inspect:departureStatus,save:saveDeparture,discard:discardDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(){const status=departureStatus();if(status.state!=='clean')throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();}};\n",
+      "candidateSHA256": "d2b463fbd4df6d55e96e818b8e78bf1cb7bad2a868cd2f6b36b6d9d763fbbf4b"
+    }
+  ]
+}

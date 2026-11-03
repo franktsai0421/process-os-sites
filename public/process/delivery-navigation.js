@@ -16,7 +16,7 @@
   if(destination?.view==='editor')return window.ProcessAuthoringV3?.navigation?.departure;
   if(destination?.view==='quality-inspections')return window.RoutineFQCUI?.navigation?.departure;
   if(destination?.view!=='data')return null;
-  const moduleName=({'AB':'MasterDataWorkflow','C':'MasterDataWorkflow','lines':'MasterDataWorkflow','line-admin':'MasterDataWorkflow','process-master':'MasterDataWorkflow',bom:'BOMWorkspace','quality-fqc':'FQCMasterUI','quality-iqc':'IQCMasterUI','quality-ipqc-ab':'IPQCABUI','quality-ipqc-c':'IPQCCUI','quality-mold-equipment':'ToolingUI','quality-routine-equipment':'RoutineEquipmentUI'})[destination.dataTab];
+  const moduleName=({'AB':'MasterDataWorkflow','C':'MasterDataWorkflow','lines':'MasterDataWorkflow','line-admin':'MasterDataWorkflow','process-master':'MasterDataWorkflow',bom:'BOMWorkspace',users:'ProcessUserAccess','quality-fqc':'FQCMasterUI','quality-iqc':'IQCMasterUI','quality-ipqc-ab':'IPQCABUI','quality-ipqc-c':'IPQCCUI','quality-mold-equipment':'ToolingUI','quality-routine-equipment':'RoutineEquipmentUI'})[destination.dataTab];
   return window[moduleName]?.navigation?.departure||null;
  };
  const isDecision=node=>node?.dataset?.navigationDeparture==='true';
@@ -37,7 +37,7 @@
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-fqc-departure2');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-simple-departure1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -180,7 +180,8 @@
    decisionDialog.querySelector('[data-departure-state]').textContent=value.phase==='mutating'?t('正在確認並處理草稿，請稍候。','Đang xác nhận và xử lý bản nháp. Vui lòng chờ.'):value.phase==='handoff'?t('草稿已處理，正在載入選定頁面。','Đã xử lý bản nháp; đang tải trang đã chọn.'):value.status.reason||(value.status.state==='clean'?t('目前沒有本次待處理變更，可前往選定頁面。','Không còn thay đổi của lần chỉnh sửa này cần xử lý; có thể tới trang đã chọn.'):t('請選擇如何處理目前尚未儲存的變更。','Chọn cách xử lý thay đổi chưa lưu.'));
    decisionDialog.querySelector('[data-departure-error]').textContent=value.error||'';
    for(const action of ['save','discard','stay'])decisionDialog.querySelector('[data-departure-choice="'+action+'"]').disabled=action==='stay'?value.phase==='mutating':value.phase!=='choosing'||!(action==='save'&&value.status.state==='clean')&&(value.status.state!=='dirty'||!value.status[action==='save'?'canSave':'canDiscard']);
-   const abandon=decisionDialog.querySelector('[data-departure-choice="abandon"]');abandon.hidden=value.status.canAbandon!==true&&value.status.state!=='departing';abandon.disabled=value.phase!=='choosing'||value.status.state!=='unknown'||value.status.canAbandon!==true;
+   decisionDialog.querySelector('[data-departure-choice="discard"]').hidden=value.status.canAbandon===true;
+   const abandon=decisionDialog.querySelector('[data-departure-choice="abandon"]');abandon.hidden=value.status.canAbandon!==true&&value.status.state!=='departing';abandon.disabled=value.phase!=='choosing'||!['unknown','dirty'].includes(value.status.state)||value.status.canAbandon!==true;
   }
   function hideDecision(){const dialog=decisionDialog;decisionDialog=null;decisionChoose=null;decisionSnapshot=null;if(!dialog)return;dialog.onclose=null;dialog.close();dialog.remove();pendingDecisionFocus=decisionFocus;decisionFocus=null;restoreDecisionFocus();}
   function showDecision(value,choose){
@@ -189,7 +190,7 @@
    const title=document.createElement('h2');title.id='process-navigation-departure-title';title.textContent=t('離開目前頁面','Rời trang hiện tại');dialog.append(title);
    for(const name of ['target','state','error']){const p=document.createElement('p');p.setAttribute('data-departure-'+name,'');if(name==='error')p.setAttribute('role','alert');dialog.append(p);}
    const choices=document.createElement('div');choices.style.cssText='display:flex;flex-direction:column;gap:.65rem';
-   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未送出的修改並離開','Bỏ thay đổi chưa gửi và rời đi'],['abandon','放棄未存輸入並離開（操作結果仍未確認）','Bỏ nội dung chưa lưu và rời đi (chưa xác nhận kết quả)'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
+   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未送出的修改並離開','Bỏ thay đổi chưa gửi và rời đi'],['abandon','放棄未存輸入並離開','Bỏ nội dung chưa lưu và rời đi'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
    dialog.append(choices);dialog.oncancel=event=>{event.preventDefault();if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};dialog.onclose=()=>{if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};document.body.append(dialog);updateDecision(value);dialog.showModal();dialog.querySelector('[data-departure-choice="stay"]').focus();
   }
   const departure=createDepartureCoordinator({

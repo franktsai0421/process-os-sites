@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, 'review/quality-20261029-*']
+    branches: [main, 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103']
 permissions:
   contents: read
 concurrency:
@@ -73,7 +73,8 @@ jobs:
         run: |
           node --test tests/fqc-authority-bodies.test.mjs tests/fqc-write-failure.test.mjs tests/fqc-generation-recovery.test.mjs tests/fqc-recovery-diagnostics.test.mjs tests/fqc-known-rejection.test.mjs tests/fqc-unknown-recovery.test.mjs tests/fqc-apply-reliability.test.mjs tests/fqc-apply-ack.test.mjs tests/fqc-required-dependencies.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/fqc-apply-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/fqc-abandon-browser.test.mjs
+          # Independent Chromium fixtures run sequentially; their in-test actor races and timeouts remain unchanged.
+          node --test --test-concurrency=1 tests/fqc-apply-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/fqc-abandon-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --max-old-space-size=256 --test tests/fqc-matrix-conflict-discard.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -111,7 +112,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/performance-baseline.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/navigation-departure.test.mjs tests/delivery-departure.test.mjs tests/owned-draft-ledger.test.mjs tests/owned-draft-revert.test.mjs tests/owned-draft-recovery-transport.test.mjs tests/canvas-departure.test.mjs tests/process-editor-departure.test.mjs tests/editor-selection-departure.test.mjs tests/authoring-departure.test.mjs tests/authoring-begin-readiness.test.mjs tests/authoring-readiness-render.test.mjs tests/authoring-review-status.test.mjs tests/master-shared-clone.test.mjs tests/master-review-render-performance.test.mjs tests/process-scripts-build.test.mjs tests/process-styles-build.test.mjs tests/spreadsheet-loader.test.mjs
+          node --test tests/navigation-departure.test.mjs tests/delivery-departure.test.mjs tests/owned-draft-ledger.test.mjs tests/owned-draft-revert.test.mjs tests/owned-draft-recovery-transport.test.mjs tests/canvas-departure.test.mjs tests/process-editor-departure.test.mjs tests/editor-selection-departure.test.mjs tests/authoring-departure.test.mjs tests/multiuser-module-departure-helper.test.mjs tests/multiuser-module-departure-bindings.test.mjs tests/authoring-begin-readiness.test.mjs tests/authoring-readiness-render.test.mjs tests/authoring-review-status.test.mjs tests/master-shared-clone.test.mjs tests/master-review-render-performance.test.mjs tests/process-scripts-build.test.mjs tests/process-styles-build.test.mjs tests/spreadsheet-loader.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-authoring-context-reuse.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -145,6 +146,11 @@ jobs:
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: node scripts/local-build.mjs
+      - name: Explicit input abandonment in compiled draft pages
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/draft-abandon-native.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Synthetic source, snapshot and authorization regressions
         id: head_validation_04
         if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}

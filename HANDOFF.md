@@ -1,3 +1,7 @@
+## 2026-11-03 — Simple draft departure follow-up
+
+A separate draft branch extends simple input abandonment across ordinary draft adapters and process authoring. #66 now integrates IQC #70/main `f1a16f9` after #65/#67, preserving all three prerequisites. Prior-head CI failed one FQC fixture setup deadline before abandonment; independent FQC browser files now run sequentially with all assertions, deadlines and internal races intact. Fresh exact-head CI and independent review remain required. #68 waits for #66; do not merge #66 or publish the test site before the coordinated completion instruction. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).
+
 2026-11-03 IQC language follow-up: targeted pending-label/message text updates preserve open details and unsaved forms during same-page Chinese/Vietnamese switching; browser reproduction and verification are recorded in the IQC acceptance note.
 
 2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
