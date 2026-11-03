@@ -43,6 +43,8 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   context:(control:C,state:State,base:Omit<DraftContext<T>,'structure'|'validate'|'semantic'|'activeId'>)=>DraftContext<T>;
   apply:(control:C,command:ModuleDraftCommand,context:DraftContext<T>)=>ReturnType<typeof applyDraftCommand<T>>|Promise<ReturnType<typeof applyDraftCommand<T>>>;
   photoIds:(content:T)=>string[];photoPrefix:string;
+  // Read-only content advisories, using the module's submission checks.
+  draftMissing?:(content:T)=>ReturnType<DraftContext<T>['validate']>;
   serialize?:(control:C)=>string;
   serializeModel?:(control:C)=>unknown;
   // Additional projections participate in the same shared-state CAS, never a second write.
@@ -93,10 +95,10 @@ export function projectSharedVersion<T>(control:VersionedControl<T>,actor:{id:st
     draft.status='draft';draft.snapshot=flow.working;draft.revision=flow.revision;draft.updatedAt=at;
   }
 }
-export function visibleSharedControl<T,C extends VersionedControl<T>>(control:C,history:boolean,caseMetadata=false){
+export function visibleSharedControl<T,C extends VersionedControl<T>>(control:C,history:boolean,caseMetadata=false,draftMissing?:WorkflowAdapter<T,C>['draftMissing']){
   if(!control.workflow)return control;
   const open=openedVersion(control),flow=control.workflow;
-  return {...control,versions:history&&!caseMetadata?control.versions:control.versions.filter(v=>v.id===control.activeVersionId||v.id===open?.id),
+  return {...control,...(draftMissing&&open?.status==='draft'?{draftContentIssues:{source:'working',generation:flow.generation,revision:flow.revision,issues:draftMissing(flow.working)}}:{}),versions:history&&!caseMetadata?control.versions:control.versions.filter(v=>v.id===control.activeVersionId||v.id===open?.id),
     workflow:{...flow,saves:[],receipts:{},sequences:{},cases:(history?flow.cases:flow.cases.filter(c=>c.id===flow.pendingId)).map(c=>caseMetadata?sharedCaseMetadata(c):c)}};
 }
 export async function workflowAccess(request:Request,state:State,check=(key:string):boolean|Promise<boolean>=>can(request,state,key)){
@@ -187,7 +189,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);return reply({cases:rows.slice(start,start+20).map(sharedCaseMetadata),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});}
       if(query.has('caseId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));return reviewCase?reply({reviewCase}):reply({error:'CASE_NOT_FOUND'},404);}
       if(flow&&query.get('since')===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
-      const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1'),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
+      const body={revision:state.revision,permissions,control:visibleSharedControl(control,permissions.history,query.get('caseMetadata')==='1',adapter.draftMissing),workflow:flow?{generation:flow.generation,revision:flow.revision,pendingId:flow.pendingId}:null};
       return state.recordStorage&&query.get('caseMetadata')!=='1'?recordJSONResponse(compactWorkflowPayload(body,query.get('compact')==='1'),env.STATE_ARCHIVE,responseHeaders):reply(body);
     }catch(error){return reply({error:error instanceof DraftConflict?error.code:'WORKFLOW_LOAD_FAILED'},error instanceof DraftConflict?error.status:503);}},
     async POST(request:Request){let streamRecords=false,applyAck=false;const query=new URL(request.url).searchParams,reply=(body:unknown,status=200)=>{const complete=iqcEditingPayload(compactWorkflowPayload(body,query.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope));
@@ -248,7 +250,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
           adapter.beforeBegin?.(control,state);
           const open=openedVersion(control);
-          if(control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),unchanged:true});
+          if(control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),unchanged:true});
           if(open&&open.status!=='draft')throw new DraftConflict('LEGACY_PENDING_REQUIRES_REVIEW');
           if(!control.workflow){const active=effectiveVersion(control);control.workflow=createSharedDraft(adapter.scope,active?.snapshot||adapter.empty(),active?.id||null,context.id());if(open)control.workflow.working=cloneDraft(open.snapshot);}
         }else{
@@ -265,7 +267,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
           control.workflow=result.state;receipt=result.receipt;
           if(requiredState&&!already)captureFqcRequiredResult(state,command,result.state,result.receipt);
-          if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,unchanged:true});}
+          if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,unchanged:true});}
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
         failureStage='version-projection';
@@ -285,7 +287,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;
         failureStage='response';
-        return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,requestId});
+        return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),receipt,requestId});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
     }catch(error){if(admissionReply&&error===admissionReply)return admissionReply;if(error instanceof DraftConflict)return reply({error:error.code,details:error.details,requestId},error.status);if(error instanceof SyntaxError)return reply({error:'INVALID_JSON',requestId},422);
       if(adapter.scope==='fqc')console.error('[shared-workflow]',adapter.scope,requestId,error instanceof Error?error.name:'unknown',JSON.stringify({stage:failureStage,reason:fqcWriteFailureReason(error)}));

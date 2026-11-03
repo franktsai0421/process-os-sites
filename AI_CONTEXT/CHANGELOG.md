@@ -1,5 +1,7 @@
 ## 2026-11-03 — Simple draft departure follow-up
 
+Subsequently integrate IQC #70/main `f1a16f9`, retaining its source and both sets of documentation and cache contracts. Prior-head CI exposed a six-second unknown-fixture setup timeout during concurrent Chromium startup; sequence the three independent FQC browser files without changing their assertions, deadlines or internal races. New-head CI/review remain required; no test-site publication.
+
 Integrate merged #65/#67 main `62631e2` into #66 without rewriting either parent: retain FQC unknown evidence, ordinary abandonment and approval deep links; advance combined asset cache tags with exact assertions. Integration-head CI/review remain separate gates; #68 waits for #66.
 
 Independent #66 review reproduced stale source canvas content after abandonment followed by failed destination preparation. Refresh the checked local projection before handoff; add desktop/mobile browser coverage and cross-module late-state regression cases. No shared write or restoration is added.
@@ -7,6 +9,14 @@ Independent #66 review reproduced stale source canvas content after abandonment 
 Re-review also reproduced the selected-link variant. Explicit local discard now cancels owned canvas interactions before repaint, including without a form; reopening already read the correct value, and the defect concerned the stale card display only.
 
 Added a scoped simple-abandonment navigation path for common draft pages and a process-canvas local-only path that never submits a server inverse. No checkpoint/archive feature. Original unknown protections remain; non-FQC unknown navigation is still explicitly blocked. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).
+
+2026-11-03 IQC language follow-up: targeted pending-label/message text updates preserve open details and unsaved forms during same-page Chinese/Vietnamese switching; browser reproduction and verification are recorded in the IQC acceptance note.
+
+2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
+
+## 2026-11-03 — IQC draft/case missing count and source
+
+Replaced the client-only completeness heuristic with the existing server content checks; separated import notices and clarified working versus fixed-case sources. Local-only candidate; no data or rule change. [Verification and limitations](../docs/acceptance/iqc-content-issues-20261103/README.md).
 
 ## 2026-11-03 — FQC explicit input abandonment
 

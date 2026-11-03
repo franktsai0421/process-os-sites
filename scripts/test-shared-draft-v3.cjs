@@ -13,7 +13,7 @@ function fixture(activeId='active-1') {
     activeId:state.active.id, semantic:x=>x,
     structure(content) { for(const row of content.items) if(row.mode==='visual' && row.equipmentId) throw Error('INVALID_PAIR'); },
     validate(content) { return content.items.filter(row=>!row.name.trim()).map(()=>({kind:'missing',path:['items'],message:'Tên còn thiếu'})); } });
-  function command(actor, action, details={}) {return {action,operationId:randomUUID(),clientId:'client-'+actor,generation:state.generation,sequence:(sequences[actor]=(sequences[actor]||0)+1),...details};}
+  function command(actor, action, details={}) {return {action,operationId:randomUUID(),clientId:'client-'+actor,generation:state.generation,sequence:(sequences[actor]=(sequences[actor]||0)+1),...(action==='submit'?{expectedRevision:state.revision}:{}),...details};}
   function run(actor, cmd, override={}) {const result=applyDraftCommand(state,cmd,{...context(actor),...override});state=result.state;return result.receipt;}
   return {get state(){return state;}, command, run, context};
 }
@@ -50,6 +50,13 @@ test('T07: concurrent distinct inserts and guarded multiple-selection removal re
   assert.throws(()=>f.run('a',f.command('a','apply',{guards:[{path:selectionPath,value:['P1','P2','P3']}],patches:[field('products',['P1','P2'])]})),/DEPENDENCY_CHANGED/);assert.equal(stableDraftJSON(f.state),before);
   f.run('b',f.command('b','apply',{patches:[{op:'order',path:['items'],ids:['item-3','item-1','item-2']}]}));assert.equal(JSON.stringify(f.state.working.items.map(row=>row.id)),JSON.stringify(['item-3','item-1','item-2']));assert.equal(JSON.stringify(f.state.working.items[1].products),JSON.stringify(['P1','P3']));
 });
+test('Submit requires the current revision before proceeding to saved-content checks',()=>{
+  const f=fixture('');const before=stableDraftJSON(f.state);
+  assert.throws(()=>f.run('a',f.command('a','submit',{expectedRevision:undefined,reason:'test'})),/DRAFT_REVISION_REQUIRED/);
+  assert.throws(()=>f.run('a',f.command('a','submit',{expectedRevision:f.state.revision+1,reason:'test'})),/DRAFT_REVISION_CHANGED_RECONFIRM/);
+  assert.equal(stableDraftJSON(f.state),before);
+});
+
 test('T13: valid first formal build needs a real successful Save, not a fabricated change',()=>{
   const f=fixture('');assert.throws(()=>f.run('a',f.command('a','submit',{reason:'Khởi tạo'})),/SUCCESSFUL_SAVE_REQUIRED/);f.run('b',f.command('b','save'));const saved=f.state.saved;
   f.run('a',f.command('a','submit',{savedId:saved.id,reason:'Tạo phiên bản chính thức đầu tiên'}));assert.equal(f.state.cases[0].savedId,saved.id);assert.equal(stableDraftJSON(f.state.cases[0].content),stableDraftJSON(original));f.run('c',f.command('c','approve',{caseId:f.state.pendingId}));assert.ok(f.state.active.id);assert.equal(stableDraftJSON(f.state.active.content),stableDraftJSON(original));
@@ -63,15 +70,17 @@ test('T08/T10: save cutoff contains all synced contributors; no empty save audit
   f.run('a',f.command('a','apply',{patches:[field('note','after cutoff')]}));
   assert.equal(f.state.saved.content.items[0].note,'');
 });
-test('T11/T13/T14: saved-only submission; incomplete and unchanged are recorded advisories',()=>{
+test('T11/T13/T14: saved-only submission; unchanged rejects and incomplete remains reviewable',()=>{
   const f=fixture();assert.throws(()=>f.run('a',f.command('a','submit',{reason:'test'})),/SUCCESSFUL_SAVE_REQUIRED/);
-  f.run('a',f.command('a','save'));f.run('a',f.command('a','submit',{reason:'test',savedId:f.state.saved.id}));
-  assert.equal(f.state.cases[0].contentIssues.issues[0].code,'NO_SUBSTANTIVE_CHANGE');
-  f.run('a',f.command('a','withdraw',{caseId:f.state.pendingId,reason:'continue'}));
+  f.run('a',f.command('a','save'));const unchanged=stableDraftJSON(f.state);
+  assert.throws(()=>f.run('a',f.command('a','submit',{reason:'test',savedId:f.state.saved.id})),/NO_SUBSTANTIVE_CHANGE/);
+  assert.equal(stableDraftJSON(f.state),unchanged);assert.equal(f.state.cases.length,0);assert.equal(f.state.pendingId,null);
   f.run('a',f.command('a','apply',{patches:[field('name','')]}));f.run('a',f.command('a','save'));
   f.run('b',f.command('b','apply',{patches:[field('name','fixed but unsaved')]}));
+  const unsaved=stableDraftJSON(f.state);assert.throws(()=>f.run('a',f.command('a','submit',{reason:'test',savedId:f.state.saved.id})),/UNSAVED_CHANGES_SAVE_REQUIRED/);assert.equal(stableDraftJSON(f.state),unsaved);
+  f.run('b',f.command('b','apply',{patches:[field('name','')]}));
   f.run('a',f.command('a','submit',{reason:'test',savedId:f.state.saved.id}));
-  assert.equal(f.state.cases[1].content.items[0].name,'');assert.equal(f.state.cases[1].contentIssues.issues[0].kind,'missing');
+  assert.equal(f.state.cases[0].content.items[0].name,'');assert.equal(f.state.cases[0].contentIssues.issues[0].kind,'missing');
 });
 function pending(f,who='a') {f.run(who,f.command(who,'apply',{patches:[field('note','changed')]}));f.run(who,f.command(who,'save'));f.run(who,f.command(who,'submit',{savedId:f.state.saved.id,reason:'Lý do thay đổi'}));return f.state.pendingId;}
 test('T15/T16: saved confirmation token and pending lock (including admin)',()=>{
