@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC verified temporary departure candidate
+
+PR #65 now adds explicit, exact-readback session checkpoints and a separate parked navigation lease while retaining unknown write locks. Complete form/media/equipment/matrix input is restored read-only after authorized reads, never replayed or rebased. Old v37 RAM-only forms cannot safely inherit this via forced reload. No live data/merge/deploy action. [Implementation, tests, privacy limits and remaining gates](docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+
 ## 2026-11-03 — FQC authority-body compatibility candidate
 
 Based on fetched main `f23fb5e` (merged #63/#64), this candidate fixes normal serializer-produced authority audit bodies being rejected by ordinary FQC Apply/Save. SHA/JSON, current permissions, revocation, CAS and receipt-only unknown recovery remain enforced. No live data, account, schema, merge or deployment changes. Root-cause scope, isolated regression and unresolved historical-operation limits: [acceptance](docs/acceptance/fqc-authority-body-20261103.md).

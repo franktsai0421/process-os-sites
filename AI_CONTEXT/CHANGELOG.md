@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC input checkpoint and safe temporary departure
+
+Added explicit verified tab-session input archives and a separate navigation-only parked lease. Unknown/404 never unlocks writing; returning restores a read-only complete copy for comparison against fresh authorized data. Other scopes/failures remain blocking. No server schema/data migration; new browser archive schema v1 and affected cache versions only. [Evidence, privacy and live-session blockers](../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+
 ## 2026-11-03 — FQC Apply/Save normal authority-body compatibility
 
 Fixed a reproducible `required-state-read / AUTHORITY_BODY_INVALID` when normal storage externalizes permission audit `before` values. Preserve original hash checks, authority admission, CAS, receipts and unknown-result protection. Added serializer-backed tests and desktop/mobile zh/vi browser regression for recovery and confirmed departure. No model/schema/data migration or live change. [Acceptance and limits](../docs/acceptance/fqc-authority-body-20261103.md).

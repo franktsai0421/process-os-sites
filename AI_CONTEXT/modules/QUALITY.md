@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC explicit input checkpoint
+
+FQC's departure adapter wraps the existing Save/Discard contract with an explicit unknown-only park action. `fqc-input-checkpoint.js` captures and restores inert complete form views plus closure/baseline/media/matrix data in per-actor/path sessionStorage. Shared transport issues navigation-only coverage bound to its intact unknown marker and exact verified archive; account unknown, mutation guards and native unload warnings stay unchanged. Navigation checks other scopes and a matching parked lease. Read-only restoration is gated by fresh FQC/catalog permission reads; no input auto-rebase or receipt fabrication. [Contract, tests, private-data limits and old-client blocker](../../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+
 ## 2026-11-03 — FQC authority audit hydration
 
 Ordinary records-v1 Apply/Save hydrate the five pinned authority aggregates through the existing SHA-verified decoder, including normal `audit.before` bodies, before original authorization and business reads. Invalid JSON in an overridden maintenance aggregate still fails; hydrated unresolved bodies are refused before the override as well. Other commands/readers and frontend behavior are unchanged. [Evidence and recovery limits](../../docs/acceptance/fqc-authority-body-20261103.md).

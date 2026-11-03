@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC private input checkpoint
+
+No server model/schema/migration changes. Browser sessionStorage adds `fqc-input-checkpoint-v1:` records keyed by origin/path/actor/UUID, containing schema/id/context/time and a complete private form/media/matrix comparison payload. It is separate from receipt-only unknown markers and never becomes a command, authority/receipt proof or shared working state. Exact-byte navigation coverage is runtime-only; copied records carry none. Plaintext/session/quota limits and read-only restoration are defined in [acceptance](../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+
 ## 2026-11-02 — FQC complete-matrix relation projection
 
 No persistent schema or shared-draft model change. FQC `apply` with `moduleAction: replace-matrix-v1` accepts complete live item ID/category/productCodes and effective product code/category sets; the server validates membership and derives only productCodes/productRefs/legacy products from latest rows before existing CAS. Saved snapshots and review states are unchanged. Browser recovery adds a completeMatrix payload; old incomplete copies are retained but cannot be converted silently into whole-matrix overwrites. [Behavior and limits](../docs/acceptance/fqc-matrix-last-apply-20261102/README.md).
