@@ -170,12 +170,13 @@
   // Adapters describe module-local buffers; this coordinator never fabricates
   // an inverse for shared changes or implicitly clicks Apply/Sync.
   function createDeparture(config){
-    let operation=null;
+    let operation=null,completedCoverage=[];
     const say=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
     const messages={
       context:()=>say('頁面、登入身分或權限已變更；輸入仍保留，請留頁重新核對。','Trang, phiên đăng nhập hoặc quyền đã đổi; giữ nội dung và kiểm tra lại.'),
       busy:()=>say('正在處理或上傳，請稍候；輸入仍保留。','Đang xử lý hoặc tải ảnh; vui lòng chờ. Nội dung được giữ lại.'),
       unknown:()=>say('上次操作結果尚未確認；請留頁查原操作收據，不會重新送出或放棄。','Chưa xác nhận thao tác trước; ở lại kiểm tra biên nhận gốc, không gửi lại hoặc bỏ.'),
+      unknownLeave:()=>say('可放棄未送出的輸入後離開。原操作仍可能完成；操作紀錄與寫入鎖會保留，返回後須查詢原收據，不會重新送出。','Có thể bỏ đầu vào chưa gửi rồi rời đi. Thao tác trước vẫn có thể hoàn tất; giữ biên nhận và khóa ghi, kiểm tra lại khi quay về, không gửi lại.'),
       failed:()=>say('尚有失敗或未完成的套用；請回原編輯區處理，輸入仍保留。','Có thao tác áp dụng lỗi hoặc chưa xong; xử lý tại vùng sửa, nội dung vẫn được giữ.'),
       local:()=>say('尚有未套用輸入；請按「留在此頁」，回原表單明確套用或取消後再儲存。','Có nội dung chưa áp dụng; chọn ở lại, áp dụng hoặc hủy rõ ràng trong biểu mẫu trước khi lưu.'),
       shared:()=>say('可放棄未送出的本機輸入後離開。已套用的共享內容會保留；儲存涵蓋整個模組，離頁不會另存快照或撤回他人的修改。','Có thể bỏ đầu vào cục bộ chưa gửi rồi rời đi. Nội dung chung đã áp dụng được giữ; rời trang không lưu ảnh chụp hay hoàn tác thay đổi của người khác.'),
@@ -186,13 +187,23 @@
     const roots=()=>[config.root?.(),...(config.dialogs?.()||[])].filter(Boolean);
     const context=()=>JSON.stringify(config.context?.()??config.flow?.()?.generation??null);
     const sharedDirty=()=>config.sharedDirty?!!config.sharedDirty():!!host.sharedDraftNeedsSave?.(config.flow?.());
+    function unknownPlan(){try{
+      if(typeof config.discardUnknown!=='function'||config.unknownReady?.()===false)return null;
+      const peers=[...new Set(config.unknownTransports?.()||[])].filter(Boolean);if(!peers.length||peers.some(client=>client.departureIdle?.()!==true))return null;
+      const pins=peers.filter(client=>client.hasUnknown()).map(client=>({client,anchor:client.departureUnknown()}));
+      if(!pins.length||pins.some(pin=>!pin.anchor)||peers.some(client=>!client.hasUnknown()&&client.hasSyncFailures?.()))return null;
+      return {peers,pins};
+    }catch{return null;}}
     function inspect(){
       const clean={state:'clean',canSave:false,canDiscard:false,reason:''};
       if(operation&&!current(operation))return {...clean,state:'unknown',reason:messages.context()};
       if(config.active?.()===false)return clean;
       if(host.ProcessSync?.requiresReload||config.current?.()===false)return {...clean,state:'unknown',reason:messages.context()};
       if(operation?.phase==='writing'||config.busy?.()||host.ProcessNavigationForms?.composing?.())return {...clean,state:'busy',reason:messages.busy()};
-      if(config.unknown?.())return {...clean,state:'unknown',reason:messages.unknown()};
+      if(config.unknown?.()){
+        if(operation?.unknown&&operation.phase==='held'&&!config.local?.()&&operation.coverage?.every(lease=>lease.current()))return {...clean,state:'departing',departureId:operation.id,reason:messages.unknownLeave()};
+        const canAbandon=!!unknownPlan();return {...clean,state:'unknown',canAbandon,reason:canAbandon?messages.unknownLeave():messages.unknown()};
+      }
       if(config.failed?.())return {...clean,state:'blocked',reason:messages.failed()};
       if(operation?.kind==='abandon'&&operation.phase==='held'&&!config.local?.())return {...clean,state:'departing',departureId:operation.id,reason:messages.shared()};
       const local=!!config.local?.();
@@ -215,22 +226,24 @@
     const capture=()=>({identity:host.ProcessSync?.identity,epoch:host.ProcessSync?.identityGeneration?.(),delivery:host.ProcessSync?.captureDelivery?.(),context:context(),root:config.root?.()});
     const current=record=>record.identity===host.ProcessSync?.identity&&record.epoch===host.ProcessSync?.identityGeneration?.()&&record.context===context()&&record.root===config.root?.()&&!host.ProcessSync?.requiresReload&&(!record.delivery||host.ProcessSync?.isCurrentDelivery?.(record.delivery)!==false)&&config.current?.()!==false;
     async function act(kind){
-      const status=inspect();if(operation||status.state!=='dirty'||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||messages.context());
-      const record={...capture(),kind,id:{}},locked=roots().map(node=>({node,inert:node.inert}));
+      const status=inspect();if(operation||!(status.state==='dirty'||kind==='abandon'&&status.state==='unknown')||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||messages.context());
+      const plan=status.state==='unknown'?unknownPlan():null;if(status.state==='unknown'&&!plan)throw Error(messages.context());
+      const record={...capture(),kind,id:{},unknown:!!plan,committed:false,coverage:[]},locked=roots().map(node=>({node,inert:node.inert}));
       operation=record;record.phase='writing';for(const {node} of locked)node.inert=true;
-      let released=false;record.release=()=>{if(released)return;released=true;for(const {node,inert} of locked)node.inert=inert;if(operation===record)operation=null;};
+      let released=false;record.release=()=>{if(released)return;released=true;for(const {node,inert} of locked)node.inert=inert;locked.length=0;if(record.unknown&&!record.committed)for(const lease of record.coverage)lease.release();if(record.committed)record.root=null;if(operation===record)operation=null;};
       try{
         if(!current(record))throw Error(messages.context());
         // Discard is local-only and synchronous unless a module explicitly
         // provides a checked implementation. No backend rollback lives here.
-        if(kind==='abandon'){if(config.local?.())await config.discard();}else if(kind==='discard')await config.discard();else if(!await config.save({current:()=>current(record),assert(){if(!current(record))throw Error(messages.context());}}))throw Error(messages.failed());
+        if(plan){await config.discardUnknown();if(config.local?.())throw Error(messages.failed());for(const {client,anchor}of plan.pins)record.coverage.push(client.coverDeparture(anchor,()=>record.committed||operation===record&&current(record)&&!config.local?.()&&config.unknownReady?.()!==false&&plan.peers.length===[...new Set(config.unknownTransports?.()||[])].filter(Boolean).length&&plan.peers.every(client=>(config.unknownTransports?.()||[]).includes(client))));}
+        else if(kind==='abandon'){if(config.local?.())await config.discard();}else if(kind==='discard')await config.discard();else if(!await config.save({current:()=>current(record),assert(){if(!current(record))throw Error(messages.context());}}))throw Error(messages.failed());
         if(!current(record))throw Error(messages.context());
         record.phase='held';const after=inspect();
         if(kind==='abandon'?(after.state!=='departing'||config.local?.()):after.state!=='clean')throw Error(after.reason||messages.failed());
         return {departureId:kind==='abandon'?record.id:undefined,release:record.release};
       }catch(error){record.release();throw error;}
     }
-    return {inspect,ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),abandon:()=>act('abandon'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(!['clean','departing'].includes(status.state))throw Error(status.reason);config.closeClean?.();}};
+    return {inspect,covered:()=>completedCoverage.length>0&&completedCoverage.every(lease=>lease.current()),otherDraftsPending(){const plan=config.unknown?.()&&unknownPlan();if(plan)return plan.peers.some(client=>client.otherDeparturePending(plan.peers));const pending=host.sharedDraftAccountState?.()||{};return host.sharedDraftDepartureBlocked?.()??!!(pending.unknown||pending.failed);},ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),abandon:()=>act('abandon'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(!['clean','departing'].includes(status.state))throw Error(status.reason);config.closeClean?.();if(operation?.unknown){operation.committed=true;completedCoverage=operation.coverage;}}};
   }
   host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
   const priorValidation=host.renderSharedDraftValidation;

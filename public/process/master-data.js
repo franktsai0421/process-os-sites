@@ -1138,6 +1138,7 @@
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>departureScope()==='PROCESS',
         context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
         busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
+        unknownTransports:()=>[shared.client(departureScope())],discardUnknown(){this.discard();},
         local:()=>departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
         canSave:()=>shared.permissions(departureScope())?.save===true,
         canDiscard:()=>shared.permissions(departureScope())?.edit===true,

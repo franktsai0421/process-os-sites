@@ -928,6 +928,7 @@
     context:()=>[key(),versionId,scope()?.workflow?.generation,control?.moduleDraft?.workflow?.generation,permittedAction('save'),permittedAction('edit')],
     current:()=>!accessBlocked&&!privateQuarantine&&sharedIdentity.startsWith(actor()?.id+':'),busy:()=>busy||departureUploads>0,
     unknown:()=>sharedClient?.hasUnknown()||moduleClient?.hasUnknown(),failed:()=>sharedClient?.hasSyncFailures()||moduleClient?.hasSyncFailures(),
+    unknownTransports:()=>[sharedClient,moduleClient],discardUnknown(){this.discard();},
     local:()=>hasPrivateInput(),
     canSave:()=>permittedAction('save'),canDiscard:()=>permittedAction('edit'),save:()=>save('save'),
     dialogs:()=>[...document.querySelectorAll('.ipqcab-overlay')],

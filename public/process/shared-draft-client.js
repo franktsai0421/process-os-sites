@@ -178,7 +178,7 @@
       return !record.settled;
     },
   };
-  const clients=new Set(),transports=new Map(),boundedRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();
+  const clients=new Set(),clientAccounts=new WeakMap(),transports=new Map(),boundedRetirements=new WeakMap(),rejectionCapabilities=new WeakMap(),rejectionFlights=new WeakMap();
   // Only this actual transport can mint an admission. Callers cannot substitute
   // a Boolean/callback, a copied error, another promise or another command.
   Object.defineProperty(window,'SharedDraftRejectionProof',{value:Object.freeze({verify(capability,error,command,promise){
@@ -390,8 +390,10 @@
     // Navigation-only coverage. It never settles an operation or alters write
     // admission, the account's unknown flag, receipts or native unload warnings.
     const departureAnchors=new WeakMap();let departureCoverage=null;
-    function departureEligible(){return externalBounded&&boundedScope==='fqc'&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&!!boundedRecord&&boundedRecord.action==='apply'&&[...syncFailures.values()].every(failure=>failure.command.operationId===boundedRecord.operationId);}
-    function departureCovered(){try{return departureEligible()&&departureCoverage?.record===boundedRecord&&externalOwner.identity===window.ProcessSync?.identity&&externalOwner.epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel&&departureCoverage.check()===true;}catch{return false;}}
+    const departureRecord=()=>externalBounded?boundedRecord:unknown;
+    function departureEligible(){return !externalCanvas&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||boundedRecord.action==='apply'))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
+    function departureMarker(){if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
+    function departureCovered(){try{const owner=externalBounded?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
     const canvasTarget=externalCanvas&&endpoint==='/api/process-authoring/workflow?caseMetadata=1&channel=canvas-v2';
     const canvasObserving=canvasPrimary||canvasTarget;
@@ -824,14 +826,15 @@
       resolveUnknown,
       retryUnknown:async()=>{assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
       hasUnknown:()=>!!unknown||recoveryInvalid,
+      departureIdle:()=>!queued&&!beginPending&&!retryPending,
       departureUnknown(){
-        assertOwner();if(!departureEligible()||access?.view!==true||boundedDiscover().length!==1||sessionStorage.getItem(boundedRecord.key)!==boundedSentinel)return null;
-        const anchor=Object.freeze({operationId:boundedRecord.operationId,generation:boundedRecord.generation});departureAnchors.set(anchor,boundedRecord);return anchor;
+        assertOwner();if(!departureEligible()||access?.view!==true)return null;const marker=departureMarker();if(marker===null)return null;
+        const record=departureRecord(),anchor=Object.freeze({operationId:record.operationId,generation:record.generation});departureAnchors.set(anchor,{record,marker});return anchor;
       },
-      otherDeparturePending(){return [...clients].some(c=>c!==accountClient&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
+      otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
       coverDeparture(anchor,check){
-        assertOwner();if(!departureEligible()||departureAnchors.get(anchor)!==boundedRecord||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
-        const coverage={record:boundedRecord,check};departureCoverage=coverage;
+        assertOwner();const pin=departureAnchors.get(anchor);if(!departureEligible()||!pin||pin.record!==departureRecord()||pin.marker!==departureMarker()||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
+        const coverage={...pin,check};departureCoverage=coverage;
         return {current:()=>departureCoverage===coverage&&departureCovered(),release(){if(departureCoverage===coverage)departureCoverage=null;}};
       },
       legacyRecoveryUnsupported:()=>externalBounded&&boundedLegacy,
@@ -905,7 +908,7 @@
       if(!recoveryInvalid&&externalCurrent())boundedRetirements.get(boundedPredecessor)?.(new Set(boundedDiscovered.map(record=>record.key)));
     }
     if(canvasPrimary||canvasTarget)canvasAuthorityClients.set(client,{capture:canvasCapture,arm:canvasArm,verify:canvasVerify,accept:canvasAccept,proof:result=>canvasPosts.get(result),consume:result=>canvasPosts.delete(result)});
-    transports.set(transportKey,client);return client;
+    clientAccounts.set(client,accountClient);transports.set(transportKey,client);return client;
   };
   window.renderSharedDraftValidation=({client,flow,after,onLocate,label,language})=>{
     if(!after)return;

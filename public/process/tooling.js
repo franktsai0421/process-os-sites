@@ -167,6 +167,7 @@
   root:()=>host,flow,context:()=>[viewEpoch,actor,selected,flow()?.generation,client?.permission('save'),client?.permission('edit')],
   current:()=>actor===window.ProcessSync?.identity?.id,busy:()=>busy&&!readOnlyBusy||client?.permission('edit')!==false&&!!dialog?.querySelector('button[type=submit]:disabled'),
   unknown:()=>client?.hasUnknown()||!!beginRecovery,failed:()=>client?.hasSyncFailures(),
+  unknownTransports:()=>[client],unknownReady:()=>!beginRecovery,discardUnknown(){this.discard();},
   local:()=>!!dialog?.querySelector('button[type=submit]')||!!host?.querySelector('.tooling-inline-editor'),
   canSave:()=>draftActionAllowed('save'),canDiscard:()=>editing(),
   save:()=>run(()=>saveOrSubmit('save')),

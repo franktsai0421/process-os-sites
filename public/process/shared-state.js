@@ -113,6 +113,10 @@
   api.setDemoIdentity = user => {api.setPlatformIdentity(user);sessionStorage.removeItem('process-platform-signed-out');};
   api.clearIdentity = () => {quarantinePending();identityEpoch++;if(ready&&api.deliveryProjection)invalidateDelivery();window.EffectiveVersionNotice?.reset?.();platformCredential=null;api.identity=null;blocked=false;paused=false;api.paused=false;};
   api.identityGeneration = () => identityEpoch;
+  // Only verified bootstrap responses may carry navigation evidence across
+  // a refreshed identity object. This grants no mutation or receipt authority.
+  const navigationIdentities=new WeakMap();
+  api.isNavigationIdentityCurrent=(identity,epoch)=>!!identity&&epoch===identityEpoch&&!api.requiresReload&&identity.id===api.identity?.id&&(identity===api.identity||navigationIdentities.get(identity)===epoch&&navigationIdentities.get(api.identity)===epoch);
   api.captureDelivery = () => ({id:api.identity?.id,identityEpoch,deliveryEpoch});
   api.isCurrentDelivery = owner => !!owner && !api.requiresReload && owner.id===api.identity?.id && owner.identityEpoch===identityEpoch && owner.deliveryEpoch===deliveryEpoch;
   // Only an authenticated bootstrap can establish a known-denied review reader.
@@ -162,6 +166,7 @@
   };
   api.commitDestination = handle => {
     api.validateDestination(handle);const {payload,qualityIdentity,qualityRead}=preparedDestinations.get(handle),qualityOwnerCurrent=api.identity===qualityIdentity&&qualityRead===qualityReadSequence;preparedDestinations.delete(handle);
+    if(api.identity&&payload.identity){navigationIdentities.set(api.identity,identityEpoch);navigationIdentities.set(payload.identity,identityEpoch);}
     deliveryEpoch++;api.identity=payload.identity;api.protected=!!payload.serverProtected;api.demoEnabled=!!payload.demoEnabled;
     apply(payload);if(qualityOwnerCurrent)establishQualityAccess(payload);return api.destination;
   };
@@ -275,6 +280,7 @@
       if(generation!==identityEpoch||route!==deliveryEpoch)return;
       if(ready&&api.deliveryProjection&&oldActor!==shared.identity?.id){quarantinePending();identityEpoch++;api.identity=null;invalidateDelivery();return;}
       const qualityOwnerCurrent=api.identity===qualityIdentity&&qualityRead===qualityReadSequence;
+      if(api.identity&&shared.identity&&api.identity.id===shared.identity.id){navigationIdentities.set(api.identity,identityEpoch);navigationIdentities.set(shared.identity,identityEpoch);}
       api.identity = shared.identity || null;
       api.protected = !!shared.serverProtected;
       api.demoEnabled = !!shared.demoEnabled;
