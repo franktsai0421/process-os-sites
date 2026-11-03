@@ -1,3 +1,4 @@
+import {fqcWriteFailureReason} from './fqc-write-failure';
 import {fqcRequiredDependencyCommand,readFqcRequiredMutationState,captureFqcRequiredBasis,captureFqcRequiredResult,encodeFqcRequiredMutationState} from './fqc-required-dependencies';
 import {iqcEditingRequested,iqcEditingPayload} from './iqc-editing-projection';
 import {restoreAllowed,assertRestoreAccess} from './draft-restore-access';
@@ -198,7 +199,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // Only this request's private admission sentinel retains original direct
       // denial DTOs. Caller objects/error flags cannot select this response.
       let admissionReply:Response|null=null;const refuseAdmission:(error:string,status:number)=>never=(error,status)=>{admissionReply=reply({error},status);throw admissionReply;};
-      if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();try{
+      if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID();let failureStage='command-decode';try{
       const body=await commandBody(request),caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
       // Exact versioned opt-in: bounded FQC Apply still requires its separate
       // fresh terminal GET. Avoid returning live bodies twice, never skip reads,
@@ -206,9 +207,11 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // and every other action/route retain the original complete response.
       applyAck=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')&&body.action===undefined&&body.command?.action==='apply'&&query.getAll('projection').length===1&&query.get('projection')==='fqc-apply-ack-v1'&&query.getAll('caseMetadata').length===1&&caseMetadata&&query.getAll('compact').length===1&&query.get('compact')==='1';
       for(let attempt=0;attempt<4;attempt++){
+        failureStage='required-state-read';
         let requiredPhase:Awaited<ReturnType<typeof createFqcPermissionPhase>>|null=null;
         const requiredFqc=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope')&&fqcRequiredDependencyCommand(body.command);
         const requiredState=requiredFqc?await readFqcRequiredMutationState(body.command!,async selected=>{
+          failureStage='required-authorization';
           const phase=await phaseFor(request,selected),actor=phase?.actor;if(!phase||!actor)refuseAdmission('LOGIN_REQUIRED',401);
           if(selected.values.maintenanceMode==='1')refuseAdmission('MAINTENANCE',503);
           const permissions=await currentPermissions(request,selected,phase),command=body.command!;
@@ -218,16 +221,19 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           // Its independent post-body can() check remains below unchanged.
           if(command.patches?.some(p=>p.op==='insert')&&!phase.allowed('fqc.create'))refuseAdmission('FORBIDDEN',403);
           if(!permissions.view||!permissions[command.action==='apply'?'edit':'save'])throw new DraftConflict('FORBIDDEN',403);
-          requiredPhase=phase;return actor.id;
+          requiredPhase=phase;failureStage='required-business-read';return actor.id;
         }):null;
+        failureStage='state-read';
         const mutationState=!requiredFqc&&body.action===undefined&&adapter.recordMutation==='fqc-existing-set'&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcExistingSetCommand(body.command)?await readFqcMutationState(body.command):null;
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=!requiredFqc&&body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
         const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
+        failureStage='authorization';
         const permissions=await currentPermissions(request,state,phase);
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+        failureStage='adapter-context';
         const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),at=new Date().toISOString();
         if(requiredState)captureFqcRequiredBasis(state,body.command!,control);
         const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at,id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
@@ -254,6 +260,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           const workflowModule=moduleForURL(request.url),creates=command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');
           if(creates&&workflowModule&&accessKeys.includes(workflowModule+'.create')&&!await can(request,state,workflowModule+'.create'))return reply({error:'FORBIDDEN'},403);
           if(command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
+          failureStage='adapter-apply';
           const already=control.workflow.receipts[command.operationId],beforeRestore=command.action==='restore'?cloneDraft(control.workflow.working):null;const result=await adapter.apply(control,command,context);
           if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
           control.workflow=result.state;receipt=result.receipt;
@@ -261,6 +268,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(already){if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,unchanged:true});}
           for(const photo of adapter.photoIds(control.workflow.working))if(!knownPhotos.has(photo)&&!await env.STATE_ARCHIVE.head(adapter.photoPrefix+photo))throw new DraftConflict('PHOTO_NOT_UPLOADED',422);
         }
+        failureStage='version-projection';
         projectSharedVersion(control,actor,at,body.command?.action==='approve');
         if(!await stateRevisionIsCurrent(state))continue;
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
@@ -268,15 +276,19 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // A newly adopted module has no existing key to iterate in record storage.
         // Register its key while keeping the trusted prepared model as the body.
         const values={...state.values,...(!prepared?{[adapter.key]:adapter.serialize?adapter.serialize(control):JSON.stringify(control)}:{[adapter.key]:state.values[adapter.key]??'null'}),...adapter.projectValues?.(control)};
+        failureStage='record-encode';
         const encoded=await (requiredState?encodeFqcRequiredMutationState(state,values,prepared,candidate=>projectSharedVersion(candidate,actor,at)):mutationState?encodeFqcMutationState(state,values,prepared):processSaveState?encodeProcessSaveMutationState(state,values,prepared):processFlowState?encodeProcessFlowMutationState(state,values,prepared):fqcLifecycle8State?encodeFqcLifecycle8MutationState(state,values,prepared):encodeValues(values,state,prepared));
         // Immutable objects already written remain unreferenced on denial, as on
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
+        failureStage='state-cas';
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;
+        failureStage='response';
         return reply({revision:state.revision+1,control:visibleSharedControl(control,permissions.history,caseMetadata),receipt,requestId});
       }return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
     }catch(error){if(admissionReply&&error===admissionReply)return admissionReply;if(error instanceof DraftConflict)return reply({error:error.code,details:error.details,requestId},error.status);if(error instanceof SyntaxError)return reply({error:'INVALID_JSON',requestId},422);
-      console.error('[shared-workflow]',adapter.scope,requestId,error instanceof Error?error.name:'unknown');return reply({error:'WORKFLOW_WRITE_FAILED',requestId},500);}}
+      if(adapter.scope==='fqc')console.error('[shared-workflow]',adapter.scope,requestId,error instanceof Error?error.name:'unknown',JSON.stringify({stage:failureStage,reason:fqcWriteFailureReason(error)}));
+      else console.error('[shared-workflow]',adapter.scope,requestId,error instanceof Error?error.name:'unknown');return reply({error:'WORKFLOW_WRITE_FAILED',requestId},500);}}
   };
 }

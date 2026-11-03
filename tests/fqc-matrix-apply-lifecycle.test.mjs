@@ -104,7 +104,7 @@ void test('lost Save ACK retains receipt-only unknown and never falsely reports 
     await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/UNKNOWN_OPERATION/);assert.equal(posts(f).length,before+1);
     const operationId=command(posts(f).at(-1)).operationId,button=ui.main.querySelector('#fqc-check-result');assert(button);
     await button.click();await tick();assert.equal(posts(f).length,before+1);assert.equal(ui.c.__fqcTest.transport().hasUnknown(),true);
-    unavailable=false;await button.click();await until(()=>!!ui.library.workflow.saved);
+    await until(()=>!ui.c.__fqcTest.ui.saving);unavailable=false;await ui.main.querySelector('#fqc-check-result').click();await until(()=>!!ui.library.workflow.saved);
     assert.equal(ui.c.__fqcTest.transport().hasUnknown(),false);assert.deepEqual(plain(ui.library.workflow.saved.content),(await f.state()).workflow.saved.content);
     assert.equal(posts(f).length,before+1);assert(receipts(ui).every(row=>new URL(row.url,'https://synthetic.invalid').searchParams.get('operationId')===operationId));
   }finally{f.close();}

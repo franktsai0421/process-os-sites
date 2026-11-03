@@ -43,7 +43,7 @@ const templateBinding = exactSpan(appSource,
   "    document\n      .querySelectorAll('[data-remove-template-media]')");
 const formOwnership = exactSpan(source,
   '    const formActor=identity(),formActorId=formActor?.id,formGeneration=library().workflow?.generation,formVersionId=editable()?.id;',
-  '    const version = editable(), errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;');
+  '    const version = clone(editable()), errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;');
 const fqcBinding = exactSpan(source,
   "    overlay.querySelector('#fqc-file-input').onchange = async e => {",
   "    overlay.querySelectorAll('input[name=\"toolType\"]').forEach(r => {");

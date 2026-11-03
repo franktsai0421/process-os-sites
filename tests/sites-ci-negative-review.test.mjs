@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {validatePolicy,authorizeSupplementalReviews,inspectSourceBytes,gitBlobId,runPreflight} from '../scripts/sites-ci-preflight.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url)),policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url))),review=policy.supplementalReviews.find(r=>r.commit==='f58d847d86e318f75631540656a4ae013103461a');
 const checks=[],test=(name,run)=>{run();checks.push(name);};
+const fqcReview=policy.supplementalReviews.find(r=>r.commit==='6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'),negativeEntries=[...review.entries,...fqcReview.entries];
 const proof=()=>({commits:new Set(policy.supplementalReviews.map(r=>r.commit)),pairs:new Map(policy.supplementalReviews.map(r=>[r.commit,new Set(r.entries.map(e=>e.path+'\0'+e.blob))]))});
 const git=(args,cwd=root)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['pipe','pipe','pipe']});
 test('five exact public history tuples and bodies exist without altering historical bytes',()=>{
@@ -17,7 +18,7 @@ test('general policy entries never accept either sensitive category',()=>{
  for(const category of ['PRIVATE_KEY','BEARER_LITERAL'])assert.throws(()=>validatePolicy({...policy,entries:[{path:'tests/example.mjs',blob:'a'.repeat(40),categories:[category]}]}),/SOURCE_REVIEW_POLICY_INVALID/);
 });
 test('supplement cannot change commit path blob category or widen any tuple',()=>{
- for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789'])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['PRIVATE_KEY'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
+ for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789','6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['INLINE_MEDIA'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
 });
 test('missing ancestor and incorrect tree membership refuse even the exported structural helper',()=>{
  const p=proof();p.commits.delete(review.commit);assert.throws(()=>authorizeSupplementalReviews(policy,p.commits,p.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
@@ -25,7 +26,7 @@ test('missing ancestor and incorrect tree membership refuse even the exported st
 });
 test('fabricated Sets and Maps cannot mint the private actual-Git proof',()=>{
  const p=proof(),forged=authorizeSupplementalReviews(policy,p.commits,p.pairs);
- for(const entry of review.entries){const raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root}),crlf=Buffer.from(raw.toString().replace(/\r?\n/g,'\r\n'));
+ for(const entry of negativeEntries){const raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root}),crlf=Buffer.from(raw.toString().replace(/\r?\n/g,'\r\n'));
   const changed=Buffer.concat([raw,Buffer.from('\n// changed')]);
   for(const policyCopy of [forged,{...forged},structuredClone(forged),{entries:forged.entries.map(e=>({...e,categories:[...e.categories,'PRIVATE_KEY','BEARER_LITERAL']}))}]){
    for(const [file,bytes,options] of [[entry.path,raw,{}],['tests/other.mjs',raw,{}],[entry.path,changed,{}],[entry.path,crlf,{}],[entry.path,crlf,{working:true}]])assert.throws(()=>inspectSourceBytes(file,bytes,policyCopy,options),/SOURCE_UNREVIEWED/);
@@ -34,13 +35,18 @@ test('fabricated Sets and Maps cannot mint the private actual-Git proof',()=>{
 });
 test('real credential shapes and altered negative literals never gain generic permission',()=>{
  const p=proof(),forged=authorizeSupplementalReviews(policy,p.commits,p.pairs),header=['-----BEGIN ','PRIVATE KEY-----'].join('');
- for(const entry of review.entries.slice(3))for(const value of [['Bearer','x'.repeat(48)].join(' '),header+'\n'+Buffer.from('synthetic body').toString('base64')+'\n'+['-----END ','PRIVATE KEY-----'].join('')])assert.throws(()=>inspectSourceBytes(entry.path,Buffer.from(value),forged),/SOURCE_UNREVIEWED/);
+ for(const entry of negativeEntries.filter(entry=>entry.categories.some(c=>['PRIVATE_KEY','BEARER_LITERAL'].includes(c))))for(const value of [['Bearer','x'.repeat(48)].join(' '),header+'\n'+Buffer.from('synthetic body').toString('base64')+'\n'+['-----END ','PRIVATE KEY-----'].join('')])assert.throws(()=>inspectSourceBytes(entry.path,Buffer.from(value),forged),/SOURCE_UNREVIEWED/);
 });
 test('actual public ancestry permits only exact historical blobs and CRLF working copies',()=>{
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'source-review-positive-'));
  try{git(['clone','--shared','--no-checkout',root,temp]);git(['checkout','--detach','HEAD'],temp);fs.writeFileSync(path.join(temp,'config/sites-source-reviewed-blobs.json'),JSON.stringify(policy));
   for(const entry of review.entries){const target=path.join(temp,entry.path),raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root});fs.writeFileSync(target,raw.toString().replace(/\r?\n/g,'\r\n'));}
-  const prior=process.env.GITHUB_ACTIONS;try{delete process.env.GITHUB_ACTIONS;const result=runPreflight(temp);assert.equal(result.status,'PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE');assert.equal(result.head,git(['rev-parse','HEAD']).trim());}finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
+  const prior=process.env.GITHUB_ACTIONS;try{delete process.env.GITHUB_ACTIONS;const result=runPreflight(temp);assert.equal(result.status,'PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE');assert.equal(result.head,git(['rev-parse','HEAD']).trim());
+   const entry=fqcReview.entries[0],target=path.join(temp,entry.path),raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root});
+   fs.writeFileSync(target,Buffer.concat([raw,Buffer.from('\n// changed')]));assert.throws(()=>runPreflight(temp),/SOURCE_UNREVIEWED_PRIVATE_KEY/);
+   fs.writeFileSync(target,raw.toString().replace(/\r?\n/g,'\r\n'));assert.equal(runPreflight(temp).status,'PASS_SOURCE_ONLY_HISTORY_AND_WORKTREE');
+   const moved=path.join(temp,'tests/fqc-moved-fixture.mjs');fs.writeFileSync(moved,raw);assert.throws(()=>runPreflight(temp),/SOURCE_UNREVIEWED_PRIVATE_KEY/);fs.unlinkSync(moved);
+  }finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 test('real Git checkout without the pinned public ancestor fails closed',()=>{
@@ -49,7 +55,7 @@ test('real Git checkout without the pinned public ancestor fails closed',()=>{
   const prior=process.env.GITHUB_ACTIONS;try{delete process.env.GITHUB_ACTIONS;assert.throws(()=>runPreflight(temp),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);}finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
-const signerReview=policy.supplementalReviews.at(-1),signer=signerReview.entries[0];
+const signerReview=policy.supplementalReviews.find(r=>r.commit==='ae2ff91eca847faac12337e17cdcbfdfee78d789'),signer=signerReview.entries[0];
 test('sixth tuple pins actual public commit path blob and category without a reusable current signer',()=>{
  assert.equal(signerReview.commit,'ae2ff91eca847faac12337e17cdcbfdfee78d789');assert.equal(signerReview.entries.length,1);
  assert.equal(signer.path,'tests/master-ab-auth-phase-fixture.mjs');assert.equal(signer.blob,'e83221cf75f18c9cdcda72baa69476a78b298077');assert.deepEqual(signer.categories,['ASSIGNED_SECRET']);
@@ -73,5 +79,21 @@ test('actual Git proof never permits reintroducing the exact historical signer i
    git(['checkout','--force','--detach','00993fbd5455fe9dc337cf64bf9ee50ef804afff'],temp);fs.writeFileSync(path.join(temp,'config/sites-source-reviewed-blobs.json'),JSON.stringify(policy));assert.throws(()=>runPreflight(temp),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
   }finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});
+test('real Git ancestor before the FQC extension cannot authorize its tuple',()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'source-fqc-ancestor-negative-'));
+ try{git(['clone','--shared','--no-checkout',root,temp]);git(['checkout','--detach','d88b416123fca250bab813939d82033c3ef1ee2f'],temp);fs.writeFileSync(path.join(temp,'config/sites-source-reviewed-blobs.json'),JSON.stringify(policy));
+  const prior=process.env.GITHUB_ACTIONS;try{delete process.env.GITHUB_ACTIONS;assert.throws(()=>runPreflight(temp),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);}finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
+ }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});
+test('FQC extension pins only the same synthetic marker plus appended recovery tests',()=>{
+ assert.equal(fqcReview.entries.length,1);const entry=fqcReview.entries[0];
+ assert.equal(entry.path,'tests/multiuser-local-recovery-helper.test.mjs');assert.equal(entry.blob,'81c1f0947d8376352ba8670a7dade3c9c6954c35');assert.deepEqual(entry.categories,['PRIVATE_KEY']);
+ assert.equal(git(['rev-parse',fqcReview.commit+':'+entry.path]).trim(),entry.blob);
+ const old=execFileSync('git',['cat-file','blob',review.entries.at(-1).blob],{cwd:root}),raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root});
+ assert(raw.subarray(0,old.length).equals(old));assert.equal(raw.length-old.length,1028);
+ const marker=['-----BEGIN ','PRIVATE KEY-----'].join('');assert.equal(raw.toString().split(marker).length-1,1);assert(!raw.toString().includes(['-----END ','PRIVATE KEY-----'].join('')));
+ const p=proof();p.commits.delete(fqcReview.commit);assert.throws(()=>authorizeSupplementalReviews(policy,p.commits,p.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
+ const q=proof();q.pairs.set(fqcReview.commit,new Set());assert.throws(()=>authorizeSupplementalReviews(policy,q.commits,q.pairs),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
 });
 console.log(JSON.stringify({status:'PASS_EXACT_NEGATIVE_FIXTURE_PROOF_BOUNDARIES',checks,realData:false,network:false}));

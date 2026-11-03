@@ -473,6 +473,16 @@
         return proof.readback;
       }catch{return null;}
     }
+    function supersededRecovery(result){
+      const proof=boundedReadbacks.get(result);
+      return boundedScope==='fqc'&&proof?.superseded===true&&!proof.acknowledged&&proof.record===boundedRecord&&result.control===proof.readback.control&&result.permissions===proof.readback.permissions&&!!verifiedBoundedReadback(result,proof.operationId);
+    }
+    function historicalReadback(result,record,readback){
+      const receipt=result.receipt,flow=boundedFlow(readback);
+      if(boundedScope!=='fqc'||record!==boundedRecord||readback.permissions?.view!==true||!flow||flow.scope!=='fqc'||flow.generation===receipt.generation||flow.revision<=receipt.revision||boundedKnown?.generation!==flow.generation||boundedKnown.revision>flow.revision)throw Error('BOUNDED_READBACK_REQUIRED');
+      const settled={...result,control:readback.control,permissions:readback.permissions,recoveryState:'confirmed-previous-generation'};
+      boundedReadbacks.set(settled,{readback,record,superseded:true,operationId:receipt.operationId,receiptRaw:JSON.stringify(receipt),generation:flow.generation,revision:flow.revision});return settled;
+    }
     function freezeBomAuthority(value){
       if(!value||typeof value!=='object'||Object.isFrozen(value))return;
       for(const child of Object.values(value))freezeBomAuthority(child);
@@ -532,10 +542,12 @@
       if(action==='apply'&&Array.isArray(command.patches)&&command.patches.length){
         if(boundedScope==='master:PROCESS'&&error.status===409&&code==='PROCESS_MASTER_IN_USE')return true;
         if(boundedScope==='fqc'&&error.status===409&&code==='AB_EFFECTIVE_CHANGED_RECONFIRM')return !!command.input?.expectedAB&&typeof command.input.expectedAB==='object';
-        // FQC matrix-only stale rows are rejected by the adapter before any CAS.
+        // FQC ordinary edits and matrix patches share these exact pre-CAS
+        // adapter/structure refusals, including deleted rows and invalid parents.
         // Keep the original POST/command/runtime proof above; receipt 404s and
         // unrelated editor errors cannot establish that a write did not happen.
-        if(boundedScope==='fqc'&&error.status===409&&code==='ENTITY_REMOVED_OR_AMBIGUOUS')return command.patches.every(p=>p.op==='set'&&p.path?.length===3&&p.path[0]==='items'&&typeof p.path[1]?.id==='string'&&['productCodes','productRefs','products'].includes(p.path[2]));
+        if(boundedScope==='fqc'&&error.status===409&&code==='ENTITY_REMOVED_OR_AMBIGUOUS')return true;
+        if(boundedScope==='fqc'&&error.status===422&&code==='ERROR_PARENT_INVALID')return true;
         if(boundedScope==='fqc'&&error.status===422&&code==='EQUIPMENT_UNAVAILABLE')return true;
       }
       // IQC/C route-adapter failures below are exact pre-CAS outcomes, never
@@ -595,7 +607,16 @@
         boundedClear(record);return result;
       }
       const readback=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();const flow=boundedFlow(readback);
-      if(record!==boundedRecord||readback.permissions?.view!==true||!flow||flow.scope!==boundedScope||flow.generation!==receipt.generation||flow.revision<receipt.revision||boundedKnown?.generation!==flow.generation||boundedKnown.revision>flow.revision)throw Error('BOUNDED_READBACK_REQUIRED');
+      if(record!==boundedRecord||readback.permissions?.view!==true||!flow||flow.scope!==boundedScope||flow.revision<receipt.revision||boundedKnown?.generation!==flow.generation||boundedKnown.revision>flow.revision)throw Error('BOUNDED_READBACK_REQUIRED');
+      if(flow.generation!==receipt.generation){
+        // Only a fresh original-receipt GET can confirm an older FQC operation.
+        // Workflow revisions increase across review generations. This proves
+        // history, never ownership or permission to replay input in the new draft.
+        if(boundedScope!=='fqc'||originalPost||flow.revision<=receipt.revision)throw Error('BOUNDED_READBACK_REQUIRED');
+        // Keep the durable barrier until the UI retires stale inputs and any
+        // matrix lineage. A failed cleanup can safely repeat receipt GETs.
+        return historicalReadback(result,record,readback);
+      }
       // Historical metadata cannot manufacture this runtime's write attribution.
       if(!record.historical&&record.command)window.SharedDraftDeparture.confirmed(sessionScope,record.command,result,record.owner);
       boundedClear(record);const settled=['ipqc-c','bom'].includes(boundedScope)?{...result,permissions:readback.permissions}:{...result,control:readback.control,permissions:readback.permissions};boundedReadbacks.set(settled,{readback,operationId:receipt.operationId,receiptRaw:JSON.stringify(receipt),generation:flow.generation,revision:flow.revision});return settled;
@@ -694,7 +715,7 @@
     async function resolveUnknown() {
       if(!unknown)return null;
       const command=unknown,owner=unknownOwner,result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action);
-      if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);syncFailures.delete(command.operationId);return settled;}
+      if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(command.operationId);return settled;}
       window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);
       syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
     }
@@ -735,7 +756,12 @@
           const proof=externalBounded&&boundedReadbacks.get(resolved);if(proof)boundedReadbacks.set(recovered,proof);
           return recovered;
         }
-        catch {throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY'),{operationId:command.operationId});}
+        catch (recoveryCause) {
+          // FQC diagnostics stay in this runtime's error only: preserve the
+          // original transport/validation cause and the failed lookup separately.
+          // Neither cause changes settlement, marker bytes or retry admission.
+          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&boundedScope==='fqc'?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&boundedScope==='fqc'?{recoveryCause}:{})});
+        }
       }
     }
     // Explicit FQC matrix discard only: the exact original, settled pre-CAS
@@ -795,6 +821,11 @@
       legacyRecoveryUnsupported:()=>externalBounded&&boundedLegacy,
       isRuntimeCurrent:()=>externalCurrent(),
       isVerifiedReadback:result=>!!verifiedBoundedReadback(result,result?.receipt?.operationId),
+      isSupersededRecovery:supersededRecovery,
+      acknowledgeSupersededRecovery(result){
+        if(!supersededRecovery(result))throw Error('CONFIRMED_HISTORICAL_RECEIPT_REQUIRED');
+        const proof=boundedReadbacks.get(result),id=result.receipt.operationId;if(boundedRecord)boundedClear(boundedRecord);proof.acknowledged=true;syncFailures.delete(id);return true;
+      },
       verifiedReadback:(result,operationId)=>boundedText(operationId)?verifiedBoundedReadback(result,operationId):null,
       verifiedApplyAuthority:(result,operationId)=>boundedText(operationId)?verifiedBomApplyAuthority(result,operationId):null,
       hasSyncFailures:()=>!!syncFailures.size,
@@ -822,7 +853,7 @@
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
       prepare(generation,action,details={}) {assertOwner();const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
-      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);syncFailures.delete(id);return settled;}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
+      receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command,options) {
         assertMutationAdmission();if(externalCanvas&&command?.action!=='apply')throw Object.assign(Error('CANVAS_EXTERNAL_APPLY_ONLY'),{notSent:true});
@@ -843,7 +874,7 @@
         const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;
         if(abEntry)abEntry.flight=result;
         void result.then(()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);},()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);});
-        tail=result.then(()=>{syncFailures.delete(command.operationId);if(action==='apply'){
+        tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);
         }},error=>{if(action==='apply'&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;

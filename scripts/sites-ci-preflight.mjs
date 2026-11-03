@@ -13,11 +13,15 @@ const held=new Set(['scripts/dev-package-restore.mjs','scripts/u1-package.mjs','
 const negativeFixtureReview={"commit":"f58d847d86e318f75631540656a4ae013103461a","entries":[{"path":"scripts/test-iqc-editing-projection-races.cjs","blob":"9874f0c059728373f9b8e60df6d74b167b9ecbf1","categories":["WORKSTATION_PATH"]},{"path":"scripts/test-iqc-editing-projection-ui.cjs","blob":"f4c1d47bb90371b329c2f53f0b55a3023c09de3e","categories":["WORKSTATION_PATH"]},{"path":"tests/multiuser-canvas-actual-transport.test.mjs","blob":"62de3828f3748c6544702062e835bc4942df338d","categories":["WORKSTATION_PATH"]},{"path":"tests/multiuser-iqc-local-recovery-composition.test.mjs","blob":"2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e","categories":["BEARER_LITERAL"]},{"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"e038d0aaddb80a09ff6fdff6a1d1a19de04e6e57","categories":["PRIVATE_KEY"]}]};
 for(const entry of negativeFixtureReview.entries){Object.freeze(entry.categories);Object.freeze(entry);}
 Object.freeze(negativeFixtureReview.entries);Object.freeze(negativeFixtureReview);
+// Independently reviewed FQC recovery coverage extends the same negative fixture.
+// Pin the published ancestor and exact bytes; later edits still require review.
+const fqcRecoveryFixtureReview=Object.freeze({commit:'6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c',entries:Object.freeze([Object.freeze({path:'tests/multiuser-local-recovery-helper.test.mjs',blob:'81c1f0947d8376352ba8670a7dade3c9c6954c35',categories:Object.freeze(['PRIVATE_KEY'])})])});
+const negativeFixtureReviews=Object.freeze([negativeFixtureReview,fqcRecoveryFixtureReview]);
 const negativeFixtureProofs=new WeakMap();
 const historicalSignerReview=Object.freeze({commit:'ae2ff91eca847faac12337e17cdcbfdfee78d789',entries:Object.freeze([Object.freeze({path:'tests/master-ab-auth-phase-fixture.mjs',blob:'e83221cf75f18c9cdcda72baa69476a78b298077',categories:Object.freeze(['ASSIGNED_SECRET'])})])});
 const historicalSignerProofs=new WeakSet();
 const proofKey=(file,blob,category)=>file+'\0'+blob+'\0'+category;
-const negativeFixtureKeys=Object.freeze(negativeFixtureReview.entries.flatMap(entry=>entry.categories.map(category=>proofKey(entry.path,entry.blob,category))));
+const negativeFixtureKeys=Object.freeze(negativeFixtureReviews.flatMap(review=>review.entries.flatMap(entry=>entry.categories.map(category=>proofKey(entry.path,entry.blob,category)))));
 const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',entries:[
  {path:'scripts/test-integrated-bootstrap.cjs',blob:'c991cb7e3d377436df4780a7fa334b35472cd8f6',categories:['ASSIGNED_SECRET']},
  {path:'tests/sites-delivery-browser.test.mjs',blob:'ce58816f488382bfe41438ce629c15b6b0594c08',categories:['WORKSTATION_PATH']},
@@ -27,7 +31,7 @@ const supplementalReviews=[{commit:'f5992734796c93d384759af4656ec878fb9614ce',en
 // future browser discovery no longer embeds an installation path.
 {commit:'705e92bf53b7cd4ed9667444bcd5289679a86234',entries:[
  {path:'tests/sites-delivery-browser.test.mjs',blob:'f7992a769f1e739ce60ec6887137348824a429e6',categories:['WORKSTATION_PATH']},
-]},negativeFixtureReview,historicalSignerReview];
+]},negativeFixtureReview,historicalSignerReview,fqcRecoveryFixtureReview];
 const patterns=[
  ['PRIVATE_KEY',/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
  ['GITHUB_TOKEN',/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,})\b/],
@@ -125,8 +129,10 @@ export function runPreflight(root=path.resolve(fileURLToPath(new URL('..',import
  const authorizedPolicy=authorizeSupplementalReviews(policy,new Set(commits),supplementPairs);
  // Unlike exported helper inputs, these Sets/Maps were obtained directly from Git
  // for this real checkout. Missing public ancestry or exact tree membership refuses.
- if(!commits.includes(negativeFixtureReview.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
- for(const entry of negativeFixtureReview.entries)if(!supplementPairs.get(negativeFixtureReview.commit)?.has(entry.path+'\0'+entry.blob))throw Error('SOURCE_SUPPLEMENT_BLOB_MISMATCH');
+ for(const review of negativeFixtureReviews){
+  if(!commits.includes(review.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
+  for(const entry of review.entries)if(!supplementPairs.get(review.commit)?.has(entry.path+'\0'+entry.blob))throw Error('SOURCE_SUPPLEMENT_BLOB_MISMATCH');
+ }
  negativeFixtureProofs.set(authorizedPolicy,negativeFixtureKeys);
  if(!commits.includes(historicalSignerReview.commit))throw Error('SOURCE_SUPPLEMENT_NOT_ANCESTOR');
  const historicalSigner=historicalSignerReview.entries[0];

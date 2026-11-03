@@ -26,7 +26,8 @@
         {"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"e038d0aaddb80a09ff6fdff6a1d1a19de04e6e57","categories":["PRIVATE_KEY"]}
       ]
     },
-    {"commit":"ae2ff91eca847faac12337e17cdcbfdfee78d789","entries":[{"path":"tests/master-ab-auth-phase-fixture.mjs","blob":"e83221cf75f18c9cdcda72baa69476a78b298077","categories":["ASSIGNED_SECRET"]}]}
+    {"commit":"ae2ff91eca847faac12337e17cdcbfdfee78d789","entries":[{"path":"tests/master-ab-auth-phase-fixture.mjs","blob":"e83221cf75f18c9cdcda72baa69476a78b298077","categories":["ASSIGNED_SECRET"]}]},
+    {"commit":"6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c","entries":[{"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"81c1f0947d8376352ba8670a7dade3c9c6954c35","categories":["PRIVATE_KEY"]}]}
   ],
   "entries": [
     {
