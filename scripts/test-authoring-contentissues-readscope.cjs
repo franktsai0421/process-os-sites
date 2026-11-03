@@ -59,15 +59,12 @@ assert.equal(candidateCounters.routeBinding.overrideUsed,false);assert.notEqual(
 const requiredKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','processAuthoringControl','masterDataControl','bomOverrides','ipqcABMasterControl','ipqcCMasterControl'];
 const selector="keys:"+JSON.stringify(requiredKeys).replaceAll('"',"'")+",";
 const lf=text=>text.replace(/\r\n/g,'\n'),candidateRoute=fs.readFileSync(path.join(source,routeKey),'utf8');
-// Reverse only the pinned diagnostics spans before the unchanged selector/dispatch fence.
-const {withoutNavigationTiming}=require('./navigation-timing-source-contract.cjs'),protectedRoute=withoutNavigationTiming(routeKey,Buffer.from(lf(candidateRoute))).toString();
 const oldPost="export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter()).POST(request);",newPost="export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter(new URL(request.url).searchParams.get('channel')==='canvas-v2')).POST(request);";
 assert.equal(lf(baselineRoute).split(oldPost).length,2,'one pinned POST dispatch');
 const expectedRoute=lf(baselineRoute).replace(oldPost,newPost);
 const assertRoute=text=>assert.equal(lf(text).replace(selector,''),expectedRoute,'only selector and exact canvas-v2 dispatch; all other route bytes pinned');
-assertRoute(protectedRoute);assertRoute(lf(protectedRoute).replaceAll('\n','\r\n'));
-assert.equal(withoutNavigationTiming(routeKey,Buffer.from(lf(lf(candidateRoute).replaceAll('\n','\r\n')))).toString(),protectedRoute,'timing fence permits only the existing LF/CRLF checkout conversion');
-for(const altered of [protectedRoute.replace(newPost,oldPost),protectedRoute.replace(newPost,newPost+newPost),protectedRoute.replace("==='canvas-v2'","!=='canvas-v2'")])assert.throws(()=>assertRoute(altered),{code:'ERR_ASSERTION'});
+assertRoute(candidateRoute);assertRoute(lf(candidateRoute).replaceAll('\n','\r\n'));
+for(const altered of [candidateRoute.replace(newPost,oldPost),candidateRoute.replace(newPost,newPost+newPost),candidateRoute.replace("==='canvas-v2'","!=='canvas-v2'")])assert.throws(()=>assertRoute(altered),{code:'ERR_ASSERTION'});
 async function pair(name,{query='contentIssues=1',who='editor',status=200,afterStatus=status,policyDelta=false,ioSame=false}={}){
  const before=await measure(name+' baseline',api,counters,query,who,status),after=await measure(name+' candidate',targetApi,candidateCounters,query,who,afterStatus);
  assert.deepEqual(after.headers,before.headers,name+' headers');

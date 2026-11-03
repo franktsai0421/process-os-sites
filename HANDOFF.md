@@ -1,10 +1,6 @@
-## 2026-11-01 — navigation diagnostic authorization hardening (HOLD)
+## 2026-11-03 — Remove PR #61 speed diagnostics
 
-The independent diagnostic candidate now reuses verified non-demo-admin identity for sample admission and consumes quota only after successful authorization. Start/Refresh/Export revalidate current access; missing authorized samples stop browser recording. Inactive diagnostic pages install no hooks, and teardown is idempotent. No permission, business data model, credential or deployment change. Exact verification and remaining cost proposal are maintained in [navigation acceptance](docs/acceptance/navigation-timing-20261101/README.md). Parent review remains required; no public upload.
-
-## 2026-11-01 — bounded navigation diagnostics (local, not deployed)
-
-Independent `diag/cloud-navigation-timing` on merged main `c129318`; rejected speed candidates remain archived and withdrawn. Adds explicit, expiring diagnostic UI at `/navigation-timing`, safe request-local intervals and bounded synthetic verification. [Scope, controls, evidence and limitations](docs/acceptance/navigation-timing-20261101/README.md). Parent coordinates existing test Site review/CI/deployment and live observation; this worker made no live request, account/data change or publication.
+Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.
 
 ## 2026-11-01 — FQC conflict Discard recovery (#60 / local #59 integration)
 

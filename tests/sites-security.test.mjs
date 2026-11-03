@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import {AsyncLocalStorage} from 'node:async_hooks';
 import {webcrypto,randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
@@ -22,10 +21,6 @@ function loader(overrides={}) {
   const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,Uint8Array,ArrayBuffer,crypto:webcrypto,atob,btoa,console});
   const cache=new Map();
   function load(specifier,importer=path.join(root,'entry.ts')) {
-    if(specifier==='node:async_hooks') {
-      if(!cache.has(specifier))cache.set(specifier,new vm.SyntheticModule(['AsyncLocalStorage'],function(){this.setExport('AsyncLocalStorage',AsyncLocalStorage);},{context}));
-      return cache.get(specifier);
-    }
     if(Object.hasOwn(overrides,specifier)) {
       const key='override:'+specifier;
       if(!cache.has(key)){const exports=overrides[specifier];cache.set(key,new vm.SyntheticModule(Object.keys(exports),function(){for(const [name,value] of Object.entries(exports))this.setExport(name,value);},{context}));}
@@ -93,31 +88,6 @@ await test('versioned snapshot exports, verifies and imports to isolated fixture
 await test('snapshot drift never publishes a complete manifest',async()=>{const pack=fixturePackage({drift:true});await assert.rejects(exportSnapshot(pack.source,pack.sink),/SOURCE_CHANGED/);assert.equal(pack.manifest,undefined);assert.equal(pack.aborted,true);});
 await test('snapshot corruption aborts staging; hosted and nonempty targets rejected',async()=>{const pack=fixturePackage();await exportSnapshot(pack.source,pack.sink);const target=fixtureTarget();pack.chunks.set('c1',new TextEncoder().encode('XX'));await assert.rejects(importSnapshot(pack.reader,target),/INTEGRITY/);assert.equal(target.aborted,true);assert.equal(target.committed,false);await assert.rejects(importSnapshot(pack.reader,{...fixtureTarget(),scope:'site'}),/LOCAL_TARGET/);await assert.rejects(importSnapshot(pack.reader,{...fixtureTarget(),async isEmpty(){return false;}}),/NOT_EMPTY/);});
 await test('snapshot validates schema, coverage, ordering, traversal and chunk bounds',async()=>{const pack=fixturePackage();await exportSnapshot(pack.source,pack.sink);for(const change of [m=>m.format='other',m=>m.chunks[0].offset=1,m=>m.chunks[0].resource='r2/../secret',m=>m.chunks[0].bytes=maximumChunkBytes+1,m=>m.chunks=m.chunks.filter(c=>c.resource!=='db/state_backups')]){const bad=structuredClone(pack.manifest);change(bad);assert.throws(()=>validateSnapshot(bad));}await assert.rejects(importSnapshot(pack.reader,{...fixtureTarget(),schemaFingerprint:'c'.repeat(64)}),/SCHEMA_MISMATCH/);});
-await test('real VM timing builtin isolates overlapping admin and denied request contexts',async()=>{
- const timing=await loader()('lib/navigation-timing.ts');
- const request=()=>new Request('https://fixture.invalid/api/process-bootstrap',{headers:{'X-Process-Timing':'1'}});
- let releaseAdmin=()=>{},markAdminStarted=()=>{};
- const holdAdmin=new Promise(resolve=>{releaseAdmin=resolve;});
- const adminStarted=new Promise(resolve=>{markAdminStarted=resolve;});
- const admin=timing.navigationTiming(request(),true,async()=>{
-  timing.timingAuthority({role:'admin',sessionType:'platform'});markAdminStarted();await holdAdmin;
-  await timing.timingSpan('db.first',()=>Promise.resolve());return Response.json({actor:'admin-fixture'});
- });
- await adminStarted;
- const denied=timing.navigationTiming(request(),true,async()=>{
-  timing.timingAuthority({role:'staff',sessionType:'platform'});
-  await timing.timingSpan('r2.get',()=>Promise.resolve());releaseAdmin();await admin;
-  return Response.json({actor:'denied-fixture'});
- });
- const [adminResponse,deniedResponse]=await Promise.all([admin,denied]);
- assert.match(adminResponse.headers.get('server-timing'),/db.first/);
- assert.doesNotMatch(adminResponse.headers.get('server-timing'),/r2.get/);
- assert.equal(deniedResponse.headers.get('server-timing'),null);
- assert.deepEqual(await adminResponse.json(),{actor:'admin-fixture'});
- assert.deepEqual(await deniedResponse.json(),{actor:'denied-fixture'});
- const outside=await timing.navigationTiming(request(),true,async()=>Response.json({ok:true}));
- assert.equal(outside.headers.get('server-timing'),null,'completed authority must not leak into a new request');
-});
 const evidence={status:'PASS_FIXTURE_ONLY',cases:report.length,tests:report,scope:{SDK:false,Miniflare:false,HTTP:false,database:false,realCredentials:false,realData:false,deployment:false,fullBuild:false}};
 if(process.env.SITES_TEST_REPORT)fs.writeFileSync(process.env.SITES_TEST_REPORT,JSON.stringify(evidence,null,2)+'\n');
 console.log(JSON.stringify(evidence));

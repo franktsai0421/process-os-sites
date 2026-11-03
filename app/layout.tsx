@@ -1,4 +1,3 @@
-import {navigationTimingLoader} from '@/lib/navigation-timing-loader.mjs';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -14,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
-      <body><script dangerouslySetInnerHTML={{__html:navigationTimingLoader}} />{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

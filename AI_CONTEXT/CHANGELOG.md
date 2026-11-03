@@ -1,14 +1,10 @@
+## 2026-11-03 — Remove PR #61 speed diagnostics
+
+Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.
+
 ## 2026-11-02 — FQC whole-matrix last-successful-Apply candidate (not published)
 
 Matrix Apply immediately replaces shared matrix relations in server CAS order; Save remains a separate whole-FQC snapshot. Full collection-scope checks reject adds/deletes without resurrecting rows. Original pre-CAS refusal classification fixes the reproduced nonexistent-receipt query, while true unknown outcomes remain receipt-only. Supersedes the unpublished local-stage proposal. No schema migration or live-data change. [Evidence and limitations](../docs/acceptance/fqc-matrix-last-apply-20261102/README.md).
-
-## 2026-11-01 — navigation diagnostic authorization hardening (HOLD)
-
-The independent diagnostic candidate now reuses verified non-demo-admin identity for sample admission and consumes quota only after successful authorization. Start/Refresh/Export revalidate current access; missing authorized samples stop browser recording. Inactive diagnostic pages install no hooks, and teardown is idempotent. No permission, business data model, credential or deployment change. Exact verification and remaining cost proposal are maintained in [navigation acceptance](../docs/acceptance/navigation-timing-20261101/README.md). Parent review remains required; no public upload.
-
-## 2026-11-01 — opt-in navigation diagnostics candidate
-
-Add bounded, default-off request timings and authenticated diagnostic UI/export without changing business protocols. No acceleration claim, migration, persistent credential or Site action. [Controls and verification](../docs/acceptance/navigation-timing-20261101/README.md).
 
 ## 2026-11-01 — FQC matrix conflict Discard → Save (#60 / local integration)
 

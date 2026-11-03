@@ -1,13 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { createRootEntryFixture } from './root-entry-native-fixture.mjs';
-export async function createPhotoEntryFixture({diagnostics=false,revocation=false}={}) {
+export async function createPhotoEntryFixture() {
   const fixture = await createRootEntryFixture({
     syntheticBindings: {
       PROCESS_IMPORT_ENABLED: '0',
-      ...(diagnostics?{PROCESS_NAVIGATION_TIMING:'1',PROCESS_NAVIGATION_TIMING_UNTIL:new Date(Date.now()+3600000).toISOString()}:{}),
       PROCESS_SESSION_SECRET: randomBytes(32).toString('hex'),
-      PROCESS_SESSION_REVOCATION_ENABLED: revocation?'1':'0',
+      PROCESS_SESSION_REVOCATION_ENABLED: '0',
       WEB_FEEDBACK_ENABLED: '1',
     },
   });
