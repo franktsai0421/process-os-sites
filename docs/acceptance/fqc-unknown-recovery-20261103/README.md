@@ -46,3 +46,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --test tests/fqc-unknown-r
 FQC_SOURCE=/workspace/process-os-sites node --test tests/fqc-unknown-recovery.test.mjs
 FQC_UI_REF=781ade54c55d31954271ddbd3ec005bd49cbcbb4 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --test --test-name-pattern='lost ACK retained (error|item) form 390px zh' tests/fqc-unknown-recovery-browser.test.mjs
 ```
+
+## Full CI follow-up: localization scope
+
+The first full Local safety run (41578546579) passed FQC, typed lint, TypeScript, build and source/authorization regressions, then failed the authoring Save UI contract: its toast intentionally expected the raw `RESULT_UNKNOWN_CHECK_BEFORE_RETRY` display. The initial generic shared translation inadvertently changed that other module. Recovery classification/storage behavior remained intact. The correction moves the new bilingual guidance into FQC's own formatter and restores `shared-draft-client.js` byte-for-byte to main; the authoring test is retained unchanged. FQC tests exercise the local formatter and additionally assert the shared display contract is unchanged. Full CI must rerun on the corrected commit; the failed run is not counted as a pass.

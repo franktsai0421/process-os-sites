@@ -1,5 +1,17 @@
 (function (host) {
-  const displayDraftError = error => window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
+  // FQC recovery guidance is scoped to this UI; other modules retain their
+  // existing shared error-display contract and raw transport classifications.
+  const fqcRecoveryMessages = {
+      UNKNOWN_OPERATION_CHECK_REQUIRED:['前次操作結果尚未確認，暫時不能套用。輸入仍保留；請按「查詢前次結果」，確認後再套用。','Kết quả thao tác trước chưa được xác nhận nên chưa thể áp dụng. Nội dung nhập vẫn được giữ; hãy bấm Kiểm tra kết quả trước rồi áp dụng sau khi xác nhận.'],
+      RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['尚未確認伺服器是否完成前次操作。請查詢前次結果；不要重複送出，輸入仍保留。','Chưa xác nhận máy chủ đã hoàn tất thao tác trước hay chưa. Hãy kiểm tra kết quả trước, không gửi lại; nội dung nhập vẫn được giữ.'],
+      OPERATION_NOT_FOUND:['目前查不到前次操作回執，結果仍未確認。請稍後再查詢；不會自動重送或清除輸入。','Hiện chưa tìm thấy biên nhận của thao tác trước; kết quả vẫn chưa được xác nhận. Hãy kiểm tra lại sau; không tự gửi lại hoặc xóa nội dung nhập.'],
+      FQC_FORM_CONTEXT_CHANGED:['帳號或草稿已變更，此表單暫停套用。請先複製保留輸入，再重新開啟最新資料核對。','Tài khoản hoặc bản nháp đã thay đổi nên biểu mẫu tạm dừng áp dụng. Hãy sao chép nội dung nhập rồi mở lại dữ liệu mới nhất để đối chiếu.'],
+  };
+  const displayDraftError = error => {
+    const raw=typeof error==='string'?error:error?.message||String(error??'');
+    const code=Object.hasOwn(fqcRecoveryMessages,error?.code)?error.code:raw;
+    return Object.hasOwn(fqcRecoveryMessages,code)?fqcRecoveryMessages[code][isVi()?1:0]:window.sharedDraftErrorMessage?.(error)??raw;
+  };
   // FormData yields native strings/Files; preserve the historical File tag conversion.
   function nativeFormValueText(value) {
     if (typeof value === 'string') return value;

@@ -10,6 +10,7 @@ void test('confirmed receipt clears FQC failure state and retained error form se
    if(hidden&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
    const response=await f.call(url,options);if(lost&&options.method==='POST'){lost=false;throw Error('SYNTHETIC_ACK_LOST');}return response;
   }});
+  assert.equal(ui.c.sharedDraftErrorMessage('RESULT_UNKNOWN_CHECK_BEFORE_RETRY'),'RESULT_UNKNOWN_CHECK_BEFORE_RETRY','FQC-only guidance must not change another module shared display contract');
   await ui.c.__fqcTest.sharedAction('begin');ui.c.__fqcTest.openErrorModal('error');
   const form=ui.doc.querySelector('.fqc-modal-form'),input=form.querySelector('[name="name"]');input.value='Committed';lost=true;hidden=true;
   await form.onsubmit({preventDefault(){},target:form});assert(ui.c.__fqcTest.transport().hasUnknown());assert(ui.c.__fqcTest.ui.lastError);
