@@ -1265,7 +1265,6 @@
   async function persistForm(overlay,version) {
     const owner=formOwners.get(overlay);
     if(!owner?.current())throw Error('FQC_FORM_CONTEXT_CHANGED');
-    if(!library().workflow){Object.assign(editable(),clone(version));return persist();}
     const snapshot=clone(version.snapshot),detail=changes(owner.base,snapshot);
     return sharedAction('apply',detail,command=>{owner.attempt={operationId:command.operationId,snapshot};});
   }
