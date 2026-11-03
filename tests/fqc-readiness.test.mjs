@@ -8,9 +8,15 @@ import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
 // Keep the fixture's unrelated read ports, but execute the actual production poll gate.
 const sharedSource = fs.readFileSync(new URL('../public/process/shared-draft-client.js', import.meta.url), 'utf8');
-const pauseStart = sharedSource.indexOf('  window.createScopedReadPause = label => {');
-const pauseEnd = sharedSource.indexOf('  const clients=new Set(),transports=new Map(),', pauseStart);
+// The following client registry may gain unrelated maps; it is only the end
+// boundary, not part of the polling implementation exercised by this fixture.
+const pauseStartMarker = '  window.createScopedReadPause = label => {';
+const pauseEndMarker = '  const clients=new Set(),';
+const pauseStart = sharedSource.indexOf(pauseStartMarker);
+const pauseEnd = sharedSource.indexOf(pauseEndMarker, pauseStart);
 assert(pauseStart >= 0 && pauseEnd > pauseStart);
+assert.equal(sharedSource.indexOf(pauseStartMarker, pauseStart + pauseStartMarker.length), -1);
+assert.equal(sharedSource.indexOf(pauseEndMarker, pauseEnd + pauseEndMarker.length), -1);
 const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
 const part = (start, end) => {
   const a = source.indexOf(start), b = source.indexOf(end, a + start.length);

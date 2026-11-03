@@ -49,6 +49,27 @@ viewports/languages. The client asset token advances to
 `20261103-unknown-departure3`. New exact-head validation and independent re-review
 are required; CI on the earlier integration is not acceptance of this correction.
 
+## CI run 260 fixture-boundary correction
+
+Run `41685595597` on `5e31e9c962b15e0c02d53d95b7689313446c3f27` failed in
+Integrated entry and read-only delivery contracts. `fqc-readiness.test.mjs`
+could not find its source-extraction end marker: it expected adjacent `clients`
+and `transports` declarations, but #68 inserted `clientAccounts` between them.
+The assertion failed at module load, before the 30 readiness cases executed;
+this was independently reproduced locally. Later workflow stages were skipped,
+so the failed run cannot be treated as complete CI acceptance.
+
+Only the fixture boundary changes: use the unique `const clients=new Set(),`
+prefix while retaining ordering and adding uniqueness assertions for both
+markers. All readiness behavior assertions remain, and actual production
+polling code still executes. The extracted span is byte-identical to merged
+main `9aafc28`: 13,080 bytes, SHA-256
+`9a08734adeaaa46953418ba542d584c048e398cb4761762e08ee715ea6cc518c`.
+After correction all 30 readiness tests and 67 scoped-read-pause groups pass.
+There is no product, workflow, schema, permission or unknown-recovery change in
+this follow-up. Full new-head CI and independent review remain required; this
+does not retry the separately blocked PR base or description updates.
+
 ## Implemented scope
 
 Master data (AB/C/lines/PROCESS), IPQC-AB, Tooling and routine equipment opt into the common navigation lease only when their actual shared transport holds an intact unknown operation, no queued work, verified view access, matching actor/session generation and the original durable marker. IPQC-AB must account for both scope and module transports. Unsupported Begin recovery in Tooling/equipment remains blocked. Additional unrelated unknown operations still block departure.
