@@ -33,6 +33,22 @@ the original branch does not establish integration acceptance. No merge or
 deployment is authorized by local validation, and all requested work must finish
 before any coordinated release.
 
+Independent read-only integration review of `75e4f1230752f2b078c6bcd1424e34cfe6b552f4`
+confirmed preservation of the merged features and ran 261 focused cases, but
+found a P2 malformed-body denial gap: a plain-text HTTP 401/403 caused JSON
+parsing to throw before ordinary permission reads retired navigation coverage.
+Both guarded and ordinary clients reproduced the defect. The follow-up sends
+such read denials through the existing owner-fenced access projection before
+rethrowing the original parse error (or the existing accepted-access HTTP error).
+It tightens UI view permission and retires navigation coverage, preserving
+unknown markers and write locks; stale read replies cannot revoke a current
+lease. Four denial regressions fail before the fix and pass afterward, with two
+stale-read checks and 98 focused transport/adapter/cache/permission cases PASS.
+The compiled AB cases now cover both JSON and plain-text denials at both
+viewports/languages. The client asset token advances to
+`20261103-unknown-departure3`. New exact-head validation and independent re-review
+are required; CI on the earlier integration is not acceptance of this correction.
+
 ## Implemented scope
 
 Master data (AB/C/lines/PROCESS), IPQC-AB, Tooling and routine equipment opt into the common navigation lease only when their actual shared transport holds an intact unknown operation, no queued work, verified view access, matching actor/session generation and the original durable marker. IPQC-AB must account for both scope and module transports. Unsupported Begin recovery in Tooling/equipment remains blocked. Additional unrelated unknown operations still block departure.

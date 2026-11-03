@@ -12,6 +12,7 @@ function fixture(memory=new Map(),guardAccessResults=false){
  const window={ProcessSync:{identity:{id:'A'},identityGeneration:()=>state.epoch,requiresReload:false},addEventListener:(name,fn)=>events[name]=fn};
  const context=vm.createContext({window,host:window,document,crypto:webcrypto,AbortController,setTimeout,clearTimeout,sessionStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)},fetch:async(url,options)=>{
   calls.push({url,options});if(options.body)throw Error('lost response');
+  if(url.includes('permissions=1')&&state.permissionReply)return await state.permissionReply;
   if(url.includes('operationId=')){if(state.phase==='missing')return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});const command=JSON.parse(calls.find(c=>c.options.body).options.body).command;return Response.json({receipt:{operationId:command.operationId,generation:command.generation,revision:7,savedId:null,caseId:null,unchanged:false}});}
   return Response.json({permissions:{view:state.access,edit:state.access,save:state.access}});
  }});
@@ -73,4 +74,19 @@ for(const guarded of [false,true])void test(`observed view denial retires naviga
  f.state.access=true;await f.clients[0].permissions();assert.equal(f.adapter.covered(),false);assert.equal(f.window.sharedDraftDepartureBlocked(),true);
  assert.deepEqual([...f.memory],bytes);assert(f.clients[0].hasUnknown());assert.equal(f.calls.filter(c=>c.options.body).length,1);
  const fresh=await f.adapter.abandon();f.adapter.closeClean();fresh.release();assert.equal(f.adapter.covered(),true);
+});
+for(const guarded of [false,true])for(const status of [401,403])void test(`non-JSON ${status} retires navigation without settling unknown (guarded=${guarded})`,async()=>{
+ const f=fixture(new Map(),guarded);await f.start();const bytes=[...f.memory],lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();
+ f.state.permissionReply=new Response('Forbidden',{status});await assert.rejects(f.clients[0].permissions(),SyntaxError);
+ assert.equal(f.clients[0].permission('view'),false);assert.equal(f.adapter.covered(),false);assert.equal(f.adapter.inspect().canAbandon,false);
+ f.clients[0].invalidateReadState();assert.equal(f.adapter.covered(),false);assert.equal(f.window.sharedDraftDepartureBlocked(),true);
+ f.state.permissionReply=null;await f.clients[0].permissions();assert.equal(f.adapter.covered(),false);assert.equal(f.window.sharedDraftDepartureBlocked(),true);
+ assert.deepEqual([...f.memory],bytes);assert(f.clients[0].hasUnknown());assert.equal(f.calls.filter(c=>c.options.body).length,1);
+ const fresh=await f.adapter.abandon();f.adapter.closeClean();fresh.release();assert.equal(f.adapter.covered(),true);
+});
+for(const guarded of [false,true])void test(`stale non-JSON denial cannot revoke a current navigation lease (guarded=${guarded})`,async()=>{
+ const f=fixture(new Map(),guarded);await f.start();const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();
+ let reply;f.state.permissionReply=new Promise(resolve=>{reply=resolve;});const pending=f.clients[0].permissions();f.clients[0].invalidateReadState();
+ reply(new Response('Forbidden',{status:403}));await assert.rejects(pending,SyntaxError);
+ assert.equal(f.clients[0].permission('view'),undefined);assert.equal(f.adapter.covered(),true);assert.equal(f.window.sharedDraftDepartureBlocked(),false);assert(f.clients[0].hasUnknown());
 });

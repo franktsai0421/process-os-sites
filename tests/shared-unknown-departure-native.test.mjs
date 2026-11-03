@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
-for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB unknown abandons input, browses C and returns without POST ${width} ${lang}`,async()=>{
+for(const [width,lang,plainDenial]of [[390,'zh',false],[1280,'vi',false],[390,'zh',true],[1280,'vi',true]])void test(`compiled AB unknown abandons input, browses C and returns without POST ${width} ${lang} plainDenial=${plainDenial}`,async()=>{
  const f=await createABCFixture(),browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})}),context=await browser.newContext({viewport:{width,height:850},serviceWorkers:'block'});
  try{
   await context.route('**/*',r=>new URL(r.request().url()).origin===f.url.origin?r.continue():r.abort());await context.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),lang);await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);
@@ -17,9 +17,9 @@ for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB unknown
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','AB'));await page.waitForFunction(()=>window.ProcessSync.destination.dataTab==='AB'&&document.documentElement.dataset.processNavigationStatus==='ready');
   assert.equal(posts.length,before);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(await page.locator('#master-edit-dialog').count(),0);assert.deepEqual(errors,[]);
   const deniedPermissions=/\/api\/master\/workflow\?.*permissions=1/;
-  await page.route(deniedPermissions,r=>r.fulfill({status:403,json:{error:'FORBIDDEN'}}));
-  const denied=await page.evaluate(async()=>{const client=window.MasterDataWorkflow.shared.client('AB');let status;try{await client.permissions();}catch(error){status=error.status;}client.invalidateReadState();return {status,blocked:window.sharedDraftDepartureBlocked(),unknown:client.hasUnknown()};});
-  assert.deepEqual(denied,{status:403,blocked:true,unknown:true});
+  await page.route(deniedPermissions,r=>r.fulfill(plainDenial?{status:403,contentType:'text/plain',body:'Forbidden'}:{status:403,json:{error:'FORBIDDEN'}}));
+  const denied=await page.evaluate(async()=>{const client=window.MasterDataWorkflow.shared.client('AB');let status;try{await client.permissions();}catch(error){status=error.status||error.name;}client.invalidateReadState();return {status,blocked:window.sharedDraftDepartureBlocked(),unknown:client.hasUnknown()};});
+  assert.deepEqual(denied,{status:plainDenial?'SyntaxError':403,blocked:true,unknown:true});
   await page.unroute(deniedPermissions);await page.evaluate(()=>window.MasterDataWorkflow.shared.client('AB').permissions());
   assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));assert.equal(posts.length,before);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);
  }finally{await context.close();await browser.close();await f.close();}
