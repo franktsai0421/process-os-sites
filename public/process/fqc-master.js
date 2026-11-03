@@ -1290,7 +1290,7 @@
         try{
           record.coverage=sharedClient.coverDeparture(anchor,current);
           if(!verified())throw Error('DEPARTURE_CONTEXT_CHANGED');
-          return {departureId:record.id,release(){for(const {node,inert}of locked)node.inert=inert;if(!record.committed)record.coverage.release();if(held===record)held=null;}};
+          return {departureId:record.id,release(){for(const {node,inert}of locked)node.inert=inert;locked.length=0;if(!record.committed)record.coverage.release();if(held===record)held=null;}};
         }catch(error){record.coverage?.release();held=null;for(const {node,inert}of locked)node.inert=inert;throw error;}
       },
       closeClean(){
