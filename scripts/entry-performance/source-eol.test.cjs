@@ -48,6 +48,11 @@ for (const test of cases) {
       ['changed original prefix',raw.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
       ['relocated tail',tail+prefix],
       ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
+      ...proof.fqcAuthorityHydrationInverse.spans.flatMap((row,index)=>[
+        ['changed authority inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected authority drift\n')],
+        ['missing authority inverse '+index,raw.replace(row.candidate,'')],
+        ['duplicate authority inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],
+      ]),
     ];
     for(const[name,source]of corruptions){assert.notEqual(source,raw,name+' mutation is effective');assert.throws(()=>execute(source),{code:'ERR_ASSERTION'},name+' must be rejected');}
     checks+=corruptions.length+1;

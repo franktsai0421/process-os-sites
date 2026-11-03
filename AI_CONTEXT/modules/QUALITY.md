@@ -6,6 +6,14 @@
 
 IQC workflow presentation returns generation/revision-bound draftContentIssues from the same iqcContentIssues checks used on submission. Missing counts count issues, accept valid source fallback, and exclude optional suppliers and import notices. Selected cases retain stored contentIssues; stale/absent draft results remain unchecked. Response metadata is never persisted; equipment structure, permissions and submission policy are unchanged. [Local evidence](../../docs/acceptance/iqc-content-issues-20261103/README.md).
 
+## 2026-11-03 — FQC abandonment and unknown results
+
+Explicitly abandoning unsent input permits SPA browsing while the original unknown Apply remains locked. The new client drops inputs without copying or restoring them; target preparation failure keeps the source. Original receipt lookup, generation/CAS and later collaborator changes remain authoritative. Other module departures require separate validation. [Evidence and limits](../../docs/acceptance/fqc-authority-body-20261103.md).
+
+## 2026-11-03 — FQC authority audit hydration
+
+Ordinary records-v1 Apply/Save hydrate the five pinned authority aggregates through the existing SHA-verified decoder, including normal `audit.before` bodies, before original authorization and business reads. Invalid JSON in an overridden maintenance aggregate still fails; hydrated unresolved bodies are refused before the override as well. Other commands/readers and frontend behavior are unchanged. [Evidence and recovery limits](../../docs/acceptance/fqc-authority-body-20261103.md).
+
 ## 2026-11-03 FQC unknown-result form recovery candidate
 
 Open forms keep detached input baselines and submit guarded field deltas after model readback. Only a matching confirmed original operation advances that form's baseline; other editors' later values stay protected. Explicit in-dialog receipt lookup clears errors after authoritative readback, keeps input, and never re-POSTs. Matrix receipt lookup can settle with a form open. Stable creation IDs prevent duplicate inserts. Shared drafts, Save/review boundaries, permissions and schema are unchanged. [Evidence and live-incident limits](../../docs/acceptance/fqc-unknown-recovery-20261103/README.md).

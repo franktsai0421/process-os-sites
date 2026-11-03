@@ -64,3 +64,13 @@ export async function makeCapability(context,action='apply',{lowLevel=false,seal
  }};
  if(seal)cap.seal();return cap;
 }
+
+// Go through the production serializer: a hand-built inline authority fixture
+// cannot reproduce the audit.before representation produced by normal writes.
+export async function addAuthorityAudit(f){
+ await f.mutate(values=>{values.processAccessControl=JSON.stringify({schemaVersion:2,audit:[{id:'synthetic-audit',action:'update-user',actor:{id:'editor'},before:{enabled:true,accessOverrides:{'fqc.edit':true}},after:{enabled:true}}]});});
+ const pointer=storedEnvelope(f).__processRecords.values.processAccessControl;
+ const aggregate=JSON.parse(f.objects.get(pointer.key).toString());
+ assert(aggregate.audit[0].before.__immutableBody,'normal serializer must produce the incident shape');
+ return aggregate.audit[0].before.__immutableBody;
+}

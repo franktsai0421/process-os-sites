@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC departure data boundary
+
+No server model/schema/migration changes and no new browser input archive. The proposed fqc-input-checkpoint-v1 feature has been removed before merge. Existing unknown receipt markers remain unchanged; runtime-only navigation coverage never authorizes writes or settles an operation. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).
+
 ## 2026-11-02 — FQC complete-matrix relation projection
 
 No persistent schema or shared-draft model change. FQC `apply` with `moduleAction: replace-matrix-v1` accepts complete live item ID/category/productCodes and effective product code/category sets; the server validates membership and derives only productCodes/productRefs/legacy products from latest rows before existing CAS. Saved snapshots and review states are unchanged. Browser recovery adds a completeMatrix payload; old incomplete copies are retained but cannot be converted silently into whole-matrix overwrites. [Behavior and limits](../docs/acceptance/fqc-matrix-last-apply-20261102/README.md).

@@ -211,6 +211,7 @@
     const expand=child=>{if(child&&typeof child==='object'&&!Array.isArray(child)&&Object.hasOwn(child,'__commandMedia')){const index=child.__commandMedia;if(Object.keys(child).length!==1||!Number.isInteger(index)||typeof value.media[index]!=='string')throw Error('INVALID_RECOVERY_RECORD');return value.media[index];}if(Array.isArray(child))return child.map(expand);if(child&&typeof child==='object')return Object.fromEntries(Object.entries(child).map(([key,item])=>[key,expand(item)]));return child;};return expand(value.command);
   }
   window.sharedDraftAccountState=()=>{const own=[...clients].filter(c=>!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id);return{queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
+  window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&(c.unknown()||c.failed())&&!c.departureCovered?.());
   // oxlint-disable-next-line typescript/no-deprecated -- Required compatibility signal for Chromium's unsynchronized-work exit warning.
   window.addEventListener?.('beforeunload',event=>{const pending=window.sharedDraftAccountState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
   const scrollLocks=new Set();let previousOverflow='';
@@ -361,7 +362,7 @@
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
     const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
-    clients.add({actorId,queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size});
+    const accountClient={actorId,queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
@@ -386,6 +387,11 @@
     }
     const boundedPrefix='shared-draft-receipt-only-v1:',boundedSentinel='receipt-only-v1',boundedSelected=new Map(),boundedSelectedObjects=new WeakMap(),boundedCapabilities=new Map(),boundedProofs=new Map(),boundedResponses=new WeakMap(),boundedRejected=new WeakSet(),boundedReadbacks=new WeakMap(),boundedPostAuthorities=new WeakMap();
     let boundedRecord=null,boundedKnown=null,boundedKnownVersion=0,boundedLegacy=false,boundedDiscovered=[];
+    // Navigation-only coverage. It never settles an operation or alters write
+    // admission, the account's unknown flag, receipts or native unload warnings.
+    const departureAnchors=new WeakMap();let departureCoverage=null;
+    function departureEligible(){return externalBounded&&boundedScope==='fqc'&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&!!boundedRecord&&boundedRecord.action==='apply'&&[...syncFailures.values()].every(failure=>failure.command.operationId===boundedRecord.operationId);}
+    function departureCovered(){try{return departureEligible()&&departureCoverage?.record===boundedRecord&&(externalOwner.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(externalOwner.identity,externalOwner.epoch)===true)&&externalOwner.epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
     const canvasTarget=externalCanvas&&endpoint==='/api/process-authoring/workflow?caseMetadata=1&channel=canvas-v2';
     const canvasObserving=canvasPrimary||canvasTarget;
@@ -818,6 +824,16 @@
       resolveUnknown,
       retryUnknown:async()=>{assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
       hasUnknown:()=>!!unknown||recoveryInvalid,
+      departureUnknown(){
+        assertOwner();if(!departureEligible()||access?.view!==true||boundedDiscover().length!==1||sessionStorage.getItem(boundedRecord.key)!==boundedSentinel)return null;
+        const anchor=Object.freeze({operationId:boundedRecord.operationId,generation:boundedRecord.generation});departureAnchors.set(anchor,boundedRecord);return anchor;
+      },
+      otherDeparturePending(){return [...clients].some(c=>c!==accountClient&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
+      coverDeparture(anchor,check){
+        assertOwner();if(!departureEligible()||departureAnchors.get(anchor)!==boundedRecord||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
+        const coverage={record:boundedRecord,check};departureCoverage=coverage;
+        return {current:()=>departureCoverage===coverage&&departureCovered(),release(){if(departureCoverage===coverage)departureCoverage=null;}};
+      },
       legacyRecoveryUnsupported:()=>externalBounded&&boundedLegacy,
       isRuntimeCurrent:()=>externalCurrent(),
       isVerifiedReadback:result=>!!verifiedBoundedReadback(result,result?.receipt?.operationId),
