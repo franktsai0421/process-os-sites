@@ -1,4 +1,4 @@
-import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcSubmitErrors, iqcSubmitBlockingErrors, nextIqcErrorCode, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
+import { emptyIqcControl, emptyIqcSnapshot, checkedIqcSnapshot, iqcContentIssues, nextIqcErrorCode, nextIqcCheckNo, type IqcControl, type IqcSnapshot } from './iqc';
 import { parse } from './process-state';
 import { DraftConflict, applyDraftCommand, stableDraftJSON, type SharedDraft, type DraftPatch } from './shared-draft';
 import { effectiveVersion, type WorkflowAdapter } from './versioned-shared-workflow';
@@ -19,6 +19,7 @@ const editableFields:Record<keyof IqcSnapshot,string[]>={categories:['nameVi'],s
 export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>={
   key:'iqcMasterControl',scope:'iqc',parse:parseIqcWorkflow,empty:emptyIqcSnapshot,
   preparedModel:true,permissionOnlyRead:true,
+  draftMissing:content=>iqcContentIssues(content).filter(issue=>issue.kind==='missing'),
   photoPrefix:'iqc/photos/',photoIds:content=>[...content.parts.flatMap(p=>p.photos.map(p=>p.id)),...content.items.flatMap(i=>(i.mediaItems||[]).map(p=>p.id))],
   context(control,state,base){
     const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode?:string;pieceMark?:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
@@ -46,12 +47,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
         }
         try{checkedIqcSnapshot(previous,content,true);}catch(error){throw new DraftConflict(error instanceof Error?error.message:'INVALID_STRUCTURE',422);}
       },
-      validate(content){const errors=iqcSubmitErrors(content),blocked=new Set(iqcSubmitBlockingErrors(content,errors));return [
-        ...errors.map(message=>{
-          const item=content.items.find(row=>message.startsWith(row.checkNo+' ')),part=item?undefined:content.parts.find(row=>message.startsWith(row.code+' '));
-          return{kind:blocked.has(message)?'error' as const:'missing' as const,path:item?['items',{id:item.id},'rules']:part?['parts',{id:part.id},message.endsWith('零件名稱空白')?'nameVi':'categoryId']:[],message};
-        }),
-        ...(['categories','suppliers','errors','items'] as const).flatMap(collection=>content[collection].filter(row=>!('isDeleted' in row&&row.isDeleted)&&!row.nameVi?.trim()).map(row=>({kind:'missing' as const,path:[collection,{id:row.id},'nameVi'],message:'NAME_REQUIRED'}))),
+      validate(content){return [...iqcContentIssues(content),
         ...content.items.filter(i=>!i.isDeleted&&i.equipmentId&&(!selected.has(i.equipmentId)||selected.get(i.equipmentId)?.enabled===false)).map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];}
     };
   },

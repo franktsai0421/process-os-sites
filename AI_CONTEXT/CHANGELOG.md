@@ -1,3 +1,11 @@
+2026-11-03 IQC language follow-up: targeted pending-label/message text updates preserve open details and unsaved forms during same-page Chinese/Vietnamese switching; browser reproduction and verification are recorded in the IQC acceptance note.
+
+2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
+
+## 2026-11-03 — IQC draft/case missing count and source
+
+Replaced the client-only completeness heuristic with the existing server content checks; separated import notices and clarified working versus fixed-case sources. Local-only candidate; no data or rule change. [Verification and limitations](../docs/acceptance/iqc-content-issues-20261103/README.md).
+
 ## 2026-11-03 — FQC explicit input abandonment
 
 User clarified that unsent inputs should be discarded, without checkpoint or restoration. Removed the unmerged full-input archive feature. FQC unknown Apply now has a separate verified navigation lease: it drops current form buffers at successful handoff while retaining receipt identity and write locks. No automatic resend, 404 settlement or shared rollback. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).

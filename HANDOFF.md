@@ -1,3 +1,11 @@
+2026-11-03 IQC language follow-up: targeted pending-label/message text updates preserve open details and unsaved forms during same-page Chinese/Vietnamese switching; browser reproduction and verification are recorded in the IQC acceptance note.
+
+2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
+
+## 2026-11-03 — IQC content-issue source correction (local only)
+
+Draft missing counts now use the same server content checks as submission; import notices are separate, unknown results stay unchecked, and fixed-case results retain their original snapshot source. No business-rule/data/permission change. [Implementation, tests and limits](docs/acceptance/iqc-content-issues-20261103/README.md). No push, PR, merge or deployment.
+
 ## 2026-11-03 — FQC PR #65 departure simplification
 
 Current task follows the user’s later preference: abandon unsent input and browse other pages, with no new input archive or restore UI. The unmerged checkpoint implementation was removed. All-draft-page support is a separate expansion because process canvas discard can perform server rollback. PR #65 and the old live v37 session are not declared deployed/fixed; complete CI and independent review remain gates. [Evidence and limits](docs/acceptance/fqc-authority-body-20261103.md).

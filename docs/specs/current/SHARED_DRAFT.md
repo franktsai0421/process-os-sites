@@ -1,3 +1,9 @@
+IQC data-state notes retain counts for unstructured formal frequency and unselected optional suppliers outside content-missing totals. Their source is the currently selected draft or fixed version; they add no submission gate.
+
+## 2026-11-03 IQC completeness presentation clarification
+
+For IQC, draft and submitted-case missing counts use the existing server content-issue definition and count individual missing issues. Valid source rules and optional supplier information do not become missing merely because they lack structured cadence or selection. Import notices remain distinct. Label the loaded working draft separately from a fixed submitted snapshot; unavailable inspection is not zero. This presentation correction does not change which content may be submitted, structural validation or any authorization guard. [Implementation evidence](../../acceptance/iqc-content-issues-20261103/README.md).
+
 ## 2026-11-03 使用者澄清：放棄未存輸入後可以離頁
 
 使用者要求所有草稿頁面可以明確選擇放棄未存輸入後切頁查看資料；不需要保留、checkpoint 或還原。放棄只處理本機未送出輸入，不代表撤回已共享內容、取消在途請求、清除 unknown 或允許重送。未知操作的原識別、結果追查與寫入鎖必須保留；404 不證明未提交。新 FQC 候選實作單獨導航許可，其餘草稿頁面依各自資料／回執機制驗證，不能聲稱已全部支援。此項新要求取代下列歷史離頁規則中「必須保存所有輸入才可離開」的解讀；在途寫入、身分變化和無法證明鎖仍存在時繼續保守處理。
