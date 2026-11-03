@@ -1207,7 +1207,13 @@
     window.dispatchEvent(new CustomEvent('process-runtime-updated'));
   });
   const priorRender = render;
-  if (new URL(location.href).searchParams.get('approvalTab') === 'routine') state.approvalTab = 'routine';
+  // Bootstrap has already authorized and normalized the view. The tab is
+  // display intent only; resolve it before the first approval render.
+  const approvalIntent = new URL(location.href).searchParams;
+  if (approvalIntent.get('view') === 'approval') {
+    const tabs = approvalIntent.getAll('approvalTab');
+    state.approvalTab = tabs.length === 1 && ['master', 'process', 'quality', 'routine'].includes(tabs[0]) ? tabs[0] : 'master';
+  }
   render = function () {
     const restoreMaster=window.MasterAdminUI?.preserveView?.();
     if (state.view === 'approval')
