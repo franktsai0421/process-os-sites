@@ -1,6 +1,6 @@
-## 2026-11-03 — FQC explicit input checkpoint
+## 2026-11-03 — FQC abandonment and unknown results
 
-FQC's departure adapter wraps the existing Save/Discard contract with an explicit unknown-only park action. `fqc-input-checkpoint.js` captures and restores inert complete form views plus closure/baseline/media/matrix data in per-actor/path sessionStorage. Shared transport issues navigation-only coverage bound to its intact unknown marker and exact verified archive; account unknown, mutation guards and native unload warnings stay unchanged. Navigation checks other scopes and a matching parked lease. Read-only restoration is gated by fresh FQC/catalog permission reads; no input auto-rebase or receipt fabrication. [Contract, tests, private-data limits and old-client blocker](../../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+Explicitly abandoning unsent input permits SPA browsing while the original unknown Apply remains locked. The new client drops inputs without copying or restoring them; target preparation failure keeps the source. Original receipt lookup, generation/CAS and later collaborator changes remain authoritative. Other module departures require separate validation. [Evidence and limits](../../docs/acceptance/fqc-authority-body-20261103.md).
 
 ## 2026-11-03 — FQC authority audit hydration
 

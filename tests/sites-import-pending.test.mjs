@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runImportBoot,activeBootResponse} from './import-pending-browser-fixture.mjs';
-const navigationPreload='./navigation-lifecycle.mjs?v=20261103-fqc-checkpoint1';
+const navigationPreload='./navigation-lifecycle.mjs?v=20261103-fqc-departure2';
 const ownedDraftImport='./owned-draft-ledger.mjs?v=20261030-platform5';
 const expectedPreloads=[{href:'app.js',rel:'preload',as:'script'},{href:navigationPreload,rel:'modulepreload',as:null}];
 const tests=[];async function test(name,run){await run();tests.push(name);}

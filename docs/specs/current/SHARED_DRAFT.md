@@ -1,3 +1,7 @@
+## 2026-11-03 使用者澄清：放棄未存輸入後可以離頁
+
+使用者要求所有草稿頁面可以明確選擇放棄未存輸入後切頁查看資料；不需要保留、checkpoint 或還原。放棄只處理本機未送出輸入，不代表撤回已共享內容、取消在途請求、清除 unknown 或允許重送。未知操作的原識別、結果追查與寫入鎖必須保留；404 不證明未提交。新 FQC 候選實作單獨導航許可，其餘草稿頁面依各自資料／回執機制驗證，不能聲稱已全部支援。此項新要求取代下列歷史離頁規則中「必須保存所有輸入才可離開」的解讀；在途寫入、身分變化和無法證明鎖仍存在時繼續保守處理。
+
 ## 2026-11-02 FQC matrix interaction clarification
 
 User-confirmed rule: pressing matrix Apply immediately writes the entire captured matrix selection to shared working. Last successful server commit wins, including replacing choices from an earlier editor's stale screen; only matrix relations may be overwritten. Hidden/search-filtered data remains part of the full selection. Changed product/item collections reject and require reload. Upper Save separately saves the latest whole FQC shared snapshot; approval stays separate. Permissions, pending locks, original receipts, safe unknown-result query and other forms' guarded conflicts remain. [Candidate details and verification](../../acceptance/fqc-matrix-last-apply-20261102/README.md).
@@ -39,8 +43,3 @@ AB/C 送審明示本次已儲存快照的時間／儲存者，分頁列出未包
 ## 2026-10-30 離頁放棄的確認邊界
 
 使用者確認：離頁「放棄」僅撤銷本次可確認屬於自己的未儲存修改；不得整份還原而取消他人的共享工作。逐欄位核對前值與版本，同欄已被他人修改、身分/權限/世代變更或寫入結果未知時留在原頁，保留輸入並說明原因。已成功 Save 的快照、送審案件、正式版本與歷史不得刪除或重寫。儲存並離頁仍依既有規則儲存整個模組共用內容，需確認最新輸入已套用且後端保存成功。此為已確認需求，並非宣告所有模組已實作。
-
-
-## 2026-11-03 FQC 明確保全後暫離
-
-使用者另行授權：FQC unknown 可在完整保存未送出輸入、驗證存檔與擁有者後明確暫離；這不是「放棄」，也不是確認操作失敗。保留原 unknown 寫入鎖及操作識別，404 不視為未提交，不自動重送。離頁說明工作資料的本分頁儲存範圍；返回以唯讀副本核對，不能自動套到他人更新的草稿。儲存/完整性/權限/身分/其他操作隔離檢查失敗時仍留頁。範圍、隔離證據及舊實站分頁限制見 [FQC 驗收](../../acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate)；未發布與獨立審查仍是實站驗收阻擋。

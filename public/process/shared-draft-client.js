@@ -830,7 +830,7 @@
       },
       otherDeparturePending(){return [...clients].some(c=>c!==accountClient&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
       coverDeparture(anchor,check){
-        assertOwner();if(!departureEligible()||departureAnchors.get(anchor)!==boundedRecord||typeof check!=='function'||check()!==true)throw Error('FQC_CHECKPOINT_NOT_VERIFIED');
+        assertOwner();if(!departureEligible()||departureAnchors.get(anchor)!==boundedRecord||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
         const coverage={record:boundedRecord,check};departureCoverage=coverage;
         return {current:()=>departureCoverage===coverage&&departureCovered(),release(){if(departureCoverage===coverage)departureCoverage=null;}};
       },

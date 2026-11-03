@@ -1,6 +1,6 @@
-## 2026-11-03 — FQC verified temporary departure candidate
+## 2026-11-03 — FQC PR #65 departure simplification
 
-PR #65 now adds explicit, exact-readback session checkpoints and a separate parked navigation lease while retaining unknown write locks. Complete form/media/equipment/matrix input is restored read-only after authorized reads, never replayed or rebased. Old v37 RAM-only forms cannot safely inherit this via forced reload. No live data/merge/deploy action. [Implementation, tests, privacy limits and remaining gates](docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+Current task follows the user’s later preference: abandon unsent input and browse other pages, with no new input archive or restore UI. The unmerged checkpoint implementation was removed. All-draft-page support is a separate expansion because process canvas discard can perform server rollback. PR #65 and the old live v37 session are not declared deployed/fixed; complete CI and independent review remain gates. [Evidence and limits](docs/acceptance/fqc-authority-body-20261103.md).
 
 ## 2026-11-03 — FQC authority-body compatibility candidate
 

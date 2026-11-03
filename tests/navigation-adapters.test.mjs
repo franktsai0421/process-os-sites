@@ -114,14 +114,13 @@ void test('changed persistent-navigation executable references have coherent new
   'app.js':'20261031-quality-recovery1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261031-bom-ram-save1',
-  'bootstrap.js':'20261103-fqc-checkpoint1',
+  'bootstrap.js':'20261103-fqc-departure2',
   'canvas-local.js':'20261031-canvas-post-authority1',
   'canvas-recovery-store.js':'20261031-canvas-recovery1',
-  'delivery-navigation.js':'20261103-fqc-checkpoint1',
+  'delivery-navigation.js':'20261103-fqc-departure2',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
-  'fqc-master.js':'20261103-fqc-checkpoint1',
-  'fqc-input-checkpoint.js':'20261103-fqc-checkpoint1',
+  'fqc-master.js':'20261103-fqc-departure2',
   'ipqc-ab.js':'20261031-ab-create1',
   'ipqc-c.js':'20261031-quality-recovery1',
   'iqc-master.js':'20261031-iqc-readback1',
@@ -132,7 +131,7 @@ void test('changed persistent-navigation executable references have coherent new
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261031-insert-ack1',
   'routine-fqc.js':'20261031-routine-receipt1',
-  'shared-draft-client.js':'20261103-fqc-checkpoint1',
+  'shared-draft-client.js':'20261103-fqc-departure2',
   'shared-state.js':'20261101-quality-review-admission1',
   'tooling.js':'20261030-module-departure2',
   'user-access.js':'20261029-fqc-dependencies1',
@@ -152,7 +151,7 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-fqc-checkpoint1"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-fqc-departure2"));
 });
 
 // The FQC control wraps its shared flow inside the FQC library.

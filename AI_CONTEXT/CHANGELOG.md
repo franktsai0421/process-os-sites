@@ -1,6 +1,6 @@
-## 2026-11-03 — FQC input checkpoint and safe temporary departure
+## 2026-11-03 — FQC explicit input abandonment
 
-Added explicit verified tab-session input archives and a separate navigation-only parked lease. Unknown/404 never unlocks writing; returning restores a read-only complete copy for comparison against fresh authorized data. Other scopes/failures remain blocking. No server schema/data migration; new browser archive schema v1 and affected cache versions only. [Evidence, privacy and live-session blockers](../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+User clarified that unsent inputs should be discarded, without checkpoint or restoration. Removed the unmerged full-input archive feature. FQC unknown Apply now has a separate verified navigation lease: it drops current form buffers at successful handoff while retaining receipt identity and write locks. No automatic resend, 404 settlement or shared rollback. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).
 
 ## 2026-11-03 — FQC Apply/Save normal authority-body compatibility
 

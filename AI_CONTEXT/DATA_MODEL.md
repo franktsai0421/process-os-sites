@@ -1,6 +1,6 @@
-## 2026-11-03 — FQC private input checkpoint
+## 2026-11-03 — FQC departure data boundary
 
-No server model/schema/migration changes. Browser sessionStorage adds `fqc-input-checkpoint-v1:` records keyed by origin/path/actor/UUID, containing schema/id/context/time and a complete private form/media/matrix comparison payload. It is separate from receipt-only unknown markers and never becomes a command, authority/receipt proof or shared working state. Exact-byte navigation coverage is runtime-only; copied records carry none. Plaintext/session/quota limits and read-only restoration are defined in [acceptance](../docs/acceptance/fqc-authority-body-20261103.md#authorized-safe-temporary-departure-source-candidate).
+No server model/schema/migration changes and no new browser input archive. The proposed fqc-input-checkpoint-v1 feature has been removed before merge. Existing unknown receipt markers remain unchanged; runtime-only navigation coverage never authorizes writes or settles an operation. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).
 
 ## 2026-11-02 — FQC complete-matrix relation projection
 

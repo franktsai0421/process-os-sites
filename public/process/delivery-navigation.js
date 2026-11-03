@@ -21,7 +21,7 @@
  };
  const isDecision=node=>node?.dataset?.navigationDeparture==='true';
  const ownedDialog=(adapter,node)=>{try{return !!adapter?.ownsDialog?.(node);}catch{return false;}};
- function adapterState(adapter){try{const value=adapter.inspect();if(value&&['clean','dirty','busy','unknown','blocked','parked'].includes(value.state))return value;}catch{}return{state:'unknown',canSave:false,canDiscard:false,reason:document.documentElement.lang==='vi'?'Chưa xác nhận trạng thái bản nháp. Hãy ở lại và đọc lại trạng thái hoặc kiểm tra biên nhận gốc.':'草稿狀態尚未確認，請留在原頁重新讀取狀態或查詢原操作收據。'};}
+ function adapterState(adapter){try{const value=adapter.inspect();if(value&&['clean','dirty','busy','unknown','blocked','departing'].includes(value.state))return value;}catch{}return{state:'unknown',canSave:false,canDiscard:false,reason:document.documentElement.lang==='vi'?'Chưa xác nhận trạng thái bản nháp. Hãy ở lại và đọc lại trạng thái hoặc kiểm tra biên nhận gốc.':'草稿狀態尚未確認，請留在原頁重新讀取狀態或查詢原操作收據。'};}
  function otherDepartureBlocked(adapter,ignoreSaved=false,candidate=false){
   if(sync.requiresReload||draftsPending(candidate?adapter:null)||window.ProcessNavigationForms?.composing?.())return true;
   if(window.ProcessRuntimeProjection?.canLeave?.()===false&&!adapter?.ownsRuntimeLocal?.()||(window.MasterDataWorkflow?.navigation?.departure!==adapter&&window.MasterDataWorkflow?.canLeave?.()===false))return true;
@@ -32,12 +32,12 @@
  }
  function canLeave(ignoreSaved=false){
   const adapter=departureAdapter();
-  if(adapter&&!['clean','parked'].includes(adapterState(adapter).state))return false;
+  if(adapter&&!['clean','departing'].includes(adapterState(adapter).state))return false;
   return !otherDepartureBlocked(adapter,ignoreSaved);
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-fqc-checkpoint1');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-fqc-departure2');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -171,7 +171,7 @@
    const adapter=owner?.adapter||departureAdapter();
    if(!adapter)return{state:'blocked',canSave:false,canDiscard:false,reason:t('目前頁面尚未支援此離頁流程，請先完成或取消原操作。','Trang này chưa hỗ trợ quy trình rời trang; hãy hoàn tất hoặc hủy thao tác hiện tại.')};
    const status=adapterState(adapter);
-   if(otherDepartureBlocked(adapter,false,status.canPark===true&&typeof adapter.otherDraftsPending==='function'))return{...status,state:'blocked',canSave:false,canDiscard:false,canPark:false,reason:sync.requiresReload?t('登入身分或權限已變更，請保留輸入並重新確認登入狀態。','Phiên đăng nhập hoặc quyền đã thay đổi; giữ nội dung và kiểm tra phiên đăng nhập.'):status.reason||t('仍有處理中、結果未確認的操作或其他視窗。請留在原頁，先查詢操作結果或關閉該視窗，再切頁。','Có thao tác đang xử lý, kết quả chưa xác nhận hoặc cửa sổ khác. Hãy kiểm tra kết quả hoặc đóng cửa sổ đó trước khi chuyển trang.')};
+   if(otherDepartureBlocked(adapter,false,status.canAbandon===true&&typeof adapter.otherDraftsPending==='function'))return{...status,state:'blocked',canSave:false,canDiscard:false,canAbandon:false,reason:sync.requiresReload?t('登入身分或權限已變更，請保留輸入並重新確認登入狀態。','Phiên đăng nhập hoặc quyền đã thay đổi; giữ nội dung và kiểm tra phiên đăng nhập.'):status.reason||t('仍有處理中、結果未確認的操作或其他視窗。請留在原頁，先查詢操作結果或關閉該視窗，再切頁。','Có thao tác đang xử lý, kết quả chưa xác nhận hoặc cửa sổ khác. Hãy kiểm tra kết quả hoặc đóng cửa sổ đó trước khi chuyển trang.')};
    return status;
   }
   function updateDecision(value){
@@ -180,7 +180,7 @@
    decisionDialog.querySelector('[data-departure-state]').textContent=value.phase==='mutating'?t('正在確認並處理草稿，請稍候。','Đang xác nhận và xử lý bản nháp. Vui lòng chờ.'):value.phase==='handoff'?t('草稿已處理，正在載入選定頁面。','Đã xử lý bản nháp; đang tải trang đã chọn.'):value.status.reason||(value.status.state==='clean'?t('目前沒有本次待處理變更，可前往選定頁面。','Không còn thay đổi của lần chỉnh sửa này cần xử lý; có thể tới trang đã chọn.'):t('請選擇如何處理目前尚未儲存的變更。','Chọn cách xử lý thay đổi chưa lưu.'));
    decisionDialog.querySelector('[data-departure-error]').textContent=value.error||'';
    for(const action of ['save','discard','stay'])decisionDialog.querySelector('[data-departure-choice="'+action+'"]').disabled=action==='stay'?value.phase==='mutating':value.phase!=='choosing'||!(action==='save'&&value.status.state==='clean')&&(value.status.state!=='dirty'||!value.status[action==='save'?'canSave':'canDiscard']);
-   const park=decisionDialog.querySelector('[data-departure-choice="park"]');park.hidden=value.status.canPark!==true&&value.status.state!=='parked';park.disabled=value.phase!=='choosing'||value.status.state!=='unknown'||value.status.canPark!==true;
+   const abandon=decisionDialog.querySelector('[data-departure-choice="abandon"]');abandon.hidden=value.status.canAbandon!==true&&value.status.state!=='departing';abandon.disabled=value.phase!=='choosing'||value.status.state!=='unknown'||value.status.canAbandon!==true;
   }
   function hideDecision(){const dialog=decisionDialog;decisionDialog=null;decisionChoose=null;decisionSnapshot=null;if(!dialog)return;dialog.onclose=null;dialog.close();dialog.remove();pendingDecisionFocus=decisionFocus;decisionFocus=null;restoreDecisionFocus();}
   function showDecision(value,choose){
@@ -189,7 +189,7 @@
    const title=document.createElement('h2');title.id='process-navigation-departure-title';title.textContent=t('離開目前頁面','Rời trang hiện tại');dialog.append(title);
    for(const name of ['target','state','error']){const p=document.createElement('p');p.setAttribute('data-departure-'+name,'');if(name==='error')p.setAttribute('role','alert');dialog.append(p);}
    const choices=document.createElement('div');choices.style.cssText='display:flex;flex-direction:column;gap:.65rem';
-   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未送出的修改並離開','Bỏ thay đổi chưa gửi và rời đi'],['park','保全輸入並暫離（結果仍未確認）','Bảo toàn đầu vào và tạm rời (chưa xác nhận kết quả)'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
+   for(const [action,zh,vi]of [['save','儲存草稿並離開','Lưu bản nháp và rời đi'],['discard','放棄未送出的修改並離開','Bỏ thay đổi chưa gửi và rời đi'],['abandon','放棄未存輸入並離開（操作結果仍未確認）','Bỏ nội dung chưa lưu và rời đi (chưa xác nhận kết quả)'],['stay','留在本頁','Ở lại trang này']]){const button=document.createElement('button');button.type='button';button.className='button ghost';button.style.cssText='font-size:16px;line-height:1.5;min-height:44px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;';button.setAttribute('data-departure-choice',action);button.textContent=t(zh,vi);button.onclick=()=>void decisionChoose?.(action);choices.append(button);}
    dialog.append(choices);dialog.oncancel=event=>{event.preventDefault();if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};dialog.onclose=()=>{if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};document.body.append(dialog);updateDecision(value);dialog.showModal();dialog.querySelector('[data-departure-choice="stay"]').focus();
   }
   const departure=createDepartureCoordinator({

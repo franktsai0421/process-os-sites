@@ -7,7 +7,7 @@ import {addAuthorityAudit} from './fqc-required-dependencies-fixture.mjs';
 const fixture=createRequire(import.meta.url)('../scripts/fqc-apply-fixture.cjs');
 export const read=name=>process.env.FQC_UI_REF?execFileSync('git',['show',process.env.FQC_UI_REF+':public/process/'+name],{encoding:'utf8'}):fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
 const styles=['styles.css','master-data.css','master-data-extra.css','master-data-validation.css','fqc-master.css','version-draft-ui.css'].map(read).join('\n');
-export const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js',...(process.env.FQC_UI_REF?[]:['fqc-input-checkpoint.js']),'fqc-master.js'];
+export const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js','fqc-master.js'];
 export const posts=f=>f.requests.filter(r=>r.method==='POST'&&JSON.parse(r.body).command);
 export async function setup(width=1280,lang='zh'){
  const f=await fixture(),browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});
