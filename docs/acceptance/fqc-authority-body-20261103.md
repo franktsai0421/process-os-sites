@@ -34,6 +34,7 @@ Cloud Linux, Node 24.19.0, native Chromium, actual TypeScript routes with epheme
 | Required dependencies/capabilities | PASS 80, plus the then-six focused tests (86 total in that run); preserved maintenance precedence, denied permissions, unrelated-fault isolation, selected snapshots, CAS races, one-use capabilities and compatibility |
 | Apply/receipt/matrix/navigation regression | PASS 207; first actual 500 before/after CAS, retained form, second-click guard, receipt lookup, ACK projection, generation recovery, multiuser matrix and departure coordinator |
 | Actual browser forms/recovery | PASS 29; 390/1280 px, Traditional Chinese/Vietnamese, plus collaborator, historical and matrix cases described above |
+| Clean source clone | PASS: standalone clone of implementation commit `c9fcc4a799e1db518dfb41fae34d5db17696cdfa`, locked dependency install, 9 focused tests, source-boundary check and clean worktree; no original node_modules or business package reused |
 | Full typed lint | PASS, exit 0 |
 | Build | PASS, exit 0, existing postbuild auth-client check passes; build stamped with the verified base SHA, not represented as a deployed candidate |
 
