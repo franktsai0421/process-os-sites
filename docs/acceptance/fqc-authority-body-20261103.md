@@ -78,3 +78,5 @@ Replacement validation (2026-11-03): PASS 40 actual Chromium tests (11 abandonme
 Follow-up: complete typed lint now PASS (exit 0); all 83 actual module-binding tests PASS after the extraction fix. No product behavior or check thresholds were changed by this test-only follow-up.
 
 Navigation lease release also drops its references to detached form elements, so unknown receipt coverage does not retain abandoned DOM/input buffers. The 11 native abandonment tests and complete typed lint passed after this change.
+
+CI follow-up: Local safety run 234 failed at the identity-prefetch historical source pin after the authority-reader change. The fixture now reverses exactly four SHA-pinned authority-only spans for its baseline, preserving the original complete FQC tail, prefix and identity baseline hashes. The executed candidate remains unmodified. PASS 42 identity-read equivalence cases, 32 LF/CRLF and source-drift rejection checks (including changed/missing/duplicate authority spans), and the 10 authority regressions. No performance threshold, authorization gate or product code was weakened; final independent review and latest-head full CI remain separate.
