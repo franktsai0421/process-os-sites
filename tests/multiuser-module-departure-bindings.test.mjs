@@ -62,8 +62,8 @@ for(const name of modules){
   f.unknown(false);f.box.s.retry=null;f.allowed(false);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());assert.equal(f.writes,0);
  });
 }
-for(const name of modules)for(const revoked of [false,true])void test(`${name}: actual local-only discard ${revoked?'after edit revocation':'with edit access'} never calls Save or rewrites shared content`,async()=>{
- const f=fixture(name),b=f.box;f.flow.contributors={field:{actor:{id:'colleague'}}};if(revoked)f.allowed(false);const before=JSON.stringify(f.flow);
+for(const name of modules)for(const revoked of [false,true])for(const action of ['discard','abandon'])void test(`${name}: actual local-only ${action} ${revoked?'after edit revocation':'with edit access'} never calls Save or rewrites shared content`,async()=>{
+ const f=fixture(name),b=f.box;f.flow.contributors={field:{actor:{id:action==='abandon'?'user':'colleague'}}};if(revoked)f.allowed(false);const before=JSON.stringify(f.flow);
  const dialog={isConnected:true,inert:false,querySelector:q=>q.includes(':disabled')?null:{},close(){},remove(){this.isConnected=false;}};
  if(name==='master-data'){let dialogs=[dialog];b.departureDialogs=()=>dialogs;b.closeDepartureDialogs=()=>{dialogs=[];};}
  if(name==='bom-workspace'){b.pending=[{}];b.hasUnsavedChanges=()=>b.pending.length>0;}
@@ -77,7 +77,7 @@ for(const name of modules)for(const revoked of [false,true])void test(`${name}: 
  if(name==='routine-equipment'){b.editingEquipmentId='eq';b.equipmentEditRequest=0;b.snapshotOf=v=>v.snapshot;b.newEquipmentForm=null;b.newEquipmentOwner=null;b.syncBase=null;}
  if(name==='tooling')b.dialog=dialog;
  if(name==='routine-fqc'){b.s.buffers=new Map([['doc',{value:'local'}]]);b.s.bases=new Map([['doc',{value:'shared'}]]);b.dirty=d=>b.s.buffers.has(d.id);}
- const status=f.adapter.inspect();assert.equal(status.state,'dirty');assert.equal(status.canDiscard,true);const lease=await f.adapter.discard();assert.equal(f.adapter.inspect().state,'clean');assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();
+ const status=f.adapter.inspect();assert.equal(status.state,'dirty');assert.equal(status[action==='abandon'?'canAbandon':'canDiscard'],true);const lease=await f.adapter[action]();assert.equal(f.adapter.inspect().state,action==='abandon'?'departing':'clean');assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();
  if(name==='iqc-master')assert.equal([...b.editorOwners].length,1,'old quarantined owner is not removed');
 });
 
@@ -137,4 +137,13 @@ for(const name of modules)void test(`${name}: abandon navigation leaves acknowle
  const f=fixture(name),before=JSON.stringify(f.flow);assert.equal(f.adapter.inspect().canAbandon,true);
  const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
  f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,'dirty');
+});
+
+for(const name of modules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
+ const f=fixture(name),b=f.box,before=JSON.stringify(f.flow),lease=await f.adapter.abandon();
+ if(fault==='identity')b.window.ProcessSync.identity={id:'other'};
+ if(fault==='generation')b.window.ProcessSync.epoch++;
+ if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
+ if(fault==='reload')b.window.ProcessSync.requiresReload=true;
+ assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
 });

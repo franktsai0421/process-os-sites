@@ -275,6 +275,7 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
    // Drop local canvas/forms only. Never call the ledger's server inverse.
    departureCheck(r);await r.canvas.discardForDeparture(flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();
    r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+   host.ProcessEditorV2?.refreshRecovery?.();
    return {departureId:r.id,release:r.release};
   }catch(error){r.release();panel();throw error;}
  }

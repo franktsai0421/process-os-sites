@@ -11,6 +11,7 @@ function fixture(){
  const journal=new journalBox.CanvasJournal(shared),calls=[];let allowed=true,workspaceKey='G:A',generation='g1',epoch=1,delivery=1;
  const button={disabled:false,textContent:''},error={textContent:''},local={operation(...args){calls.push('local-operation');return journal.operation(...args);},clearForm(...args){calls.push('clear-form');delete journal.forms[JSON.stringify(args)];}};
  const box={JSON,Error,Set,copy:structuredClone,key:()=>workspaceKey,flow:()=>({generation}),can:()=>allowed,t:zh=>zh,issueText:e=>e.message,localCanvas:()=>local,render:()=>calls.push('render'),toast:()=>calls.push('toast'),dismissibleDialogs:new Set(),host:{ProcessSync:{identity:{id:'editor'},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:x=>x===delivery},ProcessNavigationForms:{acknowledge:()=>calls.push('acknowledge')},ProcessAuthoringV3:{sync(){throw Error('NO_HIDDEN_SYNC');}}},modal:null};
+ Object.assign(box,{document:{querySelector:()=>null},cancelDrag:null,clearLink:()=>calls.push('clear-link'),finishInteraction:()=>calls.push('finish-interaction')});
  vm.createContext(box);vm.runInContext(forms+'\nglobalThis.departure=formDeparture;',box);
  const dialog={open:true,isConnected:true,inert:false,querySelector:s=>s==='#apply-operation'?button:error,close(){calls.push('close');this.open=false;this.isConnected=false;box.modal=null;}};
  const original=structuredClone(shared.workspaces[0].stages.A[0]),m=box.modal={dialog,workspace:'workspace',original,draft:structuredClone(original),isNew:false,scroll:{basic:235},owner:box.formOwner()};
@@ -50,4 +51,9 @@ void test('new blank blocks count as dirty and repeat local completion does not 
 });
 void test('discard releases current form before queued native close without touching shared content',()=>{
  const f=fixture();f.m.draft.name='discard';let queued=false;f.dialog.close=()=>{f.dialog.open=false;queued=true;};f.box.departure.discardLocal();assert(queued);assert.equal(f.box.modal,null);assert.equal(f.box.departure.inspect().state,'clean');assert.equal(f.shared.workspaces[0].stages.A[0].name,'saved');assert.equal(f.journal.counts().fields,0);
+});
+
+void test('local discard cancels unfinished canvas interactions even without an open form',()=>{
+ const f=fixture();f.box.modal=null;f.box.document.querySelector=()=>({onpointercancel:()=>f.calls.push('cancel-pan')});f.box.cancelDrag=()=>f.calls.push('cancel-drag');
+ f.box.departure.discardLocal();assert.deepEqual(f.calls,['cancel-pan','cancel-drag','clear-link','finish-interaction']);assert.equal(f.journal.counts().fields,0);assert.equal(f.shared.workspaces[0].stages.A[0].name,'saved');
 });

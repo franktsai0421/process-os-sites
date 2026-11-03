@@ -1,3 +1,4 @@
+import type { DraftIssue } from './shared-draft';
 export type IqcRule = {
   id: string;
   cadence: 'source' | 'batch' | 'time';
@@ -270,4 +271,15 @@ export function nextIqcCheckNo(control: IqcControl, errorCode: string): string {
   const taken = control.reservedCheckNos.filter(code => code.startsWith(prefix))
     .map(code => Number(code.slice(prefix.length))).filter(Number.isInteger);
   return `${prefix}${String(Math.max(0, ...taken) + 1).padStart(2, '0')}`;
+}
+
+// Same content checks for submission and read-only working-draft presentation.
+export function iqcContentIssues(content:IqcSnapshot):DraftIssue[]{
+  const errors=iqcSubmitErrors(content),blocked=new Set(iqcSubmitBlockingErrors(content,errors));return [
+        ...errors.map(message=>{
+          const item=content.items.find(row=>message.startsWith(row.checkNo+' ')),part=item?undefined:content.parts.find(row=>message.startsWith(row.code+' '));
+          return{kind:blocked.has(message)?'error' as const:'missing' as const,path:item?['items',{id:item.id},'rules']:part?['parts',{id:part.id},message.endsWith('零件名稱空白')?'nameVi':'categoryId']:[],message};
+        }),
+        ...(['categories','suppliers','errors','items'] as const).flatMap(collection=>content[collection].filter(row=>!('isDeleted' in row&&row.isDeleted)&&!row.nameVi?.trim()).map(row=>({kind:'missing' as const,path:[collection,{id:row.id},'nameVi'],message:'NAME_REQUIRED'})))
+  ];
 }

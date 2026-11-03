@@ -1,6 +1,37 @@
 # Shared-transport unknown departure candidate
 
-Stacked on PR #66, keeping PR #65/#66 product heads separate from this extension. No deployment, live-data operation, schema change, server authorization/CAS change, input checkpoint, restore archive or new browser storage key.
+Originally stacked on PR #66; the current integration incorporates merged main
+`9aafc288402be0b7cfb30fb07605ef53e0694cdd`, preserving #65, #66, #67 and #70.
+No deployment, live-data operation, schema change, server authorization/CAS
+change, input checkpoint, restore archive or new browser storage key.
+
+## Main integration after dependency merges
+
+Merge the existing #68 head `66cd38aab1dfd6a0b4305404c3559fd903352076` with that
+verified main, retaining both parents. Three conflicts are limited to asset
+references in `index.html` and their exact-version assertions in
+`navigation-adapters.test.mjs` and `shared-draft-receipt-recovery.test.mjs`.
+Combined master-data and delivery-navigation sources use the new
+`20261103-unknown-approval1` token. Keep main's bootstrap, FQC, IQC and process
+authoring/editor code and asset versions; keep #68's unknown transport/adapter
+and permanent view-denial lease retirement. No server or data-model changes.
+
+Against merged main, the unchanged FQC/IQC implementations, authoring/editor,
+bootstrap and login destination files are byte-identical. The master-data and
+navigation diffs contain only #68's original additions. CI retains #67's
+approval-link regression, #70's IQC tests, #66's nine compiled abandonment cases
+and sequential FQC browser fixtures, plus #68's transport and compiled-browser
+cases. No historical hash, assertion, permission, write barrier or test gate is
+removed. A plain diff check of imported CRLF IQC lines reports line endings;
+the #68 diff against main passes whitespace checks without rewriting those files.
+
+The first integration run passes 362 focused transport, navigation, login,
+bootstrap, permission, adapter, authoring and canvas cases. Exact committed-head
+build/browser results, full CI and independent integration review are tracked
+in PR #68; earlier evidence below remains scoped to its named source. Passing
+the original branch does not establish integration acceptance. No merge or
+deployment is authorized by local validation, and all requested work must finish
+before any coordinated release.
 
 ## Implemented scope
 

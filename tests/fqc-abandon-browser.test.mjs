@@ -121,3 +121,10 @@ void test('unsent matrix storage deletion failure refuses departure and keeps fo
   assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)])),Object.keys(original)),original);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(posts(s.f).length,count);assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),true);
  }finally{await s.close();}
 });
+void test('failed destination after explicit matrix abandonment refreshes cells while preserving form input',async()=>{
+ const s=await setup(),{page}=s;try{
+  await router(page);const cell=page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]');await cell.click();await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));await unknown(s);
+  await page.evaluate(()=>{window.failDestination=true;void window.ProcessDeliveryNavigation.navigate('dashboard');});await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!document.querySelector('#process-navigation-departure'));
+  assert.equal(await cell.getAttribute('aria-pressed'),'false');assert.equal(await page.locator('.matrix-local-change').count(),0);assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.equal(await page.evaluate(()=>window.sharedDraftAccountState().unknown),true);assert.equal(await page.evaluate(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix'))),false);
+ }finally{await s.close();}
+});
