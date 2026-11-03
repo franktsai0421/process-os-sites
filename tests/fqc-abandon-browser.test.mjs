@@ -84,7 +84,7 @@ try {
   await router(page);
   await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();
   await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
-  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([k,v])=>v.includes('completeMatrix'))));
+  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));
   assert.equal(Object.keys(original).length,1);
   assert.equal(JSON.parse(Object.values(original)[0]).kind,'local');
   await page.locator('[data-edit-error="error"]').click();
@@ -116,7 +116,7 @@ void test('unsent matrix storage deletion failure refuses departure and keeps fo
   await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
   const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));await unknown(s);
   const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),count=posts(s.f).length;
-  await page.evaluate(keys=>{const remove=Storage.prototype.removeItem;Storage.prototype.removeItem=function(key){if(this===localStorage&&keys.includes(key))throw Error('SYNTHETIC_REMOVE_FAILED');return remove.call(this,key);};},Object.keys(original));
+  await page.evaluate(keys=>{const remove=Reflect.get(Storage.prototype,'removeItem');Storage.prototype.removeItem=function(key){if(this===localStorage&&keys.includes(key))throw Error('SYNTHETIC_REMOVE_FAILED');return Reflect.apply(remove,this,[key]);};},Object.keys(original));
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!!document.querySelector('[data-departure-error]')?.textContent);
   assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)])),Object.keys(original)),original);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(posts(s.f).length,count);assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),true);
  }finally{await s.close();}
