@@ -64,3 +64,11 @@ void test('simple abandonment drops local canvas and form without rolling back a
 void test('simple abandonment keeps unknown inverse locked rather than deleting its original evidence',async()=>{
  const f=await fixture();await f.own('name','mine');f.editForm();f.loseApply();await assert.rejects(f.departure.discard());const before=JSON.stringify(f.server);await assert.rejects(f.departure.abandon());assert.equal(JSON.stringify(f.server),before);assert.equal(f.departure.inspect().state,'unknown');
 });
+for(const input of ['editForm','editCanvas'])void test(`abandonment handoff rechecks late ${input} instead of closing with new input`,async()=>{
+ const f=await fixture();await f.own('name','shared stays');f.editForm();const lease=await f.departure.abandon(),before=JSON.stringify(f.server),writes=f.calls.length;
+ f[input]();assert.equal(f.departure.inspect().state,'dirty');assert.throws(()=>f.departure.closeClean());assert.equal(JSON.stringify(f.server),before);assert.equal(f.calls.length,writes);lease.release();assert(!f.locked);
+});
+void test('abandonment handoff rejects an expired canvas runtime lease',async()=>{
+ const f=await fixture();f.editCanvas();const lock=Reflect.get(f.c.ProcessCanvasLocal,'lockForDeparture');let valid=true;f.c.ProcessCanvasLocal.lockForDeparture=()=>{const lease=lock();return {...lease,current:()=>valid&&lease.current()};};
+ const lease=await f.departure.abandon();valid=false;assert.equal(f.departure.inspect().state,'unknown');assert.throws(()=>f.departure.closeClean());lease.release();assert(!f.locked);
+});

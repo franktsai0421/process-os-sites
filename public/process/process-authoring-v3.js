@@ -226,9 +226,12 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   if(form.state==='busy')return {...result,state:'busy',reason:form.reason};
   if(!['clean','dirty'].includes(form.state))return {...result,state:'unknown',reason:form.reason||t('目前編輯內容無法確認，請留在本頁重新核對。','Không xác nhận được nội dung chỉnh sửa; hãy ở lại kiểm tra.')};
   if(!ownedLedger)return {...result,state:'unknown',reason:t('安全離頁元件尚未載入，請留在本頁重新載入後再操作。','Thành phần rời trang an toàn chưa tải; hãy ở lại và tải lại trước khi tiếp tục.')};
-  if(departureOperation?.kind==='abandon'&&departureOperation.phase==='held'&&currentDeparture(departureOperation))return {...result,state:'departing',departureId:departureOperation.id,reason:t('未送出輸入已放棄；共享內容保留，不另存或撤回。','Đã bỏ đầu vào chưa gửi; giữ nội dung chung, không lưu hoặc hoàn tác.')};
   const proof=ownedLedger.inspect(),local=form.state==='dirty'||editorChanged()||!!canvas?.dirty();
   if(proof.state==='busy'||proof.state==='unknown'&&!proof.canSave)return {...result,state:proof.state,reason:proof.reason};
+  if(departureOperation?.kind==='abandon'&&departureOperation.phase==='held'){
+   if(!currentDeparture(departureOperation)||departureOperation.canvasLease?.current()!==true)return {...result,state:'unknown',reason:t('離頁期間編輯狀態已變更；請留頁重新確認。','Trạng thái chỉnh sửa đã đổi khi rời trang; hãy ở lại và kiểm tra lại.')};
+   if(!local)return {...result,state:'departing',departureId:departureOperation.id,reason:t('未送出輸入已放棄；共享內容保留，不另存或撤回。','Đã bỏ đầu vào chưa gửi; giữ nội dung chung, không lưu hoặc hoàn tác.')};
+  }
   if(f.pendingId)return local?{...result,state:'dirty',canAbandon:true,reason:t('送審內容已鎖定，本機仍有未套用修改；請先處理原編輯內容，或依原流程撤回。','Hồ sơ đã khóa để duyệt nhưng còn thay đổi cục bộ; hãy xử lý nội dung gốc hoặc rút theo quy trình.')} : result;
   // Merely viewing another person's synchronized working data is not proof
   // of this viewer's own unsaved command. Do not rewrite its saved badge.
