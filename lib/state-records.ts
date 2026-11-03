@@ -132,7 +132,7 @@ export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options
  return decodeRecordValuesCore(bucket,envelope,options);
 }
 // Only the dedicated FQC mutation reader may supply a body hydration boundary.
-async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>){
+async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>,validateHydrated?:(raw:string)=>void){
  if(envelope.__processRecords?.version!==1||!envelope.__processRecords.values||Array.isArray(envelope.__processRecords.values))throw Error('Invalid record manifest');
  const values:Record<string,string>={},known=new Set<string>(),cache=new Map<string,unknown>(),models=new Map<string,unknown>(),allocations=new Map<string,AllocationIndex>();
  const allocationRef=options.allocationKey?envelope.__processRecords.allocations?.[options.allocationKey]:null;
@@ -209,6 +209,9 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   if(raw===undefined)continue;
   if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
   else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
+  // Private FQC authority validation must run before an inline maintenance
+  // overlay can replace the hydrated aggregate. Other readers are unchanged.
+  validateHydrated?.(values[key]);
  }}finally{releasePendingIdentity();}
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
   return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
@@ -395,11 +398,12 @@ export async function readFqcRequiredRecordMutation(bucket:Bucket,envelope:Envel
  // same SHA-verifying reader as ordinary authorization, without deferred history.
  // Validate after hydration; never authorize using an unresolved body or retry
  // a failed authority read against another snapshot/reader.
+ const validateAuthority=(raw:string)=>{JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});};
  const auth=await decodeRecordValuesCore(bucket,envelope,{keys:fqcRequiredAuth,projectValue:(_key,raw)=>{
   // Validate even an aggregate subsequently shadowed by the maintenance overlay.
   JSON.parse(raw);return raw;
- }});
- for(const raw of Object.values(auth.values))JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});
+ }},undefined,validateAuthority);
+ for(const raw of Object.values(auth.values))validateAuthority(raw);
  const state:FqcRequiredState={revision,...auth},authRaw=JSON.stringify(auth.values),authKnown=[...auth.recordStorage.known];
  const operation=Object.freeze({...await authorize(state)});
  if(JSON.stringify(selection)!==selectionRaw||typeof operation.actorId!=='string'||!operation.actorId||typeof operation.operationId!=='string'||!operation.operationId||typeof operation.clientId!=='string'||!operation.clientId||Object.keys(operation).some(key=>!['actorId','operationId','clientId','sequence'].includes(key))||!Number.isSafeInteger(operation.sequence)||operation.sequence<1||state.revision!==revision||state.values!==auth.values||state.recordStorage!==auth.recordStorage||!state.recordStorage.partial||JSON.stringify(state.values)!==authRaw||JSON.stringify(state.recordStorage.originalValues)!==authRaw||state.recordStorage.models.size||state.recordStorage.allocations.size||state.recordStorage.known.size!==authKnown.length||authKnown.some(sha=>!state.recordStorage.known.has(sha))||JSON.stringify(envelope)!==original)throw Error('FQC authorization basis changed');

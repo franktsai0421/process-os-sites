@@ -59,3 +59,16 @@ void test('hydrated audit history does not grant current denied permissions',asy
   assert(!f.events.some(event=>event.kind==='get'&&business.has(event.key)));
  }finally{f.close();}
 });
+
+void test('maintenance overlay cannot hide unresolved authority inside a verified body',async()=>{
+ const c=await setup(),{f}=c;try{
+  const nested=rawRef(f,JSON.stringify({note:'Synthetic nested authority'}));
+  const body=rawRef(f,JSON.stringify({nested:{__immutableBody:nested}}));
+  replaceAggregate(f,'maintenanceMode',JSON.stringify({before:{__immutableBody:body}}));
+  assert.equal(storedEnvelope(f).maintenanceMode,'0');
+  const before=storedRow(f),business=businessRefSet(f);resetEvents(f);
+  const response=await send(c);assert.equal(response.status,500);noMutation(f,before);
+  assert(f.events.some(event=>event.kind==='get'&&event.key===body.key));
+  assert(!f.events.some(event=>event.kind==='get'&&(event.key===nested.key||business.has(event.key))));
+ }finally{f.close();}
+});

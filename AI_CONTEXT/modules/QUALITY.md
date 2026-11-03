@@ -1,6 +1,6 @@
 ## 2026-11-03 — FQC authority audit hydration
 
-Ordinary records-v1 Apply/Save hydrate the five pinned authority aggregates through the existing SHA-verified decoder, including normal `audit.before` bodies, before original authorization and business reads. Invalid JSON in an overridden maintenance aggregate still fails; unresolved nested bodies are refused. Other commands/readers and frontend behavior are unchanged. [Evidence and recovery limits](../../docs/acceptance/fqc-authority-body-20261103.md).
+Ordinary records-v1 Apply/Save hydrate the five pinned authority aggregates through the existing SHA-verified decoder, including normal `audit.before` bodies, before original authorization and business reads. Invalid JSON in an overridden maintenance aggregate still fails; hydrated unresolved bodies are refused before the override as well. Other commands/readers and frontend behavior are unchanged. [Evidence and recovery limits](../../docs/acceptance/fqc-authority-body-20261103.md).
 
 ## 2026-11-03 FQC unknown-result form recovery candidate
 

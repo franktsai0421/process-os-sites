@@ -6,7 +6,7 @@ Base: fetched GitHub main `f23fb5e9cce9e4c1cb89e556151e8d5ff229d830`, including 
 
 The supplied live v37 observation at 2026-11-03 10:33:55 UTC reported POST 500 with `stage=required-state-read`, `reason=AUTHORITY_BODY_INVALID`. This task did not access the live Site or its data. An independent synthetic reproduction through the production serializer generated `processAccessControl.audit[].before.__immutableBody`; the unmodified base then returned the same stage/reason for both Apply and Save. This establishes the storage-reader incompatibility for that shape, not that every historical 500 has this cause.
 
-`encodeRecordValues` normally externalizes object-valued `before`, `snapshot`, `content` and `working` fields. FQC's required-state reader had rejected all actual immutable authority references before the ordinary decoder could verify and hydrate them. It now uses that existing SHA-verified decoder on the same five pinned authority keys, with no deferred history. Raw aggregate JSON is validated even when a maintenance overlay later overrides it; hydrated values are also validated, and remaining nested immutable references are rejected. Missing objects, SHA mismatch, invalid JSON and transient failures do not fall back to a second snapshot or reader.
+`encodeRecordValues` normally externalizes object-valued `before`, `snapshot`, `content` and `working` fields. FQC's required-state reader had rejected all actual immutable authority references before the ordinary decoder could verify and hydrate them. It now uses that existing SHA-verified decoder on the same five pinned authority keys, with no deferred history. Raw aggregate JSON is validated even when a maintenance overlay later overrides it; hydrated values are also validated before any maintenance overlay and again after it, and remaining nested immutable references are rejected. Missing objects, SHA mismatch, invalid JSON and transient failures do not fall back to a second snapshot or reader.
 
 The original current identity/permission and revocation checks still precede all business hydration. The one-use write capability, original manifest, preserved authority/unrelated pointers, field guards, revision retries/CAS, receipts and anti-replay behavior are unchanged. No new writer, schema, storage format, migration, data package or frontend asset is introduced. Thus no frontend cache-version change is needed. Hydrating required audit bodies adds their necessary reads; this is not a latency improvement claim.
 
@@ -30,15 +30,15 @@ Cloud Linux, Node 24.19.0, native Chromium, actual TypeScript routes with epheme
 | Check | Result and boundary |
 | --- | --- |
 | Before-fix reproduction | Apply and Save failed with the exact supplied stage/reason using normally serialized synthetic audit data |
-| Focused authority regression | PASS 9: Apply/Save, unchanged pointer/no authority leakage, missing/SHA/JSON/transient faults, ordinary-reader equivalence, revocation during hydration, current permission denial despite historical granted rights |
-| Required dependencies/capabilities | PASS 80, plus the then-six focused tests (86 total in that run); preserved maintenance precedence, denied permissions, unrelated-fault isolation, selected snapshots, CAS races, one-use capabilities and compatibility |
+| Focused authority regression | PASS 10: Apply/Save, unchanged pointer/no authority leakage, missing/SHA/JSON/transient faults, ordinary-reader equivalence, revocation during hydration, current permission denial despite historical granted rights, and unresolved bodies hidden by a maintenance overlay |
+| Required dependencies/capabilities | PASS 80 plus 10 focused tests (90 total in the follow-up run); preserved maintenance precedence, denied permissions, unrelated-fault isolation, selected snapshots, CAS races, one-use capabilities and compatibility |
 | Apply/receipt/matrix/navigation regression | PASS 207; first actual 500 before/after CAS, retained form, second-click guard, receipt lookup, ACK projection, generation recovery, multiuser matrix and departure coordinator |
 | Actual browser forms/recovery | PASS 29; 390/1280 px, Traditional Chinese/Vietnamese, plus collaborator, historical and matrix cases described above |
-| Clean source clone | PASS: standalone clone of implementation commit `c9fcc4a799e1db518dfb41fae34d5db17696cdfa`, locked dependency install, 9 focused tests, source-boundary check and clean worktree; no original node_modules or business package reused |
+| Clean source clone | PASS for the initial candidate: standalone clone of implementation commit `c9fcc4a799e1db518dfb41fae34d5db17696cdfa`, locked dependency install, 9 focused tests, source-boundary check and clean worktree; no original node_modules or business package reused |
 | Full typed lint | PASS, exit 0 |
 | Build | PASS, exit 0, existing postbuild auth-client check passes; build stamped with the verified base SHA, not represented as a deployed candidate |
 
-325 distinct tests passed (9 focused + 80 dependency + 207 regression + 29 browser). The initial extra focused rerun is not counted twice. New focused tests are included in the existing Local safety CI job; the browser job already executes the augmented browser files.
+326 distinct tests passed after the overlay follow-up (10 focused + 80 dependency + 207 regression + 29 browser). The initial extra focused rerun is not counted twice. New focused tests are included in the existing Local safety CI job; the browser job already executes the augmented browser files.
 
 Commands:
 
@@ -47,9 +47,27 @@ node --test tests/fqc-authority-bodies.test.mjs tests/fqc-required-dependencies.
 node --test tests/fqc-write-failure.test.mjs tests/fqc-generation-recovery.test.mjs tests/fqc-recovery-diagnostics.test.mjs tests/fqc-known-rejection.test.mjs tests/fqc-unknown-recovery.test.mjs tests/fqc-apply-reliability.test.mjs tests/fqc-apply-ack.test.mjs tests/fqc-matrix-apply-lifecycle.test.mjs tests/fqc-matrix-last-apply.test.mjs tests/fqc-matrix-rejection.test.mjs tests/fqc-matrix-conflict-discard.test.mjs tests/fqc-matrix-multiuser.test.mjs tests/navigation-departure.test.mjs
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --test tests/fqc-apply-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs
 npm run lint -- --format unix
-PROCESS_PROGRAM_COMMIT=f23fb5e9cce9e4c1cb89e556151e8d5ff229d830 CLOUDFLARE_CF_FETCH_ENABLED=false WRANGLER_SEND_METRICS=false WRANGLER_WRITE_LOGS=false npm run build
+PROCESS_PROGRAM_COMMIT=9736f8991b049c4358e9d6bfe3b5cc242bb0cc47 CLOUDFLARE_CF_FETCH_ENABLED=false WRANGLER_SEND_METRICS=false WRANGLER_WRITE_LOGS=false npm run build
 ```
 
 NOT_RUN: live Site acceptance/recovery, physical iPhone/IME, real data performance, remote Cloudflare deployment or migrations. Viewport simulation is not physical-device acceptance. This is a source-only PR candidate; GitHub CI/review and any future release have separate gates. No merge or deployment is authorized here.
 
 Reusable test improvement: storage compatibility tests should build their authority data through the real serializer, not solely hand-written inline JSON; otherwise normal audit history is absent from all success fixtures and the reader/writer mismatch is invisible.
+
+
+## Follow-up: blocking unknown-departure investigation
+
+The task remains **BLOCKED for the already affected session**, even if CI passes. GitHub had no submitted independent reviews at the follow-up status query. The author performed the analysis below; that is not independent reviewer approval.
+
+Two additional isolated probes used the actual routes and synthetic data:
+
+1. In Chromium at 390px, a never-committed unknown error-form attempt followed by later input retained neither input in persistent storage. Accepting the synthetic unload warning and reloading preserved the exact unknown marker and sent no POST, but reopening showed the server's old value. This is a reproduced blocker, not acceptance of a safe-departure feature. Do not advise the user to force reload/close.
+2. Holding one Apply immediately before its database CAS produced a genuine receipt 404; releasing that same single POST committed it, after which the receipt GET returned 200. No second POST occurred. Therefore 404, elapsed time or a matching current field value cannot certify noncommit.
+
+The source explains both: ordinary form baselines/attempts live in `formOwners` and the DOM; the bounded session marker stores operation identity/context, not input/patches/guards or requestId. Matrix recovery's persisted unknown record stores a receipt reference instead of a local payload. The departure coordinator deliberately refuses unknown Save/Discard. A new page cannot reconstruct missing ordinary-form input from those markers.
+
+A feasible safe-departure design would explicitly checkpoint the complete form, original baseline/guards, attempted operation identity, later input, stable IDs and all required media, verify exact readback and ownership/lineage locks, and then park the UI while retaining its independent unknown write barrier. Storage/quota/file/identity/lease failures must keep the source page open. Reopening would present a quarantined copy for comparison and original-receipt lookup, never automatically apply it. This is a new departure contract, not permission to relabel unknown as clean, and is not implemented by #65.
+
+Evidence-based settlement still requires the matching original receipt and fresh authorized readback. The supplied stage/reason needs binding to the exact original requestId/operationId/actor/scope/generation and deployed source. The current persisted marker does not preserve all that information. If the receipt remains unavailable, a future atomic server-side noncommit disposition would need a durable operation-specific rejection/fence checked by every writer/retry. It must race safely with late commits: either return the real winning receipt or install a fence that makes a stale CAS/retry refuse, preserving all working/saved/active and peer data. Mixed deployments, legacy paths, authority and command-digest binding require independent design review and isolated races before live use. Such a protocol is not implemented or authorized for live execution here.
+
+The author's follow-up also found an authority-validation gap: an inline maintenance overlay could hide an unresolved nested body after hydration. The synthetic probe returned 200 on `9736f899`; the follow-up private decoder validation now rejects before the overlay and business reads. A new regression covers it, and affected local suites/lint/build were rerun. This finding reinforces why the earlier green tests and author review are not independent approval or complete unknown-recovery acceptance.
