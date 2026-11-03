@@ -851,3 +851,8 @@ body.fqc-modal-open{overflow:hidden}
 #fqc-matrix-more>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;text-decoration:underline;padding:0 8px}
 #fqc-matrix-more>div{display:flex;gap:8px;flex-wrap:wrap}
 .fqc-matrix-actions button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+
+/* Keep bilingual recovery guidance readable above the form actions on phones. */
+.fqc-modal-form>footer{flex-wrap:wrap}
+.fqc-modal-form>footer .fqc-modal-alert{flex:1 0 100%;box-sizing:border-box;overflow-wrap:anywhere}
+.fqc-modal-form>footer button{min-height:44px}

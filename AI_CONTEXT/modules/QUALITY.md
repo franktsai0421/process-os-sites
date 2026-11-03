@@ -1,3 +1,7 @@
+## 2026-11-03 FQC unknown-result form recovery candidate
+
+Open forms keep detached input baselines and submit guarded field deltas after model readback. Only a matching confirmed original operation advances that form's baseline; other editors' later values stay protected. Explicit in-dialog receipt lookup clears errors after authoritative readback, keeps input, and never re-POSTs. Matrix receipt lookup can settle with a form open. Stable creation IDs prevent duplicate inserts. Shared drafts, Save/review boundaries, permissions and schema are unchanged. [Evidence and live-incident limits](../../docs/acceptance/fqc-unknown-recovery-20261103/README.md).
+
 ## 2026-11-02 FQC whole-matrix Apply candidate
 
 The primary matrix button sends `replace-matrix-v1`: the complete captured item/product selection replaces shared relations on the last successful CAS commit. The adapter projects only relation fields from current server rows; collection changes reject. Save separately snapshots the latest whole FQC working draft. Other forms retain guarded Apply. Narrow original refusal proof prevents nonexistent-receipt queries without weakening unknown outcomes. The new command currently uses the conservative full-state reader. [Implementation, recovery and evidence](../../docs/acceptance/fqc-matrix-last-apply-20261102/README.md). Private candidate, not deployed; supersedes the local-stage proposal.

@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC unknown-result recovery (Draft PR candidate)
+
+From fetched main `781ade5`, isolated `fix/fqc-unknown-recovery-20261103` fixes stale error feedback and retained-form Apply after receipt recovery. User authorized push and Draft PR; no merge/deployment. Exact scope, tests and unverified original-incident cause: [recovery acceptance](docs/acceptance/fqc-unknown-recovery-20261103/README.md). No live data or original workstation connector access.
+
 ## 2026-11-01 — navigation diagnostic authorization hardening (HOLD)
 
 The independent diagnostic candidate now reuses verified non-demo-admin identity for sample admission and consumes quota only after successful authorization. Start/Refresh/Export revalidate current access; missing authorized samples stop browser recording. Inactive diagnostic pages install no hooks, and teardown is idempotent. No permission, business data model, credential or deployment change. Exact verification and remaining cost proposal are maintained in [navigation acceptance](docs/acceptance/navigation-timing-20261101/README.md). Parent review remains required; no public upload.

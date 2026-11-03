@@ -7,6 +7,10 @@
   // Display only: retain raw transport/classifier/receipt errors.
   window.sharedDraftErrorMessage = (error, language = document.documentElement.lang) => {
     const messages = {
+      UNKNOWN_OPERATION_CHECK_REQUIRED:['前次操作結果尚未確認，暫時不能套用。輸入仍保留；請按「查詢前次結果」，確認後再套用。','Kết quả thao tác trước chưa được xác nhận nên chưa thể áp dụng. Nội dung nhập vẫn được giữ; hãy bấm Kiểm tra kết quả trước rồi áp dụng sau khi xác nhận.'],
+      RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['尚未確認伺服器是否完成前次操作。請查詢前次結果；不要重複送出，輸入仍保留。','Chưa xác nhận máy chủ đã hoàn tất thao tác trước hay chưa. Hãy kiểm tra kết quả trước, không gửi lại; nội dung nhập vẫn được giữ.'],
+      OPERATION_NOT_FOUND:['目前查不到前次操作回執，結果仍未確認。請稍後再查詢；不會自動重送或清除輸入。','Hiện chưa tìm thấy biên nhận của thao tác trước; kết quả vẫn chưa được xác nhận. Hãy kiểm tra lại sau; không tự gửi lại hoặc xóa nội dung nhập.'],
+      FQC_FORM_CONTEXT_CHANGED:['帳號或草稿已變更，此表單暫停套用。請先複製保留輸入，再重新開啟最新資料核對。','Tài khoản hoặc bản nháp đã thay đổi nên biểu mẫu tạm dừng áp dụng. Hãy sao chép nội dung nhập rồi mở lại dữ liệu mới nhất để đối chiếu.'],
       SUCCESSFUL_SAVE_REQUIRED:['請先成功儲存目前共用草稿，再送出審核。','Hãy lưu bản nháp chung thành công trước khi gửi duyệt.'],
       UNSAVED_CHANGES_SAVE_REQUIRED:['共用草稿有儲存後的新修改。請先儲存，再核對版本並送審；目前修改仍保留。','Bản nháp chung có thay đổi sau lần lưu. Hãy lưu rồi kiểm tra phiên bản trước khi gửi duyệt; các thay đổi vẫn được giữ.'],
       DRAFT_REVISION_REQUIRED:['此分頁缺少送審版本確認。請先保留未套用內容，再重新開啟最新頁面。','Tab này thiếu thông tin xác nhận phiên bản gửi duyệt. Hãy giữ nội dung chưa áp dụng rồi mở lại trang mới nhất.'],

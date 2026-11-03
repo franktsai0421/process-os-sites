@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC retained-form Apply after unknown-result recovery
+
+Fixed stale failure feedback and stale-model closure writes after receipt recovery. Forms submit guarded deltas, retain stable creation IDs and offer bilingual read-only recovery with mobile-readable actions. Actual-handler/native-browser regressions cover lost ACK, missing receipt, readback failure, two editors and matrix recovery. No schema/business-data/permission/deployment changes. [Candidate evidence](../docs/acceptance/fqc-unknown-recovery-20261103/README.md).
+
 ## 2026-11-02 — FQC whole-matrix last-successful-Apply candidate (not published)
 
 Matrix Apply immediately replaces shared matrix relations in server CAS order; Save remains a separate whole-FQC snapshot. Full collection-scope checks reject adds/deletes without resurrecting rows. Original pre-CAS refusal classification fixes the reproduced nonexistent-receipt query, while true unknown outcomes remain receipt-only. Supersedes the unpublished local-stage proposal. No schema migration or live-data change. [Evidence and limitations](../docs/acceptance/fqc-matrix-last-apply-20261102/README.md).
