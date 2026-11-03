@@ -34,8 +34,12 @@ have regression coverage, and the compiled cases verify unchanged marker bytes
 and POST count through denial, reset and regrant. The browser asset version advances.
 
 The initial independent 201-case focused run passed before this new regression
-exposed the defect; the repaired focused run passes 203 cases. Additional exact
-candidate build/browser/CI results are recorded in the PR handoff. The first FQC
+exposed the defect; the repaired focused run passes 207 cases including four BOM
+permission-order regressions. The fixed product commit `fd54530ada0bedd183e5bb78cb4f1a4370918ea3`
+passes the exact-commit compiled build and both AB denial/reset/regrant browser
+cases; 42 FQC source/browser cases and full typed lint also pass. Two existing
+cache-version expectations were updated to the advanced client asset tag; no
+assertion was removed. Final exact-head CI remains a separate gate. The first FQC
 browser invocation lacked the installed Chromium path and failed at launch;
 the supported `PLAYWRIGHT_CHROMIUM_EXECUTABLE` setting is used for reruns.
 Locked dependency installation and collaboration-hook installation succeeded in
