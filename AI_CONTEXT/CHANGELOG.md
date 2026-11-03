@@ -1,3 +1,7 @@
+## 2026-11-03 — IQC draft/case missing count and source
+
+Replaced the client-only completeness heuristic with the existing server content checks; separated import notices and clarified working versus fixed-case sources. Local-only candidate; no data or rule change. [Verification and limitations](../docs/acceptance/iqc-content-issues-20261103/README.md).
+
 ## 2026-11-03 — Remove PR #61 speed diagnostics
 
 Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.

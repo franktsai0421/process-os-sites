@@ -254,26 +254,19 @@
     const v=selected();if(!v)return '';
     return `<details class="iqc-panel iqc-work-history"><summary>${t('歷史操作','Lịch sử thao tác')} · ${(v.history||[]).length}</summary>${(v.history||[]).slice().reverse().map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${date(event.at)} ${h(event.comment||'')}</p>`).join('')||`<p>${t('尚無操作紀錄','Chưa có thao tác')}</p>`}</details>`;
   }
+  function currentContentIssues() {
+    if(!draft())return selected()?.contentIssues?.issues || null;
+    const result=control?.draftContentIssues,flow=control?.workflow;
+    return result?.source==='working'&&flow&&result.generation===flow.generation&&result.revision===flow.revision&&Array.isArray(result.issues)?result.issues:null;
+  }
   function pendingPanel() {
-    if(!draft())return '';
-    const data=snap(),pending=[];
-    for(const part of data.parts.filter(part=>!part.isDeleted)) {
-      const missing=[];
-      if(!part.nameVi?.trim())missing.push(t('零件名稱','Tên linh kiện'));
-      if(!part.supplierIds?.length)missing.push(t('供應商','Nhà cung cấp'));
-      if(!data.categories.some(category=>category.id===part.categoryId))missing.push(t('類別','Nhóm'));
-      if(missing.length)pending.push({partCode:part.code,label:part.code,missing});
-    }
-    for(const item of data.items.filter(item=>!item.isDeleted)) {
-      const missing=[];
-      if(!item.nameVi?.trim())missing.push(t('檢查項目','Hạng mục kiểm tra'));
-      if(!item.methodVi?.trim())missing.push(t('檢測方法','Phương pháp kiểm tra'));
-      if(item.inspectionMode==='equipment'&&!item.equipmentId)missing.push(t('檢具','Thiết bị'));
-      if(!(item.rules||[]).some(rule=>['batch','time'].includes(rule.cadence)))missing.push(t('正式頻率','Tần suất chính thức'));
-      if(missing.length)pending.push({partCode:item.partCode,itemId:item.id,label:item.checkNo,missing});
-    }
-    if(!pending.length)return '';
-    return `<details class="iqc-panel iqc-alert iqc-pending"><summary>${t('待補項目','Mục cần bổ sung')} · ${pending.length}</summary><ul class="iqc-alert-list">${pending.slice(0,40).map(row=>`<li><b data-i18n-skip="true">${h(row.label)}</b> · ${h(row.missing.join('、'))}<button type="button" class="button ghost iqc-small" data-iqc-pending="${h(row.itemId||row.partCode)}">${t('前往修正','Đến sửa')}</button></li>`).join('')}${pending.length>40?`<li>${t('其餘待補請依零件篩選','Các mục còn lại hãy lọc theo linh kiện')} · ${pending.length-40}</li>`:''}</ul></details>`;
+    const issues=currentContentIssues(),pending=issues?.filter(issue=>issue.kind==='missing');
+    const source=draft()?t('來源：目前載入的共享工作稿；依送審內容規則檢查，尚未套用的表單不包含在內。','Nguồn: bản nháp chung đang tải; kiểm tra theo quy tắc gửi duyệt, không gồm biểu mẫu chưa áp dụng.'):t('來源：此送審案件的固定快照及送審時保存的待補結果；不隨後續草稿更新。','Nguồn: bản chụp cố định của hồ sơ và kết quả cần bổ sung được lưu khi gửi; không đổi theo bản nháp sau này.');
+    if(!draft()&&!selected()?.contentIssues)return '';
+    const phrases={'尚未指定有效類別':'Chưa chọn nhóm hợp lệ','零件名稱空白':'Tên linh kiện còn trống','至少需要一條檢查規則':'Cần ít nhất một quy tắc kiểm tra','來源規則空白':'Quy tắc nguồn còn trống','按批次規則缺少有效數值或自訂名稱':'Quy tắc theo lô thiếu giá trị hợp lệ hoặc tên tùy chỉnh','按時間規則格式錯誤':'Định dạng quy tắc thời gian không hợp lệ'};
+    const message=issue=>{let value=window.VersionDraftUI?.issueMessage(issue)||issue.message;if(document.documentElement.lang==='vi')for(const [zh,vi]of Object.entries(phrases))value=value.replace(zh,vi);return value;};
+    const labels={parts:t('零件','Linh kiện'),items:t('檢查項目','Hạng mục'),errors:t('錯誤名稱','Tên lỗi'),categories:t('類別','Nhóm'),suppliers:t('供應商','Nhà cung cấp')};
+    return `<details class="iqc-panel iqc-pending" ${draft()?'':'data-vd-source="snapshot"'}><summary>${t('內容待補','Nội dung cần bổ sung')} · ${pending?pending.length:t('尚未檢查','Chưa kiểm tra')}</summary><p>${source}</p><p>${t('待補不阻擋送審，由審核者判斷。已儲存快照與即時草稿可能不同；送審使用最後手動儲存的快照。匯入待確認、有效來源規則及選填資訊不額外計入此數。','Các mục cần bổ sung không chặn gửi duyệt; người duyệt đánh giá. Bản lưu có thể khác bản nháp; gửi duyệt dùng bản lưu thủ công cuối cùng. Ghi chú nhập, quy tắc nguồn hợp lệ và thông tin tùy chọn không tính thêm vào số này.')}</p>${pending?`<ul class="iqc-alert-list">${pending.slice(0,40).map((issue,index)=>{const collection=issue.path?.[0],row=snap()[collection]?.find(row=>row.id===issue.path?.[1]?.id);return `<li><b data-i18n-skip="true">${h(labels[collection]||collection)} · ${h(row?.checkNo||row?.code||row?.nameVi||issue.path?.[1]?.id||'')}</b> · ${h(message(issue))}${draft()?`<button type="button" class="button ghost iqc-small" data-iqc-pending="${index}">${t('前往修正','Đến sửa')}</button>`:''}</li>`;}).join('')}${pending.length>40?`<li>${t('其餘待補','Các mục còn lại')} · ${pending.length-40}</li>`:''}</ul>`:''}</details>`;
   }
   function importPanel() { return ''; }
   function filteredParts() {
@@ -356,7 +349,7 @@
       const partCode=item?.partCode||part?.code||error?.partCode;if(!partCode||!mayEdit())return;
       ui.search='';ui.supplier='';ui.category='';ui.partCode=partCode;ui.errorId=item?.errorId||error?.id||'';render();if(item)editItem(item.id);else if(part)editPart(partCode);else editError(error.id);
     }});
-    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:control.workflow,busy:ui.busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.iqc-alert,[data-shared-issue-kind="missing"]',checked:{missing:!!draft()},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
+    window.VersionDraftUI?.mount(root,{header:'.iqc-version',historyClient:transport,module:'IQC',scope:t('IQC 全庫','Toàn bộ IQC'),version:selected(),versions:control.versions,active:active(),flow:control.workflow,busy:ui.busy,failed:sharedClient?.hasUnknown(),actions:{begin:'#iqc-begin',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-shared-issue-kind="error"]',missing:'.iqc-pending,[data-shared-issue-kind="missing"]',checked:{missing:false},history:['.iqc-work-history','#iqc-case-history','[data-shared-issue-kind="warning"]'],status:['#iqc-shared-status']});
     window.scrollTo(0, pageScroll);
   }
   // Search updates only the results. Replacing a focused input on every keystroke
@@ -545,12 +538,16 @@
       else if (issue.type === 'NO_SOURCE_IMAGE' || String(issue.type).startsWith('SUPPLIER_')) editPart(code);
     });
     on('[data-iqc-pending]', 'click', event => {
-      const id=event.currentTarget.dataset.iqcPending;
-      const item=snap().items.find(row=>row.id===id),partCode=item?.partCode||id;
+      const issue=currentContentIssues()?.filter(issue=>issue.kind==='missing')[Number(event.currentTarget.dataset.iqcPending)];
+      if(!issue||!draft())return;
+      const collection=issue.path?.[0],id=issue.path?.[1]?.id;
+      if(['categories','suppliers'].includes(collection)){if(mayEdit()){manageList(collection);document.querySelectorAll('[data-row-edit]').forEach(button=>{if(button.dataset.rowEdit===id)button.click();});}return;}
+      const item=collection==='items'?snap().items.find(row=>row.id===id):null,error=collection==='errors'?snap().errors.find(row=>row.id===id):null,part=snap().parts.find(row=>row.id===id),partCode=item?.partCode||error?.partCode||part?.code;
+      if(!partCode)return;
       ui.search='';ui.supplier='';ui.category='';ui.partCode=partCode;ui.errorId=item?.errorId||'';
       render();root.querySelector('.iqc-detail')?.scrollIntoView({behavior:'smooth',block:'start'});
       if(!mayEdit())return;
-      if(item)editItem(item.id);else editPart(partCode);
+      if(item)editItem(item.id);else if(error)editError(error.id);else editPart(partCode);
     });
     on('.iqc-detail [data-photo-part]', 'click', event => photoViewer(event.currentTarget.dataset.photoPart, Number(event.currentTarget.dataset.photoIndex || 0)));
     on('.iqc-detail [data-item-photo]', 'click', event => { event.preventDefault(); event.stopPropagation(); itemPhotoViewer(event.currentTarget.dataset.itemPhoto, Number(event.currentTarget.dataset.photoIndex || 0)); });

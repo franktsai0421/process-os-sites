@@ -1,3 +1,7 @@
+## 2026-11-03 IQC completeness presentation clarification
+
+For IQC, draft and submitted-case missing counts use the existing server content-issue definition and count individual missing issues. Valid source rules and optional supplier information do not become missing merely because they lack structured cadence or selection. Import notices remain distinct. Label the loaded working draft separately from a fixed submitted snapshot; unavailable inspection is not zero. This presentation correction does not change which content may be submitted, structural validation or any authorization guard. [Implementation evidence](../../acceptance/iqc-content-issues-20261103/README.md).
+
 ## 2026-11-02 FQC matrix interaction clarification
 
 User-confirmed rule: pressing matrix Apply immediately writes the entire captured matrix selection to shared working. Last successful server commit wins, including replacing choices from an earlier editor's stale screen; only matrix relations may be overwritten. Hidden/search-filtered data remains part of the full selection. Changed product/item collections reject and require reload. Upper Save separately saves the latest whole FQC shared snapshot; approval stays separate. Permissions, pending locks, original receipts, safe unknown-result query and other forms' guarded conflicts remain. [Candidate details and verification](../../acceptance/fqc-matrix-last-apply-20261102/README.md).
