@@ -1287,6 +1287,7 @@
       for(const source of ['memory','storage']){if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');const preview=session.preview(session.key,source);if(preview.code==='NOT_FOUND')continue;if(!preview.ok||preview.kind!=='local')throw Error(preview.code||'RECEIPT_REQUIRED');const discarded=session.discard(preview.token);if(!discarded.ok)throw Error(discarded.code);}
       if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');batch.rows.clear();batch.count=0;matrixChoiceRevision++;matrixRecoveryNote='';
     }finally{matrixDepartureDiscard=null;}
+    if(owned())paintRecoveredMatrix();
   }
   function unknownDeparture(base){
     let held=null;
