@@ -1,6 +1,6 @@
 ## 2026-11-03 — Remove PR #61 speed diagnostics
 
-Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../../docs/acceptance/remove-navigation-diagnostics-20261103/README.md).
+Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../../docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.
 
 2026-10-30 製程續修：共用導航新增單一待決定離頁協調，製程 adapter 持有表單／canvas lease 到導航 commit，Save／Discard／Stay 各自核對後端與 owner。busy 完成可恢復決策，history 先回來源再執行目前目標，最新取消不復活舊導航。bootstrap 在原 auth gate 後載入 owned ledger；未知 inverse 的最小 session marker 使 reload 只查原收據，不重送。原生 close 事件延後時同步解除已關表單的 ownership，避免 Discard 成功卻卡在來源。這些機制只完成製程接線，未代其他模組實作草稿 adapter。來源、驗收與速度見[製程續修](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)；下方前輪的「未接 UI」是歷史狀態。
 
