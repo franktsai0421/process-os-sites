@@ -23,7 +23,7 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`abandon u
  const s=await setup(width,lang),{page,f}=s;try{
   page.setDefaultTimeout(6000);page.setDefaultNavigationTimeout(6000);await router(page);await unknown(s);const before=posts(f).length;
   const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft'))));
-  await page.evaluate(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith('fqc-input'))throw Error('No input archives allowed');return set.call(this,key,value);};window.ProcessDeliveryNavigation.navigate('dashboard');});
+  await page.evaluate(()=>{const set=Reflect.get(Storage.prototype,'setItem');Storage.prototype.setItem=function(key,value){if(key.startsWith('fqc-input'))throw Error('No input archives allowed');return set.call(this,key,value);};window.ProcessDeliveryNavigation.navigate('dashboard');});
   const button=page.locator('[data-departure-choice="abandon"]');await button.waitFor();assert(await button.isEnabled());assert((await button.boundingBox()).height>=44);
   assert(await page.locator('#process-navigation-departure').evaluate(node=>node.getBoundingClientRect().right<=innerWidth));
   await button.click();await page.waitForFunction(()=>window.state.view==='dashboard');
