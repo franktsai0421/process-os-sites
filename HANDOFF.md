@@ -1,6 +1,6 @@
 ## 2026-11-03 — Simple draft departure follow-up
 
-A separate stacked draft branch extends simple input abandonment across ordinary draft adapters and process authoring. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).
+A separate draft branch extends simple input abandonment across ordinary draft adapters and process authoring. After #65 merged, #66 integrates main `62631e2`, including #67's approval-tab fix, and requires fresh integration-head CI and independent review. #68 waits for #66. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).
 
 ## 2026-11-03 — FQC PR #65 departure simplification
 

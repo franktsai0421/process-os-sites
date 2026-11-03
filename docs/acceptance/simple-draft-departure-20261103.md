@@ -1,8 +1,14 @@
 # Simple draft departure — scoped follow-up to FQC PR #65
 
+## Integration after prerequisite merge
+
+PR #65 is merged at main `62631e28a84d4439b468a88bc0404975cee39c0e`, including #67's approval-tab deep links and bounded login intent. Integrate that main commit into the existing #66 branch after independently reviewed product `fcfb4ac6af188a888542f4ffff5895618ca49542`; preserve both parents' history. Four conflicts were resolved by retaining the final FQC matrix/recovery code and #66's ordinary departure adapter, while keeping #67's bootstrap/history behavior. Combined bootstrap/router assets use `20261103-simple-approval1`; the combined FQC module uses `20261103-fqc-departure6`. Exact single-reference cache assertions remain; both approval-link and abandonment CI suites remain enabled. No assertion, hash gate or protection was removed.
+
+The earlier pre-integration results below remain scoped historical evidence. Exact integration-head native tests, full CI and independent review are new gates; they are reported in the PR after completion. #68 must wait for #66. This integration does not authorize a merge, live-data operation or deployment, and does not change the uncovered-page/device limits below.
+
 ## Independent PR #66 follow-up, 2026-11-03
 
-Review started from GitHub head `b42294f0d884992be6d72f841450e439ab8d8f82` in a new standalone Linux checkout. The previous writer stopped modifying #66. GitHub reports this PR as draft with no submitted reviews; prerequisite #65 remains open and has newer changes. Do not resolve that stack by overwriting either branch. After #65 merges, integrate its final main state and rerun the affected checks before requesting final review/merge. A green historical run is not verification of that future integration.
+Review started from GitHub head `b42294f0d884992be6d72f841450e439ab8d8f82` in a new standalone Linux checkout. The previous writer stopped modifying #66. At that review point this PR was draft with no submitted reviews and #65 remained open; the integration section above supersedes that dependency status. A green historical run is not verification of the later integration.
 
 Independent review reproduced a canvas handoff defect: apply a form locally without Sync, choose abandonment, then fail the target preparation. The local journal was correctly discarded but the retained source card still displayed the discarded name. The controller now refreshes the source canvas after checked local cleanup, before handing navigation over. This does not restore discarded input, save, submit an inverse, or change shared data. A compiled-browser regression checks the displayed card, reopening the form, empty local journal, unchanged server content and zero extra POSTs at 390px/Vietnamese and 1280px/Traditional Chinese. The first probe incorrectly assumed the public `navigate` helper returned a Promise; after fixing that test setup, the content mismatch was reproduced and then fixed.
 
@@ -18,7 +24,7 @@ New verification in the isolated Linux checkout:
 
 Coverage limits remain explicit: the nine extracted real adapter configurations are master-data, BOM, FQC, IQC, IPQC-AB, IPQC-C, routine equipment, tooling and routine FQC. They are binding tests with synthetic transport, not end-to-end browser acceptance of every page/subtab. Compiled native coverage here is AB/C departure, process authoring and user forms. Unknown-result paths outside the inherited FQC contract, Feedback, all-module photo/new-tooling workflows, real IME, physical devices, and true cross-computer acceptance remain NOT_RUN or outside #66's implemented scope. #68 owns its separate unknown-result expansion; none of its unreviewed code was imported here.
 
-The user asks to abandon unsent changes and browse other pages without retaining a copy or offering restoration. Abandonment does not undo acknowledged shared changes or cancel an unknown request. This follow-up is stacked on `fix/fqc-authority-body-recovery-20261103`; it must not be treated as independent main-ready code until that prerequisite is reviewed/merged and this branch is rebased/rechecked.
+The user asks to abandon unsent changes and browse other pages without retaining a copy or offering restoration. Abandonment does not undo acknowledged shared changes or cancel an unknown request. This follow-up was stacked on `fix/fqc-authority-body-recovery-20261103`; after the prerequisite merge it still requires integration-head checks and final review before merging to main.
 
 ## Implemented boundary
 

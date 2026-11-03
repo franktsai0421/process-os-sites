@@ -17,3 +17,16 @@ void test('arbitrary redirects, duplicate values and cross-line stages are rejec
   assert.equal(loginIntent('?view=player&line=A&stage=A-%3Cscript%3E').has('stage'), false);
   assert.equal(loginIntent('?system=quality&view=editor').has('view'), false);
 });
+void test('all approval tabs survive login in both systems as enumerated display intent', () => {
+  for (const system of ['process', 'quality']) for (const tab of ['master', 'process', 'quality', 'routine']) {
+    const query = `system=${system}&view=approval&approvalTab=${tab}`;
+    assert.equal(loginDestination(query + '&role=admin&next=https://bad.invalid&rfCase=untrusted'), '/process/index.html?' + query);
+  }
+});
+void test('approval intent drops unknown, repeated and non-approval tab parameters', () => {
+  for (const value of ['', '__proto__', 'process&approvalTab=quality', 'process&approvalTab=process', '%3Cscript%3E']) {
+    assert.equal(loginDestination('system=process&view=approval&approvalTab=' + value), '/process/index.html?system=process&view=approval');
+  }
+  for (const view of ['dashboard', 'data', 'editor', 'player']) assert.equal(loginIntent(`system=process&view=${view}&approvalTab=process`).has('approvalTab'), false);
+  assert.equal(loginIntent('system=process&view=approval&view=data&approvalTab=process').has('approvalTab'), false);
+});

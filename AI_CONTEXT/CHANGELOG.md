@@ -1,5 +1,7 @@
 ## 2026-11-03 — Simple draft departure follow-up
 
+Integrate merged #65/#67 main `62631e2` into #66 without rewriting either parent: retain FQC unknown evidence, ordinary abandonment and approval deep links; advance combined asset cache tags with exact assertions. Integration-head CI/review remain separate gates; #68 waits for #66.
+
 Independent #66 review reproduced stale source canvas content after abandonment followed by failed destination preparation. Refresh the checked local projection before handoff; add desktop/mobile browser coverage and cross-module late-state regression cases. No shared write or restoration is added.
 
 Re-review also reproduced the selected-link variant. Explicit local discard now cancels owned canvas interactions before repaint, including without a form; reopening already read the correct value, and the defect concerned the stale card display only.
@@ -13,6 +15,13 @@ User clarified that unsent inputs should be discarded, without checkpoint or res
 ## 2026-11-03 — FQC Apply/Save normal authority-body compatibility
 
 Fixed a reproducible `required-state-read / AUTHORITY_BODY_INVALID` when normal storage externalizes permission audit `before` values. Preserve original hash checks, authority admission, CAS, receipts and unknown-result protection. Added serializer-backed tests and desktop/mobile zh/vi browser regression for recovery and confirmed departure. No model/schema/data migration or live change. [Acceptance and limits](../docs/acceptance/fqc-authority-body-20261103.md).
+
+## 2026-11-03 — Approval tab deep-link candidate
+
+Cold load/reload and indexed history now resolve one enumerated approval tab;
+login carries the same bounded display intent. Server authorization and data are
+unchanged. [Scope, evidence and pending native/CI gates](../docs/acceptance/approval-deeplink-20261103/README.md).
+Candidate only; not deployed.
 
 ## 2026-11-03 — Remove PR #61 speed diagnostics
 

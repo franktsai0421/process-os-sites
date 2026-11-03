@@ -1,5 +1,8 @@
 # FQC authority-body compatibility regression
 
+Latest product verification: Astra high independently reviewed exact product head `7ff0f7a250b0481427759796a6357dc4d7c86172`; both the retained unsent-matrix payload (P2) and failed-target stale cell display (P3) are fixed, with no other confirmed finding in that scoped review. All 14 exact-head Chromium departure tests pass. The following documentation-only update does not change product/test bytes. Latest full CI remains required; no live release or recovery is claimed. PR #66/#68 and the uncommitted Feedback branch are frozen for separate conversations per the user's instruction; this task continues only PR #65.
+
+
 Base: fetched GitHub main `f23fb5e9cce9e4c1cb89e556151e8d5ff229d830`, including merged PR #63/#64. Work branch: `fix/fqc-authority-body-recovery-20261103`. Remote branches and open FQC PRs were checked before work; no competing open FQC PR or earlier authority-body candidate was found. The checkout had no uncommitted changes.
 
 ## Cause and scope
@@ -88,3 +91,13 @@ Compiled AB integration of a later transport extension exposed that destination 
 ## Independent review: unsent matrix payload
 
 Astra high independent read-only review reproduced an unsent matrix local record remaining recoverable after a different form entered unknown and the user abandoned inputs. The fix uses the original recovery session's owned-token/raw-value checks to remove only this runtime's kind:local matrix record, under a synchronous batch/session/revision/owner pin. It never deletes a pending/unknown matrix receipt or the unrelated form's transport marker. Storage removal failure refuses departure and retains the form/unknown evidence. PASS all 13 actual Chromium departure cases, including full-router return/receipt recovery with no retained local matrix payload and forced storage-delete failure. Follow-up independent review and latest CI remain pending.
+
+Independent follow-up confirmed the original payload finding fixed, then found stale matrix cell styling when target preparation failed after explicit abandonment. Refresh only matrix cells/actions after the checked local deletion, preserving the open form. The new failed-target regression passes; the original 13-case suite passed before this final visual correction. Exact-head independent follow-up/CI are required again.
+
+Latest-head matrix preview run 32 stopped at an outdated exact asset-token expectation (`fqc-departure2` versus product `fqc-departure5`). Update only that literal to the actual reviewed token; preserve the exact one-reference assertion, CSS version and all layout/browser checks. Product bytes remain unchanged. This is a test expectation correction, not acceptance of the failed run.
+
+## Integration with approval deep links
+
+Integrate merged main `ba19fc167446d000fafd76726d53e836fc026b7e` (#67) without replacing either feature. Preserve approval-tab parsing, bounded login intent, all deep-link tests and their CI step alongside FQC abandonment. Both changelog entries remain. The combined bootstrap/router assets use a fresh `20261103-fqc-approval1` cache token; FQC and verified navigation identity tokens remain unchanged. The earlier `29b865b` CI cannot establish acceptance of this new integration; rerun affected navigation/browser checks and final exact-head CI. No schema, business-data or deployment change.
+
+Integration validation: 133 focused navigation/login/identity contracts PASS, normal typed lint PASS, and 19 native test entries PASS (14 FQC departure cases plus the approval deep-link parent and four desktop/mobile zh/vi cases). The initial native invocation lacked the configured browser executable and did not reach page execution; rerunning with the existing `/usr/bin/chromium` completed all cases without changing tests. Independent integration review and new-head full CI remain required.
