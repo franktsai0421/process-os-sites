@@ -1,4 +1,3 @@
-import {timingSpan,timingParse} from './navigation-timing';
 // Explicit isolated conversion format. Immutable snapshot bodies are separate
 // from live aggregates; workflow requests need not reconstruct old history.
 import {effectiveDeliveryValue} from './effective-delivery.mjs';
@@ -130,20 +129,20 @@ async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>
  return JSON.stringify({__processRecords:{version:1,values:refs,legacySources,...(Object.keys(allocations).length?{allocations}:{})},platformUsers:values.platformUsers,...(values.maintenanceMode!==undefined?{maintenanceMode:values.maintenanceMode}:{})});
 }
 export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options:RecordRead={}){
- return timingSpan('decode',()=>decodeRecordValuesCore(bucket,envelope,options));
+ return decodeRecordValuesCore(bucket,envelope,options);
 }
 // Only the dedicated FQC mutation reader may supply a body hydration boundary.
 async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>){
  if(envelope.__processRecords?.version!==1||!envelope.__processRecords.values||Array.isArray(envelope.__processRecords.values))throw Error('Invalid record manifest');
  const values:Record<string,string>={},known=new Set<string>(),cache=new Map<string,unknown>(),models=new Map<string,unknown>(),allocations=new Map<string,AllocationIndex>();
  const allocationRef=options.allocationKey?envelope.__processRecords.allocations?.[options.allocationKey]:null;
- if(allocationRef){known.add(allocationRef.sha256);allocations.set(options.allocationKey!,checkedAllocation(timingParse(await read(bucket,allocationRef))));}
+ if(allocationRef){known.add(allocationRef.sha256);allocations.set(options.allocationKey!,checkedAllocation(JSON.parse(await read(bucket,allocationRef))));}
  // These legacy parsers validate/normalize every version snapshot. Keep those
  // snapshots hydrated until their adapters support trusted lazy projections;
  // never skip their validation merely to report lower memory consumption.
  const fullVersionReaders=new Set(['qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl','routineEquipmentControl']);
  let deferVersions=true;
- async function body(ref:Ref){known.add(ref.sha256);if(!cache.has(ref.sha256))cache.set(ref.sha256,timingParse(await read(bucket,ref)));return cache.get(ref.sha256);}
+ async function body(ref:Ref){known.add(ref.sha256);if(!cache.has(ref.sha256))cache.set(ref.sha256,JSON.parse(await read(bucket,ref)));return cache.get(ref.sha256);}
  async function visit(v:unknown,parent='',activeIds:string[]=[],inheritedDeferred=false):Promise<unknown>{
   if(reference(v)){if(inheritedDeferred){known.add(v.__immutableBody.sha256);return v;}return body(v.__immutableBody);}
   if(Array.isArray(v)){const next=[];for(const item of v){if(!object(item)){next.push(item);continue;}
@@ -205,11 +204,11 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   // Preserve the original manifest traversal/error order: required bodies are
   // hydrated now, before reading the next aggregate. Excluded bodies alone are
   // the approved fault-policy change; aggregate SHA/JSON still fail closed.
-  if(bodyKeys&&!bodyKeys.has(key)){if(original.includes('"__immutableBody"'))timingParse(original);continue;}
-  known.add(ref.sha256);const raw=options.projectValue?await timingSpan('projection',()=>options.projectValue!(key,original)):original;
+  if(bodyKeys&&!bodyKeys.has(key)){if(original.includes('"__immutableBody"'))JSON.parse(original);continue;}
+  known.add(ref.sha256);const raw=options.projectValue?await options.projectValue(key,original):original;
   if(raw===undefined)continue;
-  if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(timingParse(raw)));values[key]=raw;}
-  else values[key]=options.effectiveOnly?JSON.stringify(await visit(timingSpan('projection',()=>effectiveDeliveryValue(timingParse(raw))))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(timingParse(raw))):raw;
+  if(key===options.modelKey&&!options.effectiveOnly&&!options.projectValue){models.set(key,await visit(JSON.parse(raw)));values[key]=raw;}
+  else values[key]=options.effectiveOnly?JSON.stringify(await visit(effectiveDeliveryValue(JSON.parse(raw)))):raw.includes('"__immutableBody"')?JSON.stringify(await visit(JSON.parse(raw))):raw;
  }}finally{releasePendingIdentity();}
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
   return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};

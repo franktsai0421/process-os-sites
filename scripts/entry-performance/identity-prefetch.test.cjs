@@ -3,18 +3,16 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {createHash,webcrypto}=require('node:crypto'),{createRequire}=require('node:module');
 const root=path.resolve(__dirname,'../..'),requireRepo=createRequire(path.join(root,'package.json')),ts=requireRepo('typescript');
 const hash=raw=>createHash('sha256').update(raw).digest('hex'),ref=raw=>({key:'state-records/v1/'+hash(raw)+'.json',sha256:hash(raw)});
-function load(source){const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(output,{module:mod,exports:mod.exports,require:id=>id==='./navigation-timing'?requireRepo(path.join(root,'scripts/ipqc-ab-import-harness.cjs'))({})(path.join(root,'lib/navigation-timing.ts')):requireRepo(path.resolve(root,'lib',id)),crypto:webcrypto,TextEncoder,TextDecoder,console,structuredClone});return mod.exports;}
+function load(source){const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(output,{module:mod,exports:mod.exports,require:id=>requireRepo(path.resolve(root,'lib',id)),crypto:webcrypto,TextEncoder,TextDecoder,console,structuredClone});return mod.exports;}
 const candidateSource=fs.readFileSync(path.join(root,'lib/state-records.ts'),'utf8').replace(/\r\n/g,'\n');
-const {withoutNavigationTiming}=require('../navigation-timing-source-contract.cjs');
-const uninstrumentedSource=withoutNavigationTiming('lib/state-records.ts',Buffer.from(candidateSource)).toString();
 const inverse=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/identity-prefetch-reverse.json'),'utf8'));
 // The separately reviewed FQC writer is append-only and is not exercised by
 // this identity-read fixture. Remove exactly that fixed suffix on the baseline
 // side, then retain the original whole-file and inverse-span pins below.
-const tail=inverse.reviewedFqcRequiredTail,tailAt=uninstrumentedSource.indexOf(tail.marker);
-assert.equal(uninstrumentedSource.split(tail.marker).length-1,1,'reviewed FQC tail marker must occur exactly once');
-assert.equal(hash(uninstrumentedSource.slice(tailAt)),tail.sha256,'reviewed FQC complete appended tail hash');
-let baselineSource=uninstrumentedSource.slice(0,tailAt);
+const tail=inverse.reviewedFqcRequiredTail,tailAt=candidateSource.indexOf(tail.marker);
+assert.equal(candidateSource.split(tail.marker).length-1,1,'reviewed FQC tail marker must occur exactly once');
+assert.equal(hash(candidateSource.slice(tailAt)),tail.sha256,'reviewed FQC complete appended tail hash');
+let baselineSource=candidateSource.slice(0,tailAt);
 assert.equal(hash(baselineSource),inverse.reviewedCandidateSHA256,'reviewed complete prefix before FQC tail');
 for(const row of inverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'reviewed inverse span hash');assert.equal(baselineSource.split(row.candidate).length-1,1,'inverse source anchor must occur exactly once');baselineSource=baselineSource.replace(row.candidate,row.baseline);}
 assert.equal(hash(baselineSource),inverse.reviewedBaselineSHA256,'original complete identity baseline hash');

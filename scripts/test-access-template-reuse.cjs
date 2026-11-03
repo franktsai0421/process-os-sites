@@ -4,7 +4,6 @@ const {makeLoader}=require('./read-performance-harness.cjs');
 const {withoutPR44AccessChanges,assertAccessTemplateContract}=require('./access-template-source-contract.cjs');
 const {withoutMasterABPermissionPhase,assertMasterABPermissionPhaseContract}=require('./master-ab-auth-source-contract.cjs');
 const {withoutFqcPermissionPhase,assertFqcPermissionPhaseContract}=require('./fqc-permission-source-contract.cjs');
-const {withoutNavigationTiming}=require('./navigation-timing-source-contract.cjs');
 const current=makeLoader()('lib/user-access.ts'),prior=makeLoader({}, {baseline:['lib/user-access.ts']})('lib/user-access.ts');
 const custom=[{id:'custom',name:'Custom',views:['data','approval'],lines:['B'],permissions:['approval.compare','approval.submit'],access:{'ipqc-ab.view':true,'ipqc-ab.save':false,'feedback.exchange':true,'users.view':true}}];
 const values={processCustomRoles:JSON.stringify(custom),processRoleTemplateOverrides:JSON.stringify({staff:{access:{'ipqc-ab.view':true,'ipqc-ab.save':false}}})};
@@ -37,10 +36,9 @@ check('T5 exact reuse plus pinned PR44, AB-phase and FQC-phase deltas; outside-s
  const lf=b=>Buffer.from([...b].filter((v,i)=>v!==13||b[i+1]!==10));assert.deepEqual(lf(fs.readFileSync('lib/user-access.ts')),lf(now));
  for(const file of ['lib/process-state.ts','lib/session-revocation.ts']){
   const committed=execFileSync('git',['show','HEAD:'+file]),original=execFileSync('git',['show',base+':'+file]);
-  const uninstrumented=withoutNavigationTiming(file,committed);
-  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(uninstrumented),original):uninstrumented,original);
+  assert.deepEqual(file==='lib/process-state.ts'?withoutMasterABPermissionPhase(withoutFqcPermissionPhase(committed),original):committed,original);
   assert.deepEqual(lf(fs.readFileSync(file)),lf(committed),'working auth source differs from committed bytes');
-  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(uninstrumented),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(uninstrumented),original),6);}
+  if(file==='lib/process-state.ts'){assert.equal(assertFqcPermissionPhaseContract(committed),5);assert.equal(assertMasterABPermissionPhaseContract(withoutFqcPermissionPhase(committed),original),6);}
  }
  const policy='public/process/access-policy.mjs',committedPolicy=execFileSync('git',['show','HEAD:'+policy]);
  assert.deepEqual(withoutPR44AccessChanges(policy,committedPolicy),execFileSync('git',['show',base+':'+policy]));

@@ -1,3 +1,7 @@
+## 2026-11-03 — Remove PR #61 speed diagnostics
+
+Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../../docs/acceptance/remove-navigation-diagnostics-20261103/README.md).
+
 2026-10-30 製程續修：共用導航新增單一待決定離頁協調，製程 adapter 持有表單／canvas lease 到導航 commit，Save／Discard／Stay 各自核對後端與 owner。busy 完成可恢復決策，history 先回來源再執行目前目標，最新取消不復活舊導航。bootstrap 在原 auth gate 後載入 owned ledger；未知 inverse 的最小 session marker 使 reload 只查原收據，不重送。原生 close 事件延後時同步解除已關表單的 ownership，避免 Discard 成功卻卡在來源。這些機制只完成製程接線，未代其他模組實作草稿 adapter。來源、驗收與速度見[製程續修](../../docs/acceptance/performance-draft-20261030/PROCESS_PLATFORM_ROUND5.md)；下方前輪的「未接 UI」是歷史狀態。
 
 2026-10-30 最後收尾：authoring同範圍readiness合併同次load的中間paint，已採用未paint狀態保留到refresh/reset，owner／delivery／互動guard不省略；master-shared僅Apply需next深拷貝，Save before仍在Begin/flush前擷取；master正式基準比對重用既有sameDraftValue。未接UI的owned-revert只接受連續確定變更且涵蓋目前revision的本人收據，不能證明外部修改時拒絕。依完整可信帳本的限制仍在。詳見[最終實測與限制](../../docs/acceptance/performance-draft-20261030/FINAL_OPTIMIZATION.md)。
@@ -434,10 +438,3 @@ separate acceptance; this local candidate is not a release.
   and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
   mount is a model/status port. It is not native browser, authenticated backend,
   real timeout-duration, or original unknown-operation recovery acceptance.
-
-
-## 2026-11-01 navigation timing diagnostics (unpublished)
-
-The compiled Site may expose an existing-admin diagnostic UI at `/navigation-timing`; explicit server flag + short expiry and same-tab opt-in are required. Request-local timings preserve native binding receivers and existing auth/CAS/readback. Safe numeric/fixed-label summaries use Server-Timing; only streamed tails use existing Worker logs. No new metric DB/store or third-party telemetry. [Source of truth, bounds and verification](../../docs/acceptance/navigation-timing-20261101/README.md). Business data model and deployment are unchanged.
-
-Diagnostic hardening: sample admission reuses existing current non-demo-admin identity with no extra API auth reads; quota is consumed only for successful authorized responses. Start/Refresh/Export recheck the config gate; missing authorized timing stops the recorder. Inactive diagnostic UI reads rows without installing hooks; repeated teardown preserves other fetch owners. Token revocation follows the existing rollout flag and no background polling is added. See the same acceptance source above.
