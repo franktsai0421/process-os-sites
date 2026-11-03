@@ -390,7 +390,7 @@
     const client=transport();if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
     const local=clone(editable()?.snapshot||library().workflow?.working||{errors:[],items:[]}),base=clone(syncBase||local),generation=syncGeneration;
     if(!library().workflow||action==='begin'){const begun=await client.begin();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(begun,action==='begin');if(action==='begin'){render();return true;}}
-    if(action==='apply'){if(!detail.patches)detail=changes(base,local);if(!detail.patches.length){ui.lastError=null;return true;}}
+    if(action==='apply'){if(!detail.patches)detail=changes(base,local);if(!detail.patches.length)return true;}
     if(action==='save'){await client.flush();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');assertNoUnapplied();}
     const feedback=['apply','save'].includes(action)?{owned:currentReadOwner(),action}:null;
     if(feedback){pendingCommandFeedback=feedback;window.VersionDraftUI?.updateSync(hostElement,true,!!ui.lastError);}
