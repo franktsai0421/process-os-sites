@@ -10,7 +10,10 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const html = combineProcessStyles(fs.readFileSync('public/process/index.html','utf8'), name => fs.readFileSync('public/process/'+name,'utf8')).html;
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
-  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 49);
+  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 50);
+  const checkpointAsset=result.assets.find(asset=>asset.sources.includes('fqc-input-checkpoint.js'));
+  assert(checkpointAsset,'FQC input checkpoint is part of the ordered source bundle');
+  assert(checkpointAsset.sources.indexOf('fqc-input-checkpoint.js')<checkpointAsset.sources.indexOf('fqc-master.js'),'checkpoint helper loads before the FQC binder');
   assert(result.assets.some(asset=>asset.sources.includes('master-reference-viewer.js')),'latest52 reference viewer remains in source order');
   const recoveryAsset=result.assets.find(asset=>asset.sources.includes('local-draft-recovery.js'));
   assert(recoveryAsset,'local recovery helper stays in ordered bundle');
