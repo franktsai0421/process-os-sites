@@ -32,6 +32,7 @@
   // Matrix choices stay private until the explicit batch Apply. Recovery never
   // hydrates inputs on mount; the user must claim and confirm a historical copy.
   let matrixBatch=null,matrixActions=null,matrixChoiceRevision=0;
+  let matrixDepartureDiscard=null;
   let matrixRecoverySession=null,matrixRecoveryReady=false,matrixRecoveryContext='',matrixRecoveryBase='',matrixRecoveryVerified=null;
   let matrixRecoveryNote='',matrixRecoveryError='',matrixRecoveryBlocked=false,matrixRecoveryGate=null;
   const matrixQuarantine=new Map();
@@ -46,7 +47,7 @@
       canView:owned()&&workspaceReady()&&transport().permission('view')===true,canEdit:transport().permission('edit')===true&&canEditDraft(),
       pending:!!(verified?.owned()===true?verified.flow:flow)?.pendingId,verified:verified?.owned()===true,
       hasLocalChanges:!!(matrixOwner()&&matrixBatch.count)||!!document.querySelector('.fqc-modal-form'),localRevision:matrixChoiceRevision,
-      writeState:matrixOwner()&&matrixBatch.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
+      writeState:matrixDepartureDiscard?.current()===true?'idle':matrixOwner()&&matrixBatch.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
   }
   function makeMatrixRecovery(){
     const owned=currentReadOwner(workspaceReady);
@@ -1272,6 +1273,21 @@
   function unknownDepartureEligible(){
     try{return workspaceReady()&&sharedStateCurrent()&&!ui.saving&&!matrixRecoveryBlocked&&!matrixQuarantine.size&&!window.ProcessNavigationForms?.composing?.()&&!!sharedClient?.departureUnknown()&&[...document.querySelectorAll('.fqc-modal-overlay')].every(node=>{const owner=formOwners.get(node);return owner?.current()&&!owner.pending;})&&(!matrixBatch||matrixOwner());}catch{return false;}
   }
+  function discardLocalMatrixForDeparture(current){
+    if(!matrixBatch||matrixBatch.pending)return;
+    const batch=matrixBatch,session=matrixRecoverySession,revision=matrixChoiceRevision,owned=currentReadOwner(workspaceReady);
+    if(!session)throw Error('RECOVERY_UNAVAILABLE');
+    const check=()=>current()&&owned()&&matrixOwner()&&matrixBatch===batch&&matrixRecoverySession===session&&matrixChoiceRevision===revision&&!batch.pending;
+    if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');
+    // This synchronous capability covers only unsent, owned matrix records.
+    // The unrelated form's unknown marker and transport admission stay locked.
+    matrixDepartureDiscard={current:check};
+    try{
+      const cancelled=session.cancelScheduled();if(!cancelled.ok)throw Error(cancelled.code);
+      for(const source of ['memory','storage']){if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');const preview=session.preview(session.key,source);if(preview.code==='NOT_FOUND')continue;if(!preview.ok||preview.kind!=='local')throw Error(preview.code||'RECEIPT_REQUIRED');const discarded=session.discard(preview.token);if(!discarded.ok)throw Error(discarded.code);}
+      if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');batch.rows.clear();batch.count=0;matrixChoiceRevision++;matrixRecoveryNote='';
+    }finally{matrixDepartureDiscard=null;}
+  }
   function unknownDeparture(base){
     let held=null;
     const roots=()=>[hostElement,...document.querySelectorAll('.fqc-modal-overlay')];
@@ -1287,6 +1303,7 @@
         for(const {node}of locked)node.inert=true;
         held=record;
         try{
+          discardLocalMatrixForDeparture(current);
           record.coverage=sharedClient.coverDeparture(anchor,current);
           if(!verified())throw Error('DEPARTURE_CONTEXT_CHANGED');
           return {departureId:record.id,release(){for(const {node,inert}of locked)node.inert=inert;locked.length=0;if(!record.committed)record.coverage.release();if(held===record)held=null;}};
@@ -1297,8 +1314,8 @@
         if(!verified())throw Error('DEPARTURE_CONTEXT_CHANGED');
         held.committed=true;
         for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);
-        // Drop only current local buffers. Original transport and matrix
-        // recovery evidence remain intact; neither authorizes a replay.
+        // Unsent matrix records were checked and discarded before handoff.
+        // Sent matrix/transport unknown evidence remains; neither grants replay.
         matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;
       },
     };
