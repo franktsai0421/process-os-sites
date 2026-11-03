@@ -1,3 +1,5 @@
+2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
+
 ## 2026-11-03 — IQC content-issue source correction (local only)
 
 Draft missing counts now use the same server content checks as submission; import notices are separate, unknown results stay unchecked, and fixed-case results retain their original snapshot source. No business-rule/data/permission change. [Implementation, tests and limits](docs/acceptance/iqc-content-issues-20261103/README.md). No push, PR, merge or deployment.

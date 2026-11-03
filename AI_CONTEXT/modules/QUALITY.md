@@ -1,3 +1,5 @@
+2026-11-03 follow-up: nonblocking IQC frequency/supplier counts remain visible separately; legacy shared-draft fixtures now assert the existing revision, no-change and unsaved-content contracts. Baseline reproduction and final evidence remain in the linked IQC acceptance note.
+
 ## 2026-11-03 IQC missing-count correction
 
 IQC workflow presentation returns generation/revision-bound draftContentIssues from the same iqcContentIssues checks used on submission. Missing counts count issues, accept valid source fallback, and exclude optional suppliers and import notices. Selected cases retain stored contentIssues; stale/absent draft results remain unchecked. Response metadata is never persisted; equipment structure, permissions and submission policy are unchanged. [Local evidence](../../docs/acceptance/iqc-content-issues-20261103/README.md).

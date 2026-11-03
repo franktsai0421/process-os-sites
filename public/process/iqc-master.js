@@ -268,6 +268,12 @@
     const labels={parts:t('零件','Linh kiện'),items:t('檢查項目','Hạng mục'),errors:t('錯誤名稱','Tên lỗi'),categories:t('類別','Nhóm'),suppliers:t('供應商','Nhà cung cấp')};
     return `<details class="iqc-panel iqc-pending" ${draft()?'':'data-vd-source="snapshot"'}><summary>${t('內容待補','Nội dung cần bổ sung')} · ${pending?pending.length:t('尚未檢查','Chưa kiểm tra')}</summary><p>${source}</p><p>${t('待補不阻擋送審，由審核者判斷。已儲存快照與即時草稿可能不同；送審使用最後手動儲存的快照。匯入待確認、有效來源規則及選填資訊不額外計入此數。','Các mục cần bổ sung không chặn gửi duyệt; người duyệt đánh giá. Bản lưu có thể khác bản nháp; gửi duyệt dùng bản lưu thủ công cuối cùng. Ghi chú nhập, quy tắc nguồn hợp lệ và thông tin tùy chọn không tính thêm vào số này.')}</p>${pending?`<ul class="iqc-alert-list">${pending.slice(0,40).map((issue,index)=>{const collection=issue.path?.[0],row=snap()[collection]?.find(row=>row.id===issue.path?.[1]?.id);return `<li><b data-i18n-skip="true">${h(labels[collection]||collection)} · ${h(row?.checkNo||row?.code||row?.nameVi||issue.path?.[1]?.id||'')}</b> · ${h(message(issue))}${draft()?`<button type="button" class="button ghost iqc-small" data-iqc-pending="${index}">${t('前往修正','Đến sửa')}</button>`:''}</li>`;}).join('')}${pending.length>40?`<li>${t('其餘待補','Các mục còn lại')} · ${pending.length-40}</li>`:''}</ul>`:''}</details>`;
   }
+  function dataNotesPanel() {
+    const data=snap(),unstructured=data.items.filter(item=>!item.isDeleted&&!(item.rules||[]).some(rule=>['batch','time'].includes(rule.cadence))).length;
+    const noSupplier=data.parts.filter(part=>!part.isDeleted&&!part.supplierIds?.length).length;
+    if(!unstructured&&!noSupplier)return '';
+    return `<section class="iqc-panel iqc-data-notes"><h3>${t('資料提示（非阻擋）','Thông tin dữ liệu (không chặn)')}</h3><p>${draft()?t('來源：目前載入的共享工作稿','Nguồn: bản nháp chung đang hiển thị'):t('來源：目前選取版本的固定內容','Nguồn: nội dung cố định của phiên bản đang chọn')}</p><ul><li data-iqc-note="frequency">${t('尚無結構化正式頻率','Chưa có tần suất chính thức có cấu trúc')} · ${unstructured}</li><li data-iqc-note="supplier">${t('尚未選填供應商','Chưa chọn nhà cung cấp (tùy chọn)')} · ${noSupplier}</li></ul><p>${t('這些資料狀態不額外計入內容待補，也不另加送審阻擋。有效的來源頻率文字仍可送審；供應商為選填。真正缺少必填內容（例如規則全空或來源文字空白）仍依伺服器檢查另列待補。','Các trạng thái này không cộng thêm vào số mục cần bổ sung và không thêm điều kiện chặn gửi duyệt. Văn bản tần suất nguồn hợp lệ vẫn được gửi duyệt; nhà cung cấp là tùy chọn. Nội dung thực sự còn thiếu (như không có quy tắc hoặc văn bản nguồn trống) vẫn được liệt kê riêng theo kiểm tra máy chủ.')}</p></section>`;
+  }
   function importPanel() { return ''; }
   function filteredParts() {
     const data = snap();
@@ -331,7 +337,7 @@
     }
     const listScroll = root.querySelector('.iqc-part-list')?.scrollTop || 0;
     const pageScroll = window.scrollY;
-    root.innerHTML = `${versionBar()}${sharedStatus()}${issuesPanel()}${historyPanel()}${pendingPanel()}${importPanel()}<div class="iqc-grid">${listPanel()}${detailPanel()}</div>`;
+    root.innerHTML = `${versionBar()}${sharedStatus()}${issuesPanel()}${historyPanel()}${pendingPanel()}${dataNotesPanel()}${importPanel()}<div class="iqc-grid">${listPanel()}${detailPanel()}</div>`;
     for(const [id,action]of [['iqc-operation-check','resolveUnknown'],['iqc-operation-retry','retryUnknown']])root.querySelector('#'+id)?.addEventListener('click',async()=>{try{await transport()[action]();await load();render();}catch(error){notice(displayDraftError(error));}});
     bind();
     if(control.workflow&&(window.sharedDraftPermissionAllowed?.(sharedClient,'approval.compare')??true)&&window.hasPermission?.('approval.compare')){
