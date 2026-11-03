@@ -70,6 +70,30 @@ There is no product, workflow, schema, permission or unknown-recovery change in
 this follow-up. Full new-head CI and independent review remain required; this
 does not retry the separately blocked PR base or description updates.
 
+## CI run 261 access-result expectation correction
+
+Run `41692056440` on `89abc73d95359b87146e0e9761deb8f5072ce799` passed the
+readiness correction, then stopped in `test-shared-access-result-races.cjs`.
+Its old non-strict-read case expected `edit` to remain true after HTTP 403 with
+an invalid JSON body. This contradicts the reviewed `5e31e9c` repair above:
+an owned 401/403 revokes access even when JSON parsing fails. Non-strict reads
+still return the original parse error; strict reads retain HTTP status/cause.
+`guardAccessResults` does not exempt a client from this denial. Local execution
+reproduced the exact old assertion failure before updating its expectation.
+
+Only tests and this evidence note change. Replace that one obsolete case with
+eight owned-response cases (guard off/on, HTTP 401/403/200/500), preserving error
+identity and asserting view/edit, disabled controls and no extra request/POST.
+Sixteen stale-denial cases verify identity, read-state reset, delivery and module
+ownership fences for both guard modes and both denial statuses. All 51 access
+race checks pass; 52 unknown-departure/readiness tests and typed lint also pass.
+All 55 commands from the failed case through the end of that CI stage pass
+locally, including the actual IQC browser fixture (synthetic data, two languages
+and three viewport sizes). This Linux run does not replace the complete Windows
+workflow; final exact-head full CI remains required. No product permission, receipt, unknown marker, write lock,
+workflow, schema or deployment changes occur. PR base/body updates remain blocked
+and are not retried.
+
 ## Implemented scope
 
 Master data (AB/C/lines/PROCESS), IPQC-AB, Tooling and routine equipment opt into the common navigation lease only when their actual shared transport holds an intact unknown operation, no queued work, verified view access, matching actor/session generation and the original durable marker. IPQC-AB must account for both scope and module transports. Unsupported Begin recovery in Tooling/equipment remains blocked. Additional unrelated unknown operations still block departure.

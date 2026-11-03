@@ -34,7 +34,26 @@ await check('abort error retains its identity and does not grant',async()=>{cons
 await check('strict full read rejects an access fence while default read remains compatible',async()=>{for(const strict of [false,true]){const f=fixture(),old=caught(f.client.read(undefined,strict?{requireAcceptedAccess:true}:undefined)),newer=f.client.permissions();f.respond(1,grant(3));await newer;f.respond(0,grant(2));const result=await old;if(strict)assert.equal(result.message,'ACCESS_READ_SUPERSEDED');else assert.equal(result.revision,2);assert.equal(f.client.permission('edit'),true);}});
 for(const status of [401,403])await check('strict full read preserves nonJSON '+status+' and denies owned access',async()=>{const f=fixture(),initial=f.client.permissions();f.respond(0,grant());await initial;const p=caught(f.client.read(undefined,{requireAcceptedAccess:true})),cause=Error('synthetic invalid JSON');f.pending[1].resolve({ok:false,status,json:async()=>{throw cause;}});const error=await p;assert.equal(error.status,status);assert.equal(error.cause,cause);assert.equal(f.client.permission('edit'),false);assert.equal(f.button.disabled,true);assert.equal(f.pending.length,2);});
 for(const status of [401,403])await check('strict stale actor nonJSON '+status+' cannot contaminate fresh access',async()=>{const f=fixture(),old=caught(f.client.read(undefined,{requireAcceptedAccess:true}));f.flip();const fresh=f.client.permissions();f.respond(1,grant(3));await fresh;f.pending[0].resolve({ok:false,status,json:async()=>{throw Error('synthetic invalid JSON');}});assert.equal((await old).status,status);assert.equal(f.client.permission('edit'),true);assert.equal(f.button.disabled,false);});
-await check('default nonJSON read retains original parse error without strict projection',async()=>{const f=fixture(),initial=f.client.permissions();f.respond(0,grant());await initial;const p=caught(f.client.read()),cause=Error('synthetic invalid JSON');f.pending[1].resolve({ok:false,status:403,json:async()=>{throw cause;}});assert.equal(await p,cause);assert.equal(f.client.permission('edit'),true);});
+// Non-strict reads preserve the parse error, but an owned HTTP denial still
+// revokes access. The body format and opt-in response ordering cannot grant it.
+for(const guard of [false,true])for(const status of [401,403,200,500])await check(`non-strict nonJSON ${status} preserves parse error and only denies owned access (guard=${guard})`,async()=>{
+ const f=fixture(guard),initial=f.client.permissions();f.respond(0,grant());await initial;
+ const p=caught(f.client.read()),cause=Error('synthetic invalid JSON');
+ f.pending[1].resolve({ok:status>=200&&status<300,status,json:async()=>{throw cause;}});
+ assert.equal(await p,cause);const denied=status===401||status===403;
+ assert.equal(f.client.permission('view'),!denied);assert.equal(f.client.permission('edit'),!denied);assert.equal(f.button.disabled,denied);
+ assert.equal(f.pending.length,2);assert(f.pending.every(request=>!request.options.body));
+});
+for(const guard of [false,true])for(const status of [401,403])for(const stale of ['identity','reset','delivery','module'])await check(`stale non-strict nonJSON ${status} preserves fresh access (${stale}, guard=${guard})`,async()=>{
+ const f=fixture(guard);let current=true;
+ if(stale==='delivery'){f.window.ProcessSync.captureDelivery=()=>({current});f.window.ProcessSync.isCurrentDelivery=owner=>owner.current===current;}
+ const old=caught(f.client.read(undefined,stale==='module'?{isCurrent:()=>current}:undefined));
+ if(stale==='identity')f.flip();else if(stale==='reset')f.client.invalidateReadState();else current=false;
+ const fresh=f.client.permissions();f.respond(1,grant(3));await fresh;
+ const cause=Error('synthetic stale invalid JSON');f.pending[0].resolve({ok:false,status,json:async()=>{throw cause;}});
+ assert.equal(await old,cause);assert.equal(f.client.permission('view'),true);assert.equal(f.client.permission('edit'),true);assert.equal(f.button.disabled,false);
+ assert.equal(f.pending.length,2);assert(f.pending.every(request=>!request.options.body));
+});
 await check('strict full read respects module predicate and leaves newer view untouched',async()=>{const f=fixture();let current=true;const p=caught(f.client.read(undefined,{requireAcceptedAccess:true,isCurrent:()=>current}));current=false;f.respond(0,grant());assert.equal((await p).message,'ACCESS_READ_SUPERSEDED');assert.equal(f.client.permission('view'),undefined);});
 await check('strict full read uses fresh compact request and admits fresh response once',async()=>{const f=fixture(),p=f.client.read(undefined,{requireAcceptedAccess:true,isCurrent:()=>true});assert.match(f.pending[0].url,/compact=1/);assert(!f.pending[0].url.includes('since='));f.respond(0,grant());assert.equal((await p).revision,2);assert.equal(f.client.permission('edit'),true);assert.equal(f.pending.length,1);});
 console.log(JSON.stringify({status:'PASS',checks:checks.length,results:checks,evidence:'synthetic deferred fetch/DOM, actual candidate shared client; no network/browser/live data'},null,2));
