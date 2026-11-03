@@ -36,7 +36,7 @@ void test('compiled user form abandonment sends no account mutation and stores n
  }finally{await context.close();await browser.close();await f.close();}
 });
 
-for(const [width,lang] of [[390,'vi'],[1280,'zh']])void test(`failed destination after process abandonment shows the remaining shared canvas without restoring input ${width} ${lang}`,async()=>{
+for(const [width,lang] of [[390,'vi'],[1280,'zh']])for(const linking of [false,true])void test(`failed destination after process abandonment shows the remaining shared canvas without restoring input ${width} ${lang} linking=${linking}`,async()=>{
  const f=await createProcessPlatformRound5Fixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
   const page=await context.newPage(),posts=[];page.on('dialog',d=>void d.accept());page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
   await page.goto(f.url.origin+'/login?view=dashboard');await page.locator('#id').fill(f.actors.editor);await page.locator('#password').fill(f.password);await page.locator('.site-entry-submit').click();await ready(page,'dashboard');
@@ -44,9 +44,11 @@ for(const [width,lang] of [[390,'vi'],[1280,'zh']])void test(`failed destination
   const card=page.locator('.pe-card[data-node="photo-operation"]'),original=await card.locator('h3').textContent();
   await card.locator('[data-pe="edit"]').click();await page.locator('#process-operation-dialog [data-field="name"]').fill('Discarded canvas name');await page.locator('#apply-operation').click();await page.locator('#process-operation-dialog').waitFor({state:'detached'});await page.waitForFunction(()=>window.ProcessCanvasLocal.dirty());assert.equal(await card.locator('h3').textContent(),'Discarded canvas name');
   const before=await f.readAuthoring(),count=posts.length;
+  if(linking){await card.locator('[data-pe="output"]').click();assert.equal(await page.evaluate(()=>window.ProcessEditorV2.interacting()),true);}
   await page.evaluate(()=>{window.ProcessSync.prepareDestination=async()=>{window.failedAbandonResult=true;throw Error('SYNTHETIC_DESTINATION_FAILURE');};window.ProcessDeliveryNavigation.navigate('dashboard');});
   await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>window.failedAbandonResult===true&&!document.querySelector('[data-navigation-departure]'));
   assert.equal(await page.evaluate(()=>window.ProcessCanvasLocal.dirty()),false);assert.deepEqual(await f.readAuthoring(),before);assert.equal(posts.length,count);
+  assert.equal(await page.evaluate(()=>window.ProcessEditorV2.interacting()),false);assert.equal(await page.locator('.pe-port-selected,.pe-link-preview').count(),0);
   assert.equal(await card.locator('h3').textContent(),original,'visible canvas must agree with the discarded local journal');
   await card.locator('[data-pe="edit"]').click();assert.equal(await page.locator('#process-operation-dialog [data-field="name"]').inputValue(),original,'reopening must not recover input captured by the old card handler');assert.equal(posts.length,count);
  }finally{await context.close();await browser.close();await f.close();}

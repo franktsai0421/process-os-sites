@@ -139,7 +139,7 @@ void test('changed persistent-navigation executable references have coherent new
   'process-ipqc.js':'20261031-bom-ab-recovery1',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261030-photo-integrated1',
-  'process-editor.js':'20261031-bom-ab-recovery1',
+  'process-editor.js':'20261103-simple-departure1',
   'master-review.js':'20261030-pr54-integrated1',
   'process-ipqc.css':'20261031-bom-ab-recovery1',
   'process-equipment.css':'20261029-flow1',

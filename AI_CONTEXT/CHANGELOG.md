@@ -2,6 +2,8 @@
 
 Independent #66 review reproduced stale source canvas content after abandonment followed by failed destination preparation. Refresh the checked local projection before handoff; add desktop/mobile browser coverage and cross-module late-state regression cases. No shared write or restoration is added.
 
+Re-review also reproduced the selected-link variant. Explicit local discard now cancels owned canvas interactions before repaint, including without a form; reopening already read the correct value, and the defect concerned the stale card display only.
+
 Added a scoped simple-abandonment navigation path for common draft pages and a process-canvas local-only path that never submits a server inverse. No checkpoint/archive feature. Original unknown protections remain; non-FQC unknown navigation is still explicitly blocked. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).
 
 ## 2026-11-03 — FQC explicit input abandonment
