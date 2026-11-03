@@ -5,7 +5,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const root=path.resolve(import.meta.dirname,'..');
-for(const fault of ['assertion','unsettled'])test('equipment Begin runner fails closed for '+fault,()=>{
+for(const fault of ['assertion','unsettled'])await test('equipment Begin runner fails closed for '+fault,()=>{
  const probe=`
  const path=require('node:path'),root=process.argv[1],fault=process.argv[2];
  process.chdir(root);
