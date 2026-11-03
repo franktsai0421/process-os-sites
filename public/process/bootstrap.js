@@ -68,7 +68,7 @@ void (async () => {
     }
     const navigationPreload=document.createElement('link');
     navigationPreload.rel='modulepreload';
-    navigationPreload.href='./navigation-lifecycle.mjs?v=20261030-departure1';
+    navigationPreload.href='./navigation-lifecycle.mjs?v=20261103-fqc-checkpoint1';
     document.head.append(navigationPreload);
     document.documentElement.dataset.processSharedReadyMs = Math.round(performance.now());
     window.ProcessOwnedDraft=await ownedDraftModule;
