@@ -286,7 +286,8 @@
    if(!Number.isSafeInteger(index)){location.reload();return;}
    physicalIndex=index;if(restoreIndex!==null&&index===restoreIndex){finishRestore();return;}
    let candidate;try{candidate=policy.deliveryCandidate(location.search);}catch{location.reload();return;}
-   const url=new URL(location.href),target={...candidate,system:candidate.preferredSystem,approvalTab:url.searchParams.get('approvalTab')||'master',display: candidate.view==='player'?{line:url.searchParams.get('line')||'',stage:url.searchParams.get('stage')||''}:undefined};
+   const url=new URL(location.href),tabs=url.searchParams.getAll('approvalTab'),approvalTab=tabs.length===1&&['master','process','quality','routine'].includes(tabs[0])?tabs[0]:'master';
+   const target={...candidate,system:candidate.preferredSystem,approvalTab,display: candidate.view==='player'?{line:url.searchParams.get('line')||'',stage:url.searchParams.get('stage')||''}:undefined};
    if(replayingPop){const replay=replayingPop;replayingPop=null;if(replay.restore){const queued=queuedAfterRestore;queuedAfterRestore=null;restoreSource(queued);return;}if(index===replay.options.index){request(replay.target,replay.options).then(replay.resolve||(()=>{}));return;}replay.resolve?.({status:'superseded'});}
    if(restoreIndex!==null){if(departure.pending()){void request(target,{history:'pop',index,url:url.href});return;}queuedAfterRestore?.resolve?.({status:'superseded'});queuedAfterRestore={target,options:{history:'pop',index,url:url.href}};return;}
    void request(target,{history:'pop',index,url:url.href});

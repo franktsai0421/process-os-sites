@@ -63,6 +63,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Approval tab deep-link native regression
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/approval-deeplink-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC Apply reliability and actual native forms
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |

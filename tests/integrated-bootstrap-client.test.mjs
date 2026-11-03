@@ -68,6 +68,19 @@ void test('expired normal session returns to fixed login with display intent and
  await vm.runInNewContext(text,{window:{ProcessSync:{ready:Promise.resolve(),loginRequired:true}},accessPolicy,deliveryPolicy,document:{querySelector:()=>gate,querySelectorAll:()=>[]},localStorage:{getItem:()=> 'zh'},URLSearchParams,location:{search:'?system=process&view=player&line=C&stage=C-CUT&next=https://bad.invalid&role=admin',replace:url=>navigations.push(url)}});
  assert.deepEqual(navigations,['/login?system=process&view=player&line=C&stage=C-CUT']);
 });
+void test('expired approval entry carries only one valid tab through the fixed login redirect', async () => {
+ const text=bootstrapSource();
+ for(const system of ['process','quality'])for(const tab of ['master','process','quality','routine']){
+  const navigations=[],gate={textContent:''};
+  await vm.runInNewContext(text,{window:{ProcessSync:{ready:Promise.resolve(),loginRequired:true}},accessPolicy,deliveryPolicy,document:{querySelector:()=>gate,querySelectorAll:()=>[]},localStorage:{getItem:()=> 'zh'},URLSearchParams,location:{search:`?system=${system}&view=approval&approvalTab=${tab}&role=admin&next=https://bad.invalid`,replace:url=>navigations.push(url)}});
+  assert.deepEqual(navigations,[`/login?system=${system}&view=approval&approvalTab=${tab}`]);
+ }
+ for(const query of ['view=approval&approvalTab=unknown','view=approval&approvalTab=process&approvalTab=quality','view=approval&approvalTab=process&approvalTab=process','view=data&approvalTab=process','view=approval&view=data&approvalTab=process']){
+  const navigations=[],gate={textContent:''};
+  await vm.runInNewContext(text,{window:{ProcessSync:{ready:Promise.resolve(),loginRequired:true}},accessPolicy,deliveryPolicy,document:{querySelector:()=>gate,querySelectorAll:()=>[]},localStorage:{getItem:()=> 'zh'},URLSearchParams,location:{search:'?system=process&'+query,replace:url=>navigations.push(url)}});
+  assert.equal(new URL(navigations[0],'https://synthetic.invalid').searchParams.has('approvalTab'),false);
+ }
+});
 void test('account and review destinations wait for their existing reads without launching another read',async()=>{
  const text=bootstrapSource();
  for(const destination of [{view:'data',dataTab:'users',system:'process'},{view:'approval',system:'process'}]){
