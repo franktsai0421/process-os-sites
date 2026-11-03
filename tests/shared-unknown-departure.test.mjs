@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 const transport=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 const ui=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const helper=ui.slice(ui.indexOf('  function createDeparture(config){'),ui.indexOf('  host.VersionDraftUI='));
-function fixture(memory=new Map()){
+function fixture(memory=new Map(),guardAccessResults=false){
  const calls=[],events={},state={local:true,epoch:1,ready:true,peerChange:false,phase:'missing',access:true};
  const document={documentElement:{lang:'zh-TW'}},root={inert:false};
  const window={ProcessSync:{identity:{id:'A'},identityGeneration:()=>state.epoch,requiresReload:false},addEventListener:(name,fn)=>events[name]=fn};
@@ -15,7 +15,7 @@ function fixture(memory=new Map()){
   if(url.includes('operationId=')){if(state.phase==='missing')return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});const command=JSON.parse(calls.find(c=>c.options.body).options.body).command;return Response.json({receipt:{operationId:command.operationId,generation:command.generation,revision:7,savedId:null,caseId:null,unchanged:false}});}
   return Response.json({permissions:{view:state.access,edit:state.access,save:state.access}});
  }});
- vm.runInContext(transport,context);const create=endpoint=>window.createSharedDraftClient({endpoint,actorId:'A',headers:()=>({})});
+ vm.runInContext(transport,context);const create=endpoint=>window.createSharedDraftClient({endpoint,actorId:'A',headers:()=>({}),guardAccessResults});
  const clients=[create('/api/master-data/workflow?scope=AB'),create('/api/ipqc-ab/workflow')];
  const config={root:()=>root,context:()=>['AB'],local:()=>state.local,unknown:()=>clients.some(c=>c.hasUnknown()),unknownTransports:()=>state.peerChange?[clients[0]]:clients,unknownReady:()=>state.ready,discardUnknown(){state.local=false;},closeClean(){},current:()=>true};
  const adapter=vm.runInContext(helper+'\ncreateDeparture;',context)(config);
@@ -65,4 +65,12 @@ void test('projection cache reset preserves navigation-only coverage; a later vi
  const f=fixture();await f.start();const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();f.clients[0].invalidateReadState();
  assert.equal(f.adapter.covered(),true);assert(f.clients[0].hasUnknown());await assert.rejects(f.clients[0].command('g','apply',{patches:[]}));
  f.state.access=false;await f.clients[0].permissions();assert.equal(f.adapter.covered(),false);
+});
+for(const guarded of [false,true])void test(`observed view denial retires navigation across reset/grant (guarded=${guarded})`,async()=>{
+ const f=fixture(new Map(),guarded);await f.start();const bytes=[...f.memory],lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();
+ f.state.access=false;await f.clients[0].permissions();assert.equal(f.adapter.covered(),false);
+ f.clients[0].invalidateReadState();assert.equal(f.adapter.covered(),false);assert.equal(f.window.sharedDraftDepartureBlocked(),true);
+ f.state.access=true;await f.clients[0].permissions();assert.equal(f.adapter.covered(),false);assert.equal(f.window.sharedDraftDepartureBlocked(),true);
+ assert.deepEqual([...f.memory],bytes);assert(f.clients[0].hasUnknown());assert.equal(f.calls.filter(c=>c.options.body).length,1);
+ const fresh=await f.adapter.abandon();f.adapter.closeClean();fresh.release();assert.equal(f.adapter.covered(),true);
 });

@@ -2,6 +2,13 @@
 
 Added a navigation-only lease for intact shared-transport unknown operations in master data, IPQC-AB, Tooling and routine equipment. Explicit abandonment clears only local inputs; original operation evidence, receipt-only recovery and mutation locks remain. Custom Begin recovery and other module-specific unknown flows are excluded. [Scope and evidence](../docs/acceptance/shared-unknown-departure-20261103.md).
 
+Independent review reproduced old navigation coverage reviving after an observed
+view denial followed by projection-cache reset. View denial now retires that
+lease permanently; later grants require a new explicit abandonment. Operation
+markers and mutation admission are unchanged; transport and compiled AB
+regressions cover denial/reset/regrant. See the same acceptance note for evidence
+and remaining dependency/CI/review gates.
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 Added a scoped simple-abandonment navigation path for common draft pages and a process-canvas local-only path that never submits a server inverse. No checkpoint/archive feature. Original unknown protections remain; non-FQC unknown navigation is still explicitly blocked. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).

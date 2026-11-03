@@ -16,5 +16,11 @@ for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB unknown
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await page.waitForFunction(()=>window.ProcessSync.destination.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','AB'));await page.waitForFunction(()=>window.ProcessSync.destination.dataTab==='AB'&&document.documentElement.dataset.processNavigationStatus==='ready');
   assert.equal(posts.length,before);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(await page.locator('#master-edit-dialog').count(),0);assert.deepEqual(errors,[]);
+  const deniedPermissions=/\/api\/master\/workflow\?.*permissions=1/;
+  await page.route(deniedPermissions,r=>r.fulfill({status:403,json:{error:'FORBIDDEN'}}));
+  const denied=await page.evaluate(async()=>{const client=window.MasterDataWorkflow.shared.client('AB');let status;try{await client.permissions();}catch(error){status=error.status;}client.invalidateReadState();return {status,blocked:window.sharedDraftDepartureBlocked(),unknown:client.hasUnknown()};});
+  assert.deepEqual(denied,{status:403,blocked:true,unknown:true});
+  await page.unroute(deniedPermissions);await page.evaluate(()=>window.MasterDataWorkflow.shared.client('AB').permissions());
+  assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));assert.equal(posts.length,before);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);
  }finally{await context.close();await browser.close();await f.close();}
 });
