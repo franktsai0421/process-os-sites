@@ -79,28 +79,50 @@ void test('actual pending mount removes draft writes; readiness requires linked 
   withdraw.remove(); assert.equal(ready(), false, 'Missing controls alone are never proof of a locked pending view');
 });
 
-void test('actual approval tab contract requires an explicit process selection, not an assumed initial deep link', () => {
+for (const system of ['process', 'quality']) for (const selected of ['master', 'process', 'quality', 'routine']) void test(`actual approval tab cold/reload contract selects ${selected} in ${system}`, () => {
+ for (let load = 0; load < 2; load++) {
   const dom = canvasDOM(), calls = [], state = {};
   dom.Node.prototype.appendChild = function (node) { this.append(node); return node; };
-  Object.defineProperty(dom.Node.prototype, 'childNodes', {get() { return this.children; }});
-  Object.defineProperty(dom.Node.prototype, 'firstChild', {get() { return this.children[0] || null; }});
+  Object.defineProperty(dom.Node.prototype, 'childNodes', {get() { return this.children; }, configurable: true});
+  Object.defineProperty(dom.Node.prototype, 'firstChild', {get() { return this.children[0] || null; }, configurable: true});
   const page = dom.document.createElement('section'); page.className = 'approval-page'; dom.document.body.append(page);
-  const context = {document: dom.document, state, URL, location: {href: 'https://synthetic.invalid/process/index.html?view=approval&approvalTab=process'},
+  const context = {document: dom.document, state, URL, location: {href: `https://synthetic.invalid/process/?system=${system}&view=approval&approvalTab=${selected}`},
     MutationObserver: class { observe() {} }, ProcessDeliveryNavigation: {approval(tab) { calls.push(tab); }}}; context.window = context;
   vm.createContext(context);
   const master = fs.readFileSync(new URL('../public/process/master-data.js', import.meta.url), 'utf8');
-  const initialSelection = master.slice(master.indexOf("  if (new URL(location.href).searchParams.get('approvalTab')"), master.indexOf('  render = function ()', master.indexOf('  const priorRender = render;')));
-  assert(initialSelection.includes("=== 'routine'")); vm.runInContext(initialSelection, context);
+  const start = master.indexOf('  const approvalIntent =');
+  const initialSelection = master.slice(start, master.indexOf('  render = function ()', start));
+  assert(start > 0 && initialSelection.includes("getAll('approvalTab')")); vm.runInContext(initialSelection, context);
   vm.runInContext(fs.readFileSync(new URL('../public/process/approval-tabs.js', import.meta.url), 'utf8'), context);
   const mount = () => context.ApprovalTabs.mount({page, state, masterHTML: '', masterPending: 0, processPending: 1});
-  mount(); const tab = page.querySelector('[data-review-tab="process"]');
-  assert.equal(state.approvalTab, 'master'); assert.equal(tab.getAttribute('aria-selected'), 'false');
-  tab.click(); assert.deepEqual(calls, ['process'], 'Actual tab calls the existing navigation coordinator');
-  assert.equal(state.approvalTab, 'master', 'The callback request itself is not proof that navigation completed');
-  state.approvalTab = 'process'; mount();
-  assert.equal(page.querySelector('[data-review-tab="process"]').getAttribute('aria-selected'), 'true');
-  assert.equal(page.querySelector('#approval-panel-process').hidden, false);
-  // This test documents the initial-link gap; it does not fix product routing.
+  mount(); assert.equal(state.approvalTab, selected);
+  for (const key of ['master', 'process', 'quality', 'routine']) {
+    assert.equal(page.querySelector(`[data-review-tab="${key}"]`).getAttribute('aria-selected'), String(key === selected));
+    assert.equal(page.querySelector('#approval-panel-' + key).hidden, key !== selected);
+  }
+  const next = selected === 'process' ? 'quality' : 'process';
+  page.querySelector(`[data-review-tab="${next}"]`).click(); assert.deepEqual(calls, [next]);
+  assert.equal(state.approvalTab, selected, 'The callback request itself is not proof that navigation completed');
+  state.approvalTab = next; mount();
+  assert.equal(page.querySelector(`[data-review-tab="${next}"]`).getAttribute('aria-selected'), 'true');
+  assert.equal(page.querySelector('#approval-panel-' + next).hidden, false);
+ }
+});
+void test('initial approval intent rejects duplicate/unknown tabs and cannot choose another view', () => {
+  const master = fs.readFileSync(new URL('../public/process/master-data.js', import.meta.url), 'utf8');
+  const start = master.indexOf('  const approvalIntent =');
+  const source = master.slice(start, master.indexOf('  render = function ()', start));
+  assert(start > 0 && source.includes("getAll('approvalTab')"));
+  for (const query of ['', '&approvalTab=', '&approvalTab=unknown', '&approvalTab=process&approvalTab=quality', '&approvalTab=process&approvalTab=process', '&approvalTab=__proto__']) {
+    const state = {view: 'approval'};
+    vm.runInNewContext(source, {state, URL, location: {href: 'https://synthetic.invalid/process/?view=approval' + query}});
+    assert.equal(state.approvalTab, 'master'); assert.equal(state.view, 'approval');
+  }
+  for (const view of ['dashboard', 'data', 'editor']) {
+    const state = {view, approvalTab: 'master'};
+    vm.runInNewContext(source, {state, URL, location: {href: `https://synthetic.invalid/process/?view=${view}&approvalTab=process`}});
+    assert.equal(state.approvalTab, 'master'); assert.equal(state.view, view);
+  }
 });
 
 void test('reviewer readiness requires exact actor, selected visible tab, pending case and readonly workflow; diagnostics exclude credentials/content', () => {
