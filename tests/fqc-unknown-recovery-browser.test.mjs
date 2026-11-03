@@ -44,7 +44,7 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])for(const kind of ['
   if(process.env.FQC_RECOVERY_SCREENSHOTS&&kind==='error'){fs.mkdirSync(process.env.FQC_RECOVERY_SCREENSHOTS,{recursive:true});await page.screenshot({path:process.env.FQC_RECOVERY_SCREENSHOTS+`/unknown-${width}-${lang}.png`});}
   if(!process.env.FQC_UI_REF){assert.match(await form.locator('.fqc-modal-alert').innerText(),lang==='vi'?/chưa được xác nhận/:/尚未確認/);await page.locator('[data-fqc-check-result]').click();await s.settled();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(posts(f).length,before);}
   s.receiptsUp();await s.recover();assert.equal(await form.locator('[name="name"]').inputValue(),'Second input retained');assert.equal(posts(f).length,before,'recovery is GET-only');
-  if(!process.env.FQC_UI_REF||kind==='error')assert.doesNotMatch(await page.locator('#fqc-shared-status').innerText(),/UNKNOWN|尚未確認|chưa được xác nhận/,'successful readback clears stale error');
+  if(!process.env.FQC_UI_REF||kind==='error')assert.doesNotMatch(await page.locator('#fqc-recovery-notice').innerText(),/UNKNOWN|尚未確認|chưa được xác nhận/,'successful readback clears stale error');
   await form.locator('[type="submit"]').click();await form.waitFor({state:'detached'});assert.equal(posts(f).length,before+1,'retained form must produce a new Apply');assert.equal((await f.state()).workflow.working[kind==='error'?'errors':'items'][0].name,'Second input retained');
   assert.equal((await f.state()).workflow.saved,null);assert.deepEqual((await f.state()).workflow.active,committed.active);
   await page.locator('#fqc-save').click();await page.waitForFunction(()=>!document.querySelector('#fqc-save').disabled);assert.equal((await f.state()).workflow.saved.content[kind==='error'?'errors':'items'][0].name,'Second input retained');assert.deepEqual(s.errors,[]);
@@ -73,4 +73,50 @@ void test('uncommitted request with no receipt remains blocked and never retries
 
 void test('error form opened during matrix unknown can query safely without losing its input',async()=>{
  const s=await setup(),{f,page}=s;try{await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();s.lose();await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);await page.locator('[data-edit-error="error"]').click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('After matrix recovery');await form.locator('[type="submit"]').click();const before=posts(f).length;s.receiptsUp();await page.locator('[data-fqc-check-result]').click();await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown&&!window.FQCMasterUI.navigation.hasLocalChanges());assert.equal(posts(f).length,before);assert.equal(await form.locator('[name="name"]').inputValue(),'After matrix recovery');await form.locator('[type="submit"]').click();await form.waitFor({state:'detached'});assert.equal(posts(f).length,before+1);assert.deepEqual((await f.state()).workflow.working.items[0].productCodes,['SYN-P']);assert.equal((await f.state()).workflow.working.errors[0].name,'After matrix recovery');assert.deepEqual(s.errors,[]);}finally{await s.close();}
+});
+
+async function rotateDraft(f,action='withdraw'){
+ const peer=f.realm('other');peer.c.alert=()=>{};let flow=(await peer.client.read()).control.workflow;
+ flow=(await peer.client.command(flow.generation,'save')).control.workflow;
+ flow=(await peer.client.command(flow.generation,'submit',{savedId:flow.saved.id,expectedRevision:flow.revision,reason:'Synthetic generation recovery'})).control.workflow;
+ return(await peer.client.command(flow.generation,action,{caseId:flow.pendingId,reason:'Synthetic review transition',selfReviewConfirmed:true})).control.workflow;
+}
+for(const [width,lang,kind]of [[390,'zh','error'],[1280,'vi','error'],[390,'vi','item'],[1280,'zh','item']])void test(`historical recovery retires old ${kind} form and requires reopening ${width}px ${lang}`,async()=>{
+ const s=await setup(width,lang),{f,page}=s;try{
+  await page.locator(`[data-edit-${kind}="${kind}"]`).click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('Committed before review');s.lose();await form.locator('[type="submit"]').click();await s.settled();
+  await form.locator('[name="name"]').fill('Retain for manual comparison');const old=(await f.state()).workflow.generation,newFlow=await rotateDraft(f);assert.notEqual(old,newFlow.generation);
+  const before=posts(f).length,state=JSON.stringify(await f.state());s.receiptsUp();await s.recover();
+  assert.equal(posts(f).length,before);assert.equal(JSON.stringify(await f.state()),state);assert.equal(await form.locator('[name="name"]').inputValue(),'Retain for manual comparison');assert(await form.locator('[type="submit"]').isDisabled());assert(await form.locator('[name="name"]').isEnabled());
+  assert.match(await form.locator('.fqc-modal-alert').innerText(),lang==='vi'?/thế hệ mới/:/草稿已換代/);
+  await form.evaluate(node=>node.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));assert.equal(posts(f).length,before,'even a synthetic old-form submit cannot dispatch');
+  await form.locator('[data-close]').first().click();await page.locator(`[data-edit-${kind}="${kind}"]`).click();const fresh=page.locator('.fqc-modal-form');assert.equal(await fresh.locator('[name="name"]').inputValue(),'Committed before review');await fresh.locator('[name="name"]').fill('Explicitly checked new draft');await fresh.locator('[type="submit"]').click();await fresh.waitFor({state:'detached'});
+  assert.equal(posts(f).length,before+1);assert.equal((await f.state()).workflow.working[kind==='error'?'errors':'items'][0].name,'Explicitly checked new draft');assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});
+for(const action of ['withdraw','return','approve'])void test(`matrix historical receipt after ${action} retires only old selection and preserves an open form`,async()=>{
+ const s=await setup(390,'zh'),{f,page}=s;try{
+  await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();s.lose();await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);
+  await page.locator('[data-edit-error="error"]').click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('Keep this unsubmitted input');await form.locator('[type="submit"]').click();await rotateDraft(f,action);
+  const before=posts(f).length,state=JSON.stringify(await f.state());s.receiptsUp();await page.locator('[data-fqc-check-result]').click();await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown&&!window.FQCMasterUI.navigation.hasLocalChanges());
+  assert.equal(posts(f).length,before);assert.equal(JSON.stringify(await f.state()),state);assert.equal(await form.locator('[name="name"]').inputValue(),'Keep this unsubmitted input');assert(await form.locator('[type="submit"]').isDisabled());assert.match(await form.locator('.fqc-modal-alert').innerText(),/草稿已換代/);assert.deepEqual(s.errors,[]);
+  assert.equal(await page.evaluate(()=>Object.values(localStorage).filter(raw=>{try{return JSON.parse(raw).kind==='unknown';}catch{return false;}}).length),0,'old matrix durable input is retired');
+ }finally{await s.close();}
+});
+void test('historical matrix cleanup failure keeps its transport barrier until durable finalization succeeds',async()=>{
+ const s=await setup(),{f,page}=s;try{
+  await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();s.lose();await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);await rotateDraft(f);
+  await page.evaluate(()=>{const remove=Reflect.get(Storage.prototype,'removeItem');let once=true;Storage.prototype.removeItem=function(key){if(this===localStorage&&once){let data;try{data=JSON.parse(this.getItem(key));}catch{}if(data?.kind==='unknown'){once=false;throw Error('SYNTHETIC_CLEANUP_DENIED');}}return remove.call(this,key);};});
+  const before=posts(f).length;s.receiptsUp();await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('#fqc-matrix-apply').disabled);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(posts(f).length,before);
+  await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown&&!window.FQCMasterUI.navigation.hasLocalChanges());assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});
+void test('new runtime can resolve an old-generation durable matrix marker without a sessionStorage transport marker',async()=>{
+ const s=await setup(),{f,page}=s;try{
+  await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();s.lose();await page.locator('#fqc-matrix-apply').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);await rotateDraft(f);
+  const before=posts(f).length;s.receiptsUp();page.removeAllListeners('dialog');page.on('dialog',dialog=>{if(dialog.type()==='beforeunload')void dialog.accept();else{s.errors.push('Unexpected dialog');void dialog.dismiss();}});await page.evaluate(()=>sessionStorage.clear());await page.reload();
+  await page.evaluate(()=>{window.ProcessSync={identity:{id:'editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:e=>e===1,platformHeaders:()=>({}),requiresReload:false};window.state={view:'data',dataTab:'quality-fqc'};window.hasPermission=()=>true;window.bindDataInner=()=>{};window.toast=()=>{};});
+  for(const file of scripts)await page.addScriptTag({content:read(file)});await page.evaluate(()=>window.FQCMasterUI.bind(document.querySelector('#data-content')));
+  await page.locator('#fqc-matrix-more').locator('summary').click();await page.locator('#fqc-matrix-recovery').click();const overlay=page.locator('.fqc-recovery-overlay');await overlay.locator('[data-recovery-list] article > button').first().click();await overlay.getByRole('button',{name:'查原回執',exact:true}).click();await overlay.waitFor({state:'detached'});
+  assert.equal(posts(f).length,before);assert.equal(await page.evaluate(()=>Object.values(localStorage).filter(raw=>{try{return JSON.parse(raw).kind==='unknown';}catch{return false;}}).length),0);assert.match(await page.locator('#fqc-recovery-notice').innerText(),/草稿已換代/);assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
 });

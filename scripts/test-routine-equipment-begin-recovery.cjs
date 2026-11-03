@@ -2,15 +2,22 @@
 const assert = require('node:assert/strict');
 const { performance } = require('node:perf_hooks');
 const { fixture, tick, copy } = require('./test-routine-equipment-transfer-intent.cjs');
+// Fail closed even if an awaited fixture promise loses all event-loop handles.
+process.exitCode = 1;
 const results = [];
-let completed = false;
-// An unresolved synthetic read does not keep Node alive. Never report success
-// if the async suite stopped before its summary (or any caught case failed).
-process.on('beforeExit', () => { if (!completed) { console.error('FAIL_BEGIN_RECOVERY_INCOMPLETE'); process.exitCode = 1; } });
 const markerKey = 'routine-equipment-begin-recovery:synthetic-editor';
-async function check(name, task) { const start = performance.now(); try { await task(); results.push({ name, status: 'PASS', isolatedHandlerMs: +(performance.now() - start).toFixed(2) }); } catch (error) { process.exitCode = 1; results.push({ name, status: 'FAIL', error: error.stack }); } console.log(JSON.stringify(results.at(-1))); }
+async function check(name, task) {
+  const start = performance.now(); let timer;
+  try {
+    await Promise.race([task(), new Promise((_, reject) => { timer = setTimeout(() => reject(Error('CASE_TIMEOUT: ' + name)), 5000); })]);
+    results.push({ name, status: 'PASS', isolatedHandlerMs: +(performance.now() - start).toFixed(2) });
+  } catch (error) {
+    results.push({ name, status: 'FAIL', error: error.stack });
+    throw error;
+  } finally { clearTimeout(timer); console.log(JSON.stringify(results.at(-1))); }
+}
 async function setup({ mutation = 'abort', read = 'draft', delayRead = false } = {}) {
-  const f = await fixture({ openTransfer: false }), old = copy(f.test.model);
+  const f = await fixture({ openTransfer: false, establishInputOwner: true }), old = copy(f.test.model);
   old.versions = old.versions.filter(version => version.status === 'approved'); delete old.workflow;
   f.test.install(old);
   const content = copy(old.versions[0]); delete content.id; delete content.number; delete content.status; delete content.history;
@@ -83,5 +90,5 @@ async function setup({ mutation = 'abort', read = 'draft', delayRead = false } =
     await f.test.writeShared('apply');assert(f.storage.has(markerKey));assert.equal(f.posts().length,1);
     await f.test.enterExistingDraft();assert.equal(f.storage.has(markerKey),false);assert.equal(f.test.working.equipment[0].name,'Unapplied local input');assert.equal(f.posts().length,1);
   });
-  await tick(); const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_BEGIN_RECOVERY' : 'FAIL_BOUNDED_BEGIN_RECOVERY', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, results, limits: ['Synthetic HTTP/DOM uses actual full equipment UI and shared transport, not actual API/database acceptance', 'One read-only recovery attempt; no deadline change, hidden Begin retry, Save, Submit, or approval', 'Isolated handler durations are not native page load/render timings'] }; completed = true; console.log(JSON.stringify(summary)); if (summary.failed) process.exitCode = 1;
+  await tick(); const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_BEGIN_RECOVERY' : 'FAIL_BOUNDED_BEGIN_RECOVERY', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, results, limits: ['Synthetic HTTP/DOM uses actual full equipment UI and shared transport, not actual API/database acceptance', 'One read-only recovery attempt; no deadline change, hidden Begin retry, Save, Submit, or approval', 'Isolated handler durations are not native page load/render timings'] }; console.log(JSON.stringify(summary)); process.exitCode = summary.failed ? 1 : 0;
 })().catch(error => { console.error(error); process.exitCode = 1; });

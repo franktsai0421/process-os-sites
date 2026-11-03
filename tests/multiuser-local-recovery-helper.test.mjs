@@ -857,3 +857,13 @@ void test('typing performs zero JSON serialization, one envelope stringify after
   f.tick();
   assert.equal(f.calls.stringify - before, 1);
 });
+
+for(const scope of ['FQC:matrix','fqc','ipqc:ab'])void test(`cross-generation settlement requires the FQC transport verifier, scope ${scope}`,()=>{
+ for(const verified of [false,true]){
+  const proof={},f=fixture({state:{scope,baseVersion:'["g1",2,null,"old-version"]'},options:{verifySupersededReceipt:e=>verified&&e.result===proof}});
+  f.save();assert(f.recovery.rememberUnknown({operationId:'old-operation',generation:'g1'}).ok);const key=f.recovery.key,raw=f.store.values.get(key);
+  f.state.baseVersion='["g2",7,null,"new-version"]';const evidence={result:proof,receipt:{operationId:'old-operation',generation:'g1',revision:3,savedId:null,caseId:null,unchanged:false},workflow:{scope,generation:'g2',revision:7}};
+  assert.equal(f.recovery.settleReceipt(f.recovery.preview(key).token,evidence).ok,scope==='FQC:matrix'&&verified);
+  assert.equal(f.store.values.has(key),!(scope==='FQC:matrix'&&verified));if(scope!=='FQC:matrix'||!verified)assert.equal(f.store.values.get(key),raw);assert.equal(f.calls.network,0);
+ }
+});

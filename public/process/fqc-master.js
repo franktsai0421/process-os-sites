@@ -5,6 +5,8 @@
       UNKNOWN_OPERATION_CHECK_REQUIRED:['前次操作結果尚未確認，暫時不能套用。輸入仍保留；請按「查詢前次結果」，確認後再套用。','Kết quả thao tác trước chưa được xác nhận nên chưa thể áp dụng. Nội dung nhập vẫn được giữ; hãy bấm Kiểm tra kết quả trước rồi áp dụng sau khi xác nhận.'],
       RESULT_UNKNOWN_CHECK_BEFORE_RETRY:['尚未確認伺服器是否完成前次操作。請查詢前次結果；不要重複送出，輸入仍保留。','Chưa xác nhận máy chủ đã hoàn tất thao tác trước hay chưa. Hãy kiểm tra kết quả trước, không gửi lại; nội dung nhập vẫn được giữ.'],
       OPERATION_NOT_FOUND:['目前查不到前次操作回執，結果仍未確認。請稍後再查詢；不會自動重送或清除輸入。','Hiện chưa tìm thấy biên nhận của thao tác trước; kết quả vẫn chưa được xác nhận. Hãy kiểm tra lại sau; không tự gửi lại hoặc xóa nội dung nhập.'],
+      FQC_PREVIOUS_GENERATION_CONFIRMED:['前次操作已確認，但目前草稿已換代。請重新核對最新資料；不會自動套入舊輸入。','Thao tác trước đã được xác nhận, nhưng bản nháp đã chuyển sang thế hệ mới. Hãy đối chiếu dữ liệu mới nhất; nội dung cũ không được tự động áp dụng.'],
+      FQC_FORM_SUPERSEDED_CONFIRMED:['已確認前次操作完成，但草稿已換代。舊輸入仍保留供複製，此表單不能再套用；請關閉後重新開啟最新資料核對。','Đã xác nhận thao tác trước hoàn tất, nhưng bản nháp đã chuyển sang thế hệ mới. Nội dung cũ vẫn được giữ để sao chép; không thể áp dụng biểu mẫu này. Hãy đóng rồi mở lại dữ liệu mới nhất để đối chiếu.'],
       FQC_FORM_CONTEXT_CHANGED:['帳號或草稿已變更，此表單暫停套用。請先複製保留輸入，再重新開啟最新資料核對。','Tài khoản hoặc bản nháp đã thay đổi nên biểu mẫu tạm dừng áp dụng. Hãy sao chép nội dung nhập rồi mở lại dữ liệu mới nhất để đối chiếu.'],
   };
   const displayDraftError = error => {
@@ -49,7 +51,7 @@
   function makeMatrixRecovery(){
     const owned=currentReadOwner(workspaceReady);
     if(!window.LocalDraftRecoverySession)return null;
-    const session=window.LocalDraftRecoverySession.create({getContext:()=>recoveryContext(owned),onStatus:result=>{if(session!==matrixRecoverySession||!owned()||!matrixOwner()||result.code==='SCHEDULED')return;matrixBatch.storageError=result.ok||result.code==='EMPTY'?'':matrixStorageMessage()+' '+result.code;paintMatrixActions();}});return session;
+    const session=window.LocalDraftRecoverySession.create({getContext:()=>recoveryContext(owned),verifySupersededReceipt:evidence=>{const client=transport(),read=client.verifiedReadback?.(evidence.result,evidence.receipt?.operationId),flow=read?.control?.workflow;return owned()&&client.isSupersededRecovery?.(evidence.result)===true&&JSON.stringify(evidence.receipt)===JSON.stringify(evidence.result.receipt)&&evidence.workflow?.scope==='FQC:matrix'&&evidence.workflow.generation===flow?.generation&&evidence.workflow.revision===flow?.revision;},onStatus:result=>{if(session!==matrixRecoverySession||!owned()||!matrixOwner()||result.code==='SCHEDULED')return;matrixBatch.storageError=result.ok||result.code==='EMPTY'?'':matrixStorageMessage()+' '+result.code;paintMatrixActions();}});return session;
   }
   function prepareMatrixRecovery(){
     const flow=library().workflow,actor=identity()?.id,epoch=window.ProcessSync?.identityGeneration?.();
@@ -110,10 +112,11 @@
     }
     return{rows,count};
   }
-  function checkMatrixRead(result,versionId,requireEdit=true){
+  function checkMatrixRead(result,versionId,requireEdit=true,historicalResult=null){
     const flow=result?.control?.workflow;
     if(!flow||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||result.permissions?.view!==true)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
-    const current=library().workflow;if(current&&(current.generation!==flow.generation||Number.isSafeInteger(current.revision)&&flow.revision<current.revision))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+    const historical=transport().isSupersededRecovery?.(historicalResult)===true&&transport().verifiedReadback(historicalResult,historicalResult.receipt.operationId)?.control===result.control;
+    const current=library().workflow;if(current&&(!historical&&current.generation!==flow.generation||Number.isSafeInteger(current.revision)&&flow.revision<current.revision))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     if(requireEdit&&(result.permissions.edit!==true||flow.pendingId))throw Error(flow.pendingId?'PENDING_LOCKED':'FORBIDDEN');
     if(requireEdit&&!result.control.versions?.some(version=>version.id===versionId&&version.status==='draft'))throw Error('STALE_GENERATION');
     return flow;
@@ -172,13 +175,15 @@
     const matching=key===session.key&&batch?.pending?.operationId===preview.receipt.operationId&&batch.pending.generation===preview.receipt.generation;
     try{
       const result=await transport().receipt(preview.receipt.operationId,preview.receipt.generation);check();
-      const read=transport().isVerifiedReadback?.(result)===true?result:await transport().read();check();const flow=checkMatrixRead(read,null,false);
-      matrixRecoveryVerified={owned,flow,baseVersion:matrixBase(flow)};
-      const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{receipt:result.receipt,workflow:{...flow,scope:'FQC:matrix'}});if(!settled.ok)throw Error(settled.code);
+      const read=transport().isVerifiedReadback?.(result)===true?result:await transport().read();check();const flow=checkMatrixRead(read,null,false,result),superseded=transport().isSupersededRecovery?.(result)===true;
+      const baseVersion=matrixBase(flow,superseded?(read.control.versions.find(v=>v.status==='draft')?.id||read.control.activeVersionId):editable()?.id);
+      matrixRecoveryVerified={owned,flow,baseVersion};
+      const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{result,receipt:result.receipt,workflow:{...flow,scope:'FQC:matrix'}});if(!settled.ok)throw Error(settled.code);
       if(matching){
         batch.rows.clear();batch.count=0;batch.pending=null;batch.error='';matrixChoiceRevision++;adopt(read);ui.lastError=null;
         matrixRecoveryVerified=null;matrixRecoveryBase=matrixBase(flow,batch.versionId);matrixRecoveryReady=session.status().ready===true;
       }
+      if(superseded){adopt(read);confirmFormRecovery(result);transport().acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';ui.lastError=null;matrixRecoveryNote=displayDraftError(ui.recoveryNotice);render();return true;}
       matrixRecoveryNote=isVi()?'Đã xác nhận biên nhận gốc; không gửi lại lựa chọn.':'已確認原操作回執；沒有重新送出勾選。';paintRecoveredMatrix();return true;
     }finally{matrixRecoveryVerified=null;}
   }
@@ -339,13 +344,15 @@
         result=await session.dispatchPrepared(reservation,command,sent=>client.sendPrepared(sent,{assertDispatch:command=>session.assertDispatch(command)}),{rejectionProof});
       }
       check();
-      const read=client.isVerifiedReadback?.(result)===true?result:await client.read();check();const flow=checkMatrixRead(read,null,false);
-      matrixRecoveryVerified={owned,flow,baseVersion:matrixBase(flow)};
+      const read=client.isVerifiedReadback?.(result)===true?result:await client.read();check();const flow=checkMatrixRead(read,null,false,result),superseded=transport().isSupersededRecovery?.(result)===true;
+      const baseVersion=matrixBase(flow,superseded?(read.control.versions.find(v=>v.status==='draft')?.id||read.control.activeVersionId):editable()?.id);
+      matrixRecoveryVerified={owned,flow,baseVersion};
       const preview=session.preview(session.key);if(!preview.ok||preview.kind!=='unknown'&&!(preview.kind==='resolved'&&preview.outcome==='receipt'))throw Error(preview.code||'RECEIPT_REQUIRED');
-      const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{receipt:result?.receipt,workflow:{...flow,scope:'FQC:matrix'}});if(!settled.ok)throw Error(settled.code);
-      batch.rows.clear();batch.count=0;batch.pending=null;batch.rejectedConflicts=(batch.rejectedConflicts||[]).filter(item=>item.client.hasConfirmedMatrixConflict(item.command,item.error));batch.error='';matrixRecoveryNote='MATRIX_SHARED_APPLIED';adopt(read);ui.lastError=null;
+      const settled=preview.kind==='resolved'?session.finalizeDisposition(preview.token):session.settleReceipt(preview.token,{result,receipt:result?.receipt,workflow:{...flow,scope:'FQC:matrix'}});if(!settled.ok)throw Error(settled.code);
+      batch.rows.clear();batch.count=0;batch.pending=null;batch.rejectedConflicts=(batch.rejectedConflicts||[]).filter(item=>item.client.hasConfirmedMatrixConflict(item.command,item.error));batch.error='';matrixRecoveryNote=superseded?displayDraftError('FQC_PREVIOUS_GENERATION_CONFIRMED'):'MATRIX_SHARED_APPLIED';adopt(read);ui.lastError=null;
       matrixRecoveryVerified=null;matrixRecoveryBase=matrixBase(flow,batch.versionId);matrixRecoveryReady=session.status().ready===true;
-      if(querying)confirmFormRecovery(result);
+      if(querying||superseded)confirmFormRecovery(result);
+      if(superseded){client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
       window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));
     }catch(error){
       if(!owned()||matrixBatch!==batch)return;
@@ -407,7 +414,8 @@
     const feedback=['apply','save'].includes(action)?{owned:currentReadOwner(),action}:null;
     if(feedback){pendingCommandFeedback=feedback;window.VersionDraftUI?.updateSync(hostElement,true,!!ui.lastError);}
     let result;try{const command=client.prepare(action==='apply'?generation||library().workflow.generation:detail.generation||library().workflow.generation,action,detail);onPrepared?.(command);result=await client.sendPrepared(command);}finally{if(pendingCommandFeedback===feedback)pendingCommandFeedback=null;}if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(result);
-    ui.lastError=null;
+    ui.lastError=null;ui.recoveryNotice=null;
+    if(client.isSupersededRecovery?.(result)===true){confirmFormRecovery(result);client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
   }catch(error){if(operation.owned())ui.lastError=error.message;throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
   function pollShared() {const pollScheduleOwner=sharedPoll.capture();
@@ -431,7 +439,7 @@
       finally { if (owned() && sharedPoll.isCurrent(pollScheduleOwner)) pollShared(); }
     });
   }
-  const ui = { line: '', category: '', search: '', selectedErrorId: '', matrixOpen: true, problemsOpen: false, selectedVersionId: '', saving: false, lastError: null };
+  const ui = { line: '', category: '', search: '', selectedErrorId: '', matrixOpen: true, problemsOpen: false, selectedVersionId: '', saving: false, lastError: null, recoveryNotice: null };
 
   function read(key, fallback) { try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; } }
   function identity() { return window.ProcessSync?.identity || (typeof currentUser !== 'undefined' ? currentUser : null); }
@@ -1109,6 +1117,7 @@
       ui.search='';if(error){ui.category=error.category;ui.selectedErrorId=error.id;}render();if(item)openItemModal(item.id,'',true);else if(error)openErrorModal(error.id);
     }});
     window.VersionDraftUI?.mount(hostElement,{header:'.fqc-version-bar',historyClient:transport,module:'FQC',scope:isVi()?'Toàn bộ FQC':'FQC 全庫',version,versions:versions(),active:approved(),flow:library().workflow,localUnsaved:matrixDirty(),busy:ui.saving,failed:!!ui.lastError||sharedClient?.hasUnknown()&&!commandFeedbackPending(),actions:{begin:'#fqc-begin',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-fqc-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-fqc-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{errors:true,missing:true},history:['.fqc-activity','#fqc-cases','[data-shared-issue-kind="warning"]'],status:['#fqc-shared-status']});
+    if(ui.recoveryNotice){const notice=document.createElement('p');notice.id='fqc-recovery-notice';notice.className='master-edit-note';notice.setAttribute('role','status');notice.setAttribute('data-i18n-skip','true');notice.textContent=displayDraftError(ui.recoveryNotice);hostElement.querySelector('#fqc-page').prepend(notice);}
     if(focusId){const field=hostElement.querySelector('#'+CSS.escape(focusId));field?.focus({preventScroll:true});if(field?.setSelectionRange&&Number.isInteger(selectionStart))try{field.setSelectionRange(selectionStart,selectionEnd);}catch{/* Select controls do not support text selection. */}}
     window.scrollTo(0, scroll.page);
   }
@@ -1259,18 +1268,20 @@
   }
   function modal(inner) { const overlay = document.createElement('div'); overlay.className = 'fqc-modal-overlay'; overlay.innerHTML = `<div class="fqc-modal" role="dialog" aria-modal="true">${inner}</div>`; document.body.append(overlay); document.body.classList.add('fqc-modal-open'); sharedClient?.gatePermissions?.(); return overlay; }
   const formOwners = new WeakMap();
-  function ownFormWrite(overlay,version) { const generation=library().workflow?.generation,owned=currentReadOwner(()=>overlay.isConnected);formOwners.set(overlay,{base:clone(version.snapshot),attempt:null,pending:false,current:()=>owned()&&editable()?.id===version?.id&&library().workflow?.generation===generation}); }
+  function ownFormWrite(overlay,version) { const generation=library().workflow?.generation,owned=currentReadOwner(()=>overlay.isConnected);formOwners.set(overlay,{owned,base:clone(version.snapshot),attempt:null,pending:false,current:()=>owned()&&editable()?.id===version?.id&&library().workflow?.generation===generation}); }
   // Each form owns its input baseline. A readback replaces the displayed model,
   // so closures must never depend on mutating that model to produce an Apply.
   async function persistForm(overlay,version) {
     const owner=formOwners.get(overlay);
-    if(!owner?.current())throw Error('FQC_FORM_CONTEXT_CHANGED');
+    if(!owner?.current())throw Error(owner?.superseded?'FQC_FORM_SUPERSEDED_CONFIRMED':'FQC_FORM_CONTEXT_CHANGED');
     const snapshot=clone(version.snapshot),detail=changes(owner.base,snapshot);
     return sharedAction('apply',detail,command=>{owner.attempt={operationId:command.operationId,snapshot};});
   }
   function confirmFormRecovery(result) {
       for(const form of document.querySelectorAll('.fqc-modal-overlay')){
-        const owner=formOwners.get(form);if(!owner?.current())continue;
+        const owner=formOwners.get(form);if(!owner?.owned())continue;
+        if(transport().isSupersededRecovery?.(result)===true&&!owner.current()){owner.superseded=true;form.querySelectorAll('button[type=submit]').forEach(button=>{button.disabled=true;});showModalAlert(form,'success',displayDraftError('FQC_FORM_SUPERSEDED_CONFIRMED'));form.querySelector('[data-fqc-check-result]')?.remove();continue;}
+        if(!owner.current())continue;
         // Only the original confirmed receipt advances this form's guards.
         // A later collaborator's values must never become implicit write consent.
         if(owner.attempt?.operationId===result?.receipt?.operationId){owner.base=clone(owner.attempt.snapshot);owner.attempt=null;}
@@ -1285,19 +1296,21 @@
     const buttons=[...document.querySelectorAll('#fqc-check-result,[data-fqc-check-result]')];buttons.forEach(button=>{button.disabled=true;});
     try {
       const result=await client.resolveUnknown();
-      if(!result?.receipt||client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+      const superseded=client.isSupersededRecovery?.(result)===true;
+      if(!result?.receipt||client.hasUnknown()&&!superseded)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
       if(!owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
       const read=client.isVerifiedReadback?.(result)===true?result:await client.read();
       if(!owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
       adopt(read);ui.lastError=null;
       confirmFormRecovery(result);
+      if(superseded){client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     }catch(error){if(owned()){ui.lastError=error.message;if(overlay?.isConnected)showModalAlert(overlay,'error',error.message);else toast(displayDraftError(error));}}
     finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(owned())render();}buttons.forEach(button=>{if(button.isConnected)button.disabled=false;});}
   }
   function formWriteCurrent(overlay) { return !!formOwners.get(overlay)?.current(); }
   function admitFormWrite(overlay) {
     const owner=formOwners.get(overlay);
-    if (!owner?.current()) { if(overlay.isConnected)showModalAlert(overlay,'error','FQC_FORM_CONTEXT_CHANGED'); return false; }
+    if (!owner?.current()) { if(overlay.isConnected)showModalAlert(overlay,'error',owner?.superseded?'FQC_FORM_SUPERSEDED_CONFIRMED':'FQC_FORM_CONTEXT_CHANGED'); return false; }
     if (owner.pending || ui.saving) return false;
     if (!canEditDraft()) { showModalAlert(overlay,'error','FQC_EDIT_NOT_ALLOWED'); return false; }
     if (transport().hasUnknown()) { showModalAlert(overlay,'error','UNKNOWN_OPERATION_CHECK_REQUIRED'); return false; }
@@ -1314,9 +1327,9 @@
       owner.pending=false;
       if(!owner.current()){
         if(overlay.isConnected){
-          controls.filter(({node})=>node.matches('[data-close]')).forEach(({node,disabled})=>{node.disabled=disabled;});
+          controls.filter(({node})=>node.matches('[data-close]')||owner.superseded&&node.matches('input,textarea,select')).forEach(({node,disabled})=>{node.disabled=disabled;});
           overlay.removeAttribute('aria-busy');
-          const alert=overlay.querySelector('.fqc-modal-alert');if(alert){alert.textContent=displayDraftError('FQC_FORM_CONTEXT_CHANGED');alert.className='fqc-modal-alert error';}
+          const alert=overlay.querySelector('.fqc-modal-alert');if(alert){alert.textContent=displayDraftError(owner.superseded?'FQC_FORM_SUPERSEDED_CONFIRMED':'FQC_FORM_CONTEXT_CHANGED');alert.className='fqc-modal-alert error';}
         }
         return;
       }
@@ -2674,7 +2687,7 @@
     canSave:()=>!!editable()&&!!canDraftAction('save'),canDiscard:()=>!!editable()&&sharedClient?.permission('edit')===true,
     save:()=>sharedAction('save'),dialogs:()=>[...document.querySelectorAll('.fqc-modal-overlay')],
     async discard(){for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();},
-  });},requiresSave:()=>!!hostElement?.isConnected&&window.sharedDraftNeedsSave?.(control?.libraries?.fqc?.workflow),saveForDeparture:()=>sharedAction('save'),hasLocalChanges:matrixDirty,canLeave:()=>!ui.saving&&!matrixDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  });},requiresSave:()=>!!hostElement?.isConnected&&window.sharedDraftNeedsSave?.(control?.libraries?.fqc?.workflow),saveForDeparture:()=>sharedAction('save'),hasLocalChanges:matrixDirty,canLeave:()=>!ui.saving&&!matrixDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');

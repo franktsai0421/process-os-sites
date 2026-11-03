@@ -1,4 +1,3 @@
-import {timingBinding,timingParse} from './navigation-timing';
 import { env } from 'cloudflare:workers';
 import { publicState, type State } from './process-state';
 
@@ -20,10 +19,10 @@ export async function mediaState(state: State, actorId?: string, authorizedSourc
   // No transform is needed: retain exact authorized raw values without a derived cache round trip.
   if (entries.every(([, raw]) => !/data:(?:image|video)\//.test(raw)))
     return { revision: source.revision, values: Object.fromEntries(entries) };
-  const bucket = timingBinding(env.STATE_ARCHIVE,'r2');
+  const bucket = env.STATE_ARCHIVE;
   const cacheKey = `delivery/v1/${await digest(JSON.stringify(source))}.json`;
   const cached = await bucket.get(cacheKey);
-  if (cached) return timingParse(await cached.text());
+  if (cached) return JSON.parse(await cached.text());
   const images = new Map<string, string>();
   async function visit(value: unknown): Promise<unknown> {
     if (typeof value === 'string' && value.length > 4096) {
@@ -61,7 +60,7 @@ export async function mediaState(state: State, actorId?: string, authorizedSourc
   const values: Record<string, string> = {};
   for (const [key, raw] of Object.entries(source.values)) {
     values[key] = /data:(?:image|video)\//.test(raw)
-      ? JSON.stringify(await visit(timingParse(raw)))
+      ? JSON.stringify(await visit(JSON.parse(raw)))
       : raw;
   }
   const result = { revision: source.revision, values };

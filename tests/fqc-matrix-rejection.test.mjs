@@ -84,10 +84,11 @@ void test('lost transport plus receipt 404 remains unknown without re-POST or ca
   }finally{f.close();}
 });
 
-void test('removed-row errors for unrelated item fields cannot use matrix-only classification',async()=>{
+void test('ordinary removed-row refusal is known but cannot use matrix-only discard',async()=>{
   const f=await fixture();try{
     const {a,generation}=await opened(f),result=await attempt(a,generation,{patches:[{op:'set',path:['items',{id:'missing'},'name'],value:'local input'}],guards:[{path:['items',{id:'missing'},'name'],value:'previous'}]});
-    assert.equal(result.error.message,'ENTITY_REMOVED_OR_AMBIGUOUS');assert.equal(a.client.hasUnknown(),true);
+    assert.equal(result.error.message,'ENTITY_REMOVED_OR_AMBIGUOUS');assert.equal(a.client.hasUnknown(),false);
+    assert.equal(a.client.isConfirmedRejection(result.error,result.command),true);
     assert.equal(a.client.hasConfirmedMatrixConflict(result.command,result.error),false);
   }finally{f.close();}
 });

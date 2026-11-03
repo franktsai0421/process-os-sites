@@ -976,9 +976,12 @@
         !(r.caseId === null || id(r.caseId))
       )
         return 'TERMINAL_RECEIPT_REQUIRED';
+      // Opt-in FQC matrix history settlement requires the transport's private
+      // receipt/readback proof. Other scopes and plain evidence keep exact generation.
+      const superseded = initial.scope === 'FQC:matrix' && flow.generation !== r.generation && flow.revision > r.revision && options.verifySupersededReceipt?.(evidence) === true;
       if (
         flow.scope !== initial.scope ||
-        flow.generation !== r.generation ||
+        flow.generation !== r.generation && !superseded ||
         !Number.isSafeInteger(flow.revision) ||
         flow.revision < r.revision
       )
@@ -988,7 +991,7 @@
       if (!validBase(base) || base[0] !== r.generation) return 'SOURCE_BASE_EVIDENCE_REQUIRED';
       if (r.revision < base[1] || !r.unchanged && r.revision <= base[1]) return 'TERMINAL_RECEIPT_REQUIRED';
       const current = context();
-      if (!validBase(latest) || latest.length !== base.length || latest[0] !== flow.generation || latest[1] !== flow.revision || latest[2] !== (flow.saved?.id ?? null) || base.length === 4 && latest[3] !== base[3] || current.verified !== true || current.writeState === 'pending') return 'AUTHORITATIVE_READBACK_REQUIRED';
+      if (!validBase(latest) || latest.length !== base.length || latest[0] !== flow.generation || latest[1] !== flow.revision || latest[2] !== (flow.saved?.id ?? null) || !superseded && base.length === 4 && latest[3] !== base[3] || current.verified !== true || current.writeState === 'pending') return 'AUTHORITATIVE_READBACK_REQUIRED';
       return '';
     }
     function settleReceipt(token, evidence) {

@@ -1,5 +1,7 @@
 # Integration with merged navigation diagnostics
 
+Historical integration record: the diagnostic feature was subsequently removed at the user's request. See [removal acceptance](../remove-navigation-diagnostics-20261103/README.md). The FQC functionality and its acceptance evidence below remain applicable; statements about retaining diagnostics describe only this original integration.
+
 Main was freshly fetched as `668601b8fd2ad2fc6ea5db564b25af853bfbc626` (tree `6891661838e805eeac08fb0a1ba84097162b4355`). Original matrix candidate `869a08249c63784dc46a45a151e2f9a243c82593` and its private evidence remain preserved. A normal merge produced private integration `04fd98b`; only CHANGELOG required manual conflict resolution, retaining both entries. Workflow merged both test steps and their failure exits.
 
 This is preparation for the user's requested PR. Push/PR remains held for independent review; merge and Sites publication are coordinated by the parent task after required checks. No business data, schema, credentials, account permissions or deployment were changed.
