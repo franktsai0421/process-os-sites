@@ -391,7 +391,7 @@
     // admission, the account's unknown flag, receipts or native unload warnings.
     const departureAnchors=new WeakMap();let departureCoverage=null;
     function departureEligible(){return externalBounded&&boundedScope==='fqc'&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&!!boundedRecord&&boundedRecord.action==='apply'&&[...syncFailures.values()].every(failure=>failure.command.operationId===boundedRecord.operationId);}
-    function departureCovered(){try{return departureEligible()&&departureCoverage?.record===boundedRecord&&externalOwner.identity===window.ProcessSync?.identity&&externalOwner.epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel&&departureCoverage.check()===true;}catch{return false;}}
+    function departureCovered(){try{return departureEligible()&&departureCoverage?.record===boundedRecord&&(externalOwner.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(externalOwner.identity,externalOwner.epoch)===true)&&externalOwner.epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
     const canvasTarget=externalCanvas&&endpoint==='/api/process-authoring/workflow?caseMetadata=1&channel=canvas-v2';
     const canvasObserving=canvasPrimary||canvasTarget;
