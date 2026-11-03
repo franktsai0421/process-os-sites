@@ -118,3 +118,13 @@ for(const outcome of ['cancel','failure','unknown','still-dirty','new-local-inpu
 void test('unknown transport and unapplied form block automatic Save rather than silently retry',async()=>{
  for(const key of ['unknown','queued','failed']){const f=await fixture();let saves=0;f.drafts[key]=true;f.window.confirm=()=>true;f.window.MasterDataWorkflow.navigation={requiresSave:()=>true,saveForDeparture:()=>{saves++;}};f.api.navigate('data','C');await turn();assert.equal(saves,0);assert.equal(f.reads.length,0);}
 });
+
+void test('approval popstate uses the same single valid tab rule as cold load and reload',async()=>{
+ for(const [query,expected]of [['approvalTab=process','process'],['approvalTab=quality','quality'],['approvalTab=routine','routine'],['approvalTab=master','master'],['','master'],['approvalTab=invalid','master'],['approvalTab=process&approvalTab=quality','master'],['approvalTab=process&approvalTab=process','master']]){
+  const f=await fixture();f.api.navigate('editor');f.finish(0);await turn();
+  f.location.href='https://fixture.invalid/process/?system=process&view=approval&'+query;
+  f.events.popstate({state:{processNavigationIndex:0},stopImmediatePropagation(){}});
+  assert.equal(f.reads[1].target.approvalTab,expected);assert.equal(f.state.view,'editor','selection awaits an authorized fresh projection');
+  f.finish(1);await turn();assert.equal(f.state.view,'approval');assert.equal(f.state.approvalTab,expected);assert.equal(f.api.current().approvalTab,expected);
+ }
+});

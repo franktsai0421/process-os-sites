@@ -38,6 +38,8 @@ void (async () => {
       // whitelist; no redirect URL, role or credentials are forwarded.
       const source=new URLSearchParams(location.search),intent=new URLSearchParams();
       for(const key of ['system','view','dataTab','line','stage'])if(source.getAll(key).length===1)intent.set(key,source.get(key));
+      const approvalTab=source.getAll('approvalTab');
+      if(intent.get('view')==='approval'&&approvalTab.length===1&&['master','process','quality','routine'].includes(approvalTab[0]))intent.set('approvalTab',approvalTab[0]);
       location.replace('/login?'+intent);return;
     }
     if(window.ProcessSync.loadError||window.ProcessSync.expired||!window.ProcessSync.identity)throw Error('BOOTSTRAP_UNAVAILABLE');
