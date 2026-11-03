@@ -32,6 +32,7 @@
   // Matrix choices stay private until the explicit batch Apply. Recovery never
   // hydrates inputs on mount; the user must claim and confirm a historical copy.
   let matrixBatch=null,matrixActions=null,matrixChoiceRevision=0;
+  let matrixDepartureDiscard=null;
   let matrixRecoverySession=null,matrixRecoveryReady=false,matrixRecoveryContext='',matrixRecoveryBase='',matrixRecoveryVerified=null;
   let matrixRecoveryNote='',matrixRecoveryError='',matrixRecoveryBlocked=false,matrixRecoveryGate=null;
   const matrixQuarantine=new Map();
@@ -46,7 +47,7 @@
       canView:owned()&&workspaceReady()&&transport().permission('view')===true,canEdit:transport().permission('edit')===true&&canEditDraft(),
       pending:!!(verified?.owned()===true?verified.flow:flow)?.pendingId,verified:verified?.owned()===true,
       hasLocalChanges:!!(matrixOwner()&&matrixBatch.count)||!!document.querySelector('.fqc-modal-form'),localRevision:matrixChoiceRevision,
-      writeState:matrixOwner()&&matrixBatch.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
+      writeState:matrixDepartureDiscard?.current()===true?'idle':matrixOwner()&&matrixBatch.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
   }
   function makeMatrixRecovery(){
     const owned=currentReadOwner(workspaceReady);
@@ -1268,6 +1269,58 @@
   }
   function modal(inner) { const overlay = document.createElement('div'); overlay.className = 'fqc-modal-overlay'; overlay.innerHTML = `<div class="fqc-modal" role="dialog" aria-modal="true">${inner}</div>`; document.body.append(overlay); document.body.classList.add('fqc-modal-open'); sharedClient?.gatePermissions?.(); return overlay; }
   const formOwners = new WeakMap();
+  const departureNotice=()=>isVi()?'Bỏ nội dung chưa gửi và rời trang. Thao tác đã gửi có thể vẫn hoàn tất; khóa ghi và mã thao tác được giữ để kiểm tra khi quay lại. Không hủy yêu cầu, tự gửi lại hoặc hoàn tác dữ liệu chung.':'放棄未送出的輸入並離開。已送出的操作仍可能完成；會保留寫入鎖與原操作識別，返回後可查詢結果。不會取消請求、自動重送或撤回共享資料。';
+  function unknownDepartureEligible(){
+    try{return workspaceReady()&&sharedStateCurrent()&&!ui.saving&&!matrixRecoveryBlocked&&!matrixQuarantine.size&&!window.ProcessNavigationForms?.composing?.()&&!!sharedClient?.departureUnknown()&&[...document.querySelectorAll('.fqc-modal-overlay')].every(node=>{const owner=formOwners.get(node);return owner?.current()&&!owner.pending;})&&(!matrixBatch||matrixOwner());}catch{return false;}
+  }
+  function discardLocalMatrixForDeparture(current){
+    if(!matrixBatch||matrixBatch.pending)return;
+    const batch=matrixBatch,session=matrixRecoverySession,revision=matrixChoiceRevision,owned=currentReadOwner(workspaceReady);
+    if(!session)throw Error('RECOVERY_UNAVAILABLE');
+    const check=()=>current()&&owned()&&matrixOwner()&&matrixBatch===batch&&matrixRecoverySession===session&&matrixChoiceRevision===revision&&!batch.pending;
+    if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');
+    // This synchronous capability covers only unsent, owned matrix records.
+    // The unrelated form's unknown marker and transport admission stay locked.
+    matrixDepartureDiscard={current:check};
+    try{
+      const cancelled=session.cancelScheduled();if(!cancelled.ok)throw Error(cancelled.code);
+      for(const source of ['memory','storage']){if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');const preview=session.preview(session.key,source);if(preview.code==='NOT_FOUND')continue;if(!preview.ok||preview.kind!=='local')throw Error(preview.code||'RECEIPT_REQUIRED');const discarded=session.discard(preview.token);if(!discarded.ok)throw Error(discarded.code);}
+      if(!check())throw Error('RECOVERY_CONTEXT_CHANGED');batch.rows.clear();batch.count=0;matrixChoiceRevision++;matrixRecoveryNote='';
+    }finally{matrixDepartureDiscard=null;}
+    if(owned())paintRecoveredMatrix();
+  }
+  function unknownDeparture(base){
+    let held=null;
+    const roots=()=>[hostElement,...document.querySelectorAll('.fqc-modal-overlay')];
+    const verified=()=>!!held&&held.coverage.current();
+    return {...base,
+      otherDraftsPending:()=>!unknownDepartureEligible()||sharedClient.otherDeparturePending(),
+      inspect(){if(verified())return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:departureNotice()};const status=base.inspect();return status.state==='unknown'&&unknownDepartureEligible()?{...status,canAbandon:true,reason:departureNotice()}:status;},
+      async abandon(){
+        if(held||!unknownDepartureEligible())throw Error('DEPARTURE_CONTEXT_CHANGED');
+        const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),anchor=sharedClient.departureUnknown(),locked=roots().map(node=>({node,inert:node.inert}));
+        const record={id:crypto.randomUUID(),committed:false};
+        const current=()=>record.committed||held===record&&identity()===actor&&epoch===window.ProcessSync?.identityGeneration?.()&&unknownDepartureEligible()&&roots().length===locked.length&&roots().every((node,index)=>node===locked[index].node&&node.inert);
+        for(const {node}of locked)node.inert=true;
+        held=record;
+        try{
+          discardLocalMatrixForDeparture(current);
+          record.coverage=sharedClient.coverDeparture(anchor,current);
+          if(!verified())throw Error('DEPARTURE_CONTEXT_CHANGED');
+          return {departureId:record.id,release(){for(const {node,inert}of locked)node.inert=inert;locked.length=0;if(!record.committed)record.coverage.release();if(held===record)held=null;}};
+        }catch(error){record.coverage?.release();held=null;for(const {node,inert}of locked)node.inert=inert;throw error;}
+      },
+      closeClean(){
+        if(!held)return base.closeClean();
+        if(!verified())throw Error('DEPARTURE_CONTEXT_CHANGED');
+        held.committed=true;
+        for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);
+        // Unsent matrix records were checked and discarded before handoff.
+        // Sent matrix/transport unknown evidence remains; neither grants replay.
+        matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;
+      },
+    };
+  }
   function ownFormWrite(overlay,version) { const generation=library().workflow?.generation,owned=currentReadOwner(()=>overlay.isConnected);formOwners.set(overlay,{owned,base:clone(version.snapshot),attempt:null,pending:false,current:()=>owned()&&editable()?.id===version?.id&&library().workflow?.generation===generation}); }
   // Each form owns its input baseline. A readback replaces the displayed model,
   // so closures must never depend on mutating that model to produce an Apply.
@@ -2676,7 +2729,7 @@
   function pendingCount() { return sharedStateCurrent()?ensureControl().libraries.fqc.versions.filter(version => version.status === 'pending').length:null; }
   let navigationError=null;
   let moduleDeparture;
-  host.FQCMasterUI = { navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+  host.FQCMasterUI = { navigation:{get departure(){return moduleDeparture ||= unknownDeparture(window.VersionDraftUI.createDeparture({
     root:()=>hostElement,flow:()=>control?.libraries?.fqc?.workflow,
     context:()=>[sharedActor,mountSequence,library().workflow?.generation,ui.selectedVersionId,sharedClient?.permission('save'),sharedClient?.permission('edit')],
     current:()=>sharedActor===identity()?.id&&sharedStateCurrent(),
@@ -2687,7 +2740,7 @@
     canSave:()=>!!editable()&&!!canDraftAction('save'),canDiscard:()=>!!editable()&&sharedClient?.permission('edit')===true,
     save:()=>sharedAction('save'),dialogs:()=>[...document.querySelectorAll('.fqc-modal-overlay')],
     async discard(){for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();},
-  });},requiresSave:()=>!!hostElement?.isConnected&&window.sharedDraftNeedsSave?.(control?.libraries?.fqc?.workflow),saveForDeparture:()=>sharedAction('save'),hasLocalChanges:matrixDirty,canLeave:()=>!ui.saving&&!matrixDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  }));},requiresSave:()=>!!hostElement?.isConnected&&window.sharedDraftNeedsSave?.(control?.libraries?.fqc?.workflow),saveForDeparture:()=>sharedAction('save'),hasLocalChanges:matrixDirty,canLeave:()=>!ui.saving&&!matrixDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');

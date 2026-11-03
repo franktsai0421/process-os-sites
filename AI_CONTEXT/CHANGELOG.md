@@ -1,3 +1,11 @@
+## 2026-11-03 — FQC explicit input abandonment
+
+User clarified that unsent inputs should be discarded, without checkpoint or restoration. Removed the unmerged full-input archive feature. FQC unknown Apply now has a separate verified navigation lease: it drops current form buffers at successful handoff while retaining receipt identity and write locks. No automatic resend, 404 settlement or shared rollback. [Evidence and limits](../docs/acceptance/fqc-authority-body-20261103.md).
+
+## 2026-11-03 — FQC Apply/Save normal authority-body compatibility
+
+Fixed a reproducible `required-state-read / AUTHORITY_BODY_INVALID` when normal storage externalizes permission audit `before` values. Preserve original hash checks, authority admission, CAS, receipts and unknown-result protection. Added serializer-backed tests and desktop/mobile zh/vi browser regression for recovery and confirmed departure. No model/schema/data migration or live change. [Acceptance and limits](../docs/acceptance/fqc-authority-body-20261103.md).
+
 ## 2026-11-03 — Approval tab deep-link candidate
 
 Cold load/reload and indexed history now resolve one enumerated approval tab;

@@ -118,17 +118,18 @@ export function createDepartureCoordinator(hooks){
     if(!current(record)){finish(record,{status:'invalidated'});return {status:'invalidated'};}
     if(record.phase==='mutating')return {status:'busy'};
     if(action==='stay'){cancel();return {status:'cancelled'};}
-    if(record.phase==='handoff'||!['save','discard'].includes(action))return {status:'busy'};
+    if(record.phase==='handoff'||!['save','discard','abandon'].includes(action))return {status:'busy'};
     const status=hooks.inspect(record.owner);
     if(status.state==='clean'){handoff(record);return {status:'accepted'};}
-    if(status.state!=='dirty'||!status[action==='save'?'canSave':'canDiscard']){record.error=status.reason;update(record);return {status:'blocked'};}
+    if(action==='abandon'?status.state!=='unknown'||status.canAbandon!==true:status.state!=='dirty'||!status[action==='save'?'canSave':'canDiscard']){record.error=status.reason;update(record);return {status:'blocked'};}
     record.phase='mutating';record.error='';update(record);
     try{
       const lease=await hooks.act(action,record.owner);
       if(!current(record)){lease?.release?.();if(active===record)finish(record,{status:'invalidated'});return {status:'invalidated'};}
       record.lease=lease;
       if(typeof lease?.release!=='function')throw Error('DEPARTURE_LEASE_REQUIRED');
-      if(hooks.inspect(record.owner).state!=='clean')throw Error('DEPARTURE_CHANGES_REMAIN');
+      const after=hooks.inspect(record.owner);
+      if(action==='abandon'?after.state!=='departing'||!lease.departureId||after.departureId!==lease.departureId:after.state!=='clean')throw Error('DEPARTURE_CHANGES_REMAIN');
       handoff(record);return {status:'accepted'};
     }catch(error){
       if(active!==record)return {status:'invalidated'};

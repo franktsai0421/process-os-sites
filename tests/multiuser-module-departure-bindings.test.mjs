@@ -7,7 +7,7 @@ const helper=helperSource.slice(helperSource.indexOf('  function createDeparture
 const modules=['master-data','bom-workspace','fqc-master','iqc-master','ipqc-ab','ipqc-c','routine-equipment','tooling','routine-fqc'];
 function sourceBlock(source,start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert(a>=0&&b>a,`${start} … ${end}`);return source.slice(a,b);}
 function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
- const source=fs.readFileSync(`public/process/${name}.js`,'utf8'),start=source.indexOf('window.VersionDraftUI.createDeparture('),end=source.indexOf('});},',start);assert(start>=0&&end>start,name);
+ const source=fs.readFileSync(`public/process/${name}.js`,'utf8'),start=source.indexOf('window.VersionDraftUI.createDeparture('),end=source.indexOf(name==='fqc-master'?'}));},':'});},',start);assert(start>=0&&end>start,name);
  const config=source.slice(start+'window.VersionDraftUI.createDeparture('.length,end+1);
  let writes=0,unknown=false,failed=false,allowed=true;
  const identity={id:'user'},root={isConnected:true,inert:false,dataset:{activeTab:name},querySelector:()=>null,querySelectorAll:()=>[]};

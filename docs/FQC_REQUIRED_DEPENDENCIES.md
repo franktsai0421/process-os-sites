@@ -44,8 +44,12 @@ equipment decoding remains conservative; this is not a nested-body projection.
 
 1. One D1 row pins the POST's revision and complete immutable manifest.
 2. Selected auth aggregates pass SHA and JSON validation before any business
-   aggregate fetch. Real immutable references in auth values are rejected without
-   following them; a literal property/string name is not a reference.
+   aggregate fetch. Authority bodies produced by the normal serializer (including
+   audit.before) use the existing SHA-verifying decoder without deferred history;
+   JSON validation covers both original aggregates and hydrated values. Missing,
+   corrupt or unresolved nested bodies fail before authorization/business reads.
+   A literal property/string name is not a reference. See the
+   [authority-body regression](acceptance/fqc-authority-body-20261103.md).
 3. View/action/create/delete admission and fresh session revocation precede
    business hydration. The existing post-body/pre-encode/post-R2/replay fresh
    checks and early global revision/CAS retry remain; every attempt starts over.

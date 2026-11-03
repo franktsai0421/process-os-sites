@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
+import {addAuthorityAudit} from './fqc-required-dependencies-fixture.mjs';
 const fixture=createRequire(import.meta.url)('../scripts/fqc-apply-fixture.cjs');
 const read=name=>fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
 const styles=['styles.css','master-data.css','master-data-extra.css','master-data-validation.css','fqc-master.css','version-draft-ui.css'].map(read).join('\n');
@@ -20,7 +21,7 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`FQC actua
  });
  async function boot(){await page.goto('https://synthetic.invalid/process/');await page.evaluate(lang=>{window.ProcessSync={identity:{id:'editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:e=>e===1,platformHeaders:()=>({}),requiresReload:false};window.state={view:'data',dataTab:'quality-fqc'};window.hasPermission=()=>true;window.bindDataInner=()=>{};window.toast=message=>{window.__notices??=[];window.__notices.push(message);};localStorage.setItem('processUILanguage',lang);},lang);for(const file of scripts)await page.addScriptTag({content:read(file)});await page.evaluate(()=>window.FQCMasterUI.bind(document.querySelector('#data-content')));}
  async function apply(selector,name){await page.locator(selector).click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill(name);await form.locator('[type="submit"]').click();await form.waitFor({state:'detached'});}
- try{await boot();await page.locator('#fqc-begin').click();await page.locator('#fqc-save').waitFor();
+ try{await addAuthorityAudit(f);await boot();await page.locator('#fqc-begin').click();await page.locator('#fqc-save').waitFor();
  await apply('[data-edit-error="error"]','Native edited error');await apply('#fqc-add-error','Native new error');
  await apply('[data-edit-item="item"]','Native edited item');await apply('#fqc-add-item','Native new item');
  const before=(await f.state()).workflow;assert.equal(before.saved,null);assert.equal(before.working.errors.length,2);assert.equal(before.working.items.length,2);

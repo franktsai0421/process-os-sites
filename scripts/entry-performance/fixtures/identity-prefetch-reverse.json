@@ -27,5 +27,31 @@
       "baseline": " }",
       "candidateSHA256": "1197afe2bfcc80af2971a6555abbf22b4372f828a43ffb2e9c72f33916f2f8a1"
     }
-  ]
+  ],
+  "fqcAuthorityHydrationInverse": {
+    "sourceBaseCommit": "f23fb5e9cce9e4c1cb89e556151e8d5ff229d830",
+    "description": "Exact inverse of the FQC authority hydration fix, used only to reconstruct the original identity-performance baseline. Actual candidate remains complete; original tail, prefix and baseline pins are unchanged. FQC behavior is covered separately. New inverse spans require PR review.",
+    "spans": [
+      {
+        "candidate": "async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>,validateHydrated?:(raw:string)=>void){\n",
+        "baseline": "async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:RecordRead={},bodyKeys?:ReadonlySet<string>){\n",
+        "candidateSHA256": "ea9132825cfd1b21a8f06848ab4429293c8a9c403eb3781ee862b365a1b1662e"
+      },
+      {
+        "candidate": "  // Private FQC authority validation must run before an inline maintenance\n  // overlay can replace the hydrated aggregate. Other readers are unchanged.\n  validateHydrated?.(values[key]);\n",
+        "baseline": "",
+        "candidateSHA256": "aa1ddef5ed853ca8809af74cfbaec306980b95ab55008c759c0ad154628d7a3f"
+      },
+      {
+        "candidate": " // The ordinary writer externalizes audit.before (and other object bodies)\n // even in authority aggregates. Decode the pinned authority closure with the\n // same SHA-verifying reader as ordinary authorization, without deferred history.\n // Validate after hydration; never authorize using an unresolved body or retry\n // a failed authority read against another snapshot/reader.\n const validateAuthority=(raw:string)=>{JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});};\n",
+        "baseline": "",
+        "candidateSHA256": "ac3f9cb589aba13866e64e76c13253a788c3781368b3758aef6713ceb4c921dd"
+      },
+      {
+        "candidate": "  // Validate even an aggregate subsequently shadowed by the maintenance overlay.\n  JSON.parse(raw);return raw;\n }},undefined,validateAuthority);\n for(const raw of Object.values(auth.values))validateAuthority(raw);\n",
+        "baseline": "  JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});return raw;\n }});\n",
+        "candidateSHA256": "2dab2e36881e49f638a49b97fc7615684f569835312f6afd2e54a55942c2c234"
+      }
+    ]
+  }
 }
