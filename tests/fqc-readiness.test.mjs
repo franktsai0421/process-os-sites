@@ -15,6 +15,7 @@ const pauseEndMarker = '  const clients=new Set(),';
 const pauseStart = sharedSource.indexOf(pauseStartMarker);
 const pauseEnd = sharedSource.indexOf(pauseEndMarker, pauseStart);
 assert(pauseStart >= 0 && pauseEnd > pauseStart);
+assert.equal(sharedSource.indexOf(pauseEndMarker), pauseEnd);
 assert.equal(sharedSource.indexOf(pauseStartMarker, pauseStart + pauseStartMarker.length), -1);
 assert.equal(sharedSource.indexOf(pauseEndMarker, pauseEnd + pauseEndMarker.length), -1);
 const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
