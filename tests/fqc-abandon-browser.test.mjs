@@ -76,3 +76,48 @@ void test('unknown matrix departure preserves receipt-only recovery and never re
   await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(posts(f).length,before);assert.equal(await page.locator('.matrix-local-change').count(),0);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
+
+void test('form unknown abandonment deletes only its other unsent matrix payload, never receipt evidence',async()=>{
+const s=await setup(),{page}=s;
+try {
+  page.setDefaultTimeout(6000);
+  await router(page);
+  await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();
+  await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
+  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));
+  assert.equal(Object.keys(original).length,1);
+  assert.equal(JSON.parse(Object.values(original)[0]).kind,'local');
+  await page.locator('[data-edit-error="error"]').click();
+  await page.locator('.fqc-modal-form [name="name"]').fill('Unknown form change');
+  s.lose({commit:true});
+  await page.locator('.fqc-modal-form [type="submit"]').click();
+  await s.settled();
+  const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft'))));
+  const count=posts(s.f).length;
+  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));
+  await page.locator('[data-departure-choice="abandon"]').click();
+  await page.waitForFunction(()=>window.state.view==='dashboard');
+  const retained=await page.evaluate(keys=>Object.fromEntries(keys.filter(k=>localStorage.getItem(k)!==null).map(k=>[k,localStorage.getItem(k)])),Object.keys(original));
+  assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);
+  assert.equal(await page.evaluate(()=>window.sharedDraftAccountState().unknown),true);
+  assert.equal(posts(s.f).length,count);
+  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));
+  await page.locator('#fqc-check-result').waitFor();
+  s.receiptsUp();
+  await s.recover();
+  assert.equal(posts(s.f).length,count);
+  assert.deepEqual(s.errors,[]);
+  assert.deepEqual(retained,{},'Abandon must remove only this runtime\'s unsent local matrix payload; preserve the separate unknown form receipt');
+} finally { await s.close(); }
+
+});
+void test('unsent matrix storage deletion failure refuses departure and keeps form/unknown evidence',async()=>{
+ const s=await setup(),{page}=s;try{
+  await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
+  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));await unknown(s);
+  const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),count=posts(s.f).length;
+  await page.evaluate(keys=>{const remove=Reflect.get(Storage.prototype,'removeItem');Storage.prototype.removeItem=function(key){if(this===localStorage&&keys.includes(key))throw Error('SYNTHETIC_REMOVE_FAILED');return Reflect.apply(remove,this,[key]);};},Object.keys(original));
+  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!!document.querySelector('[data-departure-error]')?.textContent);
+  assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)])),Object.keys(original)),original);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(posts(s.f).length,count);assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),true);
+ }finally{await s.close();}
+});
