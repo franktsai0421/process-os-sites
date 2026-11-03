@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
+import {addAuthorityAudit} from './fqc-required-dependencies-fixture.mjs';
 const fixture=createRequire(import.meta.url)('../scripts/fqc-apply-fixture.cjs');
 const read=name=>process.env.FQC_UI_REF?execFileSync('git',['show',process.env.FQC_UI_REF+':public/process/'+name],{encoding:'utf8'}):fs.readFileSync(new URL('../public/process/'+name,import.meta.url),'utf8');
 const styles=['styles.css','master-data.css','master-data-extra.css','master-data-validation.css','fqc-master.css','version-draft-ui.css'].map(read).join('\n');
@@ -27,6 +28,7 @@ async function setup(width=1280,lang='zh'){
   if(lost){lose=false;return route.abort('failed');}
   return route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
  });
+ await addAuthorityAudit(f);
  await page.goto('https://synthetic.invalid/process/');await page.evaluate(lang=>{window.ProcessSync={identity:{id:'editor',name:'Synthetic editor',role:'staff'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:e=>e===1,platformHeaders:()=>({}),requiresReload:false};window.state={view:'data',dataTab:'quality-fqc'};window.hasPermission=()=>true;window.bindDataInner=()=>{};window.toast=()=>{};localStorage.setItem('processUILanguage',lang);},lang);
  for(const file of scripts)await page.addScriptTag({content:read(file)});
  await page.evaluate(()=>window.FQCMasterUI.bind(document.querySelector('#data-content')));
@@ -40,6 +42,9 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])for(const kind of ['
  try{
   await page.locator(`[data-edit-${kind}="${kind}"]`).click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('First committed');s.lose();await form.locator('[type="submit"]').click();await s.settled();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));
   const committed=(await f.state()).workflow,before=posts(f).length;assert.equal(committed.working[kind==='error'?'errors':'items'][0].name,'First committed');assert.equal(committed.saved,null);
+  const departure=await page.evaluate(()=>window.FQCMasterUI.navigation.departure.inspect());
+  assert.equal(departure.state,'unknown');assert.equal(departure.canSave,false);assert.equal(departure.canDiscard,false);
+  assert(await page.evaluate(async()=>{try{await window.FQCMasterUI.navigation.departure.discard();return false;}catch{return true;}}),'unconfirmed operation cannot be discarded to leave');
   await form.locator('[name="name"]').fill('Second input retained');await form.locator('[type="submit"]').click();assert.equal(posts(f).length,before);
   if(process.env.FQC_RECOVERY_SCREENSHOTS&&kind==='error'){fs.mkdirSync(process.env.FQC_RECOVERY_SCREENSHOTS,{recursive:true});await page.screenshot({path:process.env.FQC_RECOVERY_SCREENSHOTS+`/unknown-${width}-${lang}.png`});}
   if(!process.env.FQC_UI_REF){assert.match(await form.locator('.fqc-modal-alert').innerText(),lang==='vi'?/chưa được xác nhận/:/尚未確認/);await page.locator('[data-fqc-check-result]').click();await s.settled();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(posts(f).length,before);}
@@ -48,6 +53,10 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])for(const kind of ['
   await form.locator('[type="submit"]').click();await form.waitFor({state:'detached'});assert.equal(posts(f).length,before+1,'retained form must produce a new Apply');assert.equal((await f.state()).workflow.working[kind==='error'?'errors':'items'][0].name,'Second input retained');
   assert.equal((await f.state()).workflow.saved,null);assert.deepEqual((await f.state()).workflow.active,committed.active);
   await page.locator('#fqc-save').click();await page.waitForFunction(()=>!document.querySelector('#fqc-save').disabled);assert.equal((await f.state()).workflow.saved.content[kind==='error'?'errors':'items'][0].name,'Second input retained');assert.deepEqual(s.errors,[]);
+  assert.equal(await page.evaluate(()=>window.FQCMasterUI.navigation.departure.inspect().state),'clean','confirmed Apply + Save must release the departure barrier');
+  assert(await page.evaluate(()=>window.FQCMasterUI.navigation.canLeave()));
+  await page.goto('https://synthetic.invalid/process/?after-confirmed-save=1');
+  assert.match(page.url(),/after-confirmed-save=1/);assert.deepEqual(s.errors,[],'confirmed departure must not trigger an unexpected unload warning');
  }finally{await s.close();}
 });
 for(const kind of ['error','item'])void test(`new ${kind} after recovery retains its ID without duplicate insert`,async()=>{

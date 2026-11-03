@@ -109,12 +109,13 @@ void test('FQC authority literal immutable-body names are not mistaken for actua
  }finally{f.close();}
 });
 
-void test('FQC authority actual immutable-body reference is rejected without following its body',async()=>{
+void test('FQC authority unresolved nested immutable-body reference is rejected after verified hydration',async()=>{
  const context=await setup(),{f}=context;try{
-  const forbidden=rawRef(f,JSON.stringify({note:'Synthetic forbidden authority body'}));
-  replaceAggregate(f,'processAccessControl',JSON.stringify({nested:{__immutableBody:forbidden}}));
+  const forbidden=rawRef(f,JSON.stringify({note:'Synthetic nested authority body'}));
+  const outer=rawRef(f,JSON.stringify({nested:{__immutableBody:forbidden}}));
+  replaceAggregate(f,'processAccessControl',JSON.stringify({before:{__immutableBody:outer}}));
   const before=storedRow(f);resetEvents(f);const response=await send(context);
-  assert(response.status>=400);assert(!f.events.some(event=>event.kind==='get'&&event.key===forbidden.key));noMutation(f,before);
+  assert(response.status>=400);assert(f.events.some(event=>event.kind==='get'&&event.key===outer.key));assert(!f.events.some(event=>event.kind==='get'&&event.key===forbidden.key));noMutation(f,before);
  }finally{f.close();}
 });
 

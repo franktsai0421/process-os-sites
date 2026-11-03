@@ -1,3 +1,7 @@
+## 2026-11-03 — FQC Apply/Save normal authority-body compatibility
+
+Fixed a reproducible `required-state-read / AUTHORITY_BODY_INVALID` when normal storage externalizes permission audit `before` values. Preserve original hash checks, authority admission, CAS, receipts and unknown-result protection. Added serializer-backed tests and desktop/mobile zh/vi browser regression for recovery and confirmed departure. No model/schema/data migration or live change. [Acceptance and limits](../docs/acceptance/fqc-authority-body-20261103.md).
+
 ## 2026-11-03 — Remove PR #61 speed diagnostics
 
 Removed the diagnostic page/API, browser recorder, timing wrappers and dedicated tests/documents at the user's request. Normal login, authorization, revocation, storage/CAS and merged #62 FQC behavior remain. No schema, business data, account, access or runtime-setting changes. [Removal acceptance and release gates](../docs/acceptance/remove-navigation-diagnostics-20261103/README.md). Full CI log audit also found and repaired an existing equipment Begin fixture/runner false-success defect; product code remains unchanged by that follow-up. See the same acceptance report.

@@ -390,9 +390,16 @@ export async function readFqcRequiredRecordMutation(bucket:Bucket,envelope:Envel
  // The optional users mirror is not identity authority; preserve its absence or
 // staleness. Defined maintenance retains the existing inline override priority.
  if(envelope.platformUsers!==undefined)JSON.parse(envelope.platformUsers);if(envelope.maintenanceMode!==undefined)JSON.parse(envelope.maintenanceMode);
+ // The ordinary writer externalizes audit.before (and other object bodies)
+ // even in authority aggregates. Decode the pinned authority closure with the
+ // same SHA-verifying reader as ordinary authorization, without deferred history.
+ // Validate after hydration; never authorize using an unresolved body or retry
+ // a failed authority read against another snapshot/reader.
  const auth=await decodeRecordValuesCore(bucket,envelope,{keys:fqcRequiredAuth,projectValue:(_key,raw)=>{
-  JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});return raw;
+  // Validate even an aggregate subsequently shadowed by the maintenance overlay.
+  JSON.parse(raw);return raw;
  }});
+ for(const raw of Object.values(auth.values))JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});
  const state:FqcRequiredState={revision,...auth},authRaw=JSON.stringify(auth.values),authKnown=[...auth.recordStorage.known];
  const operation=Object.freeze({...await authorize(state)});
  if(JSON.stringify(selection)!==selectionRaw||typeof operation.actorId!=='string'||!operation.actorId||typeof operation.operationId!=='string'||!operation.operationId||typeof operation.clientId!=='string'||!operation.clientId||Object.keys(operation).some(key=>!['actorId','operationId','clientId','sequence'].includes(key))||!Number.isSafeInteger(operation.sequence)||operation.sequence<1||state.revision!==revision||state.values!==auth.values||state.recordStorage!==auth.recordStorage||!state.recordStorage.partial||JSON.stringify(state.values)!==authRaw||JSON.stringify(state.recordStorage.originalValues)!==authRaw||state.recordStorage.models.size||state.recordStorage.allocations.size||state.recordStorage.known.size!==authKnown.length||authKnown.some(sha=>!state.recordStorage.known.has(sha))||JSON.stringify(envelope)!==original)throw Error('FQC authorization basis changed');
