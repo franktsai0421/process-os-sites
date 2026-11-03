@@ -11,3 +11,22 @@ void test('same-id identity generation change refuses earlier handle',async()=>{
 void test('abort before commit preserves source and never installs prepared data',async()=>{const f=await fixture(),c=new AbortController(),p=f.api.prepareDestination({view:'player'},c.signal);f.pending[0](Response.json(reply('player')));const h=await p;c.abort();assert.throws(()=>f.api.commitDestination(h),/DELIVERY_SUPERSEDED/);assert.equal(f.api.destination.view,'dashboard');});
 void test('old refresh completing after a target commit cannot replace new projection',async()=>{const f=await fixture(),refresh=f.api.refresh(),p=f.api.prepareDestination({view:'player'});f.pending[1](Response.json(reply('player')));f.api.commitDestination(await p);f.pending[0](Response.json(reply('dashboard')));await refresh;assert.equal(f.api.destination.view,'player');});
 void test('malformed projection and409 preserve source without invented retry',async()=>{for(const bad of ['malformed','revision']){const f=await fixture(),p=f.api.prepareDestination({view:'player'});const body=reply('player');body.catalog=null;f.pending[0](bad==='malformed'?Response.json(body):Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409}));await assert.rejects(p);assert.equal(f.calls.length,2);assert.equal(f.api.destination.view,'dashboard');assert.equal(f.api.identity.id,'actor');}});
+
+void test('navigation identity evidence crosses only verified same-session commits, never arbitrary same-id objects',async()=>{
+ const f=await fixture(),original=f.api.identity,epoch=f.api.identityGeneration();
+ assert.equal(f.api.isNavigationIdentityCurrent({...original},epoch),false);
+ for(const view of ['player','dashboard']){const next=f.api.prepareDestination({view});f.pending.at(-1)(Response.json(reply(view)));const handle=await next;assert.equal(f.api.identity===original,view==='player');f.api.commitDestination(handle);assert.equal(f.api.isNavigationIdentityCurrent(original,epoch),true);}
+ const verified=f.api.identity;f.api.identity={...verified};assert.equal(f.api.isNavigationIdentityCurrent(original,epoch),false);f.api.identity=verified;
+ f.api.setPlatformIdentity({id:'actor',role:'staff'});assert.equal(f.api.isNavigationIdentityCurrent(original,epoch),false);
+});
+void test('denied, malformed and aborted targets cannot grant navigation identity evidence',async()=>{
+ for(const kind of ['denied','malformed','abort']){const f=await fixture(),original=f.api.identity,epoch=f.api.identityGeneration(),controller=new AbortController(),next=f.api.prepareDestination({view:'player'},controller.signal),body=reply('player'),candidate=body.identity;
+  if(kind==='malformed')body.catalog=null;f.pending.at(-1)(Response.json(kind==='denied'?{error:'FORBIDDEN'}:body,{status:kind==='denied'?403:200}));
+  if(kind==='abort'){const handle=await next;controller.abort();assert.throws(()=>f.api.commitDestination(handle));}else await assert.rejects(next);
+  assert.equal(f.api.identity,original);assert.equal(f.api.isNavigationIdentityCurrent(candidate,epoch),false);
+ }
+});
+void test('verified current refresh keeps navigation lineage, logout and foreign actor do not',async()=>{
+ const f=await fixture(),original=f.api.identity,epoch=f.api.identityGeneration(),refresh=f.api.refresh();f.pending.at(-1)(Response.json(reply()));await refresh;assert.notEqual(f.api.identity,original);assert.equal(f.api.isNavigationIdentityCurrent(original,epoch),true);
+ const foreign=f.api.prepareDestination({view:'player'});f.pending.at(-1)(Response.json(reply('player','B')));await assert.rejects(foreign);assert.equal(f.api.isNavigationIdentityCurrent(original,epoch),false);
+});
