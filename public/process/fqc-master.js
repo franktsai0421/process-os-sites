@@ -12,6 +12,7 @@
   const displayDraftError = error => {
     const raw=typeof error==='string'?error:error?.message||String(error??'');
     const code=Object.hasOwn(fqcRecoveryMessages,error?.code)?error.code:raw;
+    if(raw==='FQC_CHECKPOINT_PHOTO_INCOMPLETE')return isVi()?'Ảnh chưa đọc xong hoặc đọc lỗi; hãy chọn lại ảnh thành công trước khi bảo toàn và tạm rời. Nội dung vẫn được giữ trên trang.':'照片尚未讀取完成或讀取失敗；請成功重新選擇照片後再保全暫離。目前輸入仍留在原頁。';
     if(raw.startsWith('FQC_CHECKPOINT_'))return isVi()?'Không thể xác nhận đã bảo toàn đầy đủ. Nội dung vẫn ở trang này; hãy đợi tải ảnh xong hoặc đóng cửa sổ phụ rồi thử lại. Không xóa thao tác chưa rõ kết quả.':'無法確認已完整保全，輸入仍保留在原頁。請等照片處理完成或關閉附加視窗後再試；請勿清除未知操作。';
     return Object.hasOwn(fqcRecoveryMessages,code)?fqcRecoveryMessages[code][isVi()?1:0]:window.sharedDraftErrorMessage?.(error)??raw;
   };
@@ -1826,6 +1827,7 @@
     const productCodes = new Set(existing?.productCodes || []); if (preselectCode) productCodes.add(preselectCode);
     const products = effectiveProducts(error.category), checkNo = existing?.checkNo || nextCheckNo(error, items);
     const currentMedia = clone(existing?.mediaItems || []).map(m => ({ ...m, id: m.id || (`fqc-media:${crypto.randomUUID()}`), note: m.note || '' }));
+    let mediaInputState='ready';
     const initialMediaJSON=JSON.stringify(currentMedia),initialEquipmentId=existing?.equipmentId||'';
     const vi = isVi();
     const currentRule = existing ? getItemRule(existing) : { cadence: 'none' };
@@ -2094,6 +2096,8 @@
 
     overlay.querySelector('#fqc-file-input').onchange = async e => {
       const files = [...(e.target.files || [])];
+      if(!files.length)return;
+      mediaInputState='reading';
       try {
         for (const file of files) {
           assertFormCurrent();
@@ -2102,7 +2106,8 @@
           currentMedia.push({ id: `fqc-media:${crypto.randomUUID()}`, name: file.name, type: file.type, src, note: '' });
           renderPhotoList();
         }
-      } catch(error) { showModalAlert(overlay,'error',error.message||String(error)); }
+        mediaInputState='ready';
+      } catch(error) { mediaInputState='failed';showModalAlert(overlay,'error',error.message||String(error)); }
       finally { e.target.value=''; }
     };
 
@@ -2153,7 +2158,7 @@
       });
     });
 
-    ownFormWrite(overlay,version,()=>({kind:'item',id,newId,preselectCode,checkNo,currentMedia,selectedEqId,selectedEq,toolType,initialToolType,initialEquipmentId,initialMediaJSON,currentRule}));
+    ownFormWrite(overlay,version,()=>{if(mediaInputState!=='ready')throw Error('FQC_CHECKPOINT_PHOTO_INCOMPLETE');return {kind:'item',id,newId,preselectCode,checkNo,currentMedia,selectedEqId,selectedEq,toolType,initialToolType,initialEquipmentId,initialMediaJSON,currentRule};});
     overlay.querySelector('form').onsubmit = async event => {
       event.preventDefault();
       if(!admitFormWrite(overlay))return;

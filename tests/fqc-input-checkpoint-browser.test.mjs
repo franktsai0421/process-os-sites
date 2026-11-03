@@ -145,3 +145,13 @@ void test('fresh FQC read failure never renders private checkpoint contents',asy
     assert.equal(await page.locator('[data-fqc-checkpoint]').count(),0);assert.equal(await page.locator('[data-fqc-checkpoint-restored]').count(),0);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));
   }finally{await s.close();}
 });
+void test('a failed photo read stays blocking after the native file input resets; explicit successful reselection recovers',async()=>{
+  const s=await setup(),{page}=s;try{
+    await page.route('**/photo-policy.mjs*',route=>route.fulfill({contentType:'text/javascript',body:source('photo-policy.mjs')}));const form=await unknown(s,'item');
+    await form.locator('#fqc-file-input').setInputFiles({name:'broken.png',mimeType:'image/png',buffer:Buffer.from('broken synthetic image')});await page.waitForFunction(()=>!document.querySelector('#fqc-file-input').value);
+    assert(await page.evaluate(async()=>{try{await window.FQCMasterUI.navigation.departure.park();return false;}catch(error){return error.message==='FQC_CHECKPOINT_PHOTO_INCOMPLETE';}}));assert.equal(await page.evaluate(()=>window.FQCInputCheckpoint.list('editor').length),0);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));
+    const png=Buffer.from(await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=2;return canvas.toDataURL('image/png').split(',')[1];}),'base64');
+    await form.locator('#fqc-file-input').setInputFiles({name:'replacement.png',mimeType:'image/png',buffer:png});await page.waitForFunction(()=>!document.querySelector('#fqc-file-input').value);
+    assert(await page.evaluate(async()=>{const lease=await window.FQCMasterUI.navigation.departure.park();const saved=window.FQCInputCheckpoint.list('editor')[0];lease.release();return saved.payload.forms[0].state.details.currentMedia[0].name==='replacement.png'&&window.sharedDraftAccountState().unknown;}));
+  }finally{await s.close();}
+});
