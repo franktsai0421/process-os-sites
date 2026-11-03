@@ -68,6 +68,9 @@
         if (node.nodeValue !== value) node.nodeValue = value;
       }
     }
+    // Only refresh the new issue copy; keep open details and unsaved form nodes.
+    root?.querySelectorAll('[data-iqc-pending-label]').forEach(node=>{node.textContent=pendingLabel(node.dataset.iqcPendingLabel);});
+    root?.querySelectorAll('[data-iqc-pending-message]').forEach(node=>{node.textContent=pendingIssueMessage(node.dataset.iqcPendingMessage);});
   }
   window.addEventListener('process-language-change', switchLabels);
   const status = value => ({ draft: t('草稿 · 未送審', 'Bản nháp · Chưa gửi'), pending: t('主管審核中', 'Đang chờ quản lý duyệt'), approved: t('已核准', 'Đã phê duyệt'), superseded: t('歷史核准', 'Bản đã duyệt trước') })[value] || value;
@@ -259,14 +262,20 @@
     const result=control?.draftContentIssues,flow=control?.workflow;
     return result?.source==='working'&&flow&&result.generation===flow.generation&&result.revision===flow.revision&&Array.isArray(result.issues)?result.issues:null;
   }
+  function pendingLabel(collection) {
+    return {parts:t('零件','Linh kiện'),items:t('檢查項目','Hạng mục'),errors:t('錯誤名稱','Tên lỗi'),categories:t('類別','Nhóm'),suppliers:t('供應商','Nhà cung cấp')}[collection]||collection;
+  }
+  function pendingIssueMessage(raw) {
+    if(raw==='NAME_REQUIRED')return t('名稱待補','Thiếu tên');
+    const phrases={'尚未指定有效類別':'Chưa chọn nhóm hợp lệ','零件名稱空白':'Tên linh kiện còn trống','至少需要一條檢查規則':'Cần ít nhất một quy tắc kiểm tra','來源規則空白':'Quy tắc nguồn còn trống','按批次規則缺少有效數值或自訂名稱':'Quy tắc theo lô thiếu giá trị hợp lệ hoặc tên tùy chỉnh','按時間規則格式錯誤':'Định dạng quy tắc thời gian không hợp lệ'};
+    for(const [zh,vi]of Object.entries(phrases))if(raw.endsWith(zh))return raw.slice(0,-zh.length)+t(zh,vi);
+    return raw;
+  }
   function pendingPanel() {
     const issues=currentContentIssues(),pending=issues?.filter(issue=>issue.kind==='missing');
     const source=draft()?t('來源：目前載入的共享工作稿；依送審內容規則檢查，尚未套用的表單不包含在內。','Nguồn: bản nháp chung đang tải; kiểm tra theo quy tắc gửi duyệt, không gồm biểu mẫu chưa áp dụng.'):t('來源：此送審案件的固定快照及送審時保存的待補結果；不隨後續草稿更新。','Nguồn: bản chụp cố định của hồ sơ và kết quả cần bổ sung được lưu khi gửi; không đổi theo bản nháp sau này.');
     if(!draft()&&!selected()?.contentIssues)return '';
-    const phrases={'尚未指定有效類別':'Chưa chọn nhóm hợp lệ','零件名稱空白':'Tên linh kiện còn trống','至少需要一條檢查規則':'Cần ít nhất một quy tắc kiểm tra','來源規則空白':'Quy tắc nguồn còn trống','按批次規則缺少有效數值或自訂名稱':'Quy tắc theo lô thiếu giá trị hợp lệ hoặc tên tùy chỉnh','按時間規則格式錯誤':'Định dạng quy tắc thời gian không hợp lệ'};
-    const message=issue=>{let value=window.VersionDraftUI?.issueMessage(issue)||issue.message;if(document.documentElement.lang==='vi')for(const [zh,vi]of Object.entries(phrases))value=value.replace(zh,vi);return value;};
-    const labels={parts:t('零件','Linh kiện'),items:t('檢查項目','Hạng mục'),errors:t('錯誤名稱','Tên lỗi'),categories:t('類別','Nhóm'),suppliers:t('供應商','Nhà cung cấp')};
-    return `<details class="iqc-panel iqc-pending" ${draft()?'':'data-vd-source="snapshot"'}><summary>${t('內容待補','Nội dung cần bổ sung')} · ${pending?pending.length:t('尚未檢查','Chưa kiểm tra')}</summary><p>${source}</p><p>${t('待補不阻擋送審，由審核者判斷。已儲存快照與即時草稿可能不同；送審使用最後手動儲存的快照。匯入待確認、有效來源規則及選填資訊不額外計入此數。','Các mục cần bổ sung không chặn gửi duyệt; người duyệt đánh giá. Bản lưu có thể khác bản nháp; gửi duyệt dùng bản lưu thủ công cuối cùng. Ghi chú nhập, quy tắc nguồn hợp lệ và thông tin tùy chọn không tính thêm vào số này.')}</p>${pending?`<ul class="iqc-alert-list">${pending.slice(0,40).map((issue,index)=>{const collection=issue.path?.[0],row=snap()[collection]?.find(row=>row.id===issue.path?.[1]?.id);return `<li><b data-i18n-skip="true">${h(labels[collection]||collection)} · ${h(row?.checkNo||row?.code||row?.nameVi||issue.path?.[1]?.id||'')}</b> · ${h(message(issue))}${draft()?`<button type="button" class="button ghost iqc-small" data-iqc-pending="${index}">${t('前往修正','Đến sửa')}</button>`:''}</li>`;}).join('')}${pending.length>40?`<li>${t('其餘待補','Các mục còn lại')} · ${pending.length-40}</li>`:''}</ul>`:''}</details>`;
+    return `<details class="iqc-panel iqc-pending" ${draft()?'':'data-vd-source="snapshot"'}><summary>${t('內容待補','Nội dung cần bổ sung')} · ${pending?pending.length:t('尚未檢查','Chưa kiểm tra')}</summary><p>${source}</p><p>${t('待補不阻擋送審，由審核者判斷。已儲存快照與即時草稿可能不同；送審使用最後手動儲存的快照。匯入待確認、有效來源規則及選填資訊不額外計入此數。','Các mục cần bổ sung không chặn gửi duyệt; người duyệt đánh giá. Bản lưu có thể khác bản nháp; gửi duyệt dùng bản lưu thủ công cuối cùng. Ghi chú nhập, quy tắc nguồn hợp lệ và thông tin tùy chọn không tính thêm vào số này.')}</p>${pending?`<ul class="iqc-alert-list">${pending.slice(0,40).map((issue,index)=>{const collection=issue.path?.[0],row=snap()[collection]?.find(row=>row.id===issue.path?.[1]?.id);return `<li><b data-i18n-skip="true"><span data-iqc-pending-label="${h(collection)}">${h(pendingLabel(collection))}</span> · ${h(row?.checkNo||row?.code||row?.nameVi||issue.path?.[1]?.id||'')}</b> · <span data-i18n-skip="true" data-iqc-pending-message="${h(issue.message)}">${h(pendingIssueMessage(issue.message))}</span>${draft()?`<button type="button" class="button ghost iqc-small" data-iqc-pending="${index}">${t('前往修正','Đến sửa')}</button>`:''}</li>`;}).join('')}${pending.length>40?`<li>${t('其餘待補','Các mục còn lại')} · ${pending.length-40}</li>`:''}</ul>`:''}</details>`;
   }
   function dataNotesPanel() {
     const data=snap(),unstructured=data.items.filter(item=>!item.isDeleted&&!(item.rules||[]).some(rule=>['batch','time'].includes(rule.cadence))).length;
