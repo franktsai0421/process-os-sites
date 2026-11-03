@@ -1,5 +1,8 @@
 # FQC authority-body compatibility regression
 
+Latest product verification: Astra high independently reviewed exact product head `7ff0f7a250b0481427759796a6357dc4d7c86172`; both the retained unsent-matrix payload (P2) and failed-target stale cell display (P3) are fixed, with no other confirmed finding in that scoped review. All 14 exact-head Chromium departure tests pass. The following documentation-only update does not change product/test bytes. Latest full CI remains required; no live release or recovery is claimed. PR #66/#68 and the uncommitted Feedback branch are frozen for separate conversations per the user's instruction; this task continues only PR #65.
+
+
 Base: fetched GitHub main `f23fb5e9cce9e4c1cb89e556151e8d5ff229d830`, including merged PR #63/#64. Work branch: `fix/fqc-authority-body-recovery-20261103`. Remote branches and open FQC PRs were checked before work; no competing open FQC PR or earlier authority-body candidate was found. The checkout had no uncommitted changes.
 
 ## Cause and scope
