@@ -29,7 +29,7 @@ const labels = {
 const assets = new Map(['approval-tabs.js', 'approval-tabs.css', 'delivery-navigation.js', 'navigation-lifecycle.mjs', 'delivery-purpose.mjs'].map(name => ['/process/' + name, read(name)]));
 
 function fixture(lang) {
-  return `<!doctype html><html lang="${lang}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="approval-tabs.css"></head><body><main id="view-root"></main>
+  return `<!doctype html><html lang="${lang}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="approval-tabs.css"></head><body><main id="view-root"></main>
 <script src="approval-tabs.js"></script><script>
 var state={view:'approval',dataTab:null,approvalTab:'master'};
 var control={versions:[]},dataReady=Promise.resolve(),approvalReady;
@@ -65,7 +65,9 @@ async function selected(page, tab, { url = true } = {}) {
     keyboard: [...document.querySelectorAll('[role=tab]')].filter(el => el.tabIndex === 0).map(el => el.dataset.reviewTab),
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     messages: fixtureMessages,
+    charset: document.characterSet,
   }));
+  assert.equal(actual.charset, 'UTF-8', 'fixture document must decode multilingual production sources as UTF-8');
   assert.deepEqual(actual.selected, [tab]);
   assert.deepEqual(actual.visible, ['approval-panel-' + tab]);
   assert.deepEqual(actual.keyboard, [tab]);
@@ -87,8 +89,8 @@ void test('native Chromium approval deep links, reload and indexed history', asy
         await context.route('**/*', route => {
           const url = new URL(route.request().url());
           if (url.origin !== origin) { blocked.push(url.href); return route.abort(); }
-          if (url.pathname === '/process/') return route.fulfill({ contentType: 'text/html', body: fixture(lang) });
-          if (assets.has(url.pathname)) return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript', body: assets.get(url.pathname) });
+          if (url.pathname === '/process/') return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fixture(lang) });
+          if (assets.has(url.pathname)) return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8', body: assets.get(url.pathname) });
           blocked.push(url.href); return route.abort();
         });
         const page = await context.newPage();
