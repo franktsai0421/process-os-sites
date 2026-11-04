@@ -13,9 +13,9 @@
       "candidateSHA256": "e616269cf9b72d81d4bb48e770451365395910d6d9a76816cb4d123f3c37ab11"
     },
     {
-      "candidate": " function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||r.kind!=='abandon'&&flow()?.pendingId||(!r.unknown&&(r.client.hasUnknown()||r.client.hasSyncFailures()))||(r.unknown&&(!r.plan.peers.every(c=>departureTransports().includes(c))||r.plan.peers.length!==departureTransports().length)))throw Error('DEPENDENCY_CHANGED_RECONFIRM');}\n",
+      "candidate": " function departureCheck(r){if(!currentDeparture(r)||!ownFlow()&&!r.beginUnknown||r.kind!=='abandon'&&flow()?.pendingId||(!r.unknown&&(r.client.hasUnknown()||r.client.hasSyncFailures()))||(r.unknown&&(!r.plan.peers.every(c=>departureTransports().includes(c))||r.plan.peers.length!==departureTransports().length)))throw Error('DEPENDENCY_CHANGED_RECONFIRM');}\n",
       "baseline": " function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}\n",
-      "candidateSHA256": "0d08090403225a1f0f204cb0f22f499a3bac087709e5fb20b58ac0f819cfb327"
+      "candidateSHA256": "c699fd839ecddb6ca626c3d75a97235f864c268689a0ebd3fe8be87e077fb6ca"
     },
     {
       "candidate": "  const status=departureStatus();if(!(['dirty',...(kind==='abandon'?['unknown']:[])].includes(status.state))||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');\n",
@@ -23,9 +23,9 @@
       "candidateSHA256": "c33941be719f93f64e03614ea333d2e535148d940f466a95b8f0a837adb0e2d3"
     },
     {
-      "candidate": "  const r={kind,plan,unknown:!!plan,coverage:[],committed:false,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;\n",
+      "candidate": "  const r={kind,plan,unknown:!!plan,beginUnknown:!!plan?.pins.some(pin=>pin.client===transport&&pin.anchor.kind==='begin-v1'),coverage:[],committed:false,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow()?.generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;\n",
       "baseline": "  const r={kind,phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;\n",
-      "candidateSHA256": "a7d5f5aca2f9da679e8c5e6fe26ee729b6de66ffeed8f9a009bf817eca52757f"
+      "candidateSHA256": "1a7623e4cba96b2b9a881d8901cf078b73c60b6fdbe0e3fac6bf2af0bf2d8324"
     },
     {
       "candidate": " async function abandonDeparture(){\n  const r=startDeparture('abandon');try{\n   // Drop local canvas/forms only. Never call the ledger's server inverse.\n   departureCheck(r);await (r.canvas.discardUnsentForDeparture||r.canvas.discardForDeparture).call(r.canvas,flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();\n   if(r.unknown){if(!departureLocalClean(r))throw Error('CANVAS_UNSYNCHRONIZED');for(const {client,anchor}of r.plan.pins)r.coverage.push(client.coverDeparture(anchor,()=>r.committed||currentDeparture(r)&&departureLocalClean(r)));}\n   r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');\n   host.ProcessEditorV2?.refreshRecovery?.();\n   return {departureId:r.id,release:r.release};\n  }catch(error){r.release();panel();throw error;}\n }\n function prepareUnload(){\n  const current=departureOperation;\n  if(current?.native)return current.phase==='held'&&heldDepartureCurrent(current)&&departureLocalClean(current);\n  if(departureStatus().state==='clean')return true;\n  if(!host.ProcessCanvasLocal?.discardUnsentForDeparture||!host.ProcessCanvasLocal?.departureReady)return false;\n  let r;try{\n   r=startDeparture('abandon');r.native=true;departureCheck(r);\n   r.canvas.discardUnsentForDeparture(flow(),r.canvasLease,()=>{departureCheck(r);r.editor.discardLocal();});\n   departureCheck(r);if(!departureLocalClean(r))throw Error('CANVAS_UNSYNCHRONIZED');\n   if(r.unknown)for(const {client,anchor}of r.plan.pins)r.coverage.push(client.coverDeparture(anchor,()=>currentDeparture(r)&&departureLocalClean(r)));\n   r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPARTURE_CONTEXT_CHANGED');\n   // If the document remains open after a cancelled browser exit, release only\n   // the temporary navigation locks. Unknown operations remain recoverable.\n   setTimeout(()=>r.release(),0);return true;\n  }catch{r?.release();return false;}\n }\n const departure={autoAbandon:true,prepareUnload,covered:()=>completedDepartureCoverage.length>0&&completedDepartureCoverage.every(lease=>lease.current()),otherDraftsPending(){const plan=unknownDeparturePlan();return plan?plan.peers.some(c=>c.otherDeparturePending(plan.peers)):host.sharedDraftDepartureBlocked?.()??false;},inspect:departureStatus,save:saveDeparture,discard:discardDeparture,abandon:abandonDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(options={}){const status=departureStatus();if(!['clean','departing'].includes(status.state))throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();if(departureOperation?.kind==='abandon'){if(options.reset&&host.ProcessCanvasLocal?.resetForDeparture){host.ProcessCanvasLocal.resetForDeparture(departureOperation.canvasLease);departureOperation.canvasReset=true;}departureOperation.committed=true;completedDepartureCoverage=departureOperation.coverage;}}};\n",
@@ -38,5 +38,9 @@
     "completeSHA256": "da8e3c709b0750c92305a59cdd37e9cce06684bfe3a1a7f3458520190b580a5c",
     "reconstruction": "Verified from this pinned source using the pre-integration departure inverse and the same three panel optimization inverses."
   },
-  "currentSourceControlSHA256": "2ad12e4a6fc20395bc9f043be2615a1dfebc0342dfdcc1e583804ba4395e5722"
+  "currentSourceControlSHA256": "a8a0b53dfeac0ec5acd13a730d31fc3c086fe9dfa7e6f1568f66f6a5a8ab206c",
+  "currentSourceReview": {
+    "sourceCommit": "48eae6b",
+    "note": "Begin recovery changes two candidate anchors: departureCheck permits the captured unknown Begin without an open flow; startDeparture captures beginUnknown and nullable generation. All historical replacement bodies and historicalBaseline are unchanged. Remaining current Begin/runtime code is shared by both differential arms, not reconstructed historical behavior."
+  }
 }
