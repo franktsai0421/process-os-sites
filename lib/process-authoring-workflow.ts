@@ -4,6 +4,7 @@ import {type WorkflowAdapter,type VersionedControl} from './versioned-shared-wor
 import {effectiveAccess} from './user-access';
 import {validateIPQCAssignments,ipqcIssues} from './process-ipqc';
 import {assertEditorIntegrity,editorIntegrity,editorKind} from './process-editor-integrity';
+import {applyProcessCanvasSave,CANVAS_SAVE_ACTION} from './process-canvas-save';
 
 type Step={text:string;standard:string};
 export type Operation=Record<string,unknown>&{id:string;stageCode:string;name:string;productCodes:string[];nextIds:string[];mode?:string;machineIds?:string[];instructionSteps?:Step[];instructions?:string;ipqc?:string;bomSelections?:Record<string,string[]>;bomProductCode?:string;bomItems?:string[];mediaItems?:{src:string}[]};
@@ -121,12 +122,16 @@ export function processAuthoringAdapter(canvasV2=false):WorkflowAdapter<Content,
     }return [...issues,...editorIntegrity(content.workspaces,master.active.PROCESS||{},bomRoots).map(i=>({kind:'missing' as const,path:['workspaces',{id:i.workspace},'stages',i.stage,{id:i.operation}],message:'EDITOR_LEGACY_REVIEW:'+i.code+':'+i.detail})),...ipqcIssues(content.workspaces,state.values,master)];}
    };
   },
-  apply(control,command,ctx){if(!control.workflow?.receipts[command.operationId]&&(canvasV2||command.source?.startsWith('canvas-v2:')))assertCanvasBatch(control,command);if(command.action==='apply')for(const p of command.patches||[]){
+  apply(control,command,ctx){
+   const canvasSave=command.moduleAction===CANVAS_SAVE_ACTION;
+   if(command.moduleAction&&!canvasSave)throw new DraftConflict('AUTHORING_ACTION_INVALID',422);
+   if(canvasSave&&(command.action!=='apply'||!command.source?.startsWith('canvas-v2:')||command.input!==undefined))throw new DraftConflict('CANVAS_SCOPE_REQUIRED',422);
+   if(!control.workflow?.receipts[command.operationId]&&(canvasV2||command.source?.startsWith('canvas-v2:')))assertCanvasBatch(control,command);if(command.action==='apply')for(const p of command.patches||[]){
    const emptyStage=p.op==='set'&&p.path.length===4&&p.path[2]==='stages'&&Array.isArray(p.value)&&p.value.length===0;
    if(p.path[0]!=='workspaces'||p.op==='set'&&!emptyStage&&(p.path.length<6||p.path[2]!=='stages'||typeof p.path[4]!=='object'))throw new DraftConflict('AUTHORING_PATCH_INVALID',422);
    const last=p.path.at(-1),field=typeof last==='string'?last:'';
    if(p.op==='set'&&['id','stageCode'].includes(field))throw new DraftConflict('IMMUTABLE_IDENTITY',422);
    if(!control.workflow!.receipts[command.operationId]&&p.op!=='insert'&&!(command.guards||[]).some(g=>equal(g.path,p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
-  }return applyDraftCommand(control.workflow!,command,ctx);},
+  }return canvasSave?applyProcessCanvasSave(control.workflow!,command,ctx):applyDraftCommand(control.workflow!,command,ctx);},
  };
 }

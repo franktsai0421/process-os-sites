@@ -20,11 +20,11 @@ function apply(c,b){return processAuthoringAdapter(true).apply(c,command(b),cont
 void test('node form, insertion, connection removal and undo are local; only current canvas freezes',()=>{
  const shared=content(),j=new Journal(shared),before=clone(shared),a=j.project(w,'S')[0];j.operation(w,'S',{...a,name:'Local'},a);j.operation(w,'S',{id:'new',stageCode:'S',name:'New',productCodes:[],nextIds:[]},null);j.edit(w,'T',[{id:'c',f:'x',value:33}]);
  assert.deepEqual(shared,before);assert.equal(j.project(w,'S').length,3);assert.equal(j.project(w,'S')[0].name,'Local');
- const b=j.freeze(w,'S');assert(b.patches.every(p=>p.path[3]==='S'));assert.equal(b.patches.length,2);assert(b.guards.some(g=>g.path.length===5));assert.throws(()=>j.freeze(),/SCOPE_REQUIRED/);
+ const b=j.freeze(w,'S');assert(b.patches.every(p=>p.path[3]==='S'));assert.equal(b.patches.length,2);assert(b.guards.every(g=>g.path.length===6));assert.throws(()=>j.freeze(),/SCOPE_REQUIRED/);
  j.remove(w,'S','b');assert.deepEqual(object(j.project(w,'S')[0].nextIds),[]);j.travel(w,'S');assert(j.project(w,'S').some(o=>o.id==='b'));assert.deepEqual(object(j.project(w,'S')[0].nextIds),['b']);
 });
 
-void test('field guards allow unrelated fields; entire-node form guard still rejects changed dependencies',()=>{
+void test('field guards allow unrelated fields; form still rejects a changed edited field',()=>{
  const c=content(),j=new Journal(c);j.edit(w,'S',[{id:'a',f:'x',value:50}]);const fresh=clone(c);op(fresh,'a').name='B edit';j.content=fresh;assert.equal(j.conflicts(w,'S').length,0);const b=j.freeze(w,'S'),s=server(fresh);assert.equal(op(apply(s,b).state.working,'a').name,'B edit');
  const j2=new Journal(c),a=j2.project(w,'S')[0];j2.operation(w,'S',{...a,name:'Form'},a);j2.content=fresh;assert.throws(()=>j2.freeze(w,'S'),/CANVAS_CONFLICT/);
 });
@@ -32,6 +32,14 @@ void test('field guards allow unrelated fields; entire-node form guard still rej
 void test('two-actor conflict and dangling removal reject the entire batch without business changes',()=>{
  const c=content(),j=new Journal(c);j.edit(w,'S',[{id:'a',f:'x',value:50},{id:'b',f:'name',value:'Local B'}]);const b=j.freeze(w,'S'),fresh=clone(c);op(fresh,'b').name='Other actor';const s=server(fresh),before=clone(s);assert.throws(()=>apply(s,b),/DEPENDENCY_CHANGED/);assert.deepEqual(object(s),object(before));
  const removal=new Journal(c);removal.remove(w,'S','b');const whole=removal.freeze(w,'S');assert.equal(whole.patches.length,2);const bad={...whole,patches:whole.patches.filter(p=>p.op==='remove')};assert.throws(()=>apply(server(),bad),/EDITOR_INTEGRITY/);const result=apply(server(),whole);assert(!op(result.state.working,'b'));assert.deepEqual(object(op(result.state.working,'a').nextIds),[]);
+});
+
+void test('form field edits merge a peer position edit while deletion retains whole-node dependencies',()=>{
+ const c=content(),j=new Journal(c),a=j.project(w,'S')[0];j.operation(w,'S',{...a,name:'My name'},a);
+ const fresh=clone(c);op(fresh,'a').x=88;j.content=fresh;const result=apply(server(fresh),j.freeze(w,'S'));
+ assert.equal(op(result.state.working,'a').name,'My name');assert.equal(op(result.state.working,'a').x,88);
+ const removal=new Journal(c);removal.remove(w,'S','a');removal.content=fresh;assert.throws(()=>removal.freeze(w,'S'),/CANVAS_CONFLICT/);
+ const legacy=new Journal(c);legacy.operation(w,'S',{...a,name:'Legacy'},a,true);legacy.content=fresh;assert.throws(()=>legacy.freeze(w,'S'),/CANVAS_CONFLICT/);
 });
 
 void test('server refuses cross-canvas, whole-canvas overwrite and metadata edits; creation stays scoped',()=>{
@@ -74,8 +82,8 @@ async function browserFixture(seed={}){
  return{ctx,local:ctx.ProcessCanvasLocal,calls,records,session,manager,writes,status,model:()=>model,receipt:()=>clone(receipt),mode:m=>mode=m,release:()=>resolvePost(),async close(){for(const fn of listeners.get('pagehide')||[])fn();await new Promise(setImmediate);},tick(){for(const [id,fn]of timers){timers.delete(id);fn();}},async remote(next){model=next;ctx.ProcessCanvasLocal.accept(model);await ctx.ProcessCanvasLocal.recoveryReady();}};
 }
 
-void test('100 local drag edits have zero POST and bounded debounce; Save/lease never synchronizes',async()=>{
- const f=await browserFixture();for(let i=1;i<=100;i++)f.local.edit(w,'S',[{id:'a',f:'x',value:i}]);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);f.tick();assert.equal(f.writes.length,1);await assert.rejects(f.local.beforeSave(),/UNSYNCHRONIZED/);const lease=f.local.lockForDeparture();await assert.rejects(f.local.saveForDeparture(lease),/UNSYNCHRONIZED/);lease.release();assert.equal(f.calls.length,0);await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.dirty());
+void test('100 local drag edits have zero POST and bounded debounce; legacy explicit Sync remains one batch',async()=>{
+ const f=await browserFixture();for(let i=1;i<=100;i++)f.local.edit(w,'S',[{id:'a',f:'x',value:i}]);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);f.tick();assert.equal(f.writes.length,1);const lease=f.local.lockForDeparture();await assert.rejects(f.local.saveForDeparture(lease),/UNSYNCHRONIZED/);lease.release();assert.equal(f.calls.length,0);await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.dirty());
 });
 
 void test('lost response uses original receipt without a second POST; later editing stays local',async()=>{
