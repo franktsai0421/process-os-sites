@@ -388,12 +388,14 @@
     function assertBegin(record){assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration||record!==beginRecord||beginMarker()===null)throw Error('BEGIN_RECOVERY_CONTEXT_CHANGED');}
     function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;}
     function beginControl(result){
-      const control=result?.control,flow=control?.workflow;
-      if(!control||!Array.isArray(control.versions)||!Number.isSafeInteger(result.revision)||result.revision<0||result.permissions?.view!==true||access?.view!==true)throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      const projected=beginPath==='/api/ipqc-c/workflow'&&!result?.control,control=projected?result:result?.control,flow=control?.workflow;
+      if(!control||!Number.isSafeInteger(result.revision)||result.revision<0||result.permissions?.view!==true||access?.view!==true)throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      if(projected){if(!Object.hasOwn(result,'workflow')||!validBeginBasis(result.beginBasis)||(flow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');}
+      else if(!Array.isArray(control.versions))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
       if(flow&&(!beginText(flow.generation)||flow.generation===null||!Number.isSafeInteger(flow.revision)||flow.revision<0))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
       return control;
     }
-    function captureBeginBasis(result){const control=beginControl(result),open=control.versions.find(v=>['draft','pending','pending-test'].includes(v.status));const basis={generation:control.workflow?.generation??null,activeVersionId:control.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};if(!validBeginBasis(basis))throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(basis));}
+    function captureBeginBasis(result){const control=beginControl(result);if(beginPath==='/api/ipqc-c/workflow'&&!result.control){if((control.workflow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(result.beginBasis));}const open=control.versions.find(v=>['draft','pending','pending-test'].includes(v.status));const basis={generation:control.workflow?.generation??null,activeVersionId:control.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};if(!validBeginBasis(basis))throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(basis));}
     async function finishBegin(record,result){
       assertBegin(record);if(result?.operationKind!=='begin-v1')throw Error('INVALID_BEGIN_RECEIPT');confirmedReceipt(result,record.operationId);
       const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertBegin(record);const control=beginControl(fresh),flow=control.workflow;
@@ -422,7 +424,7 @@
       })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
     }
     if(durableBegin)beginOutstanding();
-    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>allowUnknownDeparture&&boundedScope==='iqc'&&departureEligible()};clients.add(accountClient);
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&boundedScope==='iqc'&&departureEligible()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }

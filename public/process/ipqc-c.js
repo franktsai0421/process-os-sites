@@ -325,7 +325,10 @@
       if(operation&&!operationAllowed(operation))throw Error('FORBIDDEN');
       if(!control.workflow||action==='begin') {
         if(!operationAllowed('edit'))throw Error('FORBIDDEN');
-        const started=await transport.begin();if(!sameActor() || closeModal && (modal!==targetModal || editorState()!==submittedState)){return cancelResponse();}control=started.control;revision=started.revision;
+        const beginQuery=captureOperationQuery(),started=await transport.begin();if(!sameActor() || closeModal && (modal!==targetModal || editorState()!==submittedState)){return cancelResponse();}beginQuery.assert();
+        if(started.control){control=started.control;revision=started.revision;}else await read(false,beginQuery.current);
+        if(!sameActor())return cancelResponse();
+        if(started.recoveryKind==='begin-v1'&&control.workflow?.generation!==started.receipt.generation)throw Error('STALE_GENERATION');
         selectedVersionId=open()?.id||active()?.id||selectedVersionId;
         if(!localChanges.length)working=open()?.status==='draft'?copy(open().snapshot):null;
         if(localChanges.length&&!localGeneration)localGeneration=control.workflow?.generation;
@@ -1179,7 +1182,7 @@
     context:()=>[mountSequence,selectedVersionId,control?.workflow?.generation,operationAllowed('save'),operationAllowed('edit')],
     // This describes permission to browse, never whether a write succeeded.
     // Original transport markers and mutation admission survive navigation.
-    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy,unknown:()=>sharedClient?.hasUnknownBegin?.()===true,failed:()=>false,
+    current:()=>!readAccessBlocked()&&sharedActor===identity()?.id,busy:()=>busy&&sharedClient?.hasUnknownBegin?.()===true,unknown:()=>sharedClient?.hasUnknownBegin?.()===true,failed:()=>false,
     unknownTransports:()=>[sharedClient],unknownReady:()=>!busy,discardUnknown:()=>{closeEditor(true,false);clearLocal();working=null;},
     local:()=>false,
     canSave:()=>draftOpen()&&operationAllowed('save'),canDiscard:()=>editing(),save:()=>write('save',{snapshot:working}),

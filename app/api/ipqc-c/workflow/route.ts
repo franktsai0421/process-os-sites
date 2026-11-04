@@ -1,4 +1,4 @@
-import {parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
+import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
 import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutationState} from '@/lib/ipqc-c-create-record-mutation';
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
@@ -103,7 +103,7 @@ export async function GET(request:Request) {
     }
     const since=new URL(request.url).searchParams.get('since');
     if(flow&&since===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
-    return reply({revision:state.revision,permissions,workflow:flow ? {
+    return reply({revision:state.revision,permissions,beginBasis:beginBasis(control),workflow:flow ? {
       scope:flow.scope,generation:flow.generation,revision:flow.revision,working:flow.working,
       saved:flow.saved ? {id:flow.saved.id,revision:flow.saved.revision,actor:flow.saved.actor,at:flow.saved.at}:null,
       pendingId:flow.pendingId,activeId:flow.active.id,contributors:flow.contributors,

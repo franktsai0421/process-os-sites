@@ -142,3 +142,10 @@ void test('configured bases never masquerade as measured wire URLs or observer t
   const bad = structuredClone(byId.get('iqc.save')); bad.network.endpointKind = 'wireURL';
   assert.throws(() => validateScenario(bad), /wire query contract/);
 });
+
+void test('Begin wire actions distinguish recoverable modules from unchanged legacy modules', () => {
+  for (const scenario of scenarios.filter(row => row.action === 'begin')) {
+    assert.deepEqual(scenario.network.mutationSequence, [['fqc', 'iqc', 'ipqc-c'].includes(scenario.moduleId) ? 'begin-v1' : 'begin']);
+    assert.match(scenario.oracle.receipt, /exact original Begin receipt/);
+  }
+});

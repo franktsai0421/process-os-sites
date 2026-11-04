@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),fixture=require('../scripts/fqc-apply-fixture.cjs'),{fixture:uiFixture}=require('../scripts/test-fqc-feedback-races.cjs');
 for(const kind of ['error','item','batch'])void test(`legacy ${kind} input stays local until Save; rejected Begin preserves staged input`,async()=>{
  const ui=await uiFixture({legacy:true}),fetch=ui.c.fetch;let begins=0;const stored=[];
- ui.c.fetch=async(url,options={})=>{if(options.method==='POST'&&JSON.parse(options.body).action==='begin'){begins++;return Response.json({error:'FORBIDDEN'},{status:403});}return fetch(url,options);};
+ ui.c.fetch=async(url,options={})=>{if(options.method==='POST'&&JSON.parse(options.body).action==='begin-v1'){begins++;return Response.json({error:'FORBIDDEN'},{status:403});}return fetch(url,options);};
  ui.c.localStorage.setItem=(key,value)=>stored.push({key,value});
  if(kind==='error')ui.c.__fqcTest.openErrorModal('error');else if(kind==='item')ui.c.__fqcTest.openItemModal('item');else ui.c.__fqcTest.openExistingModal('SYN-P');
  const form=ui.doc.querySelector('.fqc-modal-form'),input=form.querySelector('[name="name"]');

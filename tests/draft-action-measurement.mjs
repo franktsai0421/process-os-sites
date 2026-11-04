@@ -70,7 +70,10 @@ export function captureRequests(page, origin, {responseDeadlineMs = 5000} = {}) 
   const request = req => {
     const url = new URL(req.url());
     if (url.origin !== origin || !url.pathname.startsWith('/api/')) return;
-    entries.set(req, {method: req.method(), path: url.pathname, queryEmpty: url.search === '', status: null, observedBodyContract: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
+    // Retain only a bounded protocol label; never record request IDs or input.
+    let beginProtocol = null;
+    try { const action = JSON.parse(req.postData() || 'null')?.action; if (req.method() === 'POST' && ['begin', 'begin-v1'].includes(action)) beginProtocol = action; } catch { /* Malformed requests remain fully counted. */ }
+    entries.set(req, {beginProtocol, method: req.method(), path: url.pathname, queryEmpty: url.search === '', status: null, observedBodyContract: null, requestBytes: Buffer.byteLength(req.postData() || ''), responseBytes: null, failed: false, clientTiming: null, serverTiming: null});
     completions.set(req, new Promise(resolve => finishers.set(req, resolve)));
   };
   const response = res => {
@@ -137,6 +140,7 @@ export async function measureAction({page, origin, action, cycle, selector, read
       row.classification = 'EXPECTED_DISABLED_BACKGROUND';
     }
     if (expectedPost !== undefined) assert.equal(network.requests.POST, expectedPost, 'Unexpected POST count for ' + action);
+    if (action === 'begin') assert.deepEqual(network.requests.rows.filter(row => row.method === 'POST').map(row => row.beginProtocol), ['begin-v1'], 'Compiled lifecycle Begin must use the recoverable protocol');
     // Authoritative DB inspection is a correctness oracle, outside the UI timing window.
     await verify();
     outcome = {action, cycle, layer: 'CI_SYNTHETIC_BROWSER', status: 'PASS', ms, stateVerified: true, mandatoryClick: true};

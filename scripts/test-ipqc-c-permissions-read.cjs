@@ -39,6 +39,12 @@ function policyParity(actual,prior,who='reader'){
   for(const op of ['edit','save','submit','delete','withdraw','create'])expected.body.permissions[op]=allowed;
   expected.body.permissions.restore=who==='frank';
  }
+ // New ordinary workflow GET exposes only the independently seeded Begin basis.
+ // Permissions/history/receipt projections retain their exact historical shapes.
+ if(expected.status===200&&Object.hasOwn(expected.body,'workflow')){
+  const seeded=JSON.parse(values.ipqcCMasterControl),opened=seeded.versions.find(version=>['draft','pending','pending-test'].includes(version.status));
+  expected.body.beginBasis={generation:seeded.workflow?.generation??null,activeVersionId:seeded.activeVersionId??null,openVersionId:opened?.id??null,openVersionStatus:opened?.status??null,openVersionRevision:opened?.revision??null};
+ }
  assert.deepEqual(comparable(actual),expected);
 }
 const checks=[];async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}

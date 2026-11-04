@@ -42,15 +42,15 @@ export function beginBrowserSeed(load){
 export async function runBeginRecoveryBrowser({isolatedDesktop=false}={}){
  if(!isolatedDesktop)assert.equal(process.env.CI,'true','Use authorized CI or explicit isolated-desktop mode');
  const {chromium}=await import('playwright'),secret=randomBytes(32).toString('hex');
- const report={status:'RUNNING',layer:isolatedDesktop?'ISOLATED_DESKTOP_BROWSER':'CI_SYNTHETIC_BROWSER',programCommit:process.env.PROCESS_PROGRAM_COMMIT,checks:[],realData:false,realCredentials:false,limitations:['Synthetic compiled loopback, not hosted latency.','Pending-lock and in-place unsent-input preservation are separate module/API tests; this case has pendingId=null and deliberately leaves the source page.']};
- let fixture,browser,context,stage='fixture';
+ const report={status:'RUNNING',layer:isolatedDesktop?'ISOLATED_DESKTOP_BROWSER':'CI_SYNTHETIC_BROWSER',programCommit:process.env.PROCESS_PROGRAM_COMMIT,checks:[],requestedModules:process.env.BEGIN_BROWSER_MODULES?.split(',')||specs.map(row=>row.module),realData:false,realCredentials:false,limitations:['Synthetic compiled loopback, not hosted latency.','Pending-lock and in-place unsent-input preservation are separate module/API tests; this case has pendingId=null and deliberately leaves the source page.']};
+ let fixture,browser,context,activePage,stage='fixture';
  try{
   fixture=await createRootEntryFixture({recordOracle:true,syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:secret}});
   const bucket=await fixture.mf.getR2Bucket('STATE_ARCHIVE'),load=require('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE:bucket}),records=load('lib/state-records.ts');
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
   report.buildEntrySha256=fixture.buildEntrySha256;report.recordOracleSha256=fixture.recordOracleSha256;report.browserVersion=browser.version();
-  for(const spec of specs){
-   stage=spec.module+':seed';const seed=beginBrowserSeed(load),raw=await records.encodeRecordValues(bucket,seed.values);
+  for(const reopen of ['spa','native'])for(const spec of specs.filter(row=>!process.env.BEGIN_BROWSER_MODULES||process.env.BEGIN_BROWSER_MODULES.split(',').includes(row.module))){
+   stage=spec.module+':'+reopen+':seed';const seed=beginBrowserSeed(load),raw=await records.encodeRecordValues(bucket,seed.values);
    await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw,'synthetic Begin').run();
    context=await browser.newContext({serviceWorkers:'block',viewport:{width:1365,height:900}});
    const origin=fixture.url.origin,endpoint='/api/'+spec.module+'/workflow';let operationId=null,blocked=true,posts=0,committed=false;const queries=[],errors=[],dialogs=[];
@@ -66,25 +66,27 @@ export async function runBeginRecoveryBrowser({isolatedDesktop=false}={}){
    });
    const payload=Buffer.from(JSON.stringify({version:2,id:seed.actor.id,sessionType:'platform',authEpoch:1,expires:Date.now()+600000,nonce:'begin-browser'})).toString('base64');
    await context.addCookies([{name:'process_demo',value:payload+'.'+createHmac('sha256',secret).update(payload).digest('hex'),url:origin,httpOnly:true,sameSite:'Lax'}]);
-   const page=await context.newPage();page.setDefaultTimeout(30000);page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>{dialogs.push(dialog.type());void dialog.dismiss();});
+   const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>{dialogs.push(dialog.type());void dialog.dismiss();});
    const target=origin+'/process/?system=process&view='+(spec.view||'data')+(spec.tab?'&dataTab='+spec.tab:'');
    stage=spec.module+':begin';await page.goto(target);await page.locator(spec.begin).click();
    await page.waitForFunction(()=>window.sharedDraftAccountState?.().unknown===true&&window.sharedDraftAccountState?.().queued===0);
    assert(committed);assert.equal(posts,1);const afterCommit=await fixture.readRecordValues(),beforeControl=control(seed.values,spec),afterControl=control(afterCommit,spec);
    assert.deepEqual(afterControl.workflow.saved,beforeControl.workflow.saved);assert.deepEqual(afterControl.workflow.saves,beforeControl.workflow.saves);assert.deepEqual(afterControl.workflow.cases,beforeControl.workflow.cases);assert.equal(afterControl.workflow.pendingId,beforeControl.workflow.pendingId);
    const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:'))));assert(Object.keys(markers).length,'Original Begin identity must survive in session storage');
-   stage=spec.module+':leave';await page.locator('.nav-item[data-view="dashboard"]').click();await page.waitForFunction(()=>window.ProcessSync?.destination?.view==='dashboard'&&document.documentElement.dataset.processNavigationStatus==='ready');
+   stage=spec.module+':leave';const destination=spec.module==='process-authoring'?'dashboard':'quality-dashboard';await page.locator('.nav-item[data-view="'+destination+'"]').click();await page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',destination);
    assert.equal(posts,1);assert.deepEqual(await fixture.readRecordValues(),afterCommit);
-   stage=spec.module+':reopen';await page.goto(target);await page.locator(spec.query).waitFor();
+   stage=spec.module+':'+reopen+':reopen';if(reopen==='native')await page.goto(target);else{await page.locator('.nav-item[data-view="'+(spec.view||'data')+'"]').click();
+   if(spec.tab){await page.locator('[data-quality-tab="'+spec.tab+'"]').click();}}
+   await page.locator(spec.query).waitFor();
    assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-begin-v1:')))),markers);assert.equal(posts,1);
    blocked=false;const queried=page.waitForResponse(response=>{const url=new URL(response.url());return url.pathname===endpoint&&url.searchParams.get('operationId')===operationId&&response.status()===200;});
-   await page.locator(spec.query).click();await queried;await page.waitForFunction(()=>window.sharedDraftAccountState?.().unknown===false&&window.sharedDraftAccountState?.().queued===0);
+   await Promise.all([page.locator(spec.query).click(),queried]);await page.waitForFunction(()=>window.sharedDraftAccountState?.().unknown===false&&window.sharedDraftAccountState?.().queued===0);
    const afterRecovery=await fixture.readRecordValues();assert.deepEqual(afterRecovery,afterCommit);assert.equal(posts,1);assert(queries.length>0);assert.deepEqual(errors,[]);assert.deepEqual(dialogs,[]);
-   report.checks.push({module:spec.module,status:'PASS',beginPosts:posts,receiptReads:queries.length,originalOperationId:operationId,beforeRecoverySha256:hash(afterCommit),afterRecoverySha256:hash(afterRecovery),retainedSaved:true,retainedHistory:true,pendingId:afterControl.workflow.pendingId,dialogs:0});
-   await context.close();context=null;
+   report.checks.push({module:spec.module,reopen,status:'PASS',beginPosts:posts,receiptReads:queries.length,originalOperationId:operationId,beforeRecoverySha256:hash(afterCommit),afterRecoverySha256:hash(afterRecovery),retainedSaved:true,retainedHistory:true,pendingId:afterControl.workflow.pendingId,dialogs:0});
+   await context.close();context=null;fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/begin-recovery-browser-result.json',JSON.stringify(report,null,2));
   }
   report.status='PASS_BEGIN_RECOVERY_BROWSER';return report;
- }catch(error){report.status='FAIL_BEGIN_RECOVERY_BROWSER';report.stage=stage;report.error=error.message;throw error;}
+ }catch(error){report.status='FAIL_BEGIN_RECOVERY_BROWSER';report.stage=stage;report.error=error.message;report.dom=await activePage?.evaluate(()=>({account:window.sharedDraftAccountState?.(),markers:Object.keys(sessionStorage).filter(key=>key.startsWith('shared-draft-begin-v1:')),status:document.querySelector('#view-root')?.innerText.slice(-2200),view:window.ProcessSync?.destination,buttons:[...document.querySelectorAll('button')].filter(n=>n.getClientRects().length).map(n=>({text:n.textContent,id:n.id,view:n.dataset.view})).slice(0,45)})).catch(()=>null);throw error;}
  finally{await context?.close();await browser?.close();await fixture?.close();fs.mkdirSync('.sites-runtime',{recursive:true});fs.writeFileSync('.sites-runtime/begin-recovery-browser-result.json',JSON.stringify(report,null,2));}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await runBeginRecoveryBrowser({isolatedDesktop:process.argv.includes('--isolated-desktop')});
