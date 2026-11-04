@@ -6,7 +6,7 @@
  const moduleNames=['FQCMasterUI','IQCMasterUI','IPQCABUI','IPQCCUI','ToolingUI','RoutineEquipmentUI','RoutineFQCUI','BOMWorkspace','ProcessAuthoringV3','ProcessUserAccess','ProcessFeedbackEntry'];
  const modules=()=>moduleNames.map(name=>window[name]).filter(Boolean);
  const draftsPending=(candidate)=>{
-  const shared=sync.pendingState?.()||{},drafts=window.sharedDraftAccountState?.()||{};
+  const shared=sync.pendingState?.()||{},drafts=window.sharedDraftNavigationState?.()||window.sharedDraftAccountState?.()||{};
   return shared.dirty||shared.inFlight||shared.paused||shared.blocked||drafts.queued||(candidate?candidate.otherDraftsPending():window.sharedDraftDepartureBlocked?.()??(drafts.unknown||drafts.failed))||sync.projectionWriteError;
  };
  const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-overlay,.routine-modal-backdrop,.routine-dialog-backdrop';

@@ -212,9 +212,12 @@
     const expand=child=>{if(child&&typeof child==='object'&&!Array.isArray(child)&&Object.hasOwn(child,'__commandMedia')){const index=child.__commandMedia;if(Object.keys(child).length!==1||!Number.isInteger(index)||typeof value.media[index]!=='string')throw Error('INVALID_RECOVERY_RECORD');return value.media[index];}if(Array.isArray(child))return child.map(expand);if(child&&typeof child==='object')return Object.fromEntries(Object.entries(child).map(([key,item])=>[key,expand(item)]));return child;};return expand(value.command);
   }
   window.sharedDraftAccountState=()=>{const own=[...clients].filter(c=>!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id);return{queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
-  window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&(c.unknown()||c.failed())&&!c.departureCovered?.());
+  // Navigation and mutation admission are separate. C's durable operation stays
+  // unknown/queued in account state; browsing never clears it or enables replay.
+  window.sharedDraftNavigationState=()=>{const own=[...clients].filter(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.());return {queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
+  window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.()&&(c.unknown()||c.failed())&&!c.departureCovered?.());
   // oxlint-disable-next-line typescript/no-deprecated -- Required compatibility signal for Chromium's unsynchronized-work exit warning.
-  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=window.sharedDraftAccountState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
+  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=window.sharedDraftNavigationState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
   const scrollLocks=new Set();let previousOverflow='';
   function lockScroll(overlay){if(!scrollLocks.size){previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}scrollLocks.add(overlay);}
   function unlockScroll(overlay){scrollLocks.delete(overlay);if(!scrollLocks.size)document.body.style.overflow=previousOverflow;}
@@ -366,7 +369,7 @@
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
     const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
-    const accountClient={actorId,queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered()};clients.add(accountClient);
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
@@ -848,7 +851,7 @@
         assertOwner();if(!departureEligible()||access?.view!==true)return null;const marker=departureMarker();if(marker===null)return null;
         const record=departureRecord(),anchor=Object.freeze({operationId:record.operationId,generation:record.generation});departureAnchors.set(anchor,{record,marker});return anchor;
       },
-      otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
+      otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&!c.browseWithoutSettlement?.()&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
       coverDeparture(anchor,check){
         assertOwner();const pin=departureAnchors.get(anchor);if(!departureEligible()||!pin||pin.record!==departureRecord()||pin.marker!==departureMarker()||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
         const coverage={...pin,check};departureCoverage=coverage;

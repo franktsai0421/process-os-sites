@@ -13,7 +13,7 @@ function fixture(kind){
  let answer=()=> 'confirmed',form=false;const user={id:'actor-one'},delivery={};
  const g={console,Error,JSON,CustomEvent:class{constructor(type){this.type=type;}},clone,copy:clone,
   ui:{busy:false,versionId:'draft-one'},busy:false,control:rootControl,revision:11,readDenied:null,accessBlocked:null,modal:null,working:clone(snapshot),reason:'why',message:'',host:{isConnected:true,dataset:{activeTab:'quality-ipqc-ab'}},reviewHost:null,privateQuarantine:null,
-  mountSequence:1,loadSequence:0,mutationSequence:0,versionReadSequence:0,activeDeferredId:'',modalBase:null,modalGeneration:null,versionId:'draft-one',selectedVersionId:'draft-one',issues:[],readAckContext:null,
+  errorRecoveryPending:null,localChanges:[],mountSequence:1,loadSequence:0,mutationSequence:0,versionReadSequence:0,activeDeferredId:'',modalBase:null,modalGeneration:null,versionId:'draft-one',selectedVersionId:'draft-one',issues:[],readAckContext:null,
   user,epoch:1,deliveryCurrent:true,render(){calls.push({action:'render'});},draw(){calls.push({action:'draw'});},drawReview(){},reviewDraw(){},toast(){},selectDefaults(){},syncSelection(){},validateIqcPayload(){},
   identity:()=>g.user,actor:()=>g.user,key:()=> 'A',scope:()=>g.control.scopes.A,opened:()=>moduleControl.versions[0],open:()=>moduleControl.versions[0],active:()=>null,version:()=>moduleControl.versions[0],selected:()=>moduleControl.versions[0],
   mayEdit:()=>true,operationAllowed:()=>true,readAccessBlocked:()=>false,saveInputNoticePending:()=>false,isReadSuperseded:()=>false,captureSaveProjection:()=>null,workflowErrors:{},
@@ -44,3 +44,9 @@ for(const kind of Object.keys(files)){
  void test(kind+': cancel keeps the saved version and sends nothing',async()=>{const f=fixture(kind);f.setAnswer(()=>null);await f.run();assert.equal(f.sends().length,0);assert.equal(f.flow.saved.id,'saved-one');});
  void test(kind+': helper refusal is surfaced before showing confirmation',async()=>{const f=fixture(kind);f.g.window.captureSharedDraftSubmission=()=>{throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');};await f.run();assert.equal(f.sends().length,0);assert(!f.calls.some(c=>c.action==='confirm'));assert.match(f.g.message,/UNSAVED_CHANGES_SAVE_REQUIRED/);});
 }
+
+void test('c: completed local edits require explicit Save before submission confirmation',async()=>{
+ const f=fixture('c');f.g.localChanges=[{action:'update-item',id:'local'}];
+ await f.run();assert.equal(f.sends().length,0);assert(!f.calls.some(c=>c.action==='confirm'||c.action==='capture'));
+ assert.equal(f.g.message,'UNSAVED_CHANGES_SAVE_REQUIRED');assert.equal(f.g.localChanges.length,1);
+});
