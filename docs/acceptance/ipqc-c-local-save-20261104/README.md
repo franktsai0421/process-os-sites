@@ -35,3 +35,9 @@ All tests use synthetic identities and isolated SQLite/R2 or local Chromium. No 
 No FQC/IQC/canvas/shared transport implementation or shared shell file was edited. Parent integration must update the `ipqc-c.js` cache version in `public/process/index.html` and reconcile the shared specification, QUALITY, DATA_MODEL, CHANGELOG and HANDOFF links to this note. This avoids competing writes with concurrent modules. No unconfirmed pagination UI was added.
 
 Build requires `PROCESS_PROGRAM_COMMIT` naming the fixed candidate; the initial unpinned invocation correctly refused before build. Pinned-candidate build passed (safe build/auth-client checks); exact-head CI, cross-module integration, live latency and authorized test-Site acceptance remain separate gates. Draft PR is not release approval.
+
+## CI follow-up: completion boundary
+
+PR #75 run `41821384280` passed the atomic API test but failed the browser assertion at line 42: departure was `busy`, not `clean`. The test had treated `localChanges.length === 0` as operation completion. Receipt recovery clears that queue before the final data/permission read finishes, so this was a premature assertion against a valid departure guard.
+
+The browser fixture now waits for both an empty local queue and `busy === false`. It also deliberately holds the recovery data GET, verifies exactly one original-receipt lookup and the retained `busy` departure guard after queue clearance, then releases the GET and verifies completion. The one-POST assertion and all original UI/data assertions remain. This follow-up changes only tests and this evidence note; no product guard, timeout, permission or CI requirement is relaxed. Local Chromium 1440/390 and lint passed; updated-head CI is tracked separately.
