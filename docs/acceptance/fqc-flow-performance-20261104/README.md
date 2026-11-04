@@ -199,11 +199,11 @@ sources; the native artifact also pins the DOM timing helper.
 | Check | Final five-window result |
 | --- | --- |
 | Core actual-route safety | 155 PASS: 30 read-ahead, 80 required-dependency and 45 Apply reliability tests. Includes five-stream occupancy through nested bodies, 11-object window rollover, repeated-key boundaries, all four late cleanup paths, corruption, authority phases, revocation, CAS and receipt contracts. |
-| Independent review | 30 read-ahead and 71 historical inverse contracts independently PASS. Reviewer checked original baseline pins/spans unchanged, runtime hashes and both measured artifacts. No remaining code blockers. These tests overlap mainline checks, not additional scenarios. |
+| Independent review | 30 read-ahead and 71 historical inverse contracts independently PASS. Reviewer checked original baseline pins/spans unchanged, runtime hashes and both measured artifacts. Final overall review of product commit `a5a9e99` and current evidence completed: no remaining blockers. These tests overlap mainline checks, not additional scenarios. |
 | Static and historical checks | Full typed lint, TypeScript, original identity-prefetch regression, 71 LF/CRLF/inverse contracts, Sites source boundaries and diff check PASS. Changed-source/data scan: no findings. |
 | Native behavior | 43 PASS on final source: Apply/forms 4, unknown/recovery 25, abandonment 14; Chromium at 390/1280 px and zh/vi. Includes lost ACK, no duplicate replay, 404/delayed commit, collaborator updates, Save/reopen and departure barriers. |
-| Exact-source build | Pending new five-window commit/build; the `4702567` receipt below is historical. |
-| GitHub CI | Draft PR #72 exists. First-round head `79b9f9a` passed FQC forms/reliability, typed lint, TypeScript, build and compiled abandonment steps; full run was still in progress. The new final head needs its own CI run. |
+| Exact-source build | Normal `npm run build` PASS, stamped `a5a9e99b95118888d735d58cd17795e08fccfae4`; known public-auth client check PASS. [Final safe build receipt](build-result-window5.json). This is not approval to distribute compiled server output. |
+| GitHub CI | Draft PR #72 exists. First-round head `79b9f9a` passed FQC forms/reliability, typed lint, TypeScript, build and compiled abandonment steps; full run was still in progress. A fresh exact-head run is required after the final evidence commit; PR status is the source of truth. |
 
 The first typed-lint attempt in this round found two test-only `.sort()` calls
 without explicit comparators. Both were fixed; the full normal lint then passed.
