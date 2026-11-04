@@ -35,7 +35,8 @@ for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`native fi
     const b=await open('other'),cell='[data-matrix-item="item"][data-matrix-product="SYN-P"]';
     async function edit(page,name){await page.locator('[data-edit-item="item"]').click();const form=page.locator('.fqc-modal-form');await form.locator('[name=name]').fill(name);await form.locator('[type=submit]').click();await form.waitFor({state:'detached'});}
     await edit(a,'Local contested field');await a.locator(cell).click();await edit(b,'Peer saved field');await b.locator(cell).click();
-    assert.equal(posts(f).length,1,'Only Begin writes while both editors stage locally');
+    assert.equal(posts(f).length,0,'Local form and matrix editing send no content command');
+    assert.equal(f.requests.filter(r=>r.method==='POST'&&JSON.parse(r.body).action==='begin').length,1,'Only Begin writes while both editors stage locally');
     await b.locator('#fqc-save').click();await b.waitForFunction(()=>!window.FQCMasterUI.navigation.hasLocalChanges()&&!window.sharedDraftAccountState().queued);
     const peer=(await f.state()).workflow;
     await a.locator('#fqc-save').click();await a.waitForFunction(()=>{const s=window.sharedDraftAccountState();return s.failed&&!s.unknown&&s.queued===0;});
