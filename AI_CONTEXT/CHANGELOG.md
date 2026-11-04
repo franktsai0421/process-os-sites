@@ -2,6 +2,10 @@
 
 Canonical create-item now reads fixed required records and preserves unrelated manifest pointers; commits the C allocation index atomically. Session revocation is checked after storage I/O. Its 45-second wait retains receipt-only unknown protection. Follow-up narrows the mandatory create terminal GET while retaining its authority/version fences; five-round 100/1000-item POST+GET timing includes the no-delay CPU limitation. No schema/data change or live-speed claim. [Verification](../docs/acceptance/ipqc-c-create-20261104.md).
 
+## 2026-11-04 — IQC unknown-result candidate
+
+Add bounded wait, original failure diagnostics, visible receipt-only query and duplicate-creation prevention. Add isolated delayed ACK, 404, ownership/permission, media/equipment, replay/CAS and browser regressions. No deployment or live operation changes. [Evidence](../docs/acceptance/iqc-unknown-20261104/README.md).
+
 ## 2026-11-03 — Scoped non-FQC unknown departure candidate
 
 Added a navigation-only lease for intact shared-transport unknown operations in master data, IPQC-AB, Tooling and routine equipment. Explicit abandonment clears only local inputs; original operation evidence, receipt-only recovery and mutation locks remain. Custom Begin recovery and other module-specific unknown flows are excluded. [Scope and evidence](../docs/acceptance/shared-unknown-departure-20261103.md).

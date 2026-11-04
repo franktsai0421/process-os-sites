@@ -124,7 +124,7 @@ for(const [name,endpoint,scope,expected] of [
  ['bounded FQC','/api/fqc/workflow?caseMetadata=1','FQC',45000],
  ['generic FQC','/api/fqc/workflow?caseMetadata=1',null,15000],
  ['similar path','/api/fqc/workflow-other',null,15000],
- ['bounded IQC','/api/iqc/workflow?caseMetadata=1','IQC',15000],
+ ['bounded IQC','/api/iqc/workflow?caseMetadata=1','IQC',45000],
  ['bounded PROCESS','/api/master/workflow?scope=PROCESS&caseMetadata=1','PROCESS',15000],
 ])void test(`mutation deadline stays exact: ${name} ${expected}ms, only one receipt GET`,async()=>{
  const f=await fixture(),a=f.realm();try{let posts=0,receipts=0;const flow={scope:scope==='IQC'?'iqc':scope==='PROCESS'?'master:PROCESS':'fqc',generation:'g',revision:0,saved:null,pendingId:null};a.intercept((url,o)=>{if(o.method==='POST'){posts++;return new Promise((_,reject)=>o.signal.addEventListener('abort',()=>reject(o.signal.reason),{once:true}));}if(url.includes('operationId=')){receipts++;return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});}return Response.json({revision:1,control:{workflow:flow},permissions:{view:true,edit:true}});});

@@ -21,7 +21,7 @@ function fixture(){
   vm.runInContext(shared,context);require('../scripts/entry-performance/fixture-ports.cjs')(context);
   const create=window.createSharedDraftClient;window.createSharedDraftClient=(...args)=>{const client=create(...args);if(!clients.includes(client))clients.push(client);return client;};
   const tail='})(window);';assert.equal(iqc.split(tail).length,2);
-  vm.runInContext(iqc.replace(tail,`render=()=>{if(!renderReadDenied())host.renders++;};host.probe={post,load,mayEdit,mayDraftAction,transport,init:(value,node)=>{control=value.control;revision=value.revision;root=node;},state:()=>({control,revision,readDenied}),replaceClient:()=>{sharedClient=null;sharedActor='';},setModel:(value)=>{control=value.control;revision=value.revision;},changeMount:()=>mountSequence++};${tail}`),context);
+  vm.runInContext(iqc.replace(tail,`render=()=>{if(!renderReadDenied())host.renders++;};host.probe={post,load,checkOperation,mayEdit,mayDraftAction,transport,init:(value,node)=>{control=value.control;revision=value.revision;root=node;},state:()=>({control,revision,readDenied}),replaceClient:()=>{sharedClient=null;sharedActor='';},setModel:(value)=>{control=value.control;revision=value.revision;},changeMount:()=>mountSequence++};${tail}`),context);
   window.probe.init(full(),page);
   return {window,api:window.probe,page,requests,clients,values,respond(i,body,status=200){assert.ok(requests[i],`request ${i} exists`);requests[i].resolve({status,ok:status<400,json:async()=>body});},flip(){sync.identity={id:'a'};epoch++;},markerCount:()=>[...values.keys()].filter(key=>key.startsWith('shared-draft-receipt-only-v1:')).length};
 }
@@ -100,4 +100,40 @@ for(const action of ['approve','withdraw','reject'])void test(`ordinary ${action
   await tick();const data=full(2,'g2',9);data.control.workflow.saved=action==='approve'?null:{id:'save',content:structuredClone(snapshot)};f.respond(f.requests.length-1,data);const result=await promise;
   assert.equal(result.message,undefined);assert.equal(result.revision,undefined);assert.equal(f.api.state().control,data.control);assert.equal(f.api.state().revision,9);assert.equal(f.api.state().readDenied,null);
   assert.equal(f.clients[0].verifiedReadback(result,command.operationId),data);assert.equal(f.markerCount(),0);assert.equal(f.clients[0].hasUnknown(),false);assert.equal(f.requests.length,action==='approve'?4:3);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});
+
+async function unknownItem(f){
+ const pending=f.api.post('createItem',{errorId:'e',nameVi:'Synthetic'}).catch(e=>e);await tick();const post=f.requests.at(-1),command=JSON.parse(post.options.body).command;post.reject(Error('ACK_LOST'));await tick();f.respond(f.requests.length-1,{error:'OPERATION_NOT_FOUND'},404);const error=await pending;assert.equal(error.message,'RESULT_UNKNOWN_CHECK_BEFORE_RETRY');return command;
+}
+void test('ordinary new item with existing unknown cannot auto-query then continue another creation',async()=>{
+ const f=await warm();await unknownItem(f);const before=f.requests.length;await assert.rejects(f.api.post('createItem',{errorId:'e',nameVi:'Second form'}),/PREVIOUS_OPERATION_UNKNOWN/);assert.equal(f.requests.length,before);assert.equal(f.markerCount(),1);
+});
+for(const change of ['owner','mount','permission'])void test(`explicit IQC query ${change} fences stale adoption and sends no write`,async()=>{
+ const f=await warm(),command=await unknownItem(f),before=f.api.state().control,query=f.api.checkOperation().catch(e=>e);await tick();
+ await assert.rejects(f.api.checkOperation(),/OPERATION_IN_PROGRESS/);
+ if(change==='owner')f.flip();if(change==='mount')f.api.changeMount();
+ f.respond(f.requests.length-1,{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}});await tick();
+ if(change!=='owner'){assert.doesNotMatch(f.requests.at(-1).url,/operationId=/);f.respond(f.requests.length-1,change==='permission'?{error:'FORBIDDEN'}:full(2),change==='permission'?403:200);}
+ const error=await query;assert.ok(error instanceof Error||typeof error?.message==='string');assert.equal(f.api.state().control,before);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+ if(change!=='mount')assert.equal(f.markerCount(),1);
+});
+
+for(const phase of ['receipt','terminal'])for(const status of [401,403])for(const nonJSON of [false,true])void test(`explicit IQC ${phase} denial quarantines old content (${status}/${nonJSON})`,async()=>{
+ const f=await warm(),command=await unknownItem(f);f.page.innerHTML='OLD BUSINESS CONTENT';const query=f.api.checkOperation().catch(e=>e);await tick();
+ if(phase==='terminal'){f.respond(f.requests.length-1,{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}});await tick();}
+ if(nonJSON)f.requests.at(-1).resolve({status,ok:false,json:async()=>{throw Error('BAD_JSON');}});else f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);
+ const error=await query;assert.equal(f.api.state().readDenied,error);assert.doesNotMatch(f.page.innerHTML,/OLD BUSINESS CONTENT/);assert.equal(f.markerCount(),1);assert.equal(f.clients[0].permission('view'),false);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});
+for(const change of ['owner','mount','newLoad','newDenial'])void test(`old explicit query denial cannot replace ${change}`,async()=>{
+ const f=await warm();await unknownItem(f);const query=f.api.checkOperation().catch(e=>e);await tick();const receiptIndex=f.requests.length-1;
+ let expected=null;
+ if(change==='owner')f.flip();else if(change==='mount')f.api.changeMount();else{const load=f.api.load().catch(e=>e);await tick();if(change==='newDenial'){f.respond(f.requests.length-1,{error:'NEW_DENIAL'},403);expected=await load;}else{f.respond(f.requests.length-1,full(3));await load;}}
+ f.respond(receiptIndex,{error:'OLD_DENIAL'},403);await query;assert.equal(f.api.state().readDenied,expected);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});
+
+for(const status of [401,403])void test(`initial automatic receipt ${status}, reload and repeated receipt denial stay quarantined`,async()=>{
+ const f=await warm();f.page.innerHTML='OLD BUSINESS CONTENT';const pending=f.api.post('createItem',{errorId:'e',nameVi:'Synthetic'}).catch(e=>e);await tick();f.requests.at(-1).reject(Error('ACK_LOST'));await tick();f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);const error=await pending;
+ assert.equal(f.api.state().readDenied,error);assert.doesNotMatch(f.page.innerHTML,/OLD BUSINESS CONTENT/);const before=f.clients[0].readDenialVersion('receipt');assert.equal(typeof before,'number');
+ const reload=f.api.load();await tick();f.respond(f.requests.length-1,full());await reload;assert.equal(f.api.state().readDenied,null);assert.equal(f.clients[0].permission('view'),true);f.page.innerHTML='NEW BUSINESS CONTENT';
+ const query=f.api.checkOperation().catch(e=>e);await tick();f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);const repeated=await query;assert.equal(f.api.state().readDenied,repeated);assert.doesNotMatch(f.page.innerHTML,/NEW BUSINESS CONTENT/);assert(f.clients[0].readDenialVersion('receipt')>before);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });

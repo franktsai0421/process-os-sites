@@ -7,6 +7,34 @@ Follow-up implementation: `228023606f9daa792473d49972b50ae19d7f2519`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
+## Integration of main PR #71
+
+Merge main `6247c00220bf366e41c92c5b684d9f9744076cad` after IQC #71. Preserve
+both histories and both modules' documentation. Resolve the shared client cache
+tag to `20261104-iqc-ipqcc1` in the shell and its exact tests; IQC's own asset tag
+stays `20261104-iqc-unknown1`. The merged shared client retains IQC's bounded wait,
+owned-denial sequencing and original/recovery diagnostics, plus C's create-only
+wait and selected fresh terminal GET. IQC server/UI changes are byte-identical
+to main, while the C server/readback implementation remains byte-identical to
+the premerge candidate. No FQC implementation change is introduced.
+
+Independent merge review found no blocker; independently rerun source-EOL 55,
+identity-prefetch 42, source inverse negatives 16+29, and asset/bootstrap/navigation
+48 checks passed. Local combined transport/cache/C actual-stack group passes
+181 tests; IQC/FQC handler and URL-observer group passes 61 tests. The two IQC
+browser cases initially could not start because the Playwright-managed binary
+was absent; its download endpoint returned policy 403. Use the already-installed
+system Chromium through the test's supported executable setting, with no network
+policy change: both real-form cases pass (390px Chinese and 1280px Vietnamese).
+The C create suite also passes all 24 groups; typed lint, TypeScript and the
+changed-file safety scan pass. Fresh merged-head build/CI results are reported
+in the PR.
+
+The `latency.json` samples and hashes remain **premerge measurements**, reused
+with their original limits, not remeasured integration-head timings. Earlier CI
+runs likewise do not satisfy the merged-head green-CI requirement. No deployment
+or live unknown-operation retry/unlock is authorized by this integration.
+
 ## CI identity-prefetch source-boundary follow-up
 
 Run `41768635319` on `a24dd9c` reached the integrated-entry step and failed

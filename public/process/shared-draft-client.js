@@ -58,6 +58,7 @@
       canPoll(kind='state'){if(window.ProcessSync&&(window.ProcessSync.requiresReload||!window.ProcessSync.identity?.id))return false;const record=blocks.get(kind);if(!record)return true;if(!current(record.owner)){remove(kind);return true;}draw(kind,record);return false;},
       denied(kind,status,owner,retry){if(![401,403].includes(status)||!current(owner)||owner.sequence<(outcomes.get(kind)||0))return;outcomes.set(kind,owner.sequence);const old=blocks.get(kind);if(old&&current(old.owner)){old.owner=owner;old.retry=retry;draw(kind,old);return;}remove(kind);const record={status,owner,retry,node:null,retrying:false};blocks.set(kind,record);draw(kind,record);},
       success(kind,owner){if(current(owner)&&owner.sequence>=(outcomes.get(kind)||0)){outcomes.set(kind,owner.sequence);remove(kind);}},
+      denialVersion:kind=>{const record=blocks.get(kind);return record&&current(record.owner)?record.owner.sequence:null;},
       state:kind=>blocks.has(kind)?{status:blocks.get(kind).status}:null
     };
   };
@@ -308,10 +309,11 @@
   });
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
-    // exact bounded FQC route shares authoring's 45s budget, not an unbounded
+    // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
     const fqcMutation=externalDurableBounded?.scope==='FQC'&&/^\/api\/fqc\/workflow(?:\?|$)/.test(endpoint);
-    const mutationDeadline=fqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
+    const iqcMutation=externalDurableBounded?.scope==='IQC'&&/^\/api\/iqc\/workflow(?:\?|$)/.test(endpoint);
+    const mutationDeadline=fqcMutation||iqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     // Canvas alone may delegate durable intent to its claimed recovery store.
     // The synchronous proof is rechecked immediately before fetch, after queueing.
     // Never import, rewrite or erase the generic session command in this mode.
@@ -775,10 +777,10 @@
           return recovered;
         }
         catch (recoveryCause) {
-          // FQC diagnostics stay in this runtime's error only: preserve the
+          // FQC/IQC diagnostics stay in this runtime's error only: preserve the
           // original transport/validation cause and the failed lookup separately.
           // Neither cause changes settlement, marker bytes or retry admission.
-          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&boundedScope==='fqc'?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&boundedScope==='fqc'?{recoveryCause}:{})});
+          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc'].includes(boundedScope)?{recoveryCause}:{})});
         }
       }
     }
@@ -804,7 +806,7 @@
       });
     }
     const client={
-      canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),
+      canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),readDenialVersion:kind=>readPause.denialVersion(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
       permission: key=>access?.[key],
       gatePermissions:()=>{assertOwner();gateControls();},
