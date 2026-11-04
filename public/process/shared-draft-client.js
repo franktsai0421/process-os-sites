@@ -308,10 +308,11 @@
   });
   window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
-    // exact bounded FQC route shares authoring's 45s budget, not an unbounded
+    // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
     const fqcMutation=externalDurableBounded?.scope==='FQC'&&/^\/api\/fqc\/workflow(?:\?|$)/.test(endpoint);
-    const mutationDeadline=fqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
+    const iqcMutation=externalDurableBounded?.scope==='IQC'&&/^\/api\/iqc\/workflow(?:\?|$)/.test(endpoint);
+    const mutationDeadline=fqcMutation||iqcMutation||/^\/api\/process-authoring\/workflow(?:\?|$)/.test(endpoint)?45000:15000;
     // Canvas alone may delegate durable intent to its claimed recovery store.
     // The synchronous proof is rechecked immediately before fetch, after queueing.
     // Never import, rewrite or erase the generic session command in this mode.
@@ -769,10 +770,10 @@
           return recovered;
         }
         catch (recoveryCause) {
-          // FQC diagnostics stay in this runtime's error only: preserve the
+          // FQC/IQC diagnostics stay in this runtime's error only: preserve the
           // original transport/validation cause and the failed lookup separately.
           // Neither cause changes settlement, marker bytes or retry admission.
-          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&boundedScope==='fqc'?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&boundedScope==='fqc'?{recoveryCause}:{})});
+          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc'].includes(boundedScope)?{recoveryCause}:{})});
         }
       }
     }

@@ -1,3 +1,7 @@
+## 2026-11-04 — Independent IQC unknown-result candidate
+
+Based on main `35949445`, branch `fix/iqc-unknown-operation-20261104`. Preserve the live unknown operation; no retry, lock clearing or deployment. Longer client waiting is not a speed improvement. Draft PR, exact-head CI and final independent review are reported separately. [Scope, tests and limitations](docs/acceptance/iqc-unknown-20261104/README.md).
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 A separate draft branch extends simple input abandonment across ordinary draft adapters and process authoring. #66 now integrates IQC #70/main `f1a16f9` after #65/#67, preserving all three prerequisites. Prior-head CI failed one FQC fixture setup deadline before abandonment; independent FQC browser files now run sequentially with all assertions, deadlines and internal races intact. Fresh exact-head CI and independent review remain required. #68 waits for #66; do not merge #66 or publish the test site before the coordinated completion instruction. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).
