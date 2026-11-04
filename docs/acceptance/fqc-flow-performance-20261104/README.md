@@ -32,7 +32,16 @@ Integrated local checks: 320 core tests, 45 native Chromium tests (43 FQC and
 TypeScript, 71 inverse/EOL contracts, identity baseline, 14 Sites delivery source
 contracts and Sites source boundaries PASS. The native checks cover 390/1280 px
 and zh/vi. Independent static review confirmed both implementations are retained;
-no product blocker was found. Build and fresh complete PR CI remain required.
+no product blocker was found. Final evidence review independently recomputed
+all 220 measured samples, source hashes, paired counters and all 15 current table
+rows, and passed read-ahead 48/48 plus IQC handler/reliability 7/7. These overlap
+the main checks, not additional acceptance scenarios.
+
+Normal build stamped integrated product commit
+`32a5f879c274b062e697bb0ec803401c8714b5be` PASS, including the known public-auth
+client check: [safe receipt](build-result-main6247-integration.json). This is not
+approval to distribute compiled server output. A fresh complete PR CI result is
+tracked on #72; historical CI does not validate this integration.
 Prior results below retain their pinned source/commit context.
 The earlier branch-protection read was denied (`Forbidden`); it has not been
 retried through another path. This integration does not authorize PR merge or
