@@ -1,3 +1,7 @@
+## 2026-11-04 — Draft PR77 independent-review follow-up
+
+Fixed the reviewed IQC unsaved Submit, canvas reused-saved-ID acknowledgement and IPQC C create/delete batch-order issues in the same isolated integration branch. Preserve explicit Save, exact receipt recovery and genuine peer-conflict guards. [Latest evidence and remaining gates](docs/acceptance/draft-save-integration-20261104.md). No main merge, publication or business-data changes.
+
 ## 2026-11-04 — 隔離草稿整合候選（未合併／未發布）
 
 FQC #74、IPQC C #75、IQC #76 在獨立 integration 分支語意整合；畫布004b2ff已交接並納入，追加檢查式無提示離頁與跨模組驗證。共用離頁／收據與快取保留各模組範圍，修復舊草稿首次保存相容性。[來源、測試與剩餘門檻](docs/acceptance/draft-save-integration-20261104.md)。

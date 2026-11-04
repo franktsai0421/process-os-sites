@@ -1,6 +1,6 @@
 ## 2026-11-04 combined candidate
 
-FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).
+FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. IPQC C maps server-assigned codes of earlier same-batch created rows before dependency comparison and preserves explicitly supplied optional creation reasons; existing/user-field guards remain exact. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).
 
 ## 2026-11-04 FQC single-save candidate
 
@@ -8,7 +8,7 @@ FQC forms now stage in page memory; one save-local-v1 sends field guards and mat
 
 ## 2026-11-04 IQC candidate
 
-IQC local forms now accumulate in document memory; `save-local-v1` performs guarded changes and server numbering before a single persisted saved result. Photos remain staged uploads. IQC edit also permits Save; submit stays independent. [Boundaries and verification](../../docs/acceptance/iqc-local-atomic-save-20261104.md).
+IQC local forms now accumulate in document memory; `save-local-v1` performs guarded changes and server numbering before a single persisted saved result. Photos remain staged uploads. IQC edit also permits Save; submit stays independent. Submit must reject unsaved local snapshots before any confirmation/write and recheck after asynchronous confirmation, retaining the local edits until explicit Save. [Boundaries and verification](../../docs/acceptance/iqc-local-atomic-save-20261104.md).
 
 ## 2026-11-04 IPQC-C create-item candidate
 

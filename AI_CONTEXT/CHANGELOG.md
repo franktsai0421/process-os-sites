@@ -1,3 +1,7 @@
+## 2026-11-04 — Draft integration review fixes
+
+Reject IQC Submit with unsaved local input before confirmation and again before dispatch; preserve explicit Save and independent permission. Correct canvas acknowledgement of a legitimate reused saved ID while retaining original receipt/readback checks. Normalize server-assigned codes for earlier same-batch IPQC C rows and retain explicitly supplied optional creation reason; preserve exact peer dependency guards across both create/delete orders. [Evidence](../docs/acceptance/draft-save-integration-20261104.md).
+
 ## 2026-11-04 — Canvas follow-up integration
 
 Compose process canvas atomic Save004b2ff into the isolated three-module candidate; coordinate stage/line/top-level checked abandonment and versioned assets without clearing unknown durable evidence. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md). No data conversion or deployment.

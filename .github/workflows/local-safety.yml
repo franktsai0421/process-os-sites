@@ -96,6 +96,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/iqc-unknown-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-iqc-local-atomic-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exact source baseline for paired performance contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
