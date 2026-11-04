@@ -1,3 +1,11 @@
+## 2026-11-04 — Combined IQC and FQC integration
+
+The #72 integration includes merged #71/main `6247c00`: IQC receipt-only unknown recovery and scoped server timing coexist with FQC bounded aggregate reads. The shared client keeps bounded IQC/FQC deadlines at 45 seconds and other existing deadline scopes unchanged. Both test suites remain required; prior separate candidate results do not establish combined acceptance. [Integrated evidence](../../docs/acceptance/fqc-flow-performance-20261104/README.md).
+
+## 2026-11-04 — FQC aggregate read overlap
+
+FQC full/receipt/history GET and ordinary Apply/Save overlap fixed windows of at most five selected aggregate GETs per decoder phase. Aggregate text/JSON and nested body hydration stay ordered; independent snapshots and auth/business phases have separate readers. POST read overlap requires a command-only envelope and recognized ordinary or matrix syntax; mixed Begin and unknown fields retain serial fallback. Matrix Apply keeps its existing full dependency closure; only its waiting is overlapped. No wire, permission, CAS, schema or data changes. [Scope, fault behavior, paired measurements and acceptance limits](../../docs/acceptance/fqc-flow-performance-20261104/README.md). Earlier GET-unchanged statements describe their pinned historical candidates.
+
 ## 2026-11-04 — IQC uncertain operation recovery
 
 Bounded IQC writes use 45 seconds; unknown errors retain separate original and receipt failures. Visible page/dialog queries never re-POST, and a write blocked by an existing unknown cannot query then continue. Inputs remain; normal unsent abandonment is unchanged. IQC-only server phase timings add no persistence or permission changes. [Evidence and limits](../../docs/acceptance/iqc-unknown-20261104/README.md).

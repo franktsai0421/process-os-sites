@@ -55,6 +55,11 @@ for (const test of cases) {
       ['changed original prefix',raw.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
       ['relocated tail',tail+prefix],
       ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
+      ...proof.fqcAggregateReadAheadInverse.spans.flatMap((row,index)=>[
+        ['changed read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected drift\n')],
+        ['missing read-ahead inverse '+index,raw.replace(row.candidate,'')],
+        ['duplicate read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],
+      ]),
       ...proof.fqcAuthorityHydrationInverse.spans.flatMap((row,index)=>[
         ['changed authority inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected authority drift\n')],
         ['missing authority inverse '+index,raw.replace(row.candidate,'')],

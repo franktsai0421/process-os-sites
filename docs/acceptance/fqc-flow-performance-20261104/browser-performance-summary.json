@@ -1,0 +1,3134 @@
+{
+  "schema": "FQC_BROWSER_FLOW_PAIRED_V1",
+  "base": "6247c00220bf366e41c92c5b684d9f9744076cad",
+  "syntheticOnly": true,
+  "liveLatency": false,
+  "smoke": false,
+  "layer": "NATIVE_CHROMIUM_ACTUAL_TS_HANDLER_SYNTHETIC_STORAGE",
+  "boundary": "Real DOM click to usable UI plus two animation frames, through actual guarded routes, one POST and fresh GET. Text entry, boot/Begin and independent state oracle excluded. Playwright intercepted transport, no live HTTP/TLS or compiled workerd claim.",
+  "fixture": {
+    "items": 256,
+    "itemPadding": 512,
+    "authorityAuditBodies": 1,
+    "unrelatedAggregates": 6
+  },
+  "runtimeHashes": {
+    "lib/state-records.ts": "792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e",
+    "lib/versioned-shared-workflow.ts": "c4437b674a968ea843af5407ea4efad957e29ddd9da977c91d004c7163a7d4ef",
+    "lib/iqc-write-timing.ts": "9848e56c3e0a35643838d7224fbc9baa26900277c567ba93f34ffbc3cddffb0a",
+    "scripts/fqc-apply-fixture.cjs": "1b2d31b53dbaf2c926be561f70465cf7f85cd7fc9067bbe65e5449954145cb81",
+    "scripts/benchmark-fqc-browser-flow.mjs": "1e8169164527c63ec7ad952d57ff59450a0bac4c763fb9853271e1ed0cec1ca3",
+    "tests/draft-action-measurement.mjs": "92fe6b373326b5e071ff710c98288d4c52b324499c55513c1b22a35452f10d56",
+    "public/process/local-draft-recovery.js": "e67f02696520d419975079f81e5c21f18261d0ceaf5923e2bf429e1fa8beab0a",
+    "public/process/local-draft-recovery-session.js": "3a62e4882eeca241b740bb341bb418b52c7ddc132efa23f2f2fc5c243a4f379a",
+    "public/process/shared-draft-client.js": "d08ac3e37423b7ffb4de067710b469b72409899b9767c6e03307ab1fdbeb6517",
+    "public/process/version-draft-ui.js": "f2fee215d8f23f1bfc1ca8fd2249542a1e936a3fb696b4bc26912b510ea32266",
+    "public/process/fqc-master.js": "0e6d9ec4c04982fadf304a8dcad57e9bcb8e52151b8086c9c55cbea969474efd"
+  },
+  "profiles": [
+    {
+      "name": "no-added-wait",
+      "get": 0,
+      "sql": 0,
+      "put": 0
+    },
+    {
+      "name": "sensitivity-200ms-r2-not-live",
+      "get": 200,
+      "sql": 5,
+      "put": 5
+    }
+  ],
+  "rows": [
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 64.71178899999995,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.95359099999996,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 290.69999999925494,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 56.14056099999971,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.232590000000073,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 246.10000000149012,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 39.799609000000146,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.138588000000254,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 243,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 79.3441130000001,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.442135000000235,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 289.90000000037253,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 52.522281999999905,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.475378000000092,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 257.59999999962747,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 48.20571799999925,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.169378000000506,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 230,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 49.61907499999961,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.233033999999861,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 241.69999999925494,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 66.3032290000001,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.26382999999987,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 274.09999999962747,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 45.56036099999983,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.301682000000255,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 249.59999999962747,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 43.82797399999981,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 8.285948999999164,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 270.2000000011176,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 28.831669000001057,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 8.975634999998874,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 261.40000000037253,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 65.05233500000031,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.177599000000555,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 270.59999999962747,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 62.06834799999888,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.928969000000507,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 279.80000000074506,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 45.43468199999916,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.599275999999008,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 265.5,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 37.884948000000804,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.469812999999704,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 227.90000000037253,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 64.11419399999977,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.333622000000105,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 278.40000000037253,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 84.42025399999875,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 23.269028000000617,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 325.1000000014901,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 46.30681600000025,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.93418500000007,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 265.5,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 37.65256699999918,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.593006000000969,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 266.09999999962747,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 67.64626300000054,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.846596999999747,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 270.7000000011176,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 50.78105599999981,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.699438000001464,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 277.90000000037253,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 46.91020799999751,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.463423000001058,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 234,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 41.8343160000004,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.276558000001387,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 261.2000000011176,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 65.2869099999989,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.64790499999799,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 261.5,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 45.94691600000078,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.2553599999992,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 251.30000000074506,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 43.16221300000325,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 8.597035999999207,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 246,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 33.7827380000017,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.115577999997186,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 243.60000000149012,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 68.4470309999997,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.478047000000515,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 289.80000000074506,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 51.58391400000255,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.901020999997854,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 250.69999999925494,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 49.989981999999145,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.756758999999875,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 235.5,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 29.843541999998706,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 8.866922000001068,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 232.7999999988824,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 64.3109489999988,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.665946000000986,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 255.2999999988824,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 54.94604499999696,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 19.884264000000258,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 272.59999999962747,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 44.1919799999996,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.724731999998767,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 244,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 32.782641999998305,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.84001200000057,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 234.5,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 65.5940840000003,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.198208000001614,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 287.80000000074506,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 56.690355000002455,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 10.546793999998044,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 261,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 44.958434000000125,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.782929999997577,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 234.5,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 32.28108099999736,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 9.820089000000735,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 266.69999999925494,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 68.07682600000044,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 11.891375000002881,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 277.90000000037253,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2509.059128000001,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2657.9273410000023,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5443.4000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2737.774476999999,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2651.811760999997,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5580.799999998882,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 5099.7576439999975,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2648.9671769999986,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 7957.799999998882,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2735.7389760000005,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2652.861893000001,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5587.39999999851,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1502.512686999995,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.2751869999993,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3151.5999999996275,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1732.604084000006,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1445.121137000002,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3366.4000000003725,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 3093.5741199999975,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.343470000007,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 4766.0999999996275,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1728.3755020000099,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1446.2332899999892,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3378.199999999255,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1504.7699789999897,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.3562579999998,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3145.9000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1713.616154999996,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1452.762659,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3385.7999999988824,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 3101.4610209999955,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.3639810000022,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 4788.199999999255,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1730.602561000007,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.1753110000136,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3394.7999999988824,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2503.8363970000064,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2649.3374259999982,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5392.4000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2723.539904999998,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2651.552410999997,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5601.4000000003725,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 5098.661829000004,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2652.674125999998,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 8024.699999999255,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 1,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2739.7522989999998,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2650.932237000001,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5637.5999999996275,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2503.5571190000046,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2654.4566389999964,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5388.9000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2731.092299000011,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2650.9871260000073,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5591.800000000745,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 5095.328561999981,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2649.488692999992,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 7991.5,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2733.4093719999946,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2655.6737299999804,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5561.9000000003725,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1511.458381000004,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.0925910000224,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3163.9000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1729.4584019999893,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1451.7729340000078,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3377.2000000011176,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 3097.146431000001,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1446.617327999993,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 4762.699999999255,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1718.8138119999785,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1446.901824999979,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3399.5999999996275,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1507.0703789999825,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1447.3849559999944,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3153.800000000745,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1709.7784649999812,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1447.242609000008,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3356.5,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 3087.7490560000006,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1450.4306069999875,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 4775.699999999255,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1739.5479099999939,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1443.3490079999901,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3437.699999999255,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2509.4541320000135,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2651.8380269999907,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5403.4000000003725,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2727.1878069999802,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2650.72183699999,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5553.300000000745,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 5100.06716799998,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2651.1576739999873,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 7959.4000000003725,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 3,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2734.776842000021,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2655.6701659999962,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5592.89999999851,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2504.4616000000096,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2650.0347140000085,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5367.300000000745,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2738.9776899999997,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2652.631892000005,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5593.4000000003725,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 5100.9716759999865,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2648.9714219999732,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 7981.9000000003725,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "main6247",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2735.9672119999886,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 2654.823927999998,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 5613.5999999996275,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1511.4333890000125,
+          "requestBytes": 374,
+          "responseBytes": 274,
+          "r2Get": 13,
+          "r2Put": 2,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.7419860000082,
+          "requestBytes": 0,
+          "responseBytes": 396980,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3196,
+      "sql": 14,
+      "r2Get": 28,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "new-error",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1727.0349290000158,
+          "requestBytes": 420,
+          "responseBytes": 274,
+          "r2Get": 14,
+          "r2Put": 3,
+          "sql": 9
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1449.826355999976,
+          "requestBytes": 0,
+          "responseBytes": 397249,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3367.39999999851,
+      "sql": 15,
+      "r2Get": 29,
+      "r2Put": 3
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 3097.5097160000005,
+          "requestBytes": 13508,
+          "responseBytes": 274,
+          "r2Get": 26,
+          "r2Put": 2,
+          "sql": 7
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1449.1761500000139,
+          "requestBytes": 0,
+          "responseBytes": 397447,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 4746,
+      "sql": 13,
+      "r2Get": 41,
+      "r2Put": 2
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "http": [
+        {
+          "method": "POST",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1735.8862640000007,
+          "requestBytes": 197,
+          "responseBytes": 397651,
+          "r2Get": 14,
+          "r2Put": 1,
+          "sql": 8
+        },
+        {
+          "method": "GET",
+          "path": "/api/fqc/workflow",
+          "conditional": false,
+          "status": 200,
+          "handlerMs": 1448.4618109999865,
+          "requestBytes": 0,
+          "responseBytes": 397653,
+          "r2Get": 15,
+          "r2Put": 0,
+          "sql": 6
+        }
+      ],
+      "ms": 3425.699999999255,
+      "sql": 14,
+      "r2Get": 29,
+      "r2Put": 1
+    }
+  ],
+  "summary": [
+    {
+      "profile": "no-added-wait",
+      "action": "existing-error",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 250.69999999925494,
+      "medianMs": 279.80000000074506,
+      "maxMs": 325.1000000014901,
+      "postMedianMs": 62.06834799999888,
+      "getMedianMs": 11.95359099999996,
+      "r2Get": 28,
+      "sql": 14
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-error",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 249.59999999962747,
+      "medianMs": 257.59999999962747,
+      "maxMs": 277.90000000037253,
+      "postMedianMs": 50.78105599999981,
+      "getMedianMs": 10.2553599999992,
+      "r2Get": 28,
+      "sql": 14
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "new-error",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 235.5,
+      "medianMs": 246.10000000149012,
+      "maxMs": 265.5,
+      "postMedianMs": 46.30681600000025,
+      "getMedianMs": 10.599275999999008,
+      "r2Get": 29,
+      "sql": 15
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "new-error",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 230,
+      "medianMs": 234.5,
+      "maxMs": 270.2000000011176,
+      "postMedianMs": 44.958434000000125,
+      "getMedianMs": 9.169378000000506,
+      "r2Get": 29,
+      "sql": 15
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "matrix-apply",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 227.90000000037253,
+      "medianMs": 234.5,
+      "maxMs": 266.09999999962747,
+      "postMedianMs": 37.65256699999918,
+      "getMedianMs": 9.593006000000969,
+      "r2Get": 41,
+      "sql": 13
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "matrix-apply",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 241.69999999925494,
+      "medianMs": 261.2000000011176,
+      "maxMs": 266.69999999925494,
+      "postMedianMs": 33.7827380000017,
+      "getMedianMs": 9.820089000000735,
+      "r2Get": 41,
+      "sql": 13
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 255.2999999988824,
+      "medianMs": 278.40000000037253,
+      "maxMs": 289.90000000037253,
+      "postMedianMs": 65.5940840000003,
+      "getMedianMs": 9.846596999999747,
+      "r2Get": 29,
+      "sql": 14
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 261.5,
+      "medianMs": 274.09999999962747,
+      "maxMs": 289.80000000074506,
+      "postMedianMs": 66.3032290000001,
+      "getMedianMs": 10.478047000000515,
+      "r2Get": 29,
+      "sql": 14
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "existing-error",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 5367.300000000745,
+      "medianMs": 5392.4000000003725,
+      "maxMs": 5443.4000000003725,
+      "postMedianMs": 2504.4616000000096,
+      "getMedianMs": 2651.8380269999907,
+      "r2Get": 28,
+      "sql": 14
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "existing-error",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 3145.9000000003725,
+      "medianMs": 3153.800000000745,
+      "maxMs": 3196,
+      "postMedianMs": 1507.0703789999825,
+      "getMedianMs": 1448.2751869999993,
+      "r2Get": 28,
+      "sql": 14
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "new-error",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 5553.300000000745,
+      "medianMs": 5591.800000000745,
+      "maxMs": 5601.4000000003725,
+      "postMedianMs": 2731.092299000011,
+      "getMedianMs": 2651.552410999997,
+      "r2Get": 29,
+      "sql": 15
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "new-error",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 3356.5,
+      "medianMs": 3367.39999999851,
+      "maxMs": 3385.7999999988824,
+      "postMedianMs": 1727.0349290000158,
+      "getMedianMs": 1449.826355999976,
+      "r2Get": 29,
+      "sql": 15
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "matrix-apply",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 7957.799999998882,
+      "medianMs": 7981.9000000003725,
+      "maxMs": 8024.699999999255,
+      "postMedianMs": 5099.7576439999975,
+      "getMedianMs": 2649.488692999992,
+      "r2Get": 41,
+      "sql": 13
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "matrix-apply",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 4746,
+      "medianMs": 4766.0999999996275,
+      "maxMs": 4788.199999999255,
+      "postMedianMs": 3097.146431000001,
+      "getMedianMs": 1448.3639810000022,
+      "r2Get": 41,
+      "sql": 13
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "save",
+      "variant": "main6247",
+      "n": 5,
+      "minMs": 5561.9000000003725,
+      "medianMs": 5592.89999999851,
+      "maxMs": 5637.5999999996275,
+      "postMedianMs": 2735.7389760000005,
+      "getMedianMs": 2654.823927999998,
+      "r2Get": 29,
+      "sql": 14
+    },
+    {
+      "profile": "sensitivity-200ms-r2-not-live",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "minMs": 3378.199999999255,
+      "medianMs": 3399.5999999996275,
+      "maxMs": 3437.699999999255,
+      "postMedianMs": 1730.602561000007,
+      "getMedianMs": 1446.901824999979,
+      "r2Get": 29,
+      "sql": 14
+    }
+  ]
+}

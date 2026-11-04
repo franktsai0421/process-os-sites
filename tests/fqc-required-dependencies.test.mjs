@@ -200,8 +200,13 @@ void test('FQC insert without allocation index still reads retained history and 
 
 void test('FQC selected snapshot revision change retries into current permission before another business read',async()=>{
  const context=await setup(),{f}=context;try{
-  const qualityKey=storedEnvelope(f).__processRecords.values.qualityMasterControl.key,business=businessRefSet(f);let changed=false,concurrentWrite=false,businessReads=0;
-  f.hooks.get=async key=>{if(!concurrentWrite&&business.has(key))businessReads++;if(changed||key!==qualityKey)return;changed=true;concurrentWrite=true;try{await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['fqc.edit']=false;values.platformUsers=JSON.stringify(users);});}finally{concurrentWrite=false;}};
+  const qualityKey=storedEnvelope(f).__processRecords.values.qualityMasterControl.key,business=businessRefSet(f);let changed=false,businessReads=0;
+  // Prepare the peer's immutable state outside the measured request. A global
+  // concurrentWrite flag misattributes overlapping FQC GETs to the peer reader.
+  const revoked={...(await f.core.readState()).values},users=JSON.parse(revoked.platformUsers);
+  users[0].accessOverrides['fqc.edit']=false;revoked.platformUsers=JSON.stringify(users);
+  const peerEncoded=await f.encode(revoked);
+  f.hooks.get=key=>{if(business.has(key))businessReads++;if(changed||key!==qualityKey)return;changed=true;f.db.prepare('UPDATE shared_state SET "values"=?,revision=revision+1 WHERE id=1').run(peerEncoded);};
   resetEvents(f);const response=await send(context);assert.equal(response.status,403);assert(changed);
   // The fixture's deliberate concurrent write is separate from attempted FQC CAS.
   assert.equal(f.events.filter(event=>event.kind==='sql'&&event.sql.startsWith('UPDATE shared_state')).length,0);assert.equal(businessReads,3,'retry must reject current permission before a second business read');
