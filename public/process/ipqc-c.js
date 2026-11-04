@@ -389,7 +389,7 @@
         (sharedClient?.hasUnknown() || error.message==='RESULT_UNKNOWN_CHECK_BEFORE_RETRY'))targetModal.creationIdentityUnknown=true;
       const terms=workflowErrors[error.message];message=terms?t(...terms):error.message;
     }return null;}
-    finally {busy=false;if(!readWasSuperseded&&!preserveInputs&&sameActor()){
+    finally {if(requestMount===mountSequence)busy=false;if(!readWasSuperseded&&!preserveInputs&&sameActor()){
       if(!cancelled || refreshCurrent){draw();reviewDraw();}
       if(!closeModal || !modal || modal===targetModal && editorState()===submittedState)restoreView();
     }}
@@ -1136,12 +1136,13 @@
   window.IPQCCUI={navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
     root:()=>host,flow:()=>control?.workflow,sharedDirty:()=>false,sharedOwned:()=>false,ownsRuntimeLocal:()=>true,
     context:()=>[mountSequence,selectedVersionId,control?.workflow?.generation,operationAllowed('save'),operationAllowed('edit')],
-    current:()=>!readAccessBlocked(),busy:()=>busy,unknown:()=>sharedClient?.hasUnknown()||modal?.creationIdentityUnknown,
-    failed:()=>readRecoveryNeeded||saveInputNoticePending()||conflict||sharedClient?.hasSyncFailures(),
+    // This describes permission to browse, never whether a write succeeded.
+    // Original transport markers and mutation admission survive navigation.
+    current:()=>true,busy:()=>false,unknown:()=>false,failed:()=>false,
     local:()=>false,
     canSave:()=>draftOpen()&&operationAllowed('save'),canDiscard:()=>editing(),save:()=>write('save',{snapshot:working}),
     dialogs:()=>[...document.querySelectorAll('.ipqcc-overlay')],
     discard(){closeEditor(true,false);viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;draw();},
-    closeClean(){closeEditor(true,false);clearLocal();viewer=null;working=open()?.status==='draft'?copy(open().snapshot):null;},
-  });},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>!busy&&!sharedClient?.hasUnknown()&&!saveInputNoticePending(),error:()=>navigationError,reset(){clearLocal();errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
+    closeClean(){modal=null;picker=null;clearLocal();viewer=null;working=null;},
+  });},requiresSave:()=>false,saveForDeparture:()=>write('save',{snapshot:working}),canLeave:()=>true,error:()=>navigationError,reset(){clearLocal();busy=false;modal=null;picker=null;viewer=null;errorRecovery?.session.flush();errorRecovery?.session.close();errorRecovery=null;errorRecoveryPending=null;mountSequence++;saveInputNotice=null;readRecoveryNeeded=false;pollTimer.cancel();host=null;reviewHost=null;control=null;revision=null;working=null;catalog={products:[],stages:[]};equipment=[];equipmentGroups=[];equipmentCategories=[];equipmentSubcategories=[];selectedVersionId='';caseHistory=null;navigationError=null;}},html:()=>`<section class="ipqcc-page">${t('Đang tải IPQC-C…','正在載入 IPQC-C…')}</section>`,mount,reviewHTML,bindReview,pendingCount};
 })();

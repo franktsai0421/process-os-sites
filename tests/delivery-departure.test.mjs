@@ -116,3 +116,19 @@ void test('native unload permits clean/read-only process viewing and does not ac
  const f=await fixture();f.setDirty(false);let prevented=0;const event={returnValue:'',preventDefault(){prevented++;}};f.events.beforeunload[0](event);assert.equal(prevented,0);assert.equal(event.returnValue,'');assert.equal(f.form.open,true);
  f.api.navigate('dashboard');f.finish(0);await turn();f.setStatus({state:'dirty'});f.events.beforeunload[0](event);assert.equal(prevented,0,'other modules retain their own unload guard');assert.equal(f.events.beforeunload.length,1);
 });
+
+void test('navigation-specific account state permits browsing while raw mutation state stays pending',async()=>{
+ const f=await fixture();f.setDirty(false);f.form.close();
+ f.window.sharedDraftAccountState=()=>({queued:1,unknown:true,failed:false});
+ f.window.sharedDraftNavigationState=()=>({queued:0,unknown:false,failed:false});
+ f.window.sharedDraftDepartureBlocked=()=>false;
+ f.api.navigate('dashboard');await turn();assert.equal(f.dialog(),null);assert.equal(f.reads.length,1);
+ f.finish(0);await turn();assert.equal(f.state.view,'dashboard');
+ assert.deepEqual(f.window.sharedDraftAccountState(),{queued:1,unknown:true,failed:false},'routing does not settle mutations');
+});
+void test('another navigation-blocking transport still prevents departure',async()=>{
+ const f=await fixture();f.setDirty(false);f.form.close();
+ f.window.sharedDraftAccountState=()=>({queued:2,unknown:true,failed:false});
+ f.window.sharedDraftNavigationState=()=>({queued:1,unknown:false,failed:false});
+ f.api.navigate('dashboard');await turn();assert.equal(f.reads.length,0);
+});

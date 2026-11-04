@@ -5,6 +5,8 @@ import vm from 'node:vm';
 const helperSource=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const helper=helperSource.slice(helperSource.indexOf('  function createDeparture(config){'),helperSource.indexOf('  host.VersionDraftUI='));
 const modules=['master-data','bom-workspace','fqc-master','iqc-master','ipqc-ab','ipqc-c','routine-equipment','tooling','routine-fqc'];
+// IPQC C uses silent local departure; the older explicit decision policy remains for other modules.
+const decisionModules=modules.filter(name=>name!=='ipqc-c');
 function sourceBlock(source,start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert(a>=0&&b>a,`${start} … ${end}`);return source.slice(a,b);}
 function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8'),start=source.indexOf('window.VersionDraftUI.createDeparture('),end=source.indexOf(name==='fqc-master'?'}));},':'});},',start);assert(start>=0&&end>start,name);
@@ -41,6 +43,10 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }
+ if(name==='ipqc-c'){
+  Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
+  vm.runInNewContext(sourceBlock(source,'  function clearLocal(){','\n'),box);
+ }
  if(name==='routine-equipment'){
   box.inputOwner=null;
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);
@@ -51,7 +57,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const adapter=vm.runInContext('window.VersionDraftUI.createDeparture('+config+')',box);
  return {adapter,box,flow:f,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
 }
-for(const name of modules){
+for(const name of decisionModules){
  void test(`${name}: actual adapter allows acknowledged shared Save but refuses whole-shared discard`,async()=>{
   const f=fixture(name),status=f.adapter.inspect();assert.equal(status.state,'dirty');assert.equal(status.canSave,true);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
   const lease=await f.adapter.save();assert.equal(f.writes,1);assert.equal(f.adapter.inspect().state,'clean');assert.equal(f.box.root.inert,true);lease.release();assert.equal(f.box.root.inert,false);
@@ -62,7 +68,7 @@ for(const name of modules){
   f.unknown(false);f.box.s.retry=null;f.allowed(false);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());assert.equal(f.writes,0);
  });
 }
-for(const name of modules)for(const revoked of [false,true])for(const action of ['discard','abandon'])void test(`${name}: actual local-only ${action} ${revoked?'after edit revocation':'with edit access'} never calls Save or rewrites shared content`,async()=>{
+for(const name of decisionModules)for(const revoked of [false,true])for(const action of ['discard','abandon'])void test(`${name}: actual local-only ${action} ${revoked?'after edit revocation':'with edit access'} never calls Save or rewrites shared content`,async()=>{
  const f=fixture(name),b=f.box;f.flow.contributors={field:{actor:{id:action==='abandon'?'user':'colleague'}}};if(revoked)f.allowed(false);const before=JSON.stringify(f.flow);
  const dialog={isConnected:true,inert:false,querySelector:q=>q.includes(':disabled')?null:{},close(){},remove(){this.isConnected=false;}};
  if(name==='master-data'){let dialogs=[dialog];b.departureDialogs=()=>dialogs;b.closeDepartureDialogs=()=>{dialogs=[];};}
@@ -133,17 +139,39 @@ for(const name of ['ipqc-ab','routine-equipment'])for(const reason of ['same-id 
  await assert.rejects(f.adapter.save());assert.equal(f.writes,1);assert.equal(b.root.inert,false,'a stale completion cannot retain a departure lease');
 });
 
-for(const name of modules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
+for(const name of decisionModules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
  const f=fixture(name),before=JSON.stringify(f.flow);assert.equal(f.adapter.inspect().canAbandon,true);
  const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
  f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,'dirty');
 });
 
-for(const name of modules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
+for(const name of decisionModules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
  const f=fixture(name),b=f.box,before=JSON.stringify(f.flow),lease=await f.adapter.abandon();
  if(fault==='identity')b.window.ProcessSync.identity={id:'other'};
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
  if(fault==='reload')b.window.ProcessSync.requiresReload=true;
  assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();assert.equal(b.root.inert,false);
+});
+
+for(const condition of ['local','busy','unknown','failed','revoked','pending'])void test(`IPQC C silent departure during ${condition} clears only RAM without settling or writing`,async()=>{
+ const f=fixture('ipqc-c'),b=f.box;
+ b.modal={dirty:true};b.working={value:'local'};
+ if(condition==='busy')b.busy=true;
+ if(condition==='unknown')f.unknown(true);
+ if(condition==='failed')f.failed(true);
+ if(condition==='revoked')f.allowed(false);
+ if(condition==='pending')f.flow.pendingId='pending';
+ const before=JSON.stringify(f.flow);
+ assert.equal(f.adapter.inspect().state,'clean');
+ await assert.rejects(f.adapter.save());
+ f.adapter.closeClean();
+ assert.equal(b.localChanges.length,0);assert.equal(b.localPhotos.size,0);assert.equal(b.localGeneration,null);
+ for(const key of ['modal','picker','viewer','working'])assert.equal(b[key],null);
+ assert.equal(b.client.hasUnknown(),condition==='unknown');assert.equal(b.client.hasSyncFailures(),condition==='failed');
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+});
+void test('IPQC C silent departure retains global identity reload protection',()=>{
+ const f=fixture('ipqc-c');f.box.window.ProcessSync.requiresReload=true;
+ assert.equal(f.adapter.inspect().state,'unknown');assert.throws(()=>f.adapter.closeClean());assert.equal(f.writes,0);
 });
