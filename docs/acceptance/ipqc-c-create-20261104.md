@@ -2,7 +2,8 @@
 
 2026-11-04, isolated Linux/Node 24.19.0 checkout. Base main:
 `35949445ad073812863c0004acbee13ed3535747`.
-Implementation commit: `779d8280d6705f909b631af0e62ba11adb6ba517`.
+Initial implementation commit: `779d8280d6705f909b631af0e62ba11adb6ba517`.
+Follow-up implementation: `228023606f9daa792473d49972b50ae19d7f2519`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
@@ -58,8 +59,11 @@ Follow-up verification: create suite 24 groups, actual primary C stack 42 tests
 (including selector dispatch and readback-denial unknown retention), 13 deadline
 cases, and the preserved 16+29 source-contract negative cases pass. The
 independent reviewer found no blocking source/safety finding and confirmed the
-benchmark's scope/limitations. Lint/build and committed-source checks are rerun
-for this follow-up; their final status is reported with the delivered commit.
+benchmark's scope/limitations. Follow-up type-aware lint/build passed (build stamp is the real ancestor
+`0b1c6ef`, not a false claim of a committed build input). Both historical
+committed-source checks passed on `2280236`; subsequent changes are documentation
+only. The independent reviewer also recomputed all 12 medians from 60 samples
+and verified every evidence source SHA against the tested files.
 
 ## Finding and scope
 
@@ -106,7 +110,7 @@ and actor/delivery protection remain in place.
 
 | Change/risk | Evidence | Result |
 | --- | --- | --- |
-| Fixed create reader/encoder, full-reader parity | `node scripts/test-ipqc-c-create-mutation.cjs` | PASS, 20 groups |
+| Fixed create reader/encoder, full-reader parity | `node scripts/test-ipqc-c-create-mutation.cjs` | PASS, 24 groups including follow-up |
 | Photo PUT/reference, equipment snapshot, CPK and rule persistence | Same actual handlers with normal synthetic login and approved fixtures | PASS |
 | Same-ID concurrent replay, changed-payload refusal, two writers, stale revision, four-CAS exhaustion | Same suite | PASS |
 | Required aggregate/live-body integrity, missing image/equipment, pending lock, PUT failure | Same suite | PASS, no D1 commit on rejection |
@@ -114,7 +118,7 @@ and actor/delivery protection remain in place.
 | History-only number, approved version/cases/saves, other module pointers | Same suite | PASS |
 | Generic partial writer, foreign/reused handle | Same suite | PASS |
 | 24-second response, headers/body 45-second limit, repeated 404/no resend, other deadlines | `node tests/hosted-read-deadline.test.mjs` | PASS, 13 cases |
-| Actual C local-recovery composition | `node --test tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs` | PASS, 40 tests |
+| Actual C local-recovery composition | `node --test tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs` | PASS, 42 tests including follow-up |
 | Actual C UI/client operation admission | `node --test tests/ipqc-c-operation-admission.test.cjs` | PASS, 15 tests, independent run |
 | Operation permission matrix | `node scripts/test-ipqc-c-operation-permissions.cjs` | PASS, 7 groups/218 handler calls, independent run |
 | Existing Save server/client projection, Save boundary, read recovery | Corresponding `scripts/test-ipqc-c-*.cjs` | PASS |
