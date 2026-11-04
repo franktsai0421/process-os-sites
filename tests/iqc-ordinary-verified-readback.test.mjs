@@ -130,3 +130,10 @@ for(const change of ['owner','mount','newLoad','newDenial'])void test(`old expli
  if(change==='owner')f.flip();else if(change==='mount')f.api.changeMount();else{const load=f.api.load().catch(e=>e);await tick();if(change==='newDenial'){f.respond(f.requests.length-1,{error:'NEW_DENIAL'},403);expected=await load;}else{f.respond(f.requests.length-1,full(3));await load;}}
  f.respond(receiptIndex,{error:'OLD_DENIAL'},403);await query;assert.equal(f.api.state().readDenied,expected);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });
+
+for(const status of [401,403])void test(`initial automatic receipt ${status}, reload and repeated receipt denial stay quarantined`,async()=>{
+ const f=await warm();f.page.innerHTML='OLD BUSINESS CONTENT';const pending=f.api.post('createItem',{errorId:'e',nameVi:'Synthetic'}).catch(e=>e);await tick();f.requests.at(-1).reject(Error('ACK_LOST'));await tick();f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);const error=await pending;
+ assert.equal(f.api.state().readDenied,error);assert.doesNotMatch(f.page.innerHTML,/OLD BUSINESS CONTENT/);const before=f.clients[0].readDenialVersion('receipt');assert.equal(typeof before,'number');
+ const reload=f.api.load();await tick();f.respond(f.requests.length-1,full());await reload;assert.equal(f.api.state().readDenied,null);assert.equal(f.clients[0].permission('view'),true);f.page.innerHTML='NEW BUSINESS CONTENT';
+ const query=f.api.checkOperation().catch(e=>e);await tick();f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);const repeated=await query;assert.equal(f.api.state().readDenied,repeated);assert.doesNotMatch(f.page.innerHTML,/NEW BUSINESS CONTENT/);assert(f.clients[0].readDenialVersion('receipt')>before);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});

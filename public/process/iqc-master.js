@@ -106,12 +106,12 @@
     owner?.assert();if(ui.busy||operationCheck)throw Error('OPERATION_IN_PROGRESS');
     const client=transport(),actor=identity(),epoch=host.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=host.ProcessSync?.captureDelivery?.();
     const assert=()=>{owner?.assert();if(client!==sharedClient||actor!==identity()||epoch!==host.ProcessSync?.identityGeneration?.()||mount!==mountSequence||host.ProcessSync?.requiresReload||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('DELIVERY_SUPERSEDED');};
-    const queryLoad=loadSequence,queryDenied=readDenied,pauses=new Map(['receipt','state'].map(kind=>[kind,client.readPauseState?.(kind)]));
+    const queryLoad=loadSequence,queryDenied=readDenied,pauses=new Map(['receipt','state'].map(kind=>[kind,client.readDenialVersion?.(kind)]));
     const flight=(async()=>{
       try{await client.resolveUnknown();}
       catch(error){
         let owned=false;try{assert();owned=loadSequence===queryLoad&&readDenied===queryDenied;}catch{/* A stale query cannot quarantine a newer owner/load. */}
-        if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>!pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
+        if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>client.readDenialVersion?.(kind)!==pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
         throw error;
       }
       assert();await load({assert});assert();render();
@@ -234,7 +234,7 @@
         const commandLoad=loadSequence,commandDenied=readDenied,commandRevision=revision,commandGeneration=control.workflow.generation,commandFlowRevision=control.workflow.revision;
         const commandCurrent=()=>requestCurrent()&&sharedClient===client&&loadSequence===commandLoad&&readDenied===commandDenied;
         const assertCommandCurrent=()=>{owner?.assert();if(!commandCurrent())throw Error('DELIVERY_SUPERSEDED');};
-        const pauseBefore=client.readPauseState?.('state');
+        const pausesBefore=new Map(['receipt','state'].map(kind=>[kind,client.readDenialVersion?.(kind)]));
         let result;
         try{result=await client.command(['applySnapshot','createError','createItem'].includes(action)?owner?.generation||dialogGeneration||flow.generation:submissionGeneration||flow.generation,commandAction,detail);}
         catch(error){
@@ -242,8 +242,7 @@
           // wrapped unknown error can lose HTTP status; use this exact client's
           // real owned state-read denial plus its revoked permission instead.
           let owned=false;try{assertCommandCurrent();owned=true;}catch{/* Preserve the original failure without changing newer UI state. */}
-          const pause=owned&&client.readPauseState?.('state');
-          if(owned&&!pauseBefore&&[401,403].includes(pause?.status)&&client.permission('view')===false)denyRead(error);
+          if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>client.readDenialVersion?.(kind)!==pausesBefore.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
           throw error;
         }
         assertCommandCurrent();
