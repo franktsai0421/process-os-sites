@@ -1,0 +1,42 @@
+{
+  "schema": "FQC_LIVE_READONLY_LOG_SUMMARY_V1",
+  "candidateDeployed": false,
+  "source": "Sites get_site_worker_logs",
+  "query": {
+    "errors_only": false,
+    "since_minutes": 240,
+    "limit": 100
+  },
+  "returnedEvents": 100,
+  "fqcEvents": 12,
+  "method": "GET",
+  "queryKeys": [
+    "since",
+    "caseMetadata",
+    "compact"
+  ],
+  "statuses": [
+    200
+  ],
+  "outcomes": [
+    "ok"
+  ],
+  "earliestUtc": "2026-11-04T02:17:11.821Z",
+  "latestUtc": "2026-11-04T02:22:49.875Z",
+  "wallMs": {
+    "min": 1810,
+    "median": 2183.5,
+    "max": 2626
+  },
+  "cpuMs": {
+    "min": 18,
+    "median": 23,
+    "max": 26
+  },
+  "limits": [
+    "Unmodified live site, not candidate after measurements",
+    "Conditional parameters do not establish unchanged body, full GET or preflight-only path",
+    "Latest-100 window did not re-extract the earlier seven POST/eleven full GET observations",
+    "No POST, employee values, identifiers, cookies or credentials retained"
+  ]
+}

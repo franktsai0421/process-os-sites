@@ -15,12 +15,12 @@ function setup(raws=['{"a":1}','{"b":2}','{"c":3}','{"d":4}']) {
   return{entries,objects,events,cancelled,bucket,envelope:{__processRecords:{version:1,values:Object.fromEntries(entries)}},counts:()=>({maxGets,maxTexts})};
 }
 const plain=value=>JSON.parse(JSON.stringify(value));
-void test('FQC fixed-pair reads preserve values, known refs, every GET and serial text consumption',async()=>{
+void test('FQC bounded reads preserve values, known refs, every GET and serial text consumption',async()=>{
   const before=setup(),after=setup();
   const a=await records.decodeRecordValues(before.bucket,before.envelope),b=await records.decodeRecordValues(after.bucket,after.envelope,{aggregateReadAhead:true});
   assert.deepEqual(plain(b.values),plain(a.values));assert.deepEqual([...b.recordStorage.known],[...a.recordStorage.known]);
   for(const kind of ['get','text'])assert.deepEqual(after.events.filter(e=>e[0]===kind),before.events.filter(e=>e[0]===kind));
-  assert.deepEqual(before.counts(),{maxGets:1,maxTexts:1});assert.deepEqual(after.counts(),{maxGets:2,maxTexts:1});assert.deepEqual(after.cancelled,[]);
+  assert.deepEqual(before.counts(),{maxGets:1,maxTexts:1});assert.deepEqual(after.counts(),{maxGets:4,maxTexts:1});assert.deepEqual(after.cancelled,[]);
 });
 for(const mode of ['missing','sha','json','get','projection','body'])void test(`earlier ${mode} failure wins; speculative aggregate text is never consumed`,async()=>{
   const f=setup(),first=f.entries[0][1],second=f.entries[1][1],options={aggregateReadAhead:true};let expected;
@@ -32,11 +32,11 @@ for(const mode of ['missing','sha','json','get','projection','body'])void test(`
   if(mode==='body'){const body=ref('{"body":true}'),raw=JSON.stringify({working:{__immutableBody:body}}),r=ref(raw);f.objects.set(r.key,raw);f.envelope.__processRecords.values.business0=r;expected=/missing/;}
   const originalGet=f.bucket.get.bind(f.bucket);f.bucket.get=async key=>{const object=await originalGet(key);if(key===second.key&&object)object.body.cancel=async()=>{f.cancelled.push(key);throw Error('CLEANUP_FAILURE');};return object;};
   await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,options),expected);await tick();
-  assert(!f.events.some(([kind,key])=>kind==='text'&&key===second.key));assert.deepEqual(f.cancelled,[second.key]);
-  assert(!f.events.some(([kind,key])=>kind==='get'&&key===f.entries[2][1].key));
+  assert(!f.events.some(([kind,key])=>kind==='text'&&key===second.key));assert.deepEqual(f.cancelled.slice().sort((a,b)=>a.localeCompare(b)),f.entries.slice(1).map(([,r])=>r.key).sort((a,b)=>a.localeCompare(b)));
+  assert.equal(f.events.filter(([kind,key])=>kind==='text'&&f.entries.slice(1).some(([,r])=>r.key===key)).length,0);
 });
 for(const mode of ['slow','reject'])void test(`earlier rejection does not wait for ${mode} speculative GET or leak an unhandled rejection`,async()=>{
-  const f=setup(),first=f.entries[0][1],second=f.entries[1][1];let release;
+  const f=setup(['{"a":1}','{"b":2}']),first=f.entries[0][1],second=f.entries[1][1];let release;
   const rejected=[];const listener=error=>rejected.push(error);process.on('unhandledRejection',listener);
   f.bucket.get=key=>key===first.key?Promise.reject(Error('FIRST')):new Promise((resolve,reject)=>{release=()=>mode==='reject'?reject(Error('SECOND')):resolve({text:()=>{assert.fail('unused text');},body:{async cancel(){f.cancelled.push(key);}}});});
   try{await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true}),/FIRST/);assert(release);release();await tick();await tick();assert.deepEqual(rejected,[]);assert.deepEqual(f.cancelled,mode==='slow'?[second.key]:[]);}finally{release?.();process.removeListener('unhandledRejection',listener);}
@@ -47,6 +47,40 @@ void test('same-key transient failure is observed once and is never hidden by a 
 });
 void test('same-key successful observations remain separate reads',async()=>{
   const f=setup(['{}','{}']);await records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});assert.equal(f.events.filter(e=>e[0]==='get').length,2);assert.equal(f.counts().maxGets,1);
+});
+void test('eleven unique aggregates cross bounded windows with peak five GETs and serial text',async()=>{
+  const f=setup(Array.from({length:11},(_,i)=>JSON.stringify({i})));
+  const result=await records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});
+  assert.equal(Object.keys(result.values).length,11);assert.deepEqual(f.counts(),{maxGets:5,maxTexts:1});
+  assert.deepEqual(f.events.filter(e=>e[0]==='get').map(e=>e[1]),f.entries.map(([,r])=>r.key));
+  assert.equal(f.events.filter(e=>e[0]==='text').length,11);assert.deepEqual(f.cancelled,[]);
+});
+void test('nonadjacent duplicate aggregate stops the window without caching or skipping a later observation',async()=>{
+  const f=setup(['{"a":1}','{"b":2}','{"a":1}','{"c":3}']);
+  await records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});
+  for(const kind of ['get','text'])assert.deepEqual(f.events.filter(e=>e[0]===kind).map(e=>e[1]),f.entries.map(([,r])=>r.key));
+  assert.equal(f.counts().maxGets,2);
+});
+void test('nested bodies plus unconsumed aggregate streams stay within five, not merely five pending promises',async()=>{
+  const f=setup(Array.from({length:11},(_,i)=>JSON.stringify({i}))),bodyRaw='{"nested":true}',body=ref(bodyRaw);
+  const firstRaw=JSON.stringify({working:{__immutableBody:body}}),first=ref(firstRaw);f.objects.set(first.key,firstRaw);f.objects.set(body.key,bodyRaw);f.envelope.__processRecords.values.business0=first;
+  let open=0,peak=0,texts=0,maxTexts=0;
+  f.bucket.get=async key=>{const raw=f.objects.get(key);assert.equal(typeof raw,'string');peak=Math.max(peak,++open);await tick();let consumed=false;
+    const release=()=>{assert.equal(consumed,false);consumed=true;open--;};
+    return{body:{async cancel(){release();}},async text(){maxTexts=Math.max(maxTexts,++texts);await tick();texts--;release();return raw;}};
+  };
+  const result=await records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});
+  assert.deepEqual(JSON.parse(result.values.business0),{working:{nested:true}});assert.equal(peak,5);assert.equal(maxTexts,1);assert.equal(open,0);
+});
+void test('all four unused late requests settle and release streams after an earlier failure',async()=>{
+  const f=setup(Array.from({length:6},(_,i)=>JSON.stringify({i}))),later=[],rejected=[],cancelled=[];
+  const listener=error=>rejected.push(error);process.on('unhandledRejection',listener);
+  f.bucket.get=key=>key===f.entries[0][1].key?Promise.reject(Error('FIRST')):new Promise((resolve,reject)=>later.push({key,resolve,reject}));
+  try{
+    await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true}),/FIRST/);assert.equal(later.length,4);
+    later.forEach(({key,resolve,reject},i)=>i%2?reject(Error('LATE')):resolve({text:()=>assert.fail('unused text'),body:{async cancel(){cancelled.push(key);if(i===0)throw Error('CANCEL');}}}));
+    await tick();await tick();assert.deepEqual(rejected,[]);assert.deepEqual(cancelled,[later[0].key,later[2].key]);
+  }finally{process.removeListener('unhandledRejection',listener);}
 });
 void test('invalid next reference is not fetched and does not mask an earlier integrity fault',async()=>{
   const f=setup();f.envelope.__processRecords.values.business1={key:'foreign',sha256:'a'.repeat(64)};f.objects.set(f.entries[0][1].key,'corrupt');

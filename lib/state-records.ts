@@ -18,7 +18,7 @@ export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string
  deferDependencyHistory?:boolean;allocationKey?:string;
  // Opaque server-created request token; never supplied by HTTP or a write path.
  identityReadToken?:object;
- // Server-only FQC opt-in. Reads the same selected aggregates in fixed pairs;
+ // Server-only FQC opt-in. Reads the same selected aggregates in bounded windows;
  // authority/business phases and independent snapshots never share a reader.
  aggregateReadAhead?:boolean};
 const prefix='state-records/v1/',encoder=new TextEncoder();
@@ -148,14 +148,18 @@ function aggregateReadAhead(bucket:Bucket, entries:[string,Ref][], valid:(ref:un
   return {
     async get(index:number) {
       if (closed || !entries[index] || !valid(entries[index][1])) throw Error('Invalid immutable record reference');
-      // Fixed pairs: at most two aggregate GETs/streams, and no speculative
+      // At most five aggregate GETs/streams, and no speculative
       // text, SHA or JSON allocation for the next (possibly large) aggregate.
       if (!pending.has(index)) {
-        start(index);
-        // Equal keys are separate fault observations; never issue their later
-        // read speculatively after an earlier transient failure.
-        const next=entries[index+1]?.[1];
-        if (next&&valid(next)&&next.key!==entries[index][1].key) start(index+1);
+        const keys=new Set<string>();
+        // Stop at malformed or repeated refs: a later observation of the same
+        // object cannot mask an earlier transient fault. No selected key is
+        // skipped, and current text/body decoding still finishes in order.
+        for(let next=index;next<Math.min(index+5,entries.length);next++){
+          const ref=entries[next][1];
+          if(!valid(ref)||keys.has(ref.key))break;
+          keys.add(ref.key);start(next);
+        }
       }
       const result = await pending.get(index)!;
       pending.delete(index);

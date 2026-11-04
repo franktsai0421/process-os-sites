@@ -1,7 +1,7 @@
 # FQC flow latency — independent candidate, not deployed
 
 Base: latest fetched main `35949445ad073812863c0004acbee13ed3535747`.
-Branch: `codex/fqc-flow-performance-20261104`. Scope: source changes, synthetic
+Branch: `codex/fqc-flow-performance-20261104`; [Draft PR #72](https://github.com/franktsai0421/process-os-sites/pull/72). Scope: source changes, synthetic
 verification, independent review and a separate Draft PR. No merge, deployment,
 real business-data write, credential/access change or pending V31 unlock.
 
@@ -14,11 +14,20 @@ is a measured duration for one API request.
 
 The earlier read-only log summary supplied with the task contains seven
 successful FQC POSTs (wall 5.85–12.43 s, median 7.84 s) and eleven full GETs
-(wall 4.00–6.11 s, median 4.98 s). A new read-only Sites log retrieval during this
-task returned eleven recent events, none for FQC. The older sample therefore
-could not be independently re-extracted or correlated to the minute-long UI
-operation. Its numbers remain attributed prior observations, not this task's
-new measurements. No real-data POST or live performance probe was attempted.
+(wall 4.00–6.11 s, median 4.98 s). These remain attributed prior observations:
+the older samples could not be independently re-extracted or correlated to the
+minute-long UI operation. The initial new query returned eleven errors-only
+events and no FQC; that filter did not establish that successful FQC was absent.
+A corrected read-only query (`errors_only:false`, 240-minute window, latest 100
+entries) returned twelve successful FQC GETs carrying `since`, `caseMetadata`
+and `compact` parameters: wall 1.810–2.626 s, median 2.1835 s; CPU 18–26 ms,
+median 23 ms. These are **current unmodified-site observations**, not candidate
+results. Status 200 plus `since` does not prove an unchanged response or a
+preflight-only path. They cannot substitute for full-GET or UI timings. The
+wall/CPU gap points to waiting outside CPU, but does not isolate R2, D1 or network
+latency. The latest-100 result did not contain the earlier POST/full-GET sample.
+[Sanitized live-log summary](live-log-summary.json). No real-data POST or live
+performance probe was attempted.
 
 The exact-main synthetic handler/client reproduced the serial cost structure:
 Apply/Save is one POST followed by one mandatory fresh GET; each GET selects
@@ -38,18 +47,21 @@ payload sizes, network transfer and UI rendering were not measured here.
   (including whole-matrix Apply). Other adapters, selectors with `scope`,
   identity-read tokens, legacy formats and Begin/review/restore POST paths keep
   their existing behavior. No browser code, wire format or deadline changes.
-- A request-local reader overlaps at most two **aggregate** GETs. It never
+- A request-local reader overlaps fixed windows of at most five **aggregate** GETs. It never
   speculatively consumes the next object's text, SHA or JSON. The current
   aggregate's nested bodies and projection complete before next aggregate text
-  is consumed. Nested body reads remain serial; they may coexist with one held
-  aggregate stream. This is not a claim that all resource types are capped at two.
-- The same-key next reference is read later, separately. Invalid/null next
+  is consumed. Nested body reads remain serial; they may coexist with up to four held
+  aggregate streams. The window is not refilled while pending entries remain.
+  A synthetic stream-occupancy regression, including nested bodies, peaks at five;
+  actual provider buffering and memory consumption remain unmeasured.
+- Any repeated key ends the current speculative window and is read later, separately. Invalid/null next
   pointers cannot mask an earlier GET/integrity/JSON error. No cache survives a
   phase or snapshot; required POST authorization finishes before any business
   aggregate request, and both terminal-GET snapshots independently reread.
-- Fault observation changes only by allowing the next valid selected aggregate
-  GET to start before the current aggregate completes. On an earlier failure,
-  next text is not consumed and its unused stream is cancelled when available;
+- Fault observation changes by allowing up to four later valid selected aggregate
+  GETs to start before the current aggregate completes. Thus an early rejection
+  may start up to four unnecessary selected reads. No next text is consumed;
+  all unused streams are cancelled when available;
   late GET rejection/cancellation failure cannot replace the earlier error.
   No extra module is selected. Missing/corrupt required objects still fail closed.
 - Full structural checks, original dependencies and allocation history, immutable
@@ -57,9 +69,81 @@ payload sizes, network transfer and UI rendering were not measured here.
   manual Save and unknown-outcome protection are retained. Matrix still reads
   its full existing closure; it does not gain the narrower ordinary-form writer.
 
-## Paired measurements
+## Final five-read window — native browser end-to-end measurements
 
-Reproduce with `node scripts/benchmark-fqc-flow.cjs`. The script overrides the
+Reproduce with `node scripts/benchmark-fqc-browser-flow.mjs`. This is native
+Chromium at 1280 px in Chinese, using the unchanged real FQC component/client,
+actual TypeScript guarded routes and ephemeral SQLite/R2. Timing starts at the
+actual DOM button click and ends when the UI can continue, the form is closed,
+unknown state is clear, and two animation frames have elapsed. Every successful
+action must perform exactly one POST and one fresh GET, with independently
+verified stored content. Boot/Begin, text entry and the state oracle are outside
+the window. Five pairs alternate baseline/candidate order; all 80 samples passed,
+with no discarded sample and equal paired SQL/R2 call counts. Timing ran alone,
+after the checks finished; no independent reviewer tests overlapped it.
+
+This exercises the complete component action through storage and UI settlement,
+**not the live full application shell, HTTP/TLS path or compiled workerd**.
+The 256-item synthetic fixture and 200 ms per-R2-GET sensitivity scenario are
+explicit assumptions, not measured live data size/latency or a calibrated live
+forecast. SQL and PUT wait is 5 ms. The added wait makes the serial I/O cost
+visible; the no-added-wait profile exposes local UI/CPU overhead separately.
+All UI timings below include mandatory terminal readback; API part medians do
+not necessarily sum to the whole-flow median.
+
+| Click to usable UI | No added wait, median s before → after | 200 ms R2 sensitivity, median s before → after | Sensitivity max s before → after |
+| --- | ---: | ---: | ---: |
+| Existing error Apply | 0.289 → 0.281 | 5.502 → 3.221 | 5.552 → 3.250 |
+| New error Apply | 0.285 → 0.268 | 5.681 → 3.413 | 5.707 → 3.468 |
+| Matrix Apply | 0.272 → 0.257 | 8.063 → 4.836 | 8.175 → 4.893 |
+| Save | 0.295 → 0.305 | 5.708 → 3.538 | 5.802 → 3.549 |
+
+| Sensitivity flow | POST median s before → after | Fresh GET median s before → after | R2 GET / SQL, unchanged |
+| --- | ---: | ---: | ---: |
+| Existing error Apply | 2.523 → 1.517 | 2.656 → 1.453 | 28 / 14 |
+| New error Apply | 2.760 → 1.741 | 2.655 → 1.450 | 29 / 15 |
+| Matrix Apply | 5.120 → 3.107 | 2.655 → 1.453 | 41 / 13 |
+| Save | 2.766 → 1.763 | 2.661 → 1.456 | 29 / 14 |
+
+[All 80 native browser samples, ranges, per-request timings and source hashes](browser-performance-summary.json).
+The no-wait Save median regresses by 11 ms; there is no universal speedup claim.
+Even with the larger overlap, this sensitivity case still takes 3.2–4.8 s.
+Required bodies, current authorization, immutable writes and the two independent
+terminal snapshots retain serial work. No evidence yet proves the minute-long
+incident is resolved. Mobile/Vietnamese checks below establish behavior, not
+mobile/Vietnamese performance.
+
+## Final five-read window — route/client read coverage
+
+A separate sequential run of `node scripts/benchmark-fqc-flow.cjs` covers full
+read, saved draft read and receipt paths as well as writes. This is the actual
+handler/client fixture described in the historical section below, with the final
+runtime source hashes. It does not measure a browser. All 140 samples passed;
+paired counts, consumed bytes and response bytes stay equal. No tests or browser
+benchmark overlapped this run.
+
+| Handler/client flow | No added wait, median ms before → after | 30 ms R2 / 5 ms SQL+PUT, median ms before → after |
+| --- | ---: | ---: |
+| full-read | 13.79 → 11.55 | 413.45 → 230.89 |
+| existing-apply | 67.95 → 72.76 | 931.09 → 583.97 |
+| insert-apply | 60.41 → 65.78 | 960.81 → 634.30 |
+| matrix-apply | 50.61 → 56.40 | 1306.00 → 816.12 |
+| save | 108.74 → 107.43 | 993.48 → 656.93 |
+| receipt | 7.61 → 7.35 | 439.08 → 256.91 |
+| saved-read | 18.90 → 19.14 | 456.69 → 268.39 |
+
+[All 140 final-source samples and counters](route-performance-summary-window5.json).
+No-wait write-path medians have small regressions, shown rather than discarded;
+these measurements support overlapping storage waits, not universal CPU gains.
+The 30 ms and 200 ms scenarios are different artificial sensitivity cases, not
+measurements of the deployment. The first-round table below is retained to make
+the progression reviewable and must not be mistaken for this final candidate.
+
+## First-round paired measurements — two-read window, historical
+
+These retained results belong to the first-round two-read window at `4702567`,
+not the final five-read candidate. The reusable command is `node scripts/benchmark-fqc-flow.cjs`;
+running it on the final source measures that final source. The script overrides the
 exact main359 server files using Git objects, and runs the same current client
 against candidate and baseline. Five pairs alternate execution order for every
 profile. Seven actions include full read, existing/new error Apply, 256-row
@@ -103,7 +187,29 @@ no-added-wait window. The controlled-wait profile began after that probe ended.
 No sample was dropped or adjusted. Real provider stream buffering and live R2
 latency remain unmeasured.
 
-## Verification and review
+## Final five-read window — verification and review
+
+The final runtime source is `state-records.ts` SHA-256
+`792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e`;
+`versioned-shared-workflow.ts` remains
+`053cded33f0f639fc6b338c1db6be58ff32943d3f8244d5bfc9b24109e4537c1`.
+Both final benchmark artifacts pin these files and their relevant fixture/client
+sources; the native artifact also pins the DOM timing helper.
+
+| Check | Final five-window result |
+| --- | --- |
+| Core actual-route safety | 155 PASS: 30 read-ahead, 80 required-dependency and 45 Apply reliability tests. Includes five-stream occupancy through nested bodies, 11-object window rollover, repeated-key boundaries, all four late cleanup paths, corruption, authority phases, revocation, CAS and receipt contracts. |
+| Independent review | 30 read-ahead and 71 historical inverse contracts independently PASS. Reviewer checked original baseline pins/spans unchanged, runtime hashes and both measured artifacts. No remaining code blockers. These tests overlap mainline checks, not additional scenarios. |
+| Static and historical checks | Full typed lint, TypeScript, original identity-prefetch regression, 71 LF/CRLF/inverse contracts, Sites source boundaries and diff check PASS. Changed-source/data scan: no findings. |
+| Native behavior | 43 PASS on final source: Apply/forms 4, unknown/recovery 25, abandonment 14; Chromium at 390/1280 px and zh/vi. Includes lost ACK, no duplicate replay, 404/delayed commit, collaborator updates, Save/reopen and departure barriers. |
+| Exact-source build | Pending new five-window commit/build; the `4702567` receipt below is historical. |
+| GitHub CI | Draft PR #72 exists. First-round head `79b9f9a` passed FQC forms/reliability, typed lint, TypeScript, build and compiled abandonment steps; full run was still in progress. The new final head needs its own CI run. |
+
+The first typed-lint attempt in this round found two test-only `.sort()` calls
+without explicit comparators. Both were fixed; the full normal lint then passed.
+No runtime assertion, deadline, CI requirement or safety gate was relaxed.
+
+## First-round verification and review — two-read window, historical
 
 Environment: fresh managed Linux checkout; Node 24.19.0, repository-locked npm
 install, ephemeral in-memory SQLite and synthetic R2, installed system Chromium.
@@ -112,13 +218,13 @@ No workstation connector was opened, recreated or reconnected.
 | Risk / scope | Evidence and result |
 | --- | --- |
 | Required authority/dependencies, corruption, CAS, receipts and client settlement | Initial combined core suite: 196 PASS; includes ACK, authority bodies, Apply reliability, matrix-last-apply and the initial read-ahead tests. |
-| Final malformed-pointer repair, cleanup, snapshot freshness, exact-route/other-adapter isolation | Final targeted suite: 106 PASS (26 read-ahead + 80 required-dependency tests). These overlap the initial suite; counts are not additive. |
+| First-round final malformed-pointer repair, cleanup, snapshot freshness, exact-route/other-adapter isolation | Final targeted suite: 106 PASS (26 read-ahead + 80 required-dependency tests). These overlap the initial suite; counts are not additive. |
 | Unknown/generation recovery, known rejections, matrix multiuser, lifecycle and conflict discard | 85 PASS using actual routes and synthetic clients/DOM. |
 | Native desktop/mobile-size forms, Save/reopen, unknown recovery and abandonment, zh/vi | 43 PASS at 390/1280 px using Chromium and actual handlers; not a physical phone or native IME acceptance. |
 | Shared-reader compatibility and historical performance baseline integrity | Original identity-prefetch regression PASS; LF/CRLF/inverse negative contracts 71 PASS with original baseline/tail/prefix pins unchanged. |
 | Static checks and source boundaries | Full typed lint, TypeScript, diff whitespace and Sites source-boundary check PASS. |
 | Build | Normal `npm run build` PASS, stamped with candidate `47025673ea47455679fa6b7eeb65041641f44f7a`; known public-auth client check PASS. [Safe build receipt](build-result.json); this does not approve distributing compiled server output. |
-| Independent review | Reviewer independently reproduced a null-next-pointer fault-precedence defect; fixed by validating next before inspecting its key. 14 targeted reviewer checks PASS on the final runtime hashes; this is a subset, not additional scenarios. Final source/measurement/document review completed on `4702567`: no remaining blocking findings. |
+| Independent review | Reviewer independently reproduced a null-next-pointer fault-precedence defect; fixed by validating next before inspecting its key. 14 targeted reviewer checks PASS on the final runtime hashes; this is a subset, not additional scenarios. First-round source/measurement/document review completed on `4702567`: no remaining blocking findings. |
 
 The original dependency race fixture used a global `concurrentWrite` flag to
 exclude a peer's nested reader; overlapping FQC reads could be mislabeled as
