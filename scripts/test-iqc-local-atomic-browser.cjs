@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/no-require-imports -- Isolated browser and real handler fixture. */
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),{chromium}=require('playwright');
-(async()=>{const f=await require('./fqc-apply-fixture.cjs')();let server,browser;try{
+async function run(width){const f=await require('./fqc-apply-fixture.cjs')();let server,browser;try{
   const snapshot={categories:[{id:'c',nameVi:'Cat'}],suppliers:[],parts:[{id:'p',code:'P',nameVi:'Part',categoryId:'c',supplierIds:[],photos:[]}],errors:[{id:'e',code:'P-IQC-L1',partCode:'P',nameVi:'Error'}],items:[]};
   await f.mutate(values=>{const users=JSON.parse(values.platformUsers);for(const user of users)for(const op of ['view','edit','create','submit','withdraw','approve','return','delete'])user.accessOverrides['iqc.'+op]=true;for(const user of users)user.accessOverrides['iqc.save']=false;values.platformUsers=JSON.stringify(users);values.iqcMasterControl=JSON.stringify({schemaVersion:1,activeVersionId:'a',versions:[{id:'a',number:1,status:'approved',snapshot,revision:1,history:[]}],issues:[],reservedErrorCodes:['P-IQC-L1'],reservedCheckNos:[]});const equipment=JSON.parse(values.routineEquipmentControl);equipment.versions[0].equipment=[{id:'tool-new',enabled:true,name:'New tool',assetCode:'SYN-2',pieceMark:'2'}];values.routineEquipmentControl=JSON.stringify(equipment);});
 
@@ -14,7 +14,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  const response=await handler[req.method](request);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
  }catch(e){res.writeHead(500);res.end(JSON.stringify({error:e.message}));}});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
  await api.POST(new Request(base+'/api/iqc/workflow',{method:'POST',headers:{cookie:f.cookies.editor,origin:base,'Content-Type':'application/json'},body:JSON.stringify({action:'begin'})}));
- browser=await chromium.launch({...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{channel:'chrome'}),headless:true});const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',async r=>{if(r.status()>=400)console.error(r.url(),r.status(),await r.text());});
+ browser=await chromium.launch({...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),headless:true});const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',async r=>{if(r.status()>=400)console.error(r.url(),r.status(),await r.text());});
  await page.goto(base+'/fixture');await page.locator('[data-select-part="P"]').click();await page.locator('[data-add-item]').click();
  await page.locator('#iqc-item-form [name="nameVi"]').fill('Synthetic local item');
  await page.locator('#iqc-item-form [name="inspectionMode"][value="equipment"]').check();await page.locator('#iqc-equipment-change').click();await page.locator('[data-iqc-select-equipment="tool-new"]').click();
@@ -23,8 +23,32 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  await page.locator('#iqc-item-form button[type=submit]').click();await page.locator('#iqc-item-form').waitFor({state:'detached'});assert.equal(writes.length,0);
  const read=async()=>JSON.parse((await f.core.readState()).values.iqcMasterControl).workflow;
  assert.equal((await read()).working.items.length,0);await page.locator('#iqc-save').click();await page.waitForFunction(()=>document.querySelector('[data-vd-saved]')?.textContent.includes('已儲存')).catch(async e=>{console.error(await page.locator('body').innerText());throw e;});
- assert.equal(writes.length,1);assert.equal(writes[0].command.moduleAction,'save-local-v1');const saved=(await read()).saved.content.items[0];assert.equal(saved.equipmentId,'tool-new');assert.equal(saved.mediaItems.length,1);
- await page.locator('[data-edit-item]').click();await page.locator('#iqc-item-form [name=nameVi]').fill('Unsaved local change');await page.locator('#iqc-item-form button[type=submit]').click();await page.locator('#iqc-item-form').waitFor({state:'detached'});await page.locator('#iqc-search').fill('missing');await page.locator('#iqc-search').fill('');await page.locator('[data-select-part="P"]').click();assert(await page.locator('body').innerText().then(t=>t.includes('Unsaved local change')));assert.equal(writes.length,1);await page.reload();await page.locator('[data-select-part="P"]').click();assert(!(await page.locator('body').innerText()).includes('Unsaved local change'));assert.equal(writes.length,1);
+ assert.equal(writes.length,1);assert.equal(writes[0].command.moduleAction,'save-local-v1');const initialSavedId=(await read()).saved.id,saved=(await read()).saved.content.items[0];assert.equal(saved.equipmentId,'tool-new');assert.equal(saved.mediaItems.length,1);
+ async function assertSubmitBlocked(){
+  const before=writes.length;
+  // dispatchEvent deliberately reaches the handler even when disabled, proving
+  // admission rather than only the visual button state.
+  await page.evaluate(()=>{document.querySelector('#toast').textContent='';document.querySelector('#iqc-submit').dispatchEvent(new Event('click',{bubbles:true}));});
+  await page.waitForFunction(()=>!!document.querySelector('#toast').textContent);
+  assert.equal(await page.locator('dialog.vd-confirm').count(),0,'blocked submission must not ask to send an older snapshot');
+  assert.equal(writes.length,before,'no implicit Save, Apply or Submit');
+  assert.equal((await read()).saved.id,initialSavedId);assert.equal((await read()).pendingId,null);
+ }
+ await page.locator('[data-edit-item]').click();await page.locator('#iqc-item-form [name=nameVi]').fill('Unsaved local change');await page.locator('#iqc-item-form button[type=submit]').click();await page.locator('#iqc-item-form').waitFor({state:'detached'});
+ await page.locator('#iqc-search').fill('missing');await page.locator('#iqc-search').fill('');await page.locator('[data-select-part="P"]').click();assert((await page.locator('body').innerText()).includes('Unsaved local change'));assert.equal(writes.length,1);
+ assert.equal(await page.locator('#iqc-submit').isDisabled(),true,'completed unsaved edits must disable Submit');await assertSubmitBlocked();assert((await page.locator('body').innerText()).includes('Unsaved local change'));assert.equal((await read()).saved.content.items[0].nameVi,'Synthetic local item');
+ await page.reload();await page.locator('[data-select-part="P"]').click();assert(!(await page.locator('body').innerText()).includes('Unsaved local change'));assert.equal(writes.length,1);
+ // An open form remains intact when a caller forces the toolbar handler.
+ await page.locator('[data-edit-item]').click();await page.locator('#iqc-item-form [name=nameVi]').fill('Newest explicitly saved item');await assertSubmitBlocked();assert.equal(await page.locator('#iqc-item-form [name=nameVi]').inputValue(),'Newest explicitly saved item');
+ await page.locator('#iqc-item-form button[type=submit]').click();await page.locator('#iqc-item-form').waitFor({state:'detached'});assert.equal(writes.length,1);assert.equal(await page.locator('#iqc-submit').isDisabled(),true);await assertSubmitBlocked();
+ await page.locator('#iqc-save').click();await page.waitForFunction(()=>document.querySelector('[data-vd-saved]')?.textContent.includes('已儲存'));
+ assert.equal(writes.length,2);assert.equal(writes[1].command.action,'save');assert.equal(writes[1].command.moduleAction,'save-local-v1');
+ const newSaved=(await read()).saved;assert.notEqual(newSaved.id,initialSavedId);assert.equal(newSaved.content.items[0].nameVi,'Newest explicitly saved item');assert.equal(newSaved.content.items[0].equipmentId,'tool-new');assert.equal(newSaved.content.items[0].mediaItems.length,1);
+ assert.equal(await page.locator('#iqc-submit').isEnabled(),true);await page.locator('#iqc-submit').click();const confirm=page.locator('dialog.vd-confirm');await confirm.waitFor();assert((await confirm.locator('[data-submit-snapshot]').innerText()).includes(newSaved.id));assert.equal(writes.length,2,'opening confirmation must not save or submit');
+ await confirm.locator('textarea').fill('Synthetic new snapshot review');await confirm.locator('button[type=submit]').click();await confirm.waitFor({state:'detached'});await page.locator('#iqc-withdraw').waitFor();
+ assert.equal(writes.length,3);const submit=writes[2].command;assert.equal(submit.action,'submit');assert.equal(submit.savedId,newSaved.id);assert.equal(submit.reason,'Synthetic new snapshot review');assert.deepEqual(writes.map(row=>row.command.action),['save','save','submit']);
+ const submitted=await read(),fixed=submitted.cases.find(row=>row.id===submitted.pendingId);assert(fixed);assert.equal(fixed.status,'pending');assert.deepEqual(fixed.content,newSaved.content);assert.equal(submitted.saved.id,newSaved.id);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);assert.deepEqual(errors,[]);
- console.log(JSON.stringify({result:'PASS',isolated:true,realBrowser:true,viewport:'390x844',photo:true,newTool:true,editWrites:0,saveWrites:1}));
- }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));f.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+ console.log(JSON.stringify({result:'PASS',isolated:true,realBrowser:true,viewport:width+'x844',photo:true,newTool:true,editWrites:0,saveWrites:2,submitWrites:1,unsavedSubmitBlocked:true,forcedSubmitBlocked:true,openFormPreserved:true,submittedNewSavedId:true}));
+ }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));f.close();}}
+(async()=>{for(const width of [390,1280])await run(width);})().catch(e=>{console.error(e);process.exitCode=1;});
