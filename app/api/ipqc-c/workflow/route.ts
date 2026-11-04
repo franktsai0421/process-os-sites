@@ -1,3 +1,4 @@
+import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutationState} from '@/lib/ipqc-c-create-record-mutation';
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
 import { env } from 'cloudflare:workers';
@@ -121,7 +122,8 @@ export async function POST(request:Request) {
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
-      const state=saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
+      const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;
+      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       const permissions=await access(request,state),control=readControl(state);
@@ -183,8 +185,12 @@ export async function POST(request:Request) {
       if(!await stateRevisionIsCurrent(state))continue;
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
+      const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
+      // Recheck session revocation after slow photo/immutable storage I/O.
+      // Account/permission changes remain fenced by the state revision CAS.
+      if(ipqcCCreateCommand(body.command)&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
-        .bind(state.revision+1,await (saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();
+        .bind(state.revision+1,encoded,at,state.revision).run();
       if(changed.meta.changes!==1)continue;
       const saved=control.workflow?.saved,draft=openIpqc(control),currentOthers=saveProjectionBase?control.versions.filter(v=>v.id!==saveProjectionBase.draftId):[];
       if(saveProjectionBase&&receipt&&saved&&draft?.status==='draft'&&draft.id===saveProjectionBase.draftId&&control.workflow?.generation===saveProjectionBase.generation&&control.activeVersionId===saveProjectionBase.activeVersionId&&control.workflow.pendingId===null&&control.versions.length===saveProjectionBase.others.length+1&&saveProjectionBase.others.every((old,index)=>{const current=currentOthers[index];if(!current||current.id!==old.id||current.snapshot!==old.snapshot)return false;const {snapshot:_snapshot,...metadata}=current;return JSON.stringify(metadata)===old.metadata;})){

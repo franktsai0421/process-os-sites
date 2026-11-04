@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto'),{execFileSync}=require('node:child_process');
 const {makeLoader,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
+const {assertCreateMutationContract}=require('./ipqc-c-create-source-contract.cjs');
 const {withoutComposedPerformance,assertComposedPerformanceContract}=require('./ipqc-c-composed-performance-source-contract.cjs');
 const {withoutExplicitPermissionReadAlignment,assertPermissionReadSourceContract}=require('./ipqc-c-permissions-source-contract.cjs');
 const route='app/api/ipqc-c/workflow/route.ts',base='dc8c1c2238a6dd89c2707d50e050fe8ae674c9e8';
@@ -79,8 +80,9 @@ await check('P7 non-permissions GET preserves data/I/O with exact permission DTO
 await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
  const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
  const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(committedBytes),'working tree differs beyond CRLF');
- assertComposedPerformanceContract(committedBytes);
- const explicitBytes=withoutComposedPerformance(committedBytes);
+ const createBase=assertCreateMutationContract(committedBytes).normalized;
+ assertComposedPerformanceContract(createBase);
+ const explicitBytes=withoutComposedPerformance(createBase);
  assertPermissionReadSourceContract(explicitBytes);
  const candidateBytes=withoutApprovedOperationAlignment(route,withoutExplicitPermissionReadAlignment(explicitBytes)),delta=Buffer.from("...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),"),at=candidateBytes.indexOf(delta);assert(at>=0);assert.equal(candidateBytes.indexOf(delta,at+delta.length),-1);assert.deepEqual(Buffer.concat([candidateBytes.subarray(0,at),candidateBytes.subarray(at+delta.length)]),priorBytes);
  const marker=Buffer.from('export async function POST('),a=priorBytes.indexOf(marker),b=candidateBytes.indexOf(marker);assert(a>=0&&b>=0);assert.deepEqual(candidateBytes.subarray(b),priorBytes.subarray(a));

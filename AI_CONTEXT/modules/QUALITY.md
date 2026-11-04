@@ -1,3 +1,7 @@
+## 2026-11-04 IPQC-C create-item candidate
+
+`ipqc-c-create-record-mutation.ts` selects the fixed auth/C/master/equipment closure for canonical records create-item; the dedicated encoder changes only C plus its monotonic allocation index. Legacy/noncanonical states use full reading. CAS, create/edit/view, photo/equipment validation and receipt deduplication remain; session revocation is checked again after immutable encoding. The client gives only C create-item 45 seconds, retaining unknown on timeout/404. Unrelated record faults are now isolated, with opaque pointers preserved. [Tests and limits](../../docs/acceptance/ipqc-c-create-20261104.md). No schema or data change.
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 The shared departure adapter offers input abandonment even beside acknowledged shared changes; it leaves shared content untouched. Routine FQC dialog cancellation is included. Non-FQC custom unknown paths remain blocked and need separate evidence contracts. [Scope, evidence and blockers](../../docs/acceptance/simple-draft-departure-20261103.md).

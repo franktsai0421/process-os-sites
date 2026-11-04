@@ -368,6 +368,36 @@ export async function encodeIpqcCSaveRecordMutation(bucket:Bucket,handle:IpqcCSa
  return JSON.stringify(next);
 }
 
+// Fixed canonical IPQC-C create-item capability. Preserve every unrelated
+// manifest pointer; only the C aggregate and its monotonic allocation index change.
+const ipqcCCreateMutationKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','ipqcCMasterControl','masterDataControl','routineEquipmentControl'];
+export type IpqcCCreateRecordMutationHandle={readonly __ipqcCCreateRecordMutation:unique symbol};
+type IpqcCCreateMutationBinding={bucket:Bucket;revision:number;manifest:string;envelope:Envelope;storage:RecordStorage;values:Record<string,string>;visibleStorage:RecordStorage;visibleKnown:string[];model:unknown;allocation:string;consumed:boolean};
+const ipqcCCreateMutationHandles=new WeakMap<object,IpqcCCreateMutationBinding>();
+export async function readIpqcCCreateRecordMutation(bucket:Bucket,envelope:Envelope,revision:number){
+ const manifest=envelope?.__processRecords;
+ if(!Number.isSafeInteger(revision)||revision<0||!object(envelope)||envelope.platformUsers!==undefined&&typeof envelope.platformUsers!=='string'||envelope.maintenanceMode!==undefined&&typeof envelope.maintenanceMode!=='string'||Object.keys(envelope).some(k=>!['__processRecords','platformUsers','maintenanceMode'].includes(k))||!object(manifest)||manifest.version!==1||Object.keys(manifest).some(k=>!['version','values','legacySources','allocations'].includes(k))||!object(manifest.values)||!object(manifest.legacySources)||!object(manifest.allocations)||!valid(manifest.allocations.ipqcCMasterControl)||!valid(manifest.values.ipqcCMasterControl))return null;
+ const original=JSON.stringify(envelope);
+ const selected=await decodeRecordValuesCore(bucket,envelope,{keys:ipqcCCreateMutationKeys,modelKey:'ipqcCMasterControl',deferDependencyHistory:true,deferHistory:true,allocationKey:'ipqcCMasterControl'},new Set(ipqcCCreateMutationKeys));
+ if(envelope.platformUsers!==selected.values.platformUsers||envelope.maintenanceMode!==selected.values.maintenanceMode)return null;
+ const model=selected.recordStorage.models.get('ipqcCMasterControl');
+ if(!object(model)||!Array.isArray(model.versions)||!object(model.workflow)||model.workflow.scope!=='ipqc-c'||model.workflow.schemaVersion!==3)return null;
+ const allocation=selected.recordStorage.allocations.get('ipqcCMasterControl');
+ if(!allocation||JSON.stringify(allocationIndex(model,allocation))!==JSON.stringify(allocation))return null;
+ const handle=Object.freeze({}) as IpqcCCreateRecordMutationHandle;
+ const privateStorage:RecordStorage={...selected.recordStorage,envelope:JSON.parse(original),originalValues:{...selected.recordStorage.originalValues},known:new Set(selected.recordStorage.known),models:new Map(selected.recordStorage.models),allocations:new Map(selected.recordStorage.allocations)};
+ ipqcCCreateMutationHandles.set(handle,{bucket,revision,manifest:original,envelope:privateStorage.envelope,storage:privateStorage,values:{...selected.values},visibleStorage:selected.recordStorage,visibleKnown:[...selected.recordStorage.known],model,allocation:JSON.stringify(allocation),consumed:false});
+ return{...selected,handle};
+}
+export async function encodeIpqcCCreateRecordMutation(bucket:Bucket,handle:IpqcCCreateRecordMutationHandle,revision:number,values:Record<string,string>,storage:RecordStorage,model:unknown){
+ const b=ipqcCCreateMutationHandles.get(handle);
+ if(!b||b.consumed||b.bucket!==bucket||b.revision!==revision||b.visibleStorage!==storage||!storage.partial||JSON.stringify(storage.envelope)!==b.manifest||JSON.stringify(storage.originalValues)!==JSON.stringify(b.values)||storage.known.size!==b.visibleKnown.length||b.visibleKnown.some(sha=>!storage.known.has(sha))||storage.models.size!==1||storage.models.get('ipqcCMasterControl')!==b.model||storage.allocations.size!==1||JSON.stringify(storage.allocations.get('ipqcCMasterControl'))!==b.allocation||Object.keys(values).length!==Object.keys(b.values).length||Object.entries(b.values).some(([key,value])=>values[key]!==value))throw Error('Invalid IPQC-C Create mutation handle');
+ b.consumed=true;
+ const encoded=JSON.parse(await encodeRecordValuesCore(bucket,{ipqcCMasterControl:b.values.ipqcCMasterControl},b.storage,new Map([['ipqcCMasterControl',model]]))) as Envelope;
+ const next:Envelope={...b.envelope,__processRecords:{...b.envelope.__processRecords,values:{...b.envelope.__processRecords.values,ipqcCMasterControl:encoded.__processRecords.values.ipqcCMasterControl},allocations:{...b.envelope.__processRecords.allocations,ipqcCMasterControl:encoded.__processRecords.allocations!.ipqcCMasterControl}}};
+ return JSON.stringify(next);
+}
+
 // FQC Apply/Save alone: authorized dependency faults still fail closed; opaque
 // unrelated aggregates remain unverified and are preserved, never fabricated.
 const fqcRequiredAuth=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
