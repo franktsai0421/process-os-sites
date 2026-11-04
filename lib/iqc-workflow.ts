@@ -54,6 +54,35 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
   apply(control,command,context){
     const flow=control.workflow!;
     if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+    if(command.action==='save'&&command.moduleAction==='save-local-v1'){
+      if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+      // Apply only in request memory. The route persists the final saved state once.
+      const staged=structuredClone(control),patches=structuredClone(command.patches||[]);
+      for(const patch of patches){
+        if(patch.op!=='insert')continue;
+        const row=patch.value as Record<string,unknown>;
+        if(patch.path.length!==1||!row||typeof row.id!=='string')throw new DraftConflict('INVALID_PATCH',422);
+        if(patch.path[0]==='errors'){
+          const part=staged.workflow!.working.parts.find(p=>p.code===row.partCode&&!p.isDeleted)||patches.filter(p=>p.op==='insert').find(p=>p.path[0]==='parts'&&(p.value as Record<string,unknown>)?.code===row.partCode)?.value as Record<string,unknown>|undefined;
+          if(!part)throw new DraftConflict('PART_REMOVED');
+          row.code=nextIqcErrorCode(staged,String(row.partCode));staged.reservedErrorCodes.push(String(row.code));
+        }
+      }
+      for(const patch of patches){
+        if(patch.op!=='insert'||patch.path[0]!=='items')continue;
+        const row=patch.value as Record<string,unknown>;
+        const error=staged.workflow!.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(p=>p.op==='insert').find(p=>p.path[0]==='errors'&&(p.value as Record<string,unknown>)?.id===row.errorId)?.value as Record<string,unknown>|undefined;
+        if(!error)throw new DraftConflict('ERROR_REMOVED');
+        row.partCode=error.partCode;row.checkNo=nextIqcCheckNo(staged,String(error.code));staged.reservedCheckNos.push(String(row.checkNo));
+      }
+      const fingerprint=context.commandFingerprint||stableDraftJSON(command);
+      const applied=iqcWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined,patches},{...context,commandFingerprint:fingerprint,iqcLocalNumbered:true} as typeof context & {iqcLocalNumbered:boolean});
+      if(applied instanceof Promise)throw new DraftConflict('INVALID_ADAPTER');
+      applied.state.receipts=flow.receipts;applied.state.sequences=flow.sequences;
+      const result=applyDraftCommand(applied.state,{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});
+      control.reservedErrorCodes=staged.reservedErrorCodes;control.reservedCheckNos=staged.reservedCheckNos;
+      return result;
+    }
     if(command.moduleAction){
       if(command.action!=='apply'||!['createError','createItem'].includes(command.moduleAction))throw new DraftConflict('INVALID_MODULE_ACTION',422);
       const input=command.input||{},text=(v:unknown)=>typeof v==='string'?v:'';
@@ -75,7 +104,7 @@ export const iqcWorkflowAdapter:WorkflowAdapter<IqcSnapshot,IqcWorkflowControl>=
       if(typeof collection!=='string'||!Object.hasOwn(editableFields,collection))throw new DraftConflict('INVALID_COLLECTION',422);
       const rows=flow.working[collection as keyof IqcSnapshot];
       if(patch.op==='insert'){
-        if(patch.path.length!==1||!['parts','categories','suppliers'].includes(collection))throw new DraftConflict('SERVER_NUMBER_REQUIRED',422);
+        if(patch.path.length!==1||!['parts','categories','suppliers',...((context as typeof context & {iqcLocalNumbered?:boolean}).iqcLocalNumbered?['errors','items']:[])].includes(collection))throw new DraftConflict('SERVER_NUMBER_REQUIRED',422);
       }else if(patch.op==='remove'){
         if(patch.path.length!==2||!['categories','suppliers'].includes(collection))throw new DraftConflict('SOFT_DELETE_REQUIRED',422);
         if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(patch.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);

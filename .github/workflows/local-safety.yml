@@ -92,7 +92,7 @@ jobs:
       - name: IQC unknown-result reliability and visible recovery
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/iqc-write-reliability.test.mjs tests/iqc-write-handler.test.cjs tests/iqc-ordinary-verified-readback.test.mjs
+          node --test tests/iqc-write-reliability.test.mjs tests/iqc-write-handler.test.cjs tests/iqc-local-atomic-save.test.cjs tests/iqc-ordinary-verified-readback.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/iqc-unknown-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -163,7 +163,8 @@ jobs:
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs
+          # Separate compiled Chromium/Miniflare fixtures; preserve in-test races and action deadlines.
+          node --test --test-concurrency=1 tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Synthetic source, snapshot and authorization regressions
         id: head_validation_04

@@ -217,7 +217,7 @@
   window.sharedDraftNavigationState=()=>{const own=[...clients].filter(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.());return {queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
   window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.()&&(c.unknown()||c.failed())&&!c.departureCovered?.());
   // oxlint-disable-next-line typescript/no-deprecated -- Required compatibility signal for Chromium's unsynchronized-work exit warning.
-  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=window.sharedDraftNavigationState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
+  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=[...clients].filter(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.()&&!c.unloadAllowed?.());if(pending.some(c=>c.queued()||c.unknown()||c.failed())){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
   const scrollLocks=new Set();let previousOverflow='';
   function lockScroll(overlay){if(!scrollLocks.size){previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}scrollLocks.add(overlay);}
   function unlockScroll(overlay){scrollLocks.delete(overlay);if(!scrollLocks.size)document.body.style.overflow=previousOverflow;}
@@ -310,7 +310,7 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
@@ -369,7 +369,7 @@
     const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
     const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
-    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered()};clients.add(accountClient);
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>allowUnknownDeparture&&boundedScope==='iqc'&&departureEligible()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
@@ -545,6 +545,7 @@
     }
     function boundedRejection(error,command){
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
+      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
       if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
@@ -556,7 +557,7 @@
       }
       // Audited pre-CAS failures from versioned-shared-workflow + shared-draft.
       // Receipt GETs, proxy-shaped errors and OPERATION_ID_REUSED are excluded.
-      if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return action==='apply'&&Array.isArray(error.details?.path)&&command.guards?.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
+      if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return (action==='apply'||iqcLocalSave)&&Array.isArray(error.details?.path)&&command.guards?.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
       // These ordinary-editor failures are thrown by the exact scoped adapter
       // before the shared-state CAS. They are not receipt errors or HTTP classes.
       if(action==='apply'&&Array.isArray(command.patches)&&command.patches.length){
@@ -572,13 +573,15 @@
       }
       // IQC/C route-adapter failures below are exact pre-CAS outcomes, never
       // generic 422s. Dynamic IQC diagnostic strings remain conservative unknown.
-      if(action==='apply'&&['iqc','ipqc-c'].includes(boundedScope)){
+      if((action==='apply'||iqcLocalSave)&&['iqc','ipqc-c'].includes(boundedScope)){
         const patches=Array.isArray(command.patches)&&command.patches.length>0,moduleAction=command.moduleAction,input=command.input;
         const moduleIntent=boundedScope==='iqc'?['createError','createItem'].includes(moduleAction):['create-error','create-item','delete-error','delete-item'].includes(moduleAction);
         if(patches&&error.status===409&&code==='ENTITY_REMOVED_OR_AMBIGUOUS')return true;
         if((patches||moduleIntent)&&error.status===422&&code==='EQUIPMENT_UNAVAILABLE')return true;
         if(patches&&error.status===422&&['UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED'].includes(code))return true;
         if(boundedScope==='iqc'){
+          if(iqcLocalSave&&error.status===422&&code==='PHOTO_NOT_UPLOADED')return true;
+          if(iqcLocalSave&&error.status===409&&['PART_REMOVED','ERROR_REMOVED'].includes(code))return true;
           if(patches&&error.status===422&&['INVALID_COLLECTION','SERVER_NUMBER_REQUIRED','SOFT_DELETE_REQUIRED'].includes(code))return true;
           if((patches||moduleIntent)&&error.status===422&&['IQC 草稿格式錯誤','IQC 草稿缺少必要清單','IQC 資料 ID 重複或空白','IQC 原始編號或新增編號重複','既有 IQC 編號不可刪除或重編；請使用停用標記','IQC 資料欄位不完整','類別或供應商名稱不可空白或重複','IQC 停用標記格式錯誤','錯誤代碼找不到所屬零件或越文名稱空白'].includes(code))return true;
           if(error.status===409&&code==='PART_REMOVED'&&moduleAction==='createError'&&boundedText(input?.partCode))return true;

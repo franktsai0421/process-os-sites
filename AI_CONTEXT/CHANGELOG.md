@@ -2,6 +2,10 @@
 
 Stage form/matrix edits locally, atomically merge and save once, retain independent submit permission, and opt FQC into silent checked abandonment without clearing unknown receipts. No schema/data migration or publication. [Candidate evidence](../docs/acceptance/fqc-single-save-20261104/README.md).
 
+## 2026-11-04 IQC local editing candidate
+
+Local Apply + atomic shared Save, preserved field conflicts/receipts, IQC-only silent abandonment. Not deployed. [Evidence](../docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 — IPQC-C create-item reliability/performance candidate
 
 Canonical create-item now reads fixed required records and preserves unrelated manifest pointers; commits the C allocation index atomically. Session revocation is checked after storage I/O. Its 45-second wait retains receipt-only unknown protection. Follow-up narrows the mandatory create terminal GET while retaining its authority/version fences; five-round 100/1000-item POST+GET timing includes the no-delay CPU limitation. No schema/data change or live-speed claim. [Verification](../docs/acceptance/ipqc-c-create-20261104.md).

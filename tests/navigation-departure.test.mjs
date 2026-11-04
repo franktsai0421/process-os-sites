@@ -62,3 +62,9 @@ void test('automatic opt-in does not override busy, blocked or unproven unknown 
   const result=coordinator.request({key:'target',run(){throw Error('unexpected target');}});assert.equal(shown,1);assert.equal(acted,0);coordinator.cancel();assert.equal((await result).status,'cancelled');
  }
 });
+void test('opted-in local input abandons without a decision and acknowledges the handoff',async()=>{
+ let status={state:'dirty',canAbandon:true},shown=0,acts=0;const id={};
+ const coordinator=createDepartureCoordinator({owner:()=>id,isCurrent:owner=>owner===id,inspect:()=>status,autoAbandon:()=>true,show:()=>shown++,act:async action=>{assert.equal(action,'abandon');acts++;status={state:'departing',departureId:id};return{departureId:id,release(){}};}});
+ const result=await coordinator.request({key:'next',label:'next',run:async ticket=>{coordinator.committed(ticket);return{status:'ready'};}});
+ assert.equal(result.status,'ready');assert.equal(shown,0);assert.equal(acts,1);
+});

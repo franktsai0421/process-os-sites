@@ -43,7 +43,7 @@
   return (status.state==='clean'||['dirty','unknown'].includes(status.state)&&status.canAbandon===true)&&!otherDepartureBlocked(adapter,false,status.canAbandon===true&&typeof adapter.otherDraftsPending==='function');
  };
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-fqc-single-save1');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-draft-integration1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -309,7 +309,7 @@
  // Cross-document close/reload has only the browser's native confirmation.
  // No custom decision or implicit write is started from this event.
  window.addEventListener('beforeunload',event=>{
-  const adapter=departureAdapter();if(!adapter||adapterState(adapter).state==='clean'||api.canUnloadWithoutPrompt())return;
+  const adapter=departureAdapter();if(!adapter||adapter.allowUnload?.()===true||adapterState(adapter).state==='clean'||api.canUnloadWithoutPrompt())return;
   event.preventDefault();
   // oxlint-disable-next-line typescript/no-deprecated -- Chromium's native unload confirmation requires returnValue.
   event.returnValue='Unsaved or unconfirmed process draft';

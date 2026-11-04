@@ -137,3 +137,9 @@ for(const status of [401,403])void test(`initial automatic receipt ${status}, re
  const reload=f.api.load();await tick();f.respond(f.requests.length-1,full());await reload;assert.equal(f.api.state().readDenied,null);assert.equal(f.clients[0].permission('view'),true);f.page.innerHTML='NEW BUSINESS CONTENT';
  const query=f.api.checkOperation().catch(e=>e);await tick();f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);const repeated=await query;assert.equal(f.api.state().readDenied,repeated);assert.doesNotMatch(f.page.innerHTML,/NEW BUSINESS CONTENT/);assert(f.clients[0].readDenialVersion('receipt')>before);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
 });
+void test('IQC local Save original guarded conflict is a proven rejection, not unknown',async()=>{
+ const f=await warm(),client=f.api.transport(),path=['items',{id:'item'},'nameVi'];
+ const pending=client.command('g','save',{moduleAction:'save-local-v1',patches:[{op:'set',path,value:'new'}],guards:[{path,value:'old'}]}).catch(e=>e);await tick();
+ f.respond(f.requests.length-1,{error:'DEPENDENCY_CHANGED_RECONFIRM',details:{path},requestId:webcrypto.randomUUID()},409);
+ const error=await pending;assert.equal(error.message,'DEPENDENCY_CHANGED_RECONFIRM');assert.equal(client.hasUnknown(),false);assert.equal(f.markerCount(),0);
+});
