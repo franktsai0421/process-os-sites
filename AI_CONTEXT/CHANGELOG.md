@@ -1,6 +1,6 @@
 ## 2026-11-04 — FQC flow latency candidate
 
-Overlap selected aggregate R2 GETs in bounded windows of five for FQC reads and Apply/Save without reducing validation/read counts or terminal freshness. Add paired main359 handler/client and native Chromium click-to-usable benchmarks and ordered-failure/stream-cleanup/route-isolation regressions. Independent review found and fixed malformed-next-pointer error precedence; historical benchmark baseline pins remain intact. [Evidence and remaining live/CI gates](../docs/acceptance/fqc-flow-performance-20261104/README.md). No deployment or data/schema/account change.
+Overlap selected aggregate R2 GETs in bounded windows of five for FQC reads and Apply/Save without reducing validation/read counts or terminal freshness. Add paired main359 handler/client and native Chromium click-to-usable benchmarks and ordered-failure/stream-cleanup/route-isolation regressions. Full CI and expanded local validation exposed mixed Begin and unsupported Save envelopes entering read-ahead; restore exact outer-envelope and command classification while preserving both original integration assertions. Independent review found and fixed malformed-next-pointer error precedence; historical benchmark baseline pins remain intact. [Evidence and remaining live/CI gates](../docs/acceptance/fqc-flow-performance-20261104/README.md). No deployment or data/schema/account change.
 
 ## 2026-11-03 — Scoped non-FQC unknown departure candidate
 

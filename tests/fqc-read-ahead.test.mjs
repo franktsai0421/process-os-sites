@@ -124,3 +124,72 @@ for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMet
     assert.equal(accessGet<overrideText,path==='/api/fqc/workflow?caseMetadata=1','only the exact FQC route overlaps this formerly serial pair');
   }finally{f.close();}
 });
+for(const action of ['apply','save'])for(const missingBody of [false,true])void test(`Begin envelope with nested ${action} retains ordinary Begin reads and no command side effects; missing body=${missingBody}`,async()=>{
+  const f=await fixture();try{
+    const client=f.realm().client,begun=await client.begin();
+    await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'retained historical body'}}]});values.sentinel='"untouched"';});
+    const before=f.db.prepare('SELECT * FROM shared_state').get(),refs=JSON.parse(before.values).__processRecords.values;
+    if(missingBody){const aggregate=JSON.parse(f.objects.get(refs.toolingMasterControl.key));f.objects.delete(aggregate.versions[0].snapshot.__immutableBody.key);}
+    const objects=new Map(f.objects),trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);
+    f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const object=await get(key);if(!object)return object;return{...object,text:()=>{trace.push(['text',key]);return object.text();}};};
+    const command={action,generation:begun.control.workflow.generation,operationId:'nested-command-must-not-run',clientId:'synthetic',sequence:1,patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'MUST NOT APPLY'}]};
+    const results=[];
+    for(const body of [{action:'begin'},{action:'begin',command}]){
+      trace.length=0;f.events.length=0;
+      const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify(body)}),payload=await response.json();
+      assert.equal(response.status,missingBody?500:200);
+      if(missingBody)assert.equal(payload.error,'WORKFLOW_WRITE_FAILED');else{assert.equal(payload.unchanged,true);assert.equal(payload.control.workflow.saved,null);assert.equal(payload.control.workflow.working.errors[0].name,'Synthetic error');}
+      assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.deepEqual(f.objects,objects);
+      assert(!f.events.some(e=>e.kind==='put'||e.kind==='sql'),'Begin must not execute the nested mutation');
+      const overrideText=trace.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key),accessGet=trace.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key);
+      assert(overrideText>=0&&accessGet>overrideText,'Begin keeps serial aggregate consumption');
+      if(missingBody)assert(!trace.some(([kind,key])=>kind==='get'&&key===refs.sentinel.key),'no speculative later aggregate after Begin body failure');
+      results.push(structuredClone(trace));
+    }
+    assert.deepEqual(results[1],results[0],'nested command cannot change any Begin GET or text observation');
+  }finally{f.close();}
+});
+for(const action of ['apply','save','matrix'])void test(`ordinary ${action} without outer action retains read overlap and verified mutation`,async()=>{
+  const f=await fixture();try{
+    const client=f.realm().client,begun=await client.begin();await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});});
+    const change={patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'Expected change'}],guards:[{path:['errors',{id:'error'},'name'],value:'Synthetic error'}]};
+    if(action==='save')await client.command(begun.control.workflow.generation,'apply',change);
+    const refs=JSON.parse(f.db.prepare('SELECT "values" FROM shared_state').get().values).__processRecords.values,trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);
+    f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const object=await get(key);if(!object)return object;return{...object,text:()=>{trace.push(['text',key]);return object.text();}};};
+    const matrix={moduleAction:'replace-matrix-v1',input:{products:[{code:'SYN-P',category:'SYN'}],items:[{id:'item',category:'SYN',productCodes:['SYN-P']}]}};
+    await client.command(begun.control.workflow.generation,action==='matrix'?'apply':action,action==='matrix'?matrix:action==='apply'?change:undefined);
+    const overrideText=trace.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key),accessGet=trace.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key);
+    assert(accessGet>=0&&overrideText>accessGet,'ordinary mutation still overlaps selected authority GETs');
+    const state=await f.state();if(action==='matrix')assert.deepEqual(state.workflow.working.items[0].productCodes,['SYN-P']);else assert.equal(state.workflow.working.errors[0].name,'Expected change');assert.equal(client.hasUnknown(),false);
+    if(action==='save')assert.deepEqual(state.workflow.saved.content,state.workflow.working);else assert.equal(state.workflow.saved,null);
+  }finally{f.close();}
+});
+for(const kind of ['save-unknown','outer-unknown','matrix-expectedRevision','matrix-patches','matrix-guards','matrix-unknown','matrix-id','matrix-input-null','matrix-input-empty','matrix-input-extra','matrix-input-array-field'])void test(`unrecognized ${kind} preserves serial fallback and fault observations`,async()=>{
+  const f=await fixture();try{
+    const begun=await f.realm().client.begin();
+    await f.mutate(values=>{values.processAccessControl=JSON.stringify({audit:[]});values.toolingMasterControl=JSON.stringify({versions:[{id:'unrelated',snapshot:{note:'unreadable body'}}]});values.sentinel='"untouched"';});
+    const before=f.db.prepare('SELECT * FROM shared_state').get(),refs=JSON.parse(before.values).__processRecords.values,aggregate=JSON.parse(f.objects.get(refs.toolingMasterControl.key));f.objects.delete(aggregate.versions[0].snapshot.__immutableBody.key);
+    const objects=new Map(f.objects),trace=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);
+    f.env.STATE_ARCHIVE.get=async key=>{trace.push(['get',key]);const object=await get(key);if(!object)return object;return{...object,text:()=>{trace.push(['text',key]);return object.text();}};};
+    const command={action:'apply',operationId:'fallback-operation',clientId:'fixture-client',generation:begun.control.workflow.generation,sequence:1,moduleAction:'replace-matrix-v1',input:{items:[],products:[]}},body={command};
+    if(kind==='save-unknown'){command.action='save';delete command.moduleAction;delete command.input;command.unknown=true;}
+    if(kind==='outer-unknown')body.unknown=true;
+    if(kind==='matrix-expectedRevision')command.expectedRevision=0;
+    if(kind==='matrix-patches')command.patches=[];
+    if(kind==='matrix-guards')command.guards=[];
+    if(kind==='matrix-unknown')command.unknown=true;
+    if(kind==='matrix-id')command.operationId='bad';
+    if(kind==='matrix-input-null')command.input=null;
+    if(kind==='matrix-input-empty')command.input={};
+    if(kind==='matrix-input-extra')command.input.extra=true;
+    if(kind==='matrix-input-array-field')command.input.items=1;
+    const traces=[];
+    for(const input of [{action:'begin'},body]){
+      trace.length=0;f.events.length=0;
+      const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify(input)});assert.equal(response.status,500);assert.equal((await response.json()).error,'WORKFLOW_WRITE_FAILED');
+      assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.deepEqual(f.objects,objects);assert(!f.events.some(e=>e.kind==='put'||e.kind==='sql'));
+      assert(!trace.some(([kind,key])=>kind==='get'&&key===refs.sentinel.key));traces.push(structuredClone(trace));
+    }
+    assert.deepEqual(traces[1],traces[0],'fallback reads exactly the ordinary serial failure prefix');
+  }finally{f.close();}
+});

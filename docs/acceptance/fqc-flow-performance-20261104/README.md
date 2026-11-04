@@ -5,6 +5,64 @@ Branch: `codex/fqc-flow-performance-20261104`; [Draft PR #72](https://github.com
 verification, independent review and a separate Draft PR. No merge, deployment,
 real business-data write, credential/access change or pending V31 unlock.
 
+## CI follow-up — restore conservative POST admission
+
+Full CI for head `6541e13`, [run 41762598326](https://github.com/franktsai0421/process-os-sites/actions/runs/41762598326),
+failed in `scripts/test-fqc-record-mutation.cjs:87`. Its mixed
+`{action:"begin",command:{action:"apply",...}}` envelope must follow Begin. The
+read-ahead opt-in checked only the inner command, so it incorrectly enabled
+speculation before the outer Begin dispatch. With a missing unrelated tooling
+body it returned the same 500 and attempted zero writes, but fetched one extra
+11-byte aggregate (15 GET / 14,493 bytes rather than 14 / 14,482). This was a
+product scheduling/fault-observation regression, not a reason to relax the test.
+The earlier claim that all Begin paths were unchanged was too broad.
+
+Expanded local validation also caught `test-fqc-lifecycle8-record-mutation.cjs:120`:
+unsupported Save fields incorrectly enabled speculation (16 GET rather than 15).
+The repair requires an exact command-only outer envelope and reuses the existing
+ordinary Apply/Save classifier. A private matrix read-scheduling classifier
+allows only its known envelope fields, valid common identifiers/sequence/generation,
+and an input object containing only the `items`/`products` arrays. Unrecognized
+command/envelope shapes and selector-bearing commands retain the original serial
+fallback.
+Matrix still uses its original full dependency reader, context, validation and
+writer; this classifier grants no partial-write capability. Row/domain validation
+continues at its original phase. Exact route/scope guards remain unchanged.
+
+The original two integration scripts and their exact assertions are unchanged.
+Eighteen new route regressions cover healthy/missing-body Begin+Apply/Save,
+unknown outer/command fields, forbidden matrix fields, malformed identifiers
+and input shapes, and normal Apply/Save/matrix. On the original `6541e13` source,
+all 15 negative cases fail while the 3 positive cases pass; on the repaired
+source all 48 read-ahead tests pass. They assert complete GET/text observations,
+unchanged D1 rows/R2 objects, zero attempted writes and retained normal overlap.
+
+Current product hashes: `state-records.ts`
+`792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e`;
+`versioned-shared-workflow.ts`
+`8dbb9d6bf06b92a147d882531f47e1beaf354617417754f88acd27c065147914`.
+Fresh post-repair measurements: all 80 native browser and 140 route/client
+samples PASS with unchanged paired counts/bytes. The tables below use their
+actual repaired source hashes. Build/CI receipts are recorded after completion; the
+pre-repair verification section and its build receipts remain historical.
+
+Confirmed local repair checks: 173 core tests (48 read-ahead, 80 required
+dependencies, 45 Apply reliability), 43 native Chromium tests (4 Apply,
+25 unknown/recovery, 14 abandonment), typed lint, TypeScript, 71 inverse
+contracts, original identity baseline and Sites source boundaries PASS.
+Independent review separately passed all 48 read-ahead tests and both untouched
+integration scripts: record mutation 57 groups and lifecycle8 178 groups.
+Process Save 38 groups and Process Flow 114 groups also passed. These overlap
+parts of the full-stage run and are not additive acceptance totals.
+
+The full previously failing CI stage was then exercised locally: 130 of its
+131 commands exited zero; the remaining grouped command passed 217 tests but
+its native `powershell.exe` exit-propagation test is unavailable on Linux. That
+Windows-only test is unchanged and remains required in official CI. A separate
+browser startup initially lacked the default Playwright cache; its supported
+`CHROME_PATH=/usr/bin/chromium` option used the installed native Chromium and
+the test passed. No test assertions, deadlines or CI gates were changed.
+
 ## Incident evidence and what was reproduced
 
 The task supplied v39 UI observations from 2026-11-04: adding an error took over
@@ -69,75 +127,69 @@ payload sizes, network transfer and UI rendering were not measured here.
   manual Save and unknown-outcome protection are retained. Matrix still reads
   its full existing closure; it does not gain the narrower ordinary-form writer.
 
-## Final five-read window — native browser end-to-end measurements
+## Repaired candidate — native browser end-to-end measurements
 
-Reproduce with `node scripts/benchmark-fqc-browser-flow.mjs`. This is native
-Chromium at 1280 px in Chinese, using the unchanged real FQC component/client,
-actual TypeScript guarded routes and ephemeral SQLite/R2. Timing starts at the
-actual DOM button click and ends when the UI can continue, the form is closed,
-unknown state is clear, and two animation frames have elapsed. Every successful
-action must perform exactly one POST and one fresh GET, with independently
-verified stored content. Boot/Begin, text entry and the state oracle are outside
-the window. Five pairs alternate baseline/candidate order; all 80 samples passed,
-with no discarded sample and equal paired SQL/R2 call counts. Timing ran alone,
-after the checks finished; no independent reviewer tests overlapped it.
+Reproduce with `node scripts/benchmark-fqc-browser-flow.mjs`. This is a fresh
+post-repair run using native Chromium at 1280 px in Chinese, the unchanged real
+FQC component/client, actual guarded TypeScript routes and ephemeral SQLite/R2.
+Timing starts at the DOM button click and ends at usable UI, closed form, clear
+unknown state and two animation frames. Every action must perform exactly one
+POST and one fresh GET and pass an independent stored-content oracle. Boot/Begin,
+text entry and the oracle are outside the window. Five pairs alternate execution
+order; all 80 samples pass, with no discarded sample and equal paired SQL/R2 counts.
+It ran alone after all local tests/reviewer probes completed. Source hashes are
+checked before and after timing and include the DOM measurement helper.
 
-This exercises the complete component action through storage and UI settlement,
+This is the complete component action through storage and UI settlement,
 **not the live full application shell, HTTP/TLS path or compiled workerd**.
 The 256-item synthetic fixture and 200 ms per-R2-GET sensitivity scenario are
-explicit assumptions, not measured live data size/latency or a calibrated live
-forecast. SQL and PUT wait is 5 ms. The added wait makes the serial I/O cost
-visible; the no-added-wait profile exposes local UI/CPU overhead separately.
-All UI timings below include mandatory terminal readback; API part medians do
-not necessarily sum to the whole-flow median.
+assumptions, not measured live size/latency or a calibrated deployment forecast.
+SQL and PUT wait is 5 ms. The no-added-wait profile separately exposes local
+UI/CPU overhead. All UI timings include mandatory readback; API part medians
+need not add to the whole-flow median.
 
 | Click to usable UI | No added wait, median s before → after | 200 ms R2 sensitivity, median s before → after | Sensitivity max s before → after |
 | --- | ---: | ---: | ---: |
-| Existing error Apply | 0.289 → 0.281 | 5.502 → 3.221 | 5.552 → 3.250 |
-| New error Apply | 0.285 → 0.268 | 5.681 → 3.413 | 5.707 → 3.468 |
-| Matrix Apply | 0.272 → 0.257 | 8.063 → 4.836 | 8.175 → 4.893 |
-| Save | 0.295 → 0.305 | 5.708 → 3.538 | 5.802 → 3.549 |
+| Existing error Apply | 0.286 → 0.264 | 5.402 → 3.177 | 5.527 → 3.193 |
+| New error Apply | 0.266 → 0.243 | 5.589 → 3.370 | 5.703 → 3.418 |
+| Matrix Apply | 0.277 → 0.268 | 8.049 → 4.808 | 8.151 → 4.842 |
+| Save | 0.290 → 0.284 | 5.623 → 3.424 | 5.711 → 3.527 |
 
 | Sensitivity flow | POST median s before → after | Fresh GET median s before → after | R2 GET / SQL, unchanged |
 | --- | ---: | ---: | ---: |
-| Existing error Apply | 2.523 → 1.517 | 2.656 → 1.453 | 28 / 14 |
-| New error Apply | 2.760 → 1.741 | 2.655 → 1.450 | 29 / 15 |
-| Matrix Apply | 5.120 → 3.107 | 2.655 → 1.453 | 41 / 13 |
-| Save | 2.766 → 1.763 | 2.661 → 1.456 | 29 / 14 |
+| Existing error Apply | 2.519 → 1.508 | 2.657 → 1.450 | 28 / 14 |
+| New error Apply | 2.736 → 1.722 | 2.652 → 1.449 | 29 / 15 |
+| Matrix Apply | 5.108 → 3.097 | 2.654 → 1.449 | 41 / 13 |
+| Save | 2.745 → 1.738 | 2.656 → 1.451 | 29 / 14 |
 
-[All 80 native browser samples, ranges, per-request timings and source hashes](browser-performance-summary.json).
-The no-wait Save median regresses by 11 ms; there is no universal speedup claim.
-Even with the larger overlap, this sensitivity case still takes 3.2–4.8 s.
-Required bodies, current authorization, immutable writes and the two independent
-terminal snapshots retain serial work. No evidence yet proves the minute-long
-incident is resolved. Mobile/Vietnamese checks below establish behavior, not
-mobile/Vietnamese performance.
+[All 80 post-repair native samples](browser-performance-summary.json).
+No-wait values are retained in the table; this is not a universal speedup
+claim. Required bodies, authorization, immutable writes and independent terminal
+snapshots still cost time. This does not prove the original minute-long incident
+is resolved. Mobile/Vietnamese regressions establish behavior, not performance.
+Pre-repair samples remain available in Git history at `6541e13`; their hashes
+were not relabeled as repaired-source evidence.
 
-## Final five-read window — route/client read coverage
+## Repaired candidate — route/client read coverage
 
-A separate sequential run of `node scripts/benchmark-fqc-flow.cjs` covers full
-read, saved draft read and receipt paths as well as writes. This is the actual
-handler/client fixture described in the historical section below, with the final
-runtime source hashes. It does not measure a browser. All 140 samples passed;
-paired counts, consumed bytes and response bytes stay equal. No tests or browser
-benchmark overlapped this run.
+A fresh separate run of `node scripts/benchmark-fqc-flow.cjs` covers full and
+saved draft reads, receipts and writes through actual handler/client fixtures.
+It is not browser timing. All 140 samples pass, with paired storage counts,
+consumed bytes and response bytes equal. No other tests or benchmarks overlap.
+The 30 ms and 200 ms scenarios are distinct artificial sensitivity cases.
 
 | Handler/client flow | No added wait, median ms before → after | 30 ms R2 / 5 ms SQL+PUT, median ms before → after |
 | --- | ---: | ---: |
-| full-read | 13.79 → 11.55 | 413.45 → 230.89 |
-| existing-apply | 67.95 → 72.76 | 931.09 → 583.97 |
-| insert-apply | 60.41 → 65.78 | 960.81 → 634.30 |
-| matrix-apply | 50.61 → 56.40 | 1306.00 → 816.12 |
-| save | 108.74 → 107.43 | 993.48 → 656.93 |
-| receipt | 7.61 → 7.35 | 439.08 → 256.91 |
-| saved-read | 18.90 → 19.14 | 456.69 → 268.39 |
+| full-read | 10.93 → 10.99 | 411.10 → 229.94 |
+| existing-apply | 60.30 → 62.70 | 921.61 → 587.32 |
+| insert-apply | 55.88 → 55.40 | 956.27 → 615.93 |
+| matrix-apply | 47.54 → 52.59 | 1297.52 → 814.94 |
+| save | 97.56 → 95.04 | 980.89 → 660.06 |
+| receipt | 6.96 → 7.01 | 437.82 → 255.37 |
+| saved-read | 16.57 → 17.54 | 448.84 → 268.05 |
 
-[All 140 final-source samples and counters](route-performance-summary-window5.json).
-No-wait write-path medians have small regressions, shown rather than discarded;
-these measurements support overlapping storage waits, not universal CPU gains.
-The 30 ms and 200 ms scenarios are different artificial sensitivity cases, not
-measurements of the deployment. The first-round table below is retained to make
-the progression reviewable and must not be mistaken for this final candidate.
+[All 140 post-repair route/client samples and counters](route-performance-summary-window5.json).
+Any no-wait regressions are shown, not discarded.
 
 ## First-round paired measurements — two-read window, historical
 
@@ -187,14 +239,15 @@ no-added-wait window. The controlled-wait profile began after that probe ended.
 No sample was dropped or adjusted. Real provider stream buffering and live R2
 latency remain unmeasured.
 
-## Final five-read window — verification and review
+## Pre-repair five-read window — verification and review, historical
 
-The final runtime source is `state-records.ts` SHA-256
+The pre-repair runtime source is `state-records.ts` SHA-256
 `792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e`;
 `versioned-shared-workflow.ts` remains
 `053cded33f0f639fc6b338c1db6be58ff32943d3f8244d5bfc9b24109e4537c1`.
-Both final benchmark artifacts pin these files and their relevant fixture/client
-sources; the native artifact also pins the DOM timing helper.
+The pre-repair measurement artifacts in Git history at `6541e13` pin those
+source hashes. Current measurement tables/files above were rerun after the
+admission repair and pin the new route hash.
 
 | Check | Final five-window result |
 | --- | --- |

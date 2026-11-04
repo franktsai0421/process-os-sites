@@ -1,6 +1,6 @@
 ## 2026-11-04 — FQC flow latency candidate
 
-[Draft PR #72](https://github.com/franktsai0421/process-os-sites/pull/72) from main `3594944`: bounded five-aggregate GET overlap for FQC reads and Apply/Save, retaining fresh readback, authority phases, integrity validation and CAS. No deployment, live record change or V31 unlock. [Measured scope, regression evidence and limitations](docs/acceptance/fqc-flow-performance-20261104/README.md). This candidate does not diagnose or repair IQC.
+[Draft PR #72](https://github.com/franktsai0421/process-os-sites/pull/72) from main `3594944`: bounded five-aggregate GET overlap for FQC reads and Apply/Save, retaining fresh readback, authority phases, integrity validation and CAS. Full CI found overly broad POST admission; the follow-up excludes mixed Begin and unsupported commands without changing the original integration assertions. No deployment, live record change or V31 unlock. [Measured scope, regression evidence and limitations](docs/acceptance/fqc-flow-performance-20261104/README.md). This candidate does not diagnose or repair IQC.
 
 ## 2026-11-03 — Simple draft departure follow-up
 
