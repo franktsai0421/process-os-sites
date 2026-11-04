@@ -34,4 +34,4 @@ All tests use synthetic identities and isolated SQLite/R2 or local Chromium. No 
 
 No FQC/IQC/canvas/shared transport implementation or shared shell file was edited. Parent integration must update the `ipqc-c.js` cache version in `public/process/index.html` and reconcile the shared specification, QUALITY, DATA_MODEL, CHANGELOG and HANDOFF links to this note. This avoids competing writes with concurrent modules. No unconfirmed pagination UI was added.
 
-Build requires `PROCESS_PROGRAM_COMMIT` naming the fixed candidate; the initial unpinned invocation correctly refused before build. Exact-head build/CI, cross-module integration, live latency and authorized test-Site acceptance remain separate gates. Draft PR is not release approval.
+Build requires `PROCESS_PROGRAM_COMMIT` naming the fixed candidate; the initial unpinned invocation correctly refused before build. Pinned-candidate build passed (safe build/auth-client checks); exact-head CI, cross-module integration, live latency and authorized test-Site acceptance remain separate gates. Draft PR is not release approval.
