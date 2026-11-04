@@ -9,7 +9,7 @@ import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 
 void test('process browser manifest names every required first-batch action explicitly', () => {
   assert.deepEqual(processBrowserActions, [
-    'begin', 'local-apply', 'sync-current-canvas', 'save', 'submit-open', 'submit-confirm',
+    'begin', 'local-layout', 'local-apply', 'save', 'submit-open', 'submit-confirm',
     'withdraw-open', 'withdraw-confirm', 'resubmit-open', 'resubmit-confirm',
     'review-return-open', 'return-open', 'return-confirm', 'returned-submit-open', 'returned-submit-confirm',
     'review-approve-open', 'approve-open', 'approve-confirm',

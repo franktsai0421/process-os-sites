@@ -23,7 +23,36 @@
 
 最終定向組共 147 項：144 PASS、3 SKIP（缺 immutable paired baseline）。之後補上「已拒絕操作完成本機整理不能假報 Save 成功」修正，相關 27 項全 PASS，包含新增案例。
 
-依賴 TypeScript 5.9.3、Oxlint 1.76.0 安裝在 repository 外的 scratch；無專案 lockfile/dependency 變更。JS 語法與定向非型別 lint PASS。專案原 lint 因缺 oxlint-tsgolint 無法啟動；獨立 scratch config 僅用於非型別 lint，未改專案設定，不能算完整 type-aware lint/typecheck。沒有執行完整 build/typecheck、真實瀏覽器桌面/iPhone、物理手機或 Site 驗收。
+後續依授權執行 `npm ci --ignore-scripts --no-audit --no-fund`，安裝 lockfile 所列完整依賴；未更改 dependency/lockfile。完整 `npm run build`、原始設定的 `npm run lint`（包含 typeAware/typeCheck）及 `tsc --noEmit --incremental false` 全部 PASS。型別 lint 發現的四處測試 Promise 已補上 `void`，沒有停用規則。
+
+### 桌面原生瀏覽器驗收
+
+`tests/process-draft-lifecycle-browser.mjs --isolated-desktop` 使用編譯程式、loopback ephemeral Miniflare、非持久 D1/R2、合成帳號與瀏覽器真實 DOM 點擊；worker outbound 阻擋，沒有呼叫 live Site。既有 CI 預設限制保留，桌面使用明確的新入口，不假報 CI。
+
+Linux Node 24.19.0、npm 11.9.0、Playwright 1.62.1、系統 Chromium 154.0.8037.57，1365×900 桌面視窗。5 輪 × 18 階段共 90 個量測全 PASS，pageErrors 0；第 2/4 輪切換繁體中文，其餘越文。覆蓋 Begin → 本機自動整理/方塊完成 → 原子 Save → Submit → Withdraw → Resubmit → Return → Resubmit → Approve。每輪本機自動整理/方塊完成均零 POST；Save 每輪只有一個 POST，working/saved 相同且 workflow revision 只增加一。撤回/發回/核准狀態、固定 saved、正式投影、其他 seed values 不變均由隔離 fixture 讀回核對。測試保留既有待補確認，未放寬審核。
+
+截圖檢查修復方塊完成與刪除提示的舊「同步」文案，以及共用版本 UI mount 後製程 Save 按鈕文案；只改製程端，不改共用版本或導航。截圖/報告：`.sites-runtime/process-canvas-desktop/saved-{1..5}.png`、`.sites-runtime/process-draft-lifecycle-browser-result.json`。手機驗收依使用者偏好不執行。這不是 live HTTPS 或實際資料效能保證；多人衝突、unknown/receipt 故障仍以隔離 HTTP/VM 測試為證據，未聲稱本輪原生瀏覽器覆蓋全部故障。
+
+Playwright 自帶 Chromium 下載因 `cdn.playwright.dev` 網路政策回覆 403 Domain forbidden；未改政策或重試繞過，使用已安裝系統 Chromium 完成驗收。
+
+### 三個 skip 的確切原因
+
+`canvas-post-authority-stack.test.mjs` 的 100 次本機編輯 JSON/network 配對，以及 20-row、1000-row request/response bytes 配對，都需要 immutable commit `c82a395244ec26d1787f78bd12039d3b471f223f`。目前 repository 不是 shallow clone，但沒有此 object；對既有 origin 查取此 exact SHA 回覆 `upload-pack: not our ref`。故保留這 3 個明確 skip，不用 main 或其他 commit 替代基準，也不宣稱相對加速。其他功能測試照常執行。
+
+### 重現
+
+在乾淨相同 head 安裝 lockfile dependencies；build 的 commit pin 是來源證據，不是發布批准：
+
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run lint
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+PROCESS_PROGRAM_COMMIT="$(git rev-parse HEAD)" npm run build
+PROCESS_PROGRAM_COMMIT="$(git rev-parse HEAD)" CHROMIUM_PATH=/usr/bin/chromium node tests/process-draft-lifecycle-browser.mjs --isolated-desktop
+node --test tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-canvas-atomic-save*.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-departure.test.mjs tests/multiuser-canvas-actual-transport.test.mjs tests/canvas-pending-form-admission.test.mjs tests/canvas-post-authority-stack.test.mjs tests/process-draft-lifecycle-route.test.mjs
+```
+
+需要 Chromium 的環境可指向已授權可用的 `CHROMIUM_PATH`；不得用此 runner 繞過已拒絕的 socket/browser 能力。共用導航與真實資料轉換/發布仍未執行。
 
 ## 父任務整合需求（發布前）
 
