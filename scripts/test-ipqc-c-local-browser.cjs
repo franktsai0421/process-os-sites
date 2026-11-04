@@ -5,7 +5,7 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
 (async()=>{
  const h=await fixture({ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',name:'Fixture',stages:['C-CUT']}],lines:[{code:'C',stages:[{code:'C-CUT',name:'Cut'}]}]}}})});
  await h.begin('ipqc-c');await h.command('ipqc-c','apply',{moduleAction:'create-error',input:{productCode:'C100',stageCode:'C-CUT',name:'Original'}});await h.command('ipqc-c','save');
- let base,dropSave=false,holdRecoveryRead=false,releaseRecoveryRead,notifyRecoveryRead,receiptReads=0;const mutations=[],errors=[];
+ let dropSave=false,holdRecoveryRead=false,releaseRecoveryRead,notifyRecoveryRead,receiptReads=0;const mutations=[],errors=[];
  const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js','ipqc-c.js'];
  const server=http.createServer(async(req,res)=>{try{
  const url=new URL(req.url,base);if(url.searchParams.has('operationId'))receiptReads++;
@@ -16,7 +16,7 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks);if(req.method!=='GET')mutations.push({path:url.pathname,body:body.toString()});
  const endpoint=url.pathname.replace('/api/',''),route=h.load('app/api/'+endpoint+'/route.ts');const headers=new Headers(req.headers);headers.set('Cookie',h.sessions.editor.Cookie);headers.set('Origin',base);const response=await route[req.method](new Request(url,{method:req.method,headers,...(body.length?{body}: {})}));if(dropSave&&req.method==='POST'&&response.status===200){dropSave=false;res.writeHead(200,{'Content-Type':'application/json'});res.end('{}');return;}res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
  }catch(e){errors.push(e.stack);res.writeHead(500);res.end(String(e));}});
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base='http://127.0.0.1:'+server.address().port;
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':chromium.executablePath()),headless:true});
  try{for(const width of [1440,390]){
  const page=await browser.newPage({viewport:{width,height:844}});page.on('pageerror',e=>errors.push(e.stack));await page.goto(base+'/fixture');await page.locator('#ipqcc-save').waitFor();mutations.length=0;
