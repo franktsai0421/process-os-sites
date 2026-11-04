@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),fixture=require('../scripts/fqc-apply-fixture.cjs'),{fixture:uiFixture}=require('../scripts/test-fqc-feedback-races.cjs');
-for(const mode of ['required-read','encode','cas-before','cas-after'])void test(`actual first Apply 500 then same-form unknown guard: ${mode}`,async()=>{
+for(const mode of ['required-read','encode','cas-before','cas-after'])void test(`actual first Save 500 then retry unknown guard: ${mode}`,async()=>{
  const f=await fixture(),messages=[],originalLog=console.error;console.error=(...args)=>messages.push(args);
  try{
   const initial=await(await f.call('/api/fqc/workflow?caseMetadata=1')).json();
@@ -14,10 +14,10 @@ for(const mode of ['required-read','encode','cas-before','cas-after'])void test(
   if(mode==='encode')f.hooks.put=fault;
   if(mode==='cas-before')f.hooks.run=sql=>{if(sql.startsWith('UPDATE shared_state'))fault();};
   if(mode==='cas-after')f.env.DB.prepare=sql=>{const statement=prepare(sql);if(sql.startsWith('UPDATE shared_state')){const run=statement.run.bind(statement);statement.run=async()=>{await run();fault();};}return statement;};
-  await form.onsubmit({preventDefault(){},target:form});assert.equal(ui.c.__fqcTest.ui.lastError,'WORKFLOW_WRITE_FAILED');assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(input.value,'Synthetic error test');
+  await form.onsubmit({preventDefault(){},target:form});assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,0);await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/WORKFLOW_WRITE_FAILED/);assert.equal(ui.c.__fqcTest.ui.lastError,'WORKFLOW_WRITE_FAILED');assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(input.value,'Synthetic error test');
   const writes=f.requests.slice(start).filter(r=>r.method==='POST');assert.equal(writes.length,1);assert.equal(writes[0].status,500);assert.equal(writes[0].result.error,'WORKFLOW_WRITE_FAILED');assert.match(writes[0].result.requestId,/^[0-9a-f-]{36}$/);
-  const log=messages.find(args=>args[0]==='[shared-workflow]');assert(log);assert.equal(log[2],writes[0].result.requestId);assert.deepEqual(JSON.parse(log[4]),{stage:mode==='required-read'?'required-business-read':mode==='encode'?'record-encode':'state-cas',reason:'UNCLASSIFIED_EXCEPTION'});assert(!JSON.stringify(log).includes('synthetic-secret'));assert(!JSON.stringify(writes[0].result).includes('SYNTHETIC_PRIVATE_DETAIL'));
-  await form.onsubmit({preventDefault(){},target:form});assert.equal(ui.c.__fqcTest.ui.lastError,'WORKFLOW_WRITE_FAILED','the second admission failure must not erase the original cause');assert.equal(form.querySelector('.fqc-modal-alert').textContent,ui.c.__fqcTest.displayDraftError('UNKNOWN_OPERATION_CHECK_REQUIRED'));assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,1);
+  const log=messages.find(args=>args[0]==='[shared-workflow]');assert(log);assert.equal(log[2],writes[0].result.requestId);assert.deepEqual(JSON.parse(log[4]),{stage:mode==='required-read'?'business-read':mode==='encode'?'record-encode':'state-cas',reason:'UNCLASSIFIED_EXCEPTION'});assert(!JSON.stringify(log).includes('synthetic-secret'));assert(!JSON.stringify(writes[0].result).includes('SYNTHETIC_PRIVATE_DETAIL'));
+  await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/UNKNOWN_OPERATION_CHECK_REQUIRED/);assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,1);
   f.hooks.get=undefined;f.hooks.put=undefined;f.hooks.run=undefined;f.env.DB.prepare=prepare;
   if(mode==='cas-after'){
    assert.equal((await f.state()).workflow.working.errors[0].name,'Synthetic error test');const result=await ui.c.__fqcTest.transport().resolveUnknown();assert(result.receipt);assert.equal(ui.c.__fqcTest.transport().hasUnknown(),false);

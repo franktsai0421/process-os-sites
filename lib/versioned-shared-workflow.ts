@@ -1,3 +1,4 @@
+import {assertFqcLocalSaveCommand} from './fqc-local-save';
 import {iqcWriteTiming} from './iqc-write-timing';
 import {fqcWriteFailureReason} from './fqc-write-failure';
 import {fqcRequiredDependencyCommand,readFqcRequiredMutationState,captureFqcRequiredBasis,captureFqcRequiredResult,encodeFqcRequiredMutationState} from './fqc-required-dependencies';
@@ -147,6 +148,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
+    if(adapter.key==='qualityMasterControl'&&adapter.scope==='fqc')limited.save=limited.save||limited.edit;
     return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state,check),create:limited.edit&&!!workflowModule&&await check(workflowModule+'.create'),delete:limited.edit&&await check(workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
@@ -215,6 +217,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       let admissionReply:Response|null=null;const refuseAdmission:(error:string,status:number)=>never=(error,status)=>{admissionReply=reply({error},status);throw admissionReply;};
       if(!sameOrigin(request))return reply({error:'FORBIDDEN_ORIGIN'},403);const requestId=crypto.randomUUID(),timing=iqcWriteTiming(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'&&new URL(request.url).pathname==='/api/iqc/workflow',requestId);let failureStage='command-decode';const stage=(name:string)=>{failureStage=name;timing.mark(name);};try{
       const body=await commandBody(request),caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
+      if(adapter.key==='qualityMasterControl'&&adapter.scope==='fqc')assertFqcLocalSaveCommand(body.command);
       // Exact versioned opt-in: bounded FQC Apply still requires its separate
       // fresh terminal GET. Avoid returning live bodies twice, never skip reads,
       // validation, response projection or authorization/fault checks. Legacy clients
@@ -242,6 +245,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=!requiredFqc&&body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
+        if(adapter.scope==='fqc'&&body.command?.moduleAction==='save-local-v1')stage('business-read');
         const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope'),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
         stage('authorization');

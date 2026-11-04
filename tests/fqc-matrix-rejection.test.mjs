@@ -93,7 +93,7 @@ void test('ordinary removed-row refusal is known but cannot use matrix-only disc
   }finally{f.close();}
 });
 
-void test('actual whole matrix Apply rejection keeps choices; explicit Discard then Save retains peer deletion',async()=>{
+void test('actual cell Save rejection keeps choices; explicit abandonment then Save retains peer deletion',async()=>{
   const f=await fixture();try{
     const initial=await f.call('/api/fqc/workflow?caseMetadata=1');
     const ui=await moduleFixture({initialControl:(await initial.json()).control,identityUser:{id:'editor',name:'Synthetic editor',role:'staff'},send:(url,options)=>f.call(url,options)});
@@ -102,11 +102,11 @@ void test('actual whole matrix Apply rejection keeps choices; explicit Discard t
     const peer=f.realm('other');await peer.client.read();
     await peer.client.command(ui.library.workflow.generation,'apply',{patches:[{op:'set',path:['items',{id:'item'},'isDeleted'],value:true}],guards:[{path:['items',{id:'item'},'isDeleted']}]});
     const before=JSON.stringify(await f.state()),writes=posts(f).length;
-    await ui.c.__fqcTest.applyMatrixChoices();
+    await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/FQC_MATRIX_SCOPE_CHANGED/);
     assert.equal(ui.c.__fqcTest.transport().hasUnknown(),false);assert.equal(ui.c.__fqcTest.transport().hasSyncFailures(),true);
     assert.equal(ui.c.__fqcTest.matrixDirty(),true);assert.equal(ui.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
     assert.equal(JSON.stringify(await f.state()),before);assert.equal(posts(f).length,writes+1);
-    await ui.main.querySelector('#fqc-matrix-discard').click();
+    const lease=await ui.c.FQCMasterUI.navigation.departure.abandon();lease.release();
     for(let i=0;i<1000&&ui.c.__fqcTest.ui.saving;i++)await new Promise(resolve=>setTimeout(resolve,5));
     assert.equal(ui.c.__fqcTest.ui.saving,false);
     assert.equal(ui.c.__fqcTest.matrixDirty(),false);assert.equal(ui.c.__fqcTest.transport().hasSyncFailures(),false);

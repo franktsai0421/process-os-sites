@@ -1,3 +1,7 @@
+## 2026-11-04 FQC：本機編輯、一次存取（最新確認）
+
+FQC 編輯不即時同步；表單完成與矩陣勾選先保留於本次頁面，搜尋／篩選不清除勾選。按一次「存取」才逐欄位／逐格合併並原子保存共用快照；不同人的不同格保留，相同結果可收斂，真正衝突才確認。修改權包括存取，送審權獨立。離頁直接放棄未送出的輸入，不跳提醒；未知結果可離頁但保留原識別與寫入鎖，不得重送或刪除未知操作。已存、待審、正式、歷史及既有已同步未存內容均不自動刪除。此要求取代本文件較早的 FQC 整矩陣最後套用覆蓋及兩階段 Apply/Save 規則；其他模組另案實作。[候選與資料界線](../../acceptance/fqc-single-save-20261104/README.md)。
+
 IQC data-state notes retain counts for unstructured formal frequency and unselected optional suppliers outside content-missing totals. Their source is the currently selected draft or fixed version; they add no submission gate.
 
 ## 2026-11-03 IQC completeness presentation clarification

@@ -29,10 +29,20 @@ function probes() {
     writes(value) { writes = value; }, error(value) { error = value; }, run(fn, args) { return vm.runInNewContext('(' + fn.toString() + ')(args)', {...context, args}); }};
 }
 void test('FQC phases independently require five real browser samples; prior canvas rows do not satisfy them', () => {
-  assert.equal(fqcBrowserActions.length, 33); assert.equal(new Set(fqcBrowserActions).size, fqcBrowserActions.length);
-  for (const name of ['begin', 'error-edit-apply', 'error-new-apply', 'item-edit-apply', 'item-new-apply', 'matrix-choice', 'matrix-apply', 'matrix-discard', 'save', 'read-saved-draft', 'submit-confirm', 'withdraw-confirm', 'resubmit-confirm', 'return-confirm', 'returned-submit-confirm', 'approve-confirm']) assert(fqcBrowserActions.includes(name));
+  assert.equal(fqcBrowserActions.length, 32); assert.equal(new Set(fqcBrowserActions).size, fqcBrowserActions.length);
+  for (const name of ['begin', 'error-edit-stage', 'error-new-stage', 'item-edit-stage', 'item-new-stage', 'matrix-choice', 'matrix-discard', 'save', 'read-saved-draft', 'submit-confirm', 'withdraw-confirm', 'resubmit-confirm', 'return-confirm', 'returned-submit-confirm', 'approve-confirm']) assert(fqcBrowserActions.includes(name));
   assert(summarizeActions([], fqcBrowserActions).every(row => row.status === 'NOT_COMPLETE' && row.medianMs === null));
   assert.throws(() => summarizeActions([{action: 'sync-current-canvas', cycle: 1}], fqcBrowserActions));
+});
+void test('native lifecycle stages forms and matrix locally before one explicit Save', () => {
+  assert(!fqcBrowserActions.includes('matrix-apply'));
+  assert.match(source, /Completing a form must not write shared business state/);
+  assert.match(source, /await verify\(await localContent\(\)\);\s*}, 0\)/);
+  assert.match(source, /Discarding matrix choices preserves staged forms/);
+  assert.match(source, /locator\('#fqc-matrix-apply'\)\.isVisible\(\), false/);
+  const save = source.slice(source.indexOf("await measure(editor.page, 'save'"), source.indexOf('// Actual persisted readback'));
+  for (const field of ['forms.errorName', 'forms.newErrorName', 'forms.itemName', 'forms.newItemName', 'forms.description', 'seed.ids.product2']) assert(save.includes(field));
+  assert.match(save, /}, 1\)/);
 });
 void test('pending FQC gate requires original case/save/generation and absent write controls, not mere missing Save', () => {
   const f = probes(), args = {actor: f.actor, savedId: f.savedId, generation: f.generation};
@@ -101,7 +111,7 @@ void test('review setup requires a genuine visible enabled unique FQC overview c
   assert.match(block, /expected\.pendingId/);
   assert.doesNotMatch(block, /force:|\.open\s*=|dispatchEvent|evaluate/);
   assert.match(source, /Mandatory unique control/); assert.match(source, /Mandatory enabled control/);
-  assert.equal(fqcBrowserActions.length, 33, 'setup disclosure is not an invented action timing sample');
+  assert.equal(fqcBrowserActions.length, 32, 'setup disclosure is not an invented action timing sample');
 });
 for (const lang of ['zh', 'vi']) void test('actual overview keeps async pending collapsed and opens exact FQC only on its card click ' + lang, () => {
   const dom = canvasDOM(), doc = dom.document; doc.documentElement.lang = lang;

@@ -68,6 +68,13 @@ jobs:
         run: |
           node --test tests/approval-deeplink-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: FQC local editing and atomic single Save
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/fqc-single-save.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/fqc-single-save-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC Apply reliability and actual native forms
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |

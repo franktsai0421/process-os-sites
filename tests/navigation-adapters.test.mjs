@@ -114,13 +114,13 @@ void test('changed persistent-navigation executable references have coherent new
   'app.js':'20261031-quality-recovery1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261031-bom-ram-save1',
-  'bootstrap.js':'20261103-simple-approval1',
+  'bootstrap.js':'20261104-single-save1',
   'canvas-local.js':'20261103-simple-departure1',
   'canvas-recovery-store.js':'20261031-canvas-recovery1',
-  'delivery-navigation.js':'20261103-unknown-approval1',
+  'delivery-navigation.js':'20261104-single-save1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
-  'fqc-master.js':'20261103-fqc-departure6',
+  'fqc-master.js':'20261104-single-save1',
   'ipqc-ab.js':'20261103-unknown-departure1',
   'ipqc-c.js':'20261031-quality-recovery1',
   'iqc-master.js':'20261104-iqc-unknown1',
@@ -131,7 +131,7 @@ void test('changed persistent-navigation executable references have coherent new
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261103-unknown-departure1',
   'routine-fqc.js':'20261103-simple-departure1',
-  'shared-draft-client.js':'20261104-iqc-ipqcc1',
+  'shared-draft-client.js':'20261104-single-save1',
   'shared-state.js':'20261103-navigation-identity1',
   'tooling.js':'20261103-unknown-departure1',
   'user-access.js':'20261103-simple-departure1',
@@ -151,14 +151,14 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-simple-departure1"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-fqc-single-save1"));
 });
 
-// The FQC control wraps its shared flow inside the FQC library.
-void test('FQC departure detects only the mounted FQC library unsaved flow',()=>{
+// FQC must not auto-save legacy shared working during departure.
+void test('FQC departure never auto-saves legacy shared working',()=>{
  const text=source('fqc-master.js'),expression=part(text,'requiresSave:()=>','saveForDeparture:').slice('requiresSave:'.length).replace(/,$/,'');
  const flow={unsaved:true},box={hostElement:{isConnected:true},control:{libraries:{fqc:{workflow:flow}}},window:{sharedDraftNeedsSave:value=>!!value?.unsaved}};
- vm.createContext(box);const check=vm.runInContext(expression,box);assert.equal(check(),true);flow.unsaved=false;assert.equal(check(),false);flow.unsaved=true;box.hostElement.isConnected=false;assert.equal(check(),false);
+ vm.createContext(box);const check=vm.runInContext(expression,box);assert.equal(check(),false);flow.unsaved=false;assert.equal(check(),false);flow.unsaved=true;box.hostElement.isConnected=false;assert.equal(check(),false);
 });
 
 void test('authoring departure cannot publish local canvas positions or connections',async()=>{
