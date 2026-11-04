@@ -64,9 +64,13 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
     // Build on a private aggregate. Nothing (including allocations or receipts)
     // escapes if any later edit, structural check or final Save fails.
     const candidate={...control,reservedErrorCodes:[...control.reservedErrorCodes],reservedItemCodes:[...control.reservedItemCodes],workflow:control.workflow};
-    const ids=new Map<string,string>();
+    const ids=new Map<string,string>(),codes=new Map<string,string>();
     const remap=(value:unknown):unknown=>Array.isArray(value)?value.map(remap):value&&typeof value==='object'
-      ?Object.fromEntries(Object.entries(value).map(([key,v])=>[key,['id','errorId'].includes(key)&&typeof v==='string'&&ids.has(v)?ids.get(v):remap(v)])):value;
+      ?Object.fromEntries(Object.entries(value).map(([key,v])=>[key,
+        // Only server-owned numbering of a row created earlier in this batch is
+        // normalized. All user fields and existing rows remain exact guards.
+        key==='code'&&typeof (value as {id?:unknown}).id==='string'&&codes.has((value as {id:string}).id)?codes.get((value as {id:string}).id):
+        ['id','errorId'].includes(key)&&typeof v==='string'&&ids.has(v)?ids.get(v):remap(v)])):value;
     const internalIds:string[]=[];
     const clientId='local-'+command.operationId.slice(0,80);
     for(const [index,raw] of command.localChanges.entries()) {
@@ -85,7 +89,10 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
         ...(change.moduleAction?{moduleAction:change.moduleAction,input:change.input}: {patches:change.patches}),guards:change.guards},
         {...context,commandFingerprint:undefined});
       internalIds.push(operationId);
-      if(raw.localId)ids.set(raw.localId,(change.moduleAction==='create-error'?'error-':'item-')+operationId);
+      if(raw.localId){
+        const kind=change.moduleAction==='create-error'?'errors':'items',id=(kind==='errors'?'error-':'item-')+operationId;
+        ids.set(raw.localId,id);codes.set(raw.localId,candidate.workflow!.working[kind].find(row=>row.id===id)!.code);
+      }
     }
     // Inner operations are implementation details; the original operation owns
     // the only durable receipt and is the only command recoverable/replayable.
@@ -113,6 +120,7 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
       newItem={id:'item-'+command.operationId,code:nextItemCode(control,parent.code,context.allocationIndex),errorId:parent.id,productCode:parent.productCode,stageCode:parent.stageCode,
         standard:text(raw.standard),description:text(raw.description),note:text(raw.note),reason:'',tool:'',method:'',frequency:text(raw.frequency),
         standardEnabled:raw.standardEnabled!==false,cpkEnabled:raw.cpkEnabled===true,notApplicable:false,deleted:false,
+        ...(raw.notApplicableReason!==undefined?{notApplicableReason:text(raw.notApplicableReason)}:{}),
         equipmentId:text(raw.equipmentId),equipmentGroupId:text(raw.equipmentGroupId),equipmentSnapshot:null,
         mediaItems:raw.mediaItems||[],...(raw.rule?{rule:checkedIpqcRule(raw.rule)}:{})};
       patches.push({op:'insert',path:['items'],value:newItem});

@@ -27,8 +27,31 @@ const master={active:{C:{products:[{code:'C100',stages:['C-CUT']}],lines:[{stage
  await send(await build([],'save-only'),'save-only',403);await send(await build(create,'edit-only'),'edit-only',403);
  const absentPhoto=await build([edit('mediaItems',[{id:'a'.repeat(64),name:'absent.png',note:'',afterParagraph:0}],[])]),priorPhoto=h.snapshot();await send(absentPhoto,'editor',422);assert.deepEqual(h.snapshot(),priorPhoto);
  const badEquipment=await build([edit('equipmentId','missing','')]);await send(badEquipment,'editor',422);
+ // Real API: allocating a local item must not invalidate a later full child-set guard.
+ for(const order of ['create-first','delete-first','peer-change','local-field-tamper','optional-field-tamper']){
+  flow=h.flow(await send(await build([{...create[0],localId:'local-other-'+order}])));
+  const other=flow.working.errors.at(-1),parent=flow.working.errors[0],baseItems=structuredClone(flow.working.items);
+  const localId='local-newitem-'+order,template={...baseItems[0],id:localId,code:'尚未存取',errorId:parent.id,notApplicableReason:order==='delete-first'?'Retained creation note':''};
+  const addition={moduleAction:'create-item',localId,input:{errorId:parent.id,item:template}};
+  const removal={moduleAction:'delete-error',input:{id:other.id,cascade:true},guards:[{path:['errors',{id:other.id}],value:structuredClone(other)},{path:['items'],value:order==='delete-first'?baseItems:[...baseItems,structuredClone(template)]}]};
+  const batch=await build(order==='delete-first'?[removal,addition]:[addition,removal]);
+  if(order==='local-field-tamper')removal.guards[1].value.at(-1).standard='Changed guarded user field';
+  if(order==='optional-field-tamper')removal.guards[1].value.at(-1).notApplicableReason='Changed guarded optional field';
+  if(['peer-change','local-field-tamper','optional-field-tamper'].includes(order)){
+   if(order==='peer-change')await send(await build([edit('note','peer changed child',baseItems[0].note)],'edit-only'),'edit-only');
+   const beforeConflict=h.snapshot(),inputBefore=structuredClone(batch);
+   const rejected=await send(batch,'editor',409);assert.equal(rejected.error,'DEPENDENCY_CHANGED_RECONFIRM');
+   assert.deepEqual(h.snapshot(),beforeConflict,order+' rolls back allocation and delete');assert.deepEqual(batch,inputBefore,'rejection preserves original submitted input');
+  }else{
+   const priorBatch=h.snapshot(),result=await send(batch);flow=h.flow(result);
+   assert.equal(result.revision,priorBatch.row.revision+1);assert.equal(flow.working.errors.find(row=>row.id===other.id).deleted,true);
+   const added=flow.working.items.at(-1);assert.equal(added.errorId,parent.id);assert.notEqual(added.code,template.code);assert.equal(added.deleted,false);assert.equal(added.notApplicableReason,template.notApplicableReason);assert.deepEqual(flow.saved.content,flow.working);
+   const committed=h.snapshot();await send(batch);assert.deepEqual(h.snapshot(),committed,'mixed create/delete retry preserves allocation and receipt');
+  }
+ }
+ flow=h.flow(await h.read('ipqc-c'));
  const submitted=await h.command('ipqc-c','submit',{savedId:flow.saved.id,reason:'fixture'},'editor');
  await send(await build([]),'editor',409);assert.equal(h.flow(await h.read('ipqc-c')).pendingId,submitted.receipt.caseId);
- console.log('PASS atomic create/save, receipts, independent fields, conflict rollback, allocation rollback, edit-only save, submit separation, create gate, photo/equipment validation, pending lock');
+ console.log('PASS atomic create/save, receipts, independent fields, conflict rollback, allocation rollback, edit-only save, submit separation, create gate, photo/equipment validation, both create/delete orders, peer child-set and local user-field conflict, pending lock');
  }finally{h.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
