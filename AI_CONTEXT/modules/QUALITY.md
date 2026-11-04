@@ -1,3 +1,7 @@
+## 2026-11-04 — IQC uncertain operation recovery
+
+Bounded IQC writes use 45 seconds; unknown errors retain separate original and receipt failures. Visible page/dialog queries never re-POST, and a write blocked by an existing unknown cannot query then continue. Inputs remain; normal unsent abandonment is unchanged. IQC-only server phase timings add no persistence or permission changes. [Evidence and limits](../../docs/acceptance/iqc-unknown-20261104/README.md).
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 The shared departure adapter offers input abandonment even beside acknowledged shared changes; it leaves shared content untouched. Routine FQC dialog cancellation is included. Non-FQC custom unknown paths remain blocked and need separate evidence contracts. [Scope, evidence and blockers](../../docs/acceptance/simple-draft-departure-20261103.md).
