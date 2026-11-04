@@ -37,7 +37,7 @@
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-iqc-local1');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-iqc-local2');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -194,7 +194,7 @@
    dialog.append(choices);dialog.oncancel=event=>{event.preventDefault();if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};dialog.onclose=()=>{if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};document.body.append(dialog);updateDecision(value);dialog.showModal();dialog.querySelector('[data-departure-choice="stay"]').focus();
   }
   const departure=createDepartureCoordinator({
-   automaticAbandon:owner=>owner.adapter?.automaticAbandon===true,
+   autoAbandon:owner=>owner.adapter?.autoAbandon===true,
    owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.(),delivery:sync.captureDelivery?.(),adapter:departureAdapter(),source:readyGeneration}),
    isCurrent:owner=>!!owner?.id&&owner.id===sync.identity?.id&&owner.epoch===sync.identityGeneration?.()&&owner.adapter===departureAdapter()&&owner.source===readyGeneration&&(!owner.delivery||sync.isCurrentDelivery?.(owner.delivery)!==false)&&!sync.requiresReload,
    inspect:inspectDeparture,act:(action,owner)=>owner.adapter[action](),show:showDecision,update:updateDecision,hide:hideDecision,errorMessage:decisionMessage,

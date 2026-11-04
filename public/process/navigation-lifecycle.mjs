@@ -134,7 +134,9 @@ export function createDepartureCoordinator(hooks){
     }catch(error){
       if(active!==record)return {status:'invalidated'};
       if(!current(record)){finish(record,{status:'invalidated'});return {status:'invalidated'};}
-      release(record);record.phase='choosing';record.error=hooks.errorMessage?.(error)||error.message||String(error);update(record);return {status:'error',error};
+      release(record);record.phase='choosing';record.error=hooks.errorMessage?.(error)||error.message||String(error);
+      if(record.automatic){hooks.failure?.(error);finish(record,{status:'error',error},true);}else update(record);
+      return {status:'error',error};
     }
   }
   function request(value){
@@ -147,11 +149,14 @@ export function createDepartureCoordinator(hooks){
       return intent.promise;
     }
     const owner=hooks.owner();if(!hooks.isCurrent(owner))return Promise.resolve({status:'invalidated'});
-    if(hooks.inspect(owner).state==='clean')return Promise.resolve().then(()=>hooks.isCurrent(owner)?intent.run(null):{status:'invalidated'});
+    const status=hooks.inspect(owner);
+    if(status.state==='clean')return Promise.resolve().then(()=>hooks.isCurrent(owner)?intent.run(null):{status:'invalidated'});
     hooks.cancelNavigation?.();
     const record=active={owner,intent,phase:'choosing',lease:null,ticket:null,error:'',committed:false};
-    if(hooks.automaticAbandon?.(owner)&&hooks.inspect(owner).canAbandon){void choose('abandon').then(result=>{if(result.status==='error'&&current(record))hooks.show?.(snapshot(record),choose);});return intent.promise;}
-    hooks.show?.(snapshot(record),choose);
+    // Opt-in modules abandon only through their normal checked lease. A blocked
+    // or busy state never becomes an implicit permission to drop inputs.
+    if(hooks.autoAbandon?.(owner)===true&&['dirty','unknown'].includes(status.state)&&status.canAbandon===true){record.automatic=true;void choose('abandon');}
+    else hooks.show?.(snapshot(record),choose);
     return intent.promise;
   }
   function refresh(){if(!active)return;if(!current(active)){cancel('invalidated',false);return;}if(active.phase==='choosing')update(active);}

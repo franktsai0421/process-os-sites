@@ -20,3 +20,11 @@ No schema, migration, true data, backup, account, Site or deployment changes. Ex
 ## Integration gates
 
 Shared edits are narrow opt-ins in `versioned-shared-workflow.ts`, `shared-draft-client.js`, `navigation-lifecycle.mjs`, `delivery-navigation.js`, plus index cache versions. Parent must semantically integrate these with FQC/canvas changes and rerun combined navigation/receipt checks. Full remote CI, independent review, test-Site deployment and live acceptance remain separate gates. No main merge is authorized by this candidate.
+
+## PR #76 departure CI follow-up
+
+Original head `5fc2d93`, Local safety run `41823104321`, failed the Performance and departure integration contracts step. Local reproduction of that step's 20-suite command produced 405 PASS / 14 FAIL: every failure was an IQC binding fixture `SyntaxError: Unexpected token ')'`. Its delimiter-based source extraction included the new `Object.assign` wrapper. The fixture now extracts the actual factory argument using the TypeScript parser and loads the real IQC local-discard closure. Tests distinguish IQC's new local-only departure from legacy shared Save; no shared content is saved or rolled back on departure. All other module assertions remain.
+
+The latent legacy pending-name guard remains enforced; local memory is now cleared only after owner assertions pass. Added assertions cover stale-owner retention and memory-only abandonment. The shared coordinator uses the same `autoAbandon` API and automatic-failure handling as FQC #74 head `3bf2d2a7663b70fe689b65992981a1cd36ac48fa`, so integration need not reconcile competing option names. Busy/blocked states never imply discard permission, unknown receipts remain unchanged, and an automatic failure reports its error without a save/discard choice dialog.
+
+The original 419-suite-test command passes after the fix (before two additional targeted cases). Latest exact-head remote CI is tracked on the PR; the earlier failure is not treated as a release pass.
