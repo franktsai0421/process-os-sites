@@ -48,7 +48,7 @@ void test('legacy local edits adopt only the newly begun generation and retain o
  const started=structuredClone(f.control),snapshot=started.versions[0].snapshot;
  snapshot.errors[0].nameVi='Peer change';
  started.workflow={generation:'adopted',revision:1,working:snapshot,saved:null,active:{content:structuredClone(snapshot)},cases:[],pendingId:null};
- f.client.begin=async()=>({control:started,revision:11});f.client.flush=async()=>{};
+ f.client.begin=async()=>({control:started,revision:11,receipt:{operationId:'original-begin',generation:'adopted',revision:1,savedId:null,caseId:null,unchanged:false}});f.client.flush=async()=>{};
  const permissions=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true]));
  let sent;
  f.client.command=async(generation,action,detail)=>{sent={generation,action,detail};return {receipt:{operationId:'saved-op'}};};

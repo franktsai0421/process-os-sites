@@ -10,9 +10,9 @@
   const apiUrl = '/api/iqc';
   const photoUrl = '/api/iqc/photo';
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
-  let localBase=null,localSnapshot=null,localGeneration=null,pendingLocalSave=false;
+  let localBase=null,localSnapshot=null,localGeneration=null,localBeginReceipt=null,pendingLocalSave=false;
   let control = null, revision = null, root = null, reviewRoot = null;
-  let sharedClient=null,sharedActor='',sharedClientOwner=null;const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null;
+  let sharedClient=null,sharedActor='',sharedClientOwner=null;const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null,dialogBeginReceipt=null;
   let loadSequence=0,mountSequence=0,reviewBindSequence=0,mutationSequence=0,readDenied=null,reviewContainer=null;
   let versionReadSequence=0,versionReadError=null,activeDeferredId='';
   // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
@@ -116,7 +116,7 @@
         if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>client.readDenialVersion?.(kind)!==pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
         throw error;
       }
-      assert();if(recoveringBegin&&localSnapshot&&!localGeneration)localGeneration=recovered.receipt.generation;await load({assert});assert();if(pendingLocalSave&&!recoveringBegin){localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;}render();
+      assert();if(recoveringBegin){if(localSnapshot){localBeginReceipt ||= copy(recovered.receipt);localGeneration ??= localBeginReceipt.generation;}if(dialogBase){dialogBeginReceipt ||= copy(recovered.receipt);dialogGeneration ??= dialogBeginReceipt.generation;}if(owner){owner.beginReceipt ||= copy(recovered.receipt);owner.generation ??= owner.beginReceipt.generation;}}await load({assert});assert();if(pendingLocalSave&&!recoveringBegin){localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;pendingLocalSave=false;}render();
     })();
     operationCheck=flight;try{return await flight;}finally{if(operationCheck===flight)operationCheck=null;}
   }
@@ -210,14 +210,17 @@
         const client=transport();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
         if(!control.workflow&&['save','submit'].includes(action)&&!mayEdit())throw Error(t('舊版草稿須由具編輯權限者先啟用共用草稿','Bản nháp cũ cần người có quyền sửa chuyển sang bản nháp chung'));
         if(!control.workflow||action==='begin'){
+          if(localBeginReceipt||dialogBeginReceipt||owner?.beginReceipt)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
           const adoptingLocal=!control.workflow&&!!localSnapshot&&localGeneration==null;
-          owner?.assert();const started=await client.begin();owner?.assert();try{validateIqcPayload(started,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}versionReadSequence++;control=started.control;revision=started.revision;activeDeferredId=started.iqcProjection?.activeVersionId||'';ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
-          if(!requestCurrent())throw Error('IDENTITY_CHANGED');
-          // Bind retained legacy edits only to this successful first adoption.
-          // Keep their original base so concurrent field changes still conflict.
-          if(adoptingLocal)localGeneration=control.workflow.generation;
-          if(dialogBase&&!dialogGeneration)dialogGeneration=control.workflow.generation;
-          if(owner&&!owner.generation)owner.generation=control.workflow.generation;
+          owner?.assert();const started=await client.begin();owner?.assert();if(!requestCurrent())throw Error('IDENTITY_CHANGED');try{validateIqcPayload(started,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}
+          if(!started.receipt?.generation)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
+          // Retain the acknowledged original Begin, even if its authoritative
+          // read sees a successor. Neither polling nor another Save may rebase it.
+          if(adoptingLocal){localBeginReceipt=copy(started.receipt);localGeneration=localBeginReceipt.generation;}
+          if(dialogBase&&!dialogGeneration){dialogBeginReceipt=copy(started.receipt);dialogGeneration=dialogBeginReceipt.generation;}
+          if(owner&&!owner.generation){owner.beginReceipt=copy(started.receipt);owner.generation=owner.beginReceipt.generation;}
+          versionReadSequence++;control=started.control;revision=started.revision;activeDeferredId=started.iqcProjection?.activeVersionId||'';ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
+          if(control.workflow?.generation!==started.receipt.generation)throw Error('STALE_GENERATION');
           if(action==='begin')return started;
         }
         if(!requestCurrent())throw Error('IDENTITY_CHANGED');
@@ -261,7 +264,7 @@
         if(control.workflow?.generation!==commandGeneration||!Number.isInteger(revision)||revision<commandRevision||data.revision<revision||data.control?.workflow?.revision<commandFlowRevision||data.control?.workflow?.revision<control.workflow?.revision)throw Error('IQC_READBACK_SUPERSEDED');
         try{validateIqcPayload(data,true);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}
         versionReadSequence++;control=data.control;revision=data.revision;activeDeferredId=data.iqcProjection?.activeVersionId||'';
-        if(action==='save'){pendingLocalSave=false;localBase=null;localSnapshot=null;localGeneration=null;}
+        if(action==='save'){pendingLocalSave=false;localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;}
         owner?.assert();
         ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
         window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
@@ -457,7 +460,7 @@
   function dialog(content) {
     if(readDenied)throw readDenied;
     if(host.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
-    if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=copy(snap());dialogGeneration=control?.workflow?.generation||null;}
+    if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=copy(snap());dialogGeneration=control?.workflow?.generation||null;dialogBeginReceipt=null;}
     const opener = document.activeElement, actor = identity(), actorId=actor?.id, epoch=host.ProcessSync?.identityGeneration?.(), delivery = host.ProcessSync?.captureDelivery?.();
     const overlay = document.createElement('div'); overlay.className = 'iqc-dialog-overlay'; overlay.dataset.i18nSkip = 'true';
     overlay.innerHTML = `<div class="iqc-dialog" role="dialog" aria-modal="true">${content}</div>`;
@@ -480,7 +483,7 @@
       assert(){if(!owner.current())throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');}
     };
     editorOwners.add(owner);
-    const close = () => { if(!owner.current()||owner.beforeClose?.()===false)return;owner.onClose?.();owner.terminal=true;editorOwners.delete(owner);overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
+    const close = () => { if(!owner.current()||owner.beforeClose?.()===false)return;owner.onClose?.();owner.terminal=true;editorOwners.delete(owner);overlay.remove();if(!document.querySelector('.iqc-dialog-overlay')){dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;render();} document.removeEventListener('keydown', esc); if (opener?.isConnected) opener.focus({preventScroll:true}); };
     const esc = event => {
       if(!owner.current())return;
       if ([...document.querySelectorAll('.iqc-dialog-overlay')].at(-1) !== overlay || document.querySelector('.iqc-lightbox')) return;
@@ -500,7 +503,7 @@
     owner?.assert();
     const v = draft(); if (!v) throw Error('IQC 草稿不是可修改狀態');
     if(!mayEdit()||control.workflow?.pendingId||transport().hasUnknown())throw Error('PENDING_OR_PERMISSION_LOCKED');
-    if(!localBase){localBase=copy(owner?.base||dialogBase||v.snapshot);localGeneration=control.workflow?.generation;}
+    if(!localBase){localBase=copy(owner?.base||dialogBase||v.snapshot);localGeneration=owner?.generation??dialogGeneration??control.workflow?.generation;localBeginReceipt=copy(owner?.beginReceipt||dialogBeginReceipt||localBeginReceipt);}
     localSnapshot=copy(next);
     render();
     notice(t('已套用本機修改，請保存後共用','Đã áp dụng cục bộ; lưu để chia sẻ'));
@@ -1168,7 +1171,7 @@
     unknownTransports:()=>[sharedClient],unknownReady:()=>!ui.busy,discardUnknown:()=>discardLocalInput(),canSave:()=>selected()?.status==='draft'&&!!mayDraftAction('save'),canDiscard:()=>mayEdit()&&sharedClient?.permission('edit')===true,
     save:owner=>post('save',{},owner),dialogs:()=>[...document.querySelectorAll('.iqc-dialog-overlay')],
     discard:discardLocalInput,
-  }),{autoAbandon:true,allowUnload:()=>!ui.busy});},requiresSave:()=>false,saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy,error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;localBase=null;localSnapshot=null;localGeneration=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
-  function discardLocalInput(){if(errorBatch?.pending)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');const owners=[...editorOwners].filter(owner=>!owner.terminal&&owner.overlay.isConnected);for(const owner of owners)owner.assert();localBase=null;localSnapshot=null;localGeneration=null;for(const owner of owners){owner.onClose?.();owner.terminal=true;owner.detach();editorOwners.delete(owner);}dialogBase=null;dialogGeneration=null;render();}
+  }),{autoAbandon:true,allowUnload:()=>!ui.busy});},requiresSave:()=>false,saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy,error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  function discardLocalInput(){if(errorBatch?.pending)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');const owners=[...editorOwners].filter(owner=>!owner.terminal&&owner.overlay.isConnected);for(const owner of owners)owner.assert();localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;for(const owner of owners){owner.onClose?.();owner.terminal=true;owner.detach();editorOwners.delete(owner);}dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;render();}
 
 })(window);

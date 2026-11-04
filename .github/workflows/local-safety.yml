@@ -351,7 +351,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs tests/shared-draft-restore-admission.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs
+          node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-quality-begin-generation-browser.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-workflow-begin-old-server.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

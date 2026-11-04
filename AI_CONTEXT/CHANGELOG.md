@@ -1,6 +1,6 @@
 ## 2026-11-04 — Unknown Begin recovery candidate
 
-Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
+Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
 
 ## 2026-11-04 — Draft integration review fixes
 
