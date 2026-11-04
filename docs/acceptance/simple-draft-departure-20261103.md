@@ -55,6 +55,8 @@ Routine FQC can cancel its owned open dialog in the same choice. Users gains an 
 | Users | New unsent account-form cleanup | Still blocked: `writeUncertain` is not operation-bound receipt proof |
 | Feedback | Separate opt-in host; unchanged | Not implemented/tested by this follow-up |
 
+The subsequent [shared-transport unknown candidate](shared-unknown-departure-20261103.md) extends selected rows above; this report describes PR #66 itself.
+
 **The all-pages request is not complete.** Unsupported unknown states above still block navigation; bypassing them or clearing their markers is not accepted. No claim is made that every draft page has been browser-verified. The exact unresolved work is to provide independently reviewed navigation-only evidence for each custom unknown transport while retaining its mutation barrier, then test late completion, return, reload and actor transitions. No storage timeout, 404 or matching visible value is proof of noncommit.
 
 ## Verification and evidence

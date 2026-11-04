@@ -1,3 +1,14 @@
+## 2026-11-03 — Scoped non-FQC unknown departure candidate
+
+Added a navigation-only lease for intact shared-transport unknown operations in master data, IPQC-AB, Tooling and routine equipment. Explicit abandonment clears only local inputs; original operation evidence, receipt-only recovery and mutation locks remain. Custom Begin recovery and other module-specific unknown flows are excluded. [Scope and evidence](../docs/acceptance/shared-unknown-departure-20261103.md).
+
+Independent review reproduced old navigation coverage reviving after an observed
+view denial followed by projection-cache reset. View denial now retires that
+lease permanently; later grants require a new explicit abandonment. Operation
+markers and mutation admission are unchanged; transport and compiled AB
+regressions cover denial/reset/regrant. See the same acceptance note for evidence
+and remaining dependency/CI/review gates.
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 Subsequently integrate IQC #70/main `f1a16f9`, retaining its source and both sets of documentation and cache contracts. Prior-head CI exposed a six-second unknown-fixture setup timeout during concurrent Chromium startup; sequence the three independent FQC browser files without changing their assertions, deadlines or internal races. New-head CI/review remain required; no test-site publication.

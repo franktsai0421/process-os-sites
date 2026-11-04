@@ -25,7 +25,7 @@
  function otherDepartureBlocked(adapter,ignoreSaved=false,candidate=false){
   if(sync.requiresReload||draftsPending(candidate?adapter:null)||window.ProcessNavigationForms?.composing?.())return true;
   if(window.ProcessRuntimeProjection?.canLeave?.()===false&&!adapter?.ownsRuntimeLocal?.()||(window.MasterDataWorkflow?.navigation?.departure!==adapter&&window.MasterDataWorkflow?.canLeave?.()===false))return true;
-  if(modules().some(api=>(!adapter||api.navigation?.departure!==adapter)&&api.navigation?.canLeave?.()===false&&!(ignoreSaved&&api.navigation.requiresSave?.()&&api.navigation.canSaveForDeparture?.()===true)))return true;
+  if(modules().some(api=>(!adapter||api.navigation?.departure!==adapter)&&api.navigation?.canLeave?.()===false&&api.navigation?.departure?.covered?.()!==true&&!(ignoreSaved&&api.navigation.requiresSave?.()&&api.navigation.canSaveForDeparture?.()===true)))return true;
   if(!ignoreSaved&&departureAdapters().some(api=>(!adapter||api.departure!==adapter)&&api.requiresSave?.()))return true;
   if([...document.querySelectorAll('dialog[open],.iqc-lightbox,.fqc-viewer-overlay')].some(node=>!isDecision(node)&&!ownedDialog(adapter,node)))return true;
   return [...document.querySelectorAll(editingScopes)].some(node=>!isDecision(node)&&!ownedDialog(adapter,node)&&window.ProcessNavigationForms?.dirty?.(node));

@@ -3562,6 +3562,7 @@
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
     current:()=>controlActor===identity()?.id&&inputOwnerCurrent()&&!readUnavailable,busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
     unknown:()=>sharedClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures(),
+    unknownTransports:()=>[sharedClient],unknownReady:()=>!hasBeginRecovery(),discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
