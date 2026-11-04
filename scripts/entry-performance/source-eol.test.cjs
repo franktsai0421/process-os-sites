@@ -10,9 +10,9 @@ const hash = value => createHash('sha256').update(value).digest('hex');
 const canonical = value => value.replace(/\r\n/g, '\n');
 const cases = [
   { name: 'identity', fixture: 'scripts/entry-performance/identity-prefetch.test.cjs', target: 'lib/state-records.ts', boundary: 'const baseline=load(baselineSource),candidate=load(candidateSource);', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: ' // Prefetch only adjacent selected identity aggregates, never token reads.', baselineHash: '5245f6533dc253b220b3bf2b61c298138917e8b4dcab9a4ff1210e4edf741fcc' },
-  // Fixed ea235ca adds reviewed Canvas ACK admission around the unchanged three-anchor inverse optimization.
+  // Integrated atomic Save and checked silent departure retain the three-anchor panel optimization.
   // Pin this complete inverse source; changed/duplicated anchor negatives remain mandatory.
-  { name: 'panel', fixture: 'scripts/test-authoring-panel-local-unsaved.cjs', target: 'public/process/process-authoring-v3.js', boundary: 'function loader(code){', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: '  // Markup helpers may reset an obsolete owner; cache only after that boundary.', baselineHash: 'da8e3c709b0750c92305a59cdd37e9cce06684bfe3a1a7f3458520190b580a5c' },
+  { name: 'panel', fixture: 'scripts/test-authoring-panel-local-unsaved.cjs', target: 'public/process/process-authoring-v3.js', boundary: 'function loader(code){', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: '  // Markup helpers may reset an obsolete owner; cache only after that boundary.', baselineHash: '2ad12e4a6fc20395bc9f043be2615a1dfebc0342dfdcc1e583804ba4395e5722' },
   { name: 'incoming', fixture: 'scripts/test-process-incoming-index.cjs', target: 'lib/process-editor-integrity.ts', boundary: "const original=fs.readFileSync(loaderFile,'utf8')", output: '{ baseline: baselineCode, candidate: candidateCode }', marker: '  // Valid JSON graph rows can share one stage-local incoming lookup. Preserve', baselineHash: '80d53996faaced356241821b9d530c54a1edf5fa07ef502810e48d379c5027ba' },
 ];
 let checks = 0;

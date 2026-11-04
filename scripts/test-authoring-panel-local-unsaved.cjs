@@ -4,8 +4,10 @@ const root=process.env.PANEL_TEST_ROOT||path.resolve(__dirname,'..'),candidate=p
 const candidateSource=fs.readFileSync(candidate,'utf8').replace(/\r\n/g,'\n');
 function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,'portable baseline requires one exact source anchor: '+from.slice(0,90));return source.replace(from,to);}
 let baselineSource=candidateSource;
-// Reconstruct the pinned historical panel baseline without changing the
-// executed candidate. Departure behavior has separate controller/native tests.
+// Build the reviewed current-source panel control without changing the candidate.
+// Atomic Save/recovery code outside these exact departure spans is shared by both
+// arms; historical baseline provenance is retained separately in the inverse JSON.
+// Departure behavior has separate controller/native tests.
 const departureInverse=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/authoring-departure-inverse.json'),'utf8'));
 for(const row of departureInverse.spans){assert.equal(createHash('sha256').update(row.candidate).digest('hex'),row.candidateSHA256,'authoring departure inverse span hash');baselineSource=replaceOnce(baselineSource,row.candidate,row.baseline);}
 
@@ -36,5 +38,5 @@ const rows=[];async function pair(name,setup,{saved=true,expectReduction=true}={
  await pair('settled unknown retains receipt recovery',async f=>{f.phase('unknown');await f.api.save();});
  // No cross-render memo: actual mutation between renders must be noticed.
  for(const l of [old,next]){const f=await make(l);paint(f);assert.equal(f.saved.textContent,'saved');f.local().name='later local edit';paint(f);assert.equal(f.saved.textContent,'unsaved');f.local().name='original';paint(f);assert.equal(f.saved.textContent,'saved');}
- console.log(JSON.stringify({status:'PASS',cases:rows.length+1,candidate,sourceHashes,rows,limits:['Synthetic controller DOM ports, not browser layout/live latency.','Workspace serialization counts/UTF8 bytes only; transport requests and whole-flow saved comparison unchanged.','Mount/updateSaved production source side-effects audited separately; this fixture uses existing controller UI ports.']},null,2));
+ console.log(JSON.stringify({status:'PASS',cases:rows.length+1,candidate,sourceHashes,rows,limits:['Current-source differential control; not the pinned historical whole-program baseline.','Synthetic controller DOM ports, not browser layout/live latency.','Workspace serialization counts/UTF8 bytes only; transport requests and whole-flow saved comparison unchanged.','Mount/updateSaved production source side-effects audited separately; this fixture uses existing controller UI ports.']},null,2));
 })().catch(e=>{console.error(e);process.exitCode=1;});
