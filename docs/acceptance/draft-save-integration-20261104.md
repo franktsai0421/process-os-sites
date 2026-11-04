@@ -78,3 +78,11 @@ Two dependent performance checks also required exact departure-inverse updates. 
 ## IPQC-C reviewed validation inverse
 
 CI41845241676 step22 exposed the old route byte pin after integration added nested `localChanges` shape validation and the definitive 422 request ID. Review against candidate `ec6561a` confirmed that only this validation span changed; all remaining route bytes and the workflow adapter stayed identical. The inverse now removes that exact reviewed span and uses its adjusted byte offsets. The original route baseline SHA-256 remains `8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07`; the reconstructed historical bytes still match exactly. Negative checks reject appended unreviewed source in both route and adapter and reject relaxing the 256-change limit. All four step22 scripts pass (9/8/7/5 groups), as does the local atomic Save/malformed-request suite. No product changes were made for this correction.
+
+## Cold AB startup observability
+
+Run `41849787228` on `ede958e` failed only the first AB390/Chinese abandonment case: the initial Begin selector timed out after30s (case total80.10s). The second AB1280 case passed in42.89s; the remaining12 cases overall and all later CI steps passed. A single local rerun of the unchanged compiled product passed13/13 in46.62s. These observations do not establish the startup root cause.
+
+The two AB cases now explicitly wait for the exact data/AB destination-ready state before Begin, sharing the original30s action budget between readiness and click. Navigation remains cold, with no prefetch, warmup, automatic retry or timeout increase. On failure a bounded diagnostic reports navigation/action phase and elapsed time, URL pathname only, HTTP status, failed/pending request paths, error class and boot/navigation/Begin state. No query, header, credential or body is recorded. Snapshot collection is capped at1s and preserves the original thrown error.
+
+Four synthetic contracts pass, including deadline sharing, no retry, sanitization and an unresponsive diagnostic snapshot. Both compiled AB viewport/language cases pass with the helper; other browser cases were not repeated after this test-only change. This improves readiness gating and failure evidence, not a claim that the unconfirmed cold-start failure is fixed.

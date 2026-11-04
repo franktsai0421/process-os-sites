@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
+import {openNativeABDraft} from './native-ab-startup.mjs';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 import {createProcessPlatformRound5Fixture} from './process-platform-round5-fixture.mjs';
 const browserOptions={headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})};
@@ -10,7 +11,7 @@ async function contextFor(browser,f,width,lang){const context=await browser.newC
 for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C abandonment drops form and leaves shared edits untouched ${width} ${lang}`,async()=>{
  const f=await createABCFixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
   await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);const page=await context.newPage(),posts=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});page.on('dialog',d=>void d.accept());
-  await page.goto(f.url.origin+'/process/?system=process&view=data&dataTab=AB');await page.locator('#master-new-draft').click();await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill('Shared committed input');await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});
+  await openNativeABDraft(page,f.url.origin+'/process/?system=process&view=data&dataTab=AB');await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill('Shared committed input');await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});
   await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill('Abandon this unsubmitted input');const before=posts.length,shared=await page.evaluate(()=>JSON.stringify(window.MasterDataWorkflow.shared.flow('AB')));
   await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','C'));const button=page.locator('[data-departure-choice="abandon"]');assert(await button.isEnabled());assert((await button.boundingBox()).height>=44);await button.click();await page.waitForFunction(()=>window.ProcessSync.destination.dataTab==='C'&&document.documentElement.dataset.processNavigationStatus==='ready');
   assert.equal(posts.length,before);await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','AB'));await page.locator('[data-product-edit="A001"]').waitFor();assert.equal(await page.evaluate(()=>JSON.stringify(window.MasterDataWorkflow.shared.flow('AB'))),shared);await page.locator('[data-product-edit="A001"]').click();assert.equal(await page.locator('#master-edit-dialog [name=name]').inputValue(),'Shared committed input');assert.equal(posts.length,before);assert.deepEqual(errors,[]);
