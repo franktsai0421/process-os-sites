@@ -1,3 +1,4 @@
+const {withoutLocalAtomicSave}=require('./ipqc-c-local-save-source-contract.cjs');
 /* Actual final GET and exact published GET baseline; synthetic SQLite/R2, no server/network. */
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
@@ -99,7 +100,7 @@ await check('C9 exact composed performance and explicit-rights spans; historical
    protectedSource=execFileSync('git',['show','2cac307f29b8017a2bb6dc5229d47720f2deab33:'+file]);
   }
   if(file==='app/api/ipqc-c/workflow/route.ts'){
-   const createBase=assertCreateMutationContract(committed).normalized;
+   const createBase=assertCreateMutationContract(withoutLocalAtomicSave(committed)).normalized;
    assertComposedPerformanceContract(createBase);
    protectedSource=withoutComposedPerformance(createBase);
   }

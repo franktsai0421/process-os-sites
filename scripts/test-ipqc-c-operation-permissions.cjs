@@ -62,7 +62,7 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     await unchanged(h,()=>h.call('ipqc-c/workflow','GET',undefined,'no-view',403,'?permissions=1'));
     for (const who of ['viewer', 'edit-only', 'save-only', 'submit-only', 'reviewer','module-reviewer']) {
       const result = await h.read('ipqc-c', who, '&permissions=1'); permissionMatrix[who] = result.permissions;
-      for (const operation of ['edit', 'save', 'submit']) assert.equal(result.permissions[operation], who === operation + '-only', who + ' ' + operation + ' must follow its own cell');
+      for (const operation of ['edit', 'save', 'submit']) assert.equal(result.permissions[operation], who === operation + '-only'||operation==='save'&&who==='edit-only', who + ' ' + operation + ' follows edit-implies-save with independent submit');
       // Accepted explicit cells: viewing alone does not permit withdrawal.
       assert.equal(result.permissions.view, true); assert.equal(result.permissions.withdraw, who === 'edit-only');
       assert.equal(result.permissions.history, true);
@@ -89,7 +89,8 @@ async function unchanged(h, task) { const before = h.snapshot(); const result = 
     assert.deepEqual(current.workflow.active, original.workflow.active); assert.deepEqual(current.workflow.saved, original.workflow.saved);
     assert.deepEqual(current.workflow.working.items[0].mediaItems, original.workflow.active.content.items[0].mediaItems);
     for (const who of ['viewer', 'save-only', 'submit-only', 'no-view']) await unchanged(h, () => patch(who, 'source', 403));
-    for (const who of ['viewer', 'edit-only', 'submit-only', 'no-view']) await unchanged(h, () => h.command('ipqc-c', 'save', {}, who, 403));
+    await h.command('ipqc-c','save',{},'edit-only');
+    for (const who of ['viewer', 'submit-only', 'no-view']) await unchanged(h, () => h.command('ipqc-c', 'save', {}, who, 403));
     for (const who of ['viewer', 'edit-only', 'save-only', 'no-view']) await unchanged(h, () => h.command('ipqc-c', 'submit', { savedId: 'not-authorized' }, who, 403));
     await unchanged(h, () => h.command('ipqc-c', 'apply', { moduleAction: 'delete-item', input: { id: itemId } }, 'delete-only', 403));
     record('V3 view-only/partial/no-view cannot bypass own operation cells; edit-only guarded replacement preserves saved/effective/media; preview is read-only');

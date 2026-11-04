@@ -1,0 +1,27 @@
+name: IPQC C local Save
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/process/ipqc-c.js'
+      - 'lib/ipqc-c-workflow.ts'
+      - 'app/api/ipqc-c/workflow/route.ts'
+      - 'scripts/*ipqc-c-local*'
+      - '.github/workflows/ipqc-c-local-save.yml'
+permissions:
+  contents: read
+jobs:
+  local-save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-ipqc-c-local-save.cjs
+      - run: node scripts/test-ipqc-c-local-browser.cjs
+      - run: node scripts/benchmark-ipqc-c-local-save.cjs

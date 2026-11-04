@@ -1,3 +1,4 @@
+const {withoutLocalAtomicSave}=require('./ipqc-c-local-save-source-contract.cjs');
 /* Actual candidate and published handler; synthetic SQLite/R2 only, no network. */
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto'),{execFileSync}=require('node:child_process');
@@ -80,7 +81,7 @@ await check('P7 non-permissions GET preserves data/I/O with exact permission DTO
 await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
  const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
  const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(committedBytes),'working tree differs beyond CRLF');
- const createBase=assertCreateMutationContract(committedBytes).normalized;
+ const createBase=assertCreateMutationContract(withoutLocalAtomicSave(committedBytes)).normalized;
  assertComposedPerformanceContract(createBase);
  const explicitBytes=withoutComposedPerformance(createBase);
  assertPermissionReadSourceContract(explicitBytes);

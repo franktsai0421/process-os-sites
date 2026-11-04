@@ -15,7 +15,7 @@ const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
 async function access(request:Request,state:State) {
   const rights=await workflowAccess(request,state);
-  return {...rights,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
+  return {...rights,save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {
@@ -123,11 +123,12 @@ export async function POST(request:Request) {
     const raw=new TextDecoder().decode(bytes);if(raw.includes('__immutableBody')||raw.includes('__liveContent'))return reply({error:'RESERVED_STORAGE_REFERENCE',requestId},422);
     const body=JSON.parse(raw) as {action?:'begin';command?:IpqcWorkflowCommand};
     if(body.command)body.command=expandWorkflowCommand(body.command) as IpqcWorkflowCommand;
+    if(body.command?.localChanges!==undefined&&(!Array.isArray(body.command.localChanges)||body.command.localChanges.length>256))return reply({error:'INVALID_LOCAL_SAVE'},422);
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
       const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;
-      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
+      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       const permissions=await access(request,state),control=readControl(state);
@@ -177,10 +178,14 @@ export async function POST(request:Request) {
         if(body.command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
         if(body.command.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===body.command!.input?.productCode&&p.stages.includes(body.command!.input?.stageCode||'')))
           return reply({error:'PRODUCT_STAGE_INVALID'},422);
+        for(const change of body.command.localChanges||[]) {
+          if(change.moduleAction?.startsWith('create')&&!permissions.create||change.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
+          if(change.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===change.input?.productCode&&p.stages.includes(change.input?.stageCode||'')))return reply({error:'PRODUCT_STAGE_INVALID'},422);
+        }
         const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
         receipt=applyIpqcWorkflow(control,body.command,context);
         if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
-        if(!alreadyAccepted&&body.command.action==='apply'){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
+        if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
         if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});
         for(const item of control.workflow!.working.items)for(const photo of item.mediaItems)
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
@@ -192,7 +197,7 @@ export async function POST(request:Request) {
       const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
       // Recheck session revocation after slow photo/immutable storage I/O.
       // Account/permission changes remain fenced by the state revision CAS.
-      if(ipqcCCreateCommand(body.command)&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+      if((body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
         .bind(state.revision+1,encoded,at,state.revision).run();
       if(changed.meta.changes!==1)continue;
