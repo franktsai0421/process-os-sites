@@ -269,7 +269,10 @@
  function requirePendingOwner(session,j,batch,stamp){if(recovery!==session||journal!==j||j.pending!==batch||!runtimeCurrent()||!session.status().ready||!ownsRuntime(stamp,session)||api()?.flow()?.generation!==batch.command.generation||authority().canView!==true)throw Error('CANVAS_RECOVERY_CHANGED');}
  async function finishCurrentReceipt(session,j,batch,stamp,receipt,fresh){
   requirePendingOwner(session,j,batch,stamp);const freshFlow=fresh.control?.workflow;if(!freshFlow?.working||freshFlow.generation!==batch.command.generation||!Number.isSafeInteger(freshFlow.revision)||freshFlow.revision<api().flow().revision)throw Error('CANVAS_RECOVERY_READBACK_REQUIRED');
-  if(isCanvasSave(batch)&&(!receipt?.savedId||!receipt.unchanged&&receipt.savedId===batch.baseSavedId||freshFlow.revision===receipt.revision&&(freshFlow.saved?.id!==receipt.savedId||!equal(freshFlow.saved?.content,freshFlow.working))))throw Error('CANVAS_SAVE_ACK_MISMATCH');
+  // Returning working content to an existing saved snapshot changes the draft
+  // revision but legitimately reuses savedId. Verify the authoritative result,
+  // not whether the server allocated another snapshot identifier.
+  if(isCanvasSave(batch)&&(!receipt?.savedId||freshFlow.revision===receipt.revision&&(freshFlow.saved?.id!==receipt.savedId||!equal(freshFlow.saved?.content,freshFlow.working))))throw Error('CANVAS_SAVE_ACK_MISMATCH');
   const queued=session.schedulePending(batch.reservation,()=>localRecord(j));if(!queued.ok)throw recoveryError(queued);const saved=session.flushPending(batch.reservation);if(!saved.ok)throw recoveryError(saved);
   const selected=session.preview(session.key);if(!selected.ok||!['unknown','resolved'].includes(selected.kind)||!sameReference(selected.reference,referenceOf(batch)))throw Error('CANVAS_RECEIPT_REQUIRED');
   // GET recovery and original-POST ACK have distinct private admissions.

@@ -34,3 +34,12 @@ void test('Save retains immutable old saved, effective, cases and receipts; Subm
  const f=fixture();const old=applyDraftCommand(f.control.workflow,{...f.command([],[]),action:'save',moduleAction:undefined},f.ctx);f.control.workflow=old.state;const original=copy(old.state),cmd={...f.command(),sequence:2};const next=f.apply(cmd);assert.deepEqual(copy(next.state.saves[0]),copy(original.saved));assert.deepEqual(copy(next.state.active),copy(original.active));assert.deepEqual(copy(next.state.cases),copy(original.cases));assert.deepEqual(copy(next.state.receipts[old.receipt.operationId]),copy(original.receipts[old.receipt.operationId]));
  const submitted=applyDraftCommand(next.state,{action:'submit',reason:'Synthetic submission',operationId:randomUUID(),clientId:'atomic-save-test',sequence:3,generation:next.state.generation,expectedRevision:next.state.revision,savedId:next.state.saved.id},f.ctx);assert.deepEqual(copy(submitted.state.cases[0].content),copy(next.state.saved.content));assert.equal(submitted.state.cases[0].savedId,next.state.saved.id);
 });
+
+void test('returning legacy unsaved working to saved content changes receipt revision but reuses immutable savedId',()=>{
+ const f=fixture();let state=applyDraftCommand(f.control.workflow,{action:'save',generation:f.control.workflow.generation,operationId:randomUUID(),clientId:'legacy-save',sequence:1},f.ctx).state;
+ const saved=copy(state.saved),saveCount=state.saves.length;
+ state=applyDraftCommand(state,{action:'apply',generation:state.generation,operationId:randomUUID(),clientId:'legacy-edit',sequence:1,patches:[{op:'set',path,value:'Legacy unsaved'}],guards:[{path,value:'Old'}]},f.ctx).state;
+ f.control.workflow=state;const command=f.command([{op:'set',path,value:'Old'}],[{path,value:'Legacy unsaved'}]),result=f.apply(command);
+ assert.equal(result.receipt.unchanged,false);assert.equal(result.receipt.revision,state.revision+1);assert.equal(result.receipt.savedId,saved.id);assert.deepEqual(copy(result.state.saved),saved);assert.equal(result.state.saves.length,saveCount);assert.deepEqual(copy(result.state.working),saved.content);
+ f.control.workflow=result.state;const replay=f.apply(command);assert.deepEqual(copy(replay.receipt),copy(result.receipt));assert.deepEqual(copy(replay.state),copy(result.state));
+});

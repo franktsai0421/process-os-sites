@@ -52,3 +52,12 @@ void test('finalizing a proven rejection does not report a successful Save or se
  f.remote.mode('ok');const recovered=await f.local.beforeSave();assert.equal(recovered.canvasSaved,false);assert.equal(f.remote.posts(),1);assert(f.local.dirty());
  const saved=await f.local.beforeSave();assert.equal(saved.canvasSaved,true);assert.equal(f.remote.posts(),2);
 });
+
+for(const fault of ['saved-id','saved-content'])void test(`same-revision ${fault} mismatch retains durable pending Save and recovers by original receipt`,async()=>{
+ const f=await fixture(),read=f.box.ProcessAuthoringV3.readCanvasRecovery;
+ f.box.ProcessAuthoringV3.readCanvasRecovery=async()=>{const result=await read();if(fault==='saved-id')result.control.workflow.saved.id='wrong-saved-id';else result.control.workflow.saved.content.workspaces[0].stages.S[0].name='wrong-content';return result;};
+ f.edit('Captured');await assert.rejects(f.local.beforeSave(),/CANVAS_SAVE_ACK_MISMATCH/);
+ const marker=records(f.disk).find(row=>row.record.kind==='unknown');assert(marker);assert(f.local.pending());assert(f.local.dirty());assert.equal(f.remote.posts(),1);
+ await assert.rejects(f.local.beforeSave(),/CANVAS_SAVE_ACK_MISMATCH/);assert.equal(f.remote.posts(),1);assert.deepEqual(records(f.disk).find(row=>row.key===marker.key).record,marker.record);
+ f.box.ProcessAuthoringV3.readCanvasRecovery=read;await f.local.beforeSave();assert.equal(f.remote.posts(),1);assert(!f.local.pending());assert(!f.local.dirty());
+});

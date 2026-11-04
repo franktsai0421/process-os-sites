@@ -57,3 +57,32 @@ for(const storage of ['inline','records-v1'])for(const compact of [false,true])v
 void test('production Save lost ACK keeps exact receipt pending, then explicitly resolves without new POST',async()=>{
  const remote=await routeServer('records-v1',true,{activeSaved:true});try{const f=await fixture({remote});clear(f);f.edit('Captured');remote.loss('after');assert.notEqual(await f.api.save(),true);assert.equal(remote.writes(),1);assert(f.local.pending());f.edit('Newer');remote.loss(null);clear(f);assert.equal(await f.api.save(),true);assert.equal(remote.calls.filter(c=>c.method==='POST').length,0);assert.equal(f.api.flow().saved.content.workspaces[0].stages.S[0].name,'Captured');assert.equal(rows(f)[0].name,'Newer');assert(f.local.dirty());assert.equal(f.api.ownedLedger.inspect().state,'clean');}finally{remote.close();}
 });
+
+for(const storage of ['inline','records-v1'])for(const compact of [false,true])for(const lost of [false,true])void test(`restore prior saved value after legacy Apply ${storage}/${compact}/lost:${lost}: original savedId is legal`,async()=>{
+ const remote=await routeServer(storage,compact,{activeSaved:true});try{
+  const initial=await fixture({remote}),generation=initial.api.flow().generation,savedId=initial.api.flow().saved.id;
+  const path=['workspaces',{id:workspace},'stages',stage,{id:'one'},'x'];
+  remote.who('actor-b');const applied=await remote.fetch('/api/process-authoring/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:{action:'apply',generation,clientId:'legacy-peer',sequence:1,operationId:webcrypto.randomUUID(),patches:[{op:'set',path,value:5}],guards:[{path,value:0}]}})});assert.equal(applied.status,200);remote.who('actor-a');
+  const f=await fixture({remote});assert.equal(f.api.flow().working.workspaces[0].stages.S[0].x,5);f.local.edit(workspace,stage,[{id:'one',f:'x',value:0}]);clear(f);
+  if(lost){remote.loss('after');assert.equal(await f.api.save(),false);assert(f.local.pending());assert(f.box.sharedDraftAccountState().unknown);remote.loss(null);}
+  assert.equal(await f.api.save(),true,'legal same-savedId receipt must settle');
+  const post=remote.calls.find(c=>c.method==='POST'),receipt=post.wire.receipt;
+  assert.equal(receipt.savedId,savedId);assert.equal(receipt.unchanged,false);
+  assert.equal(f.api.flow().saved.id,savedId);assert.deepEqual(copy(f.api.flow().saved.content),copy(f.api.flow().working));
+  assert.equal(f.api.flow().working.workspaces[0].stages.S[0].x,0);assert(!f.local.pending());assert(!f.local.dirty());assert(!f.box.sharedDraftAccountState().unknown);
+  assert.equal(remote.calls.filter(c=>c.method==='POST').length,1,'receipt recovery never resends original Save');
+  if(lost)assert(remote.calls.some(c=>c.kind==='receipt'&&c.url.includes(receipt.operationId)));
+ }finally{remote.close();}
+});
+
+void test('same savedId receipt settles against newer authoritative peer Save without replaying original',async()=>{
+ const remote=await routeServer('records-v1',true,{activeSaved:true});try{
+  const start=await fixture({remote}),generation=start.api.flow().generation,xPath=['workspaces',{id:workspace},'stages',stage,{id:'one'},'x'];
+  await remote.fetch('/api/process-authoring/workflow',{method:'POST',body:JSON.stringify({command:{action:'apply',generation,clientId:'legacy-change',sequence:1,operationId:webcrypto.randomUUID(),patches:[{op:'set',path:xPath,value:5}],guards:[{path:xPath,value:0}]}})});
+  const f=await fixture({remote}),read=f.api.readCanvasRecovery,peerId=webcrypto.randomUUID();let inserted=false;
+  f.api.readCanvasRecovery=async(...args)=>{if(!inserted){inserted=true;const namePath=[...xPath.slice(0,-1),'name'];remote.who('actor-b');try{const peer=await remote.fetch('/api/process-authoring/workflow',{method:'POST',body:JSON.stringify({command:{action:'apply',moduleAction:'save-canvas-v1',generation,clientId:'peer-newer-save',sequence:1,operationId:peerId,source:'canvas-v2:'+JSON.stringify([workspace,stage]),patches:[{op:'set',path:namePath,value:'Peer newer saved'}],guards:[{path:namePath,value:'Original'}]}})});assert.equal(peer.status,200);}finally{remote.who('actor-a');}}return read(...args);};
+  f.local.edit(workspace,stage,[{id:'one',f:'x',value:0}]);clear(f);assert.equal(await f.api.save(),true);assert(inserted);
+  const posts=remote.calls.filter(call=>call.method==='POST');assert.equal(posts.length,2,'one original Save and one explicit peer Save');assert.equal(posts[0].wire.receipt.savedId,'saved-base');assert.equal(posts[0].wire.receipt.unchanged,false);assert.equal(posts[1].wire.receipt.operationId,peerId);
+  assert(f.api.flow().revision>posts[0].wire.receipt.revision);assert.equal(f.api.flow().saved.content.workspaces[0].stages.S[0].name,'Peer newer saved');assert(!f.local.pending());assert(!f.local.dirty());
+ }finally{remote.close();}
+});
