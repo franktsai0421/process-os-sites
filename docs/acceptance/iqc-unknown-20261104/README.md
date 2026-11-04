@@ -33,6 +33,12 @@ Environment: managed Linux, Node 24.19, locked npm dependencies, in-memory SQLit
 
 Typed lint, TypeScript, source preflight, build and exact PR-head CI results are reported with the candidate SHA in the PR handoff. Local test logs/screenshots remain outside Git; source fixtures are reproducible and contain synthetic data only.
 
+## Compiled delivery regression follow-up
+
+The compiled delivery browser test originally reloaded after observing Save HTTP 200, before the client necessarily completed its authoritative terminal GET and cleared the retained marker. A synthetic withheld-readback experiment reproduced the CI failure exactly: the subsequent part edit remained open with the previous-operation-unknown message, before the next Save or its intentional ACK drop. The no-resend product guard behaved correctly.
+
+The normal Save scenario now waits for zero queued operations, no unknown/failure and an idle IQC page before reload, asserts exactly one POST, then checks that reload has no unknown query entry. The separate lost-ACK scenario makes only the confirmed original operation's receipt transport unavailable until the explicit query; ordinary GETs are not intercepted or counted as receipt queries. The fixed canonical source guard retains its baseline hash and full comparison, with exact reviewed changes and negative cases for damaged settlement, POST count and receipt gating. No timeout extension or product-code relaxation was made for this test correction.
+
 ## Limits / remaining work
 
 - Original live operation remains unknown; this candidate neither resolves nor retries it. No current server latency attribution or speed improvement is claimed. After an authorized deployment, new timing evidence is needed to locate any slow server stage.
