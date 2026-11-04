@@ -9,9 +9,9 @@ import {buildFqcDraftLifecycleSeed} from './fqc-draft-lifecycle-route-fixture.mj
 import {measureAction, summarizeActions, REQUIRED_SAMPLES} from './draft-action-measurement.mjs';
 
 export const fqcBrowserActions = Object.freeze([
-  'begin', 'error-edit-open', 'error-edit-apply', 'error-new-open', 'error-new-apply', 'error-cancel-open', 'error-cancel',
-  'item-edit-open', 'item-edit-apply', 'item-new-open', 'item-new-apply', 'item-cancel-open', 'item-cancel',
-  'matrix-discard-choice', 'matrix-discard', 'matrix-choice', 'matrix-apply', 'save', 'read-saved-draft',
+  'begin', 'error-edit-open', 'error-edit-stage', 'error-new-open', 'error-new-stage', 'error-cancel-open', 'error-cancel',
+  'item-edit-open', 'item-edit-stage', 'item-new-open', 'item-new-stage', 'item-cancel-open', 'item-cancel',
+  'matrix-discard-choice', 'matrix-discard', 'matrix-choice', 'save', 'read-saved-draft',
   'submit-open', 'submit-confirm', 'withdraw-open', 'withdraw-confirm', 'resubmit-open', 'resubmit-confirm',
   'review-return-select', 'return-open', 'return-confirm', 'returned-submit-open', 'returned-submit-confirm',
   'review-approve-select', 'approve-open', 'approve-confirm',
@@ -218,15 +218,24 @@ export async function runFqcDraftBrowser() {
         const before = await control();
         await measure(editor.page, action, selector, async () => { await requireVisible(editor.page, formSubmit); }, async () => assert.deepEqual(await control(), before), 0);
       }
-      async function applyForm(action, verify) {
-        await measure(editor.page, action, formSubmit, async () => { await editor.page.locator('.fqc-modal-overlay').waitFor({state: 'detached'}); await assertDraft(); }, verify, 1);
+      const localContent = () => editor.page.evaluate(() => {
+        const library = window.FQCMasterUI.control.libraries.fqc;
+        return library.versions.find(version => version.id === document.querySelector('#fqc-version').value).snapshot;
+      });
+      async function stageForm(action, verify) {
+        const before = await control();
+        await measure(editor.page, action, formSubmit, async () => { await editor.page.locator('.fqc-modal-overlay').waitFor({state: 'detached'}); await assertDraft(); }, async () => {
+          assert.deepEqual(await control(), before, 'Completing a form must not write shared business state');
+          assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), true);
+          await verify(await localContent());
+        }, 0);
       }
       await formOpen('error-edit-open', '[data-edit-error="' + seed.ids.error + '"]');
       await editor.page.locator(formSelector + ' [name="name"]').fill(forms.errorName);
-      await applyForm('error-edit-apply', async () => { const c = await control(); assert.equal(c.workflow.working.errors.find(x => x.id === seed.ids.error).name, forms.errorName); assert.equal(c.workflow.saved, null); });
+      await stageForm('error-edit-stage', async content => { assert.equal(content.errors.find(x => x.id === seed.ids.error).name, forms.errorName); });
       await formOpen('error-new-open', '#fqc-add-error');
       await editor.page.locator(formSelector + ' [name="name"]').fill(forms.newErrorName);
-      await applyForm('error-new-apply', async () => { const c = await control(); assert.equal(c.workflow.working.errors.length, seed.initialContent.errors.length + 1); assert.equal(c.workflow.working.errors.filter(x => x.name === forms.newErrorName).length, 1); });
+      await stageForm('error-new-stage', async content => { assert.equal(content.errors.length, seed.initialContent.errors.length + 1); assert.equal(content.errors.filter(x => x.name === forms.newErrorName).length, 1); });
       await formOpen('error-cancel-open', '[data-edit-error="' + seed.ids.error + '"]');
       await editor.page.locator(formSelector + ' [name="name"]').fill('Cancelled synthetic error');
       const beforeCancelError = await control();
@@ -236,14 +245,14 @@ export async function runFqcDraftBrowser() {
       await edit.locator('[name="name"]').fill(forms.itemName); await edit.locator('[name="description"]').fill(forms.description);
       await edit.locator('[name="ruleCadence"]').selectOption('batch'); await edit.locator('[name="batchKind"]').selectOption('fixed_count'); await edit.locator('[name="fixedCount"]').fill('1');
       await edit.locator('[name="product"][value="' + seed.ids.product + '"]').check();
-      await applyForm('item-edit-apply', async () => { const c = await control(), item = c.workflow.working.items.find(x => x.id === seed.ids.item);
+      await stageForm('item-edit-stage', async content => { const item = content.items.find(x => x.id === seed.ids.item);
         assert.equal(item.name, forms.itemName); assert.equal(item.description, forms.description); assert.deepEqual(item.productCodes, [seed.ids.product]); assert.equal(item.rule.cadence, 'batch'); assert.equal(item.rule.fixedCount, 1); });
       await formOpen('item-new-open', '#fqc-add-item');
       const add = editor.page.locator(formSelector);
       await add.locator('[name="name"]').fill(forms.newItemName); await add.locator('[name="description"]').fill('Synthetic new instruction');
       await add.locator('[name="ruleCadence"]').selectOption('batch'); await add.locator('[name="batchKind"]').selectOption('fixed_count'); await add.locator('[name="fixedCount"]').fill('1');
       await add.locator('[name="product"][value="' + seed.ids.product2 + '"]').check();
-      await applyForm('item-new-apply', async () => { const c = await control(); assert.equal(c.workflow.working.items.length, seed.initialContent.items.length + 1); assert.equal(c.workflow.working.items.filter(x => x.name === forms.newItemName).length, 1); });
+      await stageForm('item-new-stage', async content => { assert.equal(content.items.length, seed.initialContent.items.length + 1); assert.equal(content.items.filter(x => x.name === forms.newItemName).length, 1); });
       await formOpen('item-cancel-open', '[data-edit-item="' + seed.ids.item + '"]');
       await editor.page.locator(formSelector + ' [name="description"]').fill('Cancelled synthetic instruction'); const beforeCancelItem = await control();
       await measure(editor.page, 'item-cancel', formCancel, () => editor.page.locator('.fqc-modal-overlay').waitFor({state: 'detached'}), async () => assert.deepEqual(await control(), beforeCancelItem), 0);
@@ -253,22 +262,28 @@ export async function runFqcDraftBrowser() {
       const matrix = editor.page.locator('.fqc-matrix'); assert.equal(await matrix.evaluate(node => node.open), true);
       const beforeMatrix = await control();
       const matrixChoice = async action => measure(editor.page, action, cell, async () => {
-        assert.equal(await editor.page.locator(cell).getAttribute('aria-pressed'), 'true'); await waitEnabled(editor.page, '#fqc-matrix-apply');
+        assert.equal(await editor.page.locator(cell).getAttribute('aria-pressed'), 'true'); assert.equal(await editor.page.locator('#fqc-matrix-apply').isVisible(), false);
         assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), true);
       }, async () => assert.deepEqual(await control(), beforeMatrix), 0);
       await matrixChoice('matrix-discard-choice');
       await (await requireVisible(editor.page, '#fqc-matrix-more>summary')).click();
       await measure(editor.page, 'matrix-discard', '#fqc-matrix-discard', async () => {
         assert.equal(await editor.page.locator(cell).getAttribute('aria-pressed'), 'false');
-        assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), false);
+        assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), true, 'Discarding matrix choices preserves staged forms');
+        assert.equal((await localContent()).errors.find(row => row.id === seed.ids.error).name, forms.errorName);
       }, async () => assert.deepEqual(await control(), beforeMatrix), 0);
       await matrixChoice('matrix-choice');
-      await measure(editor.page, 'matrix-apply', '#fqc-matrix-apply', async () => {
-        await editor.page.waitForFunction(() => !window.FQCMasterUI.navigation.hasLocalChanges()); await idle(editor.page);
-        assert.equal(await editor.page.locator(cell).getAttribute('aria-pressed'), 'true');
-      }, async () => { const c = await control(); assert.deepEqual(c.workflow.working.items.find(x => x.id === seed.ids.item).productCodes, [seed.ids.product, seed.ids.product2]); assert.equal(c.workflow.saved, null); }, 1);
       await measure(editor.page, 'save', '#fqc-save', assertDraft, async () => {
         const c = await control(); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working);
+        const content = c.workflow.saved.content;
+        assert.equal(content.errors.find(row => row.id === seed.ids.error).name, forms.errorName);
+        assert.equal(content.errors.filter(row => row.name === forms.newErrorName).length, 1);
+        const item = content.items.find(row => row.id === seed.ids.item);
+        assert.equal(item.name, forms.itemName); assert.equal(item.description, forms.description);
+        assert.deepEqual(item.productCodes, [seed.ids.product, seed.ids.product2]);
+        assert.equal(item.rule.cadence, 'batch'); assert.equal(item.rule.fixedCount, 1);
+        assert.equal(content.items.filter(row => row.name === forms.newItemName).length, 1);
+        assert.equal(await editor.page.evaluate(() => window.FQCMasterUI.navigation.hasLocalChanges()), false);
       }, 1);
       // Actual persisted readback uses a fresh authenticated page/context. It is
       // a correctness checkpoint, not mislabeled same-document click timing.

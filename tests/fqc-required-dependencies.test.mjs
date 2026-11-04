@@ -68,7 +68,7 @@ for(const action of ['apply','save'])for(const mode of ['missing','sha','invalid
 
 for(const cell of ['view','save','create','delete'])void test(`FQC denied ${cell} precedes all business hydration`,async()=>{
  const context=await setup(),{f}=context;try{
-  await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['fqc.'+cell]=false;values.platformUsers=JSON.stringify(users);});
+  await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['fqc.'+cell]=false;if(cell==='save')users[0].accessOverrides['fqc.edit']=false;values.platformUsers=JSON.stringify(users);});
   const business=businessRefSet(f),before=storedRow(f);resetEvents(f);
   const detail=cell==='create'?{patches:[{op:'insert',path:['errors'],value:{id:'new-error',name:'Synthetic new',category:'SYN',line:'A'}}]}:cell==='delete'?{patches:[{op:'set',path:['items',{id:'item'},'isDeleted'],value:true}],guards:[{path:['items',{id:'item'},'isDeleted'],value:false}]}:nameEdit();
   const response=await send(context,cell==='save'?'save':'apply',cell==='save'?{}:detail);assert.equal(response.status,403);assert.equal((await response.json()).error,'FORBIDDEN');
@@ -367,7 +367,7 @@ void test('FQC early denials preserve exact merged-848 DTO and authorization pre
   {name:'delete denied',detail:'delete',deny:['delete'],id:false},
   {name:'view denied',deny:['view'],id:true},
   {name:'edit denied',deny:['edit'],id:true},
-  {name:'save denied',action:'save',deny:['save'],id:true},
+  {name:'save and edit denied',action:'save',deny:['save','edit'],id:true},
   {name:'raw create allowed while edit denied',detail:'create',deny:['edit'],id:true},
   {name:'create and edit denied',detail:'create',deny:['create','edit'],id:false},
   {name:'delete raw allowed while edit denied',detail:'delete',deny:['edit'],id:false},

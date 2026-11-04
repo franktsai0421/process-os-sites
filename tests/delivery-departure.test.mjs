@@ -118,7 +118,7 @@ void test('native unload permits clean/read-only process viewing and does not ac
 });
 
 for(const state of ['dirty','unknown'])void test(`opt-in actual router abandons ${state} without a prompt and retains unknown marker`,async()=>{
- const f=await fixture(),departureId={};let abandoned=0,marker=state==='unknown',covered=false,released=0;
+ const f=await fixture(),departureId={},marker=state==='unknown';let abandoned=0,covered=false,released=0;
  f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>false;
  f.window.sharedDraftAccountState=()=>({unknown:marker});f.window.sharedDraftDepartureBlocked=()=>marker&&!covered;
  f.setStatus({state,canAbandon:true});

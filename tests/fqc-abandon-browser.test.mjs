@@ -17,114 +17,27 @@ async function router(page){
   await page.addScriptTag({content:source('delivery-navigation.js')});await page.evaluate(()=>window.ProcessDeliveryNavigation.initialized);
 }
 async function unknown(s,kind='error',commit=false){
-  await s.page.locator(`[data-edit-${kind}="${kind}"]`).click();const form=s.page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('Attempted input');s.lose({commit});await form.locator('[type="submit"]').click();await s.settled();await form.locator('[name="name"]').fill('Later 未送出 input');return form;
+  const {page}=s;await page.locator(`[data-edit-${kind}="${kind}"]`).click();let form=page.locator('.fqc-modal-form');await form.locator('[name=name]').fill('Attempted input');await form.locator('[type=submit]').click();await form.waitFor({state:'detached'});s.lose({commit});await page.locator('#fqc-save').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);await page.locator('#fqc-check-result').waitFor();await page.locator(`[data-edit-${kind}="${kind}"]`).click();form=page.locator('.fqc-modal-form');await form.locator('[name=name]').fill('Later 未送出 input');return form;
 }
-for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`abandon unknown inputs, browse and return without restoring ${width}px ${lang}`,async()=>{
- const s=await setup(width,lang),{page,f}=s;try{
-  page.setDefaultTimeout(6000);page.setDefaultNavigationTimeout(6000);await router(page);await unknown(s);const before=posts(f).length;
-  const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft'))));
-  await page.evaluate(()=>{const set=Reflect.get(Storage.prototype,'setItem');Storage.prototype.setItem=function(key,value){if(key.startsWith('fqc-input'))throw Error('No input archives allowed');return set.call(this,key,value);};window.ProcessDeliveryNavigation.navigate('dashboard');});
-  const button=page.locator('[data-departure-choice="abandon"]');await button.waitFor();assert(await button.isEnabled());assert((await button.boundingBox()).height>=44);
-  assert(await page.locator('#process-navigation-departure').evaluate(node=>node.getBoundingClientRect().right<=innerWidth));
-  await button.click();await page.waitForFunction(()=>window.state.view==='dashboard');
-  assert.equal(await page.locator('.fqc-modal-form').count(),0);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),false);
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('quality-dashboard'));await page.waitForFunction(()=>window.state.view==='quality-dashboard');
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();
-  assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(await page.locator('[data-fqc-checkpoint],.fqc-modal-form').count(),0);
-  assert.equal(await page.evaluate(()=>Object.keys(sessionStorage).filter(key=>key.startsWith('fqc-input')).length),0);
-  assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft')))),markers);
-  assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);
+const markers=page=>page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft'))));
+async function leave(page,target='dashboard'){await page.evaluate(target=>window.ProcessDeliveryNavigation.navigate(target),target);await page.waitForFunction(target=>window.state.view===target,target);assert.equal(await page.locator('#process-navigation-departure').count(),0);}
+for(const width of [390,1280])for(const lang of ['zh','vi'])void test(`automatic unknown abandonment and return without restoring ${width}px ${lang}`,async()=>{
+ const s=await setup(width,lang),{page,f}=s;try{page.setDefaultTimeout(6000);await router(page);await unknown(s);const before=posts(f).length,original=await markers(page);
+ await page.evaluate(()=>{const set=Reflect.get(Storage.prototype,'setItem');Storage.prototype.setItem=function(key,value){if(key.startsWith('fqc-input'))throw Error('No input archives allowed');return set.call(this,key,value);};});await leave(page);assert.equal(await page.locator('.fqc-modal-form').count(),0);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),false);
+ await leave(page,'quality-dashboard');await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(await page.locator('[data-fqc-checkpoint],.fqc-modal-form').count(),0);assert.equal(await page.evaluate(()=>Object.keys(sessionStorage).filter(key=>key.startsWith('fqc-input')).length),0);assert.deepEqual(await markers(page),original);assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
-void test('404 plus delayed commit, abandonment and later collaborator edit never replay or roll back',async()=>{
- const s=await setup(),{page,f}=s;let release;try{
-  await router(page);const held=new Promise(resolve=>release=resolve);f.hooks.run=async sql=>{if(sql.startsWith('UPDATE shared_state'))await held;};
-  await page.locator('[data-edit-error="error"]').click();const form=page.locator('.fqc-modal-form');await form.locator('[name="name"]').fill('Original late commit');s.lose({delayed:true});await form.locator('[type="submit"]').click();await s.settled();
-  s.receiptsUp();await page.locator('[data-fqc-check-result]').click();await page.waitForFunction(()=>!document.querySelector('[data-fqc-check-result]').disabled);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));
-  await form.locator('[name="name"]').fill('Discard this input');await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>window.state.view==='dashboard');
-  release();assert.equal((await s.lateCommit()).status,200);f.hooks.run=null;
-  const latest=await f.state();assert.equal(latest.workflow.working.errors[0].name,'Original late commit');const before=posts(f).length;
-  const other=f.realm('other');await other.client.read();await other.client.command(latest.workflow.generation,'apply',nameEdit('Other actor latest','Original late commit'));
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();await s.recover();
-  assert.equal((await f.state()).workflow.working.errors[0].name,'Other actor latest');assert.equal(posts(f).length,before+1);assert.equal(await page.locator('.fqc-modal-form,[data-fqc-checkpoint]').count(),0);assert.deepEqual(s.errors,[]);
+void test('404 plus delayed Save, departure and collaborator update never replay or roll back',async()=>{
+ const s=await setup(),{page,f}=s;let release;try{await router(page);await page.locator('[data-edit-error="error"]').click();const form=page.locator('.fqc-modal-form');await form.locator('[name=name]').fill('Original late commit');await form.locator('[type=submit]').click();await form.waitFor({state:'detached'});
+ const held=new Promise(resolve=>release=resolve);f.hooks.run=async sql=>{if(sql.startsWith('UPDATE shared_state'))await held;};s.lose({delayed:true});await page.locator('#fqc-save').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);s.receiptsUp();await page.locator('#fqc-check-result').click();await page.waitForFunction(()=>!document.querySelector('#fqc-check-result').disabled);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));await leave(page);
+ release();assert.equal((await s.lateCommit()).status,200);f.hooks.run=null;const latest=await f.state();assert.equal(latest.workflow.saved.content.errors[0].name,'Original late commit');const before=posts(f).length;const other=f.realm('other');await other.client.read();await other.client.command(latest.workflow.generation,'apply',nameEdit('Other actor latest','Original late commit'));await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();await s.recover();assert.equal((await f.state()).workflow.working.errors[0].name,'Other actor latest');assert.equal(posts(f).length,before+1);assert.equal(await page.locator('.fqc-modal-form,[data-fqc-checkpoint]').count(),0);assert.deepEqual(s.errors,[]);
  }finally{release?.();await s.close();}
 });
-void test('failed target preparation keeps input; explicit retry drops it only on commit',async()=>{
- const s=await setup(),{page,f}=s;try{await router(page);await unknown(s);const before=posts(f).length;
-  await page.evaluate(()=>{window.failDestination=true;window.ProcessDeliveryNavigation.navigate('dashboard');});await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!document.querySelector('#process-navigation-departure'));
-  assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name="name"]').inputValue(),'Later 未送出 input');assert.equal(await page.locator('.fqc-modal-overlay').evaluate(node=>node.inert),false);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));
-  await page.evaluate(()=>{window.failDestination=false;window.ProcessDeliveryNavigation.navigate('dashboard');});await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>window.state.view==='dashboard');assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);
- }finally{await s.close();}
+void test('failed destination preserves open input and exact unknown evidence; retry abandons',async()=>{
+ const s=await setup(),{page,f}=s;try{await router(page);await unknown(s);const before=posts(f).length,original=await markers(page);await page.evaluate(async()=>{window.failDestination=true;await window.ProcessDeliveryNavigation.navigate('dashboard');});await page.waitForFunction(()=>!document.querySelector('#process-navigation-departure'));assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.equal(await page.locator('.fqc-modal-overlay').evaluate(node=>node.inert),false);assert.deepEqual(await markers(page),original);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));await page.evaluate(()=>window.failDestination=false);await leave(page);assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);}finally{await s.close();}
 });
-void test('abandoned unknown survives real reload without inputs or navigation capability',async()=>{
- const s=await setup(),{page,f}=s;try{await router(page);await unknown(s);const before=posts(f).length;
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>window.state.view==='dashboard');
-  page.removeAllListeners('dialog');page.on('dialog',dialog=>void dialog.accept());await page.reload();await s.boot();
-  assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));assert.equal(await page.locator('.fqc-modal-form,[data-fqc-checkpoint]').count(),0);assert.equal(posts(f).length,before);
- }finally{await s.close();}
-});
-for(const fault of ['foreign','actor','marker'])void test(`departure evidence ${fault} cannot release a different unknown`,async()=>{
- const s=await setup(),{page}=s;try{await router(page);await unknown(s);
-  if(fault==='foreign'){await page.route('**/workflow?foreign=1',route=>route.abort());await page.evaluate(async()=>{const client=window.createSharedDraftClient({actorId:'editor',endpoint:'/api/fqc/workflow?foreign=1'});try{await client.command(window.FQCMasterUI.control.libraries.fqc.workflow.generation,'apply',{changes:[]});}catch{}});await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('dashboard'));assert(await page.locator('[data-departure-choice="abandon"]').isDisabled()||await page.locator('[data-departure-choice="abandon"]').isHidden());}
-  else{await page.evaluate(async()=>{window.departureLease=await window.FQCMasterUI.navigation.departure.abandon();});assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),false);await page.evaluate(fault=>{if(fault==='actor')window.ProcessSync.identity={id:'editor'};else{const key=Object.keys(sessionStorage).find(key=>key.startsWith('shared-draft'));sessionStorage.setItem(key,sessionStorage.getItem(key)+' ');}},fault);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));await page.evaluate(()=>window.departureLease.release());}
-  assert.equal(await page.locator('.fqc-modal-form').count(),1);
- }finally{await s.close();}
-});
-void test('unknown matrix departure preserves receipt-only recovery and never restores inputs',async()=>{
- const s=await setup(),{page,f}=s;try{await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();s.lose({commit:false});await page.locator('#fqc-matrix-apply').click();await s.settled();const before=posts(f).length;
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>window.state.view==='dashboard');
-  await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.equal(posts(f).length,before);assert.equal(await page.locator('.matrix-local-change').count(),0);assert.deepEqual(s.errors,[]);
- }finally{await s.close();}
-});
-
-void test('form unknown abandonment deletes only its other unsent matrix payload, never receipt evidence',async()=>{
-const s=await setup(),{page}=s;
-try {
-  page.setDefaultTimeout(6000);
-  await router(page);
-  await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();
-  await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
-  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));
-  assert.equal(Object.keys(original).length,1);
-  assert.equal(JSON.parse(Object.values(original)[0]).kind,'local');
-  await page.locator('[data-edit-error="error"]').click();
-  await page.locator('.fqc-modal-form [name="name"]').fill('Unknown form change');
-  s.lose({commit:true});
-  await page.locator('.fqc-modal-form [type="submit"]').click();
-  await s.settled();
-  const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft'))));
-  const count=posts(s.f).length;
-  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));
-  await page.locator('[data-departure-choice="abandon"]').click();
-  await page.waitForFunction(()=>window.state.view==='dashboard');
-  const retained=await page.evaluate(keys=>Object.fromEntries(keys.filter(k=>localStorage.getItem(k)!==null).map(k=>[k,localStorage.getItem(k)])),Object.keys(original));
-  assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);
-  assert.equal(await page.evaluate(()=>window.sharedDraftAccountState().unknown),true);
-  assert.equal(posts(s.f).length,count);
-  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));
-  await page.locator('#fqc-check-result').waitFor();
-  s.receiptsUp();
-  await s.recover();
-  assert.equal(posts(s.f).length,count);
-  assert.deepEqual(s.errors,[]);
-  assert.deepEqual(retained,{},'Abandon must remove only this runtime\'s unsent local matrix payload; preserve the separate unknown form receipt');
-} finally { await s.close(); }
-
-});
-void test('unsent matrix storage deletion failure refuses departure and keeps form/unknown evidence',async()=>{
- const s=await setup(),{page}=s;try{
-  await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));
-  const original=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([,v])=>v.includes('completeMatrix'))));await unknown(s);
-  const markers=await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),count=posts(s.f).length;
-  await page.evaluate(keys=>{const remove=Reflect.get(Storage.prototype,'removeItem');Storage.prototype.removeItem=function(key){if(this===localStorage&&keys.includes(key))throw Error('SYNTHETIC_REMOVE_FAILED');return Reflect.apply(remove,this,[key]);};},Object.keys(original));
-  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!!document.querySelector('[data-departure-error]')?.textContent);
-  assert.equal(await page.evaluate(()=>window.state.view),'data');assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)])),Object.keys(original)),original);assert.deepEqual(await page.evaluate(()=>Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('shared-draft')))),markers);assert.equal(posts(s.f).length,count);assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),true);
- }finally{await s.close();}
-});
-void test('failed destination after explicit matrix abandonment refreshes cells while preserving form input',async()=>{
- const s=await setup(),{page}=s;try{
-  await router(page);const cell=page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]');await cell.click();await page.waitForFunction(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix')));await unknown(s);
-  await page.evaluate(()=>{window.failDestination=true;void window.ProcessDeliveryNavigation.navigate('dashboard');});await page.locator('[data-departure-choice="abandon"]').click();await page.waitForFunction(()=>!document.querySelector('#process-navigation-departure'));
-  assert.equal(await cell.getAttribute('aria-pressed'),'false');assert.equal(await page.locator('.matrix-local-change').count(),0);assert.equal(await page.locator('.fqc-modal-form [name=name]').inputValue(),'Later 未送出 input');assert.equal(await page.evaluate(()=>window.sharedDraftAccountState().unknown),true);assert.equal(await page.evaluate(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix'))),false);
- }finally{await s.close();}
-});
+void test('abandoned unknown survives real reload with no input restoration',async()=>{const s=await setup(),{page,f}=s;try{await router(page);await unknown(s);const before=posts(f).length,original=await markers(page);await leave(page);page.removeAllListeners('dialog');page.on('dialog',dialog=>{if(dialog.type()==='beforeunload')void dialog.accept();else{s.errors.push('Unexpected dialog');void dialog.dismiss();}});await page.reload();await s.boot();assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.deepEqual(await markers(page),original);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));assert.equal(await page.locator('.fqc-modal-form,[data-fqc-checkpoint]').count(),0);assert.equal(posts(f).length,before);assert.deepEqual(s.errors,[]);}finally{await s.close();}});
+for(const fault of ['foreign','actor','marker'])void test(`departure evidence ${fault} cannot release another unknown`,async()=>{const s=await setup(),{page}=s;try{await router(page);await unknown(s);if(fault==='foreign'){await page.route('**/workflow?foreign=1',route=>route.abort());await page.evaluate(async()=>{const client=window.createSharedDraftClient({actorId:'editor',endpoint:'/api/fqc/workflow?foreign=1'});try{await client.command(window.FQCMasterUI.control.libraries.fqc.workflow.generation,'apply',{changes:[]});}catch{}});await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('dashboard'));await page.locator('#process-navigation-departure').waitFor();assert(await page.locator('[data-departure-choice="abandon"]').isDisabled()||await page.locator('[data-departure-choice="abandon"]').isHidden());assert.equal(await page.evaluate(()=>window.state.view),'data');}else{await page.evaluate(async()=>window.departureLease=await window.FQCMasterUI.navigation.departure.abandon());assert.equal(await page.evaluate(()=>window.sharedDraftDepartureBlocked()),false);await page.evaluate(fault=>{if(fault==='actor')window.ProcessSync.identity={id:'editor'};else{const key=Object.keys(sessionStorage).find(key=>key.startsWith('shared-draft'));sessionStorage.setItem(key,sessionStorage.getItem(key)+' ');}},fault);assert(await page.evaluate(()=>window.sharedDraftDepartureBlocked()));await page.evaluate(()=>window.departureLease.release());}assert.equal(await page.locator('.fqc-modal-form').count(),1);}finally{await s.close();}});
+void test('unknown matrix Save departure retains receipt only and no local payload',async()=>{const s=await setup(),{page,f}=s;try{await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();assert.equal(await page.evaluate(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix'))),false);s.lose({commit:false});await page.locator('#fqc-save').click();await page.waitForFunction(()=>window.sharedDraftAccountState().unknown&&!window.sharedDraftAccountState().queued);const before=posts(f).length,original=await markers(page);await leave(page);await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();assert.deepEqual(await markers(page),original);assert.equal(posts(f).length,before);assert.equal(await page.locator('.matrix-local-change').count(),0);assert.deepEqual(s.errors,[]);}finally{await s.close();}});
+void test('local matrix plus form Save produces one marker; abandonment never removes it',async()=>{const s=await setup(),{page,f}=s;try{await router(page);await page.locator('[data-matrix-item="item"][data-matrix-product="SYN-P"]').click();await unknown(s,'error',true);const original=await markers(page),before=posts(f).length;assert.equal(Object.keys(original).length,1);assert.equal(await page.evaluate(()=>Object.values(localStorage).some(v=>v.includes('completeMatrix'))),false);await leave(page);assert.deepEqual(await markers(page),original);await page.evaluate(()=>window.ProcessDeliveryNavigation.navigate('data','quality-fqc'));await page.locator('#fqc-check-result').waitFor();s.receiptsUp();await s.recover();assert.equal(posts(f).length,before);assert.deepEqual((await f.state()).workflow.saved.content.items[0].productCodes,['SYN-P']);assert.deepEqual(s.errors,[]);}finally{await s.close();}});
+void test('navigation never attempts receipt-marker deletion even when storage removal is denied',async()=>{const s=await setup(),{page,f}=s;try{await router(page);await unknown(s);const original=await markers(page),before=posts(f).length;await page.evaluate(()=>{const remove=Reflect.get(Storage.prototype,'removeItem');Storage.prototype.removeItem=function(key){if(this===sessionStorage&&key.startsWith('shared-draft'))throw Error('SYNTHETIC_REMOVE_DENIED');return remove.call(this,key);};});await leave(page);assert.deepEqual(await markers(page),original);assert.equal(posts(f).length,before);assert(await page.evaluate(()=>window.sharedDraftAccountState().unknown));assert.deepEqual(s.errors,[]);}finally{await s.close();}});

@@ -22,10 +22,22 @@ Before any future cleanup: take an authorized consistent backup, inventory each 
 - Browser tests: local forms/matrix, filtered choices, shared refresh, desktop/mobile and Chinese/Vietnamese, distinct-actor merge, images/equipment, saved submission/withdrawal, receipt-only unknown recovery and automatic departure.
 - Navigation regression: automatic FQC opt-in retains target preparation, identity fences and other-module blockers.
 - Synthetic benchmark: `node scripts/benchmark-fqc-single-save.cjs`. Paired five samples with 256 items: median Apply+Save 95.53 ms versus single Save 49.37 ms; HTTP 4→2, POST 2→1, R2 GET 51→25, R2 PUT 3→2, wire bytes 416473→277647. In-memory/synthetic measurement, not live latency or an SLO.
-- Physical phone/IME, cross-machine employee sessions and hosted acceptance: NOT_RUN. Old immediate-Apply UI tests require migration to the new contract; original API compatibility tests remain relevant. Final exact-head CI status is reported in the PR/task handoff.
+- Physical phone/IME, cross-machine employee sessions and hosted acceptance: NOT_RUN. Immediate-Apply UI tests were migrated to local editing/Save while preserving direct legacy API tests and explicit historical recovery-record fixtures. Final exact-head CI status is reported in the PR/task handoff.
 
 ## Integration and deployment risks
 
 Shared files: `versioned-shared-workflow.ts` (FQC-only permission mapping), `shared-draft-client.js` (FQC save receipt/rejection handling and checked unload opt-in), `delivery-navigation.js` / `navigation-lifecycle.mjs` (opt-in auto-abandon), `index.html` (asset versions). Other module branches must merge these changes semantically.
 
 No schema or data-package change. The new combined save deliberately uses the conservative full reader: the older optimized Save path assumes working is unchanged. Deploy API support before/new with updated cache-versioned UI. Older cached editors still support legacy Apply until refreshed; preserve their writes and receipts. Downgrading UI must not erase newly saved snapshots. External equipment replacement is a separate existing workflow, not converted by this FQC editing PR.
+
+## Local completion evidence
+
+- `tests/fqc-single-save.test.mjs`: 26 PASS; `tests/fqc-single-save-browser.test.mjs`: 10 PASS.
+- Migrated Apply/unknown route suites: 49 PASS; native Apply/unknown browser suites: 28 PASS; automatic abandonment browser: 13 PASS.
+- Matrix batch: 44 PASS; conflict + lifecycle + native server combined: 65 PASS at the earlier 24-server-test point; last-apply/rejection: 31 PASS; multiuser module/contracts: 29 PASS.
+- Fault + required-dependency suites: 87 PASS; readiness: 30 PASS; navigation: 121 PASS; native layout: 6 viewports/locales PASS.
+- Feedback races: 25 groups PASS; dependent route suites: 27 PASS. Native lifecycle runner contract: 18 PASS.
+- Build passed with safe-build DTO; TypeScript and source boundary checks passed. Changed-source secret/size scan: zero findings. Whole-repo scan reports two unchanged synthetic sentinel tests (`multiuser-iqc-local-recovery-composition`, `multiuser-local-recovery-helper`); no new finding.
+- CI-only native lifecycle/multiuser/conflict-discard runners were migrated, but their explicit CI-only gates were not bypassed locally. Their actual execution is pending GitHub CI; this candidate must remain Draft until those and the complete required checks pass.
+
+Review-driven fixes include retaining original form-field guards after unknown recovery, rejecting malformed Save before any write, strictly validating both conflict readbacks, preserving local edits across background reads/legacy Begin, advancing revision when reverting old working to saved, and avoiding phantom failure records on blocked retries.

@@ -66,6 +66,10 @@ async function choose(ui, id='item') {
   await cell.click(); assert.equal(cell.textContent,'✓'); assert.equal(ui.c.__fqcTest.matrixDirty(),true);
   return cell;
 }
+async function checkResult(ui) {
+  const button=ui.main.querySelector('#fqc-check-result');assert(button,'required original-operation result control');
+  await button.click();await until(()=>!ui.c.__fqcTest.ui.saving,'explicit original receipt query');
+}
 async function holdFirstCas(f) {
   let release, held=false;
   f.hooks.run = async sql => {
@@ -82,65 +86,66 @@ function report(t, ui, name) {
     syntheticVmMs:ui.wire.reduce((n,r)=>n+r.syntheticVmMs,0),notLiveLatency:true}));
 }
 
-void test('two signed actors overlap different-row matrix Apply at real CAS; last CAS winner replaces the whole matrix and neither saves', async t => {
+void test('two signed actors overlap different-row matrix Save at real CAS and retain both saved choices', async t => {
   const f=await seed(); try {
     const {a,b}=await pair(f),before=posts(f).length;
     await choose(a,'item'); await choose(b,'item2'); assert.equal(posts(f).length,before);
-    const gate=await holdFirstCas(f), first=a.c.__fqcTest.applyMatrixChoices(); await gate.wait();
-    await b.c.__fqcTest.applyMatrixChoices(); gate.release(); await first;
+    const gate=await holdFirstCas(f), first=a.c.__fqcTest.sharedAction('save'); await gate.wait();
+    await b.c.__fqcTest.sharedAction('save'); gate.release(); await first;
     const flow=(await f.state()).workflow;
-    assert.deepEqual(codes(flow),['SYN-P']); assert.deepEqual(codes(flow,'item2'),[]); assert.equal(flow.saved,null);
+    assert.deepEqual(codes(flow),['SYN-P']); assert.deepEqual(codes(flow,'item2'),['SYN-P']); assert.deepEqual(flow.saved.content,flow.working);assert.equal(flow.saves.length,2);
     assert.equal(a.c.__fqcTest.matrixDirty(),false); assert.equal(b.c.__fqcTest.matrixDirty(),false);
     const sent=posts(f).slice(before); assert.equal(sent.length,2); assert.deepEqual(new Set(sent.map(r=>r.actor)),new Set(['editor','other']));
     assert.notEqual(command(sent[0]).operationId,command(sent[1]).operationId); assert.notEqual(command(sent[0]).clientId,command(sent[1]).clientId);
-    assert(sent.every(r=>r.status===200)); assert.equal(f.events.filter(e=>e.kind==='sql'&&e.sql.startsWith('UPDATE shared_state')).length,4,'Begin plus two commits plus one actual CAS retry');
+    assert(sent.every(r=>r.status===200));assert(sent.every(r=>command(r).action==='save'&&command(r).moduleAction==='save-local-v1'));assert(sent.every(r=>command(r).input.matrixCells.length===1)); assert.equal(f.events.filter(e=>e.kind==='sql'&&e.sql.startsWith('UPDATE shared_state')).length,4,'Begin plus two commits plus one actual CAS retry');
     assert.deepEqual(a.wire.slice(-2).map(r=>r.method),['POST','GET']);assert.deepEqual(b.wire.slice(-2).map(r=>r.method),['POST','GET']);
     report(t,a,'actor-A-different-row'); report(t,b,'actor-B-different-row');
   } finally {f.close();}
 });
 
-void test('same matrix selections may commit twice without guard conflict or automatic snapshot',async()=>{
- const f=await seed();try{const {a,b}=await pair(f);await choose(a);await choose(b);const before=posts(f).length;await a.c.__fqcTest.applyMatrixChoices();await b.c.__fqcTest.applyMatrixChoices();assert(posts(f).slice(before).every(r=>r.status===200));assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(b.c.__fqcTest.matrixDirty(),false);assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);}finally{f.close();}
+void test('same matrix selections may commit twice without guard conflict or duplicate saved snapshot',async()=>{
+ const f=await seed();try{const {a,b}=await pair(f);await choose(a);await choose(b);const before=posts(f).length;await a.c.__fqcTest.sharedAction('save');await b.c.__fqcTest.sharedAction('save');assert(posts(f).slice(before).every(r=>r.status===200));assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(b.c.__fqcTest.matrixDirty(),false);assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);assert.equal((await f.state()).workflow.saves.length,1);}finally{f.close();}
 });
 
+function localAssignment(itemId,productCode,base,value){return {moduleAction:'save-local-v1',patches:[],guards:[],input:{matrixCells:[{itemId,productCode,base,value}]}};}
 function assignment(id, next, previous) {
   return {patches:[{op:'set',path:['items',{id},'productCodes'],value:next}],guards:[{path:['items',{id},'productCodes'],value:previous}]};
 }
-void test('stale whole matrix explicitly replaces another product on the same row',async()=>{
- const f=await seed();try{const {a,b}=await pair(f);await choose(a);await b.c.__fqcTest.transport().command(b.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));await a.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).at(-1).status,200);assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.main.querySelector('#fqc-matrix-reconcile').hidden,true);assert.equal((await f.state()).workflow.saved,null);}finally{f.close();}
+void test('stale local matrix preserves another product on the same row',async()=>{
+ const f=await seed();try{const {a,b}=await pair(f);await choose(a);await b.c.__fqcTest.transport().command(b.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));await a.c.__fqcTest.sharedAction('save');assert.equal(posts(f).at(-1).status,200);assert.deepEqual(new Set(codes((await f.state()).workflow)),new Set(['SYN-P','SYN-Q']));assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.main.querySelector('#fqc-matrix-reconcile').hidden,true);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);}finally{f.close();}
 });
 
-void test('discarding unsent whole selection adopts peer changes without applying or merging',async()=>{
+void test('discarding unsent local selection does not write or change peer working',async()=>{
  const f=await seed();try{const {a,b}=await pair(f);await choose(a);await b.c.__fqcTest.transport().command(b.library.workflow.generation,'apply',assignment('item',['SYN-Q'],[]));const before=posts(f).length;await a.main.querySelector('#fqc-matrix-discard').click();await until(()=>!a.c.__fqcTest.ui.saving,'discard');assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.deepEqual(codes((await f.state()).workflow),['SYN-Q']);}finally{f.close();}
 });
 
-void test('matrix Apply then manual Save is visible to a fresh other-actor module; later unsaved input remains separate', async t => {
+void test('one matrix Save is visible to a fresh other actor; later local input stays separate until saved', async t => {
   const f=await seed(); try {
-    const {a,b}=await pair(f); await choose(a); await a.c.__fqcTest.applyMatrixChoices();
-    let flow=(await f.state()).workflow;assert.equal(flow.saved,null);
-    const saveStart=a.wire.length;await a.c.__fqcTest.sharedAction('save');assert.deepEqual(a.wire.slice(saveStart).map(r=>r.method),['POST','GET']);flow=(await f.state()).workflow;const saved=plain(flow.saved);
+    const {a,b}=await pair(f); await choose(a);const saveStart=a.wire.length;await a.c.__fqcTest.sharedAction('save');
+    assert.deepEqual(a.wire.slice(saveStart).map(r=>r.method),['POST','GET']);const flow=(await f.state()).workflow,saved=plain(flow.saved);
     assert.deepEqual(saved.content,plain(flow.working)); assert.equal(saved.actor.id,'editor');
     const reload=await mount(f,'other');assert.deepEqual(plain(reload.library.workflow.saved),saved);assert.deepEqual(codes(reload.library.workflow),['SYN-P']);
     assert.equal(reload.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
-    await choose(b,'item2');await assert.rejects(b.c.__fqcTest.sharedAction('save'));assert.equal(b.c.__fqcTest.matrixDirty(),true);
+    const before=posts(f).length;await choose(b,'item2');assert.equal(posts(f).length,before);assert.equal(b.c.__fqcTest.matrixDirty(),true);
     assert.deepEqual(plain((await f.state()).workflow.saved),saved);assert.deepEqual(codes((await f.state()).workflow,'item2'),[]);
-    report(t,a,'Apply-then-Save');report(t,reload,'other-actor-fresh-read');
+    await b.c.__fqcTest.sharedAction('save');const merged=(await f.state()).workflow;assert.deepEqual(codes(merged),['SYN-P']);assert.deepEqual(codes(merged,'item2'),['SYN-P']);assert.deepEqual(merged.saved.content,merged.working);
+    report(t,a,'single-Save');report(t,reload,'other-actor-fresh-read');
   } finally {f.close();}
 });
 
 void test('real Submit locks the peer matrix, Withdraw rotates generation, and stale peer input is never silently sent', async () => {
   const f=await seed();try {
-    const {a,b}=await pair(f);await choose(a);await a.c.__fqcTest.applyMatrixChoices();await a.c.__fqcTest.sharedAction('save');
+    const {a,b}=await pair(f);await choose(a);await a.c.__fqcTest.sharedAction('save');
     await choose(b,'item2');const client=a.c.__fqcTest.transport(),flow=(await f.state()).workflow,g=flow.generation;
     const submitted=await client.command(g,'submit',{savedId:flow.saved.id,expectedRevision:flow.revision,reason:'Synthetic two-actor check'});
     assert(submitted.control.workflow.pendingId);assert.equal(a.advisories.length,1);const before=f.db.prepare('SELECT * FROM shared_state').get();
-    await b.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).at(-1).result.error,'PENDING_LOCKED');assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.equal(b.c.__fqcTest.matrixDirty(),true);
+    await assert.rejects(b.c.__fqcTest.sharedAction('save'),/PENDING_LOCKED/);assert.equal(posts(f).at(-1).result.error,'PENDING_LOCKED');assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.equal(b.c.__fqcTest.matrixDirty(),true);
     const withdrawn=await client.command(g,'withdraw',{caseId:submitted.control.workflow.pendingId,reason:'Synthetic withdrawal'});
     assert.notEqual(withdrawn.control.workflow.generation,g);assert.equal(withdrawn.control.workflow.pendingId,null);
-    await b.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).at(-1).result.error,'STALE_GENERATION');assert.equal(b.c.__fqcTest.matrixDirty(),true);
+    const stale=b.c.__fqcTest.transport().prepare(g,'save',localAssignment('item2','SYN-P',false,true));const staleResponse=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:stale})},'other');assert.equal(staleResponse.status,409);assert.equal((await staleResponse.json()).error,'STALE_GENERATION');assert.equal(b.c.__fqcTest.transport().hasUnknown(),false);assert.equal(b.c.__fqcTest.matrixDirty(),true);
     assert.deepEqual(codes((await f.state()).workflow,'item2'),[]);
-    const fresh=await mount(f,'other');await choose(fresh,'item2');await fresh.c.__fqcTest.applyMatrixChoices();assert.equal(fresh.c.__fqcTest.matrixDirty(),false);
-    assert.deepEqual(codes((await f.state()).workflow,'item2'),['SYN-P']);assert.deepEqual(plain((await f.state()).workflow.saved),plain(flow.saved),'peer Apply after explicit reopen does not Save');
+    const fresh=await mount(f,'other');await choose(fresh,'item2');await fresh.c.__fqcTest.sharedAction('save');assert.equal(fresh.c.__fqcTest.matrixDirty(),false);
+    assert.deepEqual(codes((await f.state()).workflow,'item2'),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);assert.notEqual((await f.state()).workflow.saved.id,flow.saved.id,'peer Save after explicit reopen creates a new saved snapshot');
   }finally{f.close();}
 });
 
@@ -148,28 +153,28 @@ for(const receiptStatus of [404,503])void test(`lost matrix ACK and receipt ${re
   const f=await seed();try {
     let lost=false,unavailable=true;
     const a=await mount(f,'editor',async(url,o,send)=>{
-      if(o.method==='POST'&&JSON.parse(o.body).command?.action==='apply'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
+      if(o.method==='POST'&&JSON.parse(o.body).command?.action==='save'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
       if(lost&&unavailable&&String(url).includes('operationId='))return Response.json({error:receiptStatus===404?'OPERATION_NOT_FOUND':'SYNTHETIC_RECEIPT_UNAVAILABLE'},{status:receiptStatus});
       return send();
     });
-    await a.c.__fqcTest.sharedAction('begin');await choose(a);await a.c.__fqcTest.applyMatrixChoices();
+    await a.c.__fqcTest.sharedAction('begin');await choose(a);await assert.rejects(a.c.__fqcTest.sharedAction('save'),/RESULT_UNKNOWN/);
     assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);assert.equal(a.c.__fqcTest.matrixDirty(),true);
     const sent=posts(f).at(-1),op=command(sent).operationId,postCount=posts(f).length,marker=[...a.records];
-    assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
-    await a.c.__fqcTest.applyMatrixChoices();await a.c.__fqcTest.applyMatrixChoices();await assert.rejects(a.c.__fqcTest.sharedAction('save'));
+    assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);
+    await checkResult(a);await checkResult(a);await assert.rejects(a.c.__fqcTest.sharedAction('save'),/UNKNOWN_OPERATION_CHECK_REQUIRED/);
     assert.equal(posts(f).length,postCount);assert.deepEqual([...a.records],marker);assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);
     const foreign=await f.call('/api/fqc/workflow?operationId='+op,{},'other');assert.equal(foreign.status,403);
     const reads=a.wire.filter(r=>r.url.includes('operationId='));assert(reads.length>=2);assert(reads.every(r=>new URL(r.url,'https://synthetic.invalid').searchParams.get('operationId')===op));
-    unavailable=false;await a.c.__fqcTest.applyMatrixChoices();assert.equal(posts(f).length,postCount);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.c.__fqcTest.transport().hasUnknown(),false);assert.equal(a.records.size,0);
-    assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
+    unavailable=false;await checkResult(a);assert.equal(posts(f).length,postCount);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.c.__fqcTest.transport().hasUnknown(),false);assert.equal(a.records.size,0);
+    assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);
   }finally{f.close();}
 });
 
-void test('server permission revocation rejects peer matrix Apply and keeps local choice without modifying shared state',async () => {
+void test('server permission revocation rejects peer matrix Save and keeps local choice without modifying shared state',async () => {
   const f=await seed();try {
     const {b}=await pair(f);await choose(b);
     await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users.find(u=>u.id==='other').accessOverrides['fqc.edit']=false;values.platformUsers=JSON.stringify(users);});
-    const before=f.db.prepare('SELECT * FROM shared_state').get();await b.c.__fqcTest.applyMatrixChoices();
+    const before=f.db.prepare('SELECT * FROM shared_state').get();await assert.rejects(b.c.__fqcTest.sharedAction('save'),/FORBIDDEN/);
     assert.equal(posts(f).at(-1).status,403);assert.equal(posts(f).at(-1).result.error,'FORBIDDEN');assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);
     assert.equal(b.c.__fqcTest.matrixDirty(),true);assert.equal(b.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
     assert.deepEqual(codes((await f.state()).workflow),[]);assert.equal((await f.state()).workflow.saved,null);
@@ -179,14 +184,14 @@ void test('server permission revocation rejects peer matrix Apply and keeps loca
 // Native runner contracts only: importing this module never starts Chromium.
 void test('pending peer matrix stays disabled after ready/repaint; backend still rejects and Withdraw restores editing',async t=>{
  const f=await seed();try {
-  const {a}=await pair(f);await choose(a);await a.c.__fqcTest.applyMatrixChoices();await a.c.__fqcTest.sharedAction('save');
+  const {a}=await pair(f);await choose(a);await a.c.__fqcTest.sharedAction('save');
   const flow=(await f.state()).workflow,client=a.c.__fqcTest.transport();
   const submitted=await client.command(flow.generation,'submit',{savedId:flow.saved.id,expectedRevision:flow.revision,reason:'Synthetic pending UI check'});
   const b=await mount(f,'other');assert.equal(b.c.__fqcTest.selected().status,'pending');assert.equal(b.library.workflow.pendingId,submitted.control.workflow.pendingId);
   const before=f.db.prepare('SELECT * FROM shared_state').get(),objects=[...f.objects].map(([k,v])=>[k,v.toString('base64')]),beforePosts=posts(f).length;
   const cell=b.main.querySelector('[data-matrix-item="item2"]');assert(cell);await cell.onclick();
   assert.equal(b.c.__fqcTest.matrixDirty(),false);assert.equal(posts(f).length,beforePosts,'Even direct handler invocation cannot create a pending batch');
-  const attempted=b.c.__fqcTest.transport().prepare(flow.generation,'apply',assignment('item2',['SYN-P'],[]));
+  const attempted=b.c.__fqcTest.transport().prepare(flow.generation,'save',localAssignment('item2','SYN-P',false,true));
   const response=await f.call('/api/fqc/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command:attempted})},'other');
   assert.equal(response.status,409);assert.equal((await response.json()).error,'PENDING_LOCKED');
   assert.deepEqual(f.db.prepare('SELECT * FROM shared_state').get(),before);assert.deepEqual([...f.objects].map(([k,v])=>[k,v.toString('base64')]),objects);
@@ -258,14 +263,14 @@ void test('unknown matrix result remains GET-only queryable on a read-only selec
  const f=await seed();try {
   let lost=false;
   const a=await mount(f,'editor',async(url,o,send)=>{
-   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='apply'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
+   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='save'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
    if(lost&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
    return send();
   });
-  await a.c.__fqcTest.sharedAction('begin');await choose(a);await a.c.__fqcTest.applyMatrixChoices();assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);
+  await a.c.__fqcTest.sharedAction('begin');await choose(a);await assert.rejects(a.c.__fqcTest.sharedAction('save'),/RESULT_UNKNOWN/);assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);
   a.c.__fqcTest.ui.selectedVersionId=a.library.activeVersionId;a.c.__fqcTest.render();await tick();assert.equal(a.c.__fqcTest.selected().status,'approved');
   assert([...a.main.querySelectorAll('[data-matrix-item]')].every(n=>n.disabled));
-  const query=a.main.querySelector('#fqc-matrix-apply');assert.equal(query.disabled,false);assert.match(query.textContent,/查詢|Kiểm tra/);
+  const query=a.main.querySelector('#fqc-check-result');assert.equal(query.disabled,false);assert.match(query.textContent,/查詢|Kiểm tra/);
   const before=posts(f).length,reads=a.wire.filter(r=>r.url.includes('operationId=')).length,marker=[...a.records];
   query.click();await until(()=>a.wire.filter(r=>r.url.includes('operationId=')).length>reads&&!a.c.__fqcTest.ui.saving,'explicit unknown receipt check');
   assert.equal(posts(f).length,before);assert.equal(a.c.__fqcTest.transport().hasUnknown(),true);assert.equal(a.c.__fqcTest.matrixDirty(),true);assert.deepEqual([...a.records],marker);
@@ -323,7 +328,7 @@ void test('native matrix readiness requires exact actor, actual visible enabled 
 });
 void test('native matrix suite is CI-only, two real contexts, five complete cycles, no product auth or optional-button bypass',()=>{
  const source=readFileSync(new URL('./fqc-matrix-multiuser-browser.mjs',import.meta.url),'utf8');
- assert.equal(matrixMultiuserActions.length,12);assert.equal(new Set(matrixMultiuserActions).size,12);
+ assert.equal(matrixMultiuserActions.length,12);assert.equal(new Set(matrixMultiuserActions).size,12);assert(matrixMultiuserActions.includes('actor-a-save'));assert(matrixMultiuserActions.includes('actor-b-save'));assert.doesNotMatch(source,/#fqc-matrix-apply|replace-matrix-v1|last-commit-wins|whole-replacement/);assert.match(source,/save-local-v1/);assert.match(source,/overlapping-flight-different-cells-merge/);assert.match(source,/same-row-independent-add-remove-merge/);
  assert.match(source,/assert\.equal\(process\.env\.CI,'true'/);assert.match(source,/createRootEntryFixture/);assert.match(source,/cycle<=REQUIRED_SAMPLES/);
  assert.match(source,/const b=await open\(seed\.actors\.peer\)/);assert.match(source,/await browser\.newContext/);assert.match(source,/assert\.notEqual\(await a\.page\.evaluate/);
  assert.match(source,/allowed=new WeakMap/);assert.match(source,/await route\.fetch\(\)/);assert.match(source,/assert\.equal\(res\.status\(\),200\)/);
@@ -356,7 +361,7 @@ void test('native fault allowance is attached to the exact original request, not
  f.allowed.set(original,{kind:'lost-ack',operationId:'operation-one'});f.page.emit('request',original);f.page.emit('requestfailed',original);assert.deepEqual(f.unexpected,[]);
  f.page.emit('request',copy);f.page.emit('requestfailed',copy);assert.equal(f.unexpected.length,1);await assert.rejects(f.observer.stop(()=>true));f.observer.forceStopAfterFailure();
 });
-void test('native three-row/two-editor seed passes actual Begin, both actors Apply, Save, Submit and Withdraw without extra grants',async()=>{
+void test('native three-row/two-editor seed passes actual Begin, both actors single Save, Submit and Withdraw without extra grants',async()=>{
  const f=await routeFixture();try {
   const seed=buildMatrixMultiuserSeed(f.load('lib/shared-draft.ts').createSharedDraft,{cycle:1});
   await f.mutate(values=>{for(const key of Object.keys(values))delete values[key];Object.assign(values,seed.values);});
@@ -367,14 +372,13 @@ void test('native three-row/two-editor seed passes actual Begin, both actors App
   const a=f.realm(seed.actors.editor.id),b=f.realm(seed.actors.peer.id);
   a.c.alert=()=>assert.fail('The existing distinct reviewer remains available; no seed grant workaround');
   const begun=await a.client.begin();await Promise.all([a.client.read(),b.client.read()]);const g=begun.control.workflow.generation;
-  await a.client.command(g,'apply',assignment(seed.ids.item,[seed.ids.product2],[]));
-  await b.client.command(g,'apply',assignment(seed.ids.secondItem,[seed.ids.product],[]));
-  await a.client.command(g,'apply',assignment(seed.ids.thirdItem,[seed.ids.product],[]));
-  let flow=(await f.state()).workflow;assert.equal(flow.saved,null);
-  await a.client.command(g,'save',{expectedRevision:flow.revision});flow=(await f.state()).workflow;assert.deepEqual(flow.saved.content,flow.working);
+  await a.client.command(g,'save',localAssignment(seed.ids.item,seed.ids.product2,false,true));
+  await b.client.command(g,'save',localAssignment(seed.ids.secondItem,seed.ids.product,false,true));
+  await a.client.command(g,'save',localAssignment(seed.ids.thirdItem,seed.ids.product,false,true));
+  const flow=(await f.state()).workflow;assert.deepEqual(flow.saved.content,flow.working);assert.equal(flow.saves.length,3);assert.deepEqual(flow.working.items.find(row=>row.id===seed.ids.item).productCodes,[seed.ids.product2]);assert.deepEqual(flow.working.items.find(row=>row.id===seed.ids.secondItem).productCodes,[seed.ids.product]);assert.deepEqual(flow.working.items.find(row=>row.id===seed.ids.thirdItem).productCodes,[seed.ids.product]);
   const submitted=await a.client.command(g,'submit',{expectedRevision:flow.revision,savedId:flow.saved.id,reason:'Native seed route preflight'});
   assert(submitted.control.workflow.pendingId);assert.deepEqual(submitted.control.workflow.cases.at(-1).contentIssues?.issues||[],[]);
-  await assert.rejects(b.client.command(g,'apply',assignment(seed.ids.secondItem,[],[seed.ids.product])),/PENDING_LOCKED/);
+  await assert.rejects(b.client.command(g,'save',localAssignment(seed.ids.secondItem,seed.ids.product,true,false)),/PENDING_LOCKED/);
   const withdrawn=await a.client.command(g,'withdraw',{caseId:submitted.control.workflow.pendingId,reason:'Synthetic native seed withdrawal'});
   assert.notEqual(withdrawn.control.workflow.generation,g);assert.equal(withdrawn.control.workflow.pendingId,null);assert.deepEqual(plain(withdrawn.control.workflow.saved),plain(flow.saved));
   const state=await f.core.readState();for(const key of Object.keys(seed.values).filter(key=>key!=='qualityMasterControl'))assert.equal(state.values[key],seed.values[key]);
@@ -402,7 +406,7 @@ void test('native teardown token expires on clean stop and a modified expected r
 
 void test('native receipt query readiness requires exact supported locale, owner, scope and visible unique enabled unknown control',()=>{
  function probe(language,change=()=>{}) {
-  const button={textContent:language==='vi'?'Kiểm tra kết quả áp dụng':'查詢套用結果',disabled:false,getClientRects:()=>[{}]};
+  const button={textContent:language==='vi'?'Kiểm tra kết quả':'查詢前次結果',disabled:false,getClientRects:()=>[{}]};
   const state={actor:'editor',identity:{id:'editor'},lang:language,flow:{scope:'fqc'},account:{queued:0,unknown:true},button,
    host:{isConnected:true,dataset:{activeTab:'quality-fqc'},querySelectorAll:()=>[button]}};change(state);
   return vm.runInNewContext('('+matrixReceiptQueryReady.toString()+')({actor})',{actor:state.actor,document:{documentElement:{lang:state.lang},querySelector:()=>state.host},
@@ -412,27 +416,27 @@ void test('native receipt query readiness requires exact supported locale, owner
  for(const language of ['','en','vi-VN'])assert.equal(probe(language),false);
  for(const language of ['vi','zh-Hant'])for(const change of [s=>s.actor='',s=>s.actor=null,s=>s.identity.id='other',s=>s.flow.scope='other',
   s=>s.host.isConnected=false,s=>s.host.dataset.activeTab='other',s=>s.account.queued=1,s=>s.account.queued=undefined,s=>s.account.unknown=false,
-  s=>s.button.disabled=true,s=>s.button.getClientRects=()=>[],s=>s.button.textContent+=' ',s=>s.button.textContent=language==='vi'?'查詢套用結果':'Kiểm tra kết quả áp dụng',
+  s=>s.button.disabled=true,s=>s.button.getClientRects=()=>[],s=>s.button.textContent+=' ',s=>s.button.textContent=language==='vi'?'查詢前次結果':'Kiểm tra kết quả',
   s=>s.host.querySelectorAll=()=>[],s=>s.host.querySelectorAll=()=>[s.button,s.button]])assert.equal(probe(language,change),false);
 });
 for(const language of ['zh-Hant','vi'])void test('actual matrix lost ACK stays explicitly queryable in '+language+' without resending',async()=>{
  const f=await seed();try{
   let lost=false,unavailable=true;
   const a=await mount(f,'editor',async(url,o,send)=>{
-   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='apply'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
+   if(o.method==='POST'&&JSON.parse(o.body).command?.action==='save'){await send();lost=true;throw Error('SYNTHETIC_ACK_LOST');}
    if(lost&&unavailable&&String(url).includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});return send();
   });
   a.c.document.documentElement.lang=language;
-  await a.c.__fqcTest.sharedAction('begin');await choose(a);await a.c.__fqcTest.applyMatrixChoices();
-  const button=a.main.querySelector('#fqc-matrix-apply');button.getClientRects=()=>[{}]; // VM visibility port, not native layout evidence.
-  const ready=()=>vm.runInContext('('+matrixReceiptQueryReady.toString()+')({actor:"editor"})',a.c);
+  await a.c.__fqcTest.sharedAction('begin');await choose(a);await assert.rejects(a.c.__fqcTest.sharedAction('save'),/RESULT_UNKNOWN/);
+  const resultButton=()=>{const button=a.main.querySelector('#fqc-check-result');if(button)button.getClientRects=()=>[{}];return button;}; // VM visibility port, not native layout evidence.
+  const ready=()=>{const button=resultButton();return !!button&&a.c.ProcessSync.identity.id==='editor'&&a.c.__fqcTest.transport().hasUnknown()&&button.isConnected&&!button.disabled&&button.getClientRects().length>0&&button.textContent===(language==='vi'?'Kiểm tra kết quả':'查詢前次結果');};
   assert.equal(ready(),true);const sent=posts(f).at(-1),op=command(sent).operationId,count=posts(f).length,markers=[...a.records];
-  await button.click();await until(()=>!a.c.__fqcTest.ui.saving,'explicit original receipt check');
+  await resultButton().click();await until(()=>!a.c.__fqcTest.ui.saving,'explicit original receipt check');
   assert.equal(ready(),true);assert.equal(posts(f).length,count);assert.deepEqual([...a.records],markers);
   const reads=a.wire.filter(r=>r.url.includes('operationId='));assert.equal(reads.length,2);assert(reads.every(r=>new URL(r.url,'https://synthetic.invalid').searchParams.get('operationId')===op));
-  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
-  unavailable=false;await button.click();await until(()=>!a.c.__fqcTest.ui.saving,'original receipt resolves');
+  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);
+  unavailable=false;await resultButton().click();await until(()=>!a.c.__fqcTest.ui.saving,'original receipt resolves');
   assert.equal(posts(f).length,count);assert.equal(a.c.__fqcTest.transport().hasUnknown(),false);assert.equal(a.c.__fqcTest.matrixDirty(),false);assert.equal(a.records.size,0);
-  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.equal((await f.state()).workflow.saved,null);
+  assert.deepEqual(codes((await f.state()).workflow),['SYN-P']);assert.deepEqual((await f.state()).workflow.saved.content,(await f.state()).workflow.working);
  }finally{f.close();}
 });

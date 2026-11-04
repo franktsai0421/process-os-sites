@@ -41,7 +41,7 @@ void test('clean source runs without a prompt and blocked source cannot invoke s
 });
 
 for(const state of ['dirty','unknown'])void test(`automatic ${state} abandonment uses one checked lease without a prompt`,async()=>{
- let status={state,canAbandon:true},shown=0,released=0,abandoned=0,epoch=1;const targets=[],gate=deferred(),departureId={};
+ let status={state,canAbandon:true},shown=0,released=0,abandoned=0;const epoch=1,targets=[],gate=deferred(),departureId={};
  const coordinator=createDepartureCoordinator({owner:()=>({epoch}),isCurrent:owner=>owner.epoch===epoch,inspect:()=>status,autoAbandon:()=>true,
   async act(action){assert.equal(action,'abandon');abandoned++;await gate.promise;status={state:'departing',departureId};return {departureId,release(){released++;}};},show(){shown++;}});
  const request=key=>coordinator.request({key,run:ticket=>{const done=deferred();targets.push({ticket,key,...done});return done.promise;}});

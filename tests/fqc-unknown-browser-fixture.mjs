@@ -20,7 +20,7 @@ export async function setup(width=1280,lang='zh'){
   if(!url.pathname.startsWith('/api/'))return route.fulfill({status:404,body:'Synthetic resource unavailable'});
   if(receiptDown&&url.searchParams.has('operationId'))return route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}});
   if(readDown&&req.method()==='GET'&&url.pathname==='/api/fqc/workflow'&&!url.searchParams.has('operationId'))return route.fulfill({status:503,json:{error:'SYNTHETIC_READ_UNAVAILABLE'}});
-  const lost=lose&&req.method()==='POST'&&JSON.parse(req.postData()||'{}').command?.action==='apply';
+  const lost=lose&&req.method()==='POST'&&['apply','save'].includes(JSON.parse(req.postData()||'{}').command?.action);
   if(lost&&noCommit){lose=false;return route.abort('failed');}
   const operation=f.call(url.pathname+url.search,{method:req.method(),...(req.postData()?{body:req.postData()}:{})});
   if(lost&&delayCommit){lose=false;lateCommit=operation;return route.abort('failed');}
@@ -36,6 +36,6 @@ export async function setup(width=1280,lang='zh'){
  }
  await page.locator('#fqc-begin').click();await page.locator('#fqc-save').waitFor();
  const settled=()=>page.waitForFunction(()=>!window.sharedDraftAccountState().queued&&!document.querySelector('.fqc-modal-overlay[aria-busy]'));
- async function recover(){const button=page.locator('[data-fqc-check-result]');if(await button.count())await button.click();else await page.evaluate(()=>document.querySelector('#fqc-check-result').click());await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown);await page.waitForFunction(()=>!document.querySelector('#fqc-check-result'));}
+ async function recover(){await page.waitForFunction(()=>{const button=document.querySelector('[data-fqc-check-result]')||document.querySelector('#fqc-check-result');return button&&!button.disabled&&!window.sharedDraftAccountState().queued;});const button=page.locator('[data-fqc-check-result]');if(await button.count())await button.click();else await page.evaluate(()=>document.querySelector('#fqc-check-result').click());await page.waitForFunction(()=>!window.sharedDraftAccountState().unknown);await page.waitForFunction(()=>!document.querySelector('#fqc-check-result'));}
  return{f,page,errors,settled,recover,boot,lateCommit:()=>lateCommit,lose({commit=true,delayed=false}={}){lose=true;receiptDown=true;noCommit=!commit;delayCommit=delayed;},receiptsUp(){receiptDown=false;},setReadDown(value){readDown=value;},async close(){await context.close();await browser.close();f.close();}};
 }

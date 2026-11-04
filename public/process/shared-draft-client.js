@@ -919,7 +919,7 @@
         tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);
-        }},error=>{if((action==='apply'||externalBounded&&boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1')&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
+        }},error=>{if((action==='apply'||externalBounded&&boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&(boundedResponses.get(error)?.operationId===command.operationId||unknown?.operationId===command.operationId))&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
       },
       // Only this client's already queued operations are awaited, never other users.
       flush:async()=>{assertOwner();if(beginPending)await beginPending;if(retryPending)await retryPending;await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
