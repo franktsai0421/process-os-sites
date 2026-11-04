@@ -373,7 +373,12 @@
     const clientId=crypto.randomUUID(),syncFailures=new Map(),preparedFlights=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,beginPending=null,retryPending=null,recoveryInvalid=false,conditionalRead=null,unknownOwner=null;
     const assertOwner=()=>{if(!beginRuntimeCurrent())throw Error('BEGIN_OWNER_CHANGED');if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
-    const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');};
+    const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
+      // Canvas has a separate durable journal, but cannot dispatch new writes
+      // while its same-actor primary Begin still lacks an acknowledged receipt.
+      // Reading evidence is sufficient: malformed bytes also block, never erase.
+      if(externalCanvas){let marker;try{marker=sessionStorage.getItem('shared-draft-begin-v1:'+JSON.stringify([actorId,'/api/process-authoring/workflow']));}catch{const error=Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true});externalUnsent.add(error);throw error;}if(marker!==null){const error=Object.assign(Error('PREVIOUS_BEGIN_UNKNOWN'),{notSent:true});externalUnsent.add(error);throw error;}}
+    };
     const beginKey=durableBegin?'shared-draft-begin-v1:'+JSON.stringify([actorId,beginPath]):null,beginResponses=new WeakMap();
     let beginRecord=null,beginRaw=null,beginInvalid=false,beginRetired=false,beginRead=null;
     const beginUUID=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
