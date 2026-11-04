@@ -117,8 +117,8 @@ No workstation connector was opened, recreated or reconnected.
 | Native desktop/mobile-size forms, Save/reopen, unknown recovery and abandonment, zh/vi | 43 PASS at 390/1280 px using Chromium and actual handlers; not a physical phone or native IME acceptance. |
 | Shared-reader compatibility and historical performance baseline integrity | Original identity-prefetch regression PASS; LF/CRLF/inverse negative contracts 71 PASS with original baseline/tail/prefix pins unchanged. |
 | Static checks and source boundaries | Full typed lint, TypeScript, diff whitespace and Sites source-boundary check PASS. |
-| Build | Pending candidate-stamped normal build; update before PR. |
-| Independent review | Reviewer independently reproduced a null-next-pointer fault-precedence defect; fixed by validating next before inspecting its key. 14 targeted reviewer checks PASS on the final runtime hashes; this is a subset, not additional scenarios. Final document/measurement review pending. |
+| Build | Normal `npm run build` PASS, stamped with candidate `47025673ea47455679fa6b7eeb65041641f44f7a`; known public-auth client check PASS. [Safe build receipt](build-result.json); this does not approve distributing compiled server output. |
+| Independent review | Reviewer independently reproduced a null-next-pointer fault-precedence defect; fixed by validating next before inspecting its key. 14 targeted reviewer checks PASS on the final runtime hashes; this is a subset, not additional scenarios. Final source/measurement/document review completed on `4702567`: no remaining blocking findings. |
 
 The original dependency race fixture used a global `concurrentWrite` flag to
 exclude a peer's nested reader; overlapping FQC reads could be mislabeled as

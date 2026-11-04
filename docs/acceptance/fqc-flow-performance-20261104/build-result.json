@@ -1,0 +1,31 @@
+{
+  "programCommit": "47025673ea47455679fa6b7eeb65041641f44f7a",
+  "result": {
+    "format": "PROCESS_OS_SAFE_BUILD_RESULT_V1",
+    "status": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+    "childExitCode": 0,
+    "childSignal": null,
+    "spawnCode": null,
+    "exitCode": 0,
+    "stdoutBytes": 3672,
+    "stderrBytes": 136,
+    "memoryCaptureOverflow": false,
+    "warningLineCount": 0,
+    "errorLineCount": 0,
+    "unknownLineCount": 81,
+    "errorKinds": [],
+    "sourceLocations": [],
+    "postBuildAuthCheckPassCount": 1,
+    "postBuildAuthCheckFailureCount": 0,
+    "publicAuthViolationCategories": [],
+    "rawOutputForwarded": false,
+    "rawOutputPersisted": false,
+    "rawWindowsReturned": false,
+    "valueHashesReturned": false,
+    "serverPrivateAuthenticationPreserved": true,
+    "compiledServerPublicDistributionApproved": false,
+    "universalSecretAbsence": false,
+    "forwardedSignal": null,
+    "signalForwardFailed": false
+  }
+}
