@@ -1,3 +1,7 @@
+## 2026-11-04 FQC single-save candidate
+
+FQC forms now stage in page memory; one save-local-v1 sends field guards and matrix cells to one atomic saved transition. Poll/global refresh cannot adopt over local changes. Edit includes Save only in FQC; submit remains separate. Navigation opts into checked silent local abandonment, preserving unknown receipt markers. No existing working/saved/history migration. [Evidence, compatibility and remaining gates](../../docs/acceptance/fqc-single-save-20261104/README.md).
+
 ## 2026-11-04 IPQC-C create-item candidate
 
 `ipqc-c-create-record-mutation.ts` selects the fixed auth/C/master/equipment closure for canonical records create-item; the dedicated encoder changes only C plus its monotonic allocation index. Legacy/noncanonical states use full reading. CAS, create/edit/view, photo/equipment validation and receipt deduplication remain; session revocation is checked again after immutable encoding. The client gives only C create-item 45 seconds, retaining unknown on timeout/404. Unrelated record faults are now isolated, with opaque pointers preserved. [Tests and limits](../../docs/acceptance/ipqc-c-create-20261104.md). No schema or data change. The runtime create-item terminal GET now opts into a fixed auth/C read via `readback=ipqc-c-create-v1`; it retains fresh authorization and the full workflow response, while combined receipt/history/restore selectors keep the original path. Controlled POST+GET timing and its CPU/I/O tradeoff are in the linked evidence.

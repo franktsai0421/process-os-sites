@@ -214,7 +214,7 @@
   window.sharedDraftAccountState=()=>{const own=[...clients].filter(c=>!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id);return{queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
   window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&(c.unknown()||c.failed())&&!c.departureCovered?.());
   // oxlint-disable-next-line typescript/no-deprecated -- Required compatibility signal for Chromium's unsynchronized-work exit warning.
-  window.addEventListener?.('beforeunload',event=>{const pending=window.sharedDraftAccountState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
+  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=window.sharedDraftAccountState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
   const scrollLocks=new Set();let previousOverflow='';
   function lockScroll(overlay){if(!scrollLocks.size){previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}scrollLocks.add(overlay);}
   function unlockScroll(overlay){scrollLocks.delete(overlay);if(!scrollLocks.size)document.body.style.overflow=previousOverflow;}
@@ -395,7 +395,7 @@
     // admission, the account's unknown flag, receipts or native unload warnings.
     const departureAnchors=new WeakMap();let departureCoverage=null;
     const departureRecord=()=>externalBounded?boundedRecord:unknown;
-    function departureEligible(){return !externalCanvas&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||boundedRecord.action==='apply'))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
+    function departureEligible(){return !externalCanvas&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||['apply','save'].includes(boundedRecord.action)))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
     function departureMarker(){if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
     function departureCovered(){try{const owner=externalBounded?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
@@ -543,6 +543,11 @@
     function boundedRejection(error,command){
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells)){
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
+        if(error.status===409&&['FQC_MATRIX_SCOPE_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','AB_EFFECTIVE_CHANGED_RECONFIRM'].includes(code))return true;
+        if(error.status===422&&['INVALID_FQC_LOCAL_SAVE','INVALID_FQC_MATRIX','INVALID_PATCHES','INVALID_COLLECTION','UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED','CATEGORY_REQUIRED','ERROR_PARENT_INVALID','INVALID_FQC_IDENTITY','FQC_IDENTITY_PROTECTED','INVALID_FQC_ITEM','INVALID_EQUIPMENT','INVALID_EQUIPMENT_PAIR','EQUIPMENT_UNAVAILABLE'].includes(code))return true;
+      }
       if(boundedScope==='fqc'&&action==='apply'&&command.moduleAction==='replace-matrix-v1'&&command.input&&command.patches===undefined&&command.guards===undefined){
         if(error.status===409&&code==='FQC_MATRIX_SCOPE_CHANGED'||error.status===422&&code==='INVALID_FQC_MATRIX')return true;
       }
@@ -862,6 +867,12 @@
       hasSyncFailures:()=>!!syncFailures.size,
       hasConfirmedMatrixConflict,canDiscardMatrixConflicts,
       discardMatrixConflicts(rejections){assertOwner();if(!canDiscardMatrixConflicts(rejections))throw Error('CONFIRMED_MATRIX_CONFLICT_REQUIRED');for(const {command}of rejections)syncFailures.delete(command.operationId);return true;},
+      discardRejectedLocalSave(command){
+        assertOwner();
+        const failure=syncFailures.get(command?.operationId),error=failure?.error,proof=error&&boundedResponses.get(error);
+        if(!externalBounded||boundedScope!=='fqc'||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!Array.isArray(command.patches)||!Array.isArray(command.guards)||!Array.isArray(command.input?.matrixCells)||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
+        syncFailures.delete(command.operationId);return true;
+      },
       // Explicit form cancellation can discard only confirmed rejections (or
       // commands never sent), never uncertain requests or unrelated fields.
       discardRejected:paths=>{assertOwner();if(unknown)return false;const allowed=new Set(paths.map(path=>JSON.stringify(path)));
@@ -908,7 +919,7 @@
         tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);
-        }},error=>{if(action==='apply'&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
+        }},error=>{if((action==='apply'||externalBounded&&boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1')&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
       },
       // Only this client's already queued operations are awaited, never other users.
       flush:async()=>{assertOwner();if(beginPending)await beginPending;if(retryPending)await retryPending;await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
