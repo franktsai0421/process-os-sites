@@ -25,7 +25,7 @@ export async function createRootEntryFixture({programCommit=process.env.PROCESS_
 
 // Failure-only diagnostics: never serialize errors, messages, URLs or bodies.
 export function nativeFailureDiagnostics(error){
- const codes=['ECONNRESET','ECONNREFUSED','EPIPE','ETIMEDOUT','ABORT_ERR','UND_ERR_SOCKET','UND_ERR_ABORTED','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','UND_ERR_CONNECT_TIMEOUT'];
+ const codes=['ENOBUFS','EMFILE','ENFILE','EADDRNOTAVAIL','ECONNRESET','ECONNREFUSED','EPIPE','ETIMEDOUT','ABORT_ERR','UND_ERR_SOCKET','UND_ERR_ABORTED','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','UND_ERR_CONNECT_TIMEOUT'];
  const causeCodes=[],seen=[];let location=null,current=error;
  for(let depth=0;depth<3&&current!==null&&(typeof current==='object'||typeof current==='function')&&!seen.includes(current);depth++){
   seen.push(current);

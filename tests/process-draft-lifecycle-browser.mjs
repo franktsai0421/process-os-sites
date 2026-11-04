@@ -122,7 +122,7 @@ export function extendProcessNavigationSeed(seed) {
 export async function runProcessDraftBrowser({isolatedDesktop = false, executablePath} = {}) {
   if (!isolatedDesktop) assert.equal(process.env.CI, 'true', 'Native browser acceptance is prepared for authorized CI, not a local capability bypass');
   const {chromium} = await import('playwright');
-  const {createRootEntryFixture} = await import('./root-entry-native-fixture.mjs');
+  const {createRootEntryFixture, nativeFailureDiagnostics} = await import('./root-entry-native-fixture.mjs');
   const secret = randomBytes(32).toString('hex');
   const report = {
     status: 'RUNNING', layer: isolatedDesktop ? 'ISOLATED_DESKTOP_BROWSER' : 'CI_SYNTHETIC_BROWSER', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
@@ -131,10 +131,10 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
     storageConditions: {perCycle: 'reset shared_state row and new browser contexts', reusedAcrossCycles: 'same owned nonpersistent Worker and R2 bucket; prior-cycle immutable objects retained', cacheClassification: 'not classified cold/warm; no cache reset claim'},
     limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.', 'Reviewer entry explicitly clicks the process tab; approvalTab=process initial deep-link selection is not accepted as verified by this runner.'],
   };
-  let fixture, browser, stage = 'fixture';
+  let fixture, browser, fixtureRead = null, readSequence = 0, stage = 'fixture';
   const contexts = new Set(), pageContexts = [];
   try {
-    fixture = await createRootEntryFixture({syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
+    fixture = await createRootEntryFixture({recordOracle: true, syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
     const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
     const load = createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE: bucket});
     const records = load('lib/state-records.ts');
@@ -143,16 +143,18 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
     browser = await chromium.launch({headless: true, ...(executablePath ? {executablePath} : {})});
     report.browserVersion = browser.version();
     fs.mkdirSync('.sites-runtime/process-canvas-desktop', {recursive:true});
-    report.buildEntrySha256 = fixture.buildEntrySha256;
+    report.buildEntrySha256 = fixture.buildEntrySha256; report.recordOracleSha256 = fixture.recordOracleSha256;
     for (let cycle = 1; cycle <= REQUIRED_SAMPLES; cycle++) {
       stage = 'seed-' + cycle;
       assert.equal(contexts.size, 0, 'Close all old contexts before resetting this owned fixture');
       const seed = extendProcessNavigationSeed(buildProcessDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle}));
       const raw = await records.encodeRecordValues(bucket, seed.values);
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic lifecycle').run();
-      const readValues = async () => {
-        const row = await fixture.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
-        return (await records.decodeRecordValues(bucket, JSON.parse(row.values))).values;
+      // Full production decoding stays inside the isolated Worker. Avoid one
+      // Node-to-Worker proxy exchange per R2 record during every verification.
+      const readValues = () => {
+        const sequence = ++readSequence;
+        return fixture.readRecordValues(phase => { fixtureRead = {cycle, sequence, phase}; });
       };
       const control = async () => JSON.parse((await readValues()).processAuthoringControl);
       const operation = content => content.workspaces.find(row => row.id === seed.ids.workspace).stages[seed.ids.stage].find(row => row.id === seed.ids.operation);
@@ -348,6 +350,7 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
       try { report.pageDiagnostics.push({label: item.label, ...await item.page.evaluate(processPageDiagnostic, item.args)}); }
       catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true}); }
     }
+    report.runtimeFailure = nativeFailureDiagnostics(error); report.fixtureRead = fixtureRead;
     report.failure = {name: error.name, message: String(error.message).replaceAll(secret, '[redacted]').slice(0, 500)};
     report.summary = summarizeActions(report.samples, processBrowserActions);
   } finally {
