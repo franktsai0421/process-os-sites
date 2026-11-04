@@ -38,3 +38,9 @@ Step 20 failed only the exact shared-client cache-tag assertion: it still expect
 Local follow-up validation: compiled abandonment command 13/13 PASS; combined receipt/terminal/restore command 77/77 PASS; typed lint and diff whitespace checks PASS. Existing compiled product bytes are unchanged by this test-only follow-up. Remote Windows results remain separately required.
 
 An audit of the same cache contracts found the later navigation adapter suite also pinned the three changed script references and dynamic lifecycle import to old versions. Its failure was reproduced locally (32/33), then all four pins were updated without relaxing exact reference checks; 33/33 PASS.
+
+### Permission-contract follow-up
+
+Run `41828546575` on `dcf3dc0` passed compiled departure and the cache-contract regressions, then stopped later in step 20 at `scripts/test-iqc-action-permissions.cjs:51`: its old UI assertion expected an edit-only user to lack Save. The confirmed requirement explicitly grants Save through edit. The matrix now checks actual handler Save for edit-only users and actual versionBar Save for edit/save users, with reader denial and edit-only Submit denial retained/added. Independent review/restore permissions remain unchanged. The 31 remaining commands in that CI step are also checked locally before the next push to avoid hiding further integration failures behind this assertion.
+
+Permission matrix including explicit edit-only Submit denial PASS; all 31 remaining step-20 commands PASS; lint and whitespace checks PASS. Latest full Windows CI remains the remote acceptance gate.
