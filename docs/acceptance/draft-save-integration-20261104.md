@@ -54,3 +54,9 @@ Final four-module directional regression:385 PASS,3 explicit historical-baseline
 ## Latest upstream verification
 
 The latest #75 and #76 test fixes are integrated without replacing product code or reducing lifecycle assertions. Old integration head6e7cb71 CI41837666208 failed the explicit-input-abandonment step; investigation and exact latest-head complete CI remain required. Prior head results are not attributed to this updated candidate.
+
+## Compiled abandonment and delivery follow-up
+
+On integrated product head `cf51f5d`, the old step18 canvas cases still selected the removed per-canvas Sync control and expected an abandonment dialog. They now use the normal visible `[data-av3="save"]` control to establish saved data, then verify silent departure. AB and account-form dialog assertions remain unchanged. Canvas cases retain exact persisted-state equality, zero additional POSTs, re-entry checks, failed-destination checks and gesture cleanup, and additionally reject native prompts. The fullscreen-only Save button is intentionally not used by these normal-view tests.
+
+The compiled step18 command passed 13/13 (390px/1280px, Chinese/Vietnamese), with no CI environment spoofing. The compiled sites-delivery browser also passed: unsent IQC form and applied input abandon without prompts; a server-committed Save with its ACK dropped survives navigation and reload; recovery performs two original-receipt GETs and exactly one Save POST, with no blind retry. Unrelated persisted state remains unchanged. All data, actors and storage are isolated synthetic fixtures; this is not hosted-Site acceptance.
