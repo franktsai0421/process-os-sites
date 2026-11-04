@@ -4,8 +4,8 @@
 
 - Base main: `85fa4a36442b3b72323eb4a6eeb105b867c4856a`.
 - #74 FQC: `9392d30d71fb81bbdee2eca7378ebe6cc6f8553c` (complete Local safety and matrix preview passed).
-- #75 IPQC C: `ec6561a64ec77190d3cab6075d0add0f8bac97a6` (scoped CI passed; full CI41824842814 failed in the existing process lifecycle browser at cycle4 return-open with `TypeError: fetch failed`, after three completed cycles; do not claim this establishes a product root cause).
-- #76 IQC: `9088640e2f9b61e9fec612f90b1ab08fe0b477a5`, including its upstream edit/Save permission-test correction. Earlier dcf3dc0 full CI failed on an outdated Save permission assertion; the upstream correction is retained.
+- #75 IPQC C: `936041003940b46b945fe90bd055e993198c8c47`, including bounded fixture record-oracle reads and failure diagnostics after CI41824842814 transport failure. Integration retains isolated desktop verification, all90 timed lifecycle samples and15 additional navigation checks.
+- #76 IQC: `fec2f69140997e6b76f7280044e3e920a888ba3c`, including edit/Save permission-test correction and compiled delivery silent-departure regression. CI41833531214 exposed an obsolete expected Stay dialog; the replacement verifies actual IQC → AB → IQC navigation, zero departure writes, unchanged durable state/markers and original receipt-only recovery. Observer contracts14/14 PASS locally.
 - Isolated worktree `/workspace/process-os-integration`, branch `integration/draft-save-20261104`. Local merge commits preserve source ancestry. No PR/main merge, publication, live business-data mutation, schema change, or cleanup.
 - Canvas: `004b2ff350fa2413f2c95cbadaa602c65a772a7c` from `feat/process-canvas-atomic-save`, fetched and composed after the three-module candidate `83e7b6196da8c1b88954d7e111ab9d6f88d59c6b`. No textual overlap with that candidate; shared-client/navigation semantics still require the regressions below.
 
@@ -50,3 +50,7 @@ Canvas Save retains its existing edit plus explicit Save authority, pending lock
 Initial integrated canvas contracts:118 PASS,3 SKIP for missing exact historical commit `c82a395244ec26d1787f78bd12039d3b471f223f`; no substituted baseline or relative-performance claim. Final departure, cross-module and compiled-browser results are reported in the handoff.
 
 Final four-module directional regression:385 PASS,3 explicit historical-baseline SKIP (388 total); no functional failure. Includes original operation recovery, quota/identity/tamper/late-input fences, stage/line guards, multi-client isolation and FQC/IQC/IPQC C contracts. New silent-discard tests also prove pagehide persists cleaned unsent state and BFCache cannot restore abandoned input; sent snapshots and receipt markers remain intact. Exact compiled desktop/navigation and build results are reported in the task handoff.
+
+## Latest upstream verification
+
+The latest #75 and #76 test fixes are integrated without replacing product code or reducing lifecycle assertions. Old integration head6e7cb71 CI41837666208 failed the explicit-input-abandonment step; investigation and exact latest-head complete CI remain required. Prior head results are not attributed to this updated candidate.
