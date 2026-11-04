@@ -7,6 +7,34 @@ Follow-up implementation: `228023606f9daa792473d49972b50ae19d7f2519`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
+## CI identity-prefetch source-boundary follow-up
+
+Run `41768635319` on `a24dd9c` reached the integrated-entry step and failed
+`source-eol.test.cjs` through the identity-prefetch historical prefix assertion.
+Local reproduction produced the same `a3021836…` versus `ba88d996…` mismatch.
+The only `state-records.ts` difference from base main is the 30-line IPQC-C create
+capability inserted immediately before the FQC tail marker. Removing exactly
+that block reconstructs base main's complete normalized source byte-for-byte;
+identity prefetch and FQC implementation bytes did not change.
+
+The fixture now pins that exact block separately (SHA-256
+`c2906a05e830ae5a1eef6913e1c77834bfce4e998a3fed256debac9c2813a119`), requires
+one occurrence immediately before the existing FQC tail, and removes it only
+from the historical comparison. Every original FQC-tail, prefix, inverse-span
+and full-baseline hash remains unchanged. Runtime tests still execute the full
+candidate including the new create capability. Five added mutation checks reject
+changed one-use enforcement, a missing/duplicate/relocated block, and an inserted
+gap before FQC. This fixture does not substitute for create-writer behavior tests.
+
+Independent review found no blocker: source-EOL 55 checks and identity-prefetch
+42 cases passed independently. The complete 19-command continuation from the
+failed source-EOL check through the end of its CI step, plus both FQC mutation
+suites and the C create/bounded-read/permission suites, all pass locally (24/24
+commands). Typed lint, changed-file safety scan and whitespace checks also pass.
+The fresh exact-head full CI status is reported with the follow-up commit;
+the failed prior run remains failed.
+This follow-up changes only tests and evidence, with no product/data-model change.
+
 ## CI asset-cache contract follow-up
 
 Run `41763221234` on `945694a` failed the receipt-recovery asset pin (76 pass,
@@ -159,7 +187,7 @@ and actor/delivery protection remain in place.
 | Source/publication boundary scan | `node scripts/sites-source-check.mjs`; changed-file `scanFiles` | PASS |
 | Repository-wide safety scan | `node scripts/safety-scan.mjs` | FAIL: two unchanged synthetic-test findings already byte-identical to base; changed files have zero findings |
 | Native browser, physical device, real Site latency, hosted D1/R2 | Not executed | NOT_RUN |
-| GitHub CI | Runs on PR creation; no deployment workflow is triggered | First-head run started; follow-up exact-head result pending |
+| GitHub CI | Runs on PR updates; no deployment workflow is triggered | Prior runs failed stale cache/source contracts; repaired locally, fresh exact-head result pending |
 
 Source inverse contracts retain the old Save/permission/history proof rather than
 weakening it: 16 create-span negative cases after the follow-up and the prior 29 composed-span negative
