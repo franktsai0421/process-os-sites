@@ -28,3 +28,11 @@ Original head `5fc2d93`, Local safety run `41823104321`, failed the Performance 
 The latent legacy pending-name guard remains enforced; local memory is now cleared only after owner assertions pass. Added assertions cover stale-owner retention and memory-only abandonment. The shared coordinator uses the same `autoAbandon` API and automatic-failure handling as FQC #74 head `3bf2d2a7663b70fe689b65992981a1cd36ac48fa`, so integration need not reconcile competing option names. Busy/blocked states never imply discard permission, unknown receipts remain unchanged, and an automatic failure reports its error without a save/discard choice dialog.
 
 The original 419-suite-test command passes after the fix (before two additional targeted cases). Latest exact-head remote CI is tracked on the PR; the earlier failure is not treated as a release pass.
+
+### Compiled native and cache-contract follow-up
+
+Completed Windows run `41824857971` on head `4bb0dfd` had two failures. Step 17 passed 12/13: the first AB unknown fixture timed out at the initial `#master-new-draft` click (12 seconds waiting for visible/enabled/stable), before any unknown write or departure. The concurrently starting ordinary AB fixture took 26.5 seconds; subsequent fixtures took 3–7 seconds. Independent Chromium/Miniflare suites now run sequentially, as the existing FQC native suite does, and the unknown fixture explicitly waits for destination readiness before starting its action deadline. Existing action timeouts and all departure/receipt assertions remain unchanged. Cold-start contention is the supported working diagnosis; latest Windows CI must verify the repair.
+
+Step 20 failed only the exact shared-client cache-tag assertion: it still expected `20261104-iqc-ipqcc1`, while the delivered index correctly loads `20261104-iqc-local2`. The assertion now pins the delivered new version; it still rejects missing, duplicate or unversioned references. No product behavior or data/schema changed in this follow-up.
+
+Local follow-up validation: compiled abandonment command 13/13 PASS; combined receipt/terminal/restore command 77/77 PASS; typed lint and diff whitespace checks PASS. Existing compiled product bytes are unchanged by this test-only follow-up. Remote Windows results remain separately required.
