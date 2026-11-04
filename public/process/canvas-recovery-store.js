@@ -594,6 +594,21 @@
       if (raw !== prepared.commandRaw || !anchor.ok || !snapshot.ok || anchor.raw !== prepared.anchorRaw || snapshot.raw !== prepared.snapshotRaw || prepared.snapshotRevision !== prepared.confirmedSnapshotRevision || preparationGate(prepared)) return false;
       prepared.transportAdmitted = true; return true;
     }
+    let departurePin=null;
+    function departureProof(command) {
+      const prepared=activePreparation;
+      let raw;try{raw=JSON.stringify(command);}catch{return null;}
+      if(prepared&&!preparationGate(prepared)&&prepared.dispatched&&prepared.transportAdmitted&&registryMatches(prepared)&&raw===prepared.commandRaw){
+        const anchor=readRaw(key),snapshot=readRaw(prepared.snapshotKey);
+        if(!anchor.ok||!snapshot.ok||anchor.raw!==prepared.anchorRaw||snapshot.raw!==prepared.snapshotRaw||prepared.snapshotRevision!==prepared.confirmedSnapshotRevision)return null;
+        departurePin={commandRaw:raw,anchorRaw:anchor.raw,snapshotKey:prepared.snapshotKey,snapshotRaw:snapshot.raw,registryRaw:prepared.registryRaw};
+      }
+      const pin=departurePin,ctx=context();
+      if(!pin||pin.commandRaw!==raw||ctx.actorId!==pinned.actorId||ctx.epoch!==pinned.epoch)return null;
+      const anchor=readRaw(key),snapshot=readRaw(pin.snapshotKey),registry=readRaw(registryKey(lineageId));
+      const after=context();
+      return after.actorId===pinned.actorId&&after.epoch===pinned.epoch&&anchor.ok&&snapshot.ok&&registry.ok&&anchor.raw===pin.anchorRaw&&snapshot.raw===pin.snapshotRaw&&registry.raw===pin.registryRaw?pin.anchorRaw:null;
+    }
     function retryRejected(reservation, error) {
       const prepared = preparations.get(reservation), reason = preparationGate(prepared); if (reason) return result(reason);
       if (!prepared.dispatched || !prepared.rejectionProof || prepared.rejectionProof !== error) return result('REJECTION_PROOF_REQUIRED');
@@ -682,7 +697,7 @@
     }
     events.addEventListener?.('pagehide', pagehide); events.addEventListener?.('pageshow', pageshow);
     ready = acquireRuntime();
-    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, prepareWrite, schedulePending, flushPending, cancelPrepared, dispatchPrepared, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
+    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, prepareWrite, schedulePending, flushPending, cancelPrepared, dispatchPrepared, departureProof, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
   }
   host.CanvasRecoveryStore = Object.freeze({ create, releaseHandoff });
 })(typeof window === 'undefined' ? globalThis : window);

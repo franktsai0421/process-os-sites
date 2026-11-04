@@ -215,13 +215,27 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
     adopt(fresh,!modalOpen());if(name==='save'&&departure)departure.savedResult={...fresh,receipt:result.receipt};
    }if(['begin','save','submit','approve','withdraw','return'].includes(name))inspectLater();else await inspect();if(currentBegin()&&!modalOpen())refresh();return currentBegin();
   }catch(e){if(currentBegin())error(e);}finally{const owns=currentBegin();if(activeIntent===intent)activeIntent=null;if(owns){busy=false;panel();}}}
+ let completedDepartureCoverage=[];
+ const departureTransports=()=>[...new Set([transport,...(host.ProcessCanvasLocal?.departureTransports?.()||[])])].filter(Boolean);
+ function unknownDeparturePlan(){
+  try{
+   const peers=departureTransports(),pins=[];
+   if(!peers.length||peers.some(c=>c.departureIdle?.()===false))return null;
+   for(const client of peers){if(client.hasUnknown()){const anchor=client.departureUnknown?.();if(!anchor)return null;pins.push({client,anchor});}else if(client.hasSyncFailures())return null;}
+   if(!pins.length||host.ProcessCanvasLocal?.pending?.()&&!pins.some(pin=>pin.client!==transport))return null;
+   return {peers,pins};
+  }catch{return null;}
+ }
+ function heldDepartureCurrent(r){return currentDeparture(r)&&r.canvasLease?.current()===true&&(!r.unknown||r.coverage.every(lease=>lease.current()));}
+ function departureLocalClean(r){return r.editor.inspect().state==='clean'&&!editorChanged()&&(r.canvas.departureReady?r.canvas.departureReady(r.canvasLease):!r.canvas.dirty());}
  function departureStatus(){
   const result={state:'clean',reason:'',canSave:false,canDiscard:false};
   if(!enabled())return result;
   if(!ownFlow()||!flow()||host.ProcessSync?.requiresReload)return {...result,state:'unknown',reason:t('草稿尚未完成讀取或登入已變更；請先重新讀取，輸入仍保留。','Bản nháp chưa tải xong hoặc phiên đã đổi; hãy tải lại. Đầu vào được giữ.')};
   if(busy||ownIntentPending()||departureOperation?.phase==='writing')return {...result,state:'busy',reason:t('目前操作尚未完成，請稍候；完成後可繼續離頁。','Thao tác chưa hoàn tất; vui lòng chờ rồi tiếp tục rời trang.')};
   const c=transport,f=flow(),form=host.ProcessEditorV2?.departure?.inspect?.()||{state:modalOpen()?'unknown':'clean',canApply:false},canvas=host.ProcessCanvasLocal;
-  if(submitStateUnconfirmed||c?.hasUnknown()||canvas?.pending?.())return {...result,state:'unknown',reason:t('先前寫入結果尚未確認；請先查原操作收據，不要重複保存或放棄。','Chưa xác nhận kết quả ghi trước đó; hãy kiểm tra biên nhận, không lưu hoặc bỏ lặp lại.')};
+  if(departureOperation?.kind==='abandon'&&departureOperation.phase==='held'){const r=departureOperation;if(!heldDepartureCurrent(r))return {...result,state:'unknown'};if(departureLocalClean(r))return {...result,state:'departing',departureId:r.id};}
+  if(submitStateUnconfirmed||c?.hasUnknown()||canvas?.pending?.()){const plan=unknownDeparturePlan();if(plan&&ownedLedger&&['clean','dirty'].includes(form.state)&&!localFailure&&canvas?.discardUnsentForDeparture&&canvas?.departureReady)return {...result,state:'unknown',canAbandon:true,reason:t('可放棄未送出輸入並離頁；未知操作保留原收據查詢。','Có thể bỏ đầu vào chưa gửi và rời trang; giữ truy vấn biên nhận gốc.')};return {...result,state:'unknown',reason:t('先前寫入結果尚未確認；請先查原操作收據，不要重複保存或放棄。','Chưa xác nhận kết quả ghi trước đó; hãy kiểm tra biên nhận, không lưu hoặc bỏ lặp lại.')};}
   if(localFailure||c?.hasSyncFailures())return {...result,state:'unknown',reason:t('尚有未完成的套用，輸入已保留；請先重試或在編輯視窗取消這次修改。','Còn thao tác áp dụng chưa xong; đầu vào được giữ. Hãy thử lại hoặc hủy thay đổi trong cửa sổ chỉnh sửa.')};
   if(form.state==='busy')return {...result,state:'busy',reason:form.reason};
   if(!['clean','dirty'].includes(form.state))return {...result,state:'unknown',reason:form.reason||t('目前編輯內容無法確認，請留在本頁重新核對。','Không xác nhận được nội dung chỉnh sửa; hãy ở lại kiểm tra.')};
@@ -241,14 +255,15 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
   if(local||proof.state==='dirty'||proof.state==='unknown')return {...result,state:'dirty',reason:local?(proof.reason?proof.reason+' ':'')+t('尚有未套用或未同步內容；請先完成表單並存取草稿，或放棄未存輸入。','Còn nội dung chưa áp dụng hoặc đồng bộ; hãy hoàn tất biểu mẫu và lưu bản nháp, hoặc bỏ đầu vào chưa lưu.'):proof.reason||'',canSave:!!canSave,canDiscard:!!canDiscard,canAbandon:true};
   return {...result,reason:proof.reason||''};
  }
- function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||r.kind!=='abandon'&&flow()?.pendingId||r.client.hasUnknown()||r.client.hasSyncFailures())throw Error('DEPENDENCY_CHANGED_RECONFIRM');}
+ function departureCheck(r){if(!currentDeparture(r)||!ownFlow()||r.kind!=='abandon'&&flow()?.pendingId||(!r.unknown&&(r.client.hasUnknown()||r.client.hasSyncFailures()))||(r.unknown&&(!r.plan.peers.every(c=>departureTransports().includes(c))||r.plan.peers.length!==departureTransports().length)))throw Error('DEPENDENCY_CHANGED_RECONFIRM');}
  function startDeparture(kind){
   if(departureOperation)throw Error('OPERATION_IN_PROGRESS');
-  const status=departureStatus();if(status.state!=='dirty'||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');
+  const status=departureStatus();if(!(['dirty',...(kind==='abandon'?['unknown']:[])].includes(status.state))||!status[kind==='save'?'canSave':kind==='abandon'?'canAbandon':'canDiscard'])throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');
   const editor=host.ProcessEditorV2?.departure,canvas=host.ProcessCanvasLocal;
   if(!editor||!canvas?.lockForDeparture||!canvas?.settleForDeparture||!canvas?.saveForDeparture||!canvas?.discardForDeparture)throw Error('AUTHORING_LOAD_REQUIRED');
-  const r={kind,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;
-  let released=false;r.release=()=>{if(released)return;released=true;try{r.formRelease?.();}finally{try{r.canvasLease?.release();}finally{if(departureOperation===r)departureOperation=null;}}};
+  const plan=kind==='abandon'&&status.state==='unknown'?unknownDeparturePlan():null;if(status.state==='unknown'&&!plan)throw Error('DEPARTURE_CONTEXT_CHANGED');
+  const r={kind,plan,unknown:!!plan,coverage:[],committed:false,id:{},phase:'writing',client:transport,ledger:ownedLedger,owner:identityStamp(),contextEpoch:localContextEpoch,category:state.category,line:state.editorLine,generation:flow().generation,editor,canvas,formRelease:null,canvasLease:null,savedResult:null};departureOperation=r;
+  let released=false;r.release=()=>{if(released)return;released=true;if(!r.committed)for(const lease of r.coverage)lease.release();try{r.formRelease?.();}finally{try{r.canvasLease?.release();}finally{if(departureOperation===r)departureOperation=null;}}};
   try{r.formRelease=editor.freeze();r.canvasLease=canvas.lockForDeparture();departureCheck(r);return r;}catch(e){r.release();throw e;}
  }
  async function saveDeparture(){
@@ -273,13 +288,30 @@ function adopt(result,replace=true){if(result.control&&flow()&&result.control.wo
  async function abandonDeparture(){
   const r=startDeparture('abandon');try{
    // Drop local canvas/forms only. Never call the ledger's server inverse.
-   departureCheck(r);await r.canvas.discardForDeparture(flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();
+   departureCheck(r);await (r.canvas.discardUnsentForDeparture||r.canvas.discardForDeparture).call(r.canvas,flow(),r.canvasLease);departureCheck(r);r.editor.discardLocal();
+   if(r.unknown){if(!departureLocalClean(r))throw Error('CANVAS_UNSYNCHRONIZED');for(const {client,anchor}of r.plan.pins)r.coverage.push(client.coverDeparture(anchor,()=>r.committed||currentDeparture(r)&&departureLocalClean(r)));}
    r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPENDENCY_CHANGED_RECONFIRM');
    host.ProcessEditorV2?.refreshRecovery?.();
    return {departureId:r.id,release:r.release};
   }catch(error){r.release();panel();throw error;}
  }
- const departure={inspect:departureStatus,save:saveDeparture,discard:discardDeparture,abandon:abandonDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(){const status=departureStatus();if(!['clean','departing'].includes(status.state))throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();}};
+ function prepareUnload(){
+  const current=departureOperation;
+  if(current?.native)return current.phase==='held'&&heldDepartureCurrent(current)&&departureLocalClean(current);
+  if(departureStatus().state==='clean')return true;
+  if(!host.ProcessCanvasLocal?.discardUnsentForDeparture||!host.ProcessCanvasLocal?.departureReady)return false;
+  let r;try{
+   r=startDeparture('abandon');r.native=true;departureCheck(r);
+   r.canvas.discardUnsentForDeparture(flow(),r.canvasLease,()=>{departureCheck(r);r.editor.discardLocal();});
+   departureCheck(r);if(!departureLocalClean(r))throw Error('CANVAS_UNSYNCHRONIZED');
+   if(r.unknown)for(const {client,anchor}of r.plan.pins)r.coverage.push(client.coverDeparture(anchor,()=>currentDeparture(r)&&departureLocalClean(r)));
+   r.phase='held';if(departureStatus().state!=='departing')throw Error('DEPARTURE_CONTEXT_CHANGED');
+   // If the document remains open after a cancelled browser exit, release only
+   // the temporary navigation locks. Unknown operations remain recoverable.
+   setTimeout(()=>r.release(),0);return true;
+  }catch{r?.release();return false;}
+ }
+ const departure={autoAbandon:true,prepareUnload,covered:()=>completedDepartureCoverage.length>0&&completedDepartureCoverage.every(lease=>lease.current()),otherDraftsPending(){const plan=unknownDeparturePlan();return plan?plan.peers.some(c=>c.otherDeparturePending(plan.peers)):host.sharedDraftDepartureBlocked?.()??false;},inspect:departureStatus,save:saveDeparture,discard:discardDeparture,abandon:abandonDeparture,ownsDialog:node=>host.ProcessEditorV2?.departure?.ownsDialog?.(node)===true,closeClean(options={}){const status=departureStatus();if(!['clean','departing'].includes(status.state))throw Error(status.reason||'DEPENDENCY_CHANGED_RECONFIRM');host.ProcessEditorV2?.departure?.closeClean?.();if(departureOperation?.kind==='abandon'){if(options.reset&&host.ProcessCanvasLocal?.resetForDeparture){host.ProcessCanvasLocal.resetForDeparture(departureOperation.canvasLease);departureOperation.canvasReset=true;}departureOperation.committed=true;completedDepartureCoverage=departureOperation.coverage;}}};
  async function recoverDiscardResult(){
   if(busy||departureOperation)throw Error('OPERATION_IN_PROGRESS');
   const ledger=ownedLedger,c=client(),owner=identityStamp(),contextEpoch=localContextEpoch;
@@ -498,7 +530,7 @@ const markup=`<div><h3>${t('整個製程平台 · 共用草稿','Toàn bộ nề
  const previousBind=bindView;bindView=function(){previousBind();panel();bindMutations();formalNotice();};
  const previousInspector=renderInspector;renderInspector=function(op){previousInspector(op);bindMutations();};
  document.addEventListener('click',event=>{if(enabled()&&event.target.closest('[data-view="editor"],[data-view="approval"],[data-review-tab="process"]'))void load();});
- host.ProcessAuthoringV3={get ownedLedger(){return operationLedger();},navigation:{departure,requiresSave:()=>state.view==='editor'&&ownFlow()&&(editorChanged()||host.ProcessCanvasLocal?.dirty()||window.sharedDraftNeedsSave?.(flow())),canSaveForDeparture:()=>!busy&&!localFailure&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty()&&!modalOpen()&&!host.ProcessEditorV2?.interacting?.(),saveForDeparture:()=>!editorChanged()&&!host.ProcessCanvasLocal?.dirty()?action('save'):false,canLeave:()=>!busy&&!localFailure&&!editorChanged()&&!modalOpen()&&!host.ProcessCanvasLocal?.dirty()&&!host.ProcessEditorV2?.interacting?.(),error:()=>loadError?Error(loadError):null,reset(){remoteCanvasUpdate=false;localContextEpoch++;editorReadiness=null;editorAwaitingPaint=false;activeIntent=null;beginRecovery=null;clearTimeout(inspectionTimer);inspection=null;inspectionOwner=null;inspectionRun=null;pendingSave=null;pendingSubmit=null;issueRows=[];archiveVersions=null;control=null;localBase=null;permissions={};loadedStamp=null;loadError='';loadIssues=[];validationSavedId=null;loading=null;host.ProcessCanvasLocal?.resetClean?.();}},enabled,updateLocalSaveState,pendingCount:()=>ownFlow()&&flow()&&permissions.view===true?(flow().pendingId?1:0):null,load,readyForEditor,sync,flow,recoveryAuthority,captureCanvasRecovery,readCanvasRecovery,acceptCanvasRecovery,prepareCanvasPost,previewCanvasPost,acceptCanvasPost,readSharedCanvas,acceptCanvas(result){adopt(result,!modalOpen());remoteCanvasUpdate=false;panel();},canSaveCanvas:()=>!submitStateUnconfirmed&&ownFlow()&&permissions.save===true&&permissions.edit===true&&!flow()?.pendingId,canEditLocalCanvas:()=>!submitStateUnconfirmed&&!host.ProcessSync?.requiresReload&&ownFlow()&&!!permissions.edit&&!!flow()&&!flow().pendingId&&control?.versions.some(v=>v.status==='draft'),canEditCanvas:()=>!submitStateUnconfirmed&&actorId===host.ProcessSync?.identity?.id&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),save:()=>action('save'),canMutate:()=>!submitStateUnconfirmed&&!busy&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),cancelUnapplied(){if(!localFailure||editorChanged()||busy)return;if(client().discardRejected(rejectedPaths)){localFailure=false;rejectedPaths=[];loadError='';loadIssues=[];panel();}},workspace:(category,line)=>flow()?.working.workspaces.find(w=>w.category===category&&w.line===line),
+ host.ProcessAuthoringV3={get ownedLedger(){return operationLedger();},navigation:{departure,requiresSave:()=>state.view==='editor'&&ownFlow()&&(editorChanged()||host.ProcessCanvasLocal?.dirty()||window.sharedDraftNeedsSave?.(flow())),canSaveForDeparture:()=>!busy&&!localFailure&&!editorChanged()&&!host.ProcessCanvasLocal?.dirty()&&!modalOpen()&&!host.ProcessEditorV2?.interacting?.(),saveForDeparture:()=>!editorChanged()&&!host.ProcessCanvasLocal?.dirty()?action('save'):false,canLeave:()=>!busy&&!localFailure&&!editorChanged()&&!modalOpen()&&!host.ProcessCanvasLocal?.dirty()&&!host.ProcessEditorV2?.interacting?.(),error:()=>loadError?Error(loadError):null,reset(){const departing=departureOperation?.kind==='abandon'&&departureOperation.committed?departureOperation:null;if(departing&&!departing.canvasReset&&host.ProcessCanvasLocal?.resetForDeparture)host.ProcessCanvasLocal.resetForDeparture(departing.canvasLease);remoteCanvasUpdate=false;localContextEpoch++;editorReadiness=null;editorAwaitingPaint=false;activeIntent=null;beginRecovery=null;clearTimeout(inspectionTimer);inspection=null;inspectionOwner=null;inspectionRun=null;pendingSave=null;pendingSubmit=null;issueRows=[];archiveVersions=null;control=null;localBase=null;permissions={};loadedStamp=null;loadError='';loadIssues=[];validationSavedId=null;loading=null;if(!departing)host.ProcessCanvasLocal?.resetClean?.();}},enabled,updateLocalSaveState,pendingCount:()=>ownFlow()&&flow()&&permissions.view===true?(flow().pendingId?1:0):null,load,readyForEditor,sync,flow,recoveryAuthority,captureCanvasRecovery,readCanvasRecovery,acceptCanvasRecovery,prepareCanvasPost,previewCanvasPost,acceptCanvasPost,readSharedCanvas,acceptCanvas(result){adopt(result,!modalOpen());remoteCanvasUpdate=false;panel();},canSaveCanvas:()=>!submitStateUnconfirmed&&ownFlow()&&permissions.save===true&&permissions.edit===true&&!flow()?.pendingId,canEditLocalCanvas:()=>!submitStateUnconfirmed&&!host.ProcessSync?.requiresReload&&ownFlow()&&!!permissions.edit&&!!flow()&&!flow().pendingId&&control?.versions.some(v=>v.status==='draft'),canEditCanvas:()=>!submitStateUnconfirmed&&actorId===host.ProcessSync?.identity?.id&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),save:()=>action('save'),canMutate:()=>!submitStateUnconfirmed&&!busy&&!!permissions.edit&&!flow()?.pendingId&&control?.versions.some(v=>v.status==='draft'),cancelUnapplied(){if(!localFailure||editorChanged()||busy)return;if(client().discardRejected(rejectedPaths)){localFailure=false;rejectedPaths=[];loadError='';loadIssues=[];panel();}},workspace:(category,line)=>flow()?.working.workspaces.find(w=>w.category===category&&w.line===line),
   approved(category,line){const raw=control||JSON.parse(localStorage.getItem('processAuthoringControl')||'null'),active=raw?.versions.find(v=>v.id===raw.activeVersionId),w=active?.snapshot.workspaces.find(w=>w.category===category&&w.line===line);return w?{...w,id:active.id,number:active.number,status:'approved',contentIssues:active.contentIssues}:null;}};
  setInterval(()=>{if(document.visibilityState!=='hidden'&&enabled()&&host.ProcessSync?.identity?.id&&client().canPoll('state')&&['editor','approval'].includes(state.view)&&!document.activeElement?.matches('input,textarea,select'))void load();},4000);
  if(enabled())void load();

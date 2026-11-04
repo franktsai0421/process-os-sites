@@ -149,6 +149,19 @@
   }
   counts(w,s){const moves=new Set(),scopes=new Set(),nodes=new Set();let added=0,removed=0,created=0,deleted=0,fieldsCount=0;for(const e of Object.values(this.entries)){if(w!==undefined&&(e.w!==w||e.s!==s))continue;fieldsCount++;scopes.add(scope(e.w,e.s));nodes.add(nodeKey(e.w,e.s,e.id));if(e.f==='nextIds'){added+=(e.value||[]).filter(id=>!(e.base||[]).includes(id)).length;removed+=(e.base||[]).filter(id=>!(e.value||[]).includes(id)).length;}else if(e.f==='$node'){if(e.value)created++;else deleted++;}else if(e.f==='x'||e.f==='y')moves.add(nodeKey(e.w,e.s,e.id));}return {moves:moves.size,added,removed,created,deleted,nodes:nodes.size,scopes:[...scopes].map(JSON.parse),fields:fieldsCount};}
   discard(w,s){if(this.pending)throw Error('CANVAS_RECEIPT_REQUIRED');for(const map of [this.entries,this.dependencies,this.baselines])for(const k of Object.keys(map)){const parts=JSON.parse(k);if(parts[0]===w&&parts[1]===s)delete map[k];}delete this.history[scope(w,s)];delete this.redoHistory[scope(w,s)];this.changed();}
+  discardUnsent(w,s){
+   const selected=e=>w===undefined||e.w===w&&e.s===s,pending=this.pending?.entries||{};
+   for(const [key,e] of Object.entries(this.entries))if(selected(e))delete this.entries[key];
+   for(const [key,e] of Object.entries(pending))if(selected(e))this.entries[key]=clone(e);
+   const retained=new Set(Object.values(pending).map(e=>nodeKey(e.w,e.s,e.id)));
+   for(const map of [this.dependencies,this.baselines,this.forms])for(const key of Object.keys(map)){
+    const [workspace,stage]=JSON.parse(key);if(w!==undefined&&(workspace!==w||stage!==s))continue;
+    if(map===this.forms||!retained.has(key))delete map[key];
+   }
+   for(const map of [this.history,this.redoHistory])for(const key of Object.keys(map)){const [workspace,stage]=JSON.parse(key);if(w===undefined||workspace===w&&stage===s)delete map[key];}
+   this.changed();
+  }
+  unsent(){return Object.keys(this.forms).length>0||!equal(this.entries,this.pending?.entries||{});}
   record(){return {version:2,entries:this.entries,pending:this.pending,dependencies:this.dependencies,baselines:this.baselines,forms:this.forms};}
  }
  host.CanvasJournal=Journal;
@@ -198,7 +211,7 @@
  }
  function persistNow(){clearTimeout(persistTimer);persistTimer=null;if(!journal||!recovery||!runtimeCurrent())return;const session=recovery;let result;if(journal.pending)result=session.flushPending(journal.pending.reservation);else{const scheduled=session.schedule(()=>localRecord(journal));result=scheduled.ok?session.flush():scheduled;}if(!result.ok&&result.code!=='EMPTY')storageError=t('本機恢復存檔失敗；請勿關閉頁面。','Không lưu được khôi phục; đừng đóng trang.')+' '+result.code;update();return result;}
  function persist(){if(!journal||!recovery||!runtimeCurrent())return;if(journal.pending)recovery.schedulePending(journal.pending.reservation,()=>localRecord(journal));else recovery.schedule(()=>localRecord(journal));update();api()?.updateLocalSaveState?.();}
- function makeClient(legacy=false){return host.createSharedDraftClient({endpoint:'/api/process-authoring/workflow?caseMetadata=1&channel='+(legacy?'canvas':'canvas-v2'),actorId:actor(),headers:()=>host.ProcessSync.platformHeaders(),externalDurableCanvas:{assertDispatch(command){if(!runtimeCurrent()||journal?.pending?.command?.operationId!==command.operationId)throw Error('CANVAS_RECOVERY_CHANGED');return recovery.assertDispatch(command)===true;}}});}
+ function makeClient(legacy=false){let proofSession=null;return host.createSharedDraftClient({endpoint:'/api/process-authoring/workflow?caseMetadata=1&channel='+(legacy?'canvas':'canvas-v2'),actorId:actor(),headers:()=>host.ProcessSync.platformHeaders(),externalDurableCanvas:{departureProof(command){if(runtimeCurrent()&&journal?.pending?.command?.operationId===command.operationId)proofSession=recovery;return proofSession?.departureProof?.(command)??null;},assertDispatch(command){if(!runtimeCurrent()||journal?.pending?.command?.operationId!==command.operationId)throw Error('CANVAS_RECOVERY_CHANGED');return recovery.assertDispatch(command)===true;}}});}
  function accept(flow){
   if(!flow||!actor()||authority().canView!==true){ready=false;update();return;}
   if(!runtimeCurrent()){
@@ -326,7 +339,31 @@
    }finally{running=null;update();}
   })();update();return running;
  }
+ function discardUnsent(w,s,lease,afterPersist){
+  if(lease)checkLease(lease);else admit();
+  const j=ensure(),session=recovery,batch=j.pending;
+  if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');
+  if(batch&&!session.departureProof?.(batch.command))throw Error('CANVAS_RECEIPT_REQUIRED');
+  const previous={entries:clone(j.entries),dependencies:clone(j.dependencies),baselines:clone(j.baselines),forms:clone(j.forms),history:clone(j.history),redoHistory:clone(j.redoHistory)};
+  j.discardUnsent(w,s);recoveryRevision++;
+  if(batch){const scheduled=session.schedulePending(batch.reservation,()=>localRecord(j));if(!scheduled.ok){Object.assign(j,previous);j.changed();throw recoveryError(scheduled);}}
+  const saved=persistNow();
+  if(!saved?.ok&&saved?.code!=='EMPTY'){Object.assign(j,previous);j.changed();if(batch)session.schedulePending(batch.reservation,()=>localRecord(j));throw recoveryError(saved||{code:'RECOVERY_UNAVAILABLE'});}
+  if(batch&&!session.departureProof?.(batch.command)){Object.assign(j,previous);j.changed();throw Error('CANVAS_RECEIPT_REQUIRED');}
+  if(afterPersist)try{afterPersist();}catch(error){
+   Object.assign(j,previous);j.changed();recoveryRevision++;
+   if(batch)session.schedulePending(batch.reservation,()=>localRecord(j));
+   const rollback=persistNow();if(!rollback?.ok&&rollback?.code!=='EMPTY')storageError=t('本機內容仍保留；恢復存檔失敗，請勿關閉頁面。','Nội dung còn trong bộ nhớ; không đóng trang.');
+   throw error;
+  }
+  note='';lastBatch=0;api()?.updateLocalSaveState?.();return true;
+ }
  host.ProcessCanvasLocal={
+  departureTransports:()=>client?[client]:[],
+  departureReady(lease){try{checkLease(lease);return !running&&!journal?.unsent()&&(!journal?.pending||!!recovery?.departureProof?.(journal.pending.command));}catch{return false;}},
+  discardUnsentForDeparture(flow,lease,afterPersist){checkLease(lease);if(flow!==api()?.flow())throw Error('CANVAS_STATE_CHANGED');return discardUnsent(undefined,undefined,lease,afterPersist);},
+  discardUnsent:(w,s)=>discardUnsent(w,s),
+  resetForDeparture(lease){if(!this.departureReady(lease))throw Error('CANVAS_STATE_CHANGED');recovery?.close();recovery=null;recoveryStamp=null;projectionBase=null;journal=null;identity=null;ready=false;},
   recoveryReady:()=>recovery?.ready,previewRecovery,restoreRecovery,discardRecovery,resolveRecovery,finalizeRecovery,openRecovery,recoveryStatus:()=>recovery?.status(),
   lockForDeparture(){if(departureLease)throw Error('CANVAS_DEPARTURE_LOCKED');ensure();const stamp=captureRecoveryOwner(),id=identity,pin={owner:stamp,session:recovery,runtimeEpoch:stamp.runtimeEpoch};let held=true;const lease={current:()=>held&&identity===id&&owns(stamp)&&recovery===pin.session&&pin.session.status().ready===true&&pin.runtimeEpoch===pin.session.status().runtimeEpoch,release(){held=false;if(departureLease===lease)departureLease=null;update();}};departureRuntimePins.set(lease,pin);departureLease=lease;update();return lease;},
   async settleForDeparture(lease){checkLease(lease);if(running)await running;checkLease(lease);await client.flush();checkLease(lease);if(journal?.pending)throw Error('CANVAS_RECEIPT_REQUIRED');persistNow();},
@@ -345,6 +382,6 @@
   async beforeSave(){admit();const j=ensure();if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');if(Object.keys(j.forms).length)throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(api().ownedLedger?.hasRevertRecovery?.())throw Error('OWNED_LEDGER_REVERT_UNCONFIRMED');if(api().canSaveCanvas?.()===false)throw Error('PENDING_OR_PERMISSION_LOCKED');const result=await sync(undefined,undefined,true);return {canvasHandled:true,canvasSaved:result?.canvasSaveConfirmed===true};}
  };
  // oxlint-disable-next-line typescript/no-deprecated -- Browser exit prompt for unsynchronized local work.
- host.addEventListener('beforeunload',e=>{persistNow();if(host.ProcessCanvasLocal.dirty()){e.preventDefault();e.returnValue='畫布尚未同步 / Sơ đồ chưa đồng bộ';}});
+ host.addEventListener('beforeunload',e=>{persistNow();if(host.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;if(host.ProcessCanvasLocal.dirty()){e.preventDefault();e.returnValue='畫布尚未同步 / Sơ đồ chưa đồng bộ';}});
  host.addEventListener('pagehide',()=>{persistNow();ready=false;tabReady=false;});
 })(typeof window==='undefined'?globalThis:window);

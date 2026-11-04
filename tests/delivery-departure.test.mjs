@@ -152,3 +152,9 @@ void test('another navigation-blocking transport still prevents departure',async
  f.window.sharedDraftNavigationState=()=>({queued:1,unknown:false,failed:false});
  f.api.navigate('dashboard');await turn();assert.equal(f.reads.length,0);
 });
+void test('native opt-in preparation runs only after peer gates and fails closed',async()=>{
+ const f=await fixture();let attempts=0;f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>true;f.adapter.prepareUnload=()=>{attempts++;return false;};f.setStatus({state:'dirty',canAbandon:true});
+ assert.equal(f.api.canUnloadWithoutPrompt(),false);assert.equal(attempts,0);
+ f.adapter.otherDraftsPending=()=>false;let prevented=0;f.events.beforeunload[0]({preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(attempts,1);
+ f.adapter.prepareUnload=()=>{attempts++;f.setStatus({state:'departing'});return true;};f.events.beforeunload[0]({preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(f.api.canUnloadWithoutPrompt(),true);
+});

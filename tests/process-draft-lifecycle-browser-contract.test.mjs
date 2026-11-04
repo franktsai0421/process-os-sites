@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic, disabledRoutineReviewContext} from './process-draft-lifecycle-browser.mjs';
+import {extendProcessNavigationSeed, processBrowserActions, runProcessDraftBrowser, expectedSubmitNotice, assertSubmitNotice, noReviewerMessages, pendingProcessUIReady, processShellReady, reviewerProcessUIReady, processPageDiagnostic, disabledRoutineReviewContext} from './process-draft-lifecycle-browser.mjs';
 import {summarizeActions} from './draft-action-measurement.mjs';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 
@@ -180,4 +180,38 @@ void test('disabled routine badge classification requires the original reviewer 
   assert(source.includes("seedDisabled: !Object.hasOwn(seed.values, 'routineFqcEnabled')"));
   assert(source.includes('before: await page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
   assert(source.includes('current: () => page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
+});
+
+void test('untimed navigation checks use actual stage/line/top controls and do not change the 90 action samples', () => {
+  const source = fs.readFileSync(new URL('./process-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
+  assert.equal(processBrowserActions.length * 5, 90);
+  const start = source.indexOf("for (const kind of ['stage', 'line', 'top-navigation'])");
+  const end = source.indexOf('async function submit(prefix)', start);
+  assert(start > 0 && end > start);
+  const block = source.slice(start, end);
+  assert.doesNotMatch(block, /measureAction|\.selectOption\(|ProcessDeliveryNavigation\.navigate|dispatchEvent/);
+  for (const text of ['[data-pe-stage="A-LIFE-NAV"]', '#editor-line-select', '.nav-item[data-view="dashboard"]', '.nav-item[data-view="editor"]', "line.press('ArrowDown')", "back.press('ArrowUp')"]) assert(block.includes(text));
+  assert.match(block, /assert\.equal\(writes\.length, 0/);
+  assert.match(block, /assert\.deepEqual\(after, navigationBaseline/);
+  assert.match(block, /beforeSha256: navigationHash\(navigationBaseline\), afterSha256: navigationHash\(after\)/);
+  assert.match(block, /ProcessCanvasLocal\?\.dirty\(\) === false/);
+  assert.match(block, /reentryDiscardedLocal: true/);
+  assert.match(source, /assert\.equal\(report\.navigationChecks\.length, REQUIRED_SAMPLES \* 3\)/);
+  assert.match(source, /page\.setDefaultTimeout\(30000\)/);
+});
+void test('navigation fixture access adds only synthetic reachability and preserves persisted process snapshots', async () => {
+  const {buildProcessDraftLifecycleSeed} = await import('./process-draft-lifecycle-route-fixture.mjs');
+  const seed = buildProcessDraftLifecycleSeed((scope, working, activeId, generation) => ({scope, working, activeId, generation}));
+  const beforeProcess = seed.values.processAuthoringControl, beforeInitial = JSON.stringify(seed.initialContent), beforeIssues = JSON.stringify(seed.expectedContentIssues);
+  extendProcessNavigationSeed(seed);
+  assert.equal(seed.values.processAuthoringControl, beforeProcess);
+  assert.equal(JSON.stringify(seed.initialContent), beforeInitial);
+  assert.equal(JSON.stringify(seed.expectedContentIssues), beforeIssues);
+  assert.deepEqual(seed.actors.editor.lines, ['A', 'B']); assert.equal(seed.actors.editor.accessOverrides['dashboard.view'], true);
+  assert.deepEqual(seed.actors.reviewer.lines, ['A']); assert.equal(seed.actors.reviewer.accessOverrides['dashboard.view'], undefined);
+  const master = JSON.parse(seed.values.masterDataControl);
+  assert.deepEqual(master.active.AB.categoryGroups[0].defaultStages, [seed.ids.stage, 'A-LIFE-NAV']);
+  assert.equal(master.active.AB.products.length, 1, 'No additional product or process content changes approval advisories');
+  assert.equal(master.active.AB.lines.find(line => line.code === 'B').stages.length, 0);
+  assert.deepEqual(master.versions.find(version => version.scope === 'AB').snapshot, master.active.AB);
 });

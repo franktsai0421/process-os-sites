@@ -3,7 +3,7 @@
 // Never run this file as a workaround for a denied local browser/socket capability.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import {createHmac, randomBytes} from 'node:crypto';
+import {createHash, createHmac, randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {buildProcessDraftLifecycleSeed} from './process-draft-lifecycle-route-fixture.mjs';
@@ -104,6 +104,21 @@ const waitEnabled = (page, selector) => page.waitForFunction(selector => {
   return nodes.length === 1 && !nodes[0].disabled && nodes[0].getClientRects().length > 0;
 }, selector);
 
+// Fixture-only reachability: add an empty approved stage and line plus the
+// editor's navigation access. Never alter the seeded saved/active process body.
+export function extendProcessNavigationSeed(seed) {
+  const master = JSON.parse(seed.values.masterDataControl), catalog = master.active.AB;
+  catalog.lines.find(line => line.code === 'A').stages.push({id: 'life-nav-stage', code: 'A-LIFE-NAV', name: 'Synthetic navigation stage'});
+  catalog.lines.push({id: 'life-nav-line', code: 'B', name: 'Synthetic navigation line', stages: []});
+  catalog.categoryGroups.find(group => group.line === 'A').defaultStages = [seed.ids.stage, 'A-LIFE-NAV'];
+  for (const version of master.versions) if (version.scope === 'AB') version.snapshot = structuredClone(catalog);
+  seed.values.masterDataControl = JSON.stringify(master);
+  seed.actors.editor.lines.push('B'); seed.actors.editor.views.push('dashboard'); seed.actors.editor.accessOverrides['dashboard.view'] = true;
+  seed.values.platformUsers = JSON.stringify(Object.values(seed.actors));
+  seed.seedBytes = Buffer.byteLength(JSON.stringify(seed.values));
+  return seed;
+}
+
 export async function runProcessDraftBrowser({isolatedDesktop = false, executablePath} = {}) {
   if (!isolatedDesktop) assert.equal(process.env.CI, 'true', 'Native browser acceptance is prepared for authorized CI, not a local capability bypass');
   const {chromium} = await import('playwright');
@@ -111,7 +126,7 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
   const secret = randomBytes(32).toString('hex');
   const report = {
     status: 'RUNNING', layer: isolatedDesktop ? 'ISOLATED_DESKTOP_BROWSER' : 'CI_SYNTHETIC_BROWSER', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
-    realData: false, realCredentials: false, samples: [], summary: [], cycles: [], pageErrors: [],
+    realData: false, realCredentials: false, samples: [], summary: [], cycles: [], navigationChecks: [], pageErrors: [],
     boundary: 'Real DOM click through asserted usable UI plus two frames; reason typing and authoritative fixture inspection excluded. Same-window API counts include background API requests, never imply exclusive command attribution. Only exact observed FQC_NOT_ENABLED-only 404 badge reads in the disabled synthetic reviewer Return/Approve context are classified as expected background; they retain request/byte/timing accounting and do not prove the action succeeded.',
     storageConditions: {perCycle: 'reset shared_state row and new browser contexts', reusedAcrossCycles: 'same owned nonpersistent Worker and R2 bucket; prior-cycle immutable objects retained', cacheClassification: 'not classified cold/warm; no cache reset claim'},
     limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.', 'Reviewer entry explicitly clicks the process tab; approvalTab=process initial deep-link selection is not accepted as verified by this runner.'],
@@ -132,7 +147,7 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
     for (let cycle = 1; cycle <= REQUIRED_SAMPLES; cycle++) {
       stage = 'seed-' + cycle;
       assert.equal(contexts.size, 0, 'Close all old contexts before resetting this owned fixture');
-      const seed = buildProcessDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle});
+      const seed = extendProcessNavigationSeed(buildProcessDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle}));
       const raw = await records.encodeRecordValues(bucket, seed.values);
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic lifecycle').run();
       const readValues = async () => {
@@ -217,6 +232,51 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
         const c = await control(); assert.equal(c.workflow.revision, sharedBeforeLocal.workflow.revision + 1); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working); assert.equal(operation(c.workflow.saved.content).name, changedName);
       }, 1);
       await editor.page.screenshot({path:'.sites-runtime/process-canvas-desktop/saved-'+cycle+'.png',fullPage:true});
+      // These functional checks are deliberately outside measureAction: the
+      // original 18 × 5 timing samples/deadlines remain directly comparable.
+      const navigationBaseline = await control(), navigationHash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+      for (const kind of ['stage', 'line', 'top-navigation']) {
+        stage = cycle + ':silent-navigation-' + kind;
+        const writes = [], collectWrite = request => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/process-authoring/workflow') writes.push(request); };
+        editor.page.on('request', collectWrite);
+        try {
+          await (await requireVisible(editor.page, '.pe-editor [data-pe="fit"]')).click();
+          await (await requireVisible(editor.page, '.pe-card[data-node="' + seed.ids.operation + '"] [data-pe="edit"]')).click();
+          await editor.page.locator('#process-operation-dialog[open] [data-field="name"]').fill('Unsent navigation ' + kind + ' ' + cycle);
+          await (await requireVisible(editor.page, '#apply-operation')).click();
+          await editor.page.locator('#process-operation-dialog').waitFor({state: 'detached'});
+          await editor.page.waitForFunction(() => window.ProcessCanvasLocal?.dirty() === true);
+          assert.deepEqual(await control(), navigationBaseline);
+          if (kind === 'stage') {
+            await (await requireVisible(editor.page, '[data-pe-stage="A-LIFE-NAV"]')).click();
+            await editor.page.waitForFunction(() => document.querySelector('.pe-editor')?.dataset.stageKey === 'A-LIFE-NAV');
+            await (await requireVisible(editor.page, '[data-pe-stage="' + seed.ids.stage + '"]')).click();
+          } else if (kind === 'line') {
+            const line = await requireVisible(editor.page, '#editor-line-select');
+            await line.click(); await line.press('ArrowDown'); await line.press('Enter');
+            await editor.page.waitForFunction(() => document.querySelector('#editor-line-select')?.value === 'B');
+            const back = await requireVisible(editor.page, '#editor-line-select');
+            await back.click(); await back.press('ArrowUp'); await back.press('Enter');
+            await editor.page.waitForFunction(() => document.querySelector('#editor-line-select')?.value === 'A');
+          } else {
+            await (await requireVisible(editor.page, '.nav-item[data-view="dashboard"]')).click();
+            await editor.page.waitForFunction(processShellReady, {view: 'dashboard', actor: seed.actors.editor.id});
+            await (await requireVisible(editor.page, '.nav-item[data-view="editor"]')).click();
+            await editor.page.waitForFunction(processShellReady, {view: 'editor', actor: seed.actors.editor.id});
+          }
+          await editor.page.waitForFunction(({id, name}) => document.querySelector('.pe-card[data-node="' + id + '"] h3')?.textContent === name && window.ProcessCanvasLocal?.dirty() === false, {id: seed.ids.operation, name: changedName});
+          await idle(editor.page);
+          assert.equal(await editor.page.locator('#process-navigation-departure[open],.vd-confirm[open],#process-operation-dialog[open]').count(), 0);
+          assert.deepEqual(report.pageErrors, [], 'Silent navigation must not produce a native confirmation or browser error');
+          const after = await control(); assert.deepEqual(after, navigationBaseline, 'Navigation may neither save nor roll back persisted process state');
+          assert.equal(writes.length, 0, 'Local editing, departure and reentry must issue zero workflow POSTs');
+          report.navigationChecks.push({cycle, kind, status: 'PASS', timed: false, workflowPosts: writes.length,
+            beforeSha256: navigationHash(navigationBaseline), afterSha256: navigationHash(after), savedId: after.workflow.saved.id,
+            reentryDiscardedLocal: true, nativeDialogs: 0, customDialogs: 0,
+            fixtureOnlyAccess: 'Synthetic editor additionally sees empty line B, empty stage A-LIFE-NAV and dashboard; process snapshots unchanged'});
+        } finally { editor.page.off('request', collectWrite); }
+      }
+
       async function submit(prefix) {
         const before = (await control()).workflow, saved = before.saved;
         await measure(editor.page, prefix + '-open', mainSelector('submit'), async () => {
@@ -279,6 +339,7 @@ export async function runProcessDraftBrowser({isolatedDesktop = false, executabl
     }
     report.summary = summarizeActions(report.samples, processBrowserActions);
     assert(report.summary.every(row => row.status === 'PASS_FUNCTION_MEASURED'));
+    assert.equal(report.navigationChecks.length, REQUIRED_SAMPLES * 3);
     report.status = isolatedDesktop ? 'PASS_ISOLATED_DESKTOP_PROCESS_LIFECYCLE' : 'PASS_CI_SYNTHETIC_PROCESS_LIFECYCLE';
   } catch (error) {
     report.status = isolatedDesktop ? 'FAIL_ISOLATED_DESKTOP_PROCESS_LIFECYCLE' : 'FAIL_CI_SYNTHETIC_PROCESS_LIFECYCLE'; report.failedStage = stage;

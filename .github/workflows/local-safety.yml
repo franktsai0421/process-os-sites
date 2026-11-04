@@ -333,6 +333,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-canvas-unknown-recovery.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-canvas-silent-discard.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-login-reentry.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-login-entry-marker.cjs
@@ -582,6 +584,8 @@ jobs:
         if: ${{ !cancelled() && steps.head_validation_10.outcome == 'success' }}
         run: |
           node tests/sites-delivery-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/process-canvas-atomic-save.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-http.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test --test-concurrency=1 tests/draft-action-measurement.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-draft-lifecycle-route.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

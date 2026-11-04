@@ -398,9 +398,10 @@
     // admission, the account's unknown flag, receipts or native unload warnings.
     const departureAnchors=new WeakMap();let departureCoverage=null;
     const departureRecord=()=>externalBounded?boundedRecord:unknown;
-    function departureEligible(){return !externalCanvas&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||['apply','save'].includes(boundedRecord.action)))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
-    function departureMarker(){if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
-    function departureCovered(){try{const owner=externalBounded?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
+    function departureEligible(){return (!externalCanvas||canvasDepartureMarker()!==null)&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||['apply','save'].includes(boundedRecord.action)))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
+    function canvasDepartureMarker(){try{const proof=externalCanvas&&unknown&&externalDurableCanvas.departureProof?.(unknown);return typeof proof==='string'&&proof.length?proof:null;}catch{return null;}}
+    function departureMarker(){if(externalCanvas)return canvasDepartureMarker();if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
+    function departureCovered(){try{const owner=externalStrict?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
     const canvasTarget=externalCanvas&&endpoint==='/api/process-authoring/workflow?caseMetadata=1&channel=canvas-v2';
     const canvasObserving=canvasPrimary||canvasTarget;
@@ -855,7 +856,7 @@
       hasUnknown:()=>!!unknown||recoveryInvalid,
       departureIdle:()=>!queued&&!beginPending&&!retryPending,
       departureUnknown(){
-        assertOwner();if(!departureEligible()||access?.view!==true)return null;const marker=departureMarker();if(marker===null)return null;
+        assertOwner();if(!departureEligible()||(externalCanvas?access?.view===false:access?.view!==true))return null;const marker=departureMarker();if(marker===null)return null;
         const record=departureRecord(),anchor=Object.freeze({operationId:record.operationId,generation:record.generation});departureAnchors.set(anchor,{record,marker});return anchor;
       },
       otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&!c.browseWithoutSettlement?.()&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},

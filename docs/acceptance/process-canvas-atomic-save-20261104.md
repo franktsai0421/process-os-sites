@@ -1,3 +1,5 @@
+> Integration handoff: remote canvas004b2ff is now composed into `integration/draft-save-20261104`; checked silent departure is implemented and validated there. The independent-candidate history below describes its earlier boundary. See [combined evidence](draft-save-integration-20261104.md). No live conversion, main merge or deployment.
+
 # 製程畫布一次原子存取候選
 
 基準：`85fa4a36442b3b72323eb4a6eeb105b867c4856a`；分支 `feat/process-canvas-atomic-save`。未推送、合併或部署。

@@ -1,3 +1,7 @@
+## 2026-11-04 — Canvas follow-up integration
+
+Compose process canvas atomic Save004b2ff into the isolated three-module candidate; coordinate stage/line/top-level checked abandonment and versioned assets without clearing unknown durable evidence. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md). No data conversion or deployment.
+
 ## 2026-11-04 — Isolated draft-save integration candidate
 
 Compose FQC/IPQC C/IQC without changing main or data; preserve scoped departure/receipt behavior, align cache/preload versions, and repair legacy first-Save compatibility. Canvas is not yet included. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md).

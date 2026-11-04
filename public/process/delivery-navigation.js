@@ -40,7 +40,9 @@
  api.canUnloadWithoutPrompt=()=>{
   const adapter=departureAdapter();if(adapter?.autoAbandon!==true)return false;
   const status=adapterState(adapter);
-  return (status.state==='clean'||['dirty','unknown'].includes(status.state)&&status.canAbandon===true)&&!otherDepartureBlocked(adapter,false,status.canAbandon===true&&typeof adapter.otherDraftsPending==='function');
+  const eligible=status.state==='clean'||['dirty','unknown'].includes(status.state)&&status.canAbandon===true||status.state==='departing'&&typeof adapter.prepareUnload==='function';
+  if(!eligible||otherDepartureBlocked(adapter,false,(status.canAbandon===true||status.state==='departing')&&typeof adapter.otherDraftsPending==='function'))return false;
+  try{return typeof adapter.prepareUnload!=='function'||adapter.prepareUnload()===true;}catch{return false;}
  };
  api.initialized=(async()=>{
   const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-draft-integration1');
@@ -114,7 +116,7 @@
     commitPhase=true;installing=true;
     try{
      const destination={...handle.destination,approvalTab:target.approvalTab||'master',display:target.display};
-     departureAdapter()?.closeClean?.();
+     departureAdapter()?.closeClean?.({reset:true});
      if(options.departureTicket)departure.committed(options.departureTicket);
      // Invalidate old GET ownership before detaching DOM or installing models.
      sync.commitDestination(handle);clearPageModels();
