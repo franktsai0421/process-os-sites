@@ -1,5 +1,13 @@
 # 草稿流程統一與加速：隔離整合候選
 
+## V39 source and inventory audit (read-only)
+
+The Sites version record identifies V39 as source commit `ddcbe990061cbcd71143bf4bbca99ea7addda457`, deployment `appgdep_6aea80b8d7cc8191b6cd8a1ad55c266e`, archive SHA-256 `af12c2faf50ffab08f8501239bd7aa4fd5bba321fb6c4d2cd3838df3429621c1` (9,922,560 bytes,267 files). This is Site provenance, not evidence that it equals GitHub main85fa4a3 or integrationcfb5429. The source object is absent from the local Git object database; no actual source-projection receipt was found. Available version metadata does not provide readable source/archive bytes. No source credential was issued.
+
+The earlier native DB read observed shared_state revision652 with a records-v1 manifest. The connector truncates large values, so it cannot establish complete working/saved/pending/formal/history counts or R2 references. A sampled backup at revision497 is not proof of a consistent revision652 backup. Browser-local unresolved operations also cannot be inferred from server rows.
+
+Current GitHub source has a permission-checked `GET /api/snapshots?action=export` with D1/R2 consistency checks and credential stripping. Use requires an existing authorized platform-admin/master.export session and valid program commit. V39 support remains unproven. The export covers shared_state, state_backups and web_feedback_store plus referenced R2; it is not a complete operational/auth-table restore. No live export, data mutation, credential change, merge or deployment was performed in this audit. Before release, obtain V39 source provenance and full authorized manifest/R2 inspection, then verify backup restoration in an isolated target.
+
 ## Pinned sources and isolation
 
 - Base main: `85fa4a36442b3b72323eb4a6eeb105b867c4856a`.
@@ -35,11 +43,19 @@ Before any later legacy-data cleanup, inventory counts, generation/revision and 
 ## Remaining integration/release gates
 
 1. Canvas is now source-integrated with checked silent abandonment for stage/line/top-level navigation and native departure. Tooling's generic atomic-save/numbering/unknown-Begin interface remains a separate follow-up.
-2. Unknown Begin is not automatically covered by the existing Apply/Save receipt mechanism. Specify operation identity, authoritative readback, safe departure and non-replay before claiming generic support.
+2. The Begin-v1 follow-up below adds separate operation identity, receipt-only recovery and checked departure for these four modules. It does not recover old unidentified Begin operations or cover tooling/other modules. Exact-head compiled acceptance remains a separate gate.
 3. Preserve source PR fixes or carry this integration branch forward without replacing module implementations wholesale. Any newer upstream head needs a delta review.
 4. This combined candidate needs exact-head full Windows CI, independent review, and coordinated test-Site browser acceptance before release. Individual PR passes and local integration tests do not substitute for those gates. No merge or deployment in this task.
 
 ## Verification
+
+### Begin-v1 follow-up (isolated candidate)
+
+An actual shared-client VM reproduction at cfb5429 showed all four endpoints losing Begin identity after a dropped response: hasUnknown=false, no durable marker, and a second Begin POST after reopening. The new opt-in protocol saves a content-free marker before dispatch and atomically records the original Begin receipt. The distinct `begin-v1` action prevents old handlers from silently ignoring new identity fields. Recovery only queries the original ID and fresh authorized state; 404 never authorizes resend. Existing saved/pending/formal/history and old unknown records are not migrated or cleared.
+
+Backend unit/actual-handler tests pass10 groups across all four modules and both inline/records storage: lost ACK, exact replay, malformed/colliding requests, current permissions/original actor, session revocation during encoding, CAS races, closed/new lifecycle, legacy first adoption and preservation of retained data. The affected FQC/IQC/canvas atomic suite passes29 tests. New shared-client tests pass32 cases including reopen, duplicate attempts, timeout, corrupt/quota storage, late owner changes and checked departure. Existing legacy transport tests pass76; legacy no-marker assertions remain scoped to clients without the new opt-in. These counts describe separate suites, not unique cases.
+
+The exact old-handler inverse rejects unreviewed source changes and preserves the original historical hashes. All four reconstructed old handlers reject Begin-v1 with422 COMMAND_REQUIRED and no D1/R2 changes; this is protocol compatibility evidence using current unchanged dependencies, not full V39 release replay. Compiled-browser, final lint/build and exact-head CI results are recorded separately after integration; prior cfb5429 CI success does not cover these changes.
 
 Local integration evidence: cross-module server/permission/restore/navigation batch134 PASS; shared departure210 PASS; cache/receipt72 PASS; preload15 PASS; FQC browser10 PASS; IQC legacy/atomic/readback62 PASS; scoped C rejection/multi-client13 PASS and bounded-recovery/FQC regression62 PASS. C actual API/local Save/permission fixtures and Chromium1440/390 pass including legacy first Save, malformed requests, photo upload, confirmed peer conflict cancellation/discard/fresh Save and delivery-change rejection. Full lint, TypeScript and source-history boundary checks pass; exact-head build result is recorded in the task handoff. Counts describe separate suites and must not be summed as unique cases. All local checks use synthetic/nonpersistent fixtures. Physical phone/IME, cross-machine employee sessions and hosted Site acceptance remain NOT_RUN.
 

@@ -1,5 +1,6 @@
 /* Pinned inverse of this candidate's IPQC C atomic-save route spans.
  * Existing historical read/performance proofs still run on the exact prior bytes. */
+const {withoutDurableBegin}=require('./workflow-begin-source-contract.cjs');
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const contracts={
@@ -62,6 +63,7 @@ const contracts={
   }
 };
 function withoutLocalAtomicSave(bytes,file='app/api/ipqc-c/workflow/route.ts'){
+ if(file==='app/api/ipqc-c/workflow/route.ts')bytes=withoutDurableBegin(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Local Save source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after}of [...rules].reverse()){

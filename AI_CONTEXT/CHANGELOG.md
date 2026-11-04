@@ -1,3 +1,7 @@
+## 2026-11-04 — Unknown Begin recovery candidate
+
+Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
+
 ## 2026-11-04 — Draft integration review fixes
 
 Reject IQC Submit with unsaved local input before confirmation and again before dispatch; preserve explicit Save and independent permission. Correct canvas acknowledgement of a legitimate reused saved ID while retaining original receipt/readback checks. Normalize server-assigned codes for earlier same-batch IPQC C rows and retain explicitly supplied optional creation reason; preserve exact peer dependency guards across both create/delete orders. [Evidence](../docs/acceptance/draft-save-integration-20261104.md).

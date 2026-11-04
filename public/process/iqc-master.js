@@ -27,7 +27,7 @@
   host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
     const person=identity(),epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
-    if(sharedActor!==actor||sharedClientOwner?.person!==person||sharedClientOwner?.epoch!==epoch||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.delivery&&host.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=actor;sharedClientOwner={person,epoch,delivery};sharedClient=window.createSharedDraftClient({endpoint:apiUrl+'/workflow?caseMetadata=1',externalDurableBounded:{scope:'IQC'},allowUnknownDeparture:true,responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
+    if(sharedActor!==actor||sharedClientOwner?.person!==person||sharedClientOwner?.epoch!==epoch||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.delivery&&host.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=actor;sharedClientOwner={person,epoch,delivery};sharedClient=window.createSharedDraftClient({durableBegin:true,endpoint:apiUrl+'/workflow?caseMetadata=1',externalDurableBounded:{scope:'IQC'},allowUnknownDeparture:true,responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
   }
   const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -107,15 +107,16 @@
     owner?.assert();if(ui.busy||operationCheck)throw Error('OPERATION_IN_PROGRESS');
     const client=transport(),actor=identity(),epoch=host.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=host.ProcessSync?.captureDelivery?.();
     const assert=()=>{owner?.assert();if(client!==sharedClient||actor!==identity()||epoch!==host.ProcessSync?.identityGeneration?.()||mount!==mountSequence||host.ProcessSync?.requiresReload||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('DELIVERY_SUPERSEDED');};
+    const recoveringBegin=client.hasUnknownBegin?.()===true;
     const queryLoad=loadSequence,queryDenied=readDenied,pauses=new Map(['receipt','state'].map(kind=>[kind,client.readDenialVersion?.(kind)]));
     const flight=(async()=>{
-      try{await client.resolveUnknown();}
+      let recovered;try{recovered=await client.resolveUnknown();}
       catch(error){
         let owned=false;try{assert();owned=loadSequence===queryLoad&&readDenied===queryDenied;}catch{/* A stale query cannot quarantine a newer owner/load. */}
         if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>client.readDenialVersion?.(kind)!==pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
         throw error;
       }
-      assert();await load({assert});assert();if(pendingLocalSave){localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;}render();
+      assert();if(recoveringBegin&&localSnapshot&&!localGeneration)localGeneration=recovered.receipt.generation;await load({assert});assert();if(pendingLocalSave&&!recoveringBegin){localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;}render();
     })();
     operationCheck=flight;try{return await flight;}finally{if(operationCheck===flight)operationCheck=null;}
   }

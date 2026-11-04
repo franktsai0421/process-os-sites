@@ -1,3 +1,7 @@
+## 2026-11-04 — Unknown Begin follow-up in Draft PR77
+
+The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).
+
 ## 2026-11-04 — Draft PR77 independent-review follow-up
 
 Fixed the reviewed IQC unsaved Submit, canvas reused-saved-ID acknowledgement and IPQC C create/delete batch-order issues in the same isolated integration branch. Preserve explicit Save, exact receipt recovery and genuine peer-conflict guards. [Latest evidence and remaining gates](docs/acceptance/draft-save-integration-20261104.md). No main merge, publication or business-data changes.
