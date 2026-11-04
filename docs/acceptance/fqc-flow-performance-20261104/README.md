@@ -63,6 +63,17 @@ browser startup initially lacked the default Playwright cache; its supported
 `CHROME_PATH=/usr/bin/chromium` option used the installed native Chromium and
 the test passed. No test assertions, deadlines or CI gates were changed.
 
+Normal build stamped with repaired product commit
+`a020ee30ebdcba8d2f2d6a58b0af00d283c4a4cb` and the known public-auth client
+check PASS: [safe build receipt](build-result-admission-fix.json). This does not
+approve distributing compiled server output. The repaired exact-head GitHub CI
+result is tracked on [PR #72](https://github.com/franktsai0421/process-os-sites/pull/72)
+and remains required; local checks are not a substitute for the full Windows run.
+Independent final source/document review found no remaining local blockers and
+recomputed the measurement tables from raw samples, verifying all source hashes
+and paired counters.
+
+
 ## Incident evidence and what was reproduced
 
 The task supplied v39 UI observations from 2026-11-04: adding an error took over
