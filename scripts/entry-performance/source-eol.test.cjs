@@ -44,7 +44,7 @@ for (const test of cases) {
     }
   }
   if(test.name==='identity'){
-    assert.equal(lf.candidate,raw,'complete FQC candidate remains unchanged');
+    assert.equal(lf.candidate,raw,'complete FQC and IPQC-C candidate remains unchanged');
     const proof=JSON.parse(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/identity-prefetch-reverse.json'),'utf8'));
     const at=raw.indexOf(proof.reviewedFqcRequiredTail.marker),prefix=raw.slice(0,at),tail=raw.slice(at);
     const corruptions=[
@@ -55,6 +55,13 @@ for (const test of cases) {
       ['changed original prefix',raw.replace("const prefix='state-records/v1/'","const prefix='state-records/v2/'")],
       ['relocated tail',tail+prefix],
       ['duplicated original inverse span',raw.replace(proof.spans[0].candidate,proof.spans[0].candidate+proof.spans[0].candidate)],
+      ...[proof.ipqcCCreateMutationInverse].flatMap(row=>[
+        ['changed IPQC-C create inverse',raw.replace(row.candidate,row.candidate.replace('b.consumed=true;','b.consumed=false;'))],
+        ['missing IPQC-C create inverse',raw.replace(row.candidate,'')],
+        ['duplicate IPQC-C create inverse',raw.replace(row.candidate,row.candidate+row.candidate)],
+        ['relocated IPQC-C create inverse',row.candidate+raw.replace(row.candidate,'')],
+        ['gap before FQC tail',raw.replace(row.candidate,row.candidate+'// unexpected gap\n')],
+      ]),
       ...proof.fqcAggregateReadAheadInverse.spans.flatMap((row,index)=>[
         ['changed read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected drift\n')],
         ['missing read-ahead inverse '+index,raw.replace(row.candidate,'')],

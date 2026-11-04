@@ -618,7 +618,10 @@
         window.SharedDraftDeparture.confirmed(sessionScope,record.command,result,record.owner);
         boundedClear(record);return result;
       }
-      const readback=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();const flow=boundedFlow(readback);
+      // Creation still requires a fresh authorized full C workflow read. The
+      // explicit read selector excludes unrelated modules, not this check.
+      const createReadback=boundedScope==='ipqc-c'&&record.action==='apply'&&record.command?.moduleAction==='create-item';
+      const readback=await request(createReadback?query('readback=ipqc-c-create-v1'):endpoint,undefined,{requireAcceptedAccess:true});assertOwner();const flow=boundedFlow(readback);
       if(record!==boundedRecord||readback.permissions?.view!==true||!flow||flow.scope!==boundedScope||flow.revision<receipt.revision||boundedKnown?.generation!==flow.generation||boundedKnown.revision>flow.revision)throw Error('BOUNDED_READBACK_REQUIRED');
       if(flow.generation!==receipt.generation){
         // Only a fresh original-receipt GET can confirm an older FQC operation.
@@ -645,7 +648,10 @@
       // other command scopes at 15s and the receipt-first unknown policy.
       // Begin is a bounded workflow load/adoption. Only this action receives
       // the existing 45s read/authoring budget; other mutation budgets stay put.
-      const requestDeadline=body?.action==='begin'?45000:body?mutationDeadline:45000;
+      // IPQC-C create-item needs bounded time for immutable-state I/O. This
+      // avoids a premature unknown; it is not a latency optimization or retry.
+      const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
+      const requestDeadline=body?.action==='begin'||cCreate?45000:body?mutationDeadline:45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       try {

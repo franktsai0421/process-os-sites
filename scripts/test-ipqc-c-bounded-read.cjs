@@ -1,6 +1,7 @@
 /* Actual final GET and exact published GET baseline; synthetic SQLite/R2, no server/network. */
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
 const {withoutApprovedOperationAlignment}=require('./ipqc-c-operation-source-contract.cjs');
+const {assertCreateMutationContract}=require('./ipqc-c-create-source-contract.cjs');
 const {withoutComposedPerformance,assertComposedPerformanceContract}=require('./ipqc-c-composed-performance-source-contract.cjs');
 const {withoutApprovedExplicitRights,assertExplicitRightsContract}=require('./ipqc-c-explicit-rights-source-contract.cjs');
 const {makeLoader,baselineCommits,baselineHashes}=require('./read-performance-harness.cjs'),{accessKeys}=require('../public/process/access-policy.mjs');
@@ -98,8 +99,9 @@ await check('C9 exact composed performance and explicit-rights spans; historical
    protectedSource=execFileSync('git',['show','2cac307f29b8017a2bb6dc5229d47720f2deab33:'+file]);
   }
   if(file==='app/api/ipqc-c/workflow/route.ts'){
-   assertComposedPerformanceContract(committed);
-   protectedSource=withoutComposedPerformance(committed);
+   const createBase=assertCreateMutationContract(committed).normalized;
+   assertComposedPerformanceContract(createBase);
+   protectedSource=withoutComposedPerformance(createBase);
   }
   const aligned=['app/api/ipqc-c/route.ts','app/api/ipqc-c/photo/route.ts'].includes(file);
   const explicit=['app/api/ipqc-c/route.ts','app/api/ipqc-c/workflow/route.ts'].includes(file);

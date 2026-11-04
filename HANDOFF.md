@@ -1,3 +1,7 @@
+## 2026-11-04 — IPQC-C create-item independent candidate
+
+Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. Draft PR #73 is open. Follow-up narrows the mandatory create readback and adds measured POST+GET evidence; original unknown stays intact. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).
+
 ## 2026-11-04 — FQC #72 integration with merged IQC #71
 
 Integrate main `6247c00220bf366e41c92c5b684d9f9744076cad`, retaining IQC unknown-result recovery/timing and FQC bounded read overlap. Both document histories remain below. Integrated-source regressions, build, independent review, paired performance against main6247 and complete CI are separate gates from earlier candidate results. [Current evidence](docs/acceptance/fqc-flow-performance-20261104/README.md). No PR merge, deployment, live data change or V31 unlock.

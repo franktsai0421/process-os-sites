@@ -31,6 +31,23 @@ for(const [endpoint,deadline] of [['/api/process-authoring/workflow?caseMetadata
  const f=clientFixture((c,_url,o)=>o.method==='POST'?responseAfter(c,60000,o.signal,{}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})),endpoint);
  let settled=false;const p=assert.rejects(f.client.command('g','apply',{patches:[]}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/).then(()=>{settled=true;});await f.c.tick(deadline-1);assert.equal(settled,false);assert.deepEqual(f.calls.map(x=>x.method),['POST']);const bytes=[...f.memory];assert.equal(bytes.length,1);await f.c.tick(1);await p;assert.deepEqual(f.calls.map(x=>x.method),['POST','GET']);assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],bytes);await assert.rejects(f.client.command('g','save'),/UNKNOWN/);assert.deepEqual([...f.memory],bytes);assert.equal(f.calls.length,2);assert.equal(f.c.pending,0);
 });
+for(const [action,moduleAction,deadline] of [['apply','create-item',45000],['apply','create-error',15000],['save',undefined,15000]])await test('IPQC-C '+(moduleAction||action)+' has exact bounded deadline; 404 never releases unknown',async()=>{
+ const f=clientFixture((c,_url,o)=>o.method==='POST'?responseAfter(c,60000,o.signal,{}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})),'/api/ipqc-c/workflow?caseMetadata=1');
+ const p=assert.rejects(f.client.command('g',action,moduleAction?{moduleAction,input:{errorId:'parent',item:{cpkEnabled:true}}}:{}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);
+ await f.c.tick(deadline-1);assert.deepEqual(f.calls.map(x=>x.method),['POST']);const bytes=[...f.memory];await f.c.tick(1);await p;assert.equal(f.client.hasUnknown(),true);assert.deepEqual([...f.memory],bytes);
+ await assert.rejects(f.client.resolveUnknown(),/OPERATION_NOT_FOUND/);assert.deepEqual([...f.memory],bytes);assert.equal(f.client.hasUnknown(),true);await assert.rejects(f.client.command('g','apply',{moduleAction:'create-item',input:{}}),/UNKNOWN/);assert.deepEqual(f.calls.map(x=>x.method),['POST','GET','GET']);assert.equal(f.c.pending,0);
+});
+await test('IPQC-C create completes after 24 seconds without POST retry',async()=>{
+ const f=clientFixture((c,_url,o)=>{const command=JSON.parse(o.body).command;return responseAfter(c,24000,o.signal,{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}});},'/api/ipqc-c/workflow?caseMetadata=1');
+ let done=false;const p=f.client.command('g','apply',{moduleAction:'create-item',input:{errorId:'parent',item:{cpkEnabled:true}}}).then(v=>{done=true;return v;});await f.c.tick(15001);assert.equal(done,false);await f.c.tick(8999);await p;assert.equal(f.client.hasUnknown(),false);assert.deepEqual(f.calls.map(x=>x.method),['POST']);assert.equal(f.c.pending,0);
+});
+await test('IPQC-C create body consumption also stays bounded at 45 seconds',async()=>{
+ const f=clientFixture((c,_url,o)=>o.method==='POST'?Promise.resolve({ok:true,status:200,json:()=>responseAfter(c,60000,o.signal,{})}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})),'/api/ipqc-c/workflow?caseMetadata=1');
+ const p=assert.rejects(f.client.command('g','apply',{moduleAction:'create-item',input:{}}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);await f.c.tick(45000);await p;assert.equal(f.client.hasUnknown(),true);assert.deepEqual(f.calls.map(x=>x.method),['POST','GET']);assert.equal(f.c.pending,0);
+});
+await test('IPQC-C prefix neighbour retains 15 second mutation deadline',async()=>{
+ const f=clientFixture((c,_url,o)=>o.method==='POST'?responseAfter(c,60000,o.signal,{}):Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})),'/api/ipqc-c/workflow-other');const p=assert.rejects(f.client.command('g','apply',{moduleAction:'create-item',input:{}}),/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);await f.c.tick(15000);await p;assert.equal(f.client.hasUnknown(),true);assert.deepEqual(f.calls.map(x=>x.method),['POST','GET']);
+});
 await test('slow response from previous actor is rejected, never adopted',async()=>{
  const f=clientFixture((c,_url,o)=>responseAfter(c,24000,o.signal,{revision:496,permissions:{view:true}}));const p=assert.rejects(f.client.read(),/ACCOUNT_CHANGED/);await f.c.tick(16000);f.owner.identity={id:'other'};await f.c.tick(8000);await p;assert.equal(f.calls.length,1);
 });
