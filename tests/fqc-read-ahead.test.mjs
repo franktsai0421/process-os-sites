@@ -1,0 +1,92 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+const require=createRequire(import.meta.url),root=fileURLToPath(new URL('..',import.meta.url));
+const {load}=require('../scripts/fqc-bootstrap-projection-fixture.cjs')(root,{},{});
+const records=load('lib/state-records.ts'),fixture=require('../scripts/fqc-apply-fixture.cjs');
+const tick=()=>new Promise(setImmediate);
+const ref=raw=>{const sha256=createHash('sha256').update(raw).digest('hex');return{key:'state-records/v1/'+sha256+'.json',sha256};};
+function setup(raws=['{"a":1}','{"b":2}','{"c":3}','{"d":4}']) {
+  const entries=raws.map((raw,i)=>['business'+i,ref(raw)]),objects=new Map(raws.map(raw=>[ref(raw).key,raw]));
+  const events=[],cancelled=[];let gets=0,texts=0,maxGets=0,maxTexts=0;
+  const bucket={async get(key){events.push(['get',key]);maxGets=Math.max(maxGets,++gets);await tick();gets--;const raw=objects.get(key);if(raw instanceof Error)throw raw;if(raw===undefined)return null;return{size:Buffer.byteLength(raw),body:{async cancel(){cancelled.push(key);}},async text(){events.push(['text',key]);maxTexts=Math.max(maxTexts,++texts);await tick();texts--;return raw;}};},async put(){assert.fail('read-only decoder cannot write');}};
+  return{entries,objects,events,cancelled,bucket,envelope:{__processRecords:{version:1,values:Object.fromEntries(entries)}},counts:()=>({maxGets,maxTexts})};
+}
+const plain=value=>JSON.parse(JSON.stringify(value));
+void test('FQC fixed-pair reads preserve values, known refs, every GET and serial text consumption',async()=>{
+  const before=setup(),after=setup();
+  const a=await records.decodeRecordValues(before.bucket,before.envelope),b=await records.decodeRecordValues(after.bucket,after.envelope,{aggregateReadAhead:true});
+  assert.deepEqual(plain(b.values),plain(a.values));assert.deepEqual([...b.recordStorage.known],[...a.recordStorage.known]);
+  for(const kind of ['get','text'])assert.deepEqual(after.events.filter(e=>e[0]===kind),before.events.filter(e=>e[0]===kind));
+  assert.deepEqual(before.counts(),{maxGets:1,maxTexts:1});assert.deepEqual(after.counts(),{maxGets:2,maxTexts:1});assert.deepEqual(after.cancelled,[]);
+});
+for(const mode of ['missing','sha','json','get','projection','body'])void test(`earlier ${mode} failure wins; speculative aggregate text is never consumed`,async()=>{
+  const f=setup(),first=f.entries[0][1],second=f.entries[1][1],options={aggregateReadAhead:true};let expected;
+  if(mode==='missing'){f.objects.delete(first.key);expected=/missing/;}
+  if(mode==='sha'){f.objects.set(first.key,'wrong');expected=/corrupt/;}
+  if(mode==='json'){const raw='[',r=ref(raw);f.objects.set(r.key,raw);f.envelope.__processRecords.values.business0=r;options.modelKey='business0';expected=/JSON|Unexpected/;}
+  if(mode==='get'){f.objects.set(first.key,Error('FIRST_GET'));expected=/FIRST_GET/;}
+  if(mode==='projection'){options.projectValue=()=>{throw Error('FIRST_PROJECTION');};expected=/FIRST_PROJECTION/;}
+  if(mode==='body'){const body=ref('{"body":true}'),raw=JSON.stringify({working:{__immutableBody:body}}),r=ref(raw);f.objects.set(r.key,raw);f.envelope.__processRecords.values.business0=r;expected=/missing/;}
+  const originalGet=f.bucket.get.bind(f.bucket);f.bucket.get=async key=>{const object=await originalGet(key);if(key===second.key&&object)object.body.cancel=async()=>{f.cancelled.push(key);throw Error('CLEANUP_FAILURE');};return object;};
+  await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,options),expected);await tick();
+  assert(!f.events.some(([kind,key])=>kind==='text'&&key===second.key));assert.deepEqual(f.cancelled,[second.key]);
+  assert(!f.events.some(([kind,key])=>kind==='get'&&key===f.entries[2][1].key));
+});
+for(const mode of ['slow','reject'])void test(`earlier rejection does not wait for ${mode} speculative GET or leak an unhandled rejection`,async()=>{
+  const f=setup(),first=f.entries[0][1],second=f.entries[1][1];let release;
+  const rejected=[];const listener=error=>rejected.push(error);process.on('unhandledRejection',listener);
+  f.bucket.get=key=>key===first.key?Promise.reject(Error('FIRST')):new Promise((resolve,reject)=>{release=()=>mode==='reject'?reject(Error('SECOND')):resolve({text:()=>{assert.fail('unused text');},body:{async cancel(){f.cancelled.push(key);}}});});
+  try{await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true}),/FIRST/);assert(release);release();await tick();await tick();assert.deepEqual(rejected,[]);assert.deepEqual(f.cancelled,mode==='slow'?[second.key]:[]);}finally{release?.();process.removeListener('unhandledRejection',listener);}
+});
+void test('same-key transient failure is observed once and is never hidden by a later speculative read',async()=>{
+  const f=setup(['{}','{}']);let n=0;f.bucket.get=()=>{n++;return n===1?Promise.reject(Error('TRANSIENT')):Promise.resolve({text:async()=>'{}'});};
+  await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true}),/TRANSIENT/);assert.equal(n,1);
+});
+void test('same-key successful observations remain separate reads',async()=>{
+  const f=setup(['{}','{}']);await records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});assert.equal(f.events.filter(e=>e[0]==='get').length,2);assert.equal(f.counts().maxGets,1);
+});
+void test('invalid next reference is not fetched and does not mask an earlier integrity fault',async()=>{
+  const f=setup();f.envelope.__processRecords.values.business1={key:'foreign',sha256:'a'.repeat(64)};f.objects.set(f.entries[0][1].key,'corrupt');
+  await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true}),/corrupt/);assert.equal(f.events.filter(e=>e[0]==='get').length,1);
+});
+for(const next of [null,undefined,1,'invalid'])for(const first of ['sha','get'])void test(`malformed next ${String(next)} cannot mask current ${first} failure`,async()=>{
+  for(const aggregateReadAhead of [false,true]){
+    const f=setup();f.envelope.__processRecords.values.business1=next;
+    f.objects.set(f.entries[0][1].key,first==='sha'?'corrupt':Error('FIRST_GET'));
+    await assert.rejects(records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead}),first==='sha'?/corrupt/:/FIRST_GET/);
+    assert.equal(f.events.filter(e=>e[0]==='get').length,1);
+  }
+});
+void test('selection and identity-token boundaries retain excluded data and serial token reads',async()=>{
+  const selected=setup();await records.decodeRecordValues(selected.bucket,selected.envelope,{aggregateReadAhead:true,keys:['business0']});assert.equal(selected.events.filter(e=>e[0]==='get').length,1);
+  const token=setup();await records.decodeRecordValues(token.bucket,token.envelope,{aggregateReadAhead:true,identityReadToken:records.createIdentityReadToken()});assert.equal(token.counts().maxGets,1);
+});
+void test('large and unknown-size speculative objects are not read into text before their turn',async()=>{
+  const f=setup(['{"a":1}',JSON.stringify({large:'x'.repeat(1024*1024)})]);let release,firstText=false;
+  const get=f.bucket.get.bind(f.bucket);f.bucket.get=async key=>{const object=await get(key);delete object.size;if(key===f.entries[0][1].key){const text=object.text.bind(object);object.text=async()=>{firstText=true;await new Promise(resolve=>{release=resolve;});return text();};}return object;};
+  const run=records.decodeRecordValues(f.bucket,f.envelope,{aggregateReadAhead:true});while(!firstText)await tick();
+  assert(!f.events.some(([kind,key])=>kind==='text'&&key===f.entries[1][1].key));release();await run;assert.equal(f.counts().maxTexts,1);
+});
+void test('FQC GET rereads authority on its second snapshot and observes a later storage fault',async()=>{
+  const f=await fixture();try{const key=JSON.parse(f.db.prepare('SELECT "values" FROM shared_state').get().values).__processRecords.values.platformUsers.key;let reads=0;
+    f.hooks.get=received=>{if(received===key&&++reads===2)throw Error('SECOND_SNAPSHOT_FAULT');};
+    const response=await f.call('/api/fqc/workflow?caseMetadata=1&compact=1');assert.equal(response.status,503);assert.equal((await response.json()).error,'WORKFLOW_LOAD_FAILED');assert.equal(reads,2);assert(!f.events.some(e=>e.kind==='sql'));
+  }finally{f.close();}
+});
+for(const path of ['/api/fqc/workflow?caseMetadata=1','/api/fqc/workflow?caseMetadata=1&scope=other','/api/iqc/workflow?caseMetadata=1'])void test(`route opt-in remains exact: ${path}`,async()=>{
+  const f=await fixture();try{
+    await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['iqc.view']=true;values.platformUsers=JSON.stringify(users);values.processAccessControl=JSON.stringify({audit:[]});});
+    const refs=JSON.parse(f.db.prepare('SELECT "values" FROM shared_state').get().values).__processRecords.values;
+    assert.notEqual(refs.processRoleTemplateOverrides.key,refs.processAccessControl.key);
+    const events=[],get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);
+    f.env.STATE_ARCHIVE.get=async key=>{events.push(['get',key]);const object=await get(key);if(!object)return object;return{...object,text:()=>{events.push(['text',key]);return object.text();}};};
+    const route=path.startsWith('/api/iqc/')?f.load('app/api/iqc/workflow/route.ts'):f.api;
+    const response=await route.GET(new Request('https://synthetic.invalid'+path,{headers:{cookie:f.cookies.editor}}));assert.equal(response.status,200);
+    const overrideText=events.findIndex(([kind,key])=>kind==='text'&&key===refs.processRoleTemplateOverrides.key),accessGet=events.findIndex(([kind,key])=>kind==='get'&&key===refs.processAccessControl.key);
+    assert(overrideText>=0&&accessGet>=0);
+    assert.equal(accessGet<overrideText,path==='/api/fqc/workflow?caseMetadata=1','only the exact FQC route overlaps this formerly serial pair');
+  }finally{f.close();}
+});

@@ -1,3 +1,7 @@
+## 2026-11-04 — FQC flow latency candidate
+
+Independent branch from main `3594944`: bounded aggregate GET overlap for FQC reads and Apply/Save, retaining fresh readback, authority phases, integrity validation and CAS. No deployment, live record change or V31 unlock. [Measured scope, regression evidence and limitations](docs/acceptance/fqc-flow-performance-20261104/README.md). This candidate does not diagnose or repair IQC.
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 A separate draft branch extends simple input abandonment across ordinary draft adapters and process authoring. #66 now integrates IQC #70/main `f1a16f9` after #65/#67, preserving all three prerequisites. Prior-head CI failed one FQC fixture setup deadline before abandonment; independent FQC browser files now run sequentially with all assertions, deadlines and internal races intact. Fresh exact-head CI and independent review remain required. #68 waits for #66; do not merge #66 or publish the test site before the coordinated completion instruction. All-pages support is NOT complete: non-FQC unknown and feedback paths remain blocked/unimplemented. Do not merge/release as complete user acceptance. [Scope, evidence and blockers](docs/acceptance/simple-draft-departure-20261103.md).

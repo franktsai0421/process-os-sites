@@ -1,3 +1,7 @@
+## 2026-11-04 — FQC aggregate read overlap
+
+FQC full/receipt/history GET and ordinary Apply/Save overlap at most two selected aggregate GETs per decoder phase. Aggregate text/JSON and nested body hydration stay ordered; independent snapshots and auth/business phases have separate readers. Matrix Apply keeps its existing full dependency closure; only its waiting is overlapped. No wire, permission, CAS, schema or data changes. [Scope, fault behavior, paired measurements and acceptance limits](../../docs/acceptance/fqc-flow-performance-20261104/README.md). Earlier GET-unchanged statements describe their pinned historical candidates.
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 The shared departure adapter offers input abandonment even beside acknowledged shared changes; it leaves shared content untouched. Routine FQC dialog cancellation is included. Non-FQC custom unknown paths remain blocked and need separate evidence contracts. [Scope, evidence and blockers](../../docs/acceptance/simple-draft-departure-20261103.md).

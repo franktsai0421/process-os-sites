@@ -1,3 +1,7 @@
+## 2026-11-04 — FQC flow latency candidate
+
+Overlap selected aggregate R2 GETs in bounded pairs for FQC reads and Apply/Save without reducing validation/read counts or terminal freshness. Add paired main359 benchmarks and ordered-failure/stream-cleanup/route-isolation regressions. Independent review found and fixed malformed-next-pointer error precedence; historical benchmark baseline pins remain intact. [Evidence and remaining live/CI gates](../docs/acceptance/fqc-flow-performance-20261104/README.md). No deployment or data/schema/account change.
+
 ## 2026-11-03 — Scoped non-FQC unknown departure candidate
 
 Added a navigation-only lease for intact shared-transport unknown operations in master data, IPQC-AB, Tooling and routine equipment. Explicit abandonment clears only local inputs; original operation evidence, receipt-only recovery and mutation locks remain. Custom Begin recovery and other module-specific unknown flows are excluded. [Scope and evidence](../docs/acceptance/shared-unknown-departure-20261103.md).

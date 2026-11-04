@@ -10,6 +10,7 @@ const inverse=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/identity-
 // spans. Do not update its historical tail/prefix/baseline pins to hide drift.
 // The candidate executed below remains complete, including authority hydration.
 let identitySource=candidateSource;
+for(const row of inverse.fqcAggregateReadAheadInverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'FQC read-ahead inverse span hash');assert.equal(identitySource.split(row.candidate).length-1,1,'FQC read-ahead inverse anchor must occur exactly once');identitySource=identitySource.replace(row.candidate,row.baseline);}
 for(const row of inverse.fqcAuthorityHydrationInverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'FQC authority inverse span hash');assert.equal(identitySource.split(row.candidate).length-1,1,'FQC authority inverse anchor must occur exactly once');identitySource=identitySource.replace(row.candidate,row.baseline);}
 // The original appended FQC writer is outside this identity-read fixture.
 const tail=inverse.reviewedFqcRequiredTail,tailAt=identitySource.indexOf(tail.marker);

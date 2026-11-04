@@ -1,3 +1,5 @@
+> Follow-on (2026-11-04): bounded aggregate GET overlap changes waiting only; see [current flow measurements](acceptance/fqc-flow-performance-20261104/README.md). The pinned measurements and GET-unchanged statements below remain historical.
+
 # FQC Apply/Save required dependencies — local candidate
 
 Baseline: merged PR #57, `848be13da54c7ae747bcdd96df19e01129fe980a`.
