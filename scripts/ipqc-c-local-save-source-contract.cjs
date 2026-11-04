@@ -5,7 +5,7 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const contracts={
   "app/api/ipqc-c/workflow/route.ts": {
     "beforeHash": "8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07",
-    "afterHash": "e0997b91ca3e0fee5963fbe1a58cf38a81261ba3972ee198427a8ee6d5c0d29f",
+    "afterHash": "87c8e3246f8aad02378962e5a0be29562d484665ff3a0dccbf5cd7ee710d6ce3",
     "rules": [
       {
         "offset": 1495,
@@ -15,25 +15,25 @@ const contracts={
       {
         "offset": 11500,
         "before": "",
-        "after": "    if(body.command?.localChanges!==undefined&&(!Array.isArray(body.command.localChanges)||body.command.localChanges.length>256))return reply({error:'INVALID_LOCAL_SAVE'},422);\n"
+        "after": "    if(body.command?.localChanges!==undefined){\n      const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);\n      const path=(value:unknown)=>Array.isArray(value)&&value.length>0&&value.every(part=>typeof part==='string'||object(part)&&Object.keys(part).length===1&&typeof part.id==='string');\n      const changes:unknown=body.command.localChanges;\n      const valid=Array.isArray(changes)&&changes.length<=256&&changes.every(change=>object(change)&&\n        Object.keys(change).every(key=>['moduleAction','input','patches','guards','localId'].includes(key))&&\n        (change.moduleAction===undefined||typeof change.moduleAction==='string'&&['create-error','create-item','delete-error','delete-item'].includes(change.moduleAction))&&\n        (change.input===undefined||object(change.input)&&(change.input.item===undefined||object(change.input.item)))&&\n        (change.localId===undefined||typeof change.localId==='string')&&\n        (change.patches===undefined||Array.isArray(change.patches)&&change.patches.every(patch=>object(patch)&&patch.op==='set'&&path(patch.path)&&Object.hasOwn(patch,'value')))&&\n        (change.guards===undefined||Array.isArray(change.guards)&&change.guards.every(guard=>object(guard)&&path(guard.path)&&Object.hasOwn(guard,'value'))));\n      if(!valid)return reply({error:'INVALID_LOCAL_SAVE',requestId},422);\n    }\n"
       },
       {
-        "offset": 12188,
+        "offset": 13422,
         "before": "      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\r\n",
         "after": "      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\n"
       },
       {
-        "offset": 17877,
+        "offset": 19111,
         "before": "",
         "after": "        for(const change of body.command.localChanges||[]) {\n          if(change.moduleAction?.startsWith('create')&&!permissions.create||change.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);\n          if(change.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===change.input?.productCode&&p.stages.includes(change.input?.stageCode||'')))return reply({error:'PRODUCT_STAGE_INVALID'},422);\n        }\n"
       },
       {
-        "offset": 18744,
+        "offset": 19978,
         "before": "        if(!alreadyAccepted&&body.command.action==='apply'){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}\r\n",
         "after": "        if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}\n"
       },
       {
-        "offset": 20101,
+        "offset": 21335,
         "before": "      if(ipqcCCreateCommand(body.command)&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\r\n",
         "after": "      if((body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"
       }

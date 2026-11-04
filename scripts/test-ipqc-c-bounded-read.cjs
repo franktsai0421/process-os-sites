@@ -94,6 +94,13 @@ await check('C9 exact composed performance and explicit-rights spans; historical
   // Canonical Save/CPU/projection changes are exactly reversed before the
   // unchanged #44 span negatives and original v20 proof, not ignored.
   const approved={'lib/ipqc-c.ts':'c798ab16c8b16adedc4cf672064d422fbb744fb18b4682253f46740ae8b62243'};
+  if(['lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts'].includes(file)){
+   assert.throws(()=>withoutLocalAtomicSave(Buffer.concat([committed,Buffer.from('\n// unreviewed change')]),file),/differs from pinned bytes/,'unrelated source tampering remains rejected');
+   if(file==='app/api/ipqc-c/workflow/route.ts'){
+    const relaxed=Buffer.from(committed.toString().replace('changes.length<=256','changes.length<=257'));
+    assert.notDeepEqual(relaxed,committed);assert.throws(()=>withoutLocalAtomicSave(relaxed,file),/differs from pinned bytes/,'nested validation changes require a new explicit review');
+   }
+  }
   let protectedSource=file==='lib/ipqc-c-workflow.ts'?withoutLocalAtomicSave(committed,file):committed;
   if(approved[file]){
    assert.equal(createHash('sha256').update(committed).digest('hex'),approved[file],'Reviewed performance source binding changed');
