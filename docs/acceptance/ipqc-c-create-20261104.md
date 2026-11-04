@@ -7,6 +7,38 @@ Follow-up implementation: `228023606f9daa792473d49972b50ae19d7f2519`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
+## CI asset-cache contract follow-up
+
+Run `41763221234` on `945694a` failed the receipt-recovery asset pin (76 pass,
+1 fail); later checks were skipped. Local reproduction confirmed the same
+failure. The actual shell already selected `shared-draft-client.js?v=20261104-ipqcc-create2`;
+two tests still expected `20261103-unknown-departure3`: receipt recovery and the
+later navigation-adapter group. Both exact pins are updated; other asset pins
+and receipt/deadline assertions remain unchanged. No product source changed.
+
+This is backed by cache-path behavior, not only expected-string replacement:
+
+- The production bootstrap with real policy imports issues no script preload or
+  execution before `ProcessSync.ready`, then preserves the shell's complete
+  versioned URL for both preload and script loading.
+- The production build combiner includes current transport bytes exactly once.
+  A tag-only change leaves its content-addressed URL unchanged; changed code
+  with an unchanged tag produces a different URL in the emitted HTML.
+- With all other current sources fixed, baseline main's transport produces
+  `shell-scripts.5c4842797709323a9a9c.js`; the current transport produces
+  `shell-scripts.9e20755ffd7000e969a5.js`. Existing compiled HTML and bundle bytes
+  match the current source-derived transformation exactly.
+- The existing compiled synthetic Worker test passes all 12 cases, including
+  HTTP delivery of the exact current shell and script/style bundles. Its build
+  stamp remains ancestor `0b1c6ef` as recorded above; no rebuild or deployment
+  is implied by this tests-only fix. This is local Worker evidence, not live
+  browser cache/CDN validation.
+
+Rerun: original four-file CI group 77/77 PASS; navigation-adapter, build-combiner
+and integrated-bootstrap group 48/48 PASS. Independent review found no blocker
+or weakened assertions. A fresh exact-head full CI must still run; the failed
+old run is not relabeled as passing.
+
 ## Additional latency improvement (Draft PR #73)
 
 [Draft PR #73](https://github.com/franktsai0421/process-os-sites/pull/73) was

@@ -30,6 +30,16 @@ void test('a grouped script without its execution receipt fails closed and stops
  await vm.runInNewContext(bootstrapSource(),{window,document,accessPolicy,deliveryPolicy,ownedDraftPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10},location:{href:'https://fixture.invalid/process/index.html',reload(){}}});
  assert.deepEqual(requested,['group.js']);assert.match(gate.textContent,/載入失敗/);assert.equal(attrs.processReadyMs,undefined);
 });
+void test('real shell shared-client cache URL survives preload and ordered script loading after the auth gate',async()=>{
+ const html=fs.readFileSync('public/process/index.html','utf8'),refs=[...html.matchAll(/data-process-src="(shared-draft-client\.js\?v=[^"]+)"/g)].map(m=>m[1]);assert.equal(refs.length,1);
+ const requested=[],preloaded=[],attrs={};let release;const ready=new Promise(resolve=>{release=resolve;}),gate={remove(){},setAttribute(){},append(){}};
+ const script={dataset:{processSrc:refs[0]},replaceWith(element){requested.push(element.src);element.onload();}};
+ const window={ProcessSync:{ready,identity:{id:'staff'},destination:{view:'dashboard',system:'process'},catalog:{format:'PROCESS_RUNTIME_CATALOG_V1',imported:{},routing:{},lineC:{}}}};
+ const document={querySelector:()=>gate,querySelectorAll:()=>[script],createElement:()=>({}),head:{append(element){if(element.as==='script')preloaded.push(element.href);}},documentElement:{dataset:attrs,removeAttribute(){}}};
+ const completed=vm.runInNewContext(bootstrapSource(),{window,document,accessPolicy,deliveryPolicy,ownedDraftPolicy,history:{state:null,replaceState(){}},localStorage:{getItem:()=> 'zh'},performance:{now:()=>10,mark(){}},location:{href:'https://fixture.invalid/process/index.html',reload(){}}});
+ await new Promise(setImmediate);assert.deepEqual(preloaded,[]);assert.deepEqual(requested,[]);release();await completed;
+ assert.deepEqual(preloaded,refs);assert.deepEqual(requested,refs);assert.equal(attrs.processNavigationStatus,'ready');
+});
 const source=fs.readFileSync('public/process/shared-state.js','utf8');
 async function client(search=''){
  class Storage{constructor(){this.items=new Map();}getItem(k){return this.items.get(k)??null;}setItem(k,v){this.items.set(k,String(v));}removeItem(k){this.items.delete(k);}}

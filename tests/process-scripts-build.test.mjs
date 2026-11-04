@@ -54,3 +54,14 @@ void test('scope, strictness and order are retained; failure never issues comple
   assert.equal(failed.window.ProcessRuntimeBundles,undefined);assert.deepEqual(failed.window.values,[]);
   assert.notEqual(asset.id,broken.id);
 });
+
+void test('shared-client executable bytes determine the built cache URL, independently of source query tags',()=>{
+ const html=fs.readFileSync('public/process/index.html','utf8'),read=name=>fs.readFileSync('public/process/'+name,'utf8');
+ const current=combineProcessScripts(html,read),asset=current.assets.find(a=>a.sources.includes('shared-draft-client.js'));assert(asset);
+ const tagOnly=combineProcessScripts(html.replace(/shared-draft-client\.js\?v=[^" ]+/, 'shared-draft-client.js?v=synthetic-old-cache-token'),read);
+ assert.equal(tagOnly.assets.find(a=>a.sources.includes('shared-draft-client.js')).name,asset.name,'same executable bytes keep the same content-addressed URL');
+ const changed=combineProcessScripts(html,name=>read(name)+(name==='shared-draft-client.js'?'\nvoid "synthetic-content-change";':'')),next=changed.assets.find(a=>a.sources.includes('shared-draft-client.js'));
+ assert.notEqual(next.name,asset.name,'changing executable bytes with an unchanged source tag must invalidate the built URL');
+ assert(current.html.includes(`data-process-src="${asset.name}"`));assert(changed.html.includes(`data-process-src="${next.name}"`));assert(!changed.html.includes(`data-process-src="${asset.name}"`));
+ assert.equal(asset.source.split(read('shared-draft-client.js')).length-1,1,'exact current transport is included once');
+});
