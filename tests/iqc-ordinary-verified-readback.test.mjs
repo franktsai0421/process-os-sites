@@ -117,3 +117,16 @@ for(const change of ['owner','mount','permission'])void test(`explicit IQC query
  const error=await query;assert.ok(error instanceof Error||typeof error?.message==='string');assert.equal(f.api.state().control,before);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
  if(change!=='mount')assert.equal(f.markerCount(),1);
 });
+
+for(const phase of ['receipt','terminal'])for(const status of [401,403])for(const nonJSON of [false,true])void test(`explicit IQC ${phase} denial quarantines old content (${status}/${nonJSON})`,async()=>{
+ const f=await warm(),command=await unknownItem(f);f.page.innerHTML='OLD BUSINESS CONTENT';const query=f.api.checkOperation().catch(e=>e);await tick();
+ if(phase==='terminal'){f.respond(f.requests.length-1,{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}});await tick();}
+ if(nonJSON)f.requests.at(-1).resolve({status,ok:false,json:async()=>{throw Error('BAD_JSON');}});else f.respond(f.requests.length-1,{error:'FORBIDDEN'},status);
+ const error=await query;assert.equal(f.api.state().readDenied,error);assert.doesNotMatch(f.page.innerHTML,/OLD BUSINESS CONTENT/);assert.equal(f.markerCount(),1);assert.equal(f.clients[0].permission('view'),false);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});
+for(const change of ['owner','mount','newLoad','newDenial'])void test(`old explicit query denial cannot replace ${change}`,async()=>{
+ const f=await warm();await unknownItem(f);const query=f.api.checkOperation().catch(e=>e);await tick();const receiptIndex=f.requests.length-1;
+ let expected=null;
+ if(change==='owner')f.flip();else if(change==='mount')f.api.changeMount();else{const load=f.api.load().catch(e=>e);await tick();if(change==='newDenial'){f.respond(f.requests.length-1,{error:'NEW_DENIAL'},403);expected=await load;}else{f.respond(f.requests.length-1,full(3));await load;}}
+ f.respond(receiptIndex,{error:'OLD_DENIAL'},403);await query;assert.equal(f.api.state().readDenied,expected);assert.equal(f.markerCount(),1);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,1);
+});

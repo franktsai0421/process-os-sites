@@ -106,7 +106,16 @@
     owner?.assert();if(ui.busy||operationCheck)throw Error('OPERATION_IN_PROGRESS');
     const client=transport(),actor=identity(),epoch=host.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=host.ProcessSync?.captureDelivery?.();
     const assert=()=>{owner?.assert();if(client!==sharedClient||actor!==identity()||epoch!==host.ProcessSync?.identityGeneration?.()||mount!==mountSequence||host.ProcessSync?.requiresReload||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('DELIVERY_SUPERSEDED');};
-    const flight=(async()=>{await client.resolveUnknown();assert();await load({assert});assert();render();})();
+    const queryLoad=loadSequence,queryDenied=readDenied,pauses=new Map(['receipt','state'].map(kind=>[kind,client.readPauseState?.(kind)]));
+    const flight=(async()=>{
+      try{await client.resolveUnknown();}
+      catch(error){
+        let owned=false;try{assert();owned=loadSequence===queryLoad&&readDenied===queryDenied;}catch{/* A stale query cannot quarantine a newer owner/load. */}
+        if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>!pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
+        throw error;
+      }
+      assert();await load({assert});assert();render();
+    })();
     operationCheck=flight;try{return await flight;}finally{if(operationCheck===flight)operationCheck=null;}
   }
 

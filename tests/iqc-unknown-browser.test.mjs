@@ -15,7 +15,7 @@ for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`actual IQC form pho
    if(url.pathname==='/api/routine-equipment')return route.fulfill({json:{control:{activeVersionId:'a',versions:[{id:'a',status:'approved',categories:[],subcategories:[],groups:[],equipment:[{id:'new-tool',name:'New synthetic tool',assetCode:'SYN-NEW',pieceMark:'02',enabled:true}]}]}}});
    if(url.pathname==='/api/iqc/workflow'){
     if(request.method()==='POST'){command=JSON.parse(request.postData()).command;posts.push(command);return route.abort('failed');}
-    if(url.searchParams.has('operationId')){queries++;return lookup==='missing'?route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}}):route.fulfill({json:{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}}});}
+    if(url.searchParams.has('operationId')){queries++;if(lookup==='denied')return route.fulfill({status:403,json:{error:'FORBIDDEN'}});return lookup==='missing'?route.fulfill({status:404,json:{error:'OPERATION_NOT_FOUND'}}):route.fulfill({json:{receipt:{operationId:command.operationId,generation:'g',revision:2,savedId:null,caseId:null,unchanged:false}}});}
     return route.fulfill({json:full()});
    }
    throw Error('Unexpected isolated request '+url.pathname);
@@ -34,6 +34,8 @@ for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`actual IQC form pho
   lookup='found';await page.evaluate(()=>window.iqcProbe.open());await page.locator('#iqc-item-form [name=nameVi]').fill('Do not duplicate');const before=queries;await page.locator('#iqc-item-form [type=submit]').click();await button.waitFor();assert.equal(queries,before);assert.equal(posts.length,1);
   await button.click();await page.waitForFunction(()=>document.querySelector('#iqc-item-error').textContent.includes(document.documentElement.lang==='vi'?'Đã xác nhận':'已確認原操作'));assert.equal(posts.length,1);assert(await page.locator('#iqc-item-form [type=submit]').isDisabled());assert.equal(await page.locator('#iqc-item-form [name=nameVi]').inputValue(),'Do not duplicate');
   await page.locator('#iqc-item-form').evaluate(form=>form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true})));assert.equal(posts.length,1);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.locator('#iqc-item-form [data-close]').first().click();lookup='missing';await page.evaluate(()=>window.iqcProbe.open());await page.locator('#iqc-item-form [name=nameVi]').fill('Separate new attempt');await page.locator('#iqc-item-form [type=submit]').click();await button.waitFor();assert.equal(posts.length,2);
+  lookup='denied';await button.click();await page.locator('#iqc-read-retry').waitFor();assert.equal(await page.locator('#iqc-item-form').count(),0);assert.equal(await page.locator('.iqc-part-list').count(),0);assert.equal(posts.length,2);assert.deepEqual(errors,[]);
  }finally{await context.close();await browser.close();}
 });
