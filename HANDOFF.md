@@ -1,3 +1,7 @@
+## 2026-11-04 — IQC local editing / atomic Save candidate
+
+Independent branch from main 85fa4a3. Local Apply, guarded atomic Save and opt-in silent departure; legacy shared data remains intact. No deployment. [Evidence and integration gates](docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 — IPQC-C create-item independent candidate
 
 Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. Draft PR #73 is open. Follow-up narrows the mandatory create readback and adds measured POST+GET evidence; original unknown stays intact. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).

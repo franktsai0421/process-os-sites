@@ -1,3 +1,7 @@
+## 2026-11-04 IQC candidate
+
+IQC local forms now accumulate in document memory; `save-local-v1` performs guarded changes and server numbering before a single persisted saved result. Photos remain staged uploads. IQC edit also permits Save; submit stays independent. [Boundaries and verification](../../docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 IPQC-C create-item candidate
 
 `ipqc-c-create-record-mutation.ts` selects the fixed auth/C/master/equipment closure for canonical records create-item; the dedicated encoder changes only C plus its monotonic allocation index. Legacy/noncanonical states use full reading. CAS, create/edit/view, photo/equipment validation and receipt deduplication remain; session revocation is checked again after immutable encoding. The client gives only C create-item 45 seconds, retaining unknown on timeout/404. Unrelated record faults are now isolated, with opaque pointers preserved. [Tests and limits](../../docs/acceptance/ipqc-c-create-20261104.md). No schema or data change. The runtime create-item terminal GET now opts into a fixed auth/C read via `readback=ipqc-c-create-v1`; it retains fresh authorization and the full workflow response, while combined receipt/history/restore selectors keep the original path. Controlled POST+GET timing and its CPU/I/O tradeoff are in the linked evidence.

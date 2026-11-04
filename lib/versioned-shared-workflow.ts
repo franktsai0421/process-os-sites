@@ -144,6 +144,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   async function currentPermissions(request:Request,state:State,phase?:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null){
     const check=phase?phase.allowed:(key:string)=>can(request,state,key);
     const defaults=await workflowAccess(request,state,check),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
+    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;

@@ -150,6 +150,7 @@ export function createDepartureCoordinator(hooks){
     if(hooks.inspect(owner).state==='clean')return Promise.resolve().then(()=>hooks.isCurrent(owner)?intent.run(null):{status:'invalidated'});
     hooks.cancelNavigation?.();
     const record=active={owner,intent,phase:'choosing',lease:null,ticket:null,error:'',committed:false};
+    if(hooks.automaticAbandon?.(owner)&&hooks.inspect(owner).canAbandon){void choose('abandon').then(result=>{if(result.status==='error'&&current(record))hooks.show?.(snapshot(record),choose);});return intent.promise;}
     hooks.show?.(snapshot(record),choose);
     return intent.promise;
   }

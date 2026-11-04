@@ -37,7 +37,7 @@
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-simple-departure1');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-iqc-local1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -194,6 +194,7 @@
    dialog.append(choices);dialog.oncancel=event=>{event.preventDefault();if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};dialog.onclose=()=>{if(decisionSnapshot?.phase!=='mutating')void decisionChoose?.('stay');};document.body.append(dialog);updateDecision(value);dialog.showModal();dialog.querySelector('[data-departure-choice="stay"]').focus();
   }
   const departure=createDepartureCoordinator({
+   automaticAbandon:owner=>owner.adapter?.automaticAbandon===true,
    owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.(),delivery:sync.captureDelivery?.(),adapter:departureAdapter(),source:readyGeneration}),
    isCurrent:owner=>!!owner?.id&&owner.id===sync.identity?.id&&owner.epoch===sync.identityGeneration?.()&&owner.adapter===departureAdapter()&&owner.source===readyGeneration&&(!owner.delivery||sync.isCurrentDelivery?.(owner.delivery)!==false)&&!sync.requiresReload,
    inspect:inspectDeparture,act:(action,owner)=>owner.adapter[action](),show:showDecision,update:updateDecision,hide:hideDecision,errorMessage:decisionMessage,
@@ -303,7 +304,7 @@
  // Cross-document close/reload has only the browser's native confirmation.
  // No custom decision or implicit write is started from this event.
  window.addEventListener('beforeunload',event=>{
-  const adapter=departureAdapter();if(!adapter||adapterState(adapter).state==='clean')return;
+  const adapter=departureAdapter();if(!adapter||adapter.allowUnload?.()===true||adapterState(adapter).state==='clean')return;
   event.preventDefault();
   // oxlint-disable-next-line typescript/no-deprecated -- Chromium's native unload confirmation requires returnValue.
   event.returnValue='Unsaved or unconfirmed process draft';

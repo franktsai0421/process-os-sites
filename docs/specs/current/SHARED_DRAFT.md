@@ -1,3 +1,7 @@
+## 2026-11-04 IQC latest requested flow
+
+For the IQC candidate, form edits remain local until Save atomically shares and saves the module. Unsent input is abandoned on departure/reload without confirmation; search/filter retains it. Edit permits Save; submit remains separate. Unknown operations retain original receipts/write locks while allowing departure. Existing shared data is preserved pending separately authorized conversion. This supersedes older IQC per-Apply synchronization descriptions, not other modules. [Candidate evidence](../../acceptance/iqc-local-atomic-save-20261104.md).
+
 IQC data-state notes retain counts for unstructured formal frequency and unselected optional suppliers outside content-missing totals. Their source is the currently selected draft or fixed version; they add no submission gate.
 
 ## 2026-11-03 IQC completeness presentation clarification
