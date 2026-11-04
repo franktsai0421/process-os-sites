@@ -2,6 +2,7 @@
 
 2026-11-04, isolated Linux/Node 24.19.0 checkout. Base main:
 `35949445ad073812863c0004acbee13ed3535747`.
+Implementation commit: `779d8280d6705f909b631af0e62ba11adb6ba517`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
@@ -58,10 +59,11 @@ and actor/delivery protection remain in place.
 | History-only number, approved version/cases/saves, other module pointers | Same suite | PASS |
 | Generic partial writer, foreign/reused handle | Same suite | PASS |
 | 24-second response, headers/body 45-second limit, repeated 404/no resend, other deadlines | `node tests/hosted-read-deadline.test.mjs` | PASS, 13 cases |
+| Actual C local-recovery composition | `node --test tests/multiuser-ipqc-c-local-recovery-actual-stack.test.mjs` | PASS, 40 tests |
 | Actual C UI/client operation admission | `node --test tests/ipqc-c-operation-admission.test.cjs` | PASS, 15 tests, independent run |
 | Operation permission matrix | `node scripts/test-ipqc-c-operation-permissions.cjs` | PASS, 7 groups/218 handler calls, independent run |
 | Existing Save server/client projection, Save boundary, read recovery | Corresponding `scripts/test-ipqc-c-*.cjs` | PASS |
-| Historical read/permission proofs | `test-ipqc-c-bounded-read.cjs`, `test-ipqc-c-permissions-read.cjs` | Pending committed-source run |
+| Historical read/permission proofs | `test-ipqc-c-bounded-read.cjs`, `test-ipqc-c-permissions-read.cjs` | PASS, 9 + 8 groups on implementation commit |
 | Type-aware lint and build | `npm run lint -- --format unix`; `PROCESS_PROGRAM_COMMIT=<base> npm run build` | PASS; build stamp identifies base, not uncommitted source |
 | Source/publication boundary scan | `node scripts/sites-source-check.mjs`; changed-file `scanFiles` | PASS |
 | Repository-wide safety scan | `node scripts/safety-scan.mjs` | FAIL: two unchanged synthetic-test findings already byte-identical to base; changed files have zero findings |
