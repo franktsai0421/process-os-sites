@@ -230,6 +230,7 @@ void test('native record oracle uses the same isolated D1/R2 and full production
   const {createRequire} = await import('node:module'), {createRootEntryFixture} = await import('./root-entry-native-fixture.mjs');
   const {buildFqcDraftLifecycleSeed} = await import('./fqc-draft-lifecycle-route-fixture.mjs');
   const {nativeRecordOracleName} = await import('./native-record-oracle.mjs');
+  const {buildProcessDraftLifecycleSeed} = await import('./process-draft-lifecycle-route-fixture.mjs');
   // This tiny Worker tests the fixture/binding transport, not compiled UI routes.
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'record-oracle-contract-'));
   fs.mkdirSync(path.join(directory, 'server')); fs.mkdirSync(path.join(directory, 'client'));
@@ -253,6 +254,21 @@ void test('native record oracle uses the same isolated D1/R2 and full production
       const legacy = await readFqcFixtureValues(fixture.db, records, bucket, () => {}), actual = await fixture.readRecordValues();
       assert.deepEqual(actual, seed.values); assert.deepEqual(actual, JSON.parse(JSON.stringify(legacy)));
       assert.deepEqual(await readRow(), before, 'oracle may not mutate state');
+    }
+    // Process uses the same complete oracle: count the replaced proxy calls,
+    // compare every scope, and retain a prior immutable history record.
+    for (let cycle = 1; cycle <= 5; cycle++) {
+      const seed = buildProcessDraftLifecycleSeed(createDraft, {cycle});
+      const values = {...seed.values, oracleProcessHistory: JSON.stringify({versions: [{id: 'prior', snapshot: {keep: cycle}}]})};
+      await install(await records.encodeRecordValues(bucket, values));
+      const before = await readRow(); let proxyGets = 0;
+      const countedBucket = {get: (...args) => { proxyGets++; return bucket.get(...args); }};
+      const legacy = await readFqcFixtureValues(fixture.db, records, countedBucket, () => {});
+      assert(proxyGets > 1, 'legacy verification makes multiple cross-runtime R2 reads');
+      const phases = [], actual = await fixture.readRecordValues(phase => phases.push(phase));
+      assert.equal(phases.filter(phase => phase === 'oracle-dispatch').length, 1);
+      assert.deepEqual(actual, values); assert.deepEqual(actual, JSON.parse(JSON.stringify(legacy)));
+      assert.deepEqual(await readRow(), before);
     }
     const historyValues = {...buildFqcDraftLifecycleSeed(createDraft, {cycle: 5}).values,
       oracleHistoryCoverage: JSON.stringify({versions: [{id: 'synthetic-old-version', status: 'approved', snapshot: {oldValue: 'synthetic full history'}}]})};

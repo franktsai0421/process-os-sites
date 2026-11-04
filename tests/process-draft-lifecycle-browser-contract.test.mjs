@@ -181,3 +181,21 @@ void test('disabled routine badge classification requires the original reviewer 
   assert(source.includes('before: await page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
   assert(source.includes('current: () => page.evaluate(disabledRoutineReviewContext, {reviewer: seed.actors.reviewer.id})'));
 });
+
+void test('Process verification uses full native record oracle and retains failure stage diagnostics', () => {
+  const source = fs.readFileSync(new URL('./process-draft-lifecycle-browser.mjs', import.meta.url), 'utf8');
+  assert.match(source, /createRootEntryFixture\(\{recordOracle: true/);
+  assert.match(source, /fixture\.readRecordValues\(phase =>/);
+  assert.doesNotMatch(source, /records\.decodeRecordValues/);
+  assert.match(source, /report\.runtimeFailure = nativeFailureDiagnostics\(error\)/);
+  assert.match(source, /report\.fixtureRead = fixtureRead/);
+});
+
+void test('native resource failures retain allowlisted cause codes without private error contents', async () => {
+  const {nativeFailureDiagnostics} = await import('./root-entry-native-fixture.mjs');
+  for (const code of ['ENOBUFS', 'EMFILE', 'ENFILE', 'EADDRNOTAVAIL']) {
+    const result = nativeFailureDiagnostics(new TypeError('fetch failed', {cause: Object.assign(Error('private fixture content'), {code})}));
+    assert.deepEqual(result.causeCodes, [code]);
+    assert(!JSON.stringify(result).includes('private'));
+  }
+});
