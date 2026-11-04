@@ -62,6 +62,11 @@ for (const test of cases) {
         ['relocated IPQC-C create inverse',row.candidate+raw.replace(row.candidate,'')],
         ['gap before FQC tail',raw.replace(row.candidate,row.candidate+'// unexpected gap\n')],
       ]),
+      ...proof.fqcAggregateReadAheadInverse.spans.flatMap((row,index)=>[
+        ['changed read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected drift\n')],
+        ['missing read-ahead inverse '+index,raw.replace(row.candidate,'')],
+        ['duplicate read-ahead inverse '+index,raw.replace(row.candidate,row.candidate+row.candidate)],
+      ]),
       ...proof.fqcAuthorityHydrationInverse.spans.flatMap((row,index)=>[
         ['changed authority inverse '+index,raw.replace(row.candidate,row.candidate+'// unexpected authority drift\n')],
         ['missing authority inverse '+index,raw.replace(row.candidate,'')],

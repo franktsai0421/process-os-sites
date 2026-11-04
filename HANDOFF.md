@@ -2,6 +2,14 @@
 
 Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. Draft PR #73 is open. Follow-up narrows the mandatory create readback and adds measured POST+GET evidence; original unknown stays intact. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).
 
+## 2026-11-04 — FQC #72 integration with merged IQC #71
+
+Integrate main `6247c00220bf366e41c92c5b684d9f9744076cad`, retaining IQC unknown-result recovery/timing and FQC bounded read overlap. Both document histories remain below. Integrated-source regressions, build, independent review, paired performance against main6247 and complete CI are separate gates from earlier candidate results. [Current evidence](docs/acceptance/fqc-flow-performance-20261104/README.md). No PR merge, deployment, live data change or V31 unlock.
+
+## 2026-11-04 — FQC flow latency candidate
+
+[Draft PR #72](https://github.com/franktsai0421/process-os-sites/pull/72) from main `3594944`: bounded five-aggregate GET overlap for FQC reads and Apply/Save, retaining fresh readback, authority phases, integrity validation and CAS. Full CI found overly broad POST admission; the follow-up excludes mixed Begin and unsupported commands without changing the original integration assertions. No deployment, live record change or V31 unlock. [Measured scope, regression evidence and limitations](docs/acceptance/fqc-flow-performance-20261104/README.md). This candidate does not diagnose or repair IQC.
+
 ## 2026-11-04 — Independent IQC unknown-result candidate
 
 Based on main `35949445`, branch `fix/iqc-unknown-operation-20261104`. Preserve the live unknown operation; no retry, lock clearing or deployment. Longer client waiting is not a speed improvement. Draft PR, exact-head CI and final independent review are reported separately. [Scope, tests and limitations](docs/acceptance/iqc-unknown-20261104/README.md).

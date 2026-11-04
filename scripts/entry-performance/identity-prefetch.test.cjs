@@ -18,6 +18,7 @@ assert.equal(identitySource.split(createInverse.candidate).length-1,1,'IPQC-C cr
 assert.equal(createInverse.followingMarker,inverse.reviewedFqcRequiredTail.marker,'IPQC-C create inverse must precede FQC tail');
 assert.equal(identitySource.indexOf(createInverse.candidate)+createInverse.candidate.length,identitySource.indexOf(createInverse.followingMarker),'IPQC-C create inverse location');
 identitySource=identitySource.replace(createInverse.candidate,'');
+for(const row of inverse.fqcAggregateReadAheadInverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'FQC read-ahead inverse span hash');assert.equal(identitySource.split(row.candidate).length-1,1,'FQC read-ahead inverse anchor must occur exactly once');identitySource=identitySource.replace(row.candidate,row.baseline);}
 for(const row of inverse.fqcAuthorityHydrationInverse.spans){assert.equal(hash(row.candidate),row.candidateSHA256,'FQC authority inverse span hash');assert.equal(identitySource.split(row.candidate).length-1,1,'FQC authority inverse anchor must occur exactly once');identitySource=identitySource.replace(row.candidate,row.baseline);}
 // The original appended FQC writer is outside this identity-read fixture.
 const tail=inverse.reviewedFqcRequiredTail,tailAt=identitySource.indexOf(tail.marker);

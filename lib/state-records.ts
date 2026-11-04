@@ -17,7 +17,10 @@ export type RecordRead={deferHistory?:boolean;caseId?:string|null;saveId?:string
  // historical parsers. Opt-in only; ordinary/public reads retain their contract.
  deferDependencyHistory?:boolean;allocationKey?:string;
  // Opaque server-created request token; never supplied by HTTP or a write path.
- identityReadToken?:object};
+ identityReadToken?:object;
+ // Server-only FQC opt-in. Reads the same selected aggregates in bounded windows;
+ // authority/business phases and independent snapshots never share a reader.
+ aggregateReadAhead?:boolean};
 const prefix='state-records/v1/',encoder=new TextEncoder();
 const hash=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(s))),b=>b.toString(16).padStart(2,'0')).join('');
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -128,6 +131,53 @@ async function encodeRecordValuesCore(bucket:Bucket,values:Record<string,string>
  }
  return JSON.stringify({__processRecords:{version:1,values:refs,legacySources,...(Object.keys(allocations).length?{allocations}:{})},platformUsers:values.platformUsers,...(values.maintenanceMode!==undefined?{maintenanceMode:values.maintenanceMode}:{})});
 }
+// Request-local FQC I/O overlap. Keep decoding, SHA/JSON checks and failures in
+// manifest order; never retain content across snapshots or authorization phases.
+type StoredObject = {text():Promise<string>;body?:{cancel():Promise<unknown>}}|null;
+type Outcome = {ok:true;value:StoredObject}|{ok:false;error:unknown};
+
+function aggregateReadAhead(bucket:Bucket, entries:[string,Ref][], valid:(ref:unknown)=>boolean) {
+  const pending = new Map<number,Promise<Outcome>>();
+  let closed = false;
+  function start(index:number) {
+    if (closed || pending.has(index) || !entries[index] || !valid(entries[index][1])) return;
+    const request:Promise<Outcome> = Promise.resolve().then(()=>bucket.get(entries[index][1].key))
+      .then(value=>({ok:true,value}),error=>({ok:false,error}));
+    pending.set(index,request);
+  }
+  return {
+    async get(index:number) {
+      if (closed || !entries[index] || !valid(entries[index][1])) throw Error('Invalid immutable record reference');
+      // At most five aggregate GETs/streams, and no speculative
+      // text, SHA or JSON allocation for the next (possibly large) aggregate.
+      if (!pending.has(index)) {
+        const keys=new Set<string>();
+        // Stop at malformed or repeated refs: a later observation of the same
+        // object cannot mask an earlier transient fault. No selected key is
+        // skipped, and current text/body decoding still finishes in order.
+        for(let next=index;next<Math.min(index+5,entries.length);next++){
+          const ref=entries[next][1];
+          if(!valid(ref)||keys.has(ref.key))break;
+          keys.add(ref.key);start(next);
+        }
+      }
+      const result = await pending.get(index)!;
+      pending.delete(index);
+      if (!result.ok) throw result.error;
+      return result.value;
+    },
+    close() {
+      closed = true;
+      for (const request of pending.values()) {
+        // Do not wait for a slow speculative GET before reporting the earlier
+        // failure. Release its stream when it arrives; cleanup cannot mask it.
+        void request.then(async result=>{if(result.ok&&result.value?.body)await result.value.body.cancel();}).catch(()=>{});
+      }
+      pending.clear();
+    }
+  };
+}
+
 export async function decodeRecordValues(bucket:Bucket,envelope:Envelope,options:RecordRead={}){
  return decodeRecordValuesCore(bucket,envelope,options);
 }
@@ -173,9 +223,11 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
  const unwrap=<T,>(result:Outcome<T>):T=>{if(!result.ok)throw result.error;return result.value;};
  const small=(value:StoredObject)=>!!value&&Number.isSafeInteger(value.size)&&value.size!>=0&&value.size!<=262144;
  async function consume(value:StoredObject,ref:Ref){if(!value)throw Error('Immutable record missing');const raw=await value.text();if(await hash(raw)!==ref.sha256)throw Error('Immutable record corrupt');return raw;}
+ const readAhead=options.aggregateReadAhead&&!options.identityReadToken?aggregateReadAhead(bucket,entries,valid):null;
  let pendingIdentity:{key:string;ref:Ref;object:Promise<Outcome<StoredObject>>;raw?:Promise<Outcome<string>>;released?:boolean}|undefined;
  async function aggregate(index:number){
   const [key,ref]=entries[index];
+  if(readAhead)return consume(await readAhead.get(index),ref);
   if(options.identityReadToken)return readIdentityAggregate(bucket,key,ref,options.identityReadToken);
   if(pendingIdentity?.key===key){const pending=pendingIdentity;pendingIdentity=undefined;const object=await pending.object;return pending.raw?unwrap(await pending.raw):consume(unwrap(object),ref);}
   const next=entries[index+1];
@@ -202,7 +254,8 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
  // avoids duplicate R2 reads; no bucket handles/content survive a request.
  try{for(let index=0;index<entries.length;index++){const [key,ref]=entries[index];deferVersions=key===options.allocationKey&&!allocationRef?false:!fullVersionReaders.has(key)||options.modelKey===key||!!options.deferDependencyHistory&&key!==options.modelKey;const original=await aggregate(index);
   // Preserve the original manifest traversal/error order: required bodies are
-  // hydrated now, before reading the next aggregate. Excluded bodies alone are
+  // hydrated before consuming the next aggregate text. FQC may prefetch that
+  // next GET, but never its text/validation. Excluded bodies alone are
   // the approved fault-policy change; aggregate SHA/JSON still fail closed.
   if(bodyKeys&&!bodyKeys.has(key)){if(original.includes('"__immutableBody"'))JSON.parse(original);continue;}
   known.add(ref.sha256);const raw=options.projectValue?await options.projectValue(key,original):original;
@@ -212,7 +265,7 @@ async function decodeRecordValuesCore(bucket:Bucket,envelope:Envelope,options:Re
   // Private FQC authority validation must run before an inline maintenance
   // overlay can replace the hydrated aggregate. Other readers are unchanged.
   validateHydrated?.(values[key]);
- }}finally{releasePendingIdentity();}
+ }}finally{readAhead?.close();releasePendingIdentity();}
  if(envelope.maintenanceMode!==undefined)values.maintenanceMode=envelope.maintenanceMode;
   return{values,recordStorage:{envelope,originalValues:{...values},known,partial:!!bodyKeys||!!options.keys||!!options.effectiveOnly||!!options.projectValue,models,allocations} satisfies RecordStorage};
 }
@@ -429,7 +482,7 @@ export async function readFqcRequiredRecordMutation(bucket:Bucket,envelope:Envel
  // Validate after hydration; never authorize using an unresolved body or retry
  // a failed authority read against another snapshot/reader.
  const validateAuthority=(raw:string)=>{JSON.parse(raw,(_name,value:unknown)=>{if(reference(value))throw Error('Invalid FQC authority body');return value;});};
- const auth=await decodeRecordValuesCore(bucket,envelope,{keys:fqcRequiredAuth,projectValue:(_key,raw)=>{
+ const auth=await decodeRecordValuesCore(bucket,envelope,{keys:fqcRequiredAuth,aggregateReadAhead:true,projectValue:(_key,raw)=>{
   // Validate even an aggregate subsequently shadowed by the maintenance overlay.
   JSON.parse(raw);return raw;
  }},undefined,validateAuthority);
@@ -437,7 +490,7 @@ export async function readFqcRequiredRecordMutation(bucket:Bucket,envelope:Envel
  const state:FqcRequiredState={revision,...auth},authRaw=JSON.stringify(auth.values),authKnown=[...auth.recordStorage.known];
  const operation=Object.freeze({...await authorize(state)});
  if(JSON.stringify(selection)!==selectionRaw||typeof operation.actorId!=='string'||!operation.actorId||typeof operation.operationId!=='string'||!operation.operationId||typeof operation.clientId!=='string'||!operation.clientId||Object.keys(operation).some(key=>!['actorId','operationId','clientId','sequence'].includes(key))||!Number.isSafeInteger(operation.sequence)||operation.sequence<1||state.revision!==revision||state.values!==auth.values||state.recordStorage!==auth.recordStorage||!state.recordStorage.partial||JSON.stringify(state.values)!==authRaw||JSON.stringify(state.recordStorage.originalValues)!==authRaw||state.recordStorage.models.size||state.recordStorage.allocations.size||state.recordStorage.known.size!==authKnown.length||authKnown.some(sha=>!state.recordStorage.known.has(sha))||JSON.stringify(envelope)!==original)throw Error('FQC authorization basis changed');
- const target=await decodeRecordValuesCore(bucket,envelope,{keys:['qualityMasterControl','masterDataControl','routineEquipmentControl'],modelKey:'qualityMasterControl',deferHistory:true,deferDependencyHistory:true,...(selected.allocate?{allocationKey:'qualityMasterControl'}:{})});
+ const target=await decodeRecordValuesCore(bucket,envelope,{keys:['qualityMasterControl','masterDataControl','routineEquipmentControl'],aggregateReadAhead:true,modelKey:'qualityMasterControl',deferHistory:true,deferDependencyHistory:true,...(selected.allocate?{allocationKey:'qualityMasterControl'}:{})});
  if(JSON.stringify(envelope)!==original||JSON.stringify(selection)!==selectionRaw)throw Error('FQC selected manifest changed');
  for(const raw of Object.values(target.values))JSON.parse(raw);
  state.values={...auth.values,...target.values};state.recordStorage={...target.recordStorage,originalValues:{...state.values},known:new Set([...auth.recordStorage.known,...target.recordStorage.known]),partial:true};

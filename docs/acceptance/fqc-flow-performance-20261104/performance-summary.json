@@ -1,0 +1,6094 @@
+{
+  "schema": "FQC_FLOW_PAIRED_V1",
+  "base": "35949445ad073812863c0004acbee13ed3535747",
+  "syntheticOnly": true,
+  "liveLatency": false,
+  "runtimeHashes": {
+    "lib/state-records.ts": "c426ea84f2ac8a692b6ce7a87a5dc5665fb9c5c94da91d1f5303b008bb63cdc7",
+    "lib/versioned-shared-workflow.ts": "053cded33f0f639fc6b338c1db6be58ff32943d3f8244d5bfc9b24109e4537c1",
+    "public/process/shared-draft-client.js": "3ab0758f8a47ff1b687505117ab25c63dc7e34cc5e5099146983b273bc5ec2c3",
+    "scripts/fqc-apply-fixture.cjs": "da48c68f5e3a065a7aa4df5b358368eb252570c333c84e5799343aa6204e79ff",
+    "scripts/benchmark-fqc-flow.cjs": "e8ca2c1d844814da9b8d009c7aca24b2a3b98d9e97998ed780c8363adc317370"
+  },
+  "fixture": {
+    "items": 256,
+    "itemPadding": 512,
+    "authorityAuditBodies": 1,
+    "unrelatedAggregates": 6,
+    "unrelatedAggregatePadding": 16384,
+    "unrelatedBodyPadding": 32768
+  },
+  "note": "Exact main359 server overrides; same current client and fixtures. Alternating paired n5. Includes response-clone evidence overhead; excludes fixture setup. Every successful sample retained, failure aborts. Controlled waits are artificial, not a live speed prediction.",
+  "rows": [
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.021758999999975,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 13.46392800000001,
+      "cpuMs": 15.214,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 55.79167400000006,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.514020999999957,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 73.760629,
+      "cpuMs": 95.593,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 40.07300400000008,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.588451000000077,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 59.485096,
+      "cpuMs": 62.847,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 38.68469300000004,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.414818999999966,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 57.98502999999994,
+      "cpuMs": 65.755,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 71.47051999999985,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.781289000000015,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 103.109553,
+      "cpuMs": 112.922,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.1759579999998095,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.41196600000012,
+      "cpuMs": 8.241,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.049065999999812,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 18.3833360000001,
+      "cpuMs": 18.619,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.075241000000005,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 10.784549999999854,
+      "cpuMs": 10.687,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 41.01456200000007,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.408195999999862,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 59.27687900000001,
+      "cpuMs": 75.833,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 46.01223499999992,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.598242000000027,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 62.317139,
+      "cpuMs": 63.58,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 37.316381999999976,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.307747999999947,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 55.40315099999998,
+      "cpuMs": 64,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 71.5986949999999,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.18743100000006,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 97.06283399999984,
+      "cpuMs": 102.804,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.511794999999893,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 6.635107000000062,
+      "cpuMs": 6.609,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.228822000000036,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 18.10620800000015,
+      "cpuMs": 18.075,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.049123000000236,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 11.055739999999787,
+      "cpuMs": 11.241,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 40.14319699999987,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.225472999999965,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 55.18438900000001,
+      "cpuMs": 74.822,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 85.9168209999998,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 16.83996100000013,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 109.67337399999997,
+      "cpuMs": 111.747,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 46.1389820000004,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 20.484487000000172,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 74.94213499999978,
+      "cpuMs": 89.857,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 75.70886999999993,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.508006000000023,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 104.15045599999985,
+      "cpuMs": 112.505,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.482259999999769,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.6411629999997785,
+      "cpuMs": 8.397,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.761806999999862,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 19.232306999999764,
+      "cpuMs": 20.021,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.961831000000075,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 13.800454000000173,
+      "cpuMs": 14.684,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 50.476908000000094,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.702568999999585,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 69.46389299999964,
+      "cpuMs": 80.982,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 41.226032999999916,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.570611999999983,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 57.290571999999884,
+      "cpuMs": 58.889,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 30.969771000000037,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.077508000000307,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 49.00085399999989,
+      "cpuMs": 49.897,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 81.84520100000009,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.552970000000187,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 105.9660960000001,
+      "cpuMs": 122.356,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.326649999999972,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.442720999999892,
+      "cpuMs": 7.287,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 1,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.293998999999985,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 17.03724800000009,
+      "cpuMs": 17.234,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.302994000000126,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 13.08113400000002,
+      "cpuMs": 13.35,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 51.59656300000006,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.835340999999971,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 67.76556700000037,
+      "cpuMs": 106.041,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 40.80497299999979,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.916667999999845,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 56.22298000000001,
+      "cpuMs": 57.532,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 33.210767999999916,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.408355000000029,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 53.1308039999999,
+      "cpuMs": 53.561,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 96.29599400000006,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.53441900000007,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 121.74853600000006,
+      "cpuMs": 137.058,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.102323999999953,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.227528999999777,
+      "cpuMs": 8.091,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.797219000000041,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 18.985293000000183,
+      "cpuMs": 18.821,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.66397599999982,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 13.424029000000246,
+      "cpuMs": 12.357,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 51.560649999999896,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.477499999999964,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 69.65173600000026,
+      "cpuMs": 107.471,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 47.50926100000015,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.383287999999993,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 65.4477310000002,
+      "cpuMs": 66.557,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 70.91413999999986,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 11.428288999999495,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 90.29020899999978,
+      "cpuMs": 199.314,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 82.92475800000011,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 12.111605999999483,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 111.86595000000034,
+      "cpuMs": 125.288,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.088053999999829,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.212397000000237,
+      "cpuMs": 6.972,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.78825499999948,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 18.16888999999992,
+      "cpuMs": 17.956,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.04801099999986,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 10.951796999999715,
+      "cpuMs": 10.81,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 43.43617499999982,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.255758000000242,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 59.83802100000048,
+      "cpuMs": 73.397,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 42.28341999999975,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.55685799999992,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 59.517713999999614,
+      "cpuMs": 60.994,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 37.21169800000007,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.05121600000075,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 53.054290999999466,
+      "cpuMs": 67.015,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 67.99050799999986,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.131408000000192,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 93.97733700000026,
+      "cpuMs": 98.053,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.765889000000243,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 6.902441000000181,
+      "cpuMs": 6.799,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.93753900000047,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 16.78595299999961,
+      "cpuMs": 17.056,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.18700600000011,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 11.092873999999938,
+      "cpuMs": 11.153,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 39.57583100000011,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.737865000000056,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 54.230194000000665,
+      "cpuMs": 67.395,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 40.1197430000002,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.299522000000252,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 55.46540400000049,
+      "cpuMs": 57.557,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 33.71180599999934,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.865324999999757,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 51.33958900000016,
+      "cpuMs": 51.354,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 84.23538400000052,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.896875999999793,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 110.77569800000038,
+      "cpuMs": 125.744,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.823828000000503,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.963232999999491,
+      "cpuMs": 7.783,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 3,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.407570999999734,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 16.663932999999815,
+      "cpuMs": 16.528,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.204601000000366,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 11.154664000000594,
+      "cpuMs": 11.029,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 53.41006599999946,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.381811000000198,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 69.34316100000069,
+      "cpuMs": 97.969,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 40.95245799999975,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.850703000000067,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 57.14450399999987,
+      "cpuMs": 59.031,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 30.347359000000324,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.931428999999298,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 46.611832000000504,
+      "cpuMs": 46.666,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 74.37104799999997,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.33726900000056,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 100.57628400000067,
+      "cpuMs": 116.303,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 7.697640999999749,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 7.8111079999998765,
+      "cpuMs": 8.135,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.84234699999979,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 15.9619560000001,
+      "cpuMs": 16.096,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 6.462571000000025,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 11.797820999999203,
+      "cpuMs": 11.625,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 55.43649199999982,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.077519999999822,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 69.86752299999989,
+      "cpuMs": 101.378,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 41.687136000000464,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 8.758503999999448,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 56.42943500000001,
+      "cpuMs": 57.917,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 30.58686299999954,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.661983999999393,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 47.82315600000038,
+      "cpuMs": 48.505,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 75.28277100000014,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 10.393031999999948,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 102.4770239999998,
+      "cpuMs": 106.3,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 15.42724300000009,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 15.555641999999352,
+      "cpuMs": 26.787,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "no-added-wait",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 9.396021999999903,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 16.697430000000168,
+      "cpuMs": 16.664,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 405.2782189999998,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 411.2846979999995,
+      "cpuMs": 19.847,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 476.62620700000025,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 457.7793109999993,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 946.7622570000003,
+      "cpuMs": 151.626,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 537.667703000001,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 452.8454120000006,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 998.4007150000016,
+      "cpuMs": 94.443,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 852.7960559999992,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 440.39426300000014,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1300.7388709999996,
+      "cpuMs": 80.782,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 514.0910679999997,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 438.8749800000005,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 968.2853769999983,
+      "cpuMs": 113.171,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.5167849999998,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 437.6523639999996,
+      "cpuMs": 15.334,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 447.3248989999993,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 456.3460890000006,
+      "cpuMs": 32.558,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 319.0686249999999,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 325.55679299999974,
+      "cpuMs": 23.557,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 413.1985629999999,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.2783450000006,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 769.1531699999996,
+      "cpuMs": 116.321,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 456.5002050000003,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 350.0877820000005,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 813.9696550000008,
+      "cpuMs": 92.643,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 665.9084930000008,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.093033000001,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1023.0091359999988,
+      "cpuMs": 77.255,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 469.16439399999945,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.4968719999997,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 834.4489919999996,
+      "cpuMs": 225.774,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 344.56033000000025,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 344.68520400000125,
+      "cpuMs": 13.908,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 0,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.7468200000003,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 359.88745800000106,
+      "cpuMs": 29.786,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 315.07622600000104,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 320.09399699999994,
+      "cpuMs": 19.738,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 417.0104710000014,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.9101929999997,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 770.8692349999983,
+      "cpuMs": 128.56,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 448.46640099999786,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.9530459999987,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 806.7585609999987,
+      "cpuMs": 87.059,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 661.3722650000018,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.01664600000004,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1017.8430659999976,
+      "cpuMs": 69.845,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 469.5506329999989,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 351.1889910000027,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 837.8527790000007,
+      "cpuMs": 184.775,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 346.69252699999925,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 346.8269650000002,
+      "cpuMs": 15.119,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.9690760000012,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 359.1900029999997,
+      "cpuMs": 28.003,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 406.4674460000024,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 412.4328910000004,
+      "cpuMs": 22.488,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 469.5971129999998,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 438.95281599999726,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 915.3631960000021,
+      "cpuMs": 115.649,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 502.9276469999968,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.4198570000008,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 946.5141879999974,
+      "cpuMs": 74.928,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 841.4234980000001,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 440.1717290000015,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1289.0332500000004,
+      "cpuMs": 69.998,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 514.6918829999995,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.74845600000117,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 967.8718230000013,
+      "cpuMs": 111.623,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.7238839999991,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 438.0364550000013,
+      "cpuMs": 15.875,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 1,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 446.87915799999973,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 468.9470399999991,
+      "cpuMs": 54.119,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 405.98382800000036,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 411.42562499999985,
+      "cpuMs": 19.318,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 476.39207800000077,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 445.59368299999915,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 928.5198879999989,
+      "cpuMs": 106.812,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 519.1296090000033,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 448.563048,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 975.6685289999987,
+      "cpuMs": 102.79,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 855.7722819999981,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 439.18773000000147,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1303.3278819999978,
+      "cpuMs": 89.605,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 518.6705529999999,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.7110729999986,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 972.3541989999976,
+      "cpuMs": 192.613,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 436.24364400000195,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 436.40960800000175,
+      "cpuMs": 14.326,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.39311600000656,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 444.28171600000496,
+      "cpuMs": 22.824,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 311.799626,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 316.79062200000044,
+      "cpuMs": 16.229,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 402.7783130000025,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.1661810000005,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 756.0318930000067,
+      "cpuMs": 87.213,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 441.54022099999565,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 346.7430779999995,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 794.5306049999999,
+      "cpuMs": 72.378,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 662.2001119999986,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 346.6526040000026,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1017.0592259999976,
+      "cpuMs": 128.175,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 457.33839199999784,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.7641100000037,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 824.7754859999986,
+      "cpuMs": 131.891,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 344.9358390000052,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 345.14409600000363,
+      "cpuMs": 87.252,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 2,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.7407669999957,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 355.4569300000003,
+      "cpuMs": 23.457,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 312.33830099999614,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 316.87891800000216,
+      "cpuMs": 16.245,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 402.44601200000034,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 346.2190649999975,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 755.7455350000018,
+      "cpuMs": 77.911,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 450.32061399999657,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 348.2515379999968,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 805.6121800000037,
+      "cpuMs": 95.447,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 658.1215549999979,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 345.8763010000039,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1011.4322429999957,
+      "cpuMs": 62.257,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 458.9496170000057,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.34495400000014,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 821.6934170000022,
+      "cpuMs": 120.42,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 345.5682070000039,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 345.85743199999706,
+      "cpuMs": 82.366,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 347.8358159999989,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 355.4446309999985,
+      "cpuMs": 24.13,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 404.50910000000295,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 409.6716529999976,
+      "cpuMs": 18.986,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 462.2117350000044,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 438.5260350000026,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 907.3739029999997,
+      "cpuMs": 78.376,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 504.75235700000485,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.9617639999997,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 949.3466279999993,
+      "cpuMs": 85.812,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 848.7873400000026,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 439.76354800000263,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1295.965882000004,
+      "cpuMs": 78.057,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 529.154254000001,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 440.244498,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 987.4434120000005,
+      "cpuMs": 136.067,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 437.7670670000007,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 437.91483000000153,
+      "cpuMs": 74.493,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 3,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 439.08574899999803,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 447.6461429999981,
+      "cpuMs": 25.547,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 405.99178499999834,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 410.42654400000174,
+      "cpuMs": 41.877,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 479.2004270000034,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 453.73357500000566,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 943.196100000001,
+      "cpuMs": 114.536,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 519.4669409999988,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 443.3080620000037,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 970.7601080000022,
+      "cpuMs": 105.612,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 848.6372569999949,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 443.83490699999675,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1302.0248770000035,
+      "cpuMs": 82.711,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 528.2948569999935,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 441.06939599999896,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 986.1639550000036,
+      "cpuMs": 135.012,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 438.4590829999943,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 438.7224969999952,
+      "cpuMs": 96.358,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "main359",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 439.1604909999951,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 446.7205729999987,
+      "cpuMs": 24.735,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "full-read",
+      "peakGets": 2,
+      "bodyReads": 14,
+      "bodyBytes": 214580,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 314.80466799999704,
+          "sql": 6,
+          "r2Get": 14,
+          "r2Put": 0,
+          "responseBytes": 199030
+        }
+      ],
+      "ms": 319.5618470000045,
+      "cpuMs": 17.716,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 14,
+      "r2Put": 0,
+      "responseBytes": 199030
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "existing-apply",
+      "peakGets": 2,
+      "bodyReads": 28,
+      "bodyBytes": 633837,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 420.5326730000015,
+          "sql": 8,
+          "r2Get": 13,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 348.76143800000136,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 396967
+        }
+      ],
+      "ms": 775.6728660000008,
+      "cpuMs": 151.914,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 28,
+      "r2Put": 2,
+      "responseBytes": 397241
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "insert-apply",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 832762,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 453.75417699999525,
+          "sql": 9,
+          "r2Get": 14,
+          "r2Put": 3,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 350.31036499999755,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 397179
+        }
+      ],
+      "ms": 812.7660580000011,
+      "cpuMs": 99.596,
+      "sql": 15,
+      "revocation": 10,
+      "r2Get": 29,
+      "r2Put": 3,
+      "responseBytes": 397453
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "matrix-apply",
+      "peakGets": 2,
+      "bodyReads": 41,
+      "bodyBytes": 1152676,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 696.8352509999968,
+          "sql": 7,
+          "r2Get": 26,
+          "r2Put": 2,
+          "responseBytes": 274
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 354.74321000000054,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419307
+        }
+      ],
+      "ms": 1061.324010000004,
+      "cpuMs": 175.233,
+      "sql": 13,
+      "revocation": 8,
+      "r2Get": 41,
+      "r2Put": 2,
+      "responseBytes": 419581
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "save",
+      "peakGets": 2,
+      "bodyReads": 29,
+      "bodyBytes": 879898,
+      "http": [
+        {
+          "method": "POST",
+          "status": 200,
+          "ms": 472.9403850000017,
+          "sql": 8,
+          "r2Get": 14,
+          "r2Put": 1,
+          "responseBytes": 419511
+        },
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 349.52902699999686,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 838.5173700000014,
+      "cpuMs": 148.148,
+      "sql": 14,
+      "revocation": 9,
+      "r2Get": 29,
+      "r2Put": 1,
+      "responseBytes": 839024
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "receipt",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 345.410656,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 212
+        }
+      ],
+      "ms": 345.58314999999857,
+      "cpuMs": 76.115,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 212
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "pair": 4,
+      "variant": "candidate",
+      "action": "saved-read",
+      "peakGets": 2,
+      "bodyReads": 15,
+      "bodyBytes": 437505,
+      "http": [
+        {
+          "method": "GET",
+          "status": 200,
+          "ms": 350.636010000002,
+          "sql": 6,
+          "r2Get": 15,
+          "r2Put": 0,
+          "responseBytes": 419513
+        }
+      ],
+      "ms": 360.5438079999949,
+      "cpuMs": 28.673,
+      "sql": 6,
+      "revocation": 4,
+      "r2Get": 15,
+      "r2Put": 0,
+      "responseBytes": 419513
+    }
+  ],
+  "summary": [
+    {
+      "profile": "no-added-wait",
+      "action": "full-read",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 11.092873999999938,
+        "median": 13.08113400000002,
+        "max": 13.800454000000173
+      },
+      "cpuMs": {
+        "min": 11.029,
+        "median": 13.35,
+        "max": 15.214
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "bodyBytes": {
+        "min": 214580,
+        "median": 214580,
+        "max": 214580
+      },
+      "responseBytes": {
+        "min": 199030,
+        "median": 199030,
+        "max": 199030
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "full-read",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 10.784549999999854,
+        "median": 11.055739999999787,
+        "max": 13.424029000000246
+      },
+      "cpuMs": {
+        "min": 10.687,
+        "median": 11.241,
+        "max": 12.357
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "bodyBytes": {
+        "min": 214580,
+        "median": 214580,
+        "max": 214580
+      },
+      "responseBytes": {
+        "min": 199030,
+        "median": 199030,
+        "max": 199030
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 54.230194000000665,
+        "median": 69.34316100000069,
+        "max": 73.760629
+      },
+      "cpuMs": {
+        "min": 67.395,
+        "median": 95.593,
+        "max": 106.041
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "bodyBytes": {
+        "min": 633837,
+        "median": 633837,
+        "max": 633837
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "existing-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 55.18438900000001,
+        "median": 59.83802100000048,
+        "max": 69.86752299999989
+      },
+      "cpuMs": {
+        "min": 73.397,
+        "median": 75.833,
+        "max": 107.471
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "bodyBytes": {
+        "min": 633837,
+        "median": 633837,
+        "max": 633837
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 55.46540400000049,
+        "median": 57.14450399999987,
+        "max": 59.485096
+      },
+      "cpuMs": {
+        "min": 57.532,
+        "median": 58.889,
+        "max": 62.847
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 832762,
+        "median": 832762,
+        "max": 832762
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "insert-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 56.42943500000001,
+        "median": 62.317139,
+        "max": 109.67337399999997
+      },
+      "cpuMs": {
+        "min": 57.917,
+        "median": 63.58,
+        "max": 111.747
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 832762,
+        "median": 832762,
+        "max": 832762
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "matrix-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 46.611832000000504,
+        "median": 51.33958900000016,
+        "max": 57.98502999999994
+      },
+      "cpuMs": {
+        "min": 46.666,
+        "median": 51.354,
+        "max": 65.755
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "bodyBytes": {
+        "min": 1152676,
+        "median": 1152676,
+        "max": 1152676
+      },
+      "responseBytes": {
+        "min": 419581,
+        "median": 419581,
+        "max": 419581
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "matrix-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 47.82315600000038,
+        "median": 55.40315099999998,
+        "max": 90.29020899999978
+      },
+      "cpuMs": {
+        "min": 48.505,
+        "median": 67.015,
+        "max": 199.314
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "bodyBytes": {
+        "min": 1152676,
+        "median": 1152676,
+        "max": 1152676
+      },
+      "responseBytes": {
+        "min": 419581,
+        "median": 419581,
+        "max": 419581
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 100.57628400000067,
+        "median": 105.9660960000001,
+        "max": 121.74853600000006
+      },
+      "cpuMs": {
+        "min": 112.922,
+        "median": 122.356,
+        "max": 137.058
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 879898,
+        "median": 879898,
+        "max": 879898
+      },
+      "responseBytes": {
+        "min": 839024,
+        "median": 839024,
+        "max": 839024
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 93.97733700000026,
+        "median": 102.4770239999998,
+        "max": 111.86595000000034
+      },
+      "cpuMs": {
+        "min": 98.053,
+        "median": 106.3,
+        "max": 125.288
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 879898,
+        "median": 879898,
+        "max": 879898
+      },
+      "responseBytes": {
+        "min": 839024,
+        "median": 839024,
+        "max": 839024
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "receipt",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 7.227528999999777,
+        "median": 7.442720999999892,
+        "max": 7.963232999999491
+      },
+      "cpuMs": {
+        "min": 7.287,
+        "median": 8.091,
+        "max": 8.241
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "receipt",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 6.635107000000062,
+        "median": 7.212397000000237,
+        "max": 15.555641999999352
+      },
+      "cpuMs": {
+        "min": 6.609,
+        "median": 6.972,
+        "max": 26.787
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "saved-read",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 15.9619560000001,
+        "median": 17.03724800000009,
+        "max": 18.985293000000183
+      },
+      "cpuMs": {
+        "min": 16.096,
+        "median": 17.234,
+        "max": 18.821
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 419513,
+        "median": 419513,
+        "max": 419513
+      }
+    },
+    {
+      "profile": "no-added-wait",
+      "action": "saved-read",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 16.697430000000168,
+        "median": 18.10620800000015,
+        "max": 19.232306999999764
+      },
+      "cpuMs": {
+        "min": 16.664,
+        "median": 17.956,
+        "max": 20.021
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 419513,
+        "median": 419513,
+        "max": 419513
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "full-read",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 409.6716529999976,
+        "median": 411.2846979999995,
+        "max": 412.4328910000004
+      },
+      "cpuMs": {
+        "min": 18.986,
+        "median": 19.847,
+        "max": 41.877
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "bodyBytes": {
+        "min": 214580,
+        "median": 214580,
+        "max": 214580
+      },
+      "responseBytes": {
+        "min": 199030,
+        "median": 199030,
+        "max": 199030
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "full-read",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 316.79062200000044,
+        "median": 319.5618470000045,
+        "max": 325.55679299999974
+      },
+      "cpuMs": {
+        "min": 16.229,
+        "median": 17.716,
+        "max": 23.557
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "bodyBytes": {
+        "min": 214580,
+        "median": 214580,
+        "max": 214580
+      },
+      "responseBytes": {
+        "min": 199030,
+        "median": 199030,
+        "max": 199030
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 907.3739029999997,
+        "median": 928.5198879999989,
+        "max": 946.7622570000003
+      },
+      "cpuMs": {
+        "min": 78.376,
+        "median": 114.536,
+        "max": 151.626
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "bodyBytes": {
+        "min": 633837,
+        "median": 633837,
+        "max": 633837
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "existing-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 755.7455350000018,
+        "median": 769.1531699999996,
+        "max": 775.6728660000008
+      },
+      "cpuMs": {
+        "min": 77.911,
+        "median": 116.321,
+        "max": 151.914
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 28,
+        "median": 28,
+        "max": 28
+      },
+      "bodyBytes": {
+        "min": 633837,
+        "median": 633837,
+        "max": 633837
+      },
+      "responseBytes": {
+        "min": 397241,
+        "median": 397241,
+        "max": 397241
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 946.5141879999974,
+        "median": 970.7601080000022,
+        "max": 998.4007150000016
+      },
+      "cpuMs": {
+        "min": 74.928,
+        "median": 94.443,
+        "max": 105.612
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 832762,
+        "median": 832762,
+        "max": 832762
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "insert-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 794.5306049999999,
+        "median": 806.7585609999987,
+        "max": 813.9696550000008
+      },
+      "cpuMs": {
+        "min": 72.378,
+        "median": 92.643,
+        "max": 99.596
+      },
+      "sql": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "revocation": {
+        "min": 10,
+        "median": 10,
+        "max": 10
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 3,
+        "median": 3,
+        "max": 3
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 832762,
+        "median": 832762,
+        "max": 832762
+      },
+      "responseBytes": {
+        "min": 397453,
+        "median": 397453,
+        "max": 397453
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "matrix-apply",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 1289.0332500000004,
+        "median": 1300.7388709999996,
+        "max": 1303.3278819999978
+      },
+      "cpuMs": {
+        "min": 69.998,
+        "median": 80.782,
+        "max": 89.605
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "bodyBytes": {
+        "min": 1152676,
+        "median": 1152676,
+        "max": 1152676
+      },
+      "responseBytes": {
+        "min": 419581,
+        "median": 419581,
+        "max": 419581
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "matrix-apply",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 1011.4322429999957,
+        "median": 1017.8430659999976,
+        "max": 1061.324010000004
+      },
+      "cpuMs": {
+        "min": 62.257,
+        "median": 77.255,
+        "max": 175.233
+      },
+      "sql": {
+        "min": 13,
+        "median": 13,
+        "max": 13
+      },
+      "revocation": {
+        "min": 8,
+        "median": 8,
+        "max": 8
+      },
+      "r2Get": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "r2Put": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 41,
+        "median": 41,
+        "max": 41
+      },
+      "bodyBytes": {
+        "min": 1152676,
+        "median": 1152676,
+        "max": 1152676
+      },
+      "responseBytes": {
+        "min": 419581,
+        "median": 419581,
+        "max": 419581
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 967.8718230000013,
+        "median": 972.3541989999976,
+        "max": 987.4434120000005
+      },
+      "cpuMs": {
+        "min": 111.623,
+        "median": 135.012,
+        "max": 192.613
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 879898,
+        "median": 879898,
+        "max": 879898
+      },
+      "responseBytes": {
+        "min": 839024,
+        "median": 839024,
+        "max": 839024
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "save",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 821.6934170000022,
+        "median": 834.4489919999996,
+        "max": 838.5173700000014
+      },
+      "cpuMs": {
+        "min": 120.42,
+        "median": 148.148,
+        "max": 225.774
+      },
+      "sql": {
+        "min": 14,
+        "median": 14,
+        "max": 14
+      },
+      "revocation": {
+        "min": 9,
+        "median": 9,
+        "max": 9
+      },
+      "r2Get": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "r2Put": {
+        "min": 1,
+        "median": 1,
+        "max": 1
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 29,
+        "median": 29,
+        "max": 29
+      },
+      "bodyBytes": {
+        "min": 879898,
+        "median": 879898,
+        "max": 879898
+      },
+      "responseBytes": {
+        "min": 839024,
+        "median": 839024,
+        "max": 839024
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "receipt",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 436.40960800000175,
+        "median": 437.91483000000153,
+        "max": 438.7224969999952
+      },
+      "cpuMs": {
+        "min": 14.326,
+        "median": 15.875,
+        "max": 96.358
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "receipt",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 344.68520400000125,
+        "median": 345.58314999999857,
+        "max": 346.8269650000002
+      },
+      "cpuMs": {
+        "min": 13.908,
+        "median": 76.115,
+        "max": 87.252
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 212,
+        "median": 212,
+        "max": 212
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "saved-read",
+      "variant": "main359",
+      "n": 5,
+      "ms": {
+        "min": 444.28171600000496,
+        "median": 447.6461429999981,
+        "max": 468.9470399999991
+      },
+      "cpuMs": {
+        "min": 22.824,
+        "median": 25.547,
+        "max": 54.119
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 419513,
+        "median": 419513,
+        "max": 419513
+      }
+    },
+    {
+      "profile": "controlled-storage-wait-not-live",
+      "action": "saved-read",
+      "variant": "candidate",
+      "n": 5,
+      "ms": {
+        "min": 355.4446309999985,
+        "median": 359.1900029999997,
+        "max": 360.5438079999949
+      },
+      "cpuMs": {
+        "min": 23.457,
+        "median": 28.003,
+        "max": 29.786
+      },
+      "sql": {
+        "min": 6,
+        "median": 6,
+        "max": 6
+      },
+      "revocation": {
+        "min": 4,
+        "median": 4,
+        "max": 4
+      },
+      "r2Get": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "r2Put": {
+        "min": 0,
+        "median": 0,
+        "max": 0
+      },
+      "peakGets": {
+        "min": 2,
+        "median": 2,
+        "max": 2
+      },
+      "bodyReads": {
+        "min": 15,
+        "median": 15,
+        "max": 15
+      },
+      "bodyBytes": {
+        "min": 437505,
+        "median": 437505,
+        "max": 437505
+      },
+      "responseBytes": {
+        "min": 419513,
+        "median": 419513,
+        "max": 419513
+      }
+    }
+  ]
+}

@@ -30,6 +30,16 @@ export function workflowInterfaceMetadata<T>(control:VersionedControl<T>,query:U
   return{versions:{...versions,rows:versions.rows.map(v=>({id:v.id,number:v.number,status:v.status,creatorName:v.creatorName,createdAt:v.createdAt,caseId:control.workflow?.cases.some(c=>c.id===v.id)?v.id:null}))},saves:{...saves,rows:saves.rows.map(saveMeta)},selectedSave:selectedSave?saveMeta(selectedSave):null};
 }
 export type ModuleDraftCommand=DraftCommand & {moduleAction?:string;input?:Record<string,unknown>};
+// Read scheduling only: this never grants a partial writer or selects fewer keys.
+// Unknown fields and mixed outer envelopes retain their original fault observations.
+const fqcMatrixReadAheadFields=new Set(['action','operationId','clientId','sequence','generation','moduleAction','input']);
+function fqcAggregateReadAheadCommand(command:ModuleDraftCommand|undefined){
+ const input=command?.input;
+ if(command?.action==='apply'&&command.moduleAction==='replace-matrix-v1'&&input&&typeof input==='object'&&!Array.isArray(input)&&Object.keys(input).every(key=>key==='items'||key==='products')&&Array.isArray(input.items)&&Array.isArray(input.products)&&Object.keys(command).every(key=>fqcMatrixReadAheadFields.has(key))){
+  return fqcRequiredDependencyCommand({action:'apply',operationId:command.operationId,clientId:command.clientId,sequence:command.sequence,generation:command.generation,patches:[],input:command.input});
+ }
+ return fqcRequiredDependencyCommand(command);
+}
 export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   key:string;scope:string;parse:(raw:string|undefined,prepared?:unknown)=>C;empty:()=>T;preparedModel?:boolean;
   // Opt in only when access reads identity/role state, never domain content.
@@ -142,9 +152,10 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   return {
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
+      const fqcReadAhead=adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
-        preflight=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']});
+        preflight=await readState({aggregateReadAhead:fqcReadAhead,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']});
         const phase=await phaseFor(request,preflight),actor=phase?phase.actor:await identity(request,preflight),permissions=await currentPermissions(request,preflight,phase);
         if(!actor||!permissions.view||phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);
         if(selectors.has('permissions'))return reply({permissions,revision:preflight.revision,otherReviewerAvailable:otherReviewerAvailable(preflight,actor.id)});
@@ -155,7 +166,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       // Recheck identity on the newly selected snapshot.
       // Legacy formats already read the entire snapshot; avoid reading it twice.
       const selectedKeys=adapter.permissionOnlyRead&&!selectors.has('restoreSaveId')?['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',adapter.key]:undefined;
-      const state=preflight&&!preflight.recordStorage?preflight:await readState({keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state),permissions=await currentPermissions(request,state,phase);
+      const state=preflight&&!preflight.recordStorage?preflight:await readState({aggregateReadAhead:fqcReadAhead,keys:selectedKeys,deferDependencyHistory:true,modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:true,caseId:selectors.get('caseId'),saveId:selectors.get('restoreSaveId'),versionId:selectors.get('versionId')||selectors.get('legacyVersionId')}),phase=await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state),permissions=await currentPermissions(request,state,phase);
       if(!actor||!permissions.view||phase&&!await phase.current())return reply({error:'FORBIDDEN'},403);
       const query=new URL(request.url).searchParams;
       if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
@@ -231,7 +242,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const processSaveState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.recordMutation==='process-save'&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processSaveCommand(body.command)?await readProcessSaveMutationState(body.command):null;
         const processFlowState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.processFlowMutation===true&&adapter.key==='processAuthoringControl'&&adapter.scope==='process:platform'&&processFlowCommand(body.command)?await readProcessFlowMutationState(body.command):null;
         const fqcLifecycle8State=!requiredFqc&&body.action===undefined&&Object.keys(body).every(key=>key==='command')&&adapter.fqcLifecycle8Mutation===true&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&fqcLifecycle8Command(body.command)?await readFqcLifecycle8MutationState(body.command):null;
-        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
+        const state=requiredState||mutationState||processSaveState||processFlowState||fqcLifecycle8State||await readState({aggregateReadAhead:body.action===undefined&&Object.keys(body).every(key=>key==='command')&&fqcAggregateReadAheadCommand(body.command)&&adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!query.has('scope'),deferDependencyHistory:!adapter.needsReferenceHistory?.(body.command),modelKey:adapter.preparedModel?adapter.key:undefined,deferHistory:!adapter.needsReferenceHistory?.(body.command),allocationKey:adapter.needsFullHistory?.(body.command)?adapter.key:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),phase=requiredPhase||await phaseFor(request,state),actor=phase?phase.actor:await identity(request,state);streamRecords=!!state.recordStorage;if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
         if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
         stage('authorization');
         const permissions=await currentPermissions(request,state,phase);
