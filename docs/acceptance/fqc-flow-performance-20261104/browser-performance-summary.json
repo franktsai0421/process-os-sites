@@ -1,6 +1,6 @@
 {
   "schema": "FQC_BROWSER_FLOW_PAIRED_V1",
-  "base": "35949445ad073812863c0004acbee13ed3535747",
+  "base": "6247c00220bf366e41c92c5b684d9f9744076cad",
   "syntheticOnly": true,
   "liveLatency": false,
   "smoke": false,
@@ -14,13 +14,14 @@
   },
   "runtimeHashes": {
     "lib/state-records.ts": "792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e",
-    "lib/versioned-shared-workflow.ts": "8dbb9d6bf06b92a147d882531f47e1beaf354617417754f88acd27c065147914",
-    "scripts/fqc-apply-fixture.cjs": "da48c68f5e3a065a7aa4df5b358368eb252570c333c84e5799343aa6204e79ff",
-    "scripts/benchmark-fqc-browser-flow.mjs": "e226d385b2d3b8109f540fab25c66c64c4c4f2b62f38d95e8c13a1e6f07d3e41",
+    "lib/versioned-shared-workflow.ts": "c4437b674a968ea843af5407ea4efad957e29ddd9da977c91d004c7163a7d4ef",
+    "lib/iqc-write-timing.ts": "9848e56c3e0a35643838d7224fbc9baa26900277c567ba93f34ffbc3cddffb0a",
+    "scripts/fqc-apply-fixture.cjs": "1b2d31b53dbaf2c926be561f70465cf7f85cd7fc9067bbe65e5449954145cb81",
+    "scripts/benchmark-fqc-browser-flow.mjs": "1e8169164527c63ec7ad952d57ff59450a0bac4c763fb9853271e1ed0cec1ca3",
     "tests/draft-action-measurement.mjs": "92fe6b373326b5e071ff710c98288d4c52b324499c55513c1b22a35452f10d56",
     "public/process/local-draft-recovery.js": "e67f02696520d419975079f81e5c21f18261d0ceaf5923e2bf429e1fa8beab0a",
     "public/process/local-draft-recovery-session.js": "3a62e4882eeca241b740bb341bb418b52c7ddc132efa23f2f2fc5c243a4f379a",
-    "public/process/shared-draft-client.js": "3ab0758f8a47ff1b687505117ab25c63dc7e34cc5e5099146983b273bc5ec2c3",
+    "public/process/shared-draft-client.js": "d08ac3e37423b7ffb4de067710b469b72409899b9767c6e03307ab1fdbeb6517",
     "public/process/version-draft-ui.js": "f2fee215d8f23f1bfc1ca8fd2249542a1e936a3fb696b4bc26912b510ea32266",
     "public/process/fqc-master.js": "0e6d9ec4c04982fadf304a8dcad57e9bcb8e52151b8086c9c55cbea969474efd"
   },
@@ -42,7 +43,7 @@
     {
       "profile": "no-added-wait",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -50,7 +51,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 72.73425900000029,
+          "handlerMs": 64.71178899999995,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -62,7 +63,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.842178000000331,
+          "handlerMs": 11.95359099999996,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -70,7 +71,7 @@
           "sql": 6
         }
       ],
-      "ms": 290.20000000018626,
+      "ms": 290.69999999925494,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -78,7 +79,7 @@
     {
       "profile": "no-added-wait",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -86,7 +87,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 63.87521199999992,
+          "handlerMs": 56.14056099999971,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -98,7 +99,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.116678999999749,
+          "handlerMs": 11.232590000000073,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -106,7 +107,7 @@
           "sql": 6
         }
       ],
-      "ms": 265.79999999981374,
+      "ms": 246.10000000149012,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -114,7 +115,7 @@
     {
       "profile": "no-added-wait",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -122,7 +123,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 39.87309799999957,
+          "handlerMs": 39.799609000000146,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -134,7 +135,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 12.495680999999877,
+          "handlerMs": 10.138588000000254,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -142,7 +143,7 @@
           "sql": 6
         }
       ],
-      "ms": 244.5,
+      "ms": 243,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -150,7 +151,7 @@
     {
       "profile": "no-added-wait",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -158,7 +159,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 75.25720199999978,
+          "handlerMs": 79.3441130000001,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -170,7 +171,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.09839200000033,
+          "handlerMs": 10.442135000000235,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -178,7 +179,7 @@
           "sql": 6
         }
       ],
-      "ms": 289.79999999981374,
+      "ms": 289.90000000037253,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -194,7 +195,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 52.634951,
+          "handlerMs": 52.522281999999905,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -206,7 +207,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.16665599999942,
+          "handlerMs": 9.475378000000092,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -214,7 +215,7 @@
           "sql": 6
         }
       ],
-      "ms": 248.80000000074506,
+      "ms": 257.59999999962747,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -230,7 +231,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 53.227874000000156,
+          "handlerMs": 48.20571799999925,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -242,7 +243,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.070023999999648,
+          "handlerMs": 9.169378000000506,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -250,7 +251,7 @@
           "sql": 6
         }
       ],
-      "ms": 264.40000000037253,
+      "ms": 230,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -266,7 +267,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 53.162451999999575,
+          "handlerMs": 49.61907499999961,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -278,7 +279,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 13.461884000000282,
+          "handlerMs": 10.233033999999861,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -286,7 +287,7 @@
           "sql": 6
         }
       ],
-      "ms": 347.09999999962747,
+      "ms": 241.69999999925494,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -302,7 +303,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 71.55488400000013,
+          "handlerMs": 66.3032290000001,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -314,7 +315,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.33112599999913,
+          "handlerMs": 10.26382999999987,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -322,7 +323,7 @@
           "sql": 6
         }
       ],
-      "ms": 284.5,
+      "ms": 274.09999999962747,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -338,7 +339,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 59.21284999999989,
+          "handlerMs": 45.56036099999983,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -350,7 +351,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.909392999999909,
+          "handlerMs": 9.301682000000255,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -358,7 +359,7 @@
           "sql": 6
         }
       ],
-      "ms": 285.3999999994412,
+      "ms": 249.59999999962747,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -374,7 +375,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 43.61755300000004,
+          "handlerMs": 43.82797399999981,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -386,7 +387,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.047770000001037,
+          "handlerMs": 8.285948999999164,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -394,7 +395,7 @@
           "sql": 6
         }
       ],
-      "ms": 246.19999999925494,
+      "ms": 270.2000000011176,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -410,7 +411,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 36.97857699999986,
+          "handlerMs": 28.831669000001057,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -422,7 +423,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 8.666959000000134,
+          "handlerMs": 8.975634999998874,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -430,7 +431,7 @@
           "sql": 6
         }
       ],
-      "ms": 233.59999999962747,
+      "ms": 261.40000000037253,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -446,7 +447,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 63.581717999999455,
+          "handlerMs": 65.05233500000031,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -458,7 +459,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 13.289043999999194,
+          "handlerMs": 11.177599000000555,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -466,7 +467,7 @@
           "sql": 6
         }
       ],
-      "ms": 270.20000000018626,
+      "ms": 270.59999999962747,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -474,7 +475,7 @@
     {
       "profile": "no-added-wait",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -482,7 +483,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 48.67722799999865,
+          "handlerMs": 62.06834799999888,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -494,7 +495,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.754014000000097,
+          "handlerMs": 9.928969000000507,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -502,7 +503,7 @@
           "sql": 6
         }
       ],
-      "ms": 221.1000000005588,
+      "ms": 279.80000000074506,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -510,7 +511,7 @@
     {
       "profile": "no-added-wait",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -518,7 +519,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 54.814109999999346,
+          "handlerMs": 45.43468199999916,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -530,7 +531,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.78632800000014,
+          "handlerMs": 10.599275999999008,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -546,7 +547,7 @@
     {
       "profile": "no-added-wait",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -554,7 +555,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 38.67822100000012,
+          "handlerMs": 37.884948000000804,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -566,7 +567,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.603089000000182,
+          "handlerMs": 9.469812999999704,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -574,7 +575,7 @@
           "sql": 6
         }
       ],
-      "ms": 291.40000000037253,
+      "ms": 227.90000000037253,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -582,7 +583,7 @@
     {
       "profile": "no-added-wait",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -590,7 +591,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 84.58174299999882,
+          "handlerMs": 64.11419399999977,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -602,7 +603,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.294280000000072,
+          "handlerMs": 9.333622000000105,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -610,7 +611,7 @@
           "sql": 6
         }
       ],
-      "ms": 303.09999999962747,
+      "ms": 278.40000000037253,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -618,7 +619,7 @@
     {
       "profile": "no-added-wait",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -626,7 +627,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 51.10821000000033,
+          "handlerMs": 84.42025399999875,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -638,7 +639,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 24.671399999999267,
+          "handlerMs": 23.269028000000617,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -646,7 +647,7 @@
           "sql": 6
         }
       ],
-      "ms": 319.5,
+      "ms": 325.1000000014901,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -654,7 +655,7 @@
     {
       "profile": "no-added-wait",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -662,7 +663,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 55.103736999999455,
+          "handlerMs": 46.30681600000025,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -674,7 +675,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 15.683121000000028,
+          "handlerMs": 9.93418500000007,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -682,7 +683,7 @@
           "sql": 6
         }
       ],
-      "ms": 293.70000000018626,
+      "ms": 265.5,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -690,7 +691,7 @@
     {
       "profile": "no-added-wait",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -698,7 +699,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 39.93457200000012,
+          "handlerMs": 37.65256699999918,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -710,7 +711,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.165860999999495,
+          "handlerMs": 9.593006000000969,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -718,7 +719,7 @@
           "sql": 6
         }
       ],
-      "ms": 276.79999999981374,
+      "ms": 266.09999999962747,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -726,7 +727,7 @@
     {
       "profile": "no-added-wait",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -734,7 +735,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 70.25122399999964,
+          "handlerMs": 67.64626300000054,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -746,7 +747,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.25666799999999,
+          "handlerMs": 9.846596999999747,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -754,7 +755,7 @@
           "sql": 6
         }
       ],
-      "ms": 273.3999999994412,
+      "ms": 270.7000000011176,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -770,7 +771,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 44.99106100000063,
+          "handlerMs": 50.78105599999981,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -782,7 +783,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.284126999998989,
+          "handlerMs": 10.699438000001464,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -790,7 +791,7 @@
           "sql": 6
         }
       ],
-      "ms": 255.70000000018626,
+      "ms": 277.90000000037253,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -806,7 +807,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 46.633506999998644,
+          "handlerMs": 46.91020799999751,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -818,7 +819,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.205511000000115,
+          "handlerMs": 9.463423000001058,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -826,7 +827,7 @@
           "sql": 6
         }
       ],
-      "ms": 233.59999999962747,
+      "ms": 234,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -842,7 +843,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 30.203935999998066,
+          "handlerMs": 41.8343160000004,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -854,7 +855,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 8.21878800000195,
+          "handlerMs": 9.276558000001387,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -862,7 +863,7 @@
           "sql": 6
         }
       ],
-      "ms": 267.59999999962747,
+      "ms": 261.2000000011176,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -878,7 +879,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 72.88102900000013,
+          "handlerMs": 65.2869099999989,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -890,7 +891,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.687863999999536,
+          "handlerMs": 9.64790499999799,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -898,7 +899,7 @@
           "sql": 6
         }
       ],
-      "ms": 283.20000000018626,
+      "ms": 261.5,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -914,7 +915,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 48.84241100000145,
+          "handlerMs": 45.94691600000078,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -926,7 +927,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 19.861073000000033,
+          "handlerMs": 10.2553599999992,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -934,7 +935,7 @@
           "sql": 6
         }
       ],
-      "ms": 264.3999999994412,
+      "ms": 251.30000000074506,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -950,7 +951,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 43.72348899999997,
+          "handlerMs": 43.16221300000325,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -962,7 +963,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.070392999998148,
+          "handlerMs": 8.597035999999207,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -970,7 +971,7 @@
           "sql": 6
         }
       ],
-      "ms": 238.79999999981374,
+      "ms": 246,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -986,7 +987,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 35.11139099999855,
+          "handlerMs": 33.7827380000017,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -998,7 +999,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.1306250000016,
+          "handlerMs": 11.115577999997186,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1006,7 +1007,7 @@
           "sql": 6
         }
       ],
-      "ms": 267.70000000018626,
+      "ms": 243.60000000149012,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1022,7 +1023,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 67.02079400000002,
+          "handlerMs": 68.4470309999997,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1034,7 +1035,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.345733000001928,
+          "handlerMs": 10.478047000000515,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1042,7 +1043,7 @@
           "sql": 6
         }
       ],
-      "ms": 297.1000000005588,
+      "ms": 289.80000000074506,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1050,7 +1051,7 @@
     {
       "profile": "no-added-wait",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -1058,7 +1059,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 56.797999999998865,
+          "handlerMs": 51.58391400000255,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1070,7 +1071,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.95603100000153,
+          "handlerMs": 11.901020999997854,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1078,7 +1079,7 @@
           "sql": 6
         }
       ],
-      "ms": 254.8999999994412,
+      "ms": 250.69999999925494,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1086,7 +1087,7 @@
     {
       "profile": "no-added-wait",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -1094,7 +1095,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 61.15810099999726,
+          "handlerMs": 49.989981999999145,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1106,7 +1107,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.008795000001555,
+          "handlerMs": 9.756758999999875,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1114,7 +1115,7 @@
           "sql": 6
         }
       ],
-      "ms": 246.29999999981374,
+      "ms": 235.5,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1122,7 +1123,7 @@
     {
       "profile": "no-added-wait",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -1130,7 +1131,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 34.78663400000005,
+          "handlerMs": 29.843541999998706,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1142,7 +1143,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.268974999999045,
+          "handlerMs": 8.866922000001068,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1150,7 +1151,7 @@
           "sql": 6
         }
       ],
-      "ms": 251.29999999981374,
+      "ms": 232.7999999988824,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1158,7 +1159,7 @@
     {
       "profile": "no-added-wait",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -1166,7 +1167,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 68.37361099999907,
+          "handlerMs": 64.3109489999988,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1178,7 +1179,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.098084000001109,
+          "handlerMs": 9.665946000000986,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1186,7 +1187,7 @@
           "sql": 6
         }
       ],
-      "ms": 292.5,
+      "ms": 255.2999999988824,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1194,7 +1195,7 @@
     {
       "profile": "no-added-wait",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -1202,7 +1203,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 65.28997699999672,
+          "handlerMs": 54.94604499999696,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1214,7 +1215,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 17.21375000000262,
+          "handlerMs": 19.884264000000258,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1222,7 +1223,7 @@
           "sql": 6
         }
       ],
-      "ms": 285.90000000037253,
+      "ms": 272.59999999962747,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1230,7 +1231,7 @@
     {
       "profile": "no-added-wait",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -1238,7 +1239,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 49.17987400000129,
+          "handlerMs": 44.1919799999996,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1250,7 +1251,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 10.556457999999111,
+          "handlerMs": 11.724731999998767,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1258,7 +1259,7 @@
           "sql": 6
         }
       ],
-      "ms": 251.3999999994412,
+      "ms": 244,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1266,7 +1267,7 @@
     {
       "profile": "no-added-wait",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -1274,7 +1275,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 34.060357000002114,
+          "handlerMs": 32.782641999998305,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1286,7 +1287,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.889130999999907,
+          "handlerMs": 9.84001200000057,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1294,7 +1295,7 @@
           "sql": 6
         }
       ],
-      "ms": 279.5,
+      "ms": 234.5,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1302,7 +1303,7 @@
     {
       "profile": "no-added-wait",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -1310,7 +1311,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 68.22534999999698,
+          "handlerMs": 65.5940840000003,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1322,7 +1323,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 9.690958000002865,
+          "handlerMs": 10.198208000001614,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1330,7 +1331,7 @@
           "sql": 6
         }
       ],
-      "ms": 269.59999999962747,
+      "ms": 287.80000000074506,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1346,7 +1347,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 51.02941400000054,
+          "handlerMs": 56.690355000002455,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1358,7 +1359,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.388138000002073,
+          "handlerMs": 10.546793999998044,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1366,7 +1367,7 @@
           "sql": 6
         }
       ],
-      "ms": 269.90000000037253,
+      "ms": 261,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1382,7 +1383,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 46.43263200000001,
+          "handlerMs": 44.958434000000125,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1394,7 +1395,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 11.266644999999698,
+          "handlerMs": 11.782929999997577,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1402,7 +1403,7 @@
           "sql": 6
         }
       ],
-      "ms": 242.90000000037253,
+      "ms": 234.5,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1418,7 +1419,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 32.18543000000136,
+          "handlerMs": 32.28108099999736,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1430,7 +1431,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 8.655762999998842,
+          "handlerMs": 9.820089000000735,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1438,7 +1439,7 @@
           "sql": 6
         }
       ],
-      "ms": 251.19999999925494,
+      "ms": 266.69999999925494,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1454,7 +1455,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 67.30824300000313,
+          "handlerMs": 68.07682600000044,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1466,7 +1467,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 14.744414000000688,
+          "handlerMs": 11.891375000002881,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1474,7 +1475,7 @@
           "sql": 6
         }
       ],
-      "ms": 305,
+      "ms": 277.90000000037253,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1482,7 +1483,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -1490,7 +1491,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2518.6701270000012,
+          "handlerMs": 2509.059128000001,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1502,7 +1503,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2657.453512,
+          "handlerMs": 2657.9273410000023,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1510,7 +1511,7 @@
           "sql": 6
         }
       ],
-      "ms": 5425.299999999814,
+      "ms": 5443.4000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1518,7 +1519,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -1526,7 +1527,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2728.848530000003,
+          "handlerMs": 2737.774476999999,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1538,7 +1539,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2651.740436,
+          "handlerMs": 2651.811760999997,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1546,7 +1547,7 @@
           "sql": 6
         }
       ],
-      "ms": 5588.899999999441,
+      "ms": 5580.799999998882,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1554,7 +1555,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -1562,7 +1563,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 5103.015173,
+          "handlerMs": 5099.7576439999975,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1574,7 +1575,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2658.5915749999986,
+          "handlerMs": 2648.9671769999986,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1582,7 +1583,7 @@
           "sql": 6
         }
       ],
-      "ms": 8049.299999999814,
+      "ms": 7957.799999998882,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1590,7 +1591,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 0,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -1598,7 +1599,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2743.4463780000005,
+          "handlerMs": 2735.7389760000005,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1610,7 +1611,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2653.512389000003,
+          "handlerMs": 2652.861893000001,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1618,7 +1619,7 @@
           "sql": 6
         }
       ],
-      "ms": 5623.200000000186,
+      "ms": 5587.39999999851,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1634,7 +1635,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1508.4163540000009,
+          "handlerMs": 1502.512686999995,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1646,7 +1647,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1449.7055660000042,
+          "handlerMs": 1448.2751869999993,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1654,7 +1655,7 @@
           "sql": 6
         }
       ],
-      "ms": 3193.2999999998137,
+      "ms": 3151.5999999996275,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1670,7 +1671,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1728.5365149999998,
+          "handlerMs": 1732.604084000006,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1682,7 +1683,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1449.3076,
+          "handlerMs": 1445.121137000002,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1690,7 +1691,7 @@
           "sql": 6
         }
       ],
-      "ms": 3418.100000000559,
+      "ms": 3366.4000000003725,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1706,7 +1707,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 3098.00407499999,
+          "handlerMs": 3093.5741199999975,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1718,7 +1719,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1458.2709969999996,
+          "handlerMs": 1448.343470000007,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1726,7 +1727,7 @@
           "sql": 6
         }
       ],
-      "ms": 4841.9000000003725,
+      "ms": 4766.0999999996275,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1742,7 +1743,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1754.7404819999938,
+          "handlerMs": 1728.3755020000099,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1754,7 +1755,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1467.5272250000125,
+          "handlerMs": 1446.2332899999892,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1762,7 +1763,7 @@
           "sql": 6
         }
       ],
-      "ms": 3479.699999999255,
+      "ms": 3378.199999999255,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1778,7 +1779,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1520.4986780000036,
+          "handlerMs": 1504.7699789999897,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1790,7 +1791,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1450.5087029999995,
+          "handlerMs": 1448.3562579999998,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1798,7 +1799,7 @@
           "sql": 6
         }
       ],
-      "ms": 3176.7000000001863,
+      "ms": 3145.9000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1814,7 +1815,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1713.9960470000078,
+          "handlerMs": 1713.616154999996,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1826,7 +1827,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1446.2207919999928,
+          "handlerMs": 1452.762659,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1834,7 +1835,7 @@
           "sql": 6
         }
       ],
-      "ms": 3348.7000000001863,
+      "ms": 3385.7999999988824,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1850,7 +1851,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 3100.032812000005,
+          "handlerMs": 3101.4610209999955,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -1862,7 +1863,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1447.399258999998,
+          "handlerMs": 1448.3639810000022,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -1870,7 +1871,7 @@
           "sql": 6
         }
       ],
-      "ms": 4799.5,
+      "ms": 4788.199999999255,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -1886,7 +1887,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1738.0484959999885,
+          "handlerMs": 1730.602561000007,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -1898,7 +1899,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1447.7279229999986,
+          "handlerMs": 1448.1753110000136,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -1906,7 +1907,7 @@
           "sql": 6
         }
       ],
-      "ms": 3420.2000000001863,
+      "ms": 3394.7999999988824,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -1914,7 +1915,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -1922,7 +1923,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2528.815352000005,
+          "handlerMs": 2503.8363970000064,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -1934,7 +1935,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2657.0854770000005,
+          "handlerMs": 2649.3374259999982,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -1942,7 +1943,7 @@
           "sql": 6
         }
       ],
-      "ms": 5402.200000000186,
+      "ms": 5392.4000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -1950,7 +1951,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -1958,7 +1959,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2736.0527700000093,
+          "handlerMs": 2723.539904999998,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -1970,7 +1971,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2659.2377569999953,
+          "handlerMs": 2651.552410999997,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -1978,7 +1979,7 @@
           "sql": 6
         }
       ],
-      "ms": 5702.5999999996275,
+      "ms": 5601.4000000003725,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -1986,7 +1987,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -1994,7 +1995,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 5108.091709,
+          "handlerMs": 5098.661829000004,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2006,7 +2007,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2653.5745339999994,
+          "handlerMs": 2652.674125999998,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2014,7 +2015,7 @@
           "sql": 6
         }
       ],
-      "ms": 8060.299999999814,
+      "ms": 8024.699999999255,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2022,7 +2023,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 1,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -2030,7 +2031,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2773.9133169999986,
+          "handlerMs": 2739.7522989999998,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2042,7 +2043,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2656.1842599999945,
+          "handlerMs": 2650.932237000001,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2050,7 +2051,7 @@
           "sql": 6
         }
       ],
-      "ms": 5676.4000000003725,
+      "ms": 5637.5999999996275,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2058,7 +2059,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -2066,7 +2067,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2532.734184000001,
+          "handlerMs": 2503.5571190000046,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2078,7 +2079,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2662.9361800000042,
+          "handlerMs": 2654.4566389999964,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2086,7 +2087,7 @@
           "sql": 6
         }
       ],
-      "ms": 5527.399999999441,
+      "ms": 5388.9000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2094,7 +2095,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -2102,7 +2103,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2739.959063999995,
+          "handlerMs": 2731.092299000011,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2114,7 +2115,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2663.3400429999892,
+          "handlerMs": 2650.9871260000073,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2122,7 +2123,7 @@
           "sql": 6
         }
       ],
-      "ms": 5646.5,
+      "ms": 5591.800000000745,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2130,7 +2131,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -2138,7 +2139,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 5128.491621000008,
+          "handlerMs": 5095.328561999981,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2150,7 +2151,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2663.1333589999995,
+          "handlerMs": 2649.488692999992,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2158,7 +2159,7 @@
           "sql": 6
         }
       ],
-      "ms": 8150.5999999996275,
+      "ms": 7991.5,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2166,7 +2167,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 2,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -2174,7 +2175,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2763.73243199999,
+          "handlerMs": 2733.4093719999946,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2186,7 +2187,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2656.0456819999963,
+          "handlerMs": 2655.6737299999804,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2194,7 +2195,7 @@
           "sql": 6
         }
       ],
-      "ms": 5711.100000000559,
+      "ms": 5561.9000000003725,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2210,7 +2211,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1516.2478159999882,
+          "handlerMs": 1511.458381000004,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2222,7 +2223,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1452.3912580000178,
+          "handlerMs": 1448.0925910000224,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2230,7 +2231,7 @@
           "sql": 6
         }
       ],
-      "ms": 3177.7000000001863,
+      "ms": 3163.9000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2246,7 +2247,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1732.0278980000003,
+          "handlerMs": 1729.4584019999893,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2258,7 +2259,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1449.828027999989,
+          "handlerMs": 1451.7729340000078,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2266,7 +2267,7 @@
           "sql": 6
         }
       ],
-      "ms": 3396.7999999998137,
+      "ms": 3377.2000000011176,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2282,7 +2283,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 3095.116301000002,
+          "handlerMs": 3097.146431000001,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2294,7 +2295,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1452.5685379999923,
+          "handlerMs": 1446.617327999993,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2302,7 +2303,7 @@
           "sql": 6
         }
       ],
-      "ms": 4811.4000000003725,
+      "ms": 4762.699999999255,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2318,7 +2319,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1789.1613279999874,
+          "handlerMs": 1718.8138119999785,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2330,7 +2331,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1451.166022999998,
+          "handlerMs": 1446.901824999979,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2338,7 +2339,7 @@
           "sql": 6
         }
       ],
-      "ms": 3526.5999999996275,
+      "ms": 3399.5999999996275,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2354,7 +2355,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1505.0697099999816,
+          "handlerMs": 1507.0703789999825,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2366,7 +2367,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1448.131727,
+          "handlerMs": 1447.3849559999944,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2374,7 +2375,7 @@
           "sql": 6
         }
       ],
-      "ms": 3156.2000000001863,
+      "ms": 3153.800000000745,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2390,7 +2391,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1721.5643209999835,
+          "handlerMs": 1709.7784649999812,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2402,7 +2403,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1450.308556999982,
+          "handlerMs": 1447.242609000008,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2410,7 +2411,7 @@
           "sql": 6
         }
       ],
-      "ms": 3369.899999999441,
+      "ms": 3356.5,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2426,7 +2427,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 3097.340873999987,
+          "handlerMs": 3087.7490560000006,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2438,7 +2439,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1448.8276659999974,
+          "handlerMs": 1450.4306069999875,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2446,7 +2447,7 @@
           "sql": 6
         }
       ],
-      "ms": 4807.5,
+      "ms": 4775.699999999255,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2462,7 +2463,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1732.4230740000203,
+          "handlerMs": 1739.5479099999939,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2474,7 +2475,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1451.5227339999983,
+          "handlerMs": 1443.3490079999901,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2482,7 +2483,7 @@
           "sql": 6
         }
       ],
-      "ms": 3419,
+      "ms": 3437.699999999255,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2490,7 +2491,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -2498,7 +2499,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2511.0220280000067,
+          "handlerMs": 2509.4541320000135,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2510,7 +2511,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2650.4074030000193,
+          "handlerMs": 2651.8380269999907,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2518,7 +2519,7 @@
           "sql": 6
         }
       ],
-      "ms": 5365,
+      "ms": 5403.4000000003725,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2526,7 +2527,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -2534,7 +2535,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2735.443800000008,
+          "handlerMs": 2727.1878069999802,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2546,7 +2547,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2651.6155699999945,
+          "handlerMs": 2650.72183699999,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2554,7 +2555,7 @@
           "sql": 6
         }
       ],
-      "ms": 5585.799999999814,
+      "ms": 5553.300000000745,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2562,7 +2563,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -2570,7 +2571,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 5112.393619999988,
+          "handlerMs": 5100.06716799998,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2582,7 +2583,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2650.975630000001,
+          "handlerMs": 2651.1576739999873,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2590,7 +2591,7 @@
           "sql": 6
         }
       ],
-      "ms": 7995.799999999814,
+      "ms": 7959.4000000003725,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2598,7 +2599,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 3,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -2606,7 +2607,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2737.1763840000203,
+          "handlerMs": 2734.776842000021,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2618,7 +2619,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2653.356845000002,
+          "handlerMs": 2655.6701659999962,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2626,7 +2627,7 @@
           "sql": 6
         }
       ],
-      "ms": 5592.600000000559,
+      "ms": 5592.89999999851,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2634,7 +2635,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "existing-error",
       "http": [
         {
@@ -2642,7 +2643,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2510.936361,
+          "handlerMs": 2504.4616000000096,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2654,7 +2655,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2653.7213610000035,
+          "handlerMs": 2650.0347140000085,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2662,7 +2663,7 @@
           "sql": 6
         }
       ],
-      "ms": 5393.0999999996275,
+      "ms": 5367.300000000745,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2670,7 +2671,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "new-error",
       "http": [
         {
@@ -2678,7 +2679,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2743.429161999986,
+          "handlerMs": 2738.9776899999997,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2690,7 +2691,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2652.0799460000126,
+          "handlerMs": 2652.631892000005,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2698,7 +2699,7 @@
           "sql": 6
         }
       ],
-      "ms": 5573.199999999255,
+      "ms": 5593.4000000003725,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2706,7 +2707,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "matrix-apply",
       "http": [
         {
@@ -2714,7 +2715,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 5105.65745899998,
+          "handlerMs": 5100.9716759999865,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2726,7 +2727,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2650.9019600000174,
+          "handlerMs": 2648.9714219999732,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2734,7 +2735,7 @@
           "sql": 6
         }
       ],
-      "ms": 7997.5999999996275,
+      "ms": 7981.9000000003725,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2742,7 +2743,7 @@
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "pair": 4,
-      "variant": "main359",
+      "variant": "main6247",
       "action": "save",
       "http": [
         {
@@ -2750,7 +2751,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2744.868543999997,
+          "handlerMs": 2735.9672119999886,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2762,7 +2763,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 2656.8610530000005,
+          "handlerMs": 2654.823927999998,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2770,7 +2771,7 @@
           "sql": 6
         }
       ],
-      "ms": 5611,
+      "ms": 5613.5999999996275,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2786,7 +2787,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1506.9916209999938,
+          "handlerMs": 1511.4333890000125,
           "requestBytes": 374,
           "responseBytes": 274,
           "r2Get": 13,
@@ -2798,7 +2799,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1445.849343000009,
+          "handlerMs": 1448.7419860000082,
           "requestBytes": 0,
           "responseBytes": 396980,
           "r2Get": 15,
@@ -2806,7 +2807,7 @@
           "sql": 6
         }
       ],
-      "ms": 3138.5999999996275,
+      "ms": 3196,
       "sql": 14,
       "r2Get": 28,
       "r2Put": 2
@@ -2822,7 +2823,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1708.3759930000233,
+          "handlerMs": 1727.0349290000158,
           "requestBytes": 420,
           "responseBytes": 274,
           "r2Get": 14,
@@ -2834,7 +2835,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1446.6837240000023,
+          "handlerMs": 1449.826355999976,
           "requestBytes": 0,
           "responseBytes": 397249,
           "r2Get": 15,
@@ -2842,7 +2843,7 @@
           "sql": 6
         }
       ],
-      "ms": 3343.600000000559,
+      "ms": 3367.39999999851,
       "sql": 15,
       "r2Get": 29,
       "r2Put": 3
@@ -2858,7 +2859,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 3090.1324959999765,
+          "handlerMs": 3097.5097160000005,
           "requestBytes": 13508,
           "responseBytes": 274,
           "r2Get": 26,
@@ -2870,7 +2871,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1447.5404739999794,
+          "handlerMs": 1449.1761500000139,
           "requestBytes": 0,
           "responseBytes": 397447,
           "r2Get": 15,
@@ -2878,7 +2879,7 @@
           "sql": 6
         }
       ],
-      "ms": 4748.100000000559,
+      "ms": 4746,
       "sql": 13,
       "r2Get": 41,
       "r2Put": 2
@@ -2894,7 +2895,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1720.822054999997,
+          "handlerMs": 1735.8862640000007,
           "requestBytes": 197,
           "responseBytes": 397651,
           "r2Get": 14,
@@ -2906,7 +2907,7 @@
           "path": "/api/fqc/workflow",
           "conditional": false,
           "status": 200,
-          "handlerMs": 1445.6681260000041,
+          "handlerMs": 1448.4618109999865,
           "requestBytes": 0,
           "responseBytes": 397653,
           "r2Get": 15,
@@ -2914,7 +2915,7 @@
           "sql": 6
         }
       ],
-      "ms": 3423.5999999996275,
+      "ms": 3425.699999999255,
       "sql": 14,
       "r2Get": 29,
       "r2Put": 1
@@ -2924,13 +2925,13 @@
     {
       "profile": "no-added-wait",
       "action": "existing-error",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 221.1000000005588,
-      "medianMs": 285.90000000037253,
-      "maxMs": 319.5,
-      "postMedianMs": 56.797999999998865,
-      "getMedianMs": 11.842178000000331,
+      "minMs": 250.69999999925494,
+      "medianMs": 279.80000000074506,
+      "maxMs": 325.1000000014901,
+      "postMedianMs": 62.06834799999888,
+      "getMedianMs": 11.95359099999996,
       "r2Get": 28,
       "sql": 14
     },
@@ -2939,24 +2940,24 @@
       "action": "existing-error",
       "variant": "candidate",
       "n": 5,
-      "minMs": 248.80000000074506,
-      "medianMs": 264.3999999994412,
-      "maxMs": 285.3999999994412,
-      "postMedianMs": 51.02941400000054,
-      "getMedianMs": 10.909392999999909,
+      "minMs": 249.59999999962747,
+      "medianMs": 257.59999999962747,
+      "maxMs": 277.90000000037253,
+      "postMedianMs": 50.78105599999981,
+      "getMedianMs": 10.2553599999992,
       "r2Get": 28,
       "sql": 14
     },
     {
       "profile": "no-added-wait",
       "action": "new-error",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 246.29999999981374,
-      "medianMs": 265.5,
-      "maxMs": 293.70000000018626,
-      "postMedianMs": 55.103736999999455,
-      "getMedianMs": 10.556457999999111,
+      "minMs": 235.5,
+      "medianMs": 246.10000000149012,
+      "maxMs": 265.5,
+      "postMedianMs": 46.30681600000025,
+      "getMedianMs": 10.599275999999008,
       "r2Get": 29,
       "sql": 15
     },
@@ -2965,24 +2966,24 @@
       "action": "new-error",
       "variant": "candidate",
       "n": 5,
-      "minMs": 233.59999999962747,
-      "medianMs": 242.90000000037253,
-      "maxMs": 264.40000000037253,
-      "postMedianMs": 46.43263200000001,
-      "getMedianMs": 9.070392999998148,
+      "minMs": 230,
+      "medianMs": 234.5,
+      "maxMs": 270.2000000011176,
+      "postMedianMs": 44.958434000000125,
+      "getMedianMs": 9.169378000000506,
       "r2Get": 29,
       "sql": 15
     },
     {
       "profile": "no-added-wait",
       "action": "matrix-apply",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 244.5,
-      "medianMs": 276.79999999981374,
-      "maxMs": 291.40000000037253,
-      "postMedianMs": 38.67822100000012,
-      "getMedianMs": 9.889130999999907,
+      "minMs": 227.90000000037253,
+      "medianMs": 234.5,
+      "maxMs": 266.09999999962747,
+      "postMedianMs": 37.65256699999918,
+      "getMedianMs": 9.593006000000969,
       "r2Get": 41,
       "sql": 13
     },
@@ -2991,24 +2992,24 @@
       "action": "matrix-apply",
       "variant": "candidate",
       "n": 5,
-      "minMs": 233.59999999962747,
-      "medianMs": 267.59999999962747,
-      "maxMs": 347.09999999962747,
-      "postMedianMs": 35.11139099999855,
-      "getMedianMs": 8.666959000000134,
+      "minMs": 241.69999999925494,
+      "medianMs": 261.2000000011176,
+      "maxMs": 266.69999999925494,
+      "postMedianMs": 33.7827380000017,
+      "getMedianMs": 9.820089000000735,
       "r2Get": 41,
       "sql": 13
     },
     {
       "profile": "no-added-wait",
       "action": "save",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 269.59999999962747,
-      "medianMs": 289.79999999981374,
-      "maxMs": 303.09999999962747,
-      "postMedianMs": 70.25122399999964,
-      "getMedianMs": 9.690958000002865,
+      "minMs": 255.2999999988824,
+      "medianMs": 278.40000000037253,
+      "maxMs": 289.90000000037253,
+      "postMedianMs": 65.5940840000003,
+      "getMedianMs": 9.846596999999747,
       "r2Get": 29,
       "sql": 14
     },
@@ -3017,24 +3018,24 @@
       "action": "save",
       "variant": "candidate",
       "n": 5,
-      "minMs": 270.20000000018626,
-      "medianMs": 284.5,
-      "maxMs": 305,
-      "postMedianMs": 67.30824300000313,
-      "getMedianMs": 10.345733000001928,
+      "minMs": 261.5,
+      "medianMs": 274.09999999962747,
+      "maxMs": 289.80000000074506,
+      "postMedianMs": 66.3032290000001,
+      "getMedianMs": 10.478047000000515,
       "r2Get": 29,
       "sql": 14
     },
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "action": "existing-error",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 5365,
-      "medianMs": 5402.200000000186,
-      "maxMs": 5527.399999999441,
-      "postMedianMs": 2518.6701270000012,
-      "getMedianMs": 2657.0854770000005,
+      "minMs": 5367.300000000745,
+      "medianMs": 5392.4000000003725,
+      "maxMs": 5443.4000000003725,
+      "postMedianMs": 2504.4616000000096,
+      "getMedianMs": 2651.8380269999907,
       "r2Get": 28,
       "sql": 14
     },
@@ -3043,24 +3044,24 @@
       "action": "existing-error",
       "variant": "candidate",
       "n": 5,
-      "minMs": 3138.5999999996275,
-      "medianMs": 3176.7000000001863,
-      "maxMs": 3193.2999999998137,
-      "postMedianMs": 1508.4163540000009,
-      "getMedianMs": 1449.7055660000042,
+      "minMs": 3145.9000000003725,
+      "medianMs": 3153.800000000745,
+      "maxMs": 3196,
+      "postMedianMs": 1507.0703789999825,
+      "getMedianMs": 1448.2751869999993,
       "r2Get": 28,
       "sql": 14
     },
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "action": "new-error",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 5573.199999999255,
-      "medianMs": 5588.899999999441,
-      "maxMs": 5702.5999999996275,
-      "postMedianMs": 2736.0527700000093,
-      "getMedianMs": 2652.0799460000126,
+      "minMs": 5553.300000000745,
+      "medianMs": 5591.800000000745,
+      "maxMs": 5601.4000000003725,
+      "postMedianMs": 2731.092299000011,
+      "getMedianMs": 2651.552410999997,
       "r2Get": 29,
       "sql": 15
     },
@@ -3069,24 +3070,24 @@
       "action": "new-error",
       "variant": "candidate",
       "n": 5,
-      "minMs": 3343.600000000559,
-      "medianMs": 3369.899999999441,
-      "maxMs": 3418.100000000559,
-      "postMedianMs": 1721.5643209999835,
-      "getMedianMs": 1449.3076,
+      "minMs": 3356.5,
+      "medianMs": 3367.39999999851,
+      "maxMs": 3385.7999999988824,
+      "postMedianMs": 1727.0349290000158,
+      "getMedianMs": 1449.826355999976,
       "r2Get": 29,
       "sql": 15
     },
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "action": "matrix-apply",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 7995.799999999814,
-      "medianMs": 8049.299999999814,
-      "maxMs": 8150.5999999996275,
-      "postMedianMs": 5108.091709,
-      "getMedianMs": 2653.5745339999994,
+      "minMs": 7957.799999998882,
+      "medianMs": 7981.9000000003725,
+      "maxMs": 8024.699999999255,
+      "postMedianMs": 5099.7576439999975,
+      "getMedianMs": 2649.488692999992,
       "r2Get": 41,
       "sql": 13
     },
@@ -3095,24 +3096,24 @@
       "action": "matrix-apply",
       "variant": "candidate",
       "n": 5,
-      "minMs": 4748.100000000559,
-      "medianMs": 4807.5,
-      "maxMs": 4841.9000000003725,
-      "postMedianMs": 3097.340873999987,
-      "getMedianMs": 1448.8276659999974,
+      "minMs": 4746,
+      "medianMs": 4766.0999999996275,
+      "maxMs": 4788.199999999255,
+      "postMedianMs": 3097.146431000001,
+      "getMedianMs": 1448.3639810000022,
       "r2Get": 41,
       "sql": 13
     },
     {
       "profile": "sensitivity-200ms-r2-not-live",
       "action": "save",
-      "variant": "main359",
+      "variant": "main6247",
       "n": 5,
-      "minMs": 5592.600000000559,
-      "medianMs": 5623.200000000186,
-      "maxMs": 5711.100000000559,
-      "postMedianMs": 2744.868543999997,
-      "getMedianMs": 2656.0456819999963,
+      "minMs": 5561.9000000003725,
+      "medianMs": 5592.89999999851,
+      "maxMs": 5637.5999999996275,
+      "postMedianMs": 2735.7389760000005,
+      "getMedianMs": 2654.823927999998,
       "r2Get": 29,
       "sql": 14
     },
@@ -3121,11 +3122,11 @@
       "action": "save",
       "variant": "candidate",
       "n": 5,
-      "minMs": 3419,
-      "medianMs": 3423.5999999996275,
-      "maxMs": 3526.5999999996275,
-      "postMedianMs": 1738.0484959999885,
-      "getMedianMs": 1451.166022999998,
+      "minMs": 3378.199999999255,
+      "medianMs": 3399.5999999996275,
+      "maxMs": 3437.699999999255,
+      "postMedianMs": 1730.602561000007,
+      "getMedianMs": 1446.901824999979,
       "r2Get": 29,
       "sql": 14
     }

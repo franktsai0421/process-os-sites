@@ -1,6 +1,14 @@
+## 2026-11-04 — Integrate IQC recovery and FQC read overlap
+
+Bring merged #71/main `6247c00` into #72, retaining both workflow changes, the IQC 45-second bounded deadline and strict FQC read-ahead admission. Preserve both CI suites and earlier documentation. Refresh integrated-source verification and performance baselines in the [FQC acceptance report](../docs/acceptance/fqc-flow-performance-20261104/README.md); no deployment or data/schema change.
+
 ## 2026-11-04 — FQC flow latency candidate
 
 Overlap selected aggregate R2 GETs in bounded windows of five for FQC reads and Apply/Save without reducing validation/read counts or terminal freshness. Add paired main359 handler/client and native Chromium click-to-usable benchmarks and ordered-failure/stream-cleanup/route-isolation regressions. Full CI and expanded local validation exposed mixed Begin and unsupported Save envelopes entering read-ahead; restore exact outer-envelope and command classification while preserving both original integration assertions. Independent review found and fixed malformed-next-pointer error precedence; historical benchmark baseline pins remain intact. [Evidence and remaining live/CI gates](../docs/acceptance/fqc-flow-performance-20261104/README.md). No deployment or data/schema/account change.
+
+## 2026-11-04 — IQC unknown-result candidate
+
+Add bounded wait, original failure diagnostics, visible receipt-only query and duplicate-creation prevention. Add isolated delayed ACK, 404, ownership/permission, media/equipment, replay/CAS and browser regressions. No deployment or live operation changes. [Evidence](../docs/acceptance/iqc-unknown-20261104/README.md).
 
 ## 2026-11-03 — Scoped non-FQC unknown departure candidate
 

@@ -1,17 +1,17 @@
 /* Exact-main paired synthetic route/client benchmark; no live data or network. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {createHash}=require('node:crypto'),{performance}=require('node:perf_hooks');
-const fixture=require('./fqc-apply-fixture.cjs'),base='35949445ad073812863c0004acbee13ed3535747';
+const fixture=require('./fqc-apply-fixture.cjs'),base='6247c00220bf366e41c92c5b684d9f9744076cad';
 console.info=(...values)=>process.stderr.write(values.join(' ')+'\n');
 const wait=ms=>ms?new Promise(resolve=>setTimeout(resolve,ms)):Promise.resolve();
-const files=['lib/state-records.ts','lib/versioned-shared-workflow.ts','public/process/shared-draft-client.js','scripts/fqc-apply-fixture.cjs','scripts/benchmark-fqc-flow.cjs'];
+const files=['lib/state-records.ts','lib/versioned-shared-workflow.ts','lib/iqc-write-timing.ts','public/process/shared-draft-client.js','scripts/fqc-apply-fixture.cjs','scripts/benchmark-fqc-flow.cjs'];
 const hashes=()=>Object.fromEntries(files.map(file=>[file,createHash('sha256').update(fs.readFileSync(path.join(__dirname,'..',file))).digest('hex')]));
 const sourceHashes=hashes(),rows=[];
 const count=(events,kind)=>events.filter(e=>e.kind===kind).length;
 (async()=>{
  for(const profile of [{name:'no-added-wait',sql:0,get:0,put:0},{name:'controlled-storage-wait-not-live',sql:5,get:30,put:5}]){
-  for(let pair=0;pair<5;pair++)for(const variant of pair%2?['candidate','main359']:['main359','candidate']){
-   const f=await fixture(variant==='main359'?{sourceRef:base}:{});
+  for(let pair=0;pair<5;pair++)for(const variant of pair%2?['candidate','main6247']:['main6247','candidate']){
+   const f=await fixture(variant==='main6247'?{sourceRef:base}:{});
    try{
     const values={...f.values},q=JSON.parse(values.qualityMasterControl),snapshot=q.libraries.fqc.versions[0].snapshot;
     snapshot.items=Array.from({length:256},(_,i)=>({...snapshot.items[0],id:i?'item'+i:'item',checkNo:'SYN-FQC-L1-'+String(i+1).padStart(3,'0'),description:'Synthetic '+i+' '+('z'.repeat(512)),productCodes:[],mediaItems:[]}));
@@ -55,16 +55,16 @@ const count=(events,kind)=>events.filter(e=>e.kind===kind).length;
   }
  }
  const summary=[];
- for(const profile of new Set(rows.map(r=>r.profile)))for(const action of new Set(rows.map(r=>r.action)))for(const variant of ['main359','candidate']){
+ for(const profile of new Set(rows.map(r=>r.profile)))for(const action of new Set(rows.map(r=>r.action)))for(const variant of ['main6247','candidate']){
   const selected=rows.filter(r=>r.profile===profile&&r.action===action&&r.variant===variant),stats={profile,action,variant,n:selected.length};assert.equal(selected.length,5);
   for(const key of ['ms','cpuMs','sql','revocation','r2Get','r2Put','peakGets','bodyReads','bodyBytes','responseBytes']){const sorted=selected.map(r=>r[key]).sort((a,b)=>a-b);stats[key]={min:sorted[0],median:sorted[2],max:sorted.at(-1)};}summary.push(stats);
  }
  // Same fault/validation closure: successful paired samples still fetch every
  // object, consume every byte and issue all SQL checks. Only I/O overlap changes.
  for(const row of rows.filter(r=>r.variant==='candidate')){
-  const before=rows.find(r=>r.variant==='main359'&&r.pair===row.pair&&r.profile===row.profile&&r.action===row.action);
+  const before=rows.find(r=>r.variant==='main6247'&&r.pair===row.pair&&r.profile===row.profile&&r.action===row.action);
   for(const key of ['sql','revocation','r2Get','r2Put','bodyReads','bodyBytes','responseBytes'])assert.equal(row[key],before[key],row.action+' '+key);
  }
  assert.deepEqual(hashes(),sourceHashes,'benchmark source changed');
- console.log(JSON.stringify({schema:'FQC_FLOW_PAIRED_V1',base,syntheticOnly:true,liveLatency:false,runtimeHashes:sourceHashes,fixture:{items:256,itemPadding:512,authorityAuditBodies:1,unrelatedAggregates:6,unrelatedAggregatePadding:16384,unrelatedBodyPadding:32768},note:'Exact main359 server overrides; same current client and fixtures. Alternating paired n5. Includes response-clone evidence overhead; excludes fixture setup. Every successful sample retained, failure aborts. Controlled waits are artificial, not a live speed prediction.',rows,summary},null,2));
+ console.log(JSON.stringify({schema:'FQC_FLOW_PAIRED_V1',base,syntheticOnly:true,liveLatency:false,runtimeHashes:sourceHashes,fixture:{items:256,itemPadding:512,authorityAuditBodies:1,unrelatedAggregates:6,unrelatedAggregatePadding:16384,unrelatedBodyPadding:32768},note:'Exact main6247 server overrides; same current client and fixtures. Alternating paired n5. Includes response-clone evidence overhead; excludes fixture setup. Every successful sample retained, failure aborts. Controlled waits are artificial, not a live speed prediction.',rows,summary},null,2));
 })().catch(error=>{console.error(error);process.exitCode=1;});

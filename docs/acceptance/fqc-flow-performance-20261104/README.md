@@ -1,11 +1,44 @@
 # FQC flow latency — independent candidate, not deployed
 
-Base: latest fetched main `35949445ad073812863c0004acbee13ed3535747`.
+Current integration base: main `6247c00220bf366e41c92c5b684d9f9744076cad` (merged IQC #71).
+Original FQC base: `35949445ad073812863c0004acbee13ed3535747`.
 Branch: `codex/fqc-flow-performance-20261104`; [Draft PR #72](https://github.com/franktsai0421/process-os-sites/pull/72). Scope: source changes, synthetic
-verification, independent review and a separate Draft PR. No merge, deployment,
+verification, independent review and a separate Draft PR. No PR merge, deployment,
 real business-data write, credential/access change or pending V31 unlock.
 
-## CI follow-up — restore conservative POST admission
+## Integration with merged IQC #71 / main6247
+
+The previous successful CI run `41767225296` verified #72 against main359. It is
+historical evidence, not acceptance of this integration. Main6247 includes IQC
+unknown-result recovery, scoped server timing, shared-client changes, the new IQC
+CI suite and the intentionally changed bounded IQC 45-second deadline expectation.
+
+The three text conflicts were new sections at the top of `HANDOFF.md`,
+`AI_CONTEXT/CHANGELOG.md` and `AI_CONTEXT/modules/QUALITY.md`; both histories are
+retained with a new integration note. The common route and CI YAML merged without
+text conflicts. Static review confirms IQC timing/finalization and FQC's strict
+outer-envelope/classifier guards are both present. The shared client and IQC files
+are retained from main6247. No independent partial-writer capability, domain
+validation change, unknown-result relaxation or schema/data change is added.
+
+Both benchmark scripts now compare against exact main6247, while their historical
+main359 results remain in Git history. The fixture whitelist adds the exact new
+base without removing older pinned references. Existing inverse-baseline pins and
+negative contracts are unchanged. Updated integrated measurements and validation
+receipts below are separate from pre-integration results.
+
+Integrated local checks: 320 core tests, 45 native Chromium tests (43 FQC and
+2 IQC), original record-mutation 57 groups and lifecycle8 178 groups, typed lint,
+TypeScript, 71 inverse/EOL contracts, identity baseline, 14 Sites delivery source
+contracts and Sites source boundaries PASS. The native checks cover 390/1280 px
+and zh/vi. Independent static review confirmed both implementations are retained;
+no product blocker was found. Build and fresh complete PR CI remain required.
+Prior results below retain their pinned source/commit context.
+The earlier branch-protection read was denied (`Forbidden`); it has not been
+retried through another path. This integration does not authorize PR merge or
+Site deployment.
+
+## Pre-integration CI follow-up — restore conservative POST admission
 
 Full CI for head `6541e13`, [run 41762598326](https://github.com/franktsai0421/process-os-sites/actions/runs/41762598326),
 failed in `scripts/test-fqc-record-mutation.cjs:87`. Its mixed
@@ -37,14 +70,15 @@ all 15 negative cases fail while the 3 positive cases pass; on the repaired
 source all 48 read-ahead tests pass. They assert complete GET/text observations,
 unchanged D1 rows/R2 objects, zero attempted writes and retained normal overlap.
 
-Current product hashes: `state-records.ts`
+Pre-integration repaired product hashes: `state-records.ts`
 `792cdde3070c1048083d10076b345cb5b3d0284e5a17099c2be167db57f87c1e`;
 `versioned-shared-workflow.ts`
 `8dbb9d6bf06b92a147d882531f47e1beaf354617417754f88acd27c065147914`.
-Fresh post-repair measurements: all 80 native browser and 140 route/client
-samples PASS with unchanged paired counts/bytes. The tables below use their
-actual repaired source hashes. Build/CI receipts are recorded after completion; the
-pre-repair verification section and its build receipts remain historical.
+Pre-integration post-repair measurements at `a910f42` passed all 80 native
+browser and 140 route/client samples with unchanged paired counts/bytes. Those
+artifacts remain in Git history; the current tables below are newly measured
+against main6247. The pre-repair verification section and build receipts remain
+historical.
 
 Confirmed local repair checks: 173 core tests (48 read-ahead, 80 required
 dependencies, 45 Apply reliability), 43 native Chromium tests (4 Apply,
@@ -138,10 +172,10 @@ payload sizes, network transfer and UI rendering were not measured here.
   manual Save and unknown-outcome protection are retained. Matrix still reads
   its full existing closure; it does not gain the narrower ordinary-form writer.
 
-## Repaired candidate — native browser end-to-end measurements
+## Integrated candidate — native browser end-to-end measurements
 
 Reproduce with `node scripts/benchmark-fqc-browser-flow.mjs`. This is a fresh
-post-repair run using native Chromium at 1280 px in Chinese, the unchanged real
+post-integration run against main6247 using native Chromium at 1280 px in Chinese, the unchanged real
 FQC component/client, actual guarded TypeScript routes and ephemeral SQLite/R2.
 Timing starts at the DOM button click and ends at usable UI, closed form, clear
 unknown state and two animation frames. Every action must perform exactly one
@@ -161,27 +195,27 @@ need not add to the whole-flow median.
 
 | Click to usable UI | No added wait, median s before → after | 200 ms R2 sensitivity, median s before → after | Sensitivity max s before → after |
 | --- | ---: | ---: | ---: |
-| Existing error Apply | 0.286 → 0.264 | 5.402 → 3.177 | 5.527 → 3.193 |
-| New error Apply | 0.266 → 0.243 | 5.589 → 3.370 | 5.703 → 3.418 |
-| Matrix Apply | 0.277 → 0.268 | 8.049 → 4.808 | 8.151 → 4.842 |
-| Save | 0.290 → 0.284 | 5.623 → 3.424 | 5.711 → 3.527 |
+| Existing error Apply | 0.280 → 0.258 | 5.392 → 3.154 | 5.443 → 3.196 |
+| New error Apply | 0.246 → 0.234 | 5.592 → 3.367 | 5.601 → 3.386 |
+| Matrix Apply | 0.234 → 0.261 | 7.982 → 4.766 | 8.025 → 4.788 |
+| Save | 0.278 → 0.274 | 5.593 → 3.400 | 5.638 → 3.438 |
 
 | Sensitivity flow | POST median s before → after | Fresh GET median s before → after | R2 GET / SQL, unchanged |
 | --- | ---: | ---: | ---: |
-| Existing error Apply | 2.519 → 1.508 | 2.657 → 1.450 | 28 / 14 |
-| New error Apply | 2.736 → 1.722 | 2.652 → 1.449 | 29 / 15 |
-| Matrix Apply | 5.108 → 3.097 | 2.654 → 1.449 | 41 / 13 |
-| Save | 2.745 → 1.738 | 2.656 → 1.451 | 29 / 14 |
+| Existing error Apply | 2.504 → 1.507 | 2.652 → 1.448 | 28 / 14 |
+| New error Apply | 2.731 → 1.727 | 2.652 → 1.450 | 29 / 15 |
+| Matrix Apply | 5.100 → 3.097 | 2.649 → 1.448 | 41 / 13 |
+| Save | 2.736 → 1.731 | 2.655 → 1.447 | 29 / 14 |
 
-[All 80 post-repair native samples](browser-performance-summary.json).
+[All 80 post-integration native samples](browser-performance-summary.json).
 No-wait values are retained in the table; this is not a universal speedup
 claim. Required bodies, authorization, immutable writes and independent terminal
 snapshots still cost time. This does not prove the original minute-long incident
 is resolved. Mobile/Vietnamese regressions establish behavior, not performance.
-Pre-repair samples remain available in Git history at `6541e13`; their hashes
-were not relabeled as repaired-source evidence.
+Pre-integration samples remain available in Git history at `a910f42`; their hashes
+were not relabeled as integrated-source evidence.
 
-## Repaired candidate — route/client read coverage
+## Integrated candidate — route/client read coverage
 
 A fresh separate run of `node scripts/benchmark-fqc-flow.cjs` covers full and
 saved draft reads, receipts and writes through actual handler/client fixtures.
@@ -191,23 +225,23 @@ The 30 ms and 200 ms scenarios are distinct artificial sensitivity cases.
 
 | Handler/client flow | No added wait, median ms before → after | 30 ms R2 / 5 ms SQL+PUT, median ms before → after |
 | --- | ---: | ---: |
-| full-read | 10.93 → 10.99 | 411.10 → 229.94 |
-| existing-apply | 60.30 → 62.70 | 921.61 → 587.32 |
-| insert-apply | 55.88 → 55.40 | 956.27 → 615.93 |
-| matrix-apply | 47.54 → 52.59 | 1297.52 → 814.94 |
-| save | 97.56 → 95.04 | 980.89 → 660.06 |
-| receipt | 6.96 → 7.01 | 437.82 → 255.37 |
-| saved-read | 16.57 → 17.54 | 448.84 → 268.05 |
+| full-read | 12.42 → 11.18 | 408.22 → 226.83 |
+| existing-apply | 62.89 → 60.87 | 912.19 → 576.70 |
+| insert-apply | 56.06 → 58.92 | 945.43 → 610.75 |
+| matrix-apply | 47.53 → 52.40 | 1289.93 → 804.46 |
+| save | 99.05 → 95.18 | 981.59 → 637.35 |
+| receipt | 6.21 → 6.19 | 436.10 → 253.36 |
+| saved-read | 16.27 → 16.94 | 448.65 → 264.68 |
 
-[All 140 post-repair route/client samples and counters](route-performance-summary-window5.json).
+[All 140 post-integration route/client samples and counters](route-performance-summary-window5.json).
 Any no-wait regressions are shown, not discarded.
 
 ## First-round paired measurements — two-read window, historical
 
 These retained results belong to the first-round two-read window at `4702567`,
 not the final five-read candidate. The reusable command is `node scripts/benchmark-fqc-flow.cjs`;
-running it on the final source measures that final source. The script overrides the
-exact main359 server files using Git objects, and runs the same current client
+running it on the final source measures that final source. At `4702567` the script overrode the
+exact main359 server files using Git objects, and ran the same then-current client
 against candidate and baseline. Five pairs alternate execution order for every
 profile. Seven actions include full read, existing/new error Apply, 256-row
 matrix Apply, Save, receipt and saved read. Fixture initialization is outside the
@@ -257,8 +291,8 @@ The pre-repair runtime source is `state-records.ts` SHA-256
 `versioned-shared-workflow.ts` remains
 `053cded33f0f639fc6b338c1db6be58ff32943d3f8244d5bfc9b24109e4537c1`.
 The pre-repair measurement artifacts in Git history at `6541e13` pin those
-source hashes. Current measurement tables/files above were rerun after the
-admission repair and pin the new route hash.
+source hashes. Current measurement tables/files above were rerun after main6247 integration
+and pin the integrated route hash.
 
 | Check | Final five-window result |
 | --- | --- |
