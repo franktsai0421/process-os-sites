@@ -2,6 +2,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),{chromium}=require('playwright');
 const {fixture}=require('./ipqc-c-operation-fixture.cjs');
 const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:{errors:[{id:'legacy-error',code:'C100-C-CUT-001',productCode:'C100',stageCode:'C-CUT',name:'Original',note:'retained legacy note',reason:'',deleted:false}],items:[]},baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
+// Independent existing groups exercise both local operation orders without peers.
+for(const [index,id]of ['delete-1440-create-first','delete-1440-delete-first','delete-390-create-first','delete-390-delete-first','delete-peer-conflict'].entries())initial.versions[0].snapshot.errors.push({...initial.versions[0].snapshot.errors[0],id,code:'C100-C-CUT-'+String(index+2).padStart(3,'0'),name:id});
 (async()=>{
  const h=await fixture({ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',name:'Fixture',stages:['C-CUT']}],lines:[{code:'C',stages:[{code:'C-CUT',name:'Cut'}]}]}}})});
 
@@ -55,6 +57,29 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().localChanges.length===0);
  assert.equal(h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')).saved.content.errors[0].note,'After explicit discard');assert.equal(mutations.length,rejectedCount+1,'later Save is a new single operation');
  }
+ // Real UI stages each action; the actual HTTP route must save one atomic batch.
+ const createLocalItem=async description=>{await page.locator('[data-ipqcc-error="legacy-error"] > div').first().click();await page.locator('[data-ipqcc-add="item"]').click();await page.locator('textarea[name="description"]').fill(description);await page.locator('[name="standard"]').fill('batch standard');await page.locator('input[name="aqlValue"]').fill('0.25');await page.locator('#ipqcc-editor button[type="submit"]').click();await page.locator('#ipqcc-editor').waitFor({state:'detached'});};
+ const deleteOtherError=async id=>{const accept=dialog=>void dialog.accept();page.on('dialog',accept);try{await page.locator('[data-ipqcc-delete-error="'+id+'"]').click();}finally{page.off('dialog',accept);}};
+ for(const order of ['create-first','delete-first']){
+  mutations.length=0;const target='delete-'+width+'-'+order,description='Batch '+width+' '+order,before=h.snapshot();
+  if(order==='create-first'){await createLocalItem(description);await deleteOtherError(target);}else{await deleteOtherError(target);await createLocalItem(description);}
+  assert.equal(mutations.length,0,'local create/delete order sends no workflow writes');assert.deepEqual(h.snapshot(),before);
+  assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),2);
+  const saved=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/ipqc-c/workflow'&&response.request().method()==='POST');await page.locator('#ipqcc-save').click();const response=await saved;assert.equal(response.status(),200,await response.text());
+  await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().localChanges.length===0);
+  assert.equal(mutations.length,1,'one atomic Save for either local action order');const command=JSON.parse(mutations[0].body).command;assert.equal(command.action,'save');
+  const result=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')),item=result.saved.content.items.find(row=>row.description===description);
+  assert(item&&!item.deleted);assert.equal(item.errorId,'legacy-error');assert(!item.id.startsWith('local-'));assert.notEqual(item.code,'尚未存取');assert.notEqual(item.code,'Chưa lưu');assert.equal(result.saved.content.errors.find(row=>row.id===target).deleted,true);assert.equal(result.saved.content.errors.find(row=>row.id==='legacy-error').deleted,false);assert.deepEqual(result.saved.content,result.working);
+ }
+ if(width===1440){
+  mutations.length=0;await createLocalItem('Retain rejected batch item');await deleteOtherError('delete-peer-conflict');const beforeLocal=await page.evaluate(()=>{const {working,localChanges}=__localTest.state();return {working,localChanges};});
+  const peerFlow=h.flow(await h.read('ipqc-c')),peerItem=peerFlow.working.items.find(row=>!row.deleted),path=['items',{id:peerItem.id},'standard'];
+  await h.command('ipqc-c','apply',{patches:[{op:'set',path,value:'Genuine peer standard'}],guards:[{path,value:peerItem.standard}]},'edit-only');await h.command('ipqc-c','save',{},'edit-only');const peerSaved=h.snapshot();
+  const rejected=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/ipqc-c/workflow'&&response.request().method()==='POST');await page.locator('#ipqcc-save').click();const response=await rejected;assert.equal(response.status(),409);assert.equal((await response.json()).error,'DEPENDENCY_CHANGED_RECONFIRM');await page.waitForFunction(()=>!__localTest.state().busy);
+  assert.equal(mutations.length,1);assert.deepEqual(h.snapshot(),peerSaved,'real peer conflict must reject entire batch');
+  const local=await page.evaluate(()=>__localTest.state());assert.deepEqual({working:local.working,localChanges:local.localChanges},beforeLocal,'rejection retains every staged field and dependency guard');assert.equal(local.unknown,false);assert.equal(local.localChanges.length,2);assert(local.working.items.some(row=>row.description==='Retain rejected batch item'&&row.id.startsWith('local-')));assert.equal(local.working.errors.find(row=>row.id==='delete-peer-conflict').deleted,true);
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#ipqcc-reload').click();await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().localChanges.length===0);assert.equal(mutations.length,1,'explicit discard performs no retry');assert.deepEqual(h.snapshot(),peerSaved);
+ }
  await page.evaluate(()=>{document.documentElement.lang='vi';dispatchEvent(new CustomEvent('process-language-change',{detail:{language:'vi'}}));});assert.equal(await page.locator('#ipqcc-save').innerText(),'Lưu');
  if(width===390){
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Recovered receipt');await page.locator('#ipqcc-editor button[type="submit"]').click();dropSave=true;
@@ -86,6 +111,6 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  await page.reload();await page.locator('#ipqcc-save').waitFor();assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),width===390?'Recovered receipt':'Local '+width);
  const layout=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));assert(layout.scroll<=layout.width+1,JSON.stringify(layout));await page.close();
  }
- assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, filter/read preservation, one Save POST, shared saved result, silent departure and reload');
+ assert.deepEqual(errors,[]);console.log('PASS Chromium 1440/390: local edit, filter/read preservation, one Save POST, shared saved result, silent departure and reload; both create-item/delete-other-error orders and genuine peer batch conflict');
  }finally{releaseRecoveryRead?.();await browser.close();await new Promise(resolve=>server.close(resolve));h.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
