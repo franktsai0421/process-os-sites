@@ -6,6 +6,61 @@ Implementation commit: `779d8280d6705f909b631af0e62ba11adb6ba517`.
 Branch: `fix/ipqc-c-create-latency`. No deployment, real business mutation,
 unknown-lock release, original-operation retry, or FQC V31 modification.
 
+## Additional latency improvement (Draft PR #73)
+
+[Draft PR #73](https://github.com/franktsai0421/process-os-sites/pull/73) was
+created after explicit user authorization. This follow-up keeps the original
+POST and mandatory terminal GET. Only runtime create-item terminal checks opt in
+to `readback=ipqc-c-create-v1`, which reads the fixed six auth/C workflow keys.
+The complete workflow/permission response and the existing owner/version/unknown
+checks remain. History, receipt, restore or unexpected combined selectors use
+the old full reader; historical unknown discovery does not assume create intent.
+No POST authority is substituted for the fresh GET, and no authorization result
+is cached. Unrelated records no longer delay this explicit terminal check.
+
+The expanded benchmark enables session revocation, supplies all five authority
+keys, and uses a newly uploaded synthetic PNG reference (one HEAD per POST).
+It compares the current handler with creation selection disabled (full-reader
+control, **not an exact historical executable**), first-PR behavior (selected
+POST/full GET), and this follow-up (selected POST/GET). Each scenario runs five
+measured rounds after warmup in alternating order, with 24 unrelated aggregates.
+Upload precedes measurement; network, browser render and live storage are excluded.
+
+| Synthetic profile / working items | Full-reader control median | First PR median | Follow-up median |
+| --- | ---: | ---: | ---: |
+| In-memory, 100 | 86.32 ms | 84.44 ms | 96.20 ms |
+| In-memory, 1,000 | 258.58 ms | 302.00 ms | 296.84 ms |
+| R2 10ms + SQL 1ms artificial delay, 100 | 1,121.23 ms | 860.34 ms | 455.01 ms |
+| R2 10ms + SQL 1ms artificial delay, 1,000 | 1,288.81 ms | 1,064.92 ms | 660.75 ms |
+
+These are POST response-consumption plus fresh GET times. The expanded fixture
+has 46+45 R2 GETs for the full control, 21+45 for the first PR, and 21+8 for the
+follow-up. All three retain 3 PUTs, 1 photo HEAD and 17+14 SQL operations; the SQL
+session-revocation checks are unchanged. The differing GET counts from the first
+small fixture below reflect complete authority keys and larger working content.
+[All samples, minima/maxima, stage timings and source hashes](ipqc-c-create-20261104/latency.json)
+are retained. Reproduce with:
+
+```
+node scripts/test-ipqc-c-create-mutation.cjs --benchmark=100
+node scripts/test-ipqc-c-create-mutation.cjs --benchmark=1000
+```
+
+The no-delay scenario does **not** demonstrate a CPU speedup: the 1,000-item
+follow-up is ~38 ms slower than the full control and ~5 ms faster than first PR.
+Selection/encoding verification has CPU cost; the measured benefit is mainly
+reduced remote I/O. The artificial-delay result is not a promise of live speed
+or proof that the historical 14.765-second cancellation is resolved. Real Site
+latency, browser/device acceptance and an exact-head CI result remain release
+requirements. No deployment is authorized by this PR.
+
+Follow-up verification: create suite 24 groups, actual primary C stack 42 tests
+(including selector dispatch and readback-denial unknown retention), 13 deadline
+cases, and the preserved 16+29 source-contract negative cases pass. The
+independent reviewer found no blocking source/safety finding and confirmed the
+benchmark's scope/limitations. Lint/build and committed-source checks are rerun
+for this follow-up; their final status is reported with the delivered commit.
+
 ## Finding and scope
 
 The delegated observation was a photo PUT completing in 1.214 seconds, followed
@@ -68,10 +123,10 @@ and actor/delivery protection remain in place.
 | Source/publication boundary scan | `node scripts/sites-source-check.mjs`; changed-file `scanFiles` | PASS |
 | Repository-wide safety scan | `node scripts/safety-scan.mjs` | FAIL: two unchanged synthetic-test findings already byte-identical to base; changed files have zero findings |
 | Native browser, physical device, real Site latency, hosted D1/R2 | Not executed | NOT_RUN |
-| GitHub CI | Runs on PR creation; no deployment workflow is triggered | Pending |
+| GitHub CI | Runs on PR creation; no deployment workflow is triggered | First-head run started; follow-up exact-head result pending |
 
 Source inverse contracts retain the old Save/permission/history proof rather than
-weakening it: 13 create-span negative cases and the prior 29 composed-span negative
+weakening it: 16 create-span negative cases after the follow-up and the prior 29 composed-span negative
 cases passed independent review. CRLF route bytes are retained; whitespace check
 uses `git -c core.whitespace=cr-at-eol diff --check`.
 

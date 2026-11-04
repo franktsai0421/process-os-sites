@@ -1,0 +1,1757 @@
+{
+  "environment": "isolated Linux, Node 24.19.0; synthetic SQLite/R2; no live network",
+  "baseCommit": "0b1c6ef09b10ac84f610ed44195cf4d80ab1e1dc",
+  "sourceSHA256": {
+    "app/api/ipqc-c/workflow/route.ts": "8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07",
+    "public/process/shared-draft-client.js": "f471b406d4cc375521dc905d5c9b0be241f9610fb4072bc667bd00e4d3069593",
+    "lib/ipqc-c-create-record-mutation.ts": "d5554ec014557eae975dd226841b565a1ad5b6cbb94b30fb242e4d6e388d070b",
+    "lib/state-records.ts": "7d03cc727db7ad083b0f08dc04607bc4a03fb7ef8bd5f8d9a4c1df91c93f42ee",
+    "scripts/test-ipqc-c-create-mutation.cjs": "093b476427c43ca38ef8ae9d64c3c6a9ced5e8b364c9a3507d47af9d5d48d801",
+    "scripts/ipqc-c-create-benchmark.cjs": "b5f3f04ea15df293cf559631241daa1052b3c8da256cba034a7ed551c5d3db00",
+    "package-lock.json": "46500cbf2663547b9bdace08525bc7b1b381755647055b71ca02a8617716d05b"
+  },
+  "runs": [
+    {
+      "status": "PASS_CREATE_LATENCY_COMPARISON",
+      "items": 100,
+      "unrelatedAggregates": 24,
+      "sessionRevocationEnabled": true,
+      "newUploadedPhotoHead": true,
+      "rounds": 5,
+      "summary": [
+        {
+          "storageMs": 0,
+          "mode": "full",
+          "post": {
+            "medianMs": 53.64,
+            "minMs": 48.21,
+            "maxMs": 61.13
+          },
+          "readback": {
+            "medianMs": 31.65,
+            "minMs": 28.03,
+            "maxMs": 46.77
+          },
+          "total": {
+            "medianMs": 86.32,
+            "minMs": 80.31,
+            "maxMs": 100.41
+          },
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "mode": "post-only",
+          "post": {
+            "medianMs": 48.58,
+            "minMs": 48.14,
+            "maxMs": 95.08
+          },
+          "readback": {
+            "medianMs": 32.3,
+            "minMs": 22.66,
+            "maxMs": 36.95
+          },
+          "total": {
+            "medianMs": 84.44,
+            "minMs": 71.24,
+            "maxMs": 132.03
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "mode": "final",
+          "post": {
+            "medianMs": 62.35,
+            "minMs": 47.55,
+            "maxMs": 69.72
+          },
+          "readback": {
+            "medianMs": 28.78,
+            "minMs": 25.72,
+            "maxMs": 54.08
+          },
+          "total": {
+            "medianMs": 96.2,
+            "minMs": 74.91,
+            "maxMs": 116.43
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "full",
+          "post": {
+            "medianMs": 596.82,
+            "minMs": 581.84,
+            "maxMs": 617.66
+          },
+          "readback": {
+            "medianMs": 524.4,
+            "minMs": 500.78,
+            "maxMs": 533.27
+          },
+          "total": {
+            "medianMs": 1121.23,
+            "minMs": 1093.04,
+            "maxMs": 1147.68
+          },
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "post-only",
+          "post": {
+            "medianMs": 339.49,
+            "minMs": 325.77,
+            "maxMs": 398.13
+          },
+          "readback": {
+            "medianMs": 520.85,
+            "minMs": 503.68,
+            "maxMs": 596.19
+          },
+          "total": {
+            "medianMs": 860.34,
+            "minMs": 829.44,
+            "maxMs": 994.32
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "final",
+          "post": {
+            "medianMs": 338.95,
+            "minMs": 329.69,
+            "maxMs": 381.21
+          },
+          "readback": {
+            "medianMs": 116.49,
+            "minMs": 112.68,
+            "maxMs": 128.02
+          },
+          "total": {
+            "medianMs": 455.01,
+            "minMs": 442.36,
+            "maxMs": 509.22
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        }
+      ],
+      "samples": [
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "full",
+          "postMs": 48.210059,
+          "readbackMs": 35.53583600000002,
+          "totalMs": 83.74589500000002,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "post-only",
+          "postMs": 95.08037400000012,
+          "readbackMs": 36.946914000000106,
+          "totalMs": 132.02728800000023,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "final",
+          "postMs": 62.35124900000028,
+          "readbackMs": 54.07710599999973,
+          "totalMs": 116.42835500000001,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "final",
+          "postMs": 69.72120599999971,
+          "readbackMs": 28.77957600000036,
+          "totalMs": 98.50078200000007,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "post-only",
+          "postMs": 81.47707600000012,
+          "readbackMs": 31.299541999999747,
+          "totalMs": 112.77661799999987,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "full",
+          "postMs": 61.13274000000001,
+          "readbackMs": 28.0259930000002,
+          "totalMs": 89.15873300000021,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "full",
+          "postMs": 49.60113799999999,
+          "readbackMs": 30.711653999999726,
+          "totalMs": 80.31279199999972,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "post-only",
+          "postMs": 48.5564959999997,
+          "readbackMs": 35.882454999999936,
+          "totalMs": 84.43895099999963,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "final",
+          "postMs": 59.560931999999866,
+          "readbackMs": 25.723813000000064,
+          "totalMs": 85.28474499999993,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "final",
+          "postMs": 47.55455499999971,
+          "readbackMs": 27.353753000000324,
+          "totalMs": 74.90830800000003,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "post-only",
+          "postMs": 48.58059299999968,
+          "readbackMs": 22.66411599999992,
+          "totalMs": 71.2447089999996,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "full",
+          "postMs": 53.63683500000025,
+          "readbackMs": 46.76858699999957,
+          "totalMs": 100.40542199999982,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "full",
+          "postMs": 54.66337999999996,
+          "readbackMs": 31.654066000000057,
+          "totalMs": 86.31744600000002,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "post-only",
+          "postMs": 48.13814999999977,
+          "readbackMs": 32.301720999999816,
+          "totalMs": 80.43987099999958,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "final",
+          "postMs": 65.66175100000055,
+          "readbackMs": 30.540643999999702,
+          "totalMs": 96.20239500000025,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "full",
+          "postMs": 596.8243379999994,
+          "readbackMs": 524.4025369999999,
+          "totalMs": 1121.2268749999994,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "post-only",
+          "postMs": 332.04793300000074,
+          "readbackMs": 517.3162119999997,
+          "totalMs": 849.3641450000005,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "final",
+          "postMs": 368.0586830000011,
+          "readbackMs": 127.52494200000001,
+          "totalMs": 495.5836250000011,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "final",
+          "postMs": 381.2053020000003,
+          "readbackMs": 128.01727399999982,
+          "totalMs": 509.2225760000001,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "post-only",
+          "postMs": 398.12963800000034,
+          "readbackMs": 596.193792,
+          "totalMs": 994.3234300000004,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "full",
+          "postMs": 610.3600549999992,
+          "readbackMs": 533.2700260000001,
+          "totalMs": 1143.6300809999993,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "full",
+          "postMs": 617.6561549999988,
+          "readbackMs": 530.0276470000008,
+          "totalMs": 1147.6838019999996,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "post-only",
+          "postMs": 343.93355899999915,
+          "readbackMs": 533.0433700000012,
+          "totalMs": 876.9769290000004,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "final",
+          "postMs": 335.28848299999845,
+          "readbackMs": 116.49036400000114,
+          "totalMs": 451.7788469999996,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "final",
+          "postMs": 338.95374999999876,
+          "readbackMs": 116.0572460000003,
+          "totalMs": 455.01099599999907,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "post-only",
+          "postMs": 339.4857630000006,
+          "readbackMs": 520.8535029999985,
+          "totalMs": 860.339265999999,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "full",
+          "postMs": 581.8403020000005,
+          "readbackMs": 511.20214599999963,
+          "totalMs": 1093.0424480000001,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "full",
+          "postMs": 595.1344769999996,
+          "readbackMs": 500.78312000000005,
+          "totalMs": 1095.9175969999997,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "post-only",
+          "postMs": 325.7662300000011,
+          "readbackMs": 503.6763809999975,
+          "totalMs": 829.4426109999986,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "final",
+          "postMs": 329.6884519999985,
+          "readbackMs": 112.67645099999936,
+          "totalMs": 442.36490299999787,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        }
+      ],
+      "limits": "Actual handlers with synthetic fixtures. full disables create selection; post-only is first PR behavior; final also selects fresh readback. storageMs is artificial R2 latency, SQL delay is 1ms only in that profile. No network/browser/live latency or percentile claim."
+    },
+    {
+      "status": "PASS_CREATE_LATENCY_COMPARISON",
+      "items": 1000,
+      "unrelatedAggregates": 24,
+      "sessionRevocationEnabled": true,
+      "newUploadedPhotoHead": true,
+      "rounds": 5,
+      "summary": [
+        {
+          "storageMs": 0,
+          "mode": "full",
+          "post": {
+            "medianMs": 214.55,
+            "minMs": 206.89,
+            "maxMs": 234.18
+          },
+          "readback": {
+            "medianMs": 46.28,
+            "minMs": 44.02,
+            "maxMs": 48.63
+          },
+          "total": {
+            "medianMs": 258.58,
+            "minMs": 253.17,
+            "maxMs": 281.14
+          },
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "mode": "post-only",
+          "post": {
+            "medianMs": 251.44,
+            "minMs": 244.95,
+            "maxMs": 264.94
+          },
+          "readback": {
+            "medianMs": 46.89,
+            "minMs": 45.21,
+            "maxMs": 57.04
+          },
+          "total": {
+            "medianMs": 302,
+            "minMs": 295.13,
+            "maxMs": 312.54
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "mode": "final",
+          "post": {
+            "medianMs": 249.53,
+            "minMs": 241.34,
+            "maxMs": 260.05
+          },
+          "readback": {
+            "medianMs": 41.35,
+            "minMs": 39.72,
+            "maxMs": 47.67
+          },
+          "total": {
+            "medianMs": 296.84,
+            "minMs": 282.69,
+            "maxMs": 299.76
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "full",
+          "post": {
+            "medianMs": 754.37,
+            "minMs": 728.84,
+            "maxMs": 767.9
+          },
+          "readback": {
+            "medianMs": 520.92,
+            "minMs": 513.54,
+            "maxMs": 577.67
+          },
+          "total": {
+            "medianMs": 1288.81,
+            "minMs": 1242.39,
+            "maxMs": 1332.04
+          },
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "post-only",
+          "post": {
+            "medianMs": 547.22,
+            "minMs": 500.47,
+            "maxMs": 666.98
+          },
+          "readback": {
+            "medianMs": 522.38,
+            "minMs": 517.71,
+            "maxMs": 530.74
+          },
+          "total": {
+            "medianMs": 1064.92,
+            "minMs": 1031.21,
+            "maxMs": 1189.36
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "mode": "final",
+          "post": {
+            "medianMs": 529.05,
+            "minMs": 501.56,
+            "maxMs": 532.76
+          },
+          "readback": {
+            "medianMs": 134.77,
+            "minMs": 127.99,
+            "maxMs": 184.11
+          },
+          "total": {
+            "medianMs": 660.75,
+            "minMs": 636.86,
+            "maxMs": 713.15
+          },
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        }
+      ],
+      "samples": [
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "full",
+          "postMs": 212.74944900000037,
+          "readbackMs": 44.13435999999956,
+          "totalMs": 256.8838089999999,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "post-only",
+          "postMs": 264.94157600000017,
+          "readbackMs": 45.210659000000305,
+          "totalMs": 310.1522350000005,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 0,
+          "mode": "final",
+          "postMs": 241.34257200000047,
+          "readbackMs": 41.34696299999996,
+          "totalMs": 282.68953500000043,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "final",
+          "postMs": 247.50666399999955,
+          "readbackMs": 40.59267700000055,
+          "totalMs": 288.0993410000001,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "post-only",
+          "postMs": 258.8880760000002,
+          "readbackMs": 53.65328800000043,
+          "totalMs": 312.5413640000006,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 1,
+          "mode": "full",
+          "postMs": 214.5525720000005,
+          "readbackMs": 44.02262400000018,
+          "totalMs": 258.5751960000007,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "full",
+          "postMs": 216.76620100000036,
+          "readbackMs": 48.63191199999983,
+          "totalMs": 265.3981130000002,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "post-only",
+          "postMs": 251.4356630000002,
+          "readbackMs": 46.89339799999925,
+          "totalMs": 298.32906099999946,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 2,
+          "mode": "final",
+          "postMs": 260.0492439999998,
+          "readbackMs": 39.71572300000025,
+          "totalMs": 299.76496700000007,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "final",
+          "postMs": 249.53006800000003,
+          "readbackMs": 47.66820899999948,
+          "totalMs": 297.1982769999995,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "post-only",
+          "postMs": 248.66006500000003,
+          "readbackMs": 46.46669900000052,
+          "totalMs": 295.12676400000055,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 3,
+          "mode": "full",
+          "postMs": 206.88667199999963,
+          "readbackMs": 46.27992699999959,
+          "totalMs": 253.16659899999922,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "full",
+          "postMs": 234.18459799999982,
+          "readbackMs": 46.959789999999884,
+          "totalMs": 281.1443879999997,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "post-only",
+          "postMs": 244.954839,
+          "readbackMs": 57.042341000000306,
+          "totalMs": 301.9971800000003,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 0,
+          "round": 4,
+          "mode": "final",
+          "postMs": 252.37712499999998,
+          "readbackMs": 44.466372000000774,
+          "totalMs": 296.84349700000075,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "full",
+          "postMs": 754.3724290000009,
+          "readbackMs": 577.6673140000003,
+          "totalMs": 1332.0397430000012,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "post-only",
+          "postMs": 516.8245370000004,
+          "readbackMs": 526.4527360000011,
+          "totalMs": 1043.2772730000015,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 0,
+          "mode": "final",
+          "postMs": 520.547485000001,
+          "readbackMs": 134.76698099999885,
+          "totalMs": 655.3144659999998,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "final",
+          "postMs": 529.0450829999991,
+          "readbackMs": 184.10631599999942,
+          "totalMs": 713.1513989999985,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "post-only",
+          "postMs": 666.9814590000005,
+          "readbackMs": 522.378655999999,
+          "totalMs": 1189.3601149999995,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 1,
+          "mode": "full",
+          "postMs": 767.9004539999987,
+          "readbackMs": 561.9934190000022,
+          "totalMs": 1329.893873000001,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "full",
+          "postMs": 767.8850459999994,
+          "readbackMs": 520.9200710000005,
+          "totalMs": 1288.8051169999999,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "post-only",
+          "postMs": 550.6688730000023,
+          "readbackMs": 521.5190839999996,
+          "totalMs": 1072.187957000002,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 2,
+          "mode": "final",
+          "postMs": 501.5603370000026,
+          "readbackMs": 135.29730799999743,
+          "totalMs": 636.857645,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "final",
+          "postMs": 532.6546930000004,
+          "readbackMs": 130.32178399999975,
+          "totalMs": 662.9764770000002,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "post-only",
+          "postMs": 547.2189160000016,
+          "readbackMs": 517.7052409999997,
+          "totalMs": 1064.9241570000013,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 3,
+          "mode": "full",
+          "postMs": 742.975985000001,
+          "readbackMs": 515.7928409999986,
+          "totalMs": 1258.7688259999995,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "full",
+          "postMs": 728.8449230000006,
+          "readbackMs": 513.5428109999993,
+          "totalMs": 1242.387734,
+          "metrics": {
+            "post": {
+              "get": 46,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "post-only",
+          "postMs": 500.472606000003,
+          "readbackMs": 530.7370259999989,
+          "totalMs": 1031.2096320000019,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 45,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        },
+        {
+          "storageMs": 10,
+          "round": 4,
+          "mode": "final",
+          "postMs": 532.758303999999,
+          "readbackMs": 127.99269099999947,
+          "totalMs": 660.7509949999985,
+          "metrics": {
+            "post": {
+              "get": 21,
+              "put": 3,
+              "head": 1,
+              "sql": 17
+            },
+            "readback": {
+              "get": 8,
+              "put": 0,
+              "head": 0,
+              "sql": 14
+            }
+          }
+        }
+      ],
+      "limits": "Actual handlers with synthetic fixtures. full disables create selection; post-only is first PR behavior; final also selects fresh readback. storageMs is artificial R2 latency, SQL delay is 1ms only in that profile. No network/browser/live latency or percentile claim."
+    }
+  ]
+}

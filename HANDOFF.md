@@ -1,6 +1,6 @@
 ## 2026-11-04 — IPQC-C create-item independent candidate
 
-Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).
+Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. Draft PR #73 is open. Follow-up narrows the mandatory create readback and adds measured POST+GET evidence; original unknown stays intact. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).
 
 ## 2026-11-03 — Simple draft departure follow-up
 

@@ -61,7 +61,12 @@ async function _unchanged(h, task) { const before = h.snapshot(); const result =
 
     await h.begin('ipqc-c');
     // Canonical records, with independent unrelated aggregates to expose read cost.
+    const newPhoto=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
+    const photoResponse=await h.load('app/api/ipqc-c/photo/route.ts').PUT(new Request('http://fixture/api/ipqc-c/photo',{method:'PUT',headers:{...h.sessions.editor,'Content-Type':'image/png'},body:newPhoto}));assert.equal(photoResponse.status,200);const newPhotoId=(await photoResponse.json()).id;assert.notEqual(newPhotoId,photoId);
     const initial=await h.core.readState();
+    const benchmarkArg=process.argv.find(arg=>arg.startsWith('--benchmark=')),benchmarkItems=benchmarkArg?Number(benchmarkArg.split('=')[1]):0;
+    if(benchmarkArg){assert([100,1000].includes(benchmarkItems));Object.assign(initial.values,{processCustomRoles:'[]',processRoleTemplateOverrides:'{}',processAccessControl:'{}',maintenanceMode:'0'});h.env.PROCESS_SESSION_REVOCATION_ENABLED='1';const control=JSON.parse(initial.values.ipqcCMasterControl),content=control.workflow.working,first=content.items[0];content.items=Array.from({length:benchmarkItems},(_,i)=>({...json(first),id:i?'benchmark-item-'+i:first.id,code:first.code.replace(/-\d+$/,'-'+String(i+1).padStart(2,'0'))}));control.versions.find(v=>v.status==='draft').snapshot=json(content);control.reservedItemCodes=[...new Set([...control.reservedItemCodes,...content.items.map(i=>i.code)])];initial.values.ipqcCMasterControl=JSON.stringify(control);}
+
     for(let i=0;i<24;i++)initial.values['syntheticUnrelated'+i]=JSON.stringify({text:'unrelated fixture '+i});
     const records=h.load('lib/state-records.ts'),adapter=h.load('lib/ipqc-c-create-record-mutation.ts');
     const encoded=await records.encodeRecordValues(h.env.STATE_ARCHIVE,initial.values);
@@ -69,14 +74,23 @@ async function _unchanged(h, task) { const before = h.snapshot(); const result =
     const seed={...h.db.prepare('SELECT * FROM shared_state WHERE id=1').get()},seedObjects=new Map(h.objects);
     const reset=()=>{h.db.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1').run(seed.revision,seed.values,seed.updated_at);h.objects.clear();for(const [k,v]of seedObjects)h.objects.set(k,v);};
     const model=JSON.parse(initial.values.ipqcCMasterControl),flow=model.workflow;
-    const item={standard:'12 mm',description:'Synthetic added method 中文 Việt',standardEnabled:true,cpkEnabled:true,equipmentId:'source',equipmentGroupId:'group',rule:{cadence:'batch',batchKind:'aql',aqlValue:'0.25'},mediaItems:[{id:photoId,name:'synthetic.gif',note:'retained reference',afterParagraph:0}]};
+    const item={standard:'12 mm',description:'Synthetic added method 中文 Việt',standardEnabled:true,cpkEnabled:true,equipmentId:'source',equipmentGroupId:'group',rule:{cadence:'batch',batchKind:'aql',aqlValue:'0.25'},mediaItems:[{id:newPhotoId,name:'synthetic.png',note:'retained reference',afterParagraph:0}]};
     const command={action:'apply',moduleAction:'create-item',input:{errorId:flow.working.errors[0].id,item},operationId:'create-fixture-operation',clientId:'create-fixture-client',sequence:1,generation:flow.generation};
     const route=h.load('app/api/ipqc-c/workflow/route.ts'),wire=h.load('lib/workflow-wire.ts');
     const send=async(cmd=command,who='editor',status=200)=>{const response=await route.POST(new Request('http://fixture/api/ipqc-c/workflow?caseMetadata=1&compact=1',{method:'POST',headers:h.sessions[who],body:JSON.stringify({command:cmd})}));const body=wire.expandWorkflowPayload(await response.json());assert.equal(response.status,status,JSON.stringify(body));return body;};
+    const readback=async(selected=true,who='editor',status=200,extra='')=>{const response=await route.GET(new Request('http://fixture/api/ipqc-c/workflow?caseMetadata=1'+(selected?'&readback=ipqc-c-create-v1':'')+extra,{headers:h.sessions[who]}));const body=await response.json();assert.equal(response.status,status,JSON.stringify(body));return body;};
+    if(benchmarkArg){await require('./ipqc-c-create-benchmark.cjs')({h,adapter,reset,send,readback,items:benchmarkItems});return;}
     const row=()=>({...h.db.prepare('SELECT * FROM shared_state WHERE id=1').get()});
     const full=async()=>JSON.parse((await h.core.readState()).values.ipqcCMasterControl);
     const manifest=()=>JSON.parse(row().values).__processRecords;
     const preserved=before=>{const after=manifest();for(const [key,ref]of Object.entries(before.values))if(key!=='ipqcCMasterControl')assert.deepEqual(after.values[key],ref);assert.deepEqual(after.legacySources,before.legacySources);for(const [key,ref]of Object.entries(before.allocations))if(key!=='ipqcCMasterControl')assert.deepEqual(after.allocations[key],ref);};
+    reset();assert.deepEqual(await readback(),await readback(false));
+    for(const who of ['viewer','editor','edit-only','no-view']){const status=who==='no-view'?403:200;assert.deepEqual(await readback(true,who,status),await readback(false,who,status));}
+    assert.deepEqual(await readback(true,'editor',404,'&operationId=missing-operation'),await readback(false,'editor',404,'&operationId=missing-operation'));record('fresh readback full DTO/role parity; combined receipt selector retains old behavior');
+    reset();const originalGet=h.env.STATE_ARCHIVE.get;let requested=[];h.env.STATE_ARCHIVE.get=async key=>{requested.push(key);return originalGet(key);};
+    try{await readback(false);const fullCount=requested.length;requested=[];await readback();assert(requested.length<fullCount);const unrelated=manifest().values.syntheticUnrelated0.key;assert(!requested.includes(unrelated));h.objects.set(unrelated,Buffer.from('corrupt'));await readback();await readback(true,'editor',503,'&readbackExtra=1');}finally{h.env.STATE_ARCHIVE.get=originalGet;}record('opt-in readback excludes unrelated records; unknown selectors fall back');
+    for(const key of ['platformUsers','ipqcCMasterControl']){reset();h.objects.set(manifest().values[key].key,Buffer.from('corrupt'));await readback(true,'editor',503);}record('readback required authority/content integrity fails closed');
+    reset();h.env.PROCESS_SESSION_REVOCATION_ENABLED='1';const getOnRead=h.env.STATE_ARCHIVE.get;let revokedOnRead=false;h.env.STATE_ARCHIVE.get=async key=>{const value=await getOnRead(key);if(!revokedOnRead){revokedOnRead=true;await h.load('lib/session-revocation.ts').revokeSession(h.sessions.editor.Cookie.split('=').slice(1).join('='),Date.now()+60000);}return value;};try{await readback(true,'editor',403);}finally{h.env.STATE_ARCHIVE.get=getOnRead;delete h.env.PROCESS_SESSION_REVOCATION_ENABLED;h.db.prepare('DELETE FROM process_revoked_sessions').run();}record('fresh readback session revocation during hydration denied');
     const measure=async(fullRead)=>{reset();const read=adapter.readIpqcCCreateMutationState,get=h.env.STATE_ARCHIVE.get,put=h.env.STATE_ARCHIVE.put;let gets=0,puts=0;
       if(fullRead)adapter.readIpqcCCreateMutationState=async()=>null;
       h.env.STATE_ARCHIVE.get=async key=>{gets++;await new Promise(resolve=>setTimeout(resolve,2));return get(key);};h.env.STATE_ARCHIVE.put=async(...args)=>{puts++;return put(...args);};

@@ -1,7 +1,7 @@
-/* Exact inverse for the create-item read/encode and final revocation spans.
+/* Exact inverse for create-item mutation and terminal readback spans.
  * Keep the older Save/permission contracts unchanged after this inverse. */
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
-const beforeHash="5f79d4070f7e6028ab3916e52d4c04caf8a32ed5017be16f42023af578473d5b",afterHash="349b5978459c5d9cd14fa1f8353cf3c2af6696dd603e8f2ad93fae5085a146eb";
+const beforeHash="5f79d4070f7e6028ab3916e52d4c04caf8a32ed5017be16f42023af578473d5b",afterHash="8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07";
 const rules=[
   {
     "offset": 0,
@@ -9,17 +9,22 @@ const rules=[
     "after": "import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutationState} from '@/lib/ipqc-c-create-record-mutation';\r\n"
   },
   {
-    "offset": 11271,
+    "offset": 4300,
+    "before": "    const state=await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);\r\n",
+    "after": "    // The create terminal check needs current authority and C workflow only.\r\n    // Keep its full response/fresh GET; do not reuse POST authority or narrow\r\n    // history/restore/receipt queries when selectors are combined.\r\n    const createReadback=query.get('readback')==='ipqc-c-create-v1'&&[...query.keys()].every(key=>['readback','caseMetadata','compact'].includes(key));\r\n    const state=await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);\r\n"
+  },
+  {
+    "offset": 11789,
     "before": "      const state=saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\r\n",
     "after": "      const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;\r\n      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;\r\n"
   },
   {
-    "offset": 18484,
+    "offset": 19002,
     "before": "",
     "after": "      const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));\r\n      // Recheck session revocation after slow photo/immutable storage I/O.\r\n      // Account/permission changes remain fenced by the state revision CAS.\r\n      if(ipqcCCreateCommand(body.command)&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\r\n"
   },
   {
-    "offset": 19098,
+    "offset": 19616,
     "before": "        .bind(state.revision+1,await (saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared)),at,state.revision).run();\r\n",
     "after": "        .bind(state.revision+1,encoded,at,state.revision).run();\r\n"
   }

@@ -1,6 +1,6 @@
 ## 2026-11-04 — IPQC-C create-item reliability/performance candidate
 
-Canonical create-item now reads fixed required records and preserves unrelated manifest pointers; commits the C allocation index atomically. Session revocation is checked after storage I/O. Its 45-second wait retains receipt-only unknown protection. No schema/data change or live-speed claim. [Verification](../docs/acceptance/ipqc-c-create-20261104.md).
+Canonical create-item now reads fixed required records and preserves unrelated manifest pointers; commits the C allocation index atomically. Session revocation is checked after storage I/O. Its 45-second wait retains receipt-only unknown protection. Follow-up narrows the mandatory create terminal GET while retaining its authority/version fences; five-round 100/1000-item POST+GET timing includes the no-delay CPU limitation. No schema/data change or live-speed claim. [Verification](../docs/acceptance/ipqc-c-create-20261104.md).
 
 ## 2026-11-03 — Scoped non-FQC unknown departure candidate
 
