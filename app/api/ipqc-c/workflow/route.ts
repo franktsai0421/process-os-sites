@@ -123,7 +123,19 @@ export async function POST(request:Request) {
     const raw=new TextDecoder().decode(bytes);if(raw.includes('__immutableBody')||raw.includes('__liveContent'))return reply({error:'RESERVED_STORAGE_REFERENCE',requestId},422);
     const body=JSON.parse(raw) as {action?:'begin';command?:IpqcWorkflowCommand};
     if(body.command)body.command=expandWorkflowCommand(body.command) as IpqcWorkflowCommand;
-    if(body.command?.localChanges!==undefined&&(!Array.isArray(body.command.localChanges)||body.command.localChanges.length>256))return reply({error:'INVALID_LOCAL_SAVE'},422);
+    if(body.command?.localChanges!==undefined){
+      const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
+      const path=(value:unknown)=>Array.isArray(value)&&value.length>0&&value.every(part=>typeof part==='string'||object(part)&&Object.keys(part).length===1&&typeof part.id==='string');
+      const changes:unknown=body.command.localChanges;
+      const valid=Array.isArray(changes)&&changes.length<=256&&changes.every(change=>object(change)&&
+        Object.keys(change).every(key=>['moduleAction','input','patches','guards','localId'].includes(key))&&
+        (change.moduleAction===undefined||typeof change.moduleAction==='string'&&['create-error','create-item','delete-error','delete-item'].includes(change.moduleAction))&&
+        (change.input===undefined||object(change.input)&&(change.input.item===undefined||object(change.input.item)))&&
+        (change.localId===undefined||typeof change.localId==='string')&&
+        (change.patches===undefined||Array.isArray(change.patches)&&change.patches.every(patch=>object(patch)&&patch.op==='set'&&path(patch.path)&&Object.hasOwn(patch,'value')))&&
+        (change.guards===undefined||Array.isArray(change.guards)&&change.guards.every(guard=>object(guard)&&path(guard.path)&&Object.hasOwn(guard,'value'))));
+      if(!valid)return reply({error:'INVALID_LOCAL_SAVE',requestId},422);
+    }
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;

@@ -10,6 +10,8 @@ const master={active:{C:{products:[{code:'C100',stages:['C-CUT']}],lines:[{stage
  await h.begin('ipqc-c');let sequence=0;
  const build=async(localChanges,who='editor')=>({action:'save',operationId:randomUUID(),clientId:'batch-'+who,sequence:++sequence,generation:h.flow(await h.read('ipqc-c')).generation,localChanges});
  const send=(command,who='editor',status=200)=>h.call('ipqc-c/workflow','POST',{command},who,status,'?caseMetadata=1');
+ const malformed=[null,{},[null],[3],[{moduleAction:3}],[{input:null}],[{input:{item:[]}}],[{patches:[null]}],[{patches:[{op:'set',path:3,value:''}]}],[{guards:[null]}],[{guards:[{path:{},value:''}]}],[{guards:[{path:[null],value:''}]}]];
+ for(const changes of malformed){const beforeInvalid=h.snapshot();const rejected=await send(await build(changes),'editor',422);assert.equal(rejected.error,'INVALID_LOCAL_SAVE');assert.match(rejected.requestId,/^[a-f0-9-]{36}$/i);assert.deepEqual(h.snapshot(),beforeInvalid,'malformed batch never writes DB/R2');}
  const create=[{moduleAction:'create-error',localId:'local-error-000001',input:{productCode:'C100',stageCode:'C-CUT',name:'尺寸',note:''}},{moduleAction:'create-item',localId:'local-item-000001',input:{errorId:'local-error-000001',item:{standard:'10',description:'Measure carefully',cpkEnabled:true,rule:{cadence:'batch',batchKind:'fixed_count',fixedCount:'3'}}}}];
  const command=await build(create),before=h.snapshot();const saved=await send(command);let flow=h.flow(saved);
  assert.equal(saved.revision,before.row.revision+1,'one CAS for creation + save');

@@ -290,7 +290,7 @@
     if(busy||errorRecoveryPending)return null;if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
       targetModal=closeModal?modal:null,
       editorState=()=>targetModal?JSON.stringify({fields:targetModal.fields,photos:targetModal.photos,pendingInsert:targetModal.pendingInsert}):'',
-      submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false;
+      submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false,submittedCommand=null;
     const cancelResponse=()=>{cancelled=true;refreshCurrent=sameActor();return null;};
     try {
       if(readAccessBlocked())throw Error('READ_ACCESS_RECHECK_REQUIRED');
@@ -310,7 +310,9 @@
       if(!control.workflow||action==='begin') {
         if(!operationAllowed('edit'))throw Error('FORBIDDEN');
         const started=await transport.begin();if(!sameActor() || closeModal && (modal!==targetModal || editorState()!==submittedState)){return cancelResponse();}control=started.control;revision=started.revision;
-        selectedVersionId=open()?.id||active()?.id||selectedVersionId;working=open()?.status==='draft'?copy(open().snapshot):null;
+        selectedVersionId=open()?.id||active()?.id||selectedVersionId;
+        if(!localChanges.length)working=open()?.status==='draft'?copy(open().snapshot):null;
+        if(localChanges.length&&!localGeneration)localGeneration=control.workflow?.generation;
         if(modal&&!modal.generation)modal.generation=control.workflow?.generation;
         if(action==='begin'){toast(t('Đang sửa bản nháp chung · toàn bộ IPQC-C','正在編輯共用草稿 · 全部 IPQC-C'));return started;}
       }
@@ -344,7 +346,7 @@
       const recovered=closeModal&&action==='apply'&&errorRecoverySupported(targetModal);
       let command,result;
       if(recovered)({command,result}=await sendErrorRecovery(fields,targetModal));
-      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);result=await transport.sendPrepared(command);}
+      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;result=await transport.sendPrepared(command);}
       if(saveCapture&&!saveCapture.owns()){readWasSuperseded=true;return null;}
       if(saveCapture&&control?.workflow?.generation!==saveCapture.generation){readWasSuperseded=true;return null;}
       if(saveCapture&&saveCapture.inputsChanged()){
@@ -387,6 +389,12 @@
     } catch(error) {if(isReadSuperseded(error)){readWasSuperseded=true;return null;}if(sameActor()){
       if(closeModal && targetModal && !targetModal.existingId && ['create-item','create-error'].includes(action) &&
         (sharedClient?.hasUnknown() || error.message==='RESULT_UNKNOWN_CHECK_BEFORE_RETRY'))targetModal.creationIdentityUnknown=true;
+      if(action==='save'&&submittedCommand?.localChanges&&error.message==='DEPENDENCY_CHANGED_RECONFIRM'&&
+        !sharedClient?.hasUnknown()&&sharedClient?.isConfirmedRejection(error,submittedCommand)){
+        const rejectedInput=JSON.stringify({working,localChanges,localGeneration});
+        conflict={items:[],localSave:true,owns:()=>sameActor()&&!sharedClient?.hasUnknown()&&
+          JSON.stringify({working,localChanges,localGeneration})===rejectedInput};
+      }
       const terms=workflowErrors[error.message];message=terms?t(...terms):error.message;
     }return null;}
     finally {if(requestMount===mountSequence)busy=false;if(!readWasSuperseded&&!preserveInputs&&sameActor()){
@@ -541,7 +549,7 @@
       if(kind==='errors'){change.guards.push({path:['items'],value:copy(working.items)});for(const child of working.items)if(child.errorId===row.id)child.deleted=true;}
       row.deleted=true;
     }
-    localGeneration ||= control.workflow.generation;localChanges.push(change);
+    localGeneration ||= control.workflow?.generation || null;localChanges.push(change);
     if(closeModal)closeEditor(true,false);
     message='';draw();toast(t('Đã cập nhật cục bộ · bấm Lưu để chia sẻ','已更新本機輸入 · 按存取後共用'));return {local:true};
   }
@@ -924,6 +932,25 @@
       catch(error){if(!isReadSuperseded(error))message=error.message;}finally{busy=false;draw();}
     });
     root.querySelector('#ipqcc-reload')?.addEventListener('click',async()=>{
+      if(conflict?.localSave){
+        const rejected=conflict,client=sharedClient;
+        if(busy||modal||!rejected.owns()||client.hasUnknown())return;
+        const priorControl=control,priorRevision=revision;
+        const current=()=>conflict===rejected&&sharedClient===client&&rejected.owns();
+        if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;
+        if(!current()||control!==priorControl||revision!==priorRevision)return;
+        busy=true;
+        try{
+          // Read owns the actor, delivery, revision and local input until adoption.
+          // Do not erase local edits if either permissions or the read fails.
+          await read(true,()=>current()&&control===priorControl&&revision===priorRevision);
+          if(!current())return;
+          clearLocal();working=open()?.status==='draft'?copy(open().snapshot):null;
+          conflict=null;message='';syncSelection();
+        }catch(error){if(!isReadSuperseded(error)&&current())message=error.message;}
+        finally{if(current()||conflict===null&&sharedClient===client){busy=false;draw();}}
+        return;
+      }
       if(!confirm(t('Bỏ phần nhập chưa lưu và tải phiên bản mới?','放棄尚未儲存的輸入並載入最新版？')))return;
       conflict=null;modal=null;working=null;selectedVersionId='';message='';
       try{await read(false);draw();}catch(error){if(isReadSuperseded(error))return;message=error.message;draw();}

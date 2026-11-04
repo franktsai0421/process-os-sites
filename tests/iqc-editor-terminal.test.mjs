@@ -15,14 +15,14 @@ function fixture({create=true}={}){
  const document={documentElement:{lang:'zh'},createElement:t=>new Node(t),querySelector:s=>document.body.querySelector(s),querySelectorAll:s=>document.body.querySelectorAll(s),addEventListener:(t,f)=>{if(t==='keydown')keys.add(f);},removeEventListener:(t,f)=>{if(t==='keydown')keys.delete(f);}};document.body=new Node('body');
  let generation=1;const sync={identity:{id:'A'},requiresReload:false,identityGeneration:()=>1,captureDelivery:()=>({generation}),isCurrentDelivery:d=>d.generation===generation&&!sync.requiresReload,platformHeaders:()=>({})};
  const client={prepareRecovery:(generation,detail)=>({...detail,generation,action:'apply',operationId:webcrypto.randomUUID()}),rejectionCapability:()=>Object.freeze({}),isConfirmedRejection:()=>false,hasConfirmedRejection:()=>false,sendPrepared(command,{assertDispatch}){assert(assertDispatch(command));return client.command(command.generation,command.action,{patches:command.patches,guards:command.guards});},permission:action=>action==='create'?create:true,gatePermissions(){},hasUnknown:()=>false,command:(...args)=>{calls.push(['command',...args]);return new Promise((resolve,reject)=>pending.push({resolve,reject,kind:'command'}));}};
- const storage=new Map();const window={crypto:webcrypto,setTimeout:()=>1,clearTimeout(){},localStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i]??null,getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},ProcessSync:sync,VersionDraftUI:{t:x=>x},hasPermission:()=>true,createSharedDraftClient:()=>client,addEventListener(t,f){if(!events.has(t))events.set(t,[]);events.get(t).push(f);},dispatchEvent(e){for(const f of events.get(e.type)||[])f(e);},__testCapture:(name,value)=>captures[name]=value};
+ const storage=new Map();const window={crypto:webcrypto,setTimeout:()=>1,clearTimeout(){},localStorage:{get length(){return storage.size;},key:i=>[...storage.keys()][i]??null,getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},ProcessSync:sync,VersionDraftUI:{t:x=>x,date:x=>x},hasPermission:()=>true,createSharedDraftClient:()=>client,addEventListener(t,f){if(!events.has(t))events.set(t,[]);events.get(t).push(f);},dispatchEvent(e){for(const f of events.get(e.type)||[])f(e);},__testCapture:(name,value)=>captures[name]=value};
  const photo={id:'p'.repeat(64),src:'/synthetic/original.png',note:'keep'},snapshot={categories:[{id:'c',nameVi:'Cat'}],suppliers:[{id:'s1',nameVi:'One'},{id:'s2',nameVi:'Two'}],parts:[{id:'p',code:'P',nameVi:'Part',categoryId:'c',supplierIds:['s1','s2'],photos:[photo]}],errors:[{id:'e',code:'E',partCode:'P',nameVi:'Error'}],items:[{id:'i',errorId:'e',nameVi:'Item',isEnabled:true,inspectionMode:'visual',rules:[{id:'r',cadence:'batch',kind:'aql',value:'2'}],mediaItems:[photo]}]};
  const control={activeVersionId:null,versions:[{id:'v',status:'draft',revision:3,snapshot}],workflow:{generation:'g',revision:2,working:snapshot,pendingId:null},reservedErrorCodes:[],reservedCheckNos:[]};
  const context=vm.createContext({window,document,console,TextEncoder,crypto:webcrypto,CustomEvent:class{constructor(type){this.type=type;}},FormData:class{constructor(form){this.form=form;}get(key){const n=this.form.querySelector('[name="'+key+'"]'+(key==='inspectionMode'?':checked':''));return n?.attrs.type==='checkbox'?(n.checked?'on':null):n?.value??null;}},confirm:()=>true,setTimeout:()=>1,clearTimeout(){},fetch:(url,options)=>{calls.push(['fetch',url,options]);return new Promise((resolve,reject)=>pending.push({resolve,reject,kind:'fetch'}));}});
  const ast=ts.createSourceFile('iqc.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),insert=[];const names={manageList:'rows,owner',editPart:'supplierIds,photos,owner',editError:'owner',editItem:'rules,photos,owner'};function walk(n){if(ts.isFunctionDeclaration(n)&&names[n.name?.text])insert.push([n.body.end-1,`host.__testCapture('${n.name.text}',{${names[n.name.text]}});`]);ts.forEachChild(n,walk);}walk(ast);let code=source;for(const[pos,text]of insert.sort((a,b)=>b[0]-a[0]))code=code.slice(0,pos)+text+code.slice(pos);
- code=code.replace('})(window);',`host.__test={manageList,editPart,editError,editItem,dialog,editorOwners,post,load,upload,mutateSnapshot,setup(c){transport();control=c;revision=10;ui.versionId='v';ui.partCode='P';render=()=>host.__count('render');},state(){return{control,revision,dialogBase,dialogGeneration,localSnapshot};}};\n})(window);`);window.__count=k=>counts[k]++;code=code.replace('const notice = message => {',"const notice = message => {host.__count('notice');");installForegroundPorts(context);for(const name of ['local-draft-recovery.js','local-draft-recovery-session.js'])vm.runInContext(fs.readFileSync((process.env.IQC_RECOVERY_CORE_DIR||'public/process')+'/'+name,'utf8'),context);vm.runInContext(code,context);window.__test.setup(control);
+ code=code.replace('})(window);',`host.__test={manageList,editPart,editError,editItem,dialog,editorOwners,post,load,upload,mutateSnapshot,sharedStatus,setup(c){transport();control=c;revision=10;ui.versionId='v';ui.partCode='P';render=()=>host.__count('render');},state(){return{control,revision,dialogBase,dialogGeneration,localSnapshot};}};\n})(window);`);window.__count=k=>counts[k]++;code=code.replace('const notice = message => {',"const notice = message => {host.__count('notice');");installForegroundPorts(context);for(const name of ['local-draft-recovery.js','local-draft-recovery-session.js'])vm.runInContext(fs.readFileSync((process.env.IQC_RECOVERY_CORE_DIR||'public/process')+'/'+name,'utf8'),context);vm.runInContext(code,context);window.__test.setup(control);
  function invalidate(mode='event'){if(mode==='sameId')sync.identity={id:'A'};else if(mode==='actor')sync.identity={id:'B'};else if(mode==='generation')generation++;else sync.requiresReload=true;if(mode==='event')window.dispatchEvent({type:'process-delivery-invalidated'});}
- return{window,document,sync,keys,calls,pending,captures,counts,control,context,api:window.__test,invalidate,Node};
+ return{window,document,sync,keys,calls,pending,captures,counts,control,context,api:window.__test,client,invalidate,Node};
 }
 const event=node=>({target:node,currentTarget:node,preventDefault(){this.prevented=true;}});
 for(const mode of ['event','sameId','actor','generation'])void test('actual IQC factory terminal '+mode+' retains DOM/base/arrays and all saved callbacks are inert',async()=>{
@@ -39,3 +39,39 @@ void test('actual error form applies only locally and retains server snapshot',a
 void test('local error cancel sends nothing and retains original snapshot',async()=>{const f=fixture();f.api.editError('e');const {owner}=f.captures.editError,before=JSON.stringify(f.control);owner.overlay.querySelector('[name="nameVi"]').value='discard';owner.overlay.querySelector('[data-close]').onclick();assert.equal(f.calls.length,0);assert.equal(JSON.stringify(f.control),before);assert.equal(f.api.state().localSnapshot,null);assert.equal(f.api.editorOwners.size,0);assert.equal(f.keys.size,0);});
 
 for(const kind of ['suppliers','categories'])void test('actual manage '+kind+' create denial retains rows and sends no command',async()=>{const f=fixture({create:false});f.api.manageList(kind);const {owner,rows}=f.captures.manageList,root=owner.overlay,before=JSON.stringify(rows);root.querySelector('#iqc-list-new').value='Denied new row';root.querySelector('#iqc-list-add').onclick();assert.equal(JSON.stringify(rows),before);assert.equal(root.querySelector('#iqc-list-new').value,'Denied new row');assert.equal(f.calls.length,0);await root.querySelector('#iqc-list-save').onclick();assert.equal(JSON.stringify(rows),before);assert.equal(f.calls.length,0);assert.equal(f.pending.length,0);assert.equal(JSON.stringify(f.control.versions[0].snapshot[kind]),before);});
+
+void test('legacy local edits adopt only the newly begun generation and retain original guards',async()=>{
+ const f=fixture();delete f.control.workflow;
+ f.control.schemaVersion=1;f.control.issues=[];
+ await f.api.mutateSnapshot(next=>{next.parts[0].nameVi='Local legacy edit';});
+ assert.equal(f.calls.length,0);
+ const started=structuredClone(f.control),snapshot=started.versions[0].snapshot;
+ snapshot.errors[0].nameVi='Peer change';
+ started.workflow={generation:'adopted',revision:1,working:snapshot,saved:null,active:{content:structuredClone(snapshot)},cases:[],pendingId:null};
+ f.client.begin=async()=>({control:started,revision:11});f.client.flush=async()=>{};
+ const permissions=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true]));
+ let sent;
+ f.client.command=async(generation,action,detail)=>{sent={generation,action,detail};return {receipt:{operationId:'saved-op'}};};
+ f.client.verifiedReadback=()=>{const saved=structuredClone(started);saved.workflow.working.parts[0].nameVi='Local legacy edit';saved.workflow.saved={content:structuredClone(saved.workflow.working)};return {control:saved,revision:12,permissions};};
+ await f.api.post('save');
+ assert.equal(sent.generation,'adopted');assert.equal(sent.action,'save');assert.equal(sent.detail.moduleAction,'save-local-v1');
+ assert.equal(sent.detail.patches.length,1);assert.equal(sent.detail.patches[0].value,'Local legacy edit');assert.equal(sent.detail.guards[0].value,'Part');
+ assert.equal(f.api.state().localSnapshot,null);assert.equal(f.api.state().control.workflow.working.errors[0].nameVi,'Peer change');
+});
+void test('legacy unsaved working state stays distinct from local edits and saved state',async()=>{
+ const f=fixture(),flow=f.control.workflow;
+ flow.saved={content:structuredClone(flow.working),actor:{name:'Previous editor'},at:'2026-11-04',id:'old-save'};
+ assert.match(f.api.sharedStatus(),/已儲存/);
+ flow.working.errors[0].nameVi='Previously synchronized';
+ assert.match(f.api.sharedStatus(),/已同步.*尚未.*儲存/);
+ await f.api.mutateSnapshot(next=>{next.parts[0].nameVi='Local';});
+ assert.match(f.api.sharedStatus(),/本機修改.*尚未保存/);
+ flow.pendingId='pending';assert.match(f.api.sharedStatus(),/待審鎖定/);
+});
+
+void test('local edits from an established generation cannot adopt a replacement generation',async()=>{
+ const f=fixture();await f.api.mutateSnapshot(next=>{next.parts[0].nameVi='Retain input';});
+ const before=JSON.stringify(f.api.state().localSnapshot);f.control.workflow.generation='replacement';f.client.flush=async()=>{};
+ await assert.rejects(f.api.post('save'),/STALE_GENERATION/);
+ assert.equal(f.calls.length,0);assert.equal(JSON.stringify(f.api.state().localSnapshot),before);
+});

@@ -1,10 +1,10 @@
 /* Local HTTP, actual API handlers, Chromium and synthetic DB/R2 only. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),{chromium}=require('playwright');
 const {fixture}=require('./ipqc-c-operation-fixture.cjs');
-const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:{errors:[],items:[]},baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
+const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reservedErrorCodes:[],reservedItemCodes:[],versions:[{id:'initial',number:1,status:'draft',snapshot:{errors:[{id:'legacy-error',code:'C100-C-CUT-001',productCode:'C100',stageCode:'C-CUT',name:'Original',note:'retained legacy note',reason:'',deleted:false}],items:[]},baseVersionId:null,revision:1,creatorId:'fixture',creatorName:'fixture',createdAt:'fixture',updatedAt:'fixture',history:[]}]};
 (async()=>{
  const h=await fixture({ipqcCMasterControl:JSON.stringify(initial),masterDataControl:JSON.stringify({active:{C:{products:[{code:'C100',name:'Fixture',stages:['C-CUT']}],lines:[{code:'C',stages:[{code:'C-CUT',name:'Cut'}]}]}}})});
- await h.begin('ipqc-c');await h.command('ipqc-c','apply',{moduleAction:'create-error',input:{productCode:'C100',stageCode:'C-CUT',name:'Original'}});await h.command('ipqc-c','save');
+
  let dropSave=false,holdRecoveryRead=false,releaseRecoveryRead,notifyRecoveryRead,receiptReads=0;const mutations=[],errors=[];
  const scripts=['local-draft-recovery.js','local-draft-recovery-session.js','shared-draft-client.js','version-draft-ui.js','ipqc-c.js'];
  const server=http.createServer(async(req,res)=>{try{
@@ -24,7 +24,7 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  assert.equal(mutations.length,0,'Finish never writes');assert.equal(await page.evaluate(()=>__localTest.state().localChanges.length),1);
  await page.locator('#ipqcc-search').fill('C100');await page.evaluate(()=>__localTest.read());assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].name),'Local '+width,'read/filter preserves input');
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy,{},{timeout:10000}).catch(async e=>{console.error(await page.evaluate(()=>__localTest.state()),mutations,errors);throw e;});
- assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1);const flow=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1'));assert.equal(flow.saved.content.errors[0].name,'Local '+width);
+ assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).command?.action==='save').length,1);assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')&&JSON.parse(m.body).action==='begin').length,width===1440?1:0,'legacy first Save adopts once');const flow=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1'));assert.equal(flow.saved.content.errors[0].name,'Local '+width);assert.equal(flow.saved.content.errors[0].note,width===1440?'retained legacy note':'After explicit discard');
  mutations.length=0;
  await page.locator('[data-ipqcc-add="item"]').click();await page.locator('textarea[name="description"]').fill('Inspection photo and rule');await page.locator('input[name="standard"]').count().then(async count=>{if(count)await page.locator('input[name="standard"]').fill('10');else await page.locator('textarea[name="standard"]').fill('10');});
  await page.locator('input[name="cpkEnabled"]').check();await page.locator('input[name="aqlValue"]').fill('0.25');
@@ -33,6 +33,28 @@ const initial={schemaVersion:1,activeVersionId:null,source:null,issues:[],reserv
  await page.locator('#ipqcc-save').click();await page.waitForFunction(()=>__localTest.state().localChanges.length===0&&!__localTest.state().busy);
  assert.equal(mutations.filter(m=>m.path.endsWith('/photo')).length,1);assert.equal(mutations.filter(m=>m.path.endsWith('/workflow')).length,1);
  const withPhoto=h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1'));assert.equal(withPhoto.saved.content.items.at(-1).cpkEnabled,true);assert.equal(withPhoto.saved.content.items.at(-1).mediaItems.length,1);
+ if(width===1440){
+ mutations.length=0;
+ await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('Local conflicting note');await page.locator('#ipqcc-editor button[type="submit"]').click();
+ const peerBefore=h.flow(await h.read('ipqc-c')),peerError=peerBefore.working.errors[0],notePath=['errors',{id:peerError.id},'note'];
+ await h.command('ipqc-c','apply',{patches:[{op:'set',path:notePath,value:'Peer saved note'}],guards:[{path:notePath,value:peerError.note}]},'edit-only');
+ await h.command('ipqc-c','save',{},'edit-only');const peerSaved=h.snapshot();
+ await page.locator('#ipqcc-save').click();await page.locator('#ipqcc-reload').waitFor();
+ assert.equal(await page.evaluate(()=>__localTest.state().unknown),false,'proven conflict is not unknown');
+ assert.deepEqual(h.snapshot(),peerSaved,'rejected local batch preserves peer saved state');
+ const rejectedCount=mutations.length;
+ page.once('dialog',dialog=>dialog.dismiss());await page.locator('#ipqcc-reload').click();
+ assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].note),'Local conflicting note','cancel retains local input');assert.equal(mutations.length,rejectedCount);
+ await page.evaluate(()=>{window.__originalConfirm=window.confirm;window.confirm=()=>{window.__delivery++;return true;};});await page.locator('#ipqcc-reload').click();
+ assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].note),'Local conflicting note','delivery changed during confirmation cannot discard');assert.equal(mutations.length,rejectedCount);
+ await page.evaluate(()=>{window.confirm=window.__originalConfirm;window.__delivery--;});
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#ipqcc-reload').click();
+ await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().localChanges.length===0);
+ assert.equal(await page.evaluate(()=>__localTest.state().working.errors[0].note),'Peer saved note');assert.equal(mutations.length,rejectedCount,'discard is read-only and never replays rejected Save');assert.deepEqual(h.snapshot(),peerSaved);
+ await page.evaluate(()=>__localTest.edit());await page.locator('[name="note"]').fill('After explicit discard');await page.locator('#ipqcc-editor button[type="submit"]').click();await page.locator('#ipqcc-save').click();
+ await page.waitForFunction(()=>!__localTest.state().busy&&__localTest.state().localChanges.length===0);
+ assert.equal(h.flow(await h.call('ipqc-c','GET',undefined,'editor',200,'?caseMetadata=1')).saved.content.errors[0].note,'After explicit discard');assert.equal(mutations.length,rejectedCount+1,'later Save is a new single operation');
+ }
  await page.evaluate(()=>{document.documentElement.lang='vi';dispatchEvent(new CustomEvent('process-language-change',{detail:{language:'vi'}}));});assert.equal(await page.locator('#ipqcc-save').innerText(),'Lưu');
  if(width===390){
  mutations.length=0;await page.evaluate(()=>__localTest.edit());await page.locator('input[name="name"]').fill('Recovered receipt');await page.locator('#ipqcc-editor button[type="submit"]').click();dropSave=true;

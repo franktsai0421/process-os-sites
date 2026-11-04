@@ -44,3 +44,9 @@ An audit of the same cache contracts found the later navigation adapter suite al
 Run `41828546575` on `dcf3dc0` passed compiled departure and the cache-contract regressions, then stopped later in step 20 at `scripts/test-iqc-action-permissions.cjs:51`: its old UI assertion expected an edit-only user to lack Save. The confirmed requirement explicitly grants Save through edit. The matrix now checks actual handler Save for edit-only users and actual versionBar Save for edit/save users, with reader denial and edit-only Submit denial retained/added. Independent review/restore permissions remain unchanged. The 31 remaining commands in that CI step are also checked locally before the next push to avoid hiding further integration failures behind this assertion.
 
 Permission matrix including explicit edit-only Submit denial PASS; all 31 remaining step-20 commands PASS; lint and whitespace checks PASS. Latest full Windows CI remains the remote acceptance gate.
+
+### Integration legacy adoption regression
+
+The integrated candidate reproduced and fixed two retained-data issues: local edits made in an existing pre-V3 draft previously failed their first Save with `STALE_GENERATION` after Begin, and previously synchronized unsaved working data was incorrectly labelled saved. First adoption now binds local edits to the freshly begun generation while retaining their original guarded base. Established-generation changes still reject without sending or dropping local edits. Status distinguishes local edits, retained shared unsaved content, saved content and pending locks.
+
+Isolated editor, atomic-handler and verified-readback regressions: 62/62 PASS, including legacy adoption with unrelated peer changes, original field guards, truthful status and replacement-generation refusal. Action-permission route/UI checks PASS with edit granting Save and submit still independently denied. No business data or recovery records were migrated or cleared.

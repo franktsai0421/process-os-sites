@@ -547,6 +547,10 @@
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.localChanges.some(change=>Array.isArray(change?.guards)&&change.guards.some(guard=>Array.isArray(guard?.path)&&JSON.stringify(guard.path)===JSON.stringify(error.details.path)));
+        if(error.status===422&&code==='INVALID_LOCAL_SAVE')return true;
+      }
       if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
         if(error.status===409&&['FQC_MATRIX_SCOPE_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','AB_EFFECTIVE_CHANGED_RECONFIRM'].includes(code))return true;

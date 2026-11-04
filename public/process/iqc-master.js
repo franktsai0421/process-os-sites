@@ -92,8 +92,8 @@
     return id=>first.get(id)||'';
   }
   function sharedStatus(){const flow=control?.workflow;if(!flow)return '';
-    const saved=flow.saved,unsaved=!!localSnapshot;
-    return `<section class="iqc-panel" id="iqc-shared-status" role="status"><b>${t('共用範圍：IQC 全庫','Phạm vi chung: toàn bộ IQC')}</b> · ${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):unsaved?t('本機修改 · 尚未保存','Thay đổi cục bộ · chưa lưu'):t('已儲存','Đã lưu')}<br>${saved?`${t('儲存者','Người lưu')}: ${h(saved.actor.name)} · ${h(date(saved.at))} · ${h(saved.id)}`:t('尚無成功儲存快照','Chưa có bản chụp lưu thành công')}</section>`;
+    const saved=flow.saved,unsaved=!!localSnapshot,sharedUnsaved=!saved||!equal(flow.working,saved.content);
+    return `<section class="iqc-panel" id="iqc-shared-status" role="status"><b>${t('共用範圍：IQC 全庫','Phạm vi chung: toàn bộ IQC')}</b> · ${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):unsaved?t('本機修改 · 尚未保存','Thay đổi cục bộ · chưa lưu'):sharedUnsaved?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}<br>${saved?`${t('儲存者','Người lưu')}: ${h(saved.actor.name)} · ${h(date(saved.at))} · ${h(saved.id)}`:t('尚無成功儲存快照','Chưa có bản chụp lưu thành công')}</section>`;
   }
 
   function unknownMessage(error) {
@@ -208,7 +208,12 @@
         const client=transport();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
         if(!control.workflow&&['save','submit'].includes(action)&&!mayEdit())throw Error(t('舊版草稿須由具編輯權限者先啟用共用草稿','Bản nháp cũ cần người có quyền sửa chuyển sang bản nháp chung'));
         if(!control.workflow||action==='begin'){
+          const adoptingLocal=!control.workflow&&!!localSnapshot&&localGeneration==null;
           owner?.assert();const started=await client.begin();owner?.assert();try{validateIqcPayload(started,false);}catch(error){error.operationAcknowledged=true;if(readDenied===error)readDenied.operationAcknowledged=true;throw error;}versionReadSequence++;control=started.control;revision=started.revision;activeDeferredId=started.iqcProjection?.activeVersionId||'';ui.versionId=control.versions.find(v=>v.status==='draft')?.id||'';
+          if(!requestCurrent())throw Error('IDENTITY_CHANGED');
+          // Bind retained legacy edits only to this successful first adoption.
+          // Keep their original base so concurrent field changes still conflict.
+          if(adoptingLocal)localGeneration=control.workflow.generation;
           if(dialogBase&&!dialogGeneration)dialogGeneration=control.workflow.generation;
           if(owner&&!owner.generation)owner.generation=control.workflow.generation;
           if(action==='begin')return started;

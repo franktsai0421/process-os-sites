@@ -1,3 +1,7 @@
+## 2026-11-04 combined candidate
+
+FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).
+
 ## 2026-11-04 FQC single-save candidate
 
 FQC forms now stage in page memory; one save-local-v1 sends field guards and matrix cells to one atomic saved transition. Poll/global refresh cannot adopt over local changes. Edit includes Save only in FQC; submit remains separate. Navigation opts into checked silent local abandonment, preserving unknown receipt markers. No existing working/saved/history migration. [Evidence, compatibility and remaining gates](../../docs/acceptance/fqc-single-save-20261104/README.md).

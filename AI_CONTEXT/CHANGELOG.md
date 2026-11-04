@@ -1,3 +1,7 @@
+## 2026-11-04 — Isolated draft-save integration candidate
+
+Compose FQC/IPQC C/IQC without changing main or data; preserve scoped departure/receipt behavior, align cache/preload versions, and repair legacy first-Save compatibility. Canvas is not yet included. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md).
+
 ## 2026-11-04 — FQC single-save candidate
 
 Stage form/matrix edits locally, atomically merge and save once, retain independent submit permission, and opt FQC into silent checked abandonment without clearing unknown receipts. No schema/data migration or publication. [Candidate evidence](../docs/acceptance/fqc-single-save-20261104/README.md).

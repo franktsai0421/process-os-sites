@@ -1,3 +1,7 @@
+## 2026-11-04 — 隔離草稿整合候選（未合併／未發布）
+
+FQC #74、IPQC C #75、IQC #76 在獨立 integration 分支語意整合；畫布尚缺可存取提交，未宣稱整合。共用離頁／收據與快取保留各模組範圍，修復舊草稿首次保存相容性。[來源、測試與剩餘門檻](docs/acceptance/draft-save-integration-20261104.md)。
+
 ## 2026-11-04 — FQC 草稿流程統一與加速首階段候選
 
 Based on main `85fa4a3`, independent `feat/fqc-single-save-20261104`: local editing, atomic shared Save, cell merge and checked automatic departure. No live data cleanup, merge or deployment. [Scope, test evidence, legacy inventory limits and integration risks](docs/acceptance/fqc-single-save-20261104/README.md).
