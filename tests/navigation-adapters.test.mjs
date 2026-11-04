@@ -117,13 +117,13 @@ void test('changed persistent-navigation executable references have coherent new
   'bootstrap.js':'20261103-simple-approval1',
   'canvas-local.js':'20261103-simple-departure1',
   'canvas-recovery-store.js':'20261031-canvas-recovery1',
-  'delivery-navigation.js':'20261103-unknown-approval1',
+  'delivery-navigation.js':'20261104-iqc-local2',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261027-scoped-read-pause1',
   'fqc-master.js':'20261103-fqc-departure6',
   'ipqc-ab.js':'20261103-unknown-departure1',
   'ipqc-c.js':'20261031-quality-recovery1',
-  'iqc-master.js':'20261104-iqc-unknown1',
+  'iqc-master.js':'20261104-iqc-local2',
   'master-data.js':'20261103-unknown-approval1',
   'master-shared-client.js':'20261031-bounded-recovery2',
   'permission-controls.js':'20261029-dispatch-rights1',
@@ -131,7 +131,7 @@ void test('changed persistent-navigation executable references have coherent new
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261103-unknown-departure1',
   'routine-fqc.js':'20261103-simple-departure1',
-  'shared-draft-client.js':'20261104-iqc-ipqcc1',
+  'shared-draft-client.js':'20261104-iqc-local2',
   'shared-state.js':'20261103-navigation-identity1',
   'tooling.js':'20261103-unknown-departure1',
   'user-access.js':'20261103-simple-departure1',
@@ -151,7 +151,7 @@ void test('changed persistent-navigation executable references have coherent new
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261103-simple-departure1"));
+ assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-iqc-local2"));
 });
 
 // The FQC control wraps its shared flow inside the FQC library.

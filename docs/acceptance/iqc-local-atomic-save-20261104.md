@@ -36,3 +36,5 @@ Completed Windows run `41824857971` on head `4bb0dfd` had two failures. Step 17 
 Step 20 failed only the exact shared-client cache-tag assertion: it still expected `20261104-iqc-ipqcc1`, while the delivered index correctly loads `20261104-iqc-local2`. The assertion now pins the delivered new version; it still rejects missing, duplicate or unversioned references. No product behavior or data/schema changed in this follow-up.
 
 Local follow-up validation: compiled abandonment command 13/13 PASS; combined receipt/terminal/restore command 77/77 PASS; typed lint and diff whitespace checks PASS. Existing compiled product bytes are unchanged by this test-only follow-up. Remote Windows results remain separately required.
+
+An audit of the same cache contracts found the later navigation adapter suite also pinned the three changed script references and dynamic lifecycle import to old versions. Its failure was reproduced locally (32/33), then all four pins were updated without relaxing exact reference checks; 33/33 PASS.
