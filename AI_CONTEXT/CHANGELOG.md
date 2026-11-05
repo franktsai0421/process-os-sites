@@ -10,6 +10,18 @@ Document-local tooling edits, guarded atomic Save with code allocation, edit-gra
 
 獨立依賴 PR77 的 BOM 增量：有序原子 Save、edit 可存取、既有匯入／guard 保護與未知 Begin／Save 原收據恢復。隔離 handler／編譯版 Chromium 驗證，實站、IME、實機與跨機未驗；未合併／部署。[證據](../docs/acceptance/bom-atomic-save-20261105/README.md)。
 
+## 2026-11-05 PROCESS receipt-recovery data-loss follow-up
+
+Independent review found that resolving a lost Save ACK cleared later local
+batches. Share normal-ACK/receipt settlement using the original runtime batch
+prefix; retain later/replacement input and its guards, while reload/departure
+still abandons unsent input. Add actual-handler and compiled-browser coverage;
+no permission/receipt/generation protection is disabled. [Evidence and limits](../docs/acceptance/process-local-save-20261105/README.md#receipt-recovery-follow-up-after-independent-review).
+
+## 2026-11-05 PROCESS master atomic local Save candidate
+
+Independent PROCESS templates/machines candidate on fixed #80, depends on #80→#77. Local completions and name input no longer POST working changes; explicit Save persists guarded batches and saved snapshot in one CAS. Preserve late input, original bounded recovery/identified Begin, independent permissions, references and linked stage approval. No routine-FQC changes, merge or deployment. [Scope, validation and existing baseline limitations](../docs/acceptance/process-local-save-20261105/README.md).
+
 ## 2026-11-05 — AB／C 主資料草稿統一候選
 
 表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。

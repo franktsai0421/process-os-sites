@@ -74,7 +74,7 @@
   let renderMaster=()=>render();
   let dataReady=Promise.resolve(), deliveryGeneration=0, dataError=null;
   const ownsDelivery=generation=>generation===deliveryGeneration&&!window.ProcessSync?.requiresReload;
-  const shared=window.createMasterSharedBridge({control,onChange:()=>render()});
+  const shared=window.createMasterSharedBridge({control,processLocalSave:true,onChange:()=>render()});
   function persist(scope=state.masterScope) {
     if(['AB','C','PROCESS'].includes(scope))return shared.execute(scope,'apply');
     localStorage.setItem(STORAGE, JSON.stringify(control));
@@ -1128,7 +1128,7 @@
   }
   let moduleDeparture;
   const departureScope=()=>state.dataTab==='process-master'?'PROCESS':state.masterScope;
-  const departureDialogs=()=>[...document.querySelectorAll('#master-edit-dialog[open]')];
+  const departureDialogs=()=>[...document.querySelectorAll(departureScope()==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')];
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
     control: () => control,
@@ -1136,7 +1136,7 @@
     navigation:{
       get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
-        sharedOwned:()=>departureScope()==='PROCESS'?window.SharedDraftDeparture?.owns(shared.flow('PROCESS')):false,
+        sharedOwned:()=>false,
         context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
         busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
         unknownTransports:()=>[shared.client(departureScope())],discardUnknown(){this.discard();},
@@ -1144,14 +1144,13 @@
         canSave:()=>shared.permissions(departureScope())?.save===true,
         canDiscard:()=>shared.permissions(departureScope())?.edit===true,
         save:()=>shared.execute(departureScope(),'save'),
-        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();else shared.discardLocal(departureScope());closeDepartureDialogs();},
+        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal(departureScope());if(departureScope()==='PROCESS')window.ProcessEquipment?.abandon?.();closeDepartureDialogs();},
         dialogs:departureDialogs,closeClean:closeDepartureDialogs,
-      }),{get autoAbandon(){return departureScope()!=='PROCESS';},allowUnload:()=>departureScope()!=='PROCESS'&&!shared.busy()&&!window.MasterAdminUI?.departureBusy?.()});},
+      }),{get autoAbandon(){return true;},allowUnload:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.()});},
       requiresSave(){
         if(state.view!=='data'||!['AB','C','lines','line-admin','process-master'].includes(state.dataTab))return false;
-        if(state.dataTab!=='process-master')return false;
-        const flow=shared.flow('PROCESS');
-        return !!flow&&!flow.pendingId&&JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content??flow.active?.content);
+        return false;
+
       },
       async saveForDeparture(){
         const scope=state.dataTab==='process-master'?'PROCESS':state.masterScope;

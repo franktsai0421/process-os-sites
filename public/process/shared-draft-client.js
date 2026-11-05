@@ -310,7 +310,7 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
@@ -331,7 +331,8 @@
     if(externalCanvas){const [path,query='']=endpoint.split('?'),channels=new URLSearchParams(query).getAll('channel');if(path!=='/api/process-authoring/workflow'||channels.length!==1||!['canvas','canvas-v2'].includes(channels[0])||typeof externalProof!=='function')throw Error('CANVAS_EXTERNAL_DURABILITY_REQUIRED');}
     const [beginPath,beginSearch='']=endpoint.split('?'),beginParams=durableBegin?new URLSearchParams(beginSearch):null;
     if(equipmentLocalSave&&(endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||externalStrict||!durableBegin))throw Error('EQUIPMENT_LOCAL_SCOPE_REQUIRED');
-    const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&['AB','C'].includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
+    if(processLocalSave!==false&&(processLocalSave!==true||!durableBegin||boundedScope!=='master:PROCESS'))throw Error('PROCESS_LOCAL_SCOPE_REQUIRED');
+    const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
     const beginScopePath=masterLocalBegin?beginPath+'?scope='+beginParams.get('scope'):beginPath;
     if(durableBegin&&!masterLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
@@ -634,6 +635,12 @@
         if(error.status===409&&['FQC_MATRIX_SCOPE_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','AB_EFFECTIVE_CHANGED_RECONFIRM'].includes(code))return true;
         if(error.status===422&&['INVALID_FQC_LOCAL_SAVE','INVALID_FQC_MATRIX','INVALID_PATCHES','INVALID_COLLECTION','UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED','CATEGORY_REQUIRED','ERROR_PARENT_INVALID','INVALID_FQC_IDENTITY','FQC_IDENTITY_PROTECTED','INVALID_FQC_ITEM','INVALID_EQUIPMENT','INVALID_EQUIPMENT_PAIR','EQUIPMENT_UNAVAILABLE'].includes(code))return true;
       }
+      if(processLocalSave&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches)){
+        const guards=command.input.batches.flatMap(batch=>Array.isArray(batch?.guards)?batch.guards:[]);
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
+        if(error.status===409&&['PROCESS_MASTER_IN_USE','ENTITY_REMOVED_OR_AMBIGUOUS','LINKED_PROCESS_CASE_PENDING'].includes(code))return true;
+        if(error.status===422&&['INVALID_LOCAL_SAVE','INVALID_PATCHES','INVALID_COLLECTION','COLLECTION_REPLACEMENT_FORBIDDEN','ENTITY_REMOVAL_REQUIRED','IMMUTABLE_IDENTITY','DEPENDENCY_GUARD_REQUIRED','CATALOG_IDENTITY_INVALID','CATALOG_ARRAY_REQUIRED','STAGE_INVALID','PRESET_PROVENANCE_PROTECTED','PROCESS_TEMPLATE_TYPE_INVALID','PROCESS_TEMPLATE_INVALID','EQUIPMENT_PARENT_INVALID','EQUIPMENT_ID_RESERVED','EQUIPMENT_SOURCE_PROTECTED'].includes(code))return true;
+      }
       if(boundedScope==='fqc'&&action==='apply'&&command.moduleAction==='replace-matrix-v1'&&command.input&&command.patches===undefined&&command.guards===undefined){
         if(error.status===409&&code==='FQC_MATRIX_SCOPE_CHANGED'||error.status===422&&code==='INVALID_FQC_MATRIX')return true;
       }
@@ -730,6 +737,7 @@
         // matrix lineage. A failed cleanup can safely repeat receipt GETs.
         return historicalReadback(result,record,readback);
       }
+      if(processLocalSave&&record.action==='save'&&flow.revision===receipt.revision&&(flow.saved?.id!==receipt.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
       // Historical metadata cannot manufacture this runtime's write attribution.
       if(!record.historical&&record.command)window.SharedDraftDeparture.confirmed(sessionScope,record.command,result,record.owner);
       boundedClear(record);const settled=['ipqc-c','bom'].includes(boundedScope)?{...result,permissions:readback.permissions}:{...result,control:readback.control,permissions:readback.permissions};boundedReadbacks.set(settled,{readback,operationId:receipt.operationId,receiptRaw:JSON.stringify(receipt),generation:flow.generation,revision:flow.revision});return settled;

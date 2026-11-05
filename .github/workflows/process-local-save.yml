@@ -1,0 +1,48 @@
+name: PROCESS local Save
+on:
+  pull_request:
+    branches: [main, integration/draft-save-20261104, feature/abc-local-save-20261105]
+permissions:
+  contents: read
+concurrency:
+  group: process-local-save-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  process-local-save:
+    runs-on: ubuntu-latest
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: npx tsc --noEmit
+      - run: node --test tests/process-local-save.test.mjs tests/process-local-bridge.test.mjs tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-shared-clone.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs tests/workflow-begin-receipt.test.cjs tests/master-bridge-ownership.test.mjs tests/navigation-adapters.test.mjs tests/lines-submit-snapshot-integration.test.mjs
+      - name: Existing master and legacy compatibility
+        run: |
+          node scripts/test-process-master-name-guards.cjs
+          node scripts/test-master-workflow-v3.cjs
+          node scripts/test-master-stage-link-v3.cjs
+          node scripts/test-master-product-route-mode.cjs
+          node scripts/test-master-field-guards.cjs
+          node scripts/test-master-legacy-format-retention.cjs
+          node scripts/test-lines-cloud-api.cjs
+          node scripts/test-workflow-begin-old-server.cjs
+      - run: node --test tests/master-manual-name-apply.test.cjs tests/process-master-references.test.mjs tests/shared-draft-pagehide-generation.test.mjs
+      - run: npm run sites:source-check
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/process-local-save-browser.mjs
+      - run: node tests/abc-local-save-browser.mjs
+      - name: Existing cold-start and cross-module departure contracts
+        run: node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs

@@ -55,7 +55,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
   requiresDelete(control,command){
    if(command.action==='restore')return true;
-   if(scope!=='PROCESS'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches))for(const batch of command.input.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[]){
+   if(command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches))for(const batch of command.input.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[]){
     if(!batch||!Array.isArray(batch.patches)||!Array.isArray(batch.guards))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
     if(batch.patches?.some(p=>p.op==='remove'||p.op==='set'&&['stages','defaultStages'].includes(str(p.path.at(-1)))&&batch.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)&&Array.isArray(g.value)&&g.value.some(code=>!Array.isArray(p.value)||!p.value.includes(code)))))return true;
    }
@@ -169,7 +169,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   },
   apply:function applyMaster(control,command,context){
    const original=control.workflow!;
-   if(scope!=='PROCESS'&&command.action==='save'&&command.moduleAction==='save-local-v1'){
+   if(command.action==='save'&&command.moduleAction==='save-local-v1'){
     if(original.receipts[command.operationId])return applyDraftCommand(original,command,context);
     if(!context.allowed('view')||!context.allowed('edit')||!context.allowed('save'))throw new DraftConflict('FORBIDDEN',403);
     const batches=command.input?.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[];

@@ -14,6 +14,11 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const altered=Buffer.from(bytes.toString().replace("action==='begin'","action==='begin-unsafe'"));
   assert.notDeepEqual(altered,bytes);
   assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);
+  const reviewedCatalogBytes=file==='lib/versioned-shared-workflow.ts'?Buffer.from(bytes.toString().replaceAll(",'master:PROCESS'",'')):bytes;
+  if(file==='lib/versioned-shared-workflow.ts'){
+   withoutDurableBegin(reviewedCatalogBytes,file);
+   for(const [before,after]of [["['master:AB','master:C','master:PROCESS']","['master:AB','master:C','bom']"],["'master:C','master:PROCESS'].includes(adapter.scope)","'master:C','bom'].includes(adapter.scope)"]]){const unsafe=Buffer.from(bytes.toString().replace(before,after));assert.notDeepEqual(unsafe,bytes);assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);}
+  }
   if(file==='lib/versioned-shared-workflow.ts')for(const [before,after]of [
    ["['master:AB','master:C']","['master:AB','master:PROCESS']"],
    ["defaults.save=defaults.save||defaults.edit","defaults.save=defaults.save||defaults.approve"],
@@ -21,7 +26,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
    ["adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'","false&&body.command?.action==='save'"],
    ["'master:AB','master:C'].includes(adapter.scope)","'master:AB','master:PROCESS'].includes(adapter.scope)"]
   ]){
-   const unsafe=Buffer.from(bytes.toString().replace(before,after));assert.notDeepEqual(unsafe,bytes);
+   const unsafe=Buffer.from(reviewedCatalogBytes.toString().replace(before,after));assert.notDeepEqual(unsafe,reviewedCatalogBytes);
    assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/,'Unknown changes in reviewed opt-in spans still fail closed');
   }
  }
