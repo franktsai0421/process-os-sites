@@ -2280,9 +2280,14 @@ async function confirmProcessMasterRemoval(kind,id,label) {
   const actor=window.ProcessSync?.identity,generation=window.MasterDataWorkflow.shared.flow('PROCESS')?.generation;
   const owned=()=>actor===window.ProcessSync?.identity&&generation===window.MasterDataWorkflow.shared.flow('PROCESS')?.generation&&!!editableProcessMasterData()&&canDeleteProcessMaster();
   if(!owned())return false;
-  const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});
-  if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));
-  const result=await response.json();if(!owned())return false;
+  let result;
+  if(window.MasterDataWorkflow.shared.isLocalProcessInsert?.(kind,id)===true)result={total:0,references:[]};
+  else{
+    const response=await fetch('/api/master/references?scope=PROCESS&kind='+encodeURIComponent(kind)+'&id='+encodeURIComponent(id),{headers:window.ProcessSync?.platformHeaders?.(),signal:AbortSignal.timeout(15000)});
+    if(!response.ok)throw Error(processMasterText('無法確認引用，未刪除；請重試。','Không thể kiểm tra tham chiếu; chưa xóa. Hãy thử lại.'));
+    result=await response.json();
+  }
+  if(!owned())return false;
   if(result.total){
     const dialog=document.createElement('dialog');dialog.className='process-reference-dialog';dialog.setAttribute('data-i18n-skip','true');
     const heading=processMasterText('仍有引用，請先移除或替換引用','Còn tham chiếu; hãy gỡ hoặc thay thế trước');

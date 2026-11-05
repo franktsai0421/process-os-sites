@@ -140,6 +140,15 @@
     }
     const localDirty=scope=>!!locals.get(scope)?.batches.length;
     const unsavedLocal=scope=>localDirty(scope)||scope==='PROCESS'&&processLocalSave&&(host.ProcessMasterVersioning?.departureNames.dirty()||host.ProcessEquipment?.hasUnappliedChanges?.());
+    function isLocalProcessInsert(kind,key){
+      const local=locals.get('PROCESS'),current=flow('PROCESS');
+      if(!local||!ownerMatches(local.owner)||local.generation!==current?.generation||!['template','equipment'].includes(kind))return false;
+      const collect=snapshot=>Object.values(snapshot||{}).flatMap(list=>list.flatMap(row=>kind==='template'?[row]:row.equipment||[]));
+      const matches=row=>kind==='template'?(row.catalogKey||row.presetKey||row.id)===key:row.id===key;
+      if(collect(current.working).some(matches))return false;
+      const inserted=new Set(local.batches.flatMap(batch=>batch.patches.flatMap(p=>p.op!=='insert'?[]:kind==='template'&&p.path.length===1?[p.value.id]:kind==='equipment'&&p.path.at(-1)==='equipment'?[p.value.id]:kind==='equipment'&&p.path.length===1?(p.value.equipment||[]).map(row=>row.id):[])));
+      const targets=collect(local.snapshot).filter(matches);return targets.length>0&&targets.every(row=>inserted.has(row.id));
+    }
     function productReferenceCode(scope,product){const existing=flow(scope)?.working?.products?.find(p=>p.id===product?.id);if(existing)return existing.code;return locals.get(scope)?.batches.some(b=>b.patches.some(p=>p.op==='insert'&&p.path.length===1&&p.path[0]==='products'&&p.value.id===product?.id))?null:product?.code;}
 
     function discardLocal(scope){locals.delete(scope);const version=draft(scope);if(version&&flow(scope))version.snapshot=copy(flow(scope).working);}
@@ -218,6 +227,6 @@
         if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
       }finally{busy=false;}
     }
-    return{localProcess:processLocalSave,localDirty,productReferenceCode,discardLocal,resetReads(){locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
+    return{isLocalProcessInsert,localProcess:processLocalSave,localDirty,productReferenceCode,discardLocal,resetReads(){locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);
