@@ -310,7 +310,7 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
@@ -328,7 +328,8 @@
     if(externalBounded){const [path,query='']=endpoint.split('?'),params=new URLSearchParams(query);if(externalCanvas||!boundedScope||boundedScope==='master:PROCESS'&&(path!=='/api/master/workflow'||params.getAll('scope').length!==1||params.get('scope')!=='PROCESS')||boundedScope==='fqc'&&path!=='/api/fqc/workflow'||boundedExactRoute&&(path!=='/api/'+boundedScope+'/workflow'||params.getAll('caseMetadata').length!==1)||[...params].some(([key,value])=>key!=='scope'&&!(key==='caseMetadata'&&value==='1'))||boundedScope!=='master:PROCESS'&&params.has('scope'))throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');}
     if(externalCanvas){const [path,query='']=endpoint.split('?'),channels=new URLSearchParams(query).getAll('channel');if(path!=='/api/process-authoring/workflow'||channels.length!==1||!['canvas','canvas-v2'].includes(channels[0])||typeof externalProof!=='function')throw Error('CANVAS_EXTERNAL_DURABILITY_REQUIRED');}
     const [beginPath,beginSearch='']=endpoint.split('?'),beginParams=durableBegin?new URLSearchParams(beginSearch):null;
-    if(durableBegin&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/process-authoring/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
+    if(equipmentLocalSave&&(endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||externalStrict||!durableBegin))throw Error('EQUIPMENT_LOCAL_SCOPE_REQUIRED');
+    if(durableBegin&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
     const beginRuntimeCurrent=()=>!durableBegin||departureOwnerCurrent(beginRuntimeOwner)&&beginRuntimeOwner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(beginRuntimeOwner.epoch)&&beginRuntimeOwner.epoch>=0&&beginRuntimeOwner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&(!beginRuntimeOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(beginRuntimeOwner.delivery)!==false);
     const clientPagehideGeneration=transportPagehideGeneration;
@@ -341,7 +342,7 @@
     if(transports.has(transportKey)&&(!durableBegin||transports.get(transportKey).isBeginRuntimeCurrent())&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
-    let boundedProjectionRetired=false;
+    let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
@@ -429,7 +430,7 @@
       })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
     }
     if(durableBegin)beginOutstanding();
-    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&boundedScope==='iqc'&&departureEligible()};clients.add(accountClient);
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(boundedScope==='iqc'||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
@@ -791,7 +792,7 @@
     function retain(command,owner) {
       const entry=abSelected.get(command?.operationId);
       if(entry){abAssert(entry,command);const stored=sessionStorage.getItem(key);if(stored!==null){recoveryInvalid=true;throw Error('RECOVERY_RECORD_CHANGED');}unknown=command;unknownOwner=owner;entry.markerRaw=JSON.stringify(packCommand(command));sessionStorage.setItem(key,entry.markerRaw);if(sessionStorage.getItem(key)!==entry.markerRaw)throw Error('RECOVERY_WRITE_NOT_VERIFIED');abAssert(entry,command);return;}
-      try {if(externalBounded){if(command)boundedArm(command);else if(boundedRecord)boundedClear(boundedRecord);return;}if(!externalCanvas){if(command)sessionStorage.setItem(key,JSON.stringify(packCommand(command)));else sessionStorage.removeItem(key);}}
+      try {if(externalBounded){if(command)boundedArm(command);else if(boundedRecord)boundedClear(boundedRecord);return;}if(!externalCanvas){if(command){const raw=JSON.stringify(packCommand(command));sessionStorage.setItem(key,raw);if(equipmentLocalSave&&sessionStorage.getItem(key)!==raw)throw Error('RECOVERY_WRITE_NOT_VERIFIED');}else {sessionStorage.removeItem(key);if(equipmentLocalSave&&sessionStorage.getItem(key)!==null)throw Error('RECOVERY_REMOVE_NOT_VERIFIED');}}}
       catch(error){throw Object.assign(Error('RECOVERY_STORAGE_UNAVAILABLE'),{cause:error});}
       if(!command&&unknown)abSelected.delete(unknown.operationId);
       unknown=command;unknownOwner=command?(owner||unknownOwner):null;
@@ -809,10 +810,20 @@
       }
       return result;
     }
+    async function equipmentTerminal(result,command){
+      if(!equipmentLocalSave)return result;
+      assertOwner();const raw=JSON.stringify(packCommand(command));
+      if(unknown?.operationId!==command.operationId||sessionStorage.getItem(key)!==raw)throw Error('RECOVERY_RECORD_CHANGED');
+      confirmedReceipt(result,command.operationId,['apply','save'].includes(command.action)?command.generation:undefined,command.action);
+      if(command.action==='save'&&!result.receipt.savedId)throw Error('INVALID_OPERATION_RECEIPT');
+      let fresh;try{fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Error('EQUIPMENT_READBACK_REQUIRED',{cause});}assertOwner();const flow=fresh.control?.workflow;
+      if(sessionStorage.getItem(key)!==raw||fresh.permissions?.view!==true||flow?.scope!=='routine-equipment'||flow.generation!==result.receipt.generation||!Number.isSafeInteger(flow.revision)||flow.revision<result.receipt.revision)throw Error('EQUIPMENT_READBACK_REQUIRED');
+      return {...fresh,receipt:result.receipt,equipmentCommand:JSON.parse(JSON.stringify(command))};
+    }
     async function resolveUnknown() {
       if(beginOutstanding())return resolveBegin();
       if(!unknown)return null;
-      const command=unknown,owner=unknownOwner,result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action);
+      const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=equipmentLocalSave?await equipmentTerminal(original,command):original;
       if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(command.operationId);return settled;}
       window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);
       syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
@@ -831,7 +842,7 @@
       if(externalBounded&&!boundedKnown)try{await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Object.assign(Error('BOUNDED_PREFLIGHT_UNAVAILABLE'),{notSent:true,cause});}
       // Keep the operation before transport so closing the tab cannot create a blind retry.
       try{if(!unknown)retain(command,owner);}catch(error){error.notSent=true;if(externalBounded)boundedRegisterRejection(error,command,preparedFlights.get(command.operationId)?.promise);throw error;}
-      try {const result=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}
+      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=equipmentLocalSave?await equipmentTerminal(original,command):original;const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}
       catch(caught) {
         let error=caught;
         // Preserve only the existing no-status fetch-loss receipt lookup.
@@ -918,6 +929,7 @@
       retryUnknown:async()=>{if(beginOutstanding())return resolveBegin();assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
       hasUnknown:()=>!!unknown||recoveryInvalid||beginOutstanding(),
       hasUnknownBegin:()=>beginOutstanding(),isBeginRuntimeCurrent:beginRuntimeCurrent,
+      retireEquipmentProjection(raw){if(!equipmentLocalSave||beginRuntimeCurrent()||queued||beginPending||retryPending||recoveryInvalid||beginOutstanding()||raw!==sessionStorage.getItem(key)||raw!==(unknown?JSON.stringify(packCommand(unknown)):null))return false;equipmentProjectionRetired=true;return true;},
       retireBeginProjection(raw){if(beginRuntimeCurrent()||queued||unknown||recoveryInvalid||beginInvalid||!beginRecord||raw!==beginRaw)return false;beginRetired=true;return true;},
       departureIdle:()=>!queued&&!beginPending&&!retryPending&&!beginRead,
       departureUnknown(){
@@ -1007,6 +1019,7 @@
       if(!recoveryInvalid&&externalCurrent())boundedRetirements.get(boundedPredecessor)?.(new Set(boundedDiscovered.map(record=>record.key)));
     }
     if(canvasPrimary||canvasTarget)canvasAuthorityClients.set(client,{capture:canvasCapture,arm:canvasArm,verify:canvasVerify,accept:canvasAccept,proof:result=>canvasPosts.get(result),consume:result=>canvasPosts.delete(result)});
+    if(equipmentLocalSave&&!recoveryInvalid)beginPredecessor?.retireEquipmentProjection?.(sessionStorage.getItem(key));
     if(durableBegin&&!beginInvalid)beginPredecessor?.retireBeginProjection?.(beginRaw);
     clientAccounts.set(client,accountClient);transports.set(transportKey,client);return client;
   };
