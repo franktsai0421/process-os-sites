@@ -72,6 +72,11 @@
     }
     return{patches,guards};
   }
+  function acknowledgeFormPhoto(id,entry,before,sent){
+    if(formSnapshot?.id===id&&before&&sent&&formSnapshot.photoId===before.photoId&&formSnapshot.photoHidden===before.photoHidden){formSnapshot.photoId=sent.photoId;formSnapshot.photoHidden=sent.photoHidden;}
+    if(formPendingPhoto===entry)formPendingPhoto=null;
+    if(nodeDialog?.prior?.id===id&&nodeDialog.pendingPhoto===entry){nodeDialog.pendingPhoto=null;nodeDialog.photoId=sent?.photoId||'';}
+  }
   const beginRecoveryKey = actorId => 'routine-equipment-begin-recovery:' + actorId;
   const beginRecoveryMessage = () => t('開始修改的結果尚未確認；目前內容已保留。請按「查詢原操作收據」唯讀核對，不要重送開始修改。', 'Chưa xác nhận kết quả bắt đầu sửa; giữ nội dung hiện tại. Chọn “Kiểm tra biên nhận gốc” để kiểm tra chỉ đọc; không gửi lại yêu cầu bắt đầu.');
   function readBeginRecovery(actorId = identity()?.id) {
@@ -116,7 +121,7 @@
           if(!row||!actual)throw Error('SYNC_CONFIRMATION_REQUIRED');
           for(const field of key==='categories'?['code']:key==='equipment'?['assetCode','pieceMark']:[]){row[field]=actual[field];if(current&&current[field]===before[field])current[field]=actual[field];}
         }
-        for(const [id,pin]of batch.sentPhotos){const current=pendingPhotos.get(id);if(current===pin.entry&&current.file===pin.file&&current.url===pin.url){for(const key of ['equipment','groups','categories','subcategories']){const row=working?.[key].find(r=>r.id===id),sent=canonical[key].find(r=>r.id===id);if(row&&sent)row.photoId=sent.photoId;}URL.revokeObjectURL(pin.url);pendingPhotos.delete(id);}}
+        for(const [id,pin]of batch.sentPhotos){const current=pendingPhotos.get(id),find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);acknowledgeFormPhoto(id,pin.entry,find(batch.sentInput),find(canonical));if(current!==pin.entry)URL.revokeObjectURL(pin.url);if(current===pin.entry&&current.file===pin.file&&current.url===pin.url){for(const key of ['equipment','groups','categories','subcategories']){const row=working?.[key].find(r=>r.id===id),sent=canonical[key].find(r=>r.id===id);if(row&&sent)row.photoId=sent.photoId;}URL.revokeObjectURL(pin.url);pendingPhotos.delete(id);}}
         syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
       }
       else if(!local&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
@@ -257,7 +262,10 @@
           syncBase=clone(local);
         }
       }else{working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
-      if(action==='save')for(const [id,entry]of uploadedPhotos)if(samePhoto(id,entry)){
+      if(action==='save')for(const [id,entry]of uploadedPhotos){
+        const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);
+        acknowledgeFormPhoto(id,entry.entry,find(sentInput),find(local));
+        if(!samePhoto(id,entry)){URL.revokeObjectURL(entry.url);continue;}
         if(nextInput&&nodeDialog===sentNodeDialog&&nodeDialog?.prior?.id===id&&nodeDialog.pendingPhoto===entry.entry){nodeDialog.pendingPhoto=null;nodeDialog.photoId=local[['categories','subcategories','groups'].find(key=>local[key]?.some(row=>row.id===id))]?.find(row=>row.id===id)?.photoId||'';}
         if(nextInput&&newEquipmentForm===sentAddForm&&newEquipmentForm?.submittedEquipmentId===id&&newEquipmentForm.pendingPhoto===entry.entry)newEquipmentForm.pendingPhoto=null;
         URL.revokeObjectURL(entry.url);pendingPhotos.delete(id);
