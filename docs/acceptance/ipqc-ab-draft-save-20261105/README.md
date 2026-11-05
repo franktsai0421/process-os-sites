@@ -1,9 +1,9 @@
-# IPQC A/B local editing and atomic Save — local candidate
+# IPQC A/B local editing and atomic Save — Draft PR #82
 
 ## Delivery and source
 
 - Branch `local/ipqc-ab-draft-save-20261105`; **depends on #77**.
-- Intended future PR base `integration/draft-save-20261104`, pinned to
+- Draft [PR #82](https://github.com/franktsai0421/process-os-sites/pull/82) base `integration/draft-save-20261104`, pinned to
   `0af6d57e912e5615250959c9e76210fecd55d96b`. The task's remote read matched
   that head and main `85fa4a36442b3b72323eb4a6eeb105b867c4856a`.
 - Server stage commits `9668851`, `5a56857` are ancestors. Reliability candidates
@@ -12,7 +12,59 @@
 - AGENTS, HANDOFF and applicable specs read; no repository `.agents/skills`.
 - #69 is closed/unmerged according to parent evidence; no action taken on it.
 - Parent approved identified Begin + Save after the server-stage decision.
-  Earlier architecture hold is resolved; remote upload hold is not.
+  Earlier architecture hold is resolved. The new acceleration source was uploaded
+  through the normal GitHub review path after its separate authorization; the
+  earlier denied delivery remains outside this PR and must not be retried.
+
+## PR #82 CI fixture follow-up (2026-11-05)
+
+The first remote head `9b01f5f86bc7551f4473cd05faf8e330de27c14e` has the same
+source tree as local `67ba584`. [Run 41977892070](https://github.com/franktsai0421/process-os-sites/actions/runs/41977892070)
+reports step 10 (new A/B flow) PASS, step 14 (performance/departure) FAIL and
+step 17 (manual synchronization/submission) FAIL. While the job is running,
+its downloadable log returned `404 BlobNotFound` during initial diagnosis.
+Local reproduction is recorded separately below; the PR update records final
+remote-log correlation when the old job reaches a terminal state.
+
+Local reproduction identified two unmigrated VM fixtures: departure bindings
+still expected the previous shared group Apply/Save behavior and omitted the
+actual `localPending`/local editing closures (23 failures among 444 cases);
+submission pinning omitted `localScopes`, `localDirty` and the actual
+`saveLocalModule` admission path (8 failures among 207 cases). Only these two
+test files and documentation change in the repair; product code, permissions,
+workflow, time budgets and pinned performance baselines remain unchanged.
+Actual source declarations are now required exactly once, so missing extraction
+fails explicitly. AB shared-only changes no longer imply a departure Save;
+local snapshots are abandoned with zero writes. The obsolete AB departure Save
+race is replaced by zero-write local handoff races; explicit Save stale-ACK
+coverage remains in the existing caller/browser suites.
+
+The migrated checks retain shared-state byte comparisons, zero dispatch on
+unsaved input, original saved-ID/revision/generation pinning, late
+identity/epoch/delivery refusal, revoked/pending guards and original unknown
+receipt/sent-snapshot obligations. New cases cover multiple local groups,
+completed/late local edits during Submit, and unknown departure without replay.
+UI-only redraws from the current module refusal path are distinguished from
+transport/helper/confirmation calls; other modules retain their original
+zero-call admission assertion.
+
+Local validation (Linux, Node 24, isolated synthetic inputs):
+
+- PASS: complete step 14 command chain, exact `ca664797` six-file baseline hashes;
+  baseline tests 2/2, departure/performance node group 447/447, and all six
+  subsequent authoring/master/IPQC scripts. `/tmp/ci82-step14-final.log`.
+- PASS: step 17 auth/replay 54/54 (`/tmp/ci82-step17-auth.log`), and full
+  contract group 211/211 (`/tmp/ci82-step17-final.log`).
+- PASS: A/B actual-handler/Chromium suite 11/11,
+  `/tmp/ci82-browser-regression.log`, including desktop/narrow local edits,
+  first/subsequent Save, matrix peers, unknown Begin/Save reload, legacy receipt,
+  permissions, cancellation, polling and synthetic photos.
+- PASS: scoped repository oxlint and diff whitespace checks. An initial direct
+  ESLint invocation was unavailable because this project uses oxlint; the
+  supported package lint command passed.
+- Full build/TypeScript/compiled acceptance are reused from the unchanged
+  product source. New exact-head Windows CI remains required. Physical devices,
+  native IME, real data and live Site remain NOT_RUN.
 
 ## Behavior and data safety
 

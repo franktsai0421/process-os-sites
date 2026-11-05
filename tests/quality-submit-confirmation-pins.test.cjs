@@ -3,6 +3,7 @@
  * Dispatch confirmation only: terminal readback/adoption is outside these contract-port cases.
  * No browser, HTTP, live account, persistence or backend-authorization claim. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ts=require('typescript');
 const files={iqc:['iqc-master.js','  async function post(','  function versionBar()'],ab:['ipqc-ab.js','  async function writeShared(','  function selectDefaults()'],module:['ipqc-ab.js','  async function moduleSave(','  async function save('],c:['ipqc-c.js','  async function writeShared(','  const open =']};
 const clone=value=>JSON.parse(JSON.stringify(value));
 function fixture(kind){
@@ -31,6 +32,12 @@ function fixture(kind){
  if(kind==='ab'||kind==='module'){
   const boundaryStart=source.indexOf('  // Caller-only RAM batch boundary.'),boundaryEnd=source.indexOf('  async function writeShared(',boundaryStart);
   assert(boundaryStart>=0&&boundaryEnd>boundaryStart,'Actual AB caller helpers are required');
+  Object.assign(g,{localScopes:new Map(),legacyClients:new Map(),localSent:null,API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null}});
+  const ast=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
+  for(const name of ['localDirty','localOwnerCurrent','legacyABClients','localPending','saveLocalModule']){
+   const matches=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)matches.push(node);if(ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>d.name.getText(ast)===name))matches.push(node);ts.forEachChild(node,visit);}visit(ast);
+   assert.equal(matches.length,1,'actual AB '+name+' declaration required');vm.runInContext(matches[0].getText(ast),context);
+  }
   vm.runInContext(source.slice(boundaryStart,boundaryEnd)+'\ninputBasisOwner=inputOwner();',context,{filename:file+':actual-caller-ownership'});
  }
  const handler=vm.runInContext('('+source.slice(from,to).trim()+')',context,{filename:file+':actual-command-handler'});
@@ -40,7 +47,7 @@ for(const kind of Object.keys(files)){
  void test(kind+': confirmation sends the captured savedId, generation and revision',async()=>{const f=fixture(kind);await f.run();assert.equal(f.sends().length,1,JSON.stringify({calls:f.calls,error:f.g.message}));const c=f.sends()[0];assert.equal(c.action,'submit');assert.equal(c.savedId,'saved-one');assert.equal(c.expectedRevision,7);assert.equal(c.generation,'generation-one');assert.equal(f.calls.filter(c=>c.action==='capture').length,1);assert.deepEqual(f.calls.find(c=>c.action==='confirm').options.savedVersion,{id:'saved-one',revision:7,at:'2026-10-30T01:02:03Z',actor:'Fixture editor'});assert(f.calls.findIndex(c=>c.action==='capture')<f.calls.findIndex(c=>c.action==='confirm'));if(kind==='module')assert.equal(c.input.stateRevision,11);});
  void test(kind+': changed saved/revision/generation during confirmation sends nothing',async()=>{for(const [field,change] of [['saved',f=>f.flow.saved.id='saved-two'],['revision',f=>f.flow.revision++],['generation',f=>f.flow.generation='generation-two']]){const f=fixture(kind);f.setAnswer(()=>{change(f);return'confirmed';});await f.run();assert.equal(f.sends().length,0);if(field==='generation'&&(kind==='ab'||kind==='module'))assert.equal(f.g.message,kind==='ab'?'IDENTITY_OR_SCOPE_CHANGED':'IDENTITY_CHANGED','Generation drift is refused by the earlier exact owner fence');else assert.match(f.g.message,/RECONFIRM/);}});
  void test(kind+': actor, identity epoch and delivery replacement during confirmation send nothing',async()=>{for(const change of [f=>{f.g.user={id:'actor-two'};},f=>{f.g.epoch++;},f=>{f.g.deliveryCurrent=false;}]){const f=fixture(kind);f.setAnswer(()=>{change(f);return'confirmed';});await f.run();assert.equal(f.sends().length,0);}});
- void test(kind+': unapplied local form blocks Save/Submit without auto Apply',async()=>{for(const action of ['save','submit']){const f=fixture(kind);f.setForm();const input=clone(f.g.modal);await f.run(action);assert.equal(f.sends().length,0);assert.equal(f.calls.length,0,'no transport/helper/confirmation on an unapplied form');assert.deepEqual(f.g.modal,input);assert.match(f.g.message,/套用|彈窗/);}});
+ void test(kind+': unapplied local form blocks Save/Submit without auto Apply',async()=>{for(const action of ['save','submit']){const f=fixture(kind);f.setForm();const input=clone(f.g.modal);await f.run(action);assert.equal(f.sends().length,0);assert.equal((kind==='module'?f.calls.filter(c=>c.action!=='draw'):f.calls).length,0,'no transport/helper/confirmation on an unapplied form');assert.deepEqual(f.g.modal,input);assert.match(f.g.message,kind==='module'?(action==='submit'?/UNSAVED_CHANGES_SAVE_REQUIRED/:/完成或取消目前表單/):/套用|彈窗/);}});
  void test(kind+': cancel keeps the saved version and sends nothing',async()=>{const f=fixture(kind);f.setAnswer(()=>null);await f.run();assert.equal(f.sends().length,0);assert.equal(f.flow.saved.id,'saved-one');});
  void test(kind+': helper refusal is surfaced before showing confirmation',async()=>{const f=fixture(kind);f.g.window.captureSharedDraftSubmission=()=>{throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');};await f.run();assert.equal(f.sends().length,0);assert(!f.calls.some(c=>c.action==='confirm'));assert.match(f.g.message,/UNSAVED_CHANGES_SAVE_REQUIRED/);});
 }
@@ -71,4 +78,12 @@ void test('iqc: form opened during Submit confirmation blocks dispatch and prese
 });
 void test('iqc: unsaved Submit refusal preserves an existing unknown transport obligation',async()=>{
  const f=fixture('iqc'),local={items:[{id:'retained'}]};f.g.localSnapshot=local;f.g.sharedClient.hasUnknown=()=>true;await f.run();assert.equal(f.calls.length,0);assert.equal(f.g.sharedClient.hasUnknown(),true);assert.equal(f.g.localSnapshot,local);
+});
+
+for(const kind of ['ab','module'])for(const late of [false,true])void test(`${kind}: ${late?'late':'completed'} local edits block the old saved snapshot without auto Save`,async()=>{
+ const f=fixture(kind),base={items:[]},snapshot={items:[{id:'local',name:'未存 Việt'}]},before=clone(f.flow);
+ const edit=()=>{f.g.localScopes.set('A',{base,snapshot});};if(late)f.setAnswer(()=>{edit();return'confirmed';});else edit();
+ await f.run();assert.equal(f.sends().length,0);assert.equal(f.g.localScopes.get('A').snapshot,snapshot);assert.deepEqual(f.flow,before);
+ assert.match(f.g.message,kind==='module'&&!late?/UNSAVED_CHANGES_SAVE_REQUIRED/:/套用|UNAPPLIED_CHANGES/);
+ assert.equal(f.calls.filter(c=>c.action==='confirm').length,late?1:0);assert.equal(f.g.busy,false);
 });
