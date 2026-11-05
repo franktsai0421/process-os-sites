@@ -427,7 +427,7 @@
   const localScopes=new Map(),localPhotos=new Map(),legacyClients=new Map();let localModuleGeneration=null,localBeginReceipt=null,localSent=null,localConflict=null,localAttempt=null;
   const localEntry=()=>localScopes.get(key());
   const localDirty=()=>[...localScopes.values()].some(e=>!sameInput(e.base,e.snapshot));
-  function localOwnerCurrent(){const sync=window.ProcessSync;return !sync?.requiresReload&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&[...localScopes.values()].every(e=>e.owner===actor()&&e.epoch===sync?.identityGeneration?.()&&e.lifetime===mutationLifetime&&e.host===host&&sync?.isCurrentDelivery?.(e.delivery)===true);}
+  function localOwnerCurrent(){const sync=window.ProcessSync;if(typeof sync?.identityGeneration!=='function'||typeof sync.captureDelivery!=='function'||typeof sync.isCurrentDelivery!=='function')return false;const epoch=sync.identityGeneration(),delivery=sync.captureDelivery();return Number.isSafeInteger(epoch)&&epoch>=0&&delivery!==null&&delivery!==undefined&&sync.isCurrentDelivery(delivery)===true&&!sync.requiresReload&&host?.isConnected&&host.dataset.activeTab==='quality-ipqc-ab'&&[...localScopes.values()].every(e=>e.owner===actor()&&e.epoch===epoch&&e.lifetime===mutationLifetime&&e.host===host&&sync.isCurrentDelivery(e.delivery)===true);}
   function pinLocalOperation(client){
     const sync=window.ProcessSync,pin={owner:actor(),epoch:sync?.identityGeneration?.(),delivery:sync?.captureDelivery?.(),host,lifetime:mutationLifetime,client,modal};
     const generations=()=>JSON.stringify([control?.moduleDraft?.workflow?.generation,[...localScopes.keys()].map(k=>[k,control?.scopes[k]?.workflow?.generation])]);
@@ -510,7 +510,7 @@
     if(!permittedAction('edit')){message='FORBIDDEN';draw();return null;}
     if(!localSaveScopes().length&&!moduleDrafts().length){message=t('沒有待存取的修改。','Không có thay đổi cần lưu.');draw();return null;}
     const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),capture=JSON.stringify(localSaveScopes()),pin=pinLocalOperation(client),owns=pin.current;
-    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();
+    const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();let acknowledged=false;
     try{
       let result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
       if(localModuleGeneration&&result.control?.workflow?.generation!==localModuleGeneration)throw Error('DRAFT_GENERATION_CHANGED');
@@ -529,9 +529,10 @@
       const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',input:{scopes:saveScopes}});
       pin.setSent({command,snapshot:capture,owner,epoch});const response=await client.sendPrepared(command);if(!owns())return null;
       localSent.confirmed=response.receipt;if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
+      acknowledged=true;lastCommandAcknowledgement={actor:owner,epoch,action:'save',result:response};
       clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return null;
       message=t('整份草稿已存取。','Đã lưu toàn bộ bản nháp.');return response;
-    }catch(error){if(owns()){message=error.message;if(!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(error.message==='DEPENDENCY_CHANGED_RECONFIRM'){await load(true,null,null,pin);if(owns())localConflict={path:error.details?.path,scope:error.details?.scope};}}}return null;}
+    }catch(error){if(owns()){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):error.message;if(!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(error.message==='DEPENDENCY_CHANGED_RECONFIRM'){await load(true,null,null,pin);if(owns())localConflict={path:error.details?.path,scope:error.details?.scope};}}}return null;}
     finally{pin.finish();}
   }
 

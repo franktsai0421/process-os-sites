@@ -1,6 +1,10 @@
 ## 2026-11-05 — Local A/B draft editing and Save
 
-A/B error/item/matrix changes now stay in page memory until one explicit module Save. First initialization uses the approved identified Begin + Save; subsequent Save is one POST/CAS. Added bounded original-receipt recovery, silent local departure, precise field/cell merge, server-side permission separation and synthetic browser/API checks. No migration, remote upload or deployment. [Evidence and limitations](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up migrates the four legacy immediate-Apply caller suites, adds original-operation completion guards and fixes stale recovery display after reload/peer Save; no shared-core or data-model change.
+A/B error/item/matrix changes now stay in page memory until one explicit module Save. First initialization uses the approved identified Begin + Save; subsequent Save is one POST/CAS. Added bounded original-receipt recovery, silent local departure, precise field/cell merge, server-side permission separation and synthetic browser/API checks. Uploaded as Draft #82; no migration, merge or deployment. [Evidence and limitations](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up migrates the four legacy immediate-Apply caller suites, adds original-operation completion guards and fixes stale recovery display after reload/peer Save; no shared-core or data-model change.
+
+## 2026-11-05 — A/B confirmed Save and read denial
+
+Retain the checked local-Save ACK and bilingual saved-but-read-denied feedback when the subsequent read fails; never retry the write. Reject missing/malformed epoch/delivery interfaces before any request. Migrate remaining polling/permission fixtures and compose byte-pinned source inverses without changing historical hashes or backend permissions. [Evidence and limits](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md).
 
 ## 2026-11-04 — Unknown Begin recovery candidate
 

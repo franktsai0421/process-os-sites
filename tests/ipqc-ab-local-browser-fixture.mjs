@@ -283,7 +283,7 @@ function instrument(source) {
   return source.replace(
     anchor,
     `  window.__ABTest={
-  view(){return{control,revision,working,busy,message,modal,viewer,accessBlocked,privateQuarantine,localScopes:[...localScopes.values()],localSent,localBeginReceipt,localModuleGeneration,localConflict};},
+  view(){return{control,revision,working,busy,message,modal,viewer,accessBlocked,privateQuarantine,localScopes:[...localScopes.values()],localSent,localBeginReceipt,localModuleGeneration,localConflict,lastCommandAcknowledgement};},
   save:saveLocalModule,query:queryLocalOperation,load,draw,start:startLocal,bind,poll:scheduleRefresh,
   command:()=>moduleTransport(),entry:()=>localEntry(),dirty:()=>localDirty(),scopes:()=>localSaveScopes(),
   set(key,value){if(key==='revision')revision=value;if(key==='modal')modal=value;if(key==='host')host=value;if(key==='client')moduleClient=value;if(key==='busy')busy=value;},

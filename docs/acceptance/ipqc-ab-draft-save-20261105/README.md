@@ -66,6 +66,79 @@ Local validation (Linux, Node 24, isolated synthetic inputs):
   product source. New exact-head Windows CI remains required. Physical devices,
   native IME, real data and live Site remain NOT_RUN.
 
+## PR #82 integrated entry fixture follow-up (2026-11-05)
+
+[Run 41980050955](https://github.com/franktsai0421/process-os-sites/actions/runs/41980050955)
+at exact remote head `7355d8fba6abf7a396314cf4a55551b19b17b972` finished
+FAIL. Steps 1–21 passed, including the repaired steps 14/17, full lint,
+TypeScript, build and compiled departure; step 22 failed and subsequent main
+validation steps were skipped. Its complete job log `127088035223`, lines
+9206–9213, identifies `localScopes is not defined` in the actual AB
+`rejectForeignBatch` reached from `test-scoped-read-pause.cjs:101`.
+The same failure was reproduced locally before repair.
+
+The AB polling VM fixture now supplies its real page-local scope map and
+executes the actual `localDirty`/`localOwnerCurrent` declarations. Existing
+polling/denial/GET-only/input-preservation assertions remain. Four new cases
+cover unchanged and edited local scopes stopping all automatic reads, resumed
+reads still pausing after one refusal, a local edit arriving during GET
+preventing late shared projection, and stale staged ownership preserving RAM
+and shared state with zero requests. The stale timer stops before examining
+private input; explicit owner admission then quarantines it. The complete
+read-pause suite passes **71 groups**, including all existing module consumers.
+
+Continuing the step 22 chain locally exposed the next stale fixture contract:
+the historical Begin inverse accepted only the pre-AB common-source hash.
+A separate exact four-edit AB opt-in inverse now reconstructs byte-identical
+PR77 `8734ac32…` source from fixed current `6dabbf31…` source, before the
+unchanged Begin inverse restores its original historical hash. No historical
+hash is replaced; unknown/appended source, altered Begin and three altered AB
+permission/scope tokens must fail closed. The real old-handler proof still
+rejects `begin-v1` with 422 `COMMAND_REQUIRED` for FQC/IQC/IPQC C/process,
+with unchanged D1/R2/receipts. This reconstruction is fixture-only and needs
+no Git history, data files or runtime feature flags in a clean CI checkout.
+
+The full command-chain audit also migrated the coupled-load fixture's empty
+session-storage enumeration, the polling-wiring fixture's actual local helpers,
+and the independent-permission fixture's current button/admission source.
+Legacy raw save-only API Save200 remains tested; the local editor uses edit
+permission for Save, while Submit and photo permissions remain independent.
+No account/permission settings or backend permission implementation changed.
+
+The ACK-denial test now exercises real Chromium, shared transport, handlers and
+synthetic SQLite/R2. It reproduced a real UI regression: after a confirmed Save,
+a denied follow-up read showed only FORBIDDEN and omitted the original ACK.
+The local Save path now retains the acknowledged result under its checked owner
+and reports saved-but-read-denied in Chinese/Vietnamese, without retrying. It
+also refuses absent/malformed epoch/delivery ports before any GET/POST; the new
+path had admitted one GET when captureDelivery was missing. The normal-write,
+unknown and newer-input completion boundaries remain distinct. The script
+passes two ACK languages plus nine invalid-owner cases, checks the saved bytes,
+blocks retries, waits for both fresh reads before unlocking and retains private
+quarantine until reset. The AB script cache version advances to local-save3.
+
+Local step 22 audit: **136 of 137 commands passed** in the supported Linux
+setup. The remaining native PowerShell exit-propagation command returned ENOENT
+because powershell.exe is absent; its other 218 cases passed. It is BLOCKED,
+not PASS, and is unchanged for Windows CI. The downloaded Playwright executable
+was also absent; the scripts' existing CHROMIUM_PATH/CHROME_PATH options ran the
+installed /usr/bin/chromium successfully. No guard, timeout or assertion was
+relaxed. The complete read-pause suite passes 71 groups; the historical inverse
+and four old-handler zero-write proofs pass. Full lint/TypeScript passed;
+final scoped caller/build results are recorded in PR #82 against the fixed tree.
+
+Logs: /tmp/ci82-step22-before.log, /tmp/ci82-step22-pause-product-final.log,
+/tmp/ci82-step22-old-server-final.log, /tmp/ci82-step22-ack-before2.log (real
+FORBIDDEN regression), /tmp/ci82-step22-ack-bilingual-final.log,
+/tmp/ci82-step22-load-final.log, /tmp/ci82-step22-permissions-final.log,
+/tmp/ci82-step22-poll-wiring-final.log, and the full/remaining/tail through tail7
+command-chain logs. The final stable-product caller suite and build are in
+/tmp/ci82-step22-ab-final.log and /tmp/ci82-step22-build.log. Exact-head Windows
+CI and compiled acceptance after the small AB UI change remain separate gates;
+prior 8c773a4 compiled results are baseline evidence, not this repair's compiled
+acceptance. No shared runtime/adapter, server protocol, schema, migration,
+real-data or CI-budget change.
+
 ## Behavior and data safety
 
 Forms, new errors/items, deletes and matrix edits stay in page memory. Finishing

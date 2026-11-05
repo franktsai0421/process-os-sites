@@ -112,6 +112,8 @@ const contracts={
   }
 };
 function withoutDurableBegin(bytes,file){
+ // Compose only the byte-pinned AB opt-in inverse; preserve both original hashes.
+ if(file==='lib/versioned-shared-workflow.ts'){const ab=require('./ipqc-ab-local-save-source-contract.cjs');if(hash(bytes)===ab.afterHash)bytes=ab.withoutABLocalAtomicSave(bytes);}
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){
