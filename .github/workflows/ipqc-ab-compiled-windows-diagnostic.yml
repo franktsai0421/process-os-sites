@@ -1,0 +1,57 @@
+name: IPQC A B compiled Windows diagnostic
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/ipqc-ab-compiled-windows-diagnostic.yml'
+      - 'tests/ipqc-ab-compiled-browser.acceptance.mjs'
+      - 'tests/ipqc-ab-compiled-gaps.acceptance.mjs'
+      - 'tests/ab-c-native-fixture.mjs'
+      - 'tests/root-entry-native-fixture.mjs'
+      - 'public/process/ipqc-ab.js'
+      - 'public/process/shared-draft-client.js'
+permissions:
+  contents: read
+concurrency:
+  group: ipqc-ab-compiled-windows-diagnostic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  exact-compiled-acceptance:
+    if: ${{ github.event.pull_request.number == 87 }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.event.pull_request.head.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Locked install and existing source guard
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/sites-ci-preflight.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build exact PR head
+        run: npm run build
+      - name: Install Chromium
+        run: node node_modules/playwright/cli.js install chromium
+      - name: Original Local safety step22 command
+        run: |
+          node --test --test-concurrency=1 tests/ipqc-ab-compiled-browser.acceptance.mjs tests/ipqc-ab-compiled-gaps.acceptance.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+# This short diagnostic preserves the full Local safety workflow unchanged.
+# A diagnostic result never replaces its failed or pending complete run.
