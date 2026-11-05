@@ -1,7 +1,7 @@
 import {env} from 'cloudflare:workers';
 import {can,sameOrigin,type State} from './process-state';
 import {sha256,utf8} from './web-feedback-zip';
-import {exportText,exportIds,planProblemExport,validateExportBatch,problemZip,ProblemExportError,type ExportItem} from './problem-export';
+import {exportText,exportIds,planProblemExport,validateExportBatch,problemZip,ProblemExportError,problemExportLimits,type ExportItem} from './problem-export';
 type EventRow={id:string;actor_id:string;module:string;action:string;occurred_at:number;received_at:string;status:string;outcome:string;version:number;notes:string};
 type ExportRow={id:string;actor_id:string;digest:string;generated_at:string;modules:string;ids:string;count:number;size:number;sha256:string};
 type Context={request:Request;state:State;actor:{id:string};action:string;names:Map<string,string>;allowed:(module:string)=>Promise<boolean>;assertFresh:()=>Promise<void>;body:()=>Promise<Record<string,unknown>>};
@@ -34,10 +34,10 @@ export async function handleAccessEventExports(context:Context){
    const old=await env.DB.prepare('SELECT * FROM access_event_exports WHERE actor_id=? AND operation_id=?').bind(actor.id,operationId).first<ExportRow>();
    if(old){if(old.digest!==digest)return reply({error:'OPERATION_PAYLOAD_CHANGED'},409);if(!await mayRead(old))return reply({error:'FORBIDDEN'},403);await assertFresh();return reply({...summary(old),replayed:true});}
   }
-  const users=JSON.parse(state.values.platformUsers||'[]') as {password?:string}[],secrets=[...users.map(user=>user.password||''),String(env.PROCESS_SESSION_SECRET||'')],items:ExportItem[]=[],modules=new Set<string>();
+  const users=JSON.parse(state.values.platformUsers||'[]') as {password?:string}[],secrets=[...users.map(user=>user.password||''),String(env.PROCESS_SESSION_SECRET||'')],items:ExportItem[]=[],modules=new Set<string>();let previewBytes=0;
   for(const id of ids){const row=await env.DB.prepare('SELECT * FROM access_events WHERE id=?').bind(id).first<EventRow>();if(!row||!await allowed(row.module))return reply({error:'NOT_FOUND'},404);modules.add(row.module);
    const notes=JSON.parse(row.notes) as {authorId:string;text:string;at:string}[];
-   items.push({id:row.id,version:row.version,images:[],data:{id:row.id,user:exportText(names.get(row.actor_id)||'Unavailable account',secrets),module:row.module,action:row.action,occurredAt:row.occurred_at,receivedAt:row.received_at,operationStatus:row.outcome,managementStatus:row.status,notes:notes.map(note=>({author:exportText(names.get(note.authorId)||'Unavailable account',secrets),at:note.at,text:exportText(note.text,secrets)}))}});
+   items.push({id:row.id,version:row.version,images:[],data:{id:row.id,user:exportText(names.get(row.actor_id)||'Unavailable account',secrets),module:row.module,action:row.action,occurredAt:row.occurred_at,receivedAt:row.received_at,operationStatus:row.outcome,managementStatus:row.status,notes:notes.map(note=>({author:exportText(names.get(note.authorId)||'Unavailable account',secrets),at:note.at,text:exportText(note.text,secrets)}))}});if(action==='export-preview'){previewBytes+=utf8(JSON.stringify(items.at(-1))).length;if(previewBytes>problemExportLimits.access.preview)throw new ProblemExportError('EXPORT_PREVIEW_LIMIT',413);}
   }
   await assertFresh();
   if(action==='export-preview')return reply({...planProblemExport(items,'access',new Set()),preview:items.map(item=>({...item.data,version:item.version,reporter:item.data.user,images:[]}))});

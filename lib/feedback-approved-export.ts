@@ -1,4 +1,4 @@
-import {exportText,exportIds,selectedImages,planProblemExport,type ExportItem,type ExportImage,ProblemExportError} from './problem-export';
+import {exportText,exportIds,selectedImages,planProblemExport,type ExportItem,type ExportImage,ProblemExportError,problemExportLimits} from './problem-export';
 type Note={author:string;text:string;at:string};
 type FeedbackIssue={id:string;reporter:string;createdAt:string;description:string;status:string;version:number;deletedAt?:string;location:{display:string;view:string;tab:string;system:string};attachments:string[];notes:Note[]};
 type Image=ExportImage&{location:unknown};
@@ -10,4 +10,4 @@ export async function approvedFeedbackItems(issues:FeedbackIssue[],attachments:I
  }
  return items;
 }
-export function approvedFeedbackPlan(items:ExportItem[],imageIds:unknown){const images=selectedImages(imageIds,items);return{...planProblemExport(items,'helper',images),preview:items.map(item=>({...item.data,version:item.version,images:item.images}))};}
+export function approvedFeedbackPlan(items:ExportItem[],imageIds:unknown){if(new TextEncoder().encode(JSON.stringify(items)).length>problemExportLimits.helper.preview)throw new ProblemExportError('EXPORT_PREVIEW_LIMIT',413);const images=selectedImages(imageIds,items);return{...planProblemExport(items,'helper',images),preview:items.map(item=>({...item.data,version:item.version,images:item.images}))};}

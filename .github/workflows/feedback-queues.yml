@@ -38,7 +38,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node scripts/sites-source-check.mjs
-      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-events-api.test.cjs tests/problem-export.test.cjs
+      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-events-api.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
       - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
       - run: npm run build
       - run: node node_modules/playwright/cli.js install --with-deps chromium

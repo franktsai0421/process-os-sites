@@ -1,7 +1,7 @@
 import {sha256,utf8,zipFiles} from './web-feedback-zip';
 
 export class ProblemExportError extends Error {constructor(code:string,public status=422){super(code);}}
-export const problemExportLimits={helper:{records:20,images:30_000_000,zip:32_000_000,selection:200},access:{records:20,images:0,zip:4_000_000,selection:200}} as const;
+export const problemExportLimits={helper:{records:20,images:30_000_000,zip:32_000_000,selection:200,preview:2_000_000},access:{records:20,images:0,zip:4_000_000,selection:200,preview:2_000_000}} as const;
 export type ExportSource=keyof typeof problemExportLimits;
 export type ExportImage={id:string;name:string;type:string;size:number;sha256:string};
 export type ExportItem={id:string;version:number;data:Record<string,unknown>;images:ExportImage[]};

@@ -43,6 +43,12 @@ void test('both actual ZIP APIs: separate projections, notes, ACL, version confl
    const second={...preview.value.batches[1],operationId:randomUUID()};for(const key of ['count','imageBytes','metadataBytes'])delete second[key];const madeSecond=await call(source,generate,second);assert.equal(madeSecond.status,201);assert.equal(madeSecond.value.count,1);
   });
   await t.test('helper denies selected inaccessible screenshots; explicit no-images export is safe',async()=>{const ids=[hid],denied=await call('helper','export-preview',{ids},'restricted');assert.equal(denied.status,403);assert.equal(denied.value.error,'EXPORT_IMAGE_PERMISSION_REQUIRED');const safe=await call('helper','export-preview',{ids,imageIds:[]},'restricted');assert.equal(safe.status,200);assert.equal(safe.value.preview[0].images.length,0);});
+  await t.test('large metadata preview rejects explicitly without truncating notes or generating any package',async()=>{
+   const note=JSON.stringify(Array.from({length:100},()=>({authorId:'other-admin',at:'synthetic',text:'x'.repeat(4000)}))),beforePuts=puts,snapshots=accessIds.slice(0,7).map(id=>db.prepare('SELECT id,notes FROM access_events WHERE id=?').get(id));
+   for(const row of snapshots)db.prepare('UPDATE access_events SET notes=? WHERE id=?').run(note,row.id);
+   const result=await call('access','export-preview',{ids:snapshots.map(row=>row.id)});assert.equal(result.status,413);assert.equal(result.value.error,'EXPORT_PREVIEW_LIMIT');assert.equal(puts,beforePuts);
+   for(const row of snapshots)db.prepare('UPDATE access_events SET notes=? WHERE id=?').run(row.notes,row.id);
+  });
   await t.test('current module/view revocation blocks new previews and downloads, without data or guard writes',async()=>{
    assert.deepEqual(db.prepare('SELECT * FROM shared_state').get(),originalBusiness);assert.deepEqual(db.prepare('SELECT * FROM access_events ORDER BY id').all(),eventsBefore);assert.deepEqual(JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues,helperBefore);
    const accessReceiptCount=db.prepare('SELECT COUNT(*) AS n FROM access_event_exports').get().n,sourcePreview=(await call('access','export-preview',{ids:[first.id]})).value,sourceBody={ids:sourcePreview.batches[0].ids,versions:sourcePreview.batches[0].versions,imageIds:[],operationId:randomUUID()};let raced=false;

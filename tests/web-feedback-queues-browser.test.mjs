@@ -42,7 +42,7 @@ try {
     await page.reload();await page.locator(`[data-issue="${id}"]`).click();assert.match(await page.locator('.wf-note-history').textContent(),/專屬備註/);await assertGuards();
   });
   await check('export opens read-only preview; Cancel generates and downloads nothing',async()=>{
-    const before=requests.length;await page.locator('[data-export]').click();await page.locator('[data-problem-export=helper] [data-export-generate]').waitFor();await page.locator('[data-problem-export=helper]').getByRole('button',{name:'取消／關閉',exact:true}).click();
+    await page.locator('[data-pick]').first().check();const before=requests.length;await page.locator('[data-export]').click();await page.locator('[data-problem-export=helper] [data-export-generate]').waitFor();await page.locator('[data-problem-export=helper]').getByRole('button',{name:'取消／關閉',exact:true}).click();
     assert(!requests.slice(before).some(r=>['export','export-approved','download'].includes(r.action)));assert.equal(await page.locator('.wf-admin [download]').count(),0);
   });
   await check('helper ZIP batches show partial unknown generation and retry frozen bytes without duplicate handoffs',async()=>{
