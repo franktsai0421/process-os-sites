@@ -42,3 +42,11 @@ for(const scope of ['AB','C']){
   await assert.rejects(x.bridge.execute(scope,'save'),/STALE_GENERATION/);assert.equal(x.posts().length,0);assert.equal(x.draft().snapshot.products[0].name,'Local');assert(x.bridge.localDirty(scope));
  });
 }
+void test('local new/renamed product deletion resolves the authoritative reference code, never a guessed new code',async t=>{
+ const x=await fixture();t.after(x.f.close);const product=x.draft().snapshot.products[0];product.code='Renamed';await x.bridge.execute('AB','apply');assert.equal(x.bridge.productReferenceCode('AB',product),'A1');
+ const inserted={...product,id:'locally-inserted',code:'LOCAL-NEW'};x.draft().snapshot.products.push(inserted);await x.bridge.execute('AB','apply');assert.equal(x.bridge.productReferenceCode('AB',inserted),null);assert.equal(x.posts().length,0);
+});
+void test('unknown Save with a changed generation preserves sent command and receipt-only lock',async t=>{
+ const x=await fixture();t.after(x.f.close);x.draft().snapshot.products[0].name='Sent';await x.bridge.execute('AB','apply');x.mode('lost');const fetch=x.box.fetch;x.box.fetch=(url,opt)=>url.includes('operationId=')?Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})):fetch(url,opt);await assert.rejects(x.bridge.execute('AB','save'));
+ const marker=[...x.disk];await x.f.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.workflowScopes.AB.generation='different-generation';v.masterDataControl=JSON.stringify(root);});const next=await fixture({disk:x.disk,api:x.f});await assert.rejects(next.bridge.recover('AB'),/SAVE_READBACK_REQUIRED/);assert.deepEqual([...next.disk],marker);assert.equal(next.posts().length,0);
+});

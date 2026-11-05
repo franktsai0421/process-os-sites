@@ -63,3 +63,30 @@ void test('atomic catalog removal still loads full reference history',async t=>{
  const f=await fixture();t.after(f.close);const adapter=f.load('lib/master-workflow.ts').masterWorkflowAdapter('AB');
  assert.equal(adapter.needsReferenceHistory(save(f,[{patches:[{op:'remove',path:['products',{id:'product-a'}]}],guards:[]}])),true);
 });
+for(const scope of ['AB','C']){
+ void test(`${scope}: raw atomic removal and category rename retain hidden published/history reference checks`,async t=>{
+  const line=scope==='AB'?'A':'C',f=await fixture({scope,values:{publishedProcess:JSON.stringify([{id:'retained-published',line,category:'G',productCodes:[line+'1']}])}});t.after(f.close);
+  for(const batch of [{patches:[{op:'remove',path:['products',{id:'product-a'}]}],guards:[{path:['products',{id:'product-a'}],value:f.flow.working.products[0]}]},change(['categoryGroups',{id:'group-a'},'name'],'Renamed','G')]){
+   const before=f.row(),r=await f.request('POST',save(f,[batch]));assert.equal(r.body.error,'CATALOG_IN_USE',JSON.stringify(r.body));assert.deepEqual(f.row(),before);assert.equal(f.stats.cas,0);
+  }
+ });
+ void test(`${scope}: no-change Save keeps saved identity; no substantive change still cannot submit`,async t=>{
+  const f=await fixture({scope});t.after(f.close);const a=await f.request('POST',save(f,[]));assert.equal(a.status,200);const b=await f.request('POST',save(f,[]));assert.equal(b.status,200);assert.equal(b.body.receipt.unchanged,true);assert.equal(b.body.control.workflow.saved.id,a.body.control.workflow.saved.id);
+  const flow=b.body.control.workflow,r=await f.request('POST',f.command('submit',{savedId:flow.saved.id,expectedRevision:flow.revision,reason:'No substantive change'}));assert.equal(r.body.error,'NO_SUBSTANTIVE_CHANGE');
+ });
+ void test(`${scope}: revoked edit/save cannot persist the previously prepared raw batch`,async t=>{
+  const f=await fixture({scope});t.after(f.close);const cmd=save(f,[change(productPath,'Prepared while allowed','Synthetic product')]),prefix=scope==='AB'?'ab':'c';
+  await f.mutateValues(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides={...users[0].accessOverrides,[prefix+'.edit']:false,[prefix+'.save']:false};values.platformUsers=JSON.stringify(users);});const before=f.row(),r=await f.request('POST',cmd);assert.equal(r.status,403);assert.deepEqual(f.row(),before);assert.equal(f.stats.cas,0);
+ });
+ void test(`${scope}: group membership and line dependency changes reject the original whole batch`,async t=>{
+  const f=await fixture({scope});t.after(f.close);const before=copy(f.flow.working),batch={patches:[{op:'set',path:['categoryGroups',{id:'group-a'},'defaultStages'],value:[scope==='AB'?'A-CUT':'C-CUT']},{op:'set',path:['products',{id:'product-a'},'routeMode'],value:'group'}],guards:[{path:['categoryGroups',{id:'group-a'},'defaultStages']},{path:['products',{id:'product-a'},'routeMode']},{path:['products'],value:before.products},{path:['lines'],value:before.lines}]};
+  const peer=await f.request('POST',f.command('apply',{patches:[{op:'insert',path:['products'],value:{...before.products[0],id:'peer-member',code:'NEW-MEMBER'}}],guards:[],clientId:'peer-member-client'}));assert.equal(peer.status,200);const pinned=f.row(),r=await f.request('POST',save(f,[batch]));assert.equal(r.body.error,'DEPENDENCY_CHANGED_RECONFIRM');assert.deepEqual(f.row(),pinned);
+ });
+}
+void test('two scopes save concurrently through actual shared-state CAS without cross-saving',async t=>{
+ const ab=await fixture({scope:'AB'}),c=await fixture({scope:'C'});t.after(ab.close);t.after(c.close);
+ await ab.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.active.C=copy(c.master.active.C);root.active.PROCESS={...root.active.PROCESS,...c.master.active.PROCESS};root.versions.push(...c.master.versions);root.workflowScopes.C=copy(c.flow);v.masterDataControl=JSON.stringify(root);});
+ const abCommand=save(ab,[change(productPath,'AB independently saved','Synthetic product')]),cCommand=save(c,[change(productPath,'C independently saved','Synthetic product')]);
+ const responses=await Promise.all([ab.request('POST',abCommand),ab.route.POST(new Request(ab.url.replace('scope=AB','scope=C'),{method:'POST',headers:ab.headers,body:JSON.stringify({command:cCommand})}))]);assert.equal(responses[0].status,200,JSON.stringify(responses[0].body));assert.equal(responses[1].status,200,JSON.stringify(await responses[1].json()));
+ const root=JSON.parse((await ab.decoded()).masterDataControl);assert.equal(root.workflowScopes.AB.saved.content.products[0].name,'AB independently saved');assert.equal(root.workflowScopes.C.saved.content.products[0].name,'C independently saved');
+});

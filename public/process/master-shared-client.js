@@ -124,6 +124,8 @@
       return{patches,guards};
     }
     const localDirty=scope=>!!locals.get(scope)?.batches.length;
+    function productReferenceCode(scope,product){const existing=flow(scope)?.working?.products?.find(p=>p.id===product?.id);if(existing)return existing.code;return locals.get(scope)?.batches.some(b=>b.patches.some(p=>p.op==='insert'&&p.path.length===1&&p.path[0]==='products'&&p.value.id===product?.id))?null:product?.code;}
+
     function discardLocal(scope){locals.delete(scope);const version=draft(scope);if(version&&flow(scope))version.snapshot=copy(flow(scope).working);}
     function stageLocal(scope){
       const current=flow(scope),c=client(scope);if(!current)throw Error('BEGIN_REQUIRED');
@@ -157,7 +159,7 @@
       const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
       readOwners.delete(scope);
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);
-      try{const c=client(scope);if(localScopes.has(scope)&&action==='apply')return stageLocal(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+      try{const c=client(scope);if(localScopes.has(scope)&&action==='submit'&&(localDirty(scope)||document.querySelector('#master-edit-dialog[open]')))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');if(localScopes.has(scope)&&action==='apply')return stageLocal(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
         if(localScopes.has(scope)&&action==='save')return await saveLocal(scope,detail);
         if(action==='begin'){const result=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);adopt(scope,result);return result;}
         const before=action==='apply'||action==='save'&&(!flow(scope)||document.querySelector('#master-edit-dialog[open]'))?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);
@@ -200,6 +202,6 @@
         if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
       }finally{busy=false;}
     }
-    return{localDirty,discardLocal,resetReads(){locals.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
+    return{localDirty,productReferenceCode,discardLocal,resetReads(){locals.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);

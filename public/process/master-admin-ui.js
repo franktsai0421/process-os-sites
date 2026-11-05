@@ -387,7 +387,8 @@
         const owner=window.ProcessSync?.identity,scope=state.masterScope,delivery=window.ProcessSync?.captureDelivery?.();
         const owned=()=>owner===window.ProcessSync?.identity&&scope===state.masterScope&&(!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
         try {
-        const response=await fetch('/api/master/workflow?scope='+encodeURIComponent(scope)+'&references='+encodeURIComponent(b.dataset.productDelete),{headers:window.ProcessSync?.platformHeaders?.()||{},cache:'no-store',signal:AbortSignal.timeout(45000)});
+        const referenceCode=shared.productReferenceCode?shared.productReferenceCode(scope,current().products.find(p=>p.code===b.dataset.productDelete)):b.dataset.productDelete;
+        const response=referenceCode===null?{ok:true,json:async()=>({total:0,references:[]})}:await fetch('/api/master/workflow?scope='+encodeURIComponent(scope)+'&references='+encodeURIComponent(referenceCode),{headers:window.ProcessSync?.platformHeaders?.()||{},cache:'no-store',signal:AbortSignal.timeout(45000)});
         const references=await response.json();if(!owned())return;
         if(!response.ok)throw Error(references.error||'REFERENCE_CHECK_UNAVAILABLE');
         if(!Number.isSafeInteger(references.total)||!Array.isArray(references.references))throw Error('REFERENCE_CHECK_UNAVAILABLE');
