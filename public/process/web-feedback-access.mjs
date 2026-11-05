@@ -49,7 +49,7 @@ export async function mountAccessQueue({host,t,current,request}) {
   async function openExport(history=false){
     if(!alive()||!canLeave()||!permissions.exchange)return tell(t('請先保存備註或關閉目前匯出。','Lưu ghi chú hoặc đóng xuất hiện tại trước.'));
     if(!history&&(!selection.size||selection.size>200))return tell(t('請勾選 1–200 筆；每包最多 20 筆，先預覽分批。','Chọn 1–200 mục; tối đa 20 mỗi gói, xem trước chia gói.'));
-    exportOpening=true;try{const {openProblemExport}=await import('./problem-export.mjs?v=20261105-export1');if(!alive())return;exportController=openProblemExport({source:'access',ids:[...selection],history,t,current:alive,request:(kind,body)=>request({preview:'export-preview',generate:'export',history:'exports'}[kind],body),downloadURL:id=>'/api/access-events?action=download&id='+encodeURIComponent(id)});}
+    exportOpening=true;try{const {openProblemExport}=await import('./problem-export.mjs?v=20261105-consistency1');if(!alive())return;exportController=openProblemExport({source:'access',ids:[...selection],history,t,current:alive,request:(kind,body)=>request({preview:'export-preview',generate:'export',history:'exports'}[kind],body),downloadURL:id=>'/api/access-events?action=download&id='+encodeURIComponent(id)});}
     catch{if(alive())tell(t('無法載入匯出預覽，尚未生成檔案。','Không tải được xem trước; chưa tạo tệp.'));}finally{if(alive())exportOpening=false;}
   }
   async function update(row,status){
