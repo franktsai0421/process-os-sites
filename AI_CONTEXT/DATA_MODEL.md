@@ -1,3 +1,7 @@
+## 2026-11-05 PROCESS master local Save candidate
+
+PROCESS master reuses `save-local-v1` ordered batches: guarded intermediate Apply results exist only within one Save request; a successful CAS persists working, saved snapshot and receipt together. Browser overlays are not persisted business records. Template/equipment IDs, media storage, authoring/history references and linked AB/C cases retain their existing model. No schema or data migration. [Behavior and evidence](../docs/acceptance/process-local-save-20261105/README.md).
+
 ## 2026-11-05 AB/C atomic Save candidate: no persistence migration
 
 The AB/C editor retains a RAM-only overlay and ordered guarded batches until explicit `save-local-v1`. The command uses existing `DraftCommand` input/receipt persistence and one shared-state CAS to save working plus its immutable saved snapshot. Begin markers add an actor+AB/C scoped client key; they do not create a business-data scope/table. Existing master AB/C/PROCESS control, IDs, category defaults, effective routes, linked cases and inline/R2/records-v1 formats remain. No SQL/schema/data conversion or cleanup. [Contract and evidence](../docs/acceptance/abc-local-save-20261105/README.md).

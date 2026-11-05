@@ -2,12 +2,12 @@
   'use strict';
   const copy=value=>JSON.parse(JSON.stringify(value)),equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
-  host.createMasterSharedBridge=({control,onChange})=>{
+  host.createMasterSharedBridge=({control,onChange,processLocalSave=false})=>{
     const clients=new Map(),clientOwners=new Map(),bases=new Map(),generations=new Map(),permissions=new Map(),readTokens=new Map(),readOwners=new Map();let busy=false;
-    const localScopes=new Set(['AB','C']),locals=new Map(),stateRevisions=new Map();
+    const localScopes=new Set(['AB','C',...(processLocalSave?['PROCESS']:[])]),locals=new Map(),stateRevisions=new Map();let processSaving=false;
     const client=scope=>{const actor=host.ProcessSync?.identity?.id;if(!actor)throw Error('LOGIN_REQUIRED');const key=actor+':'+scope;
       if((scope==='PROCESS'||localScopes.has(scope))&&clients.has(key)&&(!ownerMatches(clientOwners.get(key))||clients.get(key).isRuntimeCurrent?.()===false||localScopes.has(scope)&&clients.get(key).isBeginRuntimeCurrent?.()===false)){clients.delete(key);clientOwners.delete(key);readTokens.delete(key);}
-      if(!clients.has(key)){clients.set(key,host.createSharedDraftClient({endpoint:'/api/master/workflow?scope='+encodeURIComponent(scope)+'&caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},...(scope==='PROCESS'?{externalDurableBounded:{scope:'PROCESS'}}:localScopes.has(scope)?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true}:{})}));if(scope==='PROCESS'||localScopes.has(scope))clientOwners.set(key,captureOwner());}return clients.get(key);
+      if(!clients.has(key)){clients.set(key,host.createSharedDraftClient({endpoint:'/api/master/workflow?scope='+encodeURIComponent(scope)+'&caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},...(scope==='PROCESS'?{externalDurableBounded:{scope:'PROCESS'},...(processLocalSave?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,processLocalSave:true}:{})}:localScopes.has(scope)?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true}:{})}));if(scope==='PROCESS'||localScopes.has(scope))clientOwners.set(key,captureOwner());}return clients.get(key);
     };
     const flow=scope=>control.workflowScopes?.[scope];
     const draft=scope=>control.versions.find(v=>v.scope===scope&&v.status==='draft');
@@ -18,7 +18,7 @@
       const active=c.versions.find(v=>v.id===c.activeVersionId);if(active)control.active[scope]=copy(active.snapshot);
       if(c.workflow)control.workflowScopes={...control.workflowScopes,[scope]:c.workflow};
       bases.set(scope,copy(c.workflow?.working||draft(scope)?.snapshot||active?.snapshot||{}));generations.set(scope,c.workflow?.generation);
-      const local=locals.get(scope),version=draft(scope);if(local&&ownerMatches(local.owner)&&version)version.snapshot=copy(local.snapshot);
+      const local=locals.get(scope),version=draft(scope);if(local&&ownerMatches(local.owner)&&version){if(scope==='PROCESS')local.snapshot=projectLocal(c.workflow.working,local.batches);version.snapshot=copy(local.snapshot);}
     }
     async function load(scope){const actor=host.ProcessSync?.identity,key=actor?.id+':'+scope,current=flow(scope),owner={};readOwners.set(scope,owner);
       let result;try{result=await client(scope).read(readTokens.get(key)||(current?current.generation+':'+current.revision:''));}
@@ -74,6 +74,7 @@
     }
     async function sendPreparedPatch(scope,command,dispatchOptions){const result=await dispatchPreparedPatch(scope,command,dispatchOptions);return finishPreparedPatch(scope,command,result);}
     async function patch(scope,patches,guards=[]){
+      if(scope==='PROCESS'&&processLocalSave)return localPatch(scope,patches,guards);
       if(!flow(scope))throw Error('BEGIN_REQUIRED');
       const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       readOwners.delete(scope);
@@ -125,7 +126,20 @@
       }else{patches.push({op:'set',path,value:after});guards.push({path,value:before});}
       return{patches,guards};
     }
+    function localValue(snapshot,path){let value=snapshot;for(const part of path)value=typeof part==='string'?value?.[part]:value?.find(row=>row.id===part.id);return value;}
+    function projectLocal(snapshot,batches){const next=copy(snapshot);for(const batch of batches)for(const p of batch.patches){const parent=localValue(next,p.path.slice(0,-1)),last=p.path.at(-1);if(p.op==='insert'){const list=localValue(next,p.path);if(Array.isArray(list)&&!list.some(row=>row.id===p.value.id))list.push(copy(p.value));}else if(p.op==='order'){const list=localValue(next,p.path);if(Array.isArray(list)){const order=new Map(p.ids.map((id,i)=>[id,i]));list.sort((a,b)=>(order.get(a.id)??p.ids.length)-(order.get(b.id)??p.ids.length));}}else if(parent){if(typeof last==='string')parent[last]=p.value===undefined?undefined:copy(p.value);else if(Array.isArray(parent)){const i=parent.findIndex(row=>row.id===last.id);if(i>=0&&p.op==='remove')parent.splice(i,1);}}}return next;}
+    function localPatch(scope,patches,guards=[]){
+      const current=flow(scope),c=client(scope),previous=locals.get(scope),owner=previous?.owner||captureOwner();
+      if(scope!=='PROCESS')throw Error('PROCESS_LOCAL_SCOPE_REQUIRED');if(!current)throw Error('BEGIN_REQUIRED');
+      if(!ownerMatches(owner)||previous&&previous.generation!==current.generation)throw Error('STALE_GENERATION');
+      if(c.hasUnknown()&&!processSaving)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');if(c.permission('edit')!==true)throw Error('FORBIDDEN');if(current.pendingId)throw Error('PENDING_LOCKED');
+      const before=previous?.snapshot||current.working;
+      for(const g of guards)if(!equal(localValue(before,g.path),g.value))throw Error('DEPENDENCY_CHANGED_RECONFIRM');
+      if(!patches.length)return null;const batch=copy({patches,guards}),batches=[...(previous?.batches||[]),batch],snapshot=projectLocal(before,[batch]);
+      locals.set(scope,{owner,generation:current.generation,snapshot,batches});draft(scope).snapshot=copy(snapshot);return {local:true};
+    }
     const localDirty=scope=>!!locals.get(scope)?.batches.length;
+    const unsavedLocal=scope=>localDirty(scope)||scope==='PROCESS'&&processLocalSave&&(host.ProcessMasterVersioning?.departureNames.dirty()||host.ProcessEquipment?.hasUnappliedChanges?.());
     function productReferenceCode(scope,product){const existing=flow(scope)?.working?.products?.find(p=>p.id===product?.id);if(existing)return existing.code;return locals.get(scope)?.batches.some(b=>b.patches.some(p=>p.op==='insert'&&p.path.length===1&&p.path[0]==='products'&&p.value.id===product?.id))?null:product?.code;}
 
     function discardLocal(scope){locals.delete(scope);const version=draft(scope);if(version&&flow(scope))version.snapshot=copy(flow(scope).working);}
@@ -137,23 +151,23 @@
       if(!ownerMatches(owner)||previous&&previous.generation!==current.generation)throw Error('STALE_GENERATION');
       const before=previous?.snapshot||bases.get(scope)||current.working,next=copy(draft(scope).snapshot);identify(next,before);
       const batch=diff(before,next);if(!batch.patches.length)return null;
-      if(batch.patches.some(p=>p.path[0]==='categoryGroups'&&(p.path.at(-1)==='defaultStages'||p.op==='insert')))batch.guards.push({path:['products'],value:copy(before.products)},{path:['lines'],value:copy(before.lines)});
+      if(scope!=='PROCESS'&&batch.patches.some(p=>p.path[0]==='categoryGroups'&&(p.path.at(-1)==='defaultStages'||p.op==='insert')))batch.guards.push({path:['products'],value:copy(before.products)},{path:['lines'],value:copy(before.lines)});
       locals.set(scope,{owner,generation:current.generation,snapshot:next,batches:[...(previous?.batches||[]),batch]});draft(scope).snapshot=copy(next);
       return {local:true};
     }
     async function saveLocal(scope,detail){
-      if(document.querySelector('#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
-      const local=locals.get(scope),current=flow(scope),c=client(scope);
+      if(document.querySelector(scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
+      const local=locals.get(scope),current=flow(scope),c=client(scope),saveOwner=captureOwner();
       if(!current)throw Error('BEGIN_REQUIRED');
       if(local&&(!ownerMatches(local.owner)||local.generation!==current.generation))throw Error('STALE_GENERATION');
       if(c.permission('save')!==true)throw Error('FORBIDDEN');
-      await c.flush();
+      await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       const batches=copy(local?.batches||[]),command=c.prepare(current.generation,'save',{...detail,moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
-      const result=await c.sendPrepared(command);
+      let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       // Transport validates the original receipt and readback before clearing its
       // durable sent command. Only that confirmed Save retires the local overlay.
-      discardLocal(scope);readOwners.delete(scope);readTokens.delete(owner.actor?.id+':'+scope);adopt(scope,result);return result;
+      if(scope==='PROCESS'&&locals.get(scope)!==local){const remaining=locals.get(scope);if(remaining&&remaining.owner===local?.owner&&remaining.generation===current.generation){remaining.batches=remaining.batches.slice(batches.length);if(!remaining.batches.length)discardLocal(scope);}}else discardLocal(scope);readOwners.delete(scope);readTokens.delete(owner.actor?.id+':'+scope);adopt(scope,result);return result;
     }
     async function execute(scope,action,detail={}){
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
@@ -161,7 +175,7 @@
       const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
       readOwners.delete(scope);
       readTokens.delete(host.ProcessSync?.identity?.id+':'+scope);
-      try{const c=client(scope);if(localScopes.has(scope)&&action==='submit'&&(localDirty(scope)||document.querySelector('#master-edit-dialog[open]')))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');if(localScopes.has(scope)&&action==='apply')return stageLocal(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+      try{const c=client(scope);if(localScopes.has(scope)&&action==='submit'&&(unsavedLocal(scope)||document.querySelector(scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');if(localScopes.has(scope)&&action==='apply')return stageLocal(scope);if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
         if(localScopes.has(scope)&&action==='save')return await saveLocal(scope,detail);
         if(action==='begin'){const result=await c.begin();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readOwners.delete(scope);adopt(scope,result);return result;}
         const before=action==='apply'||action==='save'&&(!flow(scope)||document.querySelector('#master-edit-dialog[open]'))?copy(bases.get(scope)||draft(scope)?.snapshot||{}):null,next=action==='apply'?copy(draft(scope)?.snapshot||before):null,generation=generations.get(scope);
@@ -180,12 +194,12 @@
         return result;
       }catch(error){if(action==='apply'&&(error.notSent||error.status&&error.status<500))error.rejectedDraftPaths=detail.patches?.map(patch=>patch.path)||[];throw error;}finally{busy=false;}
     }
-    async function submit(scope){if(localScopes.has(scope)&&localDirty(scope))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');const current=flow(scope),submission=host.captureSharedDraftSubmission(current);
+    async function submit(scope){if(localScopes.has(scope)&&unsavedLocal(scope))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');const current=flow(scope),submission=host.captureSharedDraftSubmission(current);
       if(host.ProcessNavigationForms?.dirty(document.querySelector('#master-edit-dialog[open]')))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
       const generation=current.generation,actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
       const reason=await host.VersionDraftUI.confirmSubmit(host.VersionDraftUI.reasonFor(draft(scope),current),scope,{masterSnapshot:{dirty:false,changes:host.VersionDraftUI.masterChanges(current.active?.content,current.saved.content)},savedVersion:{id:submission.savedId,revision:submission.expectedRevision,at:current.saved.at,actor:current.saved.actor?.name}});if(!reason)return null;
       if(actor!==host.ProcessSync?.identity||epoch!==host.ProcessSync?.identityGeneration?.()||delivery&&host.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-      if(localScopes.has(scope)&&(localDirty(scope)||document.querySelector('#master-edit-dialog[open]')))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');
+      if(localScopes.has(scope)&&(unsavedLocal(scope)||document.querySelector(scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');
       if(flow(scope)?.generation!==generation||flow(scope)?.saved?.id!==submission.savedId)throw Error('SAVED_VERSION_CHANGED_RECONFIRM');
       if(flow(scope)?.revision!==submission.expectedRevision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
       return execute(scope,'submit',{...submission,reason});
@@ -204,6 +218,6 @@
         if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
       }finally{busy=false;}
     }
-    return{localDirty,productReferenceCode,discardLocal,resetReads(){locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
+    return{localProcess:processLocalSave,localDirty,productReferenceCode,discardLocal,resetReads(){locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);

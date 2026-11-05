@@ -1,3 +1,7 @@
+## 2026-11-05 PROCESS master atomic local Save candidate
+
+Independent PROCESS templates/machines candidate on fixed #80, depends on #80→#77. Local completions and name input no longer POST working changes; explicit Save persists guarded batches and saved snapshot in one CAS. Preserve late input, original bounded recovery/identified Begin, independent permissions, references and linked stage approval. No routine-FQC changes, merge or deployment. [Scope, validation and existing baseline limitations](../docs/acceptance/process-local-save-20261105/README.md).
+
 ## 2026-11-05 — AB／C 主資料草稿統一候選
 
 表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。

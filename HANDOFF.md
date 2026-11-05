@@ -1,3 +1,7 @@
+## 2026-11-05 PROCESS master local Save independent candidate
+
+`feature/process-local-save-20261105` starts at fixed #80 `d05a85eab2a49e735a604078873578898edf1535`; intended PR base remains `feature/abc-local-save-20261105`, depends on #80→#77. Templates/name/type/photos and machine master use local input plus one guarded atomic Save. Receipt-only recovery and stage/reference/permission guards remain. [Implementation, verification and outstanding gates](docs/acceptance/process-local-save-20261105/README.md). Do not merge/deploy or mix the separately denied second-batch integration into this branch; routine FQC is excluded.
+
 ## 2026-11-05 — AB/C local editing / atomic Save dependent candidate
 
 `feature/abc-local-save-20261105` starts from exact #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. AB/C products/categories/routes and line/stage entry complete locally, then save ordered guards and snapshot through one CAS. Scoped durable Begin/Save recovery, permission/reference/history protections and pinned PROCESS stage approval remain. [Evidence, shared-file integration delta and remaining gates](docs/acceptance/abc-local-save-20261105/README.md). No merge/deployment/live data; BOM/tooling/IPQC A/B candidates are not included.

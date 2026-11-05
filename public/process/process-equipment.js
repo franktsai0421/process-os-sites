@@ -160,7 +160,7 @@
     try{if(before&&next){const delta=window.MasterDataWorkflow.shared.diff(before,next);await window.MasterDataWorkflow.shared.patch('PROCESS',delta.patches,delta.guards);}
       else{recordProcessMasterVersion(draft,label);await persistProcessMasterControl();}
     }catch(error){toast(error.message);return false;}
-    toast(t('設備已同步至共用草稿；尚未手動儲存','Đã đồng bộ thiết bị vào bản nháp chung; chưa lưu thủ công'));
+    toast(t('設備修改留在本機；請存取草稿','Thay đổi máy ở cục bộ; hãy lưu bản nháp'));
     return true;
   }
   function openEditor(id = '', focusField = '') {
@@ -425,7 +425,7 @@
     openEditor(id, field);
   }
   function hasUnappliedChanges() { return Boolean(editing && document.querySelector('#equipment-editor-dialog[open]') && (committing || editing.uploading || JSON.stringify(editing.record) !== editing.initial)); }
-  host.ProcessEquipment = {cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
+  host.ProcessEquipment = {abandon(){editing=null;document.querySelector('#equipment-editor-dialog')?.remove();},cardButton,panel,bind,validate,entries,choices,selector,find,display,portable,exportSheets,readSheets,restorePhotos,loadSource,approvedUsage,locate,hasUnappliedChanges};
   host.addEventListener('process-language-change',() => { if (document.querySelector('#equipment-panel')) repaint(Boolean(editing)); });
   const baseView = processMasterView, baseBind = bindDataInner;
   processMasterView = function () { return baseView() + panel(); };
