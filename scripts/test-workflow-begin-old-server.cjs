@@ -14,6 +14,14 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const altered=Buffer.from(bytes.toString().replace("action==='begin'","action==='begin-unsafe'"));
   assert.notDeepEqual(altered,bytes);
   assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);
+  if(file==='lib/versioned-shared-workflow.ts')for(const [before,after]of [
+   ["defaults.save=defaults.save||defaults.edit","defaults.save=true"],
+   ["'process:platform','routine-equipment'","'process:platform','unsupported-scope'"],
+   ["if((begin||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))","if(begin&&!await identity(request,state))"],
+  ]){
+   const unsafe=Buffer.from(bytes.toString().replace(before,after));assert.notDeepEqual(unsafe,bytes);
+   assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/,'equipment permissions, exact scope and final session check remain pinned');
+  }
  }
  const atomicInverse=require('./ipqc-c-local-save-source-contract.cjs').withoutLocalAtomicSave;
  const historical=atomicInverse(fs.readFileSync(path.join(root,files[0])));
@@ -29,7 +37,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const encoded=await h.load('lib/state-records.ts').encodeRecordValues(h.env.STATE_ARCHIVE,values);
   h.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').run(encoded);
   const legacy=require('./fqc-bootstrap-projection-fixture.cjs')(root,h.env,null,overrides);
-  for(const moduleName of ['fqc','iqc','ipqc-c','process-authoring']){
+  for(const moduleName of ['fqc','iqc','ipqc-c','process-authoring','routine-equipment']){
    const before=h.snapshot(),body={action:'begin-v1',begin:{operationId:randomUUID(),basis:{generation:null,activeVersionId:null,openVersionId:null,openVersionStatus:null,openVersionRevision:null}}};
    const api=legacy.load('app/api/'+moduleName+'/workflow/route.ts');
    const response=await api.POST(new Request('http://fixture/api/'+moduleName+'/workflow',{method:'POST',headers:h.sessions.editor,body:JSON.stringify(body)}));
@@ -38,6 +46,6 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
    console.log('PASS '+moduleName+' exact old handler rejects begin-v1: 422 COMMAND_REQUIRED, zero D1/R2 changes');
   }
   assert.deepEqual([...legacy.overrideUsed].sort((a,b)=>a.localeCompare(b)),files.slice().sort((a,b)=>a.localeCompare(b)));
-  console.log('PASS exact historical inverse and two unknown-source mutations per handler');
+  console.log('PASS unchanged historical inverse, unknown-source mutations, and three equipment safety mutations');
  }finally{h.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

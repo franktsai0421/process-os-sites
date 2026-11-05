@@ -111,13 +111,34 @@ const contracts={
     ]
   }
 };
-function withoutDurableBegin(bytes,file){
- const {beforeHash,afterHash,rules}=contracts[file];
+// Only the reviewed equipment opt-in may compose with the unchanged Begin
+// inverse. Verify every byte/offset and return exactly the original #77 source;
+// never refresh a historical hash to admit arbitrary current product code.
+const equipmentOptIn={
+ beforeHash:'8734ac32aa54f02f2d19b94bd7b0ecbec849907867a9638a4f5afd34a4e244d1',
+ afterHash:'3d5e661d60d994ab1768f67ee2f0fd2aef70ef77431333148d62ff0824212d27',
+ rules:[
+  {offset:14969,
+   before:"    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\r\n",
+   after:"    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n"},
+  {offset:32269,
+   before:"          if(begin){if(!['fqc','iqc','process:platform'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n",
+   after:"          if(begin){if(!['fqc','iqc','process:platform','routine-equipment'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"},
+  {offset:37224,
+   before:"        if(begin&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+   after:"        // Equipment may acknowledge its exact full Save POST without another GET. Recheck session after immutable storage.\n        if((begin||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"},
+ ]
+};
+function reversePinned(bytes,{beforeHash,afterHash,rules}){
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){
   const expected=Buffer.from(after);assert.deepEqual(result.subarray(offset,offset+expected.length),expected);
   result=Buffer.concat([result.subarray(0,offset),Buffer.from(before),result.subarray(offset+expected.length)]);
  }
  assert.equal(hash(result),beforeHash,'Begin-v1 inverse changed historical source');return result;
+}
+function withoutDurableBegin(bytes,file){
+ if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)===equipmentOptIn.afterHash)bytes=reversePinned(bytes,equipmentOptIn);
+ return reversePinned(bytes,contracts[file]);
 }
 module.exports={withoutDurableBegin};

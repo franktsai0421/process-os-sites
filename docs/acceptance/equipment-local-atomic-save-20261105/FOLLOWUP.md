@@ -17,6 +17,21 @@
 已通過檢具 API／native／compiled browser、lint、TypeScript、build 及 source-only
 步驟，但共用離頁／送審步驟失敗。下述本機修復不等於該 CI 已通過。
 
+後續狀態：兩個測試／文件提交已上傳至 `277964a80a1f4b461914ccbc8eb764d383a84449`。
+其 [exact-head CI 41968165708](https://github.com/franktsai0421/process-os-sites/actions/runs/41968165708)
+通過原兩個共用失敗步驟、檢具 API／native／compiled、source-only、TypeScript、
+build 及完整 source／snapshot／權限回歸，最後 FAIL 於舊伺服器來源契約：
+`test-workflow-begin-old-server.cjs` 仍只接受 #77 共用 handler 雜湊。
+後續相依步驟因此 SKIPPED，不能列為通過。
+
+已補精確的檢具增量逆轉：先核對目前完整來源 SHA-256 與三處 offset／bytes，
+反轉到原 #77 的 `8734ac32…`，再使用完全未變的 Begin-v1 逆轉規則，仍必須
+得到原歷史 `8a35f8bd…`。沒有更新或移除原歷史 hash／offset；未知來源仍拒絕。
+原始 #77 與檢具候選都驗證得到同一歷史 handler；另增三個 negative mutation
+分別鎖住修改可 Save、exact Begin scope 及最後 session 檢查。實際五個模組的
+舊 handler（含檢具）均對 begin-v1 回覆 422 COMMAND_REQUIRED、零 D1／R2 改變。
+此修復只有測試契約與文件，不變更產品；後續 CI 結果以最新 PR head 的 run 為準。
+
 ## 舊 workflow／validation 的 503 原因與修復
 
 實際登入會透過 [login-limit.ts](../../../lib/login-limit.ts) 的 `DB.batch`
