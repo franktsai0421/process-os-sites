@@ -35,6 +35,7 @@ function fixture() {
 }
 function tooling() {
   const f=fixture();
+  Object.assign(f.box,{localBase:null,localSnapshot:null,localGeneration:null,pendingLocalSave:false});
   f.load(part('tooling.js',' const draftActionAllowed=',' const option=')+part('tooling.js',' async function command(',' function currentLocation('));
   f.load('this.draftActionAllowed=draftActionAllowed;');
   return f;
@@ -110,4 +111,14 @@ void test('routine FQC Submit refuses dirty local buffer, preserving its separat
 });
 void test('routine FQC selection change during confirmation cannot submit a different document',async()=>{
   const f=routine(),running=f.box.confirmSubmission(),caught=running.catch(e=>e);f.box.currentDocument={...f.box.currentDocument,id:'another-document'};f.pending.resolve('confirmed');assert.match((await caught).message,/DELIVERY_SUPERSEDED/);assert.equal(f.calls.length,0);
+});
+
+void test('tooling Submit refuses completed local edits before confirmation, preserving the saved version and input',async()=>{
+ const f=tooling(),local={tools:[{id:'synthetic-tool',notes:'unsaved local note'}]};
+ f.box.localBase={tools:[{id:'synthetic-tool',notes:'server basis'}]};f.box.localSnapshot=local;f.box.localGeneration=f.flow.generation;
+ const before=JSON.stringify(f.flow),basis=f.box.localBase;
+ await assert.rejects(f.box.saveOrSubmit('submit'),/UNSAVED_CHANGES_SAVE_REQUIRED/);
+ assert.equal(f.box.confirmations,0);assert.equal(f.calls.length,0);
+ assert.equal(f.box.localSnapshot,local);assert.equal(f.box.localBase,basis);assert.equal(f.box.localGeneration,f.flow.generation);
+ assert.equal(JSON.stringify(f.flow),before);
 });

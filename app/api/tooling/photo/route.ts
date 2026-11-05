@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: '來源不允許' }, { status: 403 });
   try {
     const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
-    if (!await identity(request, state) || !(await can(request, state, 'view:data')))
+    if (!await identity(request, state) || !(await can(request, state, 'view:data')) || !(await can(request, state, 'tooling.edit')))
       return Response.json({ error: '沒有 模具照片上傳權限' }, { status: 403 });
     const type = request.headers.get('content-type')?.split(';')[0] || '';
     if (!imageTypes.has(type)) return Response.json({ error: '僅接受圖片檔' }, { status: 415 });

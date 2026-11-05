@@ -1,0 +1,122 @@
+{
+  "recordedAtUTC": "2026-11-05T03:05:38.253332+00:00",
+  "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+  "productCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+  "branch": "feature/abc-local-save-20261105",
+  "dependsOn": 77,
+  "environment": "Node v24.19.0, Linux, real Chromium, local compiled workerd, synthetic nonpersistent D1/R2 only",
+  "checks": [
+    {
+      "name": "actual API/bridge/transport/Begin/ownership/navigation regression suite",
+      "status": "PASS",
+      "tests": 265,
+      "failed": 0,
+      "skipped": 0,
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0"
+    },
+    {
+      "name": "existing master workflow / stage link / product route / field guards / format retention / lines API",
+      "status": "PASS",
+      "groups": 76,
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0"
+    },
+    {
+      "name": "compiled Chromium actual UI and handlers",
+      "status": "PASS",
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+      "receipt": "browser.json"
+    },
+    {
+      "name": "lint",
+      "status": "PASS",
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0"
+    },
+    {
+      "name": "TypeScript --noEmit",
+      "status": "PASS",
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0"
+    },
+    {
+      "name": "production build with known-auth client checks",
+      "status": "PASS",
+      "sourceCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+      "receipt": {
+        "format": "PROCESS_OS_SAFE_BUILD_RESULT_V1",
+        "status": "PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK",
+        "childExitCode": 0,
+        "childSignal": null,
+        "spawnCode": null,
+        "exitCode": 0,
+        "stdoutBytes": 3672,
+        "stderrBytes": 467,
+        "memoryCaptureOverflow": false,
+        "warningLineCount": 0,
+        "errorLineCount": 0,
+        "unknownLineCount": 88,
+        "errorKinds": [],
+        "sourceLocations": [],
+        "postBuildAuthCheckPassCount": 1,
+        "postBuildAuthCheckFailureCount": 0,
+        "publicAuthViolationCategories": [],
+        "rawOutputForwarded": false,
+        "rawOutputPersisted": false,
+        "rawWindowsReturned": false,
+        "valueHashesReturned": false,
+        "serverPrivateAuthenticationPreserved": true,
+        "compiledServerPublicDistributionApproved": false,
+        "universalSecretAbsence": false,
+        "forwardedSignal": null,
+        "signalForwardFailed": false
+      }
+    },
+    {
+      "name": "source boundary scan",
+      "status": "PASS"
+    },
+    {
+      "name": "this task sensitive-data delta scan",
+      "status": "PASS",
+      "findings": []
+    },
+    {
+      "name": "full generic safety scan",
+      "status": "BASELINE_FINDINGS",
+      "exitCode": 1,
+      "findings": [
+        {
+          "path": "tests/multiuser-iqc-local-recovery-composition.test.mjs",
+          "type": "literal-bearer",
+          "classification": "unchanged synthetic security-test input",
+          "baselineBlob": "2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e",
+          "currentBlob": "2f9e9dd898fccddb300b4f8d306ea63d3ac5e76e"
+        },
+        {
+          "path": "tests/multiuser-local-recovery-helper.test.mjs",
+          "type": "private-key",
+          "classification": "unchanged synthetic security-test input",
+          "baselineBlob": "81c1f0947d8376352ba8670a7dade3c9c6954c35",
+          "currentBlob": "81c1f0947d8376352ba8670a7dade3c9c6954c35"
+        }
+      ]
+    },
+    {
+      "name": "paired baseline/candidate handler measurement",
+      "status": "PASS",
+      "receipt": "benchmark.json"
+    },
+    {
+      "name": "exact PR head remote CI before upload",
+      "status": "NOT_RUN",
+      "reason": "GitHub Actions status is authoritative after the dependent Draft PR is created."
+    }
+  ],
+  "notRun": [
+    "Site deployment/live HTTPS/business records",
+    "physical phone and native OS IME",
+    "Windows UI and cross-machine employee acceptance",
+    "private-data scale / long-duration soak",
+    "full unrelated Local safety workflow"
+  ],
+  "dataModelImpact": "No schema, migration, storage-format adoption/cleanup or true-account changes. Existing command input/receipt storage only.",
+  "parallelBoundary": "No tooling/BOM/IPQC A/B candidate commits included or denied operations retried; no main/#77/#78 mutation."
+}

@@ -36,14 +36,26 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   editingEquipmentId:'',isDirty:()=>false,isFormDirty:()=>false,pendingPhotos:new Map(),nodeDialog:null,transferDialog:null,addingEquipment:false,transferBusy:()=>false,equipmentReadAttempt:null,hasBeginRecovery:()=>false,
   s:{selected:'doc',busy:false,retry:null,dialogOpen:false},data:{identity,permissions:{save:true,edit:true}},docs:()=>[{id:'doc',flow:f}],dirty:()=>false,status:()=> 'draft',inFlightMutation:0,
   departureDocuments:()=>[{id:'doc',flow:f}],save:ack,saveDraft:ack,write:ack,post:ack,sharedAction:ack,saveOrSubmit:ack,run:fn=>fn(),paint(){},render(){},draw(){},closeClean(){},copy:structuredClone,clone:structuredClone};
+ // Bind the current master bridge's real local-state accessors. A peer's
+ // acknowledged working delta is not this document's unsent local overlay.
+ if(name==='master-data'){
+  const bridge=fs.readFileSync('public/process/master-shared-client.js','utf8');
+  box.locals=new Map();box.draft=()=>version;
+  const localDirty=sourceBlock(bridge,'    const localDirty=','    function productReferenceCode(');
+  const discard=sourceBlock(bridge,'    function discardLocal(','    function stageLocal(');
+  vm.runInNewContext(localDirty+discard+'\nshared.localDirty=localDirty;shared.discardLocal=discardLocal;',box);
+ }
  // The module's selected() closure and Tooling's selected string are distinct.
  if(name!=='tooling')box.selected=()=>version;
- if(name==='bom-workspace'){box.ownerQuarantined=false;box.transportOwner=()=>true;box.recoveryFlight=null;box.recoverySession=null;box.localRevision=0;if(!omitBomRecovery)vm.runInNewContext(source.slice(source.indexOf(' function discardOwnRecovery(){'),source.indexOf(' async function reconcileLocal(')),box);}
+ if(name==='bom-workspace'){box.ownerQuarantined=false;box.transportOwner=()=>true;box.recoveryFlight=null;box.recoverySession=null;box.localRevision=0;Object.assign(box,{pending:[],batch:null,edit:null,saveCommand:null,departureRetained:false,isolatedInputs:[],manualLocal:()=>!!box.pending.length,active:()=>({snapshot:{bom:{}}})});vm.runInNewContext(sourceBlock(source,' function unknownReady(){',' let moduleDeparture;'),box);if(!omitBomRecovery)vm.runInNewContext(source.slice(source.indexOf(' function discardOwnRecovery(){'),source.indexOf(' async function reconcileLocal(')),box);}
  if(name==='fqc-master'){
   f.working={errors:[{id:'error',name:'Shared current'}],items:[]};f.saved.content={errors:[{id:'error',name:'Saved earlier'}],items:[]};version.snapshot=structuredClone(f.working);
   Object.assign(box,{syncBase:structuredClone(f.working),localRejection:null,formOwners:new WeakMap(),matrixOwner:()=>false,transport:()=>client});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sharedFields=','  function transport(')+sourceBlock(source,'  function changes(','  async function reconcileLocalConflict('),box);
  }
+ // Tooling now owns a document-local candidate; its actual departure closure
+ // reads and clears these variables even when no editor dialog is open.
+ if(name==='tooling')Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});
  if(name==='iqc-master'){box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
@@ -68,7 +80,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
 for(const name of decisionModules){
  void test(`${name}: actual adapter preserves its explicit shared departure policy`,async()=>{
   const f=fixture(name),status=f.adapter.inspect();
-  if(['fqc-master','iqc-master'].includes(name)){
+  if(['master-data','fqc-master','iqc-master','bom-workspace'].includes(name)){
    const before=JSON.stringify(f.flow);assert.equal(status.state,'clean');assert.equal(status.canSave,false);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;
   }
   assert.equal(status.state,'dirty');assert.equal(status.canSave,true);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
@@ -153,14 +165,14 @@ for(const name of ['ipqc-ab','routine-equipment'])for(const reason of ['same-id 
 
 for(const name of decisionModules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
  const f=fixture(name),before=JSON.stringify(f.flow);
- if(name==='fqc-master'){assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.abandon());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;}
+ if(['master-data','fqc-master','bom-workspace'].includes(name)){assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.abandon());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;}
  if(name==='iqc-master')f.box.localSnapshot={value:'unsaved local'};assert.equal(f.adapter.inspect().canAbandon,true);
  const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
  f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,name==='iqc-master'?'clean':'dirty');
 });
 
 for(const name of decisionModules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
- const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};const lease=await f.adapter.abandon();
+ const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};if(name==='bom-workspace')b.pending=[{}];if(name==='master-data')b.locals.set('AB',{batches:[{}]});const lease=await f.adapter.abandon();
  if(fault==='identity')b.window.ProcessSync.identity={id:'other'};
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
@@ -204,4 +216,31 @@ void test('IQC stale owner cannot discard local memory before ownership checks f
 void test('IQC local-only memory abandons without saving legacy shared working',async()=>{
  const f=fixture('iqc-master'),b=f.box,shared=JSON.stringify(f.flow);b.localSnapshot={value:'local'};b.localBase={value:'base'};b.localGeneration='generation';
  const lease=await f.adapter.abandon();assert.equal(b.localSnapshot,null);assert.equal(b.localBase,null);assert.equal(b.localGeneration,null);assert.equal(JSON.stringify(f.flow),shared);assert.equal(f.writes,0);lease.release();
+});
+
+for(const revoked of [false,true])void test(`tooling: document-local candidate abandons ${revoked?'after edit revocation':'without an open form'} while retaining shared state`,async()=>{
+ const f=fixture('tooling'),b=f.box;
+ b.localBase={tools:[{id:'synthetic-tool',notes:'server basis'}]};
+ b.localSnapshot={tools:[{id:'synthetic-tool',notes:'unsent local change'}]};
+ b.localGeneration=f.flow.generation;
+ f.flow.receipts={original:{operationId:'retained-receipt'}};
+ f.flow.cases=[{id:'retained-case',content:{notes:'fixed snapshot'}}];
+ const before=JSON.stringify(f.flow);
+ if(revoked)f.allowed(false);
+ assert.equal(b.dialog,null);
+ const status=f.adapter.inspect();assert.equal(status.state,'dirty');assert.equal(status.canAbandon,true);
+ const lease=await f.adapter.abandon();
+ assert.equal(f.adapter.inspect().state,'departing');
+ for(const key of ['localBase','localSnapshot','localGeneration'])assert.equal(b[key],null);
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+ assert.equal(b.root.inert,true);lease.release();assert.equal(b.root.inert,false);
+});
+
+void test('master-data: actual bridge discards a completed local batch without rewriting shared flow',async()=>{
+ const f=fixture('master-data'),b=f.box,before=JSON.stringify(f.flow);
+ b.locals.set('AB',{batches:[{patches:[{op:'set',path:['name'],value:'local'}]}]});
+ assert.equal(f.adapter.inspect().state,'dirty');assert.equal(f.adapter.inspect().canAbandon,true);
+ const lease=await f.adapter.abandon();assert.equal(b.shared.localDirty('AB'),false);
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+ assert.equal(f.adapter.inspect().state,'clean');assert.equal(b.root.inert,false);
 });

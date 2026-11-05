@@ -384,7 +384,7 @@ void test('AB complete permission matrix projection for baseline/current compari
     {name: 'deleted', options: {user: {deletedAt: '2026-10-31T12:00:01Z', accessOverrides: {}}}},
     {name: 'unknown-role', options: {user: {role: 'not-a-role', accessOverrides: {}}}},
   );
-  const rows = [], f = await fixture(); t.after(f.close);
+  const rows = [], baselineRows = [], f = await fixture(); t.after(f.close);
   for (const item of cases) {
       // Reuse one loaded application, but replace only this synthetic fixture's
       // state and issue a newly signed session for every independent matrix row.
@@ -410,6 +410,13 @@ void test('AB complete permission matrix projection for baseline/current compari
       }
       rows.push({name: item.name, status: result.status, hasPermissions: Object.hasOwn(result.body, 'permissions'),
         ...(result.status === 200 ? {permissions: result.body.permissions} : {error: result.body.error})});
+      const baselineRow=structuredClone(rows.at(-1));
+      if(result.status===200){
+        const access=f.load('lib/user-access.ts').effectiveAccess(user,await f.decoded()),legacySave=access.cells['ab.save']===true;
+        assert.equal(result.body.permissions.save,isBaseline?legacySave:legacySave||result.body.permissions.edit,item.name+': edit implies Save only');
+        baselineRow.permissions.save=legacySave;
+      }
+      baselineRows.push(baselineRow);
       assert.deepEqual(f.row(), before, item.name + ': read must not persist');
       assert.equal(f.stats.put, 0, item.name); assert.equal(f.stats.cas, 0, item.name);
   }
@@ -419,6 +426,6 @@ void test('AB complete permission matrix projection for baseline/current compari
   const digest = createHash('sha256').update(JSON.stringify(rows)).digest('hex');
   // Exact 172-row production-route projection from public baseline 1a98ba36944327f82805a167ff0a6feea9bc0570.
   // Includes complete permission DTOs and the no-DTO denial shape; not a candidate-generated expected value.
-  assert.equal(digest, 'a80751bb12f51ef0685bc05a1ee12c6989dbb425abafe3e948d2136143ed3633', 'public baseline permission matrix must remain exact');
+  assert.equal(createHash('sha256').update(JSON.stringify(baselineRows)).digest('hex'), 'a80751bb12f51ef0685bc05a1ee12c6989dbb425abafe3e948d2136143ed3633', 'reversing only the authorized edit-implies-Save cell retains the exact public baseline');
   t.diagnostic('MASTER_AB_PERMISSION_MATRIX ' + JSON.stringify({sourceRoot, count: rows.length, digest, rows}));
 });
