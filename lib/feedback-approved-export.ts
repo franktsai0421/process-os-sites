@@ -10,4 +10,4 @@ export async function approvedFeedbackItems(issues:FeedbackIssue[],attachments:I
  }
  return items;
 }
-export function approvedFeedbackPlan(items:ExportItem[],imageIds:unknown){if(new TextEncoder().encode(JSON.stringify(items)).length>problemExportLimits.helper.preview)throw new ProblemExportError('EXPORT_PREVIEW_LIMIT',413);const images=selectedImages(imageIds,items);return{...planProblemExport(items,'helper',images),preview:items.map(item=>({...item.data,version:item.version,images:item.images}))};}
+export async function approvedFeedbackPlan(items:ExportItem[],imageIds:unknown){if(new TextEncoder().encode(JSON.stringify(items)).length>problemExportLimits.helper.preview)throw new ProblemExportError('EXPORT_PREVIEW_LIMIT',413);const images=selectedImages(imageIds,items);return{...(await planProblemExport(items,'helper',images)),preview:items.map(item=>({...item.data,version:item.version,images:item.images}))};}

@@ -221,8 +221,8 @@ export async function handleFeedback(request: Request) {
    if(previous)return previous.profile==='approved-helper-v1'&&previous.digest===digest?json({id:previous.id,status:'generated',count:previous.issues.length,replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
    }
    const items=await approvedFeedbackItems(data.issues,data.attachments,body.ids,secrets,image=>{const a=data.attachments.find(a=>a.id===image.id);return a?approvedImage(a):Promise.resolve(false);},body.imageIds);
-   if(action==='export-preview'){await approvedFresh();return json(approvedFeedbackPlan(items,body.imageIds));}
-   const images=validateExportBatch(body,items,'helper'),id='H-'+crypto.randomUUID();
+   if(action==='export-preview'){await approvedFresh();return json(await approvedFeedbackPlan(items,body.imageIds));}
+   const images=await validateExportBatch(body,items,'helper'),id='H-'+crypto.randomUUID();
    const archive=await problemZip(items,'helper',images,async image=>{const object=await env.STATE_ARCHIVE.get(key(image.id));if(!object)throw new ProblemExportError('IMAGE_MISSING',503);return new Uint8Array(await object.arrayBuffer());});
    const fresh=await authState(),actor=await identity(request,fresh);if(fresh.revision!==state.revision||actor?.id!==user.id||!await can(request,fresh,'feedback.exchange'))return json({error:'AUTH_CHANGED_RELOAD'},409);
    await env.STATE_ARCHIVE.put(key(id)+'.zip',archive.bytes,{httpMetadata:{contentType:'application/zip'}});

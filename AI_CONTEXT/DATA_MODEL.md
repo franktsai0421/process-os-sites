@@ -1,3 +1,7 @@
+## 2026-11-05 — 事件版本與匯出預覽內容核對
+
+無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。
+
 ## 2026-11-05 — 最小事件集中本機候選
 
 新增候選 access_events 表，獨立於 shared_state、web_feedback_store 及原業務收據；保存最小員工／模組／操作／時間資訊、私人操作關聯、核驗結果、CAS 管理狀態與備註／歷史／去重收據。候選 SQL 僅供隔離 fixture，未採用或套用標準／實站 migration。獨立 IndexedDB process-access-event-outbox-v1 僅保存帳號隔離的最小上報資訊；原 recovery stores 不修改。保存已確認為待處理／已解決與備註先保留、不自動刪除；啟用仍預設關閉。新增候選 access_event_exports 表，保存生成 ZIP 的最小索引、模組權限關聯、選取 ID、actor/op 去重摘要與雜湊；ZIP 存獨立 access-events/v1/exports/ R2 命名空間，無原始收據。小幫手新匯出沿既有 handoffs 加 optional approved-helper-v1 profile，保存脫敏最小快照。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。

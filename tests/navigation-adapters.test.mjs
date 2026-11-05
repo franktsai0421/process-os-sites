@@ -112,7 +112,7 @@ void test('changed persistent-navigation executable references have coherent new
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
   'editor-line-selection.js':'20261030-pr54-integrated1',
   'app.js':'20261031-quality-recovery1',
-  'access-event-reporter.js':'20261105-events1',
+  'access-event-reporter.js':'20261105-events2',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261031-bom-ram-save1',
   'bootstrap.js':'20261104-draft-integration1',
@@ -149,7 +149,7 @@ void test('changed persistent-navigation executable references have coherent new
   'i18n.js':'20261029-photo1',
   'user-access.css':'20261029-details2',
   'user-access-initial-read.js':'20261029-users-load2',
-  'web-feedback-entry.js':'20261105-export1',
+  'web-feedback-entry.js':'20261105-offline1',
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);

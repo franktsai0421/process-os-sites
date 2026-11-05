@@ -1,3 +1,9 @@
+# 2026-11-05 — Reporting review follow-up
+
+Cold reporting startup before any verified capability is intentionally memory-only: no unverified persistent collection; reload can lose that central copy while the original unknown guard remains. UI states the gap and current-queue scope. Full offline navigation without a cached shell is unsupported; reopening an identified original client may observe again, without business resend.
+
+Observe confirmation now advances the event version once and retains first verification time. Both ZIP sources pin a hash of the authorized export projection plus selected image metadata, in addition to version; stale content rejects before archive creation, while frozen accepted retries retain their original archive. No original receipt access expansion, schema migration, live data or deployment. Exact synthetic API and compiled-browser evidence must be checked at the candidate HEAD.
+
 # 2026-11-05 — Feedback CI follow-up
 
 At 4818263, Local safety step 13 reproduced a stale shell-script inventory assertion: 50 bundled sources versus the former 49 after adding the event reporter. The focused candidate updates that inventory in both the unit and compiled root-entry checks, and asserts the reporter occurs once before the shared client; native responses still require exact source-derived bytes. At 7856c71, step 21 also exposed the former shared-client cache tag in the navigation contract. The candidate pins the actual events tag, explicitly verifies reporter/feedback-entry uniqueness and order, and leaves unchanged modules on their existing Begin tags. Existing bundling, source-byte/order, cache, safety and performance contracts remain. No production code, authority, data, migration or activation changes; remote checks must be evaluated at the follow-up HEAD.

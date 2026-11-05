@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {fee
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(source='helper'){
  const {document}=feedbackDOM(),create=document.createElement.bind(document);document.createElement=tag=>{const node=create(tag);if(tag==='dialog')node.showModal=()=>{};return node;};globalThis.document=document;
- const calls=[],ids=['a','b'],batches=ids.map(id=>({ids:[id],versions:[{id,version:1}],imageIds:[],count:1,imageBytes:0,metadataBytes:10}));let current=true,transport=async(kind)=>kind==='preview'?{source,scope:'selected-records-only',selectedCount:2,limits:{records:20,zip:32000000,images:30000000},batches,preview:ids.map(id=>({id,description:'<img src=x onerror=alert(1)>',notes:[],images:[]}))}:{};
+ const calls=[],ids=['a','b'],batches=ids.map(id=>({ids:[id],versions:[{id,version:1,contentHash:'a'.repeat(64)}],imageIds:[],count:1,imageBytes:0,metadataBytes:10}));let current=true,transport=async(kind)=>kind==='preview'?{source,scope:'selected-records-only',selectedCount:2,limits:{records:20,zip:32000000,images:30000000},batches,preview:ids.map(id=>({id,description:'<img src=x onerror=alert(1)>',notes:[],images:[]}))}:{};
  const controller=openProblemExport({source,ids,t:zh=>zh,current:()=>current,request:async(kind,body)=>{calls.push({kind,body});return transport(kind,body);},downloadURL:id=>'/download/'+id,imageURL:id=>'/image/'+id});
  const dialog=document.body.children.find(node=>node.tagName==='DIALOG'),button=label=>dialog.querySelectorAll('button').find(node=>node.textContent===label);
  return{calls,dialog,controller,button,setTransport:fn=>{transport=fn;},invalidate(){current=false;}};

@@ -82,7 +82,7 @@ export async function handleAccessEvents(request:Request) {
    await assertFresh(request,state,actor);
    const result=await env.DB.prepare(`INSERT INTO access_events(id,actor_id,module,operation_id,action,occurred_at,received_at,updated_at,outcome,verified_at,status,version,notes,history,update_receipts)
     SELECT ?,?,?,?,?,?,?,?,?,?,'open',1,'[]','[]','[]' WHERE EXISTS(SELECT 1 FROM shared_state WHERE id=1 AND revision=?) AND ((SELECT COUNT(*) FROM access_events)<50000 OR EXISTS(SELECT 1 FROM access_events WHERE actor_id=? AND module=? AND operation_id=?))
-    ON CONFLICT(actor_id,module,operation_id) DO UPDATE SET outcome=CASE WHEN excluded.outcome='receipt-confirmed' THEN excluded.outcome ELSE access_events.outcome END,verified_at=COALESCE(excluded.verified_at,access_events.verified_at),updated_at=excluded.updated_at
+    ON CONFLICT(actor_id,module,operation_id) DO UPDATE SET version=access_events.version+CASE WHEN excluded.outcome='receipt-confirmed' AND (access_events.outcome<>'receipt-confirmed' OR access_events.verified_at IS NULL) THEN 1 ELSE 0 END,outcome=CASE WHEN excluded.outcome='receipt-confirmed' THEN excluded.outcome ELSE access_events.outcome END,verified_at=COALESCE(access_events.verified_at,excluded.verified_at),updated_at=excluded.updated_at
     WHERE access_events.action=excluded.action AND EXISTS(SELECT 1 FROM shared_state WHERE id=1 AND revision=?)`)
     .bind(crypto.randomUUID(),actor.id,event.module,event.operationId,event.action,event.occurredAt,at,at,confirmed?'receipt-confirmed':'unknown',confirmed?at:null,state.revision,actor.id,event.module,event.operationId,state.revision).run();
    if(result.meta.changes!==1)return reply({error:'EVENT_NOT_ACCEPTED'},409);

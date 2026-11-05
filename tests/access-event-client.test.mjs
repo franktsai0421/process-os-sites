@@ -7,8 +7,8 @@ void test('source allowlist excludes dynamic legacy scopes, URLs, duplicate quer
  for(const endpoint of ['https://evil.invalid/api/fqc/workflow','/api/ipqc-ab/workflow?scope=A:private','/api/fqc/workflow?token=private','/api/fqc/workflow?caseMetadata=1&caseMetadata=1','/api/master/workflow?scope=AB&other=private'])assert.equal(accessEventModule(endpoint),null);
  for(const extra of [{input:'private'},{receipt:{}},{actorId:'peer'},{photos:[]}])assert.throws(()=>minimalAccessObservation({...event(),...extra}));
 });
-void test('retention gate prevents persistence and transport; enabling later sends only allowlisted metadata',async()=>{
- let policy=false,saved;const posts=[];const reporter=createAccessEventReporter({current:()=>true,storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async(action,body)=>action==='capabilities'?{enabled:policy,reason:'RETENTION_POLICY_REQUIRED',modules:['bom']}:(posts.push(body),{received:true,verified:false})});
+void test('feature gate prevents persistence and transport; enabling later sends only allowlisted metadata',async()=>{
+ let policy=false,saved;const posts=[];const reporter=createAccessEventReporter({current:()=>true,storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async(action,body)=>action==='capabilities'?{enabled:policy,reason:'NOT_ENABLED',modules:['bom']}:(posts.push(body),{received:true,verified:false})});
  await reporter.observe(event());assert.equal(saved,undefined);assert.equal(posts.length,0);policy=true;await reporter.flush();assert.equal(posts.length,1);assert.deepEqual(posts[0],event());assert.equal(saved[0].acked,true);
 });
 void test('offline queue is account owned, bounded and only metadata POSTs retry; receipt proof removes only reporting copy',async()=>{
@@ -29,4 +29,15 @@ void test('metadata queue capacity retains old entries and reports the new colle
  let saved;const statuses=[];const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async action=>action==='capabilities'?{enabled:true,modules:['bom']}:{received:true,verified:false}});
  for(let n=0;n<101;n++)await reporter.observe(event('operation-'+String(n).padStart(8,'0')));
  assert.equal(saved.length,100);assert.equal(saved[0].event.operationId,'operation-00000000');assert.equal(saved.at(-1).event.operationId,'operation-00000099');assert.equal(statuses.at(-1),'capacity');
+});
+void test('first capability failure retains only volatile metadata; reload cannot invent a durable report',async()=>{
+ let saved,online=false,owner=true;const statuses=[],posts=[];const port=async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request=async(action,body)=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts.push(body);return{received:true,verified:false};};
+ const first=createAccessEventReporter({current:()=>owner,request,storage:port,onStatus:value=>statuses.push(value)});await first.observe(event('cold-first-operation'));assert.equal(saved,undefined);assert.equal(posts.length,0);assert.equal(statuses.at(-1),'volatile-pending');owner=false;online=true;
+ const reloaded=createAccessEventReporter({current:()=>true,request,storage:port});await reloaded.flush();assert.equal(posts.length,0);assert.deepEqual(saved,[]);await assert.rejects(first.flush(),/OWNER_CHANGED/);
+});
+void test('same-runtime reconnect may send a volatile event only after the capability is verified',async()=>{
+ let saved,online=false,posts=0;const reporter=createAccessEventReporter({current:()=>true,storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async action=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts++;return{received:true,verified:false};}});await reporter.observe(event('same-runtime-operation'));assert.equal(saved,undefined);online=true;await reporter.flush();assert.equal(posts,1);assert.equal(saved[0].acked,true);
+});
+void test('explicit capability denial does not persist new metadata even after an earlier admission',async()=>{
+ let saved,denied=false;const statuses=[];const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async action=>{if(action==='capabilities'){if(denied)throw Error('LOGIN_REQUIRED');return{enabled:true,modules:['bom']};}return{received:true,verified:false};}});await reporter.observe(event('previously-admitted'));const durable=structuredClone(saved);denied=true;await reporter.observe(event('after-login-denial'));assert.deepEqual(saved,durable);assert.equal(statuses.at(-1),'permission-denied');
 });

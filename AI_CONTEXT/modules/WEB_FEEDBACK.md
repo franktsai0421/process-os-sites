@@ -1,3 +1,9 @@
+## 2026-11-05 — 冷啟動離線與匯出一致性複驗（候選）
+
+首次核驗 capabilities 失敗的新 metadata 不落地；僅在 memory，重載可能漏中央副本，原 receipt／unknown guard 不改。新增 volatile-pending 狀態與中越文常駐範圍說明，received 只代表本次可核驗佇列。明確 401／403 不再持久保存本次新回報。未支援未核驗前的持久收集或全站離線殼層；沒有新增離線授權 lease 或跨帳號儲存。
+
+原結果首次轉為 receipt-confirmed 時遞增事件版本並保留首次 verified_at；重複相同證據不重增。兩來源 ZIP 預覽以版本及已授權 data／所選 images 的 SHA 固定內容，生成重算核對，舊版本或同版本投影改變都拒絕；原批次 ACK 不明重試仍回原 immutable archive。Hash 不含原 operationId 或 raw receipt，不增加公開欄位來源。候選不需新 schema；實際合成 API／compiled browser 結果另報。
+
 ## 2026-11-05 — 最小事件集中後續候選（本機，尚未啟用）
 
 `/api/access-events` 以現行登入、feedback.view/edit/exchange 及原模組 view 分工，非 Frank-only。一般投影只有員工顯示名稱、模組、操作、時間、結果證據及管理狀態；私人備註／歷史沿 ADMIN 投影，不輸出原 operationId 或收據。獨立 CAS、版本與管理更新去重收據不修改業務狀態。

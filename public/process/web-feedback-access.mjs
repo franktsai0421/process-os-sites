@@ -12,11 +12,13 @@ export async function mountAccessQueue({host,t,current,request}) {
     const button=document.createElement('button');button.type='button';button.disabled=true;button.textContent=label;controls.append(button);
   }
   const explanation=document.createElement('p');explanation.textContent=t('這是系統操作的確認事件，與使用者主動回報分開。「管理已解決」不會確認原操作或解除重送防護。未處理與已解決紀錄及備註都保留，不自動刪除，可恢復待處理。','Đây là xác minh thao tác hệ thống, tách khỏi báo lỗi người dùng. Xử lý hồ sơ không xác nhận thao tác gốc hay cho phép gửi lại. Giữ sự kiện và ghi chú, không tự xóa; có thể khôi phục cần xử lý.');
+  explanation.textContent+=' '+t('首次離線且尚未核驗集中啟用時，新事件只留記憶體，重載可能漏報；原操作防護仍保留。恢復連線不代表已補齊重載前的事件。','Nếu ngoại tuyến trước khi xác minh bật thu thập, sự kiện mới chỉ ở bộ nhớ và có thể mất khi tải lại; giữ nguyên bảo vệ thao tác gốc. Kết nối lại không có nghĩa đã bù đủ sự kiện trước đó.');explanation.dataset.accessColdStart='true';
   const retry=document.createElement('button');retry.type='button';retry.textContent=t('重新核驗來源','Kiểm tra lại nguồn');
   const content=element('div');content.className='wf-access-content';
   const reporting=element('p');reporting.className='wf-muted';reporting.dataset.accessReporting='true';
   const platform=typeof window==='undefined'?null:window;
   const reportingStatus=()=>{if(!alive())return;const messages={
+    'volatile-pending':t('集中啟用尚未核驗：新回報僅暫存記憶體，重載可能失去中央副本；原操作收據與防重送仍保留。','Chưa xác minh bật thu thập: báo cáo mới chỉ ở bộ nhớ, tải lại có thể mất bản sao tập trung; giữ biên nhận và bảo vệ gửi lại gốc.'),
     offline:t('目前裝置離線，事件尚未確認送達。','Thiết bị đang ngoại tuyến; chưa xác nhận sự kiện đã đến.'),
     'sync-failed':t('目前裝置上報失敗，已收到的事件可能不完整。','Thiết bị báo sự kiện thất bại; sự kiện đã nhận có thể chưa đầy đủ.'),
     'permission-denied':t('目前裝置缺少部分來源的上報授權，不能宣告已收齊。','Thiết bị thiếu quyền báo một số nguồn; không thể xác nhận đầy đủ.'),
@@ -25,7 +27,7 @@ export async function mountAccessQueue({host,t,current,request}) {
     'policy-required':t('保存政策未確認，本機尚未啟用持久上報。','Chưa xác nhận chính sách lưu; chưa bật báo bền vững trên thiết bị.'),
     'not-enabled':t('目前裝置的集中上報尚未啟用。','Chưa bật báo tập trung trên thiết bị.'),
     'received-unknown':t('目前裝置已取得上報回覆；原操作仍待核驗。','Thiết bị đã nhận phản hồi báo sự kiện; thao tác gốc vẫn cần xác minh.'),
-    received:t('目前裝置的可上報佇列已確認；不代表其他裝置已同步。','Đã xác nhận hàng đợi có thể báo của thiết bị; không có nghĩa thiết bị khác đã đồng bộ.')
+    received:t('本次可核驗佇列已處理；不代表重載前或其他裝置的事件已收齊。','Đã xử lý hàng đợi có thể xác minh lần này; không có nghĩa đã đủ sự kiện trước khi tải lại hoặc từ thiết bị khác.')
   };reporting.textContent=messages[platform?.ProcessAccessEvents?.status?.()]||t('目前裝置尚無可核驗的上報狀態。','Chưa có trạng thái báo sự kiện có thể xác minh cho thiết bị.');};
   const tell=text=>{if(alive())message.textContent=text;};
   const actionLabel=action=>({'begin-v1':t('開始編輯','Bắt đầu sửa'),apply:t('套用修改','Áp dụng thay đổi'),save:t('存取草稿','Lưu bản nháp'),submit:t('送出審核','Gửi duyệt'),withdraw:t('撤回','Rút lại'),approve:t('核准','Duyệt'),return:t('發回','Trả lại'),restore:t('還原歷史','Khôi phục lịch sử')})[action]||t('操作','Thao tác');
