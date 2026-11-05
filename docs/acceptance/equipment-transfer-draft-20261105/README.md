@@ -17,6 +17,8 @@
 
 6a7f665 審查修正專項本機 PASS（本次追加前；無 skipped）：實際 UI/client/handler 25 項；共用 identified Begin 54 項（含 4 個新 prepared identity 案例）；FQC required dependencies／single Save／Begin routes／其他模組 Begin／cache 合計 232 項；equipment API/transport／離頁／送審等 224 項；compiled transfer browser 5 項；intent 83 項、四品質 handler 16 組。FQC historical structure／parent lookup 固定舊來源比較與舊 handler inverse／負面 mutation 也通過。最終固定 HEAD 的 compiled／lint／型別／build／source-only 與完整 CI 另由交付及 PR 記錄；不能以 dbcc17e 的 CI 代替本次新產品。
 
+6a7f665 的 CI 42010354771 後續另 FAIL 於 `shared-draft-receipt-recovery.test.mjs` 的精確 cache tag：仍期待舊 equipment-receipt1。新增 client 功能必須切換 asset 版本，現行 index 與 navigation-adapters 均固定 fqc-begin-preflight1；只把 receipt-recovery 的該項期待同步為同一精確值，原四項資源的單一引用／版本完整斷言不變，不使用模糊比對或忽略檢查。
+
 ## FQC 現行候選
 
 - 既有 `save/moduleAction:save-local-v1` 同時帶選定 equipmentId／tool patches、原值 guards、空 matrixCells，一個最終 CAS 保存整份 FQC working／saved。沒有先 Apply 再 Save 的部分寫入。已開始草稿一次 workflow Save；首次開始仍有獨立 identified Begin，不能宣稱整個操作只有一個 HTTP。
