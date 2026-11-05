@@ -18,6 +18,22 @@
 
 無 SQL/schema/migration、實站／測試站、真實資料／帳號／權限設定、merge 或部署。#82 compiled UI 全量整合、獨立審查與最終 CI 須另外列出，不用上游 PASS 代替。
 
+### FQC 本輪本機結果
+
+Node 24.19／Linux／Chromium，產品 `routine-equipment.js` SHA-256 `5b2a4dedb1c6f78e302bfdce2b471addabf0012d15129267925a990526bc2aec`。最終 commit、lint／型別／build 與 exact-head CI 由本次交付及 PR 綁定；下列是已執行的專項結果，沒有 skipped。
+
+| 結果 | 命令與覆蓋 |
+| --- | --- |
+| PASS 17 | `node --test tests/equipment-fqc-transfer-save.test.mjs`：真 UI/client／handler；不同合成 session 的共享修改與欄位競態、一次 Save CAS、Begin／Save 不明、已存／正式／照片保全、來源私有輸入，以及 legacy 採用有／無既有權限兩條路徑。 |
+| PASS 83 | `node scripts/test-routine-equipment-transfer-intent.cjs`：四品質選取／actor／scope／generation／原值與 unknown barriers，AB 部分成功不重送。 |
+| PASS 16 組 | `node scripts/test-routine-equipment-four-module-transfer.cjs`：實際四品質 handlers；FQC 一次 Save、其餘原 Apply＋手動 Save，照片、權限、待審與 unknown。 |
+| PASS 4 | `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs`：compiled Worker/SPA，1280 中文／390 越文、四頁未送表單、unknown Save 離頁／返回／reload、刻意阻擋 preview 時唯讀查原收據，及目標真 30 秒輪詢後保留本機表單、後續衝突 Save 回 409。 |
+| PASS 265 | `node --test tests/equipment-atomic-save.test.mjs tests/equipment-transport-scope.test.mjs tests/navigation-departure.test.mjs tests/navigation-adapters.test.mjs tests/shared-draft-submit-contract.test.mjs tests/multiuser-module-departure-bindings.test.mjs tests/fqc-single-save.test.mjs`。 |
+| PASS 20 | `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium EQUIPMENT_BUILT_ASSETS=dist/client/process node --test --test-concurrency=1 tests/fqc-single-save-browser.test.mjs tests/equipment-atomic-browser.test.mjs tests/equipment-atomic-compiled.test.mjs`：原 FQC／檢具 Save、照片、矩陣、未知與離頁回歸。 |
+
+瀏覽器發現並修復：原收據查詢被新 preview 尚未完成的 gate 靜默擋住。現在唯讀查詢先於 preview gate，仍保留全部 actor／epoch／delivery／來源世代檢查，新的移轉仍必須有 preview／選取／確認。測試用未釋放的 preview request 明確鎖住此案例，沒有增加 timeout。另修正測試需等待實際 Save HTTP 回應後才讀 stored snapshot；舊 legacy 採用 fixture 補明確合成 admin／legacy approval 權限，並增加原 staff 無權限時零寫入斷言，沒有改產品權限。初次額外瀏覽器回歸因漏設系統 Chromium 路徑未啟動；補正執行環境後上述 20 項全部通過。
+
+
 下列內容是 `45545ef` 安全修正交接的歷史狀態；其中 FQC「尚待決／不自動保存」已由本節取代，其他模組仍維持原界線。
 
 ---

@@ -2388,7 +2388,7 @@
   const fqcTransferUnknown = () => t('FQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu FQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');
   function hasFqcTransfer(){try{return sessionStorage.getItem(fqcTransferKey(identity()?.id))!==null;}catch{return true;}}
   function targetFqcClient(){
-    if(!fqcTransferClient||fqcTransferClient.actorId!==identity()?.id||!fqcTransferClient.isRuntimeCurrent()||!fqcTransferClient.isBeginRuntimeCurrent())
+    if(!fqcTransferClient||!fqcTransferClient.isRuntimeCurrent()||!fqcTransferClient.isBeginRuntimeCurrent())
       fqcTransferClient=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'FQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
     return fqcTransferClient;
   }
@@ -2481,8 +2481,10 @@
 
   async function executeTransfer(uiKey) {
     const dialog = transferDialog;
-    if (!dialog || !dialog.preview || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    if (!dialog || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    // Original receipt recovery does not depend on the new preview finishing.
     if(uiKey==='fqc'&&hasFqcTransfer()){await recoverFqcTransfer(dialog);return;}
+    if (!dialog.preview) return;
     const targetEqId = dialog.targetEqId;
     const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
     if (!target || targetEqId === dialog.sourceId) { dialog.moduleMessages[uiKey] = t('請重新選取目前生效且啟用的目標設備', 'Chọn lại thiết bị đích đang có hiệu lực và được bật'); render(); return; }
