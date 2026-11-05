@@ -34,6 +34,12 @@ Node 24.19／Linux／Chromium，產品 `routine-equipment.js` SHA-256 `5b2a4dedb
 瀏覽器發現並修復：原收據查詢被新 preview 尚未完成的 gate 靜默擋住。現在唯讀查詢先於 preview gate，仍保留全部 actor／epoch／delivery／來源世代檢查，新的移轉仍必須有 preview／選取／確認。測試用未釋放的 preview request 明確鎖住此案例，沒有增加 timeout。另修正測試需等待實際 Save HTTP 回應後才讀 stored snapshot；舊 legacy 採用 fixture 補明確合成 admin／legacy approval 權限，並增加原 staff 無權限時零寫入斷言，沒有改產品權限。初次額外瀏覽器回歸因漏設系統 Chromium 路徑未啟動；補正執行環境後上述 20 項全部通過。
 
 
+### 此輪完整 CI 的 fixture 後續
+
+`8c43ac23fd2a41690efd59ce9c5055df6cb2afd5` 的 [CI 42001049224](https://github.com/franktsai0421/process-os-sites/actions/runs/42001049224) 已通過正常 lint、TypeScript、source-only、build、FQC／IQC、共用離頁／保存、檢具與本次移轉 native／compiled、來源／照片／快照／權限回歸；FAIL 於「Integrated entry and read-only delivery contracts」的 `test-routine-equipment-edit-open-race.mjs`：擷取實際 mount 的 fixture 未載入新增 `hasFqcTransfer` closure，拋 `ReferenceError`。後續相依步驟未執行，整套不得列 PASS。
+
+接續定向檢查也找到 session-recovery fixture 的相同 mount 相依遺漏。修復僅補這兩份測試：從實際 AST 載入 `fqcTransferKey`／`hasFqcTransfer`，提供沒有 journal 的標準 sessionStorage 讀取；不改產品、不取消原斷言／分組／timeout，也不把函式 stub 為永遠 false。只有實際來源存在新 helper 時才載入，保留固定舊來源比較。候選與固定 `45545ef` 原來源的 edit-open 42 項均 PASS；候選 session recovery 9 組、isolated workflow 8 組、snapshot 163 項、full-read 6 組均 PASS。產品 SHA-256 與上一節相同；修復提交的最終 HEAD lint／TypeScript／build／source-only 與新完整 CI 另核對，不沿用舊 CI 的整體結果。
+
 下列內容是 `45545ef` 安全修正交接的歷史狀態；其中 FQC「尚待決／不自動保存」已由本節取代，其他模組仍維持原界線。
 
 ---
