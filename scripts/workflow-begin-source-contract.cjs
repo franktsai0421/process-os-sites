@@ -134,21 +134,6 @@ const reviewedIntegratedOptIn={
     ]
   }
 };
-// PROCESS successor peels only its two exact scoped lines back to the reviewed
-// AB/C source, then preserves every original hash and historical byte offset.
-const reviewedProcessScopeOptIn={
-  "sourceHash": "e7bd6769bb56db70b8d64799bdbc0915ead1b40dfd369a9c1c73742ab2a69434",
-  "rules": [
-    {
-      "before": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n",
-      "after": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='masterDataControl'&&['master:AB','master:C','master:PROCESS'].includes(adapter.scope)){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n"
-    },
-    {
-      "before": "          if(begin){if(!['fqc','iqc','process:platform','master:AB','master:C'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n",
-      "after": "          if(begin){if(!['fqc','iqc','process:platform','master:AB','master:C','master:PROCESS'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"
-    }
-  ]
-};
 function historicalBeginSource(bytes,file){
  const contract=contracts[file];assert.ok(contract,'Unknown Begin-v1 source contract');
  if(hash(bytes)===contract.afterHash)return bytes;
@@ -167,9 +152,9 @@ function withoutDurableBegin(bytes,file){
  // Keep the exact reviewed BOM-only source as its own historical input;
  // integrated source still requires its separate exact union hash above.
  if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0')bytes=withoutBomWorkflowOptIn(bytes,file);
- bytes=historicalBeginSource(bytes,file);
- // Compose only the byte-pinned AB opt-in inverse; preserve both original hashes.
+ bytes=require('./batch3-workflow-source-contract.cjs').withoutBatch3OptIns(bytes,file);
  if(file==='lib/versioned-shared-workflow.ts'){const ab=require('./ipqc-ab-local-save-source-contract.cjs');if(hash(bytes)===ab.afterHash)bytes=ab.withoutABLocalAtomicSave(bytes);}
+ bytes=historicalBeginSource(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){

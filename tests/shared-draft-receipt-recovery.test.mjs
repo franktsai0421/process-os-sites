@@ -59,15 +59,19 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261105-batch2-integration2',
+  'shared-draft-client.js':'20261105-batch3-integration1',
   'fqc-master.js':'20261104-begin-generation2',
   'fqc-master.css':'20261104-single-save1',
   'tooling.js':'20261105-tooling-local-save1',
   'tooling.css':'20261007-2',
+  'ipqc-ab.js':'20261105-ab-local-save3',
+  'routine-equipment.js':'20261105-fqc-transfer-preflight1',
+  'process-equipment.js':'20261105-process-local-save1',
+  'app.js':'20261105-process-local-save1',
   'bom-workspace.js':'20261105-bom-atomic1',
   'master-admin-ui.js':'20261105-abc-local-save1',
-  'master-shared-client.js':'20261105-abc-local-save1',
-  'master-data.js':'20261105-abc-local-save1',
+  'master-shared-client.js':'20261105-process-local-save1',
+  'master-data.js':'20261105-process-local-save1',
  };
  for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
 });

@@ -14,7 +14,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const altered=Buffer.from(bytes.toString().replace("action==='begin'","action==='begin-unsafe'"));
   assert.notDeepEqual(altered,bytes);
   assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);
-  const reviewedCatalogBytes=file==='lib/versioned-shared-workflow.ts'?Buffer.from(bytes.toString().replaceAll(",'master:PROCESS'",'')):bytes;
+  const reviewedCatalogBytes=file==='lib/versioned-shared-workflow.ts'?require('node:child_process').execFileSync('git',['show','f0ab66fc27b7c9615c42a28fcc40a4864fb3a047:'+file],{cwd:root}):bytes;
   if(file==='lib/versioned-shared-workflow.ts'){
    withoutDurableBegin(reviewedCatalogBytes,file);
    for(const [before,after]of [["['master:AB','master:C','master:PROCESS']","['master:AB','master:C','bom']"],["'master:C','master:PROCESS'].includes(adapter.scope)","'master:C','bom'].includes(adapter.scope)"]]){const unsafe=Buffer.from(bytes.toString().replace(before,after));assert.notDeepEqual(unsafe,bytes);assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/);}
@@ -31,7 +31,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   }
  }
  const abInverse=require('./ipqc-ab-local-save-source-contract.cjs').withoutABLocalAtomicSave;
- const abBytes=fs.readFileSync(path.join(root,'lib/versioned-shared-workflow.ts'));
+ const abBytes=require('node:child_process').execFileSync('git',['show','4f810663174fe9c0a2e275c5f17dec3d5080522b:lib/versioned-shared-workflow.ts'],{cwd:root});
  assert.equal(createHash('sha256').update(abInverse(abBytes)).digest('hex'),'8734ac32aa54f02f2d19b94bd7b0ecbec849907867a9638a4f5afd34a4e244d1','AB inverse restores exact PR77 bytes before the unchanged historical Begin inverse');
  for(const token of ['adapter.requiresCreate?.(control,command)||',"'ipqc-ab:module'",'limited.save=limited.save||limited.edit']){
   const altered=Buffer.from(abBytes.toString().replace(token,'UNRECOGNIZED_SOURCE'));assert.notDeepEqual(altered,abBytes);

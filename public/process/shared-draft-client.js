@@ -848,7 +848,7 @@
       return result;
     }
     async function masterSaveReadback(result,command){
-      if(!masterLocalBegin||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;
+      if(!masterLocalBegin||processLocalSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;
       confirmedReceipt(result,command.operationId,command.generation,'save');
       // A Save ACK's control is not a fresh permission read. Read directly rather
       // than treating the successful ACK as unknown just to obtain permissions.

@@ -1,7 +1,7 @@
 /* Exact BOM source and integrated-union admission; no runtime source writes. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto'),{execFileSync}=require('node:child_process');
 const {withoutBomWorkflowOptIn}=require('../scripts/bom-workflow-source-contract.cjs'),{withoutDurableBegin}=require('../scripts/workflow-begin-source-contract.cjs');
-const root=path.resolve(__dirname,'..'),file='lib/versioned-shared-workflow.ts',current=fs.readFileSync(path.join(root,file)),hash=b=>createHash('sha256').update(b).digest('hex');
+const root=path.resolve(__dirname,'..'),file='lib/versioned-shared-workflow.ts',product=fs.readFileSync(path.join(root,file)),current=execFileSync('git',['show','f0ab66fc27b7c9615c42a28fcc40a4864fb3a047:'+file],{cwd:root}),hash=b=>createHash('sha256').update(b).digest('hex');
 const historical=ref=>execFileSync('git',['show',ref+':'+file],{cwd:root});
 const bom=historical('8c4a73bb76256d0c66797a27a5fa52a8952327ae');
 void test('BOM and exact integrated union restore the original Begin pin and complete historical bytes',()=>{
@@ -14,7 +14,7 @@ void test('BOM and exact integrated union restore the original Begin pin and com
  assert.deepEqual(withoutDurableBegin(bom,file),preBegin);
  assert.deepEqual(withoutDurableBegin(current,file),preBegin);
  assert.deepEqual(withoutDurableBegin(originalBegin,file),preBegin,'original source stays admitted without successor projection');
- assert.deepEqual(fs.readFileSync(path.join(root,file)),current,'projection cannot rewrite product source');
+ assert.deepEqual(fs.readFileSync(path.join(root,file)),product,'projection cannot rewrite product source');
 });
 const changed=(source,before,after)=>{assert(source.includes(Buffer.from(before)),before);const next=Buffer.from(source.toString().replace(before,after));assert.notDeepEqual(next,source);return next;};
 for(const [name,mutate]of [

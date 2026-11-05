@@ -1,3 +1,7 @@
+## 2026-11-05 — Third-batch local source integration
+
+Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](docs/acceptance/draft-save-batch3-20261105/README.md).
+
 ## 2026-11-05 — Draft PR85 Save readback follow-up
 
 Current integration is [Draft PR85](https://github.com/franktsai0421/process-os-sites/pull/85), targeting main after the separately completed PR77 merge. Earlier upload-denial entries below are historical snapshots; their public-disclosure approvals were subsequently obtained and publication succeeded. Keep Draft; this task does not merge, deploy or alter review/protection state.

@@ -131,7 +131,7 @@ void test('changed persistent-navigation executable references have coherent new
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261105-fqc-transfer-preflight1',
   'routine-fqc.js':'20261103-simple-departure1',
-  'shared-draft-client.js':'20261105-batch2-integration2',
+  'shared-draft-client.js':'20261105-batch3-integration1',
   'shared-state.js':'20261103-navigation-identity1',
   'tooling.js':'20261105-tooling-local-save1',
   'user-access.js':'20261103-simple-departure1',

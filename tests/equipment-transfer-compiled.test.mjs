@@ -94,3 +94,27 @@ void test('compiled pre-dispatch Begin GET503 removes only the proven unsent int
  down=false;const saved=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/fqc/workflow'&&r.request().postDataJSON().command?.action==='save');await p.locator('#routine-confirm-transfer-fqc').click();assert.equal((await saved).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);const intents=await p.evaluate(()=>window.__beginIntents);assert.equal(intents.length,2);assert.notEqual(intents[0],intents[1]);assert.deepEqual(s.posts.filter(r=>r.path==='/api/fqc/workflow').map(r=>r.body.action||r.body.command?.action),['begin-v1','save']);assert.equal(receiptGETs,0);assert.equal(flow(await s.controls(),'fqc').saved.content.items[0].equipmentId,'target');assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
+
+void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/manual Save coexist in compiled UI',async()=>{
+ const s=await setup(1280,'zh');try{
+ const p=s.source;
+ await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
+ await p.locator('[data-equipment-edit="source"]').click();await p.locator('#routine-editor [data-field="notes"]').fill('Batch3 equipment saved');await p.locator('#routine-form-apply').click();
+ const equipmentSaved=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/routine-equipment/workflow'&&r.request().postDataJSON().command?.action==='save');await p.locator('#routine-save').click();assert.equal((await equipmentSaved).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);
+ assert.equal((await s.controls()).routineEquipmentControl.workflow.saved.content.equipment.find(row=>row.id==='source').notes,'Batch3 equipment saved');
+ const ab=await s.page('quality-ipqc-ab');await ab.locator('[data-ab-edit-item]').first().click();await ab.locator('#ab-standard').fill('Batch3 unsent AB standard');
+ const start=s.posts.length,before=await s.controls();
+ for(const moduleId of ['fqc','ipqc-ab']){
+  const source=await s.page('quality-routine-equipment');await source.locator('[data-node-select="category"]').first().click();await source.locator('[data-node-select="subcategory"]').first().click();if(await source.locator('[data-node-select="group"]').count())await source.locator('[data-node-select="group"]').first().click();
+  await source.locator('[data-equipment-transfer="source"]').click();await source.locator('#routine-target-eq-select').selectOption('target');
+  const action=moduleId==='fqc'?'save':'apply',response=source.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/'+moduleId+'/workflow'&&r.request().postDataJSON().command?.action===action);
+  await source.locator('#routine-confirm-transfer-'+moduleId).click();assert.equal((await response).status(),200);await source.waitForFunction(()=>!window.sharedDraftAccountState().queued);
+ }
+ const transferred=await s.controls();assert.equal(flow(transferred,'fqc').saved.content.items[0].equipmentId,'target');assert.equal(flow(transferred,'ipqc-ab').working.items[0].equipmentId,'target');assert.deepEqual(flow(transferred,'ipqc-ab').saved,flow(before,'ipqc-ab').saved);
+ assert.equal(s.posts.slice(start).filter(r=>r.path==='/api/ipqc-ab/workflow'&&r.body.command?.action==='save').length,0);
+ await ab.evaluate(()=>window.dispatchEvent(new Event('process-shared-state-updated')));assert.equal(await ab.locator('#ab-standard').inputValue(),'Batch3 unsent AB standard');
+ await ab.locator('#ab-apply').click();const saved=ab.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/ipqc-ab/workflow'&&r.request().postDataJSON().command?.action==='save');await ab.locator('#ipqcab-save').click();assert.equal((await saved).status(),200);await ab.waitForFunction(()=>!window.sharedDraftAccountState().queued);
+ const final=await s.controls(),working=final.ipqcABMasterControl.moduleDraft.workflow;assert.equal(working.saved.content.scopes['A:G-A'].items[0].equipmentId,'target');assert.equal(working.saved.content.scopes['A:G-A'].items[0].standard,'Batch3 unsent AB standard');
+ assert.equal(final.routineEquipmentControl.workflow.saved.content.equipment.find(row=>row.id==='source').notes,'Batch3 equipment saved');assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
+});

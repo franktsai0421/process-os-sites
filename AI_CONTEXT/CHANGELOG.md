@@ -1,3 +1,7 @@
+## 2026-11-05 — Third-batch local source integration
+
+Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](../docs/acceptance/draft-save-batch3-20261105/README.md).
+
 ## 2026-11-05 — Draft workflow batch 2 integration
 
 Combine tooling/BOM/AB-C local Save and scoped recovery, preserving BOM session/413 guards, tooling photo view+edit and PROCESS exclusion. Strengthen exact historical source and departure contracts; no schema/data migration. Windows integration follow-up aligns AB effective-catalog Save metadata with full workflow edit-or-save permissions, preserving independent Submit and revalidation after edit revocation. The AB/C bridge now reads fresh authority directly after a valid Save ACK, eliminating a redundant receipt GET while retaining original-receipt recovery and sent markers when readback fails. [Evidence and gates](../docs/acceptance/draft-save-batch2-20261105/README.md).

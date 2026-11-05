@@ -187,6 +187,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test --test-concurrency=1 tests/native-ab-startup.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Batch3 full compiled IPQC A B acceptance
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node --test --test-concurrency=1 tests/ipqc-ab-compiled-browser.acceptance.mjs tests/ipqc-ab-compiled-gaps.acceptance.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: BOM compiled browser atomic Save and silent departure
         if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
         run: |
@@ -402,6 +407,8 @@ jobs:
           node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-quality-begin-generation-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/batch3-workflow-source-contract.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/bom-workflow-source-contract.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
