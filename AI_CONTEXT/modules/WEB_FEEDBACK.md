@@ -1,3 +1,11 @@
+## 2026-11-05 — 最小事件集中後續候選（本機，尚未啟用）
+
+`/api/access-events` 以現行登入、feedback.view/edit/exchange 及原模組 view 分工，非 Frank-only。一般投影只有員工顯示名稱、模組、操作、時間、結果證據及管理狀態；私人備註／歷史沿 ADMIN 投影，不輸出原 operationId 或收據。獨立 CAS、版本與管理更新去重收據不修改業務狀態。
+
+reporter 只從原 shared client 的未知／核驗節點取純量欄位；獨立 IndexedDB 佇列有帳號與 delivery fence、容量上限及明確失敗，不掃原 recovery stores。只上報未知事件，並非記錄所有正常操作。原收據 GET 在既有身分／動作授權後提供 opt-in 的 operationAction，用來核驗中央狀態；成功收據仍不替代原頁的終端讀回，原 guard 不變。
+
+支持 allowlist 內模組整體 workflow；動態 legacy scope／無識別舊標記不自動匯入。保存政策與實際啟用未決，預設不持久收集。schema 候選：`scripts/access-events-schema.sql`，只在合成 fixture 明確套用；不屬標準發布 migration。新匯出仍待格式／附件選擇。詳見 [現行需求](../../docs/specs/current/WEB_FEEDBACK.md)。
+
 ## 2026-11-05 雙來源候選（未發布）
 
 原管理入口新增小幫手／存取待確認分頁。小幫手沿既有案件 API，預設 open、完成歷史可重開，清單每頁最多 100 筆。source metadata 只代表已提交案件的本次授權讀取。存取頁按原登入／feedback.view／ADMIN 規則讀取 `action=access-queue` 的未接通狀態；獨立 `web-feedback-access.mjs` 不讀取瀏覽器未知標記、不接收未審定的事件資料、不寫入收據。來源錯誤或不支援投影一律明示未知，不宣告同步完成。

@@ -1,3 +1,7 @@
+# 2026-11-05 — Minimal access-event collection follow-up (local only)
+
+Draft PR #86 remains pinned to approved a08384a. The separate local follow-up collects only approved metadata and follows existing view/edit/exchange permissions, without other-account receipt access. Candidate SQL and owner-isolated reporting queue remain default-off pending retention/activation policy; no migration adoption, data change, merge or deployment. Raw input/media/secrets are excluded. Exact validation is reported separately; not all legacy scopes or module lifecycles are covered.
+
 # 2026-11-05 — Feedback dual-source candidate
 
 Independent from main `2b58eae`; only feedback UI/API, synthetic tests and focused documentation. Helper pending/completed views reuse existing storage and authority. Access-confirmation source is explicitly disconnected; centralized retention/authorization/history and the new export format remain decisions. No shared workflow/client changes, migration, live data, merge or deployment. Exact validation is reported with the candidate commit; source and test files describe partial implementation only.

@@ -111,8 +111,16 @@ const contracts={
     ]
   }
 };
+// Narrow receipt-action metadata successor only. Remove the once-occurring
+// exact bytes, then require every unchanged original hash/offset below.
+const receiptMetadata={
+ 'app/api/ipqc-c/workflow/route.ts':{hash:'67dfc685a2374aeba0e2c8f3154a3594c69e8526a0201794a29e0ce6ee07c25e',offset:9379},
+ 'lib/versioned-shared-workflow.ts':{hash:'a91f78b66a5278ed250fc7587ae6807ce64648d6d905341916191324bb91dcce',offset:22429}
+};
+const metadataBytes=Buffer.from(",...(query.get('accessEvent')==='1'?{operationAction:action}:{})");
 function withoutDurableBegin(bytes,file){
  const {beforeHash,afterHash,rules}=contracts[file];
+ if(hash(bytes)!==afterHash){const projection=receiptMetadata[file];assert.equal(hash(bytes),projection.hash,'Begin-v1 source differs from pinned bytes');assert.deepEqual(bytes.subarray(projection.offset,projection.offset+metadataBytes.length),metadataBytes);bytes=Buffer.concat([bytes.subarray(0,projection.offset),bytes.subarray(projection.offset+metadataBytes.length)]);}
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){
   const expected=Buffer.from(after);assert.deepEqual(result.subarray(offset,offset+expected.length),expected);

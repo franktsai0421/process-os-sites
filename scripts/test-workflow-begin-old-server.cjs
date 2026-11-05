@@ -11,6 +11,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const bytes=fs.readFileSync(path.join(root,file));
   overrides[file]=withoutDurableBegin(bytes,file).toString();
   assert.throws(()=>withoutDurableBegin(Buffer.concat([bytes,Buffer.from('\n// unknown change')]),file),/differs from pinned bytes/);
+  assert.throws(()=>withoutDurableBegin(Buffer.from(bytes.toString().replace('receipt.actorId!==actor.id','false')),file),/differs from pinned bytes/);
   const altered=Buffer.from(bytes.toString().replace("action==='begin'","action==='begin-unsafe'"));
   assert.notDeepEqual(altered,bytes);
   assert.throws(()=>withoutDurableBegin(altered,file),/differs from pinned bytes/);

@@ -6,7 +6,7 @@
  const uid=()=>crypto.randomUUID(), api='/api/web-feedback', imageURL=id=>api+'?action=image&id='+encodeURIComponent(id);
  let actor='',draft=null,index=0,panel=null,dbPromise=null,persistChain=Promise.resolve(),objectURLs=[],selecting=false,selectionReady=false,selectionCleanup=null,busy=false,epoch=0,openAttempt=0;
  const selected=new Set();let board=null,boardActor='',issues=[],selectedIssue='',boardTab='list',isAdmin=false,boardPermissions={},exportOperation=null,boardDirty=false;
- let listScroll=0,boardViewTimer=null,queueTab='helper',queueGeneration=0,feedbackSource=null,listPage=0;
+ let listScroll=0,boardViewTimer=null,queueTab='helper',queueGeneration=0,feedbackSource=null,listPage=0,accessController=null;
  let historyRequest=0,persisting=0,adminBusy=false,highlightTimer=null,panelOwner=null,composing=false,redrawPending=false,storageFailed=false,reportPhase='idle';
  const retained=[],guarded=new WeakSet(),compositionWired=new WeakSet(),nativeComposition=typeof HTMLElement!=='undefined'&&'oncompositionstart' in HTMLElement.prototype;
  const captureOwner=()=>window.WebFeedbackHost.capture();
@@ -15,7 +15,7 @@
  // Bind only this owned panel/board, never scan or wrap the application's UI.
  function wire(root,report=false){if(!nativeComposition)for(const node of root.querySelectorAll('input,textarea'))if(!compositionWired.has(node)){compositionWired.add(node);for(const type of ['compositionstart','compositionend'])node.addEventListener(type,event=>node['on'+type]?.(event));}for(const node of [root,...root.querySelectorAll('button,input,textarea,select,a,[data-case-row]')])for(const key of ['onclick','oninput','onchange','onkeydown','oncompositionstart','oncompositionend']){const fn=node[key];if(typeof fn==='function'&&!guarded.has(fn))node[key]=guard(fn,captureOwner(),epoch,report?openAttempt:undefined);else if(key==='onclick'&&node.tagName==='A'&&!fn)node[key]=guard(()=>{});}}
  const notePending=()=>!!board?.querySelector('[data-note]')?.value.trim();
- const boardCanChange=()=>!adminBusy&&!exportOperation&&!notePending();
+ const boardCanChange=()=>!adminBusy&&!exportOperation&&!notePending()&&accessController?.canLeave?.()!==false;
  function holdBoard(){if(boardCanChange())return false;const status=board?.querySelector('[role=status]'),recovery=status?.querySelector('[data-reload-note]');if(status){status.textContent=t('請先完成目前備註或確認原交接結果。','Hãy lưu ghi chú hoặc xác nhận kết quả bàn giao hiện tại.');if(recovery)status.append(recovery);}return true;}
  const localKey=id=>location.origin+'|feedback-v1|'+id;
  function saveBoardView(){if(!boardActor)return;const list=board?.querySelector('.wf-list');if(list)listScroll=list.scrollTop;clearTimeout(boardViewTimer);boardViewTimer=null;try{sessionStorage.setItem(localKey(boardActor)+'|board',JSON.stringify({filters,selected:[...selected],selectedIssue,listScroll}));}catch{/* UI preferences must never prevent saving a report. */}}
@@ -27,9 +27,9 @@
   const task=persistChain.catch(()=>{}).then(()=>storage('readwrite',key,copy));
   persistChain=task.then(value=>{if(token===epoch)storageFailed=false;return value;}).finally(()=>{persisting--;});persistChain.catch(()=>{if(token===epoch){storageFailed=true;message(t('本機草稿保存失敗；請勿關閉，修復儲存空間後重試。','Không lưu được bản nháp; đừng đóng trang.'));}});return persistChain;
  }
- async function request(action,body,owner=captureOwner()){
+ async function request(action,body,owner=captureOwner(),resource=api){
   if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');
-  const res=await fetch(api+'?action='+action,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});if(owns(owner)&&res.status===401){window.ProcessSync?.clearIdentity?.();window.WebFeedbackHost.invalidate();}const data=await res.json();
+  const res=await fetch(resource+'?action='+action,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});if(owns(owner)&&res.status===401){window.ProcessSync?.clearIdentity?.();window.WebFeedbackHost.invalidate();}const data=await res.json();
   if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');if(!res.ok)throw Error(data.error||res.status);return data;
  }
  function page(){const url=new URL(location.href),view=url.searchParams.get('view')||'dashboard',tab=url.searchParams.get('dataTab')||'',system=url.searchParams.get('system')||'process';return{type:'page',view,tab,system,display:(document.querySelector('#page-title')?.textContent||view)+(tab?' → '+tab:''),locator:{},context:{}};}
@@ -239,12 +239,12 @@
   // Persisted pending bytes stay under their original verified IndexedDB key.
   clearTimeout(boardViewTimer);boardViewTimer=null;listScroll=0;epoch++;reportPhase='quarantined';document.querySelector('#wf-location-notice')?.remove();sessionStorage.removeItem('web-feedback-highlight');const privateBoard=board?.querySelector('.wf-admin');
   if(draft||exportOperation||privateBoard)retained.push({actor,draft,panel,privateBoard,exportOperation});
-  close({force:true});panel?.remove();panel=null;draft=null;actor='';privateBoard?.remove();board=null;boardActor='';boardTab='list';queueTab='helper';queueGeneration++;feedbackSource=null;listPage=0;selectedIssue='';issues=[];boardDirty=false;selected.clear();exportOperation=null;adminBusy=false;busy=false;composing=false;redrawPending=false;storageFailed=false;panelOwner=null;clearTimeout(highlightTimer);highlightTimer=null;
+  close({force:true});panel?.remove();panel=null;draft=null;actor='';privateBoard?.remove();board=null;boardActor='';boardTab='list';queueTab='helper';queueGeneration++;feedbackSource=null;listPage=0;accessController?.dispose?.();accessController=null;selectedIssue='';issues=[];boardDirty=false;selected.clear();exportOperation=null;adminBusy=false;busy=false;composing=false;redrawPending=false;storageFailed=false;panelOwner=null;clearTimeout(highlightTimer);highlightTimer=null;
   for(const key of Object.keys(filters))filters[key]=key==='status'?'open':'';
  }
  async function admin(host,user,force=false,firstList){if(!host||!user)return;if(board===host&&boardActor===user.id&&host.querySelector('.wf-admin')&&!force)return;if(holdBoard())return;saveBoardView();board=host;boardActor=user.id;const token=epoch,owner=captureOwner();if(!owns(owner))return;host.innerHTML=`<section class="wf-admin" data-i18n-skip="true"><h2>${t('網頁問題回報','Báo lỗi trang web')}</h2><div role="status">${t('載入中…','Đang tải…')}</div></section>`;const shell=host.querySelector('.wf-admin'),current=()=>token===epoch&&owns(owner)&&board===host&&boardActor===user.id&&host.isConnected&&host.querySelector('.wf-admin')===shell;try{const initial=firstList?await firstList:null;if(!current())return;if(initial?.error)throw initial.error;const value=initial?initial.value:await request('list',undefined,owner);if(!current())return;issues=value.issues;feedbackSource=value.source||null;boardDirty=false;isAdmin=value.admin;boardPermissions=value.permissions||{};restoreBoardView();renderBoard(true);}catch(e){if(current()){shell.querySelector('[role=status]').textContent=e.message;const retry=document.createElement('button');retry.textContent=t('重試','Thử lại');retry.onclick=guard(()=>{void admin(host,user,true).catch(()=>{});},owner);shell.append(retry);}throw e;}}
  const filters={search:'',status:'open',module:'',page:'',from:'',to:''};
- function renderBoard(fromLoad=false){if(!board?.isConnected||!board.querySelector('.wf-admin')||!fromLoad&&!board.querySelector('[data-queue-tab],[data-board-tab]'))return;if(!fromLoad)saveBoardView();const total=issues.length,done=issues.filter(i=>i.status==='done').length;
+ function renderBoard(fromLoad=false){if(!board?.isConnected||!board.querySelector('.wf-admin')||!fromLoad&&!board.querySelector('[data-queue-tab],[data-board-tab]'))return;if(!fromLoad)saveBoardView();accessController?.dispose?.();accessController=null;const total=issues.length,done=issues.filter(i=>i.status==='done').length;
   board.innerHTML=`<section class="wf-admin" data-i18n-skip="true"><h2>${t('網頁問題回報','Báo lỗi trang web')}</h2><div class="wf-tools"><nav>${[['list',t('待處理','Cần xử lý')],['completed',t('完成歷史','Lịch sử hoàn tất')],['history',t('交接紀錄','Lịch sử bàn giao')]].map(([id,label])=>`<button type="button" data-board-tab="${id}" aria-selected="${boardTab===id}" ${(id==='mine'&&(!isAdmin||!boardPermissions.edit))||(id==='history'&&(!isAdmin||!boardPermissions.exchange))?'disabled':''}>${label}</button>`).join('')}<span data-counts>${t('全部','Tất cả')} ${total} · ${t('未完成','Chưa xong')} ${total-done} · ${t('已完成','Hoàn tất')} ${done}</span>${isAdmin&&boardPermissions.exchange?`<button type="button" class="wf-primary" data-export>${t('匯出選項待確認','Chờ chọn cách xuất')} (${selected.size})</button>`:''}<button type="button" data-reload>${t('更新','Tải lại')}</button></nav></div><div role="status" aria-live="polite"></div><div class="wf-board-body"></div></section>`;
   const shell=board.querySelector('.wf-admin'),heading=shell.children[0],queues=document.createElement('nav');queues.className='wf-queue-tabs';queues.setAttribute('role','tablist');queues.setAttribute('aria-label',t('問題來源','Nguồn vấn đề'));
   queues.innerHTML=[['helper',t('小幫手問題回報','Báo lỗi từ trợ lý')],['access',t('存取待確認','Thao tác chờ xác minh')]].map(([id,label])=>`<button type="button" role="tab" data-queue-tab="${id}" aria-selected="${queueTab===id}" tabindex="${queueTab===id?0:-1}">${label}</button>`).join('');heading.after(queues);
@@ -260,7 +260,7 @@
  }
  async function loadAccessQueue(){const target=board,host=target.querySelector('.wf-board-body'),owner=captureOwner(),token=epoch,generation=++queueGeneration,current=()=>token===epoch&&owns(owner)&&board===target&&queueTab==='access'&&generation===queueGeneration&&host.isConnected;
   host.textContent=t('讀取來源狀態…','Đang đọc trạng thái nguồn…');
-  try{const accessModule=await import('./web-feedback-access.mjs?v=20261105-queues1');if(current())await accessModule.mountAccessQueue({host,t,current,request:()=>request('access-queue',undefined,owner)});}
+  try{const accessModule=await import('./web-feedback-access.mjs?v=20261105-queues1');if(current()){const controller=await accessModule.mountAccessQueue({host,t,current,request:(action='list',body)=>request(action,body,owner,'/api/access-events')});if(current())accessController=controller;else controller?.dispose?.();}}
   catch{if(current()){host.textContent=t('無法讀取來源狀態，不能確認事件是否完整。','Không đọc được nguồn; chưa thể xác nhận đủ sự kiện.');const retry=document.createElement('button');retry.textContent=t('重試','Thử lại');retry.onclick=guard(loadAccessQueue,owner);host.append(retry);}}
  }
  function showExportOptions(){const status=board.querySelector('.wf-admin > [role=status]');if(!status||adminBusy)return;if(exportOperation){void exportZip();return;}
@@ -363,7 +363,7 @@
  window.WebFeedback.positionPanel=positionPanel;
  window.WebFeedback.close=close;
  window.WebFeedback.navigation={canLeave:()=>!busy&&!persisting&&!storageFailed&&!composing&&!draft?.pending&&boardCanChange(),reset(){
-  saveBoardView();board=null;boardActor='';issues=[];selected.clear();selectedIssue='';boardTab='list';queueTab='helper';queueGeneration++;feedbackSource=null;listPage=0;document.querySelector('#wf-viewer')?.remove();endSelect();clearTimeout(highlightTimer);highlightTimer=null;
+  saveBoardView();board=null;boardActor='';issues=[];selected.clear();selectedIssue='';boardTab='list';queueTab='helper';queueGeneration++;feedbackSource=null;listPage=0;accessController?.dispose?.();accessController=null;document.querySelector('#wf-viewer')?.remove();endSelect();clearTimeout(highlightTimer);highlightTimer=null;
  }};
  window.addEventListener('pagehide',()=>{saveBoardView();endSelect();revoke();});
 })();

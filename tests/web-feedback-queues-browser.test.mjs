@@ -46,9 +46,9 @@ try {
     assert(!requests.slice(before).some(r=>['export','download'].includes(r.action)));assert.equal(await page.locator('.wf-admin [download]').count(),0);
   });
   await check('offline, partial source, repeated click and late response do not claim synchronization',async()=>{
-    await page.route('**/api/web-feedback?action=access-queue',r=>r.abort(),{times:1});await page.locator('[data-queue-tab=access]').click();await page.getByText(/離線或來源讀取失敗/).waitFor();
-    await page.route('**/api/web-feedback?action=access-queue',r=>r.fulfill({json:{available:true,coverage:'partial',events:[{note:'must-not-render'}]}}),{times:1});await page.getByRole('button',{name:'重新核驗來源'}).click();await page.getByText(/離線或來源讀取失敗/).waitFor();assert.equal(await page.getByText('must-not-render').count(),0);
-    let release;const gate=new Promise(r=>{release=r;});await page.route('**/api/web-feedback?action=access-queue',async r=>{await gate;await r.continue();},{times:1});
+    await page.route('**/api/access-events?action=list*',r=>r.abort(),{times:1});await page.locator('[data-queue-tab=access]').click();await page.getByText(/離線或來源讀取失敗/).waitFor();
+    await page.route('**/api/access-events?action=list*',r=>r.fulfill({json:{available:true,coverage:'partial',events:[{note:'must-not-render'}]}}),{times:1});await page.getByRole('button',{name:'重新核驗來源'}).click();await page.getByText(/離線或來源讀取失敗/).waitFor();assert.equal(await page.getByText('must-not-render').count(),0);
+    let release;const gate=new Promise(r=>{release=r;});await page.route('**/api/access-events?action=list*',async r=>{await gate;await r.continue();},{times:1});
     await page.getByRole('button',{name:'重新核驗來源'}).evaluate(b=>{b.click();b.click();});await page.locator('[data-queue-tab=helper]').click();release();await page.locator('.wf-row').first().waitFor();assert.equal(await page.locator('.wf-access-controls').count(),0);await assertGuards();
   });
   await check('server rejects staff management, private notes, forged delete and unauthenticated source reads',async()=>{
