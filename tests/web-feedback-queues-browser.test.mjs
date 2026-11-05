@@ -15,7 +15,7 @@ try {
     await context.route('**/*',route=>new URL(route.request().url()).origin===fixture.origin?route.continue():route.abort());
     const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
     page.on('request',r=>{const url=new URL(r.url());if(url.pathname.startsWith('/api/'))requests.push({path:url.pathname,action:url.searchParams.get('action'),method:r.method()});});
-    await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');await page.locator('#id').fill(id);await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();return {context,page};
+    await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');await page.locator('#id').fill(id);await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();await page.evaluate(()=>{document.documentElement.lang='zh';window.WebFeedback.routeChanged();});return {context,page};
   }
   const owner=await login('frank'),{page}=owner;
   const call=(context,action,data)=>data===undefined?context.request.get(fixture.origin+'/api/web-feedback?action='+action):context.request.post(fixture.origin+'/api/web-feedback?action='+action,{data,headers:{Origin:fixture.origin}});

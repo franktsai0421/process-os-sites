@@ -1,0 +1,36 @@
+name: Feedback queues
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/web-feedback*'
+      - 'public/process/web-feedback*'
+      - 'tests/web-feedback*'
+      - 'scripts/test-web-feedback.cjs'
+      - '.github/workflows/feedback-queues.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-feedback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: node node_modules/typescript/bin/tsc --noEmit
+      - run: node scripts/sites-source-check.mjs
+      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs
+      - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
+      - run: npm run build
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node tests/web-feedback-queues-browser.test.mjs
