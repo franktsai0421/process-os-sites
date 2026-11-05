@@ -1,3 +1,7 @@
+## 2026-11-05 — Tooling second-batch dependent candidate
+
+Tooling local edits / atomic Save builds on fixed PR #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. Keep dependent PR base `integration/draft-save-20261104`; no repeated first-batch patches, merge, live-data operation or publication. [Implementation, isolated tests and remaining gates](docs/acceptance/tooling-local-save-20261105/README.md).
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

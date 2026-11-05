@@ -1,3 +1,7 @@
+## 2026-11-05 — Local-edit / atomic-save candidate
+
+On the fixed PR #77 base, tooling forms stage in document memory and explicit Save atomically applies guarded patches, allocates codes and saves once. Edit grants Save server-side; submit/review stay separate. Scoped receipt-only Save/identified Begin recovery and automatic local abandonment preserve legacy markers, saved/history and transfer protections. Photo bytes still use staged upload; references share at Save, and PUT requires tooling.edit. No schema or live-data change. [Evidence and limits](../../docs/acceptance/tooling-local-save-20261105/README.md). Earlier entries below describe their historical baseline.
+
 # Tooling implementation and model
 
 2026-10-28 cloud candidate; not deployed and no native browser acceptance.  Requirements: [TOOLING](../../docs/specs/current/TOOLING.md); environment-specific results: [initial import](../../docs/tooling/20261006-acceptance.md), [UI acceptance](../../docs/tooling/20261007-ui-acceptance.md).

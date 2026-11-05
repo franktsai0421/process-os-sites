@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
+    branches: [main, 'integration/draft-save-20261104', 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
 permissions:
   contents: read
 concurrency:
@@ -281,6 +281,10 @@ jobs:
         id: head_validation_06
         if: ${{ !cancelled() && steps.head_validation_05.outcome == 'success' }}
         run: |
+          node --test tests/tooling-local-atomic-save.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-tooling-local-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-tooling-ui-request.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-tooling-workflow-request.mjs

@@ -43,6 +43,17 @@ export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingContr
   };
  },
  apply(control,command,context){const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+  if(command.action==='save'&&command.moduleAction==='save-local-v1'){
+   if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+   if(!Array.isArray(command.patches)||!Array.isArray(command.guards))throw new DraftConflict('INVALID_PATCHES',422);
+   const staged=cloneDraft(control),fingerprint=context.commandFingerprint||stableDraftJSON(command);
+   const applied=toolingWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined},{...context,commandFingerprint:fingerprint});
+   if(applied instanceof Promise)throw new DraftConflict('INVALID_ADAPTER');
+   applied.state.receipts=flow.receipts;applied.state.sequences=flow.sequences;
+   const result=applyDraftCommand(applied.state,{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});
+   control.reservedCodes=staged.reservedCodes;
+   return result;
+  }
   // Tooling retains its explicitly confirmed no-change restriction.
   if(command.action==='submit'&&flow.saved&&flow.active.id&&same(flow.saved.content,flow.active.content))throw new DraftConflict('NO_SUBSTANTIVE_CHANGE',422);
   if(command.action!=='apply')return applyDraftCommand(flow,command,context);
@@ -62,8 +73,8 @@ export const toolingWorkflowAdapter:WorkflowAdapter<ToolingSnapshot,ToolingContr
      if(p.path.length!==1)throw new DraftConflict('TOOLING_INVALID_INSERT',422);
      const allowed=new Set(['id',...fields[collection],...(collection==='transfers'?['toolId']:[])]);if(Object.keys(p.value).some(k=>!allowed.has(k)))throw new DraftConflict('TOOLING_SOURCE_IMMUTABLE',422);
      if(['tools','categories','suppliers','manufacturers'].includes(key)){
-      const category=collection==='tools'?flow.working.categories.find(c=>c.id===p.value.categoryId):null;if(collection==='tools'&&p.value.categoryId&&!category)throw new DraftConflict('TOOLING_CATEGORY_INVALID',422);
-      const prefix=collection==='tools'?(category?.code||'DC00')+'-':({categories:'DC',suppliers:'SUP',manufacturers:'MFR'} as Record<string,string>)[collection];
+      const category=collection==='tools'?flow.working.categories.find(c=>c.id===p.value.categoryId)||patches.filter((candidate):candidate is Extract<DraftPatch,{op:'insert'}>=>candidate.op==='insert').find(candidate=>candidate.path[0]==='categories'&&candidate.value.id===p.value.categoryId)?.value:null;if(collection==='tools'&&p.value.categoryId&&(!category||!category.code))throw new DraftConflict('TOOLING_CATEGORY_INVALID',422);
+      const prefix=collection==='tools'?(typeof category?.code==='string'?category.code:'DC00')+'-':({categories:'DC',suppliers:'SUP',manufacturers:'MFR'} as Record<string,string>)[collection];
       const reserved=new Set([...(control.reservedCodes[key]||[]),...flow.working[collection].map(r=>'code'in r?String(r.code):'')]);const max=Math.max(0,...[...reserved].filter(c=>c.startsWith(prefix)).map(c=>Number(c.slice(prefix.length))||0));const code=prefix+String(max+1).padStart(collection==='tools'?4:collection==='categories'?2:3,'0');p.value.code=code;control.reservedCodes[key]=[...reserved,code];
      }
     }else{if(!entity||typeof entity==='string'||!flow.working[collection].some(r=>r.id===entity.id))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');

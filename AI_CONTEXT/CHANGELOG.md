@@ -1,3 +1,7 @@
+## 2026-11-05 — Tooling local edits and atomic Save candidate
+
+Document-local tooling edits, guarded atomic Save with code allocation, edit-grants-save server scope and durable Begin/Save recovery. Preserve legacy markers and all review/history protections; photo PUT now requires tooling.edit. No schema/data/deployment change. [Evidence](../docs/acceptance/tooling-local-save-20261105/README.md).
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
