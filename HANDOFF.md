@@ -1,6 +1,6 @@
 # 2026-11-05 — Feedback CI follow-up
 
-At 4818263, Local safety step 13 reproduced a stale shell-script inventory assertion: 50 bundled sources versus the former 49 after adding the event reporter. The focused candidate updates that inventory and asserts the reporter occurs once before the shared client. Existing bundling, source-byte/order, cache, safety and performance contracts remain. No production code, authority, data, migration or activation changes; remote checks must be evaluated at the follow-up HEAD.
+At 4818263, Local safety step 13 reproduced a stale shell-script inventory assertion: 50 bundled sources versus the former 49 after adding the event reporter. The focused candidate updates that inventory in both the unit and compiled root-entry checks, and asserts the reporter occurs once before the shared client; native responses still require exact source-derived bytes. Existing bundling, source-byte/order, cache, safety and performance contracts remain. No production code, authority, data, migration or activation changes; remote checks must be evaluated at the follow-up HEAD.
 
 # 2026-11-05 — Approved retention and per-source ZIP (local only)
 
