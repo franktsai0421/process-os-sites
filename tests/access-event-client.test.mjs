@@ -25,3 +25,8 @@ void test('corrupt reporting storage is retained and never triggers transport or
 void test('missing module permission cannot be advertised as successfully reported',async()=>{
  const statuses=[];let posts=0;const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async()=>undefined,request:async action=>action==='capabilities'?{enabled:true,modules:[]}:(posts++,{received:true})});await reporter.observe(event());assert.equal(posts,0);assert.equal(statuses.at(-1),'permission-denied');
 });
+void test('metadata queue capacity retains old entries and reports the new collection gap',async()=>{
+ let saved;const statuses=[];const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async action=>action==='capabilities'?{enabled:true,modules:['bom']}:{received:true,verified:false}});
+ for(let n=0;n<101;n++)await reporter.observe(event('operation-'+String(n).padStart(8,'0')));
+ assert.equal(saved.length,100);assert.equal(saved[0].event.operationId,'operation-00000000');assert.equal(saved.at(-1).event.operationId,'operation-00000099');assert.equal(statuses.at(-1),'capacity');
+});

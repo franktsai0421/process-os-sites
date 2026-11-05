@@ -14,17 +14,31 @@ export async function mountAccessQueue({host,t,current,request}) {
   const explanation=document.createElement('p');explanation.textContent=t('這是系統操作的確認事件，與使用者主動回報分開。標記已處理不會確認原操作或解除重送防護。','Đây là xác minh thao tác hệ thống, tách khỏi báo lỗi người dùng. Đánh dấu đã xử lý không xác nhận thao tác gốc hay cho phép gửi lại.');
   const retry=document.createElement('button');retry.type='button';retry.textContent=t('重新核驗來源','Kiểm tra lại nguồn');
   const content=element('div');content.className='wf-access-content';
+  const reporting=element('p');reporting.className='wf-muted';reporting.dataset.accessReporting='true';
+  const platform=typeof window==='undefined'?null:window;
+  const reportingStatus=()=>{if(!alive())return;const messages={
+    offline:t('目前裝置離線，事件尚未確認送達。','Thiết bị đang ngoại tuyến; chưa xác nhận sự kiện đã đến.'),
+    'sync-failed':t('目前裝置上報失敗，已收到的事件可能不完整。','Thiết bị báo sự kiện thất bại; sự kiện đã nhận có thể chưa đầy đủ.'),
+    'permission-denied':t('目前裝置缺少部分來源的上報授權，不能宣告已收齊。','Thiết bị thiếu quyền báo một số nguồn; không thể xác nhận đầy đủ.'),
+    capacity:t('目前裝置的事件佇列已滿；原操作防護保留。','Hàng đợi sự kiện trên thiết bị đã đầy; giữ nguyên bảo vệ thao tác gốc.'),
+    'storage-or-source-failed':t('本機事件保存或來源失敗，無法保證上報完整。','Lưu sự kiện cục bộ hoặc nguồn thất bại; không bảo đảm báo đầy đủ.'),
+    'policy-required':t('保存政策未確認，本機尚未啟用持久上報。','Chưa xác nhận chính sách lưu; chưa bật báo bền vững trên thiết bị.'),
+    'not-enabled':t('目前裝置的集中上報尚未啟用。','Chưa bật báo tập trung trên thiết bị.'),
+    'received-unknown':t('目前裝置已取得上報回覆；原操作仍待核驗。','Thiết bị đã nhận phản hồi báo sự kiện; thao tác gốc vẫn cần xác minh.'),
+    received:t('目前裝置的可上報佇列已確認；不代表其他裝置已同步。','Đã xác nhận hàng đợi có thể báo của thiết bị; không có nghĩa thiết bị khác đã đồng bộ.')
+  };reporting.textContent=messages[platform?.ProcessAccessEvents?.status?.()]||t('目前裝置尚無可核驗的上報狀態。','Chưa có trạng thái báo sự kiện có thể xác minh cho thiết bị.');};
   const tell=text=>{if(alive())message.textContent=text;};
+  const actionLabel=action=>({'begin-v1':t('開始編輯','Bắt đầu sửa'),apply:t('套用修改','Áp dụng thay đổi'),save:t('存取草稿','Lưu bản nháp'),submit:t('送出審核','Gửi duyệt'),withdraw:t('撤回','Rút lại'),approve:t('核准','Duyệt'),return:t('發回','Trả lại'),restore:t('還原歷史','Khôi phục lịch sử')})[action]||t('操作','Thao tác');
   function paint(){
     content.replaceChildren();const nav=element('nav');
     for(const [value,label]of [['open',t('待處理','Cần xử lý')],['handled',t('處理歷史','Lịch sử xử lý')]]){const control=button(label,()=>{if(!canLeave())return tell(t('請先保存備註或確認原保存結果。','Lưu ghi chú hoặc kiểm tra kết quả lưu trước.'));filter=value;cursor='';return read();});control.dataset.accessStatus=value;control.setAttribute('aria-selected',String(filter===value));nav.append(control);}
     if(permissions.exchange)nav.append(button(t('匯出選項待確認','Chờ chọn cách xuất'),()=>tell(t('匯出格式與附件尚待確認；只建議最小事件欄位及專屬備註，不含原始收據。尚未生成或下載檔案。','Chưa chọn định dạng và ảnh; chỉ đề xuất thông tin sự kiện tối thiểu và ghi chú, không gồm biên nhận gốc. Chưa tạo hoặc tải tệp.'))));
     content.append(nav);const columns=element('div');columns.className='wf-columns';const list=element('div'),detail=element('div');list.className='wf-list';detail.className='wf-detail';content.append(columns);columns.append(list,detail);
-    for(const row of rows){const card=element('div');card.className='wf-row';if(permissions.exchange){const pick=element('input');pick.type='checkbox';pick.dataset.accessPick=row.id;pick.checked=selection.has(row.id);pick.setAttribute('aria-label',t('選取事件','Chọn sự kiện'));pick.onchange=()=>{if(!alive()||pending)return;if(pick.checked)selection.add(row.id);else selection.delete(row.id);};card.append(pick);}const open=button(row.module+' · '+row.action+' · '+row.reporter,()=>{if(!canLeave())return tell(t('請先保存此事件的備註。','Lưu ghi chú của sự kiện này trước.'));selectedId=row.id;paint();});open.dataset.accessEvent=row.id;open.append(element('p',row.outcome==='receipt-confirmed'?t('已查得成功收據','Đã tìm thấy biên nhận thành công'):t('原操作尚未確認','Thao tác gốc chưa được xác minh')));card.append(open);list.append(card);}
+    for(const row of rows){const card=element('div');card.className='wf-row';if(permissions.exchange){const pick=element('input');pick.type='checkbox';pick.dataset.accessPick=row.id;pick.checked=selection.has(row.id);pick.setAttribute('aria-label',t('選取事件','Chọn sự kiện'));pick.onchange=()=>{if(!alive()||pending)return;if(pick.checked)selection.add(row.id);else selection.delete(row.id);};card.append(pick);}const open=button(row.module.toUpperCase()+' · '+actionLabel(row.action)+' · '+row.reporter,()=>{if(!canLeave())return tell(t('請先保存此事件的備註。','Lưu ghi chú của sự kiện này trước.'));selectedId=row.id;paint();});open.dataset.accessEvent=row.id;open.append(element('p',row.outcome==='receipt-confirmed'?t('已查得成功收據','Đã tìm thấy biên nhận thành công'):t('原操作尚未確認','Thao tác gốc chưa được xác minh')));card.append(open);list.append(card);}
     if(!rows.length)list.append(element('p',t('目前授權與篩選範圍內沒有已收到的事件；不代表所有裝置都沒有事件。','Không có sự kiện đã nhận trong phạm vi và bộ lọc hiện tại; không có nghĩa là mọi thiết bị đều không có sự kiện.')));
     if(next)list.append(button(t('下一頁','Trang sau'),()=>{if(!canLeave())return;cursor=next;return read();}));if(cursor)list.append(button(t('回到第一頁','Về trang đầu'),()=>{if(!canLeave())return;cursor='';return read();}));
     const row=rows.find(row=>row.id===selectedId)||rows[0];if(!row)return;selectedId=row.id;
-    detail.append(element('h3',row.id),element('p',row.reporter+' · '+row.module+' · '+row.action),element('p',t('裝置回報時間：','Thời gian thiết bị báo: ')+new Date(row.occurredAt).toLocaleString()),element('p',t('伺服器收到時間：','Máy chủ nhận: ')+row.receivedAt),element('p',row.outcome==='receipt-confirmed'?t('伺服器已用原操作者權限查得成功收據；原頁仍按既有流程核驗恢復。','Máy chủ đã đọc biên nhận thành công với quyền người thao tác gốc; trang gốc vẫn dùng quy trình xác minh hiện có.'):t('尚未取得可核驗的成功收據；不能據此重送。','Chưa có biên nhận thành công có thể xác minh; không được gửi lại vì lý do này.')));
+    detail.append(element('h3',row.id),element('p',row.reporter+' · '+row.module.toUpperCase()+' · '+actionLabel(row.action)),element('p',t('裝置回報時間：','Thời gian thiết bị báo: ')+new Date(row.occurredAt).toLocaleString()),element('p',t('伺服器收到時間：','Máy chủ nhận: ')+row.receivedAt),element('p',row.outcome==='receipt-confirmed'?t('伺服器已用原操作者權限查得成功收據；原頁仍按既有流程核驗恢復。','Máy chủ đã đọc biên nhận thành công với quyền người thao tác gốc; trang gốc vẫn dùng quy trình xác minh hiện có.'):t('尚未取得可核驗的成功收據；不能據此重送。','Chưa có biên nhận thành công có thể xác minh; không được gửi lại vì lý do này.')));
     if(privateDetails){for(const entry of row.notes||[])detail.append(element('p',entry.authorId+' · '+entry.at+'\n'+entry.text));for(const entry of row.history||[])detail.append(element('small',entry.authorId+' · '+entry.at+' · '+entry.status));}
     if(permissions.edit){const label=element('label',t('事件專屬私人備註','Ghi chú riêng cho sự kiện')),input=element('textarea');input.dataset.accessNote=row.id;input.maxLength=4000;input.value=note;input.readOnly=busy||!!pending;input.oninput=()=>{if(alive()&&!busy&&!pending)note=input.value;};label.append(input);detail.append(label);
       detail.append(button(pending?t('核對原保存結果／重試','Kiểm tra kết quả lưu / thử lại'):t('保存備註','Lưu ghi chú'),()=>update(row,row.status)),button(row.status==='open'?t('標記已處理','Đánh dấu đã xử lý'):t('恢復待處理','Khôi phục cần xử lý'),()=>update(row,row.status==='open'?'handled':'open')));
@@ -59,6 +73,6 @@ export async function mountAccessQueue({host,t,current,request}) {
     } finally {if(alive())retry.disabled=false;}
   }
   retry.onclick=()=>{if(alive()&&canLeave())void read();};
-  host.replaceChildren(message,scope,explanation,controls,content,retry);await read();
-  return {canLeave,dispose(){disposed=true;}};
+  host.replaceChildren(message,scope,explanation,reporting,controls,content,retry);platform?.addEventListener?.('process-access-event-report-status',reportingStatus);reportingStatus();await read();
+  return {canLeave,dispose(){disposed=true;platform?.removeEventListener?.('process-access-event-report-status',reportingStatus);}};
 }

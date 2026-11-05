@@ -14,14 +14,14 @@
   const key=location.origin+'|'+actorId;
   const storage=async(mode,value)=>{if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');const database=await db();if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');return new Promise((resolve,reject)=>{const tx=database.transaction('queues',mode==='read'?'readonly':'readwrite'),store=tx.objectStore('queues'),request=mode==='read'?store.get(key):store.put(value,key);let result;request.onsuccess=()=>{result=request.result;};tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(Error('ACCESS_EVENT_STORAGE_UNAVAILABLE'));tx.onabort=()=>reject(Error('ACCESS_EVENT_STORAGE_UNAVAILABLE'));});};
   const request=async(action,body)=>{if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');const response=await fetch('/api/access-events?action='+action,{cache:'no-store',method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');if(!response.ok)throw Error(response.status===403?'FORBIDDEN':response.status===401?'LOGIN_REQUIRED':'ACCESS_EVENT_UNAVAILABLE');return response.json();};
-  const value=createAccessEventReporter({current,request,storage,onStatus:notify});active={actorId,epoch,current,value};return value;
+  const value=createAccessEventReporter({current,request,storage,onStatus:value=>{if(current())notify(value);}});active={actorId,epoch,current,value};return value;
  }
  window.ProcessAccessEvents={
   observe(input){
    // Copy scalars before the asynchronous boundary. Never retain a command,
    // response/error object, form, photo, endpoint query or workflow snapshot.
-   const event={module:input.module,action:input.action,operationId:input.operationId,occurredAt:input.occurredAt,phase:input.phase},actorId=input.actorId;
-   void reporter(actorId).then(value=>value?.observe(event)).catch(()=>notify('storage-or-source-failed'));
+   const event={module:input.module,action:input.action,operationId:input.operationId,occurredAt:input.occurredAt,phase:input.phase},actorId=input.actorId,epoch=window.ProcessSync?.identityGeneration?.();
+   void reporter(actorId).then(value=>value?.observe(event)).catch(()=>{if(window.ProcessSync?.identity?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch)notify('storage-or-source-failed');});
   },
   status:()=>lastStatus,
   flush(){if(active?.current())void active.value.flush().catch(()=>notify('storage-or-source-failed'));}
