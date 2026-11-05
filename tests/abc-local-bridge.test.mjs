@@ -50,3 +50,12 @@ void test('unknown Save with a changed generation preserves sent command and rec
  const x=await fixture();t.after(x.f.close);x.draft().snapshot.products[0].name='Sent';await x.bridge.execute('AB','apply');x.mode('lost');const fetch=x.box.fetch;x.box.fetch=(url,opt)=>url.includes('operationId=')?Promise.resolve(Response.json({error:'OPERATION_NOT_FOUND'},{status:404})):fetch(url,opt);await assert.rejects(x.bridge.execute('AB','save'));
  const marker=[...x.disk];await x.f.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.workflowScopes.AB.generation='different-generation';v.masterDataControl=JSON.stringify(root);});const next=await fixture({disk:x.disk,api:x.f});await assert.rejects(next.bridge.recover('AB'),/SAVE_READBACK_REQUIRED/);assert.deepEqual([...next.disk],marker);assert.equal(next.posts().length,0);
 });
+void test('a late successful Save ACK cannot replace a newer authoritative poll with an older projection',async t=>{
+ const x=await fixture();t.after(x.f.close);x.draft().snapshot.products[0].name='Own saved name';await x.bridge.execute('AB','apply');
+ let release,arrived;const gate=new Promise(r=>release=r),sent=new Promise(r=>arrived=r),fetch=x.box.fetch;
+ x.box.fetch=async(url,options)=>{const response=await fetch(url,options);if(options.body&&JSON.parse(options.body).command?.action==='save'){arrived();await gate;}return response;};
+ const task=x.bridge.execute('AB','save');await sent;
+ const path=['products',{id:'product-a'},'specification'],peer=await x.f.request('POST',x.f.command('apply',{patches:[{op:'set',path,value:'New peer specification'}],guards:[{path,value:'10 mm'}],clientId:'late-peer-client'}));assert.equal(peer.status,200);
+ await x.bridge.load('AB');const revision=x.control.workflowScopes.AB.revision;release();await task;
+ assert.equal(x.control.workflowScopes.AB.revision,revision);assert.equal(x.draft().snapshot.products[0].specification,'New peer specification');assert.equal(x.draft().snapshot.products[0].name,'Own saved name');assert.equal(x.bridge.localDirty('AB'),false);
+});
