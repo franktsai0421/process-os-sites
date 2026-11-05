@@ -41,6 +41,7 @@ function tooling() {
 }
 function equipment() {
   const f=fixture();
+  Object.assign(f.box,{localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null});
   f.load(part('routine-equipment.js','  function hasLocalDraftInput(','  function sharedTransport()')+part('routine-equipment.js','  function snapshotChanges(','  const beginRecoveryKey')+part('routine-equipment.js','  function captureTransferOwner()','  function transferBusy(')+part('routine-equipment.js','  async function writeShared(','  // Preserve this unapplied drawer'));
   f.box.rememberInputOwner();assert.equal(f.box.inputOwnerCurrent(),true);
   return f;
