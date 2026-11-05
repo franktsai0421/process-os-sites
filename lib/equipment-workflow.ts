@@ -23,6 +23,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
  key:'routineEquipmentControl',scope:'routine-equipment',parse:parseEquipmentWorkflow,empty,photoPrefix:'routine-equipment/photos/',
   preparedModel:true,permissionOnlyRead:true,
  needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
+ needsReferenceHistory:command=>!!command?.patches?.some(p=>p.op==='remove'),
  photoIds:content=>[...content.equipment,...content.groups,...content.categories,...content.subcategories].flatMap(row=>row.photoId?[row.photoId]:[]),
  serialize(control){
    const ids=new Set(control.workflow?.cases.map(c=>c.id)||[]);for(const v of control.versions)if(v.id.startsWith('shared-')||ids.has(v.id))Object.assign(v,cloneDraft(v.snapshot));
@@ -51,6 +52,14 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
      },
      semantic:content=>({...content,issues:content.issues.map(({resolvedAt:_at,resolvedBy:_by,resolvedById:_id,...issue})=>issue)}),
      structure(content,previous){
+       const removed=previous.equipment.filter(row=>!content.equipment.some(next=>next.id===row.id));
+       if(removed.length){
+         const references=(value:unknown,id:string):boolean=>!!value&&typeof value==='object'&&(Array.isArray(value)?value.some(row=>references(row,id)):Object.entries(value).some(([key,row])=>['equipmentId','sourceEquipmentId','targetEquipmentId','activeEquipmentId'].includes(key)&&row===id||typeof row==='object'&&references(row,id)));
+         for(const row of removed){
+           if(control.versions.some(v=>(v.status==='approved'||v.history?.some(e=>e.action==='approved'||e.action==='approve'))&&v.equipment.some(e=>e.id===row.id)))throw new DraftConflict('EFFECTIVE_EQUIPMENT_DELETE_FORBIDDEN',422);
+           if(['qualityMasterControl','iqcMasterControl','ipqcCMasterControl','ipqcABMasterControl'].some(key=>references(parse(state.values[key],{}),row.id))||references(control.pendingReplacements,row.id))throw new DraftConflict('EQUIPMENT_STILL_REFERENCED',422);
+         }
+       }
        try{Object.assign(content,checkedSnapshot(asVersion(previous),content));}catch(e){throw new DraftConflict(e instanceof Error?e.message:'INVALID_STRUCTURE',422);}
        for(const issue of content.issues){const prior=previous.issues.find(i=>i.id===issue.id);if(prior&&(issue.status!==prior.status||issue.resolution!==prior.resolution)){issue.resolvedBy=base.actor.name;issue.resolvedById=base.actor.id;issue.resolvedAt=base.at;}}
      },
@@ -61,6 +70,27 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
  },
  apply(control,command,context){
    const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+   if(command.action==='save'&&command.moduleAction==='save-local-v1'){
+     if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+     if(!Array.isArray(command.patches)||!Array.isArray(command.guards))throw new DraftConflict('INVALID_EQUIPMENT_LOCAL_SAVE',422);
+     const parentGuard=(key:keyof EquipmentSnapshot,id:unknown)=>{if(typeof id!=='string')throw new DraftConflict('INVALID_PATCH',422);if(flow.working[key].some(row=>row.id===id)&&!command.guards!.some(g=>stableDraftJSON(g.path)===stableDraftJSON([key,{id}])))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);};
+     for(const patch of command.patches){const key=patch.path[0],row=patch.op==='insert'?patch.value:typeof patch.path[1]==='object'&&typeof key==='string'&&Object.hasOwn(fields,key)?flow.working[key as keyof EquipmentSnapshot].find(row=>row.id===(patch.path[1] as {id:string}).id):null;
+       if(!row||patch.op!=='insert'&&!(typeof patch.path[2]==='string'&&['groupId','categoryId','subcategoryId'].includes(patch.path[2])))continue;
+       const value=(patch.op==='set'?{...row,[patch.path[2] as string]:patch.value}:row) as Record<string,unknown>;
+       if(key==='equipment')parentGuard('groups',value.groupId);
+       if(key==='groups'){parentGuard('categories',value.categoryId);parentGuard('subcategories',value.subcategoryId);}
+       if(key==='subcategories')parentGuard('categories',value.categoryId);
+     }
+     // Stage allocation, guarded edits and Save in memory; the route persists one CAS.
+     const staged=cloneDraft(control),fingerprint=context.commandFingerprint||stableDraftJSON(command);
+     const applied=equipmentWorkflowAdapter.apply(staged,{...command,action:'apply',moduleAction:undefined},{...context,commandFingerprint:fingerprint});
+     if(applied instanceof Promise)throw new DraftConflict('INVALID_ADAPTER');
+     applied.state.receipts=flow.receipts;applied.state.sequences=flow.sequences;
+     const result=applyDraftCommand(applied.state,{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});
+     control.reservedMarks=staged.reservedMarks;control.reservedCategoryCodes=staged.reservedCategoryCodes;
+     return result;
+   }
+   if(command.moduleAction)throw new DraftConflict('INVALID_MODULE_ACTION',422);
    if(command.action!=='apply')return applyDraftCommand(flow,command,context);
    const patches:DraftPatch[]=cloneDraft(command.patches||[]);
    for(const p of patches){const [collection,entity,field]=p.path;if(typeof collection!=='string'||!Object.hasOwn(fields,collection))throw new DraftConflict('INVALID_COLLECTION',422);

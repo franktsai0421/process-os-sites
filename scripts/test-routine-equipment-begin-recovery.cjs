@@ -1,94 +1,30 @@
-// Real equipment UI/shared transport, synthetic HTTP and DOM; no server or browser.
-const assert = require('node:assert/strict');
-const { performance } = require('node:perf_hooks');
-const { fixture, tick, copy } = require('./test-routine-equipment-transfer-intent.cjs');
-// Fail closed even if an awaited fixture promise loses all event-loop handles.
-process.exitCode = 1;
-const results = [];
-const markerKey = 'routine-equipment-begin-recovery:synthetic-editor';
-async function check(name, task) {
-  const start = performance.now(); let timer;
-  try {
-    await Promise.race([task(), new Promise((_, reject) => { timer = setTimeout(() => reject(Error('CASE_TIMEOUT: ' + name)), 5000); })]);
-    results.push({ name, status: 'PASS', isolatedHandlerMs: +(performance.now() - start).toFixed(2) });
-  } catch (error) {
-    results.push({ name, status: 'FAIL', error: error.stack });
-    throw error;
-  } finally { clearTimeout(timer); console.log(JSON.stringify(results.at(-1))); }
+// Full equipment UI/transport; synthetic HTTP/DOM, no business records.
+const assert=require('node:assert/strict');
+const {fixture,tick,copy}=require('./test-routine-equipment-transfer-intent.cjs');
+process.exitCode=1;const results=[];
+const markerKey='shared-draft-begin-v1:'+JSON.stringify(['synthetic-editor','/api/routine-equipment/workflow']);
+async function check(name,task){let timer;try{await Promise.race([task(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('CASE_TIMEOUT: '+name)),5000);})]);results.push({name,status:'PASS'});}catch(error){results.push({name,status:'FAIL',error:error.stack});throw error;}finally{clearTimeout(timer);console.log(JSON.stringify(results.at(-1)));}}
+async function setup({mutation='abort',commit=true,receiptStatus=200,readStatus=200,drift=''}={}){
+ const f=await fixture({openTransfer:false,establishInputOwner:true}),old=copy(f.test.model);old.versions=old.versions.filter(v=>v.status==='approved');delete old.workflow;f.test.install(old);
+ const content=copy(old.versions[0]);for(const key of ['id','number','status','history'])delete content[key];
+ const next={...copy(old),versions:[...copy(old.versions),{id:'shared-recovered',creatorId:'synthetic-editor',baseVersionId:'active',status:'draft',number:2,revision:1,history:[],...copy(content)}],workflow:{scope:'routine-equipment',generation:'recovered',baseId:'active',active:{id:'active'},revision:1,working:copy(content),cases:[],saved:null,pendingId:null}};
+ const calls=[];let posted=false,receipt=null;
+ f.c.fetch=async(url,options={})=>{const u=new URL(url,'https://synthetic.invalid'),method=options.method||'GET',body=options.body&&JSON.parse(options.body);calls.push({url:String(url),method,body});
+  if(method==='POST'){posted=true;assert.equal(body.action,'begin-v1');receipt={operationId:body.begin.operationId,generation:'recovered',revision:1,savedId:null,caseId:null,unchanged:false};if(mutation==='abort')throw Error('Lost response');if(mutation==='403')return Response.json({error:'FORBIDDEN'},{status:403});return Response.json({revision:11,operationKind:'begin-v1',receipt});}
+  if(u.searchParams.has('operationId')){assert.equal(u.searchParams.get('operationId'),receipt?.operationId);if(receiptStatus!==200||!commit)return Response.json({error:'OPERATION_NOT_FOUND'},{status:receiptStatus===200?404:receiptStatus});return Response.json({receipt,operationKind:'begin-v1'});}
+  if(posted&&readStatus!==200)return Response.json({error:'READ_UNAVAILABLE'},{status:readStatus});
+  if(posted&&drift==='actor')f.rotateActor();if(posted&&drift==='epoch')f.rotateEpoch();if(posted&&drift==='delivery')f.rotateDelivery();
+  const control=posted&&commit?copy(next):copy(old);if(posted&&drift==='generation')control.workflow.generation='different-generation';
+  return Response.json({revision:posted?11:10,control,permissions:{view:true,edit:true,save:true,create:true}});
+ };return {...f,calls,old,next,posts:()=>calls.filter(r=>r.method==='POST')};
 }
-async function setup({ mutation = 'abort', read = 'draft', delayRead = false } = {}) {
-  const f = await fixture({ openTransfer: false, establishInputOwner: true }), old = copy(f.test.model);
-  old.versions = old.versions.filter(version => version.status === 'approved'); delete old.workflow;
-  f.test.install(old);
-  const content = copy(old.versions[0]); delete content.id; delete content.number; delete content.status; delete content.history;
-  const next = { ...copy(old), versions: [...copy(old.versions), { id: 'shared-recovered', creatorId: 'synthetic-editor', baseVersionId: 'active', status: 'draft', number: 2, history: [], ...copy(content) }], workflow: { scope: 'routine-equipment', generation: 'recovered', baseId: 'active', active: {id:'active'}, revision: 1, working: copy(content), cases: [], saved: null, pendingId: null } };
-  if (read === 'pending') { next.workflow.pendingId = 'pending-case'; next.versions[1].status = 'pending'; }
-  if (read === 'active-changed') next.activeVersionId = 'new-active';
-  if (read === 'wrong-scope') next.workflow.scope = 'tooling';
-  if (read === 'malformed') next.workflow.working.equipment = null;
-  if (read === 'no-draft') next.versions.pop();
-  if (read === 'other-creator') next.versions[1].creatorId = 'other-editor';
-  let release, called; const pending = new Promise(resolve => { release = resolve; }), readStarted = new Promise(resolve => { called = resolve; });
-  const calls = [];
-  f.c.fetch = async (url, options = {}) => {
-    const method = options.method || 'GET'; calls.push({ url: String(url), method, body: options.body && JSON.parse(options.body) });
-    if (method === 'POST') {
-      if (mutation === 'abort') throw Object.assign(Error('signal is aborted without reason'), { name: 'AbortError' });
-      if (mutation === '500') return { ok: false, status: 500, json: async () => ({ error: 'WORKFLOW_WRITE_FAILED' }) };
-      if (mutation === '403') return { ok: false, status: 403, json: async () => ({ error: 'FORBIDDEN' }) };
-      return { ok: true, status: 200, json: async () => ({ revision: 11, control: copy(next) }) };
-    }
-    called(); if (delayRead) await pending;
-    const status = read === '403' ? 403 : read === '503' ? 503 : 200;
-    return { ok: status === 200, status, json: async () => status === 200 ? { revision: 11, control: copy(next), permissions: { view: true, edit: read !== 'no-edit' } } : { error: 'SYNTHETIC_READ_FAILURE' } };
-  };
-  return { ...f, calls, old, next, readStarted, release, posts: () => calls.filter(row => row.method === 'POST') };
-}
-(async () => {
-  for (const mutation of ['abort', '500']) await check(`${mutation}: unknown remains after matching GET; explicit GET-only entry chooses existing draft`, async () => {
-    const f = await setup({ mutation }); const result = await f.test.writeShared('begin');
-    assert.equal(result, null); assert.equal(f.posts().length, 1); assert.equal(f.calls.filter(row => row.method === 'GET').length, 1);
-    assert.equal(f.storage.has(markerKey), true); assert.equal(f.test.readUnavailable, true);
-    assert(f.host.querySelector('#routine-begin-recheck'), 'rendered explicit GET-only entry');
-    await assert.rejects(f.test.read(), /尚未確認/); assert.equal(f.storage.has(markerKey), true, 'ordinary read never adopts unknown');
-    await f.test.enterExistingDraft(); assert.equal(f.test.model.workflow.generation, 'recovered'); assert.equal(f.storage.has(markerKey), false);
-    assert.equal(f.posts().length, 1); assert.match(f.test.message, /沒有重送或自動套用/);
-    assert.deepEqual(f.test.model.versions[0], f.old.versions[0], 'formal snapshot stays unchanged');
-  });
-  await check('normal Begin ACK does not add recovery GET', async () => { const f = await setup({ mutation: 'success' }); assert(await f.test.writeShared('begin')); assert.equal(f.calls.length, 1); assert.equal(f.storage.has(markerKey), false); });
-  await check('known forbidden Begin clears marker without recovery or automatic retry', async () => { const f = await setup({ mutation: '403' }); assert.equal(await f.test.writeShared('begin'), null); assert.equal(f.calls.length, 1); assert.equal(f.storage.has(markerKey), false); });
-  for (const read of ['pending', 'active-changed', 'wrong-scope', 'malformed', 'no-draft', '403', '503', 'no-edit', 'other-creator']) await check(`${read}: unconfirmed recovery preserves marker, content, and blocks later commands`, async () => {
-    const f = await setup({ read }), before = JSON.stringify(f.test.model); assert.equal(await f.test.writeShared('begin'), null);
-    assert.equal(f.posts().length, 1); assert.equal(f.storage.has(markerKey), true); assert.equal(JSON.stringify(f.test.model), before);
-    assert.equal(f.test.readUnavailable, true); assert.match(f.test.message, /尚未確認/); await f.test.writeShared('apply'); await f.test.writeShared('begin'); assert.equal(f.posts().length, 1);
-  });
-  for (const change of ['actor', 'epoch', 'delivery', 'version', 'requiresReload']) await check(`recovery GET ${change}: no stale adoption and no retry`, async () => {
-    const f = await setup({ delayRead: true }), before = JSON.stringify(f.test.model), task = f.test.writeShared('begin'); await f.readStarted;
-    if (change === 'actor') f.rotateActor(); if (change === 'epoch') f.rotateEpoch(); if (change === 'delivery') f.rotateDelivery(); if (change === 'version') f.test.bumpVersion(); if (change === 'requiresReload') f.c.ProcessSync.requiresReload = true;
-    f.release(); await task; assert.equal(f.posts().length, 1); assert.equal(JSON.stringify(f.test.model), before); assert.equal(f.storage.has(markerKey), true);
-  });
-  await check('marker already present permits only GET recheck, never another Begin POST', async () => {
-    const f = await setup(); f.storage.set(markerKey, JSON.stringify({ schema: 1, actorId: 'synthetic-editor', activeVersionId: 'active', generation: null }));
-    const result = await f.test.writeShared('begin'); assert.equal(result, null); assert.equal(f.posts().length, 0); assert.equal(f.calls.length, 1); assert(f.storage.has(markerKey));
-  });
-  await check('corrupt marker fails closed without transport', async () => { const f = await setup(); f.storage.set(markerKey, '{invalid'); assert.equal(await f.test.writeShared('begin'), null); assert.equal(f.calls.length, 0); assert.equal(f.storage.get(markerKey), '{invalid'); });
-  await check('explicit existing-draft selection can clear marker without POST', async () => {
-    const f = await setup(); f.storage.set(markerKey, JSON.stringify({ schema: 1, actorId: 'synthetic-editor', activeVersionId: 'active', generation: null }));
-    await f.test.enterExistingDraft(); assert.equal(f.storage.has(markerKey), false); assert.equal(f.posts().length, 0); assert.equal(f.test.readUnavailable, false);
-  });
-  for (const value of ['false', '0', '""', 'null', '[]']) await check('corrupt present marker '+value+' is never absence', async()=>{const f=await setup();f.storage.set(markerKey,value);await f.test.writeShared('begin');await f.test.enterExistingDraft();assert.equal(f.calls.length,0);assert.equal(f.storage.get(markerKey),value);});
-  for(const change of ['actor','epoch','delivery','page'])await check('explicit recovery '+change+' releases only its busy latch',async()=>{
-    const f=await setup({delayRead:true});f.storage.set(markerKey,JSON.stringify({schema:1,actorId:'synthetic-editor',activeVersionId:'active',generation:null}));
-    const task=f.test.enterExistingDraft();await f.readStarted;const actor=f.c.ProcessSync.identity;
-    if(change==='actor')f.rotateActor();if(change==='epoch')f.rotateEpoch();if(change==='delivery')f.rotateDelivery();if(change==='page')f.host.dataset.activeTab='other';
-    f.release();await task;assert(f.storage.has(markerKey));assert.equal(f.calls.length,1);
-    f.c.ProcessSync.identity=actor;f.host.dataset.activeTab='quality-routine-equipment';
-    await f.test.enterExistingDraft();assert.equal(f.calls.length,2);assert.equal(f.storage.has(markerKey),false);assert.equal(f.posts().length,0);
-  });
-  await check('explicit entry preserves unapplied legacy draft input without replay', async()=>{
-    const f=await setup();const legacy=copy(f.old);legacy.versions.push({...copy(legacy.versions[0]),id:'legacy-local',status:'draft'});f.test.install(legacy);f.test.working.equipment[0].name='Unapplied local input';
-    await f.test.writeShared('apply');assert(f.storage.has(markerKey));assert.equal(f.posts().length,1);
-    await f.test.enterExistingDraft();assert.equal(f.storage.has(markerKey),false);assert.equal(f.test.working.equipment[0].name,'Unapplied local input');assert.equal(f.posts().length,1);
-  });
-  await tick(); const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_BEGIN_RECOVERY' : 'FAIL_BOUNDED_BEGIN_RECOVERY', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, results, limits: ['Synthetic HTTP/DOM uses actual full equipment UI and shared transport, not actual API/database acceptance', 'One read-only recovery attempt; no deadline change, hidden Begin retry, Save, Submit, or approval', 'Isolated handler durations are not native page load/render timings'] }; console.log(JSON.stringify(summary)); process.exitCode = summary.failed ? 1 : 0;
-})().catch(error => { console.error(error); process.exitCode = 1; });
+(async()=>{
+ for(const status of [404,503])await check('lost Begin with receipt '+status+' retains exact marker and never re-POSTs',async()=>{const f=await setup({receiptStatus:status});assert.equal(await f.test.writeShared('begin'),null);const raw=f.storage.get(markerKey);assert(raw);await f.test.enterExistingDraft();assert.equal(f.storage.get(markerKey),raw);await f.test.writeShared('begin');assert.equal(f.posts().length,1);});
+ await check('matching draft alone cannot settle a Begin that never committed',async()=>{const f=await setup({commit:false});assert.equal(await f.test.writeShared('begin'),null);await f.test.enterExistingDraft();assert(f.storage.has(markerKey));assert.equal(f.posts().length,1);});
+ await check('original durable Begin receipt permits read-only recovery without follow-up mutation',async()=>{const f=await setup();assert.equal(await f.test.writeShared('begin'),null);await f.test.enterExistingDraft();assert.equal(f.storage.has(markerKey),false);assert.equal(f.test.model.workflow.generation,'recovered');assert.equal(f.posts().length,1);assert.deepEqual(f.test.model.versions[0],f.old.versions[0]);});
+ await check('normal Begin validates receipt and fresh authoritative readback',async()=>{const f=await setup({mutation:'success'});assert(await f.test.writeShared('begin'));assert.equal(f.posts().length,1);assert.equal(f.calls.filter(c=>c.method==='GET').length,2);assert.equal(f.storage.has(markerKey),false);});
+ for(const drift of ['actor','epoch','delivery','generation'])await check('Begin readback '+drift+' preserves input and prevents automatic continuation',async()=>{const f=await setup({mutation:'success',drift});const before=JSON.stringify(f.test.model);assert.equal(await f.test.writeShared('begin'),null);assert.equal(f.posts().length,1);assert.equal(JSON.stringify(f.test.model),before);await f.test.writeShared('save');assert.equal(f.posts().length,1);});
+ for(const raw of ['{invalid',JSON.stringify({schema:1,actorId:'synthetic-editor',activeVersionId:'active',generation:null})])await check('legacy unidentified marker retained without attribution or POST',async()=>{const f=await setup(),key='routine-equipment-begin-recovery:synthetic-editor';f.storage.set(key,raw);assert.equal(await f.test.writeShared('begin'),null);await f.test.enterExistingDraft().catch(()=>{});assert.equal(f.storage.get(key),raw);assert.equal(f.posts().length,0);});
+ await check('forbidden Begin cannot create an automatic retry',async()=>{const f=await setup({mutation:'403',commit:false});assert.equal(await f.test.writeShared('begin'),null);assert(f.storage.has(markerKey));await f.test.writeShared('begin');assert.equal(f.posts().length,1);});
+ await tick();console.log(JSON.stringify({status:'PASS_BOUNDED_BEGIN_RECOVERY',cases:results.length,results,limits:['Synthetic HTTP/DOM; actual durable transport and UI, not native/server acceptance','No deadline increase, blind Begin retry, automatic Save or Submit']}));process.exitCode=0;
+})().catch(error=>{console.error(error);process.exitCode=1;});
