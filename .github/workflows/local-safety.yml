@@ -68,6 +68,13 @@ jobs:
         run: |
           node --test tests/approval-deeplink-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: FQC local editing and atomic single Save
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/fqc-single-save.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/fqc-single-save-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC Apply reliability and actual native forms
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
@@ -85,9 +92,11 @@ jobs:
       - name: IQC unknown-result reliability and visible recovery
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/iqc-write-reliability.test.mjs tests/iqc-write-handler.test.cjs tests/iqc-ordinary-verified-readback.test.mjs
+          node --test tests/iqc-write-reliability.test.mjs tests/iqc-write-handler.test.cjs tests/iqc-local-atomic-save.test.cjs tests/iqc-ordinary-verified-readback.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/iqc-unknown-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-iqc-local-atomic-browser.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exact source baseline for paired performance contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
@@ -156,7 +165,8 @@ jobs:
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs
+          # Separate compiled Chromium/Miniflare fixtures; preserve in-test races and action deadlines.
+          node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Synthetic source, snapshot and authorization regressions
         id: head_validation_04
@@ -325,6 +335,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-canvas-unknown-recovery.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-canvas-silent-discard.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-login-reentry.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-login-entry-marker.cjs
@@ -338,6 +350,12 @@ jobs:
           node --test tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/shared-draft-terminal-admission.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/iqc-editor-terminal.test.mjs tests/shared-draft-restore-admission.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-quality-begin-generation-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-workflow-begin-old-server.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-shared-draft-v3.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -574,6 +592,10 @@ jobs:
         if: ${{ !cancelled() && steps.head_validation_10.outcome == 'success' }}
         run: |
           node tests/sites-delivery-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/begin-recovery-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/process-canvas-atomic-save.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-http.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test --test-concurrency=1 tests/draft-action-measurement.test.mjs tests/draft-lifecycle-scenarios.test.mjs tests/process-draft-lifecycle-browser-contract.test.mjs tests/process-draft-lifecycle-route.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

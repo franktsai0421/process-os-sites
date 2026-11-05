@@ -1,3 +1,9 @@
+## 2026-11-04 — 製程畫布原子存取候選（未發布）
+
+`process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。
+
+[證據、轉換與共用導覽待整合項](../../docs/acceptance/process-canvas-atomic-save-20261104.md)。沒有資料清除、schema migration 或部署；尚非整個草稿流程計畫完成。
+
 ## 2026-10-30 製程讀寫與離頁續修（隔離候選，未發布）
 
 審核頁的 advisory 狀態維持固定節點，以 textContent／hidden 更新；只變檢查提示時不替換查看／審核按鈕，真實案件、權限或錯誤變動仍完整更新。必要 fresh state、案件快照與審核檢查不變。

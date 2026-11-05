@@ -1,3 +1,4 @@
+import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
 import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutationState} from '@/lib/ipqc-c-create-record-mutation';
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
 import {restoreAllowed,assertRestoreAccess,restoreEffects} from '@/lib/draft-restore-access';
@@ -15,7 +16,7 @@ const KEY='ipqcCMasterControl';
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:responseHeaders});
 async function access(request:Request,state:State) {
   const rights=await workflowAccess(request,state);
-  return {...rights,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
+  return {...rights,save:rights.edit||rights.save,restore:rights.edit&&await restoreAllowed(request,state),create:rights.edit&&await can(request,state,'ipqc-c.create'),delete:rights.edit&&await can(request,state,'ipqc-c.delete')};
 }
 function readControl(state:State):IpqcWorkflowControl {const prepared=state.recordStorage?.models.get(KEY);return prepared?parseIpqcControl(state.values[KEY],prepared):copyIpqc(parseIpqcControl(state.values[KEY]));}
 function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},at:string,closeRound=false) {
@@ -96,13 +97,13 @@ export async function GET(request:Request) {
       const receipt=flow?.receipts[operationId];
       if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
       const action=JSON.parse(receipt.fingerprint).action;
-      const permission=action==='apply'||action==='restore'?'edit':action;
+      const permission=action==='apply'||action==='restore'||action==='begin-v1'?'edit':action;
       if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);
-      return reply({receipt:receipt.result});
+      return reply({receipt:receipt.result,...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});
     }
     const since=new URL(request.url).searchParams.get('since');
     if(flow&&since===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
-    return reply({revision:state.revision,permissions,workflow:flow ? {
+    return reply({revision:state.revision,permissions,beginBasis:beginBasis(control),workflow:flow ? {
       scope:flow.scope,generation:flow.generation,revision:flow.revision,working:flow.working,
       saved:flow.saved ? {id:flow.saved.id,revision:flow.saved.revision,actor:flow.saved.actor,at:flow.saved.at}:null,
       pendingId:flow.pendingId,activeId:flow.active.id,contributors:flow.contributors,
@@ -121,13 +122,27 @@ export async function POST(request:Request) {
     while(true){const next=await reader.read();if(next.done)break;length+=next.value.byteLength;if(length>2_000_000){await reader.cancel();return reply({error:'COMMAND_TOO_LARGE'},413);}chunks.push(next.value);}
     const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
     const raw=new TextDecoder().decode(bytes);if(raw.includes('__immutableBody')||raw.includes('__liveContent'))return reply({error:'RESERVED_STORAGE_REFERENCE',requestId},422);
-    const body=JSON.parse(raw) as {action?:'begin';command?:IpqcWorkflowCommand};
+    const body=JSON.parse(raw) as {action?:'begin'|'begin-v1';begin?:unknown;command?:IpqcWorkflowCommand};
+    const begin=parseBeginIdentity(body);
     if(body.command)body.command=expandWorkflowCommand(body.command) as IpqcWorkflowCommand;
+    if(body.command?.localChanges!==undefined){
+      const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
+      const path=(value:unknown)=>Array.isArray(value)&&value.length>0&&value.every(part=>typeof part==='string'||object(part)&&Object.keys(part).length===1&&typeof part.id==='string');
+      const changes:unknown=body.command.localChanges;
+      const valid=Array.isArray(changes)&&changes.length<=256&&changes.every(change=>object(change)&&
+        Object.keys(change).every(key=>['moduleAction','input','patches','guards','localId'].includes(key))&&
+        (change.moduleAction===undefined||typeof change.moduleAction==='string'&&['create-error','create-item','delete-error','delete-item'].includes(change.moduleAction))&&
+        (change.input===undefined||object(change.input)&&(change.input.item===undefined||object(change.input.item)))&&
+        (change.localId===undefined||typeof change.localId==='string')&&
+        (change.patches===undefined||Array.isArray(change.patches)&&change.patches.every(patch=>object(patch)&&patch.op==='set'&&path(patch.path)&&Object.hasOwn(patch,'value')))&&
+        (change.guards===undefined||Array.isArray(change.guards)&&change.guards.every(guard=>object(guard)&&path(guard.path)&&Object.hasOwn(guard,'value'))));
+      if(!valid)return reply({error:'INVALID_LOCAL_SAVE',requestId},422);
+    }
     const caseMetadata=new URL(request.url).searchParams.get('caseMetadata')==='1';
     for(let attempt=0;attempt<4;attempt++) {
       const saveMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCSaveCommand(body.command)?await readIpqcCSaveMutationState(body.command):null;
       const createMutationState=body.action===undefined&&Object.keys(body).every(key=>key==='command')&&ipqcCCreateCommand(body.command)?await readIpqcCCreateMutationState(body.command):null;
-      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
+      const state=createMutationState||saveMutationState||await readState({modelKey:KEY,deferDependencyHistory:true,deferHistory:true,allocationKey:body.command?.localChanges||['create-error','create-item'].includes(body.command?.moduleAction||'')?KEY:undefined,caseId:body.command?.caseId,saveId:body.command?.restoreSaveId}),actor=await identity(request,state);streamRecords=!!state.recordStorage;
       if(!actor)return reply({error:'LOGIN_REQUIRED'},401);
       if(state.values.maintenanceMode==='1')return reply({error:'MAINTENANCE'},503);
       const permissions=await access(request,state),control=readControl(state);
@@ -163,10 +178,12 @@ export async function POST(request:Request) {
         .map(i=>({kind:'error' as const,path:['items',{id:i.id},'equipmentId'],message:'EQUIPMENT_UNAVAILABLE'}))];
       const saveProjectionBase=request.headers.get('X-IPQC-C-Save-Projection')==='1'&&ipqcCSaveCommand(body.command)&&body.command.expectedRevision===control.workflow?.revision&&control.workflow?.pendingId===null&&new Set(control.versions.map(v=>v.id)).size===control.versions.length&&control.versions.filter(v=>v.status==='draft'||v.status==='pending').length===1&&openIpqc(control)?.id==='shared-'+control.workflow.generation&&openIpqc(control)?.status==='draft'
         ?{revision:state.revision,flowRevision:control.workflow.revision,generation:control.workflow.generation,activeVersionId:control.activeVersionId,draftId:openIpqc(control)!.id,others:control.versions.filter(v=>v.id!==openIpqc(control)!.id).map(v=>{const {snapshot,...metadata}=v;return{id:v.id,snapshot,metadata:JSON.stringify(metadata)};})}:null;
-      let receipt;
-      if(body.action==='begin') {
+      let receipt;let beginAlreadyOpen=false;
+      if(body.action==='begin'||begin) {
         if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
-        if(control.workflow&&openIpqc(control))return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),unchanged:true});
+        if(begin){const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
+        beginAlreadyOpen=!!control.workflow&&!!openIpqc(control);
+        if(!begin&&control.workflow&&openIpqc(control))return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),unchanged:true});
         if(!activeIpqc(control)&&!openIpqc(control))return reply({error:'INITIAL_BUILD_REQUIRED'},409);
         beginIpqcWorkflow(control,context);
       } else {
@@ -177,22 +194,27 @@ export async function POST(request:Request) {
         if(body.command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
         if(body.command.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===body.command!.input?.productCode&&p.stages.includes(body.command!.input?.stageCode||'')))
           return reply({error:'PRODUCT_STAGE_INVALID'},422);
+        for(const change of body.command.localChanges||[]) {
+          if(change.moduleAction?.startsWith('create')&&!permissions.create||change.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
+          if(change.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===change.input?.productCode&&p.stages.includes(change.input?.stageCode||'')))return reply({error:'PRODUCT_STAGE_INVALID'},422);
+        }
         const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
         receipt=applyIpqcWorkflow(control,body.command,context);
         if(!alreadyAccepted&&body.command.action==='restore')await assertRestoreAccess(request,state,beforeChange,control.workflow!.working);
-        if(!alreadyAccepted&&body.command.action==='apply'){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
+        if(!alreadyAccepted&&(body.command.action==='apply'||body.command.localChanges)){const effects=restoreEffects(beforeChange,control.workflow!.working);if(effects.create&&!permissions.create||effects.delete&&!permissions.delete)return reply({error:'FORBIDDEN'},403);}
         if(alreadyAccepted)return reply({revision:state.revision,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,unchanged:true,requestId});
         for(const item of control.workflow!.working.items)for(const photo of item.mediaItems)
           if(!knownPhotos.has(photo.id)&&!await env.STATE_ARCHIVE.head(`ipqc-c/photos/${photo.id}`))return reply({error:'PHOTO_NOT_UPLOADED'},422);
       }
-      projection(control,actor,at,body.command?.action==='approve');
+      if(!beginAlreadyOpen)projection(control,actor,at,body.command?.action==='approve');
+      if(begin)receipt=recordBegin(control,begin,actor.id,beginAlreadyOpen);
       if(!await stateRevisionIsCurrent(state))continue;
       const prepared=state.recordStorage?new Map([[KEY,control]]):undefined;
       const values={...state.values,...(!prepared?{[KEY]:JSON.stringify(control)}:{})};
       const encoded=await (createMutationState?encodeIpqcCCreateMutationState(state,values,prepared):saveMutationState?encodeIpqcCSaveMutationState(state,values,prepared):encodeValues(values,state,prepared));
       // Recheck session revocation after slow photo/immutable storage I/O.
       // Account/permission changes remain fenced by the state revision CAS.
-      if(ipqcCCreateCommand(body.command)&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+      if((begin||body.command?.localChanges||ipqcCCreateCommand(body.command))&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
       const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?')
         .bind(state.revision+1,encoded,at,state.revision).run();
       if(changed.meta.changes!==1)continue;
@@ -201,7 +223,7 @@ export async function POST(request:Request) {
         const {content:_savedContent,...savedMetadata}=saved,{snapshot:_draftSnapshot,...draftMetadata}=draft;
         return reply({revision:state.revision+1,receipt,requestId,permissions,cSaveProjection:{version:1,baseStateRevision:saveProjectionBase.revision,baseFlowRevision:saveProjectionBase.flowRevision,generation:saveProjectionBase.generation,activeVersionId:saveProjectionBase.activeVersionId,flowRevision:control.workflow.revision,saved:savedMetadata,contributors:control.workflow.contributors,draft:draftMetadata}});
       }
-      return reply({revision:state.revision+1,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,requestId});
+      return reply({revision:state.revision+1,control:publicIpqcWorkflow(control,permissions.history,caseMetadata),receipt,requestId,...(begin?{operationKind:'begin-v1'}:{})});
     }
     return reply({error:'CONCURRENT_CHANGE_RETRY',requestId},409);
   } catch(error) {

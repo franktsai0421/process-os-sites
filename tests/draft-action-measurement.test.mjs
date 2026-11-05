@@ -127,3 +127,16 @@ void test('expected badge response never substitutes for authoritative state val
   const f = await disabledBackgroundCase({verifyThrows: true}); await assert.rejects(f.run, /STATE_NOT_CORRECT/);
   assert.equal(f.verified(), 1); assert.equal(f.samples[0].status, 'FAIL'); assert.equal(f.samples[0].ms, null);
 });
+
+void test('Begin-v1 keeps both authority GETs and raw transfer costs in the measured window', async () => {
+  const page = new EventEmitter(), stop = captureRequests(page, 'https://fixture.invalid');
+  const payload = JSON.stringify({action: 'begin-v1', begin: {operationId: 'private-operation-id', basis: {openVersionId: 'private-version'}}});
+  for (const [method, data] of [['GET', null], ['POST', payload], ['GET', null]]) {
+    const req = {url: () => 'https://fixture.invalid/api/fqc/workflow?caseMetadata=1', method: () => method, postData: () => data};
+    page.emit('request', req);page.emit('response', {request: () => req, status: () => 200, body: async () => Buffer.from('{}')});
+  }
+  const result = await stop();
+  assert.equal(result.networkComplete, true);assert.equal(result.requests.POST, 1);assert.equal(result.requests.GET, 2);
+  assert.equal(result.requests.requestBytes, Buffer.byteLength(payload));assert.equal(result.requests.responseBytes, 6);
+  assert.deepEqual(result.requests.rows.map(row => row.beginProtocol), [null, 'begin-v1', null]);assert.equal(JSON.stringify(result).includes('private-'), false);
+});

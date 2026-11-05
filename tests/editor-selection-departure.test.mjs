@@ -24,3 +24,29 @@ void test('existing standalone editor selection still works without the integrat
 void test('same or invalid targets do not create a departure decision',async()=>{
  const f=fixture();await f.box.changeEditorSelection('A','G1');await f.box.changeEditorSelection('not-a-line','G2');assert.equal(f.requests.length,0);assert.deepEqual(f.events,[]);
 });
+
+// Actual stage handler shares the same checked departure coordinator as line selection.
+const editorSource=fs.readFileSync('public/process/process-editor.js','utf8');
+const stageSource=editorSource.slice(editorSource.indexOf(' function changeStage('),editorSource.indexOf(' function bind(){'));
+const {createDepartureCoordinator}=await import('../public/process/navigation-lifecycle.mjs');
+function stageFixture(initial='dirty'){
+ let stageStatus={state:initial,canAbandon:true},epoch=1,permit=true,workspace='G1:A',allowed=['S1','S2'],releaseCount=0,abandoned=0,shown=0;
+ const v={stage:'S1'},events=[],durable=new Map([['operation','original-unknown-receipt']]);
+ let releaseGate;const gate=new Promise(resolve=>{releaseGate=resolve;});
+ const coordinator=createDepartureCoordinator({owner:()=>({epoch}),isCurrent:o=>o.epoch===epoch,inspect:()=>stageStatus,autoAbandon:()=>true,
+  async act(action){assert.equal(action,'abandon');abandoned++;await gate;if(!permit)throw Error('PERMISSION_CHANGED');const departureId={};stageStatus={state:'departing',departureId};return {departureId,release(){releaseCount++;}};},show(){shown++;}});
+ const host={ProcessDeliveryNavigation:{guardAction:spec=>coordinator.request({...spec,run:ticket=>{const value=spec.run();if(ticket)coordinator.committed(ticket);return {status:'ready',value};}})}};
+ const box={host,Promise,JSON,Error,key:()=>workspace,view:()=>v,visibleStages:()=>allowed,remember:()=>events.push('remember'),clearLink:()=>events.push('clearLink'),render:()=>events.push('render')};vm.createContext(box);vm.runInContext(stageSource,box);
+ return {box,v,events,durable,releaseGate,invalidate:()=>epoch++,deny:()=>{permit=false;},removeTarget:()=>{allowed=['S1'];},changeWorkspace:()=>{workspace='G2:C';},changeStage:()=>{v.stage='S3';},stats:()=>({abandoned,shown,releaseCount})};
+}
+for(const state of ['dirty','unknown'])void test('stage '+state+' switch waits for checked abandonment without saving or prompting',async()=>{
+ const f=stageFixture(state),before=[...f.durable],pending=f.box.changeStage('S2');assert.equal(f.v.stage,'S1');assert.deepEqual(f.events,[]);
+ f.releaseGate();assert.equal((await pending).status,'ready');assert.equal(f.v.stage,'S2');assert.deepEqual(f.events,['remember','clearLink','render']);assert.deepEqual([...f.durable],before);assert.deepEqual(f.stats(),{abandoned:1,shown:0,releaseCount:1});
+});
+for(const mode of ['invalidate','deny','removeTarget','changeWorkspace','changeStage'])void test('stage handoff refuses '+mode+' while departure is pending',async()=>{
+ const f=stageFixture(),pending=f.box.changeStage('S2');f[mode]();f.releaseGate();const result=await pending;assert(['invalidated','error'].includes(result.status));assert.notEqual(f.v.stage,'S2');assert.deepEqual(f.events,[]);assert.equal(f.durable.get('operation'),'original-unknown-receipt');assert.equal(f.stats().shown,0);
+});
+void test('stage same/invalid target is inert and missing departure service fails closed',async()=>{
+ const f=stageFixture();await f.box.changeStage('S1');await f.box.changeStage('missing');assert.equal(f.stats().abandoned,0);delete f.box.host.ProcessDeliveryNavigation;assert.equal((await f.box.changeStage('S2')).status,'blocked');assert.equal(f.v.stage,'S1');
+ assert.match(editorSource,/changeStage\(b\.dataset\.peStage\)/);
+});

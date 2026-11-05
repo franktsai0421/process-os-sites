@@ -72,3 +72,25 @@ void test('abandonment handoff rejects an expired canvas runtime lease',async()=
  const f=await fixture();f.editCanvas();const lock=Reflect.get(f.c.ProcessCanvasLocal,'lockForDeparture');let valid=true;f.c.ProcessCanvasLocal.lockForDeparture=()=>{const lease=lock();return {...lease,current:()=>valid&&lease.current()};};
  const lease=await f.departure.abandon();valid=false;assert.equal(f.departure.inspect().state,'unknown');assert.throws(()=>f.departure.closeClean());lease.release();assert(!f.locked);
 });
+
+for(const failure of [false,true])void test(`authoring checked unknown departure ${failure?'target failure':'commit'} retains obligations without extra writes`,async()=>{
+ const f=await fixture();f.unknown();f.editForm();f.editCanvas();const canvas=f.c.ProcessCanvasLocal,anchor={},coverage=[];
+ f.client.departureIdle=()=>true;f.client.departureUnknown=()=>anchor;f.client.otherDeparturePending=()=>false;
+ f.client.coverDeparture=(value,check)=>{assert.equal(value,anchor);let active=true;const lease={current:()=>active&&check(),release:()=>{active=false;}};coverage.push(lease);return lease;};
+ canvas.departureTransports=()=>[];canvas.departureReady=lease=>lease.current()&&!f.formDirty&&!canvas.dirty();canvas.discardUnsentForDeparture=(...args)=>canvas.discardForDeparture(...args);
+ const before=JSON.stringify(f.server);assert.equal(f.departure.autoAbandon,true);assert.equal(f.departure.inspect().state,'unknown');assert.equal(f.departure.inspect().canAbandon,true);
+ const lease=await f.departure.abandon();assert.equal(f.departure.inspect().state,'departing');assert.equal(f.client.hasUnknown(),true);assert.equal(coverage[0].current(),true);assert.equal(JSON.stringify(f.server),before);assert.equal(f.calls.some(name=>['apply','save','resolveUnknown','receipt'].includes(name)),false);
+ if(!failure)f.departure.closeClean();lease.release();assert.equal(coverage[0].current(),!failure);assert.equal(f.client.hasUnknown(),true);assert.equal(f.departure.covered(),!failure);
+});
+void test('authoring unknown departure refuses changed peer and releases local locks',async()=>{
+ const f=await fixture();f.unknown();const canvas=f.c.ProcessCanvasLocal;f.client.departureUnknown=()=>({});canvas.departureTransports=()=>[];canvas.departureReady=lease=>lease.current();canvas.discardUnsentForDeparture=()=>{canvas.departureTransports=()=>[{hasUnknown:()=>true}];};
+ await assert.rejects(f.departure.abandon(),/DEPENDENCY_CHANGED/);assert.equal(f.client.hasUnknown(),true);assert.equal(f.locked,false);assert.equal(f.calls.some(name=>['apply','save'].includes(name)),false);
+});
+for(const failure of [false,true])void test(`native authoring departure ${failure?'persistence failure blocks exit':'synchronously drops local input'} without settling unknown`,async()=>{
+ const f=await fixture();f.unknown();f.editForm();f.editCanvas();const canvas=f.c.ProcessCanvasLocal,anchor={};
+ f.client.departureIdle=()=>true;f.client.departureUnknown=()=>anchor;f.client.otherDeparturePending=()=>false;f.client.coverDeparture=(_anchor,check)=>({current:check,release(){}});
+ canvas.departureTransports=()=>[];canvas.departureReady=lease=>lease.current()&&!f.formDirty&&!canvas.dirty();
+ canvas.discardUnsentForDeparture=(_flow,_lease,afterPersist)=>{if(failure)throw Error('STORAGE_WRITE_FAILED');void canvas.discardForDeparture();afterPersist();};
+ const before=JSON.stringify(f.server);assert.equal(f.departure.prepareUnload(),!failure);assert.equal(f.client.hasUnknown(),true);assert.equal(f.formDirty,failure);assert.equal(canvas.dirty(),failure);assert.equal(JSON.stringify(f.server),before);assert.equal(f.calls.some(name=>['save','apply','receipt','resolveUnknown'].includes(name)),false);
+ if(!failure){assert.equal(f.departure.inspect().state,'departing');assert.equal(f.departure.prepareUnload(),true,'same native event invokes multiple listeners safely');}else assert.equal(f.locked,false);
+});

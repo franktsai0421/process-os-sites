@@ -39,3 +39,32 @@ void test('clean source runs without a prompt and blocked source cannot invoke s
  const f=fixture();f.setStatus({state:'clean'});const task=f.request('A');await turn();assert.equal(f.stats().showCount,0);assert.equal(f.targets[0].ticket,null);f.targets[0].resolve({status:'ready'});assert.equal((await task).status,'ready');
  const g=fixture();g.setStatus({state:'blocked',reason:'Different form still owns input'});const pending=g.request('B');assert.equal((await g.coordinator.choose('discard')).status,'blocked');assert.deepEqual(g.actions,[]);await g.coordinator.choose('stay');await pending;
 });
+
+for(const state of ['dirty','unknown'])void test(`automatic ${state} abandonment uses one checked lease without a prompt`,async()=>{
+ let status={state,canAbandon:true},shown=0,released=0,abandoned=0;const epoch=1,targets=[],gate=deferred(),departureId={};
+ const coordinator=createDepartureCoordinator({owner:()=>({epoch}),isCurrent:owner=>owner.epoch===epoch,inspect:()=>status,autoAbandon:()=>true,
+  async act(action){assert.equal(action,'abandon');abandoned++;await gate.promise;status={state:'departing',departureId};return {departureId,release(){released++;}};},show(){shown++;}});
+ const request=key=>coordinator.request({key,run:ticket=>{const done=deferred();targets.push({ticket,key,...done});return done.promise;}});
+ const first=request('first'),last=request('last');assert.equal((await first).status,'superseded');gate.resolve();await turn();
+ assert.equal(shown,0);assert.equal(abandoned,1);assert.equal(targets[0].key,'last');assert.equal(released,0);
+ coordinator.committed(targets[0].ticket);targets[0].resolve({status:'ready'});assert.equal((await last).status,'ready');assert.equal(released,1);
+});
+void test('automatic abandonment failure resolves without opening a decision or preparing target',async()=>{
+ let shown=0,ran=0,failures=0,stayed=0;
+ const coordinator=createDepartureCoordinator({owner:()=>({}),isCurrent:()=>true,inspect:()=>({state:'dirty',canAbandon:true}),autoAbandon:()=>true,
+  act:()=>Promise.reject(Error('RECEIPT_REQUIRED')),show(){shown++;},failure(){failures++;},stay(){stayed++;}});
+ const result=await coordinator.request({key:'target',run(){ran++;}});
+ assert.equal(result.status,'error');assert.equal(shown,0);assert.equal(ran,0);assert.equal(failures,1);assert.equal(stayed,1);assert.equal(coordinator.pending(),false);
+});
+void test('automatic opt-in does not override busy, blocked or unproven unknown state',async()=>{
+ for(const state of ['busy','blocked','unknown']){
+  let shown=0,acted=0;const coordinator=createDepartureCoordinator({owner:()=>({}),isCurrent:()=>true,inspect:()=>({state,canAbandon:false}),autoAbandon:()=>true,act(){acted++;},show(){shown++;}});
+  const result=coordinator.request({key:'target',run(){throw Error('unexpected target');}});assert.equal(shown,1);assert.equal(acted,0);coordinator.cancel();assert.equal((await result).status,'cancelled');
+ }
+});
+void test('opted-in local input abandons without a decision and acknowledges the handoff',async()=>{
+ let status={state:'dirty',canAbandon:true},shown=0,acts=0;const id={};
+ const coordinator=createDepartureCoordinator({owner:()=>id,isCurrent:owner=>owner===id,inspect:()=>status,autoAbandon:()=>true,show:()=>shown++,act:async action=>{assert.equal(action,'abandon');acts++;status={state:'departing',departureId:id};return{departureId:id,release(){}};}});
+ const result=await coordinator.request({key:'next',label:'next',run:async ticket=>{coordinator.committed(ticket);return{status:'ready'};}});
+ assert.equal(result.status,'ready');assert.equal(shown,0);assert.equal(acts,1);
+});

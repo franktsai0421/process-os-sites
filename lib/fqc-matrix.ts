@@ -5,6 +5,23 @@ type Product = {code:string;category?:string;name?:string;specification?:string}
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const sorted=(rows:unknown[])=>rows.map(row=>stableDraftJSON(row)).sort();
 const sameSet=(a:unknown[],b:unknown[])=>stableDraftJSON(sorted(a))===stableDraftJSON(sorted(b));
+/** Only changed cells participate; concurrent choices in other cells survive. */
+export function mergeFqcMatrixCells(items:MatrixItem[],products:Product[],input:unknown):MatrixItem[]{
+  if(!Array.isArray(input)||input.length>100000)throw new DraftConflict('INVALID_FQC_MATRIX',422);
+  const rows=new Map(items.filter(row=>!row.isDeleted).map(row=>[row.id,row])),catalog=new Map(products.map(p=>[p.code,p])),seen=new Set<string>();
+  const selections=new Map<string,Set<string>>();
+  for(const cell of input){
+    if(!object(cell)||Object.keys(cell).some(k=>!['itemId','productCode','base','value'].includes(k))||typeof cell.itemId!=='string'||typeof cell.productCode!=='string'||typeof cell.base!=='boolean'||typeof cell.value!=='boolean')throw new DraftConflict('INVALID_FQC_MATRIX',422);
+    const key=stableDraftJSON([cell.itemId,cell.productCode]);if(seen.has(key))throw new DraftConflict('INVALID_FQC_MATRIX',422);seen.add(key);
+    const row=rows.get(cell.itemId);
+    if(!row||!Array.isArray(row.productCodes)||!catalog.has(cell.productCode))throw new DraftConflict('FQC_MATRIX_SCOPE_CHANGED',409);
+    const current=row.productCodes.includes(cell.productCode);
+    if(current!==cell.base&&current!==cell.value)throw new DraftConflict('DEPENDENCY_CHANGED_RECONFIRM',409,{itemId:cell.itemId,productCode:cell.productCode});
+    const codes=selections.get(row.id)||new Set(row.productCodes);selections.set(row.id,codes);
+    if(cell.value)codes.add(cell.productCode);else codes.delete(cell.productCode);
+  }
+  return replaceFqcMatrix(items,products,{products:products.map(p=>({code:p.code,category:p.category||''})),items:items.filter(row=>!row.isDeleted).map(row=>({id:row.id,category:row.category,productCodes:selections.has(row.id)?[...selections.get(row.id)!]:row.productCodes}))});
+}
 /** Server-only projection: all non-matrix fields come from the current CAS read. */
 export function replaceFqcMatrix(items:MatrixItem[],products:Product[],input:unknown):MatrixItem[]{
   if(!object(input)||Object.keys(input).some(k=>!['items','products'].includes(k))||!Array.isArray(input.items)||!Array.isArray(input.products))throw new DraftConflict('INVALID_FQC_MATRIX',422);

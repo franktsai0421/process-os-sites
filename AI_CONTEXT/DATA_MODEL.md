@@ -1,3 +1,11 @@
+## 2026-11-04 — Begin receipt candidate
+
+Add Begin identity/receipt metadata to the existing workflow receipt map, plus a content-free actor/module browser recovery marker. No SQL migration, legacy-data rewrite or automatic deletion. Old unidentified Begin outcomes remain unprovable. [Exact protocol and compatibility limits](models/V3.md).
+
+## 2026-11-04 IQC atomic Save candidate
+
+No persistent schema change. `save-local-v1` stages IQC patches and number allocation in request memory, then persists final working/saved with existing CAS and one original receipt. No migration or deletion of legacy working/saved/history or browser operation records. [Evidence](../docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-03 — Simple draft departure follow-up
 
 No new server/browser schema, storage key or migration. Departure consumes only existing current local cleanup; shared drafts and original unknown receipt evidence remain. Canvas cleanup now checks its durable result before reporting success. [Scope, evidence and blockers](../docs/acceptance/simple-draft-departure-20261103.md).

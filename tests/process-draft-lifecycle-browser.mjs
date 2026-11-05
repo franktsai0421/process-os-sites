@@ -1,16 +1,16 @@
-// CI-only native Chromium + compiled application. Each cycle resets its synthetic
+// Native Chromium + compiled application in CI or explicitly selected isolated desktop mode. Each cycle resets its synthetic
 // DB row and browser contexts; one owned nonpersistent Worker/R2 bucket is reused.
 // Never run this file as a workaround for a denied local browser/socket capability.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import {createHmac, randomBytes} from 'node:crypto';
+import {createHash, createHmac, randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {buildProcessDraftLifecycleSeed} from './process-draft-lifecycle-route-fixture.mjs';
 import {measureAction, summarizeActions, REQUIRED_SAMPLES} from './draft-action-measurement.mjs';
 
 export const processBrowserActions = Object.freeze([
-  'begin', 'local-apply', 'sync-current-canvas', 'save', 'submit-open', 'submit-confirm',
+  'begin', 'local-layout', 'local-apply', 'save', 'submit-open', 'submit-confirm',
   'withdraw-open', 'withdraw-confirm', 'resubmit-open', 'resubmit-confirm',
   'review-return-open', 'return-open', 'return-confirm',
   'returned-submit-open', 'returned-submit-confirm', 'review-approve-open', 'approve-open', 'approve-confirm',
@@ -104,38 +104,57 @@ const waitEnabled = (page, selector) => page.waitForFunction(selector => {
   return nodes.length === 1 && !nodes[0].disabled && nodes[0].getClientRects().length > 0;
 }, selector);
 
-export async function runProcessDraftBrowser() {
-  assert.equal(process.env.CI, 'true', 'Native browser acceptance is prepared for authorized CI, not a local capability bypass');
+// Fixture-only reachability: add an empty approved stage and line plus the
+// editor's navigation access. Never alter the seeded saved/active process body.
+export function extendProcessNavigationSeed(seed) {
+  const master = JSON.parse(seed.values.masterDataControl), catalog = master.active.AB;
+  catalog.lines.find(line => line.code === 'A').stages.push({id: 'life-nav-stage', code: 'A-LIFE-NAV', name: 'Synthetic navigation stage'});
+  catalog.lines.push({id: 'life-nav-line', code: 'B', name: 'Synthetic navigation line', stages: []});
+  catalog.categoryGroups.find(group => group.line === 'A').defaultStages = [seed.ids.stage, 'A-LIFE-NAV'];
+  for (const version of master.versions) if (version.scope === 'AB') version.snapshot = structuredClone(catalog);
+  seed.values.masterDataControl = JSON.stringify(master);
+  seed.actors.editor.lines.push('B'); seed.actors.editor.views.push('dashboard'); seed.actors.editor.accessOverrides['dashboard.view'] = true;
+  seed.values.platformUsers = JSON.stringify(Object.values(seed.actors));
+  seed.seedBytes = Buffer.byteLength(JSON.stringify(seed.values));
+  return seed;
+}
+
+export async function runProcessDraftBrowser({isolatedDesktop = false, executablePath} = {}) {
+  if (!isolatedDesktop) assert.equal(process.env.CI, 'true', 'Native browser acceptance is prepared for authorized CI, not a local capability bypass');
   const {chromium} = await import('playwright');
-  const {createRootEntryFixture} = await import('./root-entry-native-fixture.mjs');
+  const {createRootEntryFixture, nativeFailureDiagnostics} = await import('./root-entry-native-fixture.mjs');
   const secret = randomBytes(32).toString('hex');
   const report = {
-    status: 'RUNNING', layer: 'CI_SYNTHETIC_BROWSER', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
-    realData: false, realCredentials: false, samples: [], summary: [], cycles: [], pageErrors: [],
+    status: 'RUNNING', layer: isolatedDesktop ? 'ISOLATED_DESKTOP_BROWSER' : 'CI_SYNTHETIC_BROWSER', programCommit: process.env.PROCESS_PROGRAM_COMMIT,
+    realData: false, realCredentials: false, samples: [], summary: [], cycles: [], navigationChecks: [], pageErrors: [],
     boundary: 'Real DOM click through asserted usable UI plus two frames; reason typing and authoritative fixture inspection excluded. Same-window API counts include background API requests, never imply exclusive command attribution. Only exact observed FQC_NOT_ENABLED-only 404 badge reads in the disabled synthetic reviewer Return/Approve context are classified as expected background; they retain request/byte/timing accounting and do not prove the action succeeded.',
     storageConditions: {perCycle: 'reset shared_state row and new browser contexts', reusedAcrossCycles: 'same owned nonpersistent Worker and R2 bucket; prior-cycle immutable objects retained', cacheClassification: 'not classified cold/warm; no cache reset claim'},
     limitations: ['Loopback compiled synthetic data, not live HTTPS or employee-site timing.', 'No baseline pairing and no guarantee of <1000ms.', 'UI duration includes automation ready polling/IPC and two-frame observation, not isolated product CPU.', 'First batch covers 18 explicit process action phases, not all 173 inventory rows.', 'History/restore, receipt fault UI, first-load/reload/navigation five-sample timings and other module adapters remain separate.', 'Reviewer entry explicitly clicks the process tab; approvalTab=process initial deep-link selection is not accepted as verified by this runner.'],
   };
-  let fixture, browser, stage = 'fixture';
+  let fixture, browser, fixtureRead = null, readSequence = 0, stage = 'fixture';
   const contexts = new Set(), pageContexts = [];
   try {
-    fixture = await createRootEntryFixture({syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
+    fixture = await createRootEntryFixture({recordOracle: true, syntheticBindings: {PROCESS_IMPORT_ENABLED: '0', PROCESS_OWNER_BOOTSTRAP_ENABLED: '0', PROCESS_SESSION_SECRET: secret, PROCESS_SESSION_REVOCATION_ENABLED: '1', DEMO_LOGIN_ENABLED: 'false'}});
     const bucket = await fixture.mf.getR2Bucket('STATE_ARCHIVE');
     const load = createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs')({STATE_ARCHIVE: bucket});
     const records = load('lib/state-records.ts');
     const origin = fixture.url.origin;
     assert.equal(fixture.url.hostname, '127.0.0.1');
-    browser = await chromium.launch({headless: true});
-    report.buildEntrySha256 = fixture.buildEntrySha256;
+    browser = await chromium.launch({headless: true, ...(executablePath ? {executablePath} : {})});
+    report.browserVersion = browser.version();
+    fs.mkdirSync('.sites-runtime/process-canvas-desktop', {recursive:true});
+    report.buildEntrySha256 = fixture.buildEntrySha256; report.recordOracleSha256 = fixture.recordOracleSha256;
     for (let cycle = 1; cycle <= REQUIRED_SAMPLES; cycle++) {
       stage = 'seed-' + cycle;
       assert.equal(contexts.size, 0, 'Close all old contexts before resetting this owned fixture');
-      const seed = buildProcessDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle});
+      const seed = extendProcessNavigationSeed(buildProcessDraftLifecycleSeed(load('lib/shared-draft.ts').createSharedDraft, {cycle}));
       const raw = await records.encodeRecordValues(bucket, seed.values);
       await fixture.db.prepare('INSERT OR REPLACE INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(raw, 'synthetic lifecycle').run();
-      const readValues = async () => {
-        const row = await fixture.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
-        return (await records.decodeRecordValues(bucket, JSON.parse(row.values))).values;
+      // Full production decoding stays inside the isolated Worker. Avoid one
+      // Node-to-Worker proxy exchange per R2 record during every verification.
+      const readValues = () => {
+        const sequence = ++readSequence;
+        return fixture.readRecordValues(phase => { fixtureRead = {cycle, sequence, phase}; });
       };
       const control = async () => JSON.parse((await readValues()).processAuthoringControl);
       const operation = content => content.workspaces.find(row => row.id === seed.ids.workspace).stages[seed.ids.stage].find(row => row.id === seed.ids.operation);
@@ -175,6 +194,7 @@ export async function runProcessDraftBrowser() {
           stage = cycle + ':' + label + ':editor-ready';
           await page.waitForFunction(() => !!window.ProcessAuthoringV3?.flow());
         }
+        if(cycle % 2 === 0){await page.locator('.top-actions .language-switch').click();await page.waitForFunction(()=>document.documentElement.lang==='zh-Hant');}
         await idle(page);
         return {context, page};
       }
@@ -197,6 +217,8 @@ export async function runProcessDraftBrowser() {
         const c = await control(); assert.equal(c.versions.filter(row => row.status === 'draft').length, 1); assert.equal(c.workflow.pendingId, null);
       }, 1);
       const sharedBeforeLocal = await control();
+      await measure(editor.page, 'local-layout', '.pe-editor [data-pe="layout"]', async()=>{await editor.page.waitForFunction(()=>window.ProcessCanvasLocal?.dirty()===true);}, async()=>assert.deepEqual(await control(),sharedBeforeLocal),0);
+      await editor.page.locator('.pe-editor [data-pe="fit"]').click();
       await (await requireVisible(editor.page, '.pe-card[data-node="' + seed.ids.operation + '"] [data-pe="edit"]')).click();
       await editor.page.locator('#process-operation-dialog[open] [data-field="name"]').fill(changedName);
       await measure(editor.page, 'local-apply', '#apply-operation', async () => {
@@ -204,16 +226,59 @@ export async function runProcessDraftBrowser() {
         await editor.page.waitForFunction(() => window.ProcessCanvasLocal?.dirty() === true);
         assert.equal(await editor.page.locator('.pe-card[data-node="' + seed.ids.operation + '"] h3').innerText(), changedName);
       }, async () => assert.deepEqual(await control(), sharedBeforeLocal), 0);
-      await measure(editor.page, 'sync-current-canvas', '.pe-editor [data-pe="sync"]', async () => {
-        await editor.page.waitForFunction(() => window.ProcessCanvasLocal?.dirty() === false); await idle(editor.page);
-      }, async () => {
-        const c = await control(); assert.equal(operation(c.workflow.working).name, changedName); assert.deepEqual(c.workflow.saved, sharedBeforeLocal.workflow.saved);
-      }, 1);
+      assert.equal(await editor.page.locator('.pe-editor [data-pe="sync"]').count(), 0);
+      assert.equal(await editor.page.locator(mainSelector('save')).innerText(),cycle%2===0?'存取草稿':'Lưu bản nháp');
       await measure(editor.page, 'save', mainSelector('save'), async () => {
         await waitEnabled(editor.page, mainSelector('submit')); await idle(editor.page);
       }, async () => {
-        const c = await control(); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working); assert.equal(operation(c.workflow.saved.content).name, changedName);
+        const c = await control(); assert.equal(c.workflow.revision, sharedBeforeLocal.workflow.revision + 1); assert(c.workflow.saved?.id); assert.deepEqual(c.workflow.saved.content, c.workflow.working); assert.equal(operation(c.workflow.saved.content).name, changedName);
       }, 1);
+      await editor.page.screenshot({path:'.sites-runtime/process-canvas-desktop/saved-'+cycle+'.png',fullPage:true});
+      // These functional checks are deliberately outside measureAction: the
+      // original 18 × 5 timing samples/deadlines remain directly comparable.
+      const navigationBaseline = await control(), navigationHash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+      for (const kind of ['stage', 'line', 'top-navigation']) {
+        stage = cycle + ':silent-navigation-' + kind;
+        const writes = [], collectWrite = request => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/process-authoring/workflow') writes.push(request); };
+        editor.page.on('request', collectWrite);
+        try {
+          await (await requireVisible(editor.page, '.pe-editor [data-pe="fit"]')).click();
+          await (await requireVisible(editor.page, '.pe-card[data-node="' + seed.ids.operation + '"] [data-pe="edit"]')).click();
+          await editor.page.locator('#process-operation-dialog[open] [data-field="name"]').fill('Unsent navigation ' + kind + ' ' + cycle);
+          await (await requireVisible(editor.page, '#apply-operation')).click();
+          await editor.page.locator('#process-operation-dialog').waitFor({state: 'detached'});
+          await editor.page.waitForFunction(() => window.ProcessCanvasLocal?.dirty() === true);
+          assert.deepEqual(await control(), navigationBaseline);
+          if (kind === 'stage') {
+            await (await requireVisible(editor.page, '[data-pe-stage="A-LIFE-NAV"]')).click();
+            await editor.page.waitForFunction(() => document.querySelector('.pe-editor')?.dataset.stageKey === 'A-LIFE-NAV');
+            await (await requireVisible(editor.page, '[data-pe-stage="' + seed.ids.stage + '"]')).click();
+          } else if (kind === 'line') {
+            const line = await requireVisible(editor.page, '#editor-line-select');
+            await line.click(); await line.press('ArrowDown'); await line.press('Enter');
+            await editor.page.waitForFunction(() => document.querySelector('#editor-line-select')?.value === 'B');
+            const back = await requireVisible(editor.page, '#editor-line-select');
+            await back.click(); await back.press('ArrowUp'); await back.press('Enter');
+            await editor.page.waitForFunction(() => document.querySelector('#editor-line-select')?.value === 'A');
+          } else {
+            await (await requireVisible(editor.page, '.nav-item[data-view="dashboard"]')).click();
+            await editor.page.waitForFunction(processShellReady, {view: 'dashboard', actor: seed.actors.editor.id});
+            await (await requireVisible(editor.page, '.nav-item[data-view="editor"]')).click();
+            await editor.page.waitForFunction(processShellReady, {view: 'editor', actor: seed.actors.editor.id});
+          }
+          await editor.page.waitForFunction(({id, name}) => document.querySelector('.pe-card[data-node="' + id + '"] h3')?.textContent === name && window.ProcessCanvasLocal?.dirty() === false, {id: seed.ids.operation, name: changedName});
+          await idle(editor.page);
+          assert.equal(await editor.page.locator('#process-navigation-departure[open],.vd-confirm[open],#process-operation-dialog[open]').count(), 0);
+          assert.deepEqual(report.pageErrors, [], 'Silent navigation must not produce a native confirmation or browser error');
+          const after = await control(); assert.deepEqual(after, navigationBaseline, 'Navigation may neither save nor roll back persisted process state');
+          assert.equal(writes.length, 0, 'Local editing, departure and reentry must issue zero workflow POSTs');
+          report.navigationChecks.push({cycle, kind, status: 'PASS', timed: false, workflowPosts: writes.length,
+            beforeSha256: navigationHash(navigationBaseline), afterSha256: navigationHash(after), savedId: after.workflow.saved.id,
+            reentryDiscardedLocal: true, nativeDialogs: 0, customDialogs: 0,
+            fixtureOnlyAccess: 'Synthetic editor additionally sees empty line B, empty stage A-LIFE-NAV and dashboard; process snapshots unchanged'});
+        } finally { editor.page.off('request', collectWrite); }
+      }
+
       async function submit(prefix) {
         const before = (await control()).workflow, saved = before.saved;
         await measure(editor.page, prefix + '-open', mainSelector('submit'), async () => {
@@ -276,14 +341,16 @@ export async function runProcessDraftBrowser() {
     }
     report.summary = summarizeActions(report.samples, processBrowserActions);
     assert(report.summary.every(row => row.status === 'PASS_FUNCTION_MEASURED'));
-    report.status = 'PASS_CI_SYNTHETIC_PROCESS_LIFECYCLE';
+    assert.equal(report.navigationChecks.length, REQUIRED_SAMPLES * 3);
+    report.status = isolatedDesktop ? 'PASS_ISOLATED_DESKTOP_PROCESS_LIFECYCLE' : 'PASS_CI_SYNTHETIC_PROCESS_LIFECYCLE';
   } catch (error) {
-    report.status = 'FAIL_CI_SYNTHETIC_PROCESS_LIFECYCLE'; report.failedStage = stage;
+    report.status = isolatedDesktop ? 'FAIL_ISOLATED_DESKTOP_PROCESS_LIFECYCLE' : 'FAIL_CI_SYNTHETIC_PROCESS_LIFECYCLE'; report.failedStage = stage;
     report.pageDiagnostics = [];
     for (const item of pageContexts.filter(item => !item.page.isClosed())) {
       try { report.pageDiagnostics.push({label: item.label, ...await item.page.evaluate(processPageDiagnostic, item.args)}); }
       catch { report.pageDiagnostics.push({label: item.label, diagnosticUnavailable: true}); }
     }
+    report.runtimeFailure = nativeFailureDiagnostics(error); report.fixtureRead = fixtureRead;
     report.failure = {name: error.name, message: String(error.message).replaceAll(secret, '[redacted]').slice(0, 500)};
     report.summary = summarizeActions(report.samples, processBrowserActions);
   } finally {
@@ -291,6 +358,7 @@ export async function runProcessDraftBrowser() {
     if (browser) await browser.close(); if (fixture) await fixture.close();
     report.disposed = true;
   }
+  if (isolatedDesktop) { for (const row of [...report.samples, ...report.summary]) row.layer = 'ISOLATED_DESKTOP_BROWSER'; }
   fs.mkdirSync('.sites-runtime', {recursive: true});
   fs.writeFileSync('.sites-runtime/process-draft-lifecycle-browser-result.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report));
@@ -298,6 +366,6 @@ export async function runProcessDraftBrowser() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const result = await runProcessDraftBrowser();
+  const result = await runProcessDraftBrowser({isolatedDesktop:process.argv.includes('--isolated-desktop'),executablePath:process.env.CHROMIUM_PATH});
   process.exitCode = result.status.startsWith('PASS_') ? 0 : 1;
 }

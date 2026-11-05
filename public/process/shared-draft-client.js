@@ -212,9 +212,12 @@
     const expand=child=>{if(child&&typeof child==='object'&&!Array.isArray(child)&&Object.hasOwn(child,'__commandMedia')){const index=child.__commandMedia;if(Object.keys(child).length!==1||!Number.isInteger(index)||typeof value.media[index]!=='string')throw Error('INVALID_RECOVERY_RECORD');return value.media[index];}if(Array.isArray(child))return child.map(expand);if(child&&typeof child==='object')return Object.fromEntries(Object.entries(child).map(([key,item])=>[key,expand(item)]));return child;};return expand(value.command);
   }
   window.sharedDraftAccountState=()=>{const own=[...clients].filter(c=>!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id);return{queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
-  window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&(c.unknown()||c.failed())&&!c.departureCovered?.());
+  // Navigation and mutation admission are separate. C's durable operation stays
+  // unknown/queued in account state; browsing never clears it or enables replay.
+  window.sharedDraftNavigationState=()=>{const own=[...clients].filter(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.());return {queued:own.reduce((n,c)=>n+c.queued(),0),unknown:own.some(c=>c.unknown()),failed:own.some(c=>c.failed())};};
+  window.sharedDraftDepartureBlocked=()=>[...clients].some(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.()&&(c.unknown()||c.failed())&&!c.departureCovered?.());
   // oxlint-disable-next-line typescript/no-deprecated -- Required compatibility signal for Chromium's unsynchronized-work exit warning.
-  window.addEventListener?.('beforeunload',event=>{const pending=window.sharedDraftAccountState();if(pending.queued||pending.unknown||pending.failed){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
+  window.addEventListener?.('beforeunload',event=>{if(window.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;const pending=[...clients].filter(c=>(!window.ProcessSync||c.actorId===window.ProcessSync.identity?.id)&&!c.browseWithoutSettlement?.()&&!c.unloadAllowed?.());if(pending.some(c=>c.queued()||c.unknown()||c.failed())){event.preventDefault();event.returnValue='Thao tác chưa được xác nhận / 操作尚未確認';}});
   const scrollLocks=new Set();let previousOverflow='';
   function lockScroll(overlay){if(!scrollLocks.size){previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}scrollLocks.add(overlay);}
   function unlockScroll(overlay){scrollLocks.delete(overlay);if(!scrollLocks.size)document.body.style.overflow=previousOverflow;}
@@ -307,7 +310,7 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
@@ -324,14 +327,19 @@
     const boundedExactRoute=['iqc','ipqc-c','bom'].includes(boundedScope);
     if(externalBounded){const [path,query='']=endpoint.split('?'),params=new URLSearchParams(query);if(externalCanvas||!boundedScope||boundedScope==='master:PROCESS'&&(path!=='/api/master/workflow'||params.getAll('scope').length!==1||params.get('scope')!=='PROCESS')||boundedScope==='fqc'&&path!=='/api/fqc/workflow'||boundedExactRoute&&(path!=='/api/'+boundedScope+'/workflow'||params.getAll('caseMetadata').length!==1)||[...params].some(([key,value])=>key!=='scope'&&!(key==='caseMetadata'&&value==='1'))||boundedScope!=='master:PROCESS'&&params.has('scope'))throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');}
     if(externalCanvas){const [path,query='']=endpoint.split('?'),channels=new URLSearchParams(query).getAll('channel');if(path!=='/api/process-authoring/workflow'||channels.length!==1||!['canvas','canvas-v2'].includes(channels[0])||typeof externalProof!=='function')throw Error('CANVAS_EXTERNAL_DURABILITY_REQUIRED');}
+    const [beginPath,beginSearch='']=endpoint.split('?'),beginParams=durableBegin?new URLSearchParams(beginSearch):null;
+    if(durableBegin&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/process-authoring/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
+    const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
+    const beginRuntimeCurrent=()=>!durableBegin||departureOwnerCurrent(beginRuntimeOwner)&&beginRuntimeOwner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(beginRuntimeOwner.epoch)&&beginRuntimeOwner.epoch>=0&&beginRuntimeOwner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&(!beginRuntimeOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(beginRuntimeOwner.delivery)!==false);
     const clientPagehideGeneration=transportPagehideGeneration;
     const externalOwner=externalStrict?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
     const externalCurrent=()=>!externalStrict||(!externalBounded||clientPagehideGeneration===transportPagehideGeneration)&&departureOwnerCurrent(externalOwner)&&Number.isSafeInteger(externalOwner.epoch)&&externalOwner.epoch>=0&&externalOwner.identity===window.ProcessSync?.identity&&(!externalOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(externalOwner.delivery)!==false);
     // A proof callback belongs to one runtime/owner, never the generic cache or
     // another Canvas instance created after identity/delivery invalidation.
-    const transportKey=actorId+':'+endpoint+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
+    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
     window.SharedDraftDeparture.register(sessionScope);
-    if(transports.has(transportKey)&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
+    if(transports.has(transportKey)&&(!durableBegin||transports.get(transportKey).isBeginRuntimeCurrent())&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
+    const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false;
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
@@ -363,10 +371,65 @@
     // Cache resets and later grants must not revive the earlier departure decision.
     const gateControls=(revoked=false)=>{if(access?.view===false)departureCoverage=null;if(!access||!gates)return;let changedElement=null;for(const [permission,selector]of Object.entries(gates))if(access[permission]===false)document.querySelectorAll?.(selector).forEach(element=>{if(!element.disabled)changedElement=element;element.disabled=true;element.setAttribute('aria-disabled','true');});if(revoked&&changedElement&&!permissionNotice?.isConnected){const root=changedElement.closest('#data-content,#fixture')||document.querySelector('#data-content');if(root){permissionNotice=document.createElement('p');permissionNotice.className='master-edit-note';permissionNotice.setAttribute('role','alert');permissionNotice.textContent=document.documentElement.lang==='vi'?'Quyền thao tác đã thay đổi; giữ đầu vào hiện tại. Tải lại và kiểm tra quyền trước khi tiếp tục.':'操作權限已變更；保留目前輸入，請重新載入核對權限後繼續。';root.prepend(permissionNotice);}}};
     const clientId=crypto.randomUUID(),syncFailures=new Map(),preparedFlights=new Map();let sequence=0,tail=Promise.resolve(),unknown=null,queued=0,beginPending=null,retryPending=null,recoveryInvalid=false,conditionalRead=null,unknownOwner=null;
-    const assertOwner=()=>{if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
+    const assertOwner=()=>{if(!beginRuntimeCurrent())throw Error('BEGIN_OWNER_CHANGED');if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!externalCurrent())throw Error(externalCanvas?'CANVAS_TRANSPORT_OWNER_CHANGED':'BOUNDED_TRANSPORT_OWNER_CHANGED');if(recoveryInvalid)throw Error('RECOVERY_RECORD_INVALID');};
     // New mutation admission only; late authoritative ACK/receipt bookkeeping stays unchanged.
-    const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');};
-    const accountClient={actorId,queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered()};clients.add(accountClient);
+    const assertMutationAdmission=()=>{assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
+      // Canvas has a separate durable journal, but cannot dispatch new writes
+      // while its same-actor primary Begin still lacks an acknowledged receipt.
+      // Reading evidence is sufficient: malformed bytes also block, never erase.
+      if(externalCanvas){let marker;try{marker=sessionStorage.getItem('shared-draft-begin-v1:'+JSON.stringify([actorId,'/api/process-authoring/workflow']));}catch{const error=Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true});externalUnsent.add(error);throw error;}if(marker!==null){const error=Object.assign(Error('PREVIOUS_BEGIN_UNKNOWN'),{notSent:true});externalUnsent.add(error);throw error;}}
+    };
+    const beginKey=durableBegin?'shared-draft-begin-v1:'+JSON.stringify([actorId,beginPath]):null,beginResponses=new WeakMap();
+    let beginRecord=null,beginRaw=null,beginInvalid=false,beginRetired=false,beginRead=null;
+    const beginUUID=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const beginText=value=>value===null||typeof value==='string'&&value.length>0&&value.length<=256;
+    function validBeginBasis(value){return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')==='activeVersionId,generation,openVersionId,openVersionRevision,openVersionStatus'&&beginText(value.generation)&&beginText(value.activeVersionId)&&beginText(value.openVersionId)&&(value.openVersionId===null?value.openVersionStatus===null&&value.openVersionRevision===null:['draft','pending','pending-test'].includes(value.openVersionStatus)&&(value.openVersionRevision===null||Number.isSafeInteger(value.openVersionRevision)&&value.openVersionRevision>=0));}
+    function beginOutstanding(){
+      if(!durableBegin)return false;
+      try{const raw=sessionStorage.getItem(beginKey);if(!beginRecord&&!beginInvalid&&raw!==null){const record=JSON.parse(raw);if(!record||Object.keys(record).sort().join(',')!=='actorId,basis,endpoint,operationId,version'||record.version!==1||record.actorId!==actorId||record.endpoint!==beginPath||!beginUUID(record.operationId)||!validBeginBasis(record.basis))throw Error('INVALID_BEGIN_MARKER');beginRecord=record;beginRaw=raw;}if(beginRecord&&raw!==beginRaw)beginInvalid=true;}catch{beginInvalid=true;}
+      return !!beginRecord||beginInvalid;
+    }
+    function beginMarker(){try{return !beginInvalid&&beginRecord&&sessionStorage.getItem(beginKey)===beginRaw?beginRaw:null;}catch{return null;}}
+    function assertBegin(record){assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration||record!==beginRecord||beginMarker()===null)throw Error('BEGIN_RECOVERY_CONTEXT_CHANGED');}
+    function clearBegin(record){assertBegin(record);sessionStorage.removeItem(beginKey);if(sessionStorage.getItem(beginKey)!==null)throw Error('BEGIN_RECOVERY_CLEANUP_FAILED');beginRecord=null;beginRaw=null;departureCoverage=null;}
+    function beginControl(result){
+      const projected=beginPath==='/api/ipqc-c/workflow'&&!result?.control,control=projected?result:result?.control,flow=control?.workflow;
+      if(!control||!Number.isSafeInteger(result.revision)||result.revision<0||result.permissions?.view!==true||access?.view!==true)throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      if(projected){if(!Object.hasOwn(result,'workflow')||!validBeginBasis(result.beginBasis)||(flow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');}
+      else if(!Array.isArray(control.versions))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      if(flow&&(!beginText(flow.generation)||flow.generation===null||!Number.isSafeInteger(flow.revision)||flow.revision<0))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      return control;
+    }
+    function captureBeginBasis(result){const control=beginControl(result);if(beginPath==='/api/ipqc-c/workflow'&&!result.control){if((control.workflow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(result.beginBasis));}const open=control.versions.find(v=>['draft','pending','pending-test'].includes(v.status));const basis={generation:control.workflow?.generation??null,activeVersionId:control.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};if(!validBeginBasis(basis))throw Error('INVALID_BEGIN_BASIS');return JSON.parse(JSON.stringify(basis));}
+    async function finishBegin(record,result){
+      assertBegin(record);if(result?.operationKind!=='begin-v1')throw Error('INVALID_BEGIN_RECEIPT');confirmedReceipt(result,record.operationId);
+      const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertBegin(record);const control=beginControl(fresh),flow=control.workflow;
+      if(!flow||flow.generation===result.receipt.generation&&flow.revision<result.receipt.revision)throw Error('BEGIN_READBACK_BEHIND');
+      const recovered={...fresh,receipt:result.receipt,operationKind:'begin-v1',recoveryKind:'begin-v1',beginBasis:JSON.parse(JSON.stringify(record.basis))};clearBegin(record);return recovered;
+    }
+    function resolveBegin(){
+      if(beginPending||queued||retryPending)return Promise.reject(Error('OPERATION_IN_PROGRESS'));
+      if(beginRead)return beginRead;
+      if(!beginOutstanding())return Promise.resolve(null);
+      const record=beginRecord;
+      const task=(async()=>{assertBegin(record);return finishBegin(record,await request(query('operationId='+encodeURIComponent(record.operationId))));})();beginRead=task;
+      void task.then(()=>{if(beginRead===task)beginRead=null;},()=>{if(beginRead===task)beginRead=null;});return task;
+    }
+    async function beginV1(){
+      assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
+      if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');if(unknown||recoveryInvalid)throw Error('PREVIOUS_OPERATION_UNKNOWN');if(beginPending||queued||retryPending)throw Error('OPERATION_IN_PROGRESS');
+      const feedback=beginFeedback(endpoint);queued++;
+      const task=(async()=>{
+        const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');
+        const basis=captureBeginBasis(fresh);if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
+        const record={version:1,actorId,endpoint:beginPath,operationId:crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;
+        try{sessionStorage.setItem(beginKey,beginRaw);assertBegin(record);}catch(cause){try{if(sessionStorage.getItem(beginKey)===null){beginRecord=null;beginRaw=null;beginInvalid=false;}}catch{beginInvalid=true;}throw Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true,cause});}
+        try{return await finishBegin(record,await request(endpoint,{action:'begin-v1',begin:{operationId:record.operationId,basis:JSON.parse(JSON.stringify(basis))}}));}
+        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}throw error;}
+      })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
+    }
+    if(durableBegin)beginOutstanding();
+    const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&boundedScope==='iqc'&&departureEligible()};clients.add(accountClient);
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
     if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
@@ -394,10 +457,11 @@
     // Navigation-only coverage. It never settles an operation or alters write
     // admission, the account's unknown flag, receipts or native unload warnings.
     const departureAnchors=new WeakMap();let departureCoverage=null;
-    const departureRecord=()=>externalBounded?boundedRecord:unknown;
-    function departureEligible(){return !externalCanvas&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||boundedRecord.action==='apply'))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
-    function departureMarker(){if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
-    function departureCovered(){try{const owner=externalBounded?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
+    const departureRecord=()=>beginRecord|| (externalBounded?boundedRecord:unknown);
+    function departureEligible(){if(beginOutstanding())return !beginInvalid&&!queued&&!beginPending&&!retryPending&&!beginRead&&!recoveryInvalid&&!unknown&&!syncFailures.size&&!!beginRecord&&beginMarker()!==null;return (!externalCanvas||canvasDepartureMarker()!==null)&&!queued&&!beginPending&&!retryPending&&!recoveryInvalid&&!!unknown&&(!externalBounded||!!boundedRecord&&(boundedScope!=='fqc'||['apply','save'].includes(boundedRecord.action)))&&[...syncFailures.values()].every(failure=>failure.command.operationId===unknown.operationId);}
+    function canvasDepartureMarker(){try{const proof=externalCanvas&&unknown&&externalDurableCanvas.departureProof?.(unknown);return typeof proof==='string'&&proof.length?proof:null;}catch{return null;}}
+    function departureMarker(){if(beginRecord)return beginMarker();if(externalCanvas)return canvasDepartureMarker();if(externalBounded)return boundedDiscover().length===1&&sessionStorage.getItem(boundedRecord.key)===boundedSentinel?boundedSentinel:null;const raw=JSON.stringify(packCommand(unknown));return sessionStorage.getItem(key)===raw?raw:null;}
+    function departureCovered(){try{const owner=beginRecord?beginRuntimeOwner:externalStrict?externalOwner:unknownOwner;return access?.view!==false&&departureEligible()&&departureCoverage?.record===departureRecord()&&(owner?.identity===window.ProcessSync?.identity||window.ProcessSync?.isNavigationIdentityCurrent?.(owner?.identity,owner?.epoch)===true)&&Number.isSafeInteger(owner?.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&!window.ProcessSync?.requiresReload&&departureMarker()===departureCoverage.marker&&departureCoverage.check()===true;}catch{return false;}}
     const canvasPrimary=endpoint==='/api/process-authoring/workflow?caseMetadata=1'&&!externalStrict;
     const canvasTarget=externalCanvas&&endpoint==='/api/process-authoring/workflow?caseMetadata=1&channel=canvas-v2';
     const canvasObserving=canvasPrimary||canvasTarget;
@@ -542,13 +606,23 @@
     }
     function boundedRejection(error,command){
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
+      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.localChanges.some(change=>Array.isArray(change?.guards)&&change.guards.some(guard=>Array.isArray(guard?.path)&&JSON.stringify(guard.path)===JSON.stringify(error.details.path)));
+        if(error.status===422&&code==='INVALID_LOCAL_SAVE')return true;
+      }
+      if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells)){
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
+        if(error.status===409&&['FQC_MATRIX_SCOPE_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','AB_EFFECTIVE_CHANGED_RECONFIRM'].includes(code))return true;
+        if(error.status===422&&['INVALID_FQC_LOCAL_SAVE','INVALID_FQC_MATRIX','INVALID_PATCHES','INVALID_COLLECTION','UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED','CATEGORY_REQUIRED','ERROR_PARENT_INVALID','INVALID_FQC_IDENTITY','FQC_IDENTITY_PROTECTED','INVALID_FQC_ITEM','INVALID_EQUIPMENT','INVALID_EQUIPMENT_PAIR','EQUIPMENT_UNAVAILABLE'].includes(code))return true;
+      }
       if(boundedScope==='fqc'&&action==='apply'&&command.moduleAction==='replace-matrix-v1'&&command.input&&command.patches===undefined&&command.guards===undefined){
         if(error.status===409&&code==='FQC_MATRIX_SCOPE_CHANGED'||error.status===422&&code==='INVALID_FQC_MATRIX')return true;
       }
       // Audited pre-CAS failures from versioned-shared-workflow + shared-draft.
       // Receipt GETs, proxy-shaped errors and OPERATION_ID_REUSED are excluded.
-      if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return action==='apply'&&Array.isArray(error.details?.path)&&command.guards?.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
+      if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return (action==='apply'||iqcLocalSave)&&Array.isArray(error.details?.path)&&command.guards?.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
       // These ordinary-editor failures are thrown by the exact scoped adapter
       // before the shared-state CAS. They are not receipt errors or HTTP classes.
       if(action==='apply'&&Array.isArray(command.patches)&&command.patches.length){
@@ -564,13 +638,15 @@
       }
       // IQC/C route-adapter failures below are exact pre-CAS outcomes, never
       // generic 422s. Dynamic IQC diagnostic strings remain conservative unknown.
-      if(action==='apply'&&['iqc','ipqc-c'].includes(boundedScope)){
+      if((action==='apply'||iqcLocalSave)&&['iqc','ipqc-c'].includes(boundedScope)){
         const patches=Array.isArray(command.patches)&&command.patches.length>0,moduleAction=command.moduleAction,input=command.input;
         const moduleIntent=boundedScope==='iqc'?['createError','createItem'].includes(moduleAction):['create-error','create-item','delete-error','delete-item'].includes(moduleAction);
         if(patches&&error.status===409&&code==='ENTITY_REMOVED_OR_AMBIGUOUS')return true;
         if((patches||moduleIntent)&&error.status===422&&code==='EQUIPMENT_UNAVAILABLE')return true;
         if(patches&&error.status===422&&['UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED'].includes(code))return true;
         if(boundedScope==='iqc'){
+          if(iqcLocalSave&&error.status===422&&code==='PHOTO_NOT_UPLOADED')return true;
+          if(iqcLocalSave&&error.status===409&&['PART_REMOVED','ERROR_REMOVED'].includes(code))return true;
           if(patches&&error.status===422&&['INVALID_COLLECTION','SERVER_NUMBER_REQUIRED','SOFT_DELETE_REQUIRED'].includes(code))return true;
           if((patches||moduleIntent)&&error.status===422&&['IQC 草稿格式錯誤','IQC 草稿缺少必要清單','IQC 資料 ID 重複或空白','IQC 原始編號或新增編號重複','既有 IQC 編號不可刪除或重編；請使用停用標記','IQC 資料欄位不完整','類別或供應商名稱不可空白或重複','IQC 停用標記格式錯誤','錯誤代碼找不到所屬零件或越文名稱空白'].includes(code))return true;
           if(error.status===409&&code==='PART_REMOVED'&&moduleAction==='createError'&&boundedText(input?.partCode))return true;
@@ -639,7 +715,7 @@
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body,readOptions) {
-      if(body)assertMutationAdmission();else assertOwner();
+      if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertOwner();
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
@@ -651,7 +727,7 @@
       // IPQC-C create-item needs bounded time for immutable-state I/O. This
       // avoids a premature unknown; it is not a latency optimization or retry.
       const cCreate=body?.command?.action==='apply'&&body.command.moduleAction==='create-item'&&/^\/api\/ipqc-c\/workflow(?:\?|$)/.test(endpoint);
-      const requestDeadline=body?.action==='begin'||cCreate?45000:body?mutationDeadline:45000;
+      const requestDeadline=['begin','begin-v1'].includes(body?.action)||cCreate?45000:body?mutationDeadline:45000;
       let deadlineExpired=false,phase='headers';
       const controller=new AbortController(),timer=setTimeout(()=>{deadlineExpired=true;controller.abort();},requestDeadline);
       try {
@@ -668,6 +744,7 @@
           catch(cause){const error=Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
           boundedProofs.delete(command.operationId);assertMutationAdmission();if(record!==boundedRecord||sessionStorage.getItem(record.key)!==boundedSentinel){const error=Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});externalUnsent.add(error);throw error;}
         }
+        if(body?.action==='begin-v1'){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
         let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
@@ -687,7 +764,7 @@
           if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&typeof value.__liveContent==='string'){const [key,field]=value.__liveContent.split('#');if(!Object.hasOwn(live,key)||field&&(!live[key]||typeof live[key]!=='object'||!Object.hasOwn(live[key],field)))throw Error('INVALID_WORKFLOW_RESPONSE');return JSON.parse(JSON.stringify(field?live[key][field]:live[key]));}
           if(Array.isArray(value))return value.map(expand);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,child])=>[key,expand(child)]));return value;};
           const {liveContent:_live,wireVersion:_version,...body}=result;result=expand(body);}
-        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&body.command.action==='apply'&&!body.command.moduleAction&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
+        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&body.command.action==='apply'&&!body.command.moduleAction&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
         // Real HTTP errors above retain their original status even for stale ownership.
         if(accessGuard&&!body&&(!ownsAccess(accessOwner)||(kind==='permissions'||readOptions?.requireAcceptedAccess===true)&&!acceptedAccess))throw Error('ACCESS_READ_SUPERSEDED');
         // Pair a full owned projection with its state revision. Metadata-only
@@ -705,7 +782,7 @@
         // Classify only this request's deadline abort, never navigation/actor
         // invalidation or a server denial. Preserve the original cause/name.
         if(deadlineExpired&&controller.signal.aborted&&(error===controller.signal.reason||error?.name==='AbortError')){
-          const code=body?.action==='begin'?'BEGIN_RESPONSE_TIMEOUT_UNKNOWN':body?'WORKFLOW_MUTATION_TIMEOUT_UNKNOWN':'WORKFLOW_READ_TIMEOUT';
+          const code=['begin','begin-v1'].includes(body?.action)?'BEGIN_RESPONSE_TIMEOUT_UNKNOWN':body?'WORKFLOW_MUTATION_TIMEOUT_UNKNOWN':'WORKFLOW_READ_TIMEOUT';
           const timeout=Object.assign(Error(code,{cause:error}),{name:error?.name||'AbortError',code,phase,deadlineMs:requestDeadline,outcome:body?'unknown':'unavailable'});const abFailure=abFetchFailures.get(error);if(abFailure)abFetchFailures.set(timeout,abFailure);throw timeout;
         }
         throw error;
@@ -733,6 +810,7 @@
       return result;
     }
     async function resolveUnknown() {
+      if(beginOutstanding())return resolveBegin();
       if(!unknown)return null;
       const command=unknown,owner=unknownOwner,result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action);
       if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(command.operationId);return settled;}
@@ -827,6 +905,7 @@
       reviewCase: id=>request(query(`caseId=${encodeURIComponent(id)}`)),
       previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
       async begin(){
+        if(durableBegin)return beginV1();
         assertMutationAdmission();if(externalCanvas)throw Object.assign(Error('CANVAS_EXTERNAL_APPLY_ONLY'),{notSent:true});
         if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');
         if(beginPending||queued)throw Error('OPERATION_IN_PROGRESS');
@@ -836,14 +915,16 @@
         finally{if(beginPending===operation)beginPending=null;queued--;finishFeedback();}
       },
       resolveUnknown,
-      retryUnknown:async()=>{assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
-      hasUnknown:()=>!!unknown||recoveryInvalid,
-      departureIdle:()=>!queued&&!beginPending&&!retryPending,
+      retryUnknown:async()=>{if(beginOutstanding())return resolveBegin();assertMutationAdmission();if(beginPending||retryPending||queued)throw Error('OPERATION_IN_PROGRESS');if(!unknown)return null;const command=unknown;queued++;const operation=resolveUnknown();retryPending=operation;try{const result=await operation;syncFailures.delete(command.operationId);return result;}finally{if(retryPending===operation)retryPending=null;queued--;}},
+      hasUnknown:()=>!!unknown||recoveryInvalid||beginOutstanding(),
+      hasUnknownBegin:()=>beginOutstanding(),isBeginRuntimeCurrent:beginRuntimeCurrent,
+      retireBeginProjection(raw){if(beginRuntimeCurrent()||queued||unknown||recoveryInvalid||beginInvalid||!beginRecord||raw!==beginRaw)return false;beginRetired=true;return true;},
+      departureIdle:()=>!queued&&!beginPending&&!retryPending&&!beginRead,
       departureUnknown(){
-        assertOwner();if(!departureEligible()||access?.view!==true)return null;const marker=departureMarker();if(marker===null)return null;
-        const record=departureRecord(),anchor=Object.freeze({operationId:record.operationId,generation:record.generation});departureAnchors.set(anchor,{record,marker});return anchor;
+        assertOwner();if(!departureEligible()||(externalCanvas?access?.view===false:access?.view!==true))return null;const marker=departureMarker();if(marker===null)return null;
+        const record=departureRecord(),anchor=Object.freeze({operationId:record.operationId,generation:record.generation,...(beginRecord?{kind:'begin-v1'}:{})});departureAnchors.set(anchor,{record,marker});return anchor;
       },
-      otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
+      otherDeparturePending(peers=[]){const own=new Set([accountClient,...peers.map(peer=>clientAccounts.get(peer))]);return [...clients].some(c=>!own.has(c)&&c.actorId===actorId&&!c.browseWithoutSettlement?.()&&(c.queued()||(c.unknown()||c.failed())&&!c.departureCovered?.()));},
       coverDeparture(anchor,check){
         assertOwner();const pin=departureAnchors.get(anchor);if(!departureEligible()||!pin||pin.record!==departureRecord()||pin.marker!==departureMarker()||typeof check!=='function'||check()!==true)throw Error('DEPARTURE_CONTEXT_CHANGED');
         const coverage={...pin,check};departureCoverage=coverage;
@@ -862,6 +943,12 @@
       hasSyncFailures:()=>!!syncFailures.size,
       hasConfirmedMatrixConflict,canDiscardMatrixConflicts,
       discardMatrixConflicts(rejections){assertOwner();if(!canDiscardMatrixConflicts(rejections))throw Error('CONFIRMED_MATRIX_CONFLICT_REQUIRED');for(const {command}of rejections)syncFailures.delete(command.operationId);return true;},
+      discardRejectedLocalSave(command){
+        assertOwner();
+        const failure=syncFailures.get(command?.operationId),error=failure?.error,proof=error&&boundedResponses.get(error);
+        if(!externalBounded||boundedScope!=='fqc'||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!Array.isArray(command.patches)||!Array.isArray(command.guards)||!Array.isArray(command.input?.matrixCells)||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
+        syncFailures.delete(command.operationId);return true;
+      },
       // Explicit form cancellation can discard only confirmed rejections (or
       // commands never sent), never uncertain requests or unrelated fields.
       discardRejected:paths=>{assertOwner();if(unknown)return false;const allowed=new Set(paths.map(path=>JSON.stringify(path)));
@@ -883,7 +970,7 @@
       isCreateRuntimeCurrent:()=>abCreate&&clientPagehideGeneration===transportPagehideGeneration,
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
-      prepare(generation,action,details={}) {assertOwner();const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
+      prepare(generation,action,details={}) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
       receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command,options) {
@@ -908,10 +995,10 @@
         tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){
           const paths=new Set((command.patches||[]).map(p=>JSON.stringify(p.path)));
           for(const [id,failure]of syncFailures)if(failure.command.patches?.length&&failure.command.patches.every(p=>paths.has(JSON.stringify(p.path))))syncFailures.delete(id);
-        }},error=>{if(action==='apply'&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
+        }},error=>{if((action==='apply'||externalBounded&&boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&(boundedResponses.get(error)?.operationId===command.operationId||unknown?.operationId===command.operationId))&&!(error.message==='PREVIOUS_OPERATION_UNKNOWN'&&unknown?.operationId===command.operationId&&syncFailures.has(command.operationId)))syncFailures.set(command.operationId,{command,error});});return result;
       },
       // Only this client's already queued operations are awaited, never other users.
-      flush:async()=>{assertOwner();if(beginPending)await beginPending;if(retryPending)await retryPending;await tail;if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
+      flush:async()=>{assertOwner();if(beginPending)await beginPending;if(retryPending)await retryPending;await tail;if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');if(syncFailures.size)throw syncFailures.values().next().value.error;if(unknown)throw Error('PREVIOUS_OPERATION_UNKNOWN');},
     };
     if(externalBounded){
       // A stale projection is retired only after a replacement has successfully
@@ -920,6 +1007,7 @@
       if(!recoveryInvalid&&externalCurrent())boundedRetirements.get(boundedPredecessor)?.(new Set(boundedDiscovered.map(record=>record.key)));
     }
     if(canvasPrimary||canvasTarget)canvasAuthorityClients.set(client,{capture:canvasCapture,arm:canvasArm,verify:canvasVerify,accept:canvasAccept,proof:result=>canvasPosts.get(result),consume:result=>canvasPosts.delete(result)});
+    if(durableBegin&&!beginInvalid)beginPredecessor?.retireBeginProjection?.(beginRaw);
     clientAccounts.set(client,accountClient);transports.set(transportKey,client);return client;
   };
   window.renderSharedDraftValidation=({client,flow,after,onLocate,label,language})=>{

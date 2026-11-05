@@ -1,3 +1,27 @@
+## 2026-11-04 — Unknown Begin recovery candidate
+
+Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
+
+## 2026-11-04 — Draft integration review fixes
+
+Reject IQC Submit with unsaved local input before confirmation and again before dispatch; preserve explicit Save and independent permission. Correct canvas acknowledgement of a legitimate reused saved ID while retaining original receipt/readback checks. Normalize server-assigned codes for earlier same-batch IPQC C rows and retain explicitly supplied optional creation reason; preserve exact peer dependency guards across both create/delete orders. [Evidence](../docs/acceptance/draft-save-integration-20261104.md).
+
+## 2026-11-04 — Canvas follow-up integration
+
+Compose process canvas atomic Save004b2ff into the isolated three-module candidate; coordinate stage/line/top-level checked abandonment and versioned assets without clearing unknown durable evidence. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md). No data conversion or deployment.
+
+## 2026-11-04 — Isolated draft-save integration candidate
+
+Compose FQC/IPQC C/IQC without changing main or data; preserve scoped departure/receipt behavior, align cache/preload versions, and repair legacy first-Save compatibility. Canvas is not yet included. [Integration evidence](../docs/acceptance/draft-save-integration-20261104.md).
+
+## 2026-11-04 — FQC single-save candidate
+
+Stage form/matrix edits locally, atomically merge and save once, retain independent submit permission, and opt FQC into silent checked abandonment without clearing unknown receipts. No schema/data migration or publication. [Candidate evidence](../docs/acceptance/fqc-single-save-20261104/README.md).
+
+## 2026-11-04 IQC local editing candidate
+
+Local Apply + atomic shared Save, preserved field conflicts/receipts, IQC-only silent abandonment. Not deployed. [Evidence](../docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 — IPQC-C create-item reliability/performance candidate
 
 Canonical create-item now reads fixed required records and preserves unrelated manifest pointers; commits the C allocation index atomically. Session revocation is checked after storage I/O. Its 45-second wait retains receipt-only unknown protection. Follow-up narrows the mandatory create terminal GET while retaining its authority/version fences; five-round 100/1000-item POST+GET timing includes the no-delay CPU limitation. No schema/data change or live-speed claim. [Verification](../docs/acceptance/ipqc-c-create-20261104.md).

@@ -1,3 +1,4 @@
+const {withoutLocalAtomicSave}=require('./ipqc-c-local-save-source-contract.cjs');
 /* Actual candidate and published handler; synthetic SQLite/R2 only, no network. */
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const {DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto'),{execFileSync}=require('node:child_process');
@@ -37,6 +38,12 @@ function policyParity(actual,prior,who='reader'){
   const allowed=['frank','admin-two'].includes(who);
   for(const op of ['edit','save','submit','delete','withdraw','create'])expected.body.permissions[op]=allowed;
   expected.body.permissions.restore=who==='frank';
+ }
+ // New ordinary workflow GET exposes only the independently seeded Begin basis.
+ // Permissions/history/receipt projections retain their exact historical shapes.
+ if(expected.status===200&&Object.hasOwn(expected.body,'workflow')){
+  const seeded=JSON.parse(values.ipqcCMasterControl),opened=seeded.versions.find(version=>['draft','pending','pending-test'].includes(version.status));
+  expected.body.beginBasis={generation:seeded.workflow?.generation??null,activeVersionId:seeded.activeVersionId??null,openVersionId:opened?.id??null,openVersionStatus:opened?.status??null,openVersionRevision:opened?.revision??null};
  }
  assert.deepEqual(comparable(actual),expected);
 }
@@ -80,7 +87,7 @@ await check('P7 non-permissions GET preserves data/I/O with exact permission DTO
 await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
  const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
  const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(committedBytes),'working tree differs beyond CRLF');
- const createBase=assertCreateMutationContract(committedBytes).normalized;
+ const createBase=assertCreateMutationContract(withoutLocalAtomicSave(committedBytes)).normalized;
  assertComposedPerformanceContract(createBase);
  const explicitBytes=withoutComposedPerformance(createBase);
  assertPermissionReadSourceContract(explicitBytes);

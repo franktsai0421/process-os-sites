@@ -1,4 +1,4 @@
-/* Local canvas journal. Only an explicit current-canvas Sync may publish a batch. */
+/* Local canvas journal. Explicit Save publishes and saves one current-canvas batch. Legacy Sync remains receipt-compatible. */
 (function (host) {
  'use strict';
  const clone=v=>v===undefined?undefined:structuredClone(v);
@@ -68,14 +68,15 @@
    if(!reverse.length)return;for(const c of changes)this.set(w,s,c.id,c.f,c.value);this.track(w,s,reverse);this.changed();
   }
   track(w,s,reverse){(this.history[scope(w,s)]||=[]).push(reverse);this.redoHistory[scope(w,s)]=[];}
-  operation(w,s,next,original){
+  operation(w,s,next,original,guardWhole=false){
    if(!next||typeof next.id!=='string'||next.stageCode!==s)throw Error('OPERATION_STRUCTURE_INVALID');
    const old=this.project(w,s).find(o=>o.id===next.id);
    if(original&&!equal(old,original))throw Error('DEPENDENCY_CHANGED_RECONFIRM');
    if(!old){this.set(w,s,next.id,'$node',next);this.track(w,s,[{id:next.id,f:'$node',value:null}]);this.changed();return;}
    const changed=Object.keys(next).filter(f=>fields.has(f)&&!equal(next[f],old[f]));
    if(!changed.length)return;
-   const baseline=this.remember(w,s,next.id);if(baseline)this.dependencies[nodeKey(w,s,next.id)]={w,s,id:next.id,value:clone(baseline)};
+   // Independent fields of one operation may merge. Deletion retains whole-node guards.
+   const baseline=this.remember(w,s,next.id);if(guardWhole&&baseline)this.dependencies[nodeKey(w,s,next.id)]={w,s,id:next.id,value:clone(baseline)};
    this.edit(w,s,changed.map(f=>({id:next.id,f,value:next[f]})));
   }
   remove(w,s,id){
@@ -148,6 +149,19 @@
   }
   counts(w,s){const moves=new Set(),scopes=new Set(),nodes=new Set();let added=0,removed=0,created=0,deleted=0,fieldsCount=0;for(const e of Object.values(this.entries)){if(w!==undefined&&(e.w!==w||e.s!==s))continue;fieldsCount++;scopes.add(scope(e.w,e.s));nodes.add(nodeKey(e.w,e.s,e.id));if(e.f==='nextIds'){added+=(e.value||[]).filter(id=>!(e.base||[]).includes(id)).length;removed+=(e.base||[]).filter(id=>!(e.value||[]).includes(id)).length;}else if(e.f==='$node'){if(e.value)created++;else deleted++;}else if(e.f==='x'||e.f==='y')moves.add(nodeKey(e.w,e.s,e.id));}return {moves:moves.size,added,removed,created,deleted,nodes:nodes.size,scopes:[...scopes].map(JSON.parse),fields:fieldsCount};}
   discard(w,s){if(this.pending)throw Error('CANVAS_RECEIPT_REQUIRED');for(const map of [this.entries,this.dependencies,this.baselines])for(const k of Object.keys(map)){const parts=JSON.parse(k);if(parts[0]===w&&parts[1]===s)delete map[k];}delete this.history[scope(w,s)];delete this.redoHistory[scope(w,s)];this.changed();}
+  discardUnsent(w,s){
+   const selected=e=>w===undefined||e.w===w&&e.s===s,pending=this.pending?.entries||{};
+   for(const [key,e] of Object.entries(this.entries))if(selected(e))delete this.entries[key];
+   for(const [key,e] of Object.entries(pending))if(selected(e))this.entries[key]=clone(e);
+   const retained=new Set(Object.values(pending).map(e=>nodeKey(e.w,e.s,e.id)));
+   for(const map of [this.dependencies,this.baselines,this.forms])for(const key of Object.keys(map)){
+    const [workspace,stage]=JSON.parse(key);if(w!==undefined&&(workspace!==w||stage!==s))continue;
+    if(map===this.forms||!retained.has(key))delete map[key];
+   }
+   for(const map of [this.history,this.redoHistory])for(const key of Object.keys(map)){const [workspace,stage]=JSON.parse(key);if(w===undefined||workspace===w&&stage===s)delete map[key];}
+   this.changed();
+  }
+  unsent(){return Object.keys(this.forms).length>0||!equal(this.entries,this.pending?.entries||{});}
   record(){return {version:2,entries:this.entries,pending:this.pending,dependencies:this.dependencies,baselines:this.baselines,forms:this.forms};}
  }
  host.CanvasJournal=Journal;
@@ -197,7 +211,7 @@
  }
  function persistNow(){clearTimeout(persistTimer);persistTimer=null;if(!journal||!recovery||!runtimeCurrent())return;const session=recovery;let result;if(journal.pending)result=session.flushPending(journal.pending.reservation);else{const scheduled=session.schedule(()=>localRecord(journal));result=scheduled.ok?session.flush():scheduled;}if(!result.ok&&result.code!=='EMPTY')storageError=t('本機恢復存檔失敗；請勿關閉頁面。','Không lưu được khôi phục; đừng đóng trang.')+' '+result.code;update();return result;}
  function persist(){if(!journal||!recovery||!runtimeCurrent())return;if(journal.pending)recovery.schedulePending(journal.pending.reservation,()=>localRecord(journal));else recovery.schedule(()=>localRecord(journal));update();api()?.updateLocalSaveState?.();}
- function makeClient(legacy=false){return host.createSharedDraftClient({endpoint:'/api/process-authoring/workflow?caseMetadata=1&channel='+(legacy?'canvas':'canvas-v2'),actorId:actor(),headers:()=>host.ProcessSync.platformHeaders(),externalDurableCanvas:{assertDispatch(command){if(!runtimeCurrent()||journal?.pending?.command?.operationId!==command.operationId)throw Error('CANVAS_RECOVERY_CHANGED');return recovery.assertDispatch(command)===true;}}});}
+ function makeClient(legacy=false){let proofSession=null;return host.createSharedDraftClient({endpoint:'/api/process-authoring/workflow?caseMetadata=1&channel='+(legacy?'canvas':'canvas-v2'),actorId:actor(),headers:()=>host.ProcessSync.platformHeaders(),externalDurableCanvas:{departureProof(command){if(runtimeCurrent()&&journal?.pending?.command?.operationId===command.operationId)proofSession=recovery;return proofSession?.departureProof?.(command)??null;},assertDispatch(command){if(!runtimeCurrent()||journal?.pending?.command?.operationId!==command.operationId)throw Error('CANVAS_RECOVERY_CHANGED');return recovery.assertDispatch(command)===true;}}});}
  function accept(flow){
   if(!flow||!actor()||authority().canView!==true){ready=false;update();return;}
   if(!runtimeCurrent()){
@@ -244,16 +258,21 @@
   const close=add('button',t('關閉','Đóng'));close.type='button';close.onclick=()=>dialog.close();dialog.onclose=()=>dialog.remove();document.body.append(dialog);dialog.showModal();
  }
  function ensure(){accept(api()?.flow());if(!ready||!recovery?.status().ready||!journal||!runtimeCurrent())throw Error('CANVAS_LOAD_REQUIRED');return journal;}
- function update(){const el=document.querySelector('.pe-local-status');if(!el)return;const at=current(),stats=journal?journalStats(journal):null,c=stats?.counts,formCount=stats?.formCount||0,here=at&&journal?canvasCounts(journal,at.workspace,at.stage):null;el.textContent=[lastBatch?t(`本批同步成功：${lastBatch} 項變更。`,`Đã đồng bộ ${lastBatch} thay đổi.`):'',note,storageError,tabStorageError,formCount?t(`另有 ${formCount} 個未完成表單，請開啟方塊繼續編輯。`,`Có ${formCount} biểu mẫu chưa hoàn tất; mở bước để tiếp tục.`):'',c?.fields?t(`目前畫布 ${here?.fields||0} 項；其他畫布 ${c.fields-(here?.fields||0)} 項尚未同步。只同步目前畫布；儲存不會代為同步。`,`Sơ đồ hiện tại: ${here?.fields||0}; sơ đồ khác: ${c.fields-(here?.fields||0)} thay đổi chưa đồng bộ. Lưu không tự đồng bộ.`):t('畫布已同步；手動儲存草稿是另一個步驟。','Sơ đồ đã đồng bộ; lưu bản nháp là bước riêng.')].filter(Boolean).join(' · ');el.title=c?.scopes.map(([w,s])=>w+' / '+s).join('\n')||'';const sync=document.querySelector('[data-pe="sync"]');if(sync){sync.disabled=!!departureLease||!!running||(!journal?.pending&&!api()?.canEditCanvas())||!ready;sync.textContent=running?t('同步中…','Đang đồng bộ…'):journal?.pending?t('查原批次收據','Kiểm tra biên nhận lô cũ'):t('同步目前畫布','Đồng bộ sơ đồ hiện tại');sync.title=!api()?.canEditCanvas()?t('待審或權限鎖定，保留本機內容。','Chờ duyệt hoặc thiếu quyền; giữ nội dung cục bộ.') : '';}}
+ function update(){const el=document.querySelector('.pe-local-status');if(!el)return;const at=current(),stats=journal?journalStats(journal):null,c=stats?.counts,formCount=stats?.formCount||0,here=at&&journal?canvasCounts(journal,at.workspace,at.stage):null;el.textContent=[lastBatch?t(`本批寫入成功：${lastBatch} 項變更。`,`Đã lưu ${lastBatch} thay đổi.`):'',note,storageError,tabStorageError,formCount?t(`另有 ${formCount} 個未完成表單，請開啟方塊繼續編輯。`,`Có ${formCount} biểu mẫu chưa hoàn tất; mở bước để tiếp tục.`):'',c?.fields?t(`目前畫布 ${here?.fields||0} 項；其他畫布 ${c.fields-(here?.fields||0)} 項尚未存取。存取草稿一次保存目前畫布變更與整份製程。`,`Sơ đồ hiện tại: ${here?.fields||0}; sơ đồ khác: ${c.fields-(here?.fields||0)} thay đổi chưa lưu. Lưu bản nháp ghi sơ đồ hiện tại và lưu toàn bộ quy trình.`):t('本機沒有未存變更；存取草稿保存整份製程。','Không có thay đổi cục bộ chưa lưu; lưu bản nháp lưu toàn bộ quy trình.')].filter(Boolean).join(' · ');el.title=c?.scopes.map(([w,s])=>w+' / '+s).join('\n')||'';const sync=document.querySelector('[data-pe="sync"]');if(sync){sync.disabled=!!departureLease||!!running||(!journal?.pending&&!api()?.canEditCanvas())||!ready;sync.textContent=running?t('同步中…','Đang đồng bộ…'):journal?.pending?t('查原批次收據','Kiểm tra biên nhận lô cũ'):t('同步目前畫布','Đồng bộ sơ đồ hiện tại');sync.title=!api()?.canEditCanvas()?t('待審或權限鎖定，保留本機內容。','Chờ duyệt hoặc thiếu quyền; giữ nội dung cục bộ.') : '';}}
  function localChange(fn){admit();if(!(api()?.canEditLocalCanvas?.()??api()?.canEditCanvas()))throw Error('PENDING_OR_PERMISSION_LOCKED');const start=performance.now();fn(ensure());recoveryRevision++;lastBatch=0;persist();timing('local-update',start);}
  const localRecord=value=>({...value.record(),pending:null});
+ const isCanvasSave=batch=>batch?.command?.moduleAction==='save-canvas-v1';
  const referenceOf=batch=>({operationId:batch.command.operationId,generation:batch.command.generation,workspace:batch.workspace,stage:batch.stage,channel:batch.command.source?.startsWith('canvas-v2:')?'canvas-v2':'canvas'});
  const sameReference=(a,b)=>a?.operationId===b?.operationId&&a?.generation===b?.generation&&a?.workspace===b?.workspace&&a?.stage===b?.stage&&a?.channel===b?.channel;
- function reconcileReceiptSnapshot({payload,sent},flow){const candidate=new Journal(flow.working,payload);if(candidate.pending||!sent||!sent.workspace||!sent.stage||!Object.keys(sent.entries||{}).length||Object.values(sent.entries||{}).some(entry=>entry.w!==sent.workspace||entry.s!==sent.stage))throw Error('CANVAS_RECOVERY_SNAPSHOT_INVALID');new Journal(flow.working,{version:2,entries:sent.entries,dependencies:sent.dependencies,baselines:{},forms:{},pending:null});candidate.acknowledge(sent,flow.working);return candidate.record();}
+ function reconcileReceiptSnapshot({payload,sent},flow){const candidate=new Journal(flow.working,payload);if(candidate.pending||!sent||!sent.workspace||!sent.stage||!sent.entries||Object.values(sent.entries||{}).some(entry=>entry.w!==sent.workspace||entry.s!==sent.stage))throw Error('CANVAS_RECOVERY_SNAPSHOT_INVALID');new Journal(flow.working,{version:2,entries:sent.entries,dependencies:sent.dependencies,baselines:{},forms:{},pending:null});candidate.acknowledge(sent,flow.working);return candidate.record();}
  function advanceDepartureRuntime(previous,next,stamp,admitted){const pin=departureRuntimePins.get(departureLease);if(!pin||pin!==admitted||pin.session!==previous||pin.runtimeEpoch!==stamp.runtimeEpoch||!owns(pin.owner)||!owns(stamp)||previous.status().runtimeEpoch!==stamp.runtimeEpoch||!next.status().ready)return;pin.session=next;pin.runtimeEpoch=next.status().runtimeEpoch;}
  function requirePendingOwner(session,j,batch,stamp){if(recovery!==session||journal!==j||j.pending!==batch||!runtimeCurrent()||!session.status().ready||!ownsRuntime(stamp,session)||api()?.flow()?.generation!==batch.command.generation||authority().canView!==true)throw Error('CANVAS_RECOVERY_CHANGED');}
  async function finishCurrentReceipt(session,j,batch,stamp,receipt,fresh){
   requirePendingOwner(session,j,batch,stamp);const freshFlow=fresh.control?.workflow;if(!freshFlow?.working||freshFlow.generation!==batch.command.generation||!Number.isSafeInteger(freshFlow.revision)||freshFlow.revision<api().flow().revision)throw Error('CANVAS_RECOVERY_READBACK_REQUIRED');
+  // Returning working content to an existing saved snapshot changes the draft
+  // revision but legitimately reuses savedId. Verify the authoritative result,
+  // not whether the server allocated another snapshot identifier.
+  if(isCanvasSave(batch)&&(!receipt?.savedId||freshFlow.revision===receipt.revision&&(freshFlow.saved?.id!==receipt.savedId||!equal(freshFlow.saved?.content,freshFlow.working))))throw Error('CANVAS_SAVE_ACK_MISMATCH');
   const queued=session.schedulePending(batch.reservation,()=>localRecord(j));if(!queued.ok)throw recoveryError(queued);const saved=session.flushPending(batch.reservation);if(!saved.ok)throw recoveryError(saved);
   const selected=session.preview(session.key);if(!selected.ok||!['unknown','resolved'].includes(selected.kind)||!sameReference(selected.reference,referenceOf(batch)))throw Error('CANVAS_RECEIPT_REQUIRED');
   // GET recovery and original-POST ACK have distinct private admissions.
@@ -279,7 +298,7 @@
   const own=key===session.key&&batch&&sameReference(selected.reference,referenceOf(batch));if(batch&&!own)throw Error('CANVAS_RECEIPT_REQUIRED');
   if(own&&retryKnownRejection(session,j,batch,stamp))return true;
   const ownedClient=own?client:makeClient(selected.reference.channel==='canvas');
-  const result=await (own&&api()?.ownedLedger?api().ownedLedger.resolve(ownedClient,'receipt',[selected.reference.operationId,selected.reference.generation]):ownedClient.receipt(selected.reference.operationId,selected.reference.generation));
+  const result=await (own&&!isCanvasSave(batch)&&!isCanvasSave(batch)&&api()?.ownedLedger?api().ownedLedger.resolve(ownedClient,'receipt',[selected.reference.operationId,selected.reference.generation]):ownedClient.receipt(selected.reference.operationId,selected.reference.generation));
   if(own)requirePendingOwner(session,j,batch,stamp);else requireRecoveryCurrent(session,stamp,revision);
   const fresh=await api().readCanvasRecovery(pin);
   if(own)return await finishCurrentReceipt(session,j,batch,stamp,result.receipt,fresh);
@@ -294,14 +313,15 @@
   const finalized=session.finalizeDisposition(selected.token);if(!finalized.ok)throw recoveryError(finalized);requireRecoveryCurrent(session,stamp,revision);
   if(own){j.pending=null;client.discardRejected?.(batch.patches.map(p=>p.path));persistNow();api()?.updateLocalSaveState?.();}note=t('已完成原結果的本機存檔；未送出新同步，歷史副本仍須明確恢復。','Đã hoàn tất lưu kết quả cục bộ; không gửi đồng bộ mới, bản cũ vẫn cần khôi phục rõ ràng.');update();return true;
  }
- async function sync(w,s){
+ async function sync(w,s,save=false){
   admit();if(running)return running;const j=ensure(),session=recovery,stamp=captureRecoveryOwner(),ownedClient=client,pin=api().captureCanvasRecovery();
   if(!j.pending&&!api().canEditCanvas())throw Error('PENDING_OR_PERMISSION_LOCKED');const at=current();let batch;
   try{batch=j.pending||j.freeze(w??at?.workspace,s??at?.stage);}catch(error){note=t('整批保留；請核對共享內容：','Giữ nguyên cả lô; đối chiếu nội dung chung: ')+(error.details?.conflicts||[]).map(c=>c.stage+' / '+c.id+' / '+c.field).join('、');update();throw error;}
   if(j.pending&&retryKnownRejection(session,j,batch,stamp))return api().flow();
-  if(!batch.patches.length)return api().flow();
+  if(!batch.patches.length&&!save&&!j.pending)return api().flow();
   if(!batch.command){
-   batch.command=ownedClient.prepare(api().flow().generation,'apply',{patches:batch.patches,guards:batch.guards,source:'canvas-v2:'+JSON.stringify([batch.workspace,batch.stage])});
+   batch.baseSavedId=api().flow()?.saved?.id||null;
+   batch.command=ownedClient.prepare(api().flow().generation,'apply',{...(save?{moduleAction:'save-canvas-v1'}:{}),patches:batch.patches,guards:batch.guards,source:'canvas-v2:'+JSON.stringify([batch.workspace,batch.stage])});
    const prepared=session.prepareWrite({reference:referenceOf(batch),sent:{workspace:batch.workspace,stage:batch.stage,entries:batch.entries,dependencies:batch.dependencies},readPayload:()=>localRecord(j)});batch.reservation=prepared.reservation;
    if(!prepared.ok||!prepared.durable){const cancelled=prepared.reservation&&session.cancelPrepared(prepared.reservation);if(!cancelled?.ok&&prepared.reservation){batch.sent=true;j.sent(batch);}storageError=t('本機恢復存檔未確認；未送出同步，請保留此頁。','Chưa xác nhận lưu khôi phục; chưa gửi đồng bộ, hãy giữ trang.')+' '+prepared.code;update();throw Error('RECOVERY_STORAGE_UNAVAILABLE');}
    j.sent(batch);
@@ -309,9 +329,9 @@
   running=(async()=>{
    const started=performance.now();
    try{
-    let result,postTicket=null;if(batch.sent){result=await (api()?.ownedLedger?api().ownedLedger.resolve(ownedClient,'receipt',[batch.command.operationId,batch.command.generation]):ownedClient.receipt(batch.command.operationId,batch.command.generation));}
-    else{postTicket=api().prepareCanvasPost?.(pin,ownedClient,batch.command)||null;batch.sent=true;result=await session.dispatchPrepared(batch.reservation,batch.command,command=>api()?.ownedLedger?api().ownedLedger.sendPrepared(ownedClient,command,()=>api().flow()):ownedClient.sendPrepared(command));}
-    requirePendingOwner(session,j,batch,stamp);let fresh=postTicket&&api().previewCanvasPost?.(postTicket,result);if(fresh)postReadbacks.add(fresh);else fresh=await api().readCanvasRecovery(pin);const confirmed=await finishCurrentReceipt(session,j,batch,stamp,result.receipt,fresh);timing('canvas-api-including-checkpoint',started);return confirmed;
+    let result,postTicket=null;if(batch.sent){result=await (!isCanvasSave(batch)&&api()?.ownedLedger?api().ownedLedger.resolve(ownedClient,'receipt',[batch.command.operationId,batch.command.generation]):ownedClient.receipt(batch.command.operationId,batch.command.generation));}
+    else{postTicket=api().prepareCanvasPost?.(pin,ownedClient,batch.command)||null;batch.sent=true;result=await session.dispatchPrepared(batch.reservation,batch.command,command=>!isCanvasSave(batch)&&api()?.ownedLedger?api().ownedLedger.sendPrepared(ownedClient,command,()=>api().flow()):ownedClient.sendPrepared(command));}
+    requirePendingOwner(session,j,batch,stamp);let fresh=postTicket&&api().previewCanvasPost?.(postTicket,result);if(fresh)postReadbacks.add(fresh);else fresh=await api().readCanvasRecovery(pin);const confirmed=await finishCurrentReceipt(session,j,batch,stamp,result.receipt,fresh);timing('canvas-api-including-checkpoint',started);return {...confirmed,canvasSaveConfirmed:isCanvasSave(batch)};
    }catch(error){
     if(recovery===session&&journal===j&&j.pending===batch&&runtimeCurrent()&&owns(stamp)){
      batch.lastError??=error;const cancelled=session.wasRejected(batch.reservation,error)||session.cancelPrepared(batch.reservation).ok;
@@ -322,9 +342,33 @@
    }finally{running=null;update();}
   })();update();return running;
  }
+ function discardUnsent(w,s,lease,afterPersist){
+  if(lease)checkLease(lease);else admit();
+  const j=ensure(),session=recovery,batch=j.pending;
+  if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');
+  if(batch&&!session.departureProof?.(batch.command))throw Error('CANVAS_RECEIPT_REQUIRED');
+  const previous={entries:clone(j.entries),dependencies:clone(j.dependencies),baselines:clone(j.baselines),forms:clone(j.forms),history:clone(j.history),redoHistory:clone(j.redoHistory)};
+  j.discardUnsent(w,s);recoveryRevision++;
+  if(batch){const scheduled=session.schedulePending(batch.reservation,()=>localRecord(j));if(!scheduled.ok){Object.assign(j,previous);j.changed();throw recoveryError(scheduled);}}
+  const saved=persistNow();
+  if(!saved?.ok&&saved?.code!=='EMPTY'){Object.assign(j,previous);j.changed();if(batch)session.schedulePending(batch.reservation,()=>localRecord(j));throw recoveryError(saved||{code:'RECOVERY_UNAVAILABLE'});}
+  if(batch&&!session.departureProof?.(batch.command)){Object.assign(j,previous);j.changed();throw Error('CANVAS_RECEIPT_REQUIRED');}
+  if(afterPersist)try{afterPersist();}catch(error){
+   Object.assign(j,previous);j.changed();recoveryRevision++;
+   if(batch)session.schedulePending(batch.reservation,()=>localRecord(j));
+   const rollback=persistNow();if(!rollback?.ok&&rollback?.code!=='EMPTY')storageError=t('本機內容仍保留；恢復存檔失敗，請勿關閉頁面。','Nội dung còn trong bộ nhớ; không đóng trang.');
+   throw error;
+  }
+  note='';lastBatch=0;api()?.updateLocalSaveState?.();return true;
+ }
  host.ProcessCanvasLocal={
+  departureTransports:()=>client?[client]:[],
+  departureReady(lease){try{checkLease(lease);return !running&&!journal?.unsent()&&(!journal?.pending||!!recovery?.departureProof?.(journal.pending.command));}catch{return false;}},
+  discardUnsentForDeparture(flow,lease,afterPersist){checkLease(lease);if(flow!==api()?.flow())throw Error('CANVAS_STATE_CHANGED');if(lease.emptyBegin){afterPersist?.();return;}return discardUnsent(undefined,undefined,lease,afterPersist);},
+  discardUnsent:(w,s)=>discardUnsent(w,s),
+  resetForDeparture(lease){if(!this.departureReady(lease))throw Error('CANVAS_STATE_CHANGED');recovery?.close();recovery=null;recoveryStamp=null;projectionBase=null;journal=null;identity=null;ready=false;},
   recoveryReady:()=>recovery?.ready,previewRecovery,restoreRecovery,discardRecovery,resolveRecovery,finalizeRecovery,openRecovery,recoveryStatus:()=>recovery?.status(),
-  lockForDeparture(){if(departureLease)throw Error('CANVAS_DEPARTURE_LOCKED');ensure();const stamp=captureRecoveryOwner(),id=identity,pin={owner:stamp,session:recovery,runtimeEpoch:stamp.runtimeEpoch};let held=true;const lease={current:()=>held&&identity===id&&owns(stamp)&&recovery===pin.session&&pin.session.status().ready===true&&pin.runtimeEpoch===pin.session.status().runtimeEpoch,release(){held=false;if(departureLease===lease)departureLease=null;update();}};departureRuntimePins.set(lease,pin);departureLease=lease;update();return lease;},
+  lockForDeparture(beginCurrent){if(departureLease)throw Error('CANVAS_DEPARTURE_LOCKED');if(!api()?.flow()&&!journal&&!recovery&&!running&&typeof beginCurrent==='function'&&beginCurrent()){const stamp=owner();let held=true;const lease={emptyBegin:true,current:()=>held&&owns(stamp)&&!api()?.flow()&&!journal&&!recovery&&!running&&beginCurrent(),release(){held=false;if(departureLease===lease)departureLease=null;update();}};departureLease=lease;return lease;}ensure();const stamp=captureRecoveryOwner(),id=identity,pin={owner:stamp,session:recovery,runtimeEpoch:stamp.runtimeEpoch};let held=true;const lease={current:()=>held&&identity===id&&owns(stamp)&&recovery===pin.session&&pin.session.status().ready===true&&pin.runtimeEpoch===pin.session.status().runtimeEpoch,release(){held=false;if(departureLease===lease)departureLease=null;update();}};departureRuntimePins.set(lease,pin);departureLease=lease;update();return lease;},
   async settleForDeparture(lease){checkLease(lease);if(running)await running;checkLease(lease);await client.flush();checkLease(lease);if(journal?.pending)throw Error('CANVAS_RECEIPT_REQUIRED');persistNow();},
   async saveForDeparture(lease){checkLease(lease);if(this.dirty())throw Error('CANVAS_UNSYNCHRONIZED');return {};},
   async discardForDeparture(flow,lease){checkLease(lease);if(running||journal?.pending||flow!==api()?.flow()||JSON.stringify([actor(),host.ProcessSync?.identityGeneration?.(),flow?.generation])!==identity)throw Error('CANVAS_STATE_CHANGED');const previous={projectionBase,journal,note,lastBatch};projectionBase=flow.working;journal=new Journal(flow.working);note='';lastBatch=0;const saved=persistNow();if(!saved?.ok&&saved?.code!=='EMPTY'){projectionBase=previous.projectionBase;journal=previous.journal;note=previous.note;lastBatch=previous.lastBatch;throw recoveryError(saved||{code:'RECOVERY_UNAVAILABLE'});}},
@@ -334,13 +378,13 @@
   form(w,s,id){return runtimeCurrent()&&authority().canView===true?journal?.forms[nodeKey(w,s,id)]:undefined;},
   forms:()=>runtimeCurrent()&&authority().canView===true?journal?.forms||{}:{},
   clearForm(w,s,id){if(journal&&runtimeCurrent()&&authority().canView===true){delete journal.forms[nodeKey(w,s,id)];recoveryRevision++;persist();}},
-  resetClean(){if(running||journal?.counts().fields||journal?.pending||Object.keys(journal?.forms||{}).length)throw Error('CANVAS_UNSYNCHRONIZED');recovery?.close();recovery=null;recoveryStamp=null;projectionBase=null;journal=null;identity=null;ready=false;},accept,update,isReady:()=>ready&&tabReady&&recovery?.status().ready===true,edit:(w,s,changes)=>localChange(j=>j.edit(w,s,changes)),operation:(w,s,next,original)=>localChange(j=>j.operation(w,s,next,original)),remove:(w,s,id)=>localChange(j=>j.remove(w,s,id)),sync,timings:()=>clone(events),project:(w,s,input)=>{try{return ensure().project(w,s,projectionBase?rows(projectionBase,w,s):input);}catch{return input;}},dirty:()=>!!note&&!ready||journalDirty(journal),counts:()=>journal?{...journalStats(journal).counts,scopes:journalStats(journal).counts.scopes.map(pair=>[...pair])}:undefined,pending:()=>!!journal?.pending,
+  resetClean(){if(running||journal?.counts().fields||journal?.pending||Object.keys(journal?.forms||{}).length)throw Error('CANVAS_UNSYNCHRONIZED');recovery?.close();recovery=null;recoveryStamp=null;projectionBase=null;journal=null;identity=null;ready=false;},accept,update,isReady:()=>ready&&tabReady&&recovery?.status().ready===true,edit:(w,s,changes)=>localChange(j=>j.edit(w,s,changes)),operation:(w,s,next,original,guardWhole=false)=>localChange(j=>j.operation(w,s,next,original,guardWhole)),remove:(w,s,id)=>localChange(j=>j.remove(w,s,id)),sync,timings:()=>clone(events),project:(w,s,input)=>{try{return ensure().project(w,s,projectionBase?rows(projectionBase,w,s):input);}catch{return input;}},dirty:()=>!!note&&!ready||journalDirty(journal),counts:()=>journal?{...journalStats(journal).counts,scopes:journalStats(journal).counts.scopes.map(pair=>[...pair])}:undefined,pending:()=>!!journal?.pending,
   added(w,s,id,to){const e=journal?.entries[journal.token(w,s,id,'nextIds')];return !!e&&(e.value||[]).includes(to)&&!(e.base||[]).includes(to);},
   travel(w,s,redo){localChange(j=>j.travel(w,s,redo));},flushRecovery:persistNow,
   async discard(w,s){if(running||journal?.pending)throw Error('CANVAS_RECEIPT_REQUIRED');const at=current();w??=at?.workspace;s??=at?.stage;if(!w||!s)throw Error('CANVAS_SCOPE_REQUIRED');const stamp=captureRecoveryOwner(),session=recovery,revision=recoveryRevision;if(!await confirmCanvas(t('放棄目前畫布尚未同步的本機變更？其他畫布保留。','Bỏ thay đổi cục bộ chưa đồng bộ của sơ đồ này? Giữ các sơ đồ khác.')))return;requireRecoveryCurrent(session,stamp,revision);ensure().discard(w,s);note='';persistNow();api()?.updateLocalSaveState?.();},
-  async beforeSave(){admit();ensure();if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');if(this.dirty())throw Object.assign(Error('CANVAS_UNSYNCHRONIZED'),{details:{scopes:this.counts()?.scopes}});return {};}
+  async beforeSave(){admit();const j=ensure();if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');if(Object.keys(j.forms).length)throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(api().ownedLedger?.hasRevertRecovery?.())throw Error('OWNED_LEDGER_REVERT_UNCONFIRMED');if(api().canSaveCanvas?.()===false)throw Error('PENDING_OR_PERMISSION_LOCKED');const result=await sync(undefined,undefined,true);return {canvasHandled:true,canvasSaved:result?.canvasSaveConfirmed===true};}
  };
  // oxlint-disable-next-line typescript/no-deprecated -- Browser exit prompt for unsynchronized local work.
- host.addEventListener('beforeunload',e=>{persistNow();if(host.ProcessCanvasLocal.dirty()){e.preventDefault();e.returnValue='畫布尚未同步 / Sơ đồ chưa đồng bộ';}});
+ host.addEventListener('beforeunload',e=>{persistNow();if(host.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;if(host.ProcessCanvasLocal.dirty()){e.preventDefault();e.returnValue='畫布尚未同步 / Sơ đồ chưa đồng bộ';}});
  host.addEventListener('pagehide',()=>{persistNow();ready=false;tabReady=false;});
 })(typeof window==='undefined'?globalThis:window);

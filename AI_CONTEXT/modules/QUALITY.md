@@ -1,3 +1,15 @@
+## 2026-11-04 combined candidate
+
+FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. IPQC C maps server-assigned codes of earlier same-batch created rows before dependency comparison and preserves explicitly supplied optional creation reasons; existing/user-field guards remain exact. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).
+
+## 2026-11-04 FQC single-save candidate
+
+FQC forms now stage in page memory; one save-local-v1 sends field guards and matrix cells to one atomic saved transition. Poll/global refresh cannot adopt over local changes. Edit includes Save only in FQC; submit remains separate. Navigation opts into checked silent local abandonment, preserving unknown receipt markers. No existing working/saved/history migration. [Evidence, compatibility and remaining gates](../../docs/acceptance/fqc-single-save-20261104/README.md).
+
+## 2026-11-04 IQC candidate
+
+IQC local forms now accumulate in document memory; `save-local-v1` performs guarded changes and server numbering before a single persisted saved result. Photos remain staged uploads. IQC edit also permits Save; submit stays independent. Submit must reject unsaved local snapshots before any confirmation/write and recheck after asynchronous confirmation, retaining the local edits until explicit Save. [Boundaries and verification](../../docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 IPQC-C create-item candidate
 
 `ipqc-c-create-record-mutation.ts` selects the fixed auth/C/master/equipment closure for canonical records create-item; the dedicated encoder changes only C plus its monotonic allocation index. Legacy/noncanonical states use full reading. CAS, create/edit/view, photo/equipment validation and receipt deduplication remain; session revocation is checked again after immutable encoding. The client gives only C create-item 45 seconds, retaining unknown on timeout/404. Unrelated record faults are now isolated, with opaque pointers preserved. [Tests and limits](../../docs/acceptance/ipqc-c-create-20261104.md). No schema or data change. The runtime create-item terminal GET now opts into a fixed auth/C read via `readback=ipqc-c-create-v1`; it retains fresh authorization and the full workflow response, while combined receipt/history/restore selectors keep the original path. Controlled POST+GET timing and its CPU/I/O tradeoff are in the linked evidence.

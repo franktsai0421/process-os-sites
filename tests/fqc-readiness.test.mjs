@@ -50,7 +50,7 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }) {
     clearTimeout(id) { activeTimers.delete(id); },
     setTimeout(callback, delay) { assert.equal(typeof callback,'function');assert(Number.isFinite(delay)&&delay>=0);const id=++timerId,record={callback,due:clock+delay};activeTimers.set(id,record);timers.push(()=>{if(!activeTimers.has(id))return;activeTimers.delete(id);clock=Math.max(clock,record.due);return record.callback();});results.polls++;return id; },
     document: { visibilityState: 'visible', querySelector: () => null, activeElement: null },
-    ui: { saving: false }, library: () => shared.control,
+    ui: { saving: false }, localDirty:()=>false, sharedClient:{hasUnknown:()=>false}, library: () => shared.control,
     window: { ProcessSync: sync, addEventListener: (name, callback) => { events[name] = callback; }, createSharedDraftClient: () => ({ read: () => reads.master.request() }) },
     identity: () => sync.identity, transport: () => client,
     fetch: async (url, options) => {

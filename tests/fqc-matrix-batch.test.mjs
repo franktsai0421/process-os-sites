@@ -22,35 +22,58 @@ async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generat
  const flow={generation,revision:3,pendingId:null,working:{errors:[],items:[clone(item)]},saved:{id:'save1',at:'2026-10-30T00:00:00Z',actor:{name:'Synthetic editor'},content:{errors:[],items:[clone(item)]}}};
  const version={id:'draft1',status:'draft',snapshot:clone(flow.working)},library={workflow:flow,versions:[version]};
  let actor={id:actorId},epoch=initialEpoch,poll=null,unknown=false,sequence=0,deferred=null,receipt=null,confirmAction=async()=> 'reason';
+ let receiptReady;const receiptStarted=new Promise(resolve=>receiptReady=resolve);
  let remoteRevision=3;const remote=clone(flow.working),events=new Map();
  const stats={posts:0,reads:0,stateReads:0,writes:0,renders:0,adopts:0,commands:[],notices:[],statuses:[],syncStatuses:[]};
  const store={get length(){return records.size;},key:i=>[...records.keys()][i]??null,getItem:key=>records.get(key)??null,setItem:(key,value)=>{stats.writes++;if(writeFail&&key.startsWith('process-local-draft-'))throw Object.assign(Error('synthetic quota'),{name:'QuotaExceededError'});records.set(key,String(value));},removeItem:key=>records.delete(key)};
+ let remoteSaved=clone(flow.saved);
  const client={permission:()=>true,rejectionCapability:()=>null,isConfirmedRejection:()=>false,hasUnknown:()=>unknown,canPoll:()=>true,flush:async()=>{},prepareRecovery:(generation,detail)=>({...detail,generation,action:'apply',operationId:'operation-'+(++sequence)}),
-  sendPrepared:async(cmd,options)=>{assert.equal(options.assertDispatch(cmd),true);stats.posts++;stats.commands.push(clone(cmd));assert.equal(cmd.moduleAction,'replace-matrix-v1');for(const selection of cmd.input.items){const row=remote.items.find(x=>x.id===selection.id);row.productCodes=clone(selection.productCodes);for(const key of ['productRefs','products']){if(key==='products'&&row.products===undefined)continue;const old=new Map((row[key]||[]).map(ref=>[ref.code,ref]));row[key]=selection.productCodes.map(code=>old.get(code)||{code,kind:'product',name:products.find(p=>p.code===code)?.name||'',specification:products.find(p=>p.code===code)?.specification||''});}}remoteRevision++;
-   receipt={operationId:cmd.operationId,generation:cmd.generation,revision:remoteRevision,savedId:'save1',caseId:null,unchanged:false};
-   if(mode==='wait'){unknown=true;return new Promise(resolve=>{deferred=()=>{unknown=false;resolve({receipt});};});}if(mode==='unknown'){unknown=true;throw Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY');}return{receipt};},
+  prepare:(generation,action,detail)=>({...detail,generation,action,operationId:'operation-'+(++sequence)}),
+  sendPrepared:async(cmd,options)=>{if(options)assert.equal(options.assertDispatch(cmd),true);stats.posts++;stats.commands.push(clone(cmd));
+   if(cmd.moduleAction==='save-local-v1'){
+    assert.equal(cmd.action,'save');
+    for(const cell of cmd.input.matrixCells){const row=remote.items.find(x=>x.id===cell.itemId);const codes=new Set(row.productCodes);if(cell.value)codes.add(cell.productCode);else codes.delete(cell.productCode);row.productCodes=[...codes];}
+   }else{assert.equal(cmd.moduleAction,'replace-matrix-v1');for(const selection of cmd.input.items)remote.items.find(x=>x.id===selection.id).productCodes=clone(selection.productCodes);}
+   for(const row of remote.items)for(const key of ['productRefs','products']){if(key==='products'&&row.products===undefined)continue;const old=new Map((row[key]||[]).map(ref=>[ref.code,ref]));row[key]=row.productCodes.map(code=>old.get(code)||{code,kind:'product',name:products.find(p=>p.code===code)?.name||'',specification:products.find(p=>p.code===code)?.specification||''});}remoteRevision++;
+   if(cmd.action==='save')remoteSaved={...remoteSaved,id:'saved-'+remoteRevision,content:clone(remote)};
+   receipt={operationId:cmd.operationId,generation:cmd.generation,revision:remoteRevision,savedId:remoteSaved.id,caseId:null,unchanged:false};
+   if(mode==='wait'){unknown=true;return new Promise(resolve=>{deferred=()=>{unknown=false;resolve({receipt});};});}if(mode==='unknown'){unknown=true;throw Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY');}return cmd.action==='save'?{...await client.read(),receipt}:{receipt};},
   resolveUnknown:async()=>{stats.reads++;if(mode==='unknown')throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});unknown=false;return{receipt};},
-  receipt:async(id,gen)=>{stats.reads++;if(mode==='unknown')throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});if(receipt?.operationId!==id||receipt?.generation!==gen)throw Error('RECEIPT_NOT_FOUND');unknown=false;return{receipt};},
+  receipt:async(id,gen)=>{stats.reads++;if(mode==='wait'){unknown=true;return new Promise(resolve=>{deferred=()=>{unknown=false;resolve({receipt});};receiptReady();});}if(mode==='unknown')throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});if(receipt?.operationId!==id||receipt?.generation!==gen)throw Error('RECEIPT_NOT_FOUND');unknown=false;return{receipt};},
   command:async (generation,action,detail)=>{stats.posts++;stats.commands.push({generation,action,...detail});return{};},
-  read:async()=>{stats.stateReads++;return{permissions:{view:client.permission('view')===true,edit:client.permission('edit')===true},control:{...clone(library),workflow:{...library.workflow,revision:remoteRevision,working:clone(remote)},versions:library.versions.map(v=>({...v,snapshot:clone(remote)}))}};}};
- const box={console,Map,Set,JSON,Error,Object,Array,Number,String,TextEncoder,Uint8Array,setTimeout,clearTimeout,sessionStorage:store,localStorage:store,CustomEvent:class{constructor(type){this.type=type;}},document,ui:{saving:false},hostElement:area,sharedClient:client,activeSharedAction:null,pendingCommandFeedback:null,
+  read:async()=>{stats.stateReads++;return{permissions:{view:client.permission('view')===true,edit:client.permission('edit')===true},control:{...clone(library),workflow:{...library.workflow,revision:remoteRevision,saved:clone(remoteSaved),working:clone(remote)},versions:library.versions.map(v=>({...v,snapshot:clone(remote)}))}};}};
+ const box={console,Map,Set,JSON,Error,Object,Array,Number,String,TextEncoder,Uint8Array,setTimeout,clearTimeout,sessionStorage:store,localStorage:store,CustomEvent:class{constructor(type){this.type=type;}},document,ui:{saving:false},hostElement:area,sharedClient:client,activeSharedAction:null,pendingCommandFeedback:null,syncBase:clone(flow.working),syncGeneration:generation,beginGenerationConflict:null,localRejection:null,sharedFields:{errors:['name','isDeleted'],items:['name','description','productCodes','productRefs','products','isDeleted']},
   clone,h:String,isVi:()=>document.documentElement.lang==='vi',identity:()=>actor,editable:()=>library.versions[0],library:()=>library,transport:()=>client,canEditDraft:()=>client.permission('edit')===true,
   currentReadOwner:()=>{const original=actor,e=epoch;return()=>actor===original&&epoch===e;},catalog:()=>({comparisonReady:true,products,productMap:new Map(products.map(p=>[p.code,p]))}),
-  adopt:r=>{stats.adopts++;if(r.control)Object.assign(library,r.control);},render:()=>stats.renders++,toast:m=>stats.notices.push(m),displayDraftError:e=>e?.message||e,
+  adopt:r=>{stats.adopts++;if(r.control){Object.assign(library,r.control);box.syncBase=clone(r.control.workflow.working);}},render:()=>{stats.renders++;box.api?.paintMatrixActions();},toast:m=>stats.notices.push(m),displayDraftError:e=>e?.message||e,
   workspaceReady:()=>true,sharedPoll:{capture:()=>1,isCurrent:()=>true,schedule:fn=>{poll=fn;},cancel(){}},
   window:{crypto:webcrypto,setTimeout,clearTimeout,localStorage:store,sessionStorage:store,navigator:lockSupported?{locks}:{},confirm:()=>true,
    addEventListener(name,callback){const list=events.get(name)||[];list.push(callback);events.set(name,list);},removeEventListener(name,callback){events.set(name,(events.get(name)||[]).filter(fn=>fn!==callback));},ProcessSync:{identityGeneration:()=>epoch},dispatchEvent(){},VersionDraftUI:{updateSync:(_root,busy,failed,dirty)=>stats.syncStatuses.push({busy,failed,dirty}),updateSaved:(_root,_flow,dirty)=>stats.statuses.push(dirty),reasonFor:()=>'',confirmSubmit:(...args)=>confirmAction(...args)}}};
  vm.createContext(box);vm.runInContext(recoverySource,box);vm.runInContext(sessionSource,box);
  vm.runInContext(cut(shared,'  window.captureSharedDraftSubmission=','  // Begin alone'),box);
- vm.runInContext(cut(source,'  // Matrix choices stay private','  const commandFeedbackPending=')+cut(source,'  async function loadShared(','  function changes(')+cut(source,'  function pollShared()','  const ui =')+cut(source,'  async function submitDraft()','  async function withdrawDraft()')+cut(source,'  function matrixHTML(','  function bindEvents()')+'\nthis.api={toggleMatrixChoice,applyMatrixChoices,discardMatrixChoices,reconcileMatrixChoices,matrixDirty,matrixToolbarHTML,paintMatrixActions,matrixHTML,pollShared,submitDraft,assertNoUnapplied,persistMatrixChoices,restoreMatrixChoices,restoreMatrixRecord,discardMatrixRecord,resolveMatrixRecord,openMatrixRecovery,session:()=>matrixRecoverySession,recoveryState:()=>({ready:matrixRecoveryReady,blocked:matrixRecoveryBlocked,note:matrixRecoveryNote,error:matrixRecoveryError,tab:matrixRecoverySession?.runtimeId}),getBatch:()=>matrixBatch};',box);
+ vm.runInContext(cut(source,'  // Matrix choices stay private','  const commandFeedbackPending=')+cut(source,'  async function loadShared(','  async function reconcileLocalConflict(')+cut(source,'  function pollShared()','  const ui =')+cut(source,'  async function submitDraft()','  async function withdrawDraft()')+cut(source,'  function matrixHTML(','  function bindEvents()')+'\nthis.api={toggleMatrixChoice,applyMatrixChoices,discardMatrixChoices,reconcileMatrixChoices,matrixDirty,matrixToolbarHTML,paintMatrixActions,matrixHTML,pollShared,submitDraft,assertNoUnapplied,persistMatrixChoices,restoreMatrixChoices,restoreMatrixRecord,discardMatrixRecord,resolveMatrixRecord,openMatrixRecovery,session:()=>matrixRecoverySession,recoveryState:()=>({ready:matrixRecoveryReady,blocked:matrixRecoveryBlocked,note:matrixRecoveryNote,error:matrixRecoveryError,tab:matrixRecoverySession?.runtimeId}),matrixCommand,getBatch:()=>matrixBatch};',box);
  vm.runInContext(cut(source,'  async function sharedAction(','  function pollShared()')+'this.actualSharedAction=sharedAction;',box);
- box.sharedAction=async(action,detail)=>{box.api.assertNoUnapplied();stats.posts++;stats.commands.push({action,...detail});};
+ box.sharedAction=async(action,detail)=>{if(action==='save')return box.actualSharedAction(action,detail);box.api.assertNoUnapplied();stats.posts++;stats.commands.push({action,...detail});};
+ // Explicitly construct an already-sent legacy Apply record. New clicks never
+ // schedule or dispatch this protocol; only historical receipt recovery uses it.
+ box.api.legacyApply=async()=>{
+  const batch=box.api.getBatch();if(batch.pending)return box.api.applyMatrixChoices();if(!box.api.persistMatrixChoices())return;
+  const session=box.api.session(),command=client.prepareRecovery(batch.generation,box.api.matrixCommand(batch)),prepared=session.prepareWrite({operationId:command.operationId,generation:command.generation});if(!prepared.ok)return;batch.pending=command;
+  // Construct a persisted legacy dispatch. For delayed-response scenarios, the
+  // real current receipt path below owns the wait and all stale-owner checks.
+  const originalMode=mode;if(mode==='wait')mode='unknown';
+  try{await session.dispatchPrepared(prepared.reservation,command,sent=>client.sendPrepared(sent,{assertDispatch:value=>session.assertDispatch(value)}));}
+  catch(error){batch.error=error.message;if(originalMode!=='wait')return;}
+  finally{mode=originalMode;}
+  return box.api.applyMatrixChoices();
+ };
+
  box.itemRows=v=>v.snapshot.items;box.ui.search='';
  box.api.restoreMatrixChoices();await box.api.session()?.ready;await Promise.resolve();
  const paint=()=>{area.innerHTML=box.api.matrixToolbarHTML()+box.api.matrixHTML(library.versions[0],'A',products,true);box.api.paintMatrixActions();};paint();
  const button=i=>area.querySelector(`[data-matrix-product="P${i}"]`);
  return{api:box.api,box,stats,version,library,products,area,document,client,paint,button,remote,records,store,emit:name=>events.get(name)?.slice().forEach(callback=>callback()),writeFail:value=>{writeFail=value;},
-  changeMode:value=>{mode=value;},actor:value=>{actor={id:value};},epoch:()=>epoch++,resolve:()=>deferred(),poll:()=>poll(),confirm:fn=>{confirmAction=fn;},flow:()=>library.workflow,remoteRevision:value=>{remoteRevision=value;}};
+  waitReceipt:()=>receiptStarted,changeMode:value=>{mode=value;},actor:value=>{actor={id:value};},epoch:()=>epoch++,resolve:()=>deferred(),poll:()=>poll(),confirm:fn=>{confirmAction=fn;},flow:()=>library.workflow,remoteRevision:value=>{remoteRevision=value;}};
 }
 
 void test('100 matrix clicks send zero commands, preserve source and avoid full redraw',async()=>{
@@ -58,45 +81,45 @@ void test('100 matrix clicks send zero commands, preserve source and avoid full 
  assert.equal(f.stats.posts,0);assert.equal(f.stats.renders,0);assert.equal(f.api.getBatch().count,100);assert.equal(JSON.stringify(f.version),before);assert.match(f.area.querySelector('#fqc-matrix-count').textContent,/100/);
  f.api.toggleMatrixChoice(f.button(0));assert.equal(f.api.getBatch().count,99);assert.equal(f.button(0).getAttribute('aria-pressed'),'false');
 });
-void test('one explicit Apply sends complete choices, then clears only acknowledged batch',async()=>{
+void test('one explicit Save sends touched cells and atomically saves the acknowledged batch',async()=>{
  const f=await fixture();for(const i of [1,3,5])f.api.toggleMatrixChoice(f.button(i));await f.api.applyMatrixChoices();
- assert.equal(f.stats.posts,1);assert.equal(f.stats.commands[0].action,'apply');assert.deepEqual(f.remote.items[0].productCodes,['P1','P3','P5']);assert.equal(f.stats.commands[0].input.products.length,100);assert.equal(f.stats.commands[0].guards,undefined);assert.equal(f.api.matrixDirty(),false);
+ assert.equal(f.stats.posts,1);assert.equal(f.stats.commands[0].action,'save');assert.deepEqual(f.remote.items[0].productCodes,['P1','P3','P5']);assert.equal(f.stats.commands[0].input.matrixCells.length,3);assert.deepEqual(clone(f.stats.commands[0].guards),[]);assert.deepEqual(clone(f.flow().saved.content),clone(f.remote));assert.equal(f.api.matrixDirty(),false);
 });
-void test('remote same-field update is replaced by the explicitly applied whole selection',async()=>{
- const f=await fixture();for(const i of [2,4])f.api.toggleMatrixChoice(f.button(i));f.remote.items[0].productCodes=['P8'];await f.api.applyMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.deepEqual(f.remote.items[0].productCodes,['P2','P4']);
+void test('Save merges touched cells and preserves a different peer cell in the same row',async()=>{
+ const f=await fixture();for(const i of [2,4])f.api.toggleMatrixChoice(f.button(i));f.remote.items[0].productCodes=['P8'];await f.api.applyMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.deepEqual(f.remote.items[0].productCodes,['P8','P2','P4']);
 });
-void test('Apply retains existing product reference snapshots when upstream catalogue name/spec changed',async()=>{
+void test('Save retains existing product reference snapshots when upstream catalogue name/spec changed',async()=>{
  const f=await fixture(),oldRef={code:'P0',kind:'product',name:'Original name',specification:'Original spec',custom:'retained'},oldLegacy={...oldRef,name:'Legacy snapshot'};
  Object.assign(f.version.snapshot.items[0],{productCodes:['P0'],productRefs:[clone(oldRef)],products:[clone(oldLegacy)]});Object.assign(f.remote.items[0],clone(f.version.snapshot.items[0]));f.products[0].name='Upstream renamed';f.products[0].specification='Upstream changed spec';f.products[1].name='New selection current name';
  f.api.toggleMatrixChoice(f.button(1));await f.api.applyMatrixChoices();assert.equal(f.stats.posts,1);assert.deepEqual(f.remote.items[0].productRefs[0],oldRef);assert.deepEqual(f.remote.items[0].products[0],oldLegacy);assert.equal(f.remote.items[0].productRefs[1].name,'New selection current name');
 });
-void test('unknown Apply queries original receipt without another POST or new operation ID',async()=>{
- const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(1));await f.api.applyMatrixChoices();const id=f.api.getBatch().pending.operationId;
- await f.api.applyMatrixChoices();f.api.discardMatrixChoices();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,1);assert.equal(f.api.getBatch().pending.operationId,id);assert.equal(f.api.getBatch().count,1);
- f.changeMode('ok');await f.api.applyMatrixChoices();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,2);assert.equal(f.api.matrixDirty(),false);
+void test('legacy unknown Apply queries original receipt without another POST or new operation ID',async()=>{
+ const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(1));await f.api.legacyApply();const id=f.api.getBatch().pending.operationId;
+ await f.api.legacyApply();f.api.discardMatrixChoices();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,1);assert.equal(f.api.getBatch().pending.operationId,id);assert.equal(f.api.getBatch().count,1);
+ f.changeMode('ok');await f.api.legacyApply();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,2);assert.equal(f.api.matrixDirty(),false);
 });
 
-void test('known pending Apply can still query its receipt after edit is revoked',async()=>{
- const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(1));await f.api.applyMatrixChoices();f.client.permission=permission=>permission!=='edit';f.changeMode('ok');await f.api.applyMatrixChoices();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,1);assert.equal(f.api.matrixDirty(),false);
+void test('legacy pending Apply can still query its receipt after edit is revoked',async()=>{
+ const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(1));await f.api.legacyApply();f.client.permission=permission=>permission!=='edit';f.changeMode('ok');await f.api.legacyApply();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,1);assert.equal(f.api.matrixDirty(),false);
 });
 void test('poll, search, language and independent repaint retain local matrix batch',async()=>{
  const f=await fixture();f.api.toggleMatrixChoice(f.button(7));f.api.pollShared();await f.poll();assert.equal(f.stats.adopts,0);
- f.box.ui.search='P7';f.document.documentElement.lang='vi';f.paint();assert.equal(f.button(7).textContent,'✓');assert.equal(f.api.getBatch().count,1);assert.match(f.area.querySelector('#fqc-matrix-apply').textContent,/Áp dụng/);
+ f.box.ui.search='P7';f.document.documentElement.lang='vi';f.paint();assert.equal(f.button(7).textContent,'✓');assert.equal(f.api.getBatch().count,1);assert.equal(f.area.querySelector('#fqc-matrix-apply').hidden,true);
  f.box.ui.search='';f.document.documentElement.lang='zh';f.paint();assert.equal(f.button(7).textContent,'✓');assert.equal(f.stats.posts,0);
 });
-void test('dirty matrix blocks Save/Submit; ordinary discard never writes',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));assert.throws(()=>f.api.assertNoUnapplied(),/套用或放棄/);await f.api.submitDraft();assert.equal(f.stats.posts,0);
- await assert.rejects(f.box.actualSharedAction('save'),/套用或放棄/);assert.equal(f.stats.posts,0);
- f.api.discardMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.equal(f.stats.posts,0);
+void test('dirty matrix blocks Submit until explicit Save; ordinary discard never writes',async()=>{
+ const f=await fixture();f.api.toggleMatrixChoice(f.button(2));assert.throws(()=>f.api.assertNoUnapplied(),/先按存取/);await f.api.submitDraft();assert.equal(f.stats.posts,0);
+ await f.box.actualSharedAction('save');assert.equal(f.stats.posts,1);assert.equal(f.api.matrixDirty(),false);f.api.restoreMatrixChoices();await f.api.session().ready;f.paint();f.api.toggleMatrixChoice(f.button(3));
+ await f.api.discardMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.equal(f.stats.posts,1);
 });
 void test('unapplied form blocks Submit before confirmation and sends no command',async()=>{
  const f=await fixture(),form=f.document.createElement('div');form.className='fqc-modal-overlay';f.document.body.append(form);let prompts=0;f.confirm(async()=>{prompts++;return'reason';});await f.api.submitDraft();assert.equal(prompts,0);assert.equal(f.stats.posts,0);assert.equal(form.isConnected,true);
 });
-void test('actor change during Apply cannot publish ACK or clear private batch into the new actor',async()=>{
- const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.applyMatrixChoices();f.actor('B');f.resolve();await pending;assert.equal(f.stats.adopts,0);assert.equal(f.api.matrixDirty(),false);assert.equal(f.api.getBatch().count,1);
+void test('actor change during legacy receipt read cannot publish ACK or clear private batch into the new actor',async()=>{
+ const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.legacyApply();await f.waitReceipt();f.actor('B');f.resolve();await pending;assert.equal(f.stats.adopts,0);assert.equal(f.api.matrixDirty(),false);assert.equal(f.api.getBatch().count,1);
 });
 void test('revoked edit cannot send queued matrix choices',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(1));f.client.permission=()=>false;await f.api.applyMatrixChoices();assert.equal(f.stats.posts,0);assert.equal(f.api.getBatch().count,1);assert.match(f.api.getBatch().error,/FORBIDDEN/);
+ const f=await fixture();f.api.toggleMatrixChoice(f.button(1));f.client.permission=()=>false;await assert.rejects(f.api.applyMatrixChoices(),/FORBIDDEN/);assert.equal(f.stats.posts,0);assert.equal(f.api.getBatch().count,1);
 });
 void test('Submit pins revision before confirmation and never substitutes latest revision',async()=>{
  const f=await fixture();f.confirm(async()=>{f.library.workflow.revision++;return'reason';});await f.api.submitDraft();
@@ -110,7 +133,7 @@ void test('successful Submit includes captured savedId, revision and generation'
 });
 
 void test('reload never hydrates; explicit claimed restore uses two GET and zero POST',async()=>{
- const first=await fixture();first.api.toggleMatrixChoice(first.button(2));first.emit('beforeunload');const key=first.api.session().key,original=first.records.get(key);first.emit('pagehide');
+ const first=await fixture();first.api.toggleMatrixChoice(first.button(2));first.api.persistMatrixChoices();first.emit('beforeunload');const key=first.api.session().key,original=first.records.get(key);first.emit('pagehide');
  const second=await fixture({records:first.records});assert.equal(second.api.getBatch(),null);assert.equal(second.button(2).getAttribute('aria-pressed'),'false');assert.equal(second.stats.stateReads,0);
  await second.api.restoreMatrixRecord(key,async()=>true);assert.equal(second.stats.stateReads,2);assert.equal(second.stats.posts,0);assert.equal(second.api.getBatch().count,1);assert.equal(second.button(2).getAttribute('aria-pressed'),'true');assert.equal(second.records.get(key),original);
  await second.api.applyMatrixChoices();assert.equal(second.stats.posts,1);assert.equal(second.api.matrixDirty(),false);assert.equal(second.records.has(second.api.session().key),false);assert.equal(second.records.get(key),original);
@@ -121,7 +144,7 @@ void test('actor isolation and generation/base conflict retain the original reco
  const changed=await fixture({records:first.records,generation:'gen2'});await assert.rejects(changed.api.restoreMatrixRecord(key,async()=>true),/BASE_CONFLICT/);assert.equal(changed.api.getBatch(),null);assert.equal(changed.stats.posts,0);assert.equal(changed.records.get(key),original);
 });
 void test('live source runtime cannot be claimed by a second same-account tab',async()=>{
- const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.applyMatrixChoices();const id=first.api.getBatch().pending.operationId,key=first.api.session().key;
+ const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.legacyApply();const id=first.api.getBatch().pending.operationId,key=first.api.session().key;
  const copied=await fixture({records:first.records});assert.equal(copied.api.getBatch(),null);const claim=await copied.api.session().claim(key);assert.equal(claim.code,'RECOVERY_IN_USE');assert.equal(copied.stats.posts,0);assert.equal(first.api.getBatch().pending.operationId,id);
  copied.api.toggleMatrixChoice(copied.button(4));copied.api.persistMatrixChoices();assert.equal(copied.api.getBatch().pending,null);assert.equal(first.api.getBatch().count,1);assert.notEqual(copied.api.session().key,key);
 });
@@ -130,19 +153,19 @@ void test('corrupt recovery stays byte-for-byte and never becomes editable input
  const second=await fixture({records:first.records});assert.equal(second.api.getBatch(),null);await assert.rejects(second.api.restoreMatrixRecord(key,async()=>true),/CORRUPT_RECORD/);assert.equal(second.records.get(key),'{corrupt');assert.equal(second.stats.posts,0);
  assert.equal(second.api.session().discover().items.find(row=>row.key===key).issue,undefined,'inventory never reads payload to classify corruption');
 });
-void test('quota failure retains input, reports recovery failure and stops Apply before POST',async()=>{
- const f=await fixture({writeFail:true});f.api.toggleMatrixChoice(f.button(3));assert.equal(f.api.persistMatrixChoices(),false);await f.api.applyMatrixChoices();assert.equal(f.stats.posts,0);assert.equal(f.api.getBatch().count,1);assert.equal(f.api.getBatch().pending,null);assert.match(f.api.getBatch().storageError,/存檔失敗/);
- f.writeFail(false);await f.api.applyMatrixChoices();assert.equal(f.stats.posts,1);assert.equal(f.api.matrixDirty(),false);
+void test('explicit legacy-record persistence quota failure retains input and prevents legacy dispatch',async()=>{
+ const f=await fixture({writeFail:true});f.api.toggleMatrixChoice(f.button(3));assert.equal(f.api.persistMatrixChoices(),false);await f.api.legacyApply();assert.equal(f.stats.posts,0);assert.equal(f.api.getBatch().count,1);assert.equal(f.api.getBatch().pending,null);assert.match(f.api.getBatch().storageError,/存檔失敗/);
+ f.writeFail(false);await f.api.legacyApply();assert.equal(f.stats.posts,1);assert.equal(f.api.matrixDirty(),false);
 });
 void test('reloaded unknown is receipt-only; 404 retains it and a terminal receipt plus readback settles without POST',async()=>{
- const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.applyMatrixChoices();const id=first.api.getBatch().pending.operationId,key=first.api.session().key,raw=first.records.get(key);first.emit('pagehide');
+ const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.legacyApply();const id=first.api.getBatch().pending.operationId,key=first.api.session().key,raw=first.records.get(key);first.emit('pagehide');
  const second=await fixture({records:first.records});assert.equal(second.api.getBatch(),null);second.client.receipt=async(operationId,generation)=>{second.stats.reads++;assert.equal(operationId,id);assert.equal(generation,'gen1');throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});};
  await assert.rejects(second.api.resolveMatrixRecord(key),/OPERATION_NOT_FOUND/);assert.equal(second.stats.posts,0);assert.equal(second.stats.reads,1);assert.equal(second.records.get(key),raw);assert.equal(second.api.session().preview(key).payload,undefined);
  second.client.receipt=async operationId=>({receipt:{operationId,generation:'gen1',revision:4,savedId:'save1',caseId:null,unchanged:false}});second.remoteRevision(4);await second.api.resolveMatrixRecord(key);assert.equal(second.stats.posts,0);assert.equal(second.records.has(key),false);
 });
 
-void test('whole matrix choices cannot enter legacy per-row reconciliation or silently merge peer choices',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.remote.items[0].productCodes=['P8'];const before=clone(f.api.getBatch().completeMatrix);await f.api.reconcileMatrixChoices();assert.equal(f.stats.posts,0);assert.equal(f.stats.stateReads,0);assert.equal(f.document.querySelector('.fqc-modal-overlay'),null);assert.deepEqual(clone(f.api.getBatch().completeMatrix),before);await f.api.applyMatrixChoices();assert.deepEqual(f.remote.items[0].productCodes,['P2']);
+void test('local choices skip historical reconciliation and merge peer cells only on Save',async()=>{
+ const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.remote.items[0].productCodes=['P8'];const before=clone(f.api.getBatch().completeMatrix);await f.api.reconcileMatrixChoices();assert.equal(f.stats.posts,0);assert.equal(f.stats.stateReads,0);assert.equal(f.document.querySelector('.fqc-modal-overlay'),null);assert.deepEqual(clone(f.api.getBatch().completeMatrix),before);await f.api.applyMatrixChoices();assert.deepEqual(f.remote.items[0].productCodes,['P8','P2']);
 });
 
 // Fixed before/after CPU/request-count sample. Dependency ports omit network and
@@ -164,29 +187,30 @@ void test('fixed synthetic before/after sample records command and redraw counts
 void test('matrix changes update version header in place and never report local choices saved',async()=>{
  const f=await fixture();f.api.toggleMatrixChoice(f.button(1));assert.equal(f.stats.statuses.at(-1),true);assert.equal(f.stats.syncStatuses.at(-1).dirty,true);assert.equal(f.stats.renders,0);
  await f.api.applyMatrixChoices();assert.equal(f.stats.statuses.at(-1),false);assert.equal(f.stats.syncStatuses.at(-1).dirty,false);
- f.api.toggleMatrixChoice(f.button(2));assert.equal(f.stats.statuses.at(-1),true);f.api.discardMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.equal(f.stats.statuses.at(-1),false);assert.equal(f.stats.syncStatuses.at(-1).dirty,false);
- assert.match(source,/flow:library\(\)\.workflow,localUnsaved:matrixDirty\(\)/);
+ f.api.restoreMatrixChoices();await f.api.session().ready;f.paint();f.api.toggleMatrixChoice(f.button(2));assert.equal(f.stats.statuses.at(-1),true);f.api.discardMatrixChoices();assert.equal(f.api.matrixDirty(),false);assert.equal(f.stats.statuses.at(-1),false);assert.equal(f.stats.syncStatuses.at(-1).dirty,false);
+ assert.match(source,/flow:library\(\)\.workflow,localUnsaved:localDirty\(\)/);
 });
 
 
-void test('current runtime receipt action settles matching pending input and permits the next explicit Apply',async()=>{
- const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(2));await f.api.applyMatrixChoices();const key=f.api.session().key;f.changeMode('ok');
+void test('legacy receipt action settles matching pending input and permits the next explicit Save',async()=>{
+ const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(2));await f.api.legacyApply();const key=f.api.session().key;f.changeMode('ok');
  await f.api.resolveMatrixRecord(key);assert.equal(f.records.has(key),false);assert.equal(f.api.getBatch().pending,null);assert.equal(f.api.matrixDirty(),false);assert.equal(f.api.getBatch().count,0);assert.equal(f.flow().revision,4);assert.equal(f.stats.posts,1);
- f.api.toggleMatrixChoice(f.button(3));await f.api.applyMatrixChoices();assert.equal(f.stats.posts,2);assert.equal(f.api.matrixDirty(),false);
+ f.api.toggleMatrixChoice(f.button(3));await f.api.applyMatrixChoices();assert.equal(f.stats.commands.at(-1).action,'save');assert.equal(f.stats.posts,2);assert.equal(f.api.matrixDirty(),false);
 });
 void test('historical receipt settlement does not clear an unrelated current local batch',async()=>{
- const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.applyMatrixChoices();const key=first.api.session().key,record=JSON.parse(first.records.get(key));first.emit('pagehide');
+ const first=await fixture({mode:'unknown'});first.api.toggleMatrixChoice(first.button(2));await first.api.legacyApply();const key=first.api.session().key,record=JSON.parse(first.records.get(key));first.emit('pagehide');
  const f=await fixture({records:first.records});f.api.toggleMatrixChoice(f.button(4));const current=f.api.getBatch();f.client.receipt=async()=>({receipt:{...record.receipt,revision:4,savedId:'save1',caseId:null,unchanged:false}});f.remoteRevision(4);
  await f.api.resolveMatrixRecord(key);assert.equal(f.records.has(key),false);assert.equal(f.api.getBatch(),current);assert.equal(current.count,1);assert.equal(current.rows.get('I1').codes.has('P4'),true);assert.equal(f.stats.posts,0);assert.equal(f.stats.adopts,0);
 });
-void test('same actor new generation during Apply cannot adopt late old-generation ACK or clear marker',async()=>{
- const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.applyMatrixChoices();f.library.workflow={...f.library.workflow,generation:'new-generation',revision:9};f.resolve();await pending;
+void test('same actor new generation during legacy receipt read cannot adopt late old-generation ACK or clear marker',async()=>{
+ const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.legacyApply();await f.waitReceipt();f.library.workflow={...f.library.workflow,generation:'new-generation',revision:9};f.resolve();await pending;
  assert.equal(f.flow().generation,'new-generation');assert.equal(f.flow().revision,9);assert.equal(f.stats.adopts,0);assert.equal(f.api.getBatch().count,1);assert(f.api.getBatch().pending);assert.equal(JSON.parse(f.records.get(f.api.session().key)).kind,'unknown');
 });
-void test('same-generation newer local model refuses stale Apply readback without losing pending input',async()=>{
- const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.applyMatrixChoices();f.library.workflow={...f.library.workflow,revision:9};f.resolve();await pending;
+void test('same-generation newer local model refuses stale legacy receipt readback without losing pending input',async()=>{
+ const f=await fixture({mode:'wait'});f.api.toggleMatrixChoice(f.button(1));const pending=f.api.legacyApply();await f.waitReceipt();f.library.workflow={...f.library.workflow,revision:9};f.resolve();await pending;
  assert.equal(f.flow().revision,9);assert.equal(f.stats.adopts,0);assert.equal(f.api.getBatch().count,1);assert(f.api.getBatch().pending);assert.match(f.api.getBatch().error,/REVISION_CHANGED/);
 });
+// Construct historical local payloads explicitly; normal edits no longer persist.
 async function storedMatrix(options={}){
  const first=await fixture(options);first.api.toggleMatrixChoice(first.button(2));first.api.persistMatrixChoices();const key=first.api.session().key,raw=first.records.get(key);first.emit('pagehide');return{first,key,raw};
 }
@@ -208,7 +232,7 @@ void test('late first restore GET cannot replace a same-owner newer model with a
  f.client.read=async()=>{const value=await read();f.library.workflow={...f.library.workflow,revision:10};return value;};
  await assert.rejects(f.api.restoreMatrixRecord(key,async()=>true),/REVISION_CHANGED/);assert.equal(f.flow().revision,10);assert.equal(f.api.getBatch(),null);assert.equal(f.records.get(key),raw);
 });
-void test('no Web Locks target cannot claim historical data but fresh isolated edits persist',async()=>{
+void test('no Web Locks target refuses historical claims; explicit legacy persistence remains isolated',async()=>{
  const {first,key,raw}=await storedMatrix();const f=await fixture({records:first.records,lockSupported:false});
  assert.match(f.api.recoveryState().note,/不支援獨占鎖/);await assert.rejects(f.api.restoreMatrixRecord(key,async()=>true),/WEB_LOCKS_UNAVAILABLE/);f.api.toggleMatrixChoice(f.button(3));assert.equal(f.api.persistMatrixChoices(),true);assert.equal(f.records.get(key),raw);assert.notEqual(f.api.session().key,key);assert.equal(f.stats.posts,0);
 });
@@ -220,9 +244,9 @@ void test('targeted FQC recovery discard preserves current inputs, other records
  const {first,key}=await storedMatrix();const f=await fixture({records:first.records});f.records.set('unrelated','keep');f.api.toggleMatrixChoice(f.button(4));f.api.persistMatrixChoices();const ownKey=f.api.session().key,ownRaw=f.records.get(ownKey);
  await f.api.discardMatrixRecord(key,async()=>true);assert.equal(f.records.has(key),false);assert.equal(f.records.get(ownKey),ownRaw);assert.equal(f.records.get('unrelated'),'keep');assert.equal(f.api.getBatch().count,1);assert.equal(f.stats.posts,0);
 });
-void test('debounced FQC persistence writes once and reports quota failure without POST or full redraw',async()=>{
+void test('new FQC clicks never persist automatically, even after the former debounce interval',async()=>{
  const f=await fixture({writeFail:true});for(let i=0;i<100;i++)f.api.toggleMatrixChoice(f.button(i));assert.equal(f.stats.writes,0);assert.equal(f.stats.posts,0);assert.equal(f.stats.stateReads,0);assert.equal(f.stats.renders,0);
- await new Promise(resolve=>setTimeout(resolve,300));assert.equal(f.stats.writes,1);assert.match(f.area.querySelector('#fqc-matrix-message').textContent,/存檔失敗|QUOTA/);assert.equal(f.api.getBatch().count,100);assert.equal(f.stats.posts,0);assert.equal(f.stats.renders,0);
+ await new Promise(resolve=>setTimeout(resolve,300));assert.equal(f.stats.writes,0);assert.equal(f.records.size,0);assert.equal(f.api.getBatch().count,100);assert.equal(f.stats.posts,0);assert.equal(f.stats.renders,0);
 });
 void test('legacy matrix records remain untouched and never auto-hydrate into the new runtime',async()=>{
  const records=new Map(),key='fqc-matrix-local-v1:'+JSON.stringify(['A','gen1','legacy-tab']),raw=JSON.stringify({schema:1,actorId:'A',generation:'gen1',versionId:'draft1',tab:'legacy-tab',rows:[['I1',{base:{productCodes:[]},codes:['P2'],changed:['P2']}]],pending:null});records.set(key,raw);
@@ -241,3 +265,5 @@ void test('explicit local discard removes only its durable copy without rewritin
  const f=await fixture();f.api.toggleMatrixChoice(f.button(2));f.api.persistMatrixChoices();const key=f.api.session().key,writes=f.stats.writes;f.records.set('unrelated','keep');f.writeFail(true);f.api.toggleMatrixChoice(f.button(3));f.api.discardMatrixChoices();
  assert.equal(f.api.matrixDirty(),false);assert.equal(f.records.has(key),false);assert.equal(f.records.get('unrelated'),'keep');assert.equal(f.stats.writes,writes);assert.equal(f.stats.posts,0);
 });
+
+void test('retained Begin generation conflict blocks matrix Save without sending or clearing choices',async()=>{const f=await fixture();f.api.toggleMatrixChoice(f.button(0));const receipt={operationId:'original-begin',generation:'old-generation'};f.box.beginGenerationConflict={receipt};await assert.rejects(f.box.actualSharedAction('save'),/STALE_GENERATION/);assert.equal(f.stats.posts,0);assert.equal(f.api.matrixDirty(),true);assert.deepEqual(f.box.beginGenerationConflict,{receipt});});

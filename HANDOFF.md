@@ -1,3 +1,23 @@
+## 2026-11-04 — Unknown Begin follow-up in Draft PR77
+
+The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).
+
+## 2026-11-04 — Draft PR77 independent-review follow-up
+
+Fixed the reviewed IQC unsaved Submit, canvas reused-saved-ID acknowledgement and IPQC C create/delete batch-order issues in the same isolated integration branch. Preserve explicit Save, exact receipt recovery and genuine peer-conflict guards. [Latest evidence and remaining gates](docs/acceptance/draft-save-integration-20261104.md). No main merge, publication or business-data changes.
+
+## 2026-11-04 — 隔離草稿整合候選（未合併／未發布）
+
+FQC #74、IPQC C #75、IQC #76 在獨立 integration 分支語意整合；畫布004b2ff已交接並納入，追加檢查式無提示離頁與跨模組驗證。共用離頁／收據與快取保留各模組範圍，修復舊草稿首次保存相容性。[來源、測試與剩餘門檻](docs/acceptance/draft-save-integration-20261104.md)。
+
+## 2026-11-04 — FQC 草稿流程統一與加速首階段候選
+
+Based on main `85fa4a3`, independent `feat/fqc-single-save-20261104`: local editing, atomic shared Save, cell merge and checked automatic departure. No live data cleanup, merge or deployment. [Scope, test evidence, legacy inventory limits and integration risks](docs/acceptance/fqc-single-save-20261104/README.md).
+
+## 2026-11-04 — IQC local editing / atomic Save candidate
+
+Independent branch from main 85fa4a3. Local Apply, guarded atomic Save and opt-in silent departure; legacy shared data remains intact. No deployment. [Evidence and integration gates](docs/acceptance/iqc-local-atomic-save-20261104.md).
+
 ## 2026-11-04 — IPQC-C create-item independent candidate
 
 Fixed necessary-record creation read, atomic allocation update, post-storage session check and a bounded 45-second create-item wait. Isolated tests and independent review passed; real latency/original unknown remain unverified. Draft PR #73 is open. Follow-up narrows the mandatory create readback and adds measured POST+GET evidence; original unknown stays intact. No deployment/FQC V31 change. [Scope, evidence and limits](docs/acceptance/ipqc-c-create-20261104.md).

@@ -6,7 +6,7 @@
  const moduleNames=['FQCMasterUI','IQCMasterUI','IPQCABUI','IPQCCUI','ToolingUI','RoutineEquipmentUI','RoutineFQCUI','BOMWorkspace','ProcessAuthoringV3','ProcessUserAccess','ProcessFeedbackEntry'];
  const modules=()=>moduleNames.map(name=>window[name]).filter(Boolean);
  const draftsPending=(candidate)=>{
-  const shared=sync.pendingState?.()||{},drafts=window.sharedDraftAccountState?.()||{};
+  const shared=sync.pendingState?.()||{},drafts=window.sharedDraftNavigationState?.()||window.sharedDraftAccountState?.()||{};
   return shared.dirty||shared.inFlight||shared.paused||shared.blocked||drafts.queued||(candidate?candidate.otherDraftsPending():window.sharedDraftDepartureBlocked?.()??(drafts.unknown||drafts.failed))||sync.projectionWriteError;
  };
  const editingScopes='dialog[open],.fqc-modal-overlay,.iqc-dialog-overlay,.ipqcc-overlay,.ipqcab-overlay,.routine-modal-backdrop,.routine-dialog-backdrop';
@@ -36,8 +36,16 @@
   return !otherDepartureBlocked(adapter,ignoreSaved);
  }
  const api=window.ProcessDeliveryNavigation={ownsHistory:true,pending:()=>!canLeave()};
+ // A warning exemption never clears receipts or grants write/replay admission.
+ api.canUnloadWithoutPrompt=()=>{
+  const adapter=departureAdapter();if(adapter?.autoAbandon!==true)return false;
+  const status=adapterState(adapter);
+  const eligible=status.state==='clean'||['dirty','unknown'].includes(status.state)&&status.canAbandon===true||status.state==='departing'&&typeof adapter.prepareUnload==='function';
+  if(!eligible||otherDepartureBlocked(adapter,false,(status.canAbandon===true||status.state==='departing')&&typeof adapter.otherDraftsPending==='function'))return false;
+  try{return typeof adapter.prepareUnload!=='function'||adapter.prepareUnload()===true;}catch{return false;}
+ };
  api.initialized=(async()=>{
-  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261103-simple-departure1');
+  const {createNavigationCoordinator,createDepartureCoordinator,navigationKey}=await import('./navigation-lifecycle.mjs?v=20261104-draft-integration1');
   const initial={...sync.destination,approvalTab:['process','quality','routine'].includes(state.approvalTab)?state.approvalTab:'master'};
   let installed=initial,installing=false,broken=false,readyGeneration=0,commitPhase=false;
   let departureSave=null;
@@ -108,7 +116,7 @@
     commitPhase=true;installing=true;
     try{
      const destination={...handle.destination,approvalTab:target.approvalTab||'master',display:target.display};
-     departureAdapter()?.closeClean?.();
+     departureAdapter()?.closeClean?.({reset:true});
      if(options.departureTicket)departure.committed(options.departureTicket);
      // Invalidate old GET ownership before detaching DOM or installing models.
      sync.commitDestination(handle);clearPageModels();
@@ -196,7 +204,7 @@
   const departure=createDepartureCoordinator({
    owner:()=>({id:sync.identity?.id,epoch:sync.identityGeneration?.(),delivery:sync.captureDelivery?.(),adapter:departureAdapter(),source:readyGeneration}),
    isCurrent:owner=>!!owner?.id&&owner.id===sync.identity?.id&&owner.epoch===sync.identityGeneration?.()&&owner.adapter===departureAdapter()&&owner.source===readyGeneration&&(!owner.delivery||sync.isCurrentDelivery?.(owner.delivery)!==false)&&!sync.requiresReload,
-   inspect:inspectDeparture,act:(action,owner)=>owner.adapter[action](),show:showDecision,update:updateDecision,hide:hideDecision,errorMessage:decisionMessage,
+   autoAbandon:owner=>owner.adapter?.autoAbandon===true,inspect:inspectDeparture,act:(action,owner)=>owner.adapter[action](),show:showDecision,update:updateDecision,hide:hideDecision,errorMessage:decisionMessage,
    cancelNavigation(){coordinator.cancelUncommitted();queuedAfterRestore?.resolve?.({status:'superseded'});queuedAfterRestore=null;if(replayingPop){replayingPop.resolve?.({status:'superseded'});replayingPop.restore=true;}},stay(){sourceState();if(physicalIndex!==historyIndex||restoreIndex!==null||replayingPop)restoreSource();},failure:error=>toast(decisionMessage(error))
   });
   function targetLabel(target){
@@ -303,7 +311,7 @@
  // Cross-document close/reload has only the browser's native confirmation.
  // No custom decision or implicit write is started from this event.
  window.addEventListener('beforeunload',event=>{
-  const adapter=departureAdapter();if(!adapter||adapterState(adapter).state==='clean')return;
+  const adapter=departureAdapter();if(!adapter||adapter.allowUnload?.()===true||adapterState(adapter).state==='clean'||api.canUnloadWithoutPrompt())return;
   event.preventDefault();
   // oxlint-disable-next-line typescript/no-deprecated -- Chromium's native unload confirmation requires returnValue.
   event.returnValue='Unsaved or unconfirmed process draft';

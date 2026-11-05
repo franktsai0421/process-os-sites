@@ -1,7 +1,8 @@
-import {replaceFqcMatrix} from './fqc-matrix';
+import {assertFqcLocalSaveCommand} from './fqc-local-save';
+import {mergeFqcMatrixCells,replaceFqcMatrix} from './fqc-matrix';
 import {parse} from './process-state';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,type SharedDraft,type DraftPatch,type DraftIssue,type DraftContext} from './shared-draft';
-import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
+import {type WorkflowAdapter,type NumericVersion,type ModuleDraftCommand} from './versioned-shared-workflow';
 import {isImmutableRecordBody} from './state-records';
 type Row=Record<string,unknown>&{id:string;category:string;line:string;name:string;isDeleted?:boolean};
 type Item=Row&{checkNo:string;errorId:string;equipmentId?:string|null;equipmentSnapshot?:unknown;productCodes:string[];mediaItems:{id?:string;src:string;name?:string}[];isEnabled:boolean;rule?:Record<string,unknown>};
@@ -76,7 +77,38 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    };
    matrixCatalog.set(result,matrixProducts);return result;
   },
-  apply(control,command,context){const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+  apply:function applyFqc(control:FqcLibrary,command:ModuleDraftCommand,context:DraftContext<FqcSnapshot>):ReturnType<typeof applyDraftCommand<FqcSnapshot>>{const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+   if(command.action==='save'&&command.moduleAction==='save-local-v1'){
+    assertFqcLocalSaveCommand(command);
+    if(!Array.isArray(command.patches)||!Array.isArray(command.guards)||!command.input||Object.keys(command.input).some(k=>!['matrixCells','expectedAB'].includes(k))||!Array.isArray(command.input.matrixCells))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);
+    if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+    const fingerprint=context.commandFingerprint||stableDraftJSON(command),internalContext={...context,commandFingerprint:fingerprint};
+    // Pure transitions only: no intermediate receipt, working body or Save can
+    // escape the route's single CAS. Failures leave the original source intact.
+    const guards=command.guards.map(guard=>{
+     const [collection,entity,field]=guard.path||[];
+     if((collection!=='errors'&&collection!=='items')||guard.path.length!==3||!entity||typeof entity==='string'||typeof field!=='string')return guard;
+     const row=flow.working[collection].find(row=>row.id===entity.id),patch=command.patches!.find(p=>p.op==='set'&&stableDraftJSON(p.path)===stableDraftJSON(guard.path));
+     return row&&patch?.op==='set'&&stableDraftJSON(row[field])===stableDraftJSON(patch.value)?{...guard,value:row[field]}:guard;
+    });
+    let next=applyFqc(control,{...command,guards,action:'apply',moduleAction:undefined,input:command.input.expectedAB?{expectedAB:command.input.expectedAB}:undefined},internalContext).state;
+    const reset=(state:SharedDraft<FqcSnapshot>)=>({...state,revision:flow.revision,receipts:flow.receipts,sequences:flow.sequences});
+    next=reset(next);
+    if(command.input.matrixCells.length){
+     const products=matrixCatalog.get(context);if(!products)throw new DraftConflict('AB_EFFECTIVE_CHANGED_RECONFIRM');
+     const items=mergeFqcMatrixCells(next.working.items,products,command.input.matrixCells);
+     next=reset(applyDraftCommand(next,{...command,action:'apply',patches:[{op:'set',path:['items'],value:items}],guards:[],expectedRevision:undefined},internalContext).state);
+    }
+    const result=applyDraftCommand(next,command,{...internalContext,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});
+    // Save may reuse an identical saved snapshot while this operation still
+    // changed legacy working content. The aggregate revision must expose it.
+    if(result.receipt.unchanged&&stableDraftJSON(flow.working)!==stableDraftJSON(result.state.working)){
+     result.state.revision=flow.revision+1;result.receipt={...result.receipt,revision:result.state.revision,unchanged:false};
+     result.state.receipts[command.operationId]={...result.state.receipts[command.operationId],result:cloneDraft(result.receipt)};
+    }
+    return result;
+   }
+
    if(command.action==='apply'&&command.moduleAction==='replace-matrix-v1'){
     const matrixProducts=matrixCatalog.get(context);
     if(command.patches!==undefined||command.guards!==undefined||command.expectedRevision!==undefined||!matrixProducts)throw new DraftConflict('INVALID_FQC_MATRIX',422);

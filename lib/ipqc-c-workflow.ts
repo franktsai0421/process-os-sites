@@ -16,6 +16,7 @@ export function publicIpqcWorkflow(control: IpqcWorkflowControl, history: boolea
   };
 }
 export type IpqcWorkflowCommand = DraftCommand & { moduleAction?:'create-error'|'create-item'|'delete-error'|'delete-item';
+  localChanges?: Array<{moduleAction?:IpqcWorkflowCommand['moduleAction'];input?:IpqcWorkflowCommand['input'];patches?:DraftPatch[];guards?:DraftCommand['guards'];localId?:string}>;
   input?: {productCode?:string;stageCode?:string;name?:string;note?:string;errorId?:string;id?:string;cascade?:boolean;item?:Partial<IpqcItem>} };
 export function beginIpqcWorkflow(control: IpqcWorkflowControl, context: DraftContext<IpqcSnapshot>) {
   if (control.workflow) return control.workflow;
@@ -56,6 +57,51 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
   const fingerprint=context.commandFingerprint||stableDraftJSON(command);
   // Check retries before allocating any new reserved number.
   if(control.workflow.receipts[command.operationId])return applyDraftCommand(control.workflow,command,{...context,commandFingerprint:fingerprint}).receipt;
+  if(command.localChanges!==undefined) {
+    if(command.action!=='save'||command.moduleAction||command.patches||!Array.isArray(command.localChanges)||command.localChanges.length>256)
+      throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+    if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+    // Build on a private aggregate. Nothing (including allocations or receipts)
+    // escapes if any later edit, structural check or final Save fails.
+    const candidate={...control,reservedErrorCodes:[...control.reservedErrorCodes],reservedItemCodes:[...control.reservedItemCodes],workflow:control.workflow};
+    const ids=new Map<string,string>(),codes=new Map<string,string>();
+    const remap=(value:unknown):unknown=>Array.isArray(value)?value.map(remap):value&&typeof value==='object'
+      ?Object.fromEntries(Object.entries(value).map(([key,v])=>[key,
+        // Only server-owned numbering of a row created earlier in this batch is
+        // normalized. All user fields and existing rows remain exact guards.
+        key==='code'&&typeof (value as {id?:unknown}).id==='string'&&codes.has((value as {id:string}).id)?codes.get((value as {id:string}).id):
+        ['id','errorId'].includes(key)&&typeof v==='string'&&ids.has(v)?ids.get(v):remap(v)])):value;
+    const internalIds:string[]=[];
+    const clientId='local-'+command.operationId.slice(0,80);
+    for(const [index,raw] of command.localChanges.entries()) {
+      if(!raw||Object.keys(raw).some(key=>!['moduleAction','input','patches','guards','localId'].includes(key)))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+      const change=remap(raw) as typeof raw,operationId=command.operationId.slice(0,80)+'-local-'+index;
+      if(change.moduleAction?.startsWith('create')) {
+        if(!raw.localId||!/^local-[a-zA-Z0-9_-]{8,80}$/.test(raw.localId)||ids.has(raw.localId))throw new DraftConflict('INVALID_LOCAL_ID',422);
+      } else if(raw.localId)throw new DraftConflict('INVALID_LOCAL_ID',422);
+      if(change.moduleAction?.startsWith('delete')) {
+        const kind=change.moduleAction==='delete-error'?'errors':'items';
+        if(!change.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON([kind,{id:change.input?.id}])))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+        // A cascade must also guard the child set, so newly added children survive.
+        if(kind==='errors'&&!change.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON(['items'])))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+      }
+      applyIpqcWorkflow(candidate,{action:'apply',generation:command.generation,clientId,sequence:index+1,operationId,
+        ...(change.moduleAction?{moduleAction:change.moduleAction,input:change.input}: {patches:change.patches}),guards:change.guards},
+        {...context,commandFingerprint:undefined});
+      internalIds.push(operationId);
+      if(raw.localId){
+        const kind=change.moduleAction==='create-error'?'errors':'items',id=(kind==='errors'?'error-':'item-')+operationId;
+        ids.set(raw.localId,id);codes.set(raw.localId,candidate.workflow!.working[kind].find(row=>row.id===id)!.code);
+      }
+    }
+    // Inner operations are implementation details; the original operation owns
+    // the only durable receipt and is the only command recoverable/replayable.
+    for(const id of internalIds)delete candidate.workflow!.receipts[id];
+    delete candidate.workflow!.sequences[stableDraftJSON([context.actor.id,clientId])];
+    const result=applyDraftCommand(candidate.workflow!,{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint,
+      allowed:permission=>permission==='save'?context.allowed('edit'):context.allowed(permission)});
+    control.workflow=result.state;control.reservedErrorCodes=candidate.reservedErrorCodes;control.reservedItemCodes=candidate.reservedItemCodes;return result.receipt;
+  }
   if(command.moduleAction) {
     if(!['create-error','create-item','delete-error','delete-item'].includes(command.moduleAction))
       throw new DraftConflict('INVALID_MODULE_ACTION',422);
@@ -74,6 +120,7 @@ export function applyIpqcWorkflow(control: IpqcWorkflowControl, command: IpqcWor
       newItem={id:'item-'+command.operationId,code:nextItemCode(control,parent.code,context.allocationIndex),errorId:parent.id,productCode:parent.productCode,stageCode:parent.stageCode,
         standard:text(raw.standard),description:text(raw.description),note:text(raw.note),reason:'',tool:'',method:'',frequency:text(raw.frequency),
         standardEnabled:raw.standardEnabled!==false,cpkEnabled:raw.cpkEnabled===true,notApplicable:false,deleted:false,
+        ...(raw.notApplicableReason!==undefined?{notApplicableReason:text(raw.notApplicableReason)}:{}),
         equipmentId:text(raw.equipmentId),equipmentGroupId:text(raw.equipmentGroupId),equipmentSnapshot:null,
         mediaItems:raw.mediaItems||[],...(raw.rule?{rule:checkedIpqcRule(raw.rule)}:{})};
       patches.push({op:'insert',path:['items'],value:newItem});

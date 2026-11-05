@@ -28,11 +28,12 @@
   const now = () => new Date().toISOString();
   let control = null, hostElement = null, mountSequence = 0;
   let workspaceReady = () => false, sharedStateCurrent = () => false, reviewReadSequence = 0;
+  let beginGenerationConflict=null;
   let sharedClient,sharedClientOwner=null,sharedActor='',syncBase=null,syncGeneration=null;const sharedPoll=window.createForegroundPoll();let pendingCommandFeedback=null,activeSharedAction=null;
   // Matrix choices stay private until the explicit batch Apply. Recovery never
   // hydrates inputs on mount; the user must claim and confirm a historical copy.
   let matrixBatch=null,matrixActions=null,matrixChoiceRevision=0;
-  let matrixDepartureDiscard=null;
+  let matrixDepartureDiscard=null,localRejection=null;
   let matrixRecoverySession=null,matrixRecoveryReady=false,matrixRecoveryContext='',matrixRecoveryBase='',matrixRecoveryVerified=null;
   let matrixRecoveryNote='',matrixRecoveryError='',matrixRecoveryBlocked=false,matrixRecoveryGate=null;
   const matrixQuarantine=new Map();
@@ -119,7 +120,7 @@
     const historical=transport().isSupersededRecovery?.(historicalResult)===true&&transport().verifiedReadback(historicalResult,historicalResult.receipt.operationId)?.control===result.control;
     const current=library().workflow;if(current&&(!historical&&current.generation!==flow.generation||Number.isSafeInteger(current.revision)&&flow.revision<current.revision))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     if(requireEdit&&(result.permissions.edit!==true||flow.pendingId))throw Error(flow.pendingId?'PENDING_LOCKED':'FORBIDDEN');
-    if(requireEdit&&!result.control.versions?.some(version=>version.id===versionId&&version.status==='draft'))throw Error('STALE_GENERATION');
+    if(requireEdit&&!result.control.versions?.some(version=>version?.id===versionId&&version.status==='draft'))throw Error('STALE_GENERATION');
     return flow;
   }
   function checkMatrixDiscardRead(result,batch){
@@ -235,27 +236,27 @@
   }
   const matrixOwner=()=>matrixBatch&&matrixBatch.actorId===identity()?.id&&matrixBatch.epoch===window.ProcessSync?.identityGeneration?.();
   const matrixDirty=()=>matrixRecoveryBlocked||!!matrixOwner()&&(matrixBatch.count>0||!!matrixBatch.pending||hasMatrixConflicts(matrixBatch));
-  const unappliedMessage=()=>isVi()?'Hãy áp dụng hoặc bỏ thay đổi đang nhập trước khi lưu / gửi duyệt.':'請先套用或放棄尚未套用的修改，再儲存／送審。';
-  function assertNoUnapplied(){if(matrixDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
+  const unappliedMessage=()=>isVi()?'Hãy lưu thay đổi trước khi gửi duyệt.':'請先按存取保存本次修改，再送審。';
+  function assertNoUnapplied(){if(localDirty()||document.querySelector('.fqc-modal-overlay'))throw Error(unappliedMessage());}
   function matrixSelected(item,versionId){const row=matrixOwner()&&matrixBatch.versionId===versionId?matrixBatch.rows.get(item.id):null;return row?.codes||(Array.isArray(item.productCodes)?new Set(item.productCodes):null);}
-  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận chưa áp dụng':'未套用矩陣變更'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><details id="fqc-matrix-more"><summary>${isVi()?'Tùy chọn chỉnh sửa / khôi phục':'編輯／復原選項'}</summary><div><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></details></div></section>`;}
+  function matrixToolbarHTML(){return `<section class="fqc-matrix-actions" data-i18n-skip="true" aria-label="${isVi()?'Thay đổi ma trận cục bộ, dùng chung sau khi lưu':'本機矩陣變更，按存取後共用'}"><strong id="fqc-matrix-count" role="status"></strong><span id="fqc-matrix-message" role="alert"></span><div><button type="button" class="button signal" id="fqc-matrix-apply"></button><details id="fqc-matrix-more"><summary>${isVi()?'Tùy chọn chỉnh sửa / khôi phục':'編輯／復原選項'}</summary><div><button type="button" class="button ghost" id="fqc-matrix-discard"></button><button type="button" class="button ghost" id="fqc-matrix-reconcile" hidden></button><button type="button" class="button ghost" id="fqc-matrix-recovery">${isVi()?'Xem bản khôi phục':'查看本機恢復'}</button></div></details></div></section>`;}
   const matrixCanEdit=()=>!!editable()&&!library().workflow?.pendingId&&canEditDraft()&&sharedClient?.permission('edit')!==false;
   function paintMatrixActions(){
-    window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,matrixDirty());
-    window.VersionDraftUI?.updateSync?.(hostElement,ui.saving,!!ui.lastError,matrixDirty());
+    window.VersionDraftUI?.updateSaved?.(hostElement,library().workflow,localDirty());
+    window.VersionDraftUI?.updateSync?.(hostElement,ui.saving,!!ui.lastError,localDirty());
     const batch=matrixOwner()?matrixBatch:null,count=batch?.count||0,unknown=!!batch?.pending;
     const gate=matrixRecoveryReady&&!ui.saving&&matrixCanEdit()&&!matrixRecoveryBlocked;if(!matrixRecoveryGate||matrixRecoveryGate.root!==hostElement||matrixRecoveryGate.open!==gate){matrixRecoveryGate={root:hostElement,open:gate};for(const button of hostElement?.querySelectorAll('[data-matrix-item]')||[])button.disabled=!gate;}
     if(matrixActions?.root!==hostElement||!matrixActions?.status?.isConnected)matrixActions={root:hostElement,status:hostElement?.querySelector('#fqc-matrix-count'),message:hostElement?.querySelector('#fqc-matrix-message'),apply:hostElement?.querySelector('#fqc-matrix-apply'),discard:hostElement?.querySelector('#fqc-matrix-discard'),reconcile:hostElement?.querySelector('#fqc-matrix-reconcile')};
     const {status,message,apply,discard,reconcile}=matrixActions;if(!status)return;
-    status.textContent=isVi()?`Chưa đồng bộ: ${count} lựa chọn`:`未同步 ${count} 筆`;
+    status.textContent=isVi()?`Chưa lưu: ${count} lựa chọn`:`未存取 ${count} 筆`;
     const recoveryStatus=matrixRecoverySession?.status();
     const persistFailure=recoveryStatus&&!['OK','EMPTY','SCHEDULED'].includes(recoveryStatus.code)&&recoveryStatus.code!=='RUNTIME_ACQUIRING'?recoveryMessage(recoveryStatus.code):'';
     const rejectedCleanup=batch?.rejectionCleanup?(isVi()?'Thao tác đã bị từ chối; hoàn tất dọn trong khôi phục cục bộ, không gửi lại.':'原操作已確認拒絕；請在本機恢復完成清理，不會重送。'):'';
     const flow=library().workflow,savedCurrent=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'&&flow?.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working);
     const note=matrixRecoveryNote==='MATRIX_SHARED_APPLIED'?(savedCurrent?(isVi()?'Đã cập nhật bản nháp chung; đã lưu bản chụp.':'已更新共用草稿；快照已儲存。'):(isVi()?'Đã cập nhật bản nháp chung; chưa lưu bản chụp.':'已更新共用草稿；尚未儲存快照。')):matrixRecoveryNote;
     message.textContent=[matrixRecoveryError,batch?.storageError,batch?.error,persistFailure,note,rejectedCleanup].filter(Boolean).join(' ');
-    apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thiết lập ma trận mới':'套用新矩陣設定');
-    discard.textContent=isVi()?'Bỏ thay đổi chưa áp dụng':'放棄未套用變更';
+    apply.hidden=!unknown;apply.textContent=unknown?(isVi()?'Kiểm tra kết quả áp dụng':'查詢套用結果'):(isVi()?'Áp dụng thiết lập ma trận mới':'套用新矩陣設定');
+    discard.textContent=isVi()?'Bỏ lựa chọn lần này':'放棄本次勾選';
     const more=hostElement?.querySelector('#fqc-matrix-more');if(more&&(unknown||batch?.error||batch?.storageError||matrixRecoveryError))more.open=true;
     if(reconcile){reconcile.textContent=isVi()?'Đối chiếu lựa chọn mới nhất':'核對最新勾選';reconcile.hidden=!!batch?.completeMatrix||!count||unknown||!batch?.error;reconcile.disabled=ui.saving||matrixRecoveryBlocked;}
     apply.disabled=ui.saving||!count||matrixRecoveryBlocked||!matrixRecoveryReady||!unknown&&!matrixCanEdit();discard.disabled=ui.saving||!count&&!hasMatrixConflicts(batch)||unknown;
@@ -280,7 +281,7 @@
     if(!row.changed.size)batch.rows.delete(item.id);batch.error='';matrixRecoveryNote='';
     button.classList.toggle('included',included);button.classList.toggle('matrix-local-change',row.changed.has(code));button.setAttribute('aria-pressed',String(included));button.textContent=included?'✓':'—';
     const label=`${item.checkNo} ${code} · ${included?(isVi()?'Đã chọn cho sản phẩm':'已納入產品標準'):(isVi()?'Chưa chọn cho sản phẩm':'未納入產品標準')} · ${item.isEnabled!==false?(isVi()?'Đang dùng':'啟用中'):(isVi()?'Đã tắt':'停用')}`;button.setAttribute('aria-label',label);button.title=label;
-    matrixChoiceRevision++;queueMatrixPersistence();paintMatrixActions();
+    matrixChoiceRevision++;paintMatrixActions();
   }
   function matrixCompleteSnapshot(snapshot){
     const cat=catalog();if(!cat.comparisonReady)throw Error('MATRIX_COMPLETE_SNAPSHOT_REQUIRED');
@@ -324,6 +325,7 @@
   }
   async function applyMatrixChoices(){
     if(!matrixDirty()||matrixRecoveryBlocked||!matrixBatch||ui.saving)return;
+    if(!matrixBatch.pending)return sharedAction('save');
     const batch=matrixBatch,owned=currentReadOwner(),client=transport(),session=matrixRecoverySession,operation={owned},querying=!!batch.pending;
     let feedback=null,reservation=null,dispatched=false;activeSharedAction=operation;ui.saving=true;paintMatrixActions();
     const check=()=>{if(!owned()||matrixBatch!==batch||matrixRecoverySession!==session)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(library().workflow?.generation!==batch.generation)throw Error('STALE_GENERATION');};
@@ -392,8 +394,8 @@
   }
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
-  function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
-  function adopt(result,selectOpen=false){if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner();}
+  function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({durableBegin:true,endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
+  function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner();}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items']){
     // JSON snapshot rows use stable IDs. Keep find()'s first duplicate match.
@@ -401,24 +403,62 @@
     for(const row of next[collection]){const old=Number.isNaN(row.id)?undefined:firstById.get(row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
     for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
   }}return{patches,guards};}
-  async function sharedAction(action,detail={},onPrepared=null){if(['save','submit'].includes(action))assertNoUnapplied();if(ui.saving)throw Error('OPERATION_IN_PROGRESS');const operation={owned:currentReadOwner()};activeSharedAction=operation;ui.saving=true;
+  function localDirty(){return matrixDirty()||!!syncBase&&!!editable()&&changes(syncBase,editable().snapshot).patches.length>0;}
+  function localSnapshot(){
+    const local=clone(editable()?.snapshot);if(!local)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
+    if(matrixOwner())for(const [id,row]of matrixBatch.rows){const item=local.items.find(item=>item.id===id);if(!item)throw Error('FQC_MATRIX_SCOPE_CHANGED');if(item.isDeleted)continue;for(const code of row.changed){const codes=new Set(item.productCodes);if(row.codes.has(code))codes.add(code);else codes.delete(code);item.productCodes=[...codes];}}
+    return local;
+  }
+  function localSaveDetail(){
+    const base=syncBase,local=localSnapshot();if(!base)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
+    const detail=changes(base,local),matrixCells=[];
+    for(const item of local.items){const old=base.items.find(row=>row.id===item.id);if(!old||item.isDeleted||!Array.isArray(old.productCodes)||!Array.isArray(item.productCodes))continue;for(const code of new Set([...old.productCodes,...item.productCodes])){const before=old.productCodes.includes(code),value=item.productCodes.includes(code);if(before!==value)matrixCells.push({itemId:item.id,productCode:code,base:before,value});}}
+    const relation=patch=>patch.path?.[0]==='items'&&['productCodes','productRefs','products'].includes(patch.path?.[2]);
+    return {moduleAction:'save-local-v1',patches:detail.patches.filter(p=>!relation(p)),guards:detail.guards.filter(p=>!relation(p)),input:{matrixCells}};
+  }
+  function discardLocalEdits(){
+    if(localRejection){if(!transport().discardRejectedLocalSave(localRejection.command))throw Error('CONFIRMED_REJECTION_REQUIRED');localRejection=null;}
+    const version=editable();if(version&&syncBase)version.snapshot=clone(syncBase);
+    ui.lastError=null;
+  }
+  async function reconcileLocalConflict(){
+    if(!localRejection||ui.saving||transport().hasUnknown())return;
+    const rejection=localRejection,client=transport(),owned=currentReadOwner(workspaceReady),generation=syncGeneration;
+    const desired=localSaveDetail();ui.saving=true;
+    try{
+      const read=await client.read();if(!owned()||localRejection!==rejection)throw Error('FQC_OPERATION_CONTEXT_CHANGED');
+      const flow=checkMatrixDiscardRead(read,{versionId:editable()?.id});if(flow.generation!==generation)throw Error('STALE_GENERATION');
+      const differences=[];
+      for(const patch of desired.patches){if(patch.op!=='set')continue;const [kind,entity,field]=patch.path,row=flow.working[kind]?.find(row=>row.id===entity?.id),guard=desired.guards.find(g=>JSON.stringify(g.path)===JSON.stringify(patch.path));if(!row)throw Error('FQC_MATRIX_SCOPE_CHANGED');if(JSON.stringify(row[field])!==JSON.stringify(guard?.value)&&JSON.stringify(row[field])!==JSON.stringify(patch.value))differences.push(`${row.name||row.code||row.checkNo} · ${field}\n${isVi()?'Bản chung':'共用值'}: ${JSON.stringify(row[field])}\n${isVi()?'Của tôi':'我的值'}: ${JSON.stringify(patch.value)}`);}
+      if(!differences.length)throw Error('請重新載入並核對資料 / Hãy tải lại và kiểm tra dữ liệu');
+      if(!confirm((isVi()?'Có xung đột. Giữ giá trị của tôi cho các trường sau?':'以下欄位有衝突，要保留我的值嗎？')+'\n\n'+differences.join('\n\n')))return;
+      const confirmed=await client.read();if(!owned()||localRejection!==rejection)throw Error('FQC_OPERATION_CONTEXT_CHANGED');const latest=checkMatrixDiscardRead(confirmed,{versionId:editable()?.id});if(latest.generation!==generation||latest.revision!==flow.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      const merged=clone(latest.working);
+      for(const patch of desired.patches){const [kind,entity,field]=patch.path;if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');merged[kind].push(clone(patch.value));}else if(patch.op==='set'){const row=merged[kind].find(row=>row.id===entity?.id);if(!row)throw Error('FQC_MATRIX_SCOPE_CHANGED');row[field]=clone(patch.value);}else throw Error('INVALID_FQC_LOCAL_SAVE');}
+      for(const cell of desired.input.matrixCells){const row=merged.items.find(row=>row.id===cell.itemId&&!row.isDeleted);if(!row)throw Error('FQC_MATRIX_SCOPE_CHANGED');const codes=new Set(row.productCodes);if(cell.value)codes.add(cell.productCode);else codes.delete(cell.productCode);row.productCodes=[...codes];}
+      if(!client.discardRejectedLocalSave(rejection.command))throw Error('CONFIRMED_REJECTION_REQUIRED');localRejection=null;adopt(confirmed);editable().snapshot=merged;matrixBatch=null;ui.lastError=null;
+    }catch(error){if(owned())ui.lastError=error.message;}
+    finally{ui.saving=false;if(owned())render();}
+  }
+  async function sharedAction(action,detail={},onPrepared=null){if(action==='submit')assertNoUnapplied();if(action==='save'&&document.querySelector('.fqc-modal-form'))throw Error(isVi()?'Hoàn tất biểu mẫu trước khi lưu.':'請先完成表單，再按存取。');if(ui.saving)throw Error('OPERATION_IN_PROGRESS');const operation={owned:currentReadOwner()};activeSharedAction=operation;ui.saving=true;let sentCommand=null;
     // A request must become visibly busy before its first await. Do not rebuild
     // the open item form just to acknowledge Save (its input is still unsaved).
     hostElement?.querySelectorAll('#fqc-save,#fqc-submit,[data-matrix-item]').forEach(button=>{button.disabled=true;});
     const saveButton=hostElement?.querySelector('#fqc-save');if(saveButton&&action==='save')saveButton.textContent=isVi()?'Đang lưu…':'儲存中…';
     try{
-    const client=transport();if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
-    const local=clone(editable()?.snapshot||library().workflow?.working||{errors:[],items:[]}),base=clone(syncBase||local),generation=syncGeneration;
-    if(!library().workflow||action==='begin'){const begun=await client.begin();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(begun,action==='begin');if(action==='begin'){render();return true;}}
-    if(action==='apply'){if(!detail.patches)detail=changes(base,local);if(!detail.patches.length)return true;}
-    if(action==='save'){await client.flush();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');assertNoUnapplied();}
+    const client=transport();if(beginGenerationConflict)throw Error('STALE_GENERATION');if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');if(action==='save'&&client.permission('edit')!==true)throw Error('FORBIDDEN');
+    const generation=syncGeneration,staged=action==='save'?{detail:localSaveDetail(),snapshot:localSnapshot(),base:clone(syncBase)}:null;
+    if(!library().workflow||action==='begin'){const begun=await client.begin();if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');if(begun.recoveryKind==='begin-v1'&&begun.receipt.generation!==begun.control?.workflow?.generation){beginGenerationConflict={receipt:clone(begun.receipt)};syncGeneration=begun.receipt.generation;throw Error('STALE_GENERATION');}adopt(begun,action==='begin');if(staged){const draft=editable();if(!draft)throw Error('BEGIN_REQUIRED');draft.snapshot=staged.snapshot;syncBase=staged.base;}if(action==='begin'){render();return true;}}
+    if(action==='apply'){if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');render();return true;}
+    if(action==='save'){detail=staged.detail;}
     const feedback=['apply','save'].includes(action)?{owned:currentReadOwner(),action}:null;
     if(feedback){pendingCommandFeedback=feedback;window.VersionDraftUI?.updateSync(hostElement,true,!!ui.lastError);}
-    let result;try{const command=client.prepare(action==='apply'?generation||library().workflow.generation:detail.generation||library().workflow.generation,action,detail);onPrepared?.(command);result=await client.sendPrepared(command);}finally{if(pendingCommandFeedback===feedback)pendingCommandFeedback=null;}if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(result);
+    let result;try{const command=client.prepare(action==='apply'?generation||library().workflow.generation:detail.generation||library().workflow.generation,action,detail);onPrepared?.(command);sentCommand=command;result=await client.sendPrepared(command);}finally{if(pendingCommandFeedback===feedback)pendingCommandFeedback=null;}if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(result);
+    if(action==='save'){localRejection=null;matrixBatch=null;matrixChoiceRevision++;matrixRecoveryNote='';}
     ui.lastError=null;ui.recoveryNotice=null;
     if(client.isSupersededRecovery?.(result)===true){confirmFormRecovery(result);client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
-  }catch(error){if(operation.owned())ui.lastError=error.message;throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
+  }catch(error){if(operation.owned()){ui.lastError=error.message;if(sentCommand?.moduleAction==='save-local-v1'&&transport().isConfirmedRejection(error,sentCommand))localRejection={command:sentCommand,error};}throw error;}finally{if(activeSharedAction===operation){activeSharedAction=null;ui.saving=false;if(operation.owned())render();}}}
   function pollShared() {const pollScheduleOwner=sharedPoll.capture();
     if (!workspaceReady()) { sharedPoll.cancel(); return; }
     const readOwner = currentReadOwner(workspaceReady), owned = () => sharedPoll.isCurrent(pollScheduleOwner) && readOwner();
@@ -430,7 +470,7 @@
           const result = await transport().read(flow ? flow.generation + ':' + flow.revision : '');
           if (!owned()) return;
           if (!result.unchanged && result.control) {
-            if (matrixDirty() || document.querySelector('.fqc-modal-overlay') || document.activeElement?.matches('input,textarea,select')) {
+            if (localDirty() || document.querySelector('.fqc-modal-overlay') || document.activeElement?.matches('input,textarea,select')) {
               const status = document.querySelector('#fqc-shared-status');
               if (status) status.textContent = isVi() ? 'Nội dung chung đã cập nhật; giữ biểu mẫu đang nhập.' : '共用內容已更新；保留正在輸入的表單。';
             } else { adopt(result); render(); }
@@ -651,7 +691,7 @@
     }
   }
   const canEditDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'edit')??(typeof window.hasPermission==='function'?window.hasPermission('view:data'):identity()?.role==='admin'));
-  const canDraftAction=op=>!!identity()&&sharedClient?.permission(op)===true&&(library()?.workflow||canEditDraft());
+  const canDraftAction=op=>!!identity()&&sharedClient?.permission(op==='save'?'edit':op)===true&&(library()?.workflow||canEditDraft());
   const canWithdrawDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'withdraw')??(typeof window.hasPermission==='function'?window.hasPermission('view:data')||window.hasPermission('approval.withdraw'):identity()?.role==='admin'));
   async function beginDraft() {
     if (!canEditDraft()) return toast('沒有編輯 FQC 草稿權限');
@@ -952,7 +992,7 @@
     const matrixScroll = hostElement.querySelector('.fqc-matrix-scroll');
     const scroll = { x:matrixScroll?.scrollLeft || 0, y:matrixScroll?.scrollTop || 0, page:window.scrollY };
     ensureControl(); restoreMatrixChoices(); const version = selected();
-    if (!version) { hostElement.innerHTML = emptyHTML(); bindEvents(); return; }
+    if (!version) { hostElement.innerHTML = emptyHTML(); bindEvents(); if(sharedClient?.hasUnknownBegin?.()){const button=document.createElement('button');button.id='fqc-check-result';button.textContent=isVi()?'Kiểm tra kết quả':'查詢前次結果';button.onclick=()=>checkPreviousResult();hostElement.prepend(button);} return; }
     const category = categoryName(version), errors = errorRows(version, category);
     if (!errors.some(error => error.id === ui.selectedErrorId)) ui.selectedErrorId = errors[0]?.id || '';
     const selectedError = errors.find(error => error.id === ui.selectedErrorId), items = itemRows(version, category, ui.selectedErrorId);
@@ -971,7 +1011,7 @@
             <select id="fqc-version">${versions().map(item => `<option value="${h(item.id)}" ${item.id === version.id ? 'selected' : ''}>${h(item.number)} · ${h(statusLabel(item.status))} · ${h(displayScalar(historyDisplay(lastEdit(item)).actor,item.creatorName))} · ${formatDate(lastEdit(item)?.at || item.createdAt)}</option>`).join('')}</select>
           </div>
           ${(version.status === 'approved'||version.status === 'draft'&&!library().workflow) && canEditDraft() ? '<button class="button signal" id="fqc-begin">開始修改／刪除資料</button>' : ''}
-          ${version.status === 'draft' && canDraftAction('save') ? `<button class="button ghost" id="fqc-save" ${ui.saving ? 'disabled' : ''}>${ui.saving ? '儲存中…' : '儲存草稿'}</button>` : ''}${version.status === 'draft' && canDraftAction('submit') ? `<button class="button signal" id="fqc-submit">送出主管審核</button>` : ''}
+          ${version.status === 'draft' && canDraftAction('save') ? `<button class="button ghost" id="fqc-save" ${ui.saving ? 'disabled' : ''}>${ui.saving ? '儲存中…' : '存取'}</button>` : ''}${version.status === 'draft' && canDraftAction('submit') ? `<button class="button signal" id="fqc-submit">送出主管審核</button>` : ''}
           ${version.status === 'pending' && canWithdrawDraft() ? '<button class="button ghost" id="fqc-withdraw">解除送審</button>' : ''}
         </div>
       </section>
@@ -1105,7 +1145,7 @@
       </section>
     </section>`;
     matrixRecoveryGate=null;bindEvents();paintMatrixActions();
-    if(library().workflow){const flow=library().workflow,bar=document.createElement('section');bar.className='master-version-bar';bar.innerHTML=`<p id="fqc-shared-status" role="status">${h(ui.lastError ? displayDraftError(ui.lastError) : `${isVi()?'Bản nháp chung toàn bộ FQC':'FQC 全庫共用草稿'} · ${flow.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working)?(isVi()?'Đã lưu':'已儲存'):(isVi()?'Chưa lưu':'尚未儲存')} · ${isVi()?'Người lưu':'儲存者'}: ${flow.saved?.actor.name||'—'}`)}</p><button id="fqc-cases" class="button ghost">${isVi()?'Hồ sơ gửi duyệt':'送審案件'}</button>${transport().hasUnknown()?'<button id="fqc-check-result">'+(isVi()?'Kiểm tra kết quả':'查詢前次結果')+'</button>':''}`;hostElement.querySelector('#fqc-page').prepend(bar);
+    if(library().workflow||sharedClient?.hasUnknownBegin?.()){const flow=library().workflow||{},bar=document.createElement('section');bar.className='master-version-bar';bar.innerHTML=`<p id="fqc-shared-status" role="status">${h(ui.lastError ? displayDraftError(ui.lastError) : `${isVi()?'Bản nháp chung toàn bộ FQC':'FQC 全庫共用草稿'} · ${flow.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working)?(isVi()?'Đã lưu':'已儲存'):(isVi()?'Chưa lưu':'尚未儲存')} · ${isVi()?'Người lưu':'儲存者'}: ${flow.saved?.actor.name||'—'}`)}</p><button id="fqc-cases" class="button ghost">${isVi()?'Hồ sơ gửi duyệt':'送審案件'}</button>${transport().hasUnknown()?'<button id="fqc-check-result">'+(isVi()?'Kiểm tra kết quả':'查詢前次結果')+'</button>':''}`;hostElement.querySelector('#fqc-page').prepend(bar);
       bar.querySelector('#fqc-cases').onclick=()=>window.openSharedDraftHistory({client:transport(),editable:()=>!!editable()&&identity()?.role==='admin',onApplied:async r=>{adopt(r);render();}}).catch(e=>toast(displayDraftError(e)));
       bar.querySelector('#fqc-check-result')?.addEventListener('click',()=>checkPreviousResult());
     }
@@ -1117,7 +1157,9 @@
       const item=version.snapshot.items.find(row=>row.id===id),error=version.snapshot.errors.find(row=>row.id===(item?.errorId||id));
       ui.search='';if(error){ui.category=error.category;ui.selectedErrorId=error.id;}render();if(item)openItemModal(item.id,'',true);else if(error)openErrorModal(error.id);
     }});
-    window.VersionDraftUI?.mount(hostElement,{header:'.fqc-version-bar',historyClient:transport,module:'FQC',scope:isVi()?'Toàn bộ FQC':'FQC 全庫',version,versions:versions(),active:approved(),flow:library().workflow,localUnsaved:matrixDirty(),busy:ui.saving,failed:!!ui.lastError||sharedClient?.hasUnknown()&&!commandFeedbackPending(),actions:{begin:'#fqc-begin',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-fqc-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-fqc-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{errors:true,missing:true},history:['.fqc-activity','#fqc-cases','[data-shared-issue-kind="warning"]'],status:['#fqc-shared-status']});
+    window.VersionDraftUI?.mount(hostElement,{header:'.fqc-version-bar',historyClient:transport,module:'FQC',scope:isVi()?'Toàn bộ FQC':'FQC 全庫',version,versions:versions(),active:approved(),flow:library().workflow,localUnsaved:localDirty(),busy:ui.saving,failed:!!ui.lastError||sharedClient?.hasUnknown()&&!commandFeedbackPending(),actions:{begin:'#fqc-begin',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-fqc-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-fqc-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{errors:true,missing:true},history:['.fqc-activity','#fqc-cases','[data-shared-issue-kind="warning"]'],status:['#fqc-shared-status']});
+    const saveLabel=hostElement.querySelector('#fqc-save');if(saveLabel&&!ui.saving)saveLabel.textContent=isVi()?'Lưu':'存取';
+    if(localRejection?.error.message==='DEPENDENCY_CHANGED_RECONFIRM'){const button=document.createElement('button');button.id='fqc-resolve-conflict';button.className='button ghost';button.textContent=isVi()?'Xem và xác nhận xung đột':'核對並確認衝突';button.onclick=reconcileLocalConflict;hostElement.querySelector('#fqc-page').prepend(button);}
     if(ui.recoveryNotice){const notice=document.createElement('p');notice.id='fqc-recovery-notice';notice.className='master-edit-note';notice.setAttribute('role','status');notice.setAttribute('data-i18n-skip','true');notice.textContent=displayDraftError(ui.recoveryNotice);hostElement.querySelector('#fqc-page').prepend(notice);}
     if(focusId){const field=hostElement.querySelector('#'+CSS.escape(focusId));field?.focus({preventScroll:true});if(field?.setSelectionRange&&Number.isInteger(selectionStart))try{field.setSelectionRange(selectionStart,selectionEnd);}catch{/* Select controls do not support text selection. */}}
     window.scrollTo(0, scroll.page);
@@ -1293,8 +1335,8 @@
     let held=null;
     const roots=()=>[hostElement,...document.querySelectorAll('.fqc-modal-overlay')];
     const verified=()=>!!held&&held.coverage.current();
-    return {...base,
-      otherDraftsPending:()=>base.inspect().state==='dirty'?window.sharedDraftDepartureBlocked():!unknownDepartureEligible()||sharedClient.otherDeparturePending(),
+    return {...base,autoAbandon:true,
+      otherDraftsPending:()=>localRejection&&!sharedClient?.hasUnknown()?sharedClient.otherDeparturePending():base.inspect().state==='dirty'?window.sharedDraftDepartureBlocked():!unknownDepartureEligible()||sharedClient.otherDeparturePending(),
       inspect(){if(verified())return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:departureNotice()};const status=base.inspect();return status.state==='unknown'&&unknownDepartureEligible()?{...status,canAbandon:true,reason:departureNotice()}:status;},
       async abandon(){
         if(base.inspect().state==='dirty')return base.abandon();
@@ -1328,8 +1370,20 @@
   async function persistForm(overlay,version) {
     const owner=formOwners.get(overlay);
     if(!owner?.current())throw Error(owner?.superseded?'FQC_FORM_SUPERSEDED_CONFIRMED':'FQC_FORM_CONTEXT_CHANGED');
-    const snapshot=clone(version.snapshot),detail=changes(owner.base,snapshot);
-    return sharedAction('apply',detail,command=>{owner.attempt={operationId:command.operationId,snapshot};});
+    if(transport().hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
+    const detail=changes(owner.base,version.snapshot),merged=localSnapshot();
+    // Apply only fields changed in this form. A receipt read may have installed
+    // peer values while the form remained open; retain the form's old guards
+    // for touched fields without replacing unrelated peer fields.
+    for(const patch of detail.patches){
+      const [kind,entity,field]=patch.path;
+      if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_MATRIX_SCOPE_CHANGED');merged[kind].push(clone(patch.value));continue;}
+      const row=merged[kind].find(row=>row.id===entity.id),baseRow=syncBase?.[kind]?.find(row=>row.id===entity.id),guard=detail.guards.find(guard=>JSON.stringify(guard.path)===JSON.stringify(patch.path));
+      if(!row||!baseRow)throw Error('FQC_MATRIX_SCOPE_CHANGED');
+      if(JSON.stringify(row[field])===JSON.stringify(baseRow[field])){if(guard?.value===undefined)delete baseRow[field];else baseRow[field]=clone(guard.value);}
+      row[field]=clone(patch.value);
+    }
+    editable().snapshot=merged;if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}ui.lastError=null;render();return true;
   }
   function confirmFormRecovery(result) {
       for(const form of document.querySelectorAll('.fqc-modal-overlay')){
@@ -1346,16 +1400,25 @@
   async function checkPreviousResult(overlay=null) {
     if(ui.saving)return;
     if(matrixDirty()&&matrixBatch.pending){await applyMatrixChoices();return;}
-    const owned=currentReadOwner(),client=transport(),operation={owned};activeSharedAction=operation;ui.saving=true;
+    const owned=currentReadOwner(),client=transport(),operation={owned},recoveringBegin=client.hasUnknownBegin?.()===true;activeSharedAction=operation;ui.saving=true;
     const buttons=[...document.querySelectorAll('#fqc-check-result,[data-fqc-check-result]')];buttons.forEach(button=>{button.disabled=true;});
     try {
       const result=await client.resolveUnknown();
       const superseded=client.isSupersededRecovery?.(result)===true;
       if(!result?.receipt||client.hasUnknown()&&!superseded)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
       if(!owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
-      const read=client.isVerifiedReadback?.(result)===true?result:await client.read();
+      if(recoveringBegin){beginGenerationConflict={receipt:clone(result.receipt)};syncGeneration=result.receipt.generation;}
+      const read=recoveringBegin&&result.recoveryKind==='begin-v1'||client.isVerifiedReadback?.(result)===true?result:await client.read();
       if(!owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
-      adopt(read);ui.lastError=null;
+      if(recoveringBegin){
+        // Keep the original local baseline and matrix ownership. A newer generation
+        // requires the existing reconfirm flow; recovering Begin is never a Save.
+        if(read.control?.workflow?.generation!==result.receipt.generation)throw Error('STALE_GENERATION');
+        const snapshot=editable()?clone(editable().snapshot):null,base=syncBase;
+        adopt(read,false,true);if(snapshot&&editable())editable().snapshot=snapshot;syncBase=base;syncGeneration=result.receipt.generation;beginGenerationConflict=null;
+        ui.lastError=null;return;
+      }
+      adopt(read);if(matrixOwner()&&!matrixBatch.pending){matrixBatch.rows.clear();matrixBatch.count=0;matrixChoiceRevision++;}ui.lastError=null;
       confirmFormRecovery(result);
       if(superseded){client.acknowledgeSupersededRecovery(result);ui.recoveryNotice='FQC_PREVIOUS_GENERATION_CONFIRMED';}
     }catch(error){if(owned()){ui.lastError=error.message;if(overlay?.isConnected)showModalAlert(overlay,'error',error.message);else toast(displayDraftError(error));}}
@@ -1394,13 +1457,13 @@
   }
   function closeModal(overlay) { overlay.remove(); document.body.classList.remove('fqc-modal-open'); }
   function openErrorModal(id = '') {
-    const version = clone(editable()), errors = version.snapshot.errors, existing = errors.find(error => error.id === id), category = categoryName(version), code = existing?.code || nextErrorCode(category, errors);
+    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = version.snapshot.errors, existing = errors.find(error => error.id === id), category = categoryName(version), code = existing?.code || nextErrorCode(category, errors);
     const vi = isVi(),newId = `fqc-error:${crypto.randomUUID()}`;
     const overlay = modal(`<form class="fqc-modal-form"><header><h2>${existing ? (vi ? 'Sửa mã lỗi' : '修改錯誤代碼') : (vi ? 'Thêm mã lỗi mới' : '新增錯誤代碼')}</h2><button type="button" class="button ghost" data-close>${vi ? 'Quay lại' : '返回'}</button></header><div class="fqc-modal-body">
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Nhóm sản phẩm' : '產品類別'}</label><input value="${h(existing?.category || category)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Mã lỗi (tự động)' : '錯誤代碼（自動接續）'}</label><input value="${h(code)}" readonly data-i18n-skip="true" class="fqc-input fqc-readonly"></div>
       <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Tên lỗi' : '錯誤名稱'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
-    </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
+    </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${isVi()?'Hoàn tất chỉnh sửa':'完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
     overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
     overlay.querySelectorAll('input, textarea').forEach(input => {
@@ -1805,7 +1868,7 @@
     const formActor=identity(),formActorId=formActor?.id,formGeneration=library().workflow?.generation,formVersionId=editable()?.id;
     const formCurrent=()=>overlay.isConnected&&identity()===formActor&&formActor?.id===formActorId&&library().workflow?.generation===formGeneration&&editable()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(library().workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
-    const version = clone(editable()), errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
+    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;
     const newId = `fqc-item:${crypto.randomUUID()}`;
     const productCodes = new Set(existing?.productCodes || []); if (preselectCode) productCodes.add(preselectCode);
     const products = effectiveProducts(error.category), checkNo = existing?.checkNo || nextCheckNo(error, items);
@@ -1956,7 +2019,7 @@
       </fieldset>
       <div class="fqc-field"><label class="fqc-label">${vi ? 'Ghi chú' : '備註'}</label><textarea name="note" data-i18n-skip="true" class="fqc-textarea">${h(existing?.note || '')}</textarea></div>
       <p class="fqc-system-note">${vi ? 'Phiên bản' : '版本'} ${h(version.number)} · ${vi ? 'Tài khoản sửa' : '修改帳號'} ${h(actor().id)} · ${vi ? 'Thời gian lưu do máy chủ ghi nhận' : '儲存時間由伺服器完成後記錄'}</p>
-    </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${vi ? 'Lưu vào bản nháp' : '儲存至草稿'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
+    </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${vi ? 'Hoàn tất chỉnh sửa' : '完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
     overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
 
@@ -2368,7 +2431,7 @@
     return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
   }
   function openExistingModal(productCode) {
-    const version = clone(editable());
+    const version = {...clone(editable()),snapshot:localSnapshot()};
     const cat = categoryName(version);
     const allItems = itemRows(version, cat);
     const product = catalog().products.find(p => p.code === productCode) || {
@@ -2435,7 +2498,7 @@
       </div>
       <footer>
         <div class="fqc-modal-alert" role="alert"></div>
-        <button class="button signal" type="submit" id="btn-batch-add">${window.VersionDraftUI.t('apply')}</button>
+        <button class="button signal" type="submit" id="btn-batch-add">${isVi()?'Hoàn tất chỉnh sửa':'完成編輯'}</button>
         <button type="button" class="button ghost" data-close>${isVi() ? 'Hủy' : '取消'}</button>
       </footer>
     </form>`);
@@ -2735,13 +2798,13 @@
     context:()=>[sharedActor,mountSequence,library().workflow?.generation,ui.selectedVersionId,sharedClient?.permission('save'),sharedClient?.permission('edit')],
     current:()=>sharedActor===identity()?.id&&sharedStateCurrent(),
     busy:()=>ui.saving||[...document.querySelectorAll('.fqc-modal-overlay')].some(node=>formOwners.get(node)?.pending),
-    unknown:()=>sharedClient?.hasUnknown()||!!matrixBatch?.pending,failed:()=>matrixRecoveryBlocked||sharedClient?.hasSyncFailures(),
-    local:()=>matrixDirty()||!!document.querySelector('.fqc-modal-overlay'),
+    unknown:()=>sharedClient?.hasUnknown()||!!matrixBatch?.pending,failed:()=>matrixRecoveryBlocked||!localRejection&&sharedClient?.hasSyncFailures(),
+    local:()=>localDirty()||!!document.querySelector('.fqc-modal-overlay'),sharedOwned:()=>false,sharedDirty:()=>false,
     localReason:()=>isVi()?'Ở lại và chọn “Áp dụng thay đổi ma trận” hoặc Áp dụng trong biểu mẫu; Lưu không tự áp dụng.':'請留頁按矩陣「套用變更」或原表單「套用修改」；儲存不會代為套用。',
     canSave:()=>!!editable()&&!!canDraftAction('save'),canDiscard:()=>!!editable()&&sharedClient?.permission('edit')===true,
     save:()=>sharedAction('save'),dialogs:()=>[...document.querySelectorAll('.fqc-modal-overlay')],
-    async discard(){for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();},
-  }));},requiresSave:()=>!!hostElement?.isConnected&&window.sharedDraftNeedsSave?.(control?.libraries?.fqc?.workflow),saveForDeparture:()=>sharedAction('save'),hasLocalChanges:matrixDirty,canLeave:()=>!ui.saving&&!matrixDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+    async discard(){for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();discardLocalEdits();},
+  }));},requiresSave:()=>false,saveForDeparture:()=>sharedAction('save'),hasLocalChanges:localDirty,canLeave:()=>!ui.saving&&!localDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){beginGenerationConflict=null;localRejection=null;matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;matrixRecoveryContext='';matrixRecoveryBase='';matrixRecoveryReady=false;mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;sharedPoll.cancel();workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');
@@ -2792,7 +2855,7 @@
       openItemReadOnlyView(versionId, itemId);
     },
     async transferEquipment({ sourceEquipmentId, targetEquipment, itemIds, targetDraftId }) {
-      const client=transport();let current=await client.read();
+      const owned=currentReadOwner();if(localDirty()||ui.saving)throw Error('LOCAL_CHANGES_PRESENT');const client=transport();let current=await client.read();if(!owned()||localDirty()||ui.saving)throw Error('FQC_OPERATION_CONTEXT_CHANGED');
       if(current.control?.workflow){
         if(document.querySelector('.fqc-modal-overlay'))throw Error('FORM_OPEN_APPLY_OR_CANCEL_FIRST');
         if(current.control.workflow.pendingId)throw Error('PENDING_LOCKED');
@@ -2801,7 +2864,7 @@
         const patches=[],guards=[];
         for(const id of itemIds){const item=current.control.workflow.working.items.find(row=>row.id===id&&!row.isDeleted);if(!item||item.equipmentId!==sourceEquipmentId)throw Error('DEPENDENCY_CHANGED');
           const path=['items',{id},'equipmentId'];patches.push({op:'set',path,value:targetEquipment.id});guards.push({path,value:sourceEquipmentId});}
-        const result=await client.command(current.control.workflow.generation,'apply',{patches,guards});adopt(result);
+        const result=await client.command(current.control.workflow.generation,'apply',{patches,guards});if(!owned()||localDirty())throw Error('FQC_OPERATION_CONTEXT_CHANGED');adopt(result);
         window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));
         return{success:true,results:itemIds.map(itemId=>({itemId,status:'applied'})),saved:false};
       }
@@ -2830,7 +2893,7 @@
     if (!identity()?.id || window.ProcessSync?.requiresReload) return;
     const owned = currentReadOwner(() => !fqcTabIsActive() || workspaceReady());
     if (library().workflow) {
-      if (!document.querySelector('.fqc-modal-overlay')) loadShared(owned).then(() => {
+      if (!localDirty()&&!ui.saving&&!sharedClient?.hasUnknown()&&!document.querySelector('.fqc-modal-overlay')) loadShared(()=>owned()&&!localDirty()&&!ui.saving&&!sharedClient?.hasUnknown()&&!document.querySelector('.fqc-modal-overlay')).then(() => {
         if (owned() && workspaceReady()) render();
       }).catch(error => { if (owned()) ui.lastError = error.message; });
       return;

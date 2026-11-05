@@ -1,3 +1,19 @@
+## 2026-11-04 三模組隔離整合範圍
+
+FQC、IQC、IPQC C 候選均以頁面本機編輯及明確存取為原則，保存時保留權限、欄位基準、世代及 CAS 保護；送審仍獨立。整合不得以導覽例外解除帳號層未知寫入鎖，不轉換或刪除既有 shared working／saved／pending／formal／history。畫布與模具不得因共用程式存在就視為已完成轉接。[候選及驗證界線](../../acceptance/draft-save-integration-20261104.md)。
+
+未知 Begin 的復原要求：送出前保留原帳號、模組及操作識別，後端以同一 CAS 保存開始修改結果收據。中斷或重開頁後只查原收據；目前存在草稿、404 或逾時都不能證明原操作未執行，不能自動重送。允許離頁只放棄尚未送出的本機輸入，保留未知識別及寫入限制。查得 Begin 不等於已存取，不清除仍在頁面的本機編輯／原比較基準、不接續 Save 或 Submit；換代需重新核對。首次存取亦必須比對原 Begin 收據與權威讀回的世代；不同時保留本機修改、比較基準及原收據，禁止自動改綁新世代，重按存取也不可重新 Begin 或送出舊修改。舊版未提供識別的未知 Begin 不可事後假造成功證據。本次不增加跨模組待確認畫面、匯出、人工解鎖或跨瀏覽器復原；實作及驗證狀態仍以候選報告為準。
+
+## 2026-11-04 FQC：本機編輯、一次存取（最新確認）
+
+FQC 編輯不即時同步；表單完成與矩陣勾選先保留於本次頁面，搜尋／篩選不清除勾選。按一次「存取」才逐欄位／逐格合併並原子保存共用快照；不同人的不同格保留，相同結果可收斂，真正衝突才確認。修改權包括存取，送審權獨立。離頁直接放棄未送出的輸入，不跳提醒；未知結果可離頁但保留原識別與寫入鎖，不得重送或刪除未知操作。已存、待審、正式、歷史及既有已同步未存內容均不自動刪除。此要求取代本文件較早的 FQC 整矩陣最後套用覆蓋及兩階段 Apply/Save 規則；其他模組另案實作。[候選與資料界線](../../acceptance/fqc-single-save-20261104/README.md)。
+
+Canvas atomic Save may reuse an existing saved ID when the new working content returns to that saved content, even when the command changed working and its receipt is not marked unchanged. Acceptance still requires the original operation receipt, authoritative readback and durable owner checks; never resend to obtain a different saved ID.
+
+## 2026-11-04 IQC latest requested flow
+
+For the IQC candidate, form edits remain local until Save atomically shares and saves the module. Unsent input is abandoned on departure/reload without confirmation; search/filter retains it. Edit permits Save; submit remains separate. IQC Submit requires explicit Save of all local changes first; an open form, local snapshot or unresolved Save cannot silently submit an older saved version. Recheck local input after the asynchronous confirmation; preserve edits and never auto-save. Unknown operations retain original receipts/write locks while allowing departure. Existing shared data is preserved pending separately authorized conversion. This supersedes older IQC per-Apply synchronization descriptions, not other modules. [Candidate evidence](../../acceptance/iqc-local-atomic-save-20261104.md).
+
 IQC data-state notes retain counts for unstructured formal frequency and unselected optional suppliers outside content-missing totals. Their source is the currently selected draft or fixed version; they add no submission gate.
 
 ## 2026-11-03 IQC completeness presentation clarification

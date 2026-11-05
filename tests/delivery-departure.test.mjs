@@ -116,3 +116,45 @@ void test('native unload permits clean/read-only process viewing and does not ac
  const f=await fixture();f.setDirty(false);let prevented=0;const event={returnValue:'',preventDefault(){prevented++;}};f.events.beforeunload[0](event);assert.equal(prevented,0);assert.equal(event.returnValue,'');assert.equal(f.form.open,true);
  f.api.navigate('dashboard');f.finish(0);await turn();f.setStatus({state:'dirty'});f.events.beforeunload[0](event);assert.equal(prevented,0,'other modules retain their own unload guard');assert.equal(f.events.beforeunload.length,1);
 });
+
+for(const state of ['dirty','unknown'])void test(`opt-in actual router abandons ${state} without a prompt and retains unknown marker`,async()=>{
+ const f=await fixture(),departureId={},marker=state==='unknown';let abandoned=0,covered=false,released=0;
+ f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>false;
+ f.window.sharedDraftAccountState=()=>({unknown:marker});f.window.sharedDraftDepartureBlocked=()=>marker&&!covered;
+ f.setStatus({state,canAbandon:true});
+ f.adapter.abandon=async()=>{abandoned++;covered=true;f.setDirty(false);f.setStatus({state:'departing',departureId});return{departureId,release(){released++;}};};
+ assert.equal(f.api.canUnloadWithoutPrompt(),true);let prevented=0;f.events.beforeunload[0]({preventDefault(){prevented++;}});assert.equal(prevented,0);
+ f.api.navigate('dashboard');await turn();assert.equal(f.dialog(),null);assert.equal(abandoned,1);assert.equal(f.reads.length,1);assert.equal(f.form.open,true);
+ f.finish(0);await turn();assert.equal(f.state.view,'dashboard');assert.equal(f.form.open,false);assert.equal(marker,state==='unknown');assert.equal(released,1);assert.equal(f.stats().saves,0);
+});
+void test('automatic departure target failure keeps source usable and never clears unknown marker',async()=>{
+ const f=await fixture(),departureId={};let covered=false,released=0;
+ f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>false;f.window.sharedDraftAccountState=()=>({unknown:true});f.window.sharedDraftDepartureBlocked=()=>!covered;
+ f.setStatus({state:'unknown',canAbandon:true});f.adapter.abandon=async()=>{covered=true;f.setStatus({state:'departing',departureId});return{departureId,release(){released++;covered=false;f.setStatus({state:'unknown',canAbandon:true});}};};
+ f.api.navigate('dashboard');await turn();f.reads[0].reject(Error('403'));await turn();assert.equal(f.state.view,'editor');assert.equal(f.form.open,true);assert.equal(released,1);assert.equal(f.window.sharedDraftAccountState().unknown,true);assert.equal(f.window.sharedDraftDepartureBlocked(),true);assert.equal(f.dialog(),null);
+});
+void test('automatic unload exemption refuses foreign pending writes and identity invalidation',async()=>{
+ const f=await fixture();f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>true;f.setStatus({state:'unknown',canAbandon:true});assert.equal(f.api.canUnloadWithoutPrompt(),false);
+ f.adapter.otherDraftsPending=()=>false;f.sync.requiresReload=true;assert.equal(f.api.canUnloadWithoutPrompt(),false);
+});
+void test('navigation-specific account state permits browsing while raw mutation state stays pending',async()=>{
+ const f=await fixture();f.setDirty(false);f.form.close();
+ f.window.sharedDraftAccountState=()=>({queued:1,unknown:true,failed:false});
+ f.window.sharedDraftNavigationState=()=>({queued:0,unknown:false,failed:false});
+ f.window.sharedDraftDepartureBlocked=()=>false;
+ f.api.navigate('dashboard');await turn();assert.equal(f.dialog(),null);assert.equal(f.reads.length,1);
+ f.finish(0);await turn();assert.equal(f.state.view,'dashboard');
+ assert.deepEqual(f.window.sharedDraftAccountState(),{queued:1,unknown:true,failed:false},'routing does not settle mutations');
+});
+void test('another navigation-blocking transport still prevents departure',async()=>{
+ const f=await fixture();f.setDirty(false);f.form.close();
+ f.window.sharedDraftAccountState=()=>({queued:2,unknown:true,failed:false});
+ f.window.sharedDraftNavigationState=()=>({queued:1,unknown:false,failed:false});
+ f.api.navigate('dashboard');await turn();assert.equal(f.reads.length,0);
+});
+void test('native opt-in preparation runs only after peer gates and fails closed',async()=>{
+ const f=await fixture();let attempts=0;f.adapter.autoAbandon=true;f.adapter.otherDraftsPending=()=>true;f.adapter.prepareUnload=()=>{attempts++;return false;};f.setStatus({state:'dirty',canAbandon:true});
+ assert.equal(f.api.canUnloadWithoutPrompt(),false);assert.equal(attempts,0);
+ f.adapter.otherDraftsPending=()=>false;let prevented=0;f.events.beforeunload[0]({preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(attempts,1);
+ f.adapter.prepareUnload=()=>{attempts++;f.setStatus({state:'departing'});return true;};f.events.beforeunload[0]({preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(f.api.canUnloadWithoutPrompt(),true);
+});
