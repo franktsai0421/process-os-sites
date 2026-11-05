@@ -112,6 +112,14 @@ const contracts={
   }
 };
 function withoutDurableBegin(bytes,file){
+ // The tooling opt-in changes exactly two lines on the same pinned server.
+ // Normalize only those reviewed bytes before the unchanged historic inverse;
+ // every other byte and the final historical hash remain mandatory.
+ if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='3f350c12dead44979ca33cc8e545e79b769b72d6d7321abf948e2215490697fa'){
+  let source=bytes.toString();
+  for(const [current,previous]of [["    if((adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling')){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n", "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\r\n"], ["          if(begin){if(!['fqc','iqc','tooling','process:platform'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n", "          if(begin){if(!['fqc','iqc','process:platform'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"]]){assert.equal(source.split(current).length,2);source=source.replace(current,previous);}
+  bytes=Buffer.from(source);
+ }
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){

@@ -138,3 +138,21 @@ The receipt/terminal/restore and script/style build group passes all 86 tests.
 The full step-21 command replay and fresh PR-head CI are recorded separately in
 the handoff; earlier passing production-code checks remain applicable because
 this follow-up changes only the test and this evidence note.
+
+
+The continued step-21 replay exposed a second stale fixture pin in
+`workflow-begin-source-contract.cjs`: the tooling opt-in changes two lines of the
+shared server, so its exact hash differs from the #77 source pin. The helper now
+recognizes only the exact tooling-source SHA-256, verifies/reverses those two
+reviewed lines, then executes the original byte-offset inverse and verifies the
+unchanged historical hash. Unknown-source mutations remain rejected. The actual
+old-handler tests pass with 422 COMMAND_REQUIRED and zero D1/R2 changes for all
+four original modules. No production or permission code was modified.
+
+
+The persistent-navigation cache map had the same stale shared-client and tooling
+JS expectations; both are updated to the exact coordinated tag, retaining every
+single-reference/version assertion. The native Windows exit-propagation test
+requires `powershell.exe` and cannot execute on this Linux environment; it is
+left intact for the Windows CI gate. The other tests in that command run separately
+on Linux without claiming Windows exit-propagation acceptance.
