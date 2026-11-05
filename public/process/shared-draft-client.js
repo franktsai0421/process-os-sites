@@ -337,7 +337,7 @@
     const externalCurrent=()=>!externalStrict||(!externalBounded||clientPagehideGeneration===transportPagehideGeneration)&&departureOwnerCurrent(externalOwner)&&Number.isSafeInteger(externalOwner.epoch)&&externalOwner.epoch>=0&&externalOwner.identity===window.ProcessSync?.identity&&(!externalOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(externalOwner.delivery)!==false);
     // A proof callback belongs to one runtime/owner, never the generic cache or
     // another Canvas instance created after identity/delivery invalidation.
-    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
+    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
     window.SharedDraftDeparture.register(sessionScope);
     if(transports.has(transportKey)&&(!durableBegin||transports.get(transportKey).isBeginRuntimeCurrent())&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
@@ -810,15 +810,18 @@
       }
       return result;
     }
-    async function equipmentTerminal(result,command){
+    async function equipmentTerminal(result,command,originalPost=false){
       if(!equipmentLocalSave)return result;
       assertOwner();const raw=JSON.stringify(packCommand(command));
       if(unknown?.operationId!==command.operationId||sessionStorage.getItem(key)!==raw)throw Error('RECOVERY_RECORD_CHANGED');
       confirmedReceipt(result,command.operationId,['apply','save'].includes(command.action)?command.generation:undefined,command.action);
       if(command.action==='save'&&!result.receipt.savedId)throw Error('INVALID_OPERATION_RECEIPT');
+      const postFlow=result.control?.workflow;
+      // Only the original successful POST can use its complete CAS result. Lost ACKs still GET.
+      if(originalPost&&command.action==='save'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>=0&&postFlow?.scope==='routine-equipment'&&postFlow.generation===command.generation&&postFlow.revision===result.receipt.revision&&postFlow.saved?.id===result.receipt.savedId&&postFlow.pendingId===null&&result.receipt.caseId===null&&JSON.stringify(postFlow.saved.content)===JSON.stringify(postFlow.working))return {...result,equipmentCommand:JSON.parse(JSON.stringify(command))};
       let fresh;try{fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Error('EQUIPMENT_READBACK_REQUIRED',{cause});}assertOwner();const flow=fresh.control?.workflow;
       if(sessionStorage.getItem(key)!==raw||fresh.permissions?.view!==true||flow?.scope!=='routine-equipment'||flow.generation!==result.receipt.generation||!Number.isSafeInteger(flow.revision)||flow.revision<result.receipt.revision)throw Error('EQUIPMENT_READBACK_REQUIRED');
-      return {...fresh,receipt:result.receipt,equipmentCommand:JSON.parse(JSON.stringify(command))};
+      return {...(result.control?result:fresh),permissions:fresh.permissions,receipt:result.receipt,equipmentCommand:JSON.parse(JSON.stringify(command))};
     }
     async function resolveUnknown() {
       if(beginOutstanding())return resolveBegin();
@@ -842,7 +845,7 @@
       if(externalBounded&&!boundedKnown)try{await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Object.assign(Error('BOUNDED_PREFLIGHT_UNAVAILABLE'),{notSent:true,cause});}
       // Keep the operation before transport so closing the tab cannot create a blind retry.
       try{if(!unknown)retain(command,owner);}catch(error){error.notSent=true;if(externalBounded)boundedRegisterRejection(error,command,preparedFlights.get(command.operationId)?.promise);throw error;}
-      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=equipmentLocalSave?await equipmentTerminal(original,command):original;const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}
+      try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=equipmentLocalSave?await equipmentTerminal(original,command,true):original;const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}
       catch(caught) {
         let error=caught;
         // Preserve only the existing no-status fetch-loss receipt lookup.
