@@ -121,14 +121,14 @@
     // server-authorized list with JS/CSS; ordinary helper startup reads nothing.
     // Capture failures immediately so an asset failure cannot leave an unhandled
     // rejected promise. Both the loader and core reject a stale identity/delivery.
-    const firstList=!host.querySelector('[data-board-tab]')?(window.ProcessFeedbackEntry?.takePreparedList?.(host)||fetch('/api/web-feedback?action=list',{cache:'no-store'}).then(async response=>{
+    const firstList=!host.querySelector('[data-queue-tab],[data-board-tab]')?(window.ProcessFeedbackEntry?.takePreparedList?.(host)||fetch('/api/web-feedback?action=list',{cache:'no-store'}).then(async response=>{
       if(owns(owner)&&response.status===401){sync()?.clearIdentity?.();invalidate();}
       const value=await response.json();
       if(!owns(owner))throw Error('FEEDBACK_OWNER_CHANGED');
       if(!response.ok)throw Error(value.error||response.status);
       return {value};
     }).catch(error=>({error}))):null;
-    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-board-tab]'),firstList);}).catch(e=>{
+    request.promise=load().then(m=>{if(adminLoading===request&&host.isConnected&&owns(owner)&&new URL(location.href).searchParams.get('dataTab')==='web-feedback')return m.admin(host,user(),!host.querySelector('[data-queue-tab],[data-board-tab]'),firstList);}).catch(e=>{
       if(adminLoading===request&&host.isConnected&&owns(owner)&&host.dataset.activeTab==='web-feedback'){
         host.replaceChildren();const status=document.createElement('p'),retry=document.createElement('button');status.textContent=e.message;retry.textContent=t('重試','Thử lại');retry.onclick=()=>{void showAdmin(host).catch(()=>{});};host.append(status,retry);
       }throw e;

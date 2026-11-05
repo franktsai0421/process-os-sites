@@ -42,7 +42,7 @@ async function feedback(){
  task=ctx.open(host,{id:'a'},true);resolve({issues:[{id:'current'}],admin:false});await task;assert.equal(ctx.renders,1);assert.equal(ctx.issues[0].id,'current');
  ctx.filters.search='retained';ctx.selected.add('current');ctx.selectedIssue='current';
  task=ctx.open(host,{id:'a'},true);const key='https://fixture.invalid|feedback-v1|a|board';
- assert.deepEqual(JSON.parse(saved.get(key)),{filters:{search:'retained',status:'',module:'',page:'',from:'',to:''},selected:['current'],selectedIssue:'current',listScroll:37});
+ assert.deepEqual(JSON.parse(saved.get(key)),{filters:{search:'retained',status:'open',module:'',page:'',from:'',to:''},selected:['current'],selectedIssue:'current',listScroll:37});
  // Only the freshly authorized list may restore selected IDs.
  saved.set(key,JSON.stringify({filters:{search:'restored'},selected:['current','missing'],selectedIssue:'current',listScroll:51}));
  resolve({issues:[{id:'current'}],admin:true,permissions:{exchange:true}});await task;

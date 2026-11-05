@@ -13,7 +13,7 @@ try {
   async function login(id,viewport={width:1365,height:900}) {
     const context=await browser.newContext({viewport,serviceWorkers:'block'});
     await context.route('**/*',route=>new URL(route.request().url()).origin===fixture.origin?route.continue():route.abort());
-    const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
+    await context.addInitScript(()=>localStorage.setItem('processUILanguage','zh'));const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
     page.on('request',r=>{const url=new URL(r.url());if(url.pathname.startsWith('/api/'))requests.push({path:url.pathname,action:url.searchParams.get('action'),method:r.method()});});
     await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');await page.locator('#id').fill(id);await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();await page.evaluate(()=>{document.documentElement.lang='zh';window.WebFeedback.routeChanged();});return {context,page};
   }
@@ -23,20 +23,20 @@ try {
   await page.evaluate(values=>{for(const [key,value]of Object.entries(values))sessionStorage.setItem(key,value);},guards);
   const assertGuards=async()=>assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,sessionStorage.getItem(k)])),Object.keys(guards)),guards);
   await check('two source tabs, pending default, honest scope and separate disabled access controls',async()=>{
-    assert.equal(await page.locator('[data-queue-tab]').count(),2);assert.equal(await page.locator('[data-filter=status]').inputValue(),'open');
+    assert.equal(await page.locator('[data-queue-tab]').count(),2);assert.equal(await page.locator('[data-filter=status]').inputValue(),'open');await page.locator('.wf-admin').screenshot({path:out+'/helper-1365-zh.png'});
     assert.match(await page.locator('.wf-source').textContent(),/不含各裝置/);await page.locator('[data-pick]').first().check();
     await page.locator('[data-queue-tab=access]').click();await page.getByText(/集中事件來源尚未接通/).waitFor();
     assert.equal(await page.locator('[data-issue],[data-pick],[data-note]').count(),0);assert.equal(await page.locator('.wf-access-controls button:disabled').count(),5);
-    assert.equal(await page.locator('[data-counts]').count(),0);assert.match(await page.locator('.wf-muted').textContent(),/尚無證據/);
+    await page.locator('.wf-admin').screenshot({path:out+'/access-1365-zh.png'});assert.equal(await page.locator('[data-counts]').count(),0);assert.match(await page.locator('.wf-muted').textContent(),/尚無證據/);
     await page.locator('[data-queue-tab=helper]').click();assert.equal(await page.locator('[data-pick]:checked').count(),1);await assertGuards();
   });
   await check('note ownership, unsaved switch guard, HTML escaping, one double-click write, completion and restore',async()=>{
     const id=await page.locator('.wf-detail h3').textContent(),note='<img src=x onerror=alert(1)> 專屬備註';
     await page.locator('[data-note]').fill(note);await page.locator('[data-queue-tab=access]').click();assert.equal(await page.locator('[data-queue-tab=helper]').getAttribute('aria-selected'),'true');
     const before=requests.filter(r=>r.action==='update').length;await page.locator('[data-update]').first().evaluate(b=>{b.click();b.click();});await page.waitForFunction(()=>document.querySelector('[data-note]')?.value==='');
-    assert.equal(requests.filter(r=>r.action==='update').length,before+1);assert.equal(await page.locator('.wf-note-history img').count(),0);
+    assert.equal(requests.filter(r=>r.action==='update').length,before+1);assert.equal(await page.locator('.wf-note-history img').count(),0);const rows=(await (await call(owner.context,'list')).json()).issues;assert(rows.filter(row=>row.id!==id).every(row=>!row.notes.some(entry=>entry.text===note)));
     await page.locator('[data-update=done]').click();await page.locator(`[data-issue="${id}"]`).waitFor({state:'detached'});
-    await page.locator('[data-board-tab=completed]').click();await page.locator(`[data-issue="${id}"]`).click();assert.match(await page.locator('.wf-note-history').textContent(),/專屬備註/);
+    await page.locator('[data-board-tab=completed]').click();await page.reload();await page.locator(`[data-issue="${id}"]`).click();assert.equal(await page.locator('[data-board-tab=completed]').getAttribute('aria-selected'),'true');assert.match(await page.locator('.wf-note-history').textContent(),/專屬備註/);
     await page.locator('[data-update=open]').click();await page.locator(`[data-issue="${id}"]`).waitFor({state:'detached'});
     await page.locator('[data-board-tab=list]').click();await page.locator(`[data-issue="${id}"]`).click();
     await page.reload();await page.locator(`[data-issue="${id}"]`).click();assert.match(await page.locator('.wf-note-history').textContent(),/專屬備註/);await assertGuards();
@@ -69,9 +69,9 @@ try {
     await page.locator('[data-list-page="1"]').click();assert.equal(await page.locator('.wf-row').count(),100);await page.locator('[data-list-page="1"]').click();assert.equal(await page.locator('.wf-row').count(),1);
     await page.locator('[data-filter=search]').fill('no-synthetic-match');assert.equal(await page.locator('.wf-row').count(),0);await page.locator('[data-filter=search]').fill('');assert.equal(await page.locator('.wf-row').count(),100);
     await page.locator('[data-queue-tab=helper]').focus();await page.keyboard.press('ArrowRight');await page.getByText(/集中事件來源尚未接通/).waitFor();await page.keyboard.press('ArrowLeft');await page.locator('.wf-row').first().waitFor();
-    await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{document.documentElement.lang='vi';window.WebFeedback.routeChanged();});
+    await page.setViewportSize({width:390,height:844});await page.locator('.top-actions .language-switch').click();
     assert.match(await page.locator('[data-queue-tab=access]').textContent(),/chờ xác minh/);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-    await page.screenshot({path:out+'/helper-390-vi.png'});await page.locator('[data-queue-tab=access]').click();await page.getByText(/Nguồn tập trung chưa kết nối/).waitFor();await page.screenshot({path:out+'/access-390-vi.png'});
+    await page.locator('.wf-admin').screenshot({path:out+'/helper-390-vi.png'});await page.locator('[data-queue-tab=access]').click();await page.getByText(/Nguồn tập trung chưa kết nối/).waitFor();await page.locator('.wf-admin').screenshot({path:out+'/access-390-vi.png'});
     await page.unroute('**/api/web-feedback?action=list');await assertGuards();
   });
   await check('helper Close/Cancel and browser Back/Forward/reload preserve raw operation guard bytes',async()=>{

@@ -111,5 +111,8 @@ const oversizedExport=JSON.parse(preservedExport);oversizedExport.attachments.fi
 db.prepare('UPDATE web_feedback_store SET payload=?').run(JSON.stringify(oversizedExport));readCounts.clear();
 pass('Export size bound includes repeated entries and rejects before reading originals',await call('export',{...fixtureBody,operationId:randomUUID()},'frank'),413);assert.equal(readCounts.size,0);
 db.prepare('UPDATE web_feedback_store SET payload=?').run(preservedExport);readDelay=0;
+const finalAuth=JSON.parse(db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values),finalUsers=JSON.parse(finalAuth.platformUsers);finalUsers.find(user=>user.id==='admin2').accessOverrides={'feedback.view':false};finalAuth.platformUsers=JSON.stringify(finalUsers);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(finalAuth));
+const unchangedFeedback=db.prepare('SELECT payload FROM web_feedback_store WHERE id=1').get().payload;
+pass('Fresh view override rejects cached admin source metadata',await call('access-queue',undefined,'admin2'),403);pass('Fresh view override rejects cached admin list',await call('list',undefined,'admin2'),403);assert.equal(db.prepare('SELECT payload FROM web_feedback_store WHERE id=1').get().payload,unchangedFeedback);
 fs.writeFileSync(path.join(root,'api-results.json'),JSON.stringify(log,null,2));fs.writeFileSync(path.join(root,'api-raw.log'),log.map(r=>JSON.stringify(r)).join('\n'));console.log(JSON.stringify({passed:log.length,zipBytes:downloaded.body.length,zipSHA256:createHash('sha256').update(downloaded.body).digest('hex'),log},null,2));db.close();
 })().catch(e=>{fs.writeFileSync(path.join(root,'api-failure.log'),e.stack);console.error(e);process.exitCode=1;});
