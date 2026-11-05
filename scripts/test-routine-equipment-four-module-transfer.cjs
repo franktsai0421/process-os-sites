@@ -6,38 +6,12 @@ const { fixture, json } = require('./quality-replacement-preview-fixture.cjs');
 const { connect } = require('./test-routine-equipment-isolated-workflow.cjs');
 const tick = () => new Promise(resolve => setTimeout(resolve, 5));
 const results = [], operationTimings = [];
-const insert = (collection, value) => ({ op: 'insert', path: [collection], value });
-const empty = { AB: { products: [], lines: [], categoryGroups: [] }, C: { products: [], lines: [], categoryGroups: [] }, PROCESS: {} };
-const master = { active: json(empty), versions: Object.entries(empty).map(([scope, snapshot]) => ({ id: 'initial-empty-' + scope, scope, number: 1, status: 'approved', snapshot, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] })) };
-const emptyC = { schemaVersion: 1, activeVersionId: null, source: null, issues: [], reservedErrorCodes: [], reservedItemCodes: [], versions: [{ id: 'synthetic-empty-draft', number: 1, status: 'draft', snapshot: { errors: [], items: [] }, baseVersionId: null, revision: 1, creatorId: 'fixture-initializer', creatorName: 'Synthetic empty initialization', createdAt: 'synthetic', updatedAt: 'synthetic', history: [] }] };
 const scopeQ = '&scope=' + encodeURIComponent('A:G-A');
 async function check(name, task) { const start = performance.now(); await task(); results.push({ name, status: 'PASS', isolatedHandlerMs: +(performance.now() - start).toFixed(2) }); console.log(JSON.stringify(results.at(-1))); }
 (async () => {
-  const h = await fixture({ masterDataControl: JSON.stringify(master), processMasterData: '{}', ipqcCMasterControl: JSON.stringify(emptyC) }, { includeIPQCC: true });
+  const h = await require('./equipment-transfer-fixture.cjs').createTransferFixture();
   const fullRead = async(moduleId, q) => moduleId === 'ipqc-c' ? {control:JSON.parse((await h.core.readState()).values.ipqcCMasterControl)} : h.read(moduleId, 'editor', q);
   try {
-    for (const [scope, line, group, product] of [['AB', 'A', 'G-A', 'A100'], ['C', 'C', 'G-C', 'C100']]) {
-      const q = '&scope=' + scope, stage = line + '-CUT';
-      await h.begin('master', 'editor', 200, q);
-      await h.command('master', 'apply', { patches: [insert('lines', { id: 'line-' + line, code: line, name: 'Synthetic ' + line, stages: [{ id: 'stage-' + stage, code: stage, name: 'Synthetic cut' }] }), insert('categoryGroups', { id: 'group-' + group, line, name: group, defaultStages: [stage] })] }, 'editor', 200, q); await h.promote('master', q);
-      await h.begin('master', 'editor', 200, q);
-      await h.command('master', 'apply', { patches: [insert('products', { id: 'product-' + product, code: product, name: 'Synthetic ' + product, line, category: group, routeMode: 'group', stages: [stage], specification: '10 mm', unit: 'PCS' })] }, 'editor', 200, q); await h.promote('master', q);
-    }
-    await h.begin('routine-equipment');
-    await h.command('routine-equipment', 'apply', { patches: [insert('categories', { id: 'category', name: 'Synthetic category' }), insert('subcategories', { id: 'subcategory', categoryId: 'category', name: 'Synthetic subcategory' }), insert('groups', { id: 'group', categoryId: 'category', subcategoryId: 'subcategory', name: 'Synthetic group' })] });
-    await h.command('routine-equipment', 'apply', { patches: ['source', 'target'].map((id, i) => insert('equipment', { id, assetCode: 'SYN-X-' + i, name: 'Synthetic ' + id, groupId: 'group', unit: '支', enabled: true, confirmed: true, calibrationMethod: 'none', calibratedAt: '', expiresAt: '' })) }); await h.promote('routine-equipment');
-    await h.begin('fqc'); await h.command('fqc', 'apply', { patches: [insert('errors', { id: 'fqc-error', name: 'Synthetic defect', line: 'A', category: 'G-A' }), insert('items', { id: 'fqc-item', errorId: 'fqc-error', name: 'Synthetic standard', description: 'Preserve method', line: 'A', category: 'G-A', isEnabled: true, equipmentId: 'source', tool: '01', mediaItems: [], productCodes: ['A100'], rule: { cadence: 'batch', batchKind: 'aql', aqlValue: '0.25' } })] }); await h.promote('fqc');
-    await h.begin('iqc'); await h.command('iqc', 'apply', { patches: [insert('categories', { id: 'iqc-category', nameVi: 'Synthetic' }), insert('suppliers', { id: 'supplier', nameVi: 'Synthetic' }), insert('parts', { id: 'part', code: 'PART1', nameVi: 'Synthetic part', specificationVi: '10 mm', categoryId: 'iqc-category', supplierIds: ['supplier'], supplierRaw: '', standardCode: '', photos: [] })] });
-    await h.command('iqc', 'apply', { moduleAction: 'createError', input: { partCode: 'PART1', nameVi: 'Synthetic defect' } });
-    await h.command('iqc', 'apply', { moduleAction: 'createItem', input: { errorId: h.flow(await h.read('iqc')).working.errors[0].id, nameVi: 'Synthetic standard', methodVi: 'Preserve method', inspectionMode: 'equipment', equipmentId: 'source', rules: [{ id: 'rule', cadence: 'batch', kind: 'aql', value: '0.25' }] } }); await h.promote('iqc');
-    for (const [moduleId, q, product, stage] of [['ipqc-ab', scopeQ, 'A100', 'A-CUT'], ['ipqc-c', '', 'C100', 'C-CUT']]) {
-      await h.begin(moduleId, 'editor', 200, q); await h.command(moduleId, 'apply', { moduleAction: 'create-error', input: { productCode: product, stageCode: stage, name: 'Synthetic defect' } }, 'editor', 200, q);
-      const errorId = h.flow(await fullRead(moduleId, q)).working.errors[0].id;
-      const item = moduleId === 'ipqc-ab' ? { standard: '10 mm', methodText: 'Preserve method', inspectionMode: 'equipment', equipmentId: 'source', productCodes: [product], rules: [{ id: 'rule', cadence: 'batch', kind: 'aql', value: '0.25' }] } : { standard: '10 mm', standardEnabled: true, description: 'Preserve method', equipmentId: 'source', equipmentGroupId: 'group', rule: { cadence: 'batch', batchKind: 'aql', aqlValue: '0.25' }, mediaItems: [] };
-      await h.command(moduleId, 'apply', { moduleAction: 'create-item', input: { errorId, item } }, 'editor', 200, q);
-      if (moduleId === 'ipqc-ab') await h.begin(moduleId, 'editor', 200, '&module=1');
-      await h.promote(moduleId, moduleId === 'ipqc-ab' ? '&module=1' : q);
-    }
     const equipmentBefore = (await h.core.readState()).values.routineEquipmentControl, oldObjects = new Map(h.objects);
     const f = await connect(h); const stateQ = moduleId => moduleId === 'ipqc-ab' ? scopeQ : '';
     async function runTransfer(moduleId, target, expected = 'success', sourceId = target === 'source' ? 'target' : 'source') {
@@ -68,15 +42,22 @@ async function check(name, task) { const start = performance.now(); await task()
       operationTimings.push({ moduleId, operation: 'explicit destination Save plus fixture verification reads', includes: moduleId === 'ipqc-ab' ? 'whole-module Begin, pre-save reads, Save, fresh verification read' : 'pre-save reads, Save, fresh verification read', isolatedHandlerMs: +(performance.now() - start).toFixed(2) });
       return saved;
     }
-    for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) await check(moduleId + ' lost Begin ACK requires explicit GET-only entry; transfer never auto-saves; destination manual Save persists without formal/history mutation', async () => {
+    for (const moduleId of ['fqc', 'iqc', 'ipqc-c', 'ipqc-ab']) await check(moduleId + ' lost Begin ACK preserves unidentified marker despite matching GET; transfer never auto-saves; destination manual Save persists without formal/history mutation', async () => {
       const q = stateQ(moduleId), before = json(h.flow(await fullRead(moduleId, q))), original = before.active.content.items[0];
       assert(!(await fullRead(moduleId, q)).control.versions.some(version => version.status === 'draft'));
-      const rawFetch=f.c.fetch; let lost=false;
-      f.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body);const response=await rawFetch(url,options);if(!lost&&String(url).startsWith('/api/'+moduleId+'/workflow')&&body?.action==='begin'){lost=true;assert.equal(response.status,200);throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}return response;};
-      const starts=f.posts().length;
-      await runTransfer(moduleId,'target','unknown');assert.equal(f.posts().length,starts+1);assert.equal(f.storage.size,1);
-      await runTransfer(moduleId,'target','rechecked');assert.equal(f.posts().length,starts+1);assert.equal(f.storage.size,0);
-      f.c.fetch=rawFetch;
+      // Unknown outcomes run in a separate private fixture; its marker is never
+      // deleted to let the unrelated normal lifecycle continue.
+      const lostH=await fixture((await h.core.readState()).values,{includeIPQCC:true});
+      for(const [key,bytes]of h.objects)lostH.objects.set(key,Buffer.from(bytes));
+      try {
+        const lostUI=await connect(lostH),rawFetch=lostUI.c.fetch;let lost=false;
+        lostUI.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body),response=await rawFetch(url,options);if(!lost&&String(url).startsWith('/api/'+moduleId+'/workflow')&&body?.action==='begin'){lost=true;assert.equal(response.status,200);throw Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});}return response;};
+        const key=moduleId==='ipqc-c'?'ipqcC':moduleId==='ipqc-ab'?'ipqcAB':moduleId;
+        const attempt=async()=>{lostUI.test.openTransferModal('source');for(let i=0;!lostUI.test.dialog?.preview&&i<1000;i++)await tick();assert(lostUI.test.dialog?.preview);lostUI.test.dialog.targetEqId='target';await lostUI.test.executeTransfer(key);assert.match(lostUI.test.dialog.moduleMessages[key],/尚未確認/);lostUI.close();};
+        await attempt();const marker=[...lostUI.storage];assert.equal(marker.length,1);assert.equal(lostUI.posts().length,1);
+        await attempt();assert.equal(lostUI.posts().length,1);assert.deepEqual([...lostUI.storage],marker,'matching draft is not an original receipt');
+        const afterLost=lostH.flow(moduleId==='ipqc-c'?{control:JSON.parse((await lostH.core.readState()).values.ipqcCMasterControl)}:await lostH.read(moduleId,'editor',q));assert.equal(afterLost.working.items[0].equipmentId,'source');assert.deepEqual(afterLost.saved,before.saved);assert.deepEqual(afterLost.active,before.active);assert.deepEqual(afterLost.cases,before.cases);
+      } finally {lostH.close();}
       await runTransfer(moduleId, 'target'); let after = h.flow(await fullRead(moduleId, q)); assert.equal(after.working.items[0].equipmentId, 'target');
       assert.deepEqual(after.active, before.active); assert.deepEqual(after.saved, before.saved); assert.deepEqual(after.cases, before.cases);
       const unrelated = row => Object.fromEntries(Object.entries(row).filter(([key]) => !['equipmentId', 'equipmentSnapshot', 'inspectionMode', 'tool'].includes(key)));

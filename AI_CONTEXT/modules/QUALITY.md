@@ -1,3 +1,7 @@
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+本輪跨品質檢具替換只補未知 Begin 證據保全、目標世代核對與成功項目重試隔離；仍為各 scope Apply 後由目標 Save，原子保存範圍尚待決。 [範圍、待決與驗證](../../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — Equipment local editing / atomic Save candidate
 
 Equipment forms/hierarchy/calibration/photos now stage in RAM. `save-local-v1` stages guarded Apply and allocation before one persisted Save; edit includes Save, submit remains separate and rechecks local input after confirmation. Exact normal POST authority is opt-in; unknown Begin/Save retains original receipt/guards and permits local abandonment. No quality product adapters or cross-module transaction changes. [Verification and remaining transfer boundary](../../docs/acceptance/equipment-local-atomic-save-20261105/README.md).

@@ -1,3 +1,7 @@
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+跨品質檢具替換安全修正：保留未識別 Begin marker，核對目標世代／生效版本，略過已符合目標項目的重送。沒有擴張 Save 範圍或全域交易。 [範圍、待決與驗證](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 檢具本機草稿候選
 
 後續僅修測試：以真記憶體 SQLite batch／既有 migrations 補齊舊登入 fixture，仍驗證 503 fail closed 與 429 額度；同步檢具離頁／送審共用 fixture 至現行本機保存契約。原始 Draft PR #81 的 CI 與本機後續結果分列，不宣稱跨品質替換全部原子化。[調查與邊界](../docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。

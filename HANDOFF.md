@@ -1,3 +1,7 @@
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+本輪跨品質檢具替換沿 #81 固定基準獨立修正；不自動保存品質草稿，#82／#77 相依與待決保存範圍分開。 [範圍、待決與驗證](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 檢具本機編輯／原子 Save 獨立候選
 
 後續：已依明確同意建立 Draft PR #81，仍 depends on #77、未合併／部署。舊 workflow／validation 的 LOGIN_LIMIT_UNAVAILABLE 已定位為 fixture 缺 DB.batch／既有 schema；合成 SQLite 修復在候選與固定基準通過，未動產品登入限制。兩個測試／文件提交已上傳至 `277964a`；其 exact-head CI 通過共用離頁／送審與檢具測試，另暴露舊伺服器來源契約未接檢具 opt-in 的固定雜湊。已補精確三處逆轉且保留全部原歷史 hash／offset／未知來源拒絕斷言，產品未變；最終結果須看最新 head CI。[修復、CI 證據與跨品質替換待決邊界](docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。

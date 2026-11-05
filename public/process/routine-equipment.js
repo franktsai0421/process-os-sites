@@ -2323,7 +2323,7 @@
     }
   }
 
-  async function beginTransferDraft(client, endpoint, entry, scope, intent, owns) {
+  async function beginTransferDraft(client, endpoint, entry, scope, intent, owns, allowBegin = true) {
     const actorId = identity()?.id, key = 'routine-equipment-target-begin:' + actorId + ':' + endpoint;
     const unresolved = () => Object.assign(Error(t('目標草稿開始修改的結果尚未確認；本次沒有套用標準。請保持相同選取重新唯讀核對，勿重送開始修改。', 'Chưa xác nhận kết quả bắt đầu bản nháp đích; chưa áp dụng tiêu chuẩn. Giữ nguyên lựa chọn để kiểm tra chỉ đọc, không gửi lại yêu cầu bắt đầu.')), { beginUnresolved: true });
     let record;
@@ -2353,22 +2353,28 @@
     };
     if (record) {
       if (!validRecord(record)) throw unresolved();
-      if (!confirm(t('重新檢查並進入已存在草稿？本次只讀取核對，不會移轉，也不代表先前開始修改已成功。', 'Kiểm tra và vào bản nháp hiện có? Lần này chỉ đọc, không chuyển và không xác nhận yêu cầu trước thành công.'))) throw unresolved();
-      try { await recover(); } catch { throw unresolved(); } sessionStorage.removeItem(key);
-      throw Object.assign(Error(t('已核對並選擇既有共用草稿，尚未移轉；請重新開啟清單核對後，再明確確認移轉。', 'Đã kiểm tra và chọn bản nháp chung hiện có, chưa chuyển; mở lại danh sách và xác nhận chuyển rõ ràng.')), { beginUnresolved: true });
+      if (!confirm(t('重新唯讀核對既有草稿？不會移轉或清除原始未知標記，也不代表先前開始修改已成功。', 'Kiểm tra chỉ đọc bản nháp hiện có? Không chuyển, không xóa dấu kết quả chưa rõ và không xác nhận yêu cầu trước thành công.'))) throw unresolved();
+      try { await recover(); } catch { throw unresolved(); }
+      // A matching current draft is not a receipt for an unidentified Begin.
+      // Keep the original bytes: neither a 404 nor explicit entry proves its outcome.
+      throw unresolved();
     }
     if (entry?.workflow?.editable) return entry.workflow.generation;
+    if (!allowBegin) return null;
     record = { actorId, endpoint, scope, intent, activeVersionId: entry?.activeVersion?.id || null, generation: entry?.workflow?.generation || null, draftId: entry?.openVersion?.status === 'draft' ? entry.openVersion.id : null };
     assertOwned();
-    try { sessionStorage.setItem(key, JSON.stringify(record)); } catch { throw unresolved(); }
+    const marker = JSON.stringify(record);
+    try { sessionStorage.setItem(key, marker); if (sessionStorage.getItem(key) !== marker) throw unresolved(); } catch { throw unresolved(); }
     try {
       const result = await client.begin(); assertOwned();
       if (!result?.control?.workflow?.generation) throw Error('INVALID_BEGIN_RESPONSE');
       if (result.control.workflow.pendingId || result.control.versions?.some(version => ['pending', 'pending-test'].includes(version.status))) throw Object.assign(Error('PENDING_LOCKED'), { status: 409 });
+      if (sessionStorage.getItem(key) !== marker) throw unresolved();
       sessionStorage.removeItem(key); return result.control.workflow.generation;
     } catch (error) {
       if (!owns()) throw error;
-      if (error.status && error.status < 500) { sessionStorage.removeItem(key); throw error; }
+      // Without an operation identity, a response error cannot settle this marker.
+      // Leave it intact even if a later projection resembles this actor's draft.
       try { await recover(); } catch { /* keep unknown even if the GET failed */ } throw unresolved();
     }
   }
@@ -2407,15 +2413,31 @@
         return !after || after.selectable===false || ['activeEquipmentId','draftEquipmentId','activeInspectionMode','draftInspectionMode','activeTool','draftTool','openStatus','openVersionId'].some(key=>after[key]!==row[key]);
       })) {dialog.preview=current;throw Error(t('項目已變更，請核對最新清單後再次確認移轉','Hạng mục đã thay đổi; kiểm tra danh sách mới rồi xác nhận lại'));}
       const targetEntry=current.modules.find(row=>row.moduleId===moduleId),flow=targetEntry?.workflow;
+      const previousEntry=dialog.preview.modules.find(row=>row.moduleId===moduleId);
+      const scopeBasis=entry=>JSON.stringify([entry?.workflow?.generation||null,entry?.activeVersion?.id||null]);
+      const transferScopeEntry=(entry,key)=>entry?.scopes?.find(scope=>scope.items.some(row=>row.scopeKey===key))||entry;
+      if(moduleId==='ipqc-ab'?[...new Set(selected.map(row=>row.scopeKey))].some(key=>scopeBasis(transferScopeEntry(previousEntry,key))!==scopeBasis(transferScopeEntry(targetEntry,key))):scopeBasis(previousEntry)!==scopeBasis(targetEntry)) {
+        dialog.preview=current;throw Error(t('目標草稿世代或生效版本已變更，請核對後再次確認移轉','Thế hệ bản nháp hoặc phiên bản hiệu lực đích đã thay đổi; kiểm tra và xác nhận lại'));
+      }
+      const needsTransfer=row=>{
+        const draft=row.openStatus==='draft';
+        return (draft?row.draftEquipmentId:row.activeEquipmentId)!==targetEqId ||
+          (['iqc','ipqc-ab'].includes(moduleId)&&(draft?row.draftInspectionMode:row.activeInspectionMode)!=='equipment') ||
+          (moduleId==='fqc'&&(draft?row.draftTool:row.activeTool)!==(target.pieceMark||target.assetCode));
+      };
       const transferIntent=JSON.stringify({sourceId:dialog.sourceId,targetEqId,ids:[...ids].sort((a,b)=>a.localeCompare(b))});
       let data;
       if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
         for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
           try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
-            scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');const scopeEntry=targetEntry.scopes?.find(entry=>entry.items.some(row=>row.scopeKey===scopeKey))||targetEntry;const generation=await beginTransferDraft(client,endpoint,scopeEntry,'ipqc-ab:'+scopeKey,transferIntent,owns),patches=[],guards=[];assertIntent();
-            for(const row of group)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
-            await client.flush();assertIntent();await client.command(generation,'apply',{patches,guards});assertIntent();data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'applied'})));
+            scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
+            const changed=group.filter(needsTransfer);
+            if(!changed.length)await beginTransferDraft(client,endpoint,transferScopeEntry(targetEntry,scopeKey),'ipqc-ab:'+scopeKey,transferIntent,owns,false);
+            if(!changed.length){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'unchanged'})));continue;}
+            const scopeEntry=targetEntry.scopes?.find(entry=>entry.items.some(row=>row.scopeKey===scopeKey))||targetEntry;const generation=await beginTransferDraft(client,endpoint,scopeEntry,'ipqc-ab:'+scopeKey,transferIntent,owns),patches=[],guards=[];assertIntent();
+            for(const row of changed)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
+            await client.flush();assertIntent();await client.command(generation,'apply',{patches,guards});assertIntent();data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:needsTransfer(row)?'applied':'unchanged'})));
           }catch(error){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'conflict',reason:error.message})));if(error.beginUnresolved||scopeClient?.hasUnknown()){data.results.push(...rows.filter(row=>!data.results.some(result=>result.itemId===row.itemId&&result.scopeKey===row.scopeKey)).map(row=>({itemId:row.itemId,scopeKey:row.scopeKey,status:'conflict',reason:t('前一範圍需先唯讀核對，本次未執行','Phạm vi trước cần kiểm tra chỉ đọc; chưa thực hiện lần này')})));break;}}
         }
       } else if(['ipqc-c','iqc','fqc'].includes(moduleId) && flow) {
@@ -2426,16 +2448,19 @@
         assertIntent();
         if(client.hasUnknown())throw Error(t('前次結果待查證，請到目標模組查詢結果後再操作','Kết quả trước chưa rõ; mở mô-đun đích để kiểm tra trước khi tiếp tục'));
         await client.flush();assertIntent();
+        const selectedRows=latest.filter(row=>ids.includes(row.id)),rows=selectedRows.filter(needsTransfer);
+        if(!rows.length){await beginTransferDraft(client,endpoint,targetEntry,moduleId,transferIntent,owns,false);data={results:selectedRows.map(row=>({itemId:row.itemId,status:'unchanged'}))};}
+        else {
         const targetGeneration=await beginTransferDraft(client,endpoint,targetEntry,moduleId,transferIntent,owns);
         assertIntent();
-        const rows=latest.filter(row=>ids.includes(row.id));
         const patches=rows.map(row=>({op:'set',path:['items',{id:row.itemId},'equipmentId'],value:targetEqId}));
         const guards=rows.map(row=>({path:['items',{id:row.itemId},'equipmentId'],value:flow.editable?row.draftEquipmentId:row.activeEquipmentId}));
         if(moduleId==='iqc')for(const row of rows){const path=['items',{id:row.itemId},'inspectionMode'];patches.push({op:'set',path,value:'equipment'});guards.push({path,value:flow.editable?row.draftInspectionMode:row.activeInspectionMode});}
         if(moduleId==='fqc'){for(const row of rows){const path=['items',{id:row.itemId},'tool'];patches.push({op:'set',path,value:target.pieceMark||target.assetCode});guards.push({path,value:flow.editable?row.draftTool:row.activeTool});}}
         await client.flush();assertIntent();
         await client.command(targetGeneration,'apply',{patches,guards});
-        data={results:rows.map(row=>({itemId:row.itemId,status:row.draftEquipmentId===targetEqId?'unchanged':'applied'}))};
+        data={results:selectedRows.map(row=>({itemId:row.itemId,status:needsTransfer(row)?'applied':'unchanged'}))};
+        }
       } else {
       assertIntent();
       const response = await fetch('/api/quality-equipment-replacement', {

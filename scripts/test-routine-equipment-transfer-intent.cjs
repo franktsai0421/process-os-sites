@@ -135,8 +135,8 @@ if (require.main === module) (async () => {
     };
     await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(f.storage.size,1);
     await f.execute(); assert.equal(begin,1);assert.equal(commands,0);assert.equal(reads,2);
-    assert.equal(f.storage.size,recovery==='matching'?0:1);
-    assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],recovery==='matching'?/尚未移轉/:/尚未確認/);
+    assert.equal(f.storage.size,1,'a matching projection cannot settle an unidentified Begin');
+    assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/尚未確認/);
   });
   for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])for (const change of ['close','epoch','delivery']) await check(moduleId+' target queued submit drains then '+change+' prevents transfer Apply',async()=>{
     const f=await fixture({moduleId,scopes:['B:G']}), raw=f.c.fetch; let release,started;
@@ -167,6 +167,38 @@ if (require.main === module) (async () => {
     await f.execute();assert.deepEqual(posts,uncertainScope==='A:G'?['A:G']:['A:G','B:G']);assert(f.storage.size>0);
     assert.match(f.test.dialog.moduleMessages.ipqcAB,/RESULT_UNKNOWN_CHECK_BEFORE_RETRY/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/B:H \/ item: 前一範圍需先唯讀核對，本次未執行/);
     assert.match(f.test.dialog.moduleMessages.ipqcAB,uncertainScope==='A:G'?/已套用 0/:/已套用 1/);
+  });
+  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' already matching target does not resend Apply or Begin',async()=>{
+    const f=await fixture({moduleId}),row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';await f.test.loadTransferPreview();await f.execute();
+    assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/已相同 1/);
+  });
+  for(const field of ['draftInspectionMode','draftTool'])await check('same equipment still repairs selected '+field+' with original guard',async()=>{
+    const moduleId=field==='draftTool'?'fqc':'iqc',f=await fixture({moduleId}),row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row[field]='manual';await f.test.loadTransferPreview();await f.execute();
+    const command=f.writes().find(row=>row.body.command).body.command;assert.equal(command.action,'apply');assert(command.guards.some(row=>row.value==='manual'));
+  });
+  await check('AB partial success survives page reopen; retry sends only failed scope',async()=>{
+    const f=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']}),raw=f.c.fetch,posted=[];
+    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(body?.command?.action==='apply'){
+      const scope=u.searchParams.get('scope');posted.push(scope);if(scope==='B:G')return Response.json({error:'DEPENDENCY_CHANGED_RECONFIRM'},{status:409});
+      const response=await raw(url,options);f.preview.modules[0].items.find(row=>row.scopeKey===scope).draftEquipmentId='target';return response;
+    }return raw(url,options);};
+    await f.execute();assert.deepEqual(posted,['A:G','B:G']);assert.match(f.test.dialog.moduleMessages.ipqcAB,/已套用 1/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/衝突 1/);
+    // A fresh page has new transports; do not clear another client's failed commands.
+    const reopened=await fixture({moduleId:'ipqc-ab',scopes:['A:G','B:G']}),nextFetch=reopened.c.fetch;
+    reopened.preview.modules=copy(f.preview.modules);await reopened.test.loadTransferPreview();
+    reopened.c.fetch=async(url,options={})=>{const body=options.body&&JSON.parse(options.body);if(body?.command?.action==='apply')posted.push(new URL(url,reopened.c.location.origin).searchParams.get('scope'));return nextFetch(url,options);};
+    await reopened.execute();assert.deepEqual(posted,['A:G','B:G','B:G']);assert.match(reopened.test.dialog.moduleMessages.ipqcAB,/已套用 1/);assert.match(reopened.test.dialog.moduleMessages.ipqcAB,/已相同 1/);assert.equal(reopened.test.dialog.moduleStatus.ipqcAB,'success');
+  });
+  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' stale target generation rejects before POST',async()=>{
+    const f=await fixture({moduleId});f.preview.modules[0].workflow.generation='peer-generation';await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages[uiKey(moduleId)],/世代/);
+  });
+  for(const rawMarker of ['{invalid',JSON.stringify({actorId:'synthetic-editor',scope:'fqc',endpoint:'/api/fqc/workflow?caseMetadata=1',intent:'other',generation:null,activeVersionId:null})])await check('unidentified target marker remains byte-identical through departure',async()=>{
+    const f=await fixture(),key='routine-equipment-target-begin:synthetic-editor:/api/fqc/workflow?caseMetadata=1';f.storage.set(key,rawMarker);await f.execute();assert.equal(f.writes().length,0);assert.equal(f.storage.get(key),rawMarker);
+    // Actual local cleanup may discard the dialog, never its already-sent evidence.
+    await f.c.RoutineEquipmentUI.navigation.canLeave();f.c.RoutineEquipmentUI.navigation.reset();assert.equal(f.storage.get(key),rawMarker);
+  });
+  await check('target Begin marker must persist before dispatch',async()=>{
+    const f=await fixture({editable:false});f.c.sessionStorage.setItem=()=>{};await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages.fqc,/尚未確認/);
   });
   const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_TRANSFER_INTENT' : 'FAIL_BOUNDED_TRANSFER_INTENT', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, source, hashes: Object.fromEntries(['routine-equipment.js', 'shared-draft-client.js'].map(name => [name, createHash('sha256').update(read(name)).digest('hex')])), results,
     limits: ['Actual unmodified frontend functions and shared transport run in synthetic DOM/HTTP, not actual server authorization or CAS acceptance', 'Fixture requests are in-memory; no browser, network, live records, native render/page-load or assistive-technology claim', 'Timings are isolated JavaScript handler durations only; waits and fixture setup are included'] };
