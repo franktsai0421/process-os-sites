@@ -167,7 +167,7 @@
       const restoreOpener=()=>{let target=previous?.isConnected?previous:null;if(!target&&openerKey){const row=openerKey==='data-stage-edit'?current().lines.flatMap(line=>line.stages).find(stage=>stage.id===openerRow?.id):current().lines.find(line=>line.id===openerRow?.id);target=document.querySelector('['+openerKey+'="'+CSS.escape(row?.code||openerCode)+'"]');}target?.focus({preventScroll:true});};
       dialog.id = 'master-edit-dialog'; dialog.className = 'master-edit-dialog'; dialog.dataset.i18nSkip = 'true';
       dialog.setAttribute('aria-labelledby','master-dialog-title');
-      dialog.innerHTML = `<form><header><h2 id="master-dialog-title">${title}</h2>${small('×','data-cancel aria-label="'+t('取消','Hủy')+'"')}</header><div class="master-dialog-body">${body}<p class="master-dialog-error" role="alert"></p></div><footer><small>${t('Esc 取消，不儲存變更','Esc để hủy, không lưu thay đổi')}</small>${small(t('取消','Hủy'),'data-cancel')}<button class="button signal" type="submit">${window.VersionDraftUI.t('apply')}</button></footer></form>`;
+      dialog.innerHTML = `<form><header><h2 id="master-dialog-title">${title}</h2>${small('×','data-cancel aria-label="'+t('取消','Hủy')+'"')}</header><div class="master-dialog-body">${body}<p class="master-dialog-error" role="alert"></p></div><footer><small>${t('Esc 取消，不儲存變更','Esc để hủy, không lưu thay đổi')}</small>${small(t('取消','Hủy'),'data-cancel')}<button class="button signal" type="submit">${t('完成','Hoàn tất')}</button></footer></form>`;
       document.body.appendChild(dialog);
       const dialogScope=state.masterScope,dialogActorId=window.ProcessSync?.identity?.id;
       dialog.addEventListener('close',() => {if(dialog.rejectedDraftPaths?.length&&dialogActorId===window.ProcessSync?.identity?.id)shared.discardRejected(dialogScope,dialog.rejectedDraftPaths);dialog.remove();restoreOpener();});
@@ -182,7 +182,7 @@
         const buttons=[...dialog.querySelectorAll('button')].map(button=>({button,disabled:button.disabled}));buttons.forEach(({button})=>button.disabled=true);
         try{const error=await onSave(new FormData(event.target),dialog);
           if(error){const target=dialog.querySelector('.master-dialog-error');if(!target.querySelector('[data-process-lock]'))target.textContent=displayDraftError(error);}
-          else{dialog.close();redraw();toast(t('已同步；尚未手動儲存','Đã đồng bộ; chưa lưu thủ công'));}
+          else{dialog.close();redraw();toast(t('已保留於本機；請存取草稿','Đã giữ ở máy này; hãy lưu bản nháp'));}
         }catch(error){dialog.querySelector('.master-dialog-error').textContent=displayDraftError(error);}
         finally{applying=false;buttons.forEach(({button,disabled})=>button.disabled=disabled);}
       };
@@ -347,7 +347,7 @@
       });
     }
     function sharedStatus(){const flow=shared.flow(state.masterScope);if(!flow)return '';
-      const saved=flow.saved,dirty=JSON.stringify(flow.working)!==JSON.stringify(saved?.content??flow.active?.content);
+      const saved=flow.saved,dirty=shared.localDirty(state.masterScope)||JSON.stringify(flow.working)!==JSON.stringify(saved?.content??flow.active?.content);
       return `<section class="master-edit-note" id="master-shared-status" role="status">${t('共用草稿範圍','Phạm vi bản nháp chung')}: ${h(state.masterScope)} · ${flow.pendingId?t('待審鎖定','Đang chờ duyệt · đã khóa'):dirty?t('尚未儲存','Chưa lưu'):t('已儲存','Đã lưu')} · ${t('儲存者','Người lưu')}: ${h(saved?.actor.name||'—')} · ${stamp(saved?.at)}
       <div class="master-version-actions"><button class="button ghost" id="master-shared-history">${t('查看送審案件／還原到草稿','Xem hồ sơ / Khôi phục vào bản nháp')}</button><button class="button ghost" id="master-shared-recover">${t('查詢未知操作結果','Kiểm tra kết quả chưa rõ')}</button></div></section>`;
     }
@@ -371,7 +371,7 @@
       if(ui.scope!==state.masterScope){ui.scope=state.masterScope;ui.line='';ui.category='';ui.search='';}
       if(state.masterSection==='lines'){
         ui.line='';ui.category='';
-        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label><details class="master-lines-rules"><summary>${t('保存、權限與刪除規則','Quy tắc lưu, quyền và xóa')}</summary><p>${t('套用只同步共用草稿；儲存草稿才建立送審快照；核准後才更新正式資料。送審涵蓋目前 AB 或 C 的整份已保存內容，不因畫面篩選縮小。','Áp dụng chỉ đồng bộ bản nháp; Lưu tạo bản gửi duyệt; phê duyệt mới cập nhật dữ liệu hiệu lực. Hồ sơ gồm toàn bộ bản AB hoặc C đã lưu, không giới hạn theo bộ lọc.')}</p><p>${t('線別頁入口使用「線別與工段管理」查看權限；新增、修改、刪除、保存及審核依目前 AB／C 範圍權限。','Quyền xem Chuyền và công đoạn mở trang; thêm, sửa, xóa, lưu và duyệt dùng quyền của phạm vi AB/C hiện tại.')}</p><p>${t('線別有子工段不能刪除。工段仍被生效路線、共用草稿、已保存草稿、待審案件或保留流程引用時，後端會再次阻擋。歷史核准版本保留唯讀，不因僅存在舊歷史就一律禁止刪除；歷史還原仍需重新檢查引用與權限。','Không xóa chuyền còn công đoạn. Tuyến hiệu lực, bản nháp, bản đã lưu, hồ sơ chờ duyệt và quy trình còn tham chiếu được kiểm tra lại trước khi xóa. Lịch sử cũ vẫn chỉ đọc, không tự chặn mọi thao tác xóa; khôi phục vẫn kiểm tra quyền và tham chiếu.')}</p></details>${lineExcelToolbar()}${lineEditor()}</div>`;
+        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label><details class="master-lines-rules"><summary>${t('保存、權限與刪除規則','Quy tắc lưu, quyền và xóa')}</summary><p>${t('完成只保留本機修改；存取草稿才共用並保存整份 AB 或 C；核准後才更新正式資料。搜尋與篩選不影響存取範圍。離開編輯範圍會直接放棄未送出的修改。','Hoàn tất chỉ giữ thay đổi ở máy này; Lưu chia sẻ toàn bộ AB hoặc C; chỉ phê duyệt mới cập nhật dữ liệu hiệu lực. Bộ lọc không giới hạn phạm vi lưu. Rời vùng sửa sẽ bỏ đầu vào chưa gửi.')}</p><p>${t('線別頁入口使用「線別與工段管理」查看權限；新增、修改、刪除、保存及審核依目前 AB／C 範圍權限。','Quyền xem Chuyền và công đoạn mở trang; thêm, sửa, xóa, lưu và duyệt dùng quyền của phạm vi AB/C hiện tại.')}</p><p>${t('線別有子工段不能刪除。工段仍被生效路線、共用草稿、已保存草稿、待審案件或保留流程引用時，後端會再次阻擋。歷史核准版本保留唯讀，不因僅存在舊歷史就一律禁止刪除；歷史還原仍需重新檢查引用與權限。','Không xóa chuyền còn công đoạn. Tuyến hiệu lực, bản nháp, bản đã lưu, hồ sơ chờ duyệt và quy trình còn tham chiếu được kiểm tra lại trước khi xóa. Lịch sử cũ vẫn chỉ đọc, không tự chặn mọi thao tác xóa; khôi phục vẫn kiểm tra quyền và tham chiếu.')}</p></details>${lineExcelToolbar()}${lineEditor()}</div>`;
       }
       const catalog=current(),cats=categoryEntries(catalog).filter(g=>!ui.line||g.line===ui.line);
       if(ui.category&&!cats.some(g=>g.name===ui.category))ui.category='';
@@ -411,7 +411,7 @@
       const newDraftButton=document.querySelector('#master-new-draft');
       const allowed=shared.permissions(state.masterScope);
       if(newDraftButton&&allowed?.edit===false)newDraftButton.disabled=true;
-      for(const [id,permission]of[['#master-save-draft','save'],['#master-submit','submit'],['#master-withdraw','withdraw'],['#master-shared-history','history']]){const button=document.querySelector(id);if(button&&allowed?.[permission]===false)button.disabled=true;}
+      for(const [id,permission]of[['#master-save-draft','save'],['#master-submit','submit'],['#master-withdraw','withdraw'],['#master-shared-history','history']]){const button=document.querySelector(id);if(button&&(allowed?.[permission]===false||permission==='submit'&&shared.localDirty(state.masterScope)))button.disabled=true;}
       if(newDraftButton&&permitted('master.delete'))newDraftButton.textContent=t('開始修改／刪除資料','Bắt đầu sửa / xóa dữ liệu');
       on('#master-version-choice','change',e=>{ui.versions[state.masterScope]=e.target.value;ui.line='';ui.category='';state.masterValidationErrors=[];redraw();});
       document.querySelectorAll('[data-history-pick]').forEach(b=>b.onclick=async()=>{ui.versions[state.masterScope]=b.dataset.historyPick;ui.line='';ui.category='';state.masterValidationErrors=[];redraw();});
@@ -427,7 +427,7 @@
         const ownsView=()=>input.isConnected&&state.view==='data'&&state.masterSection==='lines'&&state.masterScope===previous
           &&window.ProcessSync?.identity===identity&&window.ProcessSync?.identity?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch
           &&window.MasterDataWorkflow?.canLeave?.()!==false&&!document.querySelector('#master-edit-dialog[open]');
-        try{await (window.MasterDataWorkflow?.loadScope?window.MasterDataWorkflow.loadScope(next):shared.load(next));if(!ownsView())return;state.masterScope=next;ui.line='';ui.category='';redraw();}
+        try{await (window.MasterDataWorkflow?.loadScope?window.MasterDataWorkflow.loadScope(next):shared.load(next));if(!ownsView())return;let lease;try{if(shared.client(previous).hasUnknown()){const departure=window.MasterDataWorkflow.navigation.departure;lease=await departure.abandon();if(!ownsView())return;departure.closeClean();}else shared.discardLocal(previous);state.masterScope=next;}finally{lease?.release();}ui.line='';ui.category='';redraw();}
         catch(error){if(ownsView()){input.value=previous;toast(displayDraftError(error));}}
         finally{if(input.isConnected){input.disabled=false;if(state.masterScope===previous)input.value=previous;}}
       });
@@ -464,7 +464,7 @@
       });
       on('#master-import','click',()=>{if(!permitted('master.import')){toast(t('此帳號沒有匯入權限。','Tài khoản này không có quyền nhập.'));return;}if(!editable()){toast(t('請先建立或切回草稿。','Hãy tạo hoặc mở bản nháp.'));return;}document.querySelector('#master-import-file').click();});
       on('#master-import-file','change',event=>{if(permitted('master.import'))return importExcel(event);else event.target.value='';});on('#master-export','click',()=>{if(permitted('master.export'))exportExcel();else toast(t('此帳號沒有匯出權限。','Tài khoản này không có quyền xuất.'));});bindRows();
-      window.VersionDraftUI?.mount(document.querySelector('.master-organized'),{header:'.master-version-bar',masterScope:['AB','C'].includes(state.masterScope)?state.masterScope:null,historyClient:()=>shared.client(state.masterScope),module:state.masterSection==='lines'?t('線別與工段','Chuyền và công đoạn'):state.masterScope+t(' 產線與類別',' · Chuyền và nhóm'),scope:state.masterScope,version:selected(),versions:versions(),active:versions().find(v=>v.status==='approved'),flow:shared.flow(state.masterScope),actions:{begin:'#master-new-draft',back:'#master-return-draft',save:'#master-save-draft',submit:'#master-submit',review:'#master-view-review',withdraw:'#master-withdraw',recover:'#master-shared-recover'},errors:'[data-shared-issue-kind="error"],.master-danger-list:has([data-fix-master])',missing:'[data-shared-issue-kind="missing"]',history:['.master-history','#master-shared-history','[data-shared-issue-kind="warning"]'],status:['#master-shared-status'],remove:['.master-delete-access','.master-danger-list:not(:has([data-fix-master]))']});
+      window.VersionDraftUI?.mount(document.querySelector('.master-organized'),{header:'.master-version-bar',masterScope:['AB','C'].includes(state.masterScope)?state.masterScope:null,historyClient:()=>shared.client(state.masterScope),module:state.masterSection==='lines'?t('線別與工段','Chuyền và công đoạn'):state.masterScope+t(' 產線與類別',' · Chuyền và nhóm'),scope:state.masterScope,version:selected(),versions:versions(),active:versions().find(v=>v.status==='approved'),flow:shared.flow(state.masterScope),localUnsaved:shared.localDirty(state.masterScope),actions:{begin:'#master-new-draft',back:'#master-return-draft',save:'#master-save-draft',submit:'#master-submit',review:'#master-view-review',withdraw:'#master-withdraw',recover:'#master-shared-recover'},errors:'[data-shared-issue-kind="error"],.master-danger-list:has([data-fix-master])',missing:'[data-shared-issue-kind="missing"]',history:['.master-history','#master-shared-history','[data-shared-issue-kind="warning"]'],status:['#master-shared-status'],remove:['.master-delete-access','.master-danger-list:not(:has([data-fix-master]))']});
     }
     let language=document.documentElement.lang;
     new MutationObserver(()=>{if(language!==document.documentElement.lang){language=document.documentElement.lang;if(document.querySelector('.master-organized')&&!document.querySelector('#master-edit-dialog'))redraw();}}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});

@@ -124,14 +124,14 @@ void test('changed persistent-navigation executable references have coherent new
   'ipqc-ab.js':'20261103-unknown-departure1',
   'ipqc-c.js':'20261104-begin-receipt1',
   'iqc-master.js':'20261104-begin-generation2',
-  'master-data.js':'20261103-unknown-approval1',
-  'master-shared-client.js':'20261031-bounded-recovery2',
+  'master-data.js':'20261105-abc-local-save1',
+  'master-shared-client.js':'20261105-abc-local-save1',
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261104-begin-receipt1',
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261103-unknown-departure1',
   'routine-fqc.js':'20261103-simple-departure1',
-  'shared-draft-client.js':'20261104-begin-receipt1',
+  'shared-draft-client.js':'20261105-abc-local-save1',
   'shared-state.js':'20261103-navigation-identity1',
   'tooling.js':'20261103-unknown-departure1',
   'user-access.js':'20261103-simple-departure1',
@@ -171,8 +171,8 @@ void test('authoring departure cannot publish local canvas positions or connecti
  changed=false;assert.equal(adapter.canSaveForDeparture(),true);await adapter.saveForDeparture();assert.equal(saves,1);
 });
 
-void test('actual line-admin departure detects unsaved AB/C working content',()=>{
+void test('line-admin departure never auto-saves legacy shared AB/C working',()=>{
  const text=source('master-data.js'),declaration=part(text,'      requiresSave(){','      async saveForDeparture(){').trim().replace(/,$/,'');
  const flow={working:{name:'changed'},saved:{content:{name:'saved'}},active:{content:{name:'active'}}},box={state:{view:'data',dataTab:'line-admin',masterScope:'C'},shared:{flow:scope=>{assert.equal(scope,'C');return flow;}}};
- vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);assert.equal(adapter.requiresSave(),true);flow.saved.content=flow.working;assert.equal(adapter.requiresSave(),false);box.state.view='editor';assert.equal(adapter.requiresSave(),false);
+ vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);assert.equal(adapter.requiresSave(),false);flow.saved.content=flow.working;assert.equal(adapter.requiresSave(),false);box.state.view='editor';assert.equal(adapter.requiresSave(),false);
 });

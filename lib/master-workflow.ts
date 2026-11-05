@@ -1,5 +1,5 @@
 import {removedProcessMasterTargets,processMasterReferences} from './process-master-references';
-import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue} from './shared-draft';
+import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON,sameDraftValue,type SharedDraft,type DraftIssue,type DraftPatch,type DraftPath} from './shared-draft';
 import {type WorkflowAdapter,type NumericVersion} from './versioned-shared-workflow';
 import {removedMasterStages,stageReferences,removesLineWithStages} from './master-stage-references';
 import {removedCatalogReferences,visibleCatalogReferences} from './master-product-references';
@@ -38,7 +38,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   }
  return{key:'masterDataControl',scope:'master:'+scope,empty:()=>scope==='PROCESS'?{}:{products:[],lines:[],categoryGroups:[]},photoIds:()=>[],photoPrefix:'master/photos/',
    preparedModel:true,permissionOnlyRead:true,
-  needsReferenceHistory:command=>scope!=='PROCESS'&&!!command&&(['restore','submit','approve'].includes(command.action)||command.action==='apply'&&(command.patches||[]).some(p=>p.op==='remove'||p.op==='set'&&(p.path[0]==='products'&&p.path.at(-1)==='code'||p.path[0]==='categoryGroups'&&(p.path.at(-1)==='name'||p.path.at(-1)==='line')))),
+  needsReferenceHistory:command=>scope!=='PROCESS'&&!!command&&(['restore','submit','approve'].includes(command.action)||['apply','save'].includes(command.action)&&(command.patches||[]).some(p=>p.op==='remove'||p.op==='set'&&(p.path[0]==='products'&&p.path.at(-1)==='code'||p.path[0]==='categoryGroups'&&(p.path.at(-1)==='name'||p.path.at(-1)==='line')))),
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
    root=(prepared||JSON.parse(raw)) as Root;if(!root.active?.[scope]||!Array.isArray(root.versions))throw new DraftConflict('MASTER_EXISTING_DATA_INVALID',422);
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
@@ -55,6 +55,9 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   beforeBegin(){if(scope==='PROCESS')assertProcessLinkAvailable(root);},
   requiresDelete(control,command){
    if(command.action==='restore')return true;
+   if(scope!=='PROCESS'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches))for(const batch of command.input.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[]){
+    if(batch.patches?.some(p=>p.op==='remove'||p.op==='set'&&['stages','defaultStages'].includes(str(p.path.at(-1)))&&batch.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)&&Array.isArray(g.value)&&g.value.some(code=>!Array.isArray(p.value)||!p.value.includes(code)))))return true;
+   }
    if((command.patches||[]).some(p=>p.op==='set'&&p.path[0]==='categoryGroups'&&p.path.at(-1)==='defaultStages'&&rows(control.workflow!.working.categoryGroups).some(g=>typeof p.path[1]==='object'&&g.id===p.path[1].id&&Array.isArray(g.defaultStages)&&g.defaultStages.some(code=>!Array.isArray(p.value)||!p.value.includes(code)))))return true;
    return (command.patches||[]).some(p=>p.op==='set'&&p.path[0]==='products'&&p.path.at(-1)==='stages'&&
     rows(control.workflow!.working.products).some(row=>typeof p.path[1]==='object'&&row.id===p.path[1].id&&
@@ -163,7 +166,31 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
      return issues;}
    };
   },
-  apply(control,command,context){checkEnteredFields=command.action==='apply';if(command.action==='apply')for(const p of command.patches||[]){
+  apply:function applyMaster(control,command,context){
+   const original=control.workflow!;
+   if(scope!=='PROCESS'&&command.action==='save'&&command.moduleAction==='save-local-v1'){
+    if(original.receipts[command.operationId])return applyDraftCommand(original,command,context);
+    if(!context.allowed('view')||!context.allowed('edit')||!context.allowed('save'))throw new DraftConflict('FORBIDDEN',403);
+    const batches=command.input?.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[];
+    if(!Array.isArray(batches)||batches.length>256||batches.some(b=>!b||!Array.isArray(b.patches)||!Array.isArray(b.guards))||batches.reduce((n,b)=>n+b.patches.length,0)>256||stableDraftJSON(batches.flatMap(b=>b.patches))!==stableDraftJSON(command.patches||[]))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
+    const fingerprint=context.commandFingerprint||stableDraftJSON(command),internal={...context,commandFingerprint:fingerprint};
+    let next=original;
+    for(const batch of batches){
+     if(batch.patches.some(p=>p.path[0]==='categoryGroups'&&(p.path.at(-1)==='defaultStages'||p.op==='insert'))&&!['products','lines'].every(key=>batch.guards.some(g=>g.path.length===1&&g.path[0]===key)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+     next=applyMaster({...control,workflow:next},{...command,action:'apply',moduleAction:undefined,input:undefined,patches:batch.patches,guards:batch.guards},internal).state;
+     // Intermediate Apply exists only in this request; one outer Save owns the
+     // sequence, revision and immutable receipt persisted by the route's CAS.
+     next={...next,revision:original.revision,receipts:original.receipts,sequences:original.sequences};
+    }
+    const result=applyDraftCommand(next,command,internal);
+    result.receipt.unchanged=sameDraftValue(original.working,result.state.working)&&result.receipt.unchanged;
+    if(!result.receipt.unchanged&&result.state.revision===original.revision)result.state.revision++;
+    result.receipt.revision=result.state.revision;
+    result.state.receipts[command.operationId].result=cloneDraft(result.receipt);
+    return result;
+   }
+   if(command.moduleAction)throw new DraftConflict('INVALID_MODULE_ACTION',422);
+   checkEnteredFields=command.action==='apply';if(command.action==='apply')for(const p of command.patches||[]){
    const path=p.path,first=path[0],field=path.at(-1);if(typeof first!=='string'||scope!=='PROCESS'&&!['products','lines','categoryGroups'].includes(first))throw new DraftConflict('INVALID_COLLECTION',422);
    if(p.op==='set'&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
    if(p.op==='set'&&(first==='lines'&&path.length===3&&field==='stages'||scope==='PROCESS'&&field==='equipment'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
