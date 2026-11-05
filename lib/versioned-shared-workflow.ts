@@ -62,6 +62,7 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   serializeModel?:(control:C)=>unknown;
   // Additional projections participate in the same shared-state CAS, never a second write.
   projectValues?:(control:C)=>Record<string,string>;
+  requiresCreate?:(control:C,command:Pick<ModuleDraftCommand,'action'|'patches'|'moduleAction'|'input'>)=>boolean;
   requiresDelete?:(control:C,command:Pick<ModuleDraftCommand,'action'|'patches'|'moduleAction'|'input'>)=>boolean;
   // Authoring historically permits operation removal with editor/submit access;
   // catalog adapters retain the separate master-delete permission.
@@ -151,7 +152,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
-    if(adapter.key==='qualityMasterControl'&&adapter.scope==='fqc')limited.save=limited.save||limited.edit;
+    if(adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'||adapter.key==='ipqcABMasterControl'&&adapter.scope==='ipqc-ab:module')limited.save=limited.save||limited.edit;
     return {...permissions,...limited,restore:limited.edit&&await restoreAllowed(request,state,check),create:limited.edit&&!!workflowModule&&await check(workflowModule+'.create'),delete:limited.edit&&await check(workflowModule&&accessKeys.includes(workflowModule+'.delete')?workflowModule+'.delete':adapter.deletePermission||'master.delete')};
   }
   return {
@@ -267,7 +268,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const knownPhotos=new Set(adapter.photoIds(previous));let receipt;const begin=parseBeginIdentity(body);let beginAlreadyOpen=false;
         if(body.action==='begin'||begin){
           if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
-          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','routine-equipment'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
+          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
           adapter.beforeBegin?.(control,state);
           const open=openedVersion(control);
           if(!begin&&control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),unchanged:true});
@@ -280,7 +281,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(!control.workflow||!openedVersion(control)&&!control.workflow.receipts[command.operationId])throw new DraftConflict('BEGIN_REQUIRED');
           const deletes=adapter.requiresDelete?.(control,command)||command.moduleAction?.startsWith('delete')||command.patches?.some(p=>p.op==='remove'||p.op==='set'&&(p.path.at(-1)==='isDeleted'||p.path.at(-1)==='deleted')&&p.value===true);
           if(deletes&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
-          const workflowModule=moduleForURL(request.url),creates=command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');
+          const workflowModule=moduleForURL(request.url),creates=adapter.requiresCreate?.(control,command)||command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');
           if(creates&&workflowModule&&accessKeys.includes(workflowModule+'.create')&&!await can(request,state,workflowModule+'.create'))return reply({error:'FORBIDDEN'},403);
           if(command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
           stage('adapter-apply');

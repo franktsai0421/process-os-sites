@@ -20,6 +20,14 @@ Document-local tooling edits, guarded atomic Save with code allocation, edit-gra
 
 分類／群組、檢具、校正與照片先在頁面完成，明確一次原子 Save；修改可存取、送審分開，unknown 保留原收據及寫入鎖並可離頁。修正取消表單清掉其他本機批次與既有群組照片不能移除的問題。未發布，四品質模組替換的全部原子統一仍建置中。 [候選與驗證](../docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
 
+## 2026-11-05 — Local A/B draft editing and Save
+
+A/B error/item/matrix changes now stay in page memory until one explicit module Save. First initialization uses the approved identified Begin + Save; subsequent Save is one POST/CAS. Added bounded original-receipt recovery, silent local departure, precise field/cell merge, server-side permission separation and synthetic browser/API checks. Uploaded as Draft #82; no migration, merge or deployment. [Evidence and limitations](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up migrates the four legacy immediate-Apply caller suites, adds original-operation completion guards and fixes stale recovery display after reload/peer Save; no shared-core or data-model change.
+
+## 2026-11-05 — A/B confirmed Save and read denial
+
+Retain the checked local-Save ACK and bilingual saved-but-read-denied feedback when the subsequent read fails; never retry the write. Reject missing/malformed epoch/delivery interfaces before any request. Migrate remaining polling/permission fixtures and compose byte-pinned source inverses without changing historical hashes or backend permissions. [Evidence and limits](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md).
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

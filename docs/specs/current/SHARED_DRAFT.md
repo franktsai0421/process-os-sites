@@ -6,6 +6,12 @@ This AB/C candidate covers master products, categories, group defaults/product e
 
 檢具主檔採本機表單／照片預覽、一次明確原子 Save 與無提示放棄未送輸入。修改權可存取，送審獨立並在確認前後檢查本機修改；未知 Begin／Save 保留原世代、原 guards、operation 與收據，離頁不清除 barrier、不重送。既有無識別標記不轉成已確認。這不包含設備替換的跨品質 scope 交易，也不改其他候選預設。 [檢具候選與限制](../../acceptance/equipment-local-atomic-save-20261105/README.md)。
 
+## 2026-11-05 IPQC A/B：本機編輯與一次存取
+
+A/B 錯誤碼、檢查項目及矩陣入口沿用全模組草稿加速要求：完成表單不逐筆寫入共享 working；按一次存取才依原欄位／格子基準合併並保存全模組。修改權包含存取，新增、刪除及送審仍各自驗證。未送出輸入離頁可直接放棄；未知操作保留原識別，不重送、不以 404 當成未寫入。
+
+本次確認採 identified Begin + Save：員工只按一次，首次尚未初始化時可有兩個 POST/CAS，後續存取一個 Save POST/CAS。Begin 結果不明則停止，不接續 Save；查回 Begin 仍不自動存取，必須保持原世代與基準。已保存、待審、正式、歷史及舊 unknown 不清理。[候選實作與驗證界線](../../acceptance/ipqc-ab-draft-save-20261105/README.md)。
+
 ## 2026-11-04 三模組隔離整合範圍
 
 FQC、IQC、IPQC C 候選均以頁面本機編輯及明確存取為原則，保存時保留權限、欄位基準、世代及 CAS 保護；送審仍獨立。整合不得以導覽例外解除帳號層未知寫入鎖，不轉換或刪除既有 shared working／saved／pending／formal／history。畫布與模具不得因共用程式存在就視為已完成轉接。[候選及驗證界線](../../acceptance/draft-save-integration-20261104.md)。

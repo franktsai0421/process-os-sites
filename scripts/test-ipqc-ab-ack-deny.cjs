@@ -1,27 +1,30 @@
+/* Actual AB local Save, shared transport, browser and handlers; synthetic SQLite/R2 only. */
 process.chdir(require('node:path').resolve(__dirname,'..'));
-/* Full module, real mount/load/selection; synthetic render boundary and controlled fetch. */
-const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const shared=require('node:fs').readFileSync('public/process/shared-draft-client.js','utf8');
-const candidate=fs.readFileSync('public/process/ipqc-ab.js','utf8'),_baseline=fs.readFileSync('public/process/ipqc-ab.js','utf8');
-function fixture(source){const pending=[],draws=[],identity={id:'a',role:'admin'},window={addEventListener(){},ProcessSync:{identity,identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:x=>x===1,platformHeaders:()=>({})}};const context={window,document:{documentElement:{lang:'zh'},querySelectorAll:()=>[],querySelector:()=>null},MutationObserver:class{observe(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},CustomEvent:class{},URLSearchParams,location:{search:''},fetch:()=>new Promise(resolve=>pending.push(resolve)),structuredClone,console};vm.createContext(context);const injection=`window.fixture={set(x){({control,catalog,equipment,revision,line,group,stage,errorId,versionId,working,showRouteExtras}=x);},get(){return{control,catalog,equipment,revision,line,group,stage,errorId,versionId,working,permission:sharedClient?.permission('edit'),editable:editing(),message,blocked:!!accessBlocked,quarantine:privateQuarantine,ack:lastCommandAcknowledgement,navigationError};},setHost(value){host=value;},load,save:moduleSave,mount:window.IPQCABUI.mount};moduleTransport=()=>{moduleClient=window.testModuleClient;return moduleClient;};const realDraw=draw;draw=()=>{if(accessBlocked)return realDraw();window.draws.push(revision);};drawReview=()=>{};showPendingItem=()=>{};scheduleRefresh=()=>{};`;
-context.window.draws=draws;vm.runInContext(shared,context);require('./entry-performance/fixture-ports.cjs')(context);vm.runInContext(source.replace(/\}\)\(\);\s*$/,injection+'})();'),context);return{...window.fixture,window,pending,draws};}
-const body=n=>({control:{scopes:{'A:G':{line:'A',group:'G',activeVersionId:null,versions:[{id:'draft',status:'draft',snapshot:{errors:[{id:'e',stageCode:'A-CUT',deleted:false}],items:[]}}]}}},catalog:{groups:[{line:'A',name:'G',defaultStages:['A-CUT']}],products:[],stages:[{line:'A',code:'A-CUT',name:'Cut'}]},equipment:[],revision:n});
-const _respond=(f,index,n)=>f.pending[index]({ok:true,json:async()=>body(n)});
-const tick=()=>new Promise(r=>setImmediate(r));
-const reply=(f,index,data,status=200)=>f.pending[index]({ok:status<400,status,json:async()=>data});
-const host=()=>({isConnected:true,dataset:{activeTab:'quality-ipqc-ab'},querySelector:()=>({}),innerHTML:''});
-void (async()=>{const f=fixture(candidate),data=body(1),visible=host();visible.innerHTML='old private content';f.setHost(visible);f.set({...data,line:'A',group:'G',stage:'A-CUT',errorId:'e',versionId:'draft',working:data.control.scopes['A:G'].versions[0].snapshot,showRouteExtras:false});f.window.VersionDraftUI={preserveView:()=>()=>{}};f.window.testModuleClient={hasUnknown:()=>false,flush:async()=>{},read:async()=>({control:{versions:[{status:'draft'}],workflow:{generation:'g',revision:1}},revision:1}),prepare:(generation,action,fields)=>({...fields,generation,action,operationId:'synthetic'}),sendPrepared:async command=>({receipt:{operationId:command.operationId}})};const pendingSave=f.save('save');await tick();assert.equal(f.pending.length,2);reply(f,1,{error:'FORBIDDEN'},403);await pendingSave;reply(f,0,{revision:1,permissions:{view:true,edit:true}});await tick();assert.equal(f.get().editable,false);assert.equal(f.get().blocked,true);assert.deepEqual(f.draws,[]);assert(!visible.innerHTML.includes('old private content'));assert(visible.innerHTML.includes('已儲存'));assert(f.get().ack.result.receipt.operationId==='synthetic');assert(f.get().control);assert(f.get().quarantine);const quarantined=f.get().quarantine;const count=f.pending.length;await f.save('save');assert.equal(f.pending.length,count);
- const retry=f.load();reply(f,3,body(2));await tick();assert.equal(f.get().blocked,true);reply(f,2,{revision:2,permissions:{view:true,edit:true}});await retry;assert.equal(f.get().blocked,false);assert.equal(f.get().revision,2);assert.equal(f.get().quarantine,quarantined);f.window.IPQCABUI.navigation.reset();assert.equal(f.get().quarantine,null);
- // Supplying real shell ports above must not hide absent/stale-owner admission failures.
- for(const missing of ['epoch-port','epoch-null','epoch-string','delivery-port','delivery-current']){
-  const denied=fixture(candidate),initial=body(1);denied.setHost(host());denied.set({...initial,line:'A',group:'G',stage:'A-CUT',errorId:'e',versionId:'draft',working:initial.control.scopes['A:G'].versions[0].snapshot,showRouteExtras:false});
-  let reads=0,commands=0,prepares=0;denied.window.VersionDraftUI={preserveView:()=>()=>{}};
-  denied.window.testModuleClient={hasUnknown:()=>false,flush:async()=>{},read:async()=>{reads++;throw Error('UNEXPECTED_READ');},prepare:(generation,action,fields)=>{prepares++;return{...fields,generation,action,operationId:'synthetic-denied'};},sendPrepared:async()=>{commands++;throw Error('UNEXPECTED_COMMAND');}};
-  if(missing==='epoch-port')delete denied.window.ProcessSync.identityGeneration;
-  if(missing==='epoch-null')denied.window.ProcessSync.identityGeneration=()=>null;
-  if(missing==='epoch-string')denied.window.ProcessSync.identityGeneration=()=> '1';
-  if(missing==='delivery-port')delete denied.window.ProcessSync.captureDelivery;
-  if(missing==='delivery-current')denied.window.ProcessSync.isCurrentDelivery=()=>false;
-  assert.equal(await denied.save('save'),null,missing);assert.equal(reads,0,missing);assert.equal(commands,0,missing);assert.equal(prepares,0,missing);assert.equal(denied.pending.length,0,missing);
- }
- console.log(JSON.stringify({status:'PASS_LOCAL_QUARANTINE',ackRetained:true,noRetryMutation:true,privateDraftRetained:true,blockedUntilCompleteFreshLoad:true,limits:'Actual moduleSave/load/draw blocked branch; command ACK stub; actual shared V2; no browser/live data.'},null,2));})();
+const assert=require('node:assert/strict');
+void(async()=>{
+ const {fixture,writes}=await import('../tests/ab-local-save-fixture.mjs');
+ async function isolated(run,options={}){const cleanups=[];try{const s=await fixture({after:fn=>cleanups.push(fn)},options);await run(s);}finally{for(const close of cleanups.reverse())await close();}}
+ for(const lang of ['zh','vi'])await isolated(async s=>{
+  await s.edit('standard','Confirmed local Save / Việt');let deny=true;
+  s.intercept(r=>deny&&r.method==='GET'&&new URL(r.url,'https://fixture').pathname==='/api/ipqc-ab'?{status:403,json:{error:'FORBIDDEN'}}:null);
+  await s.apiSave();const current=await s.state(),posts=writes(s);assert.equal(posts.length,1);assert.equal(posts[0].status,200);
+  assert.equal((await s.group()).control.workflow.working.items[0].standard,'Confirmed local Save / Việt');
+  assert.equal(current.accessBlocked.status,403);assert(current.privateQuarantine);assert.equal(current.localScopes.length,0);
+  assert.match(await s.page.locator('body').innerText(),lang==='vi'?/Đã lưu/:/已儲存/,'confirmed Save must not be reported as a failed write');
+  assert.equal(current.lastCommandAcknowledgement.result.receipt.operationId,posts[0].body.command.operationId);
+  assert.equal(current.lastCommandAcknowledgement.action,'save');assert.equal(current.lastCommandAcknowledgement.actor.id,'preview-editor');
+  assert.equal(await s.page.locator('#ab-standard').count(),0,'denied old UI is not exposed');
+  const stored=s.f.snapshot(),quarantine=current.privateQuarantine,count=s.requests.length;
+  await s.apiSave();assert.equal(s.requests.length,count,'blocked Save cannot retry either reads or writes');assert.deepEqual(s.f.snapshot(),stored);
+  deny=false;const held=s.hold(r=>r.method==='GET'&&new URL(r.url,'https://fixture').searchParams.has('permissions'));
+  await s.page.locator('[data-ab-access-retry]').click();await held.started;assert.equal((await s.state()).accessBlocked.status,403,'partial fresh load cannot unlock editing');held.release();
+  await s.page.waitForFunction(()=>!__ABTest.view().accessBlocked);assert.deepEqual((await s.state()).privateQuarantine,quarantine);assert.equal(writes(s).length,1);assert.deepEqual(s.f.snapshot(),stored);
+  await s.page.evaluate(()=>__ABTest.reset());assert.equal((await s.state()).privateQuarantine,null);s.cleanErrors();
+ },{lang});
+ for(const missing of ['epoch-port','epoch-null','epoch-string','epoch-negative','epoch-fraction','delivery-port','delivery-null','delivery-undefined','delivery-current'])await isolated(async s=>{
+  await s.edit('standard','Private input');const stored=s.f.snapshot(),count=s.requests.length;
+  await s.page.evaluate(m=>{const sync=ProcessSync;if(m==='epoch-port')delete sync.identityGeneration;if(m==='epoch-null')sync.identityGeneration=()=>null;if(m==='epoch-string')sync.identityGeneration=()=> '1';if(m==='epoch-negative')sync.identityGeneration=()=> -1;if(m==='epoch-fraction')sync.identityGeneration=()=> 1.5;if(m==='delivery-port')delete sync.captureDelivery;if(m==='delivery-null')sync.captureDelivery=()=>null;if(m==='delivery-undefined')sync.captureDelivery=()=>undefined;if(m==='delivery-current')sync.isCurrentDelivery=()=>false;},missing);
+  assert.equal(await s.apiSave(),null,missing);assert.equal(s.requests.length,count,missing+' must not dispatch GET or POST');assert.equal(writes(s).length,0);assert.deepEqual(s.f.snapshot(),stored);assert.equal((await s.entry()).snapshot.items[0].standard,'Private input');s.cleanErrors();
+ });
+ console.log(JSON.stringify({status:'PASS_LOCAL_QUARANTINE',ackRetained:true,noRetryMutation:true,savedDraftRetained:true,blockedUntilCompleteFreshLoad:true,ackLanguages:2,missingOwnerCases:9,limits:'Actual Chromium/module Save/shared client/handlers with synthetic SQLite/R2; no live data or physical-device claim.'}));
+})().catch(error=>{console.error(error);process.exitCode=1;});

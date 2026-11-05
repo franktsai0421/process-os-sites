@@ -153,6 +153,8 @@ function withoutDurableBegin(bytes,file){
  // integrated source still requires its separate exact union hash above.
  if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0')bytes=withoutBomWorkflowOptIn(bytes,file);
  bytes=historicalBeginSource(bytes,file);
+ // Compose only the byte-pinned AB opt-in inverse; preserve both original hashes.
+ if(file==='lib/versioned-shared-workflow.ts'){const ab=require('./ipqc-ab-local-save-source-contract.cjs');if(hash(bytes)===ab.afterHash)bytes=ab.withoutABLocalAtomicSave(bytes);}
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){

@@ -25,6 +25,13 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
    assert.throws(()=>withoutDurableBegin(unsafe,file),/differs from pinned bytes/,'Unknown changes in reviewed opt-in spans still fail closed');
   }
  }
+ const abInverse=require('./ipqc-ab-local-save-source-contract.cjs').withoutABLocalAtomicSave;
+ const abBytes=fs.readFileSync(path.join(root,'lib/versioned-shared-workflow.ts'));
+ assert.equal(createHash('sha256').update(abInverse(abBytes)).digest('hex'),'8734ac32aa54f02f2d19b94bd7b0ecbec849907867a9638a4f5afd34a4e244d1','AB inverse restores exact PR77 bytes before the unchanged historical Begin inverse');
+ for(const token of ['adapter.requiresCreate?.(control,command)||',"'ipqc-ab:module'",'limited.save=limited.save||limited.edit']){
+  const altered=Buffer.from(abBytes.toString().replace(token,'UNRECOGNIZED_SOURCE'));assert.notDeepEqual(altered,abBytes);
+  assert.throws(()=>abInverse(altered),/differs from pinned bytes/);assert.throws(()=>withoutDurableBegin(altered,files[1]),/differs from pinned bytes/);
+ }
  const atomicInverse=require('./ipqc-c-local-save-source-contract.cjs').withoutLocalAtomicSave;
  const historical=atomicInverse(fs.readFileSync(path.join(root,files[0])));
  assert.equal(createHash('sha256').update(historical).digest('hex'),'8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07','Begin inverse composes with unchanged historical Local Save proof');
