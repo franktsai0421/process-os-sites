@@ -38,7 +38,7 @@ async function connect(h, { fault = '', language = 'zh' } = {}) {
   f.c.VersionDraftUI.confirmSubmit = async () => 'Synthetic explicit submit'; f.c.VersionDraftUI.reasonFor = () => 'Synthetic explicit submit'; f.c.VersionDraftUI.confirmReview = async () => ({ reason: 'Synthetic independent review', selfReviewConfirmed: false });
   f.c.fetch = async (url, options = {}) => {
     const parsed = new URL(url, 'http://fixture'), method = options.method || 'GET', body = typeof options.body === 'string' ? JSON.parse(options.body) : null, start = performance.now();
-    const isBegin = method === 'POST' && body?.action === 'begin', isRecovery = injected && method === 'GET' && parsed.pathname.endsWith('/workflow');
+    const isBegin = method === 'POST' && ['begin','begin-v1'].includes(body?.action), isRecovery = injected && method === 'GET' && parsed.pathname.endsWith('/workflow');
     if (isBegin && fault === 'before-commit' && !injected) { injected = true; requests.push({ path: parsed.pathname, method, action: 'begin', injected: 'before-handler', dispatchedToHandler: false }); throw Object.assign(Error('signal is aborted without reason'), { name: 'AbortError' }); }
     if (isRecovery && fault === 'recovery-503') { requests.push({ path: parsed.pathname, method, status: 503, injected: 'read-failure' }); return Response.json({ error: 'SYNTHETIC_READ_FAILURE' }, { status: 503 }); }
     const route = h.load('app' + parsed.pathname + '/route.ts'), response = await route[method](new Request(parsed, { method, headers: { ...h.sessions[who], ...options.headers }, ...(method === 'GET' ? {} : { body: options.body }) }));
@@ -104,12 +104,12 @@ if (require.main === module) (async () => {
         const input = f.host.querySelector('#routine-dialog-photo-input'); assert.equal(input.getAttribute('accept'), 'image/*');
         const bytes = require('../tests/photo-fixtures.mjs').pngFixture({ width: kind === 'category' ? 9 : 10, height: 8 });
         input.dispatchEvent({ type: 'change', target: { files: [new File([bytes], 'ordinary.png', { type: 'image/png' })] } });
-        await f.test.confirmNodeDialog();
+        await f.test.confirmNodeDialog();assert(await f.test.writeShared('save'),f.test.message);
         const collection = kind === 'category' ? 'categories' : 'subcategories', row = h.flow(await h.read(moduleId)).working[collection].find(value => value.id === id);
         assert.equal(row.name, name); assert.equal(row.photoId, createHash('sha256').update(bytes).digest('hex'));
       });
       await step('delete only new category/subcategory with no children through actual UI guards', async () => {
-        await f.test.deleteNode('category', 'test-cat-2'); await f.test.deleteNode('subcategory', 'test-sub-2');
+        await f.test.deleteNode('category', 'test-cat-2'); await f.test.deleteNode('subcategory', 'test-sub-2');assert(await f.test.writeShared('save'),f.test.message);
         const before = h.snapshot(); await f.test.deleteNode('category', 'test-cat-1'); assert.deepEqual(h.snapshot(), before); assert.match(f.test.message, /下階已有資料/);
         await f.test.deleteNode('subcategory', 'test-sub-1'); assert.deepEqual(h.snapshot(), before); assert.match(f.test.message, /下階已有資料/);
       });
@@ -117,18 +117,20 @@ if (require.main === module) (async () => {
         await f.test.openEditEquipment('test-tool-1');
         const input = f.host.querySelector('#routine-editor [data-field="name"]'); assert(input); input.value = 'Test tool 1 edited'; input.oninput();
         assert(await f.test.writeShared('apply'));
-        assert.equal(h.flow(await h.read(moduleId)).working.equipment.find(row => row.id === 'test-tool-1').name, 'Test tool 1 edited');
+        assert.notEqual(h.flow(await h.read(moduleId)).working.equipment.find(row => row.id === 'test-tool-1').name, 'Test tool 1 edited','completion is local until explicit Save');
         // An applied but still-open form must not bypass the Save guard.
         const appliedState=h.snapshot(),postCount=f.posts().length;
         assert.equal(await f.test.writeShared('save'),null);assert.equal(f.posts().length,postCount);assert.deepEqual(h.snapshot(),appliedState);
-        const close=f.host.querySelector('#routine-form-cancel');assert(close,'actual bound equipment form Close button');close.click();
+        // Synthetic DOM does not implement native select default selection. Pin actual displayed row values.
+        const currentRow=f.test.working.equipment.find(row=>row.id==='test-tool-1');for(const select of f.host.querySelectorAll('#routine-editor [data-select]'))select.value=String(currentRow[select.dataset.select]??'');
+        const complete=f.host.querySelector('#routine-form-apply');assert(complete,'actual bound equipment form completion button');complete.click();for(let n=0;f.host.querySelector('#routine-editor')&&n<100;n++)await tick();
         assert.equal(f.host.querySelector('#routine-editor'),null,'editor really closed, not an optional-selector no-op');
         assert.equal(f.test.working.equipment.find(row=>row.id==='test-tool-1').name,'Test tool 1 edited');
-        assert.deepEqual(h.snapshot(),appliedState,'Close after successful Apply preserves shared value and complete persistence');
+        assert.deepEqual(h.snapshot(),appliedState,'local completion preserves persistence until Save');assert(await f.test.writeShared('save'),f.test.message);
       });
       await step('delete only the unapproved unreferenced second new tool through strict UI checks', async () => {
         const requestStart = f.requests.length;
-        await f.test.deleteEquipment('test-tool-2'); assert(!h.flow(await h.read(moduleId)).working.equipment.some(row => row.id === 'test-tool-2'));
+        await f.test.deleteEquipment('test-tool-2');assert(await f.test.writeShared('save'),f.test.message); assert(!h.flow(await h.read(moduleId)).working.equipment.some(row => row.id === 'test-tool-2'));
         assert(f.requests.slice(requestStart).some(row => row.path === '/api/iqc' && row.method === 'GET' && row.status === 200));
       });
       const current = h.flow(await h.read(moduleId)); assert.deepEqual(current.active, originalActive); assert.equal(current.working.equipment.filter(row => row.id.startsWith('test-tool')).length, 1); assert.equal(current.working.equipment.find(row => row.id === 'source').photoId, oldPhoto);

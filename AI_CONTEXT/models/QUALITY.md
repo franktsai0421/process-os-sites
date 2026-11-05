@@ -1,3 +1,7 @@
+## 2026-11-05 — Equipment atomic Save candidate
+
+No persistent schema change. The equipment adapter stages allocation/reservations and patches in a cloned request-local control, then saves working/saved through one existing shared-state CAS and original command receipt. Existing workflow, provenance, history and photos remain. [Protocol, permissions and transfer limits](../../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
+
 # 品質JSON資料模型
 
 狀態：Current source reference；數量及初次匯入為來源日期基線，不代表當前DB。無normalized品質SQL表。

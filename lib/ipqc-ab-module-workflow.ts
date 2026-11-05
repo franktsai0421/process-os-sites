@@ -1,3 +1,4 @@
+import {abLocalScopes,applyAbLocalScopes} from './ipqc-ab-local-save';
 import {parseAbControl,activeAb,openAb,copyAb,type AbControl,type AbSnapshot,type AbVersion} from './ipqc-ab';
 import {abWorkflowAdapter,type AbSharedScope} from './ipqc-ab-workflow';
 import {applyDraftCommand,DraftConflict,cloneDraft,stableDraftJSON} from './shared-draft';
@@ -10,7 +11,7 @@ export type AbModuleControl=VersionedControl<AbModuleSnapshot>;
 export type AbModuleRoot=AbControl&{moduleDraft?:AbModuleControl};
 export function abModulePending(root:AbControl){return (root as AbModuleRoot).moduleDraft?.workflow?.pendingId;}
 export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbModuleControl>{
- let root:AbModuleRoot;
+ let root:AbModuleRoot,requestState:Parameters<WorkflowAdapter<AbModuleSnapshot,AbModuleControl>['context']>[1];
  const snapshot=(working:boolean,copy=true):AbModuleSnapshot=>({
   scopes:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>{const content=working?(s as AbSharedScope).workflow?.working||openAb(s)?.snapshot||activeAb(s)?.snapshot||{errors:[],items:[]}:activeAb(s)?.snapshot||{errors:[],items:[]};return[key,copy?cloneDraft(content):content];})),
   bases:Object.fromEntries(Object.entries(root.scopes).map(([key,s])=>[key,s.activeVersionId]))
@@ -40,22 +41,35 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   return root;
  }
   return{key:'ipqcABMasterControl',scope:'ipqc-ab:module',preparedModel:true,permissionOnlyRead:true,
+  needsFullHistory:command=>command?.moduleAction==='save-local-v1',
+  requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create'))),
+  requiresDelete:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('delete'))),
   empty:()=>snapshot(false),photoPrefix:'ipqc-ab/photos/',photoIds:c=>Object.values(c.scopes).flatMap(s=>s.items.flatMap(i=>[...i.standardPhotos,...i.methodPhotos].map(p=>p.id))),
   parse(raw,prepared){root=parseAbControl(raw,prepared) as AbModuleRoot;return root.moduleDraft||{activeVersionId:null,versions:[]};},
   serializeModel:project,serialize:c=>JSON.stringify(project(c)),beforeBegin:()=>conflict(),
   beforeCommand(control,command,state){if(control.workflow?.receipts[command.operationId])return;
-   conflict();if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');
+   conflict();if(command.moduleAction==='save-local-v1'){abLocalScopes(command);return;}if(['save','submit'].includes(command.action)&&command.input?.stateRevision!==state.revision)throw new DraftConflict('MODULE_CHANGED_RECONFIRM');
    if(['apply','restore'].includes(command.action)||command.moduleAction)throw new DraftConflict('MODULE_ACTION_NOT_SUPPORTED',422);
    const content=command.action==='approve'?control.workflow?.cases.find(c=>c.id===command.caseId)?.content:null;
    if(content&&(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort())||Object.entries(content.bases).some(([key,id])=>root.scopes[key]?.activeVersionId!==id)))throw new DraftConflict('MODULE_BASE_CHANGED_RECONFIRM');
   },
-  context(control,state,base){const {restoreContent:_restore,...groupBase}=base;const contexts=new Map(Object.keys(root.scopes).map(key=>{const adapter=abWorkflowAdapter(key),s=adapter.parse(state.values.ipqcABMasterControl,state.recordStorage?.models.get('ipqcABMasterControl'));return[key,adapter.context(s,state,groupBase)] as const;}));
+  context(control,state,base){requestState=state;const {restoreContent:_restore,...groupBase}=base;const groupContext=(key:string)=>{const adapter=abWorkflowAdapter(key),s=adapter.parse('{}',root);return adapter.context(s,state,groupBase);};
    return{...base,activeId:control.activeVersionId,semantic:c=>c.scopes,
-    structure(content,previous){if(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort()))throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');for(const [key,c]of Object.entries(content.scopes))contexts.get(key)!.structure(c,previous.scopes[key]||c);},
-    validate(content){return Object.entries(content.scopes).flatMap(([key,c])=>{const context=contexts.get(key);if(!context)throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');return context.validate(c).map(issue=>({...issue,path:['scopes',key,...issue.path]}));});}
+    structure(content,previous){if(stableDraftJSON(Object.keys(content.scopes).sort())!==stableDraftJSON(Object.keys(root.scopes).sort()))throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');for(const [key,c]of Object.entries(content.scopes))groupContext(key).structure(c,previous.scopes[key]||c);},
+    validate(content){return Object.entries(content.scopes).flatMap(([key,c])=>{const context=groupContext(key);if(!context)throw new DraftConflict('MODULE_MEMBERS_CHANGED_RECONFIRM');return context.validate(c).map(issue=>({...issue,path:['scopes',key,...issue.path]}));});}
    };
   },
   apply(control,command,context){let flow=control.workflow!;
+   if(command.moduleAction==='save-local-v1'&&!flow.receipts[command.operationId]){
+    if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+    const prior=root;
+    const {restoreContent:_restore,structure:_structure,validate:_validate,semantic:_semantic,...base}=context;
+    const candidate=applyAbLocalScopes(root,command,requestState,base);
+    try{root=candidate;const next=snapshot(true);context.structure(next,next);
+     const result=applyDraftCommand({...flow,working:next},{...command,expectedRevision:undefined},{...context,allowed:p=>p==='save'?context.allowed('edit'):context.allowed(p)});
+     return result;
+    }catch(error){root=prior;throw error;}
+   }
    if(command.action==='save'&&!flow.receipts[command.operationId]){const next=snapshot(true);context.structure(next,next);flow={...flow,working:next};}
    // Group Apply does not advance the module workflow. Submit must compare the
    // current group content, not the module's working copy from its last Save.

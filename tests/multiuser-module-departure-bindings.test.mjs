@@ -6,13 +6,18 @@ import ts from 'typescript';
 const helperSource=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const helper=helperSource.slice(helperSource.indexOf('  function createDeparture(config){'),helperSource.indexOf('  host.VersionDraftUI='));
 const modules=['master-data','bom-workspace','fqc-master','iqc-master','ipqc-ab','ipqc-c','routine-equipment','tooling','routine-fqc'];
-// IPQC C uses silent local departure; the older explicit decision policy remains for other modules.
+// Each opt-in retains its module-specific checked RAM abandonment and original unknown obligations.
 const decisionModules=modules.filter(name=>name!=='ipqc-c');
 function sourceBlock(source,start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert(a>=0&&b>a,`${start} … ${end}`);return source.slice(a,b);}
+function sourceDeclaration(ast,name){
+ const matches=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)matches.push(node);if(ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>d.name.getText(ast)===name))matches.push(node);ts.forEachChild(node,visit);}visit(ast);
+ assert.equal(matches.length,1,`one actual declaration for ${name}`);return matches[0].getText(ast);
+}
+function stageAB(box,key='A:G'){const base=structuredClone(box.flow().working),snapshot={...structuredClone(base),value:'unsaved local'};box.localScopes.set(key,{base,snapshot});return snapshot;}
 function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8');
  const ast=ts.createSourceFile(name+'.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let config;
- function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='window.VersionDraftUI.createDeparture'){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)===(name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
  visit(ast);assert(config,name+' departure config');
  let writes=0,unknown=false,failed=false,allowed=true;
  const identity={id:'user'},root={isConnected:true,inert:false,dataset:{activeTab:name},querySelector:()=>null,querySelectorAll:()=>[]};
@@ -60,7 +65,10 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
  if(name==='ipqc-ab'){
-  Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null});
+  Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null,
+   API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localSent:null,localConflict:null,moduleTransport:()=>client});
+  const closures=['legacyABClients','localPending','clearLocalEditing','abandonLocalEditing'];if(!omitInputClosures)closures.push('localDirty');
+  vm.runInNewContext(closures.map(n=>sourceDeclaration(ast,n)).join('\n'),box);
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }
  if(name==='ipqc-c'){
@@ -68,19 +76,23 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   vm.runInNewContext(sourceBlock(source,'  function clearLocal(){','\n'),box);
  }
  if(name==='routine-equipment'){
-  box.inputOwner=null;
+  const markers=new Map();
+  Object.assign(box,{fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);
+  vm.runInNewContext(sourceBlock(source,'  const isDirty =','\n'),box);
+  vm.runInNewContext(sourceBlock(source,'  const beginRecoveryKey =','  function readBeginRecovery('),box);
+  vm.runInNewContext(sourceBlock(source,'  const fqcTransferKey =','  const fqcTransferUnknown'),box);
+  vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);
- if(name==='ipqc-ab')vm.runInContext(source.slice(source.indexOf('  function departureSharedState(){'),source.indexOf('  window.IPQCABUI =')),box);
  if(name==='routine-fqc')vm.runInContext(source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
- const adapter=vm.runInContext('window.VersionDraftUI.createDeparture('+config+')',box);
+ const adapter=vm.runInContext((name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')+'('+config+')',box);
  return {adapter,box,flow:f,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
 }
 for(const name of decisionModules){
- void test(`${name}: actual adapter preserves its explicit shared departure policy`,async()=>{
+ void test(`${name}: actual adapter preserves its current shared departure policy`,async()=>{
   const f=fixture(name),status=f.adapter.inspect();
-  if(['master-data','fqc-master','iqc-master','bom-workspace'].includes(name)){
+  if(['master-data','fqc-master','iqc-master','bom-workspace','routine-equipment','ipqc-ab'].includes(name)){
    const before=JSON.stringify(f.flow);assert.equal(status.state,'clean');assert.equal(status.canSave,false);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;
   }
   assert.equal(status.state,'dirty');assert.equal(status.canSave,true);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
@@ -111,8 +123,16 @@ for(const name of decisionModules)for(const revoked of [false,true])for(const ac
  if(name==='iqc-master')assert.equal([...b.editorOwners].length,1,'old quarantined owner is not removed');
 });
 
+void test('equipment actual auto-abandon wrapper retains legacy Begin marker bytes without settling or writing',async()=>{
+ const f=fixture('routine-equipment'),b=f.box,key='routine-equipment-begin-recovery:user',marker=JSON.stringify({schema:1,actorId:'user',generation:'original',activeVersionId:'active'}),before=JSON.stringify(f.flow);
+ b.sessionStorage.setItem(key,marker);b.working={value:'unsent local'};
+ assert.equal(f.adapter.autoAbandon,true);assert.equal(f.adapter.inspect().state,'unknown');assert.equal(f.adapter.inspect().canAbandon,true);
+ const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');f.adapter.closeClean();lease.release();
+ assert.equal(f.adapter.inspect().state,'unknown');assert.equal(b.sessionStorage.getItem(key),marker);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+});
+
 for(const name of modules)for(const viewer of [false,true])void test(`${name}: different-actor shared changes allow ${viewer?'viewer':'untouched editor'} departure without writes`,async()=>{const f=fixture(name);f.flow.contributors={field:{actor:{id:'colleague'}}};if(viewer)f.allowed(false);const before=JSON.stringify(f.flow);assert.equal(f.adapter.inspect().state,'clean');f.adapter.closeClean();await assert.rejects(f.adapter.save());assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);});
-for(const actor of ['user','colleague'])void test(`IPQC-AB group Apply by ${actor} is checked against module saved cutoff, not stale aggregate working`,()=>{const f=fixture('ipqc-ab'),b=f.box;f.flow.saved.content=structuredClone(f.flow.working);const group={generation:'group',working:{items:[{id:'i',name:'new'}]},contributors:{field:{actor:{id:actor}}}};b.control.scopes={G:{workflow:group}};b.control.moduleDraft.workflow={generation:'module',working:{scopes:{G:{items:[{id:'i',name:'old'}]}}},saved:{id:'cutoff',content:{scopes:{G:{items:[{id:'i',name:'old'}]}}}}};assert.equal(f.adapter.inspect().state,actor==='user'?'dirty':'clean');assert.equal(f.writes,0);});
+for(const actor of ['user','colleague'])void test(`IPQC-AB legacy shared group changes by ${actor} do not cause an implicit departure Save`,async()=>{const f=fixture('ipqc-ab'),b=f.box;f.flow.saved.content=structuredClone(f.flow.working);const group={generation:'group',working:{items:[{id:'i',name:'new'}]},contributors:{field:{actor:{id:actor}}}};b.control.scopes={G:{workflow:group}};b.control.moduleDraft.workflow={generation:'module',working:{scopes:{G:{items:[{id:'i',name:'old'}]}}},saved:{id:'cutoff',content:{scopes:{G:{items:[{id:'i',name:'old'}]}}}}};const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.save());f.adapter.closeClean();assert.equal(JSON.stringify(b.control),before);assert.equal(f.writes,0);});
 void test('IPQC-AB observed module Save settles matching groups despite retained group contributor stamps',()=>{const f=fixture('ipqc-ab'),b=f.box;b.control.scopes={G:{workflow:f.flow}};b.control.moduleDraft.workflow={generation:'module',saved:{id:'cutoff',content:{scopes:{G:structuredClone(f.flow.working)}}}};assert.equal(f.adapter.inspect().state,'clean');assert.equal(f.writes,0);});
 
 void test('routine FQC malformed legacy actor is unknown attribution, not proven different actor',()=>{const f=fixture('routine-fqc');f.flow.contributors={field:{actor:{id:123}}};assert.equal(f.adapter.inspect().state,'dirty');assert.equal(f.adapter.inspect().canDiscard,false);assert.equal(f.writes,0);});
@@ -123,17 +143,17 @@ void test('IQC actual recovery discard refuses a pending name batch before remov
 
 for(const name of ['ipqc-ab','routine-equipment'])void test(`${name}: extracted departure requires its actual input closures`,()=>{
  const f=fixture(name,{omitInputClosures:true});
- assert.throws(()=>f.adapter.inspect(),name==='ipqc-ab'?/hasPrivateInput is not defined/:/inputOwnerCurrent is not defined/);
+ assert.throws(()=>f.adapter.inspect(),name==='ipqc-ab'?/localDirty is not defined/:/inputOwnerCurrent is not defined/);
  assert.equal(f.writes,0);
 });
 
-for(const kind of ['working','batch','modal'])void test(`IPQC-AB actual private-input closure retains ${kind} until local-only discard`,async()=>{
+for(const kind of ['snapshot','multiple groups','modal'])void test(`IPQC-AB actual local-input closures retain ${kind} until local-only discard`,async()=>{
  const f=fixture('ipqc-ab'),b=f.box;f.flow.contributors={field:{actor:{id:'colleague'}}};const before=JSON.stringify(f.flow);
- if(kind==='working')b.working={value:'unapplied'};
- if(kind==='batch')b.localBatch={owner:b.inputOwner(),base:structuredClone(f.flow.working)};
+ if(kind!=='modal')b.working=stageAB(b);
+ if(kind==='multiple groups')stageAB(b,'B:G');
  if(kind==='modal')b.modal={readonly:false,photos:[]};
  assert.equal(b.hasPrivateInput(),true);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());
- const lease=await f.adapter.discard();assert.equal(b.hasPrivateInput(),false);assert.equal(b.inputOwnerCurrent(b.inputBasisOwner),true);assert.equal(f.adapter.inspect().state,'clean');assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();
+ const lease=await f.adapter.discard();assert.equal(b.hasPrivateInput(),false);assert.equal(b.localScopes.size,0);assert.equal(b.working,null);assert.equal(b.modal,null);assert.equal(f.adapter.inspect().state,'clean');assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);lease.release();
 });
 
 const ownerChanges={
@@ -157,22 +177,27 @@ for(const [reason,change]of Object.entries(ownerChanges))void test(`equipment ac
  assert.equal(f.writes,0);assert.equal(b.working,working);assert.equal(b.inputOwner,owner);assert.equal(b.editingEquipmentId,'eq');
 });
 
-for(const name of ['ipqc-ab','routine-equipment'])for(const reason of ['same-id replacement actor','epoch','delivery'])void test(`${name}: departure refuses a late ${reason} after the acknowledged Save`,async()=>{
+for(const name of ['routine-equipment'])for(const reason of ['same-id replacement actor','epoch','delivery'])void test(`${name}: navigation never implicitly saves local input, including after ${reason}`,async()=>{
  const f=fixture(name),b=f.box,key=name==='ipqc-ab'?'save':'saveDraft',save=b[key];
+ if(name==='routine-equipment'){
+  b.working={value:'Unsent local equipment input'};const local=b.working,before=JSON.stringify(f.flow);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());
+  ownerChanges[reason](b);await assert.rejects(f.adapter.save());assert.equal(f.writes,0);assert.equal(b.working,local);assert.equal(JSON.stringify(f.flow),before);assert.equal(b.root.inert,false);return;
+ }
  b[key]=async(...args)=>{const result=await save(...args);ownerChanges[reason](b);return result;};
  await assert.rejects(f.adapter.save());assert.equal(f.writes,1);assert.equal(b.root.inert,false,'a stale completion cannot retain a departure lease');
 });
 
 for(const name of decisionModules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
  const f=fixture(name),before=JSON.stringify(f.flow);
+ if(name==='ipqc-ab')stageAB(f.box);
  if(['master-data','fqc-master','bom-workspace'].includes(name)){assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.abandon());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;}
- if(name==='iqc-master')f.box.localSnapshot={value:'unsaved local'};assert.equal(f.adapter.inspect().canAbandon,true);
+ if(name==='iqc-master')f.box.localSnapshot={value:'unsaved local'};if(name==='routine-equipment')f.box.working={value:'unsaved local'};assert.equal(f.adapter.inspect().canAbandon,true);
  const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
- f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,name==='iqc-master'?'clean':'dirty');
+ f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,['iqc-master','routine-equipment','ipqc-ab'].includes(name)?'clean':'dirty');
 });
 
 for(const name of decisionModules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
- const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};if(name==='bom-workspace')b.pending=[{}];if(name==='master-data')b.locals.set('AB',{batches:[{}]});const lease=await f.adapter.abandon();
+ const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};if(name==='ipqc-ab')stageAB(b);if(name==='routine-equipment')b.working={value:'unsaved local'};if(name==='bom-workspace')b.pending=[{}];if(name==='master-data')b.locals.set('AB',{batches:[{}]});const lease=await f.adapter.abandon();
  if(fault==='identity')b.window.ProcessSync.identity={id:'other'};
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}
@@ -243,4 +268,22 @@ void test('master-data: actual bridge discards a completed local batch without r
  const lease=await f.adapter.abandon();assert.equal(b.shared.localDirty('AB'),false);
  assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
  assert.equal(f.adapter.inspect().state,'clean');assert.equal(b.root.inert,false);
+});
+
+for(const reason of ['same-id replacement actor','epoch','delivery'])void test(`IPQC-AB departure refuses ${reason} during RAM discard without Save`,async()=>{
+ const f=fixture('ipqc-ab'),b=f.box,before=JSON.stringify(b.control),discard=b.abandonLocalEditing;stageAB(b);
+ b.abandonLocalEditing=()=>{discard();ownerChanges[reason](b);};
+ await assert.rejects(f.adapter.abandon());assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);assert.equal(b.root.inert,false,'a stale handoff cannot retain a departure lease');
+});
+for(const condition of ['revoked','pending'])void test(`IPQC-AB ${condition} local input cannot Save on departure and does not rewrite shared data`,async()=>{
+ const f=fixture('ipqc-ab'),b=f.box;stageAB(b);if(condition==='revoked')f.allowed(false);else f.flow.pendingId='pending';
+ const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canSave,false);await assert.rejects(f.adapter.save());
+ const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
+});
+void test('IPQC-AB unknown departure clears RAM but preserves the original sent snapshot and receipt obligation',async()=>{
+ const f=fixture('ipqc-ab'),b=f.box,anchor={operationId:'original-save'},client=b.moduleClient;stageAB(b);f.unknown(true);
+ const sent={command:{operationId:anchor.operationId},snapshot:'original sent snapshot'};b.localSent=sent;
+ Object.assign(client,{departureIdle:()=>true,departureUnknown:()=>anchor,coverDeparture:(value,current)=>{assert.equal(value,anchor);return{current,release(){}};}});
+ const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());
+ const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
 });

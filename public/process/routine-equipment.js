@@ -41,17 +41,17 @@
   let selectedEquipmentId = '', editingEquipmentId = '', search = '', busy = false, message = '', reviewHost = null;
   let equipmentPage = 1, submitProblems = [], openErrors = false, composing = false;
   let equipmentEditRequest = 0;
-  let problemSnapshot = null;
+  let problemSnapshot = null, formPendingPhoto = null;
   let nodeDialog = null, viewDialog = null, formSnapshot = null, addingEquipment = false, newEquipmentForm = null, newEquipmentOwner = null, equipmentReadAttempt = null, transferDialog = null;
   const equipmentRefCache = new Map();
   const equipmentRefReads = new Map();
-  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,inputOwner=null;const sharedPoll=window.createForegroundPoll();let readIntent=0,beginEntryAttempt=null;
+  let sharedClient=null,sharedActor='',syncBase=null,syncGeneration=null,inputOwner=null;const sharedPoll=window.createForegroundPoll();let readIntent=0,localBeginReceipt=null,pendingSaveBatch=null;
   function hasLocalDraftInput(){return !!(editingEquipmentId||nodeDialog||addingEquipment||pendingPhotos.size||working&&syncBase&&snapshotChanges(syncBase,working).patches.length);}
   function inputPrincipalCurrent(){return !!inputOwner&&inputOwner.actor===identity()&&inputOwner.id===identity()?.id&&Number.isSafeInteger(inputOwner.epoch)&&inputOwner.epoch>=0&&inputOwner.epoch===window.ProcessSync?.identityGeneration?.();}
   function inputTargetCurrent(){return !!inputOwner&&inputOwner.page===host&&inputOwner.tab===host?.dataset?.activeTab&&inputOwner.connected===host?.isConnected&&inputOwner.versionId===selectedVersionId&&inputOwner.generation===control?.workflow?.generation;}
   function inputOwnerCurrent(){return inputPrincipalCurrent()&&inputTargetCurrent()&&!window.ProcessSync?.requiresReload&&!!inputOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(inputOwner.delivery)===true;}
   function rememberInputOwner(delivery=window.ProcessSync?.captureDelivery?.()){inputOwner={actor:identity(),id:identity()?.id,epoch:window.ProcessSync?.identityGeneration?.(),delivery,page:host,tab:host?.dataset?.activeTab,connected:host?.isConnected,versionId:selectedVersionId,generation:control?.workflow?.generation};}
-  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
+  function sharedTransport(){const id=identity()?.id;if(!id)throw Error('LOGIN_REQUIRED');if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!inputOwner)rememberInputOwner();if(sharedActor!==id||sharedClient?.isBeginRuntimeCurrent?.()===false){sharedActor=id;sharedClient=window.createSharedDraftClient({endpoint:api+'/workflow?caseMetadata=1',durableBegin:true,equipmentLocalSave:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,conditionalState:true,actorId:id,headers,permissionGates:{create:'#routine-add,#routine-add-submit,[data-node-add]',edit:'#routine-add,#routine-begin,#routine-form-apply,#routine-add-submit,[data-equipment-edit],[data-node-add],[data-node-edit],#routine-dialog-confirm,[data-issue-result],[data-issue-resolve]',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw,[data-routine-review="withdraw"]',approve:'[data-routine-review="approve"]',return:'[data-routine-review="reject"]',history:'#routine-case-history',delete:'#routine-delete,[data-equipment-delete],[data-node-delete]'}});}return sharedClient;}
   function snapshotChanges(base,next){const patches=[],guards=[],fields={equipment:['name','unit','spec','owner','enabled','calibrationMethod','calibrationCycle','customCycle','calibratedAt','expiresAt','notes','intakeDate','confirmed','photoId','photoHidden','groupId'],groups:['name','nameZh','nameVi','photoId','spec','notes','categoryId','subcategoryId'],categories:['name','photoId'],subcategories:['name','categoryId','photoId'],issues:['status','resolution']};
     for(const collection of Object.keys(fields)){
       const before=base[collection]||[],after=next[collection]||[];
@@ -63,10 +63,22 @@
       for(const row of after){const old=indexed?firstById.get(row.id):before.find(r=>r.id===row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
         for(const field of fields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
       }
-    }return{patches,guards};
+    }
+    const parent=(collection,id)=>{const row=base[collection]?.find(r=>r.id===id),path=[collection,{id}];if(row&&!guards.some(g=>JSON.stringify(g.path)===JSON.stringify(path)))guards.push({path,value:clone(row)});};
+    for(const patch of patches){const key=patch.path[0];if(patch.op!=='insert'&&!(patch.op==='set'&&['groupId','categoryId','subcategoryId'].includes(patch.path[2])))continue;const row=patch.op==='insert'?patch.value:next[key]?.find(r=>r.id===patch.path[1]?.id);if(!row)continue;
+      if(key==='equipment'&&(patch.op==='insert'||patch.path[2]==='groupId'))parent('groups',row.groupId);
+      if(key==='groups'&&(patch.op==='insert'||['categoryId','subcategoryId'].includes(patch.path[2]))){parent('categories',row.categoryId);parent('subcategories',row.subcategoryId);}
+      if(key==='subcategories'&&(patch.op==='insert'||patch.path[2]==='categoryId'))parent('categories',row.categoryId);
+    }
+    return{patches,guards};
+  }
+  function acknowledgeFormPhoto(id,entry,before,sent){
+    if(formSnapshot?.id===id&&before&&sent&&formSnapshot.photoId===before.photoId&&formSnapshot.photoHidden===before.photoHidden){formSnapshot.photoId=sent.photoId;formSnapshot.photoHidden=sent.photoHidden;}
+    if(formPendingPhoto===entry)formPendingPhoto=null;
+    if(nodeDialog?.prior?.id===id&&nodeDialog.pendingPhoto===entry){nodeDialog.pendingPhoto=null;nodeDialog.photoId=sent?.photoId||'';}
   }
   const beginRecoveryKey = actorId => 'routine-equipment-begin-recovery:' + actorId;
-  const beginRecoveryMessage = () => t('開始修改的結果尚未確認；目前內容已保留。請按「重新檢查並進入已存在草稿」唯讀核對，不要重送開始修改。', 'Chưa xác nhận kết quả bắt đầu sửa; giữ nội dung hiện tại. Chọn “Kiểm tra và vào bản nháp hiện có” để kiểm tra chỉ đọc; không gửi lại yêu cầu bắt đầu.');
+  const beginRecoveryMessage = () => t('開始修改的結果尚未確認；目前內容已保留。請按「查詢原操作收據」唯讀核對，不要重送開始修改。', 'Chưa xác nhận kết quả bắt đầu sửa; giữ nội dung hiện tại. Chọn “Kiểm tra biên nhận gốc” để kiểm tra chỉ đọc; không gửi lại yêu cầu bắt đầu.');
   function readBeginRecovery(actorId = identity()?.id) {
     try {
       const raw = sessionStorage.getItem(beginRecoveryKey(actorId));
@@ -76,68 +88,47 @@
       return record;
     } catch { throw Error(beginRecoveryMessage()); }
   }
-  function confirmBeginRecovery(result, record) {
-    const next = result?.control, flow = next?.workflow, drafts = next?.versions?.filter(version => version.status === 'draft') || [];
-    if (!record || !Number.isSafeInteger(result?.revision) || result.permissions?.view !== true || result.permissions?.edit !== true ||
-        flow?.scope !== 'routine-equipment' || typeof flow.generation !== 'string' || !flow.generation || flow.pendingId || next.versions.some(version => ['pending', 'pending-test'].includes(version.status)) ||
-        (flow.active?.id || null) !== record.activeVersionId || (drafts[0]?.baseVersionId || null) !== record.activeVersionId ||
-        (next.activeVersionId || null) !== record.activeVersionId || (flow.baseId || null) !== record.activeVersionId ||
-        record.generation && flow.generation !== record.generation || drafts.length !== 1 || drafts[0].id !== 'shared-' + flow.generation ||
-        !(record.draftId && drafts[0].id === record.draftId || drafts[0].creatorId === record.actorId) ||
-        !['equipment', 'groups', 'categories', 'subcategories', 'issues'].every(key => Array.isArray(flow.working?.[key]) && Array.isArray(drafts[0][key]) && JSON.stringify(flow.working[key]) === JSON.stringify(drafts[0][key])))
-      throw Error(beginRecoveryMessage());
+  async function beginSharedDraft(client, writeOwner) {
+    if(readBeginRecovery())throw Error(beginRecoveryMessage()); // Never relabel legacy unidentified outcomes.
+    const result=await client.begin();
+    if(writeOwner&&!writeOwner())throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
+    if(result?.operationKind!=='begin-v1'||!result.receipt)throw Error('INVALID_BEGIN_RECEIPT');
+    localBeginReceipt=clone(result.receipt);syncGeneration ||= localBeginReceipt.generation;
+    if(result.control?.workflow?.generation!==localBeginReceipt.generation){readUnavailable=true;throw Error('STALE_GENERATION');}
     return result;
   }
-  async function beginSharedDraft(client, writeOwner) {
-    const owner = captureTransferOwner(), owns = () => transferOwnerCurrent(owner) && sharedClient === client && (!writeOwner || writeOwner());
-    const assertOwned = () => { if (!owns()) throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED'); };
-    let record = readBeginRecovery(owner.actorId);
-    const recover = async () => {
-      assertOwned();
-      const result = await client.read();
-      assertOwned();
-      confirmBeginRecovery(result, record);
-      throw Error(beginRecoveryMessage());
-    };
-    if (record) return recover();
-    record = { schema: 1, actorId: owner.actorId, activeVersionId: control.activeVersionId || null, generation: control.workflow?.generation || null, draftId: open()?.status === 'draft' ? open().id : null };
-    try { sessionStorage.setItem(beginRecoveryKey(owner.actorId), JSON.stringify(record)); }
-    catch { throw Error(beginRecoveryMessage()); }
-    try {
-      assertOwned();
-      const result = await client.begin();
-      assertOwned();
-      if (!result?.control?.workflow || !Number.isSafeInteger(result.revision)) throw Error('INVALID_BEGIN_RESPONSE');
-      if(result.control.workflow.pendingId || result.control.versions?.some(version=>version.status==='pending'))throw Object.assign(Error(t('目前案件待審中，不能開始修改；請先在版本確認平台處理。','Hồ sơ đang chờ duyệt; xử lý tại nền tảng xác nhận phiên bản trước khi sửa.')),{status:409});
-      sessionStorage.removeItem(beginRecoveryKey(owner.actorId));
-      return result;
-    } catch (error) {
-      if (!owns()) throw error;
-      if (error.status && error.status < 500) { sessionStorage.removeItem(beginRecoveryKey(owner.actorId)); throw error; }
-      try { return await recover(); } catch { throw Error(beginRecoveryMessage()); }
-    }
-  }
-  function hasBeginRecovery() { try { return !!readBeginRecovery(); } catch { return true; } }
+  function hasBeginRecovery() { try { return !!readBeginRecovery()||sharedClient?.hasUnknownBegin()===true; } catch { return true; } }
   async function enterExistingDraft() {
-    if (busy || !routineTabIsActive()) return;
-    if(!inputOwnerCurrent()&&hasLocalDraftInput()){render();return;}
-    const actor = identity(), actorId = actor?.id, epoch = window.ProcessSync?.identityGeneration?.(), delivery = window.ProcessSync?.captureDelivery?.(), page = host;
-    let versionId = selectedVersionId;
-    const owns = () => actorId === identity()?.id && (typeof epoch === 'number' ? epoch === window.ProcessSync?.identityGeneration?.() : actor === identity()) && (!delivery || window.ProcessSync.isCurrentDelivery(delivery)) && !window.ProcessSync?.requiresReload && host === page && routineTabIsActive() && selectedVersionId === versionId;
-    const local = working && (isDirty() || pendingPhotos.size) ? working : null, localBase = syncBase;
-    const attempt = {}; beginEntryAttempt = attempt; busy = true; readIntent++;
-    try {
-      const record = readBeginRecovery(actorId); if (!record) return;
-      const result = await sharedTransport().read(); if (!owns()) throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
-      confirmBeginRecovery(result, record);
-      // Explicit GET-only selection of an existing draft, not attribution of the unknown POST.
-      control = result.control; revision = result.revision; controlActor = actorId;
-      selectedVersionId = open().id; versionId = selectedVersionId; working = local || snapshotOf(open()); syncBase = local ? localBase : clone(working); syncGeneration = control.workflow.generation;
-      sessionStorage.removeItem(beginRecoveryKey(actorId)); readUnavailable = false;rememberInputOwner(delivery);
-      message = t('已選擇核對過的既有共用草稿；先前開始修改的結果仍無法歸因，沒有重送或自動套用。', 'Đã chọn bản nháp chung hiện có đã kiểm tra; không quy kết kết quả yêu cầu trước, không gửi lại hoặc tự áp dụng.');
+    if(busy||!routineTabIsActive())return;
+    try{if(readBeginRecovery()){message=beginRecoveryMessage();render();return;}}catch{message=beginRecoveryMessage();render();return;}
+    const client=sharedTransport(),owner=inputOwner,page=host,local=working,base=syncBase;
+    busy=true;readIntent++;
+    try{
+      const result=await client.resolveUnknown();
+      if(owner!==inputOwner||page!==host||!inputOwnerCurrent())throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
+      if(result?.recoveryKind==='begin-v1'){
+        localBeginReceipt ||= clone(result.receipt);
+        if(!syncGeneration)syncGeneration=localBeginReceipt.generation;
+        if(result.control?.workflow?.generation!==localBeginReceipt.generation){readUnavailable=true;throw Error('STALE_GENERATION');}
+      }
+      // Receipt lookup never sends the retained input. Keep its original comparison basis.
+      await read(true);
+      if(local){working=local;syncBase=base;}
+      if(result?.equipmentCommand?.action==='save'&&pendingSaveBatch){
+        const batch=pendingSaveBatch,canonical=clone(batch.local);
+        for(const patch of result.equipmentCommand.patches.filter(p=>p.op==='insert')){
+          const key=patch.path[0],row=canonical[key].find(r=>r.id===patch.value.id),actual=control.workflow.working[key].find(r=>r.id===patch.value.id),current=working?.[key].find(r=>r.id===patch.value.id),before=batch.sentInput[key].find(r=>r.id===patch.value.id);
+          if(!row||!actual)throw Error('SYNC_CONFIRMATION_REQUIRED');
+          for(const field of key==='categories'?['code']:key==='equipment'?['assetCode','pieceMark']:[]){row[field]=actual[field];if(current&&current[field]===before[field])current[field]=actual[field];}
+        }
+        for(const [id,pin]of batch.sentPhotos){const current=pendingPhotos.get(id),find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);acknowledgeFormPhoto(id,pin.entry,find(batch.sentInput),find(canonical));if(current!==pin.entry)URL.revokeObjectURL(pin.url);if(current===pin.entry&&current.file===pin.file&&current.url===pin.url){for(const key of ['equipment','groups','categories','subcategories']){const row=working?.[key].find(r=>r.id===id),sent=canonical[key].find(r=>r.id===id);if(row&&sent)row.photoId=sent.photoId;}URL.revokeObjectURL(pin.url);pendingPhotos.delete(id);}}
+        syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
+      }
+      else if(!local&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
+      selectedVersionId=open()?.id||selectedVersionId;readUnavailable=false;rememberInputOwner();
+      message=t('已查原操作收據；請核對已存草稿，保留的本機修改不會自動重送。','Đã kiểm tra biên nhận gốc; đối chiếu bản nháp đã lưu. Không tự gửi lại thay đổi cục bộ.');
       pollShared();
-    } catch (error) { if (owns()) { readUnavailable = true; message = error.message; } }
-    finally { if (beginEntryAttempt === attempt) { beginEntryAttempt = null; busy = false; } if (owns()) render(); }
+    }catch(error){message=error.message;}finally{busy=false;render();}
   }
   // Insert ACKs may contain server allocation/defaults. Compare every field;
   // only the transformations in equipment-workflow/checkedSnapshot are allowed.
@@ -182,7 +173,12 @@
     if(!inputOwnerCurrent()){readUnavailable=true;message=t('帳號或登入世代已變更；原輸入保留但不會載入或送到新帳號，請先重新核對。','Tài khoản hoặc phiên đăng nhập đã đổi; giữ dữ liệu cũ nhưng không hiển thị hay gửi bằng tài khoản mới. Hãy đối chiếu lại.');render();return null;}
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
     if(busy)return null;
-    if(['save','submit'].includes(action)&&(editingEquipmentId||nodeDialog||addingEquipment||pendingPhotos.size||isFormDirty()||working&&syncBase&&snapshotChanges(syncBase,working).patches.length)){
+    if(action==='apply'){
+      if(!editable())return null;
+      message=t('已完成表單，修改僅保留於本機；請存取草稿。','Đã hoàn tất biểu mẫu; thay đổi chỉ ở máy này. Hãy lưu bản nháp.');
+      return {control,revision,local:true};
+    }
+    if(['save','submit'].includes(action)&&(editingEquipmentId||nodeDialog||addingEquipment||isFormDirty()||action==='submit'&&(pendingPhotos.size||working&&syncBase&&snapshotChanges(syncBase,working).patches.length))){
       message=t('請先套用或取消目前表單，再儲存或送審；輸入仍保留。','Áp dụng hoặc hủy biểu mẫu hiện tại trước khi lưu / gửi duyệt; dữ liệu nhập được giữ lại.');
       const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=message;return null;
     }
@@ -192,7 +188,7 @@
     const owns=()=>writeShared.attempt===attempt&&actor===identity()&&actorId===identity()?.id&&controlActor===actorId&&
       (Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&
       !window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&
-      host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
+      host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&(action==='save'||equipmentEditRequest===lifecycle)&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
       control?.workflow?.generation===generation&&control?.activeVersionId===activeId&&(!client||sharedClient===client)&&(!departureOwner||departureOwner.current());
     const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
     const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
@@ -205,65 +201,83 @@
     const saveButton=host?.querySelector('#routine-save');if(saveButton&&action==='save')saveButton.textContent=t('儲存中…','Đang lưu…');
     try{
       assertOwned();client=sharedTransport();assertOwned();
-      if(client.hasUnknown()){assertOwned();await client.resolveUnknown();assertOwned();throw Error(t('已查證前次操作，請重新載入核對後繼續','Đã xác minh thao tác trước; tải lại và đối chiếu trước khi tiếp tục'));}
+      if(client.hasUnknown()){assertOwned();throw Error(t('前次結果未知，請查詢原操作收據，不會重新送出。','Kết quả trước chưa rõ; kiểm tra biên nhận gốc, không gửi lại.'));}
       if(action!=='begin'&&readBeginRecovery()){readUnavailable=true;throw Error(beginRecoveryMessage());}
+      if(localBeginReceipt&&control.workflow?.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
       if(!control.workflow||action==='begin'){
         assertOwned();const r=await beginSharedDraft(client,owns);assertOwned();control=r.control;revision=r.revision;advance();
-        if(!syncGeneration)syncGeneration=control.workflow.generation;
-        if(action==='begin'){selectedVersionId=open()?.id;if(JSON.stringify(working)===JSON.stringify(sentInput)&&stamp===inputStamp()&&!pendingPhotos.size){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}else readUnavailable=true;advance();message=r.beginRecovered?t('已唯讀確認可安全恢復到匹配草稿；沒有重送開始修改。','Đã kiểm tra bản nháp chung bằng đọc; không gửi lại yêu cầu bắt đầu, có thể tiếp tục sửa.'):t('共用草稿已準備完成','Bản nháp chung đã sẵn sàng');return r;}
+        if(!syncGeneration)syncGeneration=localBeginReceipt?.generation||control.workflow.generation;
+        if(action==='begin'){
+          selectedVersionId=open()?.id;
+          const staged=local&&base&&snapshotChanges(base,local).patches.length;
+          if(staged||pendingPhotos.size){working=working||local;syncBase=base;syncGeneration=localBeginReceipt.generation;}
+          else if(JSON.stringify(working)===JSON.stringify(sentInput)&&stamp===inputStamp()){working=snapshotOf(open());syncBase=clone(working);syncGeneration=localBeginReceipt.generation;}
+          else readUnavailable=true;
+          advance();message=t('共用草稿已準備完成；本機修改仍須明確存取。','Bản nháp chung đã sẵn sàng; thay đổi cục bộ vẫn cần lưu rõ ràng.');return r;
+        }
         if(r.beginRecovered){readUnavailable=true;throw Error(t('已核對共用草稿；請重新載入保留輸入後，再明確套用原表單。','Đã kiểm tra bản nháp chung; tải lại và giữ dữ liệu rồi áp dụng rõ ràng biểu mẫu.'));}
       }
       const flow=control.workflow;let commandAction=action,detail={},submissionGeneration=null;
-      if(action==='apply'){
+      if(action==='save'){
+        if(localBeginReceipt&&flow.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
+        if(syncGeneration&&flow.generation!==syncGeneration)throw Error('STALE_GENERATION');
         // Only the captured photo entries belong to this dispatch. A later preview is a next batch.
         for(const [id,pending]of sentPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);}}
-        detail=snapshotChanges(base||flow.working,local);if(!detail.patches.length)return{control,revision};
-      }else if(action==='save'){
-        assertOwned();await client.flush();assertOwned();
+        detail={moduleAction:'save-local-v1',...snapshotChanges(base||flow.working,local||flow.working)};
       }else if(action==='submit'){
         const snapshot=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
         assertOwned();const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),t('檢具全庫','Toàn bộ thiết bị'),{savedVersion:{id:snapshot.savedId,revision:snapshot.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});assertOwned();if(reason===null)return null;
-        if(readUnavailable||!client.permission('submit'))throw Error('DELIVERY_SUPERSEDED');
+        if(hasLocalDraftInput()||isFormDirty()||readUnavailable||!client.permission('submit'))throw Error('DELIVERY_SUPERSEDED');
         if(control.workflow?.generation!==submissionGeneration||control.workflow.revision!==snapshot.expectedRevision||control.workflow.saved?.id!==snapshot.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
         detail={...snapshot,reason};
       }else if(['approve','reject','withdraw'].includes(action)){
         commandAction=action==='reject'?'return':action;const caseId=more.versionId||flow.pendingId,c=flow.cases.find(c=>c.id===caseId);
         assertOwned();const answer=await window.VersionDraftUI.confirmReview({action,scope:t('檢具全庫','Toàn bộ thiết bị')+' · '+caseId,reason:more.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===actorId});assertOwned();if(!answer)return null;detail={caseId,...answer};
       }
-      const commandGeneration=action==='apply'?syncGeneration||flow.generation:submissionGeneration||flow.generation;
+      const commandGeneration=action==='save'?syncGeneration||flow.generation:submissionGeneration||flow.generation;
+      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos};
       assertOwned();const result=await client.command(commandGeneration,commandAction,detail);assertOwned();
       // A fallback read is metadata only; it must not reset RAM before settlement.
       let confirmed=result;if(!confirmed.control){assertOwned();try{confirmed=await client.read();}catch(error){if(owns())readUnavailable=true;throw error;}assertOwned();if(confirmed.permissions?.view!==true){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}}
       if(!confirmed.control?.workflow||!Number.isSafeInteger(confirmed.revision)||confirmed.revision<revision){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
-      if(action==='apply'){
+      if(action==='save'){
         const actual=confirmed.control.workflow.working,valueAt=(data,path)=>path.reduce((value,key)=>typeof key==='object'?value?.find(row=>row.id===key.id):value?.[key],data);
         const hasInsert=detail.patches.some(patch=>patch.op==='insert');
         try{
         if(confirmed.control.workflow.generation!==commandGeneration||hasInsert&&!['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(actual?.[key]))||hasInsert&&(!result.receipt||result.receipt.unchanged!==false||result.receipt.generation!==commandGeneration||!Number.isSafeInteger(result.receipt.revision)||result.receipt.revision<=flow.revision||!Number.isSafeInteger(confirmed.control.workflow.revision)||confirmed.control.workflow.revision<result.receipt.revision)||!detail.patches.every(patch=>patch.op==='remove'?valueAt(actual,patch.path)===undefined:patch.op==='insert'?confirmedEquipmentInsert(actual,patch):JSON.stringify(valueAt(actual,patch.path))===JSON.stringify(patch.value))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
         }catch(error){if(hasInsert){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}throw error;}
       }
-      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='apply'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
+      if(action==='save'&&(!result.receipt?.savedId||confirmed.control.workflow.saved?.id!==result.receipt.savedId||JSON.stringify(confirmed.control.workflow.saved.content)!==JSON.stringify(confirmed.control.workflow.working))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
+      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
       control=confirmed.control;revision=confirmed.revision;selectedVersionId=open()?.id||active()?.id||'';advance();
-      if(action!=='apply'){submitProblems=[];problemSnapshot=null;openErrors=false;}
+      if(action!=='save'){submitProblems=[];problemSnapshot=null;openErrors=false;}
       if(nextInput){
         // Never rebase next-input guards onto peer values from the ACK/readback.
-        if(action==='apply'){
+        if(action==='save'){
+          // Adopt only this batch's canonical insert allocation/defaults, never peer fields.
+          for(const patch of detail.patches.filter(p=>p.op==='insert')){const key=patch.path[0],before=sentInput[key].find(r=>r.id===patch.value.id),current=working[key].find(r=>r.id===patch.value.id),actual=confirmed.control.workflow.working[key].find(r=>r.id===patch.value.id);if(current&&actual){for(const [field,value]of Object.entries(actual))if(JSON.stringify(current[field])===JSON.stringify(before[field]))current[field]=clone(value);Object.assign(local[key].find(r=>r.id===actual.id),clone(actual));}}
           for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
             if(current&&before&&sent&&samePhoto(id,entry)&&current.photoId===before.photoId&&current.photoHidden===before.photoHidden)current.photoId=sent.photoId;
           }
           syncBase=clone(local);
         }
       }else{working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
-      if(action==='apply')for(const [id,entry]of uploadedPhotos)if(samePhoto(id,entry)){
+      if(action==='save')for(const [id,entry]of uploadedPhotos){
+        const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);
+        acknowledgeFormPhoto(id,entry.entry,find(sentInput),find(local));
+        if(!samePhoto(id,entry)){URL.revokeObjectURL(entry.url);continue;}
         if(nextInput&&nodeDialog===sentNodeDialog&&nodeDialog?.prior?.id===id&&nodeDialog.pendingPhoto===entry.entry){nodeDialog.pendingPhoto=null;nodeDialog.photoId=local[['categories','subcategories','groups'].find(key=>local[key]?.some(row=>row.id===id))]?.find(row=>row.id===id)?.photoId||'';}
         if(nextInput&&newEquipmentForm===sentAddForm&&newEquipmentForm?.submittedEquipmentId===id&&newEquipmentForm.pendingPhoto===entry.entry)newEquipmentForm.pendingPhoto=null;
         URL.revokeObjectURL(entry.url);pendingPhotos.delete(id);
       }
+      if(action==='save'){pendingSaveBatch=null;if(!nextInput)localBeginReceipt=null;}
+      if(['approve','reject','withdraw'].includes(action)&&!nextInput)localBeginReceipt=null;
       message=nextInput?t('本批已確認；後續輸入仍未套用，請明確套用並核對來源。','Đã xác nhận đợt này; dữ liệu nhập sau chưa áp dụng, hãy áp dụng rõ ràng và đối chiếu nguồn.'):action==='save'?t('共用快照已儲存至伺服器','Đã lưu bản chụp chung trên máy chủ'):action==='apply'?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('操作已由伺服器確認','Máy chủ đã xác nhận');
       window.dispatchEvent(new CustomEvent('routine-equipment-updated',{detail:{revision,activeVersionId:control.activeVersionId,action}}));return owns()?result:null;
     }catch(error){
       if(!owns())return null;
       try { if(readBeginRecovery())readUnavailable=true; } catch { readUnavailable=true; }
+      if(action==='save'&&!client?.hasUnknown())pendingSaveBatch=null;
       message=error.message==='SYNC_CONFIRMATION_REQUIRED'?t('同步回應尚未核對；輸入與原值保留，請先重新載入核對，不會自動重送。','Chưa đối chiếu phản hồi đồng bộ; giữ dữ liệu nhập và giá trị gốc, hãy tải lại đối chiếu; không tự gửi lại.'):error.message;
       if(Array.isArray(error.details?.issues)){
         const flow=control.workflow;
@@ -543,21 +557,22 @@
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('後端資料載入失敗', 'Không thể tải dữ liệu máy chủ'));
     const access=await (deliveryRecheck?readClient:sharedTransport()).permissions();
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
-    const recovery=readBeginRecovery(actor);if(recovery){confirmBeginRecovery({...body,permissions:access.permissions},recovery);throw Error(beginRecoveryMessage());}
+    const recovery=sessionStorage.getItem(beginRecoveryKey(actor))!==null;
     if(deliveryRecheck){
       const flow=body.control.workflow,draft=body.control.versions?.find(item=>item.id===versionId);
       if(inputOwner!==retainedOwner||working!==retainedWorking||syncBase!==retainedBase||nodeDialog!==retainedNode||newEquipmentForm!==retainedForm||sharedClient!==readClient||readClient.hasSyncFailures()&&!readClient.hasUnknown()||!Number.isSafeInteger(body.revision)||!inputPrincipalCurrent()||!inputTargetCurrent()||access.permissions?.view!==true||access.permissions?.edit!==true||flow?.scope!=='routine-equipment'||flow.generation!==retainedOwner.generation||flow.pendingId||body.control.versions.some(item=>['pending','pending-test'].includes(item.status))||draft?.status!=='draft'||!Number.isSafeInteger(flow.revision)||flow.revision<(control?.workflow?.revision||0)||body.revision<revision)throw Error('DELIVERY_RECHECK_REQUIRED');
       preserveInput=true;
     }else if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
+    if(localBeginReceipt&&body.control.workflow?.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
-    control = body.control; revision = body.revision;controlActor=actor;readUnavailable=false;
+    control = body.control; revision = body.revision;controlActor=actor;readUnavailable=recovery;
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';
     if(!preserveInput&&!editingEquipmentId&&!nodeDialog&&!addingEquipment&&!pendingPhotos.size&&!(working&&syncBase&&snapshotChanges(syncBase,working).patches.length)){working = selected()?.status === 'draft' ? snapshotOf(selected()) : null;
     syncBase=working&&clone(working);syncGeneration=control.workflow?.generation||null;}
     rememberInputOwner(delivery);
     if(deliveryRecheck)message=t('已重新核對此頁權限；原輸入與原值保留，請明確套用並核對衝突。','Đã kiểm tra lại quyền trang này; giữ dữ liệu nhập và giá trị gốc, hãy áp dụng rõ ràng và đối chiếu xung đột.');
-    if(recovery)pollShared();
+    if(recovery)message=beginRecoveryMessage();
     }catch(error){if(owns())readUnavailable=true;throw error;}
   }
 
@@ -853,7 +868,7 @@
         <div class="routine-modal-footer">
           ${can ? `<button type="button" class="button ghost" id="routine-delete">${t('刪除檢具', 'Xóa thiết bị')}</button>` : ''}
           <button type="button" class="button ghost" id="routine-form-cancel">${t('關閉', 'Đóng')}</button>
-          ${can ? `<button type="button" class="button signal" id="routine-form-apply">${window.VersionDraftUI.t('apply')}</button>` : ''}
+          ${can ? `<button type="button" class="button signal" id="routine-form-apply">${t('完成表單', 'Hoàn tất biểu mẫu')}</button>` : ''}
         </div>
       </section></div>`;
   }
@@ -1487,7 +1502,7 @@
     newEquipmentForm = null;
     editingEquipmentId = id;
     selectedEquipmentId = id;
-    formSnapshot = clone(item);
+    formSnapshot = clone(item);formPendingPhoto=pendingPhotos.get(item.id)||null;
     render();
   }
 
@@ -1663,7 +1678,7 @@
       selectedEquipmentId = newId;
       editingEquipmentId = '';
       formSnapshot = null;
-      message = t('新增檢具已同步，尚未手動儲存。', 'Đã đồng bộ thiết bị mới, chưa lưu thủ công.');
+      message = t('新增檢具已留在本機，請存取草稿。', 'Thiết bị mới chỉ ở máy này; hãy lưu bản nháp.');
       render();
     } catch (err) {
       if(ownsForm()){form.error = err.message || t('新增失敗', 'Thêm thất bại');render();}
@@ -1739,7 +1754,7 @@
     editingEquipmentId = id;
     addingEquipment = false;
     newEquipmentForm = null;
-    formSnapshot = clone(item);
+    formSnapshot = clone(item);formPendingPhoto=pendingPhotos.get(item.id)||null;
     render();
 
     requestAnimationFrame(() => {
@@ -2308,7 +2323,7 @@
     }
   }
 
-  async function beginTransferDraft(client, endpoint, entry, scope, intent, owns) {
+  async function beginTransferDraft(client, endpoint, entry, scope, intent, owns, allowBegin = true) {
     const actorId = identity()?.id, key = 'routine-equipment-target-begin:' + actorId + ':' + endpoint;
     const unresolved = () => Object.assign(Error(t('目標草稿開始修改的結果尚未確認；本次沒有套用標準。請保持相同選取重新唯讀核對，勿重送開始修改。', 'Chưa xác nhận kết quả bắt đầu bản nháp đích; chưa áp dụng tiêu chuẩn. Giữ nguyên lựa chọn để kiểm tra chỉ đọc, không gửi lại yêu cầu bắt đầu.')), { beginUnresolved: true });
     let record;
@@ -2338,29 +2353,138 @@
     };
     if (record) {
       if (!validRecord(record)) throw unresolved();
-      if (!confirm(t('重新檢查並進入已存在草稿？本次只讀取核對，不會移轉，也不代表先前開始修改已成功。', 'Kiểm tra và vào bản nháp hiện có? Lần này chỉ đọc, không chuyển và không xác nhận yêu cầu trước thành công.'))) throw unresolved();
-      try { await recover(); } catch { throw unresolved(); } sessionStorage.removeItem(key);
-      throw Object.assign(Error(t('已核對並選擇既有共用草稿，尚未移轉；請重新開啟清單核對後，再明確確認移轉。', 'Đã kiểm tra và chọn bản nháp chung hiện có, chưa chuyển; mở lại danh sách và xác nhận chuyển rõ ràng.')), { beginUnresolved: true });
+      if (!confirm(t('重新唯讀核對既有草稿？不會移轉或清除原始未知標記，也不代表先前開始修改已成功。', 'Kiểm tra chỉ đọc bản nháp hiện có? Không chuyển, không xóa dấu kết quả chưa rõ và không xác nhận yêu cầu trước thành công.'))) throw unresolved();
+      try { await recover(); } catch { throw unresolved(); }
+      // A matching current draft is not a receipt for an unidentified Begin.
+      // Keep the original bytes: neither a 404 nor explicit entry proves its outcome.
+      throw unresolved();
     }
     if (entry?.workflow?.editable) return entry.workflow.generation;
+    if (!allowBegin) return null;
     record = { actorId, endpoint, scope, intent, activeVersionId: entry?.activeVersion?.id || null, generation: entry?.workflow?.generation || null, draftId: entry?.openVersion?.status === 'draft' ? entry.openVersion.id : null };
     assertOwned();
-    try { sessionStorage.setItem(key, JSON.stringify(record)); } catch { throw unresolved(); }
+    const marker = JSON.stringify(record);
+    try { sessionStorage.setItem(key, marker); if (sessionStorage.getItem(key) !== marker) throw unresolved(); } catch { throw unresolved(); }
     try {
       const result = await client.begin(); assertOwned();
       if (!result?.control?.workflow?.generation) throw Error('INVALID_BEGIN_RESPONSE');
       if (result.control.workflow.pendingId || result.control.versions?.some(version => ['pending', 'pending-test'].includes(version.status))) throw Object.assign(Error('PENDING_LOCKED'), { status: 409 });
+      if (sessionStorage.getItem(key) !== marker) throw unresolved();
       sessionStorage.removeItem(key); return result.control.workflow.generation;
     } catch (error) {
       if (!owns()) throw error;
-      if (error.status && error.status < 500) { sessionStorage.removeItem(key); throw error; }
+      // Without an operation identity, a response error cannot settle this marker.
+      // Leave it intact even if a later projection resembles this actor's draft.
       try { await recover(); } catch { /* keep unknown even if the GET failed */ } throw unresolved();
+    }
+  }
+
+  // FQC alone has explicit authority to save the entire target working draft.
+  // The source journal binds its exact intent/command; existing transport markers
+  // and receipts remain authoritative and are never inferred from current content.
+  let fqcTransferClient = null;
+  const fqcTransferEndpoint = '/api/fqc/workflow?caseMetadata=1';
+  const fqcTransferKey = actorId => 'routine-equipment-fqc-transfer-v1:' + actorId;
+  const fqcTransferUnknown = () => t('FQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu FQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');
+  function hasFqcTransfer(){try{return sessionStorage.getItem(fqcTransferKey(identity()?.id))!==null;}catch{return true;}}
+  function targetFqcClient(){
+    if(!fqcTransferClient||!fqcTransferClient.isRuntimeCurrent()||!fqcTransferClient.isBeginRuntimeCurrent())
+      fqcTransferClient=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'FQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    return fqcTransferClient;
+  }
+  function readFqcTransfer(){
+    let value;try{const raw=sessionStorage.getItem(fqcTransferKey(identity()?.id));if(raw===null)return null;value=JSON.parse(raw);}catch{throw Error(fqcTransferUnknown());}
+    if(value?.version!==1||value.actorId!==identity()?.id||value.endpoint!==fqcTransferEndpoint||!['begin','save'].includes(value.phase)||typeof value.intent!=='string'||!value.basis||value.phase==='save'&&(!value.command||value.command.action!=='save'||value.command.moduleAction!=='save-local-v1'||typeof value.command.operationId!=='string'||typeof value.command.generation!=='string'))throw Error(fqcTransferUnknown());
+    return value;
+  }
+  function writeFqcTransfer(record,previous=null){
+    const key=fqcTransferKey(record.actorId),raw=JSON.stringify(record);
+    if(sessionStorage.getItem(key)!==(previous===null?null:JSON.stringify(previous)))throw Error(fqcTransferUnknown());
+    sessionStorage.setItem(key,raw);if(sessionStorage.getItem(key)!==raw)throw Error(fqcTransferUnknown());return record;
+  }
+  function clearFqcTransfer(record){
+    const key=fqcTransferKey(record.actorId);if(sessionStorage.getItem(key)!==JSON.stringify(record))throw Error(fqcTransferUnknown());
+    sessionStorage.removeItem(key);if(sessionStorage.getItem(key)!==null)throw Error(fqcTransferUnknown());
+  }
+  function fqcTransferBasis(data){const c=data.control,open=c?.versions?.find(v=>['draft','pending','pending-test'].includes(v.status));return {generation:c?.workflow?.generation??null,activeVersionId:c?.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};}
+  function assertFqcTransferRead(data){
+    const c=data?.control,f=c?.workflow;
+    if(data?.permissions?.view!==true||data.permissions.edit!==true||!Number.isSafeInteger(data.revision)||!Array.isArray(c?.versions)||f&&f.scope!=='fqc'||f?.pendingId||c.versions.some(v=>['pending','pending-test'].includes(v.status)))throw Error('FQC_TARGET_NOT_EDITABLE');
+    return f;
+  }
+  function finishFqcTransfer(client,record,result,fresh=null){
+    const r=result?.receipt;
+    const verified=client.isVerifiedReadback(result),f=fresh?.control?.workflow;
+    if(!verified&&(!fresh||fresh.permissions?.view!==true||f?.scope!=='fqc'||!Number.isSafeInteger(f.revision)||f.revision<r?.revision)||r?.operationId!==record.command.operationId||r.generation!==record.command.generation||typeof r.savedId!=='string'||!r.savedId)throw Error(fqcTransferUnknown());
+    // No local FQC form is owned here. A historical receipt confirms only the
+    // original Save; it never replays selection into the successor generation.
+    const superseded=client.isSupersededRecovery(result),historical=superseded||!!fresh&&f.generation!==r.generation;
+    if(superseded)client.acknowledgeSupersededRecovery(result);
+    clearFqcTransfer(record);
+    return {savedId:r.savedId,historical,results:JSON.parse(record.intent).ids.map(itemId=>({itemId,status:'applied'}))};
+  }
+  async function recoverFqcTransfer(dialog){
+    const owner=dialog.owner;dialog.moduleStatus.fqc='saving';render();
+    try{
+      const record=readFqcTransfer(),client=targetFqcClient();if(!record)throw Error(fqcTransferUnknown());
+      if(record.phase==='begin'){
+        const result=client.hasUnknownBegin()?await client.resolveUnknown():record.operationId?await client.receipt(record.operationId):null;
+        if(!result?.receipt||result.operationKind!=='begin-v1'||!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(fqcTransferUnknown());
+        if(record.operationId&&record.operationId!==result.receipt.operationId)throw Error(fqcTransferUnknown());
+        clearFqcTransfer(record);dialog.moduleStatus.fqc='idle';await loadTransferPreview();dialog.moduleMessages.fqc=t('已核對原開始修改收據；尚未移轉或存取，請重新核對選取後明確確認。','Đã kiểm tra biên nhận bắt đầu gốc; chưa chuyển/lưu. Kiểm tra lựa chọn rồi xác nhận lại.');
+      }else{
+        const outstanding=client.hasUnknown(),result=await client.receipt(record.command.operationId,record.command.generation);
+        // The transport may have settled before the source page lost ownership.
+        // Original receipt plus a new authorized read can finish its source journal.
+        const fresh=!outstanding&&!client.isVerifiedReadback(result)?await client.read():null;
+        if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(fqcTransferUnknown());
+        const done=finishFqcTransfer(client,record,result,fresh);dialog.moduleStatus.fqc='success';dialog.moduleMessages.fqc=t('原 FQC 移轉並存取已確認','Đã xác nhận chuyển và lưu FQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');
+      }
+    }catch(error){dialog.moduleStatus.fqc='error';dialog.moduleMessages.fqc=fqcTransferUnknown()+' '+error.message;}
+    if(transferDialog===dialog&&transferOwnerCurrent(owner))render();
+  }
+  async function saveFqcTransfer(dialog,target,entry,rows,intent,owns){
+    const assertOwned=()=>{if(!owns())throw Error('FQC_TRANSFER_CONTEXT_CHANGED');};
+    // Preserve all old unidentified target Begin evidence without attribution.
+    if(sessionStorage.getItem('routine-equipment-target-begin:'+identity()?.id+':'+fqcTransferEndpoint)!==null)throw Error(fqcTransferUnknown());
+    const legacy=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    if(legacy.hasUnknown())throw Error(fqcTransferUnknown());await legacy.flush();assertOwned();
+    const client=targetFqcClient();if(client.hasUnknown()||hasFqcTransfer())throw Error(fqcTransferUnknown());await client.flush();assertOwned();
+    let authority=await client.read();assertOwned();assertFqcTransferRead(authority);
+    const basis=fqcTransferBasis(authority);
+    if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('FQC_TARGET_CHANGED_RECONFIRM');
+    let record=null;
+    if(!entry.workflow?.editable){
+      record=writeFqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});
+      let begun;
+      try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){
+        // Private proof covers only this exact attempt before POST handoff.
+        // Receipt 404s and public Error flags never establish that it was unsent.
+        if(owns()&&(client.isBeginNotSent(error,{operationId:record.operationId,basis})||!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message)))clearFqcTransfer(record);
+        throw error;
+      }
+      assertOwned();
+      if(begun.receipt?.operationId!==record.operationId||begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('FQC_BEGIN_GENERATION_CHANGED');
+      authority=begun;
+    }
+    const flow=assertFqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');
+    const patches=[],guards=[];
+    for(const row of rows)for(const field of ['equipmentId','tool']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?target.id:target.pieceMark||target.assetCode});guards.push({path,value:row.openStatus==='draft'?(field==='equipmentId'?row.draftEquipmentId:row.draftTool):(field==='equipmentId'?row.activeEquipmentId:row.activeTool)});}
+    const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',patches,guards,input:{matrixCells:[]}});
+    const next={version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'save',command};record=writeFqcTransfer(next,record);assertOwned();
+    try{const result=await client.sendPrepared(command);assertOwned();return finishFqcTransfer(client,record,result);}
+    catch(error){
+      if(owns()&&client.isConfirmedRejection(error,command)&&client.discardRejectedLocalSave(command))clearFqcTransfer(record);
+      throw error;
     }
   }
 
   async function executeTransfer(uiKey) {
     const dialog = transferDialog;
-    if (!dialog || !dialog.preview || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    if (!dialog || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    // Original receipt recovery does not depend on the new preview finishing.
+    if(uiKey==='fqc'&&hasFqcTransfer()){await recoverFqcTransfer(dialog);return;}
+    if (!dialog.preview) return;
     const targetEqId = dialog.targetEqId;
     const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
     if (!target || targetEqId === dialog.sourceId) { dialog.moduleMessages[uiKey] = t('請重新選取目前生效且啟用的目標設備', 'Chọn lại thiết bị đích đang có hiệu lực và được bật'); render(); return; }
@@ -2373,7 +2497,7 @@
     const selected=dialog.preview.modules.find(row=>row.moduleId===moduleId)?.items.filter(row=>ids.includes(row.id)) || [];
     const overrides=selected.filter(row=>row.openStatus==='draft' && row.draftEquipmentId && row.draftEquipmentId!==dialog.sourceId && row.draftEquipmentId!==targetEqId).map(row=>row.id);
     if (selected.some(row=>row.selectable===false)) {dialog.moduleMessages[uiKey]=t('包含不可編輯項目，請重新選取','Có hạng mục không thể sửa; hãy chọn lại');render();return;}
-    if (!confirm(t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
+    if (!confirm(moduleId==='fqc'?t(`確認移轉 ${ids.length} 筆並存取整份 FQC 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp FQC? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
     assertIntent();
     dialog.moduleStatus[uiKey] = 'saving'; render();
     try {
@@ -2392,16 +2516,35 @@
         return !after || after.selectable===false || ['activeEquipmentId','draftEquipmentId','activeInspectionMode','draftInspectionMode','activeTool','draftTool','openStatus','openVersionId'].some(key=>after[key]!==row[key]);
       })) {dialog.preview=current;throw Error(t('項目已變更，請核對最新清單後再次確認移轉','Hạng mục đã thay đổi; kiểm tra danh sách mới rồi xác nhận lại'));}
       const targetEntry=current.modules.find(row=>row.moduleId===moduleId),flow=targetEntry?.workflow;
+      const previousEntry=dialog.preview.modules.find(row=>row.moduleId===moduleId);
+      const scopeBasis=entry=>JSON.stringify([entry?.workflow?.generation||null,entry?.activeVersion?.id||null]);
+      const transferScopeEntry=(entry,key)=>entry?.scopes?.find(scope=>scope.items.some(row=>row.scopeKey===key))||entry;
+      if(moduleId==='ipqc-ab'?[...new Set(selected.map(row=>row.scopeKey))].some(key=>scopeBasis(transferScopeEntry(previousEntry,key))!==scopeBasis(transferScopeEntry(targetEntry,key))):scopeBasis(previousEntry)!==scopeBasis(targetEntry)) {
+        dialog.preview=current;throw Error(t('目標草稿世代或生效版本已變更，請核對後再次確認移轉','Thế hệ bản nháp hoặc phiên bản hiệu lực đích đã thay đổi; kiểm tra và xác nhận lại'));
+      }
+      const needsTransfer=row=>{
+        const draft=row.openStatus==='draft';
+        return (draft?row.draftEquipmentId:row.activeEquipmentId)!==targetEqId ||
+          (['iqc','ipqc-ab'].includes(moduleId)&&(draft?row.draftInspectionMode:row.activeInspectionMode)!=='equipment') ||
+          (moduleId==='fqc'&&(draft?row.draftTool:row.activeTool)!==(target.pieceMark||target.assetCode));
+      };
       const transferIntent=JSON.stringify({sourceId:dialog.sourceId,targetEqId,ids:[...ids].sort((a,b)=>a.localeCompare(b))});
       let data;
-      if(moduleId==='ipqc-ab'){
+      if(moduleId==='fqc'){
+        data=await saveFqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);
+      }else if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
         for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
           try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
-            scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');const scopeEntry=targetEntry.scopes?.find(entry=>entry.items.some(row=>row.scopeKey===scopeKey))||targetEntry;const generation=await beginTransferDraft(client,endpoint,scopeEntry,'ipqc-ab:'+scopeKey,transferIntent,owns),patches=[],guards=[];assertIntent();
-            for(const row of group)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
-            await client.flush();assertIntent();await client.command(generation,'apply',{patches,guards});assertIntent();data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'applied'})));
-          }catch(error){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'conflict',reason:error.message})));if(error.beginUnresolved||scopeClient?.hasUnknown()){data.results.push(...rows.filter(row=>!data.results.some(result=>result.itemId===row.itemId&&result.scopeKey===row.scopeKey)).map(row=>({itemId:row.itemId,scopeKey:row.scopeKey,status:'conflict',reason:t('前一範圍需先唯讀核對，本次未執行','Phạm vi trước cần kiểm tra chỉ đọc; chưa thực hiện lần này')})));break;}}
+            scopeClient=client;await client.flush();assertIntent();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
+            const changed=group.filter(needsTransfer);
+            if(!changed.length)await beginTransferDraft(client,endpoint,transferScopeEntry(targetEntry,scopeKey),'ipqc-ab:'+scopeKey,transferIntent,owns,false);
+            if(!changed.length){data.results.push(...group.map(row=>({itemId:row.itemId,scopeKey,status:'unchanged'})));continue;}
+            data.results.push(...group.filter(row=>!needsTransfer(row)).map(row=>({itemId:row.itemId,scopeKey,status:'unchanged'})));
+            const scopeEntry=targetEntry.scopes?.find(entry=>entry.items.some(row=>row.scopeKey===scopeKey))||targetEntry;const generation=await beginTransferDraft(client,endpoint,scopeEntry,'ipqc-ab:'+scopeKey,transferIntent,owns),patches=[],guards=[];assertIntent();
+            for(const row of changed)for(const field of ['equipmentId','inspectionMode']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?targetEqId:'equipment'});guards.push({path,value:field==='equipmentId'?(row.openStatus==='draft'?row.draftEquipmentId:row.activeEquipmentId):(row.openStatus==='draft'?row.draftInspectionMode:row.activeInspectionMode)});}
+            await client.flush();assertIntent();await client.command(generation,'apply',{patches,guards});assertIntent();data.results.push(...changed.map(row=>({itemId:row.itemId,scopeKey,status:'applied'})));
+          }catch(error){data.results.push(...group.filter(row=>!data.results.some(result=>result.itemId===row.itemId&&result.scopeKey===scopeKey)).map(row=>({itemId:row.itemId,scopeKey,status:'conflict',reason:error.message})));if(error.beginUnresolved||scopeClient?.hasUnknown()){data.results.push(...rows.filter(row=>!data.results.some(result=>result.itemId===row.itemId&&result.scopeKey===row.scopeKey)).map(row=>({itemId:row.itemId,scopeKey:row.scopeKey,status:'conflict',reason:t('前一範圍需先唯讀核對，本次未執行','Phạm vi trước cần kiểm tra chỉ đọc; chưa thực hiện lần này')})));break;}}
         }
       } else if(['ipqc-c','iqc','fqc'].includes(moduleId) && flow) {
         // Reuse the shared-draft transport and guarded atomic patch endpoint.
@@ -2411,16 +2554,19 @@
         assertIntent();
         if(client.hasUnknown())throw Error(t('前次結果待查證，請到目標模組查詢結果後再操作','Kết quả trước chưa rõ; mở mô-đun đích để kiểm tra trước khi tiếp tục'));
         await client.flush();assertIntent();
+        const selectedRows=latest.filter(row=>ids.includes(row.id)),rows=selectedRows.filter(needsTransfer);
+        if(!rows.length){await beginTransferDraft(client,endpoint,targetEntry,moduleId,transferIntent,owns,false);data={results:selectedRows.map(row=>({itemId:row.itemId,status:'unchanged'}))};}
+        else {
         const targetGeneration=await beginTransferDraft(client,endpoint,targetEntry,moduleId,transferIntent,owns);
         assertIntent();
-        const rows=latest.filter(row=>ids.includes(row.id));
         const patches=rows.map(row=>({op:'set',path:['items',{id:row.itemId},'equipmentId'],value:targetEqId}));
         const guards=rows.map(row=>({path:['items',{id:row.itemId},'equipmentId'],value:flow.editable?row.draftEquipmentId:row.activeEquipmentId}));
         if(moduleId==='iqc')for(const row of rows){const path=['items',{id:row.itemId},'inspectionMode'];patches.push({op:'set',path,value:'equipment'});guards.push({path,value:flow.editable?row.draftInspectionMode:row.activeInspectionMode});}
         if(moduleId==='fqc'){for(const row of rows){const path=['items',{id:row.itemId},'tool'];patches.push({op:'set',path,value:target.pieceMark||target.assetCode});guards.push({path,value:flow.editable?row.draftTool:row.activeTool});}}
         await client.flush();assertIntent();
         await client.command(targetGeneration,'apply',{patches,guards});
-        data={results:rows.map(row=>({itemId:row.itemId,status:row.draftEquipmentId===targetEqId?'unchanged':'applied'}))};
+        data={results:selectedRows.map(row=>({itemId:row.itemId,status:needsTransfer(row)?'applied':'unchanged'}))};
+        }
       } else {
       assertIntent();
       const response = await fetch('/api/quality-equipment-replacement', {
@@ -2438,15 +2584,16 @@
       dialog.moduleStatus[uiKey] = counts.conflict ? 'error' : counts.waiting ? 'pending' : 'success';
       dialog.moduleMessages[uiKey] = `${t('已套用', 'Đã áp dụng')} ${counts.applied} · ${t('已相同', 'Không đổi')} ${counts.unchanged} · ${t('待處理', 'Chờ xử lý')} ${counts.waiting} · ${t('衝突', 'Xung đột')} ${counts.conflict}` +
         (data.results || []).filter(row => row.reason && row.status === 'conflict').map(row => `\n${row.scopeKey?row.scopeKey+' / ':''}${row.itemId}: ${row.reason}`).join('');
-      if((flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
-      await window.ProcessSync?.refresh?.();
+      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');
+      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
+      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();
       if (!owns()) return;
       invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });
       await loadTransferPreview();
     } catch (error) {
       dialog.moduleStatus[uiKey] = 'error';
-      dialog.moduleMessages[uiKey] = error.message || t('替換失敗', 'Thay thế thất bại');
+      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
@@ -2465,7 +2612,7 @@
     const targetEq = (approvedVer?.equipment || []).find(e => e.id === targetEqId);
 
     const previewItems = moduleId => transferDialog.preview?.modules?.find(row => row.moduleId === moduleId)?.items || [];
-    const fqcItems = previewItems('fqc');
+    const fqcItems = previewItems('fqc'),fqcRecovery=hasFqcTransfer();
     const iqcItems = previewItems('iqc');
     const ipqcCItems = previewItems('ipqc-c');
     const ipqcABItems = previewItems('ipqc-ab');
@@ -2555,10 +2702,10 @@
                   </div>
                   <div class="routine-transfer-module-action">
                     ${transferDialog.moduleStatus.fqc === 'success' ? `
-                      <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
+                      <span class="routine-transfer-success-tag">✓ ${t('已移轉並存取草稿', 'Đã chuyển và lưu bản nháp')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${!targetEq || !fqcItems.length || inFlight ? 'disabled' : ''}>
-                        ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 FQC 草稿', 'Xác nhận chuyển sang FQC')}
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${inFlight||!fqcRecovery&&(!targetEq||!fqcItems.length)?'disabled':''}>
+                        ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : fqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 FQC 草稿', 'Xác nhận chuyển và lưu FQC')}
                       </button>
                     `}
                   </div>
@@ -2862,7 +3009,7 @@
       host.innerHTML = `<section class="routine-page" data-i18n-skip="true">
         <div class="routine-card">
           <p>${h(loadError ? displayDraftError(loadError) : t('正在載入檢具資料…', 'Đang tải dữ liệu thiết bị…'))}</p>
-          ${hasBeginRecovery() ? `<button type="button" class="button signal" id="routine-begin-recheck">${t('重新檢查並進入已存在草稿', 'Kiểm tra và vào bản nháp hiện có')}</button>` : ''}
+          ${hasBeginRecovery()||sharedClient?.hasUnknown() ? `<button type="button" class="button signal" id="routine-begin-recheck">${t('查詢原操作收據', 'Kiểm tra biên nhận gốc')}</button>` : ''}
           ${loadError ? `<button type="button" class="button signal" id="routine-load-retry">${t('重新載入', 'Tải lại')}</button>` : ''}
         </div>
       </section>`;
@@ -2899,7 +3046,7 @@
       </div>
 
       ${message ? `<div class="routine-message" role="${readUnavailable?'alert':'status'}">${h(displayDraftError(message))}</div>` : ''}
-      ${hasBeginRecovery()?`<button type="button" class="button signal" id="routine-begin-recheck" ${busy?'disabled':''}>${t('重新檢查並進入已存在草稿','Kiểm tra và vào bản nháp hiện có')}</button>`:''}
+      ${hasBeginRecovery()||sharedClient?.hasUnknown()?`<button type="button" class="button signal" id="routine-begin-recheck" ${busy?'disabled':''}>${t('查詢原操作收據','Kiểm tra biên nhận gốc')}</button>`:''}
       ${readUnavailable?`<button type="button" class="button signal" id="routine-load-retry">${t('重新載入並保留輸入','Tải lại và giữ dữ liệu đang nhập')}</button>`:''}
 
       ${!version ? `<section class="routine-card">
@@ -3145,13 +3292,13 @@
 
     // Form handlers
     const item = working?.equipment.find(record => record.id === editingEquipmentId);
-    const closeForm = () => { equipmentEditRequest++; editingEquipmentId = ''; formSnapshot = null; render(); };
+    const closeForm = () => { if(formPendingPhoto&&pendingPhotos.get(item?.id)!==formPendingPhoto)URL.revokeObjectURL(formPendingPhoto.url);formPendingPhoto=null;equipmentEditRequest++; editingEquipmentId = ''; formSnapshot = null; render(); };
     const tryCloseForm = () => {
       if (formSnapshot && isFormDirty()) {
         if (!confirm(t('尚有未套用的修改，確定關閉？', 'Có thay đổi chưa áp dụng, bạn có chắc muốn đóng?'))) return;
         if (item && formSnapshot) Object.assign(item, formSnapshot);
       }
-      if(control?.workflow&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
+      if(item&&formSnapshot){Object.assign(item,formSnapshot);const pending=pendingPhotos.get(item.id);if(pending&&pending!==formPendingPhoto)URL.revokeObjectURL(pending.url);if(formPendingPhoto)pendingPhotos.set(item.id,formPendingPhoto);else pendingPhotos.delete(item.id);}
       closeForm();
     };
 
@@ -3226,14 +3373,14 @@
       root.querySelector('#routine-photo-input')?.addEventListener('change', event => {
         const file = event.target.files?.[0]; if (!file) return;
         if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
-        const prior = pendingPhotos.get(item.id); if (prior) URL.revokeObjectURL(prior.url);
+        const prior = pendingPhotos.get(item.id); if (prior&&prior!==formPendingPhoto) URL.revokeObjectURL(prior.url);
         pendingPhotos.set(item.id, { file, url: URL.createObjectURL(file) });
         item.photoHidden = false;
-        message = t('照片僅在本頁預覽；套用表單時才上傳及同步，儲存不包含未套用照片。', 'Ảnh chỉ được xem trước; tải lên và đồng bộ khi áp dụng biểu mẫu. Lưu không gồm ảnh chưa áp dụng.'); render();
+        message = t('照片僅在本頁預覽；完成表單後，按存取草稿才上傳並保存照片參照。', 'Ảnh chỉ ở trang này; hoàn tất biểu mẫu rồi lưu bản nháp để tải ảnh và lưu tham chiếu.'); render();
       });
       root.querySelector('#routine-photo-remove')?.addEventListener('click', () => {
         if (!confirm(t('確定從目前草稿移除照片？舊版本照片不會刪除。', 'Xóa ảnh khỏi bản nháp hiện tại? Ảnh phiên bản cũ vẫn được giữ.'))) return;
-        const pending = pendingPhotos.get(item.id); if (pending) URL.revokeObjectURL(pending.url);
+        const pending = pendingPhotos.get(item.id); if (pending&&pending!==formPendingPhoto) URL.revokeObjectURL(pending.url);
         pendingPhotos.delete(item.id); item.photoId = ''; item.photoHidden = true;
         message = t('照片已從本頁草稿移除，尚未保存。', 'Ảnh đã xóa khỏi bản nháp trên trang, chưa lưu.'); render();
       });
@@ -3422,6 +3569,7 @@
     invalidateEquipmentReferences();
   }
   async function mount(element) {
+    if(identity()?.id&&hasFqcTransfer())targetFqcClient();
     equipmentEditRequest++;navigationError=null;
     const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     sharedPoll.cancel();
@@ -3446,13 +3594,6 @@
       render();pollShared();if(!linkedId)void reconcilePendingReplacements();
     } catch (error) {if(!owns())return;navigationError=error; message = error.message; render(); }
   }
-  window.addEventListener('beforeunload', event => {
-    if (isDirty() || pendingPhotos.size) {
-      event.preventDefault();
-      // oxlint-disable-next-line typescript/no-deprecated -- Chrome still requires this for the native unsaved-changes prompt.
-      event.returnValue = '';
-    }
-  });
   function pendingCount() { return control?.versions.filter(version => version.status === 'pending').length || 0; }
   function reviewHTML() { return `<section class="routine-review routine-card" data-i18n-skip="true"><h3>${t('檢具與測試設備 · 待確認', 'Dưỡng kiểm và thiết bị đo · Chờ duyệt')}</h3><div class="routine-review-body">${t('正在載入…', 'Đang tải…')}</div></section>`; }
   async function bindReview(element) {
@@ -3554,20 +3695,33 @@
   window.addEventListener('fqc-equipment-references-updated', refreshOpenEquipmentReferences);
   window.addEventListener('quality-equipment-references-updated', refreshOpenEquipmentReferences);
 
+  // Legacy unidentified Begin markers cannot be settled by looking at today's draft.
+  // Navigation may discard local input while retaining the exact legacy barrier.
+  function equipmentDeparture(config){
+    const base=window.VersionDraftUI.createDeparture(config);let held=null;
+    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
+    const valid=record=>record&&record.raw===legacy()&&record.actor===identity()&&record.epoch===window.ProcessSync?.identityGeneration?.();
+    return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),
+      inspect(){const status=base.inspect(),raw=legacy();if(raw===null)return status;return {state:valid(held)?'departing':'unknown',departureId:held?.id,canAbandon:!held,canSave:false,canDiscard:false,reason:beginRecoveryMessage()};},
+      async abandon(){const raw=legacy();if(raw===null)return base.abandon();const record={raw,actor:identity(),epoch:window.ProcessSync?.identityGeneration?.(),id:{}};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;return {departureId:record.id,release(){if(held===record)held=null;}};},
+      closeClean(){if(held){if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');return;}return base.closeClean();},
+      otherDraftsPending(){return legacy()!==null?sharedClient?.otherDeparturePending([sharedClient])===true:base.otherDraftsPending();}
+    };
+  }
   let navigationError=null;
   let moduleDeparture;
   window.RoutineEquipmentUI = {
-    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
-    root:()=>host,flow:()=>control?.workflow,
+    navigation:{get departure(){return moduleDeparture ||= equipmentDeparture({
+    root:()=>host,flow:()=>control?.workflow,sharedOwned:()=>false,sharedDirty:()=>false,
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
-    current:()=>controlActor===identity()?.id&&inputOwnerCurrent()&&!readUnavailable,busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
-    unknown:()=>sharedClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures(),
-    unknownTransports:()=>[sharedClient],unknownReady:()=>!hasBeginRecovery(),discardUnknown(){this.discard();},
+    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
+    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),
+    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
-    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
-  });},requiresSave:()=>!!host?.isConnected&&window.sharedDraftNeedsSave?.(control?.workflow),saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!isDirty()&&!isFormDirty()&&!pendingPhotos.size&&!nodeDialog&&!transferDialog&&!addingEquipment,error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
+  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!transferBusy(),error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;sharedPoll.cancel();equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,

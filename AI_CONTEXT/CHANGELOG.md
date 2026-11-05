@@ -1,3 +1,11 @@
+## 2026-11-05 — PR87 A/B late permission input preservation
+
+Fix a scope-permission completion clearing a newly typed error name. Capture before redraw only for the original current owner and guard the permission response by the same owner. Add deterministic response-gated input/stale-owner/denial regressions. Compiled photo acceptance waits for decode before its unchanged assertion; fix the PR87 diagnostic checkout/guard commit identity. No schema, migration or live-data changes. [Evidence and remaining acceptance](../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
+
+## 2026-11-05 — Third-batch local source integration
+
+Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](../docs/acceptance/draft-save-batch3-20261105/README.md).
+
 ## 2026-11-05 — Draft workflow batch 2 integration
 
 Combine tooling/BOM/AB-C local Save and scoped recovery, preserving BOM session/413 guards, tooling photo view+edit and PROCESS exclusion. Strengthen exact historical source and departure contracts; no schema/data migration. Windows integration follow-up aligns AB effective-catalog Save metadata with full workflow edit-or-save permissions, preserving independent Submit and revalidation after edit revocation. The AB/C bridge now reads fresh authority directly after a valid Save ACK, eliminating a redundant receipt GET while retaining original-receipt recovery and sent markers when readback fails. [Evidence and gates](../docs/acceptance/draft-save-batch2-20261105/README.md).
@@ -10,9 +18,47 @@ Document-local tooling edits, guarded atomic Save with code allocation, edit-gra
 
 獨立依賴 PR77 的 BOM 增量：有序原子 Save、edit 可存取、既有匯入／guard 保護與未知 Begin／Save 原收據恢復。隔離 handler／編譯版 Chromium 驗證，實站、IME、實機與跨機未驗；未合併／部署。[證據](../docs/acceptance/bom-atomic-save-20261105/README.md)。
 
+## 2026-11-05 PROCESS receipt-recovery data-loss follow-up
+
+Independent review found that resolving a lost Save ACK cleared later local
+batches. Share normal-ACK/receipt settlement using the original runtime batch
+prefix; retain later/replacement input and its guards, while reload/departure
+still abandons unsent input. Add actual-handler and compiled-browser coverage;
+no permission/receipt/generation protection is disabled. [Evidence and limits](../docs/acceptance/process-local-save-20261105/README.md#receipt-recovery-follow-up-after-independent-review).
+
+## 2026-11-05 PROCESS master atomic local Save candidate
+
+Independent PROCESS templates/machines candidate on fixed #80, depends on #80→#77. Local completions and name input no longer POST working changes; explicit Save persists guarded batches and saved snapshot in one CAS. Preserve late input, original bounded recovery/identified Begin, independent permissions, references and linked stage approval. No routine-FQC changes, merge or deployment. [Scope, validation and existing baseline limitations](../docs/acceptance/process-local-save-20261105/README.md).
+
 ## 2026-11-05 — AB／C 主資料草稿統一候選
 
 表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。
+
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+追加：Begin preflight 讀取失敗、尚未進入 POST 時，以原 runtime 的私有 attempt／identity 證據撤掉自己的未送 intent，避免永久查不存在收據；POST 例外與 404 仍保留 unknown。
+
+審查後修正已選 target 的有效性重驗，以及 Begin ACK／來源 journal 交接失去原 ID 的窄邊界；只新增 FQC prepared identity 入口，保留原 Begin 與普通歷史引用保存。
+
+依確認只讓 FQC 檢具移轉在原按鈕一起原子保存整份工作草稿；其餘模組不延伸。保留本機表單、未知證據、歷史與權限，不自動送審或保存檢具。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+跨品質檢具替換安全修正：保留未識別 Begin marker，核對目標世代／生效版本，略過已符合目標項目的重送。沒有擴張 Save 範圍或全域交易。 [範圍、待決與驗證](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 檢具本機草稿候選
+
+後續僅修測試：以真記憶體 SQLite batch／既有 migrations 補齊舊登入 fixture，仍驗證 503 fail closed 與 429 額度；同步檢具離頁／送審共用 fixture 至現行本機保存契約。原始 Draft PR #81 的 CI 與本機後續結果分列，不宣稱跨品質替換全部原子化。[調查與邊界](../docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。
+
+分類／群組、檢具、校正與照片先在頁面完成，明確一次原子 Save；修改可存取、送審分開，unknown 保留原收據及寫入鎖並可離頁。修正取消表單清掉其他本機批次與既有群組照片不能移除的問題。未發布，四品質模組替換的全部原子統一仍建置中。 [候選與驗證](../docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
+
+## 2026-11-05 — Local A/B draft editing and Save
+
+A/B error/item/matrix changes now stay in page memory until one explicit module Save. First initialization uses the approved identified Begin + Save; subsequent Save is one POST/CAS. Added bounded original-receipt recovery, silent local departure, precise field/cell merge, server-side permission separation and synthetic browser/API checks. Uploaded as Draft #82; no migration, merge or deployment. [Evidence and limitations](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up migrates the four legacy immediate-Apply caller suites, adds original-operation completion guards and fixes stale recovery display after reload/peer Save; no shared-core or data-model change.
+
+## 2026-11-05 — A/B confirmed Save and read denial
+
+Retain the checked local-Save ACK and bilingual saved-but-read-denied feedback when the subsequent read fails; never retry the write. Reject missing/malformed epoch/delivery interfaces before any request. Migrate remaining polling/permission fixtures and compose byte-pinned source inverses without changing historical hashes or backend permissions. [Evidence and limits](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md).
 
 ## 2026-11-04 — Unknown Begin recovery candidate
 
