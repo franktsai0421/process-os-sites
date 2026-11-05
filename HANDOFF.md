@@ -1,3 +1,7 @@
+## 2026-11-05 — BOM dependent atomic-Save candidate
+
+BOM-only increment from PR77 `0af6d57`: one ordered atomic Save, edit grants Save, checked silent departure and original-receipt Begin/Save recovery. Shared opt-ins must be semantically integrated with PR78/A/B. No merge, deployment, real data, migration or account change. [Scope, evidence and unrun gates](docs/acceptance/bom-atomic-save-20261105/README.md).
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

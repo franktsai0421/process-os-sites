@@ -1,3 +1,7 @@
+## 2026-11-05 BOM 原子存取與無提示離頁候選
+
+獨立依賴 PR77 的 BOM 增量：有序原子 Save、edit 可存取、既有匯入／guard 保護與未知 Begin／Save 原收據恢復。隔離 handler／編譯版 Chromium 驗證，實站、IME、實機與跨機未驗；未合併／部署。[證據](../docs/acceptance/bom-atomic-save-20261105/README.md)。
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

@@ -306,7 +306,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // Immutable objects already written remain unreferenced on denial, as on
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
-        if(begin&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
         stage('state-cas');
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;

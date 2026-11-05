@@ -1,0 +1,72 @@
+{
+  "sourceBase": "0af6d57e912e5615250959c9e76210fecd55d96b",
+  "candidate": "6012f1b03259ce69096e874d13fbebf47df23f6b",
+  "scope": "five synthetic actual-handler pairs, three BOM rows, ten confirmed edits plus Save; request-local SQLite/R2 records; excludes browser/network/full GET time",
+  "pairs": [
+    {
+      "pair": 0,
+      "previousAlgorithm": {
+        "ms": 180.45103600000004,
+        "workflowPosts": 11,
+        "cas": 11
+      },
+      "atomic": {
+        "ms": 35.18719299999998,
+        "workflowPosts": 1,
+        "cas": 1
+      }
+    },
+    {
+      "pair": 1,
+      "previousAlgorithm": {
+        "ms": 193.155481,
+        "workflowPosts": 11,
+        "cas": 11
+      },
+      "atomic": {
+        "ms": 12.671165000000201,
+        "workflowPosts": 1,
+        "cas": 1
+      }
+    },
+    {
+      "pair": 2,
+      "previousAlgorithm": {
+        "ms": 158.92718999999988,
+        "workflowPosts": 11,
+        "cas": 11
+      },
+      "atomic": {
+        "ms": 14.630039000000124,
+        "workflowPosts": 1,
+        "cas": 1
+      }
+    },
+    {
+      "pair": 3,
+      "previousAlgorithm": {
+        "ms": 189.44842599999993,
+        "workflowPosts": 11,
+        "cas": 11
+      },
+      "atomic": {
+        "ms": 11.660314000000199,
+        "workflowPosts": 1,
+        "cas": 1
+      }
+    },
+    {
+      "pair": 4,
+      "previousAlgorithm": {
+        "ms": 134.9528379999997,
+        "workflowPosts": 11,
+        "cas": 11
+      },
+      "atomic": {
+        "ms": 11.226713000000018,
+        "workflowPosts": 1,
+        "cas": 1
+      }
+    }
+  ]
+}
