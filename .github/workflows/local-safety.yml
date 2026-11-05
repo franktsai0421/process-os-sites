@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
+    branches: [main, 'integration/draft-save-20261104', 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
 permissions:
   contents: read
 concurrency:
@@ -67,6 +67,16 @@ jobs:
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
           node --test tests/approval-deeplink-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: AB C integrated local Save and scoped recovery contracts
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-bridge-ownership.test.mjs tests/master-shared-clone.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: BOM atomic Save and original-operation browser recovery
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/bom-atomic-save.test.cjs tests/bom-atomic-departure.test.mjs tests/bom-bounded-recovery-transport.test.mjs tests/bom-bounded-rejection-route.test.mjs tests/bom-local-recovery-actual-stack.test.mjs tests/bom-manual-ram-save.test.mjs tests/bom-post-authority-actual-stack.test.mjs tests/bom-post-authority-route.test.mjs tests/bom-post-authority-transport.test.mjs tests/bom-review-access-projection.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC local editing and atomic single Save
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
@@ -162,6 +172,18 @@ jobs:
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: node scripts/local-build.mjs
+      - name: AB C compiled integrated local Save and cold-start contracts
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node tests/abc-local-save-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/native-ab-startup.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: BOM compiled browser atomic Save and silent departure
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node --test --test-concurrency=1 tests/bom-atomic-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
@@ -281,6 +303,10 @@ jobs:
         id: head_validation_06
         if: ${{ !cancelled() && steps.head_validation_05.outcome == 'success' }}
         run: |
+          node --test tests/tooling-local-atomic-save.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/test-tooling-local-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-tooling-ui-request.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-tooling-workflow-request.mjs
@@ -354,6 +380,8 @@ jobs:
           node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-quality-begin-generation-browser.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/bom-workflow-source-contract.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-workflow-begin-old-server.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

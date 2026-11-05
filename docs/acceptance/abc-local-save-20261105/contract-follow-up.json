@@ -1,0 +1,133 @@
+{
+  "recordedAtUTC": "2026-11-05T03:44:05.434496+00:00",
+  "reviewedHeadBeforeFix": "ae62aa7ebb4fc1d8100cd699ab539612bb10f92e",
+  "productCommitUnchanged": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+  "scope": "Test and test-only source-contract repair; dedicated CI adds these checks; no production source changes.",
+  "rootCauses": [
+    {
+      "target": "tests/draft-abandon-native.test.mjs",
+      "reason": "Old AB cases assumed form completion wrote shared working and waited for the now-retired departure choice."
+    },
+    {
+      "target": "tests/shared-unknown-departure-native.test.mjs",
+      "reason": "Unknown injection expected a POST from form completion instead of explicit Save, then waited for the retired choice."
+    },
+    {
+      "target": "scripts/workflow-begin-source-contract.cjs",
+      "reason": "The original exact afterHash predates the reviewed two AB/C permission/Begin opt-in spans."
+    }
+  ],
+  "historicalProof": {
+    "originalAfterHashPreserved": "8734ac32aa54f02f2d19b94bd7b0ecbec849907867a9638a4f5afd34a4e244d1",
+    "originalBeforeHashPreserved": "8a35f8bd71a194773363bfa6d702f645ebc35a9a826b7aab96c209500eda15aa",
+    "reviewedSuccessorHash": "58a2c3af63a4e681df036b63e1223cf1f3e881a70b2fceec44fa60dfd9079847",
+    "projection": "Accept only the exact reviewed successor, invert exactly two once-occurring lines, verify original afterHash, then execute unchanged historical offsets/rules and verify original beforeHash.",
+    "negativeCases": [
+      "unrelated appended source",
+      "unsafe Begin action",
+      "master PROCESS accidentally enabled for Save",
+      "approve grant substituted for edit",
+      "master PROCESS accidentally admitted for Begin"
+    ],
+    "oldServerResults": "FQC/IQC/IPQC-C/authoring each reject begin-v1 with 422 COMMAND_REQUIRED and unchanged D1/R2; IPQC-C inverse composition remains exact."
+  },
+  "results": [
+    {
+      "name": "targeted-shared-AB-Begin-source-resources",
+      "status": "PASS",
+      "tests": 287,
+      "pass": 287,
+      "fail": 0,
+      "skipped": 0,
+      "log": "abc-contract-fix-regression.log"
+    },
+    {
+      "name": "full-cross-module-departure",
+      "status": "PASS",
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0,
+      "log": "abc-contract-fix-native.log"
+    },
+    {
+      "name": "strengthened-unknown-Save-final",
+      "status": "PASS",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "log": "abc-contract-fix-unknown-final.log"
+    },
+    {
+      "name": "cold-start-observer",
+      "status": "PASS",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "log": "abc-contract-fix-cold-start.log"
+    },
+    {
+      "name": "IPQC-C historical bounded-read composition",
+      "status": "PASS",
+      "groups": 9
+    },
+    {
+      "name": "IPQC-C historical permissions composition",
+      "status": "PASS",
+      "groups": 8
+    },
+    {
+      "name": "Old server / original inverse / unsafe scope and permission mutations",
+      "status": "PASS",
+      "modules": 4
+    },
+    {
+      "name": "lint",
+      "status": "PASS"
+    },
+    {
+      "name": "TypeScript --noEmit",
+      "status": "PASS"
+    },
+    {
+      "name": "exact new PR head CI before update",
+      "status": "NOT_RUN",
+      "reason": "GitHub Actions result will identify the final candidate and preview merge commit after push."
+    }
+  ],
+  "fileSha256": {
+    "scripts/workflow-begin-source-contract.cjs": "fc254836b181c5959a9636ff85ca73953218658f8fe27bb2f0294c7f957619ad",
+    "scripts/test-workflow-begin-old-server.cjs": "fd907cac1aeb7485b714b5458c8aa399f7f662b40487a886b18a7bff2f6d23e1",
+    "tests/draft-abandon-native.test.mjs": "45d6fa68a2cbce777013a8acd0339aa0d2aeb53ee449ac8a29675ccfd6d9839e",
+    "tests/shared-unknown-departure-native.test.mjs": "2fd5324829ffd49d6ee6cffd82bc5f1b912c84dc9d2db5a1e36d3e55082ae4fa",
+    ".github/workflows/abc-local-save.yml": "b1ff261371db43fefd715cdd06e3029fe274420596ba713e99f7cc4af6940c91"
+  },
+  "retainedAssertions": [
+    "zero completion POST and unchanged persisted state",
+    "one explicit Save POST before saved-content retention assertions",
+    "no SPA/native confirmation prompt",
+    "drop both completed unsaved changes and open form",
+    "preserve full authoritative shared flow and persisted revision/value manifest",
+    "unknown original sent command/guards/marker bytes remain through navigation",
+    "JSON and non-JSON403 retire navigation coverage without clearing unknown",
+    "restored view permission cannot retry unknown Save",
+    "no epoch/receipt/generation/CAS/history or private data relaxation"
+  ],
+  "localBrowserBuild": {
+    "commit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+    "reason": "All production bytes unchanged; local compiled build is reused transparently. New PR-head CI rebuilds the final candidate."
+  },
+  "unchanged": [
+    "production source",
+    "Local safety workflow branches and steps",
+    "all historical before/after hashes and inverse offsets",
+    "all existing browser wait budgets",
+    "true accounts/data/site/credentials"
+  ],
+  "notRun": [
+    "Entire Windows Local safety workflow on a final combined integration candidate",
+    "live Site, physical phone/Windows UI/native OS IME/cross-machine acceptance"
+  ]
+}

@@ -1,3 +1,11 @@
+## 2026-11-05 BOM 原子存取候選
+
+`save-local-v1` 在 request memory 依序驗證本機手動／已確認 Digiwin 操作，最後一次 CAS 保存 working、saved 和原收據。保留原 guards、匯入基準／決策、L2、角色、pending、歷史與引用。BOM edit 包含 Save；送審／核准／匯入分開。離頁無提示放棄未送輸入；未知 Begin／Save 留原持久標記、只查原收據，舊無識別碼紀錄不視為 clean。從未合併 PR77 分支衍生，未發布；[驗證與共用檔協調](../../docs/acceptance/bom-atomic-save-20261105/README.md)。
+
+## 2026-11-05 AB／C 本機修改／原子存取候選
+
+AB/C 的產品、類別、群組／例外路線與線別工段入口，完成表單先留個人頁面；一次 Save 依原欄位／成員 guards 順序套用並原子保存 working／saved／收據。修改權包含保存，其他權限分開；未存本機內容不可送審。搜尋／篩選與輪詢保留輸入，離開目前編輯目的頁直接放棄未送輸入；unknown 保留原持久識別，只查原收據。沿用 #77，PROCESS 不啟用這個本機流程，沒有舊資料轉換、清理或部署。[候選、驗證與剩餘界線](../../docs/acceptance/abc-local-save-20261105/README.md)。下列舊 Apply 同步描述保留歷史，不代表本候選的 AB/C 操作。
+
 ## 2026-10-30 #52 整合界線
 
 一般線別／工段修正與既有 records-v1 prepared model 寫入保留；本次不包含舊資料自動轉換，轉換專用程式已移除。新版權限矩陣、明確還原能力及 restore effects 保留，沒有批次權限或資料遷移。見[整合交接](../../docs/acceptance/PR52_MAIN_INTEGRATION_20261030.md)。

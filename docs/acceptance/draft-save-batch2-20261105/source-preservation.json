@@ -1,0 +1,349 @@
+{
+  "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+  "sources": {
+    "77": "0af6d57e912e5615250959c9e76210fecd55d96b",
+    "78": "03249249a844017bdc22aa922c030534eb0a4cb2",
+    "79": "8c4a73bb76256d0c66797a27a5fa52a8952327ae",
+    "80": "d05a85eab2a49e735a604078873578898edf1535"
+  },
+  "independentFiles": [
+    {
+      "pr": 78,
+      "path": "AI_CONTEXT/models/TOOLING.md",
+      "identicalToSource": true,
+      "sha256": "386a2e4cb05f126996e052417a82fadee6a510e4ee131a09d89c474f215c9dbb"
+    },
+    {
+      "pr": 78,
+      "path": "app/api/tooling/photo/route.ts",
+      "identicalToSource": true,
+      "sha256": "7183192a064c391facc99fab9f6b9f749284fdf8376d1494960c86b56db560fa"
+    },
+    {
+      "pr": 78,
+      "path": "docs/acceptance/tooling-local-save-20261105/README.md",
+      "identicalToSource": true,
+      "sha256": "608805f01a76bde327d409dd16827036095838f33e543ecfdb79443b3caf811d"
+    },
+    {
+      "pr": 78,
+      "path": "docs/acceptance/tooling-local-save-20261105/benchmark.json",
+      "identicalToSource": true,
+      "sha256": "83982a3264bb171b5f6436aae9af5f1962d48772b2ef73356a9b4446a68a9e59"
+    },
+    {
+      "pr": 78,
+      "path": "docs/specs/current/TOOLING.md",
+      "identicalToSource": true,
+      "sha256": "17f3b0b78f013c50061c628b55366fe970929fb692c7e4f035e21c4e1e55ad58"
+    },
+    {
+      "pr": 78,
+      "path": "docs/tooling/20261104-local-save-integration.md",
+      "identicalToSource": true,
+      "sha256": "76c2bd3be84fbf430ba2e501c5585eab2e50d397b797824becd5147eac56bd64"
+    },
+    {
+      "pr": 78,
+      "path": "lib/tooling-workflow.ts",
+      "identicalToSource": true,
+      "sha256": "2cbf91c26a89f8e04190c4217c62fd2d535f06b16d27952857338b2a18035eea"
+    },
+    {
+      "pr": 78,
+      "path": "public/process/tooling.js",
+      "identicalToSource": true,
+      "sha256": "f7f80c688a67c9c70a21491ca4104c41531fc7aac55d5401840d53c6d11afdda"
+    },
+    {
+      "pr": 78,
+      "path": "scripts/benchmark-tooling-local-save.cjs",
+      "identicalToSource": true,
+      "sha256": "621de590db29bc45e95766a3f399c8eb192625820b5168fc09c7e1efc17f1d61"
+    },
+    {
+      "pr": 78,
+      "path": "scripts/test-tooling-local-browser.cjs",
+      "identicalToSource": true,
+      "sha256": "5447789b917e29766260b6f39fa516fc77825dc10df2d89c16711142487c02d8"
+    },
+    {
+      "pr": 78,
+      "path": "scripts/test-tooling-ui-request.mjs",
+      "identicalToSource": true,
+      "sha256": "0277003b325d8091e6cf335c985a0402c7422ee005809828ac0086f436008226"
+    },
+    {
+      "pr": 78,
+      "path": "scripts/tooling-local-save-fixture.cjs",
+      "identicalToSource": true,
+      "sha256": "9c20b7dd8c337a6027f0a1314dad1615d40074ba6a350819f2f47d32afe14677"
+    },
+    {
+      "pr": 78,
+      "path": "tests/quality-submission-fences.test.mjs",
+      "identicalToSource": true,
+      "sha256": "b0c8cbe459e0b4d89d43a8c3ab89aac7f7dde3eb23a3812df354b86ee70f36e9"
+    },
+    {
+      "pr": 78,
+      "path": "tests/shared-draft-begin-v1.test.mjs",
+      "identicalToSource": true,
+      "sha256": "4301574918b33db98194706220eb9a2efd30e5825057b5ca7c425443633128ae"
+    },
+    {
+      "pr": 78,
+      "path": "tests/tooling-local-atomic-save.test.cjs",
+      "identicalToSource": true,
+      "sha256": "51a29bc48e31d6599e863d44c837d6e9367be0a19d515da7220563f49f9a9dad"
+    },
+    {
+      "pr": 79,
+      "path": "docs/acceptance/bom-atomic-save-20261105/README.md",
+      "identicalToSource": true,
+      "sha256": "f00c454e7839055ea317877c92fcf04fbea57abe2ba0448bd3aea84c5291d0b5"
+    },
+    {
+      "pr": 79,
+      "path": "docs/acceptance/bom-atomic-save-20261105/benchmark.json",
+      "identicalToSource": true,
+      "sha256": "24d4947dd204ead410bbbb032daf87c0a6a0c4f920a3db56dc9dc7feee9ce35a"
+    },
+    {
+      "pr": 79,
+      "path": "docs/specs/current/BOM_REBUILD.md",
+      "identicalToSource": true,
+      "sha256": "2a06ba48b5ca212f5714431a3c1099c2bab97bb764fa37c1ee4d8361de3f3dd7"
+    },
+    {
+      "pr": 79,
+      "path": "lib/bom-workflow.ts",
+      "identicalToSource": true,
+      "sha256": "03072124ab0b511bd9d5ea7760ba2d4b8144db64a12f590346ca59765390e114"
+    },
+    {
+      "pr": 79,
+      "path": "public/process/bom-workspace.js",
+      "identicalToSource": true,
+      "sha256": "fcdd95f5fbf8f404db0cfc86d2d1d2245f53aec0fece84975d069f0e4b86c39f"
+    },
+    {
+      "pr": 79,
+      "path": "scripts/bom-workflow-source-contract.cjs",
+      "identicalToSource": true,
+      "sha256": "cd40114069fbe3b7b6d53c447bcabaabec05102640c8ea09236be50911338ed7"
+    },
+    {
+      "pr": 79,
+      "path": "scripts/test-bom-import-noop.cjs",
+      "identicalToSource": true,
+      "sha256": "52f6ba6240cc51787d04a011d571b0133b3ace788f377334b4865c48bed112e7"
+    },
+    {
+      "pr": 79,
+      "path": "scripts/test-bom-navigation.mjs",
+      "identicalToSource": true,
+      "sha256": "4164bf7c2e084a4869d1ff33726deb400638112dc8253002dc7207f5b6deb1ee"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-atomic-benchmark.cjs",
+      "identicalToSource": true,
+      "sha256": "b0e6861517545ed0e4072e0e6320b912e6d640e1a1888609031cd4dd1212c46b"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-atomic-browser.test.mjs",
+      "identicalToSource": true,
+      "sha256": "91e931d8120c621209fc3eb4a3e63b246e49409c7fe26bdd3b1565cd71f11669"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-atomic-departure.test.mjs",
+      "identicalToSource": true,
+      "sha256": "adce16086ad276600cae29c816767cc6e567b7e30daea972ee4f69b8cb10ae20"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-atomic-fixture.cjs",
+      "identicalToSource": true,
+      "sha256": "3f627b8f19098535f809fa1521fc384363d0012ecdda76a8b8eff6756f4a336a"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-atomic-save.test.cjs",
+      "identicalToSource": true,
+      "sha256": "6d03460075ad93a61614d316addd85bd2083a88f228951208e9a6c7eae57c178"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-local-recovery-actual-stack.test.mjs",
+      "identicalToSource": true,
+      "sha256": "cd58c95c48c5f357bf4c06e9e055112b059a972cea659ee28ee1ceb3c6cdc378"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-manual-ram-save.test.mjs",
+      "identicalToSource": true,
+      "sha256": "6c07b77c092ea2d0e89f8543454bb823bb3b19caeb2878e2837488273ccab672"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-navigation-actual-fixture.mjs",
+      "identicalToSource": true,
+      "sha256": "83799d003eee649b01227f746091e31f28b1ee55ab62b1c66cada9e97317862e"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-post-authority-actual-stack.test.mjs",
+      "identicalToSource": true,
+      "sha256": "8f2d4b364d338fdf872759e239c19e48a4e5f26252c62105b160c83a023c5dee"
+    },
+    {
+      "pr": 79,
+      "path": "tests/bom-workflow-source-contract.test.cjs",
+      "identicalToSource": false,
+      "sha256": "b4511d1db3be922eab719c7eaeca3d4c5dd969fbf108dfe216e3f9a9e7bd209e",
+      "reason": "Retains all ten BOM source cases and extends each applicable assertion to exact integrated union bytes; preserves source-head BOM hash, raw-Buffer enforcement, history byte equality, IPQC pin, eight mutation negatives and Windows exit gate."
+    },
+    {
+      "pr": 80,
+      "path": ".github/workflows/abc-local-save.yml",
+      "identicalToSource": true,
+      "sha256": "b1ff261371db43fefd715cdd06e3029fe274420596ba713e99f7cc4af6940c91"
+    },
+    {
+      "pr": 80,
+      "path": "docs/acceptance/abc-local-save-20261105/README.md",
+      "identicalToSource": true,
+      "sha256": "963d9981a4ebacb7d5cecaf29317440ba23d9196e9dd52fa0d4161db97494394"
+    },
+    {
+      "pr": 80,
+      "path": "docs/acceptance/abc-local-save-20261105/benchmark.json",
+      "identicalToSource": true,
+      "sha256": "3808eaba828c9045fe52b687d9b5a25013f9cc584490271d679e78acdf44024c"
+    },
+    {
+      "pr": 80,
+      "path": "docs/acceptance/abc-local-save-20261105/browser.json",
+      "identicalToSource": true,
+      "sha256": "c0c463e591dfe7b139f612aabc83519e56e1ed013f12fc6ba44062e0f07260e5"
+    },
+    {
+      "pr": 80,
+      "path": "docs/acceptance/abc-local-save-20261105/checks.json",
+      "identicalToSource": true,
+      "sha256": "8cf39ad1d08931d782680e6ca53856d66c4132c4b8a68d2b8518f12ff2e91946"
+    },
+    {
+      "pr": 80,
+      "path": "docs/acceptance/abc-local-save-20261105/contract-follow-up.json",
+      "identicalToSource": true,
+      "sha256": "60bb07327ff2355399d227b3d259fb5a3b91cd6e8320893170219abdae3bf1d3"
+    },
+    {
+      "pr": 80,
+      "path": "docs/specs/current/SHARED_DRAFT.md",
+      "identicalToSource": true,
+      "sha256": "5b782f839ad497eda0243a81ee5d833188cc994ea68c6ec86bfe80046a2b9537"
+    },
+    {
+      "pr": 80,
+      "path": "lib/master-workflow.ts",
+      "identicalToSource": true,
+      "sha256": "d7607eba050d7dc803aa493da122a5336c0142e9815c3e9306ef738789dbb675"
+    },
+    {
+      "pr": 80,
+      "path": "public/process/master-admin-ui.js",
+      "identicalToSource": true,
+      "sha256": "9b9e23df9898717602d40306a91ddb4a801389a6b733d754effdc7e4de1b3086"
+    },
+    {
+      "pr": 80,
+      "path": "public/process/master-data.js",
+      "identicalToSource": true,
+      "sha256": "6dc08ba8a038a93583e417c71764d964d038c7b63f0895735700847ec1e483b8"
+    },
+    {
+      "pr": 80,
+      "path": "public/process/master-shared-client.js",
+      "identicalToSource": true,
+      "sha256": "82c0084886695a345c8175818c3dda27ea74c829de6786f31764e25ebbe76660"
+    },
+    {
+      "pr": 80,
+      "path": "scripts/test-master-product-route-mode.cjs",
+      "identicalToSource": true,
+      "sha256": "d8a1d79a087a7becdcea17d247448c503260b54d8fe631466a01ce9cfe436814"
+    },
+    {
+      "pr": 80,
+      "path": "scripts/test-master-stage-link-v3.cjs",
+      "identicalToSource": true,
+      "sha256": "d1ec0066e62052dc2542b0452757a23a8e256a93d0767878e920e5064a26659d"
+    },
+    {
+      "pr": 80,
+      "path": "scripts/test-master-workflow-v3.cjs",
+      "identicalToSource": true,
+      "sha256": "35758cc1113e0cec5861aabb6ac1e8d74e94d1790fd5772ba6a82f61d3247652"
+    },
+    {
+      "pr": 80,
+      "path": "tests/abc-local-bridge.test.mjs",
+      "identicalToSource": true,
+      "sha256": "5a63bdc8be3b9093b41548d58ebfd2ef4a806eb9fefd10ef9bd67951a8ca314f"
+    },
+    {
+      "pr": 80,
+      "path": "tests/abc-local-save-browser.mjs",
+      "identicalToSource": true,
+      "sha256": "918c83ee108b162127464230127b0a2d5641847892d849f735954d978e616cee"
+    },
+    {
+      "pr": 80,
+      "path": "tests/abc-local-save-measure.mjs",
+      "identicalToSource": true,
+      "sha256": "9226b7ca24902c32f24ca2d6bb90a1d884849508ea30a9c81351312f55668004"
+    },
+    {
+      "pr": 80,
+      "path": "tests/abc-local-save.test.mjs",
+      "identicalToSource": true,
+      "sha256": "980e8b84a17a0b17c5502542827e09cd2090243596ac59ac867d9e147558e456"
+    },
+    {
+      "pr": 80,
+      "path": "tests/draft-abandon-native.test.mjs",
+      "identicalToSource": true,
+      "sha256": "45d6fa68a2cbce777013a8acd0339aa0d2aeb53ee449ac8a29675ccfd6d9839e"
+    },
+    {
+      "pr": 80,
+      "path": "tests/master-ab-auth-phase.test.mjs",
+      "identicalToSource": true,
+      "sha256": "a5b8987e6836867efa287aba05c8f28f2d1eea97544cd35c5507c7eb32bd66e4"
+    },
+    {
+      "pr": 80,
+      "path": "tests/master-bridge-ownership.test.mjs",
+      "identicalToSource": true,
+      "sha256": "4570f5abf4b1dae56bbabc7c5086b683b283f3c423ed00a58e844b6297854afc"
+    },
+    {
+      "pr": 80,
+      "path": "tests/master-shared-clone.test.mjs",
+      "identicalToSource": true,
+      "sha256": "108e488fe534c9da8f17e67a7cc6221bab43a833e68a570971866a0500d06004"
+    },
+    {
+      "pr": 80,
+      "path": "tests/shared-unknown-departure-native.test.mjs",
+      "identicalToSource": true,
+      "sha256": "2fd5324829ffd49d6ee6cffd82bc5f1b912c84dc9d2db5a1e36d3e55082ae4fa"
+    }
+  ],
+  "workflowSha256": "30f7e9c9d5de3207bb89eba34fb3b82d23b965d4e77d3d191b5fa5115be309d9"
+}

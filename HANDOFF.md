@@ -1,3 +1,25 @@
+## 2026-11-05 — Draft PR85 Save readback follow-up
+
+Current integration is [Draft PR85](https://github.com/franktsai0421/process-os-sites/pull/85), targeting main after the separately completed PR77 merge. Earlier upload-denial entries below are historical snapshots; their public-disclosure approvals were subsequently obtained and publication succeeded. Keep Draft; this task does not merge, deploy or alter review/protection state.
+
+The actual AB/C bridge/handler reproduction at `25b35d39` found successful Save ACKs incorrectly falling through receipt recovery because POST control lacked fresh permissions. The follow-up reads authoritative state directly: normal Save is one POST + one GET + one CAS; lost ACK retains original receipt GET + authoritative GET and never resends. Readback refusals retain the sent operation instead of becoming write-rejection proof. Identity/epoch/delivery, generation, fresh access and original receipt checks remain; all four catalog fault-policy HOLD decisions are unchanged. Shared-client pin advances to `20261105-batch2-integration2`, preserving module tags and the exact server source inverse. [Reproduction, paired measurements and gates](docs/acceptance/draft-save-batch2-20261105/README.md). Final exact-head CI is recorded on PR85 without a reporting-only commit after verification.
+
+## 2026-11-05 — Second-batch isolated integration
+
+Tooling #78, latest BOM #79 `8c4a73b` test follow-up and AB/C #80 are locally integrated on fixed #77 with exact source projection and module cache contracts. The follow-up preserves the union hash, adds raw-Buffer rejection, ten dual-source contract cases, five-module historical rejection and the Windows test gate; product bytes are unchanged. Local integration, build and focused/compiled regressions PASS. Public GitHub source upload was denied by automatic approval review; no remote integration branch/PR was created and full integrated Windows CI is BLOCKED/NOT_RUN. Preserve the local branch/bundle pending exact public-publication authorization. No IPQC A/B candidate, main merge or deployment. [Evidence and gates](docs/acceptance/draft-save-batch2-20261105/README.md).
+
+## 2026-11-05 — Tooling second-batch dependent candidate
+
+Tooling local edits / atomic Save builds on fixed PR #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. Keep dependent PR base `integration/draft-save-20261104`; no repeated first-batch patches, merge, live-data operation or publication. [Implementation, isolated tests and remaining gates](docs/acceptance/tooling-local-save-20261105/README.md).
+
+## 2026-11-05 — BOM dependent atomic-Save candidate
+
+BOM-only increment from PR77 `0af6d57`: one ordered atomic Save, edit grants Save, checked silent departure and original-receipt Begin/Save recovery. Shared opt-ins must be semantically integrated with PR78/A/B. No merge, deployment, real data, migration or account change. [Scope, evidence and unrun gates](docs/acceptance/bom-atomic-save-20261105/README.md).
+
+## 2026-11-05 — AB/C local editing / atomic Save dependent candidate
+
+`feature/abc-local-save-20261105` starts from exact #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. AB/C products/categories/routes and line/stage entry complete locally, then save ordered guards and snapshot through one CAS. Scoped durable Begin/Save recovery, permission/reference/history protections and pinned PROCESS stage approval remain. [Evidence, shared-file integration delta and remaining gates](docs/acceptance/abc-local-save-20261105/README.md). No merge/deployment/live data; BOM/tooling/IPQC A/B candidates are not included.
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

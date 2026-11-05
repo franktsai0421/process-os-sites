@@ -1,6 +1,6 @@
 import {can} from './process-state';
 import {applyDraftCommand,cloneDraft,DraftConflict,stableDraftJSON,type DraftPatch} from './shared-draft';
-import {effectiveVersion,type VersionedControl,type WorkflowAdapter} from './versioned-shared-workflow';
+import {effectiveVersion,type VersionedControl,type WorkflowAdapter,type ModuleDraftCommand} from './versioned-shared-workflow';
 import * as Bom from '../public/process/bom-domain.mjs';
 
 export type BomRow={id:string;parentId:string|null;rootCode:string;level:number;levelLabel:string;ordinal:string;itemCode:string;itemName:string;specification:string;unit:string;quantity:string;denominator:string;waste:string;path:{ordinal:string;itemCode:string}[];source?:unknown};
@@ -28,6 +28,25 @@ export const bomWorkflowAdapter:WorkflowAdapter<BomSnapshot,BomControl>={
  async apply(control,command,context){
   const flow=control.workflow!;
   if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+  if(command.action==='save'&&command.moduleAction==='save-local-v1'){
+   if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
+   const operations=command.input?.operations;
+   if(command.patches!==undefined||command.guards!==undefined||!Array.isArray(operations)||operations.length>4096)throw new DraftConflict('BOM_LOCAL_SAVE_INVALID',422);
+   // Replay the confirmed operations against request-local state only. Each
+   // original field guard/import digest checks the result of the preceding op.
+   // The route persists only the final Save through its existing single CAS.
+   const staged={...control,workflow:flow},fingerprint=context.commandFingerprint||stableDraftJSON(command);
+   for(const operation of operations){
+    if(!operation||typeof operation!=='object'||Array.isArray(operation)||Object.keys(operation).some(key=>!['patches','guards','moduleAction','input'].includes(key)))throw new DraftConflict('BOM_LOCAL_SAVE_INVALID',422);
+    if(operation.moduleAction!==undefined&&operation.moduleAction!=='import-digiwin')throw new DraftConflict('BOM_ACTION_INVALID',422);
+    const applied=await bomWorkflowAdapter.apply(staged,{...operation,...command,action:'apply',moduleAction:operation.moduleAction,input:operation.input,patches:operation.patches,guards:operation.guards,expectedRevision:undefined} as ModuleDraftCommand,{...context,commandFingerprint:fingerprint});
+    staged.workflow={...applied.state,receipts:flow.receipts,sequences:flow.sequences};
+   }
+   // expectedRevision, if supplied, applies to the original request basis.
+   if(command.expectedRevision!==undefined&&command.expectedRevision!==flow.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM',409);
+   return applyDraftCommand(staged.workflow,{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});
+  }
+  if(command.moduleAction&&command.action!=='apply')throw new DraftConflict('BOM_ACTION_INVALID',422);
   if(command.action!=='apply')return applyDraftCommand(flow,command,context);
   let patches:DraftPatch[];
   if(command.moduleAction==='import-digiwin'){

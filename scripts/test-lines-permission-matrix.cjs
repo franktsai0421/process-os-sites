@@ -18,7 +18,7 @@ void(async()=>{const results=[];try{
  accessKeys=(await import('../public/process/access-policy.mjs')).accessKeys;
  async function reset(role,scope,denied){
   for(const user of users){user.role=user.id==='b'?role:'admin';user.accessOverrides=Object.fromEntries(accessKeys.map(k=>[k,true]));}
-  if(denied)users[1].accessOverrides[scope.toLowerCase()+'.'+denied]=false;
+  for(const operation of denied?[].concat(denied):[])users[1].accessOverrides[scope.toLowerCase()+'.'+operation]=false;
   const clean=copy(root);db.prepare('UPDATE shared_state SET revision=1,"values"=?').run(JSON.stringify({platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify(clean),processMasterData:JSON.stringify(clean.active.PROCESS)}));
   objects.clear();for(const user of users)sessions[user.id]={Cookie:'process_demo='+await core.demoSession(new Request(url(scope)),user.id,false),Origin:'http://fixture','Content-Type':'application/json'};
  }
@@ -42,10 +42,25 @@ void(async()=>{const results=[];try{
     const saved=(await run(scope,'a','save')).control.workflow.saved;detail={savedId:saved.id,reason:'Synthetic matrix'};
     if(action!=='submit'){const sent=await run(scope,'a','submit',detail);detail={caseId:sent.receipt.caseId,reason:'Synthetic matrix',selfReviewConfirmed:true};}
    }
-   const before=JSON.stringify((await state()).s),response=await run(scope,'b',commandAction,detail,allowed?200:403);
-   if(!allowed){assert.equal(response.error,'FORBIDDEN');assert.equal(JSON.stringify((await state()).s),before);}
+   const expectedAllowed=allowed||action==='save'; // AB/C edit also grants Save; all other gates remain independent.
+   const before=JSON.stringify((await state()).s),response=await run(scope,'b',commandAction,detail,expectedAllowed?200:403);
+   if(!expectedAllowed){assert.equal(response.error,'FORBIDDEN');assert.equal(JSON.stringify((await state()).s),before);}
   }
-  results.push({role,scope,action,allowed,status:'PASS'});
+  results.push({role,scope,action,allowed,effectiveAllowed:allowed||action==='save',status:'PASS'});
+ }
+ const saveMatrix=[];
+ for(const role of ['admin','staff'])for(const scope of ['AB','C'])for(const edit of [false,true])for(const save of [false,true]){
+  await reset(role,scope,[...(!edit?['edit']:[]),...(!save?['save']:[]),'submit']);
+  await post(scope,'a',{action:'begin'});
+  const expected=edit||save,read=await get(scope,'b','&permissions=1');assert.equal(read.permissions.save,expected);assert.equal(read.permissions.submit,false);
+  const before=JSON.stringify((await state()).s),objectsBefore=JSON.stringify([...objects]);
+  const response=await run(scope,'b','save',{},expected?200:403);
+  if(expected){assert.equal(response.control.workflow.saved.actor.id,'b');}
+  else{assert.equal(response.error,'FORBIDDEN');assert.equal(JSON.stringify((await state()).s),before);assert.equal(JSON.stringify([...objects]),objectsBefore);}
+  const savedState=JSON.stringify((await state()).s),savedObjects=JSON.stringify([...objects]);
+  const submit=await run(scope,'b','submit',{savedId:response.receipt?.savedId||'denied-save'},403);
+  assert.equal(submit.error,'FORBIDDEN');assert.equal(JSON.stringify((await state()).s),savedState);assert.equal(JSON.stringify([...objects]),savedObjects);
+  saveMatrix.push({role,scope,edit,save,effectiveSave:expected,submit:403,status:'PASS'});
  }
  const validation=[];
  await reset('admin','AB',null);await post('AB','a',{action:'begin'});
@@ -62,5 +77,5 @@ void(async()=>{const results=[];try{
  db.prepare('UPDATE shared_state SET "values"=?').run(JSON.stringify({platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify(legacy),processMasterData:JSON.stringify(legacy.active.PROCESS)}));
  await post('AB','a',{action:'begin'});const legacyFlow=(await get('AB')).control.workflow,l=legacyFlow.working.lines[0],st=l.stages[0],p=['lines',{id:l.id},'stages',{id:st.id},'name'];
  await run('AB','a','apply',{patches:[{op:'set',path:p,value:'Legacy renamed without recoding'}],guards:[{path:p,value:st.name}]});assert.equal((await get('AB')).control.workflow.working.lines[0].stages[0].code,'LEGACY CODE');validation.push({label:'untouched legacy code survives name edit',status:'PASS'});
- console.log(JSON.stringify({status:'PASS',cases:results.length,results,validation},null,2));
+ console.log(JSON.stringify({status:'PASS',cases:results.length,results,saveMatrix,validation},null,2));
 }catch(error){console.error(error);process.exitCode=1;}finally{db.close();}})();

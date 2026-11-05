@@ -1,0 +1,80 @@
+{
+  "status": "PASS",
+  "samples": [
+    {
+      "legacy": {
+        "milliseconds": 279.106,
+        "posts": 11,
+        "gets": 11,
+        "cas": 11
+      },
+      "local": {
+        "milliseconds": 25.461,
+        "posts": 1,
+        "gets": 1,
+        "cas": 1
+      }
+    },
+    {
+      "legacy": {
+        "milliseconds": 269.591,
+        "posts": 11,
+        "gets": 11,
+        "cas": 11
+      },
+      "local": {
+        "milliseconds": 25.68,
+        "posts": 1,
+        "gets": 1,
+        "cas": 1
+      }
+    },
+    {
+      "legacy": {
+        "milliseconds": 237.465,
+        "posts": 11,
+        "gets": 11,
+        "cas": 11
+      },
+      "local": {
+        "milliseconds": 22.896,
+        "posts": 1,
+        "gets": 1,
+        "cas": 1
+      }
+    },
+    {
+      "legacy": {
+        "milliseconds": 235.214,
+        "posts": 11,
+        "gets": 11,
+        "cas": 11
+      },
+      "local": {
+        "milliseconds": 43.862,
+        "posts": 1,
+        "gets": 1,
+        "cas": 1
+      }
+    },
+    {
+      "legacy": {
+        "milliseconds": 235.812,
+        "posts": 11,
+        "gets": 11,
+        "cas": 11
+      },
+      "local": {
+        "milliseconds": 25.224,
+        "posts": 1,
+        "gets": 1,
+        "cas": 1
+      }
+    }
+  ],
+  "medianMs": {
+    "legacy": 237.465,
+    "local": 25.461
+  },
+  "limits": "Fresh fixture each arm, alternating order, no discarded warm-up. Retained legacy handler path on same candidate. 10 completed edits + explicit Save; Begin/setup excluded. Includes post-write GETs; no browser/photos/network/hosted latency."
+}

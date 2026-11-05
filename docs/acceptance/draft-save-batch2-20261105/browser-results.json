@@ -1,0 +1,599 @@
+{
+  "abc-browser": {
+    "programCommit": "58ee1122e8639edffc79d7602002f9ee8f38c0d3",
+    "environment": "isolated compiled Worker / nonpersistent synthetic D1+R2 / Chromium",
+    "checks": [
+      "AB: create/rename category, create exception product, create/delete before Save, one explicit Save per batch",
+      "AB: products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink",
+      "C: create/rename category, create exception product, create/delete before Save, one explicit Save per batch",
+      "C: products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink",
+      "1280 zh: cancel, no overflow, native silent abandonment",
+      "1280 vi: cancel, no overflow, native silent abandonment",
+      "390 zh: cancel, no overflow, native silent abandonment",
+      "390 vi: cancel, no overflow, native silent abandonment",
+      "lost Save/Begin ACK: durable markers survive native reload; 404 retains; receipt-only recovery; no duplicate POST"
+    ],
+    "http": [
+      {
+        "scope": "AB",
+        "operation": "two completions + rapid repeated Save",
+        "completionPOST": 0,
+        "savePOST": 1,
+        "elapsedMs": 158.6794490000002,
+        "workflowGET": 2
+      },
+      {
+        "scope": "C",
+        "operation": "two completions + rapid repeated Save",
+        "completionPOST": 0,
+        "savePOST": 1,
+        "elapsedMs": 237.65232300000025,
+        "workflowGET": 2
+      }
+    ],
+    "pageErrors": [],
+    "nativePrompts": [],
+    "notRun": [
+      "live Site",
+      "physical phone",
+      "native OS IME",
+      "cross-machine"
+    ],
+    "status": "PASS",
+    "buildEntrySha256": "0d0daf6d33de5a0d49fbdd399542a0d17ff5f6ddd496edf95e2e04373d911f49"
+  },
+  "bom-browser": {
+    "commit": "58ee1122e8639edffc79d7602002f9ee8f38c0d3",
+    "layer": "compiled synthetic loopback Chromium",
+    "checks": [
+      {
+        "width": 1280,
+        "lang": "zh-TW",
+        "case": "manual/cancel/filter/peer/Excel/double-click/SPA/native",
+        "status": "PASS"
+      },
+      {
+        "width": 390,
+        "lang": "vi",
+        "case": "manual/cancel/filter/peer/Excel/double-click/SPA/native",
+        "status": "PASS"
+      },
+      {
+        "action": "save",
+        "departure": "spa",
+        "receipt": "084ebfbc-289c-422d-99cd-6ef9320530d3",
+        "posts": 1,
+        "status": "PASS"
+      },
+      {
+        "action": "save",
+        "departure": "native",
+        "receipt": "6f81c592-5180-4792-a628-5e34cd4907fc",
+        "posts": 1,
+        "status": "PASS"
+      },
+      {
+        "action": "begin-v1",
+        "departure": "spa",
+        "receipt": "78163b42-200f-45c9-8cfe-b1051e20f369",
+        "posts": 1,
+        "status": "PASS"
+      },
+      {
+        "action": "begin-v1",
+        "departure": "native",
+        "receipt": "522e4982-1c38-484d-b33e-22058fef024d",
+        "posts": 1,
+        "status": "PASS"
+      }
+    ],
+    "physicalPhone": "NOT_RUN",
+    "nativeIME": "NOT_RUN",
+    "crossMachine": "NOT_RUN",
+    "hosted": "NOT_RUN"
+  },
+  "tooling-browser": [
+    {
+      "status": "PASS",
+      "width": 1280,
+      "lang": "zh",
+      "editPosts": 0,
+      "normalSavePosts": 1,
+      "normalSaveGets": [
+        "/api/tooling/workflow?caseMetadata=1&compact=1",
+        "/api/tooling/checks"
+      ],
+      "unknownSavePosts": 1,
+      "receiptRecovery": true
+    },
+    {
+      "status": "PASS",
+      "width": 390,
+      "lang": "vi",
+      "editPosts": 0,
+      "normalSavePosts": 1,
+      "normalSaveGets": [
+        "/api/tooling/workflow?caseMetadata=1&compact=1",
+        "/api/tooling/checks"
+      ],
+      "unknownSavePosts": 1,
+      "receiptRecovery": true
+    }
+  ],
+  "delivery-browser": [
+    {
+      "status": "PASS_COMPILED_DELIVERY_BROWSER",
+      "pages": [
+        {
+          "actor": "frank",
+          "kind": "first",
+          "path": "/process/index.html?system=process&view=dashboard",
+          "elapsedMs": 503,
+          "destination": "dashboard",
+          "scopes": [
+            "AB",
+            "C"
+          ],
+          "view": "dashboard",
+          "dataTab": null,
+          "readyMs": 451,
+          "alerts": []
+        },
+        {
+          "actor": "frank",
+          "kind": "reload",
+          "path": "/process/index.html?system=process&view=dashboard",
+          "elapsedMs": 377,
+          "destination": "dashboard",
+          "scopes": [
+            "AB",
+            "C"
+          ],
+          "view": "dashboard",
+          "dataTab": null,
+          "readyMs": 320,
+          "alerts": []
+        },
+        {
+          "actor": "frank",
+          "kind": "first",
+          "path": "/process/index.html?view=dashboard",
+          "elapsedMs": 572,
+          "destination": "dashboard",
+          "scopes": [
+            "AB",
+            "C"
+          ],
+          "view": "dashboard",
+          "dataTab": null,
+          "readyMs": 536,
+          "alerts": []
+        },
+        {
+          "actor": "player",
+          "kind": "first",
+          "path": "/process/index.html?system=process&view=player&line=C&stage=C-CUT",
+          "elapsedMs": 523,
+          "destination": "player",
+          "scopes": [
+            "AB",
+            "C"
+          ],
+          "view": "player",
+          "dataTab": null,
+          "readyMs": 467,
+          "alerts": []
+        },
+        {
+          "actor": "player",
+          "kind": "reload",
+          "path": "/process/index.html?system=process&view=player&line=C&stage=C-CUT",
+          "elapsedMs": 330,
+          "destination": "player",
+          "scopes": [
+            "AB",
+            "C"
+          ],
+          "view": "player",
+          "dataTab": null,
+          "readyMs": 284,
+          "alerts": []
+        },
+        {
+          "actor": "quality",
+          "kind": "first",
+          "path": "/process/index.html?view=data&dataTab=quality-iqc",
+          "elapsedMs": 677,
+          "destination": "data:quality-iqc",
+          "scopes": [],
+          "view": "data",
+          "dataTab": "quality-iqc",
+          "readyMs": 604,
+          "alerts": []
+        },
+        {
+          "actor": "quality",
+          "kind": "reload",
+          "path": "/process/index.html?view=data&dataTab=quality-iqc",
+          "elapsedMs": 405,
+          "destination": "data:quality-iqc",
+          "scopes": [],
+          "view": "data",
+          "dataTab": "quality-iqc",
+          "readyMs": 343,
+          "alerts": []
+        },
+        {
+          "actor": "writer",
+          "kind": "first",
+          "path": "/process/index.html?view=data&dataTab=quality-iqc",
+          "elapsedMs": 961,
+          "destination": "data:quality-iqc",
+          "scopes": [],
+          "view": "data",
+          "dataTab": "quality-iqc",
+          "readyMs": 671,
+          "alerts": []
+        },
+        {
+          "actor": "quality",
+          "kind": "first",
+          "path": "/process/index.html?view=data&dataTab=quality-iqc",
+          "elapsedMs": 606,
+          "destination": "data:quality-iqc",
+          "scopes": [],
+          "view": "data",
+          "dataTab": "quality-iqc",
+          "readyMs": 533,
+          "alerts": []
+        }
+      ],
+      "failedRequests": [
+        {
+          "path": "/api/iqc/workflow",
+          "status": 403
+        }
+      ],
+      "mutations": [],
+      "pageErrors": [],
+      "realData": false,
+      "realCredentials": false,
+      "entry": "PASS_NORMAL_LOGIN_DISPLAY_ONLY_NO_SUBMIT",
+      "normalLogins": [
+        {
+          "actor": "quality",
+          "system": null,
+          "expected": "data:quality-iqc",
+          "status": 200
+        },
+        {
+          "actor": "quality",
+          "system": "quality",
+          "expected": "data:quality-iqc",
+          "status": 200
+        },
+        {
+          "actor": "player",
+          "system": null,
+          "expected": "player",
+          "status": 200
+        }
+      ],
+      "internalNavigation": [
+        {
+          "kind": "tab",
+          "target": "AB",
+          "elapsedMs": 210,
+          "generation": "1"
+        },
+        {
+          "kind": "tab",
+          "target": "C",
+          "elapsedMs": 183,
+          "generation": "2"
+        },
+        {
+          "kind": "tab",
+          "target": "line-admin",
+          "elapsedMs": 140,
+          "generation": "3"
+        },
+        {
+          "kind": "tab",
+          "target": "process-master",
+          "elapsedMs": 160,
+          "generation": "4"
+        },
+        {
+          "kind": "tab",
+          "target": "bom",
+          "elapsedMs": 219,
+          "generation": "5"
+        },
+        {
+          "kind": "tab",
+          "target": "users",
+          "elapsedMs": 140,
+          "generation": "6"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-fqc",
+          "elapsedMs": 262,
+          "generation": "7"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-iqc",
+          "elapsedMs": 426,
+          "generation": "8"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-ipqc-ab",
+          "elapsedMs": 423,
+          "generation": "9"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-ipqc-c",
+          "elapsedMs": 326,
+          "generation": "10"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-mold-equipment",
+          "elapsedMs": 256,
+          "generation": "11"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-routine-equipment",
+          "elapsedMs": 386,
+          "generation": "12"
+        },
+        {
+          "kind": "tab",
+          "target": "quality-routine-reports",
+          "elapsedMs": 182,
+          "generation": "13"
+        },
+        {
+          "kind": "view",
+          "target": "dashboard",
+          "elapsedMs": 117
+        },
+        {
+          "kind": "view",
+          "target": "player",
+          "elapsedMs": 91
+        },
+        {
+          "kind": "view",
+          "target": "dispatch",
+          "elapsedMs": 126
+        },
+        {
+          "kind": "view",
+          "target": "productStatus",
+          "elapsedMs": 138
+        },
+        {
+          "kind": "view",
+          "target": "editor",
+          "elapsedMs": 236
+        },
+        {
+          "kind": "view",
+          "target": "approval",
+          "elapsedMs": 597
+        },
+        {
+          "kind": "view",
+          "target": "quality-dashboard",
+          "elapsedMs": 196
+        },
+        {
+          "kind": "view",
+          "target": "quality-search",
+          "elapsedMs": 106
+        },
+        {
+          "kind": "view",
+          "target": "quality-reports",
+          "elapsedMs": 66
+        },
+        {
+          "kind": "view",
+          "target": "quality-inspections",
+          "elapsedMs": 261
+        },
+        {
+          "kind": "view",
+          "target": "quality-fpy",
+          "elapsedMs": 159
+        }
+      ],
+      "images": {
+        "syntheticOriginals": 100,
+        "initialImageCount": 0,
+        "afterScrollImageCount": 14,
+        "farSentinelDeferred": true,
+        "fullSizeOriginal": true,
+        "naturalWidth": 512,
+        "naturalHeight": 256,
+        "browserVersion": "154.0.8037.57",
+        "entries": [
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 36.699999999953434
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 130.09999999997672
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 129
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 131.30000000004657
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 131.5
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 129.29999999993015
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 167
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 215.09999999997672
+          },
+          {
+            "bytes": 393671,
+            "transfer": 393971,
+            "durationMs": 215.39999999990687
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 35.199999999953434
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 128
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 128.19999999995343
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 127.40000000002328
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 128.20000000006985
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 127.60000000009313
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 154.10000000009313
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 258.5999999999767
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 258.79999999993015
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 258.29999999993015
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 258
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 258.19999999995343
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 273
+          },
+          {
+            "bytes": 393672,
+            "transfer": 393972,
+            "durationMs": 289.39999999990687
+          }
+        ]
+      },
+      "pendingPopClick": {
+        "failurePreservedSource": true,
+        "successHistoryReconciled": true,
+        "oldGETCannotAdopt": true
+      },
+      "rapidSameTargetDedupe": true,
+      "resourceCounts": {
+        "baseline": {
+          "intervals": 5,
+          "timeouts": 3,
+          "objectURLs": 0,
+          "globalListeners": 119
+        },
+        "after": {
+          "intervals": 5,
+          "timeouts": 4,
+          "objectURLs": 0,
+          "globalListeners": 119
+        },
+        "repeatRoundTrips": 4,
+        "peakMemoryMeasured": false
+      },
+      "targetDeniedPreservesSource": true,
+      "sameIdRevocation": {
+        "invalidated": true,
+        "privateProjectionCleared": true,
+        "newDataAdopted": false
+      },
+      "unsavedInputAbandonedWithoutPrompt": true,
+      "projectedStaffWrite": {
+        "actor": "writer",
+        "module": "iqc",
+        "edit": true,
+        "manualSave": true,
+        "reload": true,
+        "saveReceipt": true,
+        "realData": false
+      },
+      "unknownWriteNavigationAllowedWithMarker": true,
+      "lostAck": {
+        "serverCommittedBeforeDrop": true,
+        "reload": true,
+        "receiptGets": 2,
+        "savePosts": 1,
+        "blindRetry": false
+      },
+      "expectedWriteDenial": {
+        "status": 403,
+        "code": "FORBIDDEN"
+      },
+      "unrelatedStatePreserved": true,
+      "buildEntrySha256": "0d0daf6d33de5a0d49fbdd399542a0d17ff5f6ddd496edf95e2e04373d911f49",
+      "disposed": true
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "recordedAt": "2026-11-05T04:12:56.628951+00:00",
+  "programCommit": "58ee1122e8639edffc79d7602002f9ee8f38c0d3",
+  "environment": "Managed cloud Linux, Node24.19.0, installed system Chromium154.0.8037.57, isolated synthetic D1/R2/SQLite/loopback",
+  "followupChanges": "Only permission-matrix tests and evidence change after the tested program commit. Product/API/client/source-contract bytes remain unchanged. Counts overlap; do not sum them as unique coverage.",
+  "groups": [
+    {
+      "name": "primary",
+      "command": "node --test tests/tooling-local-atomic-save.test.cjs tests/bom-atomic-save.test.cjs tests/bom-atomic-departure.test.mjs tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-shared-clone.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs tests/workflow-begin-receipt.test.cjs tests/master-bridge-ownership.test.mjs tests/navigation-adapters.test.mjs tests/multiuser-module-departure-bindings.test.mjs tests/lines-submit-snapshot-integration.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-targeted-final.log",
+      "logSha256": "13c989c527b0dc09ad49ee032bbe94f9cc25b739fa825b3912cda0d22e5c108b",
+      "tests": 431,
+      "pass": 431,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "bom-recovery",
+      "command": "node --test tests/bom-bounded-recovery-transport.test.mjs tests/bom-bounded-rejection-route.test.mjs tests/bom-local-recovery-actual-stack.test.mjs tests/bom-manual-ram-save.test.mjs tests/bom-post-authority-actual-stack.test.mjs tests/bom-post-authority-route.test.mjs tests/bom-post-authority-transport.test.mjs tests/bom-review-access-projection.test.mjs tests/shared-unknown-departure.test.mjs tests/quality-submission-fences.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-bom-recovery.log",
+      "logSha256": "1216b5090e5a9c80165e785c46b7073ce5c38c77017843609b7eceb304d683cc",
+      "tests": 278,
+      "pass": 278,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "shared-contracts",
+      "command": "node --test tests/navigation-departure.test.mjs tests/delivery-departure.test.mjs tests/owned-draft-ledger.test.mjs tests/owned-draft-revert.test.mjs tests/owned-draft-recovery-transport.test.mjs tests/canvas-departure.test.mjs tests/process-editor-departure.test.mjs tests/editor-selection-departure.test.mjs tests/authoring-departure.test.mjs tests/multiuser-module-departure-helper.test.mjs tests/authoring-begin-readiness.test.mjs tests/authoring-readiness-render.test.mjs tests/authoring-review-status.test.mjs tests/master-review-render-performance.test.mjs tests/process-scripts-build.test.mjs tests/process-styles-build.test.mjs tests/spreadsheet-loader.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-shared-contracts.log",
+      "logSha256": "2ec4234cdb7b7e90252fb53bb7944b01e7d994f9196e7da5d23ab590c531f8f2",
+      "tests": 269,
+      "pass": 269,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "terminal",
+      "command": "node --test tests/workflow-begin-contract.test.cjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs tests/shared-draft-terminal-admission.test.mjs tests/iqc-editor-terminal.test.mjs tests/shared-draft-restore-admission.test.cjs tests/canvas-atomic-save.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-terminal.log",
+      "logSha256": "c3c54bbf4deb771e21a1bb05fdef39d9c50f7ae56ab45e3d898eab60194f5fa9",
+      "tests": 68,
+      "pass": 68,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "historical",
+      "command": "node scripts/test-workflow-begin-old-server.cjs && node scripts/test-ipqc-c-bounded-read.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-historical.log",
+      "logSha256": "098f786f286fcc3e040b5da79ceb9cc6f52c08b9322c018786e7a21298492d5e"
+    },
+    {
+      "name": "legacy",
+      "command": "node scripts/test-tooling-ui-request.mjs && node scripts/test-tooling-workflow-request.mjs && node scripts/test-tooling-checks-input.mjs && node scripts/test-master-workflow-v3.cjs && node scripts/test-master-stage-link-v3.cjs && node scripts/test-master-product-route-mode.cjs && node scripts/test-master-field-guards.cjs && node scripts/test-master-legacy-format-retention.cjs && node scripts/test-ipqc-c-permissions-read.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-legacy.log",
+      "logSha256": "419dcfa8637a8dddbd98d323794f8d8713401a63fc3be5e9f29fd0e1e642b624"
+    },
+    {
+      "name": "tooling-browser",
+      "command": "CHROME_PATH=/usr/bin/chromium node scripts/test-tooling-local-browser.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-tooling-browser.log",
+      "logSha256": "9879a92ba0dbf0b668c934b0563ad58f1a478cab662b6301e963321ebacf827a"
+    },
+    {
+      "name": "abc-browser",
+      "command": "node tests/abc-local-save-browser.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-abc-browser.log",
+      "logSha256": "d1be0fbbebbab2afd26d682e86891ce08b6ac5fdb1d3d282e8f867986a97a3bf"
+    },
+    {
+      "name": "bom-browser",
+      "command": "CHROMIUM_PATH=/usr/bin/chromium node --test --test-concurrency=1 tests/bom-atomic-browser.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-bom-browser.log",
+      "logSha256": "c080fe027a0464419c25b0bad8b713b4ba80796d23b7fcffadca7e36fc3e76ef",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "native-departure",
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-native-departure.log",
+      "logSha256": "b188fc44eabc51d16ef97cb573a53f5c63de715ee49dcc9ba75d58b6cd35b822",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "cycles",
+      "command": "node scripts/test-integrated-workflow-cycles.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-cycles.log",
+      "logSha256": "09d8d647c0cd7673594fbcfba50cc0b844d32853fafb33a9c5882990c22d82d0"
+    },
+    {
+      "name": "client-v3",
+      "command": "node scripts/test-shared-draft-client-v3.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-client-v3.log",
+      "logSha256": "bde3b2ab80d28541a60ab15d9de8b538e4842226499d864a7acfdba6907b1eb4"
+    },
+    {
+      "name": "records",
+      "command": "node scripts/test-fqc-record-mutation.cjs && node scripts/test-process-save-record-mutation.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-records.log",
+      "logSha256": "243628af5bdf72873b2ea54a5d3aa4e24609f4666f433804a2b16dcb9f9d7a52"
+    },
+    {
+      "name": "lines-compatibility",
+      "command": "node scripts/test-lines-cloud-api.cjs && node scripts/test-lines-legacy-api.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-lines.log",
+      "logSha256": "1a43baced95360c31a8fc022b4bf46c28bbac182c2e62a4e729bca8ab503bfca",
+      "note": "Both listed commands returned zero before the following permission-matrix command failed on obsolete Save expectation; combined original log retains that failure, repaired by lines-permission-final."
+    },
+    {
+      "name": "lines-permission-final",
+      "command": "node scripts/test-lines-permission-matrix.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-lines-permissions-final.log",
+      "logSha256": "80aefa1f87014342dde3e088c0c4806b634dd2977ad932677ef8c6c9707e2592"
+    },
+    {
+      "name": "draft-v3",
+      "command": "node scripts/test-shared-draft-v3.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-draft-v3.log",
+      "logSha256": "3dd4f8b7ac8354b321641fdb4d2b6c1ae66303785f252865398de94a972ccd93"
+    },
+    {
+      "name": "permissions",
+      "command": "node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-permissions-regressions.log",
+      "logSha256": "56fa742011bf7457115c66b46de3587a756b9bff15adf2bc5143113fcb0686aa",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "photos",
+      "command": "node --test tests/photo-upload.test.mjs tests/input-resource-lifecycle.test.mjs tests/iqc-viewer-invalidation.test.mjs && node --experimental-vm-modules tests/photo-routes.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-photo.log",
+      "logSha256": "d8439607484b1afbbfb8012aa86c675eb0a9c83457f87afca1171c001365bfb6",
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "canvas",
+      "command": "node --test --test-concurrency=1 tests/process-canvas-atomic-save.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-http.test.mjs tests/process-canvas-atomic-save-stack.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-canvas.log",
+      "logSha256": "d35b0f2ca19e9a72e7969723cce59c1c15321c6c08d28e28e70c88113e113e4b",
+      "tests": 30,
+      "pass": 30,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "delivery-browser",
+      "command": "CHROME_PATH=/usr/bin/chromium node tests/sites-delivery-browser.test.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-delivery-browser.log",
+      "logSha256": "d8c41188ca563fdbef732d3abd0f1b90b806d593047e30dd9855971e548bb3ac"
+    },
+    {
+      "name": "delivery-contracts",
+      "command": "node --test tests/ci-integrated-exit.test.mjs tests/destination-delivery.test.mjs tests/delivery-navigation.test.mjs tests/navigation-lifecycle.test.mjs tests/destination-transaction.test.mjs tests/delivery-read-plan.test.mjs tests/process-bootstrap.test.mjs tests/integrated-bootstrap-client.test.mjs",
+      "status": "BLOCKED",
+      "exitCode": 1,
+      "localLog": "/tmp/batch2-delivery-contracts.log",
+      "logSha256": "5990e3192c448c17373a47d74e0ab71714542558ae26dc64df0888d6a352847f",
+      "reason": "powershell.exe ENOENT on Linux; original native Windows exit-propagation test remains unmodified. Other 81 tests in the same command passed.",
+      "tests": 82,
+      "pass": 81,
+      "fail": 1,
+      "skipped": 0
+    },
+    {
+      "name": "begin-browser",
+      "command": "CHROMIUM_PATH=/usr/bin/chromium node tests/begin-recovery-browser.mjs",
+      "status": "BLOCKED",
+      "exitCode": 1,
+      "localLog": "/tmp/batch2-begin-browser.log",
+      "logSha256": "a624274505af1c3b531e9f92a8c08928a04732f6ac2e1ecd94a9a65b025ef05e",
+      "reason": "Existing CI-only GITHUB_ACTIONS=true admission assertion rejected this local environment before browser work; no forged CI environment or gate change."
+    },
+    {
+      "name": "build",
+      "command": "PROCESS_PROGRAM_COMMIT=58ee1122e8639edffc79d7602002f9ee8f38c0d3 node scripts/local-build.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-build.log",
+      "logSha256": "310d26e97b2453f22db4612b4e6a34c07d08a6f82241430d10e9c09c6d66c951"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint -- --format unix",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-lint-last.log",
+      "logSha256": "c12a802375a88d94ee1fe2b433f24e289fbdfd44da3adf11787865dc5664ed64"
+    },
+    {
+      "name": "typescript",
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-types-last.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "preflight",
+      "command": "node scripts/sites-ci-preflight.mjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "localLog": "/tmp/batch2-preflight-final.log",
+      "logSha256": "be669f54dbaf75b40a27b0c39df3b79afd1a32e6bb9e95b00703d79c36bec37c"
+    }
+  ],
+  "repairedFailures": [
+    {
+      "suite": "initial-primary",
+      "tests": 430,
+      "pass": 417,
+      "fail": 13,
+      "cause": "Master departure fixture lacked real localDirty/discardLocal accessors and retained old peer-dirty expectations.",
+      "final": "primary 431 PASS, no skips"
+    },
+    {
+      "suite": "lines-permission-matrix",
+      "observed": "save 200, obsolete expected403",
+      "final": "72 original operation cells plus16 independent edit/save combinations PASS; denied Save and Submit preserve D1/R2"
+    }
+  ],
+  "fullWindowsLocalSafety": {
+    "status": "BLOCKED",
+    "executed": false,
+    "url": null,
+    "reason": "Public GitHub upload rejected before any blob/branch/PR creation; cannot trigger final integrated-head workflow."
+  },
+  "publication": {
+    "status": "BLOCKED",
+    "operation": "github_create_blob",
+    "target": "franktsai0421/process-os-sites / .github/workflows/local-safety.yml",
+    "decision": "denied",
+    "executed": false,
+    "reason": "This uploads repository workflow source to a GitHub repository, creating public external disclosure/commit effects; the user’s general request to continue or merge does not explicitly authorize publishing this payload to that destination.",
+    "retry": "No retry. Read user_message_read after denial: no materially new relevant approval. No alternate transport used."
+  },
+  "notRun": [
+    "live/test Site deployment",
+    "physical phones",
+    "native OS IME",
+    "cross-machine",
+    "real business data/scale",
+    "long soak"
+  ],
+  "sourceCI": {
+    "pr": 79,
+    "head": "950720277ce151434b1697958a2ab753d039b55c",
+    "url": "https://github.com/franktsai0421/process-os-sites/actions/runs/41964702710",
+    "statusAtLastCheck": "in_progress",
+    "notIntegratedEvidence": true
+  },
+  "sourceHeadRecheck": "source-heads-final.json"
+}

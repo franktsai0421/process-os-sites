@@ -13,7 +13,7 @@ import {effectiveAccess,type AccessUser} from '@/lib/user-access';
 const authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 async function catalogPermissions(request:Request,state:Awaited<ReturnType<typeof readState>>){
  const permissions=await workflowAccess(request,state);
- return {...permissions,restore:permissions.edit&&await restoreAllowed(request,state),create:permissions.edit&&await can(request,state,'ab.create'),delete:permissions.edit&&await can(request,state,'ab.delete')};
+ return {...permissions,save:permissions.save||permissions.edit,restore:permissions.edit&&await restoreAllowed(request,state),create:permissions.edit&&await can(request,state,'ab.create'),delete:permissions.edit&&await can(request,state,'ab.delete')};
 }
 function legacyCatalog(request:Request){
  // Preserve the established FQC generic read and its legacy failure coverage.
