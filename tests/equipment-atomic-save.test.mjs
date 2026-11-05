@@ -114,3 +114,8 @@ void test('session revoked during immutable storage cannot commit equipment Save
  h.env.STATE_ARCHIVE.put=async(...args)=>{await put(...args);if(!revoked){revoked=true;const token=h.sessions.editor.Cookie.split('=').slice(1).join('=');h.db.prepare('INSERT OR REPLACE INTO process_revoked_sessions VALUES(?,?,?)').run(createHash('sha256').update(token).digest('hex'),Date.now()+3600000,Date.now());}};
  await atomic(h,change('name',before.workflow.working.equipment[0].name,'revoked during storage'),'editor',401);assert(revoked);assert.equal(h.db.prepare('SELECT revision FROM shared_state').get().revision,revision);assert.deepEqual(await h.persisted(),before);
  }finally{h.close();}});
+void test('existing restore keeps permission/revision guards, removes only unapproved unreferenced rows, and stays unsaved',async()=>{const h=await fixture();try{
+ await atomic(h,{patches:[],guards:[]});const savedA=(await h.persisted()).workflow.saved;
+ await h.command('routine-equipment','apply',{patches:[{op:'insert',path:['equipment'],value:{id:'restorable-new',assetCode:'SYN-RESTORE',name:'Unapproved disposable tool',groupId:'group',unit:'支',enabled:true,confirmed:false,calibrationMethod:'none',calibratedAt:'',expiresAt:''}}]});await atomic(h,{patches:[],guards:[]});const before=await h.persisted(),savedB=before.workflow.saved;
+ await h.command('routine-equipment','restore',{restoreSaveId:savedA.id});const after=await h.persisted();assert(!after.workflow.working.equipment.some(row=>row.id==='restorable-new'));assert.equal(after.workflow.working.equipment.length,2);assert.deepEqual(after.workflow.saved,savedB);assert.deepEqual(after.workflow.saves,before.workflow.saves);assert.deepEqual(after.workflow.active,before.workflow.active);
+ }finally{h.close();}});

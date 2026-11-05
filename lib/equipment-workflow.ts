@@ -23,7 +23,7 @@ export const equipmentWorkflowAdapter:WorkflowAdapter<EquipmentSnapshot,Equipmen
  key:'routineEquipmentControl',scope:'routine-equipment',parse:parseEquipmentWorkflow,empty,photoPrefix:'routine-equipment/photos/',
   preparedModel:true,permissionOnlyRead:true,
  needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
- needsReferenceHistory:command=>!!command?.patches?.some(p=>p.op==='remove'),
+ needsReferenceHistory:command=>command?.action==='restore'||!!command?.patches?.some(p=>p.op==='remove'),
  photoIds:content=>[...content.equipment,...content.groups,...content.categories,...content.subcategories].flatMap(row=>row.photoId?[row.photoId]:[]),
  serialize(control){
    const ids=new Set(control.workflow?.cases.map(c=>c.id)||[]);for(const v of control.versions)if(v.id.startsWith('shared-')||ids.has(v.id))Object.assign(v,cloneDraft(v.snapshot));
