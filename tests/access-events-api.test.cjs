@@ -4,7 +4,7 @@ const {accessKeys}=require('../public/process/access-policy.mjs');
 
 void test('actual access-event API: minimal collection, original receipts, current permissions, CAS and private projection',async t=>{
  const db=new DatabaseSync(':memory:');for(const file of fs.readdirSync('drizzle').filter(file=>file.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+file,'utf8'));db.exec(fs.readFileSync('scripts/access-events-schema.sql','utf8'));
- let beforeRun=null;const objects=new Map();const env={PROCESS_SESSION_SECRET:randomUUID(),ACCESS_EVENTS_ENABLED:'1',ACCESS_EVENTS_RETENTION_POLICY:'retain',DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){beforeRun?.(sql);return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};},},STATE_ARCHIVE:{async get(key){return objects.get(key)||null;},async put(){throw Error('BUSINESS_R2_WRITE_FORBIDDEN');}}};
+ let beforeRun=null;const objects=new Map();const env={PROCESS_SESSION_SECRET:randomUUID(),ACCESS_EVENTS_ENABLED:'1',DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){beforeRun?.(sql);return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};},},STATE_ARCHIVE:{async get(key){return objects.get(key)||null;},async put(){throw Error('BUSINESS_R2_WRITE_FORBIDDEN');}}};
  const load=require('../scripts/ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts'),kernel=load('lib/shared-draft.ts'),route=load('app/api/access-events/route.ts');
  const ids=['frank','other-admin','view-admin','employee','peer','restricted','no-feedback'];
  const users=ids.map(id=>({id,name:id==='other-admin'?'Frank':id,role:id==='frank'||id.includes('admin')?'admin':'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,!((id==='restricted'&&key.startsWith('bom.'))||(id==='no-feedback'&&key.startsWith('feedback.'))||(id==='view-admin'&&['feedback.edit','feedback.exchange'].includes(key)))]))}));
@@ -19,9 +19,9 @@ void test('actual access-event API: minimal collection, original receipts, curre
  const event=(id=operationId)=>({module:'bom',action:'save',operationId:id,occurredAt:123456,phase:'unknown'});
  const original=db.prepare('SELECT * FROM shared_state').get();
  try{
-  await t.test('default-off and retention decision gate write no event',async()=>{
-   env.ACCESS_EVENTS_RETENTION_POLICY='';let r=await call('capabilities');assert.equal(r.value.enabled,false);assert.equal(r.value.reason,'RETENTION_POLICY_REQUIRED');r=await call('observe',event());assert.equal(r.status,409);assert.equal(r.value.error,'RETENTION_POLICY_REQUIRED');assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,0);env.ACCESS_EVENTS_RETENTION_POLICY='retain';
-   env.ACCESS_EVENTS_ENABLED='0';assert.equal((await call('capabilities')).value.enabled,false);env.ACCESS_EVENTS_ENABLED='1';
+  await t.test('approved retention is fixed, while rollout remains explicitly default-off',async()=>{
+   const capability=await call('capabilities');assert.equal(capability.value.enabled,true);assert.deepEqual(capability.value.retention,{policy:'retain-management-history-v1',autoDelete:false,recoverable:true});
+   env.ACCESS_EVENTS_ENABLED='0';assert.equal((await call('capabilities')).value.enabled,false);const denied=await call('observe',event());assert.equal(denied.status,409);assert.equal(denied.value.error,'NOT_ENABLED');assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,0);env.ACCESS_EVENTS_ENABLED='1';
   });
   await t.test('fresh login, same origin, exact metadata and module view are mandatory',async()=>{
    assert.equal((await call('observe',event(),'anonymous')).status,401);assert.equal((await call('observe',event(),'employee','http://evil.invalid')).status,403);
@@ -58,9 +58,16 @@ void test('actual access-event API: minimal collection, original receipts, curre
   await t.test('pagination remains scoped; mismatched statuses and unsupported actions reject',async()=>{
    for(let n=0;n<55;n++)db.prepare('INSERT INTO access_events SELECT ?,actor_id,module,?,action,occurred_at,received_at,updated_at,outcome,verified_at,status,version,notes,history,update_receipts FROM access_events WHERE id=?').run(randomUUID(),'page-operation-'+n,id);
    const a=await call('list');assert.equal(a.value.events.length,50);assert(a.value.next);const b=await call('list&after='+a.value.next);assert(b.value.events.length>0);assert(!a.value.events.some(row=>b.value.events.some(other=>other.id===row.id)));
-   assert.equal((await call('list&status=deleted')).status,422);assert.equal((await call('list&after=bad')).status,422);assert.equal((await call('export',{},'frank')).status,404);
+   assert.equal((await call('list&status=deleted')).status,422);assert.equal((await call('list&after=bad')).status,422);assert.equal((await call('export',{},'frank')).status,422);
   });
   await t.test('event collection and management preserve all original business/receipt bytes',()=>{assert.deepEqual(db.prepare('SELECT * FROM shared_state').get(),original);assert.equal(objects.size,0);});
+  await t.test('old resolved records and all notes remain recoverable beyond prior note/history thresholds',async()=>{
+   const oldNotes=Array.from({length:100},(_,n)=>({authorId:'other-admin',at:'2010-01-01',text:'retained note '+n})),oldHistory=Array.from({length:200},()=>({authorId:'other-admin',at:'2010-01-01',status:'handled'}));
+   db.prepare("UPDATE access_events SET status='handled',notes=?,history=?,received_at='2010-01-01',updated_at='2010-01-01' WHERE id=?").run(JSON.stringify(oldNotes),JSON.stringify(oldHistory),id);
+   const originalRow=db.prepare('SELECT * FROM access_events WHERE id=?').get(id);assert.equal((await call('detail&id='+id,undefined,'other-admin')).value.event.status,'handled');
+   const restored=await call('update',{id,version:originalRow.version,status:'open',note:'',operationId:'restore-full-history-0001'},'other-admin');assert.equal(restored.status,200);assert.deepEqual(restored.value.notes,oldNotes);assert.equal(restored.value.history.length,201);assert.equal(restored.value.history.at(-1).status,'open');assert.equal(restored.value.outcome,originalRow.outcome);
+   const finished=await call('update',{id,version:restored.value.version,status:'handled',note:'',operationId:'resolve-full-history-0001'},'other-admin');assert.equal(finished.status,200);assert.deepEqual(finished.value.notes,oldNotes);assert.equal(finished.value.history.length,202);
+  });
   await t.test('authorization revision change at the event CAS rejects rather than silently writing',async()=>{
    const count=db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n;let fired=false;beforeRun=sql=>{if(!fired&&sql.startsWith('INSERT INTO access_events')){fired=true;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}};
    assert.equal((await call('observe',event('race-operation-000001'))).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,count);beforeRun=null;

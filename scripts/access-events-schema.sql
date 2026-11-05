@@ -1,5 +1,5 @@
 -- Candidate only: explicitly applied to owned synthetic fixtures. No live or
--- standard migration adoption until retention/activation policy is confirmed.
+-- standard migration adoption or activation. Retention is keep/recover, no automatic deletion.
 CREATE TABLE access_events (
  id TEXT PRIMARY KEY NOT NULL,
  actor_id TEXT NOT NULL,
@@ -19,3 +19,17 @@ CREATE TABLE access_events (
  UNIQUE(actor_id,module,operation_id)
 );
 CREATE INDEX access_events_status_cursor ON access_events(status,id);
+
+CREATE TABLE access_event_exports (
+ id TEXT PRIMARY KEY NOT NULL,
+ actor_id TEXT NOT NULL,
+ operation_id TEXT NOT NULL,
+ digest TEXT NOT NULL,
+ generated_at TEXT NOT NULL,
+ modules TEXT NOT NULL,
+ ids TEXT NOT NULL,
+ count INTEGER NOT NULL,
+ size INTEGER NOT NULL,
+ sha256 TEXT NOT NULL,
+ UNIQUE(actor_id,operation_id)
+);

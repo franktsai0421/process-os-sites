@@ -1,3 +1,6 @@
+import {approvedFeedbackItems,approvedFeedbackPlan} from './feedback-approved-export';
+import {problemZip,validateExportBatch,ProblemExportError} from './problem-export';
+import {moduleForURL} from '../public/process/access-policy.mjs';
 import { env } from 'cloudflare:workers';
 import {readPhotoUpload,photoUploadFailure} from './photo-upload.mjs';
 import { readState, identity, can, sameOrigin, type State } from '@/lib/process-state';
@@ -8,7 +11,7 @@ type Location = { type: 'page' | 'element'; view: string; tab: string; system: s
 type ImageAccess={adminOnly:boolean;lines:string[];views:string[];permissions:string[]};
 type Attachment = {id: string; owner: string; name: string; type: string; size: number; sha256: string; location: Location;access:ImageAccess};
 type Issue = {id: string; batchId: string; markerId: string; reporter: string; reporterId: string; createdAt: string; description: string; location: Location; attachments: string[]; status: 'open'|'done'; version: number; deletedAt?:string; deletedBy?:string; notes: {author: string; text: string; at: string}[]; environment: {build: string}; history: {status: string; author: string; at: string}[]};
-type Handoff = {id: string; operationId: string; owner: string; digest: string; generatedAt: string; status: 'generated'; issues: Issue[]; sha256: string; size: number};
+type Handoff = {id: string; operationId: string; owner: string; digest: string; generatedAt: string; status: 'generated'; issues: Issue[]; sha256: string; size: number;profile?:'approved-helper-v1'};
 type Store = {issues: Issue[]; attachments: Attachment[]; batches: {key: string; digest: string; ids: string[]}[]; handoffs: Handoff[]};
 type UpdateReceipt={key:string;digest:string};
 type UpdatedIssue=Issue&{updateReceipts?:UpdateReceipt[]};
@@ -92,10 +95,10 @@ async function read() {
   if (!row) fail('FEEDBACK_NOT_INITIALIZED',503);
   return {revision:row.revision, data:JSON.parse(row.payload) as Store};
 }
-async function write(revision: number, data: Store) {
+async function write(revision: number, data: Store, authRevision?:number) {
   // Keep a bounded margin below D1's row limit; never grow an unbounded legacy blob.
   const payload=JSON.stringify(data); if (utf8(payload).length>1_500_000) fail('FEEDBACK_CAPACITY_LIMIT',413);
-  const result=await env.DB.prepare('UPDATE web_feedback_store SET payload=?, revision=revision+1 WHERE id=1 AND revision=?').bind(payload,revision).run();
+  const sql='UPDATE web_feedback_store SET payload=?, revision=revision+1 WHERE id=1 AND revision=?'+(authRevision===undefined?'':' AND EXISTS(SELECT 1 FROM shared_state WHERE id=1 AND revision=?)');const statement=env.DB.prepare(sql);const result=await (authRevision===undefined?statement.bind(payload,revision):statement.bind(payload,revision,authRevision)).run();
   if (result.meta.changes!==1) fail('CONFLICT_RETRY_SAME_OPERATION',409);
 }
 export async function handleFeedback(request: Request) {
@@ -109,7 +112,7 @@ export async function handleFeedback(request: Request) {
   // Never trust a request name/role, a client flag, or an ordinary ADMIN.
   permissions.delete=admin&&user.primary===true&&user.sessionType!=='demo';
   if(!permissions.view)return json({error:'FORBIDDEN'},403);
-  const operation=['upload','submit'].includes(action)?'create':action==='delete'?'delete':action==='update'?'edit':['export','download','handoffs'].includes(action)?'exchange':null;
+  const operation=['upload','submit'].includes(action)?'create':action==='delete'?'delete':action==='update'?'edit':['export','export-preview','export-approved','download','handoffs'].includes(action)?'exchange':null;
   if(operation&&!permissions[operation])return json({error:'FORBIDDEN'},403);
   if(request.method!=='GET'&&!sameOrigin(request)) return json({error:'ORIGIN_DENIED'},403);
   if(request.method!=='GET'&&state.values.maintenanceMode==='1') return json({error:'MAINTENANCE'},503);
@@ -121,6 +124,10 @@ export async function handleFeedback(request: Request) {
    return json({available:false,coverage:'not-connected',lastUpdatedAt:null,events:[],reason:'CENTRAL_EVENT_SOURCE_NOT_CONNECTED'});
   }
   const {revision,data}=await read();
+  async function approvedImage(a:Attachment){const original=new URL('/process/',url.origin);original.searchParams.set('view',a.location.view);original.searchParams.set('dataTab',a.location.tab);const moduleId=moduleForURL(original.href);return !!moduleId&&await can(request,state,moduleId+'.view')&&await authorizedImage(request,state,user!,a);}
+
+  async function approvedFresh(){const fresh=await authState(),actor=await identity(request,fresh);if(fresh.revision!==state.revision||actor?.id!==user!.id||!await can(request,fresh,'feedback.view')||!await can(request,fresh,'feedback.exchange'))fail('AUTH_CHANGED_RELOAD',409);}
+
   if(request.method==='GET') {
    if(action==='image') {
     const a=data.attachments.find(a=>a.id===url.searchParams.get('id')); if(!a) return json({error:'NOT_FOUND'},404);
@@ -131,7 +138,9 @@ export async function handleFeedback(request: Request) {
    if(action==='download') {
     if(!admin) return json({error:'ADMIN_REQUIRED'},403);
     const h=data.handoffs.find(h=>h.id===url.searchParams.get('id')); if(!h) return json({error:'NOT_FOUND'},404);
+    if(h.profile==='approved-helper-v1')for(const issue of h.issues)for(const id of issue.attachments){const a=data.attachments.find(image=>image.id===id);if(!a||!await approvedImage(a))return json({error:'EXPORT_IMAGE_PERMISSION_REQUIRED'},403);}
     const object=await env.STATE_ARCHIVE.get(key(h.id)+'.zip'); if(!object) return json({error:'ZIP_MISSING'},503);
+    if(h.profile==='approved-helper-v1'){await approvedFresh();const bytes=new Uint8Array(await object.arrayBuffer());if(bytes.length!==h.size||await sha256(bytes)!==h.sha256)return json({error:'ZIP_HASH_MISMATCH'},503);await approvedFresh();return new Response(bytes,{headers:{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="WebFeedback_${h.id}.zip"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
     return new Response(object.body,{headers:{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="WebFeedback_${h.id}.zip"`,'Cache-Control':'no-store'}});
    }
    if(action==='handoffs') {
@@ -167,7 +176,7 @@ export async function handleFeedback(request: Request) {
   if(Number(request.headers.get('content-length')||0)>200_000) fail('REQUEST_LIMIT',413);
   const bodyReader=request.body?.getReader();if(!bodyReader)fail('EMPTY_REQUEST');const decoder=new TextDecoder(),bodyChunks:string[]=[];let bodySize=0;
   while(true){const part=await bodyReader.read();if(part.done)break;bodySize+=part.value.length;if(bodySize>200_000){await bodyReader.cancel();fail('REQUEST_LIMIT',413);}bodyChunks.push(decoder.decode(part.value,{stream:true}));}bodyChunks.push(decoder.decode());
-  const body=JSON.parse(bodyChunks.join('')) as {operationId:unknown;markers:IncomingMarker[];ids:string[];id:string;version:number;status:'open'|'done';note:unknown};
+  const body=JSON.parse(bodyChunks.join('')) as {operationId:unknown;markers:IncomingMarker[];ids:string[];id:string;version:number;status:'open'|'done';note:unknown;versions?:unknown;imageIds?:unknown};
   if(action==='submit') {
    const operationId=uuid(body.operationId), batchKey=user.id+':'+operationId, digest=await sha256(utf8(JSON.stringify(body.markers)));
    const previous=data.batches.find(b=>b.key===batchKey); if(previous) return previous.digest===digest?json({ids:previous.ids,replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
@@ -203,6 +212,22 @@ export async function handleFeedback(request: Request) {
    if(issue.version!==body.version) fail('CASE_CHANGED_RELOAD',409);
    if(!['open','done'].includes(body.status))fail('INVALID_STATUS');
    const at=now();issue.status=body.status;issue.version++;issue.history.push({status:body.status,author:user.name,at});if(text(body.note,4000).trim())issue.notes.push({author:user.name,text:text(body.note,4000),at});if(receipt)issue.updateReceipts=[...(issue.updateReceipts||[]),receipt].slice(-32);await write(revision,data);return json(result());
+  }
+  if(action==='export-preview'||action==='export-approved'){
+   if(Object.keys(body).some(key=>!['ids','versions','imageIds','operationId'].includes(key)))return json({error:'INVALID_EXPORT_REQUEST'},422);
+   const users=JSON.parse(state.values.platformUsers||'[]') as {password?:string}[],secrets=[...users.map(item=>item.password||''),String(env.PROCESS_SESSION_SECRET||'')];
+   let operationId='',digest='';if(action==='export-approved'){
+    operationId=uuid(body.operationId);digest=await sha256(utf8(JSON.stringify({profile:'approved-helper-v1',ids:body.ids,versions:body.versions,imageIds:body.imageIds})));const previous=data.handoffs.find(item=>item.operationId===operationId&&item.owner===user.id);
+   if(previous)return previous.profile==='approved-helper-v1'&&previous.digest===digest?json({id:previous.id,status:'generated',count:previous.issues.length,replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
+   }
+   const items=await approvedFeedbackItems(data.issues,data.attachments,body.ids,secrets,image=>{const a=data.attachments.find(a=>a.id===image.id);return a?approvedImage(a):Promise.resolve(false);},body.imageIds);
+   if(action==='export-preview'){await approvedFresh();return json(approvedFeedbackPlan(items,body.imageIds));}
+   const images=validateExportBatch(body,items,'helper'),id='H-'+crypto.randomUUID();
+   const archive=await problemZip(items,'helper',images,async image=>{const object=await env.STATE_ARCHIVE.get(key(image.id));if(!object)throw new ProblemExportError('IMAGE_MISSING',503);return new Uint8Array(await object.arrayBuffer());});
+   const fresh=await authState(),actor=await identity(request,fresh);if(fresh.revision!==state.revision||actor?.id!==user.id||!await can(request,fresh,'feedback.exchange'))return json({error:'AUTH_CHANGED_RELOAD'},409);
+   await env.STATE_ARCHIVE.put(key(id)+'.zip',archive.bytes,{httpMetadata:{contentType:'application/zip'}});
+   const issues=items.map(item=>{const original=data.issues.find(issue=>issue.id===item.id)!;const safe=item.data as {description:string;reporter:string;notes:Issue['notes'];location:Pick<Location,'display'|'view'|'tab'|'system'>};return{id:original.id,batchId:'',markerId:'',reporter:safe.reporter,reporterId:'',createdAt:original.createdAt,description:safe.description,status:original.status,version:original.version,location:{...safe.location,type:'page' as const,locator:{},context:{}},attachments:item.images.filter(image=>images.has(image.id)).map(image=>image.id),notes:safe.notes,history:[],environment:{build:''}};});
+   data.handoffs.push({id,operationId,owner:user.id,digest,generatedAt:archive.generatedAt,status:'generated',issues,sha256:archive.sha256,size:archive.bytes.length,profile:'approved-helper-v1'});await write(revision,data,state.revision);return json({id,status:'generated',count:items.length,size:archive.bytes.length},201);
   }
   if(action==='export') {
    const operationId=uuid(body.operationId);if(!Array.isArray(body.ids)||!body.ids.length||body.ids.length>20||new Set(body.ids).size!==body.ids.length) fail('SELECT_1_TO_20');

@@ -1,17 +1,17 @@
 // Central metadata only. Never discovers business storage or changes receipts.
 export async function mountAccessQueue({host,t,current,request}) {
   const document=host.ownerDocument;
-  let disposed=false,rows=[],permissions={},privateDetails=false,filter='open',cursor='',next=null,selectedId='',busy=false,pending=null,note='',selection=new Set();
-  const alive=()=>!disposed&&current(),canLeave=()=>!busy&&!pending&&!note.trim();
+  let disposed=false,rows=[],permissions={},privateDetails=false,filter='open',cursor='',next=null,selectedId='',busy=false,pending=null,note='',selection=new Set(),exportController=null,exportOpening=false;
+  const alive=()=>!disposed&&current(),canLeave=()=>!exportOpening&&exportController?.canLeave?.()!==false&&!busy&&!pending&&!note.trim();
   const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
   const button=(label,run)=>{const node=element('button',label);node.type='button';node.onclick=()=>{if(alive())void run();};return node;};
   const message=document.createElement('p'),scope=document.createElement('p');
   message.setAttribute('role','status');scope.className='wf-muted';
   const controls=document.createElement('div');controls.className='wf-access-controls';
-  for(const label of [t('選取事件','Chọn sự kiện'),t('備註','Ghi chú'),t('匯出（待確認格式）','Xuất (chờ chọn định dạng)'),t('標記已處理','Đánh dấu đã xử lý'),t('處理歷史','Lịch sử xử lý')]) {
+  for(const label of [t('選取事件','Chọn sự kiện'),t('備註','Ghi chú'),t('匯出 ZIP','Xuất ZIP'),t('標記管理已解決','Đánh dấu hồ sơ đã xử lý'),t('已解決紀錄','Lịch sử đã xử lý')]) {
     const button=document.createElement('button');button.type='button';button.disabled=true;button.textContent=label;controls.append(button);
   }
-  const explanation=document.createElement('p');explanation.textContent=t('這是系統操作的確認事件，與使用者主動回報分開。標記已處理不會確認原操作或解除重送防護。','Đây là xác minh thao tác hệ thống, tách khỏi báo lỗi người dùng. Đánh dấu đã xử lý không xác nhận thao tác gốc hay cho phép gửi lại.');
+  const explanation=document.createElement('p');explanation.textContent=t('這是系統操作的確認事件，與使用者主動回報分開。「管理已解決」不會確認原操作或解除重送防護。未處理與已解決紀錄及備註都保留，不自動刪除，可恢復待處理。','Đây là xác minh thao tác hệ thống, tách khỏi báo lỗi người dùng. Xử lý hồ sơ không xác nhận thao tác gốc hay cho phép gửi lại. Giữ sự kiện và ghi chú, không tự xóa; có thể khôi phục cần xử lý.');
   const retry=document.createElement('button');retry.type='button';retry.textContent=t('重新核驗來源','Kiểm tra lại nguồn');
   const content=element('div');content.className='wf-access-content';
   const reporting=element('p');reporting.className='wf-muted';reporting.dataset.accessReporting='true';
@@ -31,18 +31,24 @@ export async function mountAccessQueue({host,t,current,request}) {
   const actionLabel=action=>({'begin-v1':t('開始編輯','Bắt đầu sửa'),apply:t('套用修改','Áp dụng thay đổi'),save:t('存取草稿','Lưu bản nháp'),submit:t('送出審核','Gửi duyệt'),withdraw:t('撤回','Rút lại'),approve:t('核准','Duyệt'),return:t('發回','Trả lại'),restore:t('還原歷史','Khôi phục lịch sử')})[action]||t('操作','Thao tác');
   function paint(){
     content.replaceChildren();const nav=element('nav');
-    for(const [value,label]of [['open',t('待處理','Cần xử lý')],['handled',t('處理歷史','Lịch sử xử lý')]]){const control=button(label,()=>{if(!canLeave())return tell(t('請先保存備註或確認原保存結果。','Lưu ghi chú hoặc kiểm tra kết quả lưu trước.'));filter=value;cursor='';return read();});control.dataset.accessStatus=value;control.setAttribute('aria-selected',String(filter===value));nav.append(control);}
-    if(permissions.exchange)nav.append(button(t('匯出選項待確認','Chờ chọn cách xuất'),()=>tell(t('匯出格式與附件尚待確認；只建議最小事件欄位及專屬備註，不含原始收據。尚未生成或下載檔案。','Chưa chọn định dạng và ảnh; chỉ đề xuất thông tin sự kiện tối thiểu và ghi chú, không gồm biên nhận gốc. Chưa tạo hoặc tải tệp.'))));
+    for(const [value,label]of [['open',t('待處理','Cần xử lý')],['handled',t('已解決紀錄','Lịch sử đã xử lý')]]){const control=button(label,()=>{if(!canLeave())return tell(t('請先保存備註或確認原保存結果。','Lưu ghi chú hoặc kiểm tra kết quả lưu trước.'));filter=value;cursor='';return read();});control.dataset.accessStatus=value;control.setAttribute('aria-selected',String(filter===value));nav.append(control);}
+    if(permissions.exchange){nav.append(button(t('匯出 ZIP','Xuất ZIP'),()=>openExport()),button(t('匯出紀錄','Lịch sử xuất'),()=>openExport(true)),button(t('勾選本頁','Chọn trang này'),()=>{if(!canLeave())return;for(const row of rows)selection.add(row.id);paint();}));}
     content.append(nav);const columns=element('div');columns.className='wf-columns';const list=element('div'),detail=element('div');list.className='wf-list';detail.className='wf-detail';content.append(columns);columns.append(list,detail);
-    for(const row of rows){const card=element('div');card.className='wf-row';if(permissions.exchange){const pick=element('input');pick.type='checkbox';pick.dataset.accessPick=row.id;pick.checked=selection.has(row.id);pick.setAttribute('aria-label',t('選取事件','Chọn sự kiện'));pick.onchange=()=>{if(!alive()||pending)return;if(pick.checked)selection.add(row.id);else selection.delete(row.id);};card.append(pick);}const open=button(row.module.toUpperCase()+' · '+actionLabel(row.action)+' · '+row.reporter,()=>{if(!canLeave())return tell(t('請先保存此事件的備註。','Lưu ghi chú của sự kiện này trước.'));selectedId=row.id;paint();});open.dataset.accessEvent=row.id;open.append(element('p',row.outcome==='receipt-confirmed'?t('已查得成功收據','Đã tìm thấy biên nhận thành công'):t('原操作尚未確認','Thao tác gốc chưa được xác minh')));card.append(open);list.append(card);}
+    for(const row of rows){const card=element('div');card.className='wf-row';if(permissions.exchange){const pick=element('input');pick.type='checkbox';pick.dataset.accessPick=row.id;pick.checked=selection.has(row.id);pick.setAttribute('aria-label',t('選取事件','Chọn sự kiện'));pick.onchange=()=>{if(!alive()||!canLeave())return;if(pick.checked)selection.add(row.id);else selection.delete(row.id);};card.append(pick);}const open=button(row.module.toUpperCase()+' · '+actionLabel(row.action)+' · '+row.reporter,()=>{if(!canLeave())return tell(t('請先保存此事件的備註。','Lưu ghi chú của sự kiện này trước.'));selectedId=row.id;paint();});open.dataset.accessEvent=row.id;open.append(element('p',row.outcome==='receipt-confirmed'?t('已查得成功收據','Đã tìm thấy biên nhận thành công'):t('原操作尚未確認','Thao tác gốc chưa được xác minh')));card.append(open);list.append(card);}
     if(!rows.length)list.append(element('p',t('目前授權與篩選範圍內沒有已收到的事件；不代表所有裝置都沒有事件。','Không có sự kiện đã nhận trong phạm vi và bộ lọc hiện tại; không có nghĩa là mọi thiết bị đều không có sự kiện.')));
     if(next)list.append(button(t('下一頁','Trang sau'),()=>{if(!canLeave())return;cursor=next;return read();}));if(cursor)list.append(button(t('回到第一頁','Về trang đầu'),()=>{if(!canLeave())return;cursor='';return read();}));
     const row=rows.find(row=>row.id===selectedId)||rows[0];if(!row)return;selectedId=row.id;
-    detail.append(element('h3',row.id),element('p',row.reporter+' · '+row.module.toUpperCase()+' · '+actionLabel(row.action)),element('p',t('裝置回報時間：','Thời gian thiết bị báo: ')+new Date(row.occurredAt).toLocaleString()),element('p',t('伺服器收到時間：','Máy chủ nhận: ')+row.receivedAt),element('p',row.outcome==='receipt-confirmed'?t('伺服器已用原操作者權限查得成功收據；原頁仍按既有流程核驗恢復。','Máy chủ đã đọc biên nhận thành công với quyền người thao tác gốc; trang gốc vẫn dùng quy trình xác minh hiện có.'):t('尚未取得可核驗的成功收據；不能據此重送。','Chưa có biên nhận thành công có thể xác minh; không được gửi lại vì lý do này.')));
+    detail.append(element('h3',row.id),element('p',row.status==='handled'?t('管理狀態：已解決；紀錄及備註保留，可恢復。','Hồ sơ đã xử lý; giữ sự kiện và ghi chú, có thể khôi phục.'):t('管理狀態：待處理。','Hồ sơ cần xử lý.')),element('p',row.reporter+' · '+row.module.toUpperCase()+' · '+actionLabel(row.action)),element('p',t('裝置回報時間：','Thời gian thiết bị báo: ')+new Date(row.occurredAt).toLocaleString()),element('p',t('伺服器收到時間：','Máy chủ nhận: ')+row.receivedAt),element('p',row.outcome==='receipt-confirmed'?t('伺服器已用原操作者權限查得成功收據；原頁仍按既有流程核驗恢復。','Máy chủ đã đọc biên nhận thành công với quyền người thao tác gốc; trang gốc vẫn dùng quy trình xác minh hiện có.'):t('尚未取得可核驗的成功收據；不能據此重送。','Chưa có biên nhận thành công có thể xác minh; không được gửi lại vì lý do này.')));
     if(privateDetails){for(const entry of row.notes||[])detail.append(element('p',entry.authorId+' · '+entry.at+'\n'+entry.text));for(const entry of row.history||[])detail.append(element('small',entry.authorId+' · '+entry.at+' · '+entry.status));}
     if(permissions.edit){const label=element('label',t('事件專屬私人備註','Ghi chú riêng cho sự kiện')),input=element('textarea');input.dataset.accessNote=row.id;input.maxLength=4000;input.value=note;input.readOnly=busy||!!pending;input.oninput=()=>{if(alive()&&!busy&&!pending)note=input.value;};label.append(input);detail.append(label);
-      detail.append(button(pending?t('核對原保存結果／重試','Kiểm tra kết quả lưu / thử lại'):t('保存備註','Lưu ghi chú'),()=>update(row,row.status)),button(row.status==='open'?t('標記已處理','Đánh dấu đã xử lý'):t('恢復待處理','Khôi phục cần xử lý'),()=>update(row,row.status==='open'?'handled':'open')));
+      detail.append(button(pending?t('核對原保存結果／重試','Kiểm tra kết quả lưu / thử lại'):t('保存備註','Lưu ghi chú'),()=>update(row,row.status)),button(row.status==='open'?t('標記管理已解決','Đánh dấu hồ sơ đã xử lý'):t('恢復待處理','Khôi phục cần xử lý'),()=>update(row,row.status==='open'?'handled':'open')));
     }
+  }
+  async function openExport(history=false){
+    if(!alive()||!canLeave()||!permissions.exchange)return tell(t('請先保存備註或關閉目前匯出。','Lưu ghi chú hoặc đóng xuất hiện tại trước.'));
+    if(!history&&(!selection.size||selection.size>200))return tell(t('請勾選 1–200 筆；每包最多 20 筆，先預覽分批。','Chọn 1–200 mục; tối đa 20 mỗi gói, xem trước chia gói.'));
+    exportOpening=true;try{const {openProblemExport}=await import('./problem-export.mjs?v=20261105-export1');if(!alive())return;exportController=openProblemExport({source:'access',ids:[...selection],history,t,current:alive,request:(kind,body)=>request({preview:'export-preview',generate:'export',history:'exports'}[kind],body),downloadURL:id=>'/api/access-events?action=download&id='+encodeURIComponent(id)});}
+    catch{if(alive())tell(t('無法載入匯出預覽，尚未生成檔案。','Không tải được xem trước; chưa tạo tệp.'));}finally{if(alive())exportOpening=false;}
   }
   async function update(row,status){
     if(!alive()||busy||!permissions.edit)return;busy=true;
@@ -64,7 +70,7 @@ export async function mountAccessQueue({host,t,current,request}) {
       // successful payload cannot silently enable an unreviewed event reader.
       content.replaceChildren();rows=[];permissions={};if(!controls.isConnected)host.append(controls);
       if(value.available!==false||value.coverage!=='not-connected'||value.lastUpdatedAt!==null)throw Error('UNSUPPORTED_SOURCE');
-      message.textContent=value.reason==='RETENTION_POLICY_REQUIRED'?t('事件保存政策尚待確認，集中收集尚未啟用。','Chưa xác nhận chính sách lưu sự kiện; chưa bật thu thập tập trung.'):t('集中事件來源尚未接通，不能確認所有使用者的待確認事件。','Nguồn tập trung chưa kết nối; chưa thể xác nhận sự kiện của mọi người dùng.');
+      message.textContent=t('集中事件來源尚未接通，不能確認所有使用者的待確認事件。','Nguồn tập trung chưa kết nối; chưa thể xác nhận sự kiện của mọi người dùng.');
       scope.textContent=t('來源範圍：未接通 · 最後同步：尚無證據。此處空白不代表沒有待確認操作。','Phạm vi: chưa kết nối · Đồng bộ cuối: chưa có bằng chứng. Danh sách trống không có nghĩa là không có thao tác chờ xác minh.');
     } catch(error) {
       if(!alive())return;if(['FORBIDDEN','LOGIN_REQUIRED'].includes(error?.message)){rows=[];permissions={};privateDetails=false;content.replaceChildren();}
@@ -74,5 +80,5 @@ export async function mountAccessQueue({host,t,current,request}) {
   }
   retry.onclick=()=>{if(alive()&&canLeave())void read();};
   host.replaceChildren(message,scope,explanation,reporting,controls,content,retry);platform?.addEventListener?.('process-access-event-report-status',reportingStatus);reportingStatus();await read();
-  return {canLeave,dispose(){disposed=true;platform?.removeEventListener?.('process-access-event-report-status',reportingStatus);}};
+  return {canLeave,dispose(){disposed=true;exportController?.dispose?.();platform?.removeEventListener?.('process-access-event-report-status',reportingStatus);}};
 }

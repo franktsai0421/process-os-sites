@@ -4,9 +4,12 @@
 
 reporter 只從原 shared client 的未知／核驗節點取純量欄位；獨立 IndexedDB 佇列有帳號與 delivery fence、容量上限及明確失敗，不掃原 recovery stores。只上報未知事件，並非記錄所有正常操作。原收據 GET 在既有身分／動作授權後提供 opt-in 的 operationAction，用來核驗中央狀態；成功收據仍不替代原頁的終端讀回，原 guard 不變。
 
-支持 allowlist 內模組整體 workflow；動態 legacy scope／無識別舊標記不自動匯入。保存政策與實際啟用未決，預設不持久收集。schema 候選：`scripts/access-events-schema.sql`，只在合成 fixture 明確套用；不屬標準發布 migration。新匯出仍待格式／附件選擇。詳見 [現行需求](../../docs/specs/current/WEB_FEEDBACK.md)。
+支持 allowlist 內模組整體 workflow；動態 legacy scope／無識別舊標記不自動匯入。保存政策已核准為未處理／已解決及備註保留、可恢復且不自動刪除；實際啟用仍維持預設關閉。schema 候選：`scripts/access-events-schema.sql`，只在合成 fixture 明確套用；不屬標準發布 migration。新匯出依已確認的分頁 ZIP 範圍實作，詳見下段。詳見 [現行需求](../../docs/specs/current/WEB_FEEDBACK.md)。
 
-## 2026-11-05 雙來源候選（未發布）
+
+`problem-export.mjs` 提供共用但每次只綁單一來源的原生 dialog：唯讀預覽、完整脫敏文字／授權圖片檢查、200 筆選取上限及每包 20 筆序列生成；未知回覆以同一包 operationId 重試，逐包連結由使用者下載。helper 新 action=export-preview/export-approved，access 使用 export-preview/export/exports/download。各 API 做現行 feedback.view/exchange 與新鮮授權檢查；圖片另驗原模組 view，下載校驗 SHA。原版 export API 僅保留相容，原交接不重寫。`problem-export.ts` 規劃容量、固定安全 ZIP 路徑、文字脫敏及 manifest；不生成 CSV，使用者文字不進 HTML。圖片及人工自由文字仍需預覽人工核對。原 business receipt／unknown 防護不受這些操作影響。
+
+## 2026-11-05 第一階段雙來源候選（歷史；以上為後續現況）
 
 原管理入口新增小幫手／存取待確認分頁。小幫手沿既有案件 API，預設 open、完成歷史可重開，清單每頁最多 100 筆。source metadata 只代表已提交案件的本次授權讀取。存取頁按原登入／feedback.view／ADMIN 規則讀取 `action=access-queue` 的未接通狀態；獨立 `web-feedback-access.mjs` 不讀取瀏覽器未知標記、不接收未審定的事件資料、不寫入收據。來源錯誤或不支援投影一律明示未知，不宣告同步完成。
 

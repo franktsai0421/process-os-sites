@@ -4,7 +4,11 @@ on:
     branches: [main]
     paths:
       - 'lib/web-feedback*'
-      - 'lib/access-events.ts'
+      - 'lib/access-event*.ts'
+      - 'lib/feedback-approved-export.ts'
+      - 'lib/problem-export.ts'
+      - 'public/process/problem-export.mjs'
+      - 'tests/problem-export*'
       - 'app/api/access-events/**'
       - 'public/process/access-event*'
       - 'tests/access-event*'
@@ -34,7 +38,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node scripts/sites-source-check.mjs
-      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-events-api.test.cjs
+      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-events-api.test.cjs tests/problem-export.test.cjs
       - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
       - run: npm run build
       - run: node node_modules/playwright/cli.js install --with-deps chromium

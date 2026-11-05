@@ -1,3 +1,4 @@
+import {handleAccessEventExports} from './access-event-export';
 import {sha256,utf8} from './web-feedback-zip';
 import {env} from 'cloudflare:workers';
 import {readState,identity,can,sameOrigin,type State} from './process-state';
@@ -12,13 +13,14 @@ import {GET as readEquipment} from '../app/api/routine-equipment/workflow/route'
 import {GET as readMaster} from '../app/api/master/workflow/route';
 import {GET as readAuthoring} from '../app/api/process-authoring/workflow/route';
 
-const binding=env as typeof env&{ACCESS_EVENTS_ENABLED?:string;ACCESS_EVENTS_RETENTION_POLICY?:string};
+const binding=env as typeof env&{ACCESS_EVENTS_ENABLED?:string};
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 type Actor=NonNullable<Awaited<ReturnType<typeof identity>>>;
 type Row={id:string;actor_id:string;module:string;operation_id:string;action:string;occurred_at:number;received_at:string;updated_at:string;outcome:'unknown'|'receipt-confirmed';verified_at:string|null;status:'open'|'handled';version:number;notes:string;history:string;update_receipts:string};
 const unavailable=(reason:string)=>({available:false,coverage:'not-connected',lastUpdatedAt:null,events:[],reason});
-const enabled=()=>binding.ACCESS_EVENTS_ENABLED==='1'&&binding.ACCESS_EVENTS_RETENTION_POLICY==='retain';
+const retention={policy:'retain-management-history-v1',autoDelete:false,recoverable:true} as const;
+const enabled=()=>binding.ACCESS_EVENTS_ENABLED==='1';
 const source=(module:string)=>accessEventSources[module as keyof typeof accessEventSources];
 async function allowed(request:Request,state:State,module:string){return !!source(module)&&await can(request,state,module+'.view');}
 class EventFault extends Error {constructor(code:string,public status:number){super(code);}}
@@ -26,7 +28,7 @@ async function assertFresh(request:Request,state:State,actor:Actor){const latest
 
 async function bodyOf(request:Request):Promise<Record<string,unknown>> {
  const reader=request.body?.getReader();if(!reader)throw Error('INVALID_REQUEST');let size=0,text='';const decoder=new TextDecoder();
- while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>8000){await reader.cancel();throw Error('REQUEST_TOO_LARGE');}text+=decoder.decode(part.value,{stream:true});}text+=decoder.decode();
+ while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>20000){await reader.cancel();throw Error('REQUEST_TOO_LARGE');}text+=decoder.decode(part.value,{stream:true});}text+=decoder.decode();
  let value:unknown;try{value=JSON.parse(text);}catch{throw new EventFault('INVALID_REQUEST',422);}if(!value||typeof value!=='object'||Array.isArray(value))throw Error('INVALID_REQUEST');return value as Record<string,unknown>;
 }
 async function originalReceipt(request:Request,module:string,operationId:string,action:string) {
@@ -49,9 +51,10 @@ export async function handleAccessEvents(request:Request) {
   const url=new URL(request.url),action=url.searchParams.get('action')||'list';
   const viewer=await can(request,state,'feedback.view'),privateDetails=actor.role==='admin',permissions={edit:await can(request,state,'feedback.edit'),exchange:await can(request,state,'feedback.exchange')};
   const users=JSON.parse(state.values.platformUsers||'[]') as {id:string;name:string}[],names=new Map(users.map(user=>[user.id.toLowerCase(),user.name]));
-  if(request.method==='GET'&&action==='capabilities')return reply({enabled:enabled(),reason:binding.ACCESS_EVENTS_ENABLED!=='1'?'NOT_ENABLED':!enabled()?'RETENTION_POLICY_REQUIRED':null,modules:enabled()?await Promise.all(Object.keys(accessEventSources).map(async module=>await allowed(request,state,module)?module:null)).then(rows=>rows.filter(Boolean)):[]});
+  if(request.method==='GET'&&action==='capabilities')return reply({enabled:enabled(),reason:enabled()?null:'NOT_ENABLED',retention,modules:enabled()?await Promise.all(Object.keys(accessEventSources).map(async module=>await allowed(request,state,module)?module:null)).then(rows=>rows.filter(Boolean)):[]});
   if(action!=='observe'&&!viewer)return reply({error:'FORBIDDEN'},403);
-  if(!enabled()){const reason=binding.ACCESS_EVENTS_ENABLED!=='1'?'NOT_ENABLED':'RETENTION_POLICY_REQUIRED';return request.method==='POST'?reply({error:reason},409):reply(unavailable(reason));}
+  if(!enabled()){const reason='NOT_ENABLED';return request.method==='POST'?reply({error:reason},409):reply(unavailable(reason));}
+  if(['export-preview','export','exports','download'].includes(action))return handleAccessEventExports({request,state,actor,action,names,allowed:(module:string)=>allowed(request,state,module),assertFresh:()=>assertFresh(request,state,actor),body:()=>bodyOf(request)});
   if(request.method==='GET'&&action==='detail'){
    const id=url.searchParams.get('id');if(!id||!/^[a-f0-9-]{36}$/.test(id))return reply({error:'INVALID_FILTER'},422);
    const row=await env.DB.prepare('SELECT * FROM access_events WHERE id=?').bind(id).first<Row>();if(!row||!await allowed(request,state,row.module))return reply({error:'NOT_FOUND'},404);
@@ -94,7 +97,7 @@ export async function handleAccessEvents(request:Request) {
    const digest=await sha256(utf8(JSON.stringify({id:body.id,note:body.note,status:body.status,version:body.version}))),receipts=JSON.parse(row.update_receipts) as {actorId:string;operationId:string;digest:string}[],previous=receipts.find(item=>item.actorId===actor.id&&item.operationId===body.operationId);
    if(previous){if(previous.digest!==digest)return reply({error:'OPERATION_PAYLOAD_CHANGED'},409);await assertFresh(request,state,actor);return reply({...project(row,true,names),replayed:true});}
    const notes=JSON.parse(row.notes) as {authorId:string;at:string;text:string}[],history=JSON.parse(row.history) as {authorId:string;at:string;status:string}[];
-   if(notes.length>=100||history.length>=200)return reply({error:'EVENT_HISTORY_CAPACITY'},413);
+   if(body.note.trim()&&notes.length>=100)return reply({error:'EVENT_HISTORY_CAPACITY'},413);
    if(body.note.trim())notes.push({authorId:actor.id,at,text:body.note});history.push({authorId:actor.id,at,status:String(body.status)});
    await assertFresh(request,state,actor);
    const result=await env.DB.prepare('UPDATE access_events SET status=?,notes=?,history=?,update_receipts=?,version=version+1,updated_at=? WHERE id=? AND version=? AND EXISTS(SELECT 1 FROM shared_state WHERE id=1 AND revision=?)').bind(body.status,JSON.stringify(notes),JSON.stringify(history),JSON.stringify([...receipts,{actorId:actor.id,operationId:body.operationId,digest}].slice(-32)),at,row.id,body.version,state.revision).run();

@@ -41,9 +41,16 @@ try {
     await page.locator('[data-board-tab=list]').click();await page.locator(`[data-issue="${id}"]`).click();
     await page.reload();await page.locator(`[data-issue="${id}"]`).click();assert.match(await page.locator('.wf-note-history').textContent(),/專屬備註/);await assertGuards();
   });
-  await check('export remains a review choice and makes no export/download request',async()=>{
-    const before=requests.length;await page.locator('[data-export]').click();await page.getByText(/匯出格式尚待確認/).waitFor();
-    assert(!requests.slice(before).some(r=>['export','download'].includes(r.action)));assert.equal(await page.locator('.wf-admin [download]').count(),0);
+  await check('export opens read-only preview; Cancel generates and downloads nothing',async()=>{
+    const before=requests.length;await page.locator('[data-export]').click();await page.locator('[data-problem-export=helper] [data-export-generate]').waitFor();await page.locator('[data-problem-export=helper]').getByRole('button',{name:'取消／關閉',exact:true}).click();
+    assert(!requests.slice(before).some(r=>['export','export-approved','download'].includes(r.action)));assert.equal(await page.locator('.wf-admin [download]').count(),0);
+  });
+  await check('helper ZIP batches show partial unknown generation and retry frozen bytes without duplicate handoffs',async()=>{
+    await page.locator('[data-pick]').evaluateAll(nodes=>nodes.forEach((node,index)=>{node.checked=index<21;node.dispatchEvent(new Event('change',{bubbles:true}));}));
+    const bodies=[];let n=0;await page.route('**/api/web-feedback?action=export-approved',async route=>{bodies.push(route.request().postData());n++;if(n===2){const response=await route.fetch();assert.equal(response.status(),201);return route.abort();}return route.continue();});
+    await page.locator('[data-export]').click();const dialog=page.locator('[data-problem-export=helper]');await dialog.locator('[data-export-generate]').waitFor();assert.match(await dialog.textContent(),/21筆，分成2包/);await dialog.locator('[data-export-generate]').evaluate(button=>{button.click();button.click();});await dialog.getByText(/已生成 1 \/ 2包；其餘尚未確認/).waitFor();assert.equal(bodies.length,2);assert.equal(await dialog.getByRole('link').count(),1);
+    await dialog.getByRole('button',{name:'重試尚未確認的同一批次',exact:true}).click();await dialog.getByText(/已生成 2 \/ 2包；請逐包下載/).waitFor();assert.equal(bodies.length,3);assert.equal(bodies[1],bodies[2]);assert.equal((await (await call(owner.context,'handoffs')).json()).handoffs.length,2);assert.equal(await dialog.locator('img').count(),1);
+    for(const link of await dialog.getByRole('link').all()){const response=await owner.context.request.get(fixture.origin+await link.getAttribute('href'));assert.equal(response.status(),200);assert.match(response.headers()['content-type'],/zip/);assert((await response.body()).length>0);}await assertGuards();await dialog.screenshot({path:out+'/export-1365-zh.png'});await dialog.getByRole('button',{name:'取消／關閉',exact:true}).click();await page.unroute('**/api/web-feedback?action=export-approved');
   });
   await check('offline, partial source, repeated click and late response do not claim synchronization',async()=>{
     await page.route('**/api/access-events?action=list*',r=>r.abort(),{times:1});await page.locator('[data-queue-tab=access]').click();await page.getByText(/離線或來源讀取失敗/).waitFor();
@@ -83,7 +90,7 @@ try {
     assert(!requests.some(r=>r.method==='POST'&&r.path!=='/api/web-feedback'&&r.path!=='/api/platform-login'));
     assert.deepEqual(await fixture.businessState(),original);assert.deepEqual(errors,[]);
   });
-  fs.writeFileSync(out+'/result.json',JSON.stringify({status:'PASS',programCommit:fixture.programCommit,buildEntrySha256:fixture.buildEntrySha256,browser:browser.version(),passed,notRun:['connected central event data/authorization/history (requires model decision)','native IME','physical device','cross-machine','hosted/live data']},null,2));
+  fs.writeFileSync(out+'/result.json',JSON.stringify({status:'PASS',programCommit:fixture.programCommit,buildEntrySha256:fixture.buildEntrySha256,browser:browser.version(),passed,notRun:['central event collection enabled (covered separately)','native IME','physical device','cross-machine','hosted/live data']},null,2));
 } catch(error) {
   // Never print Playwright's request log: it can contain even synthetic cookies.
   const site=String(error?.stack||'').match(/web-feedback-queues-browser\.test\.mjs:(\d+):(\d+)/);

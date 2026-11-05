@@ -1,8 +1,8 @@
 ## 2026-11-05 — 最小事件集中本機候選
 
-新增候選 access_events 表，獨立於 shared_state、web_feedback_store 及原業務收據；保存最小員工／模組／操作／時間資訊、私人操作關聯、核驗結果、CAS 管理狀態與備註／歷史／去重收據。候選 SQL 僅供隔離 fixture，未採用或套用標準／實站 migration。獨立 IndexedDB process-access-event-outbox-v1 僅保存帳號隔離的最小上報資訊；原 recovery stores 不修改。保留期限及啟用仍未確認；未設定政策時不持久收集。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。
+新增候選 access_events 表，獨立於 shared_state、web_feedback_store 及原業務收據；保存最小員工／模組／操作／時間資訊、私人操作關聯、核驗結果、CAS 管理狀態與備註／歷史／去重收據。候選 SQL 僅供隔離 fixture，未採用或套用標準／實站 migration。獨立 IndexedDB process-access-event-outbox-v1 僅保存帳號隔離的最小上報資訊；原 recovery stores 不修改。保存已確認為待處理／已解決與備註先保留、不自動刪除；啟用仍預設關閉。新增候選 access_event_exports 表，保存生成 ZIP 的最小索引、模組權限關聯、選取 ID、actor/op 去重摘要與雜湊；ZIP 存獨立 access-events/v1/exports/ R2 命名空間，無原始收據。小幫手新匯出沿既有 handoffs 加 optional approved-helper-v1 profile，保存脫敏最小快照。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。
 
-## 2026-11-05 雙來源管理候選
+## 2026-11-05 第一階段雙來源管理候選（歷史）
 
 沒有 schema、migration、持久欄位或新事件保留。既有 feedback list 新增非持久 source metadata（來源、讀取時間、revision、範圍）；access-queue GET 僅回未接通及 null 最後同步，不回傳跨帳號收據。集中事件的保存／投影／處理歷史需另作決策。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。
 
