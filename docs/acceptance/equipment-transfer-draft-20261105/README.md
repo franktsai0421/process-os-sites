@@ -4,14 +4,18 @@
 
 ## 獨立審查後的窄邊界修正（現行候選）
 
-審查在固定 `dbcc17e` 發現兩個可重現阻擋，已各自修正，最終 HEAD／CI 以本次交付及 PR 為準：
+後續在 `6a7f665` 又重現 pre-dispatch GET 503：來源 journal 已寫入，但 Begin POST 為 0，服務恢復後只能查不存在收據。現行修正讓 FQC `beginWithIdentity` 在交給 POST transport 前保有私有 attempt 記錄；只有原 Error 物件、原 identity、目前 attempt sequence 與仍有效的 actor／epoch／delivery／page 情境相符，且可核對／撤掉本次未發送 durable preparation 時，`isBeginNotSent` 才可證明未送出。來源也必須仍擁有同一選取與精確 journal bytes，才撤掉自己的未送 intent。這是原情境內的私有證據，不從已存 journal、公開 Error flags 或一般 404 重建。進入 POST 路徑後即保守視為可能已送，原 unknown／receipt-only 保護保持；無法核對的標記仍保留。
+
+此輪實際 handler/UI 紅測試在 6a7f665 的 0 POST 下留下 1 個來源 journal；修正後同例為 0 marker、0 POST，服務恢復後重新明確確認才新 Begin＋Save，沒有查原不存在收據。另有 durable quota／after-write／cleanup-failure、偽造 Error／identity、過期 proof、POST fetch failure 與 404 負面測試。compiled browser 注入第二次 workflow GET 503，驗證共享資料完全不變，恢復後新 identity 明確操作成功。此輪 handler 27＋Begin 63 共 90 項、相關回歸 402 項、compiled transfer 6 項均 PASS；最終 HEAD 另依交付及新 CI 核對。
+
+原先在固定 `dbcc17e` 發現的兩個阻擋由 6a7f665 修復，仍保留以下保護：
 
 - **同一 target 已選取仍須有效**：實際 handler 紅測試證明，target 已在 working 時，停用／沒有生效設備版本仍可回成功並保存其他共享修改。現在 `lib/fqc-workflow.ts` 對明確 equipmentId set 使用本次 CAS context 的既有生效設備 Map 重驗（包括值未變），無有效且啟用目標回 422 `EQUIPMENT_UNAVAILABLE`。普通 Save 沒有重選 equipmentId 時，舊 snapshot、已存／正式／歷史引用仍保留；原收據重放也保留。沒有修改通用伺服器交易或擴大保存範圍。
 - **Begin 身分先持久化**：原來源第二次寫 journal 失敗，可能發生 durable Begin marker 已清但來源還無 operationId。現在來源第一次寫 phase=begin 就帶固定原 ID／basis；共用 client 新增僅 FQC durable 可用的 `beginWithIdentity`，複製／驗證該 identity，fresh basis 不符在 POST 前拒絕，原 `begin()` 與其餘模組不變。來源不再依賴 ACK 後補寫原 ID。新操作即使 Save-phase journal 寫失敗、離頁、reload，仍能 GET 原 Begin 收據；核對 Begin 不會接著 Save，需重新明確確認。舊無識別 marker 不猜測、不清除。
 
 專項覆蓋：實際 UI/client／handler 包含正常獨立檢具停用→存取→送審→另一合成 reviewer 核准競態、同值 target 失效、真 CAS collision 後重讀驗證、immutable storage 中撤銷 session、普通歷史引用保全與同操作收據重放；compiled browser 注入來源第二次 setItem 失敗，驗證一個 Begin、無 Save、離頁／reload 保留原 ID、唯讀查原收據及重新確認後才一個 Save。純合成 SQLite/R2／瀏覽器，沒有實站或帳號設定變更。
 
-審查修正專項本機 PASS（無 skipped）：實際 UI/client/handler 25 項；共用 identified Begin 54 項（含 4 個新 prepared identity 案例）；FQC required dependencies／single Save／Begin routes／其他模組 Begin／cache 合計 232 項；equipment API/transport／離頁／送審等 224 項；compiled transfer browser 5 項；intent 83 項、四品質 handler 16 組。FQC historical structure／parent lookup 固定舊來源比較與舊 handler inverse／負面 mutation 也通過。最終固定 HEAD 的 compiled／lint／型別／build／source-only 與完整 CI 另由交付及 PR 記錄；不能以 dbcc17e 的 CI 代替本次新產品。
+6a7f665 審查修正專項本機 PASS（本次追加前；無 skipped）：實際 UI/client/handler 25 項；共用 identified Begin 54 項（含 4 個新 prepared identity 案例）；FQC required dependencies／single Save／Begin routes／其他模組 Begin／cache 合計 232 項；equipment API/transport／離頁／送審等 224 項；compiled transfer browser 5 項；intent 83 項、四品質 handler 16 組。FQC historical structure／parent lookup 固定舊來源比較與舊 handler inverse／負面 mutation 也通過。最終固定 HEAD 的 compiled／lint／型別／build／source-only 與完整 CI 另由交付及 PR 記錄；不能以 dbcc17e 的 CI 代替本次新產品。
 
 ## FQC 現行候選
 

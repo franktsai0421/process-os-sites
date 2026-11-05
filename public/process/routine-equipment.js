@@ -2458,9 +2458,9 @@
       record=writeFqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});
       let begun;
       try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){
-        // Only the durable transport's verified basis/identity refusal may retire
-        // this unsent intent; all other errors retain original Begin evidence.
-        if(!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message))clearFqcTransfer(record);
+        // Private proof covers only this exact attempt before POST handoff.
+        // Receipt 404s and public Error flags never establish that it was unsent.
+        if(owns()&&(client.isBeginNotSent(error,{operationId:record.operationId,basis})||!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message)))clearFqcTransfer(record);
         throw error;
       }
       assertOwned();

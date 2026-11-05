@@ -1,5 +1,7 @@
 ## 2026-11-05 — FQC 檢具移轉並存取候選
 
+追加 preflight GET 503 的 0 POST 孤兒 intent 修正：只有私有 exact-attempt 未發送證據可退休自己的 intent，404／公開 notSent flags 無效。新最終 HEAD／CI 另核對。
+
 目前追加審查修復：明確設備同值重選也須在最終 CAS context 有效；來源先持久化 Begin ID，FQC-only beginWithIdentity 保留原身分且不自動續存。最終新 CI／獨立複核另核對。
 
 接續 #84／45545ef 實作已確認的 FQC 移轉並存取。一次 CAS、原操作唯讀恢復與跨頁未送表單保全；未合併或部署。 [實作與驗證界線](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
