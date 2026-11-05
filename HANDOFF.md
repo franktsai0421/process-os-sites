@@ -1,3 +1,7 @@
+# 2026-11-05 — Feedback CI follow-up
+
+At 4818263, Local safety step 13 reproduced a stale shell-script inventory assertion: 50 bundled sources versus the former 49 after adding the event reporter. The focused candidate updates that inventory and asserts the reporter occurs once before the shared client. Existing bundling, source-byte/order, cache, safety and performance contracts remain. No production code, authority, data, migration or activation changes; remote checks must be evaluated at the follow-up HEAD.
+
 # 2026-11-05 — Approved retention and per-source ZIP (local only)
 
 Latest user decisions approve recoverable event/notes history with no automatic deletion and a separate ZIP per source. The local candidate implements read-only export review, authorized screenshots for helper only, minimal access metadata/notes, selected-only size-bounded packages, frozen retries and explicit generated/download distinction. See [current requirements and capacity](docs/specs/current/WEB_FEEDBACK.md). Original receipt/unknown protections remain independent. PR #86 remains a08384a; follow-up publication, migration adoption, site activation, merge and deployment have not occurred. Exact-head verification is reported separately.
