@@ -20,7 +20,7 @@ void test('actual access-event API: minimal collection, original receipts, curre
  const original=db.prepare('SELECT * FROM shared_state').get();
  try{
   await t.test('default-off and retention decision gate write no event',async()=>{
-   env.ACCESS_EVENTS_RETENTION_POLICY='';let r=await call('capabilities');assert.equal(r.value.enabled,false);assert.equal(r.value.reason,'RETENTION_POLICY_REQUIRED');r=await call('observe',event());assert.equal(r.value.available,false);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,0);env.ACCESS_EVENTS_RETENTION_POLICY='retain';
+   env.ACCESS_EVENTS_RETENTION_POLICY='';let r=await call('capabilities');assert.equal(r.value.enabled,false);assert.equal(r.value.reason,'RETENTION_POLICY_REQUIRED');r=await call('observe',event());assert.equal(r.status,409);assert.equal(r.value.error,'RETENTION_POLICY_REQUIRED');assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,0);env.ACCESS_EVENTS_RETENTION_POLICY='retain';
    env.ACCESS_EVENTS_ENABLED='0';assert.equal((await call('capabilities')).value.enabled,false);env.ACCESS_EVENTS_ENABLED='1';
   });
   await t.test('fresh login, same origin, exact metadata and module view are mandatory',async()=>{

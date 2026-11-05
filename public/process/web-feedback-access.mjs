@@ -33,7 +33,7 @@ export async function mountAccessQueue({host,t,current,request}) {
   async function update(row,status){
     if(!alive()||busy||!permissions.edit)return;busy=true;
     pending||={id:row.id,version:row.version,note,status,operationId:crypto.randomUUID()};paint();
-    try{const value=await request('update',{...pending});if(!alive())return;Object.assign(row,value);note='';pending=null;busy=false;selectedId='';await read();}
+    try{const value=await request('update',{...pending});if(!alive())return;if(value.id!==pending.id||!Number.isSafeInteger(value.version)||value.version<=pending.version||!Array.isArray(value.notes)||!['open','handled'].includes(value.status))throw Error('INVALID_EVENT_UPDATE_ACK');Object.assign(row,value);note='';pending=null;busy=false;selectedId='';await read();}
     catch(error){if(!alive())return;tell(t('尚未確認保存，備註與原保存批次保留。','Chưa xác nhận lưu; giữ ghi chú và lô lưu gốc.')+' '+(error?.message==='EVENT_CHANGED_RELOAD'?t('事件已更新，請讀取最新狀態後再確認。','Sự kiện đã đổi; đọc trạng thái mới rồi xác nhận.'):''));
       if(error?.message==='EVENT_CHANGED_RELOAD'){const recovery=button(t('讀取最新狀態，保留備註','Đọc trạng thái mới, giữ ghi chú'),async()=>{if(busy)return;busy=true;try{const latest=await request('detail&id='+encodeURIComponent(row.id));if(!alive())return;Object.assign(row,latest.event);permissions=latest.permissions;privateDetails=latest.privateDetails;pending=null;selectedId=row.id;tell(t('備註尚未保存，請確認後再保存。','Ghi chú chưa lưu; kiểm tra rồi lưu.'));}catch{tell(t('讀取失敗，原備註與保存批次仍保留。','Đọc thất bại; giữ ghi chú và lô lưu gốc.'));}finally{if(alive()){busy=false;paint();}}});message.append(recovery);}
     }finally{if(alive()){busy=false;paint();}}

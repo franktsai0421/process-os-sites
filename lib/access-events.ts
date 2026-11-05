@@ -51,7 +51,7 @@ export async function handleAccessEvents(request:Request) {
   const users=JSON.parse(state.values.platformUsers||'[]') as {id:string;name:string}[],names=new Map(users.map(user=>[user.id.toLowerCase(),user.name]));
   if(request.method==='GET'&&action==='capabilities')return reply({enabled:enabled(),reason:binding.ACCESS_EVENTS_ENABLED!=='1'?'NOT_ENABLED':!enabled()?'RETENTION_POLICY_REQUIRED':null,modules:enabled()?await Promise.all(Object.keys(accessEventSources).map(async module=>await allowed(request,state,module)?module:null)).then(rows=>rows.filter(Boolean)):[]});
   if(action!=='observe'&&!viewer)return reply({error:'FORBIDDEN'},403);
-  if(!enabled())return reply(unavailable(binding.ACCESS_EVENTS_ENABLED!=='1'?'NOT_ENABLED':'RETENTION_POLICY_REQUIRED'));
+  if(!enabled()){const reason=binding.ACCESS_EVENTS_ENABLED!=='1'?'NOT_ENABLED':'RETENTION_POLICY_REQUIRED';return request.method==='POST'?reply({error:reason},409):reply(unavailable(reason));}
   if(request.method==='GET'&&action==='detail'){
    const id=url.searchParams.get('id');if(!id||!/^[a-f0-9-]{36}$/.test(id))return reply({error:'INVALID_FILTER'},422);
    const row=await env.DB.prepare('SELECT * FROM access_events WHERE id=?').bind(id).first<Row>();if(!row||!await allowed(request,state,row.module))return reply({error:'NOT_FOUND'},404);
