@@ -31,6 +31,17 @@
 
 ## 驗證紀錄
 
-本輪固定最終 HEAD、命令、PASS／FAIL／NOT_RUN 與完整 CI 以交付回覆／PR 為準。專項增量：78-case transfer-intent、四模組 actual handler／manual Save 16 組、compiled Worker＋SPA 四目標未送表單保全。舊 unknown fixture 改為獨立私有儲存，不刪 marker 讓其他生命週期測試繼續；原照片／saved／正式／歷史斷言保留。歷史 handler hash／offset 規則未改。
+本輪固定最終 HEAD、命令、PASS／FAIL／NOT_RUN 與完整 CI 以交付回覆／PR 為準。專項增量：82-case transfer-intent、四模組 actual handler／manual Save 16 組、compiled Worker＋SPA 四目標未送表單保全。舊 unknown fixture 改為獨立私有儲存，不刪 marker 讓其他生命週期測試繼續；原照片／saved／正式／歷史斷言保留。歷史 handler hash／offset 規則未改。
 
 NOT_RUN：實站／測試站、真實業務資料與照片、實體手機／跨電腦／原生 IME、全域交易與新的保存語意。#82 新協定之整合驗收及獨立審查必須另明列，不能沿用上游成功代替本候選。
+
+### 本機已執行（待最終 HEAD CI）
+
+- PASS：82-case actual frontend/transport intent；四品質 actual handlers 16 組；compiled Worker＋完整 SPA 1280 中文／390 越文各一輪，四目標各開未送表單，替換後輸入保留且零 Save／Submit。每個模組從新來源頁明確選取確認；來源成功後的全域 refresh 可能重建該頁，未聲稱連續四按鈕同視窗保留。
+- PASS：檢具 API／storage／transport 24 項、既有 native＋compiled browser 10 項；edit-open-race 42、session-recovery 9、snapshot-changes 163、full-read 6；共用 navigation／submission 70 項；歷史舊 handler 及負面 hash mutation。
+- PASS：C 操作權限 7 組（非空照片、guarded replacement、saved／正式／媒體保全）；IQC action permissions 與 AB independent permissions 的實際 handler 回歸另列日誌。
+- PASS：獨立一次性 worktree `81db2955360e15232ea2e4a66464b5f3439ab090` 加固定 #82 的 `lib/ipqc-ab-local-save.ts`、`lib/ipqc-ab-module-workflow.ts` 與 `tests/ipqc-ab-local-save.test.mjs`。通用 handler 只在該測試 worktree 語意合入 #82 的 requiresCreate、AB module Save/edit 與 identified module Begin whitelist，同時保留 #81 檢具增量。AB 原子／矩陣／多 scope rollback 11 項，以及檢具 API/transport 18 項與四模組 transfer 16 組通過。此合成來源不是任何公開 PR HEAD，不提交到產品 PR；未測 #82 完整 compiled UI。
+- FAIL（前置 fixture，未進產品斷言）：額外舊 `test-quality-permissions-v3.cjs` 在正常登入回 503；該 fixture 缺 `DB.batch`／login-limit schema。產品 `app`／`lib` 相對 #81 無差異，未繞過登入或改不相干測試。上述成熟的四模組定向權限測試另有結果，不能把本項列 PASS。
+- NOT_RUN：獨立審查、尚未取得結果的最終 exact-head CI、#82 compiled UI 全量整合、實站／實機。這些仍是交付限制。
+
+早期新 browser fixture 曾因未選來源樹、來源 refresh 後視窗重建、錯取 decoder 的 `.values`、about:blank 的 language init storage 存取失敗；修正 fixture 的實際操作及初始化，保留全部零寫入、輸入／照片欄位、saved／正式／歷史斷言；未改產品、延長 timeout 或忽略 pageerror。

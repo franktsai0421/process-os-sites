@@ -1,6 +1,5 @@
 // Full actual equipment transfer UI -> actual routes, normal synthetic approvals.
 // No browser, HTTP server or live records. IPQC-C test rights are fixture-local.
-const assert = require('node:assert/strict');
 const { fixture, json } = require('./quality-replacement-preview-fixture.cjs');
 const insert = (collection, value) => ({ op: 'insert', path: [collection], value });
 const empty = { AB: { products: [], lines: [], categoryGroups: [] }, C: { products: [], lines: [], categoryGroups: [] }, PROCESS: {} };

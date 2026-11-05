@@ -200,6 +200,13 @@ if (require.main === module) (async () => {
   await check('target Begin marker must persist before dispatch',async()=>{
     const f=await fixture({editable:false});f.c.sessionStorage.setItem=()=>{};await f.execute();assert.equal(f.writes().length,0);assert.match(f.test.dialog.moduleMessages.fqc,/尚未確認/);
   });
+  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab'])await check(moduleId+' matching current target cannot bypass unknown Apply or 404 receipt',async()=>{
+    const f=await fixture({moduleId}),raw=f.c.fetch;let posts=0;
+    f.c.fetch=async(url,options={})=>{const u=new URL(url,f.c.location.origin),body=options.body&&JSON.parse(options.body);if(u.searchParams.has('operationId'))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});if(body?.command?.action==='apply'){
+      posts++;await raw(url,options);const row=f.preview.modules[0].items[0];row.draftEquipmentId='target';row.draftTool='02';throw Error('Synthetic committed ACK lost');
+    }return raw(url,options);};
+    await f.execute();const marker=[...f.storage];assert(marker.length);await f.test.loadTransferPreview();await f.execute();assert.equal(posts,1);assert.deepEqual([...f.storage],marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'error');
+  });
   const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_TRANSFER_INTENT' : 'FAIL_BOUNDED_TRANSFER_INTENT', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, source, hashes: Object.fromEntries(['routine-equipment.js', 'shared-draft-client.js'].map(name => [name, createHash('sha256').update(read(name)).digest('hex')])), results,
     limits: ['Actual unmodified frontend functions and shared transport run in synthetic DOM/HTTP, not actual server authorization or CAS acceptance', 'Fixture requests are in-memory; no browser, network, live records, native render/page-load or assistive-technology claim', 'Timings are isolated JavaScript handler durations only; waits and fixture setup are included'] };
   console.log(JSON.stringify(summary)); if (summary.failed) process.exitCode = 1;
