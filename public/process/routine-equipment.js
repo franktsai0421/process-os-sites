@@ -183,7 +183,7 @@
     const owns=()=>writeShared.attempt===attempt&&actor===identity()&&actorId===identity()?.id&&controlActor===actorId&&
       (Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&
       !window.ProcessSync?.requiresReload&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&
-      host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
+      host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&(action==='save'||equipmentEditRequest===lifecycle)&&selectedVersionId===versionId&&revision===modelRevision&&control?.workflow?.revision===flowRevision&&
       control?.workflow?.generation===generation&&control?.activeVersionId===activeId&&(!client||sharedClient===client)&&(!departureOwner||departureOwner.current());
     const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
     const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
