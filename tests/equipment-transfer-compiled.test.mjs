@@ -1,7 +1,7 @@
 // Full compiled Worker/SPA, private D1/R2 and synthetic producer approvals only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRequire} from 'node:moduleId';
+import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
 import {createABCFixture} from './ab-c-native-fixture.mjs';
 const require=createRequire(import.meta.url),{createTransferFixture}=require('../scripts/equipment-transfer-fixture.cjs');

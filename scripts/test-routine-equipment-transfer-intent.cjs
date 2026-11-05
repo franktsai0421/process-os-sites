@@ -207,6 +207,11 @@ if (require.main === module) (async () => {
     }return raw(url,options);};
     await f.execute();const marker=[...f.storage];assert(marker.length);await f.test.loadTransferPreview();await f.execute();assert.equal(posts,1);assert.deepEqual([...f.storage],marker);assert.equal(f.test.dialog.moduleStatus[uiKey(moduleId)],'error');
   });
+  await check('AB same-scope failed change retains an already matching successful item',async()=>{
+    const f=await fixture({moduleId:'ipqc-ab',rejectScope:'A:G'}),entry=f.preview.modules[0],first=entry.items[0];entry.items.push({...copy(first),id:JSON.stringify(['A:G','other']),itemId:'other'});first.draftEquipmentId='target';await f.test.loadTransferPreview();f.test.dialog.selection.ipqcAB.add(JSON.stringify(['A:G','other']));await f.execute();
+    assert.match(f.test.dialog.moduleMessages.ipqcAB,/已相同 1/);assert.match(f.test.dialog.moduleMessages.ipqcAB,/衝突 1/);assert(!f.test.dialog.moduleMessages.ipqcAB.includes('A:G / item:'));
+    const command=f.writes().find(row=>row.body.command).body.command;assert(command.patches.every(patch=>patch.path[1].id==='other'));
+  });
   const summary = { status: results.every(row => row.status === 'PASS') ? 'PASS_BOUNDED_TRANSFER_INTENT' : 'FAIL_BOUNDED_TRANSFER_INTENT', cases: results.length, passed: results.filter(row => row.status === 'PASS').length, failed: results.filter(row => row.status === 'FAIL').length, source, hashes: Object.fromEntries(['routine-equipment.js', 'shared-draft-client.js'].map(name => [name, createHash('sha256').update(read(name)).digest('hex')])), results,
     limits: ['Actual unmodified frontend functions and shared transport run in synthetic DOM/HTTP, not actual server authorization or CAS acceptance', 'Fixture requests are in-memory; no browser, network, live records, native render/page-load or assistive-technology claim', 'Timings are isolated JavaScript handler durations only; waits and fixture setup are included'] };
   console.log(JSON.stringify(summary)); if (summary.failed) process.exitCode = 1;
