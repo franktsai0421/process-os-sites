@@ -6,6 +6,10 @@ BOM `save-local-v1` 只增加命令輸入 `input.operations[]`（原手動 patch
 
 The AB/C editor retains a RAM-only overlay and ordered guarded batches until explicit `save-local-v1`. The command uses existing `DraftCommand` input/receipt persistence and one shared-state CAS to save working plus its immutable saved snapshot. Begin markers add an actor+AB/C scoped client key; they do not create a business-data scope/table. Existing master AB/C/PROCESS control, IDs, category defaults, effective routes, linked cases and inline/R2/records-v1 formats remain. No SQL/schema/data conversion or cleanup. [Contract and evidence](../docs/acceptance/abc-local-save-20261105/README.md).
 
+## 2026-11-05 — Equipment local atomic Save
+
+No SQL/table/migration/data conversion. Equipment reuses existing workflow receipts and #77 Begin markers; Save retains the original complete command in the existing actor/endpoint session marker. Photo bytes may be staged, but shared photoId references and allocated codes become effective only with the final Save CAS. [Evidence](../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
+
 ## 2026-11-04 — Begin receipt candidate
 
 Add Begin identity/receipt metadata to the existing workflow receipt map, plus a content-free actor/module browser recovery marker. No SQL migration, legacy-data rewrite or automatic deletion. Old unidentified Begin outcomes remain unprovable. [Exact protocol and compatibility limits](models/V3.md).

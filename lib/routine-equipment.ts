@@ -261,7 +261,7 @@ export function checkedSnapshot(version: EquipmentVersion, incoming: unknown) {
       categoryId, subcategoryId, categoryCode: category.code, category: category.name,
       subcategory: sub.name, spec: groupText(raw.spec),
       sourceStatus: groupText(raw.sourceStatus), notes: groupText(raw.notes),
-      photoId: raw.photoId ? String(raw.photoId) : (previous?.photoId ? String(previous.photoId) : '') };
+      photoId: Object.hasOwn(raw,'photoId') ? String(raw.photoId||'') : (previous?.photoId ? String(previous.photoId) : '') };
   });
   for (const old of legacy.groups) if (!groupIds.has(old.id) && equipment.some(item => item.groupId === old.id)) throw Error(`群組 ${old.id} 仍有設備，不能刪除`);
   const groupById = new Map<string, EquipmentGroup>(groups.map(group => [group.id, group]));

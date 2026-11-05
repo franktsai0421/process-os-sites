@@ -39,7 +39,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   const encoded=await h.load('lib/state-records.ts').encodeRecordValues(h.env.STATE_ARCHIVE,values);
   h.db.prepare('UPDATE shared_state SET "values"=? WHERE id=1').run(encoded);
   const legacy=require('./fqc-bootstrap-projection-fixture.cjs')(root,h.env,null,overrides);
-  for(const moduleName of ['fqc','iqc','ipqc-c','process-authoring','bom']){
+  for(const moduleName of ['fqc','iqc','ipqc-c','process-authoring','bom','routine-equipment']){
    const before=h.snapshot(),body={action:'begin-v1',begin:{operationId:randomUUID(),basis:{generation:null,activeVersionId:null,openVersionId:null,openVersionStatus:null,openVersionRevision:null}}};
    const api=legacy.load('app/api/'+moduleName+'/workflow/route.ts');
    const response=await api.POST(new Request('http://fixture/api/'+moduleName+'/workflow',{method:'POST',headers:h.sessions.editor,body:JSON.stringify(body)}));

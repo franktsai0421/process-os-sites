@@ -14,6 +14,12 @@ Document-local tooling edits, guarded atomic Save with code allocation, edit-gra
 
 表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。
 
+## 2026-11-05 — 檢具本機草稿候選
+
+後續僅修測試：以真記憶體 SQLite batch／既有 migrations 補齊舊登入 fixture，仍驗證 503 fail closed 與 429 額度；同步檢具離頁／送審共用 fixture 至現行本機保存契約。原始 Draft PR #81 的 CI 與本機後續結果分列，不宣稱跨品質替換全部原子化。[調查與邊界](../docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。
+
+分類／群組、檢具、校正與照片先在頁面完成，明確一次原子 Save；修改可存取、送審分開，unknown 保留原收據及寫入鎖並可離頁。修正取消表單清掉其他本機批次與既有群組照片不能移除的問題。未發布，四品質模組替換的全部原子統一仍建置中。 [候選與驗證](../docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

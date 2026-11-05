@@ -147,7 +147,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   async function currentPermissions(request:Request,state:State,phase?:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null){
     const check=phase?phase.allowed:(key:string)=>can(request,state,key);
     const defaults=await workflowAccess(request,state,check),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
-    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}
+    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
@@ -267,7 +267,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const knownPhotos=new Set(adapter.photoIds(previous));let receipt;const begin=parseBeginIdentity(body);let beginAlreadyOpen=false;
         if(body.action==='begin'||begin){
           if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
-          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
+          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','routine-equipment'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
           adapter.beforeBegin?.(control,state);
           const open=openedVersion(control);
           if(!begin&&control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),unchanged:true});
@@ -306,7 +306,8 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // Immutable objects already written remain unreferenced on denial, as on
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
-        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+        // Recheck session after immutable storage for original Begin, BOM atomic Save and exact equipment workflow.
+        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
         stage('state-cas');
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;

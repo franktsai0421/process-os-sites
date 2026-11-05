@@ -2,6 +2,10 @@
 
 This AB/C candidate covers master products, categories, group defaults/product exceptions and the selected AB/C line/stage entry, separately from IPQC A/B. Form completion retains ordered original-basis guarded changes in the current page; only explicit Save atomically shares them and creates/retains the saved snapshot. Edit includes Save; create/delete/Submit/review remain distinct. Search/filter/poll preserve local input. Leaving the current editing destination/scope silently drops only unsent input; current product↔line/stage destination changes replace the shell projection and therefore also drop unsent input. Unknown Begin/Save retain original scoped markers, generation, operation and sent guards through departure/reopen; only original receipt lookup can settle them, never a 404 retry. Submit refuses local unsaved content and never auto-saves or sends an older snapshot. Existing shared working/saved/pending/effective/history and linked PROCESS cases remain. This supersedes older two-stage Apply/Save and prompted departure wording only for this candidate. [Implementation and acceptance boundary](../../acceptance/abc-local-save-20261105/README.md).
 
+## 2026-11-05 — Equipment candidate scope
+
+檢具主檔採本機表單／照片預覽、一次明確原子 Save 與無提示放棄未送輸入。修改權可存取，送審獨立並在確認前後檢查本機修改；未知 Begin／Save 保留原世代、原 guards、operation 與收據，離頁不清除 barrier、不重送。既有無識別標記不轉成已確認。這不包含設備替換的跨品質 scope 交易，也不改其他候選預設。 [檢具候選與限制](../../acceptance/equipment-local-atomic-save-20261105/README.md)。
+
 ## 2026-11-04 三模組隔離整合範圍
 
 FQC、IQC、IPQC C 候選均以頁面本機編輯及明確存取為原則，保存時保留權限、欄位基準、世代及 CAS 保護；送審仍獨立。整合不得以導覽例外解除帳號層未知寫入鎖，不轉換或刪除既有 shared working／saved／pending／formal／history。畫布與模具不得因共用程式存在就視為已完成轉接。[候選及驗證界線](../../acceptance/draft-save-integration-20261104.md)。

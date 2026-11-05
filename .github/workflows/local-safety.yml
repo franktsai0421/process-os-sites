@@ -184,6 +184,16 @@ jobs:
         run: |
           node --test --test-concurrency=1 tests/bom-atomic-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Equipment local atomic Save and native browser
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node --test tests/equipment-atomic-save.test.mjs tests/equipment-transport-scope.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:EQUIPMENT_BUILT_ASSETS = 'dist/client/process'
+          node --test --test-concurrency=1 tests/equipment-atomic-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/equipment-atomic-compiled.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |

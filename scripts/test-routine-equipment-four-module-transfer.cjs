@@ -158,7 +158,7 @@ async function check(name, task) { const start = performance.now(); await task()
       for(const key of ['fqc','iqc','ipqcC','ipqcAB']) { await f.test.executeTransfer(key); assert.equal(f.test.dialog.moduleStatus[key], 'idle'); assert.match(f.test.dialog.moduleMessages[key], /目前生效且啟用的目標設備/); }
       assert.equal(f.posts().length, writesBefore, 'unapproved target sends no Begin or Apply'); assert.deepEqual(h.snapshot(), beforeRefused); f.close();
       // Separate explicit fixture Save/Submit/independent reviewer Approve, never auto-approval inside transfer.
-      await h.promote('routine-equipment'); await f.test.read();
+      assert(await f.test.writeShared('save'));await h.promote('routine-equipment'); await f.test.read();
       for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']) {
         const initial = json(h.flow(await fullRead(moduleId, stateQ(moduleId))));
         await runTransfer(moduleId, 'new-one', 'success', 'source'); await manualSave(moduleId, 'new-one');
