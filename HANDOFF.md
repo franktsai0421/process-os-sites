@@ -1,3 +1,7 @@
+## 2026-11-05 — AB/C local editing / atomic Save dependent candidate
+
+`feature/abc-local-save-20261105` starts from exact #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. AB/C products/categories/routes and line/stage entry complete locally, then save ordered guards and snapshot through one CAS. Scoped durable Begin/Save recovery, permission/reference/history protections and pinned PROCESS stage approval remain. [Evidence, shared-file integration delta and remaining gates](docs/acceptance/abc-local-save-20261105/README.md). No merge/deployment/live data; BOM/tooling/IPQC A/B candidates are not included.
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

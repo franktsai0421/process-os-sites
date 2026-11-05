@@ -1,3 +1,7 @@
+## 2026-11-05 — AB／C 主資料草稿統一候選
+
+表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

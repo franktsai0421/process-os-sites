@@ -1,0 +1,43 @@
+{
+  "programCommit": "c91611a3e5cedbb6f631d9b42a6a8a4c8a62bfb0",
+  "environment": "isolated compiled Worker / nonpersistent synthetic D1+R2 / Chromium",
+  "checks": [
+    "AB: create/rename category, create exception product, create/delete before Save, one explicit Save per batch",
+    "AB: products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink",
+    "C: create/rename category, create exception product, create/delete before Save, one explicit Save per batch",
+    "C: products, exception→group, inherited route, lines/stages, polling, filters, two actors same/different fields, silent SPA departure, return/withdraw/resubmit/approve, pinned stageProcessLink",
+    "1280 zh: cancel, no overflow, native silent abandonment",
+    "1280 vi: cancel, no overflow, native silent abandonment",
+    "390 zh: cancel, no overflow, native silent abandonment",
+    "390 vi: cancel, no overflow, native silent abandonment",
+    "lost Save/Begin ACK: durable markers survive native reload; 404 retains; receipt-only recovery; no duplicate POST"
+  ],
+  "http": [
+    {
+      "scope": "AB",
+      "operation": "two completions + rapid repeated Save",
+      "completionPOST": 0,
+      "savePOST": 1,
+      "elapsedMs": 299.6251349999993,
+      "workflowGET": 2
+    },
+    {
+      "scope": "C",
+      "operation": "two completions + rapid repeated Save",
+      "completionPOST": 0,
+      "savePOST": 1,
+      "elapsedMs": 320.7040870000001,
+      "workflowGET": 2
+    }
+  ],
+  "pageErrors": [],
+  "nativePrompts": [],
+  "notRun": [
+    "live Site",
+    "physical phone",
+    "native OS IME",
+    "cross-machine"
+  ],
+  "status": "PASS",
+  "buildEntrySha256": "609842162a2dab744f6bedd6ce42f092bc3c613091d2e770e3b19d0f2cc10d91"
+}
