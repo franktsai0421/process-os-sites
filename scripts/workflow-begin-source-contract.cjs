@@ -1,6 +1,7 @@
 /* Exact Begin-v1 inverse to cfb542926fa004392a3180b16aa887291fa74d4f handlers.
  * Historic source bytes/hashes are preserved; unrelated changes fail closed. */
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
+const {withoutBomWorkflowOptIn}=require('./bom-workflow-source-contract.cjs');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const contracts={
   "app/api/ipqc-c/workflow/route.ts": {
@@ -112,6 +113,9 @@ const contracts={
   }
 };
 function withoutDurableBegin(bytes,file){
+ // The BOM-only candidate must first recover the unchanged original pin.
+ // All other hashes still reach the original fail-closed admission below.
+ if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0')bytes=withoutBomWorkflowOptIn(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){
