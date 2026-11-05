@@ -1,3 +1,7 @@
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+FQC 原位置檢具移轉按鈕現在明確保存整份共享 working，含其他已套用修改；沿既有一次原子 Save、identified Begin／收據及原 guards。其他分頁未送輸入保留，其他品質模組維持 Apply＋手動 Save。 [實作與驗證界線](../../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 跨品質檢具替換安全候選
 
 本輪跨品質檢具替換只補未知 Begin 證據保全、目標世代核對與成功項目重試隔離；仍為各 scope Apply 後由目標 Save，原子保存範圍尚待決。 [範圍、待決與驗證](../../docs/acceptance/equipment-transfer-draft-20261105/README.md)。

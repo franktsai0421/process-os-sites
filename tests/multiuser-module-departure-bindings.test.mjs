@@ -58,10 +58,11 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  }
  if(name==='routine-equipment'){
   const markers=new Map();
-  Object.assign(box,{inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
+  Object.assign(box,{fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);
   vm.runInNewContext(sourceBlock(source,'  const isDirty =','\n'),box);
   vm.runInNewContext(sourceBlock(source,'  const beginRecoveryKey =','  function readBeginRecovery('),box);
+  vm.runInNewContext(sourceBlock(source,'  const fqcTransferKey =','  const fqcTransferUnknown'),box);
   vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);

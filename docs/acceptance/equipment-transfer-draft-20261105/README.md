@@ -1,3 +1,27 @@
+# FQC 檢具移轉並存取：已確認範圍候選
+
+此輪接續 [Draft PR #84](https://github.com/franktsai0421/process-os-sites/pull/84) 的固定 `45545ef3bc2b9fa9cec56eb659abc9eed6d7049b`。使用者只確認 FQC：原位置同一按鈕移轉並存取整份 FQC working，其他已套用未存修改一起保存，不必先切到 FQC 查看。IQC、IPQC C、IPQC A/B 仍是原來的 guarded Apply＋目標手動 Save；不能延伸此決定。
+
+## FQC 現行候選
+
+- 既有 `save/moduleAction:save-local-v1` 同時帶選定 equipmentId／tool patches、原值 guards、空 matrixCells，一個最終 CAS 保存整份 FQC working／saved。沒有先 Apply 再 Save 的部分寫入。已開始草稿一次 workflow Save；首次開始仍有獨立 identified Begin，不能宣稱整個操作只有一個 HTTP。
+- 原位置確認文字明確包含其他共享已套用修改；保存不包括其他頁面未送的本機表單。檢具主檔不保存、不送審、不停用，品質也不送審。原照片、來源、其餘欄位、saved／正式／歷史保留。
+- FQC caller 沿既有 durable Begin＋FQC bounded transport；沒有修改共用核心、FQC 消費端或伺服器交易。開始前核對 target active／open／generation，Begin 後核對原 basis／receipt generation；不能把舊選取改綁新世代。原無識別 target Begin marker 仍保留且阻擋。
+- 瀏覽器新增 `routine-equipment-fqc-transfer-v1:<actor>` 來源 journal，version 1，保存原 intent、target basis、begin/save phase、原操作 ID／完整 Save command（只含原選取 patches／guards，無未送表單或照片 bytes）。持久化讀回成功才發送。這是原操作證據，不是另存未送輸入或新恢復介面。
+- Save 使用既有私有收據／fresh readback 證據；lost ACK、404、503 或終端讀回失敗保留 journal 與 transport marker。原按鈕變成唯讀查原收據，不重送、也不保存後來輸入。若 transport 已結案但來源失去情境，來源 journal 仍以原收據＋新授權讀回核對；跨世代只確認原保存，不套用新草稿。
+- 原有 local departure planner 同時涵蓋檢具及 target FQC transport；離頁只放棄本人未送輸入，不清已送 intent。FQC 成功後只更新引用／preview，不觸發會重建來源頁的全域 refresh；來源本機檢具修改仍保留。目標頁按各自原輪詢與 guards 處理本機輸入。
+- 明確欄位衝突只在既有 transport 的私有、原 command 拒絕證據成立時清除本次失敗；其他人的 unknown／失敗操作不清理。權限、pending、檢具必須生效且啟用、引用與 CAS 保護保持。
+
+## 此輪驗證與界線
+
+命令與最終固定 HEAD 結果以交付／PR 為準：`node --test tests/equipment-fqc-transfer-save.test.mjs` 使用實際 UI/client 與真 TS handler、正常合成登入、記憶體 SQLite/R2；涵蓋已有／新草稿、一次 CAS、其他共享修改／非空照片、欄位衝突、撤權／停用／pending 競態、Begin／Save 不明、404／503、重建頁面、歷史世代及 journal 寫入失敗。compiled Worker/SPA 檢查四模組各自保存範圍、四頁未送表單，以及 unknown FQC 的離頁／返回／reload 零重送。
+
+無 SQL/schema/migration、實站／測試站、真實資料／帳號／權限設定、merge 或部署。#82 compiled UI 全量整合、獨立審查與最終 CI 須另外列出，不用上游 PASS 代替。
+
+下列內容是 `45545ef` 安全修正交接的歷史狀態；其中 FQC「尚待決／不自動保存」已由本節取代，其他模組仍維持原界線。
+
+---
+
 # 跨品質檢具替換：安全邊界候選，原子保存待決
 
 分支 `fix/equipment-transfer-draft-20261105`，精確基準 #81 / `4b5cdfbc0838556ecc39125e92edb1611f010dcd`。Draft PR base 為 `feature/equipment-atomic-save-20261105`；depends on #81、#82 (`7355d8fba6abf7a396314cf4a55551b19b17b972`)、#77 (`0af6d57e912e5615250959c9e76210fecd55d96b`)。產品 PR 未納入 #82 的差異。未改例行 FQC、流程／機器主資料、品質消費端或通用核心。

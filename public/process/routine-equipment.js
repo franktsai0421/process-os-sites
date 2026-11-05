@@ -2379,9 +2379,110 @@
     }
   }
 
+  // FQC alone has explicit authority to save the entire target working draft.
+  // The source journal binds its exact intent/command; existing transport markers
+  // and receipts remain authoritative and are never inferred from current content.
+  let fqcTransferClient = null;
+  const fqcTransferEndpoint = '/api/fqc/workflow?caseMetadata=1';
+  const fqcTransferKey = actorId => 'routine-equipment-fqc-transfer-v1:' + actorId;
+  const fqcTransferUnknown = () => t('FQC 移轉／存取結果待確認；僅查詢原操作收據，不會重新送出。', 'Chưa xác nhận chuyển/lưu FQC; chỉ kiểm tra biên nhận gốc, không gửi lại.');
+  function hasFqcTransfer(){try{return sessionStorage.getItem(fqcTransferKey(identity()?.id))!==null;}catch{return true;}}
+  function targetFqcClient(){
+    if(!fqcTransferClient||fqcTransferClient.actorId!==identity()?.id||!fqcTransferClient.isRuntimeCurrent()||!fqcTransferClient.isBeginRuntimeCurrent())
+      fqcTransferClient=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:identity()?.id,durableBegin:true,externalDurableBounded:{scope:'FQC'},headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    return fqcTransferClient;
+  }
+  function readFqcTransfer(){
+    let value;try{const raw=sessionStorage.getItem(fqcTransferKey(identity()?.id));if(raw===null)return null;value=JSON.parse(raw);}catch{throw Error(fqcTransferUnknown());}
+    if(value?.version!==1||value.actorId!==identity()?.id||value.endpoint!==fqcTransferEndpoint||!['begin','save'].includes(value.phase)||typeof value.intent!=='string'||!value.basis||value.phase==='save'&&(!value.command||value.command.action!=='save'||value.command.moduleAction!=='save-local-v1'||typeof value.command.operationId!=='string'||typeof value.command.generation!=='string'))throw Error(fqcTransferUnknown());
+    return value;
+  }
+  function writeFqcTransfer(record,previous=null){
+    const key=fqcTransferKey(record.actorId),raw=JSON.stringify(record);
+    if(sessionStorage.getItem(key)!==(previous===null?null:JSON.stringify(previous)))throw Error(fqcTransferUnknown());
+    sessionStorage.setItem(key,raw);if(sessionStorage.getItem(key)!==raw)throw Error(fqcTransferUnknown());return record;
+  }
+  function clearFqcTransfer(record){
+    const key=fqcTransferKey(record.actorId);if(sessionStorage.getItem(key)!==JSON.stringify(record))throw Error(fqcTransferUnknown());
+    sessionStorage.removeItem(key);if(sessionStorage.getItem(key)!==null)throw Error(fqcTransferUnknown());
+  }
+  function fqcTransferBasis(data){const c=data.control,open=c?.versions?.find(v=>['draft','pending','pending-test'].includes(v.status));return {generation:c?.workflow?.generation??null,activeVersionId:c?.activeVersionId??null,openVersionId:open?.id??null,openVersionStatus:open?.status??null,openVersionRevision:open?.revision??null};}
+  function assertFqcTransferRead(data){
+    const c=data?.control,f=c?.workflow;
+    if(data?.permissions?.view!==true||data.permissions.edit!==true||!Number.isSafeInteger(data.revision)||!Array.isArray(c?.versions)||f&&f.scope!=='fqc'||f?.pendingId||c.versions.some(v=>['pending','pending-test'].includes(v.status)))throw Error('FQC_TARGET_NOT_EDITABLE');
+    return f;
+  }
+  function finishFqcTransfer(client,record,result,fresh=null){
+    const r=result?.receipt;
+    const verified=client.isVerifiedReadback(result),f=fresh?.control?.workflow;
+    if(!verified&&(!fresh||fresh.permissions?.view!==true||f?.scope!=='fqc'||!Number.isSafeInteger(f.revision)||f.revision<r?.revision)||r?.operationId!==record.command.operationId||r.generation!==record.command.generation||typeof r.savedId!=='string'||!r.savedId)throw Error(fqcTransferUnknown());
+    // No local FQC form is owned here. A historical receipt confirms only the
+    // original Save; it never replays selection into the successor generation.
+    const superseded=client.isSupersededRecovery(result),historical=superseded||!!fresh&&f.generation!==r.generation;
+    if(superseded)client.acknowledgeSupersededRecovery(result);
+    clearFqcTransfer(record);
+    return {savedId:r.savedId,historical,results:JSON.parse(record.intent).ids.map(itemId=>({itemId,status:'applied'}))};
+  }
+  async function recoverFqcTransfer(dialog){
+    const owner=dialog.owner;dialog.moduleStatus.fqc='saving';render();
+    try{
+      const record=readFqcTransfer(),client=targetFqcClient();if(!record)throw Error(fqcTransferUnknown());
+      if(record.phase==='begin'){
+        const result=client.hasUnknownBegin()?await client.resolveUnknown():record.operationId?await client.receipt(record.operationId):null;
+        if(!result?.receipt||result.operationKind!=='begin-v1'||!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(fqcTransferUnknown());
+        if(record.operationId&&record.operationId!==result.receipt.operationId)throw Error(fqcTransferUnknown());
+        clearFqcTransfer(record);dialog.moduleStatus.fqc='idle';await loadTransferPreview();dialog.moduleMessages.fqc=t('已核對原開始修改收據；尚未移轉或存取，請重新核對選取後明確確認。','Đã kiểm tra biên nhận bắt đầu gốc; chưa chuyển/lưu. Kiểm tra lựa chọn rồi xác nhận lại.');
+      }else{
+        const outstanding=client.hasUnknown(),result=await client.receipt(record.command.operationId,record.command.generation);
+        // The transport may have settled before the source page lost ownership.
+        // Original receipt plus a new authorized read can finish its source journal.
+        const fresh=!outstanding&&!client.isVerifiedReadback(result)?await client.read():null;
+        if(!transferOwnerCurrent(owner)||transferDialog!==dialog)throw Error(fqcTransferUnknown());
+        const done=finishFqcTransfer(client,record,result,fresh);dialog.moduleStatus.fqc='success';dialog.moduleMessages.fqc=t('原 FQC 移轉並存取已確認','Đã xác nhận chuyển và lưu FQC gốc')+' · '+done.savedId+(done.historical?' · '+t('目前已有後續草稿；本次未套用其他修改','Hiện có bản nháp mới; lần này không áp dụng thay đổi khác'):'');
+      }
+    }catch(error){dialog.moduleStatus.fqc='error';dialog.moduleMessages.fqc=fqcTransferUnknown()+' '+error.message;}
+    if(transferDialog===dialog&&transferOwnerCurrent(owner))render();
+  }
+  async function saveFqcTransfer(dialog,target,entry,rows,intent,owns){
+    const assertOwned=()=>{if(!owns())throw Error('FQC_TRANSFER_CONTEXT_CHANGED');};
+    // Preserve all old unidentified target Begin evidence without attribution.
+    if(sessionStorage.getItem('routine-equipment-target-begin:'+identity()?.id+':'+fqcTransferEndpoint)!==null)throw Error(fqcTransferUnknown());
+    const legacy=window.createSharedDraftClient({endpoint:fqcTransferEndpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
+    if(legacy.hasUnknown())throw Error(fqcTransferUnknown());await legacy.flush();assertOwned();
+    const client=targetFqcClient();if(client.hasUnknown()||hasFqcTransfer())throw Error(fqcTransferUnknown());await client.flush();assertOwned();
+    let authority=await client.read();assertOwned();assertFqcTransferRead(authority);
+    const basis=fqcTransferBasis(authority);
+    if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('FQC_TARGET_CHANGED_RECONFIRM');
+    let record=null;
+    if(!entry.workflow?.editable){
+      record=writeFqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'begin'});
+      let begun;
+      try{begun=await client.begin();}catch(error){
+        // Only the durable transport's verified basis/identity refusal may retire
+        // this unsent intent; all other errors retain original Begin evidence.
+        if(!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message))clearFqcTransfer(record);
+        throw error;
+      }
+      record=writeFqcTransfer({...record,operationId:begun.receipt?.operationId},record);assertOwned();
+      if(begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('FQC_BEGIN_GENERATION_CHANGED');
+      authority=begun;
+    }
+    const flow=assertFqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');
+    const patches=[],guards=[];
+    for(const row of rows)for(const field of ['equipmentId','tool']){const path=['items',{id:row.itemId},field];patches.push({op:'set',path,value:field==='equipmentId'?target.id:target.pieceMark||target.assetCode});guards.push({path,value:row.openStatus==='draft'?(field==='equipmentId'?row.draftEquipmentId:row.draftTool):(field==='equipmentId'?row.activeEquipmentId:row.activeTool)});}
+    const command=client.prepare(flow.generation,'save',{moduleAction:'save-local-v1',patches,guards,input:{matrixCells:[]}});
+    const next={version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'save',command};record=writeFqcTransfer(next,record);assertOwned();
+    try{const result=await client.sendPrepared(command);assertOwned();return finishFqcTransfer(client,record,result);}
+    catch(error){
+      if(owns()&&client.isConfirmedRejection(error,command)&&client.discardRejectedLocalSave(command))clearFqcTransfer(record);
+      throw error;
+    }
+  }
+
   async function executeTransfer(uiKey) {
     const dialog = transferDialog;
     if (!dialog || !dialog.preview || transferBusy(dialog) || !transferOwnerCurrent(dialog.owner)) return;
+    if(uiKey==='fqc'&&hasFqcTransfer()){await recoverFqcTransfer(dialog);return;}
     const targetEqId = dialog.targetEqId;
     const target = control?.versions.find(version => version.id === control.activeVersionId && version.status === 'approved')?.equipment.find(item => item.id === targetEqId && item.enabled !== false);
     if (!target || targetEqId === dialog.sourceId) { dialog.moduleMessages[uiKey] = t('請重新選取目前生效且啟用的目標設備', 'Chọn lại thiết bị đích đang có hiệu lực và được bật'); render(); return; }
@@ -2394,7 +2495,7 @@
     const selected=dialog.preview.modules.find(row=>row.moduleId===moduleId)?.items.filter(row=>ids.includes(row.id)) || [];
     const overrides=selected.filter(row=>row.openStatus==='draft' && row.draftEquipmentId && row.draftEquipmentId!==dialog.sourceId && row.draftEquipmentId!==targetEqId).map(row=>row.id);
     if (selected.some(row=>row.selectable===false)) {dialog.moduleMessages[uiKey]=t('包含不可編輯項目，請重新選取','Có hạng mục không thể sửa; hãy chọn lại');render();return;}
-    if (!confirm(t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
+    if (!confirm(moduleId==='fqc'?t(`確認移轉 ${ids.length} 筆並存取整份 FQC 草稿？共享草稿中其他已套用的修改會一起保存；其他分頁未送出的本機輸入不包含在內。僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆已改選其他檢具，將以這次選擇取代。`:''}不送審。`,`Chuyển ${ids.length} mục và lưu toàn bộ bản nháp FQC? Các thay đổi chung đã áp dụng cũng được lưu; không gồm đầu vào cục bộ chưa gửi ở trang khác. Giữ ảnh và thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị.`:''} Không gửi duyệt.`):t(`確認移轉 ${ids.length} 筆 ${moduleId.toUpperCase()} 標準至草稿？僅更換檢具，照片與其他設定保留。${overrides.length?`其中 ${overrides.length} 筆草稿已改選其他檢具，將以這次選擇取代。`:''}同草稿全部成功才套用；待審項目不可移轉，也不會延後自動套用。`, `Chuyển ${ids.length} tiêu chuẩn ${moduleId.toUpperCase()} sang bản nháp? Chỉ thay thiết bị; giữ ảnh và các thiết lập khác. ${overrides.length?`Ghi đè ${overrides.length} lựa chọn thiết bị trong bản nháp.`:''} Mỗi bản nháp được xử lý toàn bộ hoặc không thay đổi. Không chuyển hồ sơ chờ duyệt và không tự áp dụng sau.`))) return;
     assertIntent();
     dialog.moduleStatus[uiKey] = 'saving'; render();
     try {
@@ -2427,7 +2528,9 @@
       };
       const transferIntent=JSON.stringify({sourceId:dialog.sourceId,targetEqId,ids:[...ids].sort((a,b)=>a.localeCompare(b))});
       let data;
-      if(moduleId==='ipqc-ab'){
+      if(moduleId==='fqc'){
+        data=await saveFqcTransfer(dialog,target,targetEntry,latest.filter(row=>ids.includes(row.id)),transferIntent,owns);
+      }else if(moduleId==='ipqc-ab'){
         const rows=latest.filter(row=>ids.includes(row.id));data={results:[]};
         for(const scopeKey of new Set(rows.map(row=>row.scopeKey))){const group=rows.filter(row=>row.scopeKey===scopeKey);let scopeClient;
           try{assertIntent();const endpoint='/api/ipqc-ab/workflow?scope='+encodeURIComponent(scopeKey)+'&caseMetadata=1',client=window.createSharedDraftClient({endpoint,actorId:dialog.owner.actorId,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'})});
@@ -2479,15 +2582,16 @@
       dialog.moduleStatus[uiKey] = counts.conflict ? 'error' : counts.waiting ? 'pending' : 'success';
       dialog.moduleMessages[uiKey] = `${t('已套用', 'Đã áp dụng')} ${counts.applied} · ${t('已相同', 'Không đổi')} ${counts.unchanged} · ${t('待處理', 'Chờ xử lý')} ${counts.waiting} · ${t('衝突', 'Xung đột')} ${counts.conflict}` +
         (data.results || []).filter(row => row.reason && row.status === 'conflict').map(row => `\n${row.scopeKey?row.scopeKey+' / ':''}${row.itemId}: ${row.reason}`).join('');
-      if((flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
-      await window.ProcessSync?.refresh?.();
+      if(moduleId==='fqc')dialog.moduleMessages[uiKey]+=' · '+t('已移轉並存取 FQC 草稿','Đã chuyển và lưu bản nháp FQC')+' · '+data.savedId+(data.historical?' · '+t('原操作已確認；目前已有後續草稿，本次未套用其他修改','Đã xác nhận thao tác gốc; hiện có bản nháp mới, không áp dụng thay đổi khác'):'');
+      if(moduleId!=='fqc'&&(flow||moduleId==='ipqc-ab') && (!counts.conflict||counts.applied))dialog.moduleMessages[uiKey]+=' · '+t(`成功項目已同步，尚未手動儲存；請到 ${moduleId.toUpperCase()} 儲存草稿`,`Các hạng mục thành công đã đồng bộ, chưa lưu thủ công; hãy lưu bản nháp tại ${moduleId.toUpperCase()}`);
+      if(moduleId!=='fqc')await window.ProcessSync?.refresh?.();
       if (!owns()) return;
       invalidateEquipmentReferences([dialog.sourceId, targetEqId]);
       await loadEquipmentReferences(dialog.sourceId, { renderAfter: false });
       await loadTransferPreview();
     } catch (error) {
       dialog.moduleStatus[uiKey] = 'error';
-      dialog.moduleMessages[uiKey] = error.message || t('替換失敗', 'Thay thế thất bại');
+      dialog.moduleMessages[uiKey] = (moduleId==='fqc'&&hasFqcTransfer()?fqcTransferUnknown()+' ':'')+(error.message || t('替換失敗', 'Thay thế thất bại'));
     }
     if (transferDialog === dialog && transferOwnerCurrent(dialog.owner)) render();
   }
@@ -2506,7 +2610,7 @@
     const targetEq = (approvedVer?.equipment || []).find(e => e.id === targetEqId);
 
     const previewItems = moduleId => transferDialog.preview?.modules?.find(row => row.moduleId === moduleId)?.items || [];
-    const fqcItems = previewItems('fqc');
+    const fqcItems = previewItems('fqc'),fqcRecovery=hasFqcTransfer();
     const iqcItems = previewItems('iqc');
     const ipqcCItems = previewItems('ipqc-c');
     const ipqcABItems = previewItems('ipqc-ab');
@@ -2596,10 +2700,10 @@
                   </div>
                   <div class="routine-transfer-module-action">
                     ${transferDialog.moduleStatus.fqc === 'success' ? `
-                      <span class="routine-transfer-success-tag">✓ ${t('已成功移轉至草稿', 'Đã chuyển thành công')}</span>
+                      <span class="routine-transfer-success-tag">✓ ${t('已移轉並存取草稿', 'Đã chuyển và lưu bản nháp')}</span>
                     ` : `
-                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${!targetEq || !fqcItems.length || inFlight ? 'disabled' : ''}>
-                        ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : t('確認移轉至 FQC 草稿', 'Xác nhận chuyển sang FQC')}
+                      <button type="button" class="button signal master-small" id="routine-confirm-transfer-fqc" ${inFlight||!fqcRecovery&&(!targetEq||!fqcItems.length)?'disabled':''}>
+                        ${transferDialog.moduleStatus.fqc === 'saving' ? t('儲存中…', 'Đang lưu...') : fqcRecovery?t('查詢原移轉／存取收據','Kiểm tra biên nhận chuyển/lưu gốc'):t('確認移轉並存取 FQC 草稿', 'Xác nhận chuyển và lưu FQC')}
                       </button>
                     `}
                   </div>
@@ -3463,6 +3567,7 @@
     invalidateEquipmentReferences();
   }
   async function mount(element) {
+    if(identity()?.id&&hasFqcTransfer())targetFqcClient();
     equipmentEditRequest++;navigationError=null;
     const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     sharedPoll.cancel();
@@ -3592,7 +3697,7 @@
   // Navigation may discard local input while retaining the exact legacy barrier.
   function equipmentDeparture(config){
     const base=window.VersionDraftUI.createDeparture(config);let held=null;
-    const legacy=()=>{try{const raw=sessionStorage.getItem(beginRecoveryKey(identity()?.id));return raw!==null&&!sharedClient?.hasUnknown()&&inputOwnerCurrent()&&!busy&&!transferBusy()?raw:null;}catch{return null;}};
+    const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
     const valid=record=>record&&record.raw===legacy()&&record.actor===identity()&&record.epoch===window.ProcessSync?.identityGeneration?.();
     return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),
       inspect(){const status=base.inspect(),raw=legacy();if(raw===null)return status;return {state:valid(held)?'departing':'unknown',departureId:held?.id,canAbandon:!held,canSave:false,canDiscard:false,reason:beginRecoveryMessage()};},
@@ -3608,8 +3713,8 @@
     root:()=>host,flow:()=>control?.workflow,sharedOwned:()=>false,sharedDirty:()=>false,
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
     current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
-    unknown:()=>sharedClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures(),
-    unknownTransports:()=>[sharedClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
+    unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),
+    unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],

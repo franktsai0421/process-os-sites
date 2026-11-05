@@ -1,3 +1,7 @@
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+FQC 替換 caller 新增 actor-scoped version 1 來源 journal，記錄原 intent／basis／phase／command 供原收據核對；不存未送表單或照片 bytes。沒有 DB／R2 schema、migration 或資料轉換。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — Equipment local atomic Save
 
 No SQL/table/migration/data conversion. Equipment reuses existing workflow receipts and #77 Begin markers; Save retains the original complete command in the existing actor/endpoint session marker. Photo bytes may be staged, but shared photoId references and allocated codes become effective only with the final Save CAS. [Evidence](../docs/acceptance/equipment-local-atomic-save-20261105/README.md).

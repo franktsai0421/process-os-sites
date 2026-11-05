@@ -1,3 +1,7 @@
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+接續 #84／45545ef 實作已確認的 FQC 移轉並存取。一次 CAS、原操作唯讀恢復與跨頁未送表單保全；未合併或部署。 [實作與驗證界線](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 跨品質檢具替換安全候選
 
 本輪跨品質檢具替換沿 #81 固定基準獨立修正；不自動保存品質草稿，#82／#77 相依與待決保存範圍分開。 [範圍、待決與驗證](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
