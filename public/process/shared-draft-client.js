@@ -385,7 +385,8 @@
       // Reading evidence is sufficient: malformed bytes also block, never erase.
       if(externalCanvas){let marker;try{marker=sessionStorage.getItem('shared-draft-begin-v1:'+JSON.stringify([actorId,'/api/process-authoring/workflow']));}catch{const error=Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true});externalUnsent.add(error);throw error;}if(marker!==null){const error=Object.assign(Error('PREVIOUS_BEGIN_UNKNOWN'),{notSent:true});externalUnsent.add(error);throw error;}}
     };
-    const beginKey=durableBegin?'shared-draft-begin-v1:'+JSON.stringify([actorId,beginScopePath]):null,beginResponses=new WeakMap();
+    const beginKey=durableBegin?'shared-draft-begin-v1:'+JSON.stringify([actorId,beginScopePath]):null,beginResponses=new WeakMap(),beginUnsent=new WeakMap();
+    let beginAttemptSequence=0;
     let beginRecord=null,beginRaw=null,beginInvalid=false,beginRetired=false,beginRead=null;
     const beginUUID=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
     const beginText=value=>value===null||typeof value==='string'&&value.length>0&&value.length<=256;
@@ -423,15 +424,22 @@
       const task=(async()=>{assertBegin(record);return finishBegin(record,await request(query('operationId='+encodeURIComponent(record.operationId))));})();beginRead=task;
       void task.then(()=>{if(beginRead===task)beginRead=null;},()=>{if(beginRead===task)beginRead=null;});return task;
     }
-    async function beginV1(){
+    async function beginV1(identity,attempt){
+      const attemptSequence=++beginAttemptSequence;if(attempt)attempt.sequence=attemptSequence;
+      if(identity!==undefined&&(!identity||Object.keys(identity).sort().join(',')!=='basis,operationId'||!beginUUID(identity.operationId)||!validBeginBasis(identity.basis)))throw Error('INVALID_BEGIN_IDENTITY');
+      const prepared=identity===undefined?null:JSON.parse(JSON.stringify(identity));
+      if(attempt&&prepared)attempt.raw=JSON.stringify(prepared);
       assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
       if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');if(unknown||recoveryInvalid)throw Error('PREVIOUS_OPERATION_UNKNOWN');if(beginPending||queued||retryPending)throw Error('OPERATION_IN_PROGRESS');
       const feedback=beginFeedback(endpoint);queued++;
       const task=(async()=>{
         const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');
         const basis=captureBeginBasis(fresh);if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
-        const record={version:1,actorId,endpoint:beginScopePath,operationId:crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;
+        if(prepared&&Object.keys(basis).some(key=>prepared.basis[key]!==basis[key]))throw Error('BEGIN_BASIS_CHANGED');
+        const record={version:1,actorId,endpoint:beginScopePath,operationId:prepared?.operationId||crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;if(attempt)attempt.record=record;
         try{sessionStorage.setItem(beginKey,beginRaw);assertBegin(record);}catch(cause){try{if(sessionStorage.getItem(beginKey)===null){beginRecord=null;beginRaw=null;beginInvalid=false;}}catch{beginInvalid=true;}throw Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true,cause});}
+        // Once handed to POST transport, a fetch error or 404 cannot prove no write.
+        if(attempt)attempt.dispatched=true;
         try{return await finishBegin(record,await request(endpoint,{action:'begin-v1',begin:{operationId:record.operationId,basis:JSON.parse(JSON.stringify(basis))}}));}
         catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}throw error;}
       })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
@@ -962,6 +970,24 @@
       ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),
       reviewCase: id=>request(query(`caseId=${encodeURIComponent(id)}`)),
       previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
+      async beginWithIdentity(identity){
+        if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');
+        const attempt={raw:null,record:null,dispatched:false,sequence:0};
+        try{return await beginV1(identity,attempt);}catch(error){
+          if(attempt.raw&&!attempt.dispatched&&error&&typeof error==='object')try{
+            assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration||attempt.sequence!==beginAttemptSequence)throw Error('BEGIN_OWNER_CHANGED');
+            // Retire only this invocation's exact durable preparation, never an
+            // inherited/tampered marker or an uncertain POST from another attempt.
+            if(attempt.record&&beginRecord===attempt.record)clearBegin(attempt.record);
+            if(!beginOutstanding()&&!unknown&&!recoveryInvalid)beginUnsent.set(error,attempt);
+          }catch{/* Preserve evidence if ownership or storage cannot be verified. */}
+          throw error;
+        }
+      },
+      isBeginNotSent(error,identity){
+        const proof=beginUnsent.get(error);if(!proof)return false;
+        try{assertOwner();return !window.ProcessSync?.requiresReload&&clientPagehideGeneration===transportPagehideGeneration&&!proof.dispatched&&proof.sequence===beginAttemptSequence&&proof.raw===JSON.stringify(identity)&&!beginOutstanding()&&!unknown&&!recoveryInvalid;}catch{return false;}
+      },
       async begin(){
         if(durableBegin)return beginV1();
         assertMutationAdmission();if(externalCanvas)throw Object.assign(Error('CANVAS_EXTERNAL_APPLY_ONLY'),{notSent:true});

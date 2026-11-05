@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, 'integration/draft-save-20261104', 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
+    branches: [main, 'feature/equipment-atomic-save-20261105', 'integration/draft-save-20261104', 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
 permissions:
   contents: read
 concurrency:
@@ -201,6 +201,10 @@ jobs:
           node --test --test-concurrency=1 tests/equipment-atomic-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test --test-concurrency=1 tests/equipment-atomic-compiled.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/equipment-fqc-transfer-save.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}

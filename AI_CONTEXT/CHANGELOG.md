@@ -26,6 +26,18 @@ Independent PROCESS templates/machines candidate on fixed #80, depends on #80→
 
 表單完成改為本機暫存，一次存取原子保存 AB 或 C 的有序 guarded 變更及共享快照。修改／保存與其他動作權限分開，保留引用、群組成員、世代、CAS、固定審核及舊資料格式；未存本機內容不送審。無提示離頁保留未知收據，晚到 ACK 不回退較新投影。[驗證與未發布界線](../docs/acceptance/abc-local-save-20261105/README.md)。
 
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+追加：Begin preflight 讀取失敗、尚未進入 POST 時，以原 runtime 的私有 attempt／identity 證據撤掉自己的未送 intent，避免永久查不存在收據；POST 例外與 404 仍保留 unknown。
+
+審查後修正已選 target 的有效性重驗，以及 Begin ACK／來源 journal 交接失去原 ID 的窄邊界；只新增 FQC prepared identity 入口，保留原 Begin 與普通歷史引用保存。
+
+依確認只讓 FQC 檢具移轉在原按鈕一起原子保存整份工作草稿；其餘模組不延伸。保留本機表單、未知證據、歷史與權限，不自動送審或保存檢具。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+跨品質檢具替換安全修正：保留未識別 Begin marker，核對目標世代／生效版本，略過已符合目標項目的重送。沒有擴張 Save 範圍或全域交易。 [範圍、待決與驗證](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 檢具本機草稿候選
 
 後續僅修測試：以真記憶體 SQLite batch／既有 migrations 補齊舊登入 fixture，仍驗證 503 fail closed 與 429 額度；同步檢具離頁／送審共用 fixture 至現行本機保存契約。原始 Draft PR #81 的 CI 與本機後續結果分列，不宣稱跨品質替換全部原子化。[調查與邊界](../docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。

@@ -24,6 +24,18 @@ BOM-only increment from PR77 `0af6d57`: one ordered atomic Save, edit grants Sav
 
 `feature/abc-local-save-20261105` starts from exact #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. AB/C products/categories/routes and line/stage entry complete locally, then save ordered guards and snapshot through one CAS. Scoped durable Begin/Save recovery, permission/reference/history protections and pinned PROCESS stage approval remain. [Evidence, shared-file integration delta and remaining gates](docs/acceptance/abc-local-save-20261105/README.md). No merge/deployment/live data; BOM/tooling/IPQC A/B candidates are not included.
 
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+追加 preflight GET 503 的 0 POST 孤兒 intent 修正：只有私有 exact-attempt 未發送證據可退休自己的 intent，404／公開 notSent flags 無效。新最終 HEAD／CI 另核對。
+
+目前追加審查修復：明確設備同值重選也須在最終 CAS context 有效；來源先持久化 Begin ID，FQC-only beginWithIdentity 保留原身分且不自動續存。最終新 CI／獨立複核另核對。
+
+接續 #84／45545ef 實作已確認的 FQC 移轉並存取。一次 CAS、原操作唯讀恢復與跨頁未送表單保全；未合併或部署。 [實作與驗證界線](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+本輪跨品質檢具替換沿 #81 固定基準獨立修正；不自動保存品質草稿，#82／#77 相依與待決保存範圍分開。 [範圍、待決與驗證](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — 檢具本機編輯／原子 Save 獨立候選
 
 後續：已依明確同意建立 Draft PR #81，仍 depends on #77、未合併／部署。舊 workflow／validation 的 LOGIN_LIMIT_UNAVAILABLE 已定位為 fixture 缺 DB.batch／既有 schema；合成 SQLite 修復在候選與固定基準通過，未動產品登入限制。兩個測試／文件提交已上傳至 `277964a`；其 exact-head CI 通過共用離頁／送審與檢具測試，另暴露舊伺服器來源契約未接檢具 opt-in 的固定雜湊。已補精確三處逆轉且保留全部原歷史 hash／offset／未知來源拒絕斷言，產品未變；最終結果須看最新 head CI。[修復、CI 證據與跨品質替換待決邊界](docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。

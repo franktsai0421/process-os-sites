@@ -1,3 +1,15 @@
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+FQC preflight GET／準備失敗而未交給 POST 時，可由 client 私有 `isBeginNotSent` 證明原 attempt；來源同情境、同 identity／選取／journal 才撤未送 intent，重新明確確認。POST 例外／404 不適用。
+
+審查後：明確 equipmentId set 即使同值也重驗生效／啟用；普通保存保留未重選的歷史 snapshot。來源先存 Begin ID，再用 FQC-only `beginWithIdentity` 核對 fresh basis 後發送；其他模組與原 Begin 不變。
+
+FQC 原位置檢具移轉按鈕現在明確保存整份共享 working，含其他已套用修改；沿既有一次原子 Save、identified Begin／收據及原 guards。其他分頁未送輸入保留，其他品質模組維持 Apply＋手動 Save。 [實作與驗證界線](../../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+本輪跨品質檢具替換只補未知 Begin 證據保全、目標世代核對與成功項目重試隔離；仍為各 scope Apply 後由目標 Save，原子保存範圍尚待決。 [範圍、待決與驗證](../../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
 ## 2026-11-05 — Equipment local editing / atomic Save candidate
 
 Equipment forms/hierarchy/calibration/photos now stage in RAM. `save-local-v1` stages guarded Apply and allocation before one persisted Save; edit includes Save, submit remains separate and rechecks local input after confirmation. Exact normal POST authority is opt-in; unknown Begin/Save retains original receipt/guards and permits local abandonment. No quality product adapters or cross-module transaction changes. [Verification and remaining transfer boundary](../../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
