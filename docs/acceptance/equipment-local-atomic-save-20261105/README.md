@@ -2,6 +2,8 @@
 
 2026-11-05，Linux / Node 24.19 / Chromium，公開 source-only 倉庫的隔離候選。分支 `feature/equipment-atomic-save-20261105`；精確基準 `integration/draft-save-20261104` / `0af6d57e912e5615250959c9e76210fecd55d96b`，**depends on #77**。main 核對為 `85fa4a36442b3b72323eb4a6eeb105b867c4856a`。未納入 #78、BOM、AB/C 或遭拒的 IPQC A/B 候選；未改 tooling.js、流程／機器主資料或品質模組產品檔。
 
+後續已建立 [Draft PR #81](https://github.com/franktsai0421/process-os-sites/pull/81)，公開 head `4ebc338403e7206fba43111bdedc55842d1eabb6`。以下保留該批驗證紀錄；[後續調查](FOLLOWUP.md) 記錄舊 fixture 的本機修復、原始 exact-head CI 的共用測試失敗與跨品質替換的精確缺口。本機後續 PASS 不等於原始 PR 的 CI 已通過。
+
 ## 行為與資料界線
 
 - 類別、子類別、規格群組、檢具、校正／狀態及照片參照先留於本次頁面。表單完成、刪除及來源疑點處理不 POST；搜尋保留本機內容。表單關閉只取消該表單，不清掉先前已完成的本機修改／照片。

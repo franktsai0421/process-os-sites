@@ -1,5 +1,7 @@
 ## 2026-11-05 — 檢具本機編輯／原子 Save 獨立候選
 
+後續：已依明確同意建立 Draft PR #81，公開 head `4ebc338403e7206fba43111bdedc55842d1eabb6`，仍 depends on #77、未合併／部署。舊 workflow／validation 的 LOGIN_LIMIT_UNAVAILABLE 已定位為 fixture 缺 DB.batch／既有 schema；合成 SQLite 修復在候選與固定基準通過，未動產品登入限制。CI 暴露的共用檢具離頁／送審 fixture 也在本機修復；此批後續尚未上傳，原始 PR CI 不能算通過。[本機修復與跨品質替換待決的操作邊界](docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。
+
 由 #77 / `0af6d57e912e5615250959c9e76210fecd55d96b` 建立 `feature/equipment-atomic-save-20261105`。完成表單只留本機，原 guards 下的一次 Save 保存檢具全模組；原收據恢復與無提示離頁保留 unknown barrier。跨品質設備替換維持既有各 scope Apply／manual Save，完整統一尚需交易邊界決策；不能宣稱已全部完成。不合併／部署或變更真實資料。 [實作、驗證、既有 fixture 失敗與交付界線](docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
 
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77

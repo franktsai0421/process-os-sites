@@ -1,5 +1,7 @@
 ## 2026-11-05 — 檢具本機草稿候選
 
+後續僅修測試：以真記憶體 SQLite batch／既有 migrations 補齊舊登入 fixture，仍驗證 503 fail closed 與 429 額度；同步檢具離頁／送審共用 fixture 至現行本機保存契約。原始 Draft PR #81 的 CI 與本機後續結果分列，不宣稱跨品質替換全部原子化。[調查與邊界](../docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。
+
 分類／群組、檢具、校正與照片先在頁面完成，明確一次原子 Save；修改可存取、送審分開，unknown 保留原收據及寫入鎖並可離頁。修正取消表單清掉其他本機批次與既有群組照片不能移除的問題。未發布，四品質模組替換的全部原子統一仍建置中。 [候選與驗證](../docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
 
 ## 2026-11-04 — Unknown Begin recovery candidate

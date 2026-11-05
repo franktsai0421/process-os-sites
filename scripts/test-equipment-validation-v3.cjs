@@ -6,22 +6,19 @@ const { DatabaseSync } = require('node:sqlite');
 const { randomUUID } = require('node:crypto');
 const { chromium } = require('playwright');
 const harness = require('./ipqc-ab-import-harness.cjs');
+const storage = require('./equipment-test-storage.cjs');
 const fixture = require('./v3-quality-growth-fixture.cjs');
 
 (async () => {
   const db = new DatabaseSync(':memory:'), objects = new Map();
   let browser;
   try {
-    db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER,"values" TEXT,updated_at TEXT);CREATE TABLE state_backups(id TEXT PRIMARY KEY,revision INTEGER,"values" TEXT,reason TEXT,actor TEXT,created_at TEXT)');
+    storage.migrate(db);
     const env = { PROCESS_SESSION_SECRET: randomUUID(), STATE_ARCHIVE: {
       async put(key, value) { objects.set(key, value); },
       async get(key) { return objects.has(key) ? { body: objects.get(key), text: async () => objects.get(key) } : null; },
       async head(key) { return objects.has(key) ? {} : null; },
-    }, DB: { prepare(sql) { let args = []; return {
-      bind(...values) { args = values; return this; },
-      async first() { return db.prepare(sql).get(...args) || null; },
-      async run() { return { meta: { changes: Number(db.prepare(sql).run(...args).changes) } }; },
-    }; } } };
+    }, DB: storage.d1(db) };
     const load = harness(env), core = load('lib/process-state.ts');
     const f = fixture('routine-equipment', [{ id: 'a'.repeat(64), bytes: 1 }], 1, 3);
     const password = randomUUID(), values = { ...f.values, platformUsers: JSON.stringify(['a', 'b'].map(id => ({
@@ -51,7 +48,7 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
       const result = await response.json(); assert.equal(response.status, 200, JSON.stringify(result)); return result;
     };
     const patch = (id, field, value) => ({ op: 'set', path: ['equipment', { id }, field], value });
-    await command('apply', { patches: [patch('row0', 'enabled', false), patch('row2', 'name', '')], guards: [{ path: patch('row0', 'enabled').path, value: true }] });
+    await command('apply', { patches: [patch('row0', 'enabled', false), patch('row2', 'name', '')], guards: [{ path: patch('row0', 'enabled').path, value: true },{path:patch('row2','name').path,value:f.flow.working.equipment.find(row=>row.id==='row2').name}] });
     await command('save');
     const beforeFailure = await read();
     browser = await chromium.launch({ ...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{channel:'chrome'}), headless: true });
@@ -61,7 +58,7 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
     page.on('dialog', dialog => dialog.accept(dialog.type() === 'prompt' ? 'Kiểm tra vấn đề của bản đã lưu' : undefined));
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
-      if (url.pathname === '/fixture') return route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/process/styles.css"><link rel="stylesheet" href="/process/routine-equipment.css"><main id="data-content" data-active-tab="quality-routine-equipment"></main><script>window.ProcessSync={identity:${JSON.stringify(actor)},platformHeaders:()=>({'Content-Type':'application/json'})};window.hasPermission=()=>true;localStorage.setItem('processUILanguage','vi');</script><script src="/process/shared-draft-client.js"></script><script src="/process/routine-equipment.js"></script><script>RoutineEquipmentUI.mount(document.querySelector('#data-content'))</script></html>` });
+      if (url.pathname === '/fixture') return route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/process/styles.css"><link rel="stylesheet" href="/process/routine-equipment.css"><main id="data-content" data-active-tab="quality-routine-equipment"></main><script>window.ProcessSync={identity:${JSON.stringify(actor)},platformHeaders:()=>({'Content-Type':'application/json'}),identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:value=>value===1,requiresReload:false};window.hasPermission=()=>true;window.bindDataInner=()=>{};localStorage.setItem('processUILanguage','vi');</script><script src="/process/shared-draft-client.js"></script><script src="/process/version-draft-ui.js"></script><script src="/process/routine-equipment.js"></script><script>RoutineEquipmentUI.mount(document.querySelector('#data-content'))</script></html>` });
       if (url.pathname.startsWith('/process/')) return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(path.join('public', url.pathname)) });
       if (url.pathname.endsWith('/photo')) return route.fulfill({ status: 404 });
       if (url.pathname.startsWith('/api/')) {
@@ -73,11 +70,12 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
       }
       return route.fulfill({ status: 404 });
     });
-    await page.goto('https://fixture/fixture');
+    await page.clock.install();await page.goto('https://fixture/fixture');
     await page.locator('#routine-search').fill('NO_MATCH');
     const submit = async () => {
       const count = calls.length;
       await page.locator('#routine-submit').click();
+      await page.locator('.vd-confirm textarea').fill('Kiểm tra vấn đề của bản đã lưu');await page.locator('.vd-confirm button[type=submit]').click();
       await page.waitForFunction(() => !document.querySelector('#routine-submit')?.disabled);
       assert.equal(calls.length, count + 1, 'submission never silently saves');
       assert.equal(calls.at(-1).action, 'submit');
@@ -93,6 +91,8 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
     assert.equal(await page.locator('[data-routine-issue-kind][open]').count(), 2);
     assert.ok((await page.locator('[data-routine-issue-kind="missing"]').innerText()).includes(beforeFailure.saved.id));
     assert.ok((await page.locator('[data-routine-issue-kind="error"]').innerText()).includes('tiêu chuẩn'));
+    assert.equal((await submit()).status,422,'retry still validates the same saved snapshot');
+    assert.equal(await page.locator('[data-routine-issue-kind] .routine-error-item').count(),2,'retry replaces rather than duplicates issues');
     const originalSubmit = await page.locator('#routine-submit').evaluate(button => document.activeElement === button);
     assert.equal(originalSubmit, true, 'new issues must not steal keyboard focus');
     for (const width of [1366, 390]) {
@@ -119,9 +119,9 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
     await page.locator('#routine-editor').waitFor({ state: 'detached' });
     assert.equal(await page.locator('[data-routine-issue-kind="missing"] .routine-error-item').count(), 1, 'working repair cannot erase saved-snapshot issue');
     assert.deepEqual((await read()).saved, beforeFailure.saved);
-    assert.equal((await submit()).status, 422, 'unchanged saved snapshot still fails');
-    assert.equal(await page.locator('[data-routine-issue-kind] .routine-error-item').count(), 2, 'retry replaces rather than duplicates issues');
-    await page.evaluate(() => localStorage.setItem('processUILanguage', 'zh'));
+    const beforeBlocked=calls.length;await page.locator('#routine-submit').evaluate(button=>button.click());assert.equal(calls.length,beforeBlocked,'local unsaved repair must not submit an older saved snapshot');
+    assert.deepEqual((await read()).saved,beforeFailure.saved);assert.equal(await page.locator('[data-routine-issue-kind] .routine-error-item').count(),2,'local repair retains original saved issues');
+    await page.evaluate(() => {document.documentElement.lang='zh';localStorage.setItem('processUILanguage','zh');window.dispatchEvent(new Event('process-language-change'));});
     await page.locator('#routine-save').click();
     await page.waitForFunction(() => !document.querySelector('#routine-save')?.disabled);
     assert.equal(await page.locator('[data-routine-issue-kind]').count(), 0, 'new save invalidates old validation, without declaring it valid');
@@ -129,7 +129,9 @@ const fixture = require('./v3-quality-growth-fixture.cjs');
     assert.equal(await page.locator('[data-routine-issue-kind="missing"]').count(), 0);
     assert.ok((await page.locator('[data-routine-issue-kind="error"]').innerText()).includes('正式標準'));
     await command('apply', { patches: [patch('row0', 'enabled', true)], guards: [{ path: patch('row0', 'enabled').path, value: false }] });
-    await page.waitForFunction(() => document.querySelector('#routine-shared-status')?.textContent.includes('尚未手動儲存'), {}, { timeout: 12000 });
+    // Advance the real browser's existing 30s poll timer deterministically; no product timing change.
+    await page.clock.fastForward(30000);
+    await page.waitForFunction(() => document.querySelector('[data-vd-saved]')?.textContent.includes('尚未儲存'), {}, { timeout: 12000 });
     await page.locator('#routine-save').click();
     await page.waitForFunction(() => !document.querySelector('#routine-save')?.disabled);
     assert.equal((await submit()).status, 200);
