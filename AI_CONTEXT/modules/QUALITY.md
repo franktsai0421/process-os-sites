@@ -1,3 +1,7 @@
+## 2026-11-05 — Equipment local editing / atomic Save candidate
+
+Equipment forms/hierarchy/calibration/photos now stage in RAM. `save-local-v1` stages guarded Apply and allocation before one persisted Save; edit includes Save, submit remains separate and rechecks local input after confirmation. Exact normal POST authority is opt-in; unknown Begin/Save retains original receipt/guards and permits local abandonment. No quality product adapters or cross-module transaction changes. [Verification and remaining transfer boundary](../../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
+
 ## 2026-11-04 combined candidate
 
 FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. IPQC C maps server-assigned codes of earlier same-batch created rows before dependency comparison and preserves explicitly supplied optional creation reasons; existing/user-field guards remain exact. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).

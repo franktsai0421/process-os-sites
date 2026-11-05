@@ -1,3 +1,7 @@
+## 2026-11-05 — 檢具本機編輯／原子 Save 獨立候選
+
+由 #77 / `0af6d57e912e5615250959c9e76210fecd55d96b` 建立 `feature/equipment-atomic-save-20261105`。完成表單只留本機，原 guards 下的一次 Save 保存檢具全模組；原收據恢復與無提示離頁保留 unknown barrier。跨品質設備替換維持既有各 scope Apply／manual Save，完整統一尚需交易邊界決策；不能宣稱已全部完成。不合併／部署或變更真實資料。 [實作、驗證、既有 fixture 失敗與交付界線](docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

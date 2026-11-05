@@ -1,3 +1,7 @@
+## 2026-11-05 — Equipment local atomic Save
+
+No SQL/table/migration/data conversion. Equipment reuses existing workflow receipts and #77 Begin markers; Save retains the original complete command in the existing actor/endpoint session marker. Photo bytes may be staged, but shared photoId references and allocated codes become effective only with the final Save CAS. [Evidence](../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
+
 ## 2026-11-04 — Begin receipt candidate
 
 Add Begin identity/receipt metadata to the existing workflow receipt map, plus a content-free actor/module browser recovery marker. No SQL migration, legacy-data rewrite or automatic deletion. Old unidentified Begin outcomes remain unprovable. [Exact protocol and compatibility limits](models/V3.md).

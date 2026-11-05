@@ -1,3 +1,7 @@
+## 2026-11-05 — 檢具本機草稿候選
+
+分類／群組、檢具、校正與照片先在頁面完成，明確一次原子 Save；修改可存取、送審分開，unknown 保留原收據及寫入鎖並可離頁。修正取消表單清掉其他本機批次與既有群組照片不能移除的問題。未發布，四品質模組替換的全部原子統一仍建置中。 [候選與驗證](../docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).
