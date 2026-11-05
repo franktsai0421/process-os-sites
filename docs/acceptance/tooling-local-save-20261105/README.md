@@ -117,3 +117,24 @@ contracts (208). Typed lint, TypeScript and source-boundary checks also passed f
 code, workflow command, permissions, data, test deadlines or passing assertions
 were removed or relaxed. Fresh PR-head CI remains the remote gate; Linux fixture
 results do not substitute for the Windows runner.
+
+
+## PR #78 cache-tag contract follow-up
+
+Run [41946082533](https://github.com/franktsai0421/process-os-sites/actions/runs/41946082533)
+passed steps 13, 16 and 19, then failed step 21 at the exact cache-tag assertion
+in `shared-draft-receipt-recovery.test.mjs`. The full log shows expected
+`shared-draft-client.js?v=20261104-begin-receipt1` versus actual
+`shared-draft-client.js?v=20261105-tooling-local-save1`. This is a stale test
+expectation: the changed shared client and tooling module already use the new
+coordinated tag in the entry HTML. Tooling CSS is unchanged and keeps its tag.
+The production bundler also hashes script contents for emitted bundle names.
+
+The test now pins the current shared-client tag and additionally pins tooling JS
+and CSS. The exact single-reference deep-equality checks for every original asset
+remain, including the existing FQC and recovery versions. No wildcard/version
+fallback, product change, workflow change or safety relaxation is involved.
+The receipt/terminal/restore and script/style build group passes all 86 tests.
+The full step-21 command replay and fresh PR-head CI are recorded separately in
+the handoff; earlier passing production-code checks remain applicable because
+this follow-up changes only the test and this evidence note.
