@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
 
-const passed=[],errors=[],requests=[];let fixture,browser;
+const passed=[],errors=[],requests=[];let fixture,browser,stage='setup';
 const out='.sites-runtime/feedback-queues';fs.mkdirSync(out,{recursive:true});
-async function check(name,run){await run();passed.push(name);console.log('PASS '+name);}
+async function check(name,run){stage=name;await run();passed.push(name);console.log('PASS '+name);}
 try {
   fixture=await createFeedbackFixture();const original=await fixture.businessState();
   browser=await chromium.launch({headless:true,...(process.env.FEEDBACK_BROWSER_PATH?{executablePath:process.env.FEEDBACK_BROWSER_PATH}:{}),args:['--disable-background-networking']});
@@ -18,7 +18,7 @@ try {
     await page.goto(fixture.origin+'/login?view=data&dataTab=web-feedback');await page.locator('#id').fill(id);await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();await page.evaluate(()=>{document.documentElement.lang='zh';window.WebFeedback.routeChanged();});return {context,page};
   }
   const owner=await login('frank'),{page}=owner;
-  const call=(context,action,data)=>data===undefined?context.request.get(fixture.origin+'/api/web-feedback?action='+action):context.request.post(fixture.origin+'/api/web-feedback?action='+action,{data,headers:{Origin:fixture.origin}});
+  const call=(context,action,data)=>data===undefined?context.request.get(fixture.origin+'/api/web-feedback?action='+action,{maxRetries:1}):context.request.post(fixture.origin+'/api/web-feedback?action='+action,{data,headers:{Origin:fixture.origin}});
   const guards={'shared-draft-unknown-synthetic':'{"operationId":"unchanged-original","unknown":true}', 'shared-draft-receipt-only-v1:synthetic':'receipt-only-v1','synthetic-operation-identity':'retain-original-generation'};
   await page.evaluate(values=>{for(const [key,value]of Object.entries(values))sessionStorage.setItem(key,value);},guards);
   const assertGuards=async()=>assert.deepEqual(await page.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,sessionStorage.getItem(k)])),Object.keys(guards)),guards);
@@ -84,4 +84,9 @@ try {
     assert.deepEqual(await fixture.businessState(),original);assert.deepEqual(errors,[]);
   });
   fs.writeFileSync(out+'/result.json',JSON.stringify({status:'PASS',programCommit:fixture.programCommit,buildEntrySha256:fixture.buildEntrySha256,browser:browser.version(),passed,notRun:['connected central event data/authorization/history (requires model decision)','native IME','physical device','cross-machine','hosted/live data']},null,2));
+} catch(error) {
+  // Never print Playwright's request log: it can contain even synthetic cookies.
+  const site=String(error?.stack||'').match(/web-feedback-queues-browser\.test\.mjs:(\d+):(\d+)/);
+  const failure={status:'FAIL',stage,errorName:['AssertionError','TimeoutError','Error'].includes(error?.name)?error.name:'OTHER',location:site?{line:Number(site[1]),column:Number(site[2])}:null,passed};
+  fs.writeFileSync(out+'/result.json',JSON.stringify(failure,null,2));console.error(JSON.stringify(failure));process.exitCode=1;
 } finally {await browser?.close();await fixture?.close();}
