@@ -44,6 +44,9 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   Object.assign(box,{syncBase:structuredClone(f.working),localRejection:null,formOwners:new WeakMap(),matrixOwner:()=>false,transport:()=>client});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sharedFields=','  function transport(')+sourceBlock(source,'  function changes(','  async function reconcileLocalConflict('),box);
  }
+ // Tooling now owns a document-local candidate; its actual departure closure
+ // reads and clears these variables even when no editor dialog is open.
+ if(name==='tooling')Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});
  if(name==='iqc-master'){box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
@@ -204,4 +207,22 @@ void test('IQC stale owner cannot discard local memory before ownership checks f
 void test('IQC local-only memory abandons without saving legacy shared working',async()=>{
  const f=fixture('iqc-master'),b=f.box,shared=JSON.stringify(f.flow);b.localSnapshot={value:'local'};b.localBase={value:'base'};b.localGeneration='generation';
  const lease=await f.adapter.abandon();assert.equal(b.localSnapshot,null);assert.equal(b.localBase,null);assert.equal(b.localGeneration,null);assert.equal(JSON.stringify(f.flow),shared);assert.equal(f.writes,0);lease.release();
+});
+
+for(const revoked of [false,true])void test(`tooling: document-local candidate abandons ${revoked?'after edit revocation':'without an open form'} while retaining shared state`,async()=>{
+ const f=fixture('tooling'),b=f.box;
+ b.localBase={tools:[{id:'synthetic-tool',notes:'server basis'}]};
+ b.localSnapshot={tools:[{id:'synthetic-tool',notes:'unsent local change'}]};
+ b.localGeneration=f.flow.generation;
+ f.flow.receipts={original:{operationId:'retained-receipt'}};
+ f.flow.cases=[{id:'retained-case',content:{notes:'fixed snapshot'}}];
+ const before=JSON.stringify(f.flow);
+ if(revoked)f.allowed(false);
+ assert.equal(b.dialog,null);
+ const status=f.adapter.inspect();assert.equal(status.state,'dirty');assert.equal(status.canAbandon,true);
+ const lease=await f.adapter.abandon();
+ assert.equal(f.adapter.inspect().state,'departing');
+ for(const key of ['localBase','localSnapshot','localGeneration'])assert.equal(b[key],null);
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+ assert.equal(b.root.inert,true);lease.release();assert.equal(b.root.inert,false);
 });

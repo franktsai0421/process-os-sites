@@ -90,3 +90,30 @@ TypeScript, lint, source boundary and fixed-commit production build passed.
 The build validates source output only, not hosted behavior. Final PR CI remains
 an independent gate. Expected synthetic 409/503 responses are deliberate conflict
 and lost-ACK injections, not suppressed test failures.
+
+
+## PR #78 integration-fixture follow-up
+
+The first Local safety run [41944768115](https://github.com/franktsai0421/process-os-sites/actions/runs/41944768115)
+reported failures in step 13 (departure integration) and step 16 (submission
+contracts). Replaying those steps at `aa840c8` reproduced 13 tooling departure
+failures and 10 tooling submission failures: the synthetic VM fixtures extracted
+current tooling closures but omitted their document-local state variables, causing
+`ReferenceError: localSnapshot is not defined` (and confirmation-count fallout).
+The real tooling module declares these variables; the previously passed actual
+handler/native-browser evidence is unaffected by this tests-only repair.
+
+The fixtures now initialize `localBase`, `localSnapshot`, `localGeneration` and,
+for the Save/Submit fixture, `pendingLocalSave`, matching the actual clean module
+state. All prior assertions remain. Added three assertions-based cases exercise
+local-memory abandonment without a dialog, abandonment after edit revocation,
+and refusal to submit completed unsaved local edits; shared state, saved content,
+case/receipt data and local-input retention are explicitly checked.
+
+Local replay PASS: exact six-file pinned performance baseline; step 13 baseline
+checks (2), departure/integration tests (446), and all six subsequent paired
+performance scripts; step 16 authentication/replay tests (54) and full submission
+contracts (208). Typed lint, TypeScript and source-boundary checks also passed for this follow-up. No product
+code, workflow command, permissions, data, test deadlines or passing assertions
+were removed or relaxed. Fresh PR-head CI remains the remote gate; Linux fixture
+results do not substitute for the Windows runner.
