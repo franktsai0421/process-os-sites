@@ -15,6 +15,13 @@ pass('Anonymous rejected',await call('list',undefined,'anonymous'),401);pass('Di
 env.WEB_FEEDBACK_ENABLED='0';pass('Unconfigured environment disabled',await call('list'),404);env.WEB_FEEDBACK_ENABLED='1';
 pass('Cross-origin mutation denied',await call('submit',{},'employee',{headers:{Origin:'http://evil.invalid'}}),403);
 pass('Employee capabilities',await call('capabilities'));
+const beforeAvailability=db.prepare('SELECT revision,payload FROM web_feedback_store WHERE id=1').get();
+for(const user of ['employee','other','restricted'])pass('Central source metadata refuses non-admin '+user,await call('access-queue',undefined,user),403);
+pass('Central source metadata rejects anonymous',await call('access-queue',undefined,'anonymous'),401);
+const availability=await call('access-queue',undefined,'admin');pass('Admin sees honest disconnected source',availability);assert.deepEqual(availability.body,{available:false,coverage:'not-connected',lastUpdatedAt:null,events:[],reason:'CENTRAL_EVENT_SOURCE_NOT_CONNECTED'});
+pass('Source metadata cannot be mutated',await call('access-queue',{},'admin'),404);
+assert.deepEqual(db.prepare('SELECT revision,payload FROM web_feedback_store WHERE id=1').get(),beforeAvailability);
+
 pass('JSON stream size bounded without content-length',await call('submit',Buffer.alloc(200_001,32)),413);
 // Generate a valid large transparent PNG rather than the old CRC-invalid stub.
 const png=require('../tests/photo-fixtures.mjs').pngFixture({alpha:true});
@@ -34,7 +41,7 @@ pass('Unauthorized source page denied',await call('submit',{...body,operationId:
 const beforeCount=JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.length;
 pass('Atomic batch refuses invalid second marker',await call('submit',{operationId:randomUUID(),markers:[{...m,id:randomUUID(),attachments:[]},{...m,id:randomUUID(),attachments:['missing']}]}),403);
 assert.equal(JSON.parse(db.prepare('SELECT payload FROM web_feedback_store').get().payload).issues.length,beforeCount);
-const publicList=await call('list',undefined,'other');pass('Company user sees public cases',publicList);assert.equal(publicList.body.issues.length,2);assert.equal(publicList.body.issues[0].attachments.length,0);assert(!JSON.stringify(publicList.body).includes('locator'));assert(!JSON.stringify(publicList.body).includes('notes'));assert(!JSON.stringify(publicList.body).includes('reporterId'));
+const publicList=await call('list',undefined,'other');pass('Company user sees public cases',publicList);assert.equal(publicList.body.issues.length,2);assert.equal(publicList.body.source.coverage,'authorized-feedback-store-only');assert.equal(publicList.body.source.kind,'submitted-feedback');assert(!Number.isNaN(Date.parse(publicList.body.source.readAt)));assert.equal(publicList.body.issues[0].attachments.length,0);assert(!JSON.stringify(publicList.body).includes('locator'));assert(!JSON.stringify(publicList.body).includes('notes'));assert(!JSON.stringify(publicList.body).includes('reporterId'));
 pass('Different employee cannot retrieve original image',await call('image&id='+attachment.body.id,undefined,'other'),403);
 const image=await call('image&id='+attachment.body.id);pass('Reporter retrieves authorized image',image);assert.deepEqual(image.body,savedPhoto);
 pass('Coworker with original access envelope can view image',await call('image&id='+attachment.body.id,undefined,'peer'));

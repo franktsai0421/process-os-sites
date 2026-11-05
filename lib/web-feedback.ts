@@ -114,6 +114,12 @@ export async function handleFeedback(request: Request) {
   if(request.method!=='GET'&&!sameOrigin(request)) return json({error:'ORIGIN_DENIED'},403);
   if(request.method!=='GET'&&state.values.maintenanceMode==='1') return json({error:'MAINTENANCE'},503);
   if(action==='capabilities'&&request.method==='GET') return json({enabled:permissions.create,permissions,admin,account:user.id,limits:{images:6,bytes:5_000_000,markers:20}});
+  // This is source availability, never an inventory of browser unknown markers.
+  // Receipt GETs are actor-bound and cannot prove an absent write will not commit.
+  if(action==='access-queue'&&request.method==='GET') {
+   if(!admin)return json({error:'ADMIN_REQUIRED'},403);
+   return json({available:false,coverage:'not-connected',lastUpdatedAt:null,events:[],reason:'CENTRAL_EVENT_SOURCE_NOT_CONNECTED'});
+  }
   const {revision,data}=await read();
   if(request.method==='GET') {
    if(action==='image') {
@@ -141,7 +147,7 @@ export async function handleFeedback(request: Request) {
     for(const id of i.attachments) {const a=attachmentIndex.get(id); if(a && await authorizedImage(request,state,user,a)) attachments.push({id:a.id,name:a.name,type:a.type,size:a.size,sha256:a.sha256});}
     issues.push(admin?{...i,attachments}:{id:i.id,batchId:i.batchId,reporter:i.reporter,createdAt:i.createdAt,description:i.description,status:i.status,location:{display:i.location.display,view:i.location.view,tab:i.location.tab,system:i.location.system},attachments,restrictedImages:i.attachments.length-attachments.length});
    }
-   return json({admin,permissions,issues});
+   return json({admin,permissions,issues,source:{kind:'submitted-feedback',coverage:'authorized-feedback-store-only',revision,readAt:now()}});
   }
   if(request.method!=='POST') return json({error:'METHOD_NOT_ALLOWED'},405);
   if(action==='upload') {

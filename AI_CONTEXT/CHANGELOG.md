@@ -1,3 +1,7 @@
+## 2026-11-05 — 網頁問題回報雙來源候選（未發布）
+
+新增分開的小幫手／存取待確認頁，小幫手待處理與可恢復完成歷史、100 筆分頁。存取來源未接通時明示範圍與同步未知；新匯出顯示待確認選項。無新事件保存或共用草稿／權限變更。[現行需求](../docs/specs/current/WEB_FEEDBACK.md)。
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

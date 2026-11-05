@@ -1,3 +1,9 @@
+## 2026-11-05 雙來源候選（未發布）
+
+原管理入口新增小幫手／存取待確認分頁。小幫手沿既有案件 API，預設 open、完成歷史可重開，清單每頁最多 100 筆。source metadata 只代表已提交案件的本次授權讀取。存取頁按原登入／feedback.view／ADMIN 規則讀取 `action=access-queue` 的未接通狀態；獨立 `web-feedback-access.mjs` 不讀取瀏覽器未知標記、不接收未審定的事件資料、不寫入收據。來源錯誤或不支援投影一律明示未知，不宣告同步完成。
+
+新匯出 UI 僅呈現待選欄位／格式；保留舊交接 API 和不可變歷史。未新增集中事件保存、操作處理歷史或權限。最新需求與未決項見 [正式規格](../../docs/specs/current/WEB_FEEDBACK.md)。定向驗證：`tests/web-feedback-access.test.mjs`、`tests/web-feedback-queues-browser.test.mjs` 與既有 feedback API／cloud 測試；實際執行結果另報。
+
 ## 2026-10-29 隔離回報／小幫手修復（未發布）
 
 本次使用者授權取代下方歷史 Local-only 工作範圍；仍不允許 merge 或覆蓋既有站台。驗證與整合事項見 [本次交付](../../docs/web-feedback/20261029-isolated-helper.md)。

@@ -83,3 +83,5 @@
  .wf-admin nav{align-items:stretch}.wf-admin nav button{flex:1 1 auto}
  .wf-admin [data-counts]{flex-basis:100%;order:2}
 }
+
+.wf-queue-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.wf-queue-tabs [aria-selected="true"]{background:#164e63;color:white}.wf-source{font-size:13px;color:#475569;overflow-wrap:anywhere}.wf-pagination,.wf-access-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}.wf-admin .wf-list{overflow-wrap:anywhere}.wf-admin button:focus-visible{outline:3px solid #0e7490;outline-offset:2px}

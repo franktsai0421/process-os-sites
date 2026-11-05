@@ -1,3 +1,7 @@
+## 2026-11-05 雙來源管理候選
+
+沒有 schema、migration、持久欄位或新事件保留。既有 feedback list 新增非持久 source metadata（來源、讀取時間、revision、範圍）；access-queue GET 僅回未接通及 null 最後同步，不回傳跨帳號收據。集中事件的保存／投影／處理歷史需另作決策。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。
+
 ## 2026-11-04 — Begin receipt candidate
 
 Add Begin identity/receipt metadata to the existing workflow receipt map, plus a content-free actor/module browser recovery marker. No SQL migration, legacy-data rewrite or automatic deletion. Old unidentified Begin outcomes remain unprovable. [Exact protocol and compatibility limits](models/V3.md).

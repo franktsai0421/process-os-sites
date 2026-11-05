@@ -1,3 +1,7 @@
+# 2026-11-05 — Feedback dual-source candidate
+
+Independent from main `2b58eae`; only feedback UI/API, synthetic tests and focused documentation. Helper pending/completed views reuse existing storage and authority. Access-confirmation source is explicitly disconnected; centralized retention/authorization/history and the new export format remain decisions. No shared workflow/client changes, migration, live data, merge or deployment. Exact validation is reported with the candidate commit; source and test files describe partial implementation only.
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).
