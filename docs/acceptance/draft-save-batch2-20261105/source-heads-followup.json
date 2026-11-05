@@ -1,0 +1,69 @@
+{
+  "checkedAtUTC": "2026-11-05 04:32:06 UTC",
+  "heads": [
+    {
+      "pr": 77,
+      "head": "0af6d57e912e5615250959c9e76210fecd55d96b",
+      "base": "85fa4a36442b3b72323eb4a6eeb105b867c4856a",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "pr": 78,
+      "head": "03249249a844017bdc22aa922c030534eb0a4cb2",
+      "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "pr": 79,
+      "head": "8c4a73bb76256d0c66797a27a5fa52a8952327ae",
+      "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+      "draft": true,
+      "state": "open"
+    },
+    {
+      "pr": 80,
+      "head": "d05a85eab2a49e735a604078873578898edf1535",
+      "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+      "draft": true,
+      "state": "open"
+    }
+  ],
+  "ci": [
+    {
+      "run": 41964702710,
+      "jobs": [
+        {
+          "id": 127038901985,
+          "status": "completed",
+          "conclusion": "failure",
+          "failed": [
+            "Integrated entry and read-only delivery contracts"
+          ],
+          "active": []
+        }
+      ]
+    },
+    {
+      "run": 41967667273,
+      "jobs": [
+        {
+          "id": 127048322731,
+          "status": "in_progress",
+          "conclusion": null,
+          "failed": [],
+          "active": [
+            "Source-only history and upload safety"
+          ]
+        }
+      ]
+    }
+  ],
+  "changeSincePriorRecord": {
+    "pr": 79,
+    "previous": "950720277ce151434b1697958a2ab753d039b55c",
+    "current": "8c4a73bb76256d0c66797a27a5fa52a8952327ae",
+    "otherSourcesUnchanged": true
+  }
+}

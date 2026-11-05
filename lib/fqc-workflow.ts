@@ -12,6 +12,7 @@ const fields={errors:['name','isDeleted'],items:['name','description','errorId',
 const text=(value:unknown)=>typeof value==='string'?value:typeof value==='number'?String(value):'';
 export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  let root:{schemaVersion:number;libraries:Record<string,FqcLibrary>},numbers:Map<string,number|string>,abGuard:{versionId:string;codes:string[]}|null=null;
+ let effectiveEquipment=new Map<string,{enabled?:boolean}>();
  const matrixCatalog=new WeakMap<object,{code:string;category?:string;name?:string;specification?:string}[]|null>();
  return{key:'qualityMasterControl',scope:'fqc',empty:()=>({errors:[],items:[]}),photoPrefix:'fqc/photos/',photoIds:()=>[],
    preparedModel:true,permissionOnlyRead:true,recordMutation:'fqc-existing-set',fqcLifecycle8Mutation:true,
@@ -28,6 +29,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    const matrixProducts=abGuard&&Array.isArray(master?.active?.AB?.products)?master.active.AB.products:null;
    const eq=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:{id:string;status:string;equipment:{id:string;enabled?:boolean;assetCode:string;pieceMark:string;name?:string;nameVi?:string;spec?:string;photoId?:string}[]}[]};
    const choices=new Map((eq.versions?.find(v=>v.id===eq.activeVersionId&&v.status==='approved')?.equipment||[]).map(e=>[e.id,e]));
+   effectiveEquipment=choices;
    const result:DraftContext<FqcSnapshot>={...base,activeId:control.activeVersionId,
     semantic:content=>({errors:content.errors.filter(e=>!e.isDeleted),items:content.items.filter(i=>!i.isDeleted)}),
     restoreContent(historical,current){for(const collection of ['errors','items'] as const)for(const row of current[collection])if(!historical[collection].some(old=>old.id===row.id))(historical[collection] as Row[]).push({...cloneDraft(row),isDeleted:true});return historical;},
@@ -129,6 +131,9 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     }else{if(p.op!=='set'||p.path.length!==3||!entity||typeof entity==='string'||typeof field!=='string'||!fields[collection].includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
      if(!flow.working[collection].some(r=>r.id===entity.id&&!r.isDeleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
      if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
+     // Explicit selection must remain effective even when its ID is unchanged.
+     // Untouched historical references retain the ordinary Save/structure rules.
+     if(collection==='items'&&field==='equipmentId'&&typeof p.value==='string'&&p.value&&(!effectiveEquipment.has(p.value)||effectiveEquipment.get(p.value)?.enabled===false))throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
     }
    }return applyDraftCommand(flow,{...command,patches},{...context,commandFingerprint:context.commandFingerprint||stableDraftJSON(command)});
   }

@@ -74,7 +74,7 @@
   let renderMaster=()=>render();
   let dataReady=Promise.resolve(), deliveryGeneration=0, dataError=null;
   const ownsDelivery=generation=>generation===deliveryGeneration&&!window.ProcessSync?.requiresReload;
-  const shared=window.createMasterSharedBridge({control,onChange:()=>render()});
+  const shared=window.createMasterSharedBridge({control,processLocalSave:true,onChange:()=>render()});
   function persist(scope=state.masterScope) {
     if(['AB','C','PROCESS'].includes(scope))return shared.execute(scope,'apply');
     localStorage.setItem(STORAGE, JSON.stringify(control));
@@ -161,7 +161,7 @@
     return;
   }
   async function saveDraft() {
-    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu toàn bộ nội dung đã đồng bộ.':'已儲存全員已同步內容。');renderMaster();return true;}catch(error){toast(displayDraftError(error));return false;}
+    try{const result=await shared.execute(state.masterScope,'save');if(!result)return false;toast(document.documentElement.lang==='vi'?'Đã lưu bản nháp chung.':'已存取共用草稿。');renderMaster();return true;}catch(error){toast(displayDraftError(error));return false;}
   }
   function validateCatalog(catalog) {
     const errors = [],
@@ -1128,28 +1128,29 @@
   }
   let moduleDeparture;
   const departureScope=()=>state.dataTab==='process-master'?'PROCESS':state.masterScope;
-  const departureDialogs=()=>[...document.querySelectorAll('#master-edit-dialog[open]')];
+  const departureDialogs=()=>[...document.querySelectorAll(departureScope()==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')];
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
     control: () => control,
     canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),
     navigation:{
-      get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
-        root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>departureScope()==='PROCESS',
+      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
+        root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
+        sharedOwned:()=>false,
         context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
         busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
         unknownTransports:()=>[shared.client(departureScope())],discardUnknown(){this.discard();},
-        local:()=>departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
+        local:()=>shared.localDirty(departureScope())||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
         canSave:()=>shared.permissions(departureScope())?.save===true,
         canDiscard:()=>shared.permissions(departureScope())?.edit===true,
         save:()=>shared.execute(departureScope(),'save'),
-        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();closeDepartureDialogs();},
+        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal(departureScope());if(departureScope()==='PROCESS')window.ProcessEquipment?.abandon?.();closeDepartureDialogs();},
         dialogs:departureDialogs,closeClean:closeDepartureDialogs,
-      });},
+      }),{get autoAbandon(){return true;},allowUnload:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.()});},
       requiresSave(){
         if(state.view!=='data'||!['AB','C','lines','line-admin','process-master'].includes(state.dataTab))return false;
-        const flow=shared.flow(state.dataTab==='process-master'?'PROCESS':state.masterScope);
-        return !!flow&&!flow.pendingId&&JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content??flow.active?.content);
+        return false;
+
       },
       async saveForDeparture(){
         const scope=state.dataTab==='process-master'?'PROCESS':state.masterScope;

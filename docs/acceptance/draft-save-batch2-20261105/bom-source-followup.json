@@ -1,0 +1,88 @@
+{
+  "recordedAt": "2026-11-05T04:32:06.768645+00:00",
+  "priorIntegration": "d2ef6760cb5645a8b85e3d0f9cac7f3f1b5cee21",
+  "newSource79": "8c4a73bb76256d0c66797a27a5fa52a8952327ae",
+  "scope": "Local test-only integration of PR79 follow-up; no product/API/frontend/lockfile/data/schema changes. No push, PR, main merge or deployment.",
+  "sharedWorkflowSha256": "30f7e9c9d5de3207bb89eba34fb3b82d23b965d4e77d3d191b5fa5115be309d9",
+  "historicalContractsAndIntegratedProjectionUnchanged": true,
+  "newExactBOMInputHash": "6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0",
+  "exactInputAdmission": "Buffers only. Original Begin source or exact BOM-only source or exact integrated union source. BOM-only helper cannot accept union bytes; wrong file/hash or string/Uint8Array rejects. No generic matcher broadened.",
+  "tests": [
+    {
+      "name": "projection",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "node --test tests/bom-workflow-source-contract.test.cjs",
+      "localLog": "/tmp/batch2-bom-followup-projection.log",
+      "logSha256": "0401a066412d2f3ef032cc90561d6c3566c4978980fde4fa3396c23e5e21b471",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "five-module-old-server",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "node scripts/test-workflow-begin-old-server.cjs",
+      "localLog": "/tmp/batch2-bom-followup-oldserver.log",
+      "logSha256": "807e9829ed1687212e91d1ae135eb281793d12fce70e061dbfe9e75b13b97e06",
+      "modules": [
+        "fqc",
+        "iqc",
+        "ipqc-c",
+        "process-authoring",
+        "bom"
+      ],
+      "assertions": "Each422 COMMAND_REQUIRED with full persistence/D1/R2/receipts unchanged."
+    },
+    {
+      "name": "begin-regressions",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "node --test tests/workflow-begin-contract.test.cjs tests/workflow-begin-receipt.test.cjs tests/shared-draft-begin-v1.test.mjs tests/module-begin-recovery.test.mjs tests/iqc-begin-generation.test.mjs",
+      "localLog": "/tmp/batch2-bom-followup-begin.log",
+      "logSha256": "af09bf8fb684c98c48d32c60af46dbdd818b62b870f355bc98ca1df26230896e",
+      "tests": 87,
+      "pass": 87,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "historical-bounded",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "node scripts/test-ipqc-c-bounded-read.cjs",
+      "localLog": "/tmp/batch2-bom-followup-bounded.log",
+      "logSha256": "bfcf613e77c5f1078d3d90934832a96a24c5526b4fe6c7705ae46d998ebd8f1c",
+      "groups": 9
+    },
+    {
+      "name": "historical-permissions",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "node scripts/test-ipqc-c-permissions-read.cjs",
+      "localLog": "/tmp/batch2-bom-followup-permissions.log",
+      "logSha256": "5d1540250383755f471c9affc7ff1a2a7a0a31038feb7bda344c486ad2d8c28b",
+      "groups": 8
+    },
+    {
+      "name": "lint",
+      "status": "PASS",
+      "exitCode": 0,
+      "command": "npm run lint -- --format unix",
+      "localLog": "/tmp/batch2-bom-followup-lint.log",
+      "logSha256": "c12a802375a88d94ee1fe2b433f24e289fbdfd44da3adf11787865dc5664ed64"
+    }
+  ],
+  "newWindowsGate": "New ten-case test command immediately before five-module old-server runner; each has original LASTEXITCODE propagation. Static exact once-occurrence and windows-latest checked by case10; actual Windows execution NOT_RUN.",
+  "reusedEvidence": "Prior product build/compiled browsers/TypeScript remain valid for byte-identical product. These test-only changes did not rerun or re-label product evidence.",
+  "fullWindowsCI": {
+    "status": "BLOCKED",
+    "result": "NOT_RUN",
+    "url": null,
+    "reason": "Local-only scope; prior public upload denial remains and was not retried. Source-head CI is separate."
+  },
+  "sourceStatusRecord": "source-heads-followup.json",
+  "historicalRecord": "verification.json remains the original run evidence with dated results; this file supplies the new test/source follow-up."
+}

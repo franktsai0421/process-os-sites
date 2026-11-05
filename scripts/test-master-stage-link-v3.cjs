@@ -10,7 +10,7 @@ db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(JSON.stringify({platf
 const url=scope=>'http://fixture/api/master/workflow?scope='+scope+'&caseMetadata=1';
 async function get(scope,who='a',query=''){const r=await api.GET(new Request(url(scope)+query,{headers:sessions[who]}));assert.equal(r.status,200);return r.json();}
 async function post(scope,who,body,expected=200){const r=await api.POST(new Request(url(scope),{method:'POST',headers:sessions[who],body:JSON.stringify(body)})),data=await r.json();assert.equal(r.status,expected,JSON.stringify(data));return data;}
-async function cmd(scope,who,action,detail={}){return{action,...detail,operationId:randomUUID(),clientId:'stage-link-'+who,sequence:seq[scope+who]=(seq[scope+who]||0)+1,generation:(await get(scope,who)).control.workflow.generation};}
+async function cmd(scope,who,action,detail={}){const current=(await get(scope,who)).control.workflow;return{action,...detail,operationId:randomUUID(),clientId:'stage-link-'+who,sequence:seq[scope+who]=(seq[scope+who]||0)+1,generation:current.generation,...(action==='submit'?{expectedRevision:current.revision}:{})};}
 async function run(scope,who,action,detail={},expected=200){return post(scope,who,{command:await cmd(scope,who,action,detail)},expected);}
 async function state(){const s=await core.readState();return{s,root:JSON.parse(s.values.masterDataControl)};}
 let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS '+name);}
@@ -22,6 +22,8 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
  await check('T45 necessary templates only, pinned fixed case; saved-only stage snapshot',async()=>{
   await run('AB','a','apply',{patches:[{op:'insert',path:['lines',{id:'lines:A'},'stages'],value:newStage}]});const saved=(await run('AB','b','save')).control.workflow.saved;
   await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}],guards:[{path:['products',{id:'products:A1'},'name'],value:'Sản phẩm'}]});
+  assert.equal((await run('AB','a','submit',{savedId:saved.id,reason:'Reject unsaved working'},409)).error,'UNSAVED_CHANGES_SAVE_REQUIRED');
+  await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'Sản phẩm'}],guards:[{path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}]});
   const submitted=await run('AB','a','submit',{savedId:saved.id,reason:'Thêm công đoạn và mẫu bắt buộc'}),record=(await get('AB','a','&caseId='+submitted.receipt.caseId)).reviewCase;
   assert.equal(record.linkedProcess.baseVersionId,'PROCESS-active');assert.deepEqual(record.linkedProcess.added,['A-NEW']);assert.deepEqual(record.linkedProcess.removed,[]);assert.deepEqual(record.linkedProcess.before,root.active.PROCESS);
   assert.deepEqual(record.linkedProcess.content['A-CUT'],root.active.PROCESS['A-CUT']);assert.deepEqual(record.linkedProcess.content['A-NEW'],copy(link.stageDefaultTemplates('A-NEW')));assert.equal(record.content.products[0].name,'Sản phẩm');

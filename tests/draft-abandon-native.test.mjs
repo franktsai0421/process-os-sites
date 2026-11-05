@@ -8,13 +8,26 @@ const browserOptions={headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTAB
 const launch=()=>chromium.launch(browserOptions);
 const ready=(page,view)=>page.waitForFunction(view=>window.ProcessSync?.destination?.view===view&&document.documentElement.dataset.processNavigationStatus==='ready',view);
 async function contextFor(browser,f,width,lang){const context=await browser.newContext({viewport:{width,height:850},serviceWorkers:'block'});await context.route('**/*',route=>new URL(route.request().url()).origin===f.url.origin?route.continue():route.abort());await context.addInitScript(lang=>localStorage.setItem('processUILanguage',lang),lang);return context;}
-for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C abandonment drops form and leaves shared edits untouched ${width} ${lang}`,async()=>{
+for(const [width,lang]of [[390,'zh'],[1280,'vi']])void test(`compiled AB/C abandonment drops unsent form and completed edits while preserving explicit Save ${width} ${lang}`,async()=>{
  const f=await createABCFixture(),browser=await launch(),context=await contextFor(browser,f,width,lang);try{
-  await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);const page=await context.newPage(),posts=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});page.on('dialog',d=>void d.accept());
-  await openNativeABDraft(page,f.url.origin+'/process/?system=process&view=data&dataTab=AB');await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill('Shared committed input');await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});
-  await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill('Abandon this unsubmitted input');const before=posts.length,shared=await page.evaluate(()=>JSON.stringify(window.MasterDataWorkflow.shared.flow('AB')));
-  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','C'));const button=page.locator('[data-departure-choice="abandon"]');assert(await button.isEnabled());assert((await button.boundingBox()).height>=44);await button.click();await page.waitForFunction(()=>window.ProcessSync.destination.dataTab==='C'&&document.documentElement.dataset.processNavigationStatus==='ready');
-  assert.equal(posts.length,before);await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','AB'));await page.locator('[data-product-edit="A001"]').waitFor();assert.equal(await page.evaluate(()=>JSON.stringify(window.MasterDataWorkflow.shared.flow('AB'))),shared);await page.locator('[data-product-edit="A001"]').click();assert.equal(await page.locator('#master-edit-dialog [name=name]').inputValue(),'Shared committed input');assert.equal(posts.length,before);assert.deepEqual(errors,[]);
+  await context.addCookies([{name:'process_demo',value:f.cookie(),url:f.url.origin}]);const page=await context.newPage(),posts=[],errors=[],prompts=[];
+  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push({url:r.url(),body:r.postDataJSON()});});page.on('dialog',d=>{prompts.push(d.type());void d.dismiss();});
+  const persisted=()=>f.db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').first();
+  const edit=async(name,complete=true)=>{await page.locator('[data-product-edit="A001"]').click();await page.locator('#master-edit-dialog [name=name]').fill(name);if(complete){await page.locator('#master-edit-dialog [type=submit]').click();await page.locator('#master-edit-dialog').waitFor({state:'detached'});}};
+  await openNativeABDraft(page,f.url.origin+'/process/?system=process&view=data&dataTab=AB');await page.locator('[data-product-edit="A001"]').waitFor();
+  const initial=await persisted(),afterBegin=posts.length;
+  await edit('Shared committed input');assert.equal(posts.length,afterBegin,'completion never writes shared working');assert.deepEqual(await persisted(),initial);
+  await page.locator('#master-save-draft').click();await page.waitForFunction(()=>!MasterDataWorkflow.shared.busy()&&!MasterDataWorkflow.shared.localDirty('AB')&&!!MasterDataWorkflow.shared.flow('AB')?.saved);
+  assert.equal(posts.length,afterBegin+1);assert.equal(posts.at(-1).body.command.action,'save');
+  assert.equal(await page.evaluate(()=>MasterDataWorkflow.shared.flow('AB').saved.content.products.find(p=>p.code==='A001').name),'Shared committed input');
+  const saved=await persisted(),shared=await page.evaluate(()=>JSON.stringify(MasterDataWorkflow.shared.flow('AB'))),before=posts.length;
+  await edit('Completed but never saved');await edit('Abandon this unsubmitted input',false);assert.equal(posts.length,before);assert.deepEqual(await persisted(),saved);
+  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','C'));await page.waitForFunction(()=>window.ProcessSync.destination.dataTab==='C'&&document.documentElement.dataset.processNavigationStatus==='ready');
+  assert.equal(await page.locator('[data-navigation-departure]').count(),0);assert.equal(await page.locator('#master-edit-dialog').count(),0);assert.equal(posts.length,before);assert.deepEqual(await persisted(),saved);
+  await page.evaluate(()=>void window.ProcessDeliveryNavigation.navigate('data','AB'));await page.locator('[data-product-edit="A001"]').waitFor();
+  assert.equal(await page.evaluate(()=>JSON.stringify(MasterDataWorkflow.shared.flow('AB'))),shared);assert.equal(await page.evaluate(()=>MasterDataWorkflow.shared.localDirty('AB')),false);
+  await page.locator('[data-product-edit="A001"]').click();assert.equal(await page.locator('#master-edit-dialog [name=name]').inputValue(),'Shared committed input');
+  assert.equal(posts.length,before);assert.deepEqual(await persisted(),saved);assert.deepEqual(errors,[]);assert.deepEqual(prompts,[]);
  }finally{await context.close();await browser.close();await f.close();}
 });
 for(const [width,lang]of [[390,'vi'],[1280,'zh']])void test(`compiled process abandonment never performs server inverse or saves ${width} ${lang}`,async()=>{

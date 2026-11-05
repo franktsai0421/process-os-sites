@@ -10,6 +10,30 @@
 
 沒有 schema、migration、持久欄位或新事件保留。既有 feedback list 新增非持久 source metadata（來源、讀取時間、revision、範圍）；access-queue GET 僅回未接通及 null 最後同步，不回傳跨帳號收據。集中事件的保存／投影／處理歷史需另作決策。[需求與界線](../docs/specs/current/WEB_FEEDBACK.md)。
 
+## 2026-11-05 BOM 原子保存命令
+
+BOM `save-local-v1` 只增加命令輸入 `input.operations[]`（原手動 patches/guards 或 Digiwin moduleAction/input），依序在記憶體驗證再一次 CAS 保存既有 working／saved／receipt。Begin opt-in 沿用現有 workflow receipt 與 session journal。未新增實體、資料欄位、SQL schema、migration、binding 或回填；舊版本、import metadata 與引用保留。[契約與驗證](../docs/acceptance/bom-atomic-save-20261105/README.md)。
+
+## 2026-11-05 PROCESS master local Save candidate
+
+PROCESS master reuses `save-local-v1` ordered batches: guarded intermediate Apply results exist only within one Save request; a successful CAS persists working, saved snapshot and receipt together. Browser overlays are not persisted business records. Template/equipment IDs, media storage, authoring/history references and linked AB/C cases retain their existing model. No schema or data migration. [Behavior and evidence](../docs/acceptance/process-local-save-20261105/README.md).
+
+## 2026-11-05 AB/C atomic Save candidate: no persistence migration
+
+The AB/C editor retains a RAM-only overlay and ordered guarded batches until explicit `save-local-v1`. The command uses existing `DraftCommand` input/receipt persistence and one shared-state CAS to save working plus its immutable saved snapshot. Begin markers add an actor+AB/C scoped client key; they do not create a business-data scope/table. Existing master AB/C/PROCESS control, IDs, category defaults, effective routes, linked cases and inline/R2/records-v1 formats remain. No SQL/schema/data conversion or cleanup. [Contract and evidence](../docs/acceptance/abc-local-save-20261105/README.md).
+
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+追加未發送證明只保留於 client 私有 WeakMap／attempt sequence，不新增持久欄位。不能從既有 journal 或 receipt 404 推論未執行；已送／不確定標記保留。
+
+審查後：新來源 Begin journal 在發送前保存原 operationId；舊 version 1 journal 仍讀取／保留。FQC-only `beginWithIdentity` 沿用原 begin-v1 wire shape，沒有 SQL／schema／migration。
+
+FQC 替換 caller 新增 actor-scoped version 1 來源 journal，記錄原 intent／basis／phase／command 供原收據核對；不存未送表單或照片 bytes。沒有 DB／R2 schema、migration 或資料轉換。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — Equipment local atomic Save
+
+No SQL/table/migration/data conversion. Equipment reuses existing workflow receipts and #77 Begin markers; Save retains the original complete command in the existing actor/endpoint session marker. Photo bytes may be staged, but shared photoId references and allocated codes become effective only with the final Save CAS. [Evidence](../docs/acceptance/equipment-local-atomic-save-20261105/README.md).
+
 ## 2026-11-04 — Begin receipt candidate
 
 Add Begin identity/receipt metadata to the existing workflow receipt map, plus a content-free actor/module browser recovery marker. No SQL migration, legacy-data rewrite or automatic deletion. Old unidentified Begin outcomes remain unprovable. [Exact protocol and compatibility limits](models/V3.md).

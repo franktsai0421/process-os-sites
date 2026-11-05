@@ -14,7 +14,7 @@ const load=harness(env),api=load('app/api/master/workflow/route.ts'),legacy=load
 const url=scope=>'http://fixture/api/master/workflow?scope='+scope;
 async function get(scope,who='a',query=''){const r=await api.GET(new Request(url(scope)+query,{headers:sessions[who]}));assert.equal(r.status,200);return r.json();}
 async function send(scope,who,body){const r=await api.POST(new Request(url(scope),{method:'POST',headers:sessions[who],body:JSON.stringify(body)}));return{status:r.status,body:await r.json()};}
-async function command(scope,who,action,detail={}){return{operationId:randomUUID(),clientId:'fixture-'+who+scope,sequence:sequence[who+scope]=(sequence[who+scope]||0)+1,generation:(await get(scope,who)).control.workflow.generation,action,...detail};}
+async function command(scope,who,action,detail={}){const current=(await get(scope,who)).control.workflow;return{operationId:randomUUID(),clientId:'fixture-'+who+scope,sequence:sequence[who+scope]=(sequence[who+scope]||0)+1,generation:current.generation,...(action==='submit'?{expectedRevision:current.revision}:{}),action,...detail};}
 async function run(scope,who,action,detail={}){const r=await send(scope,who,{command:await command(scope,who,action,detail)});assert.equal(r.status,200,JSON.stringify(r.body));return r.body;}
 const set=(field,value)=>({op:'set',path:['products',{id:'products:A1'},field],value});
 // Explicit captured fixture baseline only; never read/rebase a stale command here.
@@ -31,7 +31,7 @@ async function check(name,fn){await fn();results.push({name,status:'PASS'});cons
  });
  await check('master T02/T08 all-user synchronization and saved-only immutable submission',async()=>{
   const baseline=(await get('AB','a')).control.workflow.working;await run('AB','a','apply',fixtureSetGuards(baseline,[set('name','Tên A')]));await run('AB','b','apply',fixtureSetGuards(baseline,[set('specification','Quy cách B')]));const saved=(await run('AB','b','save')).control.workflow.saved;
-  assert.equal(saved.content.products[0].name,'Tên A');assert.equal(saved.content.products[0].specification,'Quy cách B');await run('AB','a','apply',fixtureSetGuards((await get('AB','a')).control.workflow.working,[set('name','Not saved')]));const result=await run('AB','a','submit',{savedId:saved.id,reason:'Sửa dữ liệu'});assert.equal(result.control.workflow.cases.at(-1).content.products[0].name,'Tên A');
+  assert.equal(saved.content.products[0].name,'Tên A');assert.equal(saved.content.products[0].specification,'Quy cách B');await run('AB','a','apply',fixtureSetGuards((await get('AB','a')).control.workflow.working,[set('name','Not saved')]));const unsaved=await send('AB','a',{command:await command('AB','a','submit',{savedId:saved.id,reason:'Must reject stale snapshot'})});assert.equal(unsaved.body.error,'UNSAVED_CHANGES_SAVE_REQUIRED');await run('AB','a','apply',fixtureSetGuards((await get('AB','a')).control.workflow.working,[set('name','Tên A')]));const result=await run('AB','a','submit',{savedId:saved.id,reason:'Sửa dữ liệu'});assert.equal(result.control.workflow.cases.at(-1).content.products[0].name,'Tên A');
   const denied=await send('AB','b',{command:await command('AB','b','apply',fixtureSetGuards(result.control.workflow.working,[set('name','bypass')]))});assert.equal(denied.status,409);await run('AB','reviewer','approve',{caseId:result.receipt.caseId});
   const stored=JSON.parse((await core.readState()).values.masterDataControl);assert.equal(stored.active.AB.products[0].name,'Tên A');assert.deepEqual(stored.active.C,original.active.C);
  });

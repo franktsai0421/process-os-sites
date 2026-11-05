@@ -1,0 +1,484 @@
+{
+  "status": "PASS",
+  "baseline": {
+    "status": "PASS",
+    "mode": "legacy",
+    "sourceCommit": "0af6d57e912e5615250959c9e76210fecd55d96b",
+    "sourceSha256": "147c81736cdf48aec76570b12209eadc32a4268d8dc823edc9a4867d919dd11a",
+    "environment": "Node24 actual handlers / synthetic in-memory SQLite+R2 / fresh five samples per scope and format",
+    "workload": "10 guarded ordered name edits + Save; existing open draft; no Begin, browser or Site timing",
+    "summaries": [
+      {
+        "scope": "AB",
+        "format": "inline",
+        "medianMs": 40.032330999999886,
+        "httpPOST": 11,
+        "CAS": 11
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "medianMs": 55.32062799999994,
+        "httpPOST": 11,
+        "CAS": 11
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "medianMs": 127.95195399999989,
+        "httpPOST": 11,
+        "CAS": 11
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "medianMs": 134.769859,
+        "httpPOST": 11,
+        "CAS": 11
+      }
+    ],
+    "samples": [
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 0,
+        "ms": 66.59289799999999,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 1,
+        "ms": 39.96636699999999,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 2,
+        "ms": 48.076036000000045,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 3,
+        "ms": 37.98923300000001,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 4,
+        "ms": 40.032330999999886,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 0,
+        "ms": 56.365348999999924,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 1,
+        "ms": 60.79511300000013,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 2,
+        "ms": 55.064963000000034,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 3,
+        "ms": 50.03819599999997,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 4,
+        "ms": 55.32062799999994,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 77
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 0,
+        "ms": 159.87217800000008,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 1,
+        "ms": 149.38824899999986,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 2,
+        "ms": 127.95195399999989,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 3,
+        "ms": 124.50685199999998,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 4,
+        "ms": 127.80309100000022,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 0,
+        "ms": 135.25226999999995,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 1,
+        "ms": 130.3545479999998,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 2,
+        "ms": 129.31835999999976,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 3,
+        "ms": 143.56958599999962,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 4,
+        "ms": 134.769859,
+        "httpPOST": 11,
+        "httpGET": 0,
+        "CAS": 11,
+        "sql": 176
+      }
+    ]
+  },
+  "candidate": {
+    "status": "PASS",
+    "mode": "atomic",
+    "sourceCommit": "afa60b811fbec820e6a73cc483bda6de30402c4f",
+    "sourceSha256": "d7607eba050d7dc803aa493da122a5336c0142e9815c3e9306ef738789dbb675",
+    "environment": "Node24 actual handlers / synthetic in-memory SQLite+R2 / fresh five samples per scope and format",
+    "workload": "10 guarded ordered name edits + Save; existing open draft; no Begin, browser or Site timing",
+    "summaries": [
+      {
+        "scope": "AB",
+        "format": "inline",
+        "medianMs": 6.930745999999999,
+        "httpPOST": 1,
+        "CAS": 1
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "medianMs": 8.71667100000002,
+        "httpPOST": 1,
+        "CAS": 1
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "medianMs": 16.83815699999991,
+        "httpPOST": 1,
+        "CAS": 1
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "medianMs": 19.97938299999987,
+        "httpPOST": 1,
+        "CAS": 1
+      }
+    ],
+    "samples": [
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 0,
+        "ms": 16.59538299999997,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 1,
+        "ms": 8.253303999999957,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 2,
+        "ms": 6.498475999999982,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 3,
+        "ms": 6.930745999999999,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "inline",
+        "run": 4,
+        "ms": 6.5816010000000915,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 0,
+        "ms": 9.163264000000026,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 1,
+        "ms": 8.71667100000002,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 2,
+        "ms": 7.805351000000087,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 3,
+        "ms": 9.450175000000172,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "AB",
+        "format": "records-v1",
+        "run": 4,
+        "ms": 7.947265000000016,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 7
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 0,
+        "ms": 16.08460500000001,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 1,
+        "ms": 22.770765999999867,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 2,
+        "ms": 16.01487999999995,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 3,
+        "ms": 19.90556700000002,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "inline",
+        "run": 4,
+        "ms": 16.83815699999991,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 0,
+        "ms": 18.557174000000032,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 1,
+        "ms": 24.302595999999994,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 2,
+        "ms": 17.48662299999978,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 3,
+        "ms": 19.97938299999987,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      },
+      {
+        "scope": "C",
+        "format": "records-v1",
+        "run": 4,
+        "ms": 20.549069000000145,
+        "httpPOST": 1,
+        "httpGET": 0,
+        "CAS": 1,
+        "sql": 16
+      }
+    ]
+  },
+  "reuse": "The final c91611a client-only observation fence does not change the measured handler bytes; candidate sourceSha256 matches the current master-workflow.ts. Five fresh samples per scope/format; sequential baseline/candidate, no parallel test commands during the pair. Synthetic handler workload, not browser or Site timing."
+}

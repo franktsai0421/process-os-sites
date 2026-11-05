@@ -2,7 +2,7 @@
 /* oxlint-disable typescript/no-require-imports -- Existing browser controllers use the CommonJS VM harness. */
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 (async()=>{
- const D=await import('../public/process/bom-domain.mjs'),source=fs.readFileSync('public/process/bom-workspace.js','utf8'),fn=source.slice(source.indexOf(' async function finishImport('),source.indexOf(' async function save('));
+ const D=await import('../public/process/bom-domain.mjs'),source=fs.readFileSync('public/process/bom-workspace.js','utf8'),fn=source.slice(source.indexOf(' async function finishImport('),source.indexOf(' function save('));
  const row=(level,ordinal,code,name)=>['ROOT','.'.repeat(level)+level,ordinal,code,name,'','PCS','1','1','0'],base=D.parseMatrices([{name:'QA',rows:[D.columns,row(0,'','','Root'),row(1,'01','PART','Old')]}]);
  for(const mode of ['identical','keep','accept']){
   const incoming=structuredClone(base);if(mode!=='identical')incoming.ROOT[1].itemName='New';

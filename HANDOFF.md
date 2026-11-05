@@ -1,3 +1,7 @@
+# 2026-11-05 — Feedback integration with merged main
+
+Integrate main `bad04632d354f290850632976bf6eb69b8e2d3c9` (#85/#87) into Draft #86. Main pre-dispatch proofs, transfer, A/B and PROCESS late-input/ACK readback safeguards are retained; only metadata observations are added. Exact byte projection and historical inverses remain strict. Cache references combine both changes. Access collection remains default-off, candidate schema is not adopted, cold-start reporting gaps remain, and no live data/migration/merge/deployment occurs. Exact-head evidence and remote CI must be evaluated separately.
+
 # 2026-11-05 — Reporting review follow-up
 
 Cold reporting startup before any verified capability is intentionally memory-only: no unverified persistent collection; reload can lose that central copy while the original unknown guard remains. UI states the gap and current-queue scope. Full offline navigation without a cached shell is unsupported; reopening an identified original client may observe again, without business resend.
@@ -19,6 +23,62 @@ Draft PR #86 remains pinned to approved a08384a. The separate local follow-up co
 # 2026-11-05 — First feedback dual-source candidate (historical scope)
 
 Independent from main `2b58eae`; only feedback UI/API, synthetic tests and focused documentation. Helper pending/completed views reuse existing storage and authority. Access-confirmation source is explicitly disconnected; centralized retention/authorization/history and the new export format remain decisions. No shared workflow/client changes, migration, live data, merge or deployment. Exact validation is reported with the candidate commit; source and test files describe partial implementation only.
+
+## 2026-11-05 — PR87 Windows A/B follow-up
+
+Native Windows `4a9f2ec` logs expose two original failures: a pending scope-permission completion redraws the new-error form after typing; the narrow photo assertion can precede decode. The controller now captures input only for the unchanged owner (actor object/id, epoch/delivery, scope/generation, host/lifetime/client) and supplies that guard to the permission request. Stale replies cannot capture/repaint. The photo test awaits real decode before its unchanged complete/naturalWidth assertion; no test timeout or business/permission assertion is relaxed. The PR87-only diagnostic now checks out GitHub's PR merge commit, matching GITHUB_SHA and the unchanged source guard. [Reproduction, verification and remaining gates](docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
+
+## 2026-11-05 — Third-batch local source integration
+
+Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](docs/acceptance/draft-save-batch3-20261105/README.md).
+
+## 2026-11-05 — Draft PR85 Save readback follow-up
+
+Current integration is [Draft PR85](https://github.com/franktsai0421/process-os-sites/pull/85), targeting main after the separately completed PR77 merge. Earlier upload-denial entries below are historical snapshots; their public-disclosure approvals were subsequently obtained and publication succeeded. Keep Draft; this task does not merge, deploy or alter review/protection state.
+
+The actual AB/C bridge/handler reproduction at `25b35d39` found successful Save ACKs incorrectly falling through receipt recovery because POST control lacked fresh permissions. The follow-up reads authoritative state directly: normal Save is one POST + one GET + one CAS; lost ACK retains original receipt GET + authoritative GET and never resends. Readback refusals retain the sent operation instead of becoming write-rejection proof. Identity/epoch/delivery, generation, fresh access and original receipt checks remain; all four catalog fault-policy HOLD decisions are unchanged. Shared-client pin advances to `20261105-batch2-integration2`, preserving module tags and the exact server source inverse. [Reproduction, paired measurements and gates](docs/acceptance/draft-save-batch2-20261105/README.md). Final exact-head CI is recorded on PR85 without a reporting-only commit after verification.
+
+## 2026-11-05 — Second-batch isolated integration
+
+Tooling #78, latest BOM #79 `8c4a73b` test follow-up and AB/C #80 are locally integrated on fixed #77 with exact source projection and module cache contracts. The follow-up preserves the union hash, adds raw-Buffer rejection, ten dual-source contract cases, five-module historical rejection and the Windows test gate; product bytes are unchanged. Local integration, build and focused/compiled regressions PASS. Public GitHub source upload was denied by automatic approval review; no remote integration branch/PR was created and full integrated Windows CI is BLOCKED/NOT_RUN. Preserve the local branch/bundle pending exact public-publication authorization. No IPQC A/B candidate, main merge or deployment. [Evidence and gates](docs/acceptance/draft-save-batch2-20261105/README.md).
+
+## 2026-11-05 — Tooling second-batch dependent candidate
+
+Tooling local edits / atomic Save builds on fixed PR #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. Keep dependent PR base `integration/draft-save-20261104`; no repeated first-batch patches, merge, live-data operation or publication. [Implementation, isolated tests and remaining gates](docs/acceptance/tooling-local-save-20261105/README.md).
+
+## 2026-11-05 — BOM dependent atomic-Save candidate
+
+BOM-only increment from PR77 `0af6d57`: one ordered atomic Save, edit grants Save, checked silent departure and original-receipt Begin/Save recovery. Shared opt-ins must be semantically integrated with PR78/A/B. No merge, deployment, real data, migration or account change. [Scope, evidence and unrun gates](docs/acceptance/bom-atomic-save-20261105/README.md).
+
+## 2026-11-05 PROCESS master local Save independent candidate
+
+`feature/process-local-save-20261105` starts at fixed #80 `d05a85eab2a49e735a604078873578898edf1535`; intended PR base remains `feature/abc-local-save-20261105`, depends on #80→#77. Templates/name/type/photos and machine master use local input plus one guarded atomic Save. Receipt-only recovery and stage/reference/permission guards remain. [Implementation, verification and outstanding gates](docs/acceptance/process-local-save-20261105/README.md). Do not merge/deploy or mix the separately denied second-batch integration into this branch; routine FQC is excluded.
+
+## 2026-11-05 — AB/C local editing / atomic Save dependent candidate
+
+`feature/abc-local-save-20261105` starts from exact #77 `0af6d57e912e5615250959c9e76210fecd55d96b`. AB/C products/categories/routes and line/stage entry complete locally, then save ordered guards and snapshot through one CAS. Scoped durable Begin/Save recovery, permission/reference/history protections and pinned PROCESS stage approval remain. [Evidence, shared-file integration delta and remaining gates](docs/acceptance/abc-local-save-20261105/README.md). No merge/deployment/live data; BOM/tooling/IPQC A/B candidates are not included.
+
+## 2026-11-05 — FQC 檢具移轉並存取候選
+
+追加 preflight GET 503 的 0 POST 孤兒 intent 修正：只有私有 exact-attempt 未發送證據可退休自己的 intent，404／公開 notSent flags 無效。新最終 HEAD／CI 另核對。
+
+目前追加審查修復：明確設備同值重選也須在最終 CAS context 有效；來源先持久化 Begin ID，FQC-only beginWithIdentity 保留原身分且不自動續存。最終新 CI／獨立複核另核對。
+
+接續 #84／45545ef 實作已確認的 FQC 移轉並存取。一次 CAS、原操作唯讀恢復與跨頁未送表單保全；未合併或部署。 [實作與驗證界線](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 跨品質檢具替換安全候選
+
+本輪跨品質檢具替換沿 #81 固定基準獨立修正；不自動保存品質草稿，#82／#77 相依與待決保存範圍分開。 [範圍、待決與驗證](docs/acceptance/equipment-transfer-draft-20261105/README.md)。
+
+## 2026-11-05 — 檢具本機編輯／原子 Save 獨立候選
+
+後續：已依明確同意建立 Draft PR #81，仍 depends on #77、未合併／部署。舊 workflow／validation 的 LOGIN_LIMIT_UNAVAILABLE 已定位為 fixture 缺 DB.batch／既有 schema；合成 SQLite 修復在候選與固定基準通過，未動產品登入限制。兩個測試／文件提交已上傳至 `277964a`；其 exact-head CI 通過共用離頁／送審與檢具測試，另暴露舊伺服器來源契約未接檢具 opt-in 的固定雜湊。已補精確三處逆轉且保留全部原歷史 hash／offset／未知來源拒絕斷言，產品未變；最終結果須看最新 head CI。[修復、CI 證據與跨品質替換待決邊界](docs/acceptance/equipment-local-atomic-save-20261105/FOLLOWUP.md)。
+
+由 #77 / `0af6d57e912e5615250959c9e76210fecd55d96b` 建立 `feature/equipment-atomic-save-20261105`。完成表單只留本機，原 guards 下的一次 Save 保存檢具全模組；原收據恢復與無提示離頁保留 unknown barrier。跨品質設備替換維持既有各 scope Apply／manual Save，完整統一尚需交易邊界決策；不能宣稱已全部完成。不合併／部署或變更真實資料。 [實作、驗證、既有 fixture 失敗與交付界線](docs/acceptance/equipment-local-atomic-save-20261105/README.md)。
+
+## 2026-11-05 — IPQC A/B local editing and atomic Save candidate
+
+Draft [PR #82](https://github.com/franktsai0421/process-os-sites/pull/82), **depends on #77** `0af6d57`; intended base `integration/draft-save-20261104`. A/B forms, photos and matrix stage locally; one employee Save uses identified Begin only for initialization, then guarded atomic module Save. Original receipt recovery and safe unknown departure reuse the exact scoped #77 core. Edit includes Save; create/delete/submit remain separate. Prior candidates retained; the old denied delivery remains excluded. New acceleration source was separately authorized and uploaded. [Evidence, limits and handoff](docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Legacy caller tests are now migrated in place to current-source browser/handler checks; owner/completion fences and reload-without-snapshot recovery are covered. CI follow-ups migrate departure/submission/polling VM fixtures and compose a strict AB source inverse with the unchanged historical Begin proof. The entry follow-up restores confirmed-Save/read-denied feedback and strict epoch/delivery admission before any GET/POST; no backend permission, server protocol or safety-budget change. See the same report for validation and native Windows limits.
 
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 

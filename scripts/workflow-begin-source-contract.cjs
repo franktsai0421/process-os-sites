@@ -1,6 +1,7 @@
 /* Exact Begin-v1 inverse to cfb542926fa004392a3180b16aa887291fa74d4f handlers.
  * Historic source bytes/hashes are preserved; unrelated changes fail closed. */
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
+const {withoutBomWorkflowOptIn}=require('./bom-workflow-source-contract.cjs');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const contracts={
   "app/api/ipqc-c/workflow/route.ts": {
@@ -111,16 +112,51 @@ const contracts={
     ]
   }
 };
-// Narrow receipt-action metadata successor only. Remove the once-occurring
-// exact bytes, then require every unchanged original hash/offset below.
-const receiptMetadata={
- 'app/api/ipqc-c/workflow/route.ts':{hash:'67dfc685a2374aeba0e2c8f3154a3594c69e8526a0201794a29e0ce6ee07c25e',offset:9379},
- 'lib/versioned-shared-workflow.ts':{hash:'a91f78b66a5278ed250fc7587ae6807ce64648d6d905341916191324bb91dcce',offset:22429}
+// Exact reviewed integrated successor: IQC/tooling/BOM/AB-C Save permission,
+// Begin scope union, and BOM atomic-Save pre-CAS session revalidation.
+// Reverse exactly these three spans, then apply the unchanged historical inverse.
+const reviewedIntegratedOptIn={
+  "lib/versioned-shared-workflow.ts": {
+    "sourceHash": "30f7e9c9d5de3207bb89eba34fb3b82d23b965d4e77d3d191b5fa5115be309d9",
+    "rules": [
+      {
+        "before": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\r\n",
+        "after": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n"
+      },
+      {
+        "before": "          if(begin){if(!['fqc','iqc','process:platform'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n",
+        "after": "          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"
+      },
+      {
+        "before": "        if(begin&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"
+      }
+    ]
+  }
 };
-const metadataBytes=Buffer.from(",...(query.get('accessEvent')==='1'?{operationAction:action}:{})");
+function historicalBeginSource(bytes,file){
+ const contract=contracts[file];assert.ok(contract,'Unknown Begin-v1 source contract');
+ if(hash(bytes)===contract.afterHash)return bytes;
+ const reviewed=reviewedIntegratedOptIn[file];
+ assert.ok(reviewed&&hash(bytes)===reviewed.sourceHash,'Begin-v1 source differs from pinned bytes');
+ let result=Buffer.from(bytes);
+ for(const {before,after}of reviewed.rules){
+  const expected=Buffer.from(after),offset=result.indexOf(expected);
+  assert.ok(offset>=0&&result.lastIndexOf(expected)===offset,'Reviewed integrated source span must occur exactly once');
+  result=Buffer.concat([result.subarray(0,offset),Buffer.from(before),result.subarray(offset+expected.length)]);
+ }
+ assert.equal(hash(result),contract.afterHash,'Integrated projection changed the original Begin-v1 source');return result;
+}
 function withoutDurableBegin(bytes,file){
+ assert(Buffer.isBuffer(bytes),'Begin-v1 projection requires raw source bytes');
+ bytes=require('./access-event-source-contract.cjs').withoutAccessEventMetadata(bytes,file);
+ // Keep the exact reviewed BOM-only source as its own historical input;
+ // integrated source still requires its separate exact union hash above.
+ if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0')bytes=withoutBomWorkflowOptIn(bytes,file);
+ bytes=require('./batch3-workflow-source-contract.cjs').withoutBatch3OptIns(bytes,file);
+ if(file==='lib/versioned-shared-workflow.ts'){const ab=require('./ipqc-ab-local-save-source-contract.cjs');if(hash(bytes)===ab.afterHash)bytes=ab.withoutABLocalAtomicSave(bytes);}
+ bytes=historicalBeginSource(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
- if(hash(bytes)!==afterHash){const projection=receiptMetadata[file];assert.equal(hash(bytes),projection.hash,'Begin-v1 source differs from pinned bytes');assert.deepEqual(bytes.subarray(projection.offset,projection.offset+metadataBytes.length),metadataBytes);bytes=Buffer.concat([bytes.subarray(0,projection.offset),bytes.subarray(projection.offset+metadataBytes.length)]);}
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){
   const expected=Buffer.from(after);assert.deepEqual(result.subarray(offset,offset+expected.length),expected);

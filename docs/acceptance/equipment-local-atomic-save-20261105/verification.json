@@ -1,0 +1,73 @@
+{
+  "scope": "synthetic-only equipment candidate; not live acceptance",
+  "productHead": "be42c889411f64107bc9df158ab9038cdefd683a",
+  "base": "0af6d57e912e5615250959c9e76210fecd55d96b",
+  "sourceHashes": {
+    "public/process/routine-equipment.js": "368d07756e6b257ef7e000ab4617895205d7e10d85ba7b19035da498b2cc2ea3",
+    "public/process/shared-draft-client.js": "a9c13669204caabf0383309ef252b2b8882e5685030f897e48c0657dad7047c5",
+    "lib/equipment-workflow.ts": "5698203e328d6d7bb752462bb8922586aded195e85dbfa7e01d3daa770d447ec",
+    "lib/routine-equipment.ts": "6fbab93c440ccea90a5abeb4cbf84eb1545f731aaf660bbdce3bfd0677e10953",
+    "lib/versioned-shared-workflow.ts": "3d5e661d60d994ab1768f67ee2f0fd2aef70ef77431333148d62ff0824212d27",
+    "app/api/routine-equipment/photo/route.ts": "6a06285a89ff3d2c137a811d3c0ecb844149b5797bab8cd14ab32282f3ceba17"
+  },
+  "checks": {
+    "equipmentActualHandlersAndExactScope": {
+      "status": "PASS",
+      "tests": 18
+    },
+    "nativeBuiltAssetsAndFullCompiledSPA": {
+      "status": "PASS",
+      "tests": 10,
+      "breakdown": "9 combined native/compiled cases plus 1 category/subcategory/group/tool/photo creation case; built product assets and compiled Worker at productHead."
+    },
+    "equipmentIsolatedLifecycle": {
+      "status": "PASS",
+      "groups": 8
+    },
+    "fourModuleTransferActualHandlers": {
+      "status": "PASS",
+      "groups": 16
+    },
+    "sharedAndNavigation": {
+      "status": "PASS",
+      "tests": 176,
+      "sourceNote": "Shared opt-in/backend code and cache contracts unchanged since this run."
+    },
+    "lint": "PASS",
+    "typescript": "PASS",
+    "safeBuild": "PASS",
+    "sourceOnlyFinal": {
+      "status": "PASS",
+      "scanHead": "be42c889411f64107bc9df158ab9038cdefd683a",
+      "note": "Source-only history and worktree scan includes supporting docs. Final delivery commit is scanned again outside this report."
+    },
+    "exactHeadCI": "PENDING"
+  },
+  "knownBaselineFailures": [
+    {
+      "script": "scripts/test-equipment-workflow-v3.cjs",
+      "result": "FAIL",
+      "at": "login precondition",
+      "httpStatus": 503,
+      "reason": "LOGIN_LIMIT_UNAVAILABLE; old fixture lacks current login DB.batch capability",
+      "reproducedAtBase": true
+    },
+    {
+      "script": "scripts/test-equipment-validation-v3.cjs",
+      "result": "FAIL",
+      "at": "login precondition",
+      "httpStatus": 503,
+      "reason": "LOGIN_LIMIT_UNAVAILABLE; old fixture lacks current login DB.batch/schema",
+      "reproducedAtBase": true
+    }
+  ],
+  "notRun": [
+    "hosted Site",
+    "real data or photos",
+    "physical phone",
+    "physical Windows/cross-PC",
+    "native IME",
+    "real backup/restore/deployment"
+  ],
+  "transferAtomicUnification": "NOT_COMPLETE; existing per-scope Apply/manual Save retained and regression-tested. Needs transaction/Save authorization semantics decision."
+}

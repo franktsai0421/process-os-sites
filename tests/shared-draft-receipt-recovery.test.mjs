@@ -54,7 +54,27 @@ for(const endpoint of ['/api/quality-master/workflow','/api/iqc/workflow','/api/
 for(const endpoint of ['/api/process-authoring/workflow?channel=canvas','/api/iqc/workflow'])void test('GET deadline remains45s '+endpoint,async()=>{
  const f=deadlineFixture(endpoint),result=observe(f.client.read());await tick();await f.advance(44999);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);await f.advance(1);await result.done;assert.equal(result.error.name,'AbortError');assert.deepEqual(f.calls.map(c=>c.options.method),['GET']);assert.equal(f.memory.size,0);assert(!f.client.hasUnknown());
 });
-void test('changed matrix client, module and stylesheet cache tags are explicitly versioned',()=>{const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);for(const asset of ['local-draft-recovery.js','shared-draft-client.js','fqc-master.js','fqc-master.css'])assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+(asset==='local-draft-recovery.js'?'20261103-fqc-generation1':asset==='fqc-master.js'?'20261104-begin-generation2':asset==='shared-draft-client.js'?'20261105-events1':'20261104-single-save1')]);});
+void test('changed integrated client, modules and stylesheets cache tags are explicitly versioned',()=>{
+ const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
+ const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const versions={
+  'local-draft-recovery.js':'20261103-fqc-generation1',
+  'shared-draft-client.js':'20261105-events-batch3-1',
+  'fqc-master.js':'20261104-begin-generation2',
+  'fqc-master.css':'20261104-single-save1',
+  'tooling.js':'20261105-tooling-local-save1',
+  'tooling.css':'20261007-2',
+  'ipqc-ab.js':'20261105-ab-scope-input1',
+  'routine-equipment.js':'20261105-fqc-transfer-preflight1',
+  'process-equipment.js':'20261105-process-local-save1',
+  'app.js':'20261105-process-local-save1',
+  'bom-workspace.js':'20261105-bom-atomic1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
+  'master-shared-client.js':'20261105-process-local-save1',
+  'master-data.js':'20261105-process-local-save1',
+ };
+ for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
+});
 for(const action of ['save','begin'])void test('authoring '+action+' retains its original response contract during30s tolerance',async()=>{
  const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(action==='begin'?f.client.begin():f.client.command('g','save'));await tick();const body=JSON.parse(f.calls[0].options.body);await f.advance(30000);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);f.calls[0].respond(action==='begin'?{control:{workflow:{generation:'new'}}}:ack(body.command,{savedId:'saved'}));await result.done;assert.equal(result.error,undefined);assert.equal(action==='begin'?result.value.control.workflow.generation:result.value.receipt.savedId,action==='begin'?'new':'saved');assert.equal(f.calls.length,1);assert.equal(f.memory.size,0);
 });

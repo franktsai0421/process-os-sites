@@ -1,0 +1,104 @@
+{
+  "status": "PASS_SYNTHETIC_EQUIPMENT_SAVE_MEASUREMENT",
+  "beforeRef": "0af6d57e912e5615250959c9e76210fecd55d96b",
+  "afterHead": "ffecfcec14e509a94205e08298e3f0a2decc454e",
+  "samples": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "handlerMs": 40.719,
+      "wallMs": 42.377
+    },
+    {
+      "pair": 0,
+      "mode": "atomic",
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "handlerMs": 19.004,
+      "wallMs": 20.054
+    },
+    {
+      "pair": 1,
+      "mode": "atomic",
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "handlerMs": 20.995,
+      "wallMs": 22.036
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "handlerMs": 43.695,
+      "wallMs": 45.47
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "handlerMs": 37.724,
+      "wallMs": 39.711
+    },
+    {
+      "pair": 2,
+      "mode": "atomic",
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "handlerMs": 24.826,
+      "wallMs": 27.086
+    },
+    {
+      "pair": 3,
+      "mode": "atomic",
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "handlerMs": 19.223,
+      "wallMs": 20.74
+    },
+    {
+      "pair": 3,
+      "mode": "before",
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "handlerMs": 36.025,
+      "wallMs": 37.284
+    },
+    {
+      "pair": 4,
+      "mode": "before",
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "handlerMs": 35.16,
+      "wallMs": 36.331
+    },
+    {
+      "pair": 4,
+      "mode": "atomic",
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "handlerMs": 16.761,
+      "wallMs": 18.304
+    }
+  ],
+  "summary": {
+    "before": {
+      "n": 5,
+      "workflowPOSTs": 2,
+      "verificationGETs": 0,
+      "medianWallMs": 39.711,
+      "medianHandlerMs": 37.724
+    },
+    "atomic": {
+      "n": 5,
+      "workflowPOSTs": 1,
+      "verificationGETs": 0,
+      "medianWallMs": 20.74,
+      "medianHandlerMs": 19.223
+    }
+  },
+  "scope": "Pinned baseline Apply+Save versus candidate atomic Save. Separate child processes, identical isolated records-v1 SQLite/R2 setup: 1 category/subcategory/group, 2 tools, 1 changed field, no photo upload/network delay. Five alternating pairs; no warmup. Setup excluded. Exact normal POST authority; lost-ACK recovery GET measured separately by tests. Not hosted or business-data latency."
+}
