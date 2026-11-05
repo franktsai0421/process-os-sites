@@ -11,7 +11,7 @@ export function createAccessEventReporter({current,request,storage,onStatus=()=>
   async function sync(){
     assert();let capability;
     try{capability=await request('capabilities');assert();}
-    catch{if(current()){if(admitted)await persist();onStatus('offline');}return;}
+    catch(error){if(current()){if(admitted)await persist();onStatus(['FORBIDDEN','LOGIN_REQUIRED'].includes(error?.message)?'permission-denied':'offline');}return;}
     if(capability.enabled!==true){onStatus(capability.reason==='RETENTION_POLICY_REQUIRED'?'policy-required':'not-enabled');return;}
     admitted=true;await persist();
     for(const [id,value] of entries){
@@ -23,7 +23,7 @@ export function createAccessEventReporter({current,request,storage,onStatus=()=>
         await persist();
       }catch(error){if(current())onStatus(error?.message==='FORBIDDEN'?'permission-denied':'sync-failed');return;}
     }
-    onStatus(entries.size?'received-unknown':'received');
+    onStatus([...entries.values()].some(value=>!value.acked)?'permission-denied':entries.size?'received-unknown':'received');
   }
   return {
     observe(input){return serial(async()=>{await load();const event=minimalAccessObservation(input),id=key(event),previous=entries.get(id);if(event.phase==='receipt-observed'&&!previous)return;if(!previous&&entries.size>=100){onStatus('capacity');return;}entries.set(id,{event,acked:false});await sync();});},

@@ -52,8 +52,8 @@ export async function mountAccessQueue({host,t,current,request}) {
       if(value.available!==false||value.coverage!=='not-connected'||value.lastUpdatedAt!==null)throw Error('UNSUPPORTED_SOURCE');
       message.textContent=value.reason==='RETENTION_POLICY_REQUIRED'?t('事件保存政策尚待確認，集中收集尚未啟用。','Chưa xác nhận chính sách lưu sự kiện; chưa bật thu thập tập trung.'):t('集中事件來源尚未接通，不能確認所有使用者的待確認事件。','Nguồn tập trung chưa kết nối; chưa thể xác nhận sự kiện của mọi người dùng.');
       scope.textContent=t('來源範圍：未接通 · 最後同步：尚無證據。此處空白不代表沒有待確認操作。','Phạm vi: chưa kết nối · Đồng bộ cuối: chưa có bằng chứng. Danh sách trống không có nghĩa là không có thao tác chờ xác minh.');
-    } catch {
-      if(!alive())return;
+    } catch(error) {
+      if(!alive())return;if(['FORBIDDEN','LOGIN_REQUIRED'].includes(error?.message)){rows=[];permissions={};privateDetails=false;content.replaceChildren();}
       message.textContent=t('離線或來源讀取失敗；目前事件數量與同步完整性未知。','Ngoại tuyến hoặc không đọc được nguồn; chưa biết số lượng và mức đồng bộ.');
       scope.textContent=t('最後同步：尚無證據；請保留原模組的待確認操作。','Đồng bộ cuối: chưa có bằng chứng; giữ nguyên thao tác chờ xác minh ở mô-đun gốc.');
     } finally {if(alive())retry.disabled=false;}

@@ -22,3 +22,6 @@ void test('account change during a response cannot acknowledge or remove another
 void test('corrupt reporting storage is retained and never triggers transport or business cleanup',async()=>{
  let requests=0,writes=0;const reporter=createAccessEventReporter({current:()=>true,request:()=>{requests++;},storage:async mode=>mode==='read'?{corrupt:true}:writes++});await assert.rejects(reporter.flush(),/QUEUE_INVALID/);assert.equal(requests,0);assert.equal(writes,0);
 });
+void test('missing module permission cannot be advertised as successfully reported',async()=>{
+ const statuses=[];let posts=0;const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async()=>undefined,request:async action=>action==='capabilities'?{enabled:true,modules:[]}:(posts++,{received:true})});await reporter.observe(event());assert.equal(posts,0);assert.equal(statuses.at(-1),'permission-denied');
+});
