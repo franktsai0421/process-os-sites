@@ -11,7 +11,7 @@ const {accessKeys}=require('../public/process/access-policy.mjs');
 const user=(id,permission)=>({id,name:id,role:'staff',enabled:true,authMode:'platform',authEpoch:1,inheritRole:false,accessOverrides:Object.fromEntries(accessKeys.map(k=>[k,k===permission]))});
 const editor=user('ab-editor','ab.view');for(const key of ['ab.edit','ab.delete'])editor.accessOverrides[key]=true;
 const capabilities=(id,keys)=>{const account=user(id,'ab.view');for(const key of keys)account.accessOverrides[key]=true;return account;};
-const users=[user('ab-reader','ab.view'),editor,user('fqc-only','fqc.view'),user('denied',''),capabilities('ab-create',['ab.edit','ab.create']),capabilities('ab-restore',['ab.edit','ab.restore']),capabilities('ab-both',['ab.edit','ab.create','ab.restore']),capabilities('ab-no-edit',['ab.create','ab.restore']),capabilities('c-grants',['ab.edit','c.view','c.edit','c.create','c.restore'])];
+const users=[user('ab-reader','ab.view'),editor,user('fqc-only','fqc.view'),user('denied',''),capabilities('ab-create',['ab.edit','ab.create']),capabilities('ab-restore',['ab.edit','ab.restore']),capabilities('ab-both',['ab.edit','ab.create','ab.restore']),capabilities('ab-no-edit',['ab.create','ab.restore']),capabilities('c-grants',['ab.edit','c.view','c.edit','c.create','c.restore']),capabilities('ab-save-only',['ab.save'])];
 const snapshot={products:[{code:'QA-A',name:'Synthetic A',line:'A',category:'QA',stages:['A-CUT']}],lines:[{code:'A',name:'Synthetic A',stages:[{code:'A-CUT',name:'Cut'}]}],categoryGroups:[{line:'A',name:'QA'}]};
 const cSnapshot={products:[{code:'QA-C',name:'C',line:'C',category:'C',stages:['C-ST'],notes:'unneeded C '.repeat(20000)}],lines:[{code:'C',name:'C',stages:[{code:'C-ST',name:'C'}]}],categoryGroups:[]};
 const draftSnapshot={...structuredClone(snapshot),products:[{...snapshot.products[0],code:'DRAFT',notes:'unneeded draft '.repeat(20000)}]};
@@ -41,6 +41,14 @@ const checks=[],policyDifferences=[],legacyCosts=[];async function check(name,fn
  });
  await check('editor/delete metadata matches ordinary AB permissions without granting a write capability',async()=>{
   const full=await get(await request('ab-editor',fullPath)),narrow=await get(await request('ab-editor'));assert.equal(full.status,200);assert.equal(narrow.status,200);assert.deepEqual(narrow.body.permissions,full.body.permissions);assert.equal(narrow.body.permissions.edit,true);assert.equal(narrow.body.permissions.delete,true);
+ });
+ await check('AB Save metadata follows edit or explicit save while Submit remains independently denied',async()=>{
+  for(const [who,save]of [['ab-reader',false],['ab-editor',true],['ab-save-only',true],['ab-no-edit',false],['c-grants',true]]){
+   const full=await get(await request(who,fullPath)),narrow=await get(await request(who));assert.equal(full.status,200);assert.equal(narrow.status,200);assert.deepEqual(narrow.body.permissions,full.body.permissions,who+' complete permission DTO');assert.equal(narrow.body.permissions.save,save,who+' effective Save');assert.equal(narrow.body.permissions.submit,false,who+' independent Submit');assert.equal(narrow.body.control.workflow,undefined);assert.equal(narrow.body.control.versions.length,1);
+  }
+ });
+ await check('AB edit revocation between preflight and selected snapshot also revokes implied Save metadata',async()=>{
+  for(const path of [fullPath,narrowPath]){install(raw);let hit=false;onGet=objectKey=>{if(objectKey===envelope.__processRecords.values.platformUsers.key&&!hit){hit=true;const changed=users.map(u=>u.id==='ab-editor'?{...u,accessOverrides:{...u.accessOverrides,'ab.edit':false}}:u);install(JSON.stringify({...values,platformUsers:JSON.stringify(changed)}),18);}};const result=await get(await request('ab-editor',path));assert.equal(result.status,200);assert(hit);assert.equal(result.body.permissions.view,true);assert.equal(result.body.permissions.edit,false);assert.equal(result.body.permissions.save,false);assert.equal(result.body.permissions.submit,false);assert.equal(result.body.revision,18);onGet=null;}install(raw);
  });
  await check('explicit create/restore metadata matches full workflow without inferring edit or cross-scope grants',async()=>{
   for(const [who,create,restore]of [['ab-reader',false,false],['ab-editor',false,false],['ab-create',true,false],['ab-restore',false,true],['ab-both',true,true],['ab-no-edit',false,false],['c-grants',false,false]]){

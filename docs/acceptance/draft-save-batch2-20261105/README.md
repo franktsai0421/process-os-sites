@@ -1,6 +1,22 @@
 # Draft workflow batch 2 integration — 2026-11-05
 
-Isolated branch `integration/draft-save-batch2-20261105`, dependent on Draft #77. This is source-only integration of #78 tooling, #79 BOM and #80 AB/C, not a release approval. No main merge, draft-to-ready, protection/review change, deployment, business-data/schema migration or connector reconnection. The separately blocked IPQC A/B candidate and equipment candidate are excluded.
+Isolated branch `integration/draft-save-batch2-20261105`, published as [Draft #85](https://github.com/franktsai0421/process-os-sites/pull/85). This is source-only integration of #78 tooling, #79 BOM and #80 AB/C, not a release approval. No main merge, draft-to-ready, protection/review change, deployment, business-data/schema migration or connector reconnection by this task. The separately blocked IPQC A/B candidate and equipment candidate are excluded.
+
+## Current publication and Windows follow-up
+
+The upload denials described below are historical snapshots, resolved by subsequent explicit public-disclosure approvals. Initial published head `cd39cfbc8b151f6af34d94af6b66713c20fafb1f` has tree `a2943ee00ceebb73bb2dcd8e09fc48cb66f9ed65`, exactly equal to local candidate `f5c5caa2a334cc96d2873ed29545c102deac8ae3`. #77 was separately merged by the owner; #85 now targets main `2b58eaeabeaf0744e9658c47afb752cb5a5d97ca`, whose tree equals the original #77 dependency. No duplicate first-batch changes are included.
+
+| Exact initial published-head check | Result |
+| --- | --- |
+| [Full Windows Local safety 42001587993](https://github.com/franktsai0421/process-os-sites/actions/runs/42001587993), job 127157865383 | FAIL at step25, `Integrated entry and read-only delivery contracts`; prior steps1–24 PASS, downstream steps26–51 NOT_RUN |
+| [AB/C local Save 42001587965](https://github.com/franktsai0421/process-os-sites/actions/runs/42001587965) | PASS |
+| [IPQC-C local Save 42001587839](https://github.com/franktsai0421/process-os-sites/actions/runs/42001587839) | PASS |
+
+The full run used preview merge `20b9802ee5524df4c174f273150a0a505128e91e`, with the same tree as its published head. The original exact full/narrow permission-DTO comparison exposed a real integration bug: the full AB workflow reported edit-implies-Save, while the AB-only effective catalog reported raw Save permission. The follow-up applies the same edit-or-explicit-Save rule to catalog metadata, without adding writes, reads, Submit, create or restore capabilities, or expanding catalog scopes. C and PROCESS remain rejected by that AB-only catalog route.
+
+The original assertions remain intact. Added coverage compares complete permission DTOs for reader, editor, explicit-Save-only, create/restore-without-edit and cross-scope fixtures; independent Submit stays denied. A second case revokes AB edit between preflight and selected snapshot and requires both full/narrow metadata to revoke implied Save. The isolated catalog runner passes24 groups, preserving SQL/R2 cost assertions, partial-write rejection, integrity/fault behavior and all four original `HOLD_OWNER_FAULT_POLICY_DECISION` records. Those separate excluded-body fault-policy differences are not resolved by this change.
+
+Follow-up local PASS:104 AB authorization/replay/local-Save/bridge/lines tests (zero failures/skips), master workflow v3, stage-link and lines72+16 permission scripts, typed lint and full TypeScript. Shared workflow SHA256 and all historical inverse hashes/offsets stay unchanged. A fresh full Windows run on the updated published head is mandatory; initial-head PASS evidence cannot establish follow-up readiness. Final exact-head results are maintained on #85 so reporting does not itself invalidate that head.
 
 ## Pinned sources and preservation
 
@@ -11,7 +27,7 @@ Isolated branch `integration/draft-save-batch2-20261105`, dependent on Draft #77
 | #79 BOM | `8c4a73bb76256d0c66797a27a5fa52a8952327ae` (test-only follow-up to `9507202…`) |
 | #80 AB/C | `d05a85eab2a49e735a604078873578898edf1535` |
 
-The PR targets `integration/draft-save-20261104`, so its diff contains only this second batch. All source heads are retained as ancestors. [Byte preservation audit](source-preservation.json) compares independent files with their actual source heads. Original feature branches/PRs are untouched. Source-head rechecks and exact final CI are reported on the PR; a feature-head PASS cannot establish integrated readiness.
+The PR targets main after the separate #77 merge, so its diff contains only this second batch. All source heads are retained as ancestors. [Byte preservation audit](source-preservation.json) compares independent files with their actual source heads at initial integration; the catalog metadata follow-up is described above. Original feature branches/PRs are untouched. Source-head rechecks and exact final CI are reported on the PR; a feature-head PASS cannot establish integrated readiness.
 
 ## Semantic resolutions
 
@@ -24,7 +40,7 @@ The PR targets `integration/draft-save-20261104`, so its diff contains only this
 - Existing master departure binding fixture lacked `localDirty`/`discardLocal` and treated acknowledged peer state as document-local input. It now extracts the real bridge accessors, retains the original permission/owner/no-write/late-mutation assertions, and adds completed-local-batch abandonment. No failures become skips.
 - Full Windows Local safety retains all original gates, timeouts and protections. Existing tooling/BOM steps are combined and explicit AB/C unit, compiled-browser and cold-start steps are added. The AB/C dedicated workflow remains additional evidence.
 
-## Verification record
+## Historical local verification record before publication
 
 Managed cloud Linux, Node 24.19.0; isolated synthetic SQLite/D1/R2 and loopback only. Installed from the unchanged lockfile in a standalone clean clone with normal postinstall/main guard. No private datasets or credentials copied.
 
