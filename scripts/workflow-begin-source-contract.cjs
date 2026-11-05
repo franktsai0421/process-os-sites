@@ -111,7 +111,40 @@ const contracts={
     ]
   }
 };
+// Reviewed successor a3edb52: only master:AB/master:C edit-implies-Save and
+// identified Begin scope admission changed. Peeling these two exact lines must
+// recover the original pinned afterHash before the historical inverse runs.
+// This is a test-only source projection; production handlers are never rewritten.
+const reviewedABScopeOptIn={
+  "lib/versioned-shared-workflow.ts": {
+    "sourceHash": "58a2c3af63a4e681df036b63e1223cf1f3e881a70b2fceec44fa60dfd9079847",
+    "rules": [
+      {
+        "before": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\r\n",
+        "after": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='masterDataControl'&&['master:AB','master:C'].includes(adapter.scope)){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n"
+      },
+      {
+        "before": "          if(begin){if(!['fqc','iqc','process:platform'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n",
+        "after": "          if(begin){if(!['fqc','iqc','process:platform','master:AB','master:C'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"
+      }
+    ]
+  }
+};
+function historicalBeginSource(bytes,file){
+ const contract=contracts[file];assert.ok(contract,'Unknown Begin-v1 source contract');
+ if(hash(bytes)===contract.afterHash)return bytes;
+ const reviewed=reviewedABScopeOptIn[file];
+ assert.ok(reviewed&&hash(bytes)===reviewed.sourceHash,'Begin-v1 source differs from pinned bytes');
+ let result=Buffer.from(bytes);
+ for(const {before,after}of reviewed.rules){
+  const expected=Buffer.from(after),offset=result.indexOf(expected);
+  assert.ok(offset>=0&&result.lastIndexOf(expected)===offset,'Reviewed AB/C source span must occur exactly once');
+  result=Buffer.concat([result.subarray(0,offset),Buffer.from(before),result.subarray(offset+expected.length)]);
+ }
+ assert.equal(hash(result),contract.afterHash,'AB/C projection changed the original Begin-v1 source');return result;
+}
 function withoutDurableBegin(bytes,file){
+ bytes=historicalBeginSource(bytes,file);
  const {beforeHash,afterHash,rules}=contracts[file];
  assert.equal(hash(bytes),afterHash,'Begin-v1 source differs from pinned bytes');let result=Buffer.from(bytes);
  for(const {offset,before,after} of [...rules].reverse()){

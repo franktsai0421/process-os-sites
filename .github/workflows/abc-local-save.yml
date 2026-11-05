@@ -36,7 +36,10 @@ jobs:
           node scripts/test-master-field-guards.cjs
           node scripts/test-master-legacy-format-retention.cjs
           node scripts/test-lines-cloud-api.cjs
+          node scripts/test-workflow-begin-old-server.cjs
       - run: npm run sites:source-check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node tests/abc-local-save-browser.mjs
+      - name: Existing cold-start and cross-module departure contracts
+        run: node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs

@@ -44,6 +44,18 @@ Source boundary and changed-file sensitive-data scans pass. The full generic sca
 
 The paired handler workload is ten guarded name edits plus Save on an already-open draft, five fresh samples for each AB/C × inline/records format. Baseline and candidate run sequentially in the same executor with the same synthetic fixture and instrumented production handler; no browser/UI/Begin/network latency is included. POST/CAS drops from **11 to 1**. The complete numeric medians and samples are retained in benchmark.json. The browser separately observes zero workflow POSTs for completed forms and one Save POST (with read-only rendering requests). These measurements do not establish Site speed, private-data scale or whole-platform speed.
 
+## Local safety contract follow-up
+
+The dedicated CI result for the original review head did not trigger Windows Local safety: its pull_request base filters exclude `integration/draft-save-20261104`. A read-only cross-module review then passed 453 tests, ten additional scripts, compiled delivery and eight compiled Begin recovery cases, but identified two obsolete AB departure cases and a pinned historical-source mismatch. Those failures are retained as the reason for this follow-up, not relabeled PASS.
+
+The AB cases now first prove completion is local, explicitly Save once, then prove completed unsaved input and an open form disappear on silent departure without another write. Whole persisted state and saved content stay unchanged. Unknown-Save cases inject failure at explicit Save, retain exact sent snapshots/guards/markers across AB→C→dashboard→AB, preserve JSON/non-JSON403 denial checks and refuse a retry even after view permission returns.
+
+The historical helper accepts only the exact reviewed successor SHA and reverses the two once-occurring AB/C opt-in lines to the **original** `8734ac32…` afterHash before running the unchanged Begin inverse to the **original** `8a35f8bd…` beforeHash. Both old hashes and all original rule offsets remain. Unknown source, unsafe Begin, permission escalation and PROCESS-scope expansion still fail closed; real old handler rejection still proves zero D1/R2 changes. This is a test-only projection; production handlers are unchanged.
+
+Local follow-up results: 287 targeted tests, all 13 existing departure browser cases, four strengthened final unknown-Save cases, four cold-start observer cases, four-module old-server rejection and IPQC-C historical bounded-read/permission groups (9/8) pass; lint and TypeScript pass. Overlapping reruns are recorded separately rather than added to a unique test count. [Exact source hashes and evidence](contract-follow-up.json).
+
+The dedicated #80 workflow now includes old-server rejection plus existing cold-start/departure suites so this gap is visible on its own dependency base. Local safety's branch filters, full checks and timeouts are unchanged. The complete Windows Local safety gate remains for the final combined integration candidate; no merge or deployment is implied.
+
 ## Remaining gates
 
 - Exact-final-head remote Actions are a separate gate until GitHub confirms them; a local build or a pushed commit is not CI PASS.
