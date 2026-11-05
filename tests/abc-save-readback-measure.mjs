@@ -1,0 +1,16 @@
+// Paired actual bridge/transport/handler measurements; synthetic SQLite/R2 only.
+import assert from 'node:assert/strict';import fs from 'node:fs';import {execFileSync} from 'node:child_process';import {createHash} from 'node:crypto';
+import {fixture} from './abc-local-bridge-fixture.mjs';
+const baseline='25b35d39b651d0d0bc5dd2e0798872bfee55f152',clientPath='public/process/shared-draft-client.js';
+const before=execFileSync('git',['show',baseline+':'+clientPath],{encoding:'utf8'}),after=fs.readFileSync(clientPath,'utf8'),hash=value=>createHash('sha256').update(value).digest('hex'),samples=[];
+for(const scope of ['AB','C'])for(const lost of [false,true])for(let run=0;run<5;run++)for(const variant of run%2?['after','before']:['before','after']){
+ const x=await fixture({scope,sharedSource:variant==='before'?before:after});try{
+  for(let i=0;i<10;i++){x.draft().snapshot.products[0].name='Paired edit '+i;await x.bridge.execute(scope,'apply');}
+  assert.equal(x.posts().length,0);x.calls.length=0;x.f.reset();if(lost)x.mode('lost');const start=performance.now(),result=await x.bridge.execute(scope,'save'),ms=performance.now()-start;
+  const httpPOST=x.posts().length,receiptGET=x.calls.filter(c=>c.method==='GET'&&new URL(c.url,'https://fixture.invalid').searchParams.has('operationId')).length,fullGET=x.calls.filter(c=>c.method==='GET'&&!new URL(c.url,'https://fixture.invalid').searchParams.has('operationId')).length;
+  assert.equal(httpPOST,1);assert.equal(receiptGET,variant==='before'||lost?1:0);assert.equal(fullGET,1);assert.equal(x.f.stats.cas,1);assert.equal(result.recovered===true,variant==='before'||lost);assert.equal(result.permissions.view,true);assert.equal(result.control.workflow.saved.content.products[0].name,'Paired edit 9');assert.equal(x.disk.size,0);
+  samples.push({scope,lost,run,variant,ms,httpPOST,receiptGET,fullGET,httpGET:receiptGET+fullGET,CAS:x.f.stats.cas,sql:x.f.stats.sql,R2GET:x.f.stats.get});
+ }finally{x.f.close();}
+}
+const summaries=[];for(const scope of ['AB','C'])for(const lost of [false,true])for(const variant of ['before','after']){const rows=samples.filter(s=>s.scope===scope&&s.lost===lost&&s.variant===variant),times=rows.map(s=>s.ms).sort((a,b)=>a-b);summaries.push({scope,lost,variant,samples:rows.length,medianMs:times[2],httpPOST:rows[0].httpPOST,httpGET:rows[0].httpGET,receiptGET:rows[0].receiptGET,fullGET:rows[0].fullGET,CAS:rows[0].CAS});}
+console.log(JSON.stringify({status:'PASS_ACTUAL_BRIDGE_SAVE_READBACK_PAIRS',baseline,beforeClientSha256:hash(before),afterClientSha256:hash(after),inputs:Object.fromEntries(['public/process/master-shared-client.js','app/api/master/workflow/route.ts','lib/versioned-shared-workflow.ts','lib/master-workflow.ts','tests/abc-local-bridge-fixture.mjs'].map(p=>[p,hash(fs.readFileSync(p))])),environment:{node:process.version,platform:process.platform,storage:'fresh in-memory synthetic SQLite/R2 per sample',network:false,realData:false,realCredentials:false},workload:'Initialized open draft; ten local completions then measured explicit Save. Excludes initial load/completions, browser, network and Site latency. Five fresh alternating-order pairs per scope and ACK mode.',summaries,samples},null,2));

@@ -18,6 +18,27 @@ The original assertions remain intact. Added coverage compares complete permissi
 
 Follow-up local PASS:104 AB authorization/replay/local-Save/bridge/lines tests (zero failures/skips), master workflow v3, stage-link and lines72+16 permission scripts, typed lint and full TypeScript. Shared workflow SHA256 and all historical inverse hashes/offsets stay unchanged. A fresh full Windows run on the updated published head is mandatory; initial-head PASS evidence cannot establish follow-up readiness. Final exact-head results are maintained on #85 so reporting does not itself invalidate that head.
 
+## AB/C normal Save ACK readback follow-up
+
+The initial integrated head `25b35d39b651d0d0bc5dd2e0798872bfee55f152` subsequently passed full Windows [42007240848](https://github.com/franktsai0421/process-os-sites/actions/runs/42007240848), AB/C42007240915 and IPQC-C42007240825. Only the two failed-lint diagnostic steps49–50 were conditionally skipped; functional gates passed. That evidence remains pinned to its original head.
+
+Independent review then identified an avoidable request on normal AB/C Save. Actual bridge + shared transport + production handlers reproduced it for both scopes: a valid POST ACK contains control/receipt but no permissions, so `masterSaveReadback` rejected it as fresh authority, fell into recovery and performed a receipt GET followed by a full GET. The result incorrectly carried `recovered=true` during normal success. Two normal-path regression cases failed before the fix; the two lost-ACK cases passed.
+
+The scoped helper now reads current authority directly after confirming the original Save receipt. It still requires accepted fresh view access, current actor/epoch/delivery, matching generation, non-regressing revision and matching saved/working state at the receipt revision. A readback error is wrapped as a readback failure: its401/403 cannot be misused by the existing POST-refusal path to erase a command that already committed. Recovery continues to query only the original receipt and never resends. No backend, schema, durable marker format, permission opt-in or source inverse changes.
+
+[Paired actual bridge measurements](save-readback-measure.json) use five fresh alternating-order pairs per AB/C scope and ACK mode, with synthetic in-memory SQLite/R2 and ten local completions before measured Save. Initialized load/completions, network, browser and Site latency are excluded. Both before/after run the same current backend and bridge; only the shared-client source changes from exact25b35d39 bytes to the reviewed working bytes.
+
+| Path, both AB and C | Before | After |
+| --- | --- | --- |
+| Normal successful Save | POST1 + receipt GET1 + full GET1; CAS1; recovered=true | POST1 + full GET1; CAS1; recovered=false |
+| Lost Save ACK | POST1 + receipt GET1 + full GET1; CAS1 | Unchanged; recovered=true |
+
+Normal synthetic Save median (quiet follow-up run): AB16.252→13.073ms, C60.068→36.859ms. Lost-ACK counts are unchanged; timing variation is retained in the report and is not an optimization claim. No hosted performance claim.
+
+PASS:35 actual bridge tests, including the original11 plus24 added cases;202 selected AB authorization/replay/local-Save/clone/receipt/navigation regressions with zero failures/skips. New checks retain command bytes and overlays for view/session revocation, unavailable reads, successor generations, wrong receipts, identity/epoch/delivery changes and a newer permission denial racing a late success. Fresh view may settle a committed Save after edit/save revocation, while a second write is denied. Recoverable read/receipt faults settle later with GET only. An initial new-fixture assertion mistook historical save0 for current saved=null; it was corrected to compare the complete actual pre-readback workflow, without changing any original assertion or production behavior.
+
+The reusable actual bridge fixture and `tests/abc-save-readback-measure.mjs` retain reproducible request counts and exact input hashes. Shared-client asset pin is now `20261105-batch2-integration2`; the two exact cache-contract maps are updated only for this asset, with module tags unchanged. The server shared-workflow SHA256 remains30f7e9c9… and every inverse/hash/offset rule is unchanged. Four catalog HOLD decisions are retained. Fresh full Windows CI on the follow-up published head is mandatory; final results remain on PR85.
+
 ## Pinned sources and preservation
 
 | PR | Exact source head |
@@ -36,7 +57,7 @@ The PR targets main after the separate #77 merge, so its diff contains only this
 - AB/C retains actor+scope-keyed Begin markers, generation checking and `masterSaveReadback` in direct Save, receipt and unknown recovery. PROCESS keeps its prior flow.
 - Tooling retains staged photo lifecycle and live `view:data` **and** `tooling.edit` write gates, including restricted-role behavior. All independent domain/handler implementations remain byte-identical to their sources.
 - Shared source SHA256 is `30f7e9c9d5de3207bb89eba34fb3b82d23b965d4e77d3d191b5fa5115be309d9`. Only this exact successor admits three once-occurring reverse spans: scoped Save permission union, Begin scope union, BOM pre-CAS validation. These restore the unchanged original afterHash before the original offset-based Begin inverse restores beforeHash. Original offsets/hashes, unsafe-Begin, unknown-source, privilege-escalation and PROCESS-expansion negatives remain; tooling-key and BOM-session-bypass negatives are added.
-- Shared client asset is `20261105-batch2-integration1`; tooling/BOM/AB-C module-specific tags are retained and precise cache-contract assertions cover all changed assets.
+- Shared client asset is `20261105-batch2-integration2` after the scoped readback follow-up; tooling/BOM/AB-C module-specific tags are retained and precise cache-contract assertions cover all changed assets.
 - Existing master departure binding fixture lacked `localDirty`/`discardLocal` and treated acknowledged peer state as document-local input. It now extracts the real bridge accessors, retains the original permission/owner/no-write/late-mutation assertions, and adds completed-local-batch abandonment. No failures become skips.
 - Full Windows Local safety retains all original gates, timeouts and protections. Existing tooling/BOM steps are combined and explicit AB/C unit, compiled-browser and cold-start steps are added. The AB/C dedicated workflow remains additional evidence.
 

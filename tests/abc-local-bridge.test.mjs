@@ -1,21 +1,54 @@
 // Actual bridge + shared transport + production handlers. Only browser ports and
 // isolated SQLite/R2 bindings are synthetic; no private fixture snapshots.
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
-import {fixture as apiFixture} from './master-ab-auth-phase-fixture.mjs';
-async function fixture({scope='AB',disk=new Map(),api}={}){
- const f=api||await apiFixture({scope}),calls=[],control={active:{},versions:[]},events=new Map();let mode='',form=false;
- const box={window:null,crypto:webcrypto,URL,URLSearchParams,Request,Response,Headers,AbortController,TextEncoder,performance,console,setTimeout,clearTimeout,location:{origin:'https://fixture.invalid',pathname:'/process/'},document:{documentElement:{lang:'zh'},body:{style:{}},querySelector:()=>form?{}:null,querySelectorAll:()=>[]},ProcessSync:{identity:f.user,identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:v=>v===1,platformHeaders:()=>f.headers},addEventListener(name,fn){const list=events.get(name)||[];list.push(fn);events.set(name,list);},sessionStorage:{get length(){return disk.size;},key:i=>[...disk.keys()][i]??null,getItem:k=>disk.get(k)??null,setItem:(k,v)=>disk.set(k,v),removeItem:k=>disk.delete(k)}};box.window=box;
- box.fetch=async(url,options)=>{
-  const body=options.body&&JSON.parse(options.body);calls.push({url,method:options.method,body});
-  if(mode==='missing'&&url.includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
-  const response=await f.route[options.method](new Request(new URL(url,'https://fixture.invalid'),{...options,headers:f.headers}));
-  if((mode==='lost'||mode==='lost-begin')&&body)throw Error('Synthetic lost ACK');return response;
- };
- vm.createContext(box);for(const p of ['shared-draft-client.js','master-shared-client.js'])vm.runInContext(fs.readFileSync('public/process/'+p,'utf8'),box);
- const bridge=box.createMasterSharedBridge({control});await bridge.load(scope);
- return {f,box,bridge,control,disk,calls,scope,draft:()=>control.versions.find(v=>v.scope===scope&&v.status==='draft'),mode:v=>mode=v,form:v=>form=v,emit:name=>{for(const fn of events.get(name)||[])fn({});},posts:()=>calls.filter(c=>c.method==='POST')};
-}
+import test from 'node:test';import assert from 'node:assert/strict';
+import {fixture} from './abc-local-bridge-fixture.mjs';
 for(const scope of ['AB','C']){
+ for(const lost of [false,true])void test(`${scope} actual-handler ${lost?'lost':'normal'} Save ACK uses only necessary authoritative reads`,async t=>{
+  const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Counted Save';await x.bridge.execute(scope,'apply');x.calls.length=0;x.f.reset();if(lost)x.mode('lost');
+  const result=await x.bridge.execute(scope,'save'),requests=x.calls.map(c=>c.method==='POST'?'POST':new URL(c.url,'https://fixture.invalid').searchParams.has('operationId')?'receipt GET':'full GET');
+  t.diagnostic(JSON.stringify({scope,lost,requests,recovered:result.recovered===true,cas:x.f.stats.cas}));
+  assert.deepEqual(requests,lost?['POST','receipt GET','full GET']:['POST','full GET']);assert.equal(result.recovered===true,lost);assert.equal(x.f.stats.cas,1);
+  assert.equal(result.permissions.view,true);assert.equal(result.receipt.operationId,x.posts()[0].body.command.operationId);assert.equal(result.control.workflow.saved.content.products[0].name,'Counted Save');assert.equal(x.bridge.localDirty(scope),false);assert.equal(x.bridge.client(scope).hasUnknown(),false);assert.equal(x.disk.size,0);
+ });
+ for(const failure of ['view revoked','session revoked','read unavailable','generation changed','wrong receipt','identity replaced','epoch changed','delivery changed'])void test(`${scope} Save readback ${failure} retains the original sent command`,async t=>{
+  const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Retained Save';await x.bridge.execute(scope,'apply');x.calls.length=0;x.f.reset();
+  const beforeFlow=JSON.stringify(x.control.workflowScopes[scope]),sentClient=x.bridge.client(scope),fetch=x.box.fetch;let marker,committed,refuseRead=false;
+  x.box.fetch=async(url,options)=>{
+   const receipt=new URL(url,'https://fixture.invalid').searchParams.has('operationId');
+   if(refuseRead&&options.method==='GET'&&!receipt){x.calls.push({url,method:options.method});return Response.json({error:'SYNTHETIC_READ_UNAVAILABLE'},{status:503});}
+   let response=await fetch(url,options);
+   if(options.method==='POST'){
+    const ack=await response.clone().json();assert.equal(response.status,200);assert.equal(ack.permissions,undefined);marker=[...x.disk];committed=x.f.row();
+    if(failure==='view revoked')await x.f.mutateValues(v=>{const users=JSON.parse(v.platformUsers);users[0].accessOverrides[scope==='AB'?'ab.view':'c.view']=false;v.platformUsers=JSON.stringify(users);});
+    if(failure==='session revoked')x.f.revoke();
+    if(failure==='read unavailable')refuseRead=true;
+    if(failure==='generation changed')await x.f.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.workflowScopes[scope].generation='successor-generation';v.masterDataControl=JSON.stringify(root);});
+    if(failure==='identity replaced')x.box.ProcessSync.identity={...x.f.user};
+    if(failure==='epoch changed')x.box.ProcessSync.identityGeneration=()=>2;
+    if(failure==='delivery changed')x.box.ProcessSync.isCurrentDelivery=()=>false;
+   }
+   if(failure==='wrong receipt'&&(options.method==='POST'||receipt)){const body=await response.json();body.receipt.operationId='wrong-operation';response=Response.json(body,{status:response.status});}
+   return response;
+  };
+  await assert.rejects(x.bridge.execute(scope,'save'),/RESULT_UNKNOWN|ACCOUNT_CHANGED|BEGIN_OWNER_CHANGED/);assert(marker);assert.deepEqual([...x.disk],marker);assert.equal(x.posts().length,1);assert.equal(x.f.stats.cas,1);assert(x.bridge.localDirty(scope));
+  const sent=x.posts()[0].body.command;assert(x.disk.values().next().value.includes(sent.operationId));assert(sentClient.hasUnknown());assert.equal(JSON.stringify(x.control.workflowScopes[scope]),beforeFlow);assert.equal(x.draft().snapshot.products[0].name,'Retained Save');
+  for(const c of x.calls.filter(c=>c.method==='GET'&&new URL(c.url,'https://fixture.invalid').searchParams.has('operationId')))assert.equal(new URL(c.url,'https://fixture.invalid').searchParams.get('operationId'),sent.operationId);
+  if(['view revoked','session revoked'].includes(failure))assert.equal(x.bridge.client(scope).permission('view'),false);
+  await assert.rejects(x.bridge.execute(scope,'save'),/UNKNOWN_OPERATION_CHECK_REQUIRED/);assert.equal(x.posts().length,1);assert.deepEqual([...x.disk],marker);
+  if(['read unavailable','wrong receipt'].includes(failure)){assert.deepEqual(x.f.row(),committed);x.box.fetch=fetch;const posts=x.posts().length;await x.bridge.recover(scope);assert.equal(x.posts().length,posts);assert.equal(x.disk.size,0);assert.equal(x.control.workflowScopes[scope].saved.content.products[0].name,'Retained Save');}
+ });
+ void test(`${scope} successful Save settles with fresh view while revoked edit/save cannot write again`,async t=>{
+  const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Committed before revocation';await x.bridge.execute(scope,'apply');x.calls.length=0;
+  const fetch=x.box.fetch;x.box.fetch=async(url,options)=>{const response=await fetch(url,options);if(options.method==='POST')await x.f.mutateValues(v=>{const users=JSON.parse(v.platformUsers),prefix=scope==='AB'?'ab':'c';for(const key of ['edit','save'])users[0].accessOverrides[prefix+'.'+key]=false;v.platformUsers=JSON.stringify(users);});return response;};
+  const result=await x.bridge.execute(scope,'save');assert.equal(result.permissions.view,true);assert.equal(result.permissions.edit,false);assert.equal(result.permissions.save,false);assert.equal(x.disk.size,0);assert.equal(x.bridge.client(scope).permission('save'),false);await assert.rejects(x.bridge.execute(scope,'save'),/FORBIDDEN/);assert.equal(x.posts().length,1);
+ });
+ void test(`${scope} newer permission denial supersedes a late successful Save readback`,async t=>{
+  const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Sent before denial';await x.bridge.execute(scope,'apply');x.calls.length=0;
+  const beforeFlow=JSON.stringify(x.control.workflowScopes[scope]),fetch=x.box.fetch;let marker,first=true;x.box.fetch=async(url,options)=>{const response=await fetch(url,options);if(options.method==='POST')marker=[...x.disk];
+   if(options.method==='GET'&&!new URL(url,'https://fixture.invalid').searchParams.has('operationId')&&!new URL(url,'https://fixture.invalid').searchParams.has('permissions')&&first){first=false;await x.f.mutateValues(v=>{const users=JSON.parse(v.platformUsers);users[0].accessOverrides[scope==='AB'?'ab.view':'c.view']=false;v.platformUsers=JSON.stringify(users);});await assert.rejects(x.bridge.client(scope).permissions(),e=>e.status===403);}
+   return response;};
+  await assert.rejects(x.bridge.execute(scope,'save'),/RESULT_UNKNOWN/);assert.deepEqual([...x.disk],marker);assert.equal(x.posts().length,1);assert.equal(x.bridge.client(scope).permission('view'),false);assert(x.bridge.localDirty(scope));assert.equal(JSON.stringify(x.control.workflowScopes[scope]),beforeFlow);
+ });
  void test(`${scope} local completions, poll, ordered guards, one Save and clean discard`,async t=>{
   const x=await fixture({scope});t.after(x.f.close);const original=x.f.row();x.draft().snapshot.products[0].name='First';await x.bridge.execute(scope,'apply');x.draft().snapshot.products[0].name='Second';await x.bridge.execute(scope,'apply');
   assert.equal(x.posts().length,0);assert.deepEqual(x.f.row(),original);assert(x.bridge.localDirty(scope));await x.bridge.load(scope);assert.equal(x.draft().snapshot.products[0].name,'Second');

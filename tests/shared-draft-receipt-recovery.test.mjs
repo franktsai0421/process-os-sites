@@ -59,7 +59,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261105-batch2-integration1',
+  'shared-draft-client.js':'20261105-batch2-integration2',
   'fqc-master.js':'20261104-begin-generation2',
   'fqc-master.css':'20261104-single-save1',
   'tooling.js':'20261105-tooling-local-save1',

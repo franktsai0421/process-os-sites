@@ -825,7 +825,15 @@
     async function masterSaveReadback(result,command){
       if(!masterLocalBegin||command?.action!=='save'||command.moduleAction!=='save-local-v1')return result;
       confirmedReceipt(result,command.operationId,command.generation,'save');
-      const fresh=result.control?result:await request(endpoint,undefined,{requireAcceptedAccess:true}),flow=fresh.control?.workflow,r=result.receipt;
+      // A Save ACK's control is not a fresh permission read. Read directly rather
+      // than treating the successful ACK as unknown just to obtain permissions.
+      let fresh;try{fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});}
+      catch(cause){
+        // A read refusal cannot prove that the already-sent Save was rejected.
+        // Keep its durable command and original-receipt recovery obligation.
+        throw Error('SAVE_READBACK_REQUIRED',{cause});
+      }
+      const flow=fresh.control?.workflow,r=result.receipt;
       if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
       return {...fresh,receipt:r};
     }

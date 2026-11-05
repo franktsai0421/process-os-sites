@@ -1,6 +1,6 @@
 ## 2026-11-05 — Draft workflow batch 2 integration
 
-Combine tooling/BOM/AB-C local Save and scoped recovery, preserving BOM session/413 guards, tooling photo view+edit and PROCESS exclusion. Strengthen exact historical source and departure contracts; no schema/data migration. Windows integration follow-up aligns AB effective-catalog Save metadata with full workflow edit-or-save permissions, preserving independent Submit and revalidation after edit revocation. [Evidence and gates](../docs/acceptance/draft-save-batch2-20261105/README.md).
+Combine tooling/BOM/AB-C local Save and scoped recovery, preserving BOM session/413 guards, tooling photo view+edit and PROCESS exclusion. Strengthen exact historical source and departure contracts; no schema/data migration. Windows integration follow-up aligns AB effective-catalog Save metadata with full workflow edit-or-save permissions, preserving independent Submit and revalidation after edit revocation. The AB/C bridge now reads fresh authority directly after a valid Save ACK, eliminating a redundant receipt GET while retaining original-receipt recovery and sent markers when readback fails. [Evidence and gates](../docs/acceptance/draft-save-batch2-20261105/README.md).
 
 ## 2026-11-05 — Tooling local edits and atomic Save candidate
 
