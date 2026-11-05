@@ -1,0 +1,43 @@
+/* oxlint-disable typescript/no-require-imports -- Actual Workers handlers, synthetic data. */
+const test=require('node:test'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto'),fixture=require('./bom-atomic-fixture.cjs');
+for(const format of ['inline','records'])void test(`BOM ${format}: one atomic Save, ordered manual/import, CAS retry, receipt and shared permission`,async()=>{
+ const f=await fixture({format});try{
+  const before=await f.read(),a=f.manual('itemName','本機 Một','Tên Việt'),afterManual=structuredClone(before.workflow.working.bom);afterManual.ROOT[1].itemName='本機 Một';
+  const imported=await f.importing(afterManual,[[1,'itemName','Imported'],[1,'specification','ERP spec']]),tail=f.manual('itemName','Final Việt 中文','Imported'),command=f.command([a,imported,tail]);
+  const beginEvents=f.events.length;let raced=false;f.hooks.run=sql=>{if(!raced&&sql.startsWith('UPDATE shared_state')){raced=true;f.db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}};
+  const result=await f.call({command});delete f.hooks.run;assert.equal(result.status,200,JSON.stringify(result));assert(raced);
+  const saved=await f.read();assert.equal(saved.workflow.working.bom.ROOT[1].itemName,'Final Việt 中文');assert.equal(saved.workflow.working.bom.ROOT[1].specification,'ERP spec');assert.deepEqual(saved.workflow.saved.content,saved.workflow.working);assert.deepEqual(saved.versions[0],before.versions[0]);assert.equal(saved.workflow.saves.length,1);assert.deepEqual(Object.keys(saved.workflow.receipts),[command.operationId]);
+  assert.equal(f.events.slice(beginEvents).filter(e=>e.kind==='sql'&&e.sql.startsWith('UPDATE shared_state')).length,2,'one CAS plus intentionally raced attempt, no per-operation persistence');
+  const row=f.row();assert.equal((await f.call({command})).status,200);assert.deepEqual(f.row(),row);const receipt=await f.call(null,'editor','&operationId='+command.operationId);assert.equal(receipt.status,200);assert.deepEqual(receipt.body.receipt,result.body.receipt);assert.deepEqual(f.row(),row);assert.equal((await f.call(null,'other')).body.control.workflow.saved.content.bom.ROOT[1].itemName,'Final Việt 中文');
+  assert.equal((await f.call(null,'editor','&operationId='+randomUUID())).status,404);assert.deepEqual(f.row(),row);
+ }finally{f.close();}
+});
+void test('BOM actual handler: disjoint stale editors merge, same cell and late batch failure change nothing',async()=>{
+ const f=await fixture();try{
+  const a=f.command([f.manual('itemName','A','Tên Việt')]),b=f.command([f.manual('specification','B','Part spec')],{clientId:'other-client'});
+  const results=await Promise.all([f.call({command:a}),f.call({command:b},'other')]);assert(results.every(r=>r.status===200),JSON.stringify(results));const flow=(await f.read()).workflow;assert.equal(flow.saved.content.bom.ROOT[1].itemName,'A');assert.equal(flow.saved.content.bom.ROOT[1].specification,'B');
+  for(const operations of [[f.manual('itemName','stale','Tên Việt')],[f.manual('unit','changed','ea'),f.manual('itemName','bad','Tên Việt')],[f.manual('quantity','4','',2)],[{patches:f.manual('itemName','bad','A').patches}]]){const before=f.row(),result=await f.call({command:f.command(operations)});assert([409,422].includes(result.status),JSON.stringify(result));assert.deepEqual(f.row(),before,'no earlier Apply may survive batch rejection');}
+ }finally{f.close();}
+});
+void test('BOM original import basis, partial decisions, legacy omitted rows and ordered mixing',async()=>{
+ const f=await fixture();try{
+  const base=(await f.read()).workflow.working.bom,stale=await f.importing(base,[[1,'itemName','ERP']]);assert.equal((await f.call({command:f.command([f.manual('unit','pair','ea')])})).status,200);const before=f.row();assert.equal((await f.call({command:f.command([stale])})).status,409);assert.deepEqual(f.row(),before,'no recalculation of previously confirmed import');
+  for(const legacy of [false,true]){const current=(await f.read()).workflow.working.bom,op=await f.importing(current,[[1,'itemName',legacy?'Legacy':'New'],[1,'specification','Keep old']],{legacy});const incoming=f.D.parseMatrices(op.input.sheets),batch=f.D.compare(current,incoming);op.input.decisions=batch.changes.map(change=>({decision:change.field==='specification'?'keep':'accept'}));op.input.sheets[0].rows.pop();const revised=f.D.compare(current,f.D.parseMatrices(op.input.sheets),{incremental:!legacy});op.input.decisions=revised.changes.map(change=>({decision:change.field==='specification'?'keep':'accept'}));const saved=await f.call({command:f.command([op])});assert.equal(saved.status,200,JSON.stringify(saved));const rows=(await f.read()).workflow.saved.content.bom.ROOT;assert.equal(rows.length,3,'omitted descendant retained');if(!legacy)assert.equal(rows[1].specification,'Part spec');}
+ }finally{f.close();}
+});
+void test('BOM actual permissions, review locks, generation, history and process reference preservation',async()=>{
+ const f=await fixture();try{
+  await f.mutate(values=>{values['processEditor:synthetic:A']=JSON.stringify([{id:'stage',operations:[{id:'op',bomSelections:{ROOT:[f.snapshot.bom.ROOT[1].id]}}]}]);});
+  const beforeRef=(await f.core.readState()).values['processEditor:synthetic:A'];let command=f.command([f.manual('itemName','Saved','Tên Việt')]);assert.equal((await f.call({command})).status,200);
+  let c=await f.read();const saved=structuredClone(c.workflow.saved),gen=c.workflow.generation;
+  const act=async(action,extra={},actor='editor')=>{const current=await f.read();return f.call({command:{action,generation:current.workflow.generation,operationId:randomUUID(),clientId:'review-client',sequence:Date.now(),...extra}},actor);};
+  let submit=await act('submit',{savedId:saved.id,expectedRevision:c.workflow.revision,reason:'Synthetic'});assert.equal(submit.status,200,JSON.stringify(submit));c=await f.read();const locked=f.row();assert.equal((await f.call({command:f.command([f.manual('unit','pair','ea')])})).status,409);assert.deepEqual(f.row(),locked);
+  assert.equal((await act('withdraw',{caseId:c.workflow.pendingId,reason:'Synthetic'})).status,200);c=await f.read();assert.deepEqual(c.workflow.saved,saved);assert.notEqual(c.workflow.generation,gen);const intact=f.row();assert.equal((await f.call({command:f.command([])})).status,409);assert.deepEqual(f.row(),intact);
+  submit=await act('submit',{savedId:saved.id,expectedRevision:c.workflow.revision,reason:'Again'});assert.equal(submit.status,200);c=await f.read();assert.equal((await act('approve',{caseId:c.workflow.pendingId},'other')).status,200);c=await f.read();assert.equal(c.workflow.cases.length,2);assert.equal(c.workflow.saves.length,1);assert.equal((await f.core.readState()).values['processEditor:synthetic:A'],beforeRef);
+  assert.equal((await f.call({action:'begin'})).status,200);c=await f.read();await f.mutate(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides['bom.edit']=false;values.platformUsers=JSON.stringify(users);});const denied=f.row();command=f.command([],{generation:c.workflow.generation});assert.equal((await f.call({command})).status,403);assert.deepEqual(f.row(),denied);f.revoke();assert.equal((await f.call({command})).status,401);
+ }finally{f.close();}
+});
+void test('BOM identified Begin exact receipt, missing lookup, lifecycle change and no blind re-begin',async()=>{
+ const f=await fixture();try{const helper=f.load('lib/workflow-begin.ts'),control=await f.read(),body={action:'begin-v1',begin:{operationId:randomUUID(),basis:helper.beginBasis(control)}};const result=await f.call(body);assert.equal(result.status,200);assert.equal(result.body.operationKind,'begin-v1');const row=f.row();const lookup=await f.call(null,'editor','&operationId='+body.begin.operationId);assert.deepEqual(lookup.body.receipt,result.body.receipt);assert.equal(lookup.body.operationKind,'begin-v1');assert.deepEqual(f.row(),row);assert.equal((await f.call(body)).status,200);assert.deepEqual(f.row(),row);assert.equal((await f.call(null,'editor','&operationId='+randomUUID())).status,404);assert.deepEqual(f.row(),row);await f.mutate(values=>{const c=JSON.parse(values.bomMasterControl);c.workflow.generation=randomUUID();values.bomMasterControl=JSON.stringify(c);});const changed=f.row();assert.equal((await f.call({...body,begin:{...body.begin,operationId:randomUUID()}})).status,409);assert.deepEqual(f.row(),changed);assert.equal((await f.call(body)).status,200);assert.deepEqual(f.row(),changed);
+ }finally{f.close();}
+});
