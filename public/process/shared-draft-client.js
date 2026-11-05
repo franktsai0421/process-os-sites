@@ -323,12 +323,14 @@
     const externalCanvas=externalDurableCanvas!==undefined,externalBounded=externalDurableBounded!==undefined,externalStrict=externalCanvas||externalBounded,externalProof=externalDurableCanvas?.assertDispatch,externalUnsent=new WeakSet();
     const abCreate=abCreateRejections===true;
     if(abCreateRejections!==undefined){const [path,search='']=endpoint.split('?'),params=new URLSearchParams(search),scope=params.get('scope');if(!abCreate||externalStrict||path!=='/api/ipqc-ab/workflow'||params.getAll('scope').length!==1||!/^[AB]:\S.*$/.test(scope||'')||scope!==scope.trim()||params.getAll('caseMetadata').length!==1||params.get('caseMetadata')!=='1'||endpoint!==`/api/ipqc-ab/workflow?scope=${encodeURIComponent(scope)}&caseMetadata=1`)throw Error('AB_CREATE_SCOPE_REQUIRED');}
-    const boundedScopes={PROCESS:'master:PROCESS',FQC:'fqc',IQC:'iqc','IPQC-C':'ipqc-c',BOM:'bom'},boundedScope=Object.hasOwn(boundedScopes,externalDurableBounded?.scope)?boundedScopes[externalDurableBounded.scope]:null;
+    const boundedScopes={PROCESS:'master:PROCESS',FQC:'fqc',IQC:'iqc','IPQC-C':'ipqc-c',BOM:'bom','IPQC-AB':'ipqc-ab:module'},boundedScope=Object.hasOwn(boundedScopes,externalDurableBounded?.scope)?boundedScopes[externalDurableBounded.scope]:null;
+    const abModule=externalDurableBounded?.scope==='IPQC-AB';
+    if(abModule&&endpoint!=='/api/ipqc-ab/workflow?module=1&caseMetadata=1')throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');
     const boundedExactRoute=['iqc','ipqc-c','bom'].includes(boundedScope);
-    if(externalBounded){const [path,query='']=endpoint.split('?'),params=new URLSearchParams(query);if(externalCanvas||!boundedScope||boundedScope==='master:PROCESS'&&(path!=='/api/master/workflow'||params.getAll('scope').length!==1||params.get('scope')!=='PROCESS')||boundedScope==='fqc'&&path!=='/api/fqc/workflow'||boundedExactRoute&&(path!=='/api/'+boundedScope+'/workflow'||params.getAll('caseMetadata').length!==1)||[...params].some(([key,value])=>key!=='scope'&&!(key==='caseMetadata'&&value==='1'))||boundedScope!=='master:PROCESS'&&params.has('scope'))throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');}
+    if(externalBounded&&!abModule){const [path,query='']=endpoint.split('?'),params=new URLSearchParams(query);if(externalCanvas||!boundedScope||boundedScope==='master:PROCESS'&&(path!=='/api/master/workflow'||params.getAll('scope').length!==1||params.get('scope')!=='PROCESS')||boundedScope==='fqc'&&path!=='/api/fqc/workflow'||boundedExactRoute&&(path!=='/api/'+boundedScope+'/workflow'||params.getAll('caseMetadata').length!==1)||[...params].some(([key,value])=>key!=='scope'&&!(key==='caseMetadata'&&value==='1'))||boundedScope!=='master:PROCESS'&&params.has('scope'))throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');}
     if(externalCanvas){const [path,query='']=endpoint.split('?'),channels=new URLSearchParams(query).getAll('channel');if(path!=='/api/process-authoring/workflow'||channels.length!==1||!['canvas','canvas-v2'].includes(channels[0])||typeof externalProof!=='function')throw Error('CANVAS_EXTERNAL_DURABILITY_REQUIRED');}
     const [beginPath,beginSearch='']=endpoint.split('?'),beginParams=durableBegin?new URLSearchParams(beginSearch):null;
-    if(durableBegin&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/process-authoring/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
+    if(durableBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/process-authoring/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
     const beginRuntimeCurrent=()=>!durableBegin||departureOwnerCurrent(beginRuntimeOwner)&&beginRuntimeOwner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(beginRuntimeOwner.epoch)&&beginRuntimeOwner.epoch>=0&&beginRuntimeOwner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&(!beginRuntimeOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(beginRuntimeOwner.delivery)!==false);
     const clientPagehideGeneration=transportPagehideGeneration;
@@ -608,6 +610,11 @@
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
       const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
+      if(abModule&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.scopes)){
+        if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.input.scopes.some(s=>s.scope===error.details.scope&&s.changes?.some(c=>c.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details.path))));
+        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;
+        if(error.status===422&&['INVALID_AB_LOCAL_SAVE','INVALID_AB_MATRIX','LOCAL_SAVE_LIMIT','INVALID_LOCAL_ID','DEPENDENCY_GUARD_REQUIRED','ERROR_IN_USE','STAGE_INVALID','INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code))return true;
+      }
       if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.localChanges.some(change=>Array.isArray(change?.guards)&&change.guards.some(guard=>Array.isArray(guard?.path)&&JSON.stringify(guard.path)===JSON.stringify(error.details.path)));
         if(error.status===422&&code==='INVALID_LOCAL_SAVE')return true;
@@ -858,7 +865,7 @@
           // FQC/IQC diagnostics stay in this runtime's error only: preserve the
           // original transport/validation cause and the failed lookup separately.
           // Neither cause changes settlement, marker bytes or retry admission.
-          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc'].includes(boundedScope)?{recoveryCause}:{})});
+          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{recoveryCause}:{})});
         }
       }
     }
@@ -930,7 +937,7 @@
         const coverage={...pin,check};departureCoverage=coverage;
         return {current:()=>departureCoverage===coverage&&departureCovered(),release(){if(departureCoverage===coverage)departureCoverage=null;}};
       },
-      legacyRecoveryUnsupported:()=>externalBounded&&boundedLegacy,
+      legacyRecoveryUnsupported:()=>externalBounded&&boundedLegacy&&(!abModule||sessionStorage.getItem(key)!==null),
       isRuntimeCurrent:()=>externalCurrent(),
       isVerifiedReadback:result=>!!verifiedBoundedReadback(result,result?.receipt?.operationId),
       isSupersededRecovery:supersededRecovery,
@@ -946,7 +953,7 @@
       discardRejectedLocalSave(command){
         assertOwner();
         const failure=syncFailures.get(command?.operationId),error=failure?.error,proof=error&&boundedResponses.get(error);
-        if(!externalBounded||boundedScope!=='fqc'||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!Array.isArray(command.patches)||!Array.isArray(command.guards)||!Array.isArray(command.input?.matrixCells)||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
+        if(!externalBounded||!(boundedScope==='fqc'||abModule)||unknown||boundedRecord||queued||beginPending||retryPending||preparedFlights.size||recoveryInvalid||command?.action!=='save'||command.moduleAction!=='save-local-v1'||!(abModule?Array.isArray(command.input?.scopes):Array.isArray(command.patches)&&Array.isArray(command.guards)&&Array.isArray(command.input?.matrixCells))||!failure||JSON.stringify(failure.command)!==JSON.stringify(command)||!boundedRejected.has(error)||!proof||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||proof.code!==error.message||proof.status!==error.status)return false;
         syncFailures.delete(command.operationId);return true;
       },
       // Explicit form cancellation can discard only confirmed rejections (or

@@ -1,3 +1,7 @@
+## 2026-11-05 — IPQC A/B local editing and atomic Save candidate
+
+Local only, **depends on #77** `0af6d57`; intended base `integration/draft-save-20261104`. A/B forms, photos and matrix stage locally; one employee Save uses identified Begin only for initialization, then guarded atomic module Save. Original receipt recovery and safe unknown departure reuse the exact scoped #77 core. Edit includes Save; create/delete/submit remain separate. Prior candidates retained; upload refusal unchanged. [Evidence, limits and handoff](docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Legacy caller tests are now migrated in place to current-source browser/handler checks; owner/completion fences and reload-without-snapshot recovery are covered. See the same report for final follow-up counts.
+
 ## 2026-11-04 — Unknown Begin follow-up in Draft PR77
 
 The isolated candidate adds identified Begin and durable receipt-only recovery for FQC/IQC/IPQC C/process authoring. Preserve pending operations, local comparison bases and existing data; no blind retry, cleanup, merge or deployment. Exact-head CI and compiled browser results must be checked separately from prior cfb5429 success. [Current evidence, V39 source gap and remaining gates](docs/acceptance/draft-save-integration-20261104.md).

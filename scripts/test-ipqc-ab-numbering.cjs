@@ -1,13 +1,6 @@
 /* oxlint-disable typescript/no-require-imports -- Local pure-function fixture. */
 const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const ts=require('typescript');
-const vm=require('node:vm');
-const source=fs.readFileSync('lib/ipqc-ab.ts','utf8');
-const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-const moduleShim={exports:{}};
-vm.runInNewContext(js,{module:moduleShim,exports:moduleShim.exports});
-const {nextAbCode}=moduleShim.exports;
+const {nextAbCode}=require('./ipqc-ab-import-harness.cjs')()('lib/ipqc-ab.ts');
 const control={reservedErrorCodes:[],reservedItemCodes:[],scopes:{
   'A:GROUP':{versions:[{snapshot:{errors:[{code:'A-GROUP-CUT-L1'}],items:[{code:'A-GROUP-CUT-L1-01'}]}}]},
 }};

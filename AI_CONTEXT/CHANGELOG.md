@@ -1,3 +1,7 @@
+## 2026-11-05 — Local A/B draft editing and Save
+
+A/B error/item/matrix changes now stay in page memory until one explicit module Save. First initialization uses the approved identified Begin + Save; subsequent Save is one POST/CAS. Added bounded original-receipt recovery, silent local departure, precise field/cell merge, server-side permission separation and synthetic browser/API checks. No migration, remote upload or deployment. [Evidence and limitations](../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up migrates the four legacy immediate-Apply caller suites, adds original-operation completion guards and fixes stale recovery display after reload/peer Save; no shared-core or data-model change.
+
 ## 2026-11-04 — Unknown Begin recovery candidate
 
 Add an opt-in identified Begin protocol for the four integrated draft modules, with original-operation receipts, receipt-only recovery and preserved unsent input/baselines. Keep legacy clients, existing shared data and independent Submit rights. The first-Save follow-up refuses binding retained FQC/IQC edits to a successor generation after Begin, including repeated Save and unknown-result recovery. No merge, deployment or live-data conversion. [Verification and release gates](../docs/acceptance/draft-save-integration-20261104.md).

@@ -1,3 +1,7 @@
+## 2026-11-05 — A/B local editing and atomic module Save candidate
+
+`ipqc-ab.js` retains original group bases and local snapshots across selection changes. Forms and matrix change memory only; photos upload on explicit Save. `save-local-v1` guards each field/cell, allocates codes and saves the complete module in one CAS. Exact `IPQC-AB` bounded transport opt-in adds identified module Begin, original receipt lookup and unknown departure; unknown Begin never continues Save. Edit grants Save, while nested create/delete and Submit remain independently checked. No saved/formal/history cleanup or schema change. [Contract, tests and limitations](../../docs/acceptance/ipqc-ab-draft-save-20261105/README.md). Follow-up pins local Save/query completion to owner, delivery, lifecycle, model and original operation; stale callbacks cannot clear local data or repeat creates. Receipt recovery without a runtime snapshot adopts current authorized shared content. Legacy tests are migrated in place; prior server/data boundaries remain.
+
 ## 2026-11-04 combined candidate
 
 FQC, IQC and IPQC C adapters coexist with module-scoped atomic Save and independent Submit. IPQC C maps server-assigned codes of earlier same-batch created rows before dependency comparison and preserves explicitly supplied optional creation reasons; existing/user-field guards remain exact. Shared navigation exclusions do not remove account mutation obligations; no schema or stored-data conversion. [Integration/source boundaries](../../docs/acceptance/draft-save-integration-20261104.md).
