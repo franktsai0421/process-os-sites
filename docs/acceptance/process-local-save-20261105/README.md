@@ -60,8 +60,10 @@ permission setup, connector reconnection, merge or deployment was used.
 | Existing compatibility | AB/C local tests/browser, auth phase/replay, clone/ownership, receipt and Begin suites, historical old-server inverse, field guards, master/stage linked lifecycle, route modes, legacy formats, references and cold-start/departure contracts |
 | Final checks | Dedicated `.github/workflows/process-local-save.yml`: lint, typecheck, tests, source boundary, build, Chromium PROCESS + AB/C and native startup/departure checks. Exact final HEAD results and CI links are supplied in the task handoff; earlier upstream CI is not candidate evidence. |
 
-Independent review remains a separate handoff gate; this author does not label
-self-review independent. Native OS IME, physical phones, separate machines, live
+Independent review identified late-input loss during receipt recovery on head
+`274c40411a931645031ff4d89f9c0db701ef6fea`. The follow-up below fixes that
+reported case; independent re-review remains required. This author does not
+label self-review independent. Native OS IME, physical phones, separate machines, live
 latency/data acceptance and publication are NOT_RUN.
 
 ## Paired synthetic performance
@@ -101,3 +103,30 @@ No negative safety assertion was removed to make a scan pass.
 
 Persistent schema/data model: unchanged. Existing saved/pending/effective/history,
 receipts, media objects and references are not migrated, rewritten or deleted.
+
+## Receipt recovery follow-up after independent review
+
+The reviewer reproduced a data-loss defect: Save captured `Captured`, another
+local batch changed it to `Later` while the request was pending, and the ACK was
+lost. `recover()` confirmed the original receipt but discarded the entire local
+overlay, losing `Later`. The new actual-bridge/handler regression fails on the
+reviewed head with `Captured !== Later`; its assertions remain the fix contract.
+
+Normal ACK and receipt recovery now share one PROCESS settlement helper. A RAM
+pin keeps the original operation ID, actor/delivery ownership, generation and
+immutable batch identities. A verified original receipt retires only that exact
+prefix. Later batches remain local with their original guards; discarded or
+replacement batches are never mistaken for the original prefix. No RAM pin
+exists after reload, so recovery does not infer a discard or resurrect departed
+input. The existing bounded transport still validates receipt/readback, access
+and generation before settlement. No new persistent command or local-input
+archive is introduced; AB/C recovery behavior is unchanged.
+
+Additional real-handler/transport tests cover 404, repeated receipt lookup,
+view/edit denial and subsequent regrant, invalid operation/generation/saved IDs,
+changed generation, departure/reload, and a replaced local overlay with its
+original conflict guard. The compiled browser additionally completes a later
+name batch while Save is in flight, loses the ACK, checks 404, settles the original
+receipt and verifies a second explicit Save persists the retained input. These
+checks supplement the existing normal-ACK and cross-module regression suites.
+Final follow-up HEAD, CI and reviewer status are reported in the PR/task handoff.

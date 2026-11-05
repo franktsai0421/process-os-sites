@@ -1,3 +1,11 @@
+## 2026-11-05 PROCESS receipt-recovery data-loss follow-up
+
+Independent review found that resolving a lost Save ACK cleared later local
+batches. Share normal-ACK/receipt settlement using the original runtime batch
+prefix; retain later/replacement input and its guards, while reload/departure
+still abandons unsent input. Add actual-handler and compiled-browser coverage;
+no permission/receipt/generation protection is disabled. [Evidence and limits](../docs/acceptance/process-local-save-20261105/README.md#receipt-recovery-follow-up-after-independent-review).
+
 ## 2026-11-05 PROCESS master atomic local Save candidate
 
 Independent PROCESS templates/machines candidate on fixed #80, depends on #80→#77. Local completions and name input no longer POST working changes; explicit Save persists guarded batches and saved snapshot in one CAS. Preserve late input, original bounded recovery/identified Begin, independent permissions, references and linked stage approval. No routine-FQC changes, merge or deployment. [Scope, validation and existing baseline limitations](../docs/acceptance/process-local-save-20261105/README.md).

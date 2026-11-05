@@ -3,9 +3,9 @@ const source=fs.readFileSync('public/process/master-shared-client.js','utf8'),sh
 function fixture({openForm=false}={}){
  let resolve;const pending=new Promise(r=>resolve=r),flow={generation:'g',working:{products:[]},active:{content:{products:[]}}};
  const control={active:{PROCESS:{products:[]}},versions:[{id:'draft',scope:'PROCESS',status:'draft',snapshot:{products:[]}}],workflowScopes:{PROCESS:flow}},original=JSON.stringify(control);
- const response={control:{activeVersionId:'active',versions:[{id:'active',status:'approved',snapshot:{products:[{code:'OLD'}]}},...(openForm?[{id:'draft',status:'draft',snapshot:{products:[]}}]:[])],workflow:{...flow,saved:{id:'saved',content:{products:[]}}}}};
+ const response={receipt:{operationId:'fixture-save',generation:'g'},control:{activeVersionId:'active',versions:[{id:'active',status:'approved',snapshot:{products:[{code:'OLD'}]}},...(openForm?[{id:'draft',status:'draft',snapshot:{products:[]}}]:[])],workflow:{...flow,saved:{id:'saved',content:{products:[]}}}}};
  const sync={identity:{id:'same-id'},epoch:1,identityGeneration(){return this.epoch;},captureDelivery(){return this.epoch;},isCurrentDelivery(v){return v===this.epoch;}};
- const client={hasUnknown:()=>false,permission:()=>true,prepareRecovery:()=>({operationId:'fixture-command'}),prepare:()=>({action:'save'}),sendPrepared:()=>pending,flush:async()=>{},command:()=>pending,begin:()=>pending,read:()=>pending,resolveUnknown:async()=>{}};
+ const client={hasUnknown:()=>false,permission:()=>true,prepareRecovery:()=>({operationId:'fixture-command'}),prepare:()=>({action:'save',operationId:'fixture-save',generation:'g'}),sendPrepared:()=>pending,flush:async()=>{},command:()=>pending,begin:()=>pending,read:()=>pending,resolveUnknown:async()=>{}};
  const window={ProcessSync:sync,createSharedDraftClient:()=>client},box={window,document:{documentElement:{lang:'zh'},querySelector:()=>openForm?{}:null},confirm:()=>true};vm.runInNewContext(source,box);const bridge=window.createMasterSharedBridge({control,processLocalSave:true});
  return{bridge,control,sync,resolve:()=>resolve(response),original};
 }

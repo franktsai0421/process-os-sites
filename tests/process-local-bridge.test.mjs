@@ -47,3 +47,50 @@ void test('PROCESS local insertion proof never treats a missing server target or
  const parent=['A-CUT',{id:'A-CUT-FLOW-04'},'equipment'],machine={id:'local-machine',number:'LOCAL',name:'Local machine',stageCode:'A-CUT',line:'A',kind:'machine-assembly',mediaItems:[]};await x.bridge.patch('PROCESS',[{op:'insert',path:parent,value:machine}],[]);assert.equal(x.bridge.isLocalProcessInsert('equipment',machine.id),true);assert.equal(x.posts().length,0);
  await x.bridge.execute('PROCESS','save');assert.equal(x.bridge.isLocalProcessInsert('template','local-key'),false);assert.equal(x.bridge.isLocalProcessInsert('equipment',machine.id),false);
 });
+
+async function lostSaveWithLaterInput(x,{replace=false}={}){
+ await stage(x,'Captured');let release,arrived,missing=true;
+ const gate=new Promise(r=>release=r),sent=new Promise(r=>arrived=r),fetch=x.box.fetch;
+ x.box.fetch=async(url,opt)=>{
+  if(missing&&url.includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});
+  const response=await fetch(url,opt);
+  if(opt.body&&JSON.parse(opt.body).command?.action==='save'){arrived();await gate;throw Error('Synthetic lost Save ACK');}
+  return response;
+ };
+ const task=x.bridge.execute('PROCESS','save');await sent;if(replace)x.bridge.discardLocal('PROCESS');await stage(x,replace?'Replacement':'Later');release();await assert.rejects(task,/UNKNOWN/);
+ return {allowReceipt(){missing=false;},fetch};
+}
+void test('PROCESS lost Save ACK receipt retires only captured prefix and preserves later local input',async t=>{
+ const x=await fixture();t.after(x.f.close);const recovery=await lostSaveWithLaterInput(x);assert.equal(name(x),'Later');assert.equal(x.posts().length,1);
+ const marker=[...x.disk];await assert.rejects(x.bridge.recover('PROCESS'),/OPERATION_NOT_FOUND/);assert.equal(name(x),'Later');assert.deepEqual([...x.disk],marker);
+ recovery.allowReceipt();await x.bridge.recover('PROCESS');assert.equal(x.control.workflowScopes.PROCESS.saved.content['A-CUT'][1].name,'Captured');assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.equal(x.disk.size,0);assert.equal(x.posts().length,1);await x.bridge.recover('PROCESS');assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));
+ x.box.fetch=recovery.fetch;await x.bridge.execute('PROCESS','save');assert.equal(x.control.workflowScopes.PROCESS.saved.content['A-CUT'][1].name,'Later');assert.equal(x.posts().length,2);
+});
+for(const gate of ['view','edit'])void test(`PROCESS late input survives denied ${gate} receipt recovery and subsequent authorized settlement`,async t=>{
+ const x=await fixture();t.after(x.f.close);const recovery=await lostSaveWithLaterInput(x),marker=[...x.disk];recovery.allowReceipt();
+ await x.f.mutateValues(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides={...users[0].accessOverrides,['templates.'+gate]:false,...(gate==='edit'?{'templates.save':false}:{})};values.platformUsers=JSON.stringify(users);});
+ const stored=x.f.row();await assert.rejects(x.bridge.recover('PROCESS'));assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.deepEqual([...x.disk],marker);assert.deepEqual(x.f.row(),stored);assert.equal(x.posts().length,1);
+ await x.f.mutateValues(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides={...users[0].accessOverrides,'templates.view':true,'templates.edit':true,'templates.save':true};values.platformUsers=JSON.stringify(users);});
+ await x.bridge.load('PROCESS');await x.bridge.recover('PROCESS');assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.equal(x.control.workflowScopes.PROCESS.saved.content['A-CUT'][1].name,'Captured');assert.equal(x.disk.size,0);assert.equal(x.posts().length,1);
+});
+for(const field of ['operationId','generation','savedId'])void test(`PROCESS invalid ${field} receipt cannot retire sent prefix or later local input`,async t=>{
+ const x=await fixture();t.after(x.f.close);const recovery=await lostSaveWithLaterInput(x),marker=[...x.disk];recovery.allowReceipt();const fetch=x.box.fetch;
+ x.box.fetch=async(url,opt)=>{const response=await fetch(url,opt);if(url.includes('operationId=')&&response.ok){const body=await response.json();return Response.json({...body,receipt:{...body.receipt,[field]:'invalid-original-receipt'}});}return response;};
+ await assert.rejects(x.bridge.recover('PROCESS'));assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.deepEqual([...x.disk],marker);assert.equal(x.posts().length,1);
+ x.box.fetch=fetch;await x.bridge.recover('PROCESS');assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.equal(x.disk.size,0);assert.equal(x.posts().length,1);
+});
+void test('PROCESS changed generation cannot retire or rebind the lost Save and later input',async t=>{
+ const x=await fixture();t.after(x.f.close);const recovery=await lostSaveWithLaterInput(x),marker=[...x.disk];recovery.allowReceipt();
+ await x.f.mutateValues(values=>{const root=JSON.parse(values.masterDataControl);root.workflowScopes.PROCESS.generation='different-generation';values.masterDataControl=JSON.stringify(root);});const stored=x.f.row();
+ await assert.rejects(x.bridge.recover('PROCESS'));assert.equal(name(x),'Later');assert(x.bridge.localDirty('PROCESS'));assert.deepEqual([...x.disk],marker);assert.deepEqual(x.f.row(),stored);assert.equal(x.posts().length,1);
+});
+void test('PROCESS departure/reload abandons unsent later input; original receipt does not resurrect it',async t=>{
+ const x=await fixture();t.after(x.f.close);await lostSaveWithLaterInput(x);const marker=[...x.disk];x.bridge.discardLocal('PROCESS');x.emit('pagehide');
+ const y=await fixture({disk:x.disk,api:x.f});assert.equal(name(y),'Captured');assert(!y.bridge.localDirty('PROCESS'));assert.deepEqual([...y.disk],marker);await y.bridge.recover('PROCESS');assert.equal(name(y),'Captured');assert(!y.bridge.localDirty('PROCESS'));assert.equal(y.disk.size,0);assert.equal(y.posts().length,0);
+});
+void test('PROCESS discarded/replaced local batches are not mistaken for the sent prefix during recovery',async t=>{
+ const x=await fixture();t.after(x.f.close);const recovery=await lostSaveWithLaterInput(x,{replace:true});recovery.allowReceipt();await x.bridge.recover('PROCESS');assert.equal(name(x),'Replacement');assert(x.bridge.localDirty('PROCESS'));assert.equal(x.posts().length,1);assert.equal(x.disk.size,0);
+ // Replacement was based on the pre-Save working value: retain its original
+ // guard, do not silently rebase it to the newly confirmed Captured value.
+ x.box.fetch=recovery.fetch;await assert.rejects(x.bridge.execute('PROCESS','save'),/DEPENDENCY_CHANGED/);assert.equal(name(x),'Replacement');assert(x.bridge.localDirty('PROCESS'));
+});
