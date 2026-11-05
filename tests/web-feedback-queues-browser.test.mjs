@@ -9,7 +9,7 @@ const out='.sites-runtime/feedback-queues';fs.mkdirSync(out,{recursive:true});
 async function check(name,run){await run();passed.push(name);console.log('PASS '+name);}
 try {
   fixture=await createFeedbackFixture();const original=await fixture.businessState();
-  browser=await chromium.launch({headless:true,args:['--disable-background-networking']});
+  browser=await chromium.launch({headless:true,...(process.env.FEEDBACK_BROWSER_PATH?{executablePath:process.env.FEEDBACK_BROWSER_PATH}:{}),args:['--disable-background-networking']});
   async function login(id,viewport={width:1365,height:900}) {
     const context=await browser.newContext({viewport,serviceWorkers:'block'});
     await context.route('**/*',route=>new URL(route.request().url()).origin===fixture.origin?route.continue():route.abort());
