@@ -38,7 +38,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   departureDocuments:()=>[{id:'doc',flow:f}],save:ack,saveDraft:ack,write:ack,post:ack,sharedAction:ack,saveOrSubmit:ack,run:fn=>fn(),paint(){},render(){},draw(){},closeClean(){},copy:structuredClone,clone:structuredClone};
  // The module's selected() closure and Tooling's selected string are distinct.
  if(name!=='tooling')box.selected=()=>version;
- if(name==='bom-workspace'){box.ownerQuarantined=false;box.transportOwner=()=>true;box.recoveryFlight=null;box.recoverySession=null;box.localRevision=0;if(!omitBomRecovery)vm.runInNewContext(source.slice(source.indexOf(' function discardOwnRecovery(){'),source.indexOf(' async function reconcileLocal(')),box);}
+ if(name==='bom-workspace'){box.ownerQuarantined=false;box.transportOwner=()=>true;box.recoveryFlight=null;box.recoverySession=null;box.localRevision=0;Object.assign(box,{pending:[],batch:null,edit:null,saveCommand:null,departureRetained:false,isolatedInputs:[],manualLocal:()=>!!box.pending.length,active:()=>({snapshot:{bom:{}}})});vm.runInNewContext(sourceBlock(source,' function unknownReady(){',' let moduleDeparture;'),box);if(!omitBomRecovery)vm.runInNewContext(source.slice(source.indexOf(' function discardOwnRecovery(){'),source.indexOf(' async function reconcileLocal(')),box);}
  if(name==='fqc-master'){
   f.working={errors:[{id:'error',name:'Shared current'}],items:[]};f.saved.content={errors:[{id:'error',name:'Saved earlier'}],items:[]};version.snapshot=structuredClone(f.working);
   Object.assign(box,{syncBase:structuredClone(f.working),localRejection:null,formOwners:new WeakMap(),matrixOwner:()=>false,transport:()=>client});
@@ -68,7 +68,7 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
 for(const name of decisionModules){
  void test(`${name}: actual adapter preserves its explicit shared departure policy`,async()=>{
   const f=fixture(name),status=f.adapter.inspect();
-  if(['fqc-master','iqc-master'].includes(name)){
+  if(['fqc-master','iqc-master','bom-workspace'].includes(name)){
    const before=JSON.stringify(f.flow);assert.equal(status.state,'clean');assert.equal(status.canSave,false);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;
   }
   assert.equal(status.state,'dirty');assert.equal(status.canSave,true);assert.equal(status.canDiscard,false);await assert.rejects(f.adapter.discard());assert.equal(f.writes,0);
@@ -153,14 +153,14 @@ for(const name of ['ipqc-ab','routine-equipment'])for(const reason of ['same-id 
 
 for(const name of decisionModules)void test(`${name}: abandon navigation leaves acknowledged shared content intact without Save`,async()=>{
  const f=fixture(name),before=JSON.stringify(f.flow);
- if(name==='fqc-master'){assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.abandon());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;}
+ if(['fqc-master','bom-workspace'].includes(name)){assert.equal(f.adapter.inspect().state,'clean');await assert.rejects(f.adapter.abandon());f.adapter.closeClean();assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);return;}
  if(name==='iqc-master')f.box.localSnapshot={value:'unsaved local'};assert.equal(f.adapter.inspect().canAbandon,true);
  const lease=await f.adapter.abandon();assert.equal(f.adapter.inspect().state,'departing');assert.equal(f.adapter.inspect().departureId,lease.departureId);assert.equal(f.writes,0);assert.equal(JSON.stringify(f.flow),before);
  f.adapter.closeClean();lease.release();assert.equal(f.adapter.inspect().state,name==='iqc-master'?'clean':'dirty');
 });
 
 for(const name of decisionModules)for(const fault of ['identity','generation','unknown','reload'])void test(`${name}: abandonment handoff rejects late ${fault} and releases its lock`,async()=>{
- const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};const lease=await f.adapter.abandon();
+ const f=fixture(name),b=f.box,before=JSON.stringify(f.flow);if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent local';if(name==='iqc-master')b.localSnapshot={value:'unsaved local'};if(name==='bom-workspace')b.pending=[{}];const lease=await f.adapter.abandon();
  if(fault==='identity')b.window.ProcessSync.identity={id:'other'};
  if(fault==='generation')b.window.ProcessSync.epoch++;
  if(fault==='unknown'){f.unknown(true);if(name==='routine-fqc')b.s.retry={operationId:'original'};}

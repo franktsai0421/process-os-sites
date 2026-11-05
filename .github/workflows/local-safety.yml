@@ -1,7 +1,7 @@
 name: Local safety
 on:
   pull_request:
-    branches: [main, 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation']
+    branches: [main, 'review/quality-20261029-*', 'fix/fqc-authority-body-recovery-20261103', 'feat/discard-unsent-draft-navigation', 'integration/draft-save-20261104']
 permissions:
   contents: read
 concurrency:
@@ -67,6 +67,11 @@ jobs:
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
           node --test tests/approval-deeplink-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: BOM atomic Save and original-operation browser recovery
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/bom-atomic-save.test.cjs tests/bom-bounded-recovery-transport.test.mjs tests/bom-bounded-rejection-route.test.mjs tests/bom-local-recovery-actual-stack.test.mjs tests/bom-manual-ram-save.test.mjs tests/bom-post-authority-actual-stack.test.mjs tests/bom-post-authority-route.test.mjs tests/bom-post-authority-transport.test.mjs tests/bom-review-access-projection.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC local editing and atomic single Save
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
@@ -162,6 +167,11 @@ jobs:
         id: head_validation_03
         if: ${{ !cancelled() && steps.head_validation_02.outcome == 'success' }}
         run: node scripts/local-build.mjs
+      - name: BOM compiled browser atomic Save and silent departure
+        if: ${{ !cancelled() && steps.head_validation_03.outcome == 'success' }}
+        run: |
+          node --test --test-concurrency=1 tests/bom-atomic-browser.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Explicit input abandonment in compiled draft pages
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
