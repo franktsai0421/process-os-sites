@@ -58,7 +58,7 @@ export async function mountAccessQueue({host,t,current,request}) {
       const value=await request('list&status='+filter+(cursor?'&after='+encodeURIComponent(cursor):''));if(!alive())return;
       if(value.available===true&&value.coverage==='received-events-only'&&value.complete===false&&Array.isArray(value.events)){
         rows=value.events;permissions=value.permissions||{};privateDetails=value.privateDetails===true;next=value.next||null;selection=new Set([...selection].filter(id=>rows.some(row=>row.id===id)));
-        controls.remove();message.textContent=t('僅顯示已成功上報且目前有權查看的事件。','Chỉ hiện sự kiện đã báo thành công và được phép xem hiện tại.');scope.textContent=t('最後收到事件：','Lần nhận sự kiện gần nhất: ')+(value.lastUpdatedAt||t('尚無','Chưa có'))+' · '+t('離線、舊版或未接入的來源可能尚未上報，不能保證收齊。','Nguồn ngoại tuyến, phiên bản cũ hoặc chưa kết nối có thể chưa báo; không bảo đảm đầy đủ.');paint();return;
+        controls.remove();message.textContent=t('僅顯示已成功上報且目前有權查看的事件。','Chỉ hiện sự kiện đã báo thành công và được phép xem hiện tại.');scope.textContent=t('清單資料最後更新（含管理更新）：','Dữ liệu danh sách cập nhật gần nhất (gồm xử lý): ')+(value.lastUpdatedAt||t('尚無','Chưa có'))+' · '+t('離線、舊版或未接入的來源可能尚未上報，不能保證收齊。','Nguồn ngoại tuyến, phiên bản cũ hoặc chưa kết nối có thể chưa báo; không bảo đảm đầy đủ.');paint();return;
       }
       // Reject unsupported coverage instead of rendering arbitrary event payloads. An unexpected
       // successful payload cannot silently enable an unreviewed event reader.
