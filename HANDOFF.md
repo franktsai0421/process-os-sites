@@ -1,6 +1,6 @@
-## 2026-11-05 — PR87 compiled A/B artifact-path follow-up
+## 2026-11-05 — PR87 Windows A/B follow-up
 
-Step 22 on Windows failed; the full job log is not yet available. The full-browser fixture now uses an OS-provided fresh temporary directory for progress, errors and screenshots. Original Linux 4/4, absent-fixed-Unix-root red 2/4, corrected nondefault-temp green 4/4; all assertions and product/permission/data bytes retained. Remote exact-head CI and independent browser acceptance remain separate gates. [Evidence and scope](docs/acceptance/draft-save-batch3-20261105/README.md#pr87-windows-compiled-ab-artifact-path-follow-up).
+Native Windows `4a9f2ec` logs expose two original failures: a pending scope-permission completion redraws the new-error form after typing; the narrow photo assertion can precede decode. The controller now captures input only for the unchanged owner (actor object/id, epoch/delivery, scope/generation, host/lifetime/client) and supplies that guard to the permission request. Stale replies cannot capture/repaint. The photo test awaits real decode before its unchanged complete/naturalWidth assertion; no test timeout or business/permission assertion is relaxed. The PR87-only diagnostic now checks out GitHub's PR merge commit, matching GITHUB_SHA and the unchanged source guard. [Reproduction, verification and remaining gates](docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
 
 ## 2026-11-05 — Third-batch local source integration
 

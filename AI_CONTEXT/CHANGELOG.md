@@ -1,3 +1,7 @@
+## 2026-11-05 — PR87 A/B late permission input preservation
+
+Fix a scope-permission completion clearing a newly typed error name. Capture before redraw only for the original current owner and guard the permission response by the same owner. Add deterministic response-gated input/stale-owner/denial regressions. Compiled photo acceptance waits for decode before its unchanged assertion; fix the PR87 diagnostic checkout/guard commit identity. No schema, migration or live-data changes. [Evidence and remaining acceptance](../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
+
 ## 2026-11-05 — Third-batch local source integration
 
 Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](../docs/acceptance/draft-save-batch3-20261105/README.md).

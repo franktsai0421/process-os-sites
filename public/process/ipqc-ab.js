@@ -805,7 +805,9 @@
     const switchScope=async(nextLine,nextGroup)=>{
       if(busy)return;captureBatchInput();modal=null;modalBase=null;viewer=null;line=nextLine;group=nextGroup;stage='';errorId='';versionId='';working=null;showRouteExtras=false;selectDefaults();
       working=localEntry()?.snapshot||(opened()?.status==='draft'?clone(opened().snapshot):null);inputBasisOwner=inputOwner(transport());draw();
-      const selected=key();try{await transport().permissions();if(key()===selected)draw();}catch(error){if(key()===selected){message=error.message;draw();}}
+      const owner=inputOwner(transport()),owns=()=>inputOwnerCurrent(owner);
+      try{await owner.client.permissions({isCurrent:owns});if(owns()){captureBatchInput();draw();}}
+      catch(error){if(owns()){captureBatchInput();message=error.message;draw();}}
     };
     q('#ipqcab-line')?.addEventListener('change',e=>switchScope(e.target.value,''));
     q('#ipqcab-group')?.addEventListener('change',e=>switchScope(line,e.target.value));

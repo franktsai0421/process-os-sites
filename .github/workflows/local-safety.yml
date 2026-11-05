@@ -90,6 +90,8 @@ jobs:
         run: |
           node --test tests/ipqc-ab-local-save.test.mjs tests/ab-create-auto-receipt.test.mjs tests/ab-create-rejection-transport.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test --test-concurrency=1 tests/ipqc-ab-scope-permission-races.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Real browser / actual handlers; immediate-Apply VM suites are migrated in place.
           node --test --test-concurrency=1 tests/ab-sent-batch.test.mjs tests/ab-create-next-batch.test.mjs tests/ab-create-rejection-caller.test.mjs tests/ab-create-unknown-map.test.mjs tests/ipqc-ab-local-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,3 +1,7 @@
+## 2026-11-05 — A/B scope read preserves current private input
+
+A late scope permission reply captures current modal input before repainting only while its original actor object/id, epoch, delivery, scope generation, host, lifetime and client remain current. The same ownership predicate gates the permission result; stale completions neither capture nor repaint. Existing denial/Save/create/delete/Submit and receipt protections remain. The module asset pin advances to `20261105-ab-scope-input1`; no persistent format or data-model change. [Integration evidence](../../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
+
 ## 2026-11-05 — FQC 檢具移轉並存取候選
 
 FQC preflight GET／準備失敗而未交給 POST 時，可由 client 私有 `isBeginNotSent` 證明原 attempt；來源同情境、同 identity／選取／journal 才撤未送 intent，重新明確確認。POST 例外／404 不適用。

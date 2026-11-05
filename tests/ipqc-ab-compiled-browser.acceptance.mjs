@@ -258,6 +258,7 @@ for (const [width, lang] of [
         await page.locator('#ipqcab-group').selectOption('GROUP-1');
         await page.locator('[data-ab-photo-item]').first().click();
         await page.locator('.ipqcab-viewer img').waitFor();
+        await page.locator('.ipqcab-viewer img').evaluate((img) => img.decode());
         assert(
           await page
             .locator('.ipqcab-viewer img')
