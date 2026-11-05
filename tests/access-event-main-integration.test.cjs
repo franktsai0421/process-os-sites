@@ -21,7 +21,7 @@ const main={
   "lib/bom-workflow.ts": "03072124ab0b511bd9d5ea7760ba2d4b8144db64a12f590346ca59765390e114",
   "app/api/master/workflow/route.ts": "e59302315b30f2e2bce1d47ea6d6ea4f9d7228babaa0ddfc23267fee90ec2de8"
 };
-for(const [file,pinned]of Object.entries(main))test('preserves merged main safety bytes: '+file,()=>assert.equal(hash(project(fs.readFileSync(file),file)),pinned));
+for(const [file,pinned]of Object.entries(main))void test('preserves merged main safety bytes: '+file,()=>assert.equal(hash(project(fs.readFileSync(file),file)),pinned));
 const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
 for(const [label,from,to]of [
  ['pre-dispatch proof','if(attempt)attempt.dispatched=true;','if(false)attempt.dispatched=true;'],
@@ -29,10 +29,10 @@ for(const [label,from,to]of [
  ['equipment terminal','equipmentLocalSave?await equipmentTerminal(original,command):original','original'],
  ['unknown refusal','PREVIOUS_OPERATION_UNKNOWN','PREVIOUS_OPERATION_IGNORED'],
  ['observer isolation','catch{/* Reporting never changes original receipts, errors or write admission. */}', 'catch{throw Error("REPORTING_FAILED");}'],
-])test('merged reporting proof rejects '+label+' mutation',()=>{
+])void test('merged reporting proof rejects '+label+' mutation',()=>{
  const altered=Buffer.from(current.toString().replace(from,to));assert.notDeepEqual(altered,current,'mutation must execute');assert.notEqual(hash(project(altered,file)),main[file]);
 });
-test('projection does not normalize or accept non-Buffer inputs',()=>{
+void test('projection does not normalize or accept non-Buffer inputs',()=>{
  assert.notEqual(hash(project(Buffer.concat([current,Buffer.from(' ')]),file)),main[file]);
  for(const value of [current.toString(),new Uint8Array(current)])assert.throws(()=>project(value,file),/requires raw source bytes/);
 });
