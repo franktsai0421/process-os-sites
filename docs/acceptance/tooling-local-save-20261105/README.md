@@ -77,3 +77,16 @@ coordinated reviewed version after #77; old clients retain legacy Apply/Save.
 Full Local safety CI is enabled for the integration base and includes the new
 handler and native-browser suites. Passing local checks does not authorize merge
 or deployment.
+
+## Local completion evidence
+
+PASS: 48 tooling synthetic-UI groups; 126 existing handler operations; three new
+atomic/transfer/photo-rights handler cases with multiple assertions; 127 shared
+Begin/receipt/navigation/IQC tests; 46 FQC/IPQC-C/tooling regression cases;
+existing IPQC-C atomic-save runner; Chromium desktop Chinese and narrow Vietnamese
+(including separate actor sessions, real image decoding, silent ordinary/unknown
+navigation, Begin and Save recovery, and preserved pre-v1 Begin marker).
+TypeScript, lint, source boundary and fixed-commit production build passed.
+The build validates source output only, not hosted behavior. Final PR CI remains
+an independent gate. Expected synthetic 409/503 responses are deliberate conflict
+and lost-ACK injections, not suppressed test failures.
