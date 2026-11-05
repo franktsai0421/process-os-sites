@@ -6,7 +6,7 @@
 
 後續在 `6a7f665` 又重現 pre-dispatch GET 503：來源 journal 已寫入，但 Begin POST 為 0，服務恢復後只能查不存在收據。現行修正讓 FQC `beginWithIdentity` 在交給 POST transport 前保有私有 attempt 記錄；只有原 Error 物件、原 identity、目前 attempt sequence 與仍有效的 actor／epoch／delivery／page 情境相符，且可核對／撤掉本次未發送 durable preparation 時，`isBeginNotSent` 才可證明未送出。來源也必須仍擁有同一選取與精確 journal bytes，才撤掉自己的未送 intent。這是原情境內的私有證據，不從已存 journal、公開 Error flags 或一般 404 重建。進入 POST 路徑後即保守視為可能已送，原 unknown／receipt-only 保護保持；無法核對的標記仍保留。
 
-此輪實際 handler/UI 紅測試在 6a7f665 的 0 POST 下留下 1 個來源 journal；修正後同例為 0 marker、0 POST，服務恢復後重新明確確認才新 Begin＋Save，沒有查原不存在收據。另有 durable quota／after-write／cleanup-failure、偽造 Error／identity、過期 proof、POST fetch failure 與 404 負面測試。compiled browser 注入第二次 workflow GET 503，驗證共享資料完全不變，恢復後新 identity 明確操作成功。此輪 handler 27＋Begin 63 共 90 項、相關回歸 402 項、compiled transfer 6 項均 PASS；最終 HEAD 另依交付及新 CI 核對。
+此輪實際 handler/UI 紅測試在 6a7f665 的 0 POST 下留下 1 個來源 journal；修正後同例為 0 marker、0 POST，服務恢復後重新明確確認才新 Begin＋Save，沒有查原不存在收據。另有 durable quota／after-write／cleanup-failure、偽造 Error／identity、過期 proof、POST fetch failure、POST 成功後終端 GET503 與 404 負面測試。compiled browser 注入第二次 workflow GET 503，驗證共享資料完全不變，恢復後新 identity 明確操作成功。此輪 handler 27＋Begin 64 共 91 項、相關回歸 402 項、compiled transfer 6 項均 PASS；最終 HEAD 另依交付及新 CI 核對。
 
 原先在固定 `dbcc17e` 發現的兩個阻擋由 6a7f665 修復，仍保留以下保護：
 
