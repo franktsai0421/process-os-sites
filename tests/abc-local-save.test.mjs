@@ -85,8 +85,8 @@ for(const scope of ['AB','C']){
 }
 void test('two scopes save concurrently through actual shared-state CAS without cross-saving',async t=>{
  const ab=await fixture({scope:'AB'}),c=await fixture({scope:'C'});t.after(ab.close);t.after(c.close);
- await ab.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.active.C=copy(c.master.active.C);root.active.PROCESS={...root.active.PROCESS,...c.master.active.PROCESS};root.versions.push(...c.master.versions);root.workflowScopes.C=copy(c.flow);v.masterDataControl=JSON.stringify(root);});
- const abCommand=save(ab,[change(productPath,'AB independently saved','Synthetic product')]),cCommand=save(c,[change(productPath,'C independently saved','Synthetic product')]);
+ await ab.mutateValues(v=>{const root=JSON.parse(v.masterDataControl);root.active.C=copy(c.master.active.C);root.active.PROCESS={...root.active.PROCESS,...c.master.active.PROCESS};root.versions.push(...c.master.versions.map(v=>({...v,id:'C-'+v.id})));const other=copy(c.flow);other.generation='synthetic-generation-C';other.baseId='C-active';other.active.id='C-active';other.cases=other.cases.map(v=>({...v,id:'C-'+v.id,baseId:'C-'+v.baseId,savedId:'C-'+v.savedId}));other.saves=other.saves.map(v=>({...v,id:'C-'+v.id}));root.workflowScopes.C=other;v.masterDataControl=JSON.stringify(root);});
+ const abCommand=save(ab,[change(productPath,'AB independently saved','Synthetic product')]),cCommand=save(c,[change(productPath,'C independently saved','Synthetic product')],{generation:'synthetic-generation-C'});
  const responses=await Promise.all([ab.request('POST',abCommand),ab.route.POST(new Request(ab.url.replace('scope=AB','scope=C'),{method:'POST',headers:ab.headers,body:JSON.stringify({command:cCommand})}))]);assert.equal(responses[0].status,200,JSON.stringify(responses[0].body));assert.equal(responses[1].status,200,JSON.stringify(await responses[1].json()));
  const root=JSON.parse((await ab.decoded()).masterDataControl);assert.equal(root.workflowScopes.AB.saved.content.products[0].name,'AB independently saved');assert.equal(root.workflowScopes.C.saved.content.products[0].name,'C independently saved');
 });

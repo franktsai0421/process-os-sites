@@ -56,6 +56,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   requiresDelete(control,command){
    if(command.action==='restore')return true;
    if(scope!=='PROCESS'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.batches))for(const batch of command.input.batches as {patches:DraftPatch[];guards:{path:DraftPath;value:unknown}[]}[]){
+    if(!batch||!Array.isArray(batch.patches)||!Array.isArray(batch.guards))throw new DraftConflict('INVALID_LOCAL_SAVE',422);
     if(batch.patches?.some(p=>p.op==='remove'||p.op==='set'&&['stages','defaultStages'].includes(str(p.path.at(-1)))&&batch.guards?.some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)&&Array.isArray(g.value)&&g.value.some(code=>!Array.isArray(p.value)||!p.value.includes(code)))))return true;
    }
    if((command.patches||[]).some(p=>p.op==='set'&&p.path[0]==='categoryGroups'&&p.path.at(-1)==='defaultStages'&&rows(control.workflow!.working.categoryGroups).some(g=>typeof p.path[1]==='object'&&g.id===p.path[1].id&&Array.isArray(g.defaultStages)&&g.defaultStages.some(code=>!Array.isArray(p.value)||!p.value.includes(code)))))return true;
@@ -189,7 +190,7 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
     result.state.receipts[command.operationId].result=cloneDraft(result.receipt);
     return result;
    }
-   if(command.moduleAction)throw new DraftConflict('INVALID_MODULE_ACTION',422);
+   if(command.moduleAction&&(scope!=='PROCESS'||command.moduleAction==='save-local-v1'))throw new DraftConflict('INVALID_MODULE_ACTION',422);
    checkEnteredFields=command.action==='apply';if(command.action==='apply')for(const p of command.patches||[]){
    const path=p.path,first=path[0],field=path.at(-1);if(typeof first!=='string'||scope!=='PROCESS'&&!['products','lines','categoryGroups'].includes(first))throw new DraftConflict('INVALID_COLLECTION',422);
    if(p.op==='set'&&(path.length<3||typeof path[1]!=='object'))throw new DraftConflict('COLLECTION_REPLACEMENT_FORBIDDEN',422);
