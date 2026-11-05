@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { chromium } from 'playwright';
 import { createABCFixture } from './ab-c-native-fixture.mjs';
 import { pngFixture } from './photo-fixtures.mjs';
 const commit = process.env.PROCESS_PROGRAM_COMMIT;
+const evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'process-ipqc-ab-compiled-'));
 for (const [width, lang] of [
   [1280, 'zh'],
   [390, 'vi'],
@@ -25,7 +28,7 @@ for (const [width, lang] of [
         mark = (name) => {
           results.push({ name, status: 'PASS' });
           fs.writeFileSync(
-            '/tmp/ab-compiled-progress-' + width + '.json',
+            path.join(evidenceRoot, 'ab-compiled-progress-' + width + '.json'),
             JSON.stringify(results),
           );
         };
@@ -481,7 +484,7 @@ for (const [width, lang] of [
         assert.deepEqual(errors, []);
         mark('no browser JavaScript errors');
         await page.screenshot({
-          path: `/tmp/ipqc-ab-compiled-${width}-${lang}.png`,
+          path: path.join(evidenceRoot, `ipqc-ab-compiled-${width}-${lang}.png`),
           fullPage: true,
         });
         t.diagnostic(
@@ -499,14 +502,18 @@ for (const [width, lang] of [
           }),
         );
       } catch (e) {
-        fs.writeFileSync(
-          '/tmp/ab-compiled-error-' + width + '.txt',
-          e.stack || e.message,
-        );
+        try {
+          fs.writeFileSync(
+            path.join(evidenceRoot, 'ab-compiled-error-' + width + '.txt'),
+            e.stack || e.message,
+          );
+        } catch (diagnosticError) {
+          t.diagnostic('Failure diagnostic write failed: ' + (diagnosticError.code || 'UNKNOWN'));
+        }
         if (page) {
           await page
             .screenshot({
-              path: `/tmp/ipqc-ab-compiled-fail-${width}.png`,
+              path: path.join(evidenceRoot, `ipqc-ab-compiled-fail-${width}.png`),
               fullPage: true,
               timeout: 3000,
             })

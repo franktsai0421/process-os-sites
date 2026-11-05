@@ -1,3 +1,7 @@
+## 2026-11-05 — PR87 compiled A/B artifact-path follow-up
+
+Step 22 on Windows failed; the full job log is not yet available. The full-browser fixture now uses an OS-provided fresh temporary directory for progress, errors and screenshots. Original Linux 4/4, absent-fixed-Unix-root red 2/4, corrected nondefault-temp green 4/4; all assertions and product/permission/data bytes retained. Remote exact-head CI and independent browser acceptance remain separate gates. [Evidence and scope](docs/acceptance/draft-save-batch3-20261105/README.md#pr87-windows-compiled-ab-artifact-path-follow-up).
+
 ## 2026-11-05 — Third-batch local source integration
 
 Fixed equipment #81, IPQC A/B #82, PROCESS #83 and FQC transfer #84 merged by ancestry onto merged #85; no upload/main merge/deployment/live-data change. Shared exact-route, permission, ACK/readback, unknown and historical-source contracts are composed semantically. Final verification ledger and recoverable artifacts accompany the task handoff. [Scope, merge decisions and evidence boundary](docs/acceptance/draft-save-batch3-20261105/README.md).
