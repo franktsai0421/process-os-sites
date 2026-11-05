@@ -37,7 +37,9 @@ async function setup(t) {
     },
   });
   const b = await chromium.launch({
-    executablePath: '/usr/bin/chromium',
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
+        : {}),
     headless: true,
   });
   t.after(async () => {

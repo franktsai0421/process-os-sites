@@ -95,14 +95,15 @@ void test('compiled pre-dispatch Begin GET503 removes only the proven unsent int
  }finally{await s.close();}
 });
 
-void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/manual Save coexist in compiled UI',async()=>{
+void test('batch3 equipment Save, FQC atomic transfer and IPQC AB guarded Apply/manual Save coexist in compiled UI',{timeout:90000},async()=>{
  const s=await setup(1280,'zh');try{
  const p=s.source;
+ await p.locator('#routine-begin').click();await p.locator('#routine-save').waitFor();
  await p.locator('[data-node-select="category"]').first().click();await p.locator('[data-node-select="subcategory"]').first().click();if(await p.locator('[data-node-select="group"]').count())await p.locator('[data-node-select="group"]').first().click();
  await p.locator('[data-equipment-edit="source"]').click();await p.locator('#routine-editor [data-field="notes"]').fill('Batch3 equipment saved');await p.locator('#routine-form-apply').click();
  const equipmentSaved=p.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/routine-equipment/workflow'&&r.request().postDataJSON().command?.action==='save');await p.locator('#routine-save').click();assert.equal((await equipmentSaved).status(),200);await p.waitForFunction(()=>!window.sharedDraftAccountState().queued);
  assert.equal((await s.controls()).routineEquipmentControl.workflow.saved.content.equipment.find(row=>row.id==='source').notes,'Batch3 equipment saved');
- const ab=await s.page('quality-ipqc-ab');await ab.locator('[data-ab-edit-item]').first().click();await ab.locator('#ab-standard').fill('Batch3 unsent AB standard');
+ const ab=await s.page('quality-ipqc-ab');await ab.locator('#ipqcab-begin').click();await ab.locator('[data-ab-edit-item]').first().click();await ab.locator('#ab-standard').fill('Batch3 unsent AB standard');
  const start=s.posts.length,before=await s.controls();
  for(const moduleId of ['fqc','ipqc-ab']){
   const source=await s.page('quality-routine-equipment');await source.locator('[data-node-select="category"]').first().click();await source.locator('[data-node-select="subcategory"]').first().click();if(await source.locator('[data-node-select="group"]').count())await source.locator('[data-node-select="group"]').first().click();

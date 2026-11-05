@@ -71,7 +71,9 @@ for (const [width, lang] of [
           },
         });
         browser = await chromium.launch({
-          executablePath: '/usr/bin/chromium',
+          ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
+        : {}),
           headless: true,
         });
         const context = await browser.newContext({
