@@ -1,5 +1,7 @@
 ## 2026-11-05 — FQC 檢具移轉並存取候選
 
+審查後修正已選 target 的有效性重驗，以及 Begin ACK／來源 journal 交接失去原 ID 的窄邊界；只新增 FQC prepared identity 入口，保留原 Begin 與普通歷史引用保存。
+
 依確認只讓 FQC 檢具移轉在原按鈕一起原子保存整份工作草稿；其餘模組不延伸。保留本機表單、未知證據、歷史與權限，不自動送審或保存檢具。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
 
 ## 2026-11-05 — 跨品質檢具替換安全候選

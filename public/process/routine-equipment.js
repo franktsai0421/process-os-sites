@@ -2455,16 +2455,16 @@
     if(basis.generation!==(entry.workflow?.generation??null)||basis.activeVersionId!==(entry.activeVersion?.id??null)||basis.openVersionId!==(entry.openVersion?.id??null))throw Error('FQC_TARGET_CHANGED_RECONFIRM');
     let record=null;
     if(!entry.workflow?.editable){
-      record=writeFqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'begin'});
+      record=writeFqcTransfer({version:1,actorId:dialog.owner.actorId,endpoint:fqcTransferEndpoint,intent,basis,phase:'begin',operationId:crypto.randomUUID()});
       let begun;
-      try{begun=await client.begin();}catch(error){
+      try{begun=await client.beginWithIdentity({operationId:record.operationId,basis});}catch(error){
         // Only the durable transport's verified basis/identity refusal may retire
         // this unsent intent; all other errors retain original Begin evidence.
         if(!client.hasUnknownBegin()&&['BEGIN_BASIS_CHANGED','INVALID_BEGIN_IDENTITY'].includes(error.message))clearFqcTransfer(record);
         throw error;
       }
-      record=writeFqcTransfer({...record,operationId:begun.receipt?.operationId},record);assertOwned();
-      if(begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('FQC_BEGIN_GENERATION_CHANGED');
+      assertOwned();
+      if(begun.receipt?.operationId!==record.operationId||begun.operationKind!=='begin-v1'||JSON.stringify(begun.beginBasis)!==JSON.stringify(basis)||begun.receipt?.generation!==begun.control?.workflow?.generation)throw Error('FQC_BEGIN_GENERATION_CHANGED');
       authority=begun;
     }
     const flow=assertFqcTransferRead(authority);if(!flow?.generation)throw Error('BEGIN_REQUIRED');

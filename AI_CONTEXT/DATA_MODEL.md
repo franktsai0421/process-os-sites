@@ -1,5 +1,7 @@
 ## 2026-11-05 — FQC 檢具移轉並存取候選
 
+審查後：新來源 Begin journal 在發送前保存原 operationId；舊 version 1 journal 仍讀取／保留。FQC-only `beginWithIdentity` 沿用原 begin-v1 wire shape，沒有 SQL／schema／migration。
+
 FQC 替換 caller 新增 actor-scoped version 1 來源 journal，記錄原 intent／basis／phase／command 供原收據核對；不存未送表單或照片 bytes。沒有 DB／R2 schema、migration 或資料轉換。 [實作與驗證界線](../docs/acceptance/equipment-transfer-draft-20261105/README.md)。
 
 ## 2026-11-05 — Equipment local atomic Save

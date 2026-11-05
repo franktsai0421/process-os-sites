@@ -2,11 +2,22 @@
 
 此輪接續 [Draft PR #84](https://github.com/franktsai0421/process-os-sites/pull/84) 的固定 `45545ef3bc2b9fa9cec56eb659abc9eed6d7049b`。使用者只確認 FQC：原位置同一按鈕移轉並存取整份 FQC working，其他已套用未存修改一起保存，不必先切到 FQC 查看。IQC、IPQC C、IPQC A/B 仍是原來的 guarded Apply＋目標手動 Save；不能延伸此決定。
 
+## 獨立審查後的窄邊界修正（現行候選）
+
+審查在固定 `dbcc17e` 發現兩個可重現阻擋，已各自修正，最終 HEAD／CI 以本次交付及 PR 為準：
+
+- **同一 target 已選取仍須有效**：實際 handler 紅測試證明，target 已在 working 時，停用／沒有生效設備版本仍可回成功並保存其他共享修改。現在 `lib/fqc-workflow.ts` 對明確 equipmentId set 使用本次 CAS context 的既有生效設備 Map 重驗（包括值未變），無有效且啟用目標回 422 `EQUIPMENT_UNAVAILABLE`。普通 Save 沒有重選 equipmentId 時，舊 snapshot、已存／正式／歷史引用仍保留；原收據重放也保留。沒有修改通用伺服器交易或擴大保存範圍。
+- **Begin 身分先持久化**：原來源第二次寫 journal 失敗，可能發生 durable Begin marker 已清但來源還無 operationId。現在來源第一次寫 phase=begin 就帶固定原 ID／basis；共用 client 新增僅 FQC durable 可用的 `beginWithIdentity`，複製／驗證該 identity，fresh basis 不符在 POST 前拒絕，原 `begin()` 與其餘模組不變。來源不再依賴 ACK 後補寫原 ID。新操作即使 Save-phase journal 寫失敗、離頁、reload，仍能 GET 原 Begin 收據；核對 Begin 不會接著 Save，需重新明確確認。舊無識別 marker 不猜測、不清除。
+
+專項覆蓋：實際 UI/client／handler 包含正常獨立檢具停用→存取→送審→另一合成 reviewer 核准競態、同值 target 失效、真 CAS collision 後重讀驗證、immutable storage 中撤銷 session、普通歷史引用保全與同操作收據重放；compiled browser 注入來源第二次 setItem 失敗，驗證一個 Begin、無 Save、離頁／reload 保留原 ID、唯讀查原收據及重新確認後才一個 Save。純合成 SQLite/R2／瀏覽器，沒有實站或帳號設定變更。
+
+審查修正專項本機 PASS（無 skipped）：實際 UI/client/handler 25 項；共用 identified Begin 54 項（含 4 個新 prepared identity 案例）；FQC required dependencies／single Save／Begin routes／其他模組 Begin／cache 合計 232 項；equipment API/transport／離頁／送審等 224 項；compiled transfer browser 5 項；intent 83 項、四品質 handler 16 組。FQC historical structure／parent lookup 固定舊來源比較與舊 handler inverse／負面 mutation 也通過。最終固定 HEAD 的 compiled／lint／型別／build／source-only 與完整 CI 另由交付及 PR 記錄；不能以 dbcc17e 的 CI 代替本次新產品。
+
 ## FQC 現行候選
 
 - 既有 `save/moduleAction:save-local-v1` 同時帶選定 equipmentId／tool patches、原值 guards、空 matrixCells，一個最終 CAS 保存整份 FQC working／saved。沒有先 Apply 再 Save 的部分寫入。已開始草稿一次 workflow Save；首次開始仍有獨立 identified Begin，不能宣稱整個操作只有一個 HTTP。
 - 原位置確認文字明確包含其他共享已套用修改；保存不包括其他頁面未送的本機表單。檢具主檔不保存、不送審、不停用，品質也不送審。原照片、來源、其餘欄位、saved／正式／歷史保留。
-- FQC caller 沿既有 durable Begin＋FQC bounded transport；沒有修改共用核心、FQC 消費端或伺服器交易。開始前核對 target active／open／generation，Begin 後核對原 basis／receipt generation；不能把舊選取改綁新世代。原無識別 target Begin marker 仍保留且阻擋。
+- FQC caller 沿既有 durable Begin＋FQC bounded transport；審查後僅對共用 client 增加上述 FQC 明確 Begin 身分入口、對 FQC adapter 增加明確選取驗證；FQC 消費端與伺服器 CAS 交易不變。開始前核對 target active／open／generation，Begin 後核對原 basis／receipt generation；不能把舊選取改綁新世代。原無識別 target Begin marker 仍保留且阻擋。
 - 瀏覽器新增 `routine-equipment-fqc-transfer-v1:<actor>` 來源 journal，version 1，保存原 intent、target basis、begin/save phase、原操作 ID／完整 Save command（只含原選取 patches／guards，無未送表單或照片 bytes）。持久化讀回成功才發送。這是原操作證據，不是另存未送輸入或新恢復介面。
 - Save 使用既有私有收據／fresh readback 證據；lost ACK、404、503 或終端讀回失敗保留 journal 與 transport marker。原按鈕變成唯讀查原收據，不重送、也不保存後來輸入。若 transport 已結案但來源失去情境，來源 journal 仍以原收據＋新授權讀回核對；跨世代只確認原保存，不套用新草稿。
 - 原有 local departure planner 同時涵蓋檢具及 target FQC transport；離頁只放棄本人未送輸入，不清已送 intent。FQC 成功後只更新引用／preview，不觸發會重建來源頁的全域 refresh；來源本機檢具修改仍保留。目標頁按各自原輪詢與 guards 處理本機輸入。
@@ -18,7 +29,7 @@
 
 無 SQL/schema/migration、實站／測試站、真實資料／帳號／權限設定、merge 或部署。#82 compiled UI 全量整合、獨立審查與最終 CI 須另外列出，不用上游 PASS 代替。
 
-### FQC 本輪本機結果
+### 審查前 dbcc17e 的本機結果（產品已由上述審查修正取代）
 
 Node 24.19／Linux／Chromium，產品 `routine-equipment.js` SHA-256 `5b2a4dedb1c6f78e302bfdce2b471addabf0012d15129267925a990526bc2aec`。最終 commit、lint／型別／build 與 exact-head CI 由本次交付及 PR 綁定；下列是已執行的專項結果，沒有 skipped。
 
