@@ -36,3 +36,7 @@ An A→B→A local selection still displays the retained historical A snapshot w
 Separately, a preexisting change-gauge-then-delete/full-row-guard batch can receive 409 when the server-normalized snapshot differs from the retained local snapshot. The transaction rolls back. This display-only change neither introduces nor fixes that boundary; a separate workstream owns its regression/fix. No guard relaxation, automatic retry or snapshot wire patch is used here.
 
 No data-model or persistent-format impact. No ready/approve/merge/deploy authorization is implied.
+
+## CI compatibility follow-up
+
+See the separate [PR93 source-only compatibility evidence](../ipqc-c-display-ci-20261106/README.md). The display product bytes above are unchanged; historical image proofs and the Feedback test reader have their own reproduction, negatives, current-source checks and review/CI gates.

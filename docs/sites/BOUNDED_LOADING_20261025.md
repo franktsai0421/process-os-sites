@@ -35,6 +35,21 @@ The precise producer policy is in
 `tests/fixtures/bounded-image-policy.json`; executable checks are in
 `tests/bounded-media-loading.test.mjs` and `scripts/test-iqc-bounded-read.cjs`.
 
+The later C gauge display helper moves one inline producer while preserving the
+separate detail and list image sites. Its compatibility check uses
+`scripts/ipqc-c-display-image-source-contract.cjs` to reverse only three exact,
+unique display spans, bound to both whole-file hashes, before running the
+unchanged image policy assertion. Current-source mode uses the raw Git HEAD blob
+and requires the worktree to match it modulo CRLF checkout line endings; the
+pure inverse never normalizes unknown source. Removing every display marker
+still fails. Explicit external
+`BOUNDED_MEDIA_SOURCE` fixtures retain their original source checks; production
+callbacks and browser checks always execute the actual source. Mutation checks
+reject display, image URL, scheduling hint and unrelated source drift. The C
+gauge browser check also decodes both image sites and checks their hints and
+viewport placement at 1440px Chinese and 390px Vietnamese. This is synthetic
+browser evidence, not physical-device or live-image acceptance.
+
 ## Validation status
 
 The application baseline is

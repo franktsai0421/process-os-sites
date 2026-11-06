@@ -1,3 +1,7 @@
+## 2026-11-06 — PR93 display image proof follow-up
+
+A test-only full-file/three-span display inverse preserves both distinct historical C image sites; actual current gauge images and eager/fullsize paths are tested directly. The separate Feedback outbox harness race is repaired with a non-creating reader/readiness fence. [Exact reproduction, test limits and CI gates](../../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Product/source pins unchanged; no C409/PR91/B or role-layout import.
+
 ## 2026-11-06 — IPQC C local gauge caption candidate
 
 Local equipment ID edits keep the old server snapshot until Save. Display now uses that snapshot only for its own ID, otherwise the exact selected registry row; summary and expanded caption/photo agree. Matching historical snapshots and all wire/authority/guard behavior stay unchanged. [Root cause and isolated browser proof](../../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent of PR91 and the B scheduler/Save adapter work; only the C asset pin advances.

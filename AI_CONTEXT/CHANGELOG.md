@@ -1,3 +1,7 @@
+## 2026-11-06 — PR93 display CI contract and outbox probe candidate
+
+Historical bounded-image assertions now compose with an exact display-only inverse while current image/render behavior stays directly tested. The dual-tab telemetry test uses a non-creating, transaction-complete IndexedDB reader and actual product readiness, with negative controls. Exact0d5 image failure was reproduced; CI's Feedback GC message was not, although its old probe's empty-schema/unresolved-Promise race was controlled independently. [Evidence and remaining CI/review gates](../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Test/workflow-only follow-up; no runtime, data or deployment changes.
+
 ## 2026-11-06 — IPQC C local gauge preview
 
 Local Complete now shows the selected gauge caption/photo immediately when its ID differs from the retained server snapshot. Matching historical snapshots remain authoritative; Save derives approved registry metadata as before. No wire, permission, guard, schema or live-data changes. [Root cause, isolated UI/API coverage and separate existing boundaries](../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent Draft candidate; no merge or deployment.

@@ -30,7 +30,16 @@ const initial={schemaVersion:1,activeVersionId:'formal',versions:[{id:'formal',n
   const choose=async id=>{await page.locator('#ipqcc-select-equipment').click();await page.locator('[data-ipqcc-equipment="'+id+'"]').click();};
   const finish=async()=>{await page.locator('#ipqcc-editor button[type="submit"]').click();await page.locator('#ipqcc-editor').waitFor({state:'detached'});};
   const card=page.locator('.ipqcc-item').filter({has:page.locator('[data-ipqcc-view-item="inspection"]')});
-  const assertCaption=async(id,caption)=>{assert.match(await card.locator('.ipqcc-equipment-preview').innerText(),new RegExp(caption));assert((await card.locator('.ipqcc-equipment-preview').getAttribute('href')).includes('equipmentId='+id));assert((await card.locator('.ipqcc-equipment-preview img').getAttribute('src')).includes(gauges.find(g=>g.id===id).photoId));await card.locator('summary > code').click();assert.match(await card.locator('.ipqcc-item-body .ipqcc-selected-equipment').innerText(),new RegExp(caption));assert((await card.locator('.ipqcc-item-body .ipqcc-selected-equipment img').getAttribute('src')).includes(gauges.find(g=>g.id===id).photoId));};
+  const assertCaption=async(id,caption)=>{
+   assert.match(await card.locator('.ipqcc-equipment-preview').innerText(),new RegExp(caption));assert((await card.locator('.ipqcc-equipment-preview').getAttribute('href')).includes('equipmentId='+id));
+   await card.locator('summary > code').click();assert.match(await card.locator('.ipqcc-item-body .ipqcc-selected-equipment').innerText(),new RegExp(caption));
+   for(const selector of ['.ipqcc-equipment-preview img','.ipqcc-item-body .ipqcc-selected-equipment img']){
+    const image=card.locator(selector);assert.equal(await image.getAttribute('src'),'/api/routine-equipment/photo?id='+gauges.find(g=>g.id===id).photoId);
+    assert.equal(await image.getAttribute('loading'),'lazy');assert.equal(await image.getAttribute('decoding'),'async');await image.scrollIntoViewIfNeeded();
+    await image.evaluate(image=>image.decode());const actual=await image.evaluate(image=>{const box=image.getBoundingClientRect();return{natural:[image.naturalWidth,image.naturalHeight],visible:box.width>0&&box.height>0,withinViewport:box.left>=0&&box.right<=innerWidth+1};});
+    assert.deepEqual(actual,{natural:[1,1],visible:true,withinViewport:true},'original synthetic image decodes inside the '+width+'px viewport');
+   }
+  };
   mutations.length=0;const before=h.snapshot();await edit();await choose('next');await finish();
   assert.equal(await page.evaluate(()=>__gaugeTest.state().working.items[0].equipmentId),'next');
   await assertCaption('next','SYN-NEXT'); // Before-fix repro: actual ID next, visible SYN-OLD/photo old.
@@ -52,7 +61,7 @@ const initial={schemaVersion:1,activeVersionId:'formal',versions:[{id:'formal',n
   const sections=page.locator('#ipqcc-case-dialog .ipqcc-case-diff > section');assert.match(await sections.nth(0).innerText(),/Historical original gauge/);assert.match(await sections.nth(1).innerText(),/Third gauge/);assert((await sections.nth(0).locator('img').count())===0,'equipment snapshots remain textual in the unchanged fixed-case viewer');
   await page.locator('#ipqcc-case-close').click();
   await page.locator('#ipqcc-version').selectOption('formal');assert.match(await card.locator('.ipqcc-equipment-preview').innerText(),/Historical original gauge/);assert((await card.locator('.ipqcc-equipment-preview img').getAttribute('src')).includes(gauges[0].photoId));
-  await page.close();console.log('PASS actual C gauge UI '+width+' '+lang+': repeated local selection, photo/caption, unrelated edit, cancel, disabled/clear, one Save, reload, immutable formal');
+  await page.close();console.log('PASS actual C gauge UI '+width+' '+lang+': repeated local selection, decoded original photos/lazy hints/viewport layout, unrelated edit, cancel, disabled/clear, one Save, reload, immutable formal');
  }
  assert.deepEqual(errors,[]);
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));h.close();}

@@ -60,4 +60,5 @@ jobs:
       - run: node tests/access-events-cold-offline-browser.test.mjs
       - run: node tests/access-event-immediate-reload-browser.test.mjs
       - run: node tests/access-event-revocation-browser.test.mjs
+      - run: node tests/access-event-outbox-probe-browser.test.mjs
       - run: node tests/access-event-two-tabs-browser.test.mjs
