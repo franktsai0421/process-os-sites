@@ -57,7 +57,7 @@ const master={active:{C:{products:[{code:'C100',stages:['C-CUT']}],lines:[{stage
  await h.command('ipqc-c','withdraw',{caseId:firstCase,reason:'isolated withdraw'},'editor');
  let resubmitted=await h.command('ipqc-c','submit',{savedId:fixedId,reason:'same fixed snapshot'},'editor');
  assert.notEqual(resubmitted.receipt.caseId,firstCase);
- let checked=JSON.parse((await h.core.readState()).values.ipqcCMasterControl).workflow;assert.deepEqual(checked.cases.at(-1).content,fixed);assert.equal(checked.cases.find(row=>row.id===firstCase).status,'withdrawn');
+ const checked=JSON.parse((await h.core.readState()).values.ipqcCMasterControl).workflow;assert.deepEqual(checked.cases.at(-1).content,fixed);assert.equal(checked.cases.find(row=>row.id===firstCase).status,'withdrawn');
  await h.command('ipqc-c','return',{caseId:resubmitted.receipt.caseId,reason:'isolated return'},'reviewer');
  resubmitted=await h.command('ipqc-c','submit',{savedId:fixedId,reason:'same returned snapshot'},'editor');
  await h.command('ipqc-c','approve',{caseId:resubmitted.receipt.caseId},'reviewer');

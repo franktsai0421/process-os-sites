@@ -313,7 +313,7 @@
       editorState=()=>targetModal?JSON.stringify({fields:targetModal.fields,photos:targetModal.photos,pendingInsert:targetModal.pendingInsert}):'',
       submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false,submittedCommand=null;
     const cancelResponse=()=>{cancelled=true;refreshCurrent=sameActor();return null;};
-    if(action==='save')host?.querySelector('#ipqcc-save')?.setAttribute('disabled','');
+    if(action==='save'){const button=host?.querySelector('#ipqcc-save');if(button){button.disabled=true;button.setAttribute('aria-busy','true');button.textContent=t('Đang lưu…','存取中…');}}
     try {
       if(readAccessBlocked())throw Error('READ_ACCESS_RECHECK_REQUIRED');
       const transport=sharedTransport();

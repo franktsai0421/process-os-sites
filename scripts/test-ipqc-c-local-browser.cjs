@@ -117,7 +117,7 @@ for(const [index,id]of ['delete-1440-create-first','delete-1440-delete-first','d
  try{await Promise.race([recoveryReadHeld,new Promise((_,reject)=>{readDeadline=setTimeout(()=>reject(Error('Recovery read did not start')),10000);})]);}finally{clearTimeout(readDeadline);}
  const markers=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('shared-draft-receipt-only-v1:')));
  try{
- assert.equal(await page.locator('#ipqcc-save').isDisabled(),true,'pending operation immediately disables Save');
+ assert.equal(await page.locator('#ipqcc-save').isDisabled(),true,'pending operation immediately disables Save');assert.equal(await page.locator('#ipqcc-save').getAttribute('aria-busy'),'true');assert.match(await page.locator('#ipqcc-save').innerText(),/Đang lưu|存取中/);
  assert.equal(receiptReads,1,'malformed ACK is recovered by the original receipt');
  assert.equal(await page.evaluate(()=>__localTest.state().unknown),true,'unfinished readback is not success or failure');
  assert.equal(await page.evaluate(()=>sharedDraftAccountState().queued>0),true,'mutation state stays queued');

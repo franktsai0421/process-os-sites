@@ -4,7 +4,7 @@ Base: latest fetched main `2882f35`. Branch: `fix/ipqc-c-repeat-local-save-20261
 
 ## Evidence and cause
 
-Normal legacy draft adoption, first Save and two consecutive new-error Done/Save cycles pass in desktop/mobile Chromium. The coordinating live UI check later confirmed the long-running Save succeeded with a real allocated item code; it is not a proven listener failure or no-op. The exact cause of the earlier second DROP form and the long latency remain unproven. A read-only new tab without unknown controls cannot resolve a prior tab's unknown operation; OPERATION_NOT_FOUND is not a confirmed write rejection.
+Normal legacy draft adoption, first Save and two consecutive new-error Done/Save cycles pass in desktop/mobile Chromium. The coordinating live UI check later confirmed the long-running Save succeeded with a real allocated item code; it is not a proven listener failure or no-op. A second coordinated live round also completed three local Done actions and eventually saved after about 18 seconds while the button stayed available. This supports the missing immediate busy feedback defect; the earlier DROP form and long server/network latency remain unproven. A read-only new tab without unknown controls cannot resolve a prior tab's unknown operation; OPERATION_NOT_FOUND is not a confirmed write rejection.
 
 A deterministic separate fault reproduces a defect: commit a local new-error Save, lose its ACK, return 404 to original-receipt GET, then permit the original receipt. Before the fix, explicit Check reports success and removes the transport unknown barrier while the already-saved create remains in localChanges (expected 0, actual 1). A later Save could duplicate the create. The Save-button recovery path already cleared that queue; the explicit query path did not.
 
@@ -12,7 +12,7 @@ A deterministic separate fault reproduces a defect: commit a local new-error Sav
 
 Keep a RAM-only pin of the sent local Save operation/generation, exact queue reference and serialized changes. Only the transport's verified original receipt/readback plus unchanged actor/epoch/delivery/mount/input may settle that exact batch. Begin recovery is separate; no marker is forcibly removed. 404 remains unknown, GET never resends. After verified settlement, the ordinary authorized full read adopts current shared state. Changed local input is retained rather than cleared.
 
-Local Done now explains an unknown-operation barrier instead of silently returning. Save immediately disables its button before asynchronous work; an existing legacy recovery pending state displays a query-required message rather than silently returning. Neither behavior unlocks writes. Existing CAS, edit/create/delete/submit permissions, pending cases and whole-module Save remain.
+Local Done now explains an unknown-operation barrier instead of silently returning. Save immediately disables its button, sets aria-busy and shows 存取中／Đang lưu… before asynchronous work; an existing legacy recovery pending state displays a query-required message rather than silently returning. Neither behavior unlocks writes. Existing CAS, edit/create/delete/submit permissions, pending cases and whole-module Save remain.
 
 ## Verification
 
