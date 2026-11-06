@@ -34,6 +34,14 @@ The isolated work branch normally incorporates already merged main4baca404; its 
 
 ## Verification and review boundary
 
+### Main #92 integration and durable-read fence
+
+Fresh main6386158 adds role-template presentation and an overlapping inline outbox probe. The normal PR93 merge retains both CHANGELOG entries, both role asset pins plus the C display pin, and main's non-creating/readiness/count/closed-tab/business-state assertions through the already stricter shared reader. Role source bytes remain exact main; C source/proof bytes remain exactf84. No unpublished409/B candidate is imported.
+
+On that actual merged committed tree25622c9, the compiled dual-tab command newly failed its first durable-ID assertion: only operationA was present although both pages displayed offline. This is distinct from the earlier GC/schema issue. Reporter source emits offline after each observation's own committed upsert, before draining every staged observation. A deterministic actual-reporter/real-IndexedDB control holds before B's upsert, proves offline plus durableA only, then releases B and requires both exact records.
+
+The test-only reader now has a bounded readonly wait for the exact expected ID set. Each read uses the remaining overall deadline; missing IDs time out, unexpected/duplicate IDs and probe/schema/abort errors reject. It never calls flush/observe, initializes a database or writes/resends a business operation. Original metadata, ack, exact server rows, zero business POSTs and closed-tab recovery assertions remain unchanged. Eleven browser controls include the deterministic partial-persistence case and timeout/unexpected/duplicate/schema negatives. Prior256 review is not final successor approval; final committed-head build/browser/review results are delivered separately.
+
 Before same-PR publication, run on committed combined HEAD:
 
 ```sh

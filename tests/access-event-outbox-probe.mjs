@@ -23,3 +23,19 @@ export function readAccessEventOutbox({mode='count',actorId='frank',timeoutMs=50
   }catch(error){finish(error);}
  });
 }
+
+// offline is a per-observation status, not a fence for all staged entries.
+// Wait only for the exact durable IDs; never flush, resend, initialize or write.
+export async function waitForAccessEventOutboxEntries(page,operationIds,{timeoutMs=5000}={}){
+ if(!Array.isArray(operationIds)||!operationIds.length||operationIds.some(id=>typeof id!=='string'||!id)||new Set(operationIds).size!==operationIds.length||!Number.isSafeInteger(timeoutMs)||timeoutMs<1)throw Error('OUTBOX_WAIT_OPTIONS');
+ const expected=[...operationIds].sort((a,b)=>a.localeCompare(b)),deadline=Date.now()+timeoutMs;
+ for(;;){
+  const remaining=deadline-Date.now();if(remaining<=0)throw Error('OUTBOX_DURABILITY_TIMEOUT');
+  const rows=await page.evaluate(readAccessEventOutbox,{mode:'all',timeoutMs:remaining}),ids=rows.map(row=>row.event.operationId).sort((a,b)=>a.localeCompare(b));
+  if(new Set(ids).size!==ids.length||ids.some(id=>!expected.includes(id)))throw Error('OUTBOX_UNEXPECTED_OPERATION');
+  if(Date.now()>deadline)throw Error('OUTBOX_DURABILITY_TIMEOUT');
+  if(ids.length===expected.length)return rows;
+  if(Date.now()>=deadline)throw Error('OUTBOX_DURABILITY_TIMEOUT');
+  await page.waitForTimeout(Math.min(25,Math.max(1,deadline-Date.now())));
+ }
+}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
-import {readAccessEventOutbox} from './access-event-outbox-probe.mjs';
+import {readAccessEventOutbox,waitForAccessEventOutboxEntries} from './access-event-outbox-probe.mjs';
 
 let fixture,browser;const pageErrors=[];const watch=page=>page.on('pageerror',error=>pageErrors.push({name:error.name,message:error.message}));
 try{
@@ -25,7 +25,7 @@ try{
  const stage=await a.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('process-access-event-stage-v2:'+location.origin+':frank:')).map(key=>JSON.parse(localStorage.getItem(key))));
  assert.deepEqual(stage.map(row=>row.operationId).sort((a,b)=>a.localeCompare(b)),['two-tabs-operation-a','two-tabs-operation-b']);assert(stage.every(row=>Object.keys(row).length===5));
  release();await Promise.all([a.waitForFunction(()=>window.ProcessAccessEvents.status()==='offline'),b.waitForFunction(()=>window.ProcessAccessEvents.status()==='offline')]);
- const stored=await a.evaluate(readAccessEventOutbox,{mode:'all'});
+ const stored=await waitForAccessEventOutboxEntries(a,['two-tabs-operation-a','two-tabs-operation-b']);
  assert.deepEqual(stored.map(row=>row.event.operationId).sort((a,b)=>a.localeCompare(b)),['two-tabs-operation-a','two-tabs-operation-b']);assert(stored.every(row=>row.acked===false));
  await context.setOffline(false);for(let attempt=0;attempt<10;attempt++){await Promise.all([a.evaluate(()=>window.ProcessAccessEvents.flush()),b.evaluate(()=>window.ProcessAccessEvents.flush())]);const sent=(await fixture.db.prepare('SELECT operation_id FROM access_events').all()).results.map(row=>row.operation_id);if(sent.includes('two-tabs-operation-a')&&sent.includes('two-tabs-operation-b'))break;await new Promise(resolve=>setTimeout(resolve,100));}
  const rows=(await fixture.db.prepare('SELECT actor_id,module,operation_id,outcome FROM access_events').all()).results;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {createFeedbackFixture} from './web-feedback-native-fixture.mjs';
-import {readAccessEventOutbox} from './access-event-outbox-probe.mjs';
+import {readAccessEventOutbox,waitForAccessEventOutboxEntries} from './access-event-outbox-probe.mjs';
 
 let fixture,browser;const contexts=[],pageErrors=[],checks=[];let businessPosts=0;
 try{
@@ -21,5 +21,27 @@ try{
  await assert.rejects(actual.evaluate(readAccessEventOutbox),/OUTBOX_PROBE_ABORTED/);await actual.evaluate(()=>window.__restoreCount());assert.equal(await actual.evaluate(readAccessEventOutbox),1);checks.push('success result followed by transaction abort never resolves a count');
  const stalled=await page();await stalled.evaluate(()=>{const descriptor=Object.getOwnPropertyDescriptor(IDBFactory.prototype,'open');Object.defineProperty(IDBFactory.prototype,'open',{...descriptor,value:()=>({})});window.__restoreOpen=()=>Object.defineProperty(IDBFactory.prototype,'open',descriptor);});await assert.rejects(stalled.evaluate(readAccessEventOutbox,{timeoutMs:50}),/OUTBOX_PROBE_TIMEOUT/);await stalled.evaluate(()=>window.__restoreOpen());assert.equal(await stalled.evaluate(async()=>!(await indexedDB.databases()).some(db=>db.name==='process-access-event-outbox-v1')),true);checks.push('no-event open rejects within the explicit probe bound');
  await assert.rejects(stalled.evaluate(readAccessEventOutbox,{mode:'write'}),/OUTBOX_PROBE_OPTIONS/);checks.push('unsupported probe mode rejects');
+ // Actual reporter + real storage: pause before B's upsert. A emits offline
+ // after its own durable transaction, while the second record is still absent.
+ const durable=await page(),ids=['durability-operation-a','durability-operation-b'];
+ await durable.evaluate(async ids=>{
+  const {createAccessEventReporter,createAccessEventStorage}=await import('/process/access-event-client.mjs');
+  const store=createAccessEventStorage({indexedDB,origin:location.origin,actorId:'frank',current:()=>true});
+  const gate=new Promise(resolve=>{window.__releaseDurableB=resolve;});window.__durableStatuses=[];
+  const reporter=createAccessEventReporter({current:()=>true,atomicStorage:true,bootstrapAdmitted:true,onStatus:status=>window.__durableStatuses.push(status),request:async()=>{throw Error('Synthetic offline capability');},storage:async(mode,value)=>{if(mode==='upsert'&&value.event.operationId===ids[1]){window.__durableBHeld=true;await gate;}return store(mode,value);}});
+  const event=id=>({module:'bom',action:'save',operationId:id,occurredAt:123456,phase:'unknown'}),first=reporter.observe(event(ids[0])),second=reporter.observe(event(ids[1]));window.__durableTasks=Promise.all([first,second]);await first;
+ },ids);
+ try{
+  await durable.waitForFunction(()=>window.__durableBHeld);assert.equal(await durable.evaluate(()=>window.__durableStatuses.at(-1)),'offline');
+  assert.deepEqual((await durable.evaluate(readAccessEventOutbox,{mode:'all'})).map(row=>row.event.operationId),[ids[0]]);
+  let samples=0;const controlled={evaluate:async(...args)=>{const rows=await durable.evaluate(...args);if(++samples===2){assert.deepEqual(rows.map(row=>row.event.operationId),[ids[0]]);await durable.evaluate(()=>window.__releaseDurableB());}return rows;},waitForTimeout:ms=>durable.waitForTimeout(ms)};
+  const rows=await waitForAccessEventOutboxEntries(controlled,ids,{timeoutMs:2000});assert(samples>=3);assert.deepEqual(rows.map(row=>row.event.operationId).sort((a,b)=>a.localeCompare(b)),ids);assert(rows.every(row=>row.acked===false));
+ }finally{await durable.evaluate(async()=>{window.__releaseDurableB();await window.__durableTasks;});}
+ checks.push('offline before the second upsert is not durability; exact readonly barrier waits');
+ const readonly=rows=>({evaluate:async()=>rows,waitForTimeout:ms=>new Promise(resolve=>setTimeout(resolve,ms))});
+ await assert.rejects(waitForAccessEventOutboxEntries(readonly([{event:{operationId:ids[0]}}]),ids,{timeoutMs:50}),/OUTBOX_DURABILITY_TIMEOUT/);
+ for(const rows of [[{event:{operationId:'unexpected-operation'}}],[{event:{operationId:ids[0]}},{event:{operationId:ids[0]}}]])await assert.rejects(waitForAccessEventOutboxEntries(readonly(rows),ids),/OUTBOX_UNEXPECTED_OPERATION/);
+ await assert.rejects(waitForAccessEventOutboxEntries({evaluate:async()=>{throw Error('OUTBOX_SCHEMA_MISSING');}},ids),/OUTBOX_SCHEMA_MISSING/);
+ checks.push('missing IDs time out; unexpected/duplicate IDs and schema errors reject');
  assert.deepEqual(pageErrors,[]);assert.equal(businessPosts,0);assert.deepEqual(await fixture.businessState(),business);console.log(JSON.stringify({status:'PASS_ACCESS_EVENT_READ_PROBE_CONTROLS',checks,businessPosts,pageErrors,productSourceUnchanged:true}));
 }finally{for(const context of contexts)await context.close();await browser?.close();await fixture?.close();}
