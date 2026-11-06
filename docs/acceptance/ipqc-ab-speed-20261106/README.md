@@ -56,7 +56,7 @@ Resource timings separately identify API/image/shell requests, TTFB, duration an
 ## Validation ledger
 
 - **PASS:** baseline application build and baseline local 22 tests, plus both baseline compiled language/viewport cases.
-- **PASS:** candidate full build, normal typed `npm run lint -- --format unix`, `tsc --noEmit`; fresh exact candidate-commit build/check receipts are in `validation.json` when populated.
+- **PASS:** candidate full build, normal typed `npm run lint -- --format unix`, `tsc --noEmit`; fresh exact source-commit `8a0f47648976bde5d79559a96f50b78c640b01ac` build/check receipts all pass in `validation.json`. The follow-up evidence commit changes only this report and validation receipts; its product source hashes remain identical.
 - **PASS:** current local browser 12 tests, including real distinct actors, held repeated Save clicks, image selection/upload, cancel/departure, lost Begin/Save ACK, missing receipt and GET-only recovery. Composition-event tests are synthetic; no native IME claim.
 - **PASS:** scope-permission races + local atomic Save 20 tests; shared master-AB auth/FQC read-ahead/Submit/receipt regression 159 tests; historical reporting/batch3 proofs 34 tests; A/B bounded-read seven groups; transition kernel 15 checks; Save-ACK denied-read quarantine.
 - **PASS:** new A/B phase/source/integrity/revocation tests; photo policy 19 cases; six photo routes 19 cases. The correct VM command is below. The retained first invocation without `--experimental-vm-modules` failed to start that VM fixture; this is not a product failure.
@@ -87,4 +87,4 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium PROCESS_PROGRAM_COMMIT=<actual-
 
 Repository metadata was verified public, writable and currently at the baseline main SHA. Existing workflows are PR-triggered and do not deploy. This task keeps a work branch/draft PR only; Frank retains final review/merge. Test Site update requires applicable source approval and the relevant tests/review; none is implied by local performance evidence. The separately denied process-type upload is excluded and was not retried, imported or diagnosed. No backup diagnosis was started.
 
-The exact local commit, remote/PR result, CI status and any denial/uncertain outcome are recorded in the final response and `delivery.json`. No destination-policy or approval refusal was bypassed. Files under `logs/` include original failure evidence as well as superseding successful checks.
+The exact local commit, remote/PR result, CI status and any denial/uncertain outcome are recorded in the final response and the local ignored `.sites-runtime/ipqc-ab-speed/delivery.json`. No destination-policy or approval refusal was bypassed. Files under `logs/` include original failure evidence as well as superseding successful checks.

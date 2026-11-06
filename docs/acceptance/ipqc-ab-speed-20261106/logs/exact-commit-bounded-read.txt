@@ -1,0 +1,190 @@
+PASS A1 full consumed history/metadata/scopes/moduleDraft/catalog/equipment response parity
+PASS A2 exact eight-key selection bounds unrelated growth and preserves authority count
+PASS A3 actual role/template/override/session/loopback response parity and no denied leakage
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at consume (evalmachine.<anonymous>:364:15)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record missing
+    at consume (evalmachine.<anonymous>:363:15)
+    at aggregate (evalmachine.<anonymous>:370:20)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async core.readState (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:20:130)
+    at async Object.GET (evalmachine.<anonymous>:112:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:42:379
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+[ipqc-ab] load failed Error: Immutable record corrupt
+    at read (evalmachine.<anonymous>:37:11)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+    at async readState (evalmachine.<anonymous>:238:53)
+    at async Object.GET (evalmachine.<anonymous>:107:23)
+    at async run (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:23:198)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:44:175
+    at async check (/workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:24:119)
+    at async /workspace/process-os-sites/scripts/test-ipqc-ab-bounded-read.cjs:41:1
+PASS A4 every selected record and deferred streamed body retains fail-closed integrity
+PASS A5 revision/epoch and revocation during hydration/authority remain fresh at existing boundaries
+[ipqc-ab] load failed TypeError: Cannot read properties of undefined (reading 'get')
+    at evalmachine.<anonymous>:247:61
+    at async Object.get (evalmachine.<anonymous>:270:28)
+    at async aggregate (evalmachine.<anonymous>:370:28)
+    at async decodeRecordValuesCore (evalmachine.<anonymous>:412:30)
+PASS A6 legacy formats/non-adopted/mixed/empty and archive absence preserve outputs
+PASS A7 selected read cannot be saved; historical bounded insertion and current POST remain exact
+{"status":"PASS","groups":7,"checks":["A1 full consumed history/metadata/scopes/moduleDraft/catalog/equipment response parity","A2 exact eight-key selection bounds unrelated growth and preserves authority count","A3 actual role/template/override/session/loopback response parity and no denied leakage","A4 every selected record and deferred streamed body retains fail-closed integrity","A5 revision/epoch and revocation during hydration/authority remain fresh at existing boundaries","A6 legacy formats/non-adopted/mixed/empty and archive absence preserve outputs","A7 selected read cannot be saved; historical bounded insertion and current POST remain exact"],"baseline":{"gets":16,"bytes":229743,"selects":1,"revocations":3},"reduced":{"gets":15,"bytes":99732,"selects":1,"revocations":3},"grownBaseline":{"gets":28,"bytes":589997,"selects":1,"revocations":3},"baselineCommit":"dc8c1c2238a6dd89c2707d50e050fe8ae674c9e8","baselineHashes":{"app/api/ipqc-ab/route.ts":"ddee564bf3e25e0bf5bc4f330b71597a049959af59a1336c4a770eb13b02939a","lib/user-access.ts":"b30eca8ce4d87117d1f32b699fd10935d1e8a129763404552d593d7164716daf"},"network":false,"handlerWrites":0,"limits":["Records-format work counts, not live latency","Legacy formats still full-read; non-selected corruption no longer blocks records projection","POST exact except fixed-Save legacy Submit refusal; import/restore/numbering unchanged; full history consumed","No auth cache; A/B GET now overlaps selected aggregates; existing identity calls unchanged"]}

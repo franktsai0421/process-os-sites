@@ -1,0 +1,90 @@
+{
+  "verifiedSourceCommit": "8a0f47648976bde5d79559a96f50b78c640b01ac",
+  "runtime": "Node 24.19.0 / Linux / system Chromium / synthetic D1-R2",
+  "sourceSha256": {
+    "app/api/ipqc-ab/route.ts": "daa0cf04164c5602ccef161b24f8bb8a5bed3e76de2e11d86de024429006057c",
+    "app/api/ipqc-ab/photo/route.ts": "aeb32ece43651da36de270fcdc2b81e5e583c34a1685091e46c31e638e56fd04",
+    "lib/process-state.ts": "250d2bec2fe6df929fb5cff0793401136da9e9a7f278b4c7cc99196e7949e7bd",
+    "lib/versioned-shared-workflow.ts": "1cd73fa50c975d33c743ec89052cedf98f970197263a81d81daf5717e5eb6ff3"
+  },
+  "results": [
+    {
+      "name": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint",
+        "--",
+        "--format",
+        "unix"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 13.226,
+      "log": "logs/exact-commit-lint.txt"
+    },
+    {
+      "name": "types",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 5.584,
+      "log": "logs/exact-commit-types.txt"
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 7.925,
+      "log": "logs/exact-commit-build.txt"
+    },
+    {
+      "name": "compiled-native",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "tests/ipqc-ab-compiled-browser.acceptance.mjs",
+        "tests/ipqc-ab-compiled-gaps.acceptance.mjs"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 31.291,
+      "log": "logs/exact-commit-compiled-native.txt"
+    },
+    {
+      "name": "phase-source",
+      "command": [
+        "node",
+        "--test",
+        "tests/ipqc-ab-speed-safety.test.mjs",
+        "tests/access-event-main-integration.test.cjs",
+        "tests/batch3-workflow-source-contract.test.cjs"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 6.006,
+      "log": "logs/exact-commit-phase-source.txt"
+    },
+    {
+      "name": "bounded-read",
+      "command": [
+        "node",
+        "scripts/test-ipqc-ab-bounded-read.cjs"
+      ],
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 2.122,
+      "log": "logs/exact-commit-bounded-read.txt"
+    }
+  ],
+  "compiledEntrySha256": "7a58901fac9701b662e4c4ec1dbc79dbb1c89b5399ac5effac8de37a01ca3cc8"
+}
