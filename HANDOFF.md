@@ -1,3 +1,7 @@
+## 2026-11-06 — IQC numeric-rule advisory
+
+Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
+
 ## 2026-11-06 — Access queue read race follow-up
 
 The Draft #86 candidate fences access-list replies by request generation, status filter and cursor, and prevents a prior event's textarea from accepting input during a pending read or writing into a new event. Deterministic synthetic response-order coverage is added. The original business receipt/no-resend path is untouched; cold first-capability offline reporting remains a documented gap. Verify the new exact head and CI separately; no migration, activation, merge or deployment occurred here.

@@ -1,3 +1,7 @@
+## 2026-11-06 — IQC numeric-rule advisory
+
+Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
+
 ## 2026-11-05 — A/B scope read preserves current private input
 
 A late scope permission reply captures current modal input before repainting only while its original actor object/id, epoch, delivery, scope generation, host, lifetime and client remain current. The same ownership predicate gates the permission result; stale completions neither capture nor repaint. Existing denial/Save/create/delete/Submit and receipt protections remain. The module asset pin advances to `20261105-ab-scope-input1`; no persistent format or data-model change. [Integration evidence](../../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
