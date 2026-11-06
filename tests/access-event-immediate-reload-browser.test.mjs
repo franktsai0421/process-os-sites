@@ -12,9 +12,9 @@ try{
  await context.route('**/*',route=>new URL(route.request().url()).origin===fixture.origin?route.continue():route.abort());
  const page=await context.newPage();page.setDefaultTimeout(15000);
  let release;const gate=new Promise(resolve=>{release=resolve;});
- const client=fs.readFileSync('dist/client/process/access-event-client.mjs');
- assert.deepEqual(client,fs.readFileSync('public/process/access-event-client.mjs'));
- await page.route('**/access-event-client.mjs*',async route=>{await gate;await route.fulfill({status:200,contentType:'application/javascript',body:client}).catch(()=>{});});
+ const client=fs.readFileSync('dist/client/process/access-event-client.mjs'),storage=fs.readFileSync('dist/client/process/access-event-storage.mjs'),protocol=fs.readFileSync('dist/client/process/access-event-protocol.mjs');
+ assert.deepEqual(client,fs.readFileSync('public/process/access-event-client.mjs'));assert.deepEqual(storage,fs.readFileSync('public/process/access-event-storage.mjs'));assert.deepEqual(protocol,fs.readFileSync('public/process/access-event-protocol.mjs'));
+ await page.route('**/access-event-client.mjs*',async route=>{await gate;await route.fulfill({status:200,contentType:'application/javascript',body:client}).catch(()=>{});});await page.route('**/access-event-storage.mjs',route=>route.fulfill({status:200,contentType:'application/javascript',body:storage}));await page.route('**/access-event-protocol.mjs',route=>route.fulfill({status:200,contentType:'application/javascript',body:protocol}));
  const destination=fixture.origin+'/login?view=data&dataTab=web-feedback';
  await page.goto(destination);await page.locator('#id').fill('frank');await page.locator('#password').fill(fixture.password);await page.locator('.site-entry-submit').click();await page.locator('.wf-row').first().waitFor();
  const appURL=page.url(),endpoint='/api/bom/workflow?caseMetadata=1',key='shared-draft-v3-operation:frank:'+endpoint;
@@ -22,10 +22,10 @@ try{
  await context.setOffline(true);
  const outcome=await page.evaluate(async endpoint=>{const client=window.createSharedDraftClient({endpoint,actorId:'frank',headers:()=>({})});try{await client.command('synthetic-generation','apply',{patches:[{op:'set',path:['field'],value:'PRIVATE_BODY_NEVER_REPORTED'}]});return 'unexpected-success';}catch(error){return{message:error.message,unknown:client.hasUnknown()};}},endpoint);
  assert.match(outcome.message,/RESULT_UNKNOWN/);assert.equal(outcome.unknown,true);
- const stage=await page.evaluate(()=>localStorage.getItem('process-access-event-stage-v1:'+location.origin+':frank'));
- assert.equal(JSON.parse(stage).length,1);assert(!stage.includes('PRIVATE_BODY_NEVER_REPORTED'));
+ const stage=await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('process-access-event-stage-v2:'+location.origin+':frank:')).map(key=>JSON.parse(localStorage.getItem(key))));
+ assert.equal(stage.length,1);assert(!JSON.stringify(stage).includes('PRIVATE_BODY_NEVER_REPORTED'));
  const raw=await page.evaluate(key=>sessionStorage.getItem(key),key),operationId=JSON.parse(raw).operationId;
- assert.equal(JSON.parse(stage)[0].operationId,operationId);assert.equal(posts,1);
+ assert.equal(stage[0].operationId,operationId);assert.equal(posts,1);
  // Reload before the lazy module promise resolves or IndexedDB has opened.
  await page.reload({waitUntil:'domcontentloaded',timeout:10000}).catch(()=>{});
  await context.setOffline(false);release();await page.goto(appURL);await page.locator('.wf-row').first().waitFor();

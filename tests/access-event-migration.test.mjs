@@ -28,3 +28,20 @@ void test('same-name indexes on wrong columns cannot satisfy event schema readin
   assert.equal(await accessEventSchemaReady(binding(db)),false);
  }finally{db.close();}
 });
+void test('same-name partial unique index cannot satisfy whole-table UPSERT readiness',async()=>{
+ const db=new DatabaseSync(':memory:');try{apply(db,'drizzle',files('drizzle'));
+  db.exec('DROP INDEX access_events_actor_module_operation');
+  db.exec("CREATE UNIQUE INDEX access_events_actor_module_operation ON access_events(actor_id,module,operation_id) WHERE status='open'");
+  assert.equal(await accessEventSchemaReady(binding(db)),false);
+  assert.throws(()=>db.prepare("INSERT INTO access_events(id,actor_id,module,operation_id,action,occurred_at,received_at,updated_at,outcome,verified_at,status,version,notes,history,update_receipts) VALUES('id','actor','bom','operation','save',1,'now','now','unknown',NULL,'open',1,'[]','[]','[]') ON CONFLICT(actor_id,module,operation_id) DO NOTHING").run(),/ON CONFLICT clause does not match/);
+ }finally{db.close();}
+});
+void test('same-name NOCASE index cannot collapse case-sensitive operation identities',async()=>{
+ const db=new DatabaseSync(':memory:');try{apply(db,'drizzle',files('drizzle'));
+  db.exec('DROP INDEX access_events_actor_module_operation');
+  db.exec('CREATE UNIQUE INDEX access_events_actor_module_operation ON access_events(actor_id,module,operation_id COLLATE NOCASE)');
+  assert.equal(await accessEventSchemaReady(binding(db)),false);
+  const statement=db.prepare("INSERT INTO access_events(id,actor_id,module,operation_id,action,occurred_at,received_at,updated_at,outcome,verified_at,status,version,notes,history,update_receipts) VALUES(?,'actor','bom',?,'save',1,'now','now','unknown',NULL,'open',1,'[]','[]','[]') ON CONFLICT(actor_id,module,operation_id) DO NOTHING");
+  statement.run('id-a','OperationABC');statement.run('id-b','operationabc');assert.equal(db.prepare('SELECT COUNT(*) n FROM access_events').get().n,1);
+ }finally{db.close();}
+});

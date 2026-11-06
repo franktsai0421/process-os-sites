@@ -4,7 +4,7 @@
 
 ## 2026-11-06 — 隔離後續候選（未推送／未部署）
 
-成功且新鮮核驗的 bootstrap 在 feature flag 與事件 schema 就緒時，僅為當次 delivery 提供可收集模組名單。reporter 先同步暫存核准的五項 scalar metadata，再做動態載入與 IndexedDB 保存；重連上報仍須重新查 capabilities 與原帳號權限。未核驗的完全離線情況仍可能漏中央副本，原 receipt／unknown 防重送完全不變。兩張事件表以 legacy 0004／fresh 0009 追加候選與模型、journal 納入；請求只檢查 schema 就緒，不執行 DDL。原本的 `scripts/access-events-schema.sql` 不再是新 fixture 的套用路徑，舊資料庫需審核後另行明確升級；本候選未執行 migration 或啟用實站。
+成功且新鮮核驗的 bootstrap 在 feature flag 與事件 schema 就緒時，僅為當次 delivery 提供可收集模組名單。reporter 先以每事件獨立鍵同步暫存核准的五項 scalar metadata，再做動態載入；IndexedDB 採每事件原子交易避免同帳號分頁覆蓋。重連上報仍須重新查 capabilities 與原帳號權限；明確 401／403／停用撤銷本次 delivery 的新收集資格，已合法保存的舊事件仍保留。未核驗的完全離線情況仍可能漏中央副本，原 receipt／unknown 防重送完全不變。兩張事件表以 legacy 0004／fresh 0009 追加候選與模型、journal 納入；就緒檢查排除 partial／NOCASE 等不相容索引，請求不執行 DDL。原本的 `scripts/access-events-schema.sql` 不再是新 fixture 的套用路徑，舊資料庫需審核後另行明確升級；本候選未執行 migration 或啟用實站。
 
 ## 2026-11-05 — 冷啟動離線與匯出一致性複驗（候選）
 

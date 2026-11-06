@@ -12,14 +12,14 @@ export async function accessEventSchemaReady(db:DB):Promise<boolean>{
   }
   const eventIndexes=(await db.prepare('PRAGMA index_list("access_events")').all()).results;
   const exportIndexes=(await db.prepare('PRAGMA index_list("access_event_exports")').all()).results;
-  if(!eventIndexes.some(row=>row.name==='access_events_actor_module_operation'&&Number(row.unique)===1)||!eventIndexes.some(row=>row.name==='access_events_status_cursor')||!exportIndexes.some(row=>row.name==='access_event_exports_actor_operation'&&Number(row.unique)===1))return false;
+  if(!eventIndexes.some(row=>row.name==='access_events_actor_module_operation'&&Number(row.unique)===1&&Number(row.partial)===0)||!eventIndexes.some(row=>row.name==='access_events_status_cursor'&&Number(row.partial)===0)||!exportIndexes.some(row=>row.name==='access_event_exports_actor_operation'&&Number(row.unique)===1&&Number(row.partial)===0))return false;
   for(const [name,expected] of [
    ['access_events_actor_module_operation',['actor_id','module','operation_id']],
    ['access_events_status_cursor',['status','id']],
    ['access_event_exports_actor_operation',['actor_id','operation_id']],
   ] as const){
-   const actual=(await db.prepare(`PRAGMA index_info("${name}")`).all()).results;
-   if(actual.length!==expected.length||actual.some((row,i)=>row.name!==expected[i]))return false;
+   const actual=(await db.prepare(`PRAGMA index_xinfo("${name}")`).all()).results.filter(row=>Number(row.key)===1);
+   if(actual.length!==expected.length||actual.some((row,i)=>row.name!==expected[i]||row.coll!=='BINARY'||Number(row.desc)!==0))return false;
   }
   const definitions=(await db.prepare("SELECT name, sql FROM sqlite_master WHERE type='table' AND name IN ('access_events','access_event_exports')").all()).results;
   const events=definitions.find(row=>row.name==='access_events')?.sql;
