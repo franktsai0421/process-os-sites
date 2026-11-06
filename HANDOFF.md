@@ -1,6 +1,10 @@
 # 2026-11-06 — Role-template layout candidate
 
-UI-only matrix alignment/disclosure fix, with main `1da47bd` (#89) integrated without conflicts; no permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
+UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained; no permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
+
+## 2026-11-06 — IQC numeric-rule advisory
+
+Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
 
 ## 2026-11-06 — Access queue read race follow-up
 

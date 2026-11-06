@@ -2,6 +2,10 @@
 
 UI-only alignment, wrapping, responsive matrix and clear extra-operation disclosure; all stored permission values and authorization remain. [Candidate scope, tests and limitations](../docs/acceptance/role-template-layout-20261106/README.md). No live changes.
 
+## 2026-11-06 — IQC numeric-rule advisory
+
+Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
+
 # 2026-11-05 — Feedback integration with merged main
 
 Integrate main `bad04632d354f290850632976bf6eb69b8e2d3c9` (#85/#87) into Draft #86. Main pre-dispatch proofs, transfer, A/B and PROCESS late-input/ACK readback safeguards are retained; only metadata observations are added. Exact byte projection and historical inverses remain strict. Cache references combine both changes. Access collection remains default-off, candidate schema is not adopted, cold-start reporting gaps remain, and no live data/migration/merge/deployment occurs. Exact-head evidence and remote CI must be evaluated separately.
