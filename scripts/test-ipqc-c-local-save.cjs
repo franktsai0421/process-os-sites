@@ -52,6 +52,18 @@ const master={active:{C:{products:[{code:'C100',stages:['C-CUT']}],lines:[{stage
  flow=h.flow(await h.read('ipqc-c'));
  const submitted=await h.command('ipqc-c','submit',{savedId:flow.saved.id,reason:'fixture'},'editor');
  await send(await build([]),'editor',409);assert.equal(h.flow(await h.read('ipqc-c')).pendingId,submitted.receipt.caseId);
- console.log('PASS atomic create/save, receipts, independent fields, conflict rollback, allocation rollback, edit-only save, submit separation, create gate, photo/equipment validation, both create/delete orders, peer child-set and local user-field conflict, pending lock');
+ const fixed=JSON.parse((await h.core.readState()).values.ipqcCMasterControl).workflow.saved.content,fixedId=flow.saved.id,firstCase=submitted.receipt.caseId;
+ await h.command('ipqc-c','approve',{caseId:firstCase},'editor',403);
+ await h.command('ipqc-c','withdraw',{caseId:firstCase,reason:'isolated withdraw'},'editor');
+ let resubmitted=await h.command('ipqc-c','submit',{savedId:fixedId,reason:'same fixed snapshot'},'editor');
+ assert.notEqual(resubmitted.receipt.caseId,firstCase);
+ let checked=JSON.parse((await h.core.readState()).values.ipqcCMasterControl).workflow;assert.deepEqual(checked.cases.at(-1).content,fixed);assert.equal(checked.cases.find(row=>row.id===firstCase).status,'withdrawn');
+ await h.command('ipqc-c','return',{caseId:resubmitted.receipt.caseId,reason:'isolated return'},'reviewer');
+ resubmitted=await h.command('ipqc-c','submit',{savedId:fixedId,reason:'same returned snapshot'},'editor');
+ await h.command('ipqc-c','approve',{caseId:resubmitted.receipt.caseId},'reviewer');
+ const approved=JSON.parse((await h.core.readState()).values.ipqcCMasterControl);
+ assert.equal(approved.activeVersionId,resubmitted.receipt.caseId);assert.deepEqual(approved.versions.find(v=>v.id===approved.activeVersionId).snapshot,fixed);
+ assert.equal(approved.workflow.cases.filter(row=>row.status==='approved').length,1);
+ console.log('PASS atomic create/save, receipts, independent fields, conflict rollback, allocation rollback, edit-only save, submit separation, create gate, photo/equipment validation, both create/delete orders, peer child-set and local user-field conflict, pending lock, fixed snapshot withdraw/resubmit/return/approve');
  }finally{h.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

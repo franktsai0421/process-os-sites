@@ -17,8 +17,9 @@ Local Done now explains an unknown-operation barrier instead of silently returni
 ## Verification
 
 - Chromium 1440×844 and 390×844: consecutive error creation, local Done with no POST, first legacy Save, repeated edits, photo upload deferred to Save, CPK, batch fixed count 3, two synthetic approved equipment identities, product/stage/search switching, Save/readback/reload, malformed ACK, original receipt 404 and later confirmation, post-query new Save with original create count exactly one, explicit unknown-blocked Done message, no resend, conflict/peer preservation, Chinese/Vietnamese and departure.
-- Isolated atomic API local Save test: PASS, including CAS/allocations/receipts, peer fields, rollback, permissions, equipment/photo validation and pending lock.
+- Isolated atomic API local Save test: PASS, including CAS/allocations/receipts, peer fields, rollback, permissions, equipment/photo validation and pending lock. Extended same fixture through Submit, unauthorized editor approval refusal, Withdraw, same fixed-snapshot resubmit, reviewer Return, resubmit and distinct reviewer Approve; persisted fixed contents and old withdrawn case preserved.
 - 64 Begin/recovery/submission/rejection contract tests: PASS. Save projection and read recovery client suites: PASS. Lint: PASS before final documentation packaging; exact head CI tracked separately.
+- Legacy `test-ipqc-c-workflow-v3.cjs`: FAIL at synthetic login initialization (503 before any workflow), not classified as a product workflow failure. Current local-Save fixture completed the workflow cases above.
 - Live reported Save-click cause, real-device IME/touch, compiled hosted Site acceptance: NOT RUN. Historical unknown operations were not reissued or classified failed.
 
 No data-model or persistent format change. Integrate after main's #75 and identified Begin/recovery work; this branch already starts from that main. Coordinate `ipqc-c.js` changes with module-boundary work. Parent integration must update its asset cache pin in `public/process/index.html`; that shared shell is deliberately left to integration. No dependency on AB performance or permission redesign.
