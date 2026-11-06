@@ -46,3 +46,12 @@
 正常 merge 最新 main 只有 `HANDOFF.md`／`AI_CONTEXT/CHANGELOG.md` 首頁新增條目衝突，角色與 IQC 兩條都保留；產品 index 自動合樹保留 IQC `20261106-number-hint1`、IPQC-C `20261106-c-receipt-performance1` 及兩個角色 `20261106-role-layout1` pins，main 的提示測試／CI 接線保留。
 
 Feedback run `42231956773` 第一個 two-tabs scenario 已 PASS；另一 scenario 在原測試 `count()` 的 IndexedDB `page.evaluate` 發生 `Resulting promise was garbage collected`。與 cache assertion 是不同故障；需同環境 base／候選對照證明範圍，不據此修改權限或共享核心。舊原始失敗紀錄保留。
+
+
+## Feedback 初始化探針修正與對照
+
+原 two-tabs 的第二情境把 `flush()` 的同步返回誤當初始化完成；原計數探針可能先建立沒有 stores 的 v2 IndexedDB，transaction 同步拋錯後留下未完成 Promise。控制真實 compiled 模組的載入先後，在 main `339df756` 與角色 `1c6bd5f` 均重現此探針問題；產品先初始化時兩版均可正常 count=0。原始本地測試是 main PASS、角色候選在 offline 等待逾時，並未逐字重現 CI 的 GC 錯誤，不能聲稱受控案例證明唯一 CI 根因。
+
+只修 `tests/access-event-two-tabs-browser.test.mjs`：讀取探針中止 upgrade、處理同步／transaction 錯誤並等交易完成；新增初始化前 reject 與 DB 不存在負例，再釋放原 compiled bytes 並等真產品 `received` 狀態。原 count=0／1、server count=1、businessPosts=0、businessState 不變與第一情境冷啟動離線斷言完整保留。沒有改產品、增加 sleep／timeout 或寫入替代 stores。同一修正後測試在 main339 與角色候選均兩情境 PASS；獨立只讀審閱確認未放寬斷言。
+
+更新 main 後的本地證據：AB C 307／307、PROCESS 335／335、IQC 提示中越文兩尺寸 4、角色 isolated 15、帳號 isolated 17、真 compiled 角色中越文三尺寸 6 均 PASS；lint／TypeScript／build PASS。最終 exact-head build、compiled 回歸、完整歷史／工作樹 preflight 及遠端 CI 狀態由交付 ledger 分別記錄；遠端未完成不得當作 PASS。舊 38 audit FAIL 與原參考圖／實體裝置／真實 IME 未驗限制維持。
