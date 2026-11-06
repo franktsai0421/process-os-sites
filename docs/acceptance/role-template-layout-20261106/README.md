@@ -1,6 +1,6 @@
 # 角色範本布局與說明候選
 
-2026-11-06，獨立於 main `2882f35de8e68370304a2d2235c039e226a2e4e5`。改善角色範本／個別權限共用矩陣的對齊、可用寬度與說明；不改角色、人員資料、permission keys、依賴、API、授權策略或 schema。未合併或部署。
+2026-11-06，原候選固定於 `ca8af98a36ef5a4a58f6494183a19265047f6820`，現已正常整合 main `1da47bd04fff55fea575dea0e76274149d8101a8`（#89），沒有衝突或回退 IPQC-C 修改。改善角色範本／個別權限共用矩陣的對齊、可用寬度與說明；不改角色、人員資料、permission keys、依賴、API、授權策略或 schema。未合併或部署。
 
 ## 修改與風險
 
@@ -19,7 +19,7 @@
 - `scripts/test-users-cloud-browser.mjs`：17 項 PASS，含搜尋／composition 模擬、全選／恢復、Save 讀回、衝突、取消、角色／使用者 CRUD、disabled、未知 POST 與 deadline 不重送。所有帳號／密碼／角色都是記憶體合成資料。
 - lint 與完整 TypeScript：第一次在產品修改後 PASS；新增測試與文件後的最終結果以本次交付 ledger 為準。
 - [只讀權限映射](PERMISSION_MAPPING.md)：27 列、162 keys；648 resolver 比對、24 destination 矩陣、108 workflow metadata 與 11 撤權 session。舊 audit 的 38 個 Save 派生能力差異讓它的零差異斷言 FAIL，原始結果保留，不改檢查規則或政策冒充 PASS。
-- 完整 build、compiled full-page acceptance、完整歷史／工作樹 `node scripts/sites-ci-preflight.mjs` 要綁定候選 commit；最終交付列明實際結果與未跑項。所有 PNG、JSON 日誌、bundle／patch 只在專案外證據目錄，不入 Git。
+- 完整 build、compiled full-page acceptance、完整歷史／工作樹 `node scripts/sites-ci-preflight.mjs` 要綁定候選 commit；最終交付列明實際結果與未跑項。本任務所有 PNG、JSON 日誌、bundle／patch 僅在本 executor 的本地證據目錄，不入 Git、不傳 Space。
 
 使用者的私有原畫面參考（識別、來源與大小僅留私有 evidence）：官方 materialization 已取得 transfer，但當前 executor 的官方 helper 回報 `download failed`；未取得本機像素，**參考圖未查看**。沒有使用其他 executor 的路徑、猜 URL 或改通道下載。前後截圖來自本工作區真正 renderer 的隔離合成頁。
 
@@ -27,4 +27,14 @@
 
 本分支 ownership：`user-access.js` matrix 回傳的說明與 row markup；`user-access.css` 矩陣呈現；`index.html` 兩個版本 tag；測試、文件與其 CI step。未納入畫布 Save/delete、草稿資料邊界、登入候選。純 UI 可先審查；未來整合同檔須保留各自 hunk，跑相同 payload／權限 UI 回歸與 compiled full-page。正式模組權限拆分排在 adapter／資料交易邊界之後，具體來源相依見映射文件。
 
-沿用 parent 指定的 GitHub GraphQL Forbidden 發布 HOLD；不代原任務重試、不換 API／CLI 通道建立 PR。不合併、不部署、不重開連接器。保留 local commit、可復原 bundle、patch、PR 草稿與交付 evidence；PR 建立待同 scope 限制解除。真實 IME、實體裝置、正式站、完整所有業務按鈕生命週期皆 NOT_RUN。
+僅建立本任務的獨立 Draft PR，保留一般 review／CI 關卡，不 mark ready、不合併、不部署。repo 的普通只讀查核已成功，不能把其他任務的拒絕或先前 Space 網路失敗當成本任務的 GitHub 拒絕；若本任務真正遇到拒絕，停止該步且不換通道。真實 IME、實體裝置、正式站、完整所有業務按鈕生命週期皆 NOT_RUN。
+
+## 編譯版手機預覽與鍵盤驗收補充
+
+前輪的 compiled 手機 preview 截圖在 resize 後立即擷取，側欄遮住頁面，且原 harness 只檢查 dialog overflow；前輪截圖保留，不能算矩陣 preview 已完成視覺驗收。新增 `tests/role-template-compiled-browser.mjs` 使用實際 compiled product／正常登入／既有語言切換按鈕與正常鍵盤事件，確保側欄收起且 resize 轉場結束，將矩陣捲入視野並以 elementFromPoint 確認未被遮擋，再截取合成畫面。沒有改 CSS 或 stub 掩蓋問題。
+
+新檢查覆蓋中越文 1440／1024／390px 的 preview 與 dialog、空／有效額外入口、長角色名稱、欄位對齊與 overflow、Tab／Shift+Tab 正反遍歷每個可見 enabled 控制、拒絕聚焦背景產品控制（容許 Chromium 原生工具列邊界停點）、summary 的 Enter／Tab／Space、拒絕離開時保留輸入、接受關閉後重開恢復儲存值，並核對 shared-state 內容／revision 未變。新腳本納入既有 compiled synthetic CI step；結果及 exact head 以本任務最終交付為準。
+
+原 38 項 audit FAIL 不變：固定 base/head 的 79 個實際輸入來源相同，原 assertions 在兩版皆得到 38 !== 0；沒有藉改政策或測試消除差異。原參考圖仍未查看像素。舊手機 preview 的證據缺口與新的補驗結果分開記錄。
+
+本地獨立唯讀審閱確認 role 產品來源未變更 policy／payload。原診斷的手機遮擋與新增測試對原生焦點／選單狀態的錯誤假設紀錄保留；成功補驗只算新的可見矩陣證據，不把舊失敗改成 PASS。

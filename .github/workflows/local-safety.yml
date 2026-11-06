@@ -654,7 +654,11 @@ jobs:
       - name: Compiled destination pages in an isolated browser with synthetic identities
         id: head_validation_11
         if: ${{ !cancelled() && steps.head_validation_10.outcome == 'success' }}
+        env:
+          USER_PERMISSIONS_EVIDENCE: ${{ github.workspace }}/.sites-runtime/role-template-compiled
         run: |
+          node tests/role-template-compiled-browser.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/sites-delivery-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/begin-recovery-browser.mjs

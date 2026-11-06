@@ -1,6 +1,6 @@
 # 2026-11-06 — Role-template layout candidate
 
-Independent UI-only matrix alignment/disclosure fix on main `2882f35`; no permission/data/API policy changes. [Scope, isolated browser evidence, readonly mapping and publication HOLD](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
+UI-only matrix alignment/disclosure fix, with main `1da47bd` (#89) integrated without conflicts; no permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
 
 ## 2026-11-06 — Access queue read race follow-up
 
