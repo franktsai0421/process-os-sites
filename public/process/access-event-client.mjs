@@ -1,8 +1,10 @@
 import {minimalAccessObservation} from './access-event-protocol.mjs';
 
 // Own reporting queue only. It has no capability to settle a business operation.
-export function createAccessEventReporter({current,request,storage,onStatus=()=>{}}) {
-  const entries=new Map();let loaded=false,tail=Promise.resolve(),admitted=false,volatilePending=false;
+export function createAccessEventReporter({current,request,storage,bootstrapAdmitted=false,onStatus=()=>{}}) {
+  // A successful actor-fenced bootstrap can admit this document's collection.
+  // It is never persisted as a future-session permission or send authority.
+  const entries=new Map();let loaded=false,tail=Promise.resolve(),admitted=bootstrapAdmitted,volatilePending=false;
   const key=event=>event.module+':'+event.operationId;
   const assert=()=>{if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');};
   const serial=run=>{const task=tail.catch(()=>{}).then(run);tail=task;return task;};
@@ -26,7 +28,7 @@ export function createAccessEventReporter({current,request,storage,onStatus=()=>
     onStatus([...entries.values()].some(value=>!value.acked)?'permission-denied':entries.size?'received-unknown':'received');
   }
   return {
-    observe(input){return serial(async()=>{await load();const event=minimalAccessObservation(input),id=key(event),previous=entries.get(id);if(event.phase==='receipt-observed'&&!previous)return;if(!previous&&entries.size>=100){onStatus('capacity');return;}entries.set(id,{event,acked:false});volatilePending=true;await sync();});},
+    observe(input){return serial(async()=>{await load();const event=minimalAccessObservation(input),id=key(event),previous=entries.get(id);if(event.phase==='receipt-observed'&&!previous)return true;if(!previous&&entries.size>=100){onStatus('capacity');return false;}entries.set(id,{event,acked:false});volatilePending=true;if(bootstrapAdmitted)await persist();await sync();return admitted;});},
     flush(){return serial(async()=>{await load();await sync();});}
   };
 }

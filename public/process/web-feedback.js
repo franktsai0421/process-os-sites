@@ -260,7 +260,7 @@
  }
  async function loadAccessQueue(){const target=board,host=target.querySelector('.wf-board-body'),owner=captureOwner(),token=epoch,generation=++queueGeneration,current=()=>token===epoch&&owns(owner)&&board===target&&queueTab==='access'&&generation===queueGeneration&&host.isConnected;
   host.textContent=t('讀取來源狀態…','Đang đọc trạng thái nguồn…');
-  try{const accessModule=await import('./web-feedback-access.mjs?v=20261106-access-read1');if(current()){const controller=await accessModule.mountAccessQueue({host,t,current,request:(action='list',body)=>request(action,body,owner,'/api/access-events')});if(current())accessController=controller;else controller?.dispose?.();}}
+  try{const accessModule=await import('./web-feedback-access.mjs?v=20261106-access-offline1');if(current()){const controller=await accessModule.mountAccessQueue({host,t,current,request:(action='list',body)=>request(action,body,owner,'/api/access-events')});if(current())accessController=controller;else controller?.dispose?.();}}
   catch{if(current()){host.textContent=t('無法讀取來源狀態，不能確認事件是否完整。','Không đọc được nguồn; chưa thể xác nhận đủ sự kiện.');const retry=document.createElement('button');retry.textContent=t('重試','Thử lại');retry.onclick=guard(loadAccessQueue,owner);host.append(retry);}}
  }
  async function showExportOptions(){const status=board.querySelector('.wf-admin > [role=status]');if(!status||adminBusy)return;if(exportOperation){void exportZip();return;}if(holdBoard())return;

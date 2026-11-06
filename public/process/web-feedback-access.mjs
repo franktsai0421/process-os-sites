@@ -12,7 +12,7 @@ export async function mountAccessQueue({host,t,current,request}) {
     const button=document.createElement('button');button.type='button';button.disabled=true;button.textContent=label;controls.append(button);
   }
   const explanation=document.createElement('p');explanation.textContent=t('這是系統操作的確認事件，與使用者主動回報分開。「管理已解決」不會確認原操作或解除重送防護。未處理與已解決紀錄及備註都保留，不自動刪除，可恢復待處理。','Đây là xác minh thao tác hệ thống, tách khỏi báo lỗi người dùng. Xử lý hồ sơ không xác nhận thao tác gốc hay cho phép gửi lại. Giữ sự kiện và ghi chú, không tự xóa; có thể khôi phục cần xử lý.');
-  explanation.textContent+=' '+t('首次離線且尚未核驗集中啟用時，新事件只留記憶體，重載可能漏報；原操作防護仍保留。恢復連線不代表已補齊重載前的事件。','Nếu ngoại tuyến trước khi xác minh bật thu thập, sự kiện mới chỉ ở bộ nhớ và có thể mất khi tải lại; giữ nguyên bảo vệ thao tác gốc. Kết nối lại không có nghĩa đã bù đủ sự kiện trước đó.');explanation.dataset.accessColdStart='true';
+  explanation.textContent+=' '+t('從未核驗集中啟用就離線時，新事件可能未進入集中上報；原操作防護仍保留。已核驗啟用後也須重連並確認送達，不能據此宣稱所有裝置已收齊。','Nếu ngoại tuyến trước lần xác minh bật thu thập, sự kiện mới có thể chưa vào hàng đợi tập trung; giữ nguyên bảo vệ thao tác gốc. Sau khi đã xác minh vẫn cần kết nối lại và kiểm tra đã gửi, không thể khẳng định đủ mọi thiết bị.');explanation.dataset.accessColdStart='true';
   const retry=document.createElement('button');retry.type='button';retry.textContent=t('重新核驗來源','Kiểm tra lại nguồn');
   const content=element('div');content.className='wf-access-content';
   const reporting=element('p');reporting.className='wf-muted';reporting.dataset.accessReporting='true';

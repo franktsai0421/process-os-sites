@@ -1,5 +1,6 @@
--- Candidate only: explicitly applied to owned synthetic fixtures. No live or
--- standard migration adoption or activation. Retention is keep/recover, no automatic deletion.
+-- Historical candidate retained for comparison only. New synthetic fixtures use
+-- drizzle/0004 and drizzle-sites-fresh/0009. Do not apply this over either
+-- journal: the tables already exist. No live migration or activation here.
 CREATE TABLE access_events (
  id TEXT PRIMARY KEY NOT NULL,
  actor_id TEXT NOT NULL,

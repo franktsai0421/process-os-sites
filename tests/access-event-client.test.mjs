@@ -41,3 +41,12 @@ void test('same-runtime reconnect may send a volatile event only after the capab
 void test('explicit capability denial does not persist new metadata even after an earlier admission',async()=>{
  let saved,denied=false;const statuses=[];const reporter=createAccessEventReporter({current:()=>true,onStatus:value=>statuses.push(value),storage:async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value)),request:async action=>{if(action==='capabilities'){if(denied)throw Error('LOGIN_REQUIRED');return{enabled:true,modules:['bom']};}return{received:true,verified:false};}});await reporter.observe(event('previously-admitted'));const durable=structuredClone(saved);denied=true;await reporter.observe(event('after-login-denial'));assert.deepEqual(saved,durable);assert.equal(statuses.at(-1),'permission-denied');
 });
+void test('verified bootstrap admission persists a first offline observation without treating it as business success',async()=>{
+ let saved,online=false;const posts=[],statuses=[];
+ const request=async(action,body)=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts.push(body);return{received:true,verified:false};};
+ const storage=async(mode,value)=>mode==='read'?saved:(saved=structuredClone(value));
+ const first=createAccessEventReporter({current:()=>true,bootstrapAdmitted:true,request,storage,onStatus:value=>statuses.push(value)});
+ await first.observe(event('first-offline-operation'));assert.equal(saved.length,1);assert.equal(saved[0].acked,false);assert.equal(posts.length,0);assert.equal(statuses.at(-1),'offline');
+ online=true;const next=createAccessEventReporter({current:()=>true,bootstrapAdmitted:true,request,storage});await next.flush();assert.equal(posts.length,1);assert.equal(posts[0].operationId,'first-offline-operation');assert.equal(saved[0].acked,true);
+ await next.flush();assert.equal(posts.length,1);
+});

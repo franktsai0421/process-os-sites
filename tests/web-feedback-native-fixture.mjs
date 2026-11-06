@@ -1,5 +1,4 @@
 // Owned synthetic storage only. Uses the compiled app and its normal login API.
-import fs from 'node:fs';
 import {randomBytes} from 'node:crypto';
 import {createRootEntryFixture} from './root-entry-native-fixture.mjs';
 import {accessKeys} from '../public/process/access-policy.mjs';
@@ -7,7 +6,6 @@ import {pngFixture} from './photo-fixtures.mjs';
 export async function createFeedbackFixture({accessEvents=false}={}) {
  const password=randomBytes(24).toString('hex');
  const fixture=await createRootEntryFixture({syntheticBindings:{WEB_FEEDBACK_ENABLED:'1',PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:randomBytes(48).toString('hex'),DEMO_LOGIN_ENABLED:'false',...(accessEvents?{ACCESS_EVENTS_ENABLED:'1'}:{})}});
- if(accessEvents)for(const sql of fs.readFileSync('scripts/access-events-schema.sql','utf8').split(';').map(sql=>sql.trim()).filter(Boolean))await fixture.db.prepare(sql).run();
  const users=['frank','other-admin','employee'].map(id=>({id,name:id==='other-admin'?'Frank':id,role:id==='employee'?'staff':'admin',enabled:true,authMode:'platform',authEpoch:1,password,accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,key.startsWith('feedback.')||key==='dashboard.view'||accessEvents&&key==='bom.view']))}));
  const values={platformUsers:JSON.stringify(users),backupSettings:'{"enabled":false}',masterDataControl:'{"active":{"AB":{"products":[],"lines":[]},"C":{"products":[],"lines":[]},"PROCESS":{}},"versions":[]}',processMasterData:'{}',bomOverrides:'{"replaceAll":true,"data":{}}',dispatchBoard:'{"A":[],"B":[],"C":[]}'};
  await fixture.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,1,?,?)').bind(JSON.stringify(values),'synthetic-feedback').run();

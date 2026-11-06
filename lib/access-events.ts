@@ -1,4 +1,5 @@
 import {handleAccessEventExports} from './access-event-export';
+import {accessEventSchemaReady} from './access-event-schema-ready';
 import {sha256,utf8} from './web-feedback-zip';
 import {env} from 'cloudflare:workers';
 import {readState,identity,can,sameOrigin,type State} from './process-state';
@@ -51,9 +52,10 @@ export async function handleAccessEvents(request:Request) {
   const url=new URL(request.url),action=url.searchParams.get('action')||'list';
   const viewer=await can(request,state,'feedback.view'),privateDetails=actor.role==='admin',permissions={edit:await can(request,state,'feedback.edit'),exchange:await can(request,state,'feedback.exchange')};
   const users=JSON.parse(state.values.platformUsers||'[]') as {id:string;name:string}[],names=new Map(users.map(user=>[user.id.toLowerCase(),user.name]));
-  if(request.method==='GET'&&action==='capabilities')return reply({enabled:enabled(),reason:enabled()?null:'NOT_ENABLED',retention,modules:enabled()?await Promise.all(Object.keys(accessEventSources).map(async module=>await allowed(request,state,module)?module:null)).then(rows=>rows.filter(Boolean)):[]});
+  const ready=enabled()&&await accessEventSchemaReady(env.DB);
+  if(request.method==='GET'&&action==='capabilities')return reply({enabled:ready,reason:ready?null:enabled()?'SCHEMA_NOT_READY':'NOT_ENABLED',retention,modules:ready?await Promise.all(Object.keys(accessEventSources).map(async module=>await allowed(request,state,module)?module:null)).then(rows=>rows.filter(Boolean)):[]});
   if(action!=='observe'&&!viewer)return reply({error:'FORBIDDEN'},403);
-  if(!enabled()){const reason='NOT_ENABLED';return request.method==='POST'?reply({error:reason},409):reply(unavailable(reason));}
+  if(!ready){const reason=enabled()?'SCHEMA_NOT_READY':'NOT_ENABLED';return request.method==='POST'?reply({error:reason},409):reply(unavailable(reason));}
   if(['export-preview','export','exports','download'].includes(action))return handleAccessEventExports({request,state,actor,action,names,allowed:(module:string)=>allowed(request,state,module),assertFresh:()=>assertFresh(request,state,actor),body:()=>bodyOf(request)});
   if(request.method==='GET'&&action==='detail'){
    const id=url.searchParams.get('id');if(!id||!/^[a-f0-9-]{36}$/.test(id))return reply({error:'INVALID_FILTER'},422);

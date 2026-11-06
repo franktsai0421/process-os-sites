@@ -2,6 +2,10 @@
 
 存取清單讀取固定當次分頁、游標及讀取序號；過時回應不能覆蓋較新的清單。讀取期間將舊事件備註欄設為唯讀，輸入處理再核對目前事件；既有未保存備註與待核對的更新仍依原流程保留。前端快取引用同步更新，原收據及未知操作防護不變。合成回應亂序測試與固定版本驗證另列。
 
+## 2026-11-06 — 隔離後續候選（未推送／未部署）
+
+成功且新鮮核驗的 bootstrap 在 feature flag 與事件 schema 就緒時，僅為當次 delivery 提供可收集模組名單。reporter 先同步暫存核准的五項 scalar metadata，再做動態載入與 IndexedDB 保存；重連上報仍須重新查 capabilities 與原帳號權限。未核驗的完全離線情況仍可能漏中央副本，原 receipt／unknown 防重送完全不變。兩張事件表以 legacy 0004／fresh 0009 追加候選與模型、journal 納入；請求只檢查 schema 就緒，不執行 DDL。原本的 `scripts/access-events-schema.sql` 不再是新 fixture 的套用路徑，舊資料庫需審核後另行明確升級；本候選未執行 migration 或啟用實站。
+
 ## 2026-11-05 — 冷啟動離線與匯出一致性複驗（候選）
 
 首次核驗 capabilities 失敗的新 metadata 不落地；僅在 memory，重載可能漏中央副本，原 receipt／unknown guard 不改。新增 volatile-pending 狀態與中越文常駐範圍說明，received 只代表本次可核驗佇列。明確 401／403 不再持久保存本次新回報。未支援未核驗前的持久收集或全站離線殼層；沒有新增離線授權 lease 或跨帳號儲存。

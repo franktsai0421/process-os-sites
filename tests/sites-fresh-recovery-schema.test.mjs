@@ -6,17 +6,17 @@ import {readMigrationFiles} from 'drizzle-orm/migrator';
 import {getTableConfig} from 'drizzle-orm/sqlite-core';
 import * as schema from '../db/sites-fresh-schema.ts';
 
-void test('fresh journal applies all nine schema-only migrations and matches all 22 model tables',()=>{
+void test('fresh journal applies all ten schema-only migrations and matches all 24 model tables',()=>{
  const migrations=readMigrationFiles({migrationsFolder:'drizzle-sites-fresh'}),db=new DatabaseSync(':memory:');
  try{
-  assert.equal(migrations.length,9);
+  assert.equal(migrations.length,10);
   for(const migration of migrations)for(const statement of migration.sql){
    assert.doesNotMatch(statement,/\b(INSERT|UPDATE|DELETE|REPLACE|DROP)\b/i);
    db.exec(statement);
   }
   const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r=>r.name);
   const models=Object.values(schema).map(getTableConfig);
-  assert.equal(models.length,22);assert.deepEqual(tables,models.map(m=>m.name).sort());
+  assert.equal(models.length,24);assert.deepEqual(tables,models.map(m=>m.name).sort());
   for(const model of models){
    const actual=db.prepare('PRAGMA table_info("'+model.name+'")').all();
    assert.deepEqual(actual.map(c=>({name:c.name,type:c.type,notNull:Boolean(c.notnull)})),model.columns.map(c=>({name:c.name,type:c.getSQLType().toUpperCase(),notNull:c.notNull})),model.name);

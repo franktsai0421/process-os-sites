@@ -3,7 +3,7 @@ const {DatabaseSync}=require('node:sqlite'),{randomUUID}=require('node:crypto');
 const {accessKeys}=require('../public/process/access-policy.mjs');
 
 void test('actual access-event API: minimal collection, original receipts, current permissions, CAS and private projection',async t=>{
- const db=new DatabaseSync(':memory:');for(const file of fs.readdirSync('drizzle').filter(file=>file.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+file,'utf8'));db.exec(fs.readFileSync('scripts/access-events-schema.sql','utf8'));
+ const db=new DatabaseSync(':memory:');for(const file of fs.readdirSync('drizzle').filter(file=>file.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+file,'utf8'));
  let beforeRun=null;const objects=new Map();const env={PROCESS_SESSION_SECRET:randomUUID(),ACCESS_EVENTS_ENABLED:'1',DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){beforeRun?.(sql);return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};},},STATE_ARCHIVE:{async get(key){return objects.get(key)||null;},async put(){throw Error('BUSINESS_R2_WRITE_FORBIDDEN');}}};
  const load=require('../scripts/ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts'),kernel=load('lib/shared-draft.ts'),route=load('app/api/access-events/route.ts');
  const ids=['frank','other-admin','view-admin','employee','peer','restricted','no-feedback'];
@@ -72,6 +72,13 @@ void test('actual access-event API: minimal collection, original receipts, curre
    const count=db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n;let fired=false;beforeRun=sql=>{if(!fired&&sql.startsWith('INSERT INTO access_events')){fired=true;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}};
    assert.equal((await call('observe',event('race-operation-000001'))).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,count);beforeRun=null;
    const revised=JSON.parse(original.values),revoked=JSON.parse(revised.platformUsers);revoked.find(user=>user.id==='other-admin').accessOverrides['feedback.view']=false;revised.platformUsers=JSON.stringify(revoked);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));assert.equal((await call('list',undefined,'other-admin')).status,403);
+  });
+  await t.test('flag alone cannot enable access events when required schema is incomplete',async()=>{
+   const before=db.prepare('SELECT COUNT(*) n FROM access_events').get().n;
+   db.exec('DROP INDEX access_events_status_cursor'); // owned in-memory fixture only
+   const capability=await call('capabilities');assert.equal(capability.value.enabled,false);assert.equal(capability.value.reason,'SCHEMA_NOT_READY');
+   const rejected=await call('observe',event('schema-missing-operation'));assert.equal(rejected.status,409);assert.equal(rejected.value.error,'SCHEMA_NOT_READY');
+   assert.equal((await call('list')).value.reason,'SCHEMA_NOT_READY');assert.equal(db.prepare('SELECT COUNT(*) n FROM access_events').get().n,before);
   });
  }finally{db.close();}
 });
