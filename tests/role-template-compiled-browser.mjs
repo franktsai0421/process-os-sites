@@ -111,7 +111,7 @@ try{
     stage=lang+' '+width;
     await page.setViewportSize({width,height:1000});
     if(await page.evaluate(()=>localStorage.getItem('processUILanguage'))!==lang)await page.locator('.top-actions .language-switch').click();
-    await page.waitForFunction(lang=>document.documentElement.lang===lang&&document.body.classList.contains('lang-vi')===(lang==='vi'),lang);
+    await page.waitForFunction(lang=>document.documentElement.lang===(lang==='zh'?'zh-Hant':'vi')&&document.body.classList.contains('lang-vi')===(lang==='vi'),lang);
     await closeSidebarThroughUI(width);
     const preview=page.locator('.ua-role-preview');
     const dashboard=preview.locator('[data-ua-matrix-row=dashboard]');
