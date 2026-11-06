@@ -6,6 +6,10 @@ Historical bounded-image assertions now compose with an exact display-only inver
 
 Local Complete now shows the selected gauge caption/photo immediately when its ID differs from the retained server snapshot. Matching historical snapshots remain authoritative; Save derives approved registry metadata as before. No wire, permission, guard, schema or live-data changes. [Root cause, isolated UI/API coverage and separate existing boundaries](../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent Draft candidate; no merge or deployment.
 
+## 2026-11-06 — Role-template presentation
+
+UI-only alignment, wrapping, responsive matrix and clear extra-operation disclosure; V41 follow-up uses actual workspace width and one dialog body scroll, with expanded full-page geometry evidence and retained Windows CI failure diagnosis; all stored permission values and authorization remain. [Candidate scope, tests and limitations](../docs/acceptance/role-template-layout-20261106/README.md). No live changes.
+
 ## 2026-11-06 — IQC numeric-rule advisory
 
 Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.

@@ -41,7 +41,7 @@ try{
  // prove this reader cannot create the schema before actual initialization.
  const count=()=>survivor.evaluate(readAccessEventOutbox);
  await assert.rejects(count(),/OUTBOX_NOT_INITIALIZED/);
- assert.equal(await survivor.evaluate(async()=>!(await indexedDB.databases()).some(db=>db.name==='process-access-event-outbox-v1')),true);
+ assert.equal(await survivor.evaluate(async()=>!(await indexedDB.databases()).some(db=>db.name==='process-access-event-outbox-v1')),true,'probe must not create an empty schema');
  assert.notEqual(await survivor.evaluate(()=>window.ProcessAccessEvents.status()),'received');
  releaseSecond();await survivor.waitForFunction(()=>window.ProcessAccessEvents.status()==='received');
  assert.equal(await count(),0);
