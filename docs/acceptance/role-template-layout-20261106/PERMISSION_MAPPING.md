@@ -4,7 +4,7 @@
 
 ## Catalog 與實際入口
 
-`public/process/access-policy.mjs:3–36` 定義欄與 keys；`moduleForURL:84`、`public/process/delivery-purpose.mjs`、`lib/destination-delivery.mjs` 決定頁面 admission。
+`public/process/access-policy.mjs:3–36` 定義欄與 keys；`moduleForURL:95`、`public/process/delivery-purpose.mjs`、`lib/destination-delivery.mjs` 決定頁面 admission。
 
 | 模組／頁面 | 完整 catalog 操作（key 前綴為模組 ID） | API／控制 |
 | --- | --- | --- |
@@ -52,7 +52,7 @@
 - 上表 11 個 workflow 的 POST 使用 `command.action=submit/withdraw/approve/return`（IPQC-C 的相容 API／UI 把 reject 對應 return），master 依 AB/C/PROCESS scope，IPQC-AB 使用 module=1。`lib/versioned-shared-workflow.ts:118–156` 依 module.view 與對應操作 key；`lib/shared-draft.ts:149–196` 再要求 view、操作權限、pending case、revision/generation、self-review confirmation 與理由。沒有只看按鈕就授權。
 - `public/process/master-review.js:49,60,69–74` 以 scope 的實際 permissions 決定 approve/return/withdraw 的 disabled，BOM 走 `BOMWorkspace.reviewPermission/reviewAction`。`master-admin-ui.js:468` 接 Save/Submit/Withdraw selectors；`process-authoring-v3.js` 經 authoring workflow；`iqc-master.js:30` 的 permissionGates 明列新增、編輯、保存、送審、撤回、核准、發回、刪除 selectors。IPQC-C `ipqc-c.js:15,700,1141` 先經 sharedDraftPermissionAllowed／hasPermission，呼叫其 workflow。這些來源已讀；未逐一重跑全部工作流按鈕。
 - 例行檢查不是上述 11 個端點之一：`app/api/routine-fqc/route.ts:33–38,205–208,251` 使用 routine 操作，create-plan/create-report 要 routine.create，discard-draft/delete-plan 要 routine.delete；settings 另要 routine.settings，舊 revoke/revise 還有 legacy gate。這輪僅列出，不新增缺少的 catalog keys。
-- 角色 CRUD 及角色保存只限主要管理員：`app/api/user-access/route.ts:34,76–83`；`access-policy.mjs:60–79` 的 managementRight/roleEditable/editableCells 保護主要管理員、自己的管理員帳號、peer admin、DEMO 及 grant ceiling。普通 admin 有該 user 管理權時仍只編可授權的非 admin。設定密碼／停用／刪除均經 `/api/user-access` password/status-user/delete-user；本輪只用合成帳號回歸，沒觸碰真實資料。
+- 角色 CRUD 及角色保存只限主要管理員：`app/api/user-access/route.ts:34,76–83`；`access-policy.mjs:73–83` 的 managementRight/roleEditable/editableCells 保護主要管理員、自己的管理員帳號、peer admin、DEMO 及 grant ceiling。普通 admin 有該 user 管理權時仍只編可授權的非 admin。設定密碼／停用／刪除均經 `/api/user-access` password/status-user/delete-user；本輪只用合成帳號回歸，沒觸碰真實資料。
 
 ## 拆稿完成後的具體相依
 

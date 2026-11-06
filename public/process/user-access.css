@@ -224,3 +224,5 @@
 .ua-matrix.ua-simple thead tr>:first-child,.ua-matrix.ua-simple thead tr>:nth-child(2){background:transparent}
 .ua-matrix.ua-simple tbody tr:hover>td{background:transparent}
 .ua-simple .ua-extra summary,.ua-simple .ua-no-extra,.ua-simple .ua-scope{text-align:left}
+.ua-matrix.ua-simple td[data-label]{text-align:center}
+.ua-simple .ua-extra-panel .ua-cell label>span{flex:1;min-width:0}
