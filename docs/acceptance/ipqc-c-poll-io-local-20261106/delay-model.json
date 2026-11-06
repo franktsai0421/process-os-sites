@@ -1,0 +1,30 @@
+{
+  "rows": 1735,
+  "archiveCases": 2,
+  "faultCases": 30,
+  "sessionRevocationEnabled": true,
+  "delayMs": 1000,
+  "before": {
+    "ms": 15064.027396999998,
+    "gets": 15,
+    "maxInFlight": 1,
+    "dbReads": 14,
+    "dbKinds": {
+      "shared-state": 1,
+      "session-revocation": 13
+    }
+  },
+  "after": {
+    "ms": 9046.76596,
+    "gets": 15,
+    "maxInFlight": 5,
+    "dbReads": 14,
+    "dbKinds": {
+      "shared-state": 1,
+      "session-revocation": 13
+    }
+  },
+  "equalPayload": true,
+  "equalObjectReadSet": true,
+  "limits": "Synthetic per-GET delay only; no live or CPU/storage decomposition. All selected aggregates/bodies retained; no cross-request cache. Tests also cover no-since, mixed receipt selector and fresh view revocation."
+}

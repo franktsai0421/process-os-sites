@@ -56,7 +56,9 @@ export async function GET(request:Request) {
     // Keep its full response/fresh GET; do not reuse POST authority or narrow
     // history/restore/receipt queries when selectors are combined.
     const createReadback=query.get('readback')==='ipqc-c-create-v1'&&[...query.keys()].every(key=>['readback','caseMetadata','compact'].includes(key));
-    const state=await readState({...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
+    // Normal compact workflow reads retain all objects/checks; overlap only GET metadata.
+    const workflowReadAhead=query.get('caseMetadata')==='1'&&query.get('compact')==='1'&&[...query.keys()].every(key=>['since','caseMetadata','compact'].includes(key));
+    const state=await readState({...(workflowReadAhead?{aggregateReadAhead:true}:{}),...(query.has('permissions')?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}:createReadback?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode',KEY]}:{}),modelKey:KEY,deferDependencyHistory:true,deferHistory:true,caseId:query.get('caseId'),saveId:query.get('restoreSaveId'),versionId:query.get('versionId')||query.get('legacyVersionId')}),actor=await identity(request,state),permissions=await access(request,state);
     if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
     if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;
