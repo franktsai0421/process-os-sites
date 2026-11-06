@@ -63,6 +63,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/benchmark-preview-smoke.test.mjs tests/benchmark-preview-browser.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Isolated role template layout and payload contract
+        env:
+          USER_PERMISSIONS_EVIDENCE: ${{ github.workspace }}/.sites-runtime/role-template-layout
+          USER_ACCESS_FIXTURE_PORT: '3059'
+        run: node tests/role-template-layout-browser.mjs
       - name: Approval tab deep-link native regression
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |

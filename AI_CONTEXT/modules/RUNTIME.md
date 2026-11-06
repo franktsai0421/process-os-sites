@@ -1,3 +1,7 @@
+## 2026-11-06 — Role-template layout candidate
+
+The account matrix uses responsive columns and explicit extra-operation descriptions; empty disclosures become explanations while cells, overrides and write semantics remain. [Evidence and readonly permission mapping](../../docs/acceptance/role-template-layout-20261106/README.md). Source-only candidate; no role/account or authorization-policy changes, merge or deployment.
+
 ## 2026-11-03 — Approval tab deep-link candidate
 
 Cold load/reload and indexed history now resolve one enumerated approval tab;

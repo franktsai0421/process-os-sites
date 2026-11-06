@@ -1,3 +1,7 @@
+# 2026-11-06 — Role-template layout candidate
+
+Independent UI-only matrix alignment/disclosure fix on main `2882f35`; no permission/data/API policy changes. [Scope, isolated browser evidence, readonly mapping and publication HOLD](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
+
 ## 2026-11-06 — Access queue read race follow-up
 
 The Draft #86 candidate fences access-list replies by request generation, status filter and cursor, and prevents a prior event's textarea from accepting input during a pending read or writing into a new event. Deterministic synthetic response-order coverage is added. The original business receipt/no-resend path is untouched; cold first-capability offline reporting remains a documented gap. Verify the new exact head and CI separately; no migration, activation, merge or deployment occurred here.
