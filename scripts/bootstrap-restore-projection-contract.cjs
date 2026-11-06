@@ -26,7 +26,9 @@ function comparableBootstrap(response,candidate=false){
  if(response.status!==200)return{status:response.status,headers:response.headers,text:response.text};
  const body=JSON.parse(response.text);
  if(candidate){
-  assert.deepEqual(body.features,{webFeedback:true});delete body.features;
+  // These fixtures never enable access collection. Admit only its exact empty
+  // feature-off DTO; nonempty modules, missing fields and extras still reject.
+  assert.deepEqual(body.features,{webFeedback:true,accessEvents:[]});delete body.features;
   assert.deepEqual(body.catalog.categoryGroups,[],'Fixed fixture must expose exactly the approved empty category groups');
   const user=publicFixtureUser(body);for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
  }else{
@@ -43,6 +45,10 @@ function assertRestoreProjectionContract(before,after){
  const reject=response=>{assert.throws(()=>assert.deepEqual(comparableBootstrap(response,true),expected));negatives++;};
  const mutateBody=fn=>{const body=JSON.parse(after.text);reject({...after,text:JSON.stringify(fn(body)||body)});};
  const mutateUser=fn=>mutateBody(body=>{const users=JSON.parse(body.values.platformUsers);fn(users[0]);body.values.platformUsers=JSON.stringify(users);});
+ mutateBody(body=>{body.features.accessEvents=['fqc'];});
+ mutateBody(body=>{delete body.features.accessEvents;});
+ mutateBody(body=>{body.features.extra=true;});
+ mutateBody(body=>{body.features.webFeedback=false;});
  for(const key of restoreKeys){
   mutateUser(user=>{user.cells[key]=true;});
   mutateUser(user=>{delete user.cells[key];});
