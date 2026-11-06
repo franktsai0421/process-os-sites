@@ -67,5 +67,24 @@ void test('two cold reporters with disjoint atomic records retain both events af
  const request=async(action,body)=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts.push(body);return{received:true,verified:false};};
  const a=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,bootstrapAdmitted:true,request}),b=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,bootstrapAdmitted:true,request});
  await Promise.all([a.observe(event('operation-tab-a')),b.observe(event('operation-tab-b'))]);assert.equal(rows.size,2);assert.equal(posts.length,0);
- online=true;await Promise.all([a.flush(),b.flush()]);assert.deepEqual(posts.map(row=>row.operationId).sort((a,b)=>a.localeCompare(b)),['operation-tab-a','operation-tab-b']);assert([...rows.values()].every(row=>row.acked));
+ online=true;await Promise.all([a.flush(),b.flush()]);assert.deepEqual([...new Set(posts.map(row=>row.operationId))].sort((a,b)=>a.localeCompare(b)),['operation-tab-a','operation-tab-b']);assert(posts.every(row=>Object.keys(row).length===5));assert([...rows.values()].every(row=>row.acked));
+});
+void test('a surviving reporter refreshes another closed tab\'s atomic outbox after its first empty read',async()=>{
+ const rows=new Map(),posts=[];let online=true;
+ const storage=async(mode,value)=>{if(mode==='read')return[...rows.values()].map(row=>structuredClone(row));if(mode==='upsert'){const id=value.event.module+':'+value.event.operationId,record=structuredClone(value);rows.set(id,record);return{record};}if(mode==='ack'){rows.get(value.event.module+':'+value.event.operationId).acked=true;return{};}throw Error('BAD_STORAGE_MODE');};
+ const request=async(action,body)=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts.push(body);return{received:true,verified:false};};
+ const a=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,bootstrapAdmitted:true,request});await a.flush();assert.equal(rows.size,0);
+ online=false;const b=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,bootstrapAdmitted:true,request});await b.observe(event('closed-tab-operation'));assert.equal(rows.size,1);assert.equal(posts.length,0);
+ online=true;await a.flush();assert.deepEqual(posts.map(row=>row.operationId),['closed-tab-operation']);assert.equal(rows.get('bom:closed-tab-operation').acked,true);
+ await a.flush();assert.equal(posts.length,1);assert.deepEqual(Object.keys(posts[0]).sort((a,b)=>a.localeCompare(b)),['action','module','occurredAt','operationId','phase']);
+});
+void test('atomic refresh keeps a newer shared receipt and promotes a local receipt over acknowledged unknown',async()=>{
+ const rows=new Map(),posts=[];let online=false;
+ const id='bom:shared-receipt-operation';
+ const storage=async(mode,value)=>{if(mode==='read')return[...rows.values()].map(row=>structuredClone(row));if(mode==='upsert'){const previous=rows.get(value.event.module+':'+value.event.operationId),record=previous?.event.phase==='receipt-observed'&&value.event.phase==='unknown'?previous:structuredClone(value);rows.set(value.event.module+':'+value.event.operationId,record);return{record};}if(mode==='ack'){rows.get(value.event.module+':'+value.event.operationId).acked=true;return{};}throw Error('BAD_STORAGE_MODE');};
+ const request=async(action,body)=>{if(action==='capabilities'){if(!online)throw Error('offline');return{enabled:true,modules:['bom']};}posts.push(body);return{received:true,verified:false};};
+ const first=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,request});await first.observe(event('shared-receipt-operation'));
+ rows.set(id,{event:{...event('shared-receipt-operation'),phase:'receipt-observed'},acked:true});online=true;await first.flush();assert.equal(posts.length,0);assert.equal(rows.get(id).event.phase,'receipt-observed');assert.equal(rows.get(id).acked,true);
+ online=false;rows.set(id,{event:event('shared-receipt-operation'),acked:true});const second=createAccessEventReporter({current:()=>true,storage,atomicStorage:true,request});await second.flush();await second.observe({...event('shared-receipt-operation'),phase:'receipt-observed'});
+ online=true;await second.flush();assert.deepEqual(posts.map(row=>row.phase),['receipt-observed']);assert.equal(rows.get(id).event.phase,'receipt-observed');assert.equal(rows.get(id).acked,true);
 });

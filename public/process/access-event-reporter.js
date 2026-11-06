@@ -22,7 +22,7 @@
   const current=()=>!!actorId&&sync===window.ProcessSync&&sync.features===features&&!sync.requiresReload&&sync.identity?.id===actorId&&sync.identityGeneration?.()===epoch&&(!owner||sync.isCurrentDelivery?.(owner)!==false);
   if(!current()||!window.ProcessSync?.features?.accessEvents?.length)return null;
   if(active?.actorId===actorId&&active.epoch===epoch&&active.current())return active.value;
-  modulePromise||=import('./access-event-client.mjs?v=20261106-access-offline2');const {createAccessEventReporter,createAccessEventStorage}=await modulePromise;if(!current())return null;if(active?.actorId===actorId&&active.epoch===epoch&&active.current())return active.value;
+  modulePromise||=import('./access-event-client.mjs?v=20261106-access-offline3');const {createAccessEventReporter,createAccessEventStorage}=await modulePromise;if(!current())return null;if(active?.actorId===actorId&&active.epoch===epoch&&active.current())return active.value;
   const storage=createAccessEventStorage({indexedDB,origin:location.origin,actorId,current});
   const request=async(action,body)=>{if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');const response=await fetch('/api/access-events?action='+action,{cache:'no-store',method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});if(!current())throw Error('ACCESS_EVENT_OWNER_CHANGED');if(!response.ok)throw Error(response.status===403?'FORBIDDEN':response.status===401?'LOGIN_REQUIRED':'ACCESS_EVENT_UNAVAILABLE');return response.json();};
   const record={actorId,epoch,features,current,value:null,revoked:false};
