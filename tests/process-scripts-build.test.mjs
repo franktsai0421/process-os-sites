@@ -10,7 +10,11 @@ void test('real shell groups only expression scripts, retaining boundaries and p
   const html = combineProcessStyles(fs.readFileSync('public/process/index.html','utf8'), name => fs.readFileSync('public/process/'+name,'utf8')).html;
   const result = combineProcessScripts(html, name => fs.readFileSync('public/process/'+name,'utf8'));
   assert.equal(result.assets.length, 2);
-  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 49);
+  assert.equal(result.assets.reduce((n,a)=>n+a.sources.length,0), 50);
+  const reporterAsset=result.assets.find(asset=>asset.sources.includes('access-event-reporter.js'));
+  assert(reporterAsset,'optional event reporter remains in the ordered shell bundle');
+  assert.equal(result.assets.flatMap(asset=>asset.sources).filter(name=>name==='access-event-reporter.js').length,1,'reporter is bundled exactly once');
+  assert(reporterAsset.sources.indexOf('access-event-reporter.js')<reporterAsset.sources.indexOf('shared-draft-client.js'),'reporter is available before shared-client observations');
   assert(result.assets.some(asset=>asset.sources.includes('master-reference-viewer.js')),'latest52 reference viewer remains in source order');
   const recoveryAsset=result.assets.find(asset=>asset.sources.includes('local-draft-recovery.js'));
   assert(recoveryAsset,'local recovery helper stays in ordered bundle');

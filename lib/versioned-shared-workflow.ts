@@ -202,7 +202,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       }
       if(query.has('operationId')){const receipt=flow?.receipts[query.get('operationId')!];if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
         const action=JSON.parse(receipt.fingerprint).action,permission=action==='apply'||action==='restore'||action==='begin-v1'?'edit':action;
-        if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);return reply({receipt:receipt.result,...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});}
+        if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);return reply({receipt:receipt.result,...(query.get('accessEvent')==='1'?{operationAction:action}:{}),...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});}
       if(query.has('history')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const rows=[...(flow?.cases||[])].reverse(),before=query.get('before'),start=before?rows.findIndex(c=>c.id===before)+1:0;
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);return reply({cases:rows.slice(start,start+20).map(sharedCaseMetadata),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});}
       if(query.has('caseId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const reviewCase=flow?.cases.find(c=>c.id===query.get('caseId'));return reviewCase?reply({reviewCase}):reply({error:'CASE_NOT_FOUND'},404);}

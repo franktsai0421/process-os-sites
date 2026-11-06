@@ -1,0 +1,13 @@
+import {exportText,exportIds,selectedImages,planProblemExport,type ExportItem,type ExportImage,ProblemExportError,problemExportLimits} from './problem-export';
+type Note={author:string;text:string;at:string};
+type FeedbackIssue={id:string;reporter:string;createdAt:string;description:string;status:string;version:number;deletedAt?:string;location:{display:string;view:string;tab:string;system:string};attachments:string[];notes:Note[]};
+type Image=ExportImage&{location:unknown};
+export async function approvedFeedbackItems(issues:FeedbackIssue[],attachments:Image[],ids:unknown,knownSecrets:string[],allowImage:(image:Image)=>Promise<boolean>,imageIds?:unknown):Promise<ExportItem[]> {
+ const selected=exportIds(ids,'helper'),allowedImages=new Set(issues.filter(issue=>selected.includes(issue.id)).flatMap(issue=>issue.attachments));if(imageIds!==undefined&&(!Array.isArray(imageIds)||imageIds.some(id=>typeof id!=='string'||!allowedImages.has(id))||new Set(imageIds).size!==imageIds.length))throw new ProblemExportError('INVALID_EXPORT_IMAGES');const filter=imageIds===undefined?null:new Set(imageIds as string[]),index=new Map(attachments.map(image=>[image.id,image])),items:ExportItem[]=[];
+ for(const id of selected){const issue=issues.find(issue=>issue.id===id&&!issue.deletedAt);if(!issue)throw new ProblemExportError('NOT_FOUND',404);const images=[];
+  for(const imageId of issue.attachments){if(filter&&!filter.has(imageId))continue;const image=index.get(imageId);if(!image)throw new ProblemExportError('IMAGE_MISSING',503);if(!await allowImage(image))throw new ProblemExportError('EXPORT_IMAGE_PERMISSION_REQUIRED',403);images.push({id:image.id,name:exportText(image.name,knownSecrets),type:image.type,size:image.size,sha256:image.sha256});}
+  items.push({id:issue.id,version:issue.version,images,data:{id:issue.id,reporter:exportText(issue.reporter,knownSecrets),createdAt:issue.createdAt,description:exportText(issue.description,knownSecrets),status:issue.status,location:{display:exportText(issue.location.display,knownSecrets),view:issue.location.view,tab:issue.location.tab,system:issue.location.system},notes:issue.notes.map(note=>({author:exportText(note.author,knownSecrets),at:note.at,text:exportText(note.text,knownSecrets)}))}});
+ }
+ return items;
+}
+export async function approvedFeedbackPlan(items:ExportItem[],imageIds:unknown){if(new TextEncoder().encode(JSON.stringify(items)).length>problemExportLimits.helper.preview)throw new ProblemExportError('EXPORT_PREVIEW_LIMIT',413);const images=selectedImages(imageIds,items);return{...(await planProblemExport(items,'helper',images)),preview:items.map(item=>({...item.data,version:item.version,images:item.images}))};}

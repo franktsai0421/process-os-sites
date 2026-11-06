@@ -414,7 +414,7 @@
       const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertBegin(record);const control=beginControl(fresh),flow=control.workflow;
       if(masterLocalBegin&&flow?.generation!==result.receipt.generation)throw Error('BEGIN_GENERATION_CHANGED');
       if(!flow||flow.generation===result.receipt.generation&&flow.revision<result.receipt.revision)throw Error('BEGIN_READBACK_BEHIND');
-      const recovered={...fresh,receipt:result.receipt,operationKind:'begin-v1',recoveryKind:'begin-v1',beginBasis:JSON.parse(JSON.stringify(record.basis))};clearBegin(record);return recovered;
+      const recovered={...fresh,receipt:result.receipt,operationKind:'begin-v1',recoveryKind:'begin-v1',beginBasis:JSON.parse(JSON.stringify(record.basis))};reportAccessEvent({action:'begin-v1',operationId:record.operationId},'receipt-observed');clearBegin(record);return recovered;
     }
     function resolveBegin(){
       if(beginPending||queued||retryPending)return Promise.reject(Error('OPERATION_IN_PROGRESS'));
@@ -441,14 +441,23 @@
         // Once handed to POST transport, a fetch error or 404 cannot prove no write.
         if(attempt)attempt.dispatched=true;
         try{return await finishBegin(record,await request(endpoint,{action:'begin-v1',begin:{operationId:record.operationId,basis:JSON.parse(JSON.stringify(basis))}}));}
-        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}throw error;}
+        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}
       })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
     }
     if(durableBegin)beginOutstanding();
     const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
+    function reportAccessEvent(command,phase='unknown') {
+      try {
+        const sources={'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/tooling/workflow':'tooling','/api/routine-equipment/workflow':'equipment','/api/process-authoring/workflow':'editor'};
+        const url=new URL(endpoint,'https://local.invalid');for(const [key,value]of url.searchParams)if(!(key==='caseMetadata'&&value==='1'||key==='compact'&&value==='1'||key==='scope'&&['AB','C','PROCESS'].includes(value)||key==='module'&&value==='1'))return;
+        const moduleId=url.pathname==='/api/master/workflow'?({AB:'ab',C:'c',PROCESS:'templates'})[url.searchParams.get('scope')]:url.pathname==='/api/ipqc-ab/workflow'&&url.searchParams.get('module')==='1'?'ipqc-ab':sources[url.pathname];
+        if(moduleId)window.ProcessAccessEvents?.observe({actorId,module:moduleId,action:command.action,operationId:command.operationId,occurredAt:Date.now(),phase});
+      }catch{/* Reporting never changes original receipts, errors or write admission. */}
+    }
+    if(beginRecord)reportAccessEvent({action:'begin-v1',operationId:beginRecord.operationId});
     const query=value=>endpoint+(endpoint.includes('?')?'&':'?')+value;
     const key=`shared-draft-v3-operation:${actorId}:${endpoint}`;
-    if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown)unknownOwner=departureOwner(); } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
+    if(!externalStrict)try { unknown=unpackCommand(JSON.parse(sessionStorage.getItem(key)||'null'));if(unknown){unknownOwner=departureOwner();reportAccessEvent(unknown);} } catch { recoveryInvalid=true; /* Retain the corrupt record and block writes; never erase an uncertain operation. */ }
     // AB create alone: live, privately issued commands can prove a fixed-code
     // original POST refusal. Historical commands and public Error flags cannot.
     const abCommands=new WeakMap(),abSelected=new Map(),abResponses=new WeakMap(),abFetchFailures=new WeakMap();
@@ -548,7 +557,7 @@
       for(let i=0;i<sessionStorage.length;i++){const storageKey=sessionStorage.key(i);if(storageKey===key)boundedLegacy=true;const item=boundedParse(storageKey);if(item)found.push(item);if(found.length>32)throw Error('RECOVERY_RECORD_LIMIT');}
       return found;
     }
-    if(externalBounded)try{boundedDiscovered=boundedDiscover();boundedRecord=boundedDiscovered[0]||null;if(boundedRecord){unknown={operationId:boundedRecord.operationId,generation:boundedRecord.generation,action:boundedRecord.action};unknownOwner=externalOwner;}}catch{recoveryInvalid=true;}
+    if(externalBounded)try{boundedDiscovered=boundedDiscover();boundedRecord=boundedDiscovered[0]||null;if(boundedRecord){unknown={operationId:boundedRecord.operationId,generation:boundedRecord.generation,action:boundedRecord.action};unknownOwner=externalOwner;reportAccessEvent(unknown);}}catch{recoveryInvalid=true;}
     function boundedFlow(result){
       // IPQC-C's existing GET is deliberately top-level; its POST retains the
       // full-control / cSaveProjection shapes. Never manufacture caller control.
@@ -879,8 +888,8 @@
       if(beginOutstanding())return resolveBegin();
       if(!unknown)return null;
       const command=unknown,owner=unknownOwner,original=confirmedReceipt(await request(query(`operationId=${encodeURIComponent(command.operationId)}`)),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command):original,command);
-      if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(command.operationId);return settled;}
-      window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);
+      if(externalBounded&&boundedRecord?.operationId===command.operationId){const settled=await boundedTerminal(result,boundedRecord);if(!unknown){syncFailures.delete(command.operationId);reportAccessEvent(command,'receipt-observed');}return settled;}
+      reportAccessEvent(command,'receipt-observed');window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);
       syncFailures.delete(command.operationId);if(unknown?.operationId===command.operationId)retain(null);return result;
     }
     async function post(command, retry = false,owner) {
@@ -924,7 +933,7 @@
           // FQC/IQC diagnostics stay in this runtime's error only: preserve the
           // original transport/validation cause and the failed lookup separately.
           // Neither cause changes settlement, marker bytes or retry admission.
-          throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{recoveryCause}:{})});
+          reportAccessEvent(command);throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY',externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{cause:error}:undefined),{operationId:command.operationId,...(externalBounded&&['fqc','iqc','ipqc-ab:module'].includes(boundedScope)?{recoveryCause}:{})});
         }
       }
     }

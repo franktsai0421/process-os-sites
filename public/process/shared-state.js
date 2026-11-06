@@ -59,7 +59,7 @@
     importPending: false,
     loginRequired: false,
     deliveryProjection: false,
-    features: Object.freeze({webFeedback:false}),
+    features: Object.freeze({webFeedback:false,accessEvents:[]}),
     writableKeys: [],
     catalog: null,
     destination: null,
@@ -241,7 +241,7 @@
       }
     if(shared.deliveryProjection===true){
       api.deliveryProjection=true;
-      api.features=Object.freeze({webFeedback:shared.features?.webFeedback===true});
+      api.features=Object.freeze({webFeedback:shared.features?.webFeedback===true,accessEvents:Array.isArray(shared.features?.accessEvents)?shared.features.accessEvents.filter(value=>typeof value==='string'):[]});
       api.writableKeys=Array.isArray(shared.writableKeys)?shared.writableKeys:[];
       api.catalog=shared.catalog;
       api.destination=shared.destination||null;

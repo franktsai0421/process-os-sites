@@ -42,3 +42,28 @@ export const verifyCapabilities=sqliteTable('process_import_verify_capabilities'
 export const verifyMaintenance=sqliteTable('process_import_verify_maintenance',{
  id:integer('id').primaryKey().notNull(),capabilityId:text('capability_id').notNull().unique(),credentialSha256:text('credential_sha256').notNull(),configSha:text('config_sha').notNull(),issuedAt:integer('issued_at').notNull(),expiresAt:integer('expires_at').notNull(),receiptExpiresAt:integer('receipt_expires_at').notNull(),stage:text('stage').notNull(),activeNonce:text('active_nonce'),receipts:text('receipts').notNull().default('[]'),admitted:integer('admitted').notNull().default(0),holdPlan:text('hold_plan'),resumePlan:text('resume_plan'),heldAt:integer('held_at'),
 },t=>[check('verify_maintenance_singleton',sql`${t.id}=1`),check('verify_maintenance_stage',sql`${t.stage} IN ('registered','held','maintenance','resumed')`),check('verify_maintenance_admissions',sql`${t.admitted} BETWEEN 0 AND 3`),check('verify_maintenance_expiry',sql`${t.expiresAt}=${t.issuedAt}+600000 AND ${t.receiptExpiresAt}=${t.issuedAt}+18000000`)]);
+
+// Optional management history. Adoption is a reviewed, additive migration.
+export const accessEvents = sqliteTable('access_events', {
+  id: text('id').primaryKey().notNull(), actorId: text('actor_id').notNull(),
+  module: text('module').notNull(), operationId: text('operation_id').notNull(),
+  action: text('action').notNull(), occurredAt: integer('occurred_at').notNull(),
+  receivedAt: text('received_at').notNull(), updatedAt: text('updated_at').notNull(),
+  outcome: text('outcome').notNull(), verifiedAt: text('verified_at'),
+  status: text('status').notNull(), version: integer('version').notNull(),
+  notes: text('notes').notNull(), history: text('history').notNull(),
+  updateReceipts: text('update_receipts').notNull(),
+}, table => [
+  uniqueIndex('access_events_actor_module_operation').on(table.actorId,table.module,table.operationId),
+  index('access_events_status_cursor').on(table.status,table.id),
+  check('access_events_outcome',sql`${table.outcome} IN ('unknown','receipt-confirmed')`),
+  check('access_events_status',sql`${table.status} IN ('open','handled')`),
+]);
+
+export const accessEventExports = sqliteTable('access_event_exports', {
+  id: text('id').primaryKey().notNull(), actorId: text('actor_id').notNull(),
+  operationId: text('operation_id').notNull(), digest: text('digest').notNull(),
+  generatedAt: text('generated_at').notNull(), modules: text('modules').notNull(),
+  ids: text('ids').notNull(), count: integer('count').notNull(),
+  size: integer('size').notNull(), sha256: text('sha256').notNull(),
+}, table => [uniqueIndex('access_event_exports_actor_operation').on(table.actorId,table.operationId)]);

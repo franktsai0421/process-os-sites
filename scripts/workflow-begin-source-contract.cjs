@@ -149,6 +149,7 @@ function historicalBeginSource(bytes,file){
 }
 function withoutDurableBegin(bytes,file){
  assert(Buffer.isBuffer(bytes),'Begin-v1 projection requires raw source bytes');
+ bytes=require('./access-event-source-contract.cjs').withoutAccessEventMetadata(bytes,file);
  // Keep the exact reviewed BOM-only source as its own historical input;
  // integrated source still requires its separate exact union hash above.
  if(file==='lib/versioned-shared-workflow.ts'&&hash(bytes)==='6a85a7a3617f1c8b912d83a5291e2ad4babfa747eba42d2c7da7809556e985e0')bytes=withoutBomWorkflowOptIn(bytes,file);

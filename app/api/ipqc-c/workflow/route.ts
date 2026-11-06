@@ -99,7 +99,7 @@ export async function GET(request:Request) {
       const action=JSON.parse(receipt.fingerprint).action;
       const permission=action==='apply'||action==='restore'||action==='begin-v1'?'edit':action;
       if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);
-      return reply({receipt:receipt.result,...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});
+      return reply({receipt:receipt.result,...(query.get('accessEvent')==='1'?{operationAction:action}:{}),...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});
     }
     const since=new URL(request.url).searchParams.get('since');
     if(flow&&since===`${flow.generation}:${flow.revision}`)return reply({revision:state.revision,permissions,unchanged:true});

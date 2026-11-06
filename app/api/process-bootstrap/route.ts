@@ -6,6 +6,8 @@ import {startupCase} from '@/lib/startup-assets.mjs';
 import {env} from 'cloudflare:workers';
 import {mediaState} from '@/lib/state-media';
 import {createIdentityReadToken,allowIdentityReadReuse} from '@/lib/state-records';
+import {accessEventSchemaReady} from '@/lib/access-event-schema-ready';
+import {accessEventSources} from '@/public/process/access-event-protocol.mjs';
 
 export async function GET(request:Request){
   try{
@@ -38,12 +40,16 @@ export async function GET(request:Request){
     const catalog=await runtimeCatalog(state.values,reader.canRead,()=>legacyBom(env.STATE_ARCHIVE,startupCase.files.find(file=>file.name==='imported-data.js')!),plan.catalog),projected=destinationValues(await companyState(request,state),plan);
     // Ordinary reads never create or prune backups; deferred media may still cache.
     const delivered=request.headers.get('X-Process-Media')==='deferred-v1'?await mediaState(state,reader.actor.id,projected):projected;
+    // Optional collection is admitted only for this verified delivery. Keep
+    // feature-off requests free of extra schema and permission reads.
+    const accessEvents=reader.actor.role!=='device'&&reader.actor.sessionType==='platform'&&(env as typeof env&{ACCESS_EVENTS_ENABLED?:string}).ACCESS_EVENTS_ENABLED==='1'&&await accessEventSchemaReady(env.DB)
+      ?Object.keys(accessEventSources).filter(module=>reader.canRead(module+'.view')):[];
     // Recheck the actor/epoch and all cells after object I/O. No cross-request
     // authorization cache, no persistence of a partially decoded snapshot.
     // Deliberately no reuse token: final storage integrity and authority are fresh.
     const after=await readState({keys:[...identityKeys]}),actor=await identity(request,after);
     if(!actor||actor.id!==reader.actor.id||after.revision!==state.revision)return Response.json({error:'BOOTSTRAP_REVISION_CHANGED'},{status:409,headers:responseHeaders});
-    return Response.json({...delivered,identity:actor,serverProtected:true,demoEnabled:demoEnabled(request),features,catalog,destination:plan.destination,
+    return Response.json({...delivered,identity:actor,serverProtected:true,demoEnabled:demoEnabled(request),features:{...features,accessEvents},catalog,destination:plan.destination,
       deliveryProjection:true,writableKeys:['dispatchBoard','backupSettings'].filter(key=>Object.hasOwn(projected.values,key))},{headers:responseHeaders});
   }catch{return Response.json({error:'BOOTSTRAP_UNAVAILABLE'},{status:503,headers:responseHeaders});}
 }

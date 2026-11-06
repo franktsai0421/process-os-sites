@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {feedbackDOM} from './helpers/feedback-dom.mjs';import {openProblemExport} from '../public/process/problem-export.mjs';
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+function fixture(source='helper'){
+ const {document}=feedbackDOM(),create=document.createElement.bind(document);document.createElement=tag=>{const node=create(tag);if(tag==='dialog')node.showModal=()=>{};return node;};globalThis.document=document;
+ const calls=[],ids=['a','b'],batches=ids.map(id=>({ids:[id],versions:[{id,version:1,contentHash:'a'.repeat(64)}],imageIds:[],count:1,imageBytes:0,metadataBytes:10}));let current=true,transport=async(kind)=>kind==='preview'?{source,scope:'selected-records-only',selectedCount:2,limits:{records:20,zip:32000000,images:30000000},batches,preview:ids.map(id=>({id,description:'<img src=x onerror=alert(1)>',notes:[],images:[]}))}:{};
+ const controller=openProblemExport({source,ids,t:zh=>zh,current:()=>current,request:async(kind,body)=>{calls.push({kind,body});return transport(kind,body);},downloadURL:id=>'/download/'+id,imageURL:id=>'/image/'+id});
+ const dialog=document.body.children.find(node=>node.tagName==='DIALOG'),button=label=>dialog.querySelectorAll('button').find(node=>node.textContent===label);
+ return{calls,dialog,controller,button,setTransport:fn=>{transport=fn;},invalidate(){current=false;}};
+}
+void test('closing during a pending ZIP leaves server result unknown, stops subsequent batches and fences old handlers',async()=>{
+ const f=fixture();await tick();assert.equal(f.calls.length,1);assert.equal(f.dialog.querySelectorAll('img').length,0);let release;f.setTransport(async()=>new Promise(resolve=>{release=resolve;}));const create=f.button('依計畫建立 ZIP');create.onclick();await tick();assert.equal(f.calls.length,2);assert.equal(f.controller.canLeave(),false);f.button('取消／關閉').onclick();assert.equal(f.controller.canLeave(),true);release({id:'first-archive',status:'generated',count:1});await tick();assert.equal(f.calls.length,2);create.onclick();await tick();assert.equal(f.calls.length,2);
+});
+void test('partial failure retries the same frozen package; ownership invalidation blocks retained actions',async()=>{
+ const f=fixture('access');await tick();let failed=false;f.setTransport(async(kind,body)=>{if(kind!=='generate')throw Error('unexpected');if(body.ids[0]==='b'&&!failed){failed=true;throw Error('network');}return{id:'archive-'+body.ids[0],status:'generated',count:1};});f.button('依計畫建立 ZIP').onclick();await tick();assert.equal(f.calls.length,3);assert.equal(f.dialog.querySelectorAll('a').length,1);const retry=f.button('重試尚未確認的同一批次');retry.onclick();await tick();assert.equal(f.dialog.querySelectorAll('a').length,2);assert.deepEqual(f.calls[2].body,f.calls[3].body);assert.deepEqual(f.calls[1].body.ids,['a']);assert.deepEqual(f.calls[2].body.ids,['b']);f.invalidate();retry.onclick();await tick();assert.equal(f.calls.length,4);f.controller.dispose();assert.equal(f.controller.canLeave(),true);
+});

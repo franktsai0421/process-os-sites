@@ -1,3 +1,27 @@
+# 2026-11-05 — Feedback integration with merged main
+
+Integrate main `bad04632d354f290850632976bf6eb69b8e2d3c9` (#85/#87) into Draft #86. Main pre-dispatch proofs, transfer, A/B and PROCESS late-input/ACK readback safeguards are retained; only metadata observations are added. Exact byte projection and historical inverses remain strict. Cache references combine both changes. Access collection remains default-off, candidate schema is not adopted, cold-start reporting gaps remain, and no live data/migration/merge/deployment occurs. Exact-head evidence and remote CI must be evaluated separately.
+
+## 2026-11-05 — 回報冷啟動漏報界線與 ZIP 一致性
+
+未核驗啟用前不持久保存；新增記憶體待送與重載可能漏報的明確提示，不把重新連線視為已收齊。ZIP 生成核對版本及投影內容雜湊，原結果核驗變化遞增事件版本，同批重試保留不可變快照；不改原操作 guard。[現行需求](../docs/specs/current/WEB_FEEDBACK.md)。
+
+## 2026-11-05 — 回報候選的 CI 載入契約同步
+
+新增最小事件上報器後，殼層打包來源由 49 增為 50；更新單元及原生入口的過期固定數量斷言，補驗上報器恰好一次且先於共享 client；原生入口仍逐位元組比對實際送出的打包內容。原有兩組打包、逐檔原始內容／順序、語法、私有 seed 排除及內容快取檢查保留。另同步共享 client 的實際事件版快取標籤，納入上報器與回報入口的精確唯一版本及必要載入順序；其他未改模組的 Begin 版本保持不變。無產品、權限、資料或 CI 門檻變更。
+
+## 2026-11-05 — 已核准保存與分頁 ZIP（本機候選，未發布）
+
+未處理與可恢復的已解決事件／備註保留、不自動刪除。新增分頁獨立 ZIP 預覽、授權圖片選擇、容量分批與固定批次重試，生成與下載分開呈現；不改原操作結果、收據或防重送。標準 migration／實站啟用尚未執行。[現行需求及容量界線](../docs/specs/current/WEB_FEEDBACK.md)。
+
+## 2026-11-05 — 最小事件集中後續候選（本機，未啟用）
+
+使用者核准最小事件自動集中及沿現行頁面／操作權限分工。新增獨立來源 API、帳號隔離上報佇列及事件專屬管理；原收據與防重送不由中央頁修改。該階段尚待確認的保存及匯出已由上方後續候選取代；標準 migration／啟用仍未執行，無實站資料操作。[現行需求](../docs/specs/current/WEB_FEEDBACK.md)。
+
+## 2026-11-05 — 網頁問題回報雙來源候選（未發布）
+
+新增分開的小幫手／存取待確認頁，小幫手待處理與可恢復完成歷史、100 筆分頁。存取來源未接通時明示範圍與同步未知；新匯出顯示待確認選項。無新事件保存或共用草稿／權限變更。[現行需求](../docs/specs/current/WEB_FEEDBACK.md)。
+
 ## 2026-11-05 — PR87 A/B late permission input preservation
 
 Fix a scope-permission completion clearing a newly typed error name. Capture before redraw only for the original current owner and guard the permission response by the same owner. Add deterministic response-gated input/stale-owner/denial regressions. Compiled photo acceptance waits for decode before its unchanged assertion; fix the PR87 diagnostic checkout/guard commit identity. No schema, migration or live-data changes. [Evidence and remaining acceptance](../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).

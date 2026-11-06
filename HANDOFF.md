@@ -1,3 +1,33 @@
+## 2026-11-06 — Access queue read race follow-up
+
+The Draft #86 candidate fences access-list replies by request generation, status filter and cursor, and prevents a prior event's textarea from accepting input during a pending read or writing into a new event. Deterministic synthetic response-order coverage is added. The original business receipt/no-resend path is untouched; cold first-capability offline reporting remains a documented gap. Verify the new exact head and CI separately; no migration, activation, merge or deployment occurred here.
+
+# 2026-11-05 — Feedback integration with merged main
+
+Integrate main `bad04632d354f290850632976bf6eb69b8e2d3c9` (#85/#87) into Draft #86. Main pre-dispatch proofs, transfer, A/B and PROCESS late-input/ACK readback safeguards are retained; only metadata observations are added. Exact byte projection and historical inverses remain strict. Cache references combine both changes. Access collection remains default-off, candidate schema is not adopted, cold-start reporting gaps remain, and no live data/migration/merge/deployment occurs. Exact-head evidence and remote CI must be evaluated separately.
+
+# 2026-11-05 — Reporting review follow-up
+
+Cold reporting startup before any verified capability is intentionally memory-only: no unverified persistent collection; reload can lose that central copy while the original unknown guard remains. UI states the gap and current-queue scope. Full offline navigation without a cached shell is unsupported; reopening an identified original client may observe again, without business resend.
+
+Observe confirmation now advances the event version once and retains first verification time. Both ZIP sources pin a hash of the authorized export projection plus selected image metadata, in addition to version; stale content rejects before archive creation, while frozen accepted retries retain their original archive. No original receipt access expansion, schema migration, live data or deployment. Exact synthetic API and compiled-browser evidence must be checked at the candidate HEAD.
+
+# 2026-11-05 — Feedback CI follow-up
+
+At 4818263, Local safety step 13 reproduced a stale shell-script inventory assertion: 50 bundled sources versus the former 49 after adding the event reporter. The focused candidate updates that inventory in both the unit and compiled root-entry checks, and asserts the reporter occurs once before the shared client; native responses still require exact source-derived bytes. At 7856c71, step 21 also exposed the former shared-client cache tag in the navigation contract. The candidate pins the actual events tag, explicitly verifies reporter/feedback-entry uniqueness and order, and leaves unchanged modules on their existing Begin tags. Existing bundling, source-byte/order, cache, safety and performance contracts remain. No production code, authority, data, migration or activation changes; remote checks must be evaluated at the follow-up HEAD.
+
+# 2026-11-05 — Approved retention and per-source ZIP (local only)
+
+Latest user decisions approve recoverable event/notes history with no automatic deletion and a separate ZIP per source. The local candidate implements read-only export review, authorized screenshots for helper only, minimal access metadata/notes, selected-only size-bounded packages, frozen retries and explicit generated/download distinction. See [current requirements and capacity](docs/specs/current/WEB_FEEDBACK.md). Original receipt/unknown protections remain independent. PR #86 remains a08384a; follow-up publication, migration adoption, site activation, merge and deployment have not occurred. Exact-head verification is reported separately.
+
+# 2026-11-05 — Minimal access-event collection follow-up (local only)
+
+Draft PR #86 remains pinned to approved a08384a. The separate local follow-up collects only approved metadata and follows existing view/edit/exchange permissions, without other-account receipt access. Retention is now approved: keep open and recoverable handled events/notes without automatic deletion. Candidate SQL and owner-isolated reporting queue remain default-off pending rollout adoption; no migration adoption, data change, merge or deployment. Raw input/media/secrets are excluded. Exact validation is reported separately; not all legacy scopes or module lifecycles are covered.
+
+# 2026-11-05 — First feedback dual-source candidate (historical scope)
+
+Independent from main `2b58eae`; only feedback UI/API, synthetic tests and focused documentation. Helper pending/completed views reuse existing storage and authority. Access-confirmation source is explicitly disconnected; centralized retention/authorization/history and the new export format remain decisions. No shared workflow/client changes, migration, live data, merge or deployment. Exact validation is reported with the candidate commit; source and test files describe partial implementation only.
+
 ## 2026-11-05 — PR87 Windows A/B follow-up
 
 Native Windows `4a9f2ec` logs expose two original failures: a pending scope-permission completion redraws the new-error form after typing; the narrow photo assertion can precede decode. The controller now captures input only for the unchanged owner (actor object/id, epoch/delivery, scope/generation, host/lifetime/client) and supplies that guard to the permission request. Stale replies cannot capture/repaint. The photo test awaits real decode before its unchanged complete/naturalWidth assertion; no test timeout or business/permission assertion is relaxed. The PR87-only diagnostic now checks out GitHub's PR merge commit, matching GITHUB_SHA and the unchanged source guard. [Reproduction, verification and remaining gates](docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).

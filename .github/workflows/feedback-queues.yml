@@ -1,0 +1,63 @@
+name: Feedback queues
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/web-feedback*'
+      - 'lib/access-event*.ts'
+      - 'lib/feedback-approved-export.ts'
+      - 'lib/problem-export.ts'
+      - 'app/api/process-bootstrap/route.ts'
+      - 'public/process/problem-export.mjs'
+      - 'tests/problem-export*'
+      - 'app/api/access-events/**'
+      - 'public/process/access-event*'
+      - 'public/process/shared-state.js'
+      - 'public/process/index.html'
+      - 'tests/access-event*'
+      - 'scripts/access-events-schema.sql'
+      - 'scripts/test-local-schema.mjs'
+      - 'db/schema.ts'
+      - 'db/sites-fresh-schema.ts'
+      - 'drizzle/0004_access_events_candidate.sql'
+      - 'drizzle/meta/0004_snapshot.json'
+      - 'drizzle/meta/_journal.json'
+      - 'drizzle-sites-fresh/0009_access_events_candidate.sql'
+      - 'drizzle-sites-fresh/meta/0009_snapshot.json'
+      - 'drizzle-sites-fresh/meta/_journal.json'
+      - 'public/process/web-feedback*'
+      - 'tests/web-feedback*'
+      - 'scripts/test-web-feedback.cjs'
+      - '.github/workflows/feedback-queues.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-feedback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: node node_modules/typescript/bin/tsc --noEmit
+      - run: node scripts/sites-source-check.mjs
+      - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-migration.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-event-main-integration.test.cjs tests/access-events-api.test.cjs tests/access-event-export-consistency.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
+      - run: node scripts/test-local-schema.mjs
+      - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
+      - run: npm run build
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node tests/web-feedback-queues-browser.test.mjs
+      - run: node tests/access-events-browser.test.mjs
+      - run: node tests/access-events-cold-offline-browser.test.mjs
+      - run: node tests/access-event-immediate-reload-browser.test.mjs
+      - run: node tests/access-event-revocation-browser.test.mjs
+      - run: node tests/access-event-two-tabs-browser.test.mjs
