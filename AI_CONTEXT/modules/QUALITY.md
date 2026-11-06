@@ -1,3 +1,7 @@
+## 2026-11-06 — IQC numeric-rule advisory
+
+Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
+
 ## 2026-11-06 — IPQC C performance/viewer follow-up candidate
 
 Representative 1,735-row local API/browser profiling records actual bytes and separate observation windows; it does not reproduce or resolve hosted seconds-scale latency. Fixed-case rows now label disabled standards correctly; missing named review bases no longer appear as zero/all-added. Indexed first-match comparisons preserve diff results and avoid repeated scans. Exact fixed-before data is used when present; unloaded bases are explicitly unavailable. [Metrics, limits and tests](../../docs/acceptance/ipqc-c-performance-20261106/README.md). No server authority or persistent format change.
