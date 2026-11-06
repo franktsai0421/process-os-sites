@@ -1,3 +1,7 @@
+## 2026-11-06 — IPQC C local gauge caption candidate
+
+Local equipment ID edits keep the old server snapshot until Save. Display now uses that snapshot only for its own ID, otherwise the exact selected registry row; summary and expanded caption/photo agree. Matching historical snapshots and all wire/authority/guard behavior stay unchanged. [Root cause and isolated browser proof](../../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent of PR91 and the B scheduler/Save adapter work; only the C asset pin advances.
+
 ## 2026-11-06 — IQC numeric-rule advisory
 
 Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.

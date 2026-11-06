@@ -657,9 +657,19 @@
     return `<p class="ipqcc-count">${filtered.length} / ${catalog.products.length} ${t('sản phẩm','個產品')}</p>${filtered.map(p =>
       `<button type="button" class="ipqcc-product ${p.code === productCode ? 'selected':''}" data-ipqcc-product="${h(p.code)}"><code>${h(p.code)}</code><span data-i18n-skip="true">${h(p.name)}</span></button>`).join('') || `<p>${t('Không tìm thấy sản phẩm','找不到產品')}</p>`}`;
   };
+  // A local equipmentId patch deliberately does not rewrite the server snapshot.
+  // Reuse a snapshot only for its own ID; otherwise preview the selected registry row.
+  function equipmentForDisplay(item) {
+    if(!item.equipmentId)return null;
+    return item.equipmentSnapshot?.id===item.equipmentId?item.equipmentSnapshot:equipment.find(row=>row.id===item.equipmentId)||null;
+  }
+  function equipmentDetailHTML(item) {
+    const eq=equipmentForDisplay(item);
+    return `<div class="ipqcc-selected-equipment">${item.equipmentId?eq?`${eq.photoId?`<img decoding="async" loading="lazy" src="/api/routine-equipment/photo?id=${h(eq.photoId)}" alt="">`:''}<span>${h(eq.assetCode||'')} / ${h(eq.pieceMark||'')} · ${h(eq.name||'')}</span>`:`<span>${h(item.equipmentId)}</span>`:t('Kiểm tra trực quan','目視檢查')}</div>`;
+  }
   function equipmentListPreview(item) {
     if (!item.equipmentId) return '';
-    const eq=item.equipmentSnapshot || equipment.find(row=>row.id===item.equipmentId);
+    const eq=equipmentForDisplay(item);
     if (!eq) return '';
     return `<a class="ipqcc-equipment-preview" href="/process/?system=quality&view=data&dataTab=quality-routine-equipment&equipmentId=${encodeURIComponent(item.equipmentId)}" target="_blank" rel="noopener" title="${h(t('Xem thiết bị','查看檢具資訊'))}">${eq.photoId?`<img decoding="async" loading="lazy" src="/api/routine-equipment/photo?id=${h(eq.photoId)}" alt="${h(eq.name||'')}">`:'◇'}<span><b>${h(eq.assetCode)} / ${h(eq.pieceMark)}</b><small>${h(eq.name||'')}</small></span></a>`;
   }
@@ -737,7 +747,7 @@
           <section class="ipqcc-card"><header><h3>${t('Hạng mục kiểm tra','檢查項目')} <small>${itemsFor().length}</small></h3>${editing()&&selectedError?`<button class="button ghost" data-ipqcc-add="item">＋ ${t('Thêm hạng mục','新增檢查項目')}</button>`:''}</header>
             ${selectedError ? (itemsFor().map(i => `<details class="ipqcc-item"><summary><code>${h(i.code)}</code>${equipmentListPreview(i)}<span class="ipqcc-list-standard" data-i18n-skip="true">${h(i.standard || t('Chờ bổ sung','待補'))}</span>${i.mediaItems?.[0]?`<button type="button" class="ipqcc-cover" data-ipqcc-view="${h(i.id)}" data-index="0"><img decoding="async" loading="lazy" src="${h(photoUrl(i.mediaItems[0]))}" alt="${h(i.mediaItems[0].note||i.mediaItems[0].name)}"></button>`:''}<span class="ipqcc-status ${i.standardEnabled?'on':'off'}">${i.standardEnabled?t('Đang dùng','啟用'):t('Tạm ngưng','停用')}</span><span class="ipqcc-row-actions"><button type="button" data-ipqcc-view-item="${h(i.id)}">${t('Xem','查看')}</button>${editing()?`<button type="button" data-ipqcc-edit-item="${h(i.id)}">${t('Sửa','修改')}</button><button type="button" data-ipqcc-delete-item="${h(i.id)}">${t('Xóa','刪除')}</button>`:''}</span><span class="process-ipqc-frequency">${t('Tần suất kiểm tra','檢查頻率')}: ${h(ruleSummary(i.rule,i.frequency))}</span>${window.ProcessIPQC.referenceMarkup('C','C',i.id)}</summary>
               <div class="ipqcc-item-body"><p><b>${t('Tiêu chuẩn kiểm tra','檢查標準')}</b><span data-i18n-skip="true">${formatted(h(i.standard))}</span></p>${instructionHTML(i)}
-              <p><b>${t('Dụng cụ / thiết bị','工具／設備')}</b><span data-i18n-skip="true">${formatted(h(i.tool))}</span></p><div class="ipqcc-selected-equipment">${i.equipmentId?`${i.equipmentSnapshot?.photoId?`<img decoding="async" loading="lazy" src="/api/routine-equipment/photo?id=${h(i.equipmentSnapshot.photoId)}" alt="">`:''}<span>${h(i.equipmentSnapshot?.assetCode||'')} / ${h(i.equipmentSnapshot?.pieceMark||'')} · ${h(i.equipmentSnapshot?.name||'')}</span>`:t('Kiểm tra trực quan','目視檢查')}</div><p><b>${t('Phương pháp','方法')}</b><span data-i18n-skip="true">${formatted(h(i.method))}</span></p><p><b>CPK</b>${i.cpkEnabled?t('Bật','啟用'):t('Không','關閉')}</p>
+              <p><b>${t('Dụng cụ / thiết bị','工具／設備')}</b><span data-i18n-skip="true">${formatted(h(i.tool))}</span></p>${equipmentDetailHTML(i)}<p><b>${t('Phương pháp','方法')}</b><span data-i18n-skip="true">${formatted(h(i.method))}</span></p><p><b>CPK</b>${i.cpkEnabled?t('Bật','啟用'):t('Không','關閉')}</p>
               </div></details>`).join('') || `<p class="ipqcc-empty">${t('Chưa có hạng mục','尚無檢查項目')}</p>`) : `<p class="ipqcc-empty">${t('Chọn mã lỗi để xem hạng mục','選擇錯誤代碼查看項目')}</p>`}
           </section></div></div></div><details class="ipqcc-history"><summary>${t('Lịch sử và nguồn dữ liệu','歷程與資料來源')}</summary><p>${t('Nguồn','來源')}: ${h(control?.source?.fileName || '—')} · SHA-256 ${h(control?.source?.sha256 || '—')}</p>${(v.history||[]).slice().reverse().map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${h(date(event.at))} ${h(event.comment||'')}</p>`).join('')}</details>`}
       ${modal ? editorHTML():''}${picker ? equipmentPickerHTML():''}${viewer?viewerHTML():''}${caseHistory?caseHistoryHTML():''}
