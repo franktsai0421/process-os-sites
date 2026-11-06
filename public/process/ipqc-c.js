@@ -16,8 +16,9 @@
   const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || { 'Content-Type':'application/json' }),'X-IPQC-C-Save-Projection':'1'});
   let host = null, reviewHost = null, control = null, catalog = { products:[], stages:[] }, equipmentGroups = [], equipment = [], revision = null;
   let working = null, selectedVersionId = '', productCode = '', stageCode = '', errorId = '', search = '';
+  let localSaveAttempt=null;
   let localChanges=[],localGeneration=null;const localPhotos=new Map();
-  function clearLocal(){localChanges=[];localGeneration=null;for(const photo of localPhotos.values())if(photo.preview)URL.revokeObjectURL(photo.preview);localPhotos.clear();}
+  function clearLocal(){localSaveAttempt=null;localChanges=[];localGeneration=null;for(const photo of localPhotos.values())if(photo.preview)URL.revokeObjectURL(photo.preview);localPhotos.clear();}
   let busy = false, message = '', modal = null, viewer = null, conflict = null;
   let equipmentCategories = [], equipmentSubcategories = [], picker = null;
   let caseHistory=null;
@@ -287,24 +288,32 @@
     control=next;revision=result.revision;return true;
   }
   function captureOperationQuery(){
-    const client=sharedTransport(),actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),changes=localChanges,input=JSON.stringify({localChanges,working}),generation=localGeneration;
+    const client=sharedTransport(),actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),attempt=localSaveAttempt;
+    let changes=localChanges,input=JSON.stringify({localChanges,working}),generation=localGeneration;
     const owner=()=>client===sharedClient&&actor===identity()&&epoch===window.ProcessSync?.identityGeneration?.()&&mount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     let pinnedGeneration=generation;
     const current=()=>owner()&&localChanges===changes&&JSON.stringify({localChanges,working})===input&&localGeneration===pinnedGeneration;
-    return {client,owner,current,assert(){if(!current())throw Error('IPQCC_READ_SUPERSEDED');},pin(recovered){this.assert();if(localChanges.length&&!localGeneration)localGeneration=recovered.receipt.generation;pinnedGeneration=localGeneration;}};
+    return {client,owner,current,assert(){if(!current())throw Error('IPQCC_READ_SUPERSEDED');},settleSave(recovered){
+      this.assert();const receipt=recovered?.receipt;
+      if(!attempt||receipt?.operationId!==attempt.operationId||!receipt.savedId||receipt.generation!==attempt.generation||!client.verifiedReadback?.(recovered,attempt.operationId)||
+        attempt.changes!==localChanges||attempt.raw!==JSON.stringify(localChanges))return;
+      clearLocal();working=open()?.status==='draft'?copy(open().snapshot):null;
+      changes=localChanges;input=JSON.stringify({localChanges,working});generation=localGeneration;pinnedGeneration=localGeneration;
+    },pin(recovered){this.assert();if(localChanges.length&&!localGeneration)localGeneration=recovered.receipt.generation;pinnedGeneration=localGeneration;}};
   }
   async function checkPreviousOperation(retry=false){
     if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;
-    try{const recovered=await (retry?query.client.retryUnknown():query.client.resolveUnknown());query.assert();if(recoveringBegin)query.pin(recovered);await read(false,query.current);if(!query.owner())throw Error('IPQCC_READ_SUPERSEDED');message=t('Đã xác minh kết quả từ máy chủ','已向伺服器查證結果');}
+    try{const recovered=await (retry?query.client.retryUnknown():query.client.resolveUnknown());query.assert();if(recoveringBegin)query.pin(recovered);else query.settleSave(recovered);await read(false,query.current);if(!query.owner())throw Error('IPQCC_READ_SUPERSEDED');message=t('Đã xác minh kết quả từ máy chủ','已向伺服器查證結果');}
     catch(error){if(query.owner()&&!isReadSuperseded(error))message=error.message;}
     finally{if(query.owner()){busy=false;draw();}}
   }
   async function writeShared(action,detail={},closeModal=false) {
-    if(busy||errorRecoveryPending)return null;if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
+    if(busy)return null;if(errorRecoveryPending){message=t('Thao tác trước chưa được xác nhận; hãy kiểm tra biên nhận gốc trước khi lưu.','前次操作尚未確認，請先查證原回執再存取。');draw();return null;}if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
       targetModal=closeModal?modal:null,
       editorState=()=>targetModal?JSON.stringify({fields:targetModal.fields,photos:targetModal.photos,pendingInsert:targetModal.pendingInsert}):'',
       submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false,submittedCommand=null;
     const cancelResponse=()=>{cancelled=true;refreshCurrent=sameActor();return null;};
+    if(action==='save')host?.querySelector('#ipqcc-save')?.setAttribute('disabled','');
     try {
       if(readAccessBlocked())throw Error('READ_ACCESS_RECHECK_REQUIRED');
       const transport=sharedTransport();
@@ -365,7 +374,7 @@
       const recovered=closeModal&&action==='apply'&&errorRecoverySupported(targetModal);
       let command,result;
       if(recovered)({command,result}=await sendErrorRecovery(fields,targetModal));
-      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;result=await transport.sendPrepared(command);}
+      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;if(action==='save'&&fields.localChanges)localSaveAttempt={operationId:command.operationId,generation:command.generation,changes:localChanges,raw:JSON.stringify(localChanges)};result=await transport.sendPrepared(command);}
       if(saveCapture&&!saveCapture.owns()){readWasSuperseded=true;return null;}
       if(saveCapture&&control?.workflow?.generation!==saveCapture.generation){readWasSuperseded=true;return null;}
       if(saveCapture&&saveCapture.inputsChanged()){
@@ -537,7 +546,9 @@
     syncSelection();
   }
   function stageLocal(action,detail,closeModal){
-    if(busy||!editing()||sharedClient?.hasUnknown())return null;
+    if(busy)throw Error(t('Đang xử lý; vui lòng chờ rồi thử hoàn tất lại.','操作處理中，請稍後再按完成。'));
+    if(!editing())throw Error('FORBIDDEN');
+    if(sharedClient?.hasUnknown())throw Error(t('Kết quả thao tác trước chưa xác định; hãy đóng biểu mẫu và kiểm tra kết quả trước khi hoàn tất.','前次操作結果尚未確認；請先關閉表單並查證操作結果，再按完成。'));
     if(action.startsWith('create')&&!operationAllowed('create')||action.startsWith('delete')&&!operationAllowed('delete'))throw Error('FORBIDDEN');
     if(localChanges.length>=256)throw Error('LOCAL_SAVE_LIMIT');
     if(action.startsWith('delete')&&detail.id?.startsWith('local-')){
