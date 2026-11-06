@@ -1041,6 +1041,17 @@
       if(owner.current())event.target.value = '';
     };
     const kinds = rule => rule.cadence === 'batch' ? [['aql','AQL'],['fixed_count',t('固定件數','Số mẫu cố định')],['batch_quantity',t('批次數量','Số lượng lô')],['custom',t('自訂','Tùy chỉnh')]] : [['week',t('週','Tuần')],['month',t('月','Tháng')],['quarter',t('季','Quý')],['half_year',t('半年','Nửa năm')],['year',t('年','Năm')],['custom',t('自訂','Tùy chỉnh')]];
+    // Advisory only: drafts may retain invalid values; Submit validates the saved snapshot.
+    const updateRuleNumberHint = input => {
+      const index = Number(input.dataset.ruleValue), rule = rules[index];
+      const value = String(rule.value ?? '').trim();
+      const invalid = rule.cadence === 'batch' && rule.kind !== 'custom' && value !== '' &&
+        (!Number.isFinite(Number(value)) || Number(value) <= 0);
+      const hint = overlay.querySelector(`[data-rule-number-hint="${index}"]`);
+      hint.textContent = invalid ? t('數值須大於 0。可暫存草稿，送審前須修正。','Giá trị phải là số lớn hơn 0. Có thể lưu bản nháp; cần sửa trước khi gửi duyệt.') : '';
+      if (invalid) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+    };
     const drawRules = () => {
       const body = overlay.querySelector('.iqc-item-form-body');
       const scroll = body.scrollTop;
@@ -1051,11 +1062,14 @@
         <div class="iqc-rule-fields"><label>${t('方式','Cách')}<select data-rule-cadence="${index}"><option value="batch" ${rule.cadence==='batch'?'selected':''}>${t('按批次','Theo lô')}</option><option value="time" ${rule.cadence==='time'?'selected':''}>${t('按時間','Theo thời gian')}</option></select></label>
         <label>${rule.cadence === 'batch' ? t('取樣方式','Cách lấy mẫu') : t('頻率','Tần suất')}<select data-rule-kind="${index}">${kinds(rule).map(([value,label]) => `<option value="${value}" ${rule.kind===value?'selected':''}>${label}</option>`).join('')}</select></label>
         ${rule.cadence === 'batch' && rule.kind === 'custom' ? `<label>${t('自訂項目名稱（必填）','Tên mục tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : ''}
-        ${rule.cadence === 'batch' ? `<label>${rule.kind === 'custom' ? t('對應數量或文字內容（必填）','Số lượng hoặc nội dung (bắt buộc)') : t('對應數值（必填）','Giá trị (bắt buộc)')}<input data-rule-value="${index}" value="${h(rule.value||'')}" ${rule.kind === 'custom' ? '' : 'inputmode="decimal"'} data-i18n-skip="true"></label>` : rule.kind === 'custom' ? `<label>${t('自訂週期內容（必填）','Nội dung chu kỳ tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : `<p class="iqc-muted">${t('按時間不填數量','Theo thời gian không nhập số lượng')}</p>`}
+        ${rule.cadence === 'batch' ? `<label>${rule.kind === 'custom' ? t('對應數量或文字內容（必填）','Số lượng hoặc nội dung (bắt buộc)') : t('對應數值（必填）','Giá trị (bắt buộc)')}<input data-rule-value="${index}" aria-describedby="iqc-rule-number-hint-${index}" value="${h(rule.value ?? '')}" ${rule.kind === 'custom' ? '' : 'inputmode="decimal"'} data-i18n-skip="true"><span class="iqc-error" id="iqc-rule-number-hint-${index}" data-rule-number-hint="${index}" role="status"></span></label>` : rule.kind === 'custom' ? `<label>${t('自訂週期內容（必填）','Nội dung chu kỳ tùy chỉnh (bắt buộc)')}<input data-rule-name="${index}" value="${h(rule.nameVi||'')}" data-i18n-skip="true"></label>` : `<p class="iqc-muted">${t('按時間不填數量','Theo thời gian không nhập số lượng')}</p>`}
         </div><button type="button" class="button iqc-danger iqc-small iqc-rule-remove" data-rule-remove="${index}" ${rules.length === 1 ? 'disabled' : ''}>${t('移除規則','Xóa quy tắc')}</button></details>`).join('');
       overlay.querySelectorAll('[data-rule-cadence]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleCadence)]; rule.cadence=select.value; rule.kind=select.value==='batch'?'aql':'week'; rule.value=''; rule.nameVi=''; drawRules(); });
       overlay.querySelectorAll('[data-rule-kind]').forEach(select => select.onchange = () => { if(!owner.current())return; const rule=rules[Number(select.dataset.ruleKind)]; rule.kind=select.value; rule.value=''; rule.nameVi=''; drawRules(); });
-      overlay.querySelectorAll('[data-rule-value]').forEach(input => input.oninput = () => { if(!owner.current())return; rules[Number(input.dataset.ruleValue)].value=input.value; });
+      overlay.querySelectorAll('[data-rule-value]').forEach(input => {
+        updateRuleNumberHint(input);
+        input.oninput = () => { if(!owner.current())return; rules[Number(input.dataset.ruleValue)].value=input.value; updateRuleNumberHint(input); };
+      });
       overlay.querySelectorAll('[data-rule-name]').forEach(input => input.oninput = () => { if(!owner.current())return; rules[Number(input.dataset.ruleName)].nameVi=input.value; });
       overlay.querySelectorAll('[data-rule-remove]').forEach(button => button.onclick = () => { if(!owner.current())return; if (rules.length === 1) { overlay.querySelector('#iqc-item-error').textContent = t('至少保留一條檢查規則', 'Phải giữ ít nhất một quy tắc'); return; } const index=Number(button.dataset.ruleRemove); if(!twoConfirm(`${t('移除檢查規則','Bỏ quy tắc kiểm tra')} ${index+1}`))return; rules.splice(index,1); drawRules(); });
       body.scrollTop = scroll;
