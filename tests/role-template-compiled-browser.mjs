@@ -122,7 +122,7 @@ try{
     await page.screenshot({path:path.join(evidence,'preview-empty-'+lang+'-'+width+'.png')});
 
     const previewIQC=preview.locator('[data-ua-details=iqc]');
-    await previewIQC.locator('summary').click();
+    if(!await previewIQC.evaluate(e=>e.open))await previewIQC.locator('summary').click();
     assert(await previewIQC.evaluate(e=>e.open));
     await visiblePoint(preview.locator('[data-ua-cell="iqc.view"]'));
     await noOverflow(preview);
