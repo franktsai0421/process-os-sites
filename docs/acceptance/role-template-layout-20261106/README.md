@@ -1,6 +1,6 @@
 # 角色範本布局與說明候選
 
-2026-11-06，原候選固定於 `ca8af98a36ef5a4a58f6494183a19265047f6820`，現已正常整合 main `1da47bd04fff55fea575dea0e76274149d8101a8`（#89），沒有衝突或回退 IPQC-C 修改。改善角色範本／個別權限共用矩陣的對齊、可用寬度與說明；不改角色、人員資料、permission keys、依賴、API、授權策略或 schema。未合併或部署。
+2026-11-06，原候選固定於 `ca8af98a36ef5a4a58f6494183a19265047f6820`，現已正常整合 main `339df7564091e2c46a74bb36298bbd2408a68a84`（#89/#90）；兩份首頁文件衝突逐段保留，沒有回退 IPQC-C 或 IQC 修改。改善角色範本／個別權限共用矩陣的對齊、可用寬度與說明；不改角色、人員資料、permission keys、依賴、API、授權策略或 schema。未合併或部署。
 
 ## 修改與風險
 
@@ -38,3 +38,11 @@
 原 38 項 audit FAIL 不變：固定 base/head 的 79 個實際輸入來源相同，原 assertions 在兩版皆得到 38 !== 0；沒有藉改政策或測試消除差異。原參考圖仍未查看像素。舊手機 preview 的證據缺口與新的補驗結果分開記錄。
 
 本地獨立唯讀審閱確認 role 產品來源未變更 policy／payload。原診斷的手機遮擋與新增測試對原生焦點／選單狀態的錯誤假設紀錄保留；成功補驗只算新的可見矩陣證據，不把舊失敗改成 PASS。
+
+## #90 基準更新與 cache CI 修正
+
+`c0d5147` 的 AB C run `42231956716`（306 PASS／1 FAIL）與 PROCESS run `42231956840`（334 PASS／1 FAIL）都在 `tests/navigation-adapters.test.mjs` 的精確 cache 契約失敗：程式已 pin `user-access.js`／`user-access.css` 的 `20261106-role-layout1`，但 expected 仍是舊版。本輪把兩個 expected 同步為真版本，保留唯一性、deepEqual、載入順序與全部 negative assertions；沒有把產品 pin 改回舊值。更新後同完整測試組在本地為 307／335 PASS，下游原 build/browser skip 不冒充失敗或通過。
+
+正常 merge 最新 main 只有 `HANDOFF.md`／`AI_CONTEXT/CHANGELOG.md` 首頁新增條目衝突，角色與 IQC 兩條都保留；產品 index 自動合樹保留 IQC `20261106-number-hint1`、IPQC-C `20261106-c-receipt-performance1` 及兩個角色 `20261106-role-layout1` pins，main 的提示測試／CI 接線保留。
+
+Feedback run `42231956773` 第一個 two-tabs scenario 已 PASS；另一 scenario 在原測試 `count()` 的 IndexedDB `page.evaluate` 發生 `Resulting promise was garbage collected`。與 cache assertion 是不同故障；需同環境 base／候選對照證明範圍，不據此修改權限或共享核心。舊原始失敗紀錄保留。
