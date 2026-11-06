@@ -147,7 +147,7 @@ void test('changed persistent-navigation executable references have coherent new
   'photo-viewer.css':'20261029-photo2',
   'version-workflow.js':'20261030-access-fusion1',
   'i18n.js':'20261029-photo1',
-  'user-access.css':'20261106-role-layout1',
+  'user-access.css':'20261106-role-layout2',
   'user-access-initial-read.js':'20261029-users-load2',
   'web-feedback-entry.js':'20261106-access-offline1',
  };

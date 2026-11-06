@@ -1,6 +1,6 @@
 # 2026-11-06 — Role-template layout candidate
 
-UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained; no permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
+UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained. V41 follow-up adds workspace-width role placement and short-dialog scrolling; expanded full-page evidence retains the separate Windows visibility CI gate. No permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.
 
 ## 2026-11-06 — IQC numeric-rule advisory
 

@@ -1,6 +1,6 @@
 ## 2026-11-06 — Role-template presentation
 
-UI-only alignment, wrapping, responsive matrix and clear extra-operation disclosure; all stored permission values and authorization remain. [Candidate scope, tests and limitations](../docs/acceptance/role-template-layout-20261106/README.md). No live changes.
+UI-only alignment, wrapping, responsive matrix and clear extra-operation disclosure; V41 follow-up uses actual workspace width and one dialog body scroll, with expanded full-page geometry evidence and retained Windows CI failure diagnosis; all stored permission values and authorization remain. [Candidate scope, tests and limitations](../docs/acceptance/role-template-layout-20261106/README.md). No live changes.
 
 ## 2026-11-06 — IQC numeric-rule advisory
 

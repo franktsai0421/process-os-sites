@@ -55,3 +55,16 @@ Feedback run `42231956773` 第一個 two-tabs scenario 已 PASS；另一 scenari
 只修 `tests/access-event-two-tabs-browser.test.mjs`：讀取探針中止 upgrade、處理同步／transaction 錯誤並等交易完成；新增初始化前 reject 與 DB 不存在負例，再釋放原 compiled bytes 並等真產品 `received` 狀態。原 count=0／1、server count=1、businessPosts=0、businessState 不變與第一情境冷啟動離線斷言完整保留。沒有改產品、增加 sleep／timeout 或寫入替代 stores。同一修正後測試在 main339 與角色候選均兩情境 PASS；獨立只讀審閱確認未放寬斷言。
 
 更新 main 後的本地證據：AB C 307／307、PROCESS 335／335、IQC 提示中越文兩尺寸 4、角色 isolated 15、帳號 isolated 17、真 compiled 角色中越文三尺寸 6 均 PASS；lint／TypeScript／build PASS。最終 exact-head build、compiled 回歸、完整歷史／工作樹 preflight 及遠端 CI 狀態由交付 ledger 分別記錄；遠端未完成不得當作 PASS。舊 38 audit FAIL 與原參考圖／實體裝置／真實 IME 未驗限制維持。
+
+
+## V41 實際畫面後續：完整欄位寬度與短視窗
+
+使用者回報的 V41 來源仍為 `2e59923b`，不是尚未合併／部署的本分支。實站唯讀量測由主線提供：1165×742，preview 容器603px、舊表格660px，末欄超出56px。相同完整 compiled 候選 `d560a58` 的矩陣／容器均603px，未重現舊表格越界；不能因此聲稱 V41 已修好。
+
+進一步改善實際主欄被站內側欄及角色清單擠壓的情況：當角色頁內容區不超過1000px，角色清單改在矩陣上方自然換列；沿用現有顏色、按鈕與全部有效格。1165px 視窗的 preview 由603變817px，768px 平板由246變428px。矩陣仍依自己的容器760px切換四欄標示卡片。只 bump CSS pin 為 `20261106-role-layout2`，JS pin／內容不變，沒有變動共用 i18n 邊界。
+
+角色 dialog 的 form 高度扣掉外框，內容區獨立滾動，避免外 dialog 再出現第二層垂直捲軸；header／footer 保持可達。角色頁 native scroll 留出 sticky header 空間。沒有用隱藏表格越界、替代 renderer 或剪去選項來通過驗收。
+
+舊 head 的 Local safety run `42235704793`／job `127953257603` 第34步 FAIL：前三組中文 PASS，下一組 `vi 1440` 在 preview 第120行中心 hit-test 被判遮擋；其餘後續步驟 skipped。該 Windows 結果保留。新增有界跨frame幾何穩定屏障及失敗 rect／hit／scroll／sidebar／topbar 診斷，保留原可見／遮擋斷言；另加 native scroll-to-start 的 sticky 遮擋檢查。Linux 原十二組對照未重現 Windows 錯誤，尚不能斷言唯一根因，需新 head Windows CI 核實。
+
+完整 compiled 回歸擴為中越文各1440×1000、1165×742、1024×768、768×1024、390×844、320×740：真實語言切換、側欄、長角色、preview／dialog、全表未過濾的底部與footer／close、逐格左右邊界、展開額外操作、Tab／Shift+Tab、拒絕關閉／丟棄／重開。合成帳號與 in-memory DB；正式站、實體裝置與原生IME仍未驗。翻譯混雜由帳號任務處理，不把本布局分支當成共用翻譯已完成。

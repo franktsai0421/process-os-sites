@@ -16,12 +16,26 @@ const dialog=()=>page.locator('.ua-dialog[open]');
 
 async function visiblePoint(locator){
   await locator.scrollIntoViewIfNeeded();
-  assert(await locator.evaluate(element=>{
-    const r=element.getBoundingClientRect();
-    const x=r.left+r.width/2,y=r.top+r.height/2;
+  // Language repaint and responsive sidebar transitions can move a connected
+  // element after scrolling. Require stable geometry before the same hit test.
+  await locator.evaluate(element=>new Promise((resolve,reject)=>{
+    let previous='',stable=0,frames=0;
+    function frame(){
+      if(!element.isConnected)return reject(Error('visible target detached during layout'));
+      const r=element.getBoundingClientRect(),next=[r.x,r.y,r.width,r.height,scrollX,scrollY].join('|');
+      stable=next===previous?stable+1:0;previous=next;
+      if(stable>=3)return resolve();
+      if(++frames>=120)return reject(Error('visible target geometry did not stabilize'));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }));
+  const geometry=await locator.evaluate(element=>{
+    const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
     const hit=document.elementFromPoint(x,y);
-    return r.width>0&&r.height>0&&x>=0&&x<innerWidth&&y>=0&&y<innerHeight&&!!hit&&(hit===element||element.contains(hit));
-  }),'matrix/control must be inside viewport and unobscured');
+    return {visible:r.width>0&&r.height>0&&x>=0&&x<innerWidth&&y>=0&&y<innerHeight&&!!hit&&(hit===element||element.contains(hit)),rect:r.toJSON(),point:{x,y},hit:hit?.outerHTML.slice(0,240),topbar:document.querySelector('.topbar')?.getBoundingClientRect().toJSON(),sidebar:document.querySelector('.sidebar')?.getBoundingClientRect().toJSON(),scrollY,viewport:{width:innerWidth,height:innerHeight}};
+  });
+  assert(geometry.visible,'matrix/control must be inside viewport and unobscured: '+JSON.stringify(geometry));
 }
 
 async function closeSidebarThroughUI(width){
@@ -48,6 +62,14 @@ async function noOverflow(locator){
   }).map(e=>({tag:e.tagName,class:e.className,client:e.clientWidth,scroll:e.scrollWidth})));
   assert.deepEqual(overflow,[]);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const escaped=await locator.evaluate(root=>[...root.querySelectorAll('.ua-simple-wrap')].flatMap(wrap=>{
+    const boundary=wrap.getBoundingClientRect();
+    return [...wrap.querySelectorAll('tr>th,tr>td')].filter(cell=>{
+      const r=cell.getBoundingClientRect();
+      return r.width>0&&(r.left<boundary.left-1||r.right>boundary.right+1);
+    }).map(cell=>({row:cell.parentElement.dataset.uaMatrixRow,text:cell.textContent.slice(0,80)}));
+  }));
+  assert.deepEqual(escaped,[],'every visible matrix cell stays within its actual container');
 }
 
 async function focusTrap(){
@@ -107,16 +129,20 @@ try{
   await page.locator('[data-ua-role=custom_layout]').click();
   const baseline=await fixture.db.prepare('SELECT revision,"values" FROM shared_state').first();
 
-  for(const lang of ['zh','vi'])for(const width of [1440,1024,390]){
+  for(const lang of ['zh','vi'])for(const [width,height] of [[1440,1000],[1165,742],[1024,768],[768,1024],[390,844],[320,740]]){
     stage=lang+' '+width;
-    await page.setViewportSize({width,height:1000});
+    await page.setViewportSize({width,height});
     if(await page.evaluate(()=>localStorage.getItem('processUILanguage'))!==lang)await page.locator('.top-actions .language-switch').click();
     await page.waitForFunction(lang=>document.documentElement.lang===(lang==='zh'?'zh-Hant':'vi')&&document.body.classList.contains('lang-vi')===(lang==='vi'),lang);
     await closeSidebarThroughUI(width);
+    await page.locator('[data-ua-page=roles]').scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(evidence,'workspace-'+lang+'-'+width+'.png')});
     const preview=page.locator('.ua-role-preview');
     const dashboard=preview.locator('[data-ua-matrix-row=dashboard]');
     assert.equal(await dashboard.locator('details').count(),0);
     assert.equal(await preview.locator('[data-ua-cell]:enabled').count(),0);
+    // Native scroll-to-start must leave the row below the sticky Site header.
+    await dashboard.locator('th').evaluate(e=>e.scrollIntoView({block:'start',behavior:'instant'}));
     await visiblePoint(dashboard.locator('th'));
     await noOverflow(page.locator('.ua-role-workspace'));
     await page.screenshot({path:path.join(evidence,'preview-empty-'+lang+'-'+width+'.png')});
@@ -137,9 +163,23 @@ try{
       }
     }
 
+    if(width===1165||width===768){
+      const list=await page.locator('.ua-role-list').boundingBox(),section=await page.locator('.ua-role-workspace>section').boundingBox();
+      assert(list.y+list.height<=section.y+1,'constrained workspace puts the role list above the matrix');
+    }
     const edit=page.locator('[data-ua-edit-role=custom_layout]');
     await edit.click();assert.equal(await dialog().locator('[name=name]').inputValue(),roleName);
     assert.equal(await dialog().locator('[data-ua-details=dashboard]').count(),0);
+    await noOverflow(dialog());
+    // Full unfiltered matrix, native inner scroll and pinned controls at short heights.
+    await visiblePoint(dialog().locator('[data-ua-matrix-row="user-password"] th'));
+    await visiblePoint(dialog().locator('header [data-ua-close]'));
+    await visiblePoint(dialog().locator('footer [data-ua-close]'));
+    await visiblePoint(dialog().locator('footer [type=submit]'));
+    const scroll=await dialog().evaluate(root=>({outer:root.scrollTop,form:root.querySelector('form').scrollTop,body:root.querySelector('.ua-dialog-body').scrollTop,matrix:[...root.querySelectorAll('.ua-simple-wrap')].some(e=>e.scrollHeight>e.clientHeight+1)}));
+    assert.equal(scroll.outer,0,'native dialog has no second vertical scroll');
+    assert.equal(scroll.form,0);assert(scroll.body>0);assert.equal(scroll.matrix,false);
+    await page.screenshot({path:path.join(evidence,'dialog-full-bottom-'+lang+'-'+width+'.png')});
     await dialog().locator('[data-ua-role-search]').fill('iqc');
     await focusTrap();
     const details=dialog().locator('[data-ua-details=iqc]'),summary=details.locator('summary');
@@ -167,7 +207,7 @@ try{
     assert(await dialog().locator('[data-ua-cell="iqc.view"]').isChecked());
     await dialog().locator('header [data-ua-close]').click();await dialog().waitFor({state:'detached'});
     assert.deepEqual(await fixture.db.prepare('SELECT revision,"values" FROM shared_state').first(),baseline);
-    report.cases.push({lang,width,matrixWidth,status:'PASS',previewUnobscured:true,emptyAndEffectiveDetails:true,keyboardAndCancelReopen:true});
+    report.cases.push({lang,width,height,matrixWidth,status:'PASS',previewUnobscured:true,emptyAndEffectiveDetails:true,keyboardAndCancelReopen:true});
   }
   assert.deepEqual(confirmationAnswers,[]);
   assert(!report.confirmations.some(x=>x.answer==='unexpected'));

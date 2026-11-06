@@ -155,7 +155,10 @@
 .ua-page .ua-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:10px}.ua-page .ua-pagination:empty{display:none}.ua-page .ua-pagination span{overflow-wrap:anywhere}
 
 /* One column model for the header, cells and expanded actions. */
-.ua-permission-dialog{width:min(1120px,96vw)}
+.ua-permission-dialog{width:min(1120px,96vw);overflow:hidden}
+.ua-permission-dialog form{max-height:calc(92dvh - 2px)}
+.ua-permission-dialog .ua-dialog-body{flex:1 1 auto;scroll-padding-block:16px}
+.ua-page:has(.ua-role-workspace) :is(th,input,summary,button){scroll-margin-block:120px 24px}
 .ua-simple-wrap{overflow:visible;max-height:none;border:1px solid var(--ua-line);border-radius:10px;background:#fff;container:ua-rights / inline-size}
 .ua-matrix.ua-simple,.ua-matrix.ua-simple:has([data-ua-reset-row]){width:100%;min-width:0;table-layout:auto;border:0}
 .ua-simple thead,.ua-simple tbody{display:block}
@@ -212,6 +215,14 @@
  .ua-simple .ua-extra summary,.ua-simple .ua-no-extra{padding:8px 4px}
  .ua-simple .ua-extra-panel{grid-row:auto;padding:12px 8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:12px}
  .ua-matrix.ua-simple .ua-lines-reference{grid-column:1/-1!important}
+}
+/* The Site sidebar and role list both consume width; use the actual page column. */
+.ua-page:has(.ua-role-workspace){container:ua-access / inline-size}
+@container ua-access (max-width:1000px){
+ .ua-role-workspace{grid-template-columns:minmax(0,1fr)}
+ .ua-role-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));overflow:visible;gap:8px}
+ .ua-role-list button{width:100%;min-width:0;min-height:64px}
+ .ua-role-list #ua-new-role{margin:0}
 }
 @media(max-width:700px){
  .ua-permission-dialog{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}
