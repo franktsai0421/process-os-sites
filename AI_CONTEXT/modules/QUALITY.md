@@ -1,3 +1,13 @@
+## 2026-11-06 — PR93 display image proof follow-up
+
+The merged dual-tab fixture now waits readonly for exact durable operation IDs: offline is emitted per observation, so it cannot fence all staged records. Missing/unexpected/duplicate IDs and probe errors still fail; actual reporter/IndexedDB controls preserve this boundary.
+
+A test-only full-file/three-span display inverse preserves both distinct historical C image sites; actual current gauge images and eager/fullsize paths are tested directly. The separate Feedback outbox harness race is repaired with a non-creating reader/readiness fence. [Exact reproduction, test limits and CI gates](../../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Product/source pins unchanged. Already merged main PR91 and #92 role presentation are inherited without alteration; no unpublished C409/B import. The direct reporting proof also composes its exact C I/O inverse before the unchanged historical pin.
+
+## 2026-11-06 — IPQC C local gauge caption candidate
+
+Local equipment ID edits keep the old server snapshot until Save. Display now uses that snapshot only for its own ID, otherwise the exact selected registry row; summary and expanded caption/photo agree. Matching historical snapshots and all wire/authority/guard behavior stay unchanged. [Root cause and isolated browser proof](../../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent of PR91 and the B scheduler/Save adapter work; only the C asset pin advances.
+
 ## 2026-11-06 — IQC numeric-rule advisory
 
 Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.

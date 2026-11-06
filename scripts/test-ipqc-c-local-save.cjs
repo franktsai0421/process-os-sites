@@ -26,6 +26,7 @@ const master={active:{C:{products:[{code:'C100',stages:['C-CUT']}],lines:[{stage
  await h.command('ipqc-c','submit',{savedId:flow.saved.id},'edit-only',403);
  await send(await build([],'save-only'),'save-only',403);await send(await build(create,'edit-only'),'edit-only',403);
  const absentPhoto=await build([edit('mediaItems',[{id:'a'.repeat(64),name:'absent.png',note:'',afterParagraph:0}],[])]),priorPhoto=h.snapshot();await send(absentPhoto,'editor',422);assert.deepEqual(h.snapshot(),priorPhoto);
+ const forgedSnapshot=await build([edit('equipmentSnapshot',{id:'forged',assetCode:'FORGED'},item.equipmentSnapshot)]),beforeForged=h.snapshot();const forbidden=await send(forgedSnapshot,'editor',422);assert.equal(forbidden.error,'UNSUPPORTED_ITEM_PATCH');assert.deepEqual(h.snapshot(),beforeForged,'client snapshot patches cannot write authority');
  const badEquipment=await build([edit('equipmentId','missing','')]);await send(badEquipment,'editor',422);
  // Real API: allocating a local item must not invalidate a later full child-set guard.
  for(const order of ['create-first','delete-first','peer-change','local-field-tamper','optional-field-tamper']){

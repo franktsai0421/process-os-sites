@@ -1,7 +1,14 @@
 /* PR86 observations project to exact merged-main bad0463 safety bytes. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{createHash}=require('node:crypto');
-const {withoutAccessEventMetadata:project}=require('../scripts/access-event-source-contract.cjs');
+const {withoutAccessEventMetadata:metadataProject}=require('../scripts/access-event-source-contract.cjs');
+const readIO=require('../scripts/ipqc-c-read-io-source-contract.cjs'),{execFileSync}=require('node:child_process');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+// Compose only the already reviewed C GET successor before the unchanged
+// reporting proof. Historical pins and every other file remain untouched.
+const cRoute='app/api/ipqc-c/workflow/route.ts';
+const canonicalC=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'C reporting proof requires raw source bytes');assert.equal(working.toString('utf8').replace(/\r\n/g,'\n'),committed.toString('utf8').replace(/\r\n/g,'\n'),'C reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
+const readSource=file=>file===cRoute?canonicalC(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])):fs.readFileSync(file);
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -21,7 +28,28 @@ const main={
   "lib/bom-workflow.ts": "03072124ab0b511bd9d5ea7760ba2d4b8144db64a12f590346ca59765390e114",
   "app/api/master/workflow/route.ts": "e59302315b30f2e2bce1d47ea6d6ea4f9d7228babaa0ddfc23267fee90ec2de8"
 };
-for(const [file,pinned]of Object.entries(main))void test('preserves merged main safety bytes: '+file,()=>assert.equal(hash(project(fs.readFileSync(file),file)),pinned));
+for(const [file,pinned]of Object.entries(main))void test('preserves merged main safety bytes: '+file,()=>assert.equal(hash(project(readSource(file),file)),pinned));
+void test('exact merged C read-ahead source composes to the same complete historical reporting bytes',()=>{
+ const bytes=readSource(cRoute),prior=readIO.withoutWorkflowReadAhead(bytes);
+ assert.equal(readIO.afterHash,'0610032b06bbf21ecfc796ab51bf5a4f35d7719f8981338a6549644d14ac104f');assert.equal(readIO.beforeHash,'67dfc685a2374aeba0e2c8f3154a3594c69e8526a0201794a29e0ce6ee07c25e');
+ assert.equal(hash(project(bytes,cRoute)),main[cRoute]);assert.deepEqual(project(bytes,cRoute),metadataProject(prior,cRoute));assert.deepEqual(project(prior,cRoute),metadataProject(prior,cRoute));assert.throws(()=>readIO.withoutWorkflowReadAhead(prior),/differs from pinned bytes/,'read-ahead inverse cannot run twice');
+ assert.deepEqual(project(bytes,'public/process/shared-draft-client.js'),bytes,'C read inverse must not dispatch for another file');
+ for(const value of [bytes.toString(),new Uint8Array(bytes)])assert.throws(()=>project(value,cRoute),/requires raw source bytes/);
+});
+void test('C reporting proof allows only checkout EOL equivalence before raw Git projection',()=>{
+ const bytes=readSource(cRoute),lf=bytes.toString().replace(/\r\n/g,'\n');assert.deepEqual(canonicalC(Buffer.from(lf),bytes),bytes);assert.deepEqual(canonicalC(Buffer.from(lf.replace(/\n/g,'\r\n')),bytes),bytes);
+ assert.throws(()=>canonicalC(Buffer.concat([bytes,Buffer.from(' ')]),bytes),/differs from HEAD/);assert.throws(()=>canonicalC(bytes.toString(),bytes),/raw source bytes/);
+});
+void test('C read-ahead/reporting composition cannot hide partial, repeated or authority source changes',()=>{
+ const bytes=readSource(cRoute),text=bytes.toString();
+ const changed=[Buffer.concat([bytes,Buffer.from(' ')]),Buffer.concat([bytes,readIO.after]),Buffer.from(text.replace(readIO.after.toString(),'')),Buffer.from(text.replace('    // Normal compact workflow reads retain all objects/checks; overlap only GET metadata.\n',''))];
+ for(const [from,to]of [["['since','caseMetadata','compact']","['since','caseMetadata','compact','permissions']"],['actor=await identity(request,state)','actor=null'],['!permissions.view','false'],['receipt.actorId!==actor.id','false'],['!await identity(request,state)','false'],['if(changed.meta.changes!==1)continue;','if(false)continue;']]){assert(text.includes(from));changed.push(Buffer.from(text.replace(from,to)));}
+ for(const source of changed){assert.notDeepEqual(source,bytes);assert.notEqual(hash(project(source,cRoute)),main[cRoute]);}
+});
+void test('Feedback path filters include every C reporting inverse dependency',()=>{
+ const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
+ for(const file of [cRoute,'scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
+});
 const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
 for(const [label,from,to]of [
  ['pre-dispatch proof','if(attempt)attempt.dispatched=true;','if(false)attempt.dispatched=true;'],

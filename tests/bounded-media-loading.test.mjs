@@ -4,10 +4,17 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
 import ts from 'typescript';
+import displayContract from '../scripts/ipqc-c-display-image-source-contract.cjs';
 // Explicit readonly fixture source; dependencies always resolve normally here.
-const sourceRoot=process.env.BOUNDED_MEDIA_SOURCE?path.resolve(process.env.BOUNDED_MEDIA_SOURCE):fileURLToPath(new URL('..',import.meta.url));
+const repositoryRoot=fileURLToPath(new URL('..',import.meta.url));
+const sourceRoot=process.env.BOUNDED_MEDIA_SOURCE?path.resolve(process.env.BOUNDED_MEDIA_SOURCE):repositoryRoot;
+const sourceMode=fs.realpathSync(sourceRoot)===fs.realpathSync(repositoryRoot)?'current':'readonly-fixture';
 const read=file=>fs.readFileSync(path.join(sourceRoot,'public/process',file),'utf8');
+// Only the policy inverse uses raw committed bytes. Runtime checks below keep
+// reading the actual selected worktree, including a native CRLF checkout.
+const cHeadSource=execFileSync('git',['show','HEAD:public/process/ipqc-c.js'],{cwd:repositoryRoot});
 // Execute the selected source tree's real scheduler, including foreground producers.
 // Legacy interval extraction remains exact for unchanged authoring and pinned fixtures.
 const pollingScheduler=(source,{fileName='tooling.js',readCall='transport().read'}={})=>{
@@ -53,9 +60,60 @@ const readGate=box=>{vm.runInContext(read('shared-draft-client.js'),box);return 
 const part=(source,a,b)=>{const i=source.indexOf(a),j=source.indexOf(b,i+a.length);assert(i>=0&&j>i);return source.slice(i,j);};
 const policy=JSON.parse(fs.readFileSync(new URL('./fixtures/bounded-image-policy.json',import.meta.url),'utf8'));
 for(const rule of policy)void test(`${rule.file}:${rule.baseLine} only audited image scheduling hints change`,()=>{
- const source=read(rule.file);assert(source.includes(rule.after));
+ const source=displayContract.imagePolicySource(rule.file,read(rule.file),{sourceMode,headSource:cHeadSource});assert(source.includes(rule.after));
  const normalize=s=>s.replace(/ \$\{hidden\?'loading="lazy" decoding="async"':''\}/g,'').replace(/\s+(?:loading="lazy"|decoding="async")/g,'');
  assert.equal(normalize(rule.after),normalize(rule.before));
+});
+void test('C display image projection rejects missing, duplicate, changed or moved spans and unrelated drift',()=>{
+ // Contract self-tests use this checker's own reviewed source; an explicit old
+ // fixture still executes its actual production callbacks in the tests below.
+ const current=cHeadSource.toString('utf8');
+ const project=source=>displayContract.imagePolicySource('ipqc-c.js',source,{headSource:cHeadSource});
+ const prior=project(current);assert.notEqual(prior,current);
+ for(const rule of displayContract.rules){
+  assert.equal(current.split(rule.after).length,2,'unique '+rule.name);
+  for(const changed of [current.replace(rule.after,''),current.replace(rule.after,rule.after+rule.after),current.replace(rule.after,rule.after+' '),current.replace(rule.after,'')+rule.after])assert.throws(()=>project(changed),/worktree differs/,rule.name);
+ }
+ assert.throws(()=>project(prior),/worktree differs/,'removing ALL display changes cannot select legacy mode');
+ assert.throws(()=>project(current+'\n'),/worktree differs/,'unrelated whole-file drift');
+ for(const [before,after] of [['/api/routine-equipment/photo?id=','/api/other/photo?id='],['h(eq.photoId)','h(item.photoId)'],['loading="lazy"','loading="eager"'],['decoding="async"','decoding="sync"'],['photoUrl(i.mediaItems[0])','photoUrl(i.mediaItems[1])']]){
+  assert(current.includes(before));assert.throws(()=>project(current.replaceAll(before,after)),/worktree differs/,before);
+ }
+ for(const file of ['iqc-master.js','fqc-master.js','other/ipqc-c.js'])assert.throws(()=>displayContract.imagePolicySource(file,current),/requires ipqc-c.js/);
+ assert.throws(()=>displayContract.imagePolicySource('ipqc-c.js',current,{sourceMode:'unknown'}),/explicit image policy source mode/);
+ assert.equal(displayContract.imagePolicySource('ipqc-c.js',prior,{sourceMode:'readonly-fixture'}),prior,'explicit old source remains untouched');
+ const legacyCrlf=prior.replace(/\n/g,'\r\n');assert.equal(displayContract.imagePolicySource('ipqc-c.js',legacyCrlf,{sourceMode:'readonly-fixture'}),legacyCrlf,'external old fixture EOL is untouched');
+ assert.equal(displayContract.imagePolicySource('ipqc-c.js',current,{sourceMode:'readonly-fixture'}),prior,'exact display source also works in a readonly fixture');
+ assert.throws(()=>displayContract.imagePolicySource('ipqc-c.js',current.replace('${equipmentDetailHTML(i)}',''),{sourceMode:'readonly-fixture'}),/exact reviewed bytes/,'partial display fixture cannot select legacy mode');
+ for(const file of ['iqc-master.js','fqc-master.js'])assert.equal(displayContract.imagePolicySource(file,'unchanged legacy source'),'unchanged legacy source');
+});
+void test('C current-source policy uses exact HEAD bytes with CRLF checkout equivalence only',()=>{
+ const committed=cHeadSource.toString('utf8'),crlf=committed.replace(/\n/g,'\r\n');
+ const project=source=>displayContract.imagePolicySource('ipqc-c.js',source,{headSource:cHeadSource});
+ const expected=displayContract.withoutDisplay(cHeadSource);
+ assert.equal(project(committed),expected);assert.equal(project(crlf),expected);
+ assert.equal(project(fs.readFileSync(new URL('../public/process/ipqc-c.js',import.meta.url),'utf8')),expected,'actual worktree must match HEAD modulo checkout EOL');
+ for(const changed of [crlf+' ',crlf.replace('${equipmentDetailHTML(i)}',''),expected.replace(/\n/g,'\r\n'),crlf.replace('loading="lazy"','loading="eager"'),committed.replace(/\n/g,'\r')])assert.throws(()=>project(changed),/worktree differs/,'CRLF equivalence cannot hide source drift');
+ assert.throws(()=>displayContract.imagePolicySource('ipqc-c.js',committed),/requires raw HEAD blob/);
+ assert.throws(()=>displayContract.withoutDisplay(crlf),/exact reviewed bytes/,'pure inverse never normalizes unknown input');
+ for(const changed of [crlf,committed+' ',displayContract.withoutDisplay(cHeadSource)])assert.throws(()=>displayContract.imagePolicySource('ipqc-c.js',changed,{headSource:Buffer.from(changed)}),/exact reviewed bytes/,'changing HEAD cannot bless changed source');
+});
+void test('actual C display helpers retain distinct lazy image sites and original selected gauge URLs',()=>{
+ const source=read('ipqc-c.js');
+ // Old explicit source fixtures retain their old inline producer assertions.
+ if(!source.includes('  function equipmentForDisplay(')){assert.equal(sourceMode,'readonly-fixture');return;}
+ const box={equipment:[{id:'selected',assetCode:'NEXT',pieceMark:'02',name:'Selected gauge',photoId:'selected-photo'}],h:String,t:vi=>vi,encodeURIComponent};vm.createContext(box);
+ vm.runInContext(part(source,'  function equipmentForDisplay(', '  async function loadCaseHistory('),box);
+ const snapshot=Object.freeze({id:'old',assetCode:'OLD',pieceMark:'01',name:'Historical gauge',photoId:'old-photo'});
+ for(const id of ['old','selected']){
+  const item=Object.freeze({equipmentId:id,equipmentSnapshot:snapshot}),before=JSON.stringify(item),photo=id==='old'?'old-photo':'selected-photo';
+  for(const html of [box.equipmentDetailHTML(item),box.equipmentListPreview(item)]){
+   assert.equal((html.match(/<img /g)||[]).length,1);assert(html.includes('decoding="async" loading="lazy"'));assert(html.includes('src="/api/routine-equipment/photo?id='+photo+'"'));assert(!html.includes(id==='old'?'selected-photo':'old-photo'));
+  }
+  assert(box.equipmentListPreview(item).includes('equipmentId='+id));assert.equal(JSON.stringify(item),before);
+ }
+ assert(source.includes('${equipmentDetailHTML(i)}'),'actual detail render delegates to audited helper');
+ assert(source.includes('${equipmentListPreview(i)}'),'actual summary renders the distinct list site');
 });
 void test('100 actual IQC list rows retain original URLs and links without eager thumbnail declarations',()=>{
  const source=read('iqc-master.js'),parts=Array.from({length:100},(_,i)=>({code:'P'+i,nameVi:'Kiểm tra 中文',photos:[{src:'/fixture/'+i+'.svg'}],supplierIds:[],categoryId:''}));

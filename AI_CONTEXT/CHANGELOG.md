@@ -1,3 +1,13 @@
+## 2026-11-06 — PR93 display CI contract and outbox probe candidate
+
+Main #92 integration retains role presentation and both asset-pin changes. A new compiled test exposed per-observation offline status before the whole outbox drained; a bounded readonly exact-ID fence and deterministic real-storage negative control preserve all original assertions without changing product behavior.
+
+Historical bounded-image assertions now compose with an exact display-only inverse while current image/render behavior stays directly tested. The dual-tab telemetry test uses a non-creating, transaction-complete IndexedDB reader and actual product readiness, with negative controls. Exact0d5 image failure was reproduced; CI's Feedback GC message was not, although its old probe's empty-schema/unresolved-Promise race was controlled independently. [Evidence and remaining CI/review gates](../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Test/workflow-only follow-up; no runtime, data or deployment changes. After main PR91 merged, the direct reporting test composes its exact C I/O inverse before the unchanged historical reporting pin; the actual combined tree is tested.
+
+## 2026-11-06 — IPQC C local gauge preview
+
+Local Complete now shows the selected gauge caption/photo immediately when its ID differs from the retained server snapshot. Matching historical snapshots remain authoritative; Save derives approved registry metadata as before. No wire, permission, guard, schema or live-data changes. [Root cause, isolated UI/API coverage and separate existing boundaries](../docs/acceptance/ipqc-c-local-gauge-display-20261106/README.md). Independent Draft candidate; no merge or deployment.
+
 ## 2026-11-06 — Role-template presentation
 
 UI-only alignment, wrapping, responsive matrix and clear extra-operation disclosure; V41 follow-up uses actual workspace width and one dialog body scroll, with expanded full-page geometry evidence and retained Windows CI failure diagnosis; all stored permission values and authorization remain. [Candidate scope, tests and limitations](../docs/acceptance/role-template-layout-20261106/README.md). No live changes.
