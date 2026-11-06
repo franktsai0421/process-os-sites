@@ -1,0 +1,31 @@
+# IPQC C performance and viewer follow-up
+
+Base main `2882f35`; appended to PR #89 after its code `9c2f60f` and documentation `9c38df3`. Main had not advanced when fetched. PR #89 had no reviews/threads; its three specialized workflows passed, Local safety was still running. Repository open-PR search returned no entries, so that search alone does not establish the absence of parallel work. Shared transport, schema, server authority, permissions and pending/receipt semantics are unchanged here. Coordinate this module file and its asset pin at parent integration.
+
+## Findings first
+
+The supplied live observations show eventual success, not failed writes. Save/submit/withdraw/resubmit/approval intervals include tool control, UI scheduling and sampling: they are not server timings. The >45s observation lacks an independent timestamp and is not an exact measurement. The parent subsequently verified the fixed saved snapshot through submit, withdraw, resubmit, self-review approval and independent reload. No new live operation was issued by this worker.
+
+A representative synthetic starting library has 869 errors + 866 items = 1,735 rows. Local actual API/SQLite measurements do **not** reproduce a >5s or >10s computation. The identifiable transfer costs are a 2.34MB open response, about 0.96MB compact local-Save response, permission/terminal GETs, and roughly 410KB cascade-delete commands because the complete child-set guard is intentionally retained. Production network, remote D1/R2 latency, platform cold start and CUA time remain unmeasured; this work does not claim the live delay is solved.
+
+## Reproduction and measured boundary
+
+`node scripts/benchmark-ipqc-c-local-path.cjs` uses normal synthetic authenticated handlers, private SQLite and in-memory R2, 1 warm-up + 3 measured rounds reset to the same saved baseline. It requests the actual client compact response/header. Per-request server-call timing, raw response bytes, storage operation counts and expanded JSON size are distinct fields in [API measurements](api-measurements.json). Handler timing includes local DB, validation, JSON and response creation; these components are not individually profiled. R2 is memory-backed and its measured storage time cannot model remote storage.
+
+Final run: Open median 27.84ms; local Save 224.44ms; permission GET 13.39ms; terminal GET 22.54ms; review GET 22.83ms. No-local Save, Submit, Withdraw and Resubmit measurements include the command helper's explicit pre-read, so they are not single endpoint timings. The artifact contains each request separately. Photo upload is measured in the browser path below.
+
+`IPQCC_PROFILE=1 node scripts/test-ipqc-c-local-browser.cjs` runs the complete existing desktop 1440/mobile 390 regression with 1,735 synthetic starting rows and a generated 480×240 PNG. Test-only function wrappers and server observations record paths/times/byte counts, never headers/cookies or business payloads. [Browser measurements](browser-measurements.json) report overlapping function windows, not additive phase totals or population percentiles. Controlled unknown/fault scenarios are included and not treated as normal performance samples. Final-document resource entries cannot represent requests from prior reloads.
+
+On the final local run, draw median 135ms/max 300ms; local stage median 147.65ms; submitEditor 135.1ms; writeShared 402.9ms/max 688.2ms; read 51.65ms; upload median 20.8ms. PNG decode dimensions were verified 480×240, with 5.6ms desktop / 0.5ms mobile observations. File size/compressibility is synthetic; no live image timing is inferred. Opening/filtering/form application and Save are covered by these wrappers and actual browser actions; Submit/Withdraw/Resubmit/review use the separate API benchmark, not measured UI scheduling. Approval timing and hosted cold/warm classification are NOT MEASURED.
+
+## Minimal changes and paired comparison
+
+Fixed-case viewer item status now distinguishes deleted, standard-enabled and standard-disabled rows; previously disabled rows were labeled in use. Review summary now prefers an exact fixed case `before`, then a loaded base snapshot. A missing *named* base produces an explicit not-loaded comparison notice and no fabricated all-added diff. A truly initial null base remains an empty baseline. This is a display correction, not data repair. Bounded metadata without the exact base still cannot show numeric comparison counts; the ordinary full fixed-case viewer remains authoritative. No extra GET or history-permission expansion is introduced.
+
+Both fixed-case item/error pairing and review item comparison now index string IDs once, preserving first-match duplicate behavior; malformed/non-string IDs retain strict-equality Array.find fallback. Review computes changed rows once for count and display. The same synthetic 866-item before/after diff, 1 warm-up + 5 measured rounds of 10 calls, returned identical rows: median 4.48ms before → 1.59ms indexed. This is a local algorithm measurement, not a site-level speed claim, and is not enough to explain the live seconds-scale delay.
+
+## Verification and limits
+
+PASS: 68 combined Begin/recovery/submission/rejection/viewer tests; representative desktop/mobile full local browser flow; atomic API including fixed-snapshot withdraw/resubmit/return/approve; projection client; read recovery; lint. Viewer tests execute the actual review renderer after approval with a missing named base and with exact case-before data, plus inactive/deleted status and unchanged source rows. One test fixture acquired a DOM query stub for the existing Save busy-button code; no Begin/recovery assertion was removed.
+
+Existing Save busy display, strict matching receipt settlement, no-resend, local query 404 barrier, role/CAS/pending locks and immutable snapshots remain. No persistence/model/format change. No live draft mutation, backup/diagnostic route, original connector, merge or deployment. Exact updated-head CI must be checked after push. Native hosted full-path timing, remote storage/CPU decomposition and real-device behavior remain NOT RUN/NOT MEASURED. Reproduce under an authorized environment rather than guessing those components from CUA intervals.

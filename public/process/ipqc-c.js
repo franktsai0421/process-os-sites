@@ -16,8 +16,9 @@
   const headers = () => ({...(window.ProcessSync?.platformHeaders?.() || { 'Content-Type':'application/json' }),'X-IPQC-C-Save-Projection':'1'});
   let host = null, reviewHost = null, control = null, catalog = { products:[], stages:[] }, equipmentGroups = [], equipment = [], revision = null;
   let working = null, selectedVersionId = '', productCode = '', stageCode = '', errorId = '', search = '';
+  let localSaveAttempt=null;
   let localChanges=[],localGeneration=null;const localPhotos=new Map();
-  function clearLocal(){localChanges=[];localGeneration=null;for(const photo of localPhotos.values())if(photo.preview)URL.revokeObjectURL(photo.preview);localPhotos.clear();}
+  function clearLocal(){localSaveAttempt=null;localChanges=[];localGeneration=null;for(const photo of localPhotos.values())if(photo.preview)URL.revokeObjectURL(photo.preview);localPhotos.clear();}
   let busy = false, message = '', modal = null, viewer = null, conflict = null;
   let equipmentCategories = [], equipmentSubcategories = [], picker = null;
   let caseHistory=null;
@@ -287,24 +288,32 @@
     control=next;revision=result.revision;return true;
   }
   function captureOperationQuery(){
-    const client=sharedTransport(),actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),changes=localChanges,input=JSON.stringify({localChanges,working}),generation=localGeneration;
+    const client=sharedTransport(),actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),mount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),attempt=localSaveAttempt;
+    let changes=localChanges,input=JSON.stringify({localChanges,working}),generation=localGeneration;
     const owner=()=>client===sharedClient&&actor===identity()&&epoch===window.ProcessSync?.identityGeneration?.()&&mount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     let pinnedGeneration=generation;
     const current=()=>owner()&&localChanges===changes&&JSON.stringify({localChanges,working})===input&&localGeneration===pinnedGeneration;
-    return {client,owner,current,assert(){if(!current())throw Error('IPQCC_READ_SUPERSEDED');},pin(recovered){this.assert();if(localChanges.length&&!localGeneration)localGeneration=recovered.receipt.generation;pinnedGeneration=localGeneration;}};
+    return {client,owner,current,assert(){if(!current())throw Error('IPQCC_READ_SUPERSEDED');},settleSave(recovered){
+      this.assert();const receipt=recovered?.receipt;
+      if(!attempt||receipt?.operationId!==attempt.operationId||!receipt.savedId||receipt.generation!==attempt.generation||!client.verifiedReadback?.(recovered,attempt.operationId)||
+        attempt.changes!==localChanges||attempt.raw!==JSON.stringify(localChanges))return;
+      clearLocal();working=open()?.status==='draft'?copy(open().snapshot):null;
+      changes=localChanges;input=JSON.stringify({localChanges,working});generation=localGeneration;pinnedGeneration=localGeneration;
+    },pin(recovered){this.assert();if(localChanges.length&&!localGeneration)localGeneration=recovered.receipt.generation;pinnedGeneration=localGeneration;}};
   }
   async function checkPreviousOperation(retry=false){
     if(busy)return;const query=captureOperationQuery(),recoveringBegin=query.client.hasUnknownBegin?.()===true;busy=true;
-    try{const recovered=await (retry?query.client.retryUnknown():query.client.resolveUnknown());query.assert();if(recoveringBegin)query.pin(recovered);await read(false,query.current);if(!query.owner())throw Error('IPQCC_READ_SUPERSEDED');message=t('Đã xác minh kết quả từ máy chủ','已向伺服器查證結果');}
+    try{const recovered=await (retry?query.client.retryUnknown():query.client.resolveUnknown());query.assert();if(recoveringBegin)query.pin(recovered);else query.settleSave(recovered);await read(false,query.current);if(!query.owner())throw Error('IPQCC_READ_SUPERSEDED');message=t('Đã xác minh kết quả từ máy chủ','已向伺服器查證結果');}
     catch(error){if(query.owner()&&!isReadSuperseded(error))message=error.message;}
     finally{if(query.owner()){busy=false;draw();}}
   }
   async function writeShared(action,detail={},closeModal=false) {
-    if(busy||errorRecoveryPending)return null;if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
+    if(busy)return null;if(errorRecoveryPending){message=t('Thao tác trước chưa được xác nhận; hãy kiểm tra biên nhận gốc trước khi lưu.','前次操作尚未確認，請先查證原回執再存取。');draw();return null;}if(['save','submit'].includes(action)&&modal&&!modal.readonly){message=t('Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.','請先套用或取消目前表單，再儲存或送審。');toast(message);return null;}if(saveInputNoticePending()){showSaveInputNotice(saveInputNotice);return null;}readAckContext=null;busy=true;message='';const restoreView=window.VersionDraftUI.preserveView(host,reviewHost),requestActor=identity(),requestActorId=requestActor?.id,requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),
       targetModal=closeModal?modal:null,
       editorState=()=>targetModal?JSON.stringify({fields:targetModal.fields,photos:targetModal.photos,pendingInsert:targetModal.pendingInsert}):'',
       submittedState=editorState(),sameActor=()=>identity()===requestActor && identity()?.id===requestActorId&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));let cancelled=false,refreshCurrent=false,readWasSuperseded=false,preserveInputs=false,submittedCommand=null;
     const cancelResponse=()=>{cancelled=true;refreshCurrent=sameActor();return null;};
+    if(action==='save'){const button=host?.querySelector('#ipqcc-save');if(button){button.disabled=true;button.setAttribute('aria-busy','true');button.textContent=t('Đang lưu…','存取中…');}}
     try {
       if(readAccessBlocked())throw Error('READ_ACCESS_RECHECK_REQUIRED');
       const transport=sharedTransport();
@@ -365,7 +374,7 @@
       const recovered=closeModal&&action==='apply'&&errorRecoverySupported(targetModal);
       let command,result;
       if(recovered)({command,result}=await sendErrorRecovery(fields,targetModal));
-      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;result=await transport.sendPrepared(command);}
+      else{command=transport.prepare(submissionGeneration||saveCapture?.flow.generation||flow.generation,commandAction,fields);submittedCommand=command;if(action==='save'&&fields.localChanges)localSaveAttempt={operationId:command.operationId,generation:command.generation,changes:localChanges,raw:JSON.stringify(localChanges)};result=await transport.sendPrepared(command);}
       if(saveCapture&&!saveCapture.owns()){readWasSuperseded=true;return null;}
       if(saveCapture&&control?.workflow?.generation!==saveCapture.generation){readWasSuperseded=true;return null;}
       if(saveCapture&&saveCapture.inputsChanged()){
@@ -537,7 +546,9 @@
     syncSelection();
   }
   function stageLocal(action,detail,closeModal){
-    if(busy||!editing()||sharedClient?.hasUnknown())return null;
+    if(busy)throw Error(t('Đang xử lý; vui lòng chờ rồi thử hoàn tất lại.','操作處理中，請稍後再按完成。'));
+    if(!editing())throw Error('FORBIDDEN');
+    if(sharedClient?.hasUnknown())throw Error(t('Kết quả thao tác trước chưa xác định; hãy đóng biểu mẫu và kiểm tra kết quả trước khi hoàn tất.','前次操作結果尚未確認；請先關閉表單並查證操作結果，再按完成。'));
     if(action.startsWith('create')&&!operationAllowed('create')||action.startsWith('delete')&&!operationAllowed('delete'))throw Error('FORBIDDEN');
     if(localChanges.length>=256)throw Error('LOCAL_SAVE_LIMIT');
     if(action.startsWith('delete')&&detail.id?.startsWith('local-')){
@@ -665,12 +676,25 @@
     catch(error){state.error=error.message;}
     finally{state.loading=false;if(caseHistory===state)draw();}
   }
+  function caseRowsById(rows){
+    if(!rows.every(row=>typeof row.id==='string'))return id=>rows.find(row=>row.id===id);
+    const index=new Map();for(const row of rows)if(!index.has(row.id))index.set(row.id,row);
+    return id=>index.get(id);
+  }
+  function caseComparison(before,after){
+    if(!before)return null;
+    const prior=caseRowsById(before.items),changedItems=after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(prior(item.id)));
+    return {errorsBefore:before.errors.filter(row=>!row.deleted).length,errorsAfter:after.errors.filter(row=>!row.deleted).length,
+      itemsBefore:before.items.filter(row=>!row.deleted).length,itemsAfter:after.items.filter(row=>!row.deleted).length,
+      changed:changedItems.length,changedItems};
+  }
   function caseHistoryHTML() {
     const state=caseHistory,c=state.reviewCase;
     const ids=c?[...new Set([...c.before.items,...c.content.items].map(i=>i.id))]:[];
-    const changes=ids.map(id=>({id,before:c.before.items.find(i=>i.id===id),after:c.content.items.find(i=>i.id===id)})).filter(row=>state.showAll||!same(row.before,row.after));
-    const errors=c?[...new Set([...c.before.errors,...c.content.errors].map(e=>e.id))].map(id=>({before:c.before.errors.find(e=>e.id===id),after:c.content.errors.find(e=>e.id===id)})).filter(row=>state.showAll||!same(row.before,row.after)):[];
-    const itemHTML=item=>!item?`<p>${t('Không tồn tại','不存在')}</p>`:`<p><code>${h(item.code)}</code> · ${item.deleted?t('Đã xóa','已刪除'):t('Đang dùng','使用中')}</p><dl><dt>${t('Tiêu chuẩn','標準')}</dt><dd>${h(item.standard)}</dd><dt>${t('Cách kiểm tra','檢查方式')}</dt><dd>${h(item.description)}</dd><dt>${t('Thiết bị','檢具')}</dt><dd>${h(item.equipmentSnapshot?.name||item.equipmentId||t('Bằng mắt','目視'))}</dd><dt>${t('Quy tắc','規則')}</dt><dd>${h(ruleSummary(item.rule,item.frequency))}</dd><dt>${t('Ghi chú','備註')}</dt><dd>${h(item.note)}</dd></dl><div class="ipqcc-case-photos">${(item.mediaItems||[]).map(photo=>`<a href="${h(photoUrl(photo))}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note||photo.name)}"><span>${h(photo.note||photo.name)}</span></a>`).join('')}</div>`;
+    const beforeItems=caseRowsById(c?.before.items||[]),afterItems=caseRowsById(c?.content.items||[]),beforeErrors=caseRowsById(c?.before.errors||[]),afterErrors=caseRowsById(c?.content.errors||[]);
+    const changes=ids.map(id=>({id,before:beforeItems(id),after:afterItems(id)})).filter(row=>state.showAll||!same(row.before,row.after));
+    const errors=c?[...new Set([...c.before.errors,...c.content.errors].map(e=>e.id))].map(id=>({before:beforeErrors(id),after:afterErrors(id)})).filter(row=>state.showAll||!same(row.before,row.after)):[];
+    const itemHTML=item=>!item?`<p>${t('Không tồn tại','不存在')}</p>`:`<p><code>${h(item.code)}</code> · ${item.deleted?t('Đã xóa','已刪除'):item.standardEnabled?t('Đang dùng','使用中'):t('Tạm ngưng','停用')}</p><dl><dt>${t('Tiêu chuẩn','標準')}</dt><dd>${h(item.standard)}</dd><dt>${t('Cách kiểm tra','檢查方式')}</dt><dd>${h(item.description)}</dd><dt>${t('Thiết bị','檢具')}</dt><dd>${h(item.equipmentSnapshot?.name||item.equipmentId||t('Bằng mắt','目視'))}</dd><dt>${t('Quy tắc','規則')}</dt><dd>${h(ruleSummary(item.rule,item.frequency))}</dd><dt>${t('Ghi chú','備註')}</dt><dd>${h(item.note)}</dd></dl><div class="ipqcc-case-photos">${(item.mediaItems||[]).map(photo=>`<a href="${h(photoUrl(photo))}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note||photo.name)}"><span>${h(photo.note||photo.name)}</span></a>`).join('')}</div>`;
     return `<div class="ipqcc-overlay"><section class="ipqcc-dialog ipqcc-case-dialog" id="ipqcc-case-dialog" role="dialog" aria-modal="true" aria-labelledby="ipqcc-case-title"><header><h3 id="ipqcc-case-title">${t('Hồ sơ gửi duyệt cố định','固定送審案件')}</h3><button type="button" id="ipqcc-case-close" aria-label="${t('Đóng','關閉')}">×</button></header><div class="ipqcc-dialog-body">
       <p>${t('Chỉ đọc: nội dung và ảnh tại thời điểm gửi. Thay đổi bản nháp không sửa hồ sơ này. Giờ Việt Nam (UTC+7).','唯讀：送審當時內容與圖片；後續草稿修改不改写此案件。越南時間（UTC+7）。')}</p>
       ${state.error?`<p class="ipqcc-message" role="alert">${h(state.error)}</p>`:''}${state.loading?`<p role="status">${t('Đang tải…','載入中…')}</p>`:''}
@@ -1132,11 +1156,12 @@
     const cases=[...pending,...history];
     reviewHost.querySelector('.ipqcc-review-body').innerHTML=cases.length?cases.map(v=>{
       const base=control.versions.find(x=>x.id===v.baseVersionId);
-      const before=base?.snapshot||{errors:[],items:[]},after=v.snapshot;
-      const changed=after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(before.items.find(x=>x.id===item.id))).length;
+      const fixed=control.workflow?.cases?.find(row=>row.id===v.id);
+      const before=fixed?.before||base?.snapshot||(!v.baseVersionId?{errors:[],items:[]}:null),after=v.snapshot;
+      const comparison=caseComparison(before,after);
       return `<article class="vd-review-case"><details data-case-id="${h(v.id)}"><summary><b>IPQC-C · V${v.number} · ${status(v.status)}</b> · ${t('Xem nội dung','展開內容')}</summary><p>${t('Người sửa','修改者')} ${h(v.creatorName)} · ${t('Gửi duyệt','送審')} ${h(date(v.submittedAt))}${v.reviewedBy?`<br>${t('Người duyệt','確認者')} ${h(v.reviewedBy)} · ${h(date(v.reviewedAt))}`:''}${v.reviewComment?`<br>${t('Ý kiến','意見')} ${h(v.reviewComment)}`:''}</p>
-        <p>${t('Mã lỗi','錯誤代碼')} ${before.errors.filter(x=>!x.deleted).length} → ${after.errors.filter(x=>!x.deleted).length} · ${t('Hạng mục','檢查項目')} ${before.items.filter(x=>!x.deleted).length} → ${after.items.filter(x=>!x.deleted).length} · ${t('Thay đổi','變動')} ${changed}</p>
-        <details><summary>${t('Xem thay đổi và lịch sử','查看差異與歷程')}</summary>${after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(before.items.find(x=>x.id===item.id))).slice(0,100).map(item=>`<p><code>${h(item.code)}</code> · ${h(item.standard)} · ${item.mediaItems.length} ${t('ảnh','張圖')}</p>`).join('')}${v.history.map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${h(date(event.at))}</p>`).join('')}</details>
+        ${comparison?`<p>${t('Mã lỗi','錯誤代碼')} ${comparison.errorsBefore} → ${comparison.errorsAfter} · ${t('Hạng mục','檢查項目')} ${comparison.itemsBefore} → ${comparison.itemsAfter} · ${t('Thay đổi','變動')} ${comparison.changed}</p>`:`<p>${t('Chưa tải bản gốc; xem hồ sơ cố định để đối chiếu.','基準版尚未載入，請查看固定案件核對。')}</p>`}
+        <details><summary>${t('Xem thay đổi và lịch sử','查看差異與歷程')}</summary>${(comparison?.changedItems||[]).slice(0,100).map(item=>`<p><code>${h(item.code)}</code> · ${h(item.standard)} · ${item.mediaItems.length} ${t('ảnh','張圖')}</p>`).join('')}${v.history.map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${h(date(event.at))}</p>`).join('')}</details>
         ${v.contentIssues?.issues.length?`<details><summary>${t('Cần bổ sung · không chặn gửi/duyệt','待補 · 不阻擋送審／核准')} · ${v.contentIssues.issues.length}</summary>${v.contentIssues.issues.map(i=>`<p>${h(i.message)} · ${h(i.path.map(p=>typeof p==='string'?p:p.id).join(' / '))}</p>`).join('')}</details>`:''}
         </details>${v.status==='pending'&&(permitted('approval.approve')||permitted('approval.reject')||permitted('approval.withdraw'))?`<label>${t('Ý kiến duyệt (không bắt buộc)','審核意見（選填）')}<textarea data-ipqcc-review-comment="${h(v.id)}"></textarea></label><div class="vd-actions">${permitted('approval.withdraw')?`<button type="button" data-ipqcc-review="withdraw" data-id="${h(v.id)}" class="button ghost">${t('Rút hồ sơ','撤回送審')}</button>`:''}${permitted('approval.reject')?`<button type="button" data-ipqcc-review="reject" data-id="${h(v.id)}" class="button ghost">${t('Trả lại','發回')}</button>`:''}${permitted('approval.approve')?`<button type="button" data-ipqcc-review="approve" data-id="${h(v.id)}" class="button signal">${t('Duyệt','確認')}</button>`:''}</div>`:''}</article>`;
     }).join(''):`<p>${t('Không có hồ sơ chờ duyệt','目前沒有待審案件')}</p>`;
