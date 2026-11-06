@@ -1,6 +1,6 @@
 # PR93 display CI compatibility — source-only candidate
 
-Isolated worktree/branch `fix/ipqc-c-display-media-proof-20261106` starts at published display head `0d5ed8a2bdc7319bec43623f8090ddd8f5948228`. It contains none of the separate local C409, route-speed PR91, B or role-layout product changes. Product files, original bounded-image policy, dependencies, schema, data and application asset pins are unchanged. No live operation, source/history export or deployment is involved. Final candidate HEAD/tree and remote CI are reported separately after their exact checks.
+Isolated worktree/branch `fix/ipqc-c-display-media-proof-20261106` starts at published display head `0d5ed8a2bdc7319bec43623f8090ddd8f5948228`. The CI edits contain none of the separate local C409, B or role-layout changes. Already merged main4baca404 (#91 read-path optimization) is now inherited unchanged for exact integration testing. Product files, original bounded-image policy, dependencies, schema, data and application asset pins are unchanged. No live operation, source/history export or deployment is involved. Final candidate HEAD/tree and remote CI are reported separately after their exact checks.
 
 ## Bounded media: exact reproduced source-contract failure
 
@@ -26,6 +26,12 @@ The second browser context deliberately holds authentic client bytes, proves an 
 
 Nine browser control checks independently cover missing count/all without creation, broken v2 stores, blocked v1 upgrade and eventual abort, newer-version refusal, actual product storage read, abort after request success, no-event timeout, and invalid mode. The actual dual-tab/closed-tab command and these controls pass with no page errors/business mutations. They are registered in Feedback CI; no runtime telemetry or business recovery behavior changes.
 
+## New-main reporting proof compatibility
+
+After the first follow-up head ef0cc4b was uploaded, Feedback run42256188477 failed earlier than the browser steps: access-event-main-integration.test.cjs expected the unchanged reporting predecessor58d06589…, but newly merged main's C route was0610032b…. This is distinct from the original IndexedDB race; its browser tests had not run in that CI attempt.
+
+The isolated work branch normally incorporates already merged main4baca404; its pre-fix tree exactly equals GitHub's generated CI tree520ed609…. The same old safety-byte assertion reproduces locally. Only this direct test entry composes the already reviewed C I/O inverse0610032b…→67dfc685… before the unchanged metadata inverse67dfc685…→58d06589…. No original pin, shared inverse, production route, authority code or B entry is changed. The existing central Begin/Local Save chain remains untouched. Exact complete predecessor equality, wrong-file/raw-buffer boundaries and partial/repeated/predicate/actor/CAS drift negatives are added; unknown source still cannot satisfy the original pin.
+
 ## Verification and review boundary
 
 Before same-PR publication, run on committed combined HEAD:
@@ -44,3 +50,5 @@ PROCESS_PROGRAM_COMMIT=<exact-head> npm run build
 ```
 
 Compiled fixtures require their standard PROCESS_PROGRAM_COMMIT environment and a supported Chromium path. Exact original Local Safety step28 and the Feedback workflow's metadata/receipt/schema group also run. A new independent in-place review is required for all new bytes. No GitHub formal review, readiness, merge, deployment, hosted/physical-device or combined A+B+C acceptance is implied.
+
+Feedback path filters now also include the C route and its two reporting-proof inverse dependencies. A regression checks these exact paths; existing filters and checks remain.

@@ -1,6 +1,6 @@
 ## 2026-11-06 — PR93 display image proof follow-up
 
-A test-only full-file/three-span display inverse preserves both distinct historical C image sites; actual current gauge images and eager/fullsize paths are tested directly. The separate Feedback outbox harness race is repaired with a non-creating reader/readiness fence. [Exact reproduction, test limits and CI gates](../../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Product/source pins unchanged; no C409/PR91/B or role-layout import.
+A test-only full-file/three-span display inverse preserves both distinct historical C image sites; actual current gauge images and eager/fullsize paths are tested directly. The separate Feedback outbox harness race is repaired with a non-creating reader/readiness fence. [Exact reproduction, test limits and CI gates](../../docs/acceptance/ipqc-c-display-ci-20261106/README.md). Product/source pins unchanged. Already merged main PR91 is inherited without alteration; no C409/B or role-layout import. The direct reporting proof also composes its exact C I/O inverse before the unchanged historical pin.
 
 ## 2026-11-06 — IPQC C local gauge caption candidate
 
