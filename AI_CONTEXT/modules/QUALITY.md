@@ -2,6 +2,14 @@
 
 Nonblank invalid batch numbers now receive an inline Chinese/Vietnamese advisory while local Apply, atomic Save and server Submit policies remain unchanged. Blank/custom/source/time and decimal policy are preserved; no schema or live-data changes. [Synthetic UI/API evidence and remaining gates](../../docs/acceptance/iqc-number-hint-20261106/README.md). Independent Draft candidate; no merge or deployment.
 
+## 2026-11-06 — IPQC C performance/viewer follow-up candidate
+
+Representative 1,735-row local API/browser profiling records actual bytes and separate observation windows; it does not reproduce or resolve hosted seconds-scale latency. Fixed-case rows now label disabled standards correctly; missing named review bases no longer appear as zero/all-added. Indexed first-match comparisons preserve diff results and avoid repeated scans. Exact fixed-before data is used when present; unloaded bases are explicitly unavailable. [Metrics, limits and tests](../../docs/acceptance/ipqc-c-performance-20261106/README.md). No server authority or persistent format change.
+
+## 2026-11-06 — IPQC C explicit receipt settlement candidate
+
+Explicit original Save receipt recovery now retires only the matching unchanged local batch, preventing already-saved creates from remaining staged. Unknown/404 still blocks writes; Done explains the barrier and Save disables immediately during dispatch. No persistent format change. Normal repeat creation and separate lost-ACK recovery are distinguished from the unconfirmed live click report. [Evidence and integration order](../../docs/acceptance/ipqc-c-repeat-save-20261106/README.md).
+
 ## 2026-11-05 — A/B scope read preserves current private input
 
 A late scope permission reply captures current modal input before repainting only while its original actor object/id, epoch, delivery, scope generation, host, lifetime and client remain current. The same ownership predicate gates the permission result; stale completions neither capture nor repaint. Existing denial/Save/create/delete/Submit and receipt protections remain. The module asset pin advances to `20261105-ab-scope-input1`; no persistent format or data-model change. [Integration evidence](../../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).
