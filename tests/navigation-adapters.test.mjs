@@ -149,7 +149,7 @@ void test('changed persistent-navigation executable references have coherent new
   'i18n.js':'20261029-photo1',
   'user-access.css':'20261029-details2',
   'user-access-initial-read.js':'20261029-users-load2',
-  'web-feedback-entry.js':'20261105-offline1',
+  'web-feedback-entry.js':'20261106-access-read1',
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);

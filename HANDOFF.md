@@ -1,3 +1,7 @@
+## 2026-11-06 — Access queue read race follow-up
+
+The Draft #86 candidate fences access-list replies by request generation, status filter and cursor, and prevents a prior event's textarea from accepting input during a pending read or writing into a new event. Deterministic synthetic response-order coverage is added. The original business receipt/no-resend path is untouched; cold first-capability offline reporting remains a documented gap. Verify the new exact head and CI separately; no migration, activation, merge or deployment occurred here.
+
 # 2026-11-05 — Feedback integration with merged main
 
 Integrate main `bad04632d354f290850632976bf6eb69b8e2d3c9` (#85/#87) into Draft #86. Main pre-dispatch proofs, transfer, A/B and PROCESS late-input/ACK readback safeguards are retained; only metadata observations are added. Exact byte projection and historical inverses remain strict. Cache references combine both changes. Access collection remains default-off, candidate schema is not adopted, cold-start reporting gaps remain, and no live data/migration/merge/deployment occurs. Exact-head evidence and remote CI must be evaluated separately.
