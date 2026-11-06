@@ -1,3 +1,7 @@
+## 2026-11-06 — IPQC C performance/viewer follow-up candidate
+
+Representative 1,735-row local API/browser profiling records actual bytes and separate observation windows; it does not reproduce or resolve hosted seconds-scale latency. Fixed-case rows now label disabled standards correctly; missing named review bases no longer appear as zero/all-added. Indexed first-match comparisons preserve diff results and avoid repeated scans. Exact fixed-before data is used when present; unloaded bases are explicitly unavailable. [Metrics, limits and tests](../../docs/acceptance/ipqc-c-performance-20261106/README.md). No server authority or persistent format change.
+
 ## 2026-11-06 — IPQC C explicit receipt settlement candidate
 
 Explicit original Save receipt recovery now retires only the matching unchanged local batch, preventing already-saved creates from remaining staged. Unknown/404 still blocks writes; Done explains the barrier and Save disables immediately during dispatch. No persistent format change. Normal repeat creation and separate lost-ACK recovery are distinguished from the unconfirmed live click report. [Evidence and integration order](../../docs/acceptance/ipqc-c-repeat-save-20261106/README.md).

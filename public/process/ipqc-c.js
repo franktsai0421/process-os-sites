@@ -676,12 +676,25 @@
     catch(error){state.error=error.message;}
     finally{state.loading=false;if(caseHistory===state)draw();}
   }
+  function caseRowsById(rows){
+    if(!rows.every(row=>typeof row.id==='string'))return id=>rows.find(row=>row.id===id);
+    const index=new Map();for(const row of rows)if(!index.has(row.id))index.set(row.id,row);
+    return id=>index.get(id);
+  }
+  function caseComparison(before,after){
+    if(!before)return null;
+    const prior=caseRowsById(before.items),changedItems=after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(prior(item.id)));
+    return {errorsBefore:before.errors.filter(row=>!row.deleted).length,errorsAfter:after.errors.filter(row=>!row.deleted).length,
+      itemsBefore:before.items.filter(row=>!row.deleted).length,itemsAfter:after.items.filter(row=>!row.deleted).length,
+      changed:changedItems.length,changedItems};
+  }
   function caseHistoryHTML() {
     const state=caseHistory,c=state.reviewCase;
     const ids=c?[...new Set([...c.before.items,...c.content.items].map(i=>i.id))]:[];
-    const changes=ids.map(id=>({id,before:c.before.items.find(i=>i.id===id),after:c.content.items.find(i=>i.id===id)})).filter(row=>state.showAll||!same(row.before,row.after));
-    const errors=c?[...new Set([...c.before.errors,...c.content.errors].map(e=>e.id))].map(id=>({before:c.before.errors.find(e=>e.id===id),after:c.content.errors.find(e=>e.id===id)})).filter(row=>state.showAll||!same(row.before,row.after)):[];
-    const itemHTML=item=>!item?`<p>${t('Không tồn tại','不存在')}</p>`:`<p><code>${h(item.code)}</code> · ${item.deleted?t('Đã xóa','已刪除'):t('Đang dùng','使用中')}</p><dl><dt>${t('Tiêu chuẩn','標準')}</dt><dd>${h(item.standard)}</dd><dt>${t('Cách kiểm tra','檢查方式')}</dt><dd>${h(item.description)}</dd><dt>${t('Thiết bị','檢具')}</dt><dd>${h(item.equipmentSnapshot?.name||item.equipmentId||t('Bằng mắt','目視'))}</dd><dt>${t('Quy tắc','規則')}</dt><dd>${h(ruleSummary(item.rule,item.frequency))}</dd><dt>${t('Ghi chú','備註')}</dt><dd>${h(item.note)}</dd></dl><div class="ipqcc-case-photos">${(item.mediaItems||[]).map(photo=>`<a href="${h(photoUrl(photo))}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note||photo.name)}"><span>${h(photo.note||photo.name)}</span></a>`).join('')}</div>`;
+    const beforeItems=caseRowsById(c?.before.items||[]),afterItems=caseRowsById(c?.content.items||[]),beforeErrors=caseRowsById(c?.before.errors||[]),afterErrors=caseRowsById(c?.content.errors||[]);
+    const changes=ids.map(id=>({id,before:beforeItems(id),after:afterItems(id)})).filter(row=>state.showAll||!same(row.before,row.after));
+    const errors=c?[...new Set([...c.before.errors,...c.content.errors].map(e=>e.id))].map(id=>({before:beforeErrors(id),after:afterErrors(id)})).filter(row=>state.showAll||!same(row.before,row.after)):[];
+    const itemHTML=item=>!item?`<p>${t('Không tồn tại','不存在')}</p>`:`<p><code>${h(item.code)}</code> · ${item.deleted?t('Đã xóa','已刪除'):item.standardEnabled?t('Đang dùng','使用中'):t('Tạm ngưng','停用')}</p><dl><dt>${t('Tiêu chuẩn','標準')}</dt><dd>${h(item.standard)}</dd><dt>${t('Cách kiểm tra','檢查方式')}</dt><dd>${h(item.description)}</dd><dt>${t('Thiết bị','檢具')}</dt><dd>${h(item.equipmentSnapshot?.name||item.equipmentId||t('Bằng mắt','目視'))}</dd><dt>${t('Quy tắc','規則')}</dt><dd>${h(ruleSummary(item.rule,item.frequency))}</dd><dt>${t('Ghi chú','備註')}</dt><dd>${h(item.note)}</dd></dl><div class="ipqcc-case-photos">${(item.mediaItems||[]).map(photo=>`<a href="${h(photoUrl(photo))}" target="_blank" rel="noopener"><img decoding="async" loading="lazy" src="${h(photoUrl(photo))}" alt="${h(photo.note||photo.name)}"><span>${h(photo.note||photo.name)}</span></a>`).join('')}</div>`;
     return `<div class="ipqcc-overlay"><section class="ipqcc-dialog ipqcc-case-dialog" id="ipqcc-case-dialog" role="dialog" aria-modal="true" aria-labelledby="ipqcc-case-title"><header><h3 id="ipqcc-case-title">${t('Hồ sơ gửi duyệt cố định','固定送審案件')}</h3><button type="button" id="ipqcc-case-close" aria-label="${t('Đóng','關閉')}">×</button></header><div class="ipqcc-dialog-body">
       <p>${t('Chỉ đọc: nội dung và ảnh tại thời điểm gửi. Thay đổi bản nháp không sửa hồ sơ này. Giờ Việt Nam (UTC+7).','唯讀：送審當時內容與圖片；後續草稿修改不改写此案件。越南時間（UTC+7）。')}</p>
       ${state.error?`<p class="ipqcc-message" role="alert">${h(state.error)}</p>`:''}${state.loading?`<p role="status">${t('Đang tải…','載入中…')}</p>`:''}
@@ -1143,11 +1156,12 @@
     const cases=[...pending,...history];
     reviewHost.querySelector('.ipqcc-review-body').innerHTML=cases.length?cases.map(v=>{
       const base=control.versions.find(x=>x.id===v.baseVersionId);
-      const before=base?.snapshot||{errors:[],items:[]},after=v.snapshot;
-      const changed=after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(before.items.find(x=>x.id===item.id))).length;
+      const fixed=control.workflow?.cases?.find(row=>row.id===v.id);
+      const before=fixed?.before||base?.snapshot||(!v.baseVersionId?{errors:[],items:[]}:null),after=v.snapshot;
+      const comparison=caseComparison(before,after);
       return `<article class="vd-review-case"><details data-case-id="${h(v.id)}"><summary><b>IPQC-C · V${v.number} · ${status(v.status)}</b> · ${t('Xem nội dung','展開內容')}</summary><p>${t('Người sửa','修改者')} ${h(v.creatorName)} · ${t('Gửi duyệt','送審')} ${h(date(v.submittedAt))}${v.reviewedBy?`<br>${t('Người duyệt','確認者')} ${h(v.reviewedBy)} · ${h(date(v.reviewedAt))}`:''}${v.reviewComment?`<br>${t('Ý kiến','意見')} ${h(v.reviewComment)}`:''}</p>
-        <p>${t('Mã lỗi','錯誤代碼')} ${before.errors.filter(x=>!x.deleted).length} → ${after.errors.filter(x=>!x.deleted).length} · ${t('Hạng mục','檢查項目')} ${before.items.filter(x=>!x.deleted).length} → ${after.items.filter(x=>!x.deleted).length} · ${t('Thay đổi','變動')} ${changed}</p>
-        <details><summary>${t('Xem thay đổi và lịch sử','查看差異與歷程')}</summary>${after.items.filter(item=>JSON.stringify(item)!==JSON.stringify(before.items.find(x=>x.id===item.id))).slice(0,100).map(item=>`<p><code>${h(item.code)}</code> · ${h(item.standard)} · ${item.mediaItems.length} ${t('ảnh','張圖')}</p>`).join('')}${v.history.map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${h(date(event.at))}</p>`).join('')}</details>
+        ${comparison?`<p>${t('Mã lỗi','錯誤代碼')} ${comparison.errorsBefore} → ${comparison.errorsAfter} · ${t('Hạng mục','檢查項目')} ${comparison.itemsBefore} → ${comparison.itemsAfter} · ${t('Thay đổi','變動')} ${comparison.changed}</p>`:`<p>${t('Chưa tải bản gốc; xem hồ sơ cố định để đối chiếu.','基準版尚未載入，請查看固定案件核對。')}</p>`}
+        <details><summary>${t('Xem thay đổi và lịch sử','查看差異與歷程')}</summary>${(comparison?.changedItems||[]).slice(0,100).map(item=>`<p><code>${h(item.code)}</code> · ${h(item.standard)} · ${item.mediaItems.length} ${t('ảnh','張圖')}</p>`).join('')}${v.history.map(event=>`<p>${h(event.action)} · ${h(event.actorName)} · ${h(date(event.at))}</p>`).join('')}</details>
         ${v.contentIssues?.issues.length?`<details><summary>${t('Cần bổ sung · không chặn gửi/duyệt','待補 · 不阻擋送審／核准')} · ${v.contentIssues.issues.length}</summary>${v.contentIssues.issues.map(i=>`<p>${h(i.message)} · ${h(i.path.map(p=>typeof p==='string'?p:p.id).join(' / '))}</p>`).join('')}</details>`:''}
         </details>${v.status==='pending'&&(permitted('approval.approve')||permitted('approval.reject')||permitted('approval.withdraw'))?`<label>${t('Ý kiến duyệt (không bắt buộc)','審核意見（選填）')}<textarea data-ipqcc-review-comment="${h(v.id)}"></textarea></label><div class="vd-actions">${permitted('approval.withdraw')?`<button type="button" data-ipqcc-review="withdraw" data-id="${h(v.id)}" class="button ghost">${t('Rút hồ sơ','撤回送審')}</button>`:''}${permitted('approval.reject')?`<button type="button" data-ipqcc-review="reject" data-id="${h(v.id)}" class="button ghost">${t('Trả lại','發回')}</button>`:''}${permitted('approval.approve')?`<button type="button" data-ipqcc-review="approve" data-id="${h(v.id)}" class="button signal">${t('Duyệt','確認')}</button>`:''}</div>`:''}</article>`;
     }).join(''):`<p>${t('Không có hồ sơ chờ duyệt','目前沒有待審案件')}</p>`;

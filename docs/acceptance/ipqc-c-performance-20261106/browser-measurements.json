@@ -1,0 +1,608 @@
+{
+  "rowsAtStart": 1735,
+  "functionSummary": {
+    "read": {
+      "samples": 12,
+      "medianMs": 51.65,
+      "maxMs": 151.4
+    },
+    "draw": {
+      "samples": 98,
+      "medianMs": 135.0,
+      "maxMs": 300
+    },
+    "stageLocal": {
+      "samples": 24,
+      "medianMs": 147.65,
+      "maxMs": 196.2
+    },
+    "submitEditor": {
+      "samples": 19,
+      "medianMs": 135.1,
+      "maxMs": 196.3
+    },
+    "writeShared": {
+      "samples": 19,
+      "medianMs": 402.9,
+      "maxMs": 688.2
+    },
+    "upload": {
+      "samples": 2,
+      "medianMs": 20.8,
+      "maxMs": 25.8
+    }
+  },
+  "imageDecode": [
+    {
+      "width": 1440,
+      "imageDecode": {
+        "ms": 5.600000000093132,
+        "width": 480,
+        "height": 240
+      }
+    },
+    {
+      "width": 390,
+      "imageDecode": {
+        "ms": 0.5,
+        "width": 480,
+        "height": 240
+      }
+    }
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 39.17043200000012,
+      "requestBytes": 0,
+      "responseBytes": 559471
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 49.28658900000005,
+      "requestBytes": 0,
+      "responseBytes": 215
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 10.793439999999919,
+      "requestBytes": 0,
+      "responseBytes": 559471
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 16.139660000000276,
+      "requestBytes": 0,
+      "responseBytes": 215
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 29.730237000000216,
+      "requestBytes": 0,
+      "responseBytes": 335
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 137.31967900000018,
+      "requestBytes": 213,
+      "responseBytes": 559590
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 25.19922799999995,
+      "requestBytes": 0,
+      "responseBytes": 559035
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 14.145437000000129,
+      "requestBytes": 0,
+      "responseBytes": 1118326
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 14.530146999999943,
+      "requestBytes": 0,
+      "responseBytes": 215
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 158.9628160000002,
+      "requestBytes": 388,
+      "responseBytes": 559968
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 21.3669289999998,
+      "requestBytes": 0,
+      "responseBytes": 559195
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 157.96426500000007,
+      "requestBytes": 398,
+      "responseBytes": 560134
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 17.414977000000363,
+      "requestBytes": 0,
+      "responseBytes": 559381
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 163.02045200000066,
+      "requestBytes": 399,
+      "responseBytes": 560337
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 22.058704000000034,
+      "requestBytes": 0,
+      "responseBytes": 559568
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "receipt",
+      "serverMs": 19.01849299999958,
+      "requestBytes": 0,
+      "responseBytes": 212
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 20.28387500000008,
+      "requestBytes": 0,
+      "responseBytes": 559756
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 22.718340999999782,
+      "requestBytes": 0,
+      "responseBytes": 1678829
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 17.334209000000556,
+      "requestBytes": 0,
+      "responseBytes": 215
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 131.78865499999938,
+      "requestBytes": 403,
+      "responseBytes": 560751
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 20.0436009999994,
+      "requestBytes": 0,
+      "responseBytes": 559949
+    },
+    {
+      "method": "PUT",
+      "path": "/api/ipqc-c/photo",
+      "kind": "state",
+      "serverMs": 14.29137400000036,
+      "requestBytes": 3270,
+      "responseBytes": 167
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 148.62757799999963,
+      "requestBytes": 951,
+      "responseBytes": 561511
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 17.979403999999704,
+      "requestBytes": 0,
+      "responseBytes": 560691
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/photo",
+      "kind": "state",
+      "serverMs": 3.4943380000004254,
+      "requestBytes": 0,
+      "responseBytes": 3270
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 31.449608999999327,
+      "requestBytes": 412,
+      "responseBytes": 150
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 13.483534000000873,
+      "requestBytes": 0,
+      "responseBytes": 1681696
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 16.031177000000753,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 137.4798609999998,
+      "requestBytes": 407,
+      "responseBytes": 561550
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 21.970682999999553,
+      "requestBytes": 0,
+      "responseBytes": 560694
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 214.19529200000034,
+      "requestBytes": 408035,
+      "responseBytes": 562392
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 23.533579000000827,
+      "requestBytes": 0,
+      "responseBytes": 561219
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 230.5626370000009,
+      "requestBytes": 408047,
+      "responseBytes": 562937
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 30.203867000000173,
+      "requestBytes": 0,
+      "responseBytes": 561744
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 83.78504700000121,
+      "requestBytes": 409078,
+      "responseBytes": 120
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 14.522343000000546,
+      "requestBytes": 0,
+      "responseBytes": 1684962
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 13.621030999998766,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 32.335157999998046,
+      "requestBytes": 0,
+      "responseBytes": 1684962
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 41.05244499999753,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/photo",
+      "kind": "state",
+      "serverMs": 3.2062369999985094,
+      "requestBytes": 0,
+      "responseBytes": 3270
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 39.49937800000043,
+      "requestBytes": 0,
+      "responseBytes": 1684962
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 55.33146900000065,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 17.63234899999952,
+      "requestBytes": 0,
+      "responseBytes": 1684962
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 30.790060999999696,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 23.471598000000085,
+      "requestBytes": 0,
+      "responseBytes": 561766
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 154.7213870000014,
+      "requestBytes": 389,
+      "responseBytes": 562655
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 21.251785000000382,
+      "requestBytes": 0,
+      "responseBytes": 561759
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 173.3080880000016,
+      "requestBytes": 397,
+      "responseBytes": 562821
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 17.630401999998867,
+      "requestBytes": 0,
+      "responseBytes": 561944
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 152.37636600000042,
+      "requestBytes": 398,
+      "responseBytes": 563023
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 17.936948999999004,
+      "requestBytes": 0,
+      "responseBytes": 562130
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/photo",
+      "kind": "state",
+      "serverMs": 15.275740999997652,
+      "requestBytes": 0,
+      "responseBytes": 3270
+    },
+    {
+      "method": "PUT",
+      "path": "/api/ipqc-c/photo",
+      "kind": "state",
+      "serverMs": 10.340413999998418,
+      "requestBytes": 3270,
+      "responseBytes": 167
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 144.35052300000098,
+      "requestBytes": 951,
+      "responseBytes": 563783
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 18.39056100000016,
+      "requestBytes": 0,
+      "responseBytes": 562871
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 213.8932390000009,
+      "requestBytes": 409838,
+      "responseBytes": 564659
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 31.359538999997312,
+      "requestBytes": 0,
+      "responseBytes": 563395
+    },
+    {
+      "method": "POST",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 229.4439960000018,
+      "requestBytes": 409849,
+      "responseBytes": 565203
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 20.006649999999354,
+      "requestBytes": 0,
+      "responseBytes": 563919
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "receipt",
+      "serverMs": 15.829913000001397,
+      "requestBytes": 0,
+      "responseBytes": 213
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 31.96939399999974,
+      "requestBytes": 0,
+      "responseBytes": 1691536
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 48.09973099999843,
+      "requestBytes": 0,
+      "responseBytes": 563927
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 43.593722999998135,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "receipt",
+      "serverMs": 21.815441999999166,
+      "requestBytes": 0,
+      "responseBytes": 213
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "state",
+      "serverMs": 21.059681000002456,
+      "requestBytes": 0,
+      "responseBytes": 563927
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 12.295696999997745,
+      "requestBytes": 0,
+      "responseBytes": 1691536
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 13.915322000000742,
+      "requestBytes": 0,
+      "responseBytes": 216
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c",
+      "kind": "state",
+      "serverMs": 26.56988099999944,
+      "requestBytes": 0,
+      "responseBytes": 1691536
+    },
+    {
+      "method": "GET",
+      "path": "/api/ipqc-c/workflow",
+      "kind": "permissions",
+      "serverMs": 32.955824000000575,
+      "requestBytes": 0,
+      "responseBytes": 216
+    }
+  ],
+  "limits": "Synthetic loopback HTTP; function timings overlap and are not additive. Browser requests include controlled fault/delay scenarios, never live latency. Resource entries are from the final document after reload; earlier phases are retained separately."
+}
