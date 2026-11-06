@@ -20,6 +20,18 @@ Local Done now explains an unknown-operation barrier instead of silently returni
 - Isolated atomic API local Save test: PASS, including CAS/allocations/receipts, peer fields, rollback, permissions, equipment/photo validation and pending lock. Extended same fixture through Submit, unauthorized editor approval refusal, Withdraw, same fixed-snapshot resubmit, reviewer Return, resubmit and distinct reviewer Approve; persisted fixed contents and old withdrawn case preserved.
 - 64 Begin/recovery/submission/rejection contract tests: PASS. Save projection and read recovery client suites: PASS. Lint: PASS before final documentation packaging; exact head CI tracked separately.
 - Legacy `test-ipqc-c-workflow-v3.cjs`: FAIL at synthetic login initialization (503 before any workflow), not classified as a product workflow failure. Current local-Save fixture completed the workflow cases above.
-- Live reported Save-click cause, real-device IME/touch, compiled hosted Site acceptance: NOT RUN. Historical unknown operations were not reissued or classified failed.
+- Live latency cause and real-device IME/touch: NOT RUN. The coordinating live UI verification below is distinct from this branch’s isolated tests and does not certify deployment of this candidate. Historical unknown operations were not reissued or classified failed.
 
 No data-model or persistent format change. Integrate after main's #75 and identified Begin/recovery work; this branch already starts from that main. Coordinate `ipqc-c.js` changes with module-boundary work. Parent integration must update its asset cache pin in `public/process/index.html`; that shared shell is deliberately left to integration. No dependency on AB performance or permission redesign.
+
+## Coordinating live UI acceptance — 2026-11-06
+
+Reported by the parent task after normal-UI verification; this worker did not repeat hosted reads or writes. These observations concern the current test Site, not deployment of this PR.
+
+- Full V28 draft listing: 174 pages, 1,735 rows (869 errors / 866 items). Formal V27: 173 pages, 1,730 rows (866 errors / 864 items).
+- Comparing visible scalar fields and photo URL/name found only five added QA rows; all 1,730 pre-existing rows were unchanged within those compared fields. The additions are the prior empty QA L9 group; QA L10 group and L10-01 (standard disabled, photo, caliper, CPK on, batch fixed count 3); and QA L11 group plus L11-01, both soft-deleted (`deleted=true`). This is a visible-field comparison, not a claim about unobserved bytes.
+- Second live round PASS: three consecutive local forms, required custom-time/AQL validation, Save after switching stages, QA group soft-delete Save and independent reload. Saved time displayed 18:04. Earlier Save completion was delayed but successful; no repeat Save was issued for that waiting operation.
+- Independent image loading completed: QA photo naturalWidth 480, gauge photo naturalWidth 900.
+- Whole-library UI still showed 66 incomplete items / 306 coverage issues. Live whole-V28 submission and approval were NOT RUN; parent was confirming the affected scope. The isolated fixed-snapshot review tests above do not approve the live draft.
+
+PR #89 code head `9c2f60f`: IPQC C local Save (`42207882751`), AB C local Save (`42207882429`) and PROCESS local Save (`42207882975`) passed. Local safety (`42207882985`) was still running when checked. No submitted reviews or inline review threads were present. Documentation-only updates do not change these code-head results into exact-new-head results.
