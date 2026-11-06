@@ -1,0 +1,31 @@
+{
+  "rows": 1735,
+  "archiveCases": 2,
+  "faultCases": 30,
+  "midReadSessionRevocationChecks": 2,
+  "sessionRevocationEnabled": true,
+  "delayMs": 0,
+  "before": {
+    "ms": 23.923121000000265,
+    "gets": 15,
+    "maxInFlight": 1,
+    "dbReads": 14,
+    "dbKinds": {
+      "shared-state": 1,
+      "session-revocation": 13
+    }
+  },
+  "after": {
+    "ms": 24.061791000000085,
+    "gets": 15,
+    "maxInFlight": 5,
+    "dbReads": 14,
+    "dbKinds": {
+      "shared-state": 1,
+      "session-revocation": 13
+    }
+  },
+  "equalPayload": true,
+  "equalObjectReadSet": true,
+  "limits": "Synthetic per-GET delay only; no live or CPU/storage decomposition. All selected aggregates/bodies retained; no cross-request cache. Normal compact reads need no since/timer. Tests also cover unchanged since, excluded selectors, fresh view revocation and revoked sessions."
+}
