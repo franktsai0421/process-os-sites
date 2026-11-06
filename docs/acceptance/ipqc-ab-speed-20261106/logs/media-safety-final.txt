@@ -1,0 +1,32 @@
+✔ exact A/B phase rejects unrelated routes and binds headers and selected auth state (931.521384ms)
+✔ A/B selected auth changes invalidate decisions without granting another module (472.799842ms)
+✔ fresh permission GETs never share phases across requests (432.439196ms)
+✔ A/B Save denies revocation at fresh boundary 1 without CAS (309.912074ms)
+✔ A/B Save denies revocation at fresh boundary 2 without CAS (302.749122ms)
+✔ A/B Save denies revocation at fresh boundary 3 without CAS (280.560776ms)
+✔ A/B Save denies revocation at fresh boundary 4 without CAS (337.86672ms)
+✔ A/B Save denies unavailable storage at fresh boundary 1 without CAS (315.289339ms)
+✔ A/B Save denies unavailable storage at fresh boundary 2 without CAS (285.449985ms)
+✔ A/B Save denies unavailable storage at fresh boundary 3 without CAS (265.302676ms)
+✔ A/B Save denies unavailable storage at fresh boundary 4 without CAS (259.547585ms)
+[shared-workflow] ipqc-ab:module de1ffa0e-3f82-482e-97c2-a81912f252e3 unknown
+✔ A/B full-write read overlap retains unrelated immutable faults and never commits (286.558216ms)
+✔ performance source inverse reconstructs all four pinned baseline files and refuses altered bytes (2.370243ms)
+✔ A/B complete GET denies revocation at selected read boundary 1 without private payload (263.568346ms)
+✔ A/B complete GET denies revocation at selected read boundary 2 without private payload (292.182224ms)
+✔ A/B complete GET denies revocation at selected read boundary 3 without private payload (275.946359ms)
+✔ A/B complete GET denies revocation at selected read boundary 4 without private payload (318.977236ms)
+(node:15686) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"status":"PASS_SYNTHETIC_PHOTO_ROUTES","cases":19,"tests":["iqc denies origin identity and role before storage","iqc normalizes before digest and preserves authorized private reads","iqc rejects module size declarations corrupt data and wrong MIME without storage","ipqc-ab denies origin identity and role before storage","ipqc-ab normalizes before digest and preserves authorized private reads","ipqc-ab rejects module size declarations corrupt data and wrong MIME without storage","ipqc-c denies origin identity and role before storage","ipqc-c normalizes before digest and preserves authorized private reads","ipqc-c rejects module size declarations corrupt data and wrong MIME without storage","routine-equipment denies origin identity and role before storage","routine-equipment normalizes before digest and preserves authorized private reads","routine-equipment rejects module size declarations corrupt data and wrong MIME without storage","routine-fqc denies origin identity and role before storage","routine-fqc normalizes before digest and preserves authorized private reads","routine-fqc rejects module size declarations corrupt data and wrong MIME without storage","routine-fqc keeps module-enable and maintenance gates","tooling denies origin identity and role before storage","tooling normalizes before digest and preserves authorized private reads","tooling rejects module size declarations corrupt data and wrong MIME without storage"],"SDK":false,"HTTP":false,"realData":false,"realCredentials":false,"compiledRuntime":false}
+✔ tests/photo-routes.test.mjs (1384.456861ms)
+{"status":"PASS_SYNTHETIC_LOSSLESS_PNG_UPLOAD","cases":19,"tests":["opaque PNG is smaller with identical decoded pixels and immutable original","alpha, colour profile and text metadata are retained without resize","small PNG stays original; already compressed PNG never grows or changes decoded pixels","animation and interlace are explicitly preserved, not flattened","JPEG WebP and animated GIF stay in original format and bytes","wrong MIME, CRC corruption, truncation and invalid zlib are rejected","actual streamed body limit works without trusting Content-Length","successful upload returns the normalized bytes before caller content-address hashing","input failure mapping is explicit and unknown internal failures do not become validation success","PNG filter 0 preserves exact decoded samples","PNG filter 1 preserves exact decoded samples","PNG filter 2 preserves exact decoded samples","PNG filter 3 preserves exact decoded samples","PNG filter 4 preserves exact decoded samples","PNG filter all preserves exact decoded samples","packed/palette/16-bit PNG {\"colour\":3,\"bits\":8} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":0,\"bits\":1,\"width\":2048,\"height\":1024} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":0,\"bits\":16} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":6,\"bits\":16} preserves samples and metadata"],"realData":false,"network":false,"resize":false,"nativeSharpOnlyUsedAsTestOracle":true}
+✔ tests/photo-upload.test.mjs (2089.905702ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6049.699847

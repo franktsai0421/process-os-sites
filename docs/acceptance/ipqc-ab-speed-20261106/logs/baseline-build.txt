@@ -1,0 +1,10 @@
+
+> process-os-sites@0.1.0 build
+> node scripts/local-build.mjs
+
+{"format":"PROCESS_OS_SAFE_BUILD_RESULT_V1","status":"PASS_BUILD_EXIT0_AND_POSTBUILD_KNOWN_AUTH_CLIENT_CHECK","childExitCode":0,"childSignal":null,"spawnCode":null,"exitCode":0,"stdoutBytes":3716,"stderrBytes":136,"memoryCaptureOverflow":false,"warningLineCount":0,"errorLineCount":0,"unknownLineCount":82,"errorKinds":[],"sourceLocations":[],"postBuildAuthCheckPassCount":1,"postBuildAuthCheckFailureCount":0,"publicAuthViolationCategories":[],"rawOutputForwarded":false,"rawOutputPersisted":false,"rawWindowsReturned":false,"valueHashesReturned":false,"serverPrivateAuthenticationPreserved":true,"compiledServerPublicDistributionApproved":false,"universalSecretAbsence":false,"forwardedSignal":null,"signalForwardFailed":false}
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

@@ -1,0 +1,1145 @@
+{
+  "kind": "compiled Worker + Chromium, synthetic data only",
+  "conditions": {
+    "rounds": 1,
+    "viewport": "1280x850",
+    "language": "zh-Hant",
+    "cache": "new browser context per round; warm within round",
+    "media": "deterministic lossless PNG 1200x800",
+    "network": "loopback, no artificial latency; outbound blocked",
+    "timing": "Node Playwright and in-browser wall time reported separately; excludes ChatGPT bridge; complete UI, images and references awaited"
+  },
+  "samples": [
+    {
+      "round": 0,
+      "name": "warm-reload",
+      "playwrightMs": 327.93662600000016,
+      "browserMs": 324,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/process/"
+        },
+        {
+          "method": "GET",
+          "path": "/process/access-policy.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/delivery-purpose.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shared-state.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css"
+        },
+        {
+          "method": "GET",
+          "path": "/process/local-asset-fallback.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/bootstrap.js"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-bootstrap"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-ledger.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/spreadsheet-loader.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/editor-line-selection.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/app.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/navigation-lifecycle.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-revert.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/process/access-policy.mjs",
+          "initiator": "other",
+          "durationMs": 19.199999999953434,
+          "ttfbMs": 18.5,
+          "transferBytes": 4307,
+          "decodedBytes": 11219
+        },
+        {
+          "path": "/process/delivery-purpose.mjs",
+          "initiator": "other",
+          "durationMs": 22.400000000023283,
+          "ttfbMs": 20,
+          "transferBytes": 1106,
+          "decodedBytes": 2053
+        },
+        {
+          "path": "/process/shared-state.js",
+          "initiator": "script",
+          "durationMs": 22.800000000046566,
+          "ttfbMs": 20.5,
+          "transferBytes": 9851,
+          "decodedBytes": 32031
+        },
+        {
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css",
+          "initiator": "link",
+          "durationMs": 39.5,
+          "ttfbMs": 29.5,
+          "transferBytes": 80225,
+          "decodedBytes": 413463
+        },
+        {
+          "path": "/process/local-asset-fallback.js",
+          "initiator": "script",
+          "durationMs": 30.5,
+          "ttfbMs": 29.300000000046566,
+          "transferBytes": 551,
+          "decodedBytes": 349
+        },
+        {
+          "path": "/process/bootstrap.js",
+          "initiator": "script",
+          "durationMs": 30.900000000023283,
+          "ttfbMs": 29.400000000023283,
+          "transferBytes": 4156,
+          "decodedBytes": 9415
+        },
+        {
+          "path": "/api/process-bootstrap",
+          "initiator": "fetch",
+          "durationMs": 26.5,
+          "ttfbMs": 25.79999999993015,
+          "transferBytes": 2091,
+          "decodedBytes": 8110
+        },
+        {
+          "path": "/process/owned-draft-ledger.mjs",
+          "initiator": "script",
+          "durationMs": 27.5,
+          "ttfbMs": 25.300000000046566,
+          "transferBytes": 7078,
+          "decodedBytes": 21380
+        },
+        {
+          "path": "/process/spreadsheet-loader.js",
+          "initiator": "link",
+          "durationMs": 30.400000000023283,
+          "ttfbMs": 29.300000000046566,
+          "transferBytes": 2643,
+          "decodedBytes": 5653
+        },
+        {
+          "path": "/process/editor-line-selection.js",
+          "initiator": "link",
+          "durationMs": 41.59999999997672,
+          "ttfbMs": 38.59999999997672,
+          "transferBytes": 2562,
+          "decodedBytes": 6401
+        },
+        {
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js",
+          "initiator": "link",
+          "durationMs": 54.09999999997672,
+          "ttfbMs": 38.59999999997672,
+          "transferBytes": 44112,
+          "decodedBytes": 160664
+        },
+        {
+          "path": "/process/app.js",
+          "initiator": "link",
+          "durationMs": 55.29999999993015,
+          "ttfbMs": 38.59999999997672,
+          "transferBytes": 58680,
+          "decodedBytes": 221466
+        },
+        {
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js",
+          "initiator": "link",
+          "durationMs": 102.30000000004657,
+          "ttfbMs": 38,
+          "transferBytes": 653815,
+          "decodedBytes": 2363245
+        },
+        {
+          "path": "/process/navigation-lifecycle.mjs",
+          "initiator": "script",
+          "durationMs": 41.29999999993015,
+          "ttfbMs": 37.90000000002328,
+          "transferBytes": 3291,
+          "decodedBytes": 9981
+        },
+        {
+          "path": "/favicon.ico",
+          "initiator": "other",
+          "durationMs": 11.20000000006985,
+          "ttfbMs": null,
+          "transferBytes": 0,
+          "decodedBytes": 0
+        },
+        {
+          "path": "/process/owned-draft-revert.mjs",
+          "initiator": "script",
+          "durationMs": 75.30000000004657,
+          "ttfbMs": 74.80000000004657,
+          "transferBytes": 2842,
+          "decodedBytes": 7222
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 17.5,
+          "ttfbMs": 16.800000000046566,
+          "transferBytes": 685,
+          "decodedBytes": 1111
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 19.20000000006985,
+          "ttfbMs": 18.70000000006985,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "image-save",
+      "playwrightMs": 489.199607,
+      "browserMs": 483,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "POST",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/ipqc-ab/photo"
+        },
+        {
+          "method": "POST",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/photo"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 26.400000000023283,
+          "ttfbMs": 24.800000000046566,
+          "transferBytes": 369,
+          "decodedBytes": 53
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 26.29999999993015,
+          "ttfbMs": 25.399999999906868,
+          "transferBytes": 458,
+          "decodedBytes": 248
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 13.300000000046566,
+          "ttfbMs": 11.5,
+          "transferBytes": 458,
+          "decodedBytes": 248
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 26.5,
+          "ttfbMs": 25.900000000023283,
+          "transferBytes": 795,
+          "decodedBytes": 1028
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 14.699999999953434,
+          "ttfbMs": 14.199999999953434,
+          "transferBytes": 762,
+          "decodedBytes": 1037
+        },
+        {
+          "path": "/api/ipqc-ab/photo",
+          "initiator": "fetch",
+          "durationMs": 195.80000000004657,
+          "ttfbMs": 194.90000000002328,
+          "transferBytes": 417,
+          "decodedBytes": 168
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 29.300000000046566,
+          "ttfbMs": 28.70000000006985,
+          "transferBytes": 1161,
+          "decodedBytes": 2060
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 15.5,
+          "ttfbMs": 14.599999999976717,
+          "transferBytes": 1158,
+          "decodedBytes": 2062
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 21.599999999976717,
+          "ttfbMs": 20.699999999953434,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 28.900000000023283,
+          "ttfbMs": 27.800000000046566,
+          "transferBytes": 1491,
+          "decodedBytes": 6808
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 18.300000000046566,
+          "ttfbMs": 17.699999999953434,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        },
+        {
+          "path": "/api/ipqc-ab/photo",
+          "initiator": "img",
+          "durationMs": 18.20000000006985,
+          "ttfbMs": 17.5,
+          "transferBytes": 4837,
+          "decodedBytes": 4537
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "reload-after-save",
+      "playwrightMs": 330.26289099999985,
+      "browserMs": 327,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/process/"
+        },
+        {
+          "method": "GET",
+          "path": "/process/access-policy.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/delivery-purpose.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shared-state.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css"
+        },
+        {
+          "method": "GET",
+          "path": "/process/local-asset-fallback.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/bootstrap.js"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-bootstrap"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-ledger.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/spreadsheet-loader.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/editor-line-selection.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/app.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/navigation-lifecycle.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-revert.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/photo"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/process/access-policy.mjs",
+          "initiator": "other",
+          "durationMs": 18.5,
+          "ttfbMs": 15.300000000046566,
+          "transferBytes": 4307,
+          "decodedBytes": 11219
+        },
+        {
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css",
+          "initiator": "link",
+          "durationMs": 30.599999999976717,
+          "ttfbMs": 16.599999999976717,
+          "transferBytes": 80225,
+          "decodedBytes": 413463
+        },
+        {
+          "path": "/process/local-asset-fallback.js",
+          "initiator": "script",
+          "durationMs": 39.199999999953434,
+          "ttfbMs": 37.90000000002328,
+          "transferBytes": 551,
+          "decodedBytes": 349
+        },
+        {
+          "path": "/process/delivery-purpose.mjs",
+          "initiator": "other",
+          "durationMs": 39.699999999953434,
+          "ttfbMs": 38.09999999997672,
+          "transferBytes": 1106,
+          "decodedBytes": 2053
+        },
+        {
+          "path": "/process/shared-state.js",
+          "initiator": "script",
+          "durationMs": 39.90000000002328,
+          "ttfbMs": 38.199999999953434,
+          "transferBytes": 9851,
+          "decodedBytes": 32031
+        },
+        {
+          "path": "/process/bootstrap.js",
+          "initiator": "script",
+          "durationMs": 39.5,
+          "ttfbMs": 38,
+          "transferBytes": 4156,
+          "decodedBytes": 9415
+        },
+        {
+          "path": "/api/process-bootstrap",
+          "initiator": "fetch",
+          "durationMs": 17.100000000093132,
+          "ttfbMs": 16.600000000093132,
+          "transferBytes": 2093,
+          "decodedBytes": 8110
+        },
+        {
+          "path": "/favicon.ico",
+          "initiator": "other",
+          "durationMs": 5.400000000023283,
+          "ttfbMs": null,
+          "transferBytes": 0,
+          "decodedBytes": 0
+        },
+        {
+          "path": "/process/owned-draft-ledger.mjs",
+          "initiator": "script",
+          "durationMs": 14.600000000093132,
+          "ttfbMs": 13.5,
+          "transferBytes": 7078,
+          "decodedBytes": 21380
+        },
+        {
+          "path": "/process/spreadsheet-loader.js",
+          "initiator": "link",
+          "durationMs": 16.199999999953434,
+          "ttfbMs": 15.099999999976717,
+          "transferBytes": 2643,
+          "decodedBytes": 5653
+        },
+        {
+          "path": "/process/editor-line-selection.js",
+          "initiator": "link",
+          "durationMs": 26.5,
+          "ttfbMs": 23.699999999953434,
+          "transferBytes": 2562,
+          "decodedBytes": 6401
+        },
+        {
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js",
+          "initiator": "link",
+          "durationMs": 37.60000000009313,
+          "ttfbMs": 23.5,
+          "transferBytes": 44112,
+          "decodedBytes": 160664
+        },
+        {
+          "path": "/process/app.js",
+          "initiator": "link",
+          "durationMs": 41.5,
+          "ttfbMs": 23.399999999906868,
+          "transferBytes": 58680,
+          "decodedBytes": 221466
+        },
+        {
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js",
+          "initiator": "link",
+          "durationMs": 86,
+          "ttfbMs": 23.199999999953434,
+          "transferBytes": 653815,
+          "decodedBytes": 2363245
+        },
+        {
+          "path": "/process/navigation-lifecycle.mjs",
+          "initiator": "script",
+          "durationMs": 26.300000000046566,
+          "ttfbMs": 23.199999999953434,
+          "transferBytes": 3291,
+          "decodedBytes": 9981
+        },
+        {
+          "path": "/process/owned-draft-revert.mjs",
+          "initiator": "script",
+          "durationMs": 73.30000000004657,
+          "ttfbMs": 71.69999999995343,
+          "transferBytes": 2842,
+          "decodedBytes": 7222
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 20.800000000046566,
+          "ttfbMs": 19.699999999953434,
+          "transferBytes": 1491,
+          "decodedBytes": 6808
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 13.5,
+          "ttfbMs": 13.099999999976717,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 14.300000000046566,
+          "ttfbMs": 13.800000000046566,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        },
+        {
+          "path": "/api/ipqc-ab/photo",
+          "initiator": "img",
+          "durationMs": 16.20000000006985,
+          "ttfbMs": 15.20000000006985,
+          "transferBytes": 4837,
+          "decodedBytes": 4537
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "return-from-iqc",
+      "playwrightMs": 102.15370899999925,
+      "browserMs": 100,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/process-bootstrap"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/api/process-bootstrap",
+          "initiator": "fetch",
+          "durationMs": 20.599999999976717,
+          "ttfbMs": 19.599999999976717,
+          "transferBytes": 2093,
+          "decodedBytes": 8110
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 17.599999999976717,
+          "ttfbMs": 17.199999999953434,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 32.70000000006985,
+          "ttfbMs": 32.09999999997672,
+          "transferBytes": 1491,
+          "decodedBytes": 6808
+        },
+        {
+          "path": "/favicon.ico",
+          "initiator": "other",
+          "durationMs": 4.699999999953434,
+          "ttfbMs": null,
+          "transferBytes": 0,
+          "decodedBytes": 0
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 17.599999999976717,
+          "ttfbMs": 17.099999999976717,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "open-submit-confirmation",
+      "playwrightMs": 75.86728399999993,
+      "browserMs": 71,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 19,
+          "ttfbMs": 17.70000000006985,
+          "transferBytes": 1158,
+          "decodedBytes": 2062
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "submit-confirm-to-pending",
+      "playwrightMs": 232.69256099999984,
+      "browserMs": 230,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "POST",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 11.20000000006985,
+          "ttfbMs": 10.70000000006985,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 31.5,
+          "ttfbMs": 30.699999999953434,
+          "transferBytes": 1446,
+          "decodedBytes": 3506
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 16.900000000023283,
+          "ttfbMs": 16.300000000046566,
+          "transferBytes": 1423,
+          "decodedBytes": 3508
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 18.79999999993015,
+          "ttfbMs": 17.79999999993015,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 28.300000000046566,
+          "ttfbMs": 27.5,
+          "transferBytes": 1737,
+          "decodedBytes": 8481
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 18.400000000023283,
+          "ttfbMs": 17.5,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "close-fixed-case",
+      "playwrightMs": 43.5863989999998,
+      "browserMs": 39,
+      "requests": [],
+      "resources": []
+    },
+    {
+      "round": 0,
+      "name": "withdraw-confirm-to-editable",
+      "playwrightMs": 170.54534500000045,
+      "browserMs": 168,
+      "requests": [
+        {
+          "method": "POST",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 25.5,
+          "ttfbMs": 24.600000000093132,
+          "transferBytes": 1436,
+          "decodedBytes": 2936
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 15.899999999906868,
+          "ttfbMs": 15.199999999953434,
+          "transferBytes": 1410,
+          "decodedBytes": 2938
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 10.400000000023283,
+          "ttfbMs": 9.900000000023283,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 25.400000000023283,
+          "ttfbMs": 24.800000000046566,
+          "transferBytes": 1659,
+          "decodedBytes": 7486
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 31.800000000046566,
+          "ttfbMs": 31,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "name": "reload-after-local-delete",
+      "playwrightMs": 329.7762039999998,
+      "browserMs": 327,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/process/"
+        },
+        {
+          "method": "GET",
+          "path": "/process/access-policy.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/delivery-purpose.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shared-state.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css"
+        },
+        {
+          "method": "GET",
+          "path": "/process/local-asset-fallback.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/bootstrap.js"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-bootstrap"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-ledger.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/spreadsheet-loader.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/editor-line-selection.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/app.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js"
+        },
+        {
+          "method": "GET",
+          "path": "/process/navigation-lifecycle.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/process/owned-draft-revert.mjs"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/workflow"
+        },
+        {
+          "method": "GET",
+          "path": "/api/process-ipqc"
+        },
+        {
+          "method": "GET",
+          "path": "/api/ipqc-ab/photo"
+        }
+      ],
+      "resources": [
+        {
+          "path": "/process/access-policy.mjs",
+          "initiator": "other",
+          "durationMs": 36,
+          "ttfbMs": 34.09999999997672,
+          "transferBytes": 4307,
+          "decodedBytes": 11219
+        },
+        {
+          "path": "/process/delivery-purpose.mjs",
+          "initiator": "other",
+          "durationMs": 36.70000000006985,
+          "ttfbMs": 34,
+          "transferBytes": 1106,
+          "decodedBytes": 2053
+        },
+        {
+          "path": "/process/shared-state.js",
+          "initiator": "script",
+          "durationMs": 36.5,
+          "ttfbMs": 34,
+          "transferBytes": 9851,
+          "decodedBytes": 32031
+        },
+        {
+          "path": "/process/shell-styles.fcd0a855f126ac4986fb.css",
+          "initiator": "link",
+          "durationMs": 27.599999999976717,
+          "ttfbMs": 18.699999999953434,
+          "transferBytes": 80225,
+          "decodedBytes": 413463
+        },
+        {
+          "path": "/process/local-asset-fallback.js",
+          "initiator": "script",
+          "durationMs": 35.199999999953434,
+          "ttfbMs": 33.699999999953434,
+          "transferBytes": 551,
+          "decodedBytes": 349
+        },
+        {
+          "path": "/process/bootstrap.js",
+          "initiator": "script",
+          "durationMs": 35.39999999990687,
+          "ttfbMs": 33.79999999993015,
+          "transferBytes": 4156,
+          "decodedBytes": 9415
+        },
+        {
+          "path": "/api/process-bootstrap",
+          "initiator": "fetch",
+          "durationMs": 15.400000000023283,
+          "ttfbMs": 15,
+          "transferBytes": 2094,
+          "decodedBytes": 8110
+        },
+        {
+          "path": "/favicon.ico",
+          "initiator": "other",
+          "durationMs": 11.70000000006985,
+          "ttfbMs": null,
+          "transferBytes": 0,
+          "decodedBytes": 0
+        },
+        {
+          "path": "/process/owned-draft-ledger.mjs",
+          "initiator": "script",
+          "durationMs": 33.89999999990687,
+          "ttfbMs": 27.399999999906868,
+          "transferBytes": 7078,
+          "decodedBytes": 21380
+        },
+        {
+          "path": "/process/spreadsheet-loader.js",
+          "initiator": "link",
+          "durationMs": 31.300000000046566,
+          "ttfbMs": 27.199999999953434,
+          "transferBytes": 2643,
+          "decodedBytes": 5653
+        },
+        {
+          "path": "/process/editor-line-selection.js",
+          "initiator": "link",
+          "durationMs": 31.400000000023283,
+          "ttfbMs": 27.199999999953434,
+          "transferBytes": 2562,
+          "decodedBytes": 6401
+        },
+        {
+          "path": "/process/shell-scripts.3e034f5de7d498fa3b08.js",
+          "initiator": "link",
+          "durationMs": 45,
+          "ttfbMs": 27.099999999976717,
+          "transferBytes": 44112,
+          "decodedBytes": 160664
+        },
+        {
+          "path": "/process/app.js",
+          "initiator": "link",
+          "durationMs": 47.40000000002328,
+          "ttfbMs": 26,
+          "transferBytes": 58680,
+          "decodedBytes": 221466
+        },
+        {
+          "path": "/process/navigation-lifecycle.mjs",
+          "initiator": "script",
+          "durationMs": 96.20000000006985,
+          "ttfbMs": 95.40000000002328,
+          "transferBytes": 3291,
+          "decodedBytes": 9981
+        },
+        {
+          "path": "/process/shell-scripts.512c6adc9a643646f59e.js",
+          "initiator": "link",
+          "durationMs": 92.30000000004657,
+          "ttfbMs": 26.900000000023283,
+          "transferBytes": 653815,
+          "decodedBytes": 2363245
+        },
+        {
+          "path": "/process/owned-draft-revert.mjs",
+          "initiator": "script",
+          "durationMs": 62.199999999953434,
+          "ttfbMs": 61.199999999953434,
+          "transferBytes": 2842,
+          "decodedBytes": 7222
+        },
+        {
+          "path": "/api/ipqc-ab",
+          "initiator": "fetch",
+          "durationMs": 21.899999999906868,
+          "ttfbMs": 21.399999999906868,
+          "transferBytes": 1659,
+          "decodedBytes": 7486
+        },
+        {
+          "path": "/api/ipqc-ab/workflow",
+          "initiator": "fetch",
+          "durationMs": 14.699999999953434,
+          "ttfbMs": 14.099999999976717,
+          "transferBytes": 438,
+          "decodedBytes": 214
+        },
+        {
+          "path": "/api/process-ipqc",
+          "initiator": "fetch",
+          "durationMs": 14.800000000046566,
+          "ttfbMs": 14.300000000046566,
+          "transferBytes": 372,
+          "decodedBytes": 52
+        },
+        {
+          "path": "/api/ipqc-ab/photo",
+          "initiator": "img",
+          "durationMs": 12,
+          "ttfbMs": 11.400000000023283,
+          "transferBytes": 4837,
+          "decodedBytes": 4537
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "buildEntrySha256": "0bafd955c8765c6829eee9a1d7b419f49740a0ac691574aa75e63f434c9739cc",
+  "status": "PASS"
+}

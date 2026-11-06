@@ -1,3 +1,7 @@
+## 2026-11-06 — IPQC A/B speed candidate
+
+The exact A/B workflow reuses request-local authorization phases with fresh terminal/persistence gates, and existing bounded aggregate I/O overlap on page/photo/workflow reads. Save/Submit/Withdraw retain complete dependencies, receipts, photos, audit and CAS. Three alternating synthetic compiled-browser and fixed-I/O handler pairs show backend improvement; several browser reload/return/close measurements show no stable gain. Hosted BOSEN target acceptance is blocked by missing authorized login (anonymous application 403), not claimed complete. No schema/live-data/deployment or separately denied process-type upload. [Changes, all nine timings, risks and PASS/FAIL/BLOCKED evidence](docs/acceptance/ipqc-ab-speed-20261106/README.md).
+
 ## 2026-11-06 — Access queue read race follow-up
 
 The Draft #86 candidate fences access-list replies by request generation, status filter and cursor, and prevents a prior event's textarea from accepting input during a pending read or writing into a new event. Deterministic synthetic response-order coverage is added. The original business receipt/no-resend path is untouched; cold first-capability offline reporting remains a documented gap. Verify the new exact head and CI separately; no migration, activation, merge or deployment occurred here.

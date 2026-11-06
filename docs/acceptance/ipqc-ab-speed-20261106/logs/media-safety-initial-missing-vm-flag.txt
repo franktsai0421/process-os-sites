@@ -1,0 +1,46 @@
+✔ exact A/B phase rejects unrelated routes and binds headers and selected auth state (807.767691ms)
+✔ A/B selected auth changes invalidate decisions without granting another module (410.191755ms)
+✔ fresh permission GETs never share phases across requests (397.693048ms)
+✔ A/B Save denies revocation at fresh boundary 1 without CAS (316.953567ms)
+✔ A/B Save denies revocation at fresh boundary 2 without CAS (292.635167ms)
+✔ A/B Save denies revocation at fresh boundary 3 without CAS (307.207841ms)
+✔ A/B Save denies revocation at fresh boundary 4 without CAS (278.124359ms)
+✔ A/B Save denies unavailable storage at fresh boundary 1 without CAS (237.46695ms)
+✔ A/B Save denies unavailable storage at fresh boundary 2 without CAS (269.13619ms)
+✔ A/B Save denies unavailable storage at fresh boundary 3 without CAS (229.802767ms)
+✔ A/B Save denies unavailable storage at fresh boundary 4 without CAS (244.331037ms)
+[shared-workflow] ipqc-ab:module 39f18cd8-1fad-4f9c-b7e7-a53ae3fb1473 unknown
+✔ A/B full-write read overlap retains unrelated immutable faults and never commits (258.739529ms)
+✔ performance source inverse reconstructs all four pinned baseline files and refuses altered bytes (1.95698ms)
+✔ A/B complete GET denies revocation at selected read boundary 1 without private payload (211.772697ms)
+✔ A/B complete GET denies revocation at selected read boundary 2 without private payload (220.385531ms)
+✔ A/B complete GET denies revocation at selected read boundary 3 without private payload (220.744792ms)
+✔ A/B complete GET denies revocation at selected read boundary 4 without private payload (227.341707ms)
+file:///workspace/process-os-sites/tests/photo-routes.test.mjs:13
+ const file=path.join(root,'app/api',name,'photo/route.ts'),output=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText,fixtureModule=new vm.SourceTextModule(output,{context});
+                                                                                                                                                                                                                           ^
+
+TypeError: vm.SourceTextModule is not a constructor
+    at file:///workspace/process-os-sites/tests/photo-routes.test.mjs:13:220
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.19.0
+✖ tests/photo-routes.test.mjs (556.98023ms)
+{"status":"PASS_SYNTHETIC_LOSSLESS_PNG_UPLOAD","cases":19,"tests":["opaque PNG is smaller with identical decoded pixels and immutable original","alpha, colour profile and text metadata are retained without resize","small PNG stays original; already compressed PNG never grows or changes decoded pixels","animation and interlace are explicitly preserved, not flattened","JPEG WebP and animated GIF stay in original format and bytes","wrong MIME, CRC corruption, truncation and invalid zlib are rejected","actual streamed body limit works without trusting Content-Length","successful upload returns the normalized bytes before caller content-address hashing","input failure mapping is explicit and unknown internal failures do not become validation success","PNG filter 0 preserves exact decoded samples","PNG filter 1 preserves exact decoded samples","PNG filter 2 preserves exact decoded samples","PNG filter 3 preserves exact decoded samples","PNG filter 4 preserves exact decoded samples","PNG filter all preserves exact decoded samples","packed/palette/16-bit PNG {\"colour\":3,\"bits\":8} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":0,\"bits\":1,\"width\":2048,\"height\":1024} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":0,\"bits\":16} preserves samples and metadata","packed/palette/16-bit PNG {\"colour\":6,\"bits\":16} preserves samples and metadata"],"realData":false,"network":false,"resize":false,"nativeSharpOnlyUsedAsTestOracle":true}
+✔ tests/photo-upload.test.mjs (1850.603174ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 18
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5242.995124
+
+✖ failing tests:
+
+test at tests/photo-routes.test.mjs:1:1
+✖ tests/photo-routes.test.mjs (556.98023ms)
+  'test failed'

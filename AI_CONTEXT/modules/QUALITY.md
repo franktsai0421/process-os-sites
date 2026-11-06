@@ -1,3 +1,7 @@
+## 2026-11-06 — IPQC A/B authority/read scheduling
+
+Exact `/api/ipqc-ab/workflow` group/module routes use the existing snapshot-bound permission phase; each selected state and CAS retry creates a fresh phase, preserving end-of-read and pre/post-encoding session checks. Existing aggregate read-ahead (≤5 streams, serial validation) applies to A/B GETs, photo authority reads, and command-only Save/Submit/Withdraw. No keys, body/history checks, receipt recovery, media policy or schema change. Browser tests now use distinct editor identities and wait for final receipt-query UI completion. [Measurements and limits](../../docs/acceptance/ipqc-ab-speed-20261106/README.md); hosted BOSEN/real-device acceptance is outstanding.
+
 ## 2026-11-05 — A/B scope read preserves current private input
 
 A late scope permission reply captures current modal input before repainting only while its original actor object/id, epoch, delivery, scope generation, host, lifetime and client remain current. The same ownership predicate gates the permission result; stale completions neither capture nor repaint. Existing denial/Save/create/delete/Submit and receipt protections remain. The module asset pin advances to `20261105-ab-scope-input1`; no persistent format or data-model change. [Integration evidence](../../docs/acceptance/draft-save-batch3-20261105/README.md#pr87-late-permission-input-and-photo-decode-follow-up).

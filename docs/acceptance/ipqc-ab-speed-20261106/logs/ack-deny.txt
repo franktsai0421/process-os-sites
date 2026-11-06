@@ -1,0 +1,1 @@
+{"status":"PASS_LOCAL_QUARANTINE","ackRetained":true,"noRetryMutation":true,"savedDraftRetained":true,"blockedUntilCompleteFreshLoad":true,"ackLanguages":2,"missingOwnerCases":9,"limits":"Actual Chromium/module Save/shared client/handlers with synthetic SQLite/R2; no live data or physical-device claim."}

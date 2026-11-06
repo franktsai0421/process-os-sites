@@ -1,0 +1,22 @@
+✔ AB local forms and matrix first/subsequent Save 1280 zh (1835.290232ms)
+ℹ {"width":1280,"lang":"zh","firstMs":139.68346700000006,"nextMs":150.21413600000005,"firstWrites":2,"nextWrites":1,"synthetic":true}
+✔ AB local forms and matrix first/subsequent Save 390 vi (1488.309835ms)
+ℹ {"width":390,"lang":"vi","firstMs":126.2814940000003,"nextMs":117.82381400000031,"firstWrites":2,"nextWrites":1,"synthetic":true}
+✔ AB begin-v1 lost ACK keeps marker across departure/reload; 404 never retries (1352.79968ms)
+✔ AB save lost ACK keeps marker across departure/reload; 404 never retries (1368.886659ms)
+✔ AB cancel and silent departure discard only local input; edit-only may Save but not create/submit (2362.012643ms)
+✔ AB two distinct browser actors merge different cells, compare same field and explicitly resolve (2772.227613ms)
+✔ AB unsaved input cannot submit old snapshot; saved input submits through confirmation (1605.109587ms)
+✔ AB composition input survives language change and polling while editing; close cancels (1456.588472ms)
+✔ AB photo selection is local; Save uploads synthetic photo before atomic draft Save (1346.259528ms)
+✔ AB legacy group create unknown stays blocked after reload until original receipt query (1231.032819ms)
+✔ AB empty local start/cancel does not initialize or Save shared state (1194.428415ms)
+✔ AB repeated Save clicks while the original request is held perform one Save (1225.581457ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19754.349145

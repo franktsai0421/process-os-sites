@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     const caseMetadata=query.get('caseMetadata')==='1';
     const identityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
     const keys=equipmentOnly?[...identityKeys,'routineEquipmentControl']:[...identityKeys,KEY,'masterDataControl',...(deferred?[]:['routineEquipmentControl'])];
-    const state=await readState({keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
+    const state=await readState({aggregateReadAhead:true,keys,modelKey:equipmentOnly?undefined:KEY,deferHistory:true,deferDependencyHistory:true}),actor=await identity(request,state);
     if(!actor||!(await can(request,state,'view:data'))&&!(await can(request,state,'view:approval')))return reply({error:'沒有查看 IPQC-AB 權限'},403);
     if(equipmentOnly)return reply({revision:state.revision,equipment:equipmentChoices(state.values)});
     const catalog = catalogFromMaster(state.values.masterDataControl);

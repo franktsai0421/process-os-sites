@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const id = new URL(request.url).searchParams.get('id') || '';
   if (!/^[a-f0-9]{64}$/.test(id)) return new Response('Not found',{status:404});
   try {
-    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
+    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
     if (!await identity(request,state) ||
         !(await can(request,state,'view:data')) && !(await can(request,state,'view:approval')))
       return new Response('Forbidden',{status:403});
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   if (!sameOrigin(request)) return Response.json({error:'來源不允許'},{status:403});
   try {
-    const state = await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
+    const state = await readState({aggregateReadAhead:true,keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});
     if (!await identity(request,state) || !(await can(request,state,'view:data')) ||
         !(await can(request,state,'ipqc-ab.edit')))
       return Response.json({error:'沒有照片上傳權限'},{status:403});

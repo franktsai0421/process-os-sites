@@ -1,0 +1,279 @@
+{
+  "measure": [
+    {
+      "name": "page-read",
+      "baseline": {
+        "medianMs": 193.29,
+        "minMs": 191.9,
+        "maxMs": 199.61,
+        "samples": 3,
+        "sql": 4,
+        "revocation": 3,
+        "get": 10,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 167.59,
+        "minMs": 165.61,
+        "maxMs": 172.63,
+        "samples": 3,
+        "sql": 4,
+        "revocation": 3,
+        "get": 10,
+        "peak": 4
+      }
+    },
+    {
+      "name": "permissions",
+      "baseline": {
+        "medianMs": 193.14,
+        "minMs": 191.81,
+        "maxMs": 198.32,
+        "samples": 3,
+        "sql": 14,
+        "revocation": 13,
+        "get": 5,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 57.28,
+        "minMs": 56.45,
+        "maxMs": 57.31,
+        "samples": 3,
+        "sql": 3,
+        "revocation": 2,
+        "get": 5,
+        "peak": 3
+      }
+    },
+    {
+      "name": "module-read",
+      "baseline": {
+        "medianMs": 424.71,
+        "minMs": 422.0,
+        "maxMs": 444.94,
+        "samples": 3,
+        "sql": 28,
+        "revocation": 26,
+        "get": 14,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 141.7,
+        "minMs": 140.24,
+        "maxMs": 142.82,
+        "samples": 3,
+        "sql": 6,
+        "revocation": 4,
+        "get": 14,
+        "peak": 4
+      }
+    },
+    {
+      "name": "save",
+      "baseline": {
+        "medianMs": 377.42,
+        "minMs": 369.69,
+        "maxMs": 387.08,
+        "samples": 3,
+        "sql": 16,
+        "revocation": 13,
+        "get": 19,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 166.57,
+        "minMs": 165.45,
+        "maxMs": 168.81,
+        "samples": 3,
+        "sql": 7,
+        "revocation": 4,
+        "get": 19,
+        "peak": 5
+      }
+    },
+    {
+      "name": "submit",
+      "baseline": {
+        "medianMs": 384.89,
+        "minMs": 383.31,
+        "maxMs": 389.66,
+        "samples": 3,
+        "sql": 16,
+        "revocation": 13,
+        "get": 20,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 182.61,
+        "minMs": 180.92,
+        "maxMs": 183.55,
+        "samples": 3,
+        "sql": 7,
+        "revocation": 4,
+        "get": 20,
+        "peak": 5
+      }
+    },
+    {
+      "name": "withdraw",
+      "baseline": {
+        "medianMs": 386.08,
+        "minMs": 385.45,
+        "maxMs": 393.34,
+        "samples": 3,
+        "sql": 16,
+        "revocation": 13,
+        "get": 20,
+        "peak": 2
+      },
+      "candidate": {
+        "medianMs": 177.92,
+        "minMs": 177.67,
+        "maxMs": 181.89,
+        "samples": 3,
+        "sql": 7,
+        "revocation": 4,
+        "get": 20,
+        "peak": 5
+      }
+    }
+  ],
+  "browser": [
+    {
+      "name": "warm-reload",
+      "baseline": {
+        "medianMs": 329,
+        "minMs": 311,
+        "maxMs": 352,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 341,
+        "minMs": 324,
+        "maxMs": 439,
+        "samples": 3
+      }
+    },
+    {
+      "name": "image-save",
+      "baseline": {
+        "medianMs": 615,
+        "minMs": 593,
+        "maxMs": 629,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 529,
+        "minMs": 483,
+        "maxMs": 555,
+        "samples": 3
+      }
+    },
+    {
+      "name": "reload-after-save",
+      "baseline": {
+        "medianMs": 312,
+        "minMs": 309,
+        "maxMs": 314,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 328,
+        "minMs": 327,
+        "maxMs": 336,
+        "samples": 3
+      }
+    },
+    {
+      "name": "return-from-iqc",
+      "baseline": {
+        "medianMs": 94,
+        "minMs": 93,
+        "maxMs": 103,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 100,
+        "minMs": 90,
+        "maxMs": 155,
+        "samples": 3
+      }
+    },
+    {
+      "name": "open-submit-confirmation",
+      "baseline": {
+        "medianMs": 121,
+        "minMs": 89,
+        "maxMs": 125,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 71,
+        "minMs": 62,
+        "maxMs": 136,
+        "samples": 3
+      }
+    },
+    {
+      "name": "submit-confirm-to-pending",
+      "baseline": {
+        "medianMs": 259,
+        "minMs": 238,
+        "maxMs": 263,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 248,
+        "minMs": 230,
+        "maxMs": 394,
+        "samples": 3
+      }
+    },
+    {
+      "name": "close-fixed-case",
+      "baseline": {
+        "medianMs": 50,
+        "minMs": 47,
+        "maxMs": 58,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 59,
+        "minMs": 39,
+        "maxMs": 78,
+        "samples": 3
+      }
+    },
+    {
+      "name": "withdraw-confirm-to-editable",
+      "baseline": {
+        "medianMs": 231,
+        "minMs": 226,
+        "maxMs": 245,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 221,
+        "minMs": 168,
+        "maxMs": 267,
+        "samples": 3
+      }
+    },
+    {
+      "name": "reload-after-local-delete",
+      "baseline": {
+        "medianMs": 320,
+        "minMs": 316,
+        "maxMs": 332,
+        "samples": 3
+      },
+      "candidate": {
+        "medianMs": 335,
+        "minMs": 327,
+        "maxMs": 503,
+        "samples": 3
+      }
+    }
+  ]
+}

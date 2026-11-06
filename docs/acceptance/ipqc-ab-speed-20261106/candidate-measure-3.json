@@ -1,0 +1,61 @@
+{
+  "kind": "synthetic actual handlers, in-memory SQLite/R2",
+  "ioDelayMs": 10,
+  "source": "/workspace/process-os-sites",
+  "samples": [
+    {
+      "round": 0,
+      "name": "page-read",
+      "ms": 165.609559,
+      "sql": 4,
+      "revocation": 3,
+      "get": 10,
+      "peak": 4
+    },
+    {
+      "round": 0,
+      "name": "permissions",
+      "ms": 56.447587,
+      "sql": 3,
+      "revocation": 2,
+      "get": 5,
+      "peak": 3
+    },
+    {
+      "round": 0,
+      "name": "module-read",
+      "ms": 140.23966999999993,
+      "sql": 6,
+      "revocation": 4,
+      "get": 14,
+      "peak": 4
+    },
+    {
+      "round": 0,
+      "name": "save",
+      "ms": 165.45409500000005,
+      "sql": 7,
+      "revocation": 4,
+      "get": 19,
+      "peak": 5
+    },
+    {
+      "round": 0,
+      "name": "submit",
+      "ms": 180.92418299999986,
+      "sql": 7,
+      "revocation": 4,
+      "get": 20,
+      "peak": 5
+    },
+    {
+      "round": 0,
+      "name": "withdraw",
+      "ms": 177.9167849999999,
+      "sql": 7,
+      "revocation": 4,
+      "get": 20,
+      "peak": 5
+    }
+  ]
+}

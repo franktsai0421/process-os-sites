@@ -1,0 +1,16 @@
+PASS T02/T03: separate fields survive; server order and old client rejection
+PASS T04/T06: atomic coupled edit and dependency guard; failure leaves source untouched
+PASS T07: stable IDs, delete tombstones, no stale resurrection, order guard
+PASS T07: concurrent distinct inserts and guarded multiple-selection removal retain unrelated entities
+PASS Submit requires the current revision before proceeding to saved-content checks
+PASS T13: valid first formal build needs a real successful Save, not a fabricated change
+PASS T08/T10: save cutoff contains all synced contributors; no empty save audit
+PASS T11/T13/T14: saved-only submission; unchanged rejects and incomplete remains reviewable
+PASS T15/T16: saved confirmation token and pending lock (including admin)
+PASS T17/T18: permission denial, authorized self-review confirmation + audit
+PASS T19/T20/T21/T41/T42: withdraw/review race, reason, generation fence and identical resubmit
+PASS T23/T24/T43: restore is unsaved; immutable saved/case/media history and attribution
+PASS T33: persisted operation receipt survives serialization/restart and permission revocation
+PASS Malformed and prototype paths rejected without changing the aggregate
+PASS Process advisory allowlist never bypasses technical issues or other module rules
+{"suite":"V3 transition kernel only; not HTTP/browser acceptance","checks":15,"result":"PASS"}

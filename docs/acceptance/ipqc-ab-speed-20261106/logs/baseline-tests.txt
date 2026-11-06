@@ -1,0 +1,32 @@
+✔ AB local forms and matrix first/subsequent Save 1280 zh (3266.348383ms)
+ℹ {"width":1280,"lang":"zh","firstMs":293.61430900000005,"nextMs":225.6129390000001,"firstWrites":2,"nextWrites":1,"synthetic":true}
+✔ AB local forms and matrix first/subsequent Save 390 vi (2292.725124ms)
+ℹ {"width":390,"lang":"vi","firstMs":249.0952299999999,"nextMs":239.43823299999985,"firstWrites":2,"nextWrites":1,"synthetic":true}
+✔ AB begin-v1 lost ACK keeps marker across departure/reload; 404 never retries (1617.959962ms)
+✔ AB save lost ACK keeps marker across departure/reload; 404 never retries (1588.319227ms)
+✔ AB cancel and silent departure discard only local input; edit-only may Save but not create/submit (2578.408877ms)
+✔ AB two browser editors merge different cells, compare same field and explicitly resolve (3155.792886ms)
+✔ AB unsaved input cannot submit old snapshot; saved input submits through confirmation (1933.298531ms)
+✔ AB composition input survives language change and polling while editing; close cancels (1709.23159ms)
+✔ AB photo selection is local; Save uploads synthetic photo before atomic draft Save (1413.400192ms)
+✔ AB legacy group create unknown stays blocked after reload until original receipt query (1293.357054ms)
+✔ AB empty local start/cancel does not initialize or Save shared state (1134.366121ms)
+✔ one module Save commits group working and saved snapshot; original receipt replay writes nothing (812.562984ms)
+✔ stale different matrix cells and fields merge; genuine same field conflict leaves state unchanged (574.974496ms)
+✔ later invalid create rolls back earlier fields and allocations (473.660017ms)
+✔ edit-only may save, nested create/delete still require their own permissions (535.474839ms)
+✔ nested temporary create references allocate once inside the same Save (405.127103ms)
+✔ new group adoption and create are included in the module transaction, not separate group Begin writes (289.711136ms)
+✔ delete requires exact row guard and rejects a peer edit or referenced error (543.789297ms)
+✔ another scope failure rolls back all prior scope patches and no old history or receipts disappear (539.507123ms)
+✔ unknown receipt lookup stays read-only and missing receipt is not successful Save (385.589946ms)
+✔ view/submit access without edit cannot Save and edit-only cannot Submit (470.019646ms)
+✔ CAS retry preserves one final save and does not allocate twice (437.976195ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 28329.777311

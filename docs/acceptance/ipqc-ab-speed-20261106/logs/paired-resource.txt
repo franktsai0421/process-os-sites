@@ -1,0 +1,12 @@
+{"pair":1,"variant":"baseline","kind":"measure","status":"PASS"}
+{"pair":1,"variant":"baseline","kind":"browser","status":"PASS"}
+{"pair":1,"variant":"candidate","kind":"measure","status":"PASS"}
+{"pair":1,"variant":"candidate","kind":"browser","status":"PASS"}
+{"pair":2,"variant":"candidate","kind":"measure","status":"PASS"}
+{"pair":2,"variant":"candidate","kind":"browser","status":"PASS"}
+{"pair":2,"variant":"baseline","kind":"measure","status":"PASS"}
+{"pair":2,"variant":"baseline","kind":"browser","status":"PASS"}
+{"pair":3,"variant":"baseline","kind":"measure","status":"PASS"}
+{"pair":3,"variant":"baseline","kind":"browser","status":"PASS"}
+{"pair":3,"variant":"candidate","kind":"measure","status":"PASS"}
+{"pair":3,"variant":"candidate","kind":"browser","status":"PASS"}

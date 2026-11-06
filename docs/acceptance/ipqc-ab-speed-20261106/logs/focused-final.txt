@@ -1,0 +1,28 @@
+✔ one module Save commits group working and saved snapshot; original receipt replay writes nothing (686.18334ms)
+✔ stale different matrix cells and fields merge; genuine same field conflict leaves state unchanged (471.399194ms)
+✔ later invalid create rolls back earlier fields and allocations (350.15286ms)
+✔ edit-only may save, nested create/delete still require their own permissions (470.521983ms)
+✔ nested temporary create references allocate once inside the same Save (378.575153ms)
+✔ new group adoption and create are included in the module transaction, not separate group Begin writes (314.8858ms)
+✔ delete requires exact row guard and rejects a peer edit or referenced error (356.723425ms)
+✔ another scope failure rolls back all prior scope patches and no old history or receipts disappear (313.957221ms)
+✔ unknown receipt lookup stays read-only and missing receipt is not successful Save (319.587716ms)
+✔ view/submit access without edit cannot Save and edit-only cannot Submit (310.832382ms)
+✔ CAS retry preserves one final save and does not allocate twice (269.222481ms)
+✔ a scope permission reply cannot erase a new error typed while the read is pending (1400.296948ms)
+✔ a late scope permission reply has no private-input side effects after actor (1292.048757ms)
+✔ a late scope permission reply has no private-input side effects after same-id actor (1476.428604ms)
+✔ a late scope permission reply has no private-input side effects after epoch (1491.608659ms)
+✔ a late scope permission reply has no private-input side effects after delivery (1545.770301ms)
+✔ a late scope permission reply has no private-input side effects after generation (1414.949011ms)
+✔ a late scope permission reply has no private-input side effects after host (1547.001972ms)
+✔ a current scope permission 403 retains unsent private input and never writes (1307.426934ms)
+✔ a current scope permission 503 retains unsent private input and never writes (1261.289208ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17725.602375

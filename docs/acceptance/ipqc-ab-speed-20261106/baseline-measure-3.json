@@ -1,0 +1,61 @@
+{
+  "kind": "synthetic actual handlers, in-memory SQLite/R2",
+  "ioDelayMs": 10,
+  "source": "/workspace/process-os-sites/.sites-runtime/ipqc-ab-speed/baseline-source",
+  "samples": [
+    {
+      "round": 0,
+      "name": "page-read",
+      "ms": 191.90295500000002,
+      "sql": 4,
+      "revocation": 3,
+      "get": 10,
+      "peak": 2
+    },
+    {
+      "round": 0,
+      "name": "permissions",
+      "ms": 193.13744599999995,
+      "sql": 14,
+      "revocation": 13,
+      "get": 5,
+      "peak": 2
+    },
+    {
+      "round": 0,
+      "name": "module-read",
+      "ms": 424.71121199999993,
+      "sql": 28,
+      "revocation": 26,
+      "get": 14,
+      "peak": 2
+    },
+    {
+      "round": 0,
+      "name": "save",
+      "ms": 377.419271,
+      "sql": 16,
+      "revocation": 13,
+      "get": 19,
+      "peak": 2
+    },
+    {
+      "round": 0,
+      "name": "submit",
+      "ms": 389.66414099999974,
+      "sql": 16,
+      "revocation": 13,
+      "get": 20,
+      "peak": 2
+    },
+    {
+      "round": 0,
+      "name": "withdraw",
+      "ms": 393.34401700000035,
+      "sql": 16,
+      "revocation": 13,
+      "get": 20,
+      "peak": 2
+    }
+  ]
+}

@@ -32,9 +32,9 @@ void test('AB cancel and silent departure discard only local input; edit-only ma
   await limited.page.locator('[data-ab-matrix-item]').first().check();await save(limited);assert.equal(writes(limited).length,1);assert.equal(writes(limited)[0].status,200);assert.deepEqual(limited.errors,[]);
  }finally{await limited?.close();await s.close();}
 });
-void test('AB two browser editors merge different cells, compare same field and explicitly resolve',async()=>{
+void test('AB two distinct browser actors merge different cells, compare same field and explicitly resolve',async()=>{
  const a=await setup();let b;try{
-  await addError(a);await addItem(a);await save(a);b=await setup({sharedFixture:a.f});
+  await addError(a);await addItem(a);await save(a);b=await setup({who:'ab-only',sharedFixture:a.f});
   await a.page.locator('[data-ab-matrix-item]').first().check();await b.page.locator('[data-ab-matrix-item]').last().check();await save(a);await save(b);
   let group=await a.f.read('ipqc-ab','editor','&scope=A%3AG');assert.deepEqual(group.control.workflow.working.items[0].productCodes.sort(),['A1','A2']);
   await a.boot();await b.boot();for(const [s,name]of [[a,'Alice'],[b,'Bob']]){await s.page.locator('[data-ab-edit-item]').first().click();await s.page.locator('#ab-standard').fill(name);await s.page.locator('#ab-apply').click();}
@@ -68,9 +68,22 @@ void test('AB legacy group create unknown stays blocked after reload until origi
   await s.f.begin('ipqc-ab','editor',200,'&scope=A%3AG');await s.boot();s.lose('apply');
   await s.page.evaluate(async()=>{const client=createSharedDraftClient({endpoint:'/api/ipqc-ab/workflow?scope=A%3AG&caseMetadata=1',actorId:ProcessSync.identity.id,headers:()=>({'Content-Type':'application/json'}),abCreateRejections:true});const state=await client.read();const command=client.prepareCreate(state.control.workflow.generation,'create-error',{stageCode:'A-CUT',name:'Legacy uncertain'});try{await client.sendPrepared(command);}catch{/* Keep original marker, intentionally lost synthetic ACK. */}});
   assert.equal(writes(s).length,1);await s.boot();assert(await s.page.evaluate(()=>sharedDraftAccountState().unknown));assert.equal(await s.page.locator('#ipqcab-add-error').count(),0);s.receipts();await s.page.locator('[data-ab-local-query]').click();await s.page.waitForFunction(()=>!sharedDraftAccountState().unknown);assert.equal(writes(s).length,1);
-  const g=await s.f.read('ipqc-ab','editor','&scope=A%3AG');assert.equal(g.control.workflow.working.errors.length,1);assert.equal(await s.page.locator('[data-ab-local-query]').count(),0);assert.deepEqual(s.errors,[]);
+  const g=await s.f.read('ipqc-ab','editor','&scope=A%3AG');assert.equal(g.control.workflow.working.errors.length,1);await s.page.locator('[data-ab-local-query]').waitFor({state:'detached'});assert.equal(await s.page.locator('[data-ab-local-query]').count(),0);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
 void test('AB empty local start/cancel does not initialize or Save shared state',async()=>{
  const s=await setup();try{await s.page.locator('#ipqcab-begin').click();await save(s);assert.equal(writes(s).length,0);await s.page.locator('#ipqcab-add-error').click();await s.page.locator('#ab-error-name').fill('Discard');await s.page.locator('[data-ab-close]').first().click();await save(s);assert.equal(writes(s).length,0);assert.deepEqual(s.errors,[]);}finally{await s.close();}
+});
+void test('AB repeated Save clicks while the original request is held perform one Save',async()=>{
+ const s=await setup();try{
+  await addError(s);const held=s.hold(entry=>entry.body?.command?.action==='save','request');
+  await s.page.locator('#ipqcab-save').click();await held.started;
+  assert.equal(await s.page.locator('#ipqcab-save').isDisabled(),true);
+  await s.page.locator('#ipqcab-save').evaluate(button=>{button.click();button.click();});
+  assert.equal(writes(s).filter(r=>r.body.command?.action==='save').length,1);
+  held.release();await s.page.waitForFunction(()=>!sharedDraftAccountState().queued&&!document.querySelector('#ipqcab-save')?.disabled);
+  assert.equal(writes(s).filter(r=>r.body.command?.action==='save').length,1);
+  assert((await s.f.read('ipqc-ab','editor','&module=1')).control.workflow.saved);
+  assert.deepEqual(s.errors,[]);
+ }finally{await s.close();}
 });

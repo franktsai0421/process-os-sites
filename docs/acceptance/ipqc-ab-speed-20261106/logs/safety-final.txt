@@ -1,0 +1,21 @@
+✔ exact A/B phase rejects unrelated routes and binds headers and selected auth state (721.489563ms)
+✔ A/B selected auth changes invalidate decisions without granting another module (412.386459ms)
+✔ fresh permission GETs never share phases across requests (420.003556ms)
+✔ A/B Save denies revocation at fresh boundary 1 without CAS (292.319087ms)
+✔ A/B Save denies revocation at fresh boundary 2 without CAS (263.835001ms)
+✔ A/B Save denies revocation at fresh boundary 3 without CAS (235.698126ms)
+✔ A/B Save denies revocation at fresh boundary 4 without CAS (265.449607ms)
+✔ A/B Save denies unavailable storage at fresh boundary 1 without CAS (255.731758ms)
+✔ A/B Save denies unavailable storage at fresh boundary 2 without CAS (247.212697ms)
+✔ A/B Save denies unavailable storage at fresh boundary 3 without CAS (242.248226ms)
+✔ A/B Save denies unavailable storage at fresh boundary 4 without CAS (250.220202ms)
+[shared-workflow] ipqc-ab:module ad0ddda5-a4d1-4176-a7a9-22e3f263b77a unknown
+✔ A/B full-write read overlap retains unrelated immutable faults and never commits (268.863752ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4130.998236
