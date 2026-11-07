@@ -9,6 +9,13 @@ import {DraftConflict} from '@/lib/shared-draft';
 import {masterCatalog,projectMasterCatalog,MasterCatalogLegacyFallback} from '@/lib/master-catalog';
 import {catalogReferences,visibleCatalogReferences} from '@/lib/master-product-references';
 import {effectiveAccess,type AccessUser} from '@/lib/user-access';
+import {assertMasterDocumentRouteAvailable} from '@/lib/master-document-boundary';
+
+function documentBoundary(request:Request):Response|null{
+ try{assertMasterDocumentRouteAvailable(new URL(request.url).searchParams);return null;}
+ catch(error){if(!(error instanceof DraftConflict))throw error;
+  return Response.json({error:error.code},{status:error.status,headers:responseHeaders});}
+}
 
 const authKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
 async function catalogPermissions(request:Request,state:Awaited<ReturnType<typeof readState>>){
@@ -52,9 +59,10 @@ async function productReferences(request:Request){
   return reply({revision:state.revision,...visibleCatalogReferences(catalogReferences(state.values,[code]),user?effectiveAccess(user,state.values).cells:{})});
  }catch{return reply({error:'REFERENCE_CHECK_UNAVAILABLE'},503);}
 }
-export const GET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
- ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request);
+export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
+ ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request));
 export const POST=async(request:Request)=>{
+ const boundary=documentBoundary(request);if(boundary)return boundary;
  const scope=new URL(request.url).searchParams.get('scope')||'';
  const response=await versionedWorkflowRoute(masterWorkflowAdapter(scope)).POST(request);
  if(response.status!==409)return response;

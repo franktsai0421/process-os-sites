@@ -1,3 +1,7 @@
+## 2026-11-07 — Reject inactive master document selectors
+
+The master workflow rejects explicit inactive catalog/line split selectors before they can fall through to the combined legacy workflow. Ordinary requests retain their dispatch; no independent workflow, data adoption or permission change is activated. [Scope and validation command](../docs/acceptance/independent-master-selector-20261107.md).
+
 ## 2026-11-06 — PR93 display CI contract and outbox probe candidate
 
 Main #92 integration retains role presentation and both asset-pin changes. A new compiled test exposed per-observation offline status before the whole outbox drained; a bounded readonly exact-ID fence and deterministic real-storage negative control preserve all original assertions without changing product behavior.

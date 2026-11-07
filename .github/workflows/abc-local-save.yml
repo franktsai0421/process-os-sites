@@ -30,6 +30,7 @@ jobs:
       - run: node --test tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-shared-clone.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs tests/workflow-begin-receipt.test.cjs tests/master-bridge-ownership.test.mjs tests/navigation-adapters.test.mjs tests/lines-submit-snapshot-integration.test.mjs
       - name: Existing master and legacy compatibility
         run: |
+          node scripts/test-master-document-boundary.cjs
           node scripts/test-master-workflow-v3.cjs
           node scripts/test-master-stage-link-v3.cjs
           node scripts/test-master-product-route-mode.cjs
