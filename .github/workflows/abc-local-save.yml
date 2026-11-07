@@ -38,6 +38,8 @@ jobs:
           node scripts/test-master-legacy-format-retention.cjs
           node scripts/test-lines-cloud-api.cjs
           node scripts/test-workflow-begin-old-server.cjs
+      - name: Inactive line reducer contracts
+        run: node scripts/test-master-line-draft.cjs
       - run: npm run sites:source-check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
