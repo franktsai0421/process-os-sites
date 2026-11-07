@@ -40,6 +40,8 @@ jobs:
           node scripts/test-workflow-begin-old-server.cjs
       - name: Inactive line reducer contracts
         run: node scripts/test-master-line-draft.cjs
+      - name: Approved history read contracts
+        run: node scripts/test-approved-history-evidence.cjs
       - run: npm run sites:source-check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
