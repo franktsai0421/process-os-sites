@@ -5,10 +5,11 @@ const readIO=require('../scripts/ipqc-c-read-io-source-contract.cjs'),{execFileS
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Compose only the already reviewed C GET successor before the unchanged
 // reporting proof. Historical pins and every other file remain untouched.
+const noPoll=require('../scripts/equipment-no-poll-source-contract.cjs');
 const cRoute='app/api/ipqc-c/workflow/route.ts';
 const canonicalC=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'C reporting proof requires raw source bytes');assert.equal(working.toString('utf8').replace(/\r\n/g,'\n'),committed.toString('utf8').replace(/\r\n/g,'\n'),'C reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
 const readSource=file=>file===cRoute?canonicalC(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])):fs.readFileSync(file);
-const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -48,7 +49,7 @@ void test('C read-ahead/reporting composition cannot hide partial, repeated or a
 });
 void test('Feedback path filters include every C reporting inverse dependency',()=>{
  const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
- for(const file of [cRoute,'scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
+ for(const file of [cRoute,noPoll.file,'scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
 });
 const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
 for(const [label,from,to]of [
@@ -63,4 +64,22 @@ for(const [label,from,to]of [
 void test('projection does not normalize or accept non-Buffer inputs',()=>{
  assert.notEqual(hash(project(Buffer.concat([current,Buffer.from(' ')]),file)),main[file]);
  for(const value of [current.toString(),new Uint8Array(current)])assert.throws(()=>project(value,file),/requires raw source bytes/);
+});
+
+void test('equipment no-poll exact inverse preserves old pin and rejects wrong/partial/repeated/arbitrary changes',()=>{
+ const bytes=readSource(noPoll.file),prior=noPoll.restoreEquipmentPolling(bytes,noPoll.file);
+ assert.equal(hash(prior),noPoll.beforeHash);assert.equal(hash(project(bytes,noPoll.file)),main[noPoll.file]);assert.equal(hash(metadataProject(prior,noPoll.file)),main[noPoll.file]);
+ assert.throws(()=>noPoll.restoreEquipmentPolling(prior,noPoll.file),/pinned bytes/);assert.throws(()=>noPoll.restoreEquipmentPolling(bytes,cRoute),/wrong file/);
+ for(const value of [bytes.toString(),new Uint8Array(bytes)])assert.throws(()=>noPoll.restoreEquipmentPolling(value,noPoll.file),/raw source bytes/);
+ const changes=[Buffer.concat([bytes,Buffer.from(' ')]),Buffer.concat([bytes,bytes]),Buffer.from(bytes.toString().replace('!inputOwnerCurrent()','false'))];
+ for(const rule of noPoll.rules){const b=Buffer.from(rule.after);changes.push(Buffer.concat([bytes.subarray(0,rule.offset),Buffer.from(rule.before),bytes.subarray(rule.offset+b.length)]));}
+ for(const changed of changes){assert.notDeepEqual(changed,bytes);assert.throws(()=>noPoll.restoreEquipmentPolling(changed,noPoll.file),/pinned bytes/);assert.notEqual(hash(project(changed,noPoll.file)),main[noPoll.file]);}
+ assert.deepEqual(project(bytes,cRoute),bytes,'wrong file never projects equipment');
+});
+
+void test('normal Local safety CI registers no-poll, sent-batch, quarantine, insert-ACK and source proof without skipping failures',()=>{
+ const yaml=fs.readFileSync('.github/workflows/local-safety.yml','utf8');
+ const step=yaml.split('      - name: Equipment no-poll source and local Save regression\n')[1]?.split('      - name:')[0];assert(step);
+ for(const file of ['tests/equipment-no-poll.test.mjs','tests/equipment-sent-batch.test.mjs','tests/equipment-sent-batch-quarantine.test.mjs','tests/equipment-sent-batch-insert-ack.test.mjs','tests/access-event-main-integration.test.cjs'])assert(step.includes(file));
+ assert(step.includes('if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'));assert.doesNotMatch(step,/continue-on-error|test-name-pattern|test-skip-pattern/);
 });

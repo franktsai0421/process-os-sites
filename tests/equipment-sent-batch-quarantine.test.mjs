@@ -19,13 +19,13 @@ async function fixture({hold='POST',receiptOnly=false,unknown=false}={}){
  const dom=canvasDOM(),document=dom.document;document.getElementById=id=>document.querySelector('#'+id);document.visibilityState='visible';
  const host=document.createElement('main');host.id='data-content';host.dataset.activeTab='quality-routine-equipment';document.body.append(host);
  const content={equipment:[{id:'eq',name:'Tool',assetCode:'TEST',pieceMark:'01',unit:'支',enabled:true,groupId:'grp',photoId:'old-photo',notes:''}],categories:[{id:'cat',code:'C01',name:'Category',photoId:''}],subcategories:[{id:'sub',categoryId:'cat',name:'Sub'}],groups:[{id:'grp',categoryId:'cat',subcategoryId:'sub',name:'Group'}],issues:[{id:'issue',status:'pending',resolution:'',assetCode:'TEST',type:'synthetic'}]};
- let state=createSharedDraft('routine-equipment',content,null,'gen'),revision=10,epoch=1,delivery=1,pollCallback,pollEpoch=0;
+ let state=createSharedDraft('routine-equipment',content,null,'gen'),revision=10,epoch=1,delivery=1;
  const control=()=>({schemaVersion:1,issues:clone(state.working.issues),reservedMarks:{},activeVersionId:null,workflow:clone(state),versions:[{id:'draft',number:1,status:state.pendingId?'pending':'draft',history:[],snapshot:clone(state.working),...clone(state.working)}]});
  const actor={id:'owner',name:'Owner',role:'admin'},permissions=Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete','create','restore'].map(k=>[k,true]));
  const waiting=deferred(),release=deferred(),calls=[],revoked=[],events=[];let paused=false,failRead=false,onPost=async()=>{},onRead=async()=>{};
  const c={...dom,console,crypto:webcrypto,URL:class extends URL{static revokeObjectURL(url){revoked.push(url);}static createObjectURL(){return'blob:new';}},URLSearchParams,Response,Request,Headers,AbortController,AbortSignal,structuredClone,Map,Set,Promise,JSON,Date,Math,Intl,Number,Error,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail;}},
   location:{href:'https://synthetic.invalid/process/',origin:'https://synthetic.invalid',pathname:'/process/'},CSS:{escape:String},scrollX:0,scrollY:0,scrollTo(){},requestAnimationFrame(){},
-  setTimeout:()=>1,clearTimeout(){},setInterval(){},clearInterval(){},localStorage:storage(),sessionStorage:storage(),confirm:()=>true,alert(){},hasPermission:()=>true,
+  setTimeout,clearTimeout,setInterval(){throw Error('Unexpected fixed poll');},clearInterval(){},localStorage:storage(),sessionStorage:storage(),confirm:()=>true,alert(){},hasPermission:()=>true,
   ProcessSync:{identity:actor,identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:d=>d===delivery,platformHeaders:()=>({'Content-Type':'application/json'}),requiresReload:false},
   VersionDraftUI:{mount(){},t:value=>value,date:()=>'',updateSync(){},preserveView:()=>()=>{},reasonFor:()=>'',confirmSubmit:async()=> 'confirm',confirmReview:async()=>({reason:'confirm',selfReviewConfirmed:true})}
  };c.window=c;dom.events(c);c.addEventListener('routine-equipment-updated',event=>events.push(event));
@@ -50,8 +50,7 @@ async function fixture({hold='POST',receiptOnly=false,unknown=false}={}){
   await pause('POST');if(unknown)throw Error('SYNTHETIC_ACK_LOST');return Response.json(response);
  };
  vm.createContext(c);vm.runInContext(clientSource,c);
- c.createForegroundPoll=()=>({capture:()=>pollEpoch,isCurrent:v=>v===pollEpoch,cancel(){pollEpoch++;},schedule:fn=>{pollCallback=fn;}});
- const hook=`window.testPort={writeShared,read,bind,render,recoverAddEquipmentRead,pollShared,confirmNodeDialog,openNodeDialog,confirmAddEquipment,openAddEquipmentDialog,sharedTransport,
+ const hook=`window.testPort={writeShared,read,bind,render,recoverAddEquipmentRead,confirmNodeDialog,openNodeDialog,confirmAddEquipment,openAddEquipmentDialog,sharedTransport,
   get origin(){return inputOwner;},get working(){return working;},get base(){return syncBase;},get control(){return control;},get revision(){return revision;},get busy(){return busy;},get message(){return message;},get node(){return nodeDialog;},get form(){return newEquipmentForm;},get photos(){return pendingPhotos;},get unavailable(){return readUnavailable;},get client(){return sharedClient;},get editId(){return editingEquipmentId;},
   install(model){host=document.querySelector('#data-content');control=model;controlActor=identity().id;revision=10;selectedVersionId='draft';selectedCategory='cat';selectedSubcategory='sub';selectedGroup='grp';working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;},
   change(kind){if(kind==='owner')newEquipmentOwner={...newEquipmentOwner};if(kind==='form')newEquipmentForm={...newEquipmentForm,name:'replacement form'};if(kind==='restore-target'){selectedVersionId='draft';control.workflow.generation='gen';}if(kind==='host')host={isConnected:true};if(kind==='scope')selectedVersionId='another';if(kind==='generation')control.workflow.generation='replacement';if(kind==='lifecycle')equipmentEditRequest++;if(kind==='client')sharedClient={};if(kind==='attempt'){writeShared.attempt={};busy=true;}if(kind==='same-gen-model'){control=clone(control);control.workflow.revision++;revision=99;}if(kind==='new-model'){control=clone(control);control.workflow.generation='new';revision=99;}},
@@ -66,7 +65,6 @@ async function fixture({hold='POST',receiptOnly=false,unknown=false}={}){
   mutate(kind){if(kind==='actor')c.ProcessSync.identity={id:'other'};else if(kind==='same-id-object')c.ProcessSync.identity={...actor};else if(kind==='epoch')epoch++;else if(kind==='malformed-epoch')epoch=NaN;else if(kind==='null-epoch')epoch=null;else if(kind==='object-epoch')epoch={};else if(kind==='negative-epoch')epoch=-1;else if(kind==='missing-epoch')delete c.ProcessSync.identityGeneration;else if(kind==='missing-capture')delete c.ProcessSync.captureDelivery;else if(kind==='null-delivery')c.ProcessSync.captureDelivery=()=>null;else if(kind==='missing-current')delete c.ProcessSync.isCurrentDelivery;else if(kind==='false-current')c.ProcessSync.isCurrentDelivery=()=>false;else if(kind==='delivery')delivery++;else if(kind==='tab')host.dataset.activeTab='other';else if(kind==='disconnect')host.remove();else if(kind==='reload')c.ProcessSync.requiresReload=true;else p.change(kind);},
   type(value){const input=host.querySelector('[data-issue-result]');assert(input,'actual rendered issue input');input.value=value;input.oninput();return input;},
   peer(collection,id,field,value){state.working[collection].find(row=>row.id===id)[field]=value;state.revision++;revision++;},
-  async poll(){document.activeElement=null;p.pollShared();await pollCallback();},
  };
 }
 

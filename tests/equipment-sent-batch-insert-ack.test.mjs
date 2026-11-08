@@ -20,7 +20,10 @@ async function fixture(){
   const body=typeof options.body==='string'?JSON.parse(options.body):null;
   if(String(url).includes('operationId=')){receiptReads.push(String(url));if(reply?.blockReceipt)return Response.json({error:'SYNTHETIC_RECEIPT_UNAVAILABLE'},{status:503});}
   const response=await raw(url,options);
-  if(body?.command?.action!=='apply')return response;
+  if(body?.command?.action!=='save'){
+   if(reply?.mutateReadback&&commands.length&&String(url).includes('/workflow')&&options.method!=='POST'&&!String(url).includes('operationId=')){const data=h.load('lib/workflow-wire.ts').expandWorkflowPayload(await response.json());await reply(data,commands.at(-1));return Response.json(data,{status:response.status});}
+   return response;
+  }
   commands.push(json(body.command));posted?.();
   if(hold)await hold;
   const data=h.load('lib/workflow-wire.ts').expandWorkflowPayload(await response.json());
@@ -28,10 +31,10 @@ async function fixture(){
   responses++;return Response.json(data,{status:response.status});
   }finally{inflight--;}
  };
- const field=(id,value)=>{const node=f.host.querySelector('#routine-add-'+id);assert(node,id);node.value=value;node.dispatchEvent({type:node.tagName==='SELECT'?'change':'input',target:node});};
+ const field=(id,value)=>{const node=f.host.querySelector('#routine-add-'+id)||f.host.querySelector('#routine-editor [data-field="'+id+'"]');assert(node,id);node.value=value;if(node.oninput)node.oninput();else node.dispatchEvent({type:node.tagName==='SELECT'?'change':'input',target:node});};
  const open=()=>{const button=f.host.querySelector('#routine-add');assert(button&&!button.disabled);button.click();field('asset-code','SYN-UI-1');field('name','Actual UI new equipment');field('unit','支');field('enabled','true');field('confirmed','true');field('group-select','group');field('calibration-method','none');};
- const submit=async()=>{const before=responses,button=f.host.querySelector('#routine-add-submit');assert(button&&!button.disabled,'actual enabled Add button');button.click();for(let i=0;i<2000&&responses===before;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.equal(responses,before+1,'actual route reply completed');await settle();for(let i=0;i<2000&&inflight;i++){await new Promise(resolve=>setTimeout(resolve,2));await settle();}assert.equal(inflight,0,'fallback/receipt reads completed');await settle();};
- return{h,f,commands,receiptReads,field,open,submit,setReply(fn){reply=fn;},pause(){let release;hold=new Promise(resolve=>release=resolve);const reached=new Promise(resolve=>posted=resolve);return{reached,release};},close:()=>h.close()};
+ const submit=async()=>{const before=responses,button=f.host.querySelector('#routine-add-submit')||f.host.querySelector('#routine-form-apply');assert(button&&!button.disabled,'actual enabled local completion button');button.click();await settle();assert.equal(responses,before,'Add completion is local, not POST');const save=f.host.querySelector('#routine-save');assert(save&&!save.disabled,'actual enabled Save button');save.click();for(let i=0;i<2000&&responses===before;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.equal(responses,before+1,'actual route reply completed');await settle();for(let i=0;i<2000&&inflight;i++){await new Promise(resolve=>setTimeout(resolve,2));await settle();}assert.equal(inflight,0,'fallback/receipt reads completed');await settle();};
+ return{h,f,commands,receiptReads,field,open,submit,setReply(fn){reply=fn;},pause(){let release;hold=new Promise(resolve=>release=resolve);const reached=new Promise(resolve=>posted=resolve);return{reached,release};},async editCreated(){await f.test.openEditEquipment(commands[0].patches.find(p=>p.op==='insert'&&p.path[0]==='equipment').value.id);},close:()=>h.close()};
 }
 const row=data=>data.control.workflow.working.equipment[0];
 const projection=data=>data.control.workflow.working;
@@ -62,7 +65,7 @@ void test('actual category/subcategory/group handlers confirm allocated codes, c
    x.f.test.openNodeDialog(kind);
    const name=x.f.host.querySelector('#routine-dialog-name');assert(name);name.value='Actual '+kind;name.dispatchEvent({type:'input',target:name});
    if(kind==='group'){const spec=x.f.host.querySelector('#routine-dialog-spec');spec.value='Exact spec';spec.dispatchEvent({type:'input',target:spec});}
-   await x.f.test.confirmNodeDialog();assert.equal(x.f.test.readUnavailable,false,x.f.test.message);
+   await x.f.test.confirmNodeDialog();await x.f.test.writeShared('save');assert.equal(x.f.test.readUnavailable,false,x.f.test.message);
    assert.equal(x.f.host.querySelector('#routine-dialog-confirm'),null,'same unchanged dialog closes');
   }
   assert.equal(x.commands.length,3);
@@ -77,7 +80,7 @@ void test('real adapter mutableFields final copy preserves explicit whitespace/n
  const x=await fixture();try{
   x.f.test.working.equipment.push({id:'raw',assetCode:'  syn-raw  ',groupId:'group',name:' untrimmed name ',owner:' untrimmed owner ',unit:'支',spec:null,enabled:true,confirmed:true,calibrationMethod:'none'});
   x.setReply(data=>{const r=row(data);data.control.workflow.working.equipment[0]=Object.fromEntries(Object.entries(r).reverse());});
-  assert(await x.f.test.writeShared('apply'),x.f.test.message);
+  assert(await x.f.test.writeShared('save'),x.f.test.message);
   const actual=x.h.flow(await x.h.read('routine-equipment')).working.equipment[0];
   assert.equal(actual.assetCode,'SYN-RAW');assert.equal(actual.name,' untrimmed name ');assert.equal(actual.owner,' untrimmed owner ');assert.equal(actual.spec,null);
   assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,0);
@@ -104,7 +107,7 @@ for(const [name,mutate]of[
  ['stale receipt revision',data=>{data.receipt.revision=0;data.receipt.unchanged=true;}],
  ['ACK behind receipt',data=>{data.control.workflow.revision=data.receipt.revision-1;}],
 ])void test('insert ACK rejects '+name+' without losing RAM or creating a second POST',async()=>{
- const x=await fixture();try{x.open();x.setReply(mutate);await x.submit();expectRetained(x);const old=x.f.test.working;assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,old);}finally{x.close();}
+ const x=await fixture();try{x.open();x.setReply(mutate);await x.submit();expectRetained(x);const old=x.f.test.working;assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,old);}finally{x.close();}
 });
 
 for(const mismatch of ['operation','generation'])void test('default transport rejects wrong '+mismatch+' receipt and retains UNKNOWN for original receipt GET only',async()=>{
@@ -112,24 +115,24 @@ for(const mismatch of ['operation','generation'])void test('default transport re
   const tamper=data=>{if(mismatch==='operation')data.receipt.operationId='wrong-operation';else data.receipt.generation='wrong-generation';};tamper.blockReceipt=true;x.setReply(tamper);x.open();await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,1);assert.match(x.f.test.message,/RESULT_UNKNOWN|尚未確認|結果未知/);
   const markers=[...x.f.storage.entries()];assert(markers.length);const old=x.f.test.working;
-  await x.f.test.writeShared('apply');assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,2);assert.equal(x.f.test.working,old);assert.deepEqual([...x.f.storage.entries()],markers);
+  await x.f.test.enterExistingDraft();assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,2);assert.equal(x.f.test.working,old);assert.deepEqual([...x.f.storage.entries()],markers);
   assert(x.receiptReads.every(url=>url.includes(x.commands[0].operationId)),'never follows the mismatching response operation');
  }finally{x.close();}
 });
 
 for(const change of ['actor','epoch','delivery'])void test('late canonical insert ACK after '+change+' never adopts or closes the retained form',async()=>{
  const x=await fixture();try{
-  const pause=x.pause();x.open();const action=x.submit();await pause.reached;const before=x.f.test.model,local=x.f.test.working;
+  const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.open();const before=x.f.test.model,local=x.f.test.working;
   if(change==='actor')x.f.rotateActor();if(change==='epoch')x.f.rotateEpoch();if(change==='delivery')x.f.rotateDelivery();pause.release();await action;
   assert.equal(x.commands.length,1);assert.equal(x.f.test.model,before);assert.equal(x.f.test.working,local);assert(x.f.host.querySelector('#routine-add-submit'),'late owner cannot close original dialog');
  }finally{x.close();}
 });
 
-void test('input typed after canonical insertion remains on the same UUID and next explicit Apply updates instead of reinserting',async()=>{
+void test('input typed after canonical insertion remains on the same UUID and next explicit Save updates instead of reinserting',async()=>{
  const x=await fixture();try{
-  const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.field('name','Second explicit name');pause.release();await action;
-  assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.commands.length,1);assert(x.f.host.querySelector('#routine-add-submit'));
-  assert.equal(x.f.host.querySelector('#routine-add-name').value,'Second explicit name');
+  const pause=x.pause();x.open();const action=x.submit();await pause.reached;await x.editCreated();x.field('name','Second explicit name');pause.release();await action;
+  assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.commands.length,1);assert(x.f.host.querySelector('#routine-form-apply'));
+  assert.equal(x.f.host.querySelector('#routine-editor [data-field="name"]').value,'Second explicit name');
   await x.submit();assert.equal(x.commands.length,2);assert.equal(x.f.test.readUnavailable,false,x.f.test.message);
   const next=x.commands[1];assert(next.patches.every(p=>p.op!=='insert'));assert(next.guards.some(g=>g.path.at(-1)==='name'&&g.value==='Actual UI new equipment'));
   const rows=x.h.flow(await x.h.read('routine-equipment')).working.equipment;assert.equal(rows.length,1);assert.equal(rows[0].id,x.commands[0].patches[0].value.id);assert.equal(rows[0].name,'Second explicit name');
@@ -140,7 +143,7 @@ for(const kind of ['category','subcategory','group'])void test('actual new '+kin
  const x=await fixture();try{
   x.f.test.openNodeDialog(kind);const input=x.f.host.querySelector('#routine-dialog-name');input.value='User '+kind;input.dispatchEvent({type:'input',target:input});
   x.setReply((data,command)=>{const patch=command.patches.find(p=>p.op==='insert');projection(data)[patch.path[0]].find(r=>r.id===patch.value.id).name='Peer '+kind;});
-  await x.f.test.confirmNodeDialog();assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert(x.f.host.querySelector('#routine-dialog-confirm'));assert.equal(x.f.host.querySelector('#routine-dialog-name').value,'User '+kind);
+  await x.f.test.confirmNodeDialog();await x.f.test.writeShared('save');assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert.equal(x.f.host.querySelector('#routine-dialog-confirm'),null,'local completion already closed the dialog');assert(x.f.test.working[{category:'categories',subcategory:'subcategories',group:'groups'}[kind]].some(r=>r.name==='User '+kind));
  }finally{x.close();}
 });
 
@@ -154,13 +157,13 @@ void test('receipt-only insertion ACK uses its original receipt and one existing
 
 void test('next input after a real inserted row keeps sent guard and conflicts with peer change rather than rebasing',async()=>{
  const x=await fixture();try{
-  const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.field('name','My next name');
+  const pause=x.pause();x.open();const action=x.submit();await pause.reached;await x.editCreated();x.field('name','My next name');
   const id=x.commands[0].patches[0].value.id,path=['equipment',{id},'name'];
   await x.h.command('routine-equipment','apply',{patches:[{op:'set',path,value:'Peer name'}],guards:[{path,value:'Actual UI new equipment'}]});
   pause.release();await action;assert.equal(x.f.test.readUnavailable,false);assert.equal(x.commands.length,1);
   await x.submit();assert.equal(x.commands.length,2);assert.equal(x.commands[1].guards.find(g=>g.path.at(-1)==='name').value,'Actual UI new equipment');
   assert.equal(x.f.test.working.equipment.find(r=>r.id===id).name,'My next name');assert.equal(x.h.flow(await x.h.read('routine-equipment')).working.equipment.find(r=>r.id===id).name,'Peer name');
-  assert.equal(x.f.requests.filter(r=>r.action==='apply').at(-1).status,409);
+  assert.equal(x.f.requests.filter(r=>r.action==='save').at(-1).status,409);
  }finally{x.close();}
 });
 
@@ -168,14 +171,14 @@ for(const code of ['C00','C001'])void test('new category rejects impossible serv
  const x=await fixture();try{
   x.f.test.openNodeDialog('category');const input=x.f.host.querySelector('#routine-dialog-name');input.value='User category';input.dispatchEvent({type:'input',target:input});
   x.setReply((data,command)=>{const sent=command.patches.find(p=>p.op==='insert').value;projection(data).categories.find(r=>r.id===sent.id).code=code;});
-  await x.f.test.confirmNodeDialog();assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert(x.f.host.querySelector('#routine-dialog-confirm'));
+  await x.f.test.confirmNodeDialog();await x.f.test.writeShared('save');assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert.equal(x.f.host.querySelector('#routine-dialog-confirm'),null,'local completion closes before explicit Save');
  }finally{x.close();}
 });
 
-for(const collection of ['categories','subcategories','groups'])for(const shape of ['object','null','missing','null entry','primitive entry'])void test('malformed insert parent '+collection+' '+shape+' latches confirmation before another explicit Apply',async()=>{
+for(const collection of ['categories','subcategories','groups'])for(const shape of ['object','null','missing','null entry','primitive entry'])void test('malformed insert parent '+collection+' '+shape+' latches confirmation before another explicit Save',async()=>{
  const x=await fixture();try{
   x.open();x.setReply(data=>{const snapshot=projection(data);if(shape==='object')snapshot[collection]={};if(shape==='null')snapshot[collection]=null;if(shape==='missing')delete snapshot[collection];if(shape==='null entry')snapshot[collection].push(null);if(shape==='primitive entry')snapshot[collection].push('not a row');});
-  await x.submit();expectRetained(x);const local=x.f.test.working;assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
+  await x.submit();expectRetained(x);const local=x.f.test.working;assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
  }finally{x.close();}
 });
 
@@ -186,14 +189,14 @@ for(const shape of ['object','null row'])void test('mixed existing set before in
   x.open();x.setReply(data=>{if(shape==='object')projection(data).equipment={};else projection(data).equipment.unshift(null);});await x.submit();
   assert.equal(x.commands.length,1);assert.equal(x.commands[0].patches[0].op,'set');assert(x.commands[0].patches.some(p=>p.op==='insert'));
   assert.equal(x.f.test.readUnavailable,true);assert.match(x.f.test.message,/尚未核對/);const local=x.f.test.working;assert.equal(local.equipment.length,2);
-  assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
+  assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
  }finally{x.close();}
 });
 
 for(const [collection,field,derived]of[['categories','code','categoryCode'],['categories','name','category'],['subcategories','name','subcategory']])for(const invalid of [null,7,'   '])void test('same-graph canonical parent '+collection+'.'+field+' '+JSON.stringify(invalid)+' cannot bless malformed derived fields',async()=>{
  const x=await fixture();try{
   x.open();x.setReply(data=>{const snapshot=projection(data);snapshot[collection][0][field]=invalid;snapshot.groups[0][derived]=invalid;snapshot.equipment[0][derived]=invalid;});
-  await x.submit();expectRetained(x);await x.f.test.writeShared('apply');assert.equal(x.commands.length,1);
+  await x.submit();expectRetained(x);await x.f.test.writeShared('save');assert.equal(x.commands.length,1);
  }finally{x.close();}
 });
 
@@ -201,7 +204,7 @@ for(const missing of ['equipment object','issues missing'])void test('category-o
  const x=await fixture();try{
   x.f.test.openNodeDialog('category');const input=x.f.host.querySelector('#routine-dialog-name');input.value='New category';input.dispatchEvent({type:'input',target:input});
   x.setReply(data=>{if(missing==='equipment object')projection(data).equipment={};else delete projection(data).issues;});
-  const before=x.f.test.model,local=x.f.test.working;await x.f.test.confirmNodeDialog();assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert.equal(x.f.test.model,before);assert.equal(x.f.test.working,local);
-  assert.equal(await x.f.test.writeShared('apply'),null);assert.equal(x.commands.length,1);
+  const before=x.f.test.model,local=x.f.test.working;await x.f.test.confirmNodeDialog();await x.f.test.writeShared('save');assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert.equal(x.f.test.model,before);assert.equal(x.f.test.working,local);
+  assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);
  }finally{x.close();}
 });
