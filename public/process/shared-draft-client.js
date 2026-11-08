@@ -761,8 +761,10 @@
     }
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
-    async function request(url,body,readOptions) {
-      if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertOwner();
+    async function request(url,body,readOptions,equipmentRecheck) {
+      // Only the private explicit equipment permission read may use its new delivery pin.
+      const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};
+      if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
@@ -799,7 +801,7 @@
         // An owned HTTP denial remains authoritative even when its body is not JSON.
         // projectAccess fences stale reads; original parse/HTTP errors and unknown evidence remain.
         phase='body';let result;try{result=await response.json();}catch(error){if(!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
-        assertOwner();
+        assertRequestOwner();
         if(abEntry)abAssert(abEntry,body.command);
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
@@ -871,6 +873,12 @@
       if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
       return {...fresh,receipt:r};
     }
+    // JSON object key order is not content; array positions, keys and values are.
+    function equipmentContentEqual(a,b){
+      if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+      if(Array.isArray(a)&&a.length!==b.length)return false;
+      const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&equipmentContentEqual(a[key],b[key]));
+    }
     async function equipmentTerminal(result,command,originalPost=false){
       if(!equipmentLocalSave)return result;
       assertOwner();const raw=JSON.stringify(packCommand(command));
@@ -879,7 +887,7 @@
       if(command.action==='save'&&!result.receipt.savedId)throw Error('INVALID_OPERATION_RECEIPT');
       const postFlow=result.control?.workflow;
       // Only the original successful POST can use its complete CAS result. Lost ACKs still GET.
-      if(originalPost&&command.action==='save'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>=0&&postFlow?.scope==='routine-equipment'&&postFlow.generation===command.generation&&postFlow.revision===result.receipt.revision&&postFlow.saved?.id===result.receipt.savedId&&postFlow.pendingId===null&&result.receipt.caseId===null&&JSON.stringify(postFlow.saved.content)===JSON.stringify(postFlow.working))return {...result,equipmentCommand:JSON.parse(JSON.stringify(command))};
+      if(originalPost&&command.action==='save'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>=0&&postFlow?.scope==='routine-equipment'&&postFlow.generation===command.generation&&postFlow.revision===result.receipt.revision&&postFlow.saved?.id===result.receipt.savedId&&postFlow.pendingId===null&&result.receipt.caseId===null&&equipmentContentEqual(postFlow.saved.content,postFlow.working))return {...result,equipmentCommand:JSON.parse(JSON.stringify(command))};
       let fresh;try{fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Error('EQUIPMENT_READBACK_REQUIRED',{cause});}assertOwner();const flow=fresh.control?.workflow;
       if(sessionStorage.getItem(key)!==raw||fresh.permissions?.view!==true||flow?.scope!=='routine-equipment'||flow.generation!==result.receipt.generation||!Number.isSafeInteger(flow.revision)||flow.revision<result.receipt.revision)throw Error('EQUIPMENT_READBACK_REQUIRED');
       return {...(result.control?result:fresh),permissions:fresh.permissions,receipt:result.receipt,equipmentCommand:JSON.parse(JSON.stringify(command))};
@@ -958,6 +966,7 @@
         ids.add(command.operationId);return true;
       });
     }
+    const equipmentDeliveryChecks=new WeakMap();
     const client={
       canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),readDenialVersion:kind=>readPause.denialVersion(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
@@ -971,6 +980,34 @@
       useStateRevision(){conditionalState=true;return client;},
       read: (token,options)=>request(token?query(`since=${encodeURIComponent(conditionalState&&conditionalRead?.flowToken===token?'state:'+conditionalRead.revision:token)}`):endpoint,undefined,options),
       permissions:options=>request(query('permissions=1'),undefined,options),
+      async recheckEquipmentDelivery(generation,isCurrent,accept){
+        const owner=beginRuntimeOwner,oldDelivery=owner?.delivery,delivery=window.ProcessSync?.captureDelivery?.(),marker=sessionStorage.getItem(key),record=unknown;
+        const failures=[...syncFailures],assertRecheck=()=>{
+          if(!equipmentLocalSave||!durableBegin||endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||!accessGuard||!owner||owner!==beginRuntimeOwner||owner.delivery!==oldDelivery||!oldDelivery||window.ProcessSync?.isCurrentDelivery?.(oldDelivery)!==false||
+            !departureOwnerCurrent(owner)||owner.identity!==window.ProcessSync?.identity||owner.id!==actorId||
+            !Number.isSafeInteger(owner.epoch)||owner.epoch<0||owner.epoch!==window.ProcessSync?.identityGeneration?.()||
+            clientPagehideGeneration!==transportPagehideGeneration||!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==true||
+            queued||preparedFlights.size||beginPending||retryPending||beginRead||recoveryInvalid||beginOutstanding()||equipmentProjectionRetired||
+            typeof generation!=='string'||!generation||conditionalRead?.flowToken?.slice(0,conditionalRead.flowToken.lastIndexOf(':'))!==generation||record&&record.generation!==generation||unknown!==record||
+            sessionStorage.getItem(key)!==marker||marker!==(record?JSON.stringify(packCommand(record)):null)||
+            syncFailures.size!==failures.length||failures.some(([id,failure])=>syncFailures.get(id)!==failure)||syncFailures.size&&!record||
+            typeof isCurrent!=='function'||isCurrent()!==true||typeof accept!=='function')throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');
+        };
+        assertRecheck();
+        const result=await request(query('permissions=1'),undefined,{isCurrent,requireAcceptedAccess:true},assertRecheck);
+        assertRecheck();
+        if(result.permissions?.view!==true||result.permissions?.edit!==true||accept(result)!==true)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');
+        assertRecheck();
+        equipmentDeliveryChecks.set(result,()=>{assertRecheck();if(accept(result)!==true)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');assertRecheck();owner.delivery=delivery;});
+        return result;
+      },
+      confirmEquipmentDelivery(result){
+        const confirm=equipmentDeliveryChecks.get(result);if(!confirm)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');
+        equipmentDeliveryChecks.delete(result);
+        // Only this read's private receipt can renew the idle runtime after all
+        // caller checks. Original journal, operations and failures stay untouched.
+        confirm();
+      },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),

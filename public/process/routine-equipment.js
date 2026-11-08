@@ -129,6 +129,12 @@
       message=t('已查原操作收據；請核對已存草稿，保留的本機修改不會自動重送。','Đã kiểm tra biên nhận gốc; đối chiếu bản nháp đã lưu. Không tự gửi lại thay đổi cục bộ.');
     }catch(error){message=error.message;}finally{busy=false;render();}
   }
+  // JSON object key order is not content; array positions, keys and values are.
+  function equipmentContentEqual(a,b){
+    if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+    if(Array.isArray(a)&&a.length!==b.length)return false;
+    const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&equipmentContentEqual(a[key],b[key]));
+  }
   // Insert ACKs may contain server allocation/defaults. Compare every field;
   // only the transformations in equipment-workflow/checkedSnapshot are allowed.
   function confirmedEquipmentInsert(snapshot,patch){try{
@@ -136,10 +142,7 @@
     const validRows=rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string'&&!!row.id);
     if(patch.path.length!==1||!sent||typeof sent.id!=='string'||!validRows(rows))return false;
     const matches=rows.filter(row=>row?.id===sent.id);if(matches.length!==1)return false;
-    const actual=matches[0],same=(a,b)=>{
-      if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
-      const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&same(a[key],b[key]));
-    };
+    const actual=matches[0],same=equipmentContentEqual;
     if(collection==='subcategories')return same(actual,sent); // No canonical transformation.
     const allocated=(value,prefix='')=>{if(typeof value!=='string'||!value.startsWith(prefix))return false;const number=Number(value.slice(prefix.length));return Number.isSafeInteger(number)&&number>0&&value===prefix+String(number).padStart(2,'0');};
     const only=(row,keys)=>Object.keys(row).every(key=>keys.includes(key));
@@ -246,7 +249,7 @@
         if(confirmed.control.workflow.generation!==commandGeneration||hasInsert&&!['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(actual?.[key]))||hasInsert&&(!result.receipt||result.receipt.unchanged!==false||result.receipt.generation!==commandGeneration||!Number.isSafeInteger(result.receipt.revision)||result.receipt.revision<=flow.revision||!Number.isSafeInteger(confirmed.control.workflow.revision)||confirmed.control.workflow.revision<result.receipt.revision)||!detail.patches.every(patch=>patch.op==='remove'?valueAt(actual,patch.path)===undefined:patch.op==='insert'?confirmedEquipmentInsert(actual,patch):JSON.stringify(valueAt(actual,patch.path))===JSON.stringify(patch.value))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
         }catch(error){if(hasInsert){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}throw error;}
       }
-      if(action==='save'&&(!result.receipt?.savedId||confirmed.control.workflow.saved?.id!==result.receipt.savedId||JSON.stringify(confirmed.control.workflow.saved.content)!==JSON.stringify(confirmed.control.workflow.working))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
+      if(action==='save'&&(!result.receipt?.savedId||confirmed.control.workflow.saved?.id!==result.receipt.savedId||!equipmentContentEqual(confirmed.control.workflow.saved.content,confirmed.control.workflow.working))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
       const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
       control=confirmed.control;revision=confirmed.revision;selectedVersionId=open()?.id||active()?.id||'';advance();
       if(action!=='save'){submitProblems=[];problemSnapshot=null;openErrors=false;}
@@ -541,7 +544,12 @@
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
     if(actor!==identity()?.id)throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if (!response.ok || !body.control || !Number.isInteger(body.revision)) throw Error(body.error || t('後端資料載入失敗', 'Không thể tải dữ liệu máy chủ'));
-    const access=await (deliveryRecheck?readClient:sharedTransport()).permissions();
+    const recheckCurrent=()=>owns()&&inputOwner===retainedOwner&&working===retainedWorking&&syncBase===retainedBase&&nodeDialog===retainedNode&&newEquipmentForm===retainedForm&&sharedClient===readClient&&inputPrincipalCurrent()&&inputTargetCurrent();
+    const acceptRecheck=access=>{
+      const flow=body.control.workflow,draft=body.control.versions?.find(item=>item.id===versionId);
+      return recheckCurrent()&&!(readClient.hasSyncFailures()&&!readClient.hasUnknown())&&Number.isSafeInteger(body.revision)&&Number.isSafeInteger(access.revision)&&access.revision>=body.revision&&access.permissions?.view===true&&access.permissions?.edit===true&&flow?.scope==='routine-equipment'&&flow.generation===retainedOwner.generation&&(!localBeginReceipt||localBeginReceipt.generation===flow.generation)&&!flow.pendingId&&!body.control.versions.some(item=>['pending','pending-test'].includes(item.status))&&draft?.status==='draft'&&Number.isSafeInteger(flow.revision)&&flow.revision>=(control?.workflow?.revision||0)&&body.revision>=revision;
+    };
+    const access=await (deliveryRecheck?readClient.recheckEquipmentDelivery(retainedOwner.generation,recheckCurrent,acceptRecheck):sharedTransport().permissions());
     if(!owns())throw Error('DELIVERY_SUPERSEDED');
     const recovery=sessionStorage.getItem(beginRecoveryKey(actor))!==null;
     if(deliveryRecheck){
@@ -551,6 +559,7 @@
     }else if(!inputOwnerCurrent()&&hasLocalDraftInput())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     if(localBeginReceipt&&body.control.workflow?.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
     if(controlActor!==actor){submitProblems=[];problemSnapshot=null;openErrors=false;}
+    if(deliveryRecheck)readClient.confirmEquipmentDelivery(access);
     control = body.control; revision = body.revision;controlActor=actor;readUnavailable=recovery;
     const version = selected();
     if (!selectedVersionId || !control.versions.some(item => item.id === selectedVersionId)) selectedVersionId = version?.id || '';

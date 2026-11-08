@@ -13,6 +13,14 @@ async function fixture(){
  await h.command('routine-equipment','apply',{patches:[insert('categories',{id:'category',name:'Synthetic category'}),insert('subcategories',{id:'subcategory',categoryId:'category',name:'Synthetic subcategory'}),insert('groups',{id:'group',categoryId:'category',subcategoryId:'subcategory',name:'Synthetic group'})]});
  await h.promote('routine-equipment');
  const f=await connect(h);assert(await f.test.writeShared('begin'));
+ // Native select initial values are a DOM port, not a change to business inputs.
+ const Node=f.host.constructor, html=Object.getOwnPropertyDescriptor(Node.prototype,'innerHTML');
+ Object.defineProperty(Node.prototype,'innerHTML',{...html,set(value){html.set.call(this,value);
+  for(const select of [...(this.tagName==='SELECT'?[this]:[]),...this.querySelectorAll('select')]){
+   const options=select.querySelectorAll('option'),option=options.find(node=>node.hasAttribute('selected'))||options[0];
+   select.value=option?(option.getAttribute('value')??option.textContent):'';
+  }
+ }});
  for(const [kind,id]of[['category','category'],['subcategory','subcategory'],['group','group']]){const button=f.host.querySelector(`[data-node-select="${kind}"][data-id="${id}"]`);assert(button);button.click();}
  const raw=f.c.fetch,commands=[],receiptReads=[];let reply=null,hold=null,posted,responses=0,inflight=0;
  f.c.fetch=async(url,options={})=>{
@@ -206,5 +214,67 @@ for(const missing of ['equipment object','issues missing'])void test('category-o
   x.setReply(data=>{if(missing==='equipment object')projection(data).equipment={};else delete projection(data).issues;});
   const before=x.f.test.model,local=x.f.test.working;await x.f.test.confirmNodeDialog();await x.f.test.writeShared('save');assert.equal(x.f.test.readUnavailable,true);assert.equal(x.commands.length,1);assert.equal(x.f.test.model,before);assert.equal(x.f.test.working,local);
   assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);
+ }finally{x.close();}
+});
+
+void test('insert fixture select port keeps empty placeholders and selected options without input events',async()=>{
+ const x=await fixture();try{
+  const root=x.f.c.document.createElement('div');let events=0;
+  root.innerHTML='<select><option value="">Choose</option><option value="valid">Valid</option></select>';
+  const select=root.querySelector('select');select.addEventListener('input',()=>events++);select.addEventListener('change',()=>events++);
+  assert.equal(select.value,'','an empty placeholder never invents a legal domain value');
+  select.value='valid';assert.equal(select.value,'valid');select.value='';assert.equal(select.value,'');
+  root.innerHTML='<select><option value="">Choose</option><option value="selected" selected>Selected</option></select>';
+  assert.equal(root.querySelector('select').value,'selected');assert.equal(events,0);assert.equal(x.commands.length,0);
+ }finally{x.close();}
+});
+
+// Saved/working agreement is structural, not merely the inserted row comparison.
+for(const [name,mutate]of[
+ ['changed value',saved=>{saved.equipment[0].name='Different saved name';}],
+ ['changed type',saved=>{saved.equipment[0].enabled='true';}],
+ ['absent key',saved=>{delete saved.equipment[0].photoHidden;}],
+ ['extra key',saved=>{saved.equipment[0].extra=null;}],
+ ['array order',saved=>{saved.categories.reverse();}],
+ ['duplicate row',saved=>{saved.equipment.push(json(saved.equipment[0]));}],
+])void test('structural snapshot ACK rejects '+name+' with retained RAM and no resend',async()=>{
+ const x=await fixture();try{
+  await x.h.command('routine-equipment','apply',{patches:[insert('categories',{id:'second-category',name:'Second category'})]});
+  await x.f.test.read();x.f.test.render();x.open();
+  x.setReply(data=>{const r=row(data);projection(data).equipment[0]=Object.fromEntries(Object.entries(r).reverse());mutate(data.control.workflow.saved.content);});
+  await x.submit();expectRetained(x);const local=x.f.test.working;
+  assert.equal(await x.f.test.writeShared('save'),null);assert.equal(x.commands.length,1);assert.equal(x.f.test.working,local);
+ }finally{x.close();}
+});
+
+void test('structural snapshot ACK settles reordered keys even when all subsequent GETs are unavailable',async()=>{
+ const x=await fixture();try{
+  const reorder=value=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([k,v])=>[k,reorder(v)])):value;
+  x.open();const before=x.f.requests.length,fetch=x.f.c.fetch;let deniedGets=0;
+  // Fail every subsequent GET, including receipt recovery, while retaining the
+  // actual POST, default transport, caller and real adapter confirmation chain.
+  x.f.c.fetch=async(url,options={})=>{if((options.method||'GET')==='GET'){deniedGets++;return Response.json({error:'SYNTHETIC_READBACK_UNAVAILABLE'},{status:503});}return fetch(url,options);};
+  x.setReply(data=>{data.control.workflow.working=reorder(projection(data));});await x.submit();
+  assert.equal(deniedGets,0,'original structurally equal POST ACK must not try fallback or receipt GET');
+  assert.equal(x.f.test.readUnavailable,false,x.f.test.message);assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,0);
+  assert.equal(x.f.requests.slice(before).filter(r=>r.method==='GET').length,0);
+ }finally{x.close();}
+});
+
+for(const mismatch of ['operation','generation'])void test('reordered ACK cannot bypass unknown '+mismatch+' receipt barrier',async()=>{
+ const x=await fixture();try{
+  const tamper=data=>{projection(data).equipment[0]=Object.fromEntries(Object.entries(row(data)).reverse());data.receipt[mismatch==='operation'?'operationId':'generation']='wrong-original';};tamper.blockReceipt=true;
+  x.setReply(tamper);x.open();await x.submit();const markers=[...x.f.storage.entries()],local=x.f.test.working;
+  assert(markers.length);assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,1);
+  await x.f.test.enterExistingDraft();assert.equal(x.commands.length,1);assert.equal(x.receiptReads.length,2);assert.equal(x.f.test.working,local);assert.deepEqual([...x.f.storage.entries()],markers);
+  assert(x.receiptReads.every(url=>url.includes(x.commands[0].operationId)));
+ }finally{x.close();}
+});
+for(const change of ['actor','epoch','delivery'])void test('reordered ACK cannot bypass '+change+' owner fence',async()=>{
+ const x=await fixture();try{
+  x.setReply(data=>{projection(data).equipment[0]=Object.fromEntries(Object.entries(row(data)).reverse());});
+  const pause=x.pause();x.open();const action=x.submit();await pause.reached;x.open();const before=x.f.test.model,local=x.f.test.working;
+  if(change==='actor')x.f.rotateActor();if(change==='epoch')x.f.rotateEpoch();if(change==='delivery')x.f.rotateDelivery();pause.release();await action;
+  assert.equal(x.commands.length,1);assert.equal(x.f.test.model,before);assert.equal(x.f.test.working,local);assert(x.f.host.querySelector('#routine-add-submit'));
  }finally{x.close();}
 });

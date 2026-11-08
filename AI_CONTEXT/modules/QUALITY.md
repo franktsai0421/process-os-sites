@@ -1,3 +1,7 @@
+## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
+
+Equipment retry can revalidate retained input after delivery-only drift while actor object/id, epoch, host/target, generation and all original guards remain unchanged. A fresh exact-scope permission GET and private one-use confirmation renew only the existing runtime delivery; no journal, unknown command or receipt is replaced. Equipment Save snapshot equality ignores JSON object-key order but preserves array order and exact keys/types/values. Other shared workflows retain their comparison behavior. [Source proof, regression evidence and limits](../../docs/acceptance/equipment-no-poll-20261108/README.md). No model, persistence format, ACL or schema change.
+
 ## 2026-11-06 — PR93 display image proof follow-up
 
 The merged dual-tab fixture now waits readonly for exact durable operation IDs: offline is emitted per observation, so it cannot fence all staged records. Missing/unexpected/duplicate IDs and probe errors still fail; actual reporter/IndexedDB controls preserve this boundary.
