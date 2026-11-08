@@ -49,6 +49,11 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
+      - name: Equipment no-poll source and local Save regression
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test --test-concurrency=1 --test-timeout=15000 tests/equipment-no-poll.test.mjs tests/equipment-sent-batch.test.mjs tests/equipment-sent-batch-quarantine.test.mjs tests/equipment-sent-batch-insert-ack.test.mjs tests/access-event-main-integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Isolated benchmark tools and preview redirect boundaries
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
