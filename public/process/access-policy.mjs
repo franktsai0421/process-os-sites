@@ -27,7 +27,7 @@ export const catalog=[
  row('quality-reports','quality','品質報告','Báo cáo chất lượng','data',['view']),
  row('fpy','quality','FPY','FPY','data',['view']),
  row('routine','quality','例行檢查','Kiểm tra định kỳ','data',['view','create','edit','delete','save','submit','withdraw','approve','return','settings']),
- row('feedback','system','網頁問題回報','Báo lỗi trang web','data',['view','create','edit','exchange'],{adminOps:['edit','exchange']}),
+ row('feedback','system','網頁問題回報','Báo lỗi trang web','data',['view','create','edit','exchange']),
  row('users','system','使用者與權限','Tài khoản và phân quyền','data',['view','create','edit','delete'],{adminOnly:true}),
  row('user-status','system','帳號啟用／停用','Kích hoạt tài khoản','data',['edit'],{adminOnly:true}),
  row('user-password','system','重設普通帳號密碼','Đặt lại mật khẩu','data',['edit'],{adminOnly:true}),
@@ -68,7 +68,7 @@ export function legacyAllowed(user,preset,module,op){
 export function effectiveCells(user,roles){
  const preset=roles[user.role];if(!preset||user.enabled===false||user.deletedAt)return Object.fromEntries(accessKeys.map(k=>[k,false]));
  if(isPrimary(user))return Object.fromEntries(accessKeys.map(k=>[k,true]));
- return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';return[key,value];})));
+ return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';if(key==='feedback.view')value=true;return[key,value];})));
 }
 export function managementRight(actor,target,action,cells){
  if(!actor||!target||actor.enabled===false||actor.deletedAt)return false;
@@ -79,7 +79,7 @@ export function managementRight(actor,target,action,cells){
  if(actor.role!=='admin'||actor.id===target.id||target.role==='admin'||isPrimary(target))return false;
  return cells[({'edit':'users.edit',create:'users.create',delete:'users.delete',status:'user-status.edit',password:'user-password.edit'})[action]]===true;
 }
-export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,r.id+'.'+op!=='users.view'&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
+export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,!['users.view','feedback.view'].includes(r.id+'.'+op)&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
 export const editableCells=(actor,target,cells,action='edit')=>{const allowed=roleEditable(target.role),manage=!isPrimary(target)&&managementRight(actor,target,action,cells);return Object.fromEntries(accessKeys.map(key=>[key,allowed[key]&&manage&&(isPrimary(actor)||cells[key]===true)]));};
 // Reject invalid combinations rather than silently granting view or removing actions.
 export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}

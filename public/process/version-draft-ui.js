@@ -300,7 +300,9 @@
   }
   const reviewReasons=new Map();
   function confirmReview({action,scope,reason='',selfReview=false}){
-    const vi=document.documentElement.lang==='vi',names={approve:vi?'Duyệt':'確認',reject:vi?'Trả lại':'發回',withdraw:vi?'Rút hồ sơ':'撤回送審'},title=names[action];
+    // A correction/withdrawal is not approval, even for the original author.
+    selfReview=action==='approve'&&selfReview;
+    const vi=document.documentElement.lang==='vi',names={approve:vi?'Duyệt':'確認',reject:vi?'Trả lại':'發回',return:vi?'Trả lại':'發回',withdraw:vi?'Rút hồ sơ':'撤回送審'},title=names[action];
     return new Promise(resolve=>{const opener=document.activeElement,dialog=create('dialog','vd-confirm');dialog.dataset.i18nSkip='true';dialog.setAttribute('aria-label',title);
       dialog.innerHTML=`<form><h2>${h(title)}</h2><p>${h(scope)}</p><label>${vi?'Lý do / ý kiến':'理由／意見'}${action==='approve'?(vi?' (không bắt buộc)':'（選填）'):(vi?' (bắt buộc)':'（必填）')}<textarea rows="4" ${action==='approve'?'':'required'}></textarea></label>${selfReview?`<label class="vd-self-review"><input type="checkbox" required> ${vi?'Xác nhận tự xét duyệt hồ sơ của mình; ghi lại trong lịch sử.':'確認自審自己送出的案件，並留下操作紀錄。'}</label>`:''}<div class="vd-actions"><button type="button" data-cancel class="button ghost">${t('cancel')}</button><button type="submit" class="button signal">${h(title)}</button></div></form>`;
       const textarea=dialog.querySelector('textarea'),reasonKey=`${host.ProcessSync?.identity?.id||''}:${scope}:${action}`;textarea.value=reviewReasons.get(reasonKey)??reason;

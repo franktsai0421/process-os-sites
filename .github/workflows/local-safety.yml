@@ -210,7 +210,7 @@ jobs:
           # Both suites import master-ab-auth-phase-fixture.mjs; the fixture is not a zero-case suite.
           node --test --test-concurrency=1 tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/shared-draft-pagehide-generation.test.mjs tests/shared-draft-submit-contract.test.mjs tests/shared-draft-no-change.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-batch-http.test.mjs tests/master-manual-name-apply.test.cjs tests/fqc-matrix-batch.test.mjs tests/quality-submit-confirmation-pins.test.cjs tests/quality-submission-fences.test.mjs tests/lines-submit-snapshot-integration.test.mjs
+          node --test tests/shared-draft-pagehide-generation.test.mjs tests/shared-draft-submit-contract.test.mjs tests/shared-draft-no-change.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-batch-http.test.mjs tests/master-manual-name-apply.test.cjs tests/fqc-matrix-batch.test.mjs tests/quality-submit-confirmation-pins.test.cjs tests/quality-submission-fences.test.mjs tests/lines-submit-snapshot-integration.test.mjs tests/shared-draft-return-confirmation.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build exact checked-out commit
         id: head_validation_03
@@ -458,7 +458,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-ipqc-ab-module-history.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs
+          node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs tests/account-save-capability-label.test.mjs tests/account-result-notice.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --experimental-vm-modules --test tests/account-source-api.test.mjs tests/account-login-language.test.mjs tests/account-dialog-feedback.test.mjs scripts/test-own-account-entry.mjs tests/account-main-source-compat.test.mjs tests/account-background-compat.test.mjs tests/native-account-ci-contract.test.mjs tests/draft-review-policy.test.mjs tests/routine-page-review-policy.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-feedback-races.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

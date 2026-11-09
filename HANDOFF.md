@@ -147,6 +147,61 @@ Frank 要求優先拆分後，新增未接線 `master-line-page-workflow.ts` 與
 ## 2026-11-09 — 統一草稿候選納入已合併 main #99／#100
 
 已於隔離分支真正merge main `9fbba823`，同時保留inert背景排程、history/restore明確操作權限與既有整組Save／CAS／原收據fences。原d1交付不覆寫，Canvas獨立候選與持久分拆未混入；未上傳或部署。[整合內容、驗證及界線](docs/acceptance/unified-main100-integration-20261109/README.md)。
+## 2026-11-09 — RF whole-page review compatibility with #102 e5c3c78
+
+Pinned registry SHA c7e2a312 now maps ROUTINE_FQC to /api/routine-fqc/page, keeping scope routine-fqc:page and routine.*. Added an unregistered whole-page receipt helper preserving the original actor/capability ledger, extra domain rights and historical ADMIN requirements; 19 targeted source cases pass. Only the pinned pure receipt guard snapshot is executed, not the full route/build. #102 still needs the existing approve-only self-confirmation fix and coordination of its own-return ADMIN guard/new receipts. No other writer, live policy, accounts or remote operations changed. [Exact contract and remaining integration](docs/acceptance/accounts-permissions-20261109.md#102-e5c3c78-例行-fqc-整頁權限相容接線).
+
+## 2026-11-09 — GitHub account delivery scope checked
+
+GitHub main remains `9fbba823`; the connected owner has push permission and the user has authorized upload. Candidate `d29767e` reuses the pending `efa7b75` account source: all 18 original paths overlap, three backend blobs are identical, and the newest 14-path UI batch overlaps seven original paths and needs prerequisites absent from main. An independent upload scope is not established. Original rejected and steered/receiver-PENDING operations are distinct; obtain correlated terminal receipts, exact receiver hash verification and the earlier UNKNOWN manifest through the original owner before any retry. No new GitHub mutation or source transfer occurred. Reuse the unchanged candidate's 370/370 source regression and source/history gate; normal build/native/live acceptance remain unavailable. [Exact missing evidence and next work](docs/acceptance/accounts-permissions-20261109.md#github-獨立交付範圍核對).
+
+## 2026-11-09 — Independent account confirmation fixes
+
+Account validation now uses the interface language and retains separate recovery alerts; native constraints remain enabled. Clean status/delete confirmations hold departure during the fresh prewrite read. Definite input/access rejections retain inputs without a misleading read-only cure; CAS, unknown and acknowledged-readback recovery keep their original guards. Synthetic disabled-password reset proves no implicit enable. #92 CSS and #100 runtime remain unchanged. Compiled test registration now checks disabled Confirm using native form APIs; it has not been executed here. [Negative controls, source validation and #102 boundaries](docs/acceptance/accounts-permissions-20261109.md#不需等待草稿拆分的帳號介面續修).
+
+## 2026-11-09 — Draft review policy preparation for #102
+
+Added an unregistered pure review-policy preview with primary-audit grant provenance, thirteen-page registry capabilities and shared correction/receipt checks. Twelve targeted source cases plus actual account API audit-shape coverage pass; runtime routes, migration, epochs and true accounts are unchanged. The existing diagnostic still has four failures until #102 adopts the projection across every authorization layer. Ambiguous mapped high grants remain blocked for a concrete authorized roster review. [Integration contract and limits](docs/acceptance/accounts-permissions-20261109.md#十三頁審核權限前置元件尚未啟用).
+
+## 2026-11-09 — 帳密整合結果
+
+本機 `fe6dcb6` 已整合 account-only `efa7b75` 並保留 #100，26-file source regression 345/345 PASS；來源／歷史 gate PASS。四項 scope／grant-provenance 權限差距仍未修完，#102 Draft 未接完，不改真人帳號／權限。完整 build／compiled Windows／browser／實站及舊傳送拒絕／receiver-PENDING 關卡仍未解除，本輪沒有遠端寫入。[目標狀態與證據](docs/acceptance/accounts-permissions-20261109.md#本輪整合驗證與剩餘交付關卡)。
+
+## 2026-11-09 — Integrate the existing account recovery candidate locally
+
+Semantically compose efa7b75 onto the #100 account branch: credential compatibility/secret-free diagnostics, uniform anonymous failures, prewrite fresh reads, native validation and localized ownership-safe UI. Retain current ACK/target/result/unknown safeguards, #92 layout and #100 bytes. [Scope, source tests and unresolved transfer/native/#102 gates](docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75). No original transmission retry, real-account mutation or external write.
+
+## 2026-11-09 — Account compatibility with merged #100
+
+Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). Final available source suite: 324/324 PASS, including the five original #100 inverse proofs; TypeScript-dependent AST/restore checks remain environment-blocked. No build/install retry, real account/data change, remote write or deployment.
+
+## 2026-11-09 — Account/main compatibility merge
+
+Pinned main 021f0f3 (#99) is integrated locally with both documentation histories and all CI steps preserved. Account runtime files remain at 4b21d0f; unchanged main catalog/reducer/stage-link assertions pass through the existing source-only fixture. [Compatibility evidence and unresolved scope/permission decisions](docs/acceptance/accounts-permissions-20261109.md#最新-main-相容性整合021f0f3). No build retry, live account/data change, upload, remote merge or deployment.
+
+## 2026-11-09 — Account dialog feedback and canonical readback
+
+Independent successor to 54a735f: account dialogs show busy feedback, keep Confirm disabled after unknown/incomplete/mismatched results, canonicalize readback targets and reject missing non-delete ACK targets. Password notices explicitly leave new-password login acceptance pending. #92 CSS is byte-identical. [Synthetic regressions and remaining blockers](docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象). No API, true-account, permission, build or remote mutation.
+
+## 2026-11-09 — Login language and policy dependencies
+
+SPA login hints/errors now follow the selected Chinese/Vietnamese language while internal error codes and reentry/unknown guards remain. Actual source-only account tests cover reset→fresh login, revocation, CAS and lifecycle with generated credentials. [Tests and four unresolved policy dependencies](docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸). Main remains d4ac309; #99 explicitly does not integrate draft/permission splitting. No upload, true-account mutation or build retry.
+
+## 2026-11-09 — Feedback permission candidate
+
+All enabled accounts can view helper feedback; explicit edit/exchange grants drive non-admin controls and server operations. Delegated exports use reviewed safe projections and own approved handoffs; original-image ACL and primary-only deletion stay enforced. [Source-level verification and release limits](docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作). No live account change, build retry, upload or deployment. Four policy diagnostics remain failing.
+
+## 2026-11-09 — Account result notices (local candidate)
+
+Account settings retain a verified-result notice after ACK plus successful readback; failed/unknown/stale/relogin branches cannot publish success. Clear on the next confirmed attempt or navigation and localize at render time. Delete confirmation explains retained account IDs. [Scope, regression ports and unrun gates](docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). Same checkout, no build retry, account mutation or upload.
+
+## 2026-11-09 — Pending correction self-confirmation (local candidate)
+
+Return/reject and withdrawal no longer request self-approval confirmation from the original author; approve still requires it. Kernel and shared dialog agree, retaining permission/CAS/receipt guards and old audit records. Remaining requirement failures: six. [Batch scope and evidence](docs/acceptance/accounts-permissions-20261109.md#第二批本機修復發回與撤回的自審確認). No upload, real-account change or deployment.
+
+## 2026-11-09 — Account Save capability labels (local candidate)
+
+Account matrices now label existing Edit-implies-Save capabilities in both languages while preserving raw grants and write payloads. Eleven actual workflow GETs agree with the presentation; no account, ACL or data mutation. [Scope and remaining gates](docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No upload or deployment.
 
 # 2026-11-09 — Process platform stage catalog batch
 
@@ -203,6 +258,10 @@ No remote write, live data, migration, connector action or deployment.
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
+
+# 2026-11-08 — Recovered account confirmation candidate
+
+Reconstruct the verified account delta on main `dc348749` with three-way merge, retaining the newer role-template UI. Fresh prewrite verification, localized form recovery, fail-closed credential diagnostics and a scoped Windows compiled acceptance workflow are described in [Account login/password](docs/sites/ACCOUNT_LOGIN_PASSWORD.md). This is local candidate preparation only; real-account recovery, browser/CI acceptance, complete-history source review and publication are not implied.
 
 # 2026-11-06 — Role-template layout candidate
 

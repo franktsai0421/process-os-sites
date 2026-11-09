@@ -8,10 +8,45 @@
 ## 2026-11-09 — 統一草稿候選納入已合併 main #99／#100
 
 已於隔離分支真正merge main `9fbba823`，同時保留inert背景排程、history/restore明確操作權限與既有整組Save／CAS／原收據fences。原d1交付不覆寫，Canvas獨立候選與持久分拆未混入；未上傳或部署。[整合內容、驗證及界線](../../docs/acceptance/unified-main100-integration-20261109/README.md)。
+## 2026-11-09 — RF whole-page review compatibility with #102 e5c3c78
+
+Pinned registry SHA c7e2a312 now maps ROUTINE_FQC to /api/routine-fqc/page, keeping scope routine-fqc:page and routine.*. Added an unregistered whole-page receipt helper preserving the original actor/capability ledger, extra domain rights and historical ADMIN requirements; 19 targeted source cases pass. Only the pinned pure receipt guard snapshot is executed, not the full route/build. #102 still needs the existing approve-only self-confirmation fix and coordination of its own-return ADMIN guard/new receipts. No other writer, live policy, accounts or remote operations changed. [Exact contract and remaining integration](../../docs/acceptance/accounts-permissions-20261109.md#102-e5c3c78-例行-fqc-整頁權限相容接線).
+
+## 2026-11-09 — Independent account confirmation fixes
+
+Account validation now uses the interface language and retains separate recovery alerts; native constraints remain enabled. Clean status/delete confirmations hold departure during the fresh prewrite read. Definite input/access rejections retain inputs without a misleading read-only cure; CAS, unknown and acknowledged-readback recovery keep their original guards. Synthetic disabled-password reset proves no implicit enable. #92 CSS and #100 runtime remain unchanged. Compiled test registration now checks disabled Confirm using native form APIs; it has not been executed here. [Negative controls, source validation and #102 boundaries](../../docs/acceptance/accounts-permissions-20261109.md#不需等待草稿拆分的帳號介面續修).
+
+## 2026-11-09 — Draft review policy preparation for #102
+
+Added an unregistered pure review-policy preview with primary-audit grant provenance, thirteen-page registry capabilities and shared correction/receipt checks. Twelve targeted source cases plus actual account API audit-shape coverage pass; runtime routes, migration, epochs and true accounts are unchanged. The existing diagnostic still has four failures until #102 adopts the projection across every authorization layer. Ambiguous mapped high grants remain blocked for a concrete authorized roster review. [Integration contract and limits](../../docs/acceptance/accounts-permissions-20261109.md#十三頁審核權限前置元件尚未啟用).
+
+## 2026-11-09 — Account recovery integrated with main #100
+
+The local account branch now includes the account-only `efa7b75` candidate on the preserved #100 baseline. Confirmation freezes inputs, performs a fresh authorized actor/target read before POST, keeps server CAS and unknown-write fences, and verifies acknowledged results by a fresh read. Only the exact prewrite `503/PASSWORD_SERVICE_UNAVAILABLE` permits a later explicit confirmation; uncertain writes never resend automatically. Native validation feedback and credential-state notices are bilingual and persistent. Credential metadata requires existing per-target password-management rights; anonymous failures are uniform and contain no account diagnosis. CSS changes only extend existing error rules to validation feedback, retaining #92 layout. Source tests are distinct from compiled Windows/browser and real-account acceptance. Four scope/provenance permission failures remain coupled to #102; no policy migration or real account change is included. [Evidence, unavailable checks and transfer boundaries](../../docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75).
+
+## 2026-11-09 — Account dialog candidate
+
+Account submit now compares the API-normalized target ID, requires a returned target for non-delete ACKs and cannot certify an invalid ACK via null/null readback. Busy dialogs expose aria-busy and a progress label. Unknown, incomplete and changed-target outcomes keep Confirm disabled; inputs remain available for copying and existing recovery only reads. Persistent notices retain only owner, canonical ID and a password-change boolean, never payload/credentials, and explicitly leave fresh-password login pending. Reset-other/own titles and four known API errors are localized; Vietnamese operation summaries use commas. [Evidence and integration boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象).
+
+## 2026-11-09 — SPA login language candidate
+
+Protected SPA login renders known server codes/legacy messages in the current document language; unknown details become localized page guidance. Confirmed-login storage/input errors retain no-resend guidance. Internal error messages/codes, identity checks, transition cleanup and unknown handoff remain unchanged. Initial and quick-account hints also follow language. Standalone /login remains its existing bilingual entry and has not been redesigned. [Source/API tests and limits](../../docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸).
+
+## 2026-11-09 — Persistent account results and retained IDs
+
+Local account UI keeps the last verified result after successful ACK/readback, owned by the current identity and page lifetime; unknown and read-only checks never become success. Chinese/Vietnamese delete feedback now names the retained account code. [Boundaries and tests](../../docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). No storage/API/authorization change.
+
+## 2026-11-09 — Account Save capability labels
+
+Local UI candidate labels the ten existing Edit-implies-Save adapters without rewriting cells or overrides; own/role/individual views update the explanation in both languages. [Verification and boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No backend policy or real-account change.
 
 ## 2026-11-09 Background check retirement candidate
 
 Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.
+
+## 2026-11-08 — Account confirmation and credential diagnostics
+
+The account controller performs fresh authorized actor/target verification before its first POST and retains the final server CAS and unknown-write fence. Password validation and known prewrite failures preserve input. Login failures expose no account-specific diagnostic, and credential-state metadata follows existing per-target password rights. Current behavior and separate acceptance gates: [Account login/password](../../docs/sites/ACCOUNT_LOGIN_PASSWORD.md). No real credential, permission, migration or deployment changes are part of this candidate.
 
 ## 2026-11-06 — Role-template layout candidate
 

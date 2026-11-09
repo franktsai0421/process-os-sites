@@ -1,0 +1,6 @@
+export function assertRoutinePageReceiptAccess(c:RoutinePageReceiptOwner,id:string,ctx:RoutinePageContext){
+ demand(c.page.workflow.scope===ROUTINE_PAGE_SCOPE,'ROUTINE_PAGE_OWNER_MISMATCH');
+ const record=Object.hasOwn(c.page.workflow.receipts,id)?c.page.workflow.receipts[id]:undefined;demand(record&&record.actorId===ctx.actor.id,'OPERATION_NOT_FOUND',404);
+ const caps=c.page.operationPermissions?.[id];demand(Array.isArray(caps)&&caps.every(cap=>['view','edit','save','submit','withdraw','approve','return','create','delete','revise','revoke','settings','admin'].includes(cap)),'ROUTINE_PAGE_RECEIPT_SOURCE_REQUIRED');
+ for(const cap of caps)demand(cap==='admin'?ctx.actor.admin:cap==='create'||cap==='delete'||cap==='revise'||cap==='revoke'||cap==='settings'?ctx[cap]:ctx.allowed(cap as 'view'),'FORBIDDEN',403);
+}
