@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { File } from 'node:buffer';
 import ts from 'typescript';
 const helperSource=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const helper=helperSource.slice(helperSource.indexOf('  function createDeparture(config){'),helperSource.indexOf('  host.VersionDraftUI='));
@@ -21,7 +22,7 @@ function sourceInitializers(ast,names){
  return names.map(name=>{assert(values.has(name),`actual initializer for ${name}`);return `globalThis.${name}=${values.get(name)};`;}).join('\n');
 }
 function stageAB(box,key='A:G'){const base=structuredClone(box.flow().working),snapshot={...structuredClone(base),value:'unsaved local'};box.localScopes.set(key,{base,snapshot});return snapshot;}
-function fixture(name,{omitBomRecovery=false,omitInputClosures=false,omitCancellationClosures=false}={}){
+function fixture(name,{omitBomRecovery=false,omitInputClosures=false,omitCancellationClosures=false,omitPhotoCleanup=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8');
  const ast=ts.createSourceFile(name+'.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let config;
  const factory=name==='routine-equipment'?'equipmentDeparture':name==='routine-fqc'?'routineDeparture':'window.VersionDraftUI.createDeparture';
@@ -71,7 +72,10 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false,omitCancell
  }
  // Tooling now owns a document-local candidate; its actual departure closure
  // reads and clears these variables even when no editor dialog is open.
- if(name==='tooling'){Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});vm.runInNewContext(sourceDeclaration(ast,'discardCatalogInputs'),box);}
+ if(name==='tooling'){
+  Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});
+  vm.runInNewContext(sourceInitializers(ast,['photoFiles','photoOutcomes','photoFileObjects'])+'\n'+sourceDeclaration(ast,'discardCatalogInputs')+(!omitPhotoCleanup?'\n'+sourceDeclaration(ast,'clearPhotoFiles'):''),box);
+ }
  if(name==='iqc-master'){vm.runInNewContext(sourceInitializers(ast,['activePost','activeSaveComparison','localPhotos','pendingLocalSave','localBeginReceipt'])+'\n'+sourceDeclaration(ast,'comparisonCancellable')+(!omitCancellationClosures?'\n'+sourceDeclaration(ast,'cancelSaveComparison'):'')+'\n'+sourceDeclaration(ast,'clearLocalPhotos'),box);box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
@@ -366,4 +370,40 @@ void test('routine actual wrapper clears only local buffers and retains exact ow
  b.window.localStorage.setItem(key,raw);b.receiptRecord={key,raw};b.s.retry={operationId:'original'};b.s.buffers=new Map([['doc',{value:'unsent'}]]);b.s.bases=new Map([['doc',{value:'basis'}]]);b.dirty=doc=>b.s.buffers.has(doc.id);
  assert.equal(f.adapter.inspect().state,'unknown');assert.equal(f.adapter.inspect().canAbandon,true);const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();
  assert.equal(b.s.buffers.size,0);assert.equal(b.s.bases.size,0);assert.equal(b.window.localStorage.getItem(key),raw);assert.equal(b.receiptRecord.raw,raw);assert.equal(b.s.retry.operationId,'original');assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+});
+
+// Tooling photo state/cleanup is taken from the actual production closure. The
+// File bytes and URL revocation port are synthetic; shared Save remains a counted
+// acknowledgement port, so these assertions prove departure binding semantics.
+function stageToolingPhotos(f){
+ const b=f.box,files=[new File(['synthetic A'],'a.png',{type:'image/png'}),new File(['synthetic B'],'b.png',{type:'image/png'})];
+ const entries=files.map((file,index)=>({id:'local-photo:'+index,file,url:'blob:tooling-'+index,hash:'hash-'+index,dispatched:index===1,confirmed:index===0?'confirmed-photo':null}));
+ for(const entry of entries){b.photoFiles.set(entry.id,entry);b.photoFileObjects.set(entry.file,entry);b.photoOutcomes.set(entry.hash,{dispatched:entry.dispatched,confirmed:entry.confirmed});}
+ b.localBase={tools:[]};b.localSnapshot={tools:[{id:'tool',photos:entries.map(entry=>({id:entry.id}))}]};b.localGeneration='generation';
+ return {files,entries,objects:b.photoFileObjects,outcomes:b.photoOutcomes,local:b.localSnapshot};
+}
+for(const action of ['discard','abandon'])void test(`tooling ${action} executes real nonempty File/outcome/WeakMap cleanup without changing shared state`,async()=>{
+ const f=fixture('tooling'),b=f.box;f.flow.contributors={field:{actor:{id:'colleague'}}};const before=JSON.stringify(f.flow),photos=stageToolingPhotos(f);
+ assert.equal(b.photoFiles.size,2);assert.equal(b.photoOutcomes.size,2);for(const file of photos.files)assert(b.photoFileObjects.has(file));
+ const lease=await f.adapter[action]();assert.equal(b.photoFiles.size,0);assert.equal(b.photoOutcomes.size,0);assert.notEqual(b.photoFileObjects,photos.objects);for(const file of photos.files)assert.equal(b.photoFileObjects.has(file),false);
+ assert.deepEqual(f.revokedURLs,['blob:tooling-0','blob:tooling-1']);assert.equal(b.localBase,null);assert.equal(b.localSnapshot,null);assert.equal(b.localGeneration,null);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+ // An idempotent second cleanup cannot revoke a retained shared photo or the
+ // same local URL again; it cannot turn departure into a Save.
+ vm.runInContext('clearPhotoFiles()',b);assert.deepEqual(f.revokedURLs,['blob:tooling-0','blob:tooling-1']);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+void test('tooling actual retainConfirmed cleanup preserves confirmed/unknown outcome identity until full abandonment',()=>{
+ const f=fixture('tooling'),b=f.box,before=JSON.stringify(f.flow),photos=stageToolingPhotos(f),outcomeEntries=[...b.photoOutcomes];
+ vm.runInContext('clearPhotoFiles(true)',b);assert.equal(b.photoFiles.size,0);assert.equal(b.photoOutcomes,photos.outcomes);assert.deepEqual([...b.photoOutcomes],outcomeEntries);assert.equal(b.photoFileObjects,photos.objects);for(const [index,file]of photos.files.entries())assert.equal(b.photoFileObjects.get(file),photos.entries[index]);
+ assert.deepEqual(f.revokedURLs,['blob:tooling-0','blob:tooling-1']);vm.runInContext('clearPhotoFiles()',b);assert.equal(b.photoOutcomes.size,0);assert.notEqual(b.photoFileObjects,photos.objects);for(const file of photos.files)assert.equal(b.photoFileObjects.has(file),false);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+});
+void test('tooling unknown operation without departure coverage blocks cleanup and retains all local File state',async()=>{
+ const f=fixture('tooling'),b=f.box,before=JSON.stringify(f.flow),photos=stageToolingPhotos(f);f.unknown(true);
+ // This transport port has no original-receipt coverage capability. The real
+ // coordinator must refuse abandonment; an unknown flag alone grants none.
+ assert.equal(f.adapter.inspect().state,'unknown');assert.equal(f.adapter.inspect().canAbandon,false);await assert.rejects(f.adapter.abandon());
+ assert.equal(b.client.hasUnknown(),true);assert.equal(b.localSnapshot,photos.local);assert.equal(b.photoFiles.size,2);assert.equal(b.photoOutcomes.size,2);assert.equal(b.photoFileObjects,photos.objects);for(const [index,file]of photos.files.entries())assert.equal(b.photoFileObjects.get(file),photos.entries[index]);assert.deepEqual(f.revokedURLs,[]);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);assert.equal(b.root.inert,false);
+});
+void test('tooling missing actual clearPhotoFiles is a failing negative control with nonempty local photos',async()=>{
+ const f=fixture('tooling',{omitPhotoCleanup:true}),b=f.box,before=JSON.stringify(f.flow),photos=stageToolingPhotos(f);
+ await assert.rejects(f.adapter.abandon(),/clearPhotoFiles is not defined/);assert.equal(b.localSnapshot,photos.local);assert.equal(b.photoFiles.size,2);assert.equal(b.photoOutcomes.size,2);assert.equal(b.photoFileObjects,photos.objects);for(const [index,file]of photos.files.entries())assert.equal(b.photoFileObjects.get(file),photos.entries[index]);assert.deepEqual(f.revokedURLs,[]);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);assert.equal(b.root.inert,false);
 });
