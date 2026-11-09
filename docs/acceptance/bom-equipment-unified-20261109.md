@@ -12,7 +12,7 @@ Revision/generation/CAS, permission/pending gates, original unknown operation ID
 
 The imported product files retain candidate behavior except the explicit pre-dispatch fresh-recompare follow-up below. Shared-client changes add only BOM approved-history reads; shared VersionDraftUI changes are BOM-only opt-in presentation. Shared server history filtering/final authorization is BOM-only opt-in. No schema, real data, account, migration or live environment changes occur.
 
-## Validation
+## Initial imported integration validation
 
 - PASS: 409 focused tests (`bom-save-choice-controller`, `bom-save-actual-handler-controller`, `bom-occurrence-planner`, `bom-occurrence-save-server`, `bom-approved-history-real-common`, `bom-approved-view-controller`, `bom-unsent-router`, `equipment-save-choice`, `equipment-sent-batch`, `equipment-sent-batch-insert-ack`). These execute shipped closures, registered handlers and shared transport, plus real route/kernel logic with isolated SQLite/R2 fixtures.
 - PASS: 204 existing regressions (`bom-atomic-save`, `bom-manual-ram-save`, `bom-local-recovery-actual-stack`, `bom-post-authority-actual-stack`, `bom-atomic-departure`, `bom-unsent-recovery`, `equipment-no-poll`, `equipment-atomic-save`, `equipment-sent-batch-quarantine`, `equipment-transport-scope`, `routine-equipment-begin-runner`).
@@ -37,3 +37,5 @@ PASS: 111 tests covering changed BOM/equipment actual DOM flows, real structural
 Logs: `/tmp/bom-equipment-fresh-recompare-transfer.log`, `/tmp/bom-equipment-transfer-intent.log`, `/tmp/bom-equipment-four-module-transfer.log`. All prior native/remote/source-composition limitations still apply.
 
 The first post-recompare boundary run waited in an old fixture that changed a peer while the chooser was open and then awaited the retired rejection behavior. It was interrupted, and that fixture now injects its real 409 race at actual POST dispatch, after the final readonly comparison. All original 409/no-unknown/base/receipt assertions remain; the targeted known-rejection versus unknown tests pass. This changes test timing, not runtime guards.
+
+The final boundary rerun PASS: 231/231 tests, 0 failures (48.9 s), in `/tmp/bom-equipment-recompare-boundaries-final.log`; covers existing equipment sent-batch/insert ACK, no-poll and BOM actual router/unknown-departure behavior. Scoped runtime lint and diff checks remain PASS; worktree is clean after recording this evidence. The initial interrupted run is not counted as a PASS.
