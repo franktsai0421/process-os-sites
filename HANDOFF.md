@@ -1,3 +1,7 @@
+## 2026-11-09 — Independent account confirmation fixes
+
+Account validation now uses the interface language and retains separate recovery alerts; native constraints remain enabled. Clean status/delete confirmations hold departure during the fresh prewrite read. Definite input/access rejections retain inputs without a misleading read-only cure; CAS, unknown and acknowledged-readback recovery keep their original guards. Synthetic disabled-password reset proves no implicit enable. #92 CSS and #100 runtime remain unchanged. Compiled test registration now checks disabled Confirm using native form APIs; it has not been executed here. [Negative controls, source validation and #102 boundaries](docs/acceptance/accounts-permissions-20261109.md#不需等待草稿拆分的帳號介面續修).
+
 ## 2026-11-09 — Draft review policy preparation for #102
 
 Added an unregistered pure review-policy preview with primary-audit grant provenance, thirteen-page registry capabilities and shared correction/receipt checks. Twelve targeted source cases plus actual account API audit-shape coverage pass; runtime routes, migration, epochs and true accounts are unchanged. The existing diagnostic still has four failures until #102 adopts the projection across every authorization layer. Ambiguous mapped high grants remain blocked for a concrete authorized roster review. [Integration contract and limits](docs/acceptance/accounts-permissions-20261109.md#十三頁審核權限前置元件尚未啟用).

@@ -13,6 +13,7 @@ function fixture(){
   events.posts++;
   if(mode==='unknown'){ctx.writeUncertain=true;throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}
   if(mode==='prewrite')throw Error('FORBIDDEN');
+  if(mode==='revision-rejected')throw Error('REVISION_CHANGED');
   ctx.model={revision:2,actor:{...actor},users:[{id:target.id,name:'Saved'}]};return {...ctx.model,...(mode==='relogin'?{relogin:true}:{})};
  },async load(){
   events.reads++;
@@ -45,7 +46,7 @@ void test('explicit readback recovery publishes a result without sending another
  const f=fixture();f.mode('readback-failure');await f.run();assert.equal(notice(f.render()),'');assert.equal(f.buttons.length,1);
  f.mode('normal');await f.buttons[0].onclick();assert.match(notice(f.render()),/上次操作已儲存並讀回確認/);assert.equal(f.events.posts,1);assert.equal(f.events.reads,3);
 });
-for(const mode of ['unknown','prewrite'])void test(mode+' read-only verification does not claim a completed write',async()=>{
+for(const mode of ['unknown','revision-rejected'])void test(mode+' read-only verification does not claim a completed write',async()=>{
  const f=fixture();f.mode(mode);await f.run();f.mode('normal');await f.buttons[0].onclick();
  assert.equal(notice(f.render()),'');assert.equal(f.events.posts,1);assert.equal(f.events.reads,2);assert.equal(f.errorBox.textContent,mode==='unknown'?'WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED':'READ_VERIFIED');
 });
@@ -56,3 +57,5 @@ void test('a result cannot follow another identity or appear for an inactive pag
  const f=fixture();await f.run();f.switchIdentity();assert.equal(notice(f.render()),'');
  const g=fixture();g.active(false);await g.run();g.active(true);assert.equal(notice(g.render()),'');
 });
+
+void test('definite prewrite denial stays unsuccessful and offers no read-only cure',async()=>{const f=fixture();f.mode('prewrite');await f.run();assert.equal(notice(f.render()),'');assert.equal(f.events.posts,1);assert.equal(f.events.reads,1);assert.equal(f.buttons.length,0);assert.equal(f.errorBox.textContent,'FORBIDDEN');});

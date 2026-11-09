@@ -68,3 +68,6 @@ suite and Windows compiled confirmation workflow remain registered. No dependenc
 install, normal build retry, real-account mutation or external transfer happened
 as part of this local integration. See the current
 [tracking and exact-run evidence](../acceptance/accounts-permissions-20261109.md).
+
+
+本機續修：帳號 native invalid 以目前介面語言的固定規則顯示持續提示並 focus 第一個無效欄位，不顯示瀏覽器其他語言泡泡；正常 native constraints 仍擋 submit。fresh prewrite GET 已納入乾淨停用／刪除確認框的 busy departure。確定輸入／權限拒絕不附無法修正它的 read-only recovery，CAS／unknown／ACK-readback 仍有明確只讀核對且禁止自動重送。[來源反例、測試與待驗項](../acceptance/accounts-permissions-20261109.md#不需等待草稿拆分的帳號介面續修)。

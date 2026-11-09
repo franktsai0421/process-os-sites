@@ -246,3 +246,29 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 
 
 本批固定來源提交 `0c89b6a9d89abfba3b27344e3f7981f3b0f619db` 的完整 27-file regression **358/358 PASS、0 skipped/cancelled**；source/history/worktree gate PASS（618 commits、5451 unique blobs、2033 source files）。完整命令與結果見專案外 evidence 的 `account-review-preparation-regression.json`／`.log`，交付收據 `account-review-preparation-delivery-receipt.json` 同時保存現用四項 FAIL 與 #102 registry hash 未漂移核對。工作樹乾淨；原 345 項覆蓋全部保留，新批增加 12 項投影契約及 1 項實際 account API 稽核整合。沒有 runtime import、部署、帳號／角色設定、schema 或 DB/R2 寫入。後續純文件提交不改此測試的程式／fixture tree，重用這份來源回歸，正常 build／compiled／browser／Windows／實站依舊未驗收。
+
+
+## 不需等待草稿拆分的帳號介面續修
+
+接續 `98789f9` 現有成果，沒有重做帳密候選或十三頁前置元件。GitHub 唯讀核對 main 仍 `9fbba823`、#102 仍 Draft／未合併 head `ee7d4fd`。本批找到並修正三個可獨立重現的來源缺口：
+
+1. **表單驗證語言。** 原 `invalid` handler 直接拼接瀏覽器 `validationMessage`，越文頁可能混入中文／英文。現由 `ValidityState` 產生介面語言的必填、最短／最長、帳號格式及一般格式提示；取消瀏覽器預設泡泡，焦點移至第一個無效欄位，仍使用 native constraint validation，不設 noValidate、不觸發 submit／POST。獨立 `.ua-validation` 不覆蓋 `.ua-error` 的原收據／讀回警告。新增帳號 ID 的 80 與初始密碼雙欄 200 字上限對齊既有 server 規則，沒有截斷或 trim 密碼。
+2. **確認前的離頁忙碌。** 舊 `writing` 到 POST 才計數；停用／刪除的乾淨確認框在 fresh GET 期間可被 canLeave 判為乾淨。現同時以既有 dialog `data-saving` 保護 navigation.canLeave 與實際 VersionDraftUI.createDeparture busy。無論成功、讀取失敗或未知 POST 均測相應解除／保留；重複確認不加 POST，移除的 dialog 仍由原 prewrite 接線拒絕送出。沒有把這段 GET 當已寫入或改 shared workflow。
+3. **確定拒絕的恢復提示。** ACCOUNT_EXISTS／原密碼錯誤等原本也附「重新讀取核對」，讀取無法修正輸入或重用保留代碼。現已知輸入／權限／密碼服務拒絕保留輸入及可明確再確認的按鈕，不加無效只讀修復；僅 CAS 衝突、prewrite read failure、未知結果或收到 ACK 後讀回未完成保留只讀核對。unknown／ACK／changed-target 的 Confirm 仍鎖住，不因 invalid／input 清空警告或重送。
+
+測試先補必要瀏覽器事件與 bindDataInner 埠，再對舊產品來源取得真正反例：原 23 項 PASS，新 7 項 FAIL（本語言 invalid 預設行為及停用／刪除各三種預讀離頁情境）。前兩次完整 VersionDraftUI fixture 缺事件／bind 埠的失敗另存，不當產品反例。有效反例為外部 evidence 的 `account-independent-ui-negative-complete.json`／`.log`；已知拒絕另外在 `account-known-rejection-negative.log` 重現 ACCOUNT_EXISTS 多出一個讀回按鈕。
+
+修改後定向 UI／result／navigation／native CI contract **85/85 PASS**。source API 另用真正現有 handler 驗證：停用帳號重設後仍 disabled、新密碼仍不能登入；經獨立 enable 操作後新密碼可登入、舊密碼拒絕，業務歷史不變。全程是生成憑證、記憶體 SQLite/R2，非 phung 或任何真帳號。
+
+原 result-notice 的 FORBIDDEN 恢復測試改為明確斷言無 read-only cure；真正可只讀核對的測試改走 REVISION_CHANGED，原 unknown／已 ACK 核對、不冒稱成功與零重送斷言保留。compiled test 有舊腳本嘗試 click 已被產品正確鎖住的 Confirm；改先斷言 disabled，再用原生 form.reportValidity 測獨立驗證訊息、requestSubmit 測 handler 仍拒絕，保留全部 no-extra-POST／原密碼／CAS 斷言。**這只是修正尚未執行的 registered test，不是 compiled／browser／Windows PASS。** 正常建置保護、Chrome sandbox launcher 與 workflow 權限均未變。
+
+帳號 JS cache tag 更新為 `20261109-account-confirm2`；CSS／#92 layout 不改。#100 index 的原 beforeHash 與三條退休規則保留，六個 account-only cache inverse blocks 重算為精確新 index bytes，其餘四個合約與 #100 executable modules／inventory 不變。
+
+| 可獨立工作 | 本批狀態 | 尚待接線／驗收 |
+| --- | --- | --- |
+| 登入／重設密碼服務與 CRUD | 既有本機整合與來源回歸保留；補停用重設邊界 | compiled／實站與真人密碼登入未驗收，不依賴 #102 的程式可先審查 |
+| 按鈕／提示／中越文 | 三項實際缺口已修；定向 source tests PASS | native click／Enter、桌面手機與實體 IME 仍 NOT_RUN |
+| 四項審核規則前置程式 | `0c89b6a` 的純投影、十三頁 registry／core／receipt 來源測試保留 | 必須等 #102 owner／writer 接線後同步採用，現用診斷仍四項 FAIL |
+| 真人角色／高階歧義與正式切換 | 沒有讀取名單或寫入設定 | 有權完整核對後才提交具體待決名單；保留 CAS、authEpoch、還原及明確切換程序 |
+
+本輪沒有新增要求 Frank 立即回答的真人決策；未取得具體完整名單，不以假設要求批准。既有拒絕與結果不明操作未重送，沒有傳送來源、push、PR、部署、schema 或真實 DB/R2 寫入。

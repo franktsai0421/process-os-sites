@@ -32,6 +32,10 @@ void test('Compiled confirmation suite uses the shared launcher and preserves pa
  assert(suite.includes("assert.equal((await verifyTarget(entered)).status,200"));
  assert(suite.includes("assert.equal((await verifyTarget(currentTargetPassword)).status,401"));
  assert(suite.includes("report.network.at(-1).code==='REVISION_CHANGED'"));
+ assert(suite.includes('assert.equal(await submit().isDisabled(),true)'));
+ assert(suite.includes("document.querySelector('dialog form').reportValidity()"));
+ assert(suite.includes("document.querySelector('dialog form').requestSubmit()"));
+ assert(suite.includes("persistent native validation follows interface language"));
 });
 void test('Read-only Windows job runs actual compiled confirmation without upload or secrets',()=>{
  assert.match(workflow,/runs-on: windows-latest/);
