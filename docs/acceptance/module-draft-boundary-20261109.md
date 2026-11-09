@@ -1,10 +1,10 @@
 # 各功能頁草稿分界：盤點與切換前置候選
 
-原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99）。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
+原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
 ## 獨立公開候選邊界
 
-相對 #99 的 main，此批只新增兩個未註冊的頁面預演／名稱 Save 模組、三份合成回歸測試、必要的規格／交接，以及 AB/C CI 三條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
+相對 #100 的 main，此批只新增兩個未註冊的頁面預演／名稱 Save 模組、三份合成回歸測試、必要的規格／交接，以及 AB/C CI 三條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
 
 來源為本次已核對公開 main 上的新提交，沒有匯入舊 243-path／quality／equipment 上傳 payload 或未發布整合祖先。新候選以 main 為遠端 parent，只公開本批差異；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
 
@@ -129,8 +129,10 @@
 
 | 對照 PR／本輪 head | 與 #102 的直接重疊 | 整合準備 |
 | --- | --- | --- |
-| #100 `158bb6b7ad3b98eda8104ef9a271073ee1caf0b3` | CHANGELOG、SHARED_DRAFT | 背景輪詢政策與頁面所有權規則可並存；文件需保留兩者新段落。沒有現用程式檔案重疊，也沒有啟用新頁面元件的依賴 |
+| #100，已由 Frank 合併為 main `9fbba823090f03da8385c8d92f5e59293d19d2f1` | CHANGELOG、SHARED_DRAFT | 已在本機相容分支保留兩者段落；#100 程式及測試不作變更。沒有現用程式檔案重疊，也沒有啟用新頁面元件的依賴 |
 | #101 `8f1f24321764d7aaa51941bce8c48b2b6634ac6d` | CHANGELOG、HANDOFF | 畫布總數修正與本批守門／未啟用元件分開；文件標頭需語意合併 |
 | #88 `f0e9ae37731411801fda72c2e8843d30e467d091` | CHANGELOG、HANDOFF | 沒有本批 runtime 依賴；#88 自身舊基準與 IQC 驗收由其 owner 另行確認 |
 
-以上是指定 head 的檔案／來源分析，沒有執行三批的合併、沒有把文件無重疊推定為完整合樹驗收，也不要求先合併 #102 才能處理其他批。未發布的全站整組衝突、權限與版本查看候選仍須在真正最終來源另驗，不以這張表推定相容。
+除 #100 已本機整合外，#101／#88 仍是指定 head 的檔案／來源分析，尚未合入；不以文件重疊分析代替完整合樹驗收，也不要求先合併 #102 才能處理其他批。未發布的全站整組衝突、權限與版本查看候選仍須在真正最終來源另驗，不以這張表推定相容。
+
+本機已複審的 `dc5bc6a`／tree `e80d87a` 保留原提交；上述 #100 相容整合是後續來源，須另綁定驗證結果，不能沿用舊複審作完整整合背書。遠端 #102 仍以實際回執為準；先前目的地授權拒絕未重試，這次沒有上傳、合併或部署。

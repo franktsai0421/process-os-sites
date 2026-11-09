@@ -12,6 +12,8 @@
 
 後續獨立審查對 ee7d4fd／fb3d634 tree 提出並重現 1 個 P2：selector 額外鍵造成語意相同路徑分組不同。新 helper 已加純 id selector 檢查，patch／guard 皆在 staging 前拒絕 alias，原 fingerprint 不改；回歸擴為 17 組，需按最新 tree 複審。這不是獨立切換或合併授權，三項業務問題仍待 Frank 回覆。
 
+Frank 手動合併 #100 後，已核對公開 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`／tree `6eee3963fec61a540c144a920fbb3f65949d5e10`，另開本機相容分支整合；CHANGELOG／SHARED_DRAFT 保留雙方段落，#100 的程式與測試維持原樣。先前已複審的 dc5bc6a 留在原分支；後續整合須按新來源驗證。遠端 #102 的 selector 修正上傳仍被目的地授權審查擋下，沒有重試或換路；不啟用拆分、不改真資料、不合併或部署。
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.

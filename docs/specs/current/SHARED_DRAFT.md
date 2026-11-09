@@ -6,6 +6,10 @@
 
 這取代下方歷史「線別工段共用 AB/C」的要求，但不是已完成狀態。[實際頁面、舊案／權限待決及切換前置候選](../../acceptance/module-draft-boundary-20261109.md)。
 
+## 2026-11-09 全站取消背景定時檢查
+
+全站所有頁面取消固定秒數／分鐘向伺服器查詢、刷新、同步的背景檢查，不改成另一頻率。進頁、使用者明確更新及操作需要時讀取。草稿於存取時比對；存取、送審當下必要的最新版本、權限、狀態、CAS 和送出結果不明的防重送保護保留。歷史視窗也改於明確操作時核對權限；不承諾閒置畫面即時得知撤權或別人的修改。畫面時鐘、請求逾時和操作觸發的單次 UI 回呼不屬於背景輪詢。這項政策不等於已完成全站草稿拆分、衝突選擇或未存表單恢復移除。[候選逐頁盤點與驗證界線](../../acceptance/global-background-checks-20261109.md)。
+
 ## 2026-11-05 AB/C: local completion and one explicit Save
 
 This AB/C candidate covers master products, categories, group defaults/product exceptions and the selected AB/C line/stage entry, separately from IPQC A/B. Form completion retains ordered original-basis guarded changes in the current page; only explicit Save atomically shares them and creates/retains the saved snapshot. Edit includes Save; create/delete/Submit/review remain distinct. Search/filter/poll preserve local input. Leaving the current editing destination/scope silently drops only unsent input; current product↔line/stage destination changes replace the shell projection and therefore also drop unsent input. Unknown Begin/Save retain original scoped markers, generation, operation and sent guards through departure/reopen; only original receipt lookup can settle them, never a 404 retry. Submit refuses local unsaved content and never auto-saves or sends an older snapshot. Existing shared working/saved/pending/effective/history and linked PROCESS cases remain. This supersedes older two-stage Apply/Save and prompted departure wording only for this candidate. [Implementation and acceptance boundary](../../acceptance/abc-local-save-20261105/README.md).
