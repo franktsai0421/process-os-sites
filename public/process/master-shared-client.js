@@ -215,16 +215,16 @@
         const [base,mine,peer]=lists,maps=lists.map(list=>new Map(list.map(row=>[row.src,row]))),firsts=lists.map(list=>list[0]),sources=firsts.map(row=>row?.src);
         const changedTailSource=[1,2].some(side=>base.slice(1).some(row=>!maps[side].has(row.src)&&lists[side].some(item=>!maps[0].has(item.src)&&item.src!==sources[side])&&(!maps[3-side].has(row.src)||!equal(maps[3-side].get(row.src),row))));
         if(changedTailSource)return fallback(t('更換來源無法可靠配對','không thể ghép nguồn ảnh thay thế'));
-        let principalConflict=false,principal=sources[0];
+        let principalConflict=false,principal=sources[0],principalSide=null;
         if(!sources.every(src=>src===sources[0])){
-          if(equal(firsts[1],firsts[0]))principal=sources[2];
-          else if(equal(firsts[2],firsts[0])||equal(firsts[1],firsts[2]))principal=sources[1];
+          if(equal(firsts[1],firsts[0])){principal=sources[2];principalSide=2;}
+          else if(equal(firsts[2],firsts[0])||equal(firsts[1],firsts[2])){principal=sources[1];principalSide=1;}
           else principalConflict=true;
           // Promoting an existing tail photo depends on that photo surviving.
           if(principal!==undefined&&maps[0].has(principal)&&(!maps[1].has(principal)||!maps[2].has(principal)))principalConflict=true;
           if(principalConflict){
             if(choice===undefined)conflicts.push({path:[...path,'mediaItems'],label:label(path)+' · '+t('主照片／相依移除','Ảnh chính / xóa phụ thuộc'),mine:clone(firsts[1]),theirs:clone(firsts[2])});
-            principal=sources[choice==='mine'?1:2];
+            principalSide=choice==='mine'?1:2;principal=sources[principalSide];
           }
         }
         const selected=choice==='mine'?1:2,principalKeys=new Set(sources.filter(src=>src!==undefined)),rows=new Map(),keys=[...new Set([...peer,...mine,...base].map(row=>row.src))];
@@ -236,16 +236,25 @@
           else row=merge(maps[0].get(src),maps[1].get(src),maps[2].get(src),[...path,'mediaItems',src],choice);
           if(row!==undefined)rows.set(src,row);
         }
-        const ids=lists.map(list=>list.map(row=>row.src)),common=ids[0].filter(src=>src!==principal&&maps[1].has(src)&&maps[2].has(src)&&rows.has(src)),commonSet=new Set(common),orders=ids.slice(1).map(list=>list.filter(src=>commonSet.has(src))),moved=orders.map(order=>!equal(order,common));
-        const orderConflict=!principalConflict&&moved.every(Boolean)&&!equal(orders[0],orders[1]);
+        const ids=lists.map(list=>list.map(row=>row.src)),currentPrincipals=new Set(sources.slice(1)),common=ids[0].filter(src=>!currentPrincipals.has(src)&&maps[1].has(src)&&maps[2].has(src)&&rows.has(src)),commonSet=new Set(common),orders=ids.slice(1).map(list=>list.filter(src=>commonSet.has(src))),moved=orders.map(order=>!equal(order,common));
+        const sharedNew=ids[1].filter(src=>!maps[0].has(src)&&maps[2].has(src)&&!currentPrincipals.has(src)&&rows.has(src)),sharedTail=new Set([...common,...sharedNew]),sharedOrders=ids.slice(1).map(list=>list.filter(src=>sharedTail.has(src)));
+        const orderConflict=moved.every(Boolean)&&!equal(orders[0],orders[1])||sharedNew.length>0&&!equal(sharedOrders[0],sharedOrders[1]);
         if(orderConflict&&choice===undefined)conflicts.push({path:[...path,'mediaItems'],label:label(path)+' · '+t('照片順序','Thứ tự ảnh'),mine:ids[1],theirs:ids[2]});
-        const preferMine=principalConflict?choice==='mine':orderConflict?choice==='mine':moved[0],primary=ids[preferMine?1:2],secondary=ids[preferMine?2:1],order=primary.filter(src=>rows.has(src));
-        // Preserve independent tail additions at their original neighboring src.
-        for(let index=0;index<secondary.length;index++){
-          const src=secondary[index];if(!rows.has(src)||order.includes(src))continue;
-          const after=secondary.slice(index+1).find(key=>order.includes(key));
+        const preferMine=orderConflict?choice==='mine':moved[0],tailSide=preferMine?1:2,primary=ids[principalSide??tailSide],secondary=ids[(principalSide??tailSide)===1?2:1],newTail=src=>!maps[0].has(src)&&!principalKeys.has(src),order=primary.filter(src=>rows.has(src)&&!newTail(src));
+        // Principal choice owns only its dependent positions. Tail order is a
+        // separate three-way unit: keep the other side's independent reorder,
+        // even when the global choice selected this side's principal photo.
+        const tailOrder=orders[tailSide-1];let tailIndex=0;
+        for(let index=0;index<order.length;index++)if(commonSet.has(order[index]))order[index]=tailOrder[tailIndex++];
+        const insert=(sequence,include)=>{for(let index=0;index<sequence.length;index++){
+          const src=sequence[index];if(!include(src)||!rows.has(src)||order.includes(src))continue;
+          const after=sequence.slice(index+1).find(key=>order.includes(key));
           if(after!==undefined)order.splice(order.indexOf(after),0,src);else order.push(src);
-        }
+        }};
+        insert(secondary,src=>!newTail(src));
+        // Tail anchors and append tie order follow the tail comparison, never
+        // a conflicting principal choice. Peer additions precede local ties.
+        insert(ids[tailSide],newTail);insert(ids[3-tailSide],newTail);
         for(const src of rows.keys())if(!order.includes(src))order.push(src);
         if(principal!==undefined&&rows.has(principal)){const index=order.indexOf(principal);order.splice(index,1);order.unshift(principal);}
         const mediaItems=order.map(src=>rows.get(src)),result={mediaItems},first=mediaItems[0];
