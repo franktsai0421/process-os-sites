@@ -136,7 +136,7 @@
       const before=previous?.snapshot||current.working;
       for(const g of guards)if(!equal(localValue(before,g.path),g.value))throw Error('DEPENDENCY_CHANGED_RECONFIRM');
       if(!patches.length)return null;const batch=copy({patches,guards}),batches=[...(previous?.batches||[]),batch],snapshot=projectLocal(before,[batch]);
-      locals.set(scope,{owner,generation:current.generation,snapshot,batches});draft(scope).snapshot=copy(snapshot);return {local:true};
+      locals.set(scope,{owner,generation:current.generation,base:previous?.base||copy(before),snapshot,batches});draft(scope).snapshot=copy(snapshot);return {local:true};
     }
     const localDirty=scope=>!!locals.get(scope)?.batches.length;
     const unsavedLocal=scope=>localDirty(scope)||scope==='PROCESS'&&processLocalSave&&(host.ProcessMasterVersioning?.departureNames.dirty()||host.ProcessEquipment?.hasUnappliedChanges?.());
@@ -161,7 +161,7 @@
       const before=previous?.snapshot||bases.get(scope)||current.working,next=copy(draft(scope).snapshot);identify(next,before);
       const batch=diff(before,next);if(!batch.patches.length)return null;
       if(scope!=='PROCESS'&&batch.patches.some(p=>p.path[0]==='categoryGroups'&&(p.path.at(-1)==='defaultStages'||p.op==='insert')))batch.guards.push({path:['products'],value:copy(before.products)},{path:['lines'],value:copy(before.lines)});
-      locals.set(scope,{owner,generation:current.generation,snapshot:next,batches:[...(previous?.batches||[]),batch]});draft(scope).snapshot=copy(next);
+      locals.set(scope,{owner,generation:current.generation,base:previous?.base||copy(before),snapshot:next,batches:[...(previous?.batches||[]),batch]});draft(scope).snapshot=copy(next);
       return {local:true};
     }
     function retireProcessSave(result){
@@ -174,58 +174,74 @@
       // A reload has no RAM pin; departure may have abandoned/replaced the local
       // batches. Neither case grants permission to discard or resurrect input.
       if(remaining&&ownerMatches(remaining.owner)&&remaining.generation===pin.generation&&remaining.batches.length>=pin.batches.length&&pin.batches.every((batch,i)=>remaining.batches[i]===batch)){
+        remaining.base=copy(pin.acceptedSnapshot);
         remaining.batches=remaining.batches.slice(pin.batches.length);
         if(!remaining.batches.length)discardLocal('PROCESS');
       }
       processSave=null;
     }
-    // First independent choice batch: existing AB/C display fields only.
-    // Structural edits and route/category membership retain their original
-    // ordered guards. Never derive authorization or restore removed entities.
-    function compareCatalogFields(batches,latest){
-      const units=new Map(),fieldLabels={name:['名稱','Tên'],specification:['規格','Quy cách'],unit:['單位','Đơn vị']};
-      const eligible=path=>Array.isArray(path)&&typeof path[1]?.id==='string'&&(
-        path.length===3&&(path[0]==='products'&&['name','specification','unit'].includes(path[2])||path[0]==='lines'&&path[2]==='name')||
-        path.length===5&&path[0]==='lines'&&path[2]==='stages'&&typeof path[3]?.id==='string'&&path[4]==='name');
-      for(const batch of batches){
-        if(batch.patches.length!==batch.guards.length)return null;
-        for(const patch of batch.patches){
-          if(patch.op!=='set'||!eligible(patch.path))return null;
-          const key=JSON.stringify(patch.path),matches=batch.guards.filter(g=>JSON.stringify(g.path)===key);
-          if(matches.length!==1)return null;
-          const before=matches[0].value,unit=units.get(key);
-          if(unit&&!equal(unit.mine,before))return null;
-          if(unit)unit.mine=patch.value;else units.set(key,{path:patch.path,before,mine:patch.value});
+    // Three-way comparison is local to this explicit Save. Stable entity IDs
+    // preserve unrelated rows and fields; primitive lists remain one value.
+    function compareMasterSnapshots(base,mine,theirs){
+      const conflicts=[],clone=value=>value===undefined?undefined:copy(value);
+      const entityList=value=>Array.isArray(value)&&value.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string');
+      const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
+      const label=path=>path.map(part=>typeof part==='string'?part:part.id).join(' · ');
+      function merge(before,own,other,path,choice){
+        if(equal(own,before))return clone(other);
+        if(equal(other,before)||equal(own,other))return clone(own);
+        if(entityList(before)&&entityList(own)&&entityList(other)){
+          for(const list of [before,own,other])if(new Set(list.map(row=>row.id)).size!==list.length)throw Error('CATALOG_IDENTITY_INVALID');
+          const maps=[before,own,other].map(list=>new Map(list.map(row=>[row.id,row]))),ids=[...new Set([...other,...own,...before].map(row=>row.id))],rows=new Map();
+          for(const id of ids){const row=merge(maps[0].get(id),maps[1].get(id),maps[2].get(id),[...path,{id}],choice);if(row!==undefined)rows.set(id,row);}
+          const baseline=before.map(row=>row.id),baselineIds=new Set(baseline),common=baseline.filter(id=>maps[1].has(id)&&maps[2].has(id)),commonIds=new Set(common);
+          const ownIds=own.map(row=>row.id),otherIds=other.map(row=>row.id),ownOrder=ownIds.filter(id=>commonIds.has(id)),otherOrder=otherIds.filter(id=>commonIds.has(id));
+          const ownMoved=!equal(common,ownOrder),otherMoved=!equal(common,otherOrder);
+          const anchors=(ids,id)=>{const index=ids.indexOf(id);return [ids.slice(0,index).findLast(key=>commonIds.has(key)),ids.slice(index+1).find(key=>commonIds.has(key))];};
+          const sharedIds=new Set(ownIds.filter(id=>maps[2].has(id)&&rows.has(id))),ownShared=ownIds.filter(id=>sharedIds.has(id)),otherShared=otherIds.filter(id=>sharedIds.has(id));
+          const insertedConflict=!equal(ownShared,otherShared)&&ownShared.some(id=>!baselineIds.has(id))||ownIds.some(id=>!baselineIds.has(id)&&maps[2].has(id)&&!equal(anchors(ownIds,id),anchors(otherIds,id)));
+          const orderConflict=ownMoved&&otherMoved&&!equal(ownOrder,otherOrder)||insertedConflict;
+          if(orderConflict&&choice===undefined)conflicts.push({path,label:label(path)+' · '+t('順序','Thứ tự'),mine:ownIds,theirs:otherIds});
+          const preferOwn=orderConflict?choice==='mine':ownMoved;
+          const primary=preferOwn?ownIds:otherIds,secondary=preferOwn?otherIds:ownIds,order=primary.filter(id=>rows.has(id));
+          // Place independent additions at their original neighboring anchors.
+          for(let index=0;index<secondary.length;index++){
+            const id=secondary[index];if(!rows.has(id)||order.includes(id))continue;
+            const after=secondary.slice(index+1).find(key=>order.includes(key)),before=secondary.slice(0,index).findLast(key=>order.includes(key));
+            if(after!==undefined)order.splice(order.indexOf(after),0,id);else if(before!==undefined)order.splice(order.indexOf(before)+1,0,id);else order.push(id);
+          }
+          for(const id of rows.keys())if(!order.includes(id))order.push(id);
+          return order.map(id=>rows.get(id));
         }
-      }
-      const conflicts=[];let changed=false;
-      for(const unit of units.values()){
-        // Check every ID traversal, so absent/ambiguous rows never become an
-        // undefined field that can be recreated by selecting "mine".
-        let row=latest;
-        for(const part of unit.path.slice(0,-1)){
-          if(typeof part==='string')row=row?.[part];
-          else{const matches=Array.isArray(row)?row.filter(value=>value.id===part.id):[];if(matches.length!==1)return null;row=matches[0];}
+        if(object(before)&&object(own)&&object(other)){
+          const result={};for(const key of new Set([...Object.keys(before),...Object.keys(own),...Object.keys(other)])){
+            const value=merge(before[key],own[key],other[key],[...path,key],choice);if(value!==undefined)result[key]=value;
+          }return result;
         }
-        if(!row||typeof row!=='object')return null;
-        unit.theirs=row[unit.path.at(-1)];unit.noChange=equal(unit.before,unit.mine);
-        unit.conflict=!unit.noChange&&!equal(unit.before,unit.theirs)&&!equal(unit.mine,unit.theirs);
-        changed ||= !equal(unit.before,unit.theirs);
-        const kind=unit.path[0]==='products'?t('產品','Sản phẩm'):unit.path.length===5?t('工段','Công đoạn'):t('線別','Chuyền');
-        unit.label=kind+' · '+(row.code||row.id)+' · '+t(...fieldLabels[unit.path.at(-1)]);
-        if(unit.conflict)conflicts.push(unit);
+        if(choice===undefined)conflicts.push({path,label:label(path),mine:clone(own),theirs:clone(other)});
+        return clone(choice==='mine'?own:other);
       }
+      merge(base,mine,theirs,[],undefined);
       return {conflicts,materialize(choice){
-        if(!changed)return batches;
-        const patches=[],guards=[];
-        for(const unit of units.values()){
-          // A local edit then revert is no intent to overwrite a peer's edit.
-          if(unit.noChange)continue;
-          guards.push({path:unit.path,value:unit.theirs});
-          if(unit.conflict&&choice==='theirs'||equal(unit.mine,unit.theirs))continue;
-          patches.push({op:'set',path:unit.path,value:unit.mine});
+        const merged=merge(base,mine,theirs,[],choice),batch=diff(theirs,merged);
+        // The command also pins the exact observed workflow revision, including
+        // chosen-theirs units, without duplicating the whole catalog in guards.
+        if(batch.patches.some(p=>p.path[0]==='categoryGroups'&&(p.path.at(-1)==='defaultStages'||p.op==='insert')))
+          for(const key of ['products','lines'])if(!batch.guards.some(g=>g.path.length===1&&g.path[0]===key))batch.guards.push({path:[key],value:copy(theirs[key])});
+        const batches=[batch],projected=projectLocal(theirs,[batch]);
+        // Existing diff deliberately omits ordering when membership changes.
+        // Reconcile that order in a later guarded batch within the same CAS.
+        function orderRows(current,wanted,path=[]){
+          if(entityList(current)&&entityList(wanted)){
+            const byId=new Map(current.map(row=>[row.id,row]));
+            for(const row of wanted)if(byId.has(row.id))orderRows(byId.get(row.id),row,[...path,{id:row.id}]);
+            if(!equal(current.map(row=>row.id),wanted.map(row=>row.id))){
+              batches.push({patches:[{op:'order',path,ids:wanted.map(row=>row.id)}],guards:[{path,value:copy(current)}]});
+              const positions=new Map(wanted.map((row,index)=>[row.id,index]));current.sort((a,b)=>positions.get(a.id)-positions.get(b.id));
+            }
+          }else if(object(current)&&object(wanted))for(const key of Object.keys(wanted))orderRows(current[key],wanted[key],[...path,key]);
         }
-        return [{patches,guards}];
+        orderRows(projected,merged);return batches;
       }};
     }
     function chooseCatalogConflicts(scope,conflicts,current){
@@ -235,7 +251,7 @@
         const add=(tag,text,parent=dialog)=>{const node=document.createElement(tag);node.textContent=text;parent.append(node);return node;};
         add('h2',t('選擇衝突處理方式','Chọn cách xử lý xung đột')).id='master-save-choice-title';
         add('p',t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột; giữ các thay đổi không xung đột.'));
-        const list=add('ul',''),format=value=>value===undefined?t('未填寫','Chưa nhập'):String(value);
+        const list=add('ul',''),format=value=>value===undefined?t('已刪除／未填寫','Đã xóa / chưa nhập'):typeof value==='object'?JSON.stringify(value):String(value);
         for(const unit of conflicts){const item=add('li','',list);add('strong',unit.label,item);add('p',t('我的：','Của tôi: ')+format(unit.mine),item);add('p',t('對方的：','Của người khác: ')+format(unit.theirs),item);}
         const actions=add('div','');actions.className='vd-actions';let done=false;
         const finish=choice=>{if(done)return;done=true;if(saveChoices.get(scope)===cancel)saveChoices.delete(scope);host.removeEventListener('pagehide',cancel);dialog.remove();if(current()&&prior?.isConnected)prior.focus?.({preventScroll:true});resolve(choice);};
@@ -247,20 +263,27 @@
     async function comparedCatalogBatches(scope,local,current,c,owner,input){
       const {original,snapshot}=input,generation=current.generation;
       const currentInput=()=>ownerMatches(owner)&&flow(scope)?.generation===generation&&locals.get(scope)===local&&JSON.stringify(local?.batches||[])===original&&JSON.stringify(draft(scope)?.snapshot)===snapshot;
-      const assertCurrent=()=>{if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(flow(scope)?.generation!==generation)throw Error('STALE_GENERATION');if(!currentInput()||document.querySelector('#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
-      assertCurrent();const fresh=await c.read();assertCurrent();
-      const next=fresh.control?.workflow;
-      if(!next||next.generation!==generation)throw Error('STALE_GENERATION');
-      if(!Number.isSafeInteger(next.revision)||next.revision<flow(scope).revision||Number.isSafeInteger(fresh.revision)&&fresh.revision<(stateRevisions.get(scope)??-1))throw Error('RECOVERY_READBACK_REQUIRED');
-      if(!['view','edit','save'].every(key=>fresh.permissions?.[key]===true&&c.permission(key)===true))throw Error('FORBIDDEN');
-      if(next.pendingId)throw Error('PENDING_LOCKED');
-      const batches=JSON.parse(original),comparison=compareCatalogFields(batches,next.working);
-      if(!comparison)return batches;
-      const choice=comparison.conflicts.length?await chooseCatalogConflicts(scope,comparison.conflicts,currentInput):'mine';
-      assertCurrent();if(choice==='cancel')return null;
-      if(flow(scope).revision>next.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
-      if(!['view','edit','save'].every(key=>c.permission(key)===true))throw Error('FORBIDDEN');
-      return comparison.materialize(choice);
+      const form=scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]';
+      const assertCurrent=()=>{if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(flow(scope)?.generation!==generation)throw Error('STALE_GENERATION');if(!currentInput()||document.querySelector(form))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
+      async function read(){
+        assertCurrent();const fresh=await c.read();assertCurrent();const next=fresh.control?.workflow;
+        if(!next||next.generation!==generation)throw Error('STALE_GENERATION');
+        if(!Number.isSafeInteger(next.revision)||next.revision<flow(scope).revision||Number.isSafeInteger(fresh.revision)&&fresh.revision<(stateRevisions.get(scope)??-1))throw Error('RECOVERY_READBACK_REQUIRED');
+        if(!['view','edit','save'].every(key=>fresh.permissions?.[key]===true&&c.permission(key)===true))throw Error('FORBIDDEN');
+        if(next.pendingId)throw Error('PENDING_LOCKED');return next;
+      }
+      let next=await read();
+      for(let attempt=0;attempt<8;attempt++){
+        const comparison=compareMasterSnapshots(local.base,projectLocal(local.base,JSON.parse(original)),next.working);
+        const choice=comparison.conflicts.length?await chooseCatalogConflicts(scope,comparison.conflicts,currentInput):'mine';
+        assertCurrent();if(choice==='cancel')return null;
+        if(comparison.conflicts.length){
+          const fresh=await read();
+          if(fresh.revision!==next.revision||!equal(fresh.working,next.working)){next=fresh;continue;}
+        }
+        const batches=comparison.materialize(choice);return {batches,acceptedSnapshot:projectLocal(next.working,batches),expectedRevision:next.revision};
+      }
+      throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     }
     async function saveLocal(scope,detail){
       if(document.querySelector(scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
@@ -268,11 +291,11 @@
       if(!current)throw Error('BEGIN_REQUIRED');
       if(local&&(!ownerMatches(local.owner)||local.generation!==current.generation))throw Error('STALE_GENERATION');
       if(c.permission('save')!==true)throw Error('FORBIDDEN');
-      const compareCatalog=['AB','C'].includes(scope)&&!!local?.batches.length,input=compareCatalog?{original:JSON.stringify(local.batches),snapshot:JSON.stringify(draft(scope)?.snapshot)}:null;
+      const compareCatalog=localScopes.has(scope)&&!!local?.batches.length,input=compareCatalog?{original:JSON.stringify(local.batches),snapshot:JSON.stringify(draft(scope)?.snapshot)}:null;
       await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-      const batches=compareCatalog?await comparedCatalogBatches(scope,local,current,c,saveOwner,input):copy(local?.batches||[]);if(batches===null)return null;
-      const command=c.prepare(current.generation,'save',{...detail,moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
-      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[]};
+      const comparison=compareCatalog?await comparedCatalogBatches(scope,local,current,c,saveOwner,input):{batches:copy(local?.batches||[]),acceptedSnapshot:copy(current.working)};if(comparison===null)return null;const {batches,acceptedSnapshot,expectedRevision}=comparison;
+      const command=c.prepare(current.generation,'save',{...detail,...(expectedRevision===undefined?{}:{expectedRevision}),moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
+      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],acceptedSnapshot};
       let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}catch(error){if(scope==='PROCESS'&&!c.hasUnknown()&&processSave?.operationId===command.operationId)processSave=null;throw error;}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       // Transport validates the original receipt and readback before clearing its

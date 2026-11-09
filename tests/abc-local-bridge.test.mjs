@@ -53,7 +53,7 @@ for(const scope of ['AB','C']){
   const x=await fixture({scope});t.after(x.f.close);const original=x.f.row();x.draft().snapshot.products[0].name='First';await x.bridge.execute(scope,'apply');x.draft().snapshot.products[0].name='Second';await x.bridge.execute(scope,'apply');
   assert.equal(x.posts().length,0);assert.deepEqual(x.f.row(),original);assert(x.bridge.localDirty(scope));await x.bridge.load(scope);assert.equal(x.draft().snapshot.products[0].name,'Second');
   await assert.rejects(x.bridge.submit(scope),/UNSAVED_CHANGES_SAVE_REQUIRED/);x.calls.length=0;const saved=await x.bridge.execute(scope,'save');assert.equal(x.posts().length,1);assert.equal(saved.control.workflow.saved.content.products[0].name,'Second');assert(!x.bridge.localDirty(scope));assert.equal(x.disk.size,0);
-  const sent=x.posts()[0].body.command;assert.equal(sent.input.batches.length,2);assert.equal(sent.input.batches[0].guards[0].value,'Synthetic product');assert.equal(sent.input.batches[1].guards[0].value,'First');
+  const sent=x.posts()[0].body.command;assert.equal(sent.input.batches.length,1);assert.equal(sent.input.batches[0].patches[0].value,'Second');assert.equal(sent.input.batches[0].guards[0].value,'Synthetic product');assert(Number.isSafeInteger(sent.expectedRevision));
   x.draft().snapshot.products[0].name='Discard';await x.bridge.execute(scope,'apply');x.bridge.discardLocal(scope);assert.equal(x.draft().snapshot.products[0].name,'Second');assert(!x.bridge.localDirty(scope));
  });
  void test(`${scope} unknown Save retains exact sent operation/basis across reopen and 404; GET-only recovery`,async t=>{

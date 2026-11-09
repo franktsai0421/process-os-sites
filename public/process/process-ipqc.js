@@ -201,5 +201,5 @@
   }
   window.addEventListener('process-language-change',()=>{referenceSession=null;void mountReferences();const panel=document.querySelector('#operation-ipqc-panel');if(panel?.isConnected){const reload=panel.querySelector('[data-ipqc-reload]');if(reload&&!panel.hidden)reload.click();}const basic=document.querySelector('#operation-basic-tab');if(basic)basic.innerHTML=label('Thông tin cơ bản','基本資料');for(const node of document.querySelectorAll('[data-ipqc-reference] h4'))node.innerHTML=label('Tham chiếu quy trình','製程引用');});
   window.ProcessIPQC={mountCQuery,unmountCQuery,mountChoices:loadChoices,mountInspector,referenceMarkup,mountReferences};
-  setInterval(()=>{if(document.visibilityState==='visible')void mountReferences();},5000);
+  // References load at explicit mount/language actions; no timed draft reads.
 })();

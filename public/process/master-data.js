@@ -1160,31 +1160,19 @@
     },
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
-      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
+      deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
       seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};
       const incoming=readStore(STORAGE,null)||{active:{},versions:[]};
       for(const key of Object.keys(control))delete control[key];Object.assign(control,incoming);
-      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();
+      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();
     },
     persist,
     record,
     applyActive,
     shared,
   };
-  const sharedPoll=window.createForegroundPoll();
-  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{
-    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;
-    try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){
-      const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
-      if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
-        const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}
-        if(changed){applyActive();render();}
-      }
-    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}
-  });}
-  pollMaster();
+  // Read on explicit entry and workflow actions; no timed draft sync.
   applyActive();
   window.addEventListener('process-shared-state-updated', () => {
     platformUsers = readStore('platformUsers', platformUsers);
