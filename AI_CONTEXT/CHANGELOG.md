@@ -1,3 +1,7 @@
+## 2026-11-09 — 本機完整製程合入受保護頁面owner
+
+真merge42917bf整合#102固定972，保留no-poll、IPQC owner／restore、當前畫布Save、核准歷史及UNKNOWN；未啟用page-v1、未碰真資料／schema／ACL／遠端。新增非admin完整saved-process生命週期及C五工段／自訂機器回歸，8項獨立複核PASS。來源以可逐byte還原V1的indexed refs保存21targets與原173物件／79請求，大小降回5MiB內。新頁歷史route實測422，仍NOT_READY；詳[相依矩陣](../docs/acceptance/process-editor-remaining-dependencies-20261109.md)。
+
 ## 2026-11-09 — 製程畫布歷史與scope Save本機整合
 
 承接固定e3d92846全部核准歷史前端；保留目前scope Save、807同頁filter journal與UNKNOWN，補display epoch阻擋已排程filter穿越歷史／目前草稿。回草稿使用fresh edit/save權限；新永久兩canvas/form實際堆疊case驗證回來只送一次當前scope Save。無schema／真資料或部署。[整合門檻](../docs/acceptance/process-editor-complete-20261109.md)。

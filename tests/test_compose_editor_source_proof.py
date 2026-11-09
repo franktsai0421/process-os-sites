@@ -201,5 +201,29 @@ class ComposerTests(unittest.TestCase):
             with self.assertRaises(ProofError): method(Fake(responses), 'a' * 40)
 
 
+class IndexedSpanTransportTests(unittest.TestCase):
+    def test_lossless_order_metadata_and_input_preservation(self):
+        import json
+        key_a, key_b = 'a' * 64, 'b' * 64
+        source = {'encoding': 'content-addressed-base64-spans-v1',
+                  'spans': {key_b: {'sha256': key_b, 'bytes': 1, 'base64': 'Yg=='},
+                            key_a: {'sha256': key_a, 'bytes': 1, 'base64': 'YQ=='}},
+                  'projections': [{'rules': [{'beforeOffset': 0, 'afterOffset': 0,
+                                             'beforeRef': key_b, 'afterRef': key_a}]}]}
+        before = json.dumps(source)
+        encoded = p['encode_span_refs'](source)
+        self.assertEqual(json.dumps(source), before)
+        self.assertEqual(encoded['spanRefs'], [key_a, key_b])
+        self.assertEqual(encoded['spans'], source['spans'])
+        self.assertEqual(encoded['projections'][0]['rules'][0]['beforeRef'], 1)
+        self.assertEqual(encoded['projections'][0]['rules'][0]['afterRef'], 0)
+        for mutate in (lambda m: m.update(encoding='unknown'),
+                       lambda m: m.update(spanRefs=[]),
+                       lambda m: m['projections'][0]['rules'][0].update(beforeRef='missing')):
+            damaged = copy.deepcopy(source)
+            mutate(damaged)
+            with self.assertRaises(ProofError): p['encode_span_refs'](damaged)
+
+
 if __name__ == '__main__':
     unittest.main()

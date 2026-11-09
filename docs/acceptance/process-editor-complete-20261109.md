@@ -1,8 +1,8 @@
 # 製程編輯台完整目標與整合狀態
 
-本機程式固定於 `59027b163535f2b4af0f328782a2552cd7bebf83`，tree `041d625fa71f0e29d59aa538f2dedcee863db9b0`。保留已合併 #99／#100 的 main `9fbba823`、#101 計數、d1／807、歷史 `e3d92846` 與未啟用 #102 前置的真實血緣。此候選尚未上傳完整程式、合併或部署。
+目前本機產品合樹固定於 `42917bfcf940f034ba3cad318bc89bf470baf686`，tree `34ddcd2ec9b0473679db4463bcfa9b54da1b2689`；先前59027／58c855交付保留。保留已合併 #99／#100 的 main `9fbba823`、#101 計數、d1／807、歷史 `e3d92846` 與 #102 固定972e3a8受資料marker守門之runtime的真實血緣。此候選尚未上傳完整程式、合併或部署。
 
-使用者要求完整製程編輯台一起上同一 PR；#101 保持 Draft，遠端仍是計數元件 `8f1f243`，該元件四組 CI 成功不能代替完整候選的新 HEAD CI。#102 負責全站真正頁面草稿接入，未凍結的 dirty 程式未拷入。
+使用者要求完整製程編輯台一起上同一 PR；#101 保持 Draft，遠端仍是計數元件 `8f1f243`，該元件四組 CI 成功不能代替完整候選的新 HEAD CI。#102 的新固定runtime已本機合樹；尚缺新owner歷史與完整UI、例行整頁接線。未凍結的dirty程式未拷入。精確交界見[剩餘相依](process-editor-remaining-dependencies-20261109.md)。
 
 | 目標 | 本機整合結果 | 尚需完成 |
 | --- | --- | --- |
@@ -13,11 +13,13 @@
 | 刪除／連線／同編號新增與 UNKNOWN | 實際控制器與 signed SQLite route 已測；UNKNOWN 保留原 operationId、anchor、sent 快照與 registry，只查原收據，不重送 | 實站失敗流程 |
 | 取消同步、多餘按鈕及背景檢查 | 移除畫布 Sync、最新共享、未送恢復、undo/redo UI，保留 UNKNOWN 防重送；#100 無固定輪詢整合 | 頂部／全螢幕／舊快取實站巡查 |
 | 類別主要工段及機器連動 | 類別已核准 defaultStages 優先；#99 新工段繼承已核准 catalog、自訂類型與獨立 ID；機器依線別／工段 | C/GIA CONG 實際設定及新增→核准→類別→畫布 |
-| 不同頁面各自草稿及權限，同頁篩選不拆模組 | 此候選保持 process:platform；只納入未啟用 b172 前置 | #102 真正 codec/CAS、舊 writer fences、審核／歷史／UI 與安全轉換 |
+| 不同頁面各自草稿及權限，同頁篩選不拆模組 | 此候選保持 process:platform；已真實合入972主資料頁面writer／CAS／基本UI（marker未啟用） | #102 真正 codec/CAS、舊 writer fences、審核／歷史／UI 與安全轉換 |
 | 送審整份已存製程，核准固定快照，不可撤回 | 現有 workflow、pending／權限／CAS guards 保留，Save 不偷送審 | 完整角色及實站生命週期 |
 | 原頁已核准歷史唯讀，不回填 writer | 真實 merge e3d92846：13 組頁面含畫布、PROCESS 模板機器、IPQC AB、例行 FQC；返回草稿 fresh edit/save permission，display epoch 拒絕舊 handler／排程 filter | #102 新 ownership 與原生／實站整合 |
 | 存取後流程數立即更新 | #101 投影計數已合入，同一 visible canvas projection | 實站數字核對 |
 | 速度 >5 秒優化、>10 秒優先及完整驗收 | 本機功能證據保留 | 桌機／iPhone／IME／兩人／測試站；40 秒原因未查明 |
+
+本輪合樹產品及source／cache檢查結果、仍缺422新owner歷史與routine接線，見[精確相依與本輪證據](process-editor-remaining-dependencies-20261109.md)。下列59027數字是保留的前一檢查點，不代替42917合樹結果。
 
 三項草稿規則已由使用者確認：舊草稿可不保留、A 可送含 AB 修改的整份案件、例行 FQC 整頁一份草稿；全部草稿頁在 #102 統一。這些不再是待答問題，但尚未實作完成或切換真實資料。
 
