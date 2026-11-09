@@ -47,8 +47,8 @@ void test('effective-version notice has no fixed timer and editor focus/visibili
  const events=new Map(),intervals=[],reads=[],state={view:'editor'},window={ProcessSync:{identity:{id:'a'},platformHeaders:()=>({})},addEventListener:(name,fn)=>events.set(name,fn),createScopedReadPause:()=>({canPoll:()=>true,capture:()=>({}),success(){},denied(){}})};
  const document={documentElement:{lang:'zh'},hidden:false,addEventListener:(name,fn)=>events.set(name,fn),querySelector:()=>null};
  vm.runInNewContext(source('effective-version-notice'),{window,document,state,localStorage:{getItem:()=> '{}'},location:{href:'/process/'},setInterval:(fn,ms)=>intervals.push(ms),AbortSignal,fetch:async(url)=>{reads.push(url);return{ok:true,json:async()=>({effective:{process:'version'}})};}});
- await Promise.resolve();await events.get('focus')();await events.get('visibilitychange')();assert.deepEqual(intervals,[]);assert.equal(reads.length,0);
- await window.EffectiveVersionNotice.check(true);assert.equal(reads.length,1,'explicit check still reads');state.view='approval';await window.EffectiveVersionNotice.check();assert.equal(reads.length,2,'entry/event check remains supported outside editor');
+ await Promise.resolve();assert.equal(events.has('focus'),false,'main #100 registers no automatic focus reader');assert.equal(events.has('visibilitychange'),false,'main #100 registers no visibility reader');for(const view of ['editor','data','approval']){state.view=view;for(const event of ['focus','visibilitychange'])events.get(event)?.();}state.view='editor';assert.deepEqual(intervals,[]);assert.equal(reads.length,0);
+ await window.EffectiveVersionNotice.check(true);assert.equal(reads.length,1,'explicit check still reads');state.view='approval';await window.EffectiveVersionNotice.check();assert.equal(reads.length,2,'explicit entry check remains supported outside editor');
 });
 void test('IPQC references keep explicit mounts and bilingual Save copy without fixed reads',async()=>{
  const intervals=[],reads=[],events=new Map(),node={dataset:{source:'AB',scope:'A',item:'one'},isConnected:true,lastElementChild:{innerHTML:''},querySelector:()=>null};
