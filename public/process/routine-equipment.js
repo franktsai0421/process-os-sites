@@ -37,6 +37,10 @@
   };
 
   let host = null, control = null, revision = null, working = null, readUnavailable = false, controlActor = '';
+  let historyDisplayEpoch=0,approvedHistoryView=null,historyUploads=0;
+  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||!node?.isConnected)return;return callback.apply(this,args);};};
   let selectedVersionId = '', selectedCategory = '', selectedSubcategory = '', selectedGroup = '';
   let selectedEquipmentId = '', editingEquipmentId = '', search = '', busy = false, message = '', reviewHost = null;
   let equipmentPage = 1, submitProblems = [], openErrors = false, composing = false;
@@ -89,6 +93,7 @@
     } catch { throw Error(beginRecoveryMessage()); }
   }
   async function beginSharedDraft(client, writeOwner) {
+    assertCurrentDisplay();
     if(readBeginRecovery())throw Error(beginRecoveryMessage()); // Never relabel legacy unidentified outcomes.
     const result=await client.begin();
     if(writeOwner&&!writeOwner())throw Error('ACCOUNT_OR_VIEW_CHANGED_REOPEN_REQUIRED');
@@ -305,6 +310,7 @@
     syncBase=basis;
   }
   async function writeShared(action,more={},departureOwner){
+    assertCurrentDisplay();
     departureOwner?.assert();
     if(!inputOwnerCurrent()){readUnavailable=true;message=t('帳號或登入世代已變更；原輸入保留但不會載入或送到新帳號，請先重新核對。','Tài khoản hoặc phiên đăng nhập đã đổi; giữ dữ liệu cũ nhưng không hiển thị hay gửi bằng tài khoản mới. Hãy đối chiếu lại.');render();return null;}
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
@@ -482,8 +488,8 @@
       captureAddEquipmentInput();
     };
     drawer.dataset.routineInputBound = 'true';
-    drawer.addEventListener('input', capture);
-    drawer.addEventListener('change', capture);
+    drawer.addEventListener('input', guardWorking(drawer,capture));
+    drawer.addEventListener('change', guardWorking(drawer,capture));
   }
   function showEquipmentReadRecovery(error) {
     readUnavailable = true;
@@ -662,7 +668,7 @@
   const active = () => control?.versions.find(version => version.id === control.activeVersionId);
   const selected = () => control?.versions.find(version => version.id === selectedVersionId) || open() || active() || control?.versions[0];
   const visible = () => selected()?.id === open()?.id && working ? working : selected();
-  const editable = () => !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');
+  const editable = () => historyAllowsMutation() && !readUnavailable && inputOwnerCurrent() && selected()?.status === 'draft' && !!working && permitted('approval.submit');
   const status = value => ({
     draft: t('待確認草稿', 'Bản nháp chờ xác nhận'),
     pending: t('主管審核中', 'Quản lý đang duyệt'),
@@ -689,7 +695,8 @@
   const headers = () => window.ProcessSync?.platformHeaders?.() || { 'Content-Type': 'application/json' };
 
   async function read(preserveInput=false,explicitDelivery=false) {
-    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;
+    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch;
+    const actor=identity()?.id,actorObject=identity(),epoch=window.ProcessSync?.identityGeneration?.(),intent=++readIntent,delivery=window.ProcessSync?.captureDelivery?.(),page=host,tab=page?.dataset?.activeTab,connected=page?.isConnected,reviewPage=reviewHost,lifecycle=equipmentEditRequest,versionId=selectedVersionId,owns=()=>historyAllowsMutation()&&displayEpoch===historyDisplayEpoch&&intent===readIntent&&actor===identity()?.id&&actorObject===identity()&&(Number.isSafeInteger(epoch)&&epoch>=0&&epoch===window.ProcessSync?.identityGeneration?.())&&(!!delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true)&&!window.ProcessSync?.requiresReload&&host===page&&page?.dataset?.activeTab===tab&&page?.isConnected===connected&&reviewHost===reviewPage&&equipmentEditRequest===lifecycle&&selectedVersionId===versionId;
     const retainedWorking=working,retainedBase=syncBase,retainedNode=nodeDialog,retainedForm=newEquipmentForm,retainedOwner=inputOwner,deliveryRecheck=explicitDelivery&&hasLocalDraftInput()&&inputPrincipalCurrent()&&inputTargetCurrent()&&inputOwner.generation===syncGeneration&&!inputOwnerCurrent(),readClient=sharedClient;
     try {
     if(inputOwner&&!inputOwnerCurrent())render();
@@ -728,6 +735,7 @@
   }
 
   async function write(action, more = {}, preserve = false) {
+    assertCurrentDisplay();
     if(readUnavailable){message=t('請先重新載入資料核對後操作。','Hãy tải lại dữ liệu và đối chiếu trước khi thao tác.');render();return null;}
     if(control?.workflow||open()?.status!=='pending')return writeShared(action==='save'?'apply':action,more);
     if (busy) return null;
@@ -758,16 +766,19 @@
   }
 
   async function uploadImage(file) {
+    assertCurrentDisplay();const displayEpoch=historyDisplayEpoch;historyUploads++;try{
     if (!file || file.size > 5_000_000) throw Error(t('照片限 5 MB', 'Ảnh giới hạn 5 MB'));
     const response = await fetch(`${api}/photo${query}`, {
       method: 'PUT', headers: { ...headers(), 'Content-Type': file.type || 'image/jpeg' }, body: file,
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !/^[a-f0-9]{64}$/.test(body.id || '')) throw Error(body.error || t('照片未上傳成功', 'Tải ảnh không thành công'));
-    return body.id;
+    if(displayEpoch!==historyDisplayEpoch)throw Error('APPROVED_HISTORY_SUPERSEDED');assertCurrentDisplay();return body.id;
+    }finally{historyUploads--;}
   }
 
   async function importSource() {
+    assertCurrentDisplay();
     if (busy) return;
     busy = true; message = t('讀取來源 Excel 對照及照片…', 'Đang đọc đối chiếu và ảnh Excel nguồn…'); render();
     try {
@@ -1123,8 +1134,9 @@
     sharedClient?.gatePermissions?.();
   }
 
-  const canDraftAction=op=>!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
+  const canDraftAction=op=>historyAllowsMutation()&&!readUnavailable&&selected()?.status==='draft'&&sharedClient?.permission(op)===true&&(control?.workflow||editable());
   async function saveDraft(action,departureOwner) {
+    assertCurrentDisplay();
     if (!canDraftAction(action) || busy) return null;
     if(control?.workflow||open()?.status!=='pending')return writeShared(action,{},departureOwner);
     try {
@@ -2019,18 +2031,18 @@
   }
   function bindViewReferences(root,session=viewDialog?.references){
     if(!root||!session)return;
-    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',()=>{
+    root.querySelectorAll('[data-view-ref-kind]').forEach(details=>details.addEventListener('toggle',guardWorking(details,()=>{
       if(!session.current())return;const kind=details.dataset.viewRefKind;session.states[kind].open=details.open;
       if(details.open)void readViewReferences(session,kind);
-    }));
-    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=()=>readViewReferences(session,button.dataset.viewRefRetry,true));
-    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=()=>{
+    })));
+    root.querySelectorAll('[data-view-ref-retry]').forEach(button=>button.onclick=guardWorking(button,()=>readViewReferences(session,button.dataset.viewRefRetry,true)));
+    root.querySelectorAll('[data-view-ab-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{
       if(!session.current())return;
       const row=session.states.ipqcAB,versionId=button.dataset.viewAbVersion,itemId=button.dataset.viewAbDetail,scope=button.dataset.viewAbScope;
       if(row.status!=='loaded'||!Object.values(row.result).some(rows=>rows.some(item=>item.versionId===versionId&&item.itemId===itemId&&item.scope===scope)))return;
       openStandardItemView('ipqc-ab',versionId,itemId,scope);
-    });
-    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=()=>{
+    }));
+    root.querySelectorAll('[data-view-ref-detail]').forEach(button=>button.onclick=guardWorking(button,()=>{
       if(!session.current())return;
       const row=session.states.fqc,control=row.control,version=control?.versions.find(v=>v.id===button.dataset.viewRefVersion);
       try{
@@ -2039,7 +2051,7 @@
         session.closeDetail?.();
         session.closeDetail=window.FQCQualityAPI.openAuthorizedItemView(version,item.id,()=>session.current()&&row.control===control&&row.status==='loaded');
       }catch(error){row.detailError=error?.message||'FQC_REFERENCE_VIEW_UNAVAILABLE';paintViewReferences(session);}
-    });
+    }));
   }
   function paintViewReferences(session){
     if(!session.current())return;
@@ -2402,23 +2414,23 @@
 
   function bindReferenceActions(root) {
     if (!root) return;
-    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = event => {
+    root.querySelectorAll('[data-transfer-module]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       openTransferModal(button.dataset.sourceEq, button.dataset.transferModule);
-    });
-    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = event => {
+    }));
+    root.querySelectorAll('[data-std-module]').forEach(link => link.onclick = guardWorking(link,event => {
       event.stopPropagation();
       openStandardItemView(link.dataset.stdModule, link.dataset.stdVid, link.dataset.stdIid, link.dataset.stdScope);
-    });
+    }));
   }
 
   function captureTransferOwner() {
     return { actor: identity(), actorId: identity()?.id, epoch: window.ProcessSync?.identityGeneration?.(),
-      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,
+      delivery: window.ProcessSync?.captureDelivery?.(), page: host, versionId: selectedVersionId,displayEpoch:historyDisplayEpoch,
       generation: control?.workflow?.generation, activeVersionId: control?.activeVersionId };
   }
   function transferOwnerCurrent(owner) {
-    return !!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&
+    return historyAllowsMutation()&&owner?.displayEpoch===historyDisplayEpoch&&!!owner?.actorId && owner.actorId === identity()?.id && controlActor === owner.actorId &&
       (typeof owner.epoch === 'number' ? owner.epoch === window.ProcessSync?.identityGeneration?.() : owner.actor === identity()) &&
       !window.ProcessSync?.requiresReload && (!owner.delivery || window.ProcessSync?.isCurrentDelivery?.(owner.delivery) !== false) &&
       host === owner.page && routineTabIsActive() && selectedVersionId === owner.versionId &&
@@ -3122,12 +3134,12 @@
   }
 
   function bindList() {
-    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = () => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); });
-    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = () => {
+    host.querySelectorAll('[data-equipment-page]').forEach(button => button.onclick = guardWorking(button,() => { equipmentPage += button.dataset.equipmentPage === 'next' ? 1 : -1; renderEquipmentResults(); }));
+    host.querySelectorAll('[data-equipment-select]').forEach(button => button.onclick = guardWorking(button,() => {
       selectedEquipmentId = button.dataset.equipmentSelect;
       render();
-    });
-    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = async event => {
+    }));
+    host.querySelectorAll('[data-equipment-view]').forEach(button => button.onclick = guardWorking(button,async event => {
       event.stopPropagation();
       const id = button.dataset.equipmentView;
       const item = (visible()?.equipment || []).find(e => e.id === id);
@@ -3139,20 +3151,20 @@
         viewDialog.references=newViewReferences(id);
         render();
       }
-    });
-    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = async event => {
+    }));
+    host.querySelectorAll('[data-equipment-edit]').forEach(button => button.onclick = guardWorking(button,async event => {
       event.stopPropagation();
       await openEditEquipment(button.dataset.equipmentEdit);
-    });
-    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = event => {
+    }));
+    host.querySelectorAll('[data-equipment-delete]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       deleteEquipment(button.dataset.equipmentDelete).catch(failed);
-    });
-    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = event => {
+    }));
+    host.querySelectorAll('[data-equipment-transfer]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       openTransferModal(button.dataset.equipmentTransfer);
-    });
-    host.querySelector('#routine-add')?.addEventListener('click', openAddEquipmentDialog);
+    }));
+    host.querySelector('#routine-add')?.addEventListener('click', guardWorking(host.querySelector('#routine-add'),openAddEquipmentDialog));
   }
 
   function routineTabIsActive() {
@@ -3160,7 +3172,21 @@
     return host === content && content?.isConnected && content.dataset.activeTab === 'quality-routine-equipment';
   }
 
+  const historyFields={equipment:['檢具與設備','Dụng cụ và thiết bị'],groups:['規格群組','Nhóm quy cách'],categories:['類別','Loại'],subcategories:['子類別','Phân loại'],issues:['問題紀錄','Bản ghi vấn đề'],id:['識別碼','Mã'],name:['名稱','Tên'],nameVi:['越文名稱','Tên tiếng Việt'],nameZh:['中文名稱','Tên tiếng Hoa'],code:['編號','Mã'],assetCode:['資產編號','Mã tài sản'],pieceMark:['件號','Số chi tiết'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管者','Người giữ'],enabled:['使用中','Đang dùng'],calibrationMethod:['校正方式','Phương pháp hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ riêng'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['有效期限','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập'],confirmed:['已確認','Đã xác nhận'],photoId:['照片識別碼','Mã ảnh'],photoHidden:['隱藏照片','Ẩn ảnh'],photos:['照片','Ảnh'],photoSource:['照片來源','Nguồn ảnh'],groupId:['規格群組','Nhóm quy cách'],categoryId:['類別','Loại'],subcategoryId:['子類別','Phân loại'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý'],type:['問題類型','Loại vấn đề'],createdAt:['建立日期','Ngày tạo'],updatedAt:['更新日期','Ngày cập nhật']};
+  function mountApprovedHistory(shell,log,empty){
+    const client=sharedTransport(),page=host;approvedHistoryView?.retire();
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:host.querySelector('.routine-page'),shell,client,empty,selectId:'equipment-approved-version',
+      isCurrent:()=>host===page&&sharedClient===client&&routineTabIsActive(),
+      canChoose:()=>!busy&&!equipmentSaveChoice&&!equipmentSaveComparison&&!equipmentReadAttempt&&!historyUploads&&!editingEquipmentId&&!nodeDialog&&!addingEquipment&&!viewDialog&&!transferDialog&&!pendingPhotos.size&&!transferBusy(),
+      onBoundary(){historyDisplayEpoch++;readIntent++;},
+      onDenied(){retireEquipmentSaveComparison();},
+      renderCurrent(){approvedHistoryView=null;render();},
+      validateSnapshot:snapshot=>snapshot&&['equipment','groups','categories','subcategories','issues'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row))),
+      renderSnapshot(target,snapshot,current){for(const key of ['equipment','groups','categories','subcategories'])for(const row of snapshot[key]){if(row.photoHidden)continue;if(row.photoId)row.photos=[{id:row.photoId}];else if(row.photoSource?.webPath)row.photos=[{src:row.photoSource.webPath}];}window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['equipment','groups','categories','subcategories','issues'],fields:historyFields,mediaURL:photo=>/^[a-f0-9]{64}$/.test(photo?.id||'')?api+'/photo?id='+encodeURIComponent(photo.id):typeof photo?.src==='string'&&/^(?:\/process\/assets\/|assets\/)[^?#]*\.(?:webp|png|jpg|jpeg|gif)$/i.test(photo.src)?photo.src.startsWith('assets/')?'/process/'+photo.src:photo.src:null},current);}
+    });
+  }
   function render() {
+    if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;
     if (!routineTabIsActive()) return;
     const ownerBlocked=inputOwner&&!inputOwnerCurrent();
     if(ownerBlocked||bindAddEquipmentInput.forms?.get(newEquipmentForm)?.drawer?.isConnected===false)captureRetainedAddEquipmentInput();
@@ -3173,12 +3199,12 @@
           ${loadError ? `<button type="button" class="button signal" id="routine-load-retry">${t('重新載入', 'Tải lại')}</button>` : ''}
         </div>
       </section>`;
-      host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
-    host.querySelector('#routine-load-retry')?.addEventListener('click', async () => {
+      host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));
+    host.querySelector('#routine-load-retry')?.addEventListener('click', guardWorking(host.querySelector('#routine-load-retry'),async () => {
         message = '';
         render();
         try { await read(false,true); render(); } catch (error) { message = error.message; render(); }
-      });
+      }));
       return;
     }
     captureAddEquipmentInput();
@@ -3271,27 +3297,26 @@
       ${transferDialogHTML()}
       `}</section>`;
     bind();
-    host.querySelector('#routine-begin-recheck')?.addEventListener('click', enterExistingDraft);
-    host.querySelector('#routine-load-retry')?.addEventListener('click',async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}});
+    host.querySelector('#routine-begin-recheck')?.addEventListener('click', guardWorking(host.querySelector('#routine-begin-recheck'),enterExistingDraft));
+    host.querySelector('#routine-load-retry')?.addEventListener('click',guardWorking(host.querySelector('#routine-load-retry'),async()=>{if(addingEquipment&&newEquipmentForm&&inputOwnerCurrent()){await recoverAddEquipmentRead();return;}const preserveInput=isDirty()||pendingPhotos.size>0;try{await read(preserveInput,true);message=preserveInput?t('已載入最新版，未套用輸入仍保留；套用時重新核對來源。','Đã tải bản mới; giữ đầu vào chưa áp dụng, kiểm tra nguồn khi áp dụng.'):'';render();}catch(error){message=error.message;render();}}));
     if(readUnavailable)host.querySelectorAll('#routine-save,#routine-submit,#routine-begin').forEach(button=>{button.disabled=true;});
     if(control.workflow){const flow=control.workflow,panel=document.createElement('section');panel.className='routine-card';panel.id='routine-shared-status';panel.setAttribute('role','status');panel.innerHTML=`<b>${t('共用範圍：檢具全庫','Phạm vi chung: toàn bộ thiết bị')}</b><p>${flow.pendingId?t('待審鎖定','Khóa chờ duyệt'):!flow.saved||JSON.stringify(flow.saved.content)!==JSON.stringify(flow.working)?t('已同步 · 尚未手動儲存','Đã đồng bộ · chưa lưu thủ công'):t('已儲存','Đã lưu')}</p>${flow.saved?`<p>${t('儲存者','Người lưu')}: ${h(flow.saved.actor.name)} · ${h(flow.saved.at)}</p>`:''}`;host.querySelector('#routine-page')?.prepend(panel);
-      if(permitted('approval.compare')){const b=document.createElement('button');b.id='routine-case-history';b.className='button ghost';b.textContent=t('送審案件','Hồ sơ gửi duyệt');b.onclick=()=>window.openSharedDraftHistory({client:sharedTransport(),editable:()=>open()?.status==='draft'&&permitted('approval.submit'),onApplied:async()=>{await read();render();}}).catch(failed);panel.append(b);}
-      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}};panel.append(b);}
+      if(sharedClient?.hasUnknown())for(const [label,method]of [[t('查詢上次操作','Kiểm tra thao tác trước'),'resolveUnknown'],[t('重試同一操作','Thử lại cùng thao tác'),'retryUnknown']]){const b=document.createElement('button');b.textContent=label;b.onclick=guardWorking(b,async()=>{try{await sharedTransport()[method]();await read();render();}catch(e){failed(e);}});panel.append(b);}
     }
     sharedClient?.gatePermissions?.();
     if(readUnavailable)showEquipmentReadRecovery(message);
-    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind="error"]',missing:'.routine-issues-card,[data-routine-issue-kind="missing"]',history:['.routine-history-card','#routine-case-history','[data-routine-issue-kind="warning"]'],status:['#routine-shared-status'],remove:['.routine-top']});
+    window.VersionDraftUI?.mount(host,{header:'.routine-version',historyClient:sharedTransport,mountApprovedHistory,module:t('檢具與測試設備','Dưỡng kiểm và thiết bị đo'),scope:t('檢具全庫','Toàn bộ thiết bị'),version,versions:control.versions,active:active(),flow:control.workflow,busy,failed:readUnavailable||sharedClient?.hasUnknown(),actions:{begin:'#routine-begin',save:'#routine-save',submit:'#routine-submit',withdraw:'#routine-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-routine-issue-kind="error"]',missing:'.routine-issues-card,[data-routine-issue-kind="missing"]',history:['.routine-history-card','[data-routine-issue-kind="warning"]'],status:['#routine-shared-status'],remove:['.routine-top','#routine-case-history']});
   }
 
   function bind() {
     const root = host;
-    root.querySelector('#routine-import')?.addEventListener('click', importSource);
-    root.querySelector('#routine-begin')?.addEventListener('click', () => write('begin'));
-    root.querySelector('#routine-save')?.addEventListener('click', () => saveDraft('save'));
-    root.querySelector('#routine-submit')?.addEventListener('click', () => { void saveDraft('submit'); });
-    root.querySelector('#routine-withdraw')?.addEventListener('click', () => write('withdraw'));
+    root.querySelector('#routine-import')?.addEventListener('click', guardWorking(root.querySelector('#routine-import'),importSource));
+    root.querySelector('#routine-begin')?.addEventListener('click', guardWorking(root.querySelector('#routine-begin'),() => write('begin')));
+    root.querySelector('#routine-save')?.addEventListener('click', guardWorking(root.querySelector('#routine-save'),() => saveDraft('save')));
+    root.querySelector('#routine-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-submit'),() => { void saveDraft('submit'); }));
+    root.querySelector('#routine-withdraw')?.addEventListener('click', guardWorking(root.querySelector('#routine-withdraw'),() => write('withdraw')));
 
-    root.querySelector('#routine-version-select')?.addEventListener('change', event => {
+    root.querySelector('#routine-version-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-version-select'),event => {
       if (editable() && isDirty() &&
           !confirm(t('尚有未儲存的草稿修改；確定切換版本？', 'Còn thay đổi chưa lưu; bạn có chắc muốn chuyển phiên bản?'))) { event.target.value = selected().id; return; }
       equipmentEditRequest++;
@@ -3305,15 +3330,15 @@
       problemSnapshot = null;
       openErrors = false;
       render();
-    });
+    }));
 
     const searchInput = root.querySelector('#routine-search');
-    searchInput?.addEventListener('compositionstart', () => { composing = true; });
-    searchInput?.addEventListener('compositionend', event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); });
-    searchInput?.addEventListener('input', event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } });
+    searchInput?.addEventListener('compositionstart', guardWorking(searchInput,() => { composing = true; }));
+    searchInput?.addEventListener('compositionend', guardWorking(searchInput,event => { composing = false; search = event.target.value; equipmentPage = 1; renderEquipmentResults(); }));
+    searchInput?.addEventListener('input', guardWorking(searchInput,event => { search = event.target.value; if (!composing) { equipmentPage = 1; renderEquipmentResults(); } }));
     bindList();
 
-    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = () => {
+    root.querySelectorAll('[data-node-select]').forEach(button => button.onclick = guardWorking(button,() => {
       equipmentEditRequest++;
       const id = button.dataset.id;
       if (button.dataset.nodeSelect === 'category') { selectedCategory = id; selectedSubcategory = ''; selectedGroup = ''; }
@@ -3329,8 +3354,8 @@
       newEquipmentForm = null;
       formSnapshot = null;
       equipmentPage = 1; render();
-    });
-    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = event => {
+    }));
+    root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = guardWorking(button,event => {
       event.stopPropagation();
       const kind = button.dataset.nodeView;
       const id = button.dataset.id;
@@ -3343,21 +3368,21 @@
         viewDialog = { kind, data: item };
         render();
       }
-    });
-    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = () => openNodeDialog(button.dataset.nodeAdd));
-    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); });
-    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); });
+    }));
+    root.querySelectorAll('[data-node-add]').forEach(button => button.onclick = guardWorking(button,() => openNodeDialog(button.dataset.nodeAdd)));
+    root.querySelectorAll('[data-node-edit]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); openNodeDialog(button.dataset.nodeEdit, button.dataset.id); }));
+    root.querySelectorAll('[data-node-delete]').forEach(button => button.onclick = guardWorking(button,event => { event.stopPropagation(); deleteNode(button.dataset.nodeDelete, button.dataset.id).catch(failed); }));
 
     // Node dialog bindings
     const boundNodeDialog=nodeDialog;
-    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;});
-    root.querySelector('#routine-dialog-close')?.addEventListener('click', cancelNodeDialog);
-    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', cancelNodeDialog);
-    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', confirmNodeDialog);
-    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', event => {
+    for(const field of ['name','spec'])root.querySelector('#routine-dialog-'+field)?.addEventListener('input',guardWorking(root.querySelector('#routine-dialog-'+field),event=>{if(nodeDialog===boundNodeDialog)nodeDialog[field]=event.target.value;}));
+    root.querySelector('#routine-dialog-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-close'),cancelNodeDialog));
+    root.querySelector('#routine-dialog-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-cancel'),cancelNodeDialog));
+    root.querySelector('#routine-dialog-confirm')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-confirm'),confirmNodeDialog));
+    root.querySelector('#routine-node-dialog-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-node-dialog-backdrop'),event => {
       if (event.target?.id === 'routine-node-dialog-backdrop') cancelNodeDialog();
-    });
-    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', event => {
+    }));
+    root.querySelector('#routine-dialog-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-dialog-photo-input'),event => {
       const file = event.target.files?.[0];
       if (!file) return;
       if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
@@ -3367,8 +3392,8 @@
       nodeDialog.pendingPhoto = { file, url: URL.createObjectURL(file) };
       nodeDialog.photoRemoved = false;
       render();
-    });
-    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', () => {
+    }));
+    root.querySelector('#routine-dialog-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-dialog-photo-remove'),() => {
       nodeDialog.name = root.querySelector('#routine-dialog-name')?.value || '';
       if (nodeDialog.kind === 'group') nodeDialog.spec = root.querySelector('#routine-dialog-spec')?.value || '';
       if (nodeDialog.pendingPhoto) URL.revokeObjectURL(nodeDialog.pendingPhoto.url);
@@ -3376,54 +3401,54 @@
       nodeDialog.photoId = '';
       nodeDialog.photoRemoved = true;
       render();
-    });
+    }));
 
     // View dialog bindings
-    root.querySelector('#routine-view-close')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
-    root.querySelector('#routine-view-dismiss')?.addEventListener('click', () => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); });
-    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-view-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-close'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));
+    root.querySelector('#routine-view-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-dismiss'),() => { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }));
+    root.querySelector('#routine-view-modal-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-view-modal-backdrop'),event => {
       if (event.target?.id === 'routine-view-modal-backdrop') { viewDialog?.references?.closeDetail?.();viewDialog = null; render(); }
-    });
+    }));
 
     // Transfer dialog bindings
-    root.querySelector('#routine-transfer-close')?.addEventListener('click', () => { transferDialog = null; render(); });
-    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', () => { transferDialog = null; render(); });
-    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-transfer-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-close'),() => { transferDialog = null; render(); }));
+    root.querySelector('#routine-transfer-dismiss')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-dismiss'),() => { transferDialog = null; render(); }));
+    root.querySelector('#routine-transfer-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-transfer-backdrop'),event => {
       if (event.target?.id === 'routine-transfer-backdrop') { transferDialog = null; render(); }
-    });
+    }));
 
-    root.querySelector('#routine-target-cat')?.addEventListener('change', event => {
+    root.querySelector('#routine-target-cat')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-cat'),event => {
       if (!transferDialog || transferBusy()) return;
       transferDialog.targetCat = event.target.value;
       transferDialog.targetEqId = '';
       render();
-    });
+    }));
 
-    root.querySelector('#routine-target-eq-select')?.addEventListener('change', event => {
+    root.querySelector('#routine-target-eq-select')?.addEventListener('change', guardWorking(root.querySelector('#routine-target-eq-select'),event => {
       if (!transferDialog || transferBusy()) return;
       transferDialog.targetEqId = event.target.value;
       render();
-    });
+    }));
 
     root.querySelectorAll('[data-transfer-check]').forEach(chk => {
-      chk.onchange = () => {
+      chk.onchange = guardWorking(chk,() => {
         if (!transferDialog || transferBusy()) return;
         const mod = chk.dataset.transferCheck;
         const id = chk.value;
         if (chk.checked) transferDialog.selection[mod]?.add(id);
         else transferDialog.selection[mod]?.delete(id);
-      };
+      });
     });
 
-    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', () => executeTransfer('fqc'));
-    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', () => executeTransfer('iqc'));
-    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', () => executeTransfer('ipqcC'));
-    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', () => executeTransfer('ipqcAB'));
+    root.querySelector('#routine-confirm-transfer-fqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-fqc'),() => executeTransfer('fqc')));
+    root.querySelector('#routine-confirm-transfer-iqc')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-iqc'),() => executeTransfer('iqc')));
+    root.querySelector('#routine-confirm-transfer-ipqc-c')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-c'),() => executeTransfer('ipqcC')));
+    root.querySelector('#routine-confirm-transfer-ipqc-ab')?.addEventListener('click', guardWorking(root.querySelector('#routine-confirm-transfer-ipqc-ab'),() => executeTransfer('ipqcAB')));
 
     bindReferenceActions(root);
     bindViewReferences(root);
 
-    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = () => {
+    root.querySelectorAll('[data-jump-asset]').forEach(btn => btn.onclick = guardWorking(btn,() => {
       const asset = btn.dataset.jumpAsset, mark = btn.dataset.jumpMark;
       const target = (visible().equipment || []).find(e => e.assetCode === asset && e.pieceMark === mark) ||
                      (visible().equipment || []).find(e => e.assetCode === asset);
@@ -3432,23 +3457,23 @@
       } else {
         alert(t(`未找到對應設備 ${asset}／${mark}`, `Không tìm thấy thiết bị ${asset}／${mark}`));
       }
-    });
-    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = () => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField));
-    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = () => {
+    }));
+    root.querySelectorAll('[data-fix-equipment]').forEach(button => button.onclick = guardWorking(button,() => locateEquipment(button.dataset.fixEquipment, button.dataset.fixField)));
+    root.querySelectorAll('[data-retry-action]').forEach(button => button.onclick = guardWorking(button,() => {
       const act = button.dataset.retryAction;
       if (act === 'submit' || act === 'save') {
         saveDraft(act).catch(failed);
       }
-    });
-    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = () => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; });
-    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=async()=>{await writeShared('apply');});
-    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = async () => {
+    }));
+    root.querySelectorAll('[data-issue-result]').forEach(input => input.oninput = guardWorking(input,() => { if (working?.issues?.[Number(input.dataset.issueResult)]) working.issues[Number(input.dataset.issueResult)].resolution = input.value; }));
+    root.querySelectorAll('[data-issue-result]').forEach(input=>input.onchange=guardWorking(input,async()=>{await writeShared('apply');}));
+    root.querySelectorAll('[data-issue-resolve]').forEach(button => button.onclick = guardWorking(button,async () => {
       const issue = working?.issues?.[Number(button.dataset.issueResolve)];
       if (!issue) return;
       if (issue.status !== 'resolved' && !String(issue.resolution || '').trim()) { alert(t('請先填寫處理結果與依據', 'Hãy nhập kết quả và căn cứ trước')); return; }
       issue.status = issue.status === 'resolved' ? 'pending' : 'resolved';
       if(await writeShared('apply'))render();
-    });
+    }));
 
     // Form handlers
     const item = working?.equipment.find(record => record.id === editingEquipmentId);
@@ -3462,12 +3487,12 @@
       closeForm();
     };
 
-    root.querySelector('#routine-close')?.addEventListener('click', tryCloseForm);
-    root.querySelector('#routine-form-cancel')?.addEventListener('click', tryCloseForm);
-    root.querySelector('#routine-backdrop')?.addEventListener('click', event => {
+    root.querySelector('#routine-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-close'),tryCloseForm));
+    root.querySelector('#routine-form-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-cancel'),tryCloseForm));
+    root.querySelector('#routine-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-backdrop'),event => {
       if (event.target?.id === 'routine-backdrop') tryCloseForm();
-    });
-    root.querySelector('#routine-language-toggle')?.addEventListener('click', () => document.querySelector('.top-actions .language-switch')?.click());
+    }));
+    root.querySelector('#routine-language-toggle')?.addEventListener('click', guardWorking(root.querySelector('#routine-language-toggle'),() => document.querySelector('.top-actions .language-switch')?.click()));
 
     if (item) {
       const bindCalibrationInputs = () => {
@@ -3475,26 +3500,26 @@
         if (!calContainer) return;
         const cycleSelect = calContainer.querySelector('[data-select="calibrationCycle"]');
         if (cycleSelect) {
-          cycleSelect.onchange = () => {
+          cycleSelect.onchange = guardWorking(cycleSelect,() => {
             item.calibrationCycle = cycleSelect.value;
             calContainer.innerHTML = renderEditCalibrationFields(item, editable());
             bindCalibrationInputs();
-          };
+          });
         }
         calContainer.querySelectorAll('[data-field]').forEach(input => {
-          input.oninput = () => { item[input.dataset.field] = input.value; };
+          input.oninput = guardWorking(input,() => { item[input.dataset.field] = input.value; });
         });
       };
       bindCalibrationInputs();
 
       root.querySelectorAll('#routine-editor [data-field]').forEach(input => {
-        input.oninput = () => {
+        input.oninput = guardWorking(input,() => {
           item[input.dataset.field] = input.type === 'number' ? Number(input.value) : input.value;
-        };
+        });
       });
 
       root.querySelectorAll('#routine-editor [data-select]').forEach(select => {
-        select.onchange = () => {
+        select.onchange = guardWorking(select,() => {
           if (select.dataset.select === 'calibrationMethod') {
             item.calibrationMethod = select.value;
             const calContainer = root.querySelector('#routine-edit-calibration-container');
@@ -3505,47 +3530,47 @@
           } else {
             item[select.dataset.select] = ['enabled','confirmed'].includes(select.dataset.select) ? select.value === 'true' : select.value;
           }
-        };
+        });
       });
 
-      root.querySelector('#routine-edit-category')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-category')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-category'),event => {
         item.categoryId = event.target.value;
         const cat = working.categories.find(value => value.id === item.categoryId);
         item.categoryCode = cat?.code || ''; item.category = cat?.name || '';
         if (!working.groups.some(g => g.categoryId === item.categoryId && g.id === item.groupId)) { item.groupId = ''; item.subcategoryId = ''; item.subcategory = ''; }
         render();
-      });
+      }));
 
-      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-subcategory')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-subcategory'),event => {
         item.subcategoryId = event.target.value;
         item.subcategory = working.subcategories.find(value => value.id === item.subcategoryId)?.name || '';
         if (!working.groups.some(g => g.subcategoryId === item.subcategoryId && g.id === item.groupId)) item.groupId = '';
         render();
-      });
+      }));
 
-      root.querySelector('#routine-edit-group')?.addEventListener('change', event => {
+      root.querySelector('#routine-edit-group')?.addEventListener('change', guardWorking(root.querySelector('#routine-edit-group'),event => {
         const group = working.groups.find(value => value.id === event.target.value);
         if (group) { item.groupId = group.id; item.categoryId = group.categoryId; item.subcategoryId = group.subcategoryId;
           item.categoryCode = group.categoryCode; item.category = group.category; item.subcategory = group.subcategory; }
         render();
-      });
+      }));
 
-      root.querySelector('#routine-photo-input')?.addEventListener('change', event => {
+      root.querySelector('#routine-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-photo-input'),event => {
         const file = event.target.files?.[0]; if (!file) return;
         if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
         const prior = pendingPhotos.get(item.id); if (prior&&prior!==formPendingPhoto) URL.revokeObjectURL(prior.url);
         pendingPhotos.set(item.id, { file, url: URL.createObjectURL(file) });
         item.photoHidden = false;
         message = t('照片僅在本頁預覽；完成表單後，按存取草稿才上傳並保存照片參照。', 'Ảnh chỉ ở trang này; hoàn tất biểu mẫu rồi lưu bản nháp để tải ảnh và lưu tham chiếu.'); render();
-      });
-      root.querySelector('#routine-photo-remove')?.addEventListener('click', () => {
+      }));
+      root.querySelector('#routine-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-photo-remove'),() => {
         if (!confirm(t('確定從目前草稿移除照片？舊版本照片不會刪除。', 'Xóa ảnh khỏi bản nháp hiện tại? Ảnh phiên bản cũ vẫn được giữ.'))) return;
         const pending = pendingPhotos.get(item.id); if (pending&&pending!==formPendingPhoto) URL.revokeObjectURL(pending.url);
         pendingPhotos.delete(item.id); item.photoId = ''; item.photoHidden = true;
         message = t('照片已從本頁草稿移除，尚未保存。', 'Ảnh đã xóa khỏi bản nháp trên trang, chưa lưu.'); render();
-      });
+      }));
 
-      root.querySelector('#routine-form-apply')?.addEventListener('click', async () => {
+      root.querySelector('#routine-form-apply')?.addEventListener('click', guardWorking(root.querySelector('#routine-form-apply'),async () => {
         const nameInput = root.querySelector('#routine-editor [data-field="name"]');
         if (nameInput) item.name = nameInput.value.trim();
         const groupSelect = root.querySelector('#routine-edit-group');
@@ -3599,11 +3624,11 @@
         if(!await writeShared('apply'))return;
         if(editingEquipmentId!==item.id||formSnapshot!==sentFormSnapshot||JSON.stringify(item)!==sentForm||pendingPhotos.get(item.id)&&(pendingPhotos.get(item.id)!==sentPhoto||sentPhoto?.file!==sentPhotoFile||sentPhoto?.url!==sentPhotoURL))return;
         closeForm();
-      });
+      }));
 
-      root.querySelector('#routine-delete')?.addEventListener('click', () => {
+      root.querySelector('#routine-delete')?.addEventListener('click', guardWorking(root.querySelector('#routine-delete'),() => {
         if (item) deleteEquipment(item.id).catch(failed);
-      });
+      }));
     }
 
     if (addingEquipment && newEquipmentForm) {
@@ -3645,18 +3670,18 @@
         if (!calContainer) return;
         const cycleSelect = calContainer.querySelector('#routine-add-calibration-cycle');
         if (cycleSelect) {
-          cycleSelect.onchange = () => {
+          cycleSelect.onchange = guardWorking(cycleSelect,() => {
             newEquipmentForm.calibrationCycle = cycleSelect.value;
             calContainer.innerHTML = renderAddCalibrationFields(newEquipmentForm);
             bindAddCalibrationInputs();
-          };
+          });
         }
         calContainer.querySelectorAll('input').forEach(input => {
-          input.oninput = () => {
+          input.oninput = guardWorking(input,() => {
             if (input.id === 'routine-add-custom-cycle') newEquipmentForm.customCycle = input.value;
             if (input.id === 'routine-add-calibrated-at') newEquipmentForm.calibratedAt = input.value;
             if (input.id === 'routine-add-expires-at') newEquipmentForm.expiresAt = input.value;
-          };
+          });
         });
       };
       bindAddCalibrationInputs();
@@ -3664,17 +3689,17 @@
       const assetCodeInput = root.querySelector('#routine-add-asset-code');
       const pieceMarkInput = root.querySelector('#routine-add-piece-mark-input');
 
-      assetCodeInput?.addEventListener('input', () => {
+      assetCodeInput?.addEventListener('input', guardWorking(assetCodeInput,() => {
         const val = assetCodeInput.value.trim().toUpperCase();
         newEquipmentForm.assetCode = val;
         if (pieceMarkInput) pieceMarkInput.value = computeNextPieceMark(val);
-      });
+      }));
 
-      root.querySelector('#routine-add-name')?.addEventListener('input', e => {
+      root.querySelector('#routine-add-name')?.addEventListener('input', guardWorking(root.querySelector('#routine-add-name'),e => {
         newEquipmentForm.name = e.target.value;
-      });
+      }));
 
-      root.querySelector('#routine-add-photo-input')?.addEventListener('change', event => {
+      root.querySelector('#routine-add-photo-input')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-photo-input'),event => {
         const file = event.target.files?.[0];
         if (!file) return;
         if (file.size > 5_000_000) { alert(t('照片限 5 MB', 'Ảnh giới hạn 5 MB')); return; }
@@ -3682,16 +3707,16 @@
         if (newEquipmentForm.pendingPhoto) URL.revokeObjectURL(newEquipmentForm.pendingPhoto.url);
         newEquipmentForm.pendingPhoto = { file, url: URL.createObjectURL(file) };
         render();
-      });
+      }));
 
-      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', () => {
+      root.querySelector('#routine-add-photo-remove')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-photo-remove'),() => {
         syncAddFormFromDOM();
         if (newEquipmentForm.pendingPhoto) URL.revokeObjectURL(newEquipmentForm.pendingPhoto.url);
         newEquipmentForm.pendingPhoto = null;
         render();
-      });
+      }));
 
-      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', event => {
+      root.querySelector('#routine-add-calibration-method')?.addEventListener('change', guardWorking(root.querySelector('#routine-add-calibration-method'),event => {
         syncAddFormFromDOM();
         newEquipmentForm.calibrationMethod = event.target.value;
         const calContainer = root.querySelector('#routine-add-calibration-container');
@@ -3699,7 +3724,7 @@
           calContainer.innerHTML = renderAddCalibrationFields(newEquipmentForm);
           bindAddCalibrationInputs();
         }
-      });
+      }));
 
       const cancelAdd = () => {
         syncAddFormFromDOM();
@@ -3712,13 +3737,13 @@
         render();
       };
 
-      root.querySelector('#routine-add-close')?.addEventListener('click', cancelAdd);
-      root.querySelector('#routine-add-cancel')?.addEventListener('click', cancelAdd);
-      root.querySelector('#routine-add-backdrop')?.addEventListener('click', event => {
+      root.querySelector('#routine-add-close')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-close'),cancelAdd));
+      root.querySelector('#routine-add-cancel')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-cancel'),cancelAdd));
+      root.querySelector('#routine-add-backdrop')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-backdrop'),event => {
         if (event.target?.id === 'routine-add-backdrop') cancelAdd();
-      });
+      }));
 
-      root.querySelector('#routine-add-submit')?.addEventListener('click', confirmAddEquipment);
+      root.querySelector('#routine-add-submit')?.addEventListener('click', guardWorking(root.querySelector('#routine-add-submit'),confirmAddEquipment));
     }
   }
 
@@ -3729,6 +3754,7 @@
     invalidateEquipmentReferences();
   }
   async function mount(element) {
+    historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;
     if(identity()?.id&&hasFqcTransfer())targetFqcClient();
     equipmentEditRequest++;navigationError=null;
     const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>host===element&&element.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
@@ -3880,7 +3906,7 @@
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
     discard(){retireEquipmentSaveComparison();equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
-  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,
