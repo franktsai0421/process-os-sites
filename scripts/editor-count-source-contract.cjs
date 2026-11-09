@@ -15,8 +15,9 @@ function canonicalCheckout(working,committed){raw(working);raw(committed);assert
 function verifyRepository(directory=process.cwd()){
  const git=(...args)=>execFileSync('git',args,{cwd:directory});assert.equal(git('rev-parse',contract.base+'^{tree}').toString().trim(),contract.baseTree,'Count base tree mismatch');git('merge-base','--is-ancestor',contract.base,'HEAD');
  assert.equal(hash(git('show',contract.base+':'+contract.source)),contract.beforeHash,'Count predecessor source mismatch');assert.equal(hash(git('show',contract.base+':'+contract.index)),contract.indexBeforeHash,'Count predecessor index mismatch');
- const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.source)),git('show','HEAD:'+contract.source)),index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));projectIndex(index,source);
- return Object.freeze({status:'PASS_EDITOR_COUNT_SOURCE',base:contract.base,sourceHash:hash(source),indexHash:hash(index)});
+ const unified=require('./unified-draft-source-contract.cjs');unified.attest(file=>unified.canonicalSource(fs.readFileSync(path.join(directory,file)),git('show','HEAD:'+file)));
+ const currentSource=canonicalCheckout(fs.readFileSync(path.join(directory,contract.source)),git('show','HEAD:'+contract.source)),currentIndex=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index)),source=unified.project(currentSource,contract.source,'count101'),index=unified.project(currentIndex,contract.index,'count101');projectIndex(index,source);
+ return Object.freeze({status:'PASS_EDITOR_COUNT_SOURCE',base:contract.base,projectedTarget:'count101',sourceHash:hash(source),indexHash:hash(index),currentSourceHash:hash(currentSource),currentIndexHash:hash(currentIndex)});
 }
 module.exports=Object.freeze({contract,hash,assertSource,projectIndex,canonicalCheckout,verifyRepository});
 if(require.main===module)console.log(JSON.stringify(verifyRepository()));

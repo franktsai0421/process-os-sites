@@ -154,7 +154,7 @@ void test('normal Local safety CI registers no-poll, sent-batch, quarantine, ins
 });
 
 for(const contract of equipmentRepair.contracts)void test('equipment CI repair retains exact d4ac309 source and predecessor: '+contract.file,()=>{
- const bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(readSource(contract.file),contract.file),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
+ const bytes=unified.project(canonicalSource(fs.readFileSync(contract.file),execFileSync('git',['show','HEAD:'+contract.file])),contract.file,'latest_main'),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
  assert.equal(hash(bytes),contract.afterHash);assert.equal(hash(prior),contract.beforeHash);assert.deepEqual(bytes,copy);
  assert.equal(contract.beforeHash,contract.file===noPoll.file?noPoll.afterHash:'cb5fccf31b25d24751f5d72422cc744a3c6024e9e2142bf55db6189942d12352');
  assert.equal(hash(project(bytes,contract.file)),main[contract.file]);

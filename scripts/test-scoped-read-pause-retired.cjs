@@ -2,7 +2,7 @@
 const historical=require('./historical-source-fixture.cjs');
 /* Actual transport and retained legacy callbacks under a test-only manual driver; synthetic DOM/HTTP only. Production no-timer behavior is tested separately. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto'),{createHash}=require('node:crypto'),ts=require('typescript');
-const root=path.resolve(__dirname,'..'),source=path.resolve(process.env.PROCESS_READ_PAUSE_SOURCE||root),file=n=>historical.readPublic('main',n),results=[],notApplicable=[],selected=process.argv.slice(2),tick=()=>new Promise(setImmediate),copy=structuredClone;
+const root=path.resolve(__dirname,'..'),source=path.resolve(process.env.PROCESS_READ_PAUSE_SOURCE||root),file=n=>historical.readPublic('background100',n),results=[],notApplicable=[],selected=process.argv.slice(2),tick=()=>new Promise(setImmediate),copy=structuredClone;
 async function check(name,fn){if(selected.length&&!selected.some(x=>name.startsWith(x)))return;await fn();results.push({name,status:'PASS'});console.log(name,'PASS');}
 const access={view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true,delete:true},model={revision:1,permissions:access,control:{versions:[{id:'draft',status:'draft'}],workflow:{scope:'synthetic',generation:'g',revision:1,pendingId:null,working:{items:[]},saved:null,cases:[]}}};
 async function fixture(endpoint='/api/process-authoring/workflow?caseMetadata=1'){

@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "a31039d33b17b9929e2f4de11cbd2119126f65b1",
+  "sourceTree": "302d6d4c32d80b11e97b0c9f9cbef18d0b31256d",
+  "sourcePath": "public/process/process-authoring-v3.js",
+  "sourceBlob": "d13d899728f1501c5a917e7a54da4cd0cb405b50",
+  "sourceLFHash": "f3f9d62c33a400d9e24fb49a28807240cf868aa9ba78dec7dfd46a9fb6f30754",
+  "controlLFHash": "06b5098a0323a6268a0490954455f100f1d10102e4b38a69dd31328455d7578a",
+  "historicalControlHash": "a8a0b53dfeac0ec5acd13a730d31fc3c086fe9dfa7e6f1568f66f6a5a8ab206c",
+  "departureInverseHash": "e1413ccab6c1b93309b154ea607a9560b747872f4adaac68cbd6e6aadee0ab1a",
+  "scope": "Pinned current-source panel differential only. Historical inverse fields/pins unchanged; no whole-page or live performance claim."
+}

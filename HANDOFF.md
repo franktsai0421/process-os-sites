@@ -4,7 +4,7 @@
 
 # 2026-11-09 — Integration status
 
-PR99 merged as 021f0f388b16ebcdff0f64ff44039d2ea07f4165 after all three CI checks and independent review passed. The canvas count PR101 remains a separate draft; its integration must pass new-head CI. No Site deployment or real-data operation was performed.
+Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank merged #100, preserving #99 (021f0f3). PR101 remains Draft under the complete-editor single-PR requirement; its 8f component has four passing CI but the complete tree has not been uploaded. Local a310 runtime preserves actual main #100 and the frozen candidates. New history-owner bfa2650 is not yet absorbed. No Site deployment or real-data operation was performed.
 
 # 2026-11-09 - Independent canvas count batch
 

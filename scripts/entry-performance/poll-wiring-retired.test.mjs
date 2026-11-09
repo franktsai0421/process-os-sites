@@ -22,7 +22,7 @@ console.log(JSON.stringify({status:'PASS',moduleCases:count,actualExtractedCallb
 
 // Focused IQC binding evidence complements the separate 24-case actual
 // post/load/hydration suite; it does not replace those transaction contracts.
-const iqcSource=fs.readFileSync('public/process/iqc-master.js','utf8');
+const iqcSource=historical.readPublic('main','iqc-master.js');
 const iqcStart=iqcSource.indexOf('function scheduleRefresh()'),iqcEnd=iqcSource.indexOf('  function twoConfirm',iqcStart);
 assert(iqcStart>=0&&iqcEnd>iqcStart);const iqcPoll=iqcSource.slice(iqcStart,iqcEnd);
 let iqcCases=0;

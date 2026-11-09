@@ -1,3 +1,4 @@
+import historicalCache from '../scripts/historical-source-fixture.cjs';
 import unified from '../scripts/unified-draft-source-contract.cjs';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
@@ -32,6 +33,7 @@ void test('cold destination keeps an installed quality tab ahead of an old displ
 for(const tab of ['AB','C'])void test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 void test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 const iqcSource=source('iqc-master.js'),iqcLoad=part(iqcSource,'  async function load(owner) {','  async function post(');
+const iqcDisplay=part(iqcSource,'  const historyAllowsMutation=','  const guardWorking=');
 const iqcAdmission=part(iqcSource,'  const completeSnapshot=','  async function hydrateVersion('),iqcSelected=part(iqcSource,'  const selected =','  const active =');
 assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includes('control?.versions.find'),'actual admission and selection source required');
 // IQC now admits one complete fresh response, not two independent reads.
@@ -39,11 +41,11 @@ assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includ
 // the full shared transport is exercised by the dedicated IQC race suites.
 function iqcLoadFixture(){
  let epoch=1;const response=deferred(),events=[],actor={id:'synthetic'},options=[];
- const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
+ const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',historyDisplayEpoch:0,approvedHistoryView:null,ui:{versionId:''},identity:()=>actor,
   window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch}},
   transport:()=>({read:(token,opt)=>{assert.equal(token,undefined);assert.equal(opt.requireAcceptedAccess,true);assert.equal(opt.isCurrent(),true);events.push('combined');options.push(opt);return response.promise;}}),
   denyRead:error=>{box.readDenied=error;}};
- vm.createContext(box);vm.runInContext(iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
+ vm.createContext(box);vm.runInContext(iqcDisplay+iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
 }
 const iqcFull=()=>({revision:9,permissions:Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true])),control:{schemaVersion:1,versions:[],issues:[],reservedErrorCodes:[],reservedCheckNos:[]}});
 for(const kind of ['delivery','entry-owner'])void test('actual IQC load rejects old '+kind+' without installing model',async()=>{
@@ -61,6 +63,10 @@ for(const missing of ['control','permissions'])void test('actual IQC combined re
  const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/IQC/),full=iqcFull();delete full[missing];f.response.resolve(full);
  await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
 });
+for(const change of ['display-epoch','readonly'])void test('actual IQC load refuses late '+change+' without installing model',async()=>{
+ const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);if(change==='display-epoch')f.box.historyDisplayEpoch++;else f.box.approvedHistoryView={blocked:true};assert.equal(f.options[0].isCurrent(),false);f.response.resolve(iqcFull());await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
+});
+void test('actual IQC readonly display rejects load before its first request',async()=>{const f=iqcLoadFixture();f.box.approvedHistoryView={blocked:true};await assert.rejects(f.box.load(),/APPROVED_HISTORY_READ_ONLY/);assert.deepEqual(f.events,[]);assert.equal(f.box.control,null);});
 const accountSource=source('user-access.js');
 const accountRequest=part(accountSource,' async function requestValue(options={}){','\n function expireSession()');
 const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
@@ -159,7 +165,7 @@ void test('changed persistent-navigation executable references have coherent new
  const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
  for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
  const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
- const currentExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ const currentExpected=Object.fromEntries(Object.keys(expected).map(file=>[file,historicalCache.expectedCurrentCache(file)]));
  for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
  for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));
