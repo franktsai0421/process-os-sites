@@ -1,3 +1,7 @@
+# 2026-11-09 - Independent canvas count batch
+
+Main d4ac309 successor changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. It does not absorb concurrent global draft or PR99 edits. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.

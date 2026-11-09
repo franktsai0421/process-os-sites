@@ -1,3 +1,7 @@
+## 2026-11-09 畫布投影流程數候選
+
+選取列在 V2 使用與方塊相同的 ProcessCanvasLocal.project 計算當前可見工段流程數；Save 推進投影但保留舊 editor map 時也能更新。只讀顯示與自身 cache tag，無資料／權限／schema 變更。[範圍與證據](../../docs/acceptance/editor-projected-count-20261109.md)。
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。

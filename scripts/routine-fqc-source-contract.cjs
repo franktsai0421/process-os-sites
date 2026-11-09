@@ -29,9 +29,10 @@ function assertPredecessor(bytes,file){
   assert.equal(bytes.length,contract.beforeLength,'Routine predecessor pinned byte length');
   assert.equal(hash(bytes),contract.beforeHash,'Routine predecessor differs from merged main');
 }
-function assertIndexSuccessor(bytes,before,file){
+function assertIndexSuccessor(bytes,before,file,editorSource){
   raw(bytes);raw(before);assert.equal(file,contract.index,'Routine cache proof wrong file');
   assert.equal(hash(before),contract.indexBeforeHash,'Routine cache predecessor differs from merged main');
+  if(bytes.includes(Buffer.from('editor-line-selection.js?v=20261109-projected-count1'))){const count=require('./editor-count-source-contract.cjs');try{bytes=count.projectIndex(bytes,editorSource??editorCountSource(path.resolve(__dirname,'..')));}catch(error){assert.fail('Routine cache successor must change only its own exact tag; count layer: '+error.message);}}
   const marker=Buffer.from(contract.oldTag),next=Buffer.from(contract.newTag),offset=before.indexOf(marker);
   assert(offset>=0&&before.indexOf(marker,offset+1)===-1,'Routine cache predecessor must contain one exact tag');
   const expected=Buffer.concat([before.subarray(0,offset),next,before.subarray(offset+marker.length)]);
@@ -45,6 +46,7 @@ function canonicalCheckout(working,committed){
   assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Routine checkout differs from HEAD beyond checkout EOL');
   return Buffer.from(committed);
 }
+function editorCountSource(directory){const file='public/process/editor-line-selection.js';return canonicalCheckout(fs.readFileSync(path.join(directory,file)),execFileSync('git',['show','HEAD:'+file],{cwd:directory}));}
 function verifyRepository(directory=process.cwd()){
   const git=(...args)=>execFileSync('git',args,{cwd:directory});
   assert.equal(git('rev-parse',contract.base+'^{tree}').toString().trim(),contract.baseTree,'Routine base tree mismatch');
@@ -53,7 +55,7 @@ function verifyRepository(directory=process.cwd()){
   assertPredecessor(before,contract.file);
   const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file));
   const index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));
-  assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
+  assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index,index.includes(Buffer.from('editor-line-selection.js?v=20261109-projected-count1'))?editorCountSource(directory):undefined);
   return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),indexHash:hash(index)});
 }
 module.exports=Object.freeze({contract,hash,assertSource,assertPredecessor,assertIndexSuccessor,canonicalCheckout,verifyRepository});

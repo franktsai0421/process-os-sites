@@ -1,3 +1,7 @@
+## 2026-11-09 — Current canvas projection count
+
+The V2 header counts the same projected rows as the cards, including after Save advances the authoritative projection while the editor copy is retained. Legacy paths, hidden stages, input and write semantics stay unchanged. [Scope and checks](../docs/acceptance/editor-projected-count-20261109.md).
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

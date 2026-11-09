@@ -91,6 +91,8 @@ jobs:
       - name: Routine FQC explicit entry and Update generation
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
+          node --test tests/editor-projected-count.test.mjs tests/editor-count-source-contract.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/routine-fqc-source-contract.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs
