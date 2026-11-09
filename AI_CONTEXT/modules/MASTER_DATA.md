@@ -1,3 +1,15 @@
+## 2026-11-09 三路語意整合候選（本機，未切換）
+
+#102 已以實際 merge 納入製程 `7e409a0`、統一已核准查看 `a57aa1d`、權限 `ea58111`，並保留本題 `f79c046` 的 master 進階／Excel 操作、例行 FQC 照片 UNKNOWN 防重送與本人發回規則。十三個實際功能頁仍各自擁有草稿／送審；篩選不建立新模組，線別工段只在自己的核准後供其他頁引用。例行 FQC 為整頁 owner。新已核准版本選擇器含 RF 整頁；舊封存最後身分與版本檢查保留。
+
+依 Frank 指示，本次移除草稿還原入口，新的還原預覽／命令拒絕；保留已核准歷史只讀、原收據與原資料。衝突中選「我的」保留同 ID 的被刪項目及 File，並非草稿還原功能。
+
+權限 resolver 已接入實際伺服器，但只在受信任 `processAccessControl` 的 `draftReviewPolicy:page-v1`、schema 2、primary binding 及可驗主要管理員授權來源一致時生效；無標記維持舊判斷，標記不支援或來源不明則拒絕高階審核／送審／更正，不新增 view/edit/save。所有選擇性身分讀取同步讀取此來源。沒有 initializer、真人授權或真資料切換。缺稽核的真人高階授權仍須另行核定。
+
+本機十三頁 signed owner／fresh-view／跨頁收據檢查及十三組核心送審流程通過；RF HTTP14／UI12／照片6、master 進階11及 account/source policy67 通過。最終來源見證、建置及其餘回歸以固定提交收據為準，不能以先前批次代表本候選。沒有實站或原生瀏覽器驗收。測試選檔曾誤含原生 account password 測試而再遇同一 socket EPERM；已記錄並停止，未換途徑。
+
+公開 create_tree 成功回執後讀回404仍為 UNKNOWN；未重送、未建立遠端commit/ref、未合併或部署。獨立審查仍因原內容安全中止而未完成。切換前仍需完整原資料／待審案件盤點、baseline adoption 及經確認的切換方案；不可把允許捨棄舊工作草稿解讀為刪除待審、已核准歷史、收據或照片。
+
 ## 2026-11-09 owner Excel 與進階本機操作
 
 新頁已接完整 owner Excel、舊 combined/外部中越文產品格式及線別檔相容；AB/C 不匯入或保存檔內 lines，LINES 一檔含 AB/C 同一草稿。精確保留本頁 ID、optional 欄位與原 metadata，外來新 ID 重新分配，未知改寫拒絕。產品規格／單位／越文、類別 rename 同步本頁產品、最大路線／例外及排序已接，沿既有 MasterAdminUI 純規則。選檔／整理先留本機，取消保留 File，Save 才共用；fresh page exchange＋原 capability 控制匯入匯出，不借其他頁權限。真 XLSX／實際 client-route 合成契約及十三頁 owner/撤權矩陣另列[唯一狀態](../../docs/acceptance/module-draft-boundary-20261109.md)。原生 layout、正式資料切換及 resolved policy/歷史查看整合尚未驗收。

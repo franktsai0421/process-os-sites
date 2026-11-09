@@ -1398,8 +1398,8 @@
     if(!current())throw Error('HISTORY_CONTEXT_CHANGED');
     if(keys.some(key=>state.permissions?.[key]!==true))throw Object.assign(Error(error),{status:403});
   }
-  window.openSharedDraftHistory=async({client,editable,onApplied,masterScope=null,legacyFirst=false,legacyVersionId=null,caseId=null,versionPreview=null,reviewActions=[],onReview=null})=>{
-    const restoreOwner=captureRestoreOwner(),restoreAllowed=()=>editable()&&client.permission?.('restore')===true&&restoreOwnerCurrent(restoreOwner);
+  window.openSharedDraftHistory=async({client,masterScope=null,legacyFirst=false,legacyVersionId=null,caseId=null,versionPreview=null,reviewActions=[],onReview=null})=>{
+    const restoreOwner=captureRestoreOwner();
     const zh=document.documentElement.lang.startsWith('zh'),t=(vi,cn)=>zh?cn:vi,h=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const statusNames={draft:['編輯中','Đang chỉnh sửa'],pending:['待審','Chờ duyệt'],'pending-test':['待審','Chờ duyệt'],approved:['正式版本','Bản có hiệu lực'],superseded:['歷史唯讀','Lịch sử · chỉ đọc'],withdrawn:['已撤回','Đã rút'],returned:['已發回','Đã trả lại']};
     const statusLabel=value=>Object.hasOwn(statusNames,value)?statusNames[value][zh?0:1]:value;
@@ -1407,7 +1407,7 @@
     const collectionLabel=kind=>{const key=moduleCollection(kind);return key?`IPQC · ${key[1]} · ${{bases:t('Phiên bản cơ sở','基準版本'),errors:t('Lỗi','不良項目'),items:t('Tiêu chuẩn','檢驗標準')}[key[2]]}`:kind;};
     const rowLabel=(kind,row)=>moduleCollection(kind)?.[2]==='bases'?'':row.checkNo||row.code||row.id;
     const rowHeading=(kind,row)=>{const key=moduleCollection(kind);if(!key)return `${h(collectionLabel(kind))} · ${h(rowLabel(kind,row))} · ${h(row.nameVi||row.name)}`;const present=value=>value!==null&&value!==undefined&&String(value).trim()!=='';return ['IPQC',key[1],{bases:t('Phiên bản cơ sở','基準版本'),errors:t('Lỗi','不良項目'),items:t('Tiêu chuẩn','檢驗標準')}[key[2]],key[2]==='bases'?undefined:[row.checkNo,row.code,row.id].find(present),[row.nameVi,row.name].find(present)].filter(present).map(h).join(' · ');};
-    const overlay=document.createElement('div');overlay.className='shared-restore-overlay';overlay.dataset.i18nSkip='true';const opener=document.activeElement;let listing=null,review=null,itemPage=0,loading=false,closed=false,requestSequence=0,viewSequence=0,reviewBusy=false,previewBusy=false,legacy=!!legacyFirst&&!!client.legacyHistory;
+    const overlay=document.createElement('div');overlay.className='shared-restore-overlay';overlay.dataset.i18nSkip='true';const opener=document.activeElement;let listing=null,review=null,itemPage=0,loading=false,closed=false,requestSequence=0,viewSequence=0,reviewBusy=false,legacy=!!legacyFirst&&!!client.legacyHistory;
     const current=token=>!closed&&overlay.isConnected&&restoreOwnerCurrent(restoreOwner)&&(token===undefined||token===requestSequence);
     const close=()=>{if(closed)return;closed=true;requestSequence++;overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(restoreOwnerCurrent(restoreOwner)&&opener?.isConnected)opener.focus({preventScroll:true});};
     const keyboard=e=>{if(document.querySelector('dialog[open]')||[...document.querySelectorAll('.shared-restore-overlay')].at(-1)!==overlay)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first||!e.shiftKey&&document.activeElement===last){e.preventDefault();(e.shiftKey?last:first)?.focus();}}};
@@ -1420,7 +1420,7 @@
       const oldCollections={...historyCollections(review?.before)},newCollections={...historyCollections(review?.content)};
       if(review?.linkedProcess){for(const [stage,templates]of Object.entries(review.linkedProcess.before||{}))oldCollections['PROCESS · '+stage]=templates;for(const [stage,templates]of Object.entries(review.linkedProcess.content||{}))newCollections['PROCESS · '+stage]=templates;}
 const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(oldCollections)])].flatMap(kind=>{const before=oldCollections[kind]||[],after=newCollections[kind]||[];if(!Array.isArray(before)||!Array.isArray(after))return[];const oldRows=new Map(before.map((r,index)=>[historyRowKey(r,index),r])),newRows=new Map(after.map((r,index)=>[historyRowKey(r,index),r]));return [...new Set([...oldRows.keys(),...newRows.keys()])].map(id=>{const old=oldRows.get(id),value=newRows.get(id);return{kind,row:value||old,after:value,old};});}):[];
-      overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-label="${t('Hồ sơ gửi duyệt','送審案件')}"><header><h3>${legacy?t('Phiên bản cũ · chỉ đọc','舊版本封存 · 唯讀'):t(masterScope?'Hồ sơ gửi duyệt · chỉ đọc':'Hồ sơ cố định · chỉ đọc',masterScope?'送審案件 · 唯讀':'固定案件 · 唯讀')}</h3><button data-close>×</button></header><main>${loading?`<p>${t('Đang tải','載入中')}</p>`:review?`<p>${h(review.id)} · ${h(statusLabel(review.status))}</p><p>${h(review.actor.name)} · ${h(review.at)}<br>${h(review.reason)}</p>${review.contentIssues?`<details class="vd-advisory"><summary>${t('Dữ liệu cần bổ sung trong hồ sơ cố định','固定案件待補')} · ${review.contentIssues.issues.length}</summary><p>${review.result?.contentIssuesConfirmed?t('Đã xác nhận duyệt kèm các mục cần bổ sung','已明確確認帶待補核准'):t('Các mục này không chặn duyệt','以下待補不阻擋核准')}</p>${review.contentIssues.issues.map(i=>`<p>${h(window.VersionDraftUI?.issueMessage(i)||i.message)} · ${h(i.path.map(p=>typeof p==='string'?p:p.id).join(' / '))}</p>`).join('')}</details>`:''}<p>${h(review.result?.actor.name)} · ${h(review.result?.at)} · ${h(review.result?.reason)}</p>${rows.slice(itemPage*10,itemPage*10+10).map(({kind,row,after,old})=>`<article><h4>${rowHeading(kind,row)}</h4><div class="shared-restore-diff"><section><h4>${review.legacy?t('Không có bản đối chiếu cũ','未提供舊版比較基準'):t('Trước khi gửi','送審前')}</h4>${fields(old)}</section><section><h4>${review.legacy?t('Nội dung phiên bản cũ','舊版本內容'):t('Nội dung đã gửi','送審固定內容')}</h4>${fields(after)}</section></div></article>`).join('')}<nav><button data-prev ${itemPage===0?'disabled':''}>${t('Trước','上一頁')}</button>${itemPage+1} / ${Math.max(1,Math.ceil(rows.length/10))}<button data-next ${(itemPage+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav>`:(listing?.cases||[]).map(c=>`<article><p>${h(c.actor.name)} · ${h(c.at)} · ${h(statusLabel(c.status))}</p><p>${h(c.reason)}</p><button data-case="${h(c.id)}">${t('Xem hồ sơ','查看案件')}</button></article>`).join('')||`<p>${t('Chưa có hồ sơ','尚無案件')}</p>`}</main><footer>${review?.status==='pending'&&review.id===caseId&&onReview&&!legacy?reviewActions.map(a=>`<button type="button" class="button ${a.name==='approve'?'signal':'ghost'}" data-history-review="${h(a.name)}" ${a.enabled?'':'disabled'}>${h(a.label)}</button>`).join(''):''}${review?`<button data-back>${t('Danh sách','案件清單')}</button>${restoreAllowed()&&review.savedId?`<button data-restore>${t(masterScope?'Xem trước khôi phục vào bản nháp':'Xem trước khôi phục',masterScope?'預覽還原到草稿':'預覽還原')}</button>`:''}`:listing?.next?`<button data-more>${t('Trang sau','下一頁')}</button>`:''}${client.legacyHistory?`<button data-archive>${legacy?t('Hồ sơ gửi duyệt','送審案件'):t(masterScope?'Xem phiên bản cũ (chỉ đọc)':'Phiên bản cũ',masterScope?'查看舊版封存（唯讀）':'舊版本封存')}</button>`:''}<button data-close>${t('Về phạm vi hiện tại','返回目前範圍')}</button></footer></section>`;
+      overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-label="${t('Hồ sơ gửi duyệt','送審案件')}"><header><h3>${legacy?t('Phiên bản cũ · chỉ đọc','舊版本封存 · 唯讀'):t(masterScope?'Hồ sơ gửi duyệt · chỉ đọc':'Hồ sơ cố định · chỉ đọc',masterScope?'送審案件 · 唯讀':'固定案件 · 唯讀')}</h3><button data-close>×</button></header><main>${loading?`<p>${t('Đang tải','載入中')}</p>`:review?`<p>${h(review.id)} · ${h(statusLabel(review.status))}</p><p>${h(review.actor.name)} · ${h(review.at)}<br>${h(review.reason)}</p>${review.contentIssues?`<details class="vd-advisory"><summary>${t('Dữ liệu cần bổ sung trong hồ sơ cố định','固定案件待補')} · ${review.contentIssues.issues.length}</summary><p>${review.result?.contentIssuesConfirmed?t('Đã xác nhận duyệt kèm các mục cần bổ sung','已明確確認帶待補核准'):t('Các mục này không chặn duyệt','以下待補不阻擋核准')}</p>${review.contentIssues.issues.map(i=>`<p>${h(window.VersionDraftUI?.issueMessage(i)||i.message)} · ${h(i.path.map(p=>typeof p==='string'?p:p.id).join(' / '))}</p>`).join('')}</details>`:''}<p>${h(review.result?.actor.name)} · ${h(review.result?.at)} · ${h(review.result?.reason)}</p>${rows.slice(itemPage*10,itemPage*10+10).map(({kind,row,after,old})=>`<article><h4>${rowHeading(kind,row)}</h4><div class="shared-restore-diff"><section><h4>${review.legacy?t('Không có bản đối chiếu cũ','未提供舊版比較基準'):t('Trước khi gửi','送審前')}</h4>${fields(old)}</section><section><h4>${review.legacy?t('Nội dung phiên bản cũ','舊版本內容'):t('Nội dung đã gửi','送審固定內容')}</h4>${fields(after)}</section></div></article>`).join('')}<nav><button data-prev ${itemPage===0?'disabled':''}>${t('Trước','上一頁')}</button>${itemPage+1} / ${Math.max(1,Math.ceil(rows.length/10))}<button data-next ${(itemPage+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav>`:(listing?.cases||[]).map(c=>`<article><p>${h(c.actor.name)} · ${h(c.at)} · ${h(statusLabel(c.status))}</p><p>${h(c.reason)}</p><button data-case="${h(c.id)}">${t('Xem hồ sơ','查看案件')}</button></article>`).join('')||`<p>${t('Chưa có hồ sơ','尚無案件')}</p>`}</main><footer>${review?.status==='pending'&&review.id===caseId&&onReview&&!legacy?reviewActions.map(a=>`<button type="button" class="button ${a.name==='approve'?'signal':'ghost'}" data-history-review="${h(a.name)}" ${a.enabled?'':'disabled'}>${h(a.label)}</button>`).join(''):''}${review?`<button data-back>${t('Danh sách','案件清單')}</button>}`:listing?.next?`<button data-more>${t('Trang sau','下一頁')}</button>`:''}${client.legacyHistory?`<button data-archive>${legacy?t('Hồ sơ gửi duyệt','送審案件'):t(masterScope?'Xem phiên bản cũ (chỉ đọc)':'Phiên bản cũ',masterScope?'查看舊版封存（唯讀）':'舊版本封存')}</button>`:''}<button data-close>${t('Về phạm vi hiện tại','返回目前範圍')}</button></footer></section>`;
       // Prevent overlapping list/case reads from replacing the selected history view.
       if(loading)overlay.querySelectorAll('button:not([data-close])').forEach(button=>button.disabled=true);
       overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
@@ -1436,20 +1436,15 @@ const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(old
       overlay.querySelector('[data-back]')?.addEventListener('click',()=>actionable()&&navigate(()=>{review=null;}));
       overlay.querySelector('[data-more]')?.addEventListener('click',()=>actionable()&&loadList(listing.next));
       overlay.querySelector('[data-prev]')?.addEventListener('click',()=>actionable()&&navigate(()=>{itemPage--;}));overlay.querySelector('[data-next]')?.addEventListener('click',()=>actionable()&&navigate(()=>{itemPage++;}));
-      overlay.querySelector('[data-restore]')?.addEventListener('click',async()=>{
-        if(previewBusy||reviewBusy||!actionable()||!restoreAllowed())return;
-        const token=++requestSequence,selected=review;previewBusy=true;
-        try{await window.previewSharedDraftRestore({client,masterScope,savedId:selected.savedId,isCurrent:()=>current(token)&&review===selected&&editable(),onApplied:async result=>{if(!current(token))return;await onApplied(result);if(current(token))close();}});}
-        catch(error){if(current(token)){draw();showError(error);}}finally{previewBusy=false;}
-      });
+
     };
     function showError(error){if(!current())return;if([401,403].includes(error.status)&&error.message!=='RESTORE_PERMISSION_REQUIRED'){close();return;}const p=document.createElement('p');p.role='alert';p.textContent=window.sharedDraftErrorMessage(error);overlay.querySelector('main').prepend(p);}
     async function navigate(change){
-      if(!current()||reviewBusy||previewBusy)return;const token=++requestSequence;
+      if(!current()||reviewBusy)return;const token=++requestSequence;
       try{await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');if(!current(token))return;change();draw();}catch(error){if(current(token))showError(error);}
     }
     async function loadList(before,nextLegacy=legacy){
-      if(!current()||reviewBusy||previewBusy)return false;const token=++requestSequence;loading=true;draw();
+      if(!current()||reviewBusy)return false;const token=++requestSequence;loading=true;draw();
       try{
         await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');
         if(!current(token))return false;const options={isCurrent:()=>current(token),requireAcceptedAccess:true};
@@ -1459,7 +1454,7 @@ const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(old
       loading=false;draw();return true;
     }
     async function loadCase(id){
-      if(!current()||reviewBusy||previewBusy)return false;const token=++requestSequence,selectedLegacy=legacy;loading=true;draw();
+      if(!current()||reviewBusy)return false;const token=++requestSequence,selectedLegacy=legacy;loading=true;draw();
       try{
         await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');
         if(!current(token))return false;const options={isCurrent:()=>current(token),requireAcceptedAccess:true};
@@ -1473,64 +1468,6 @@ const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(old
     if(listed&&legacy&&legacyVersionId)await loadCase(legacyVersionId);else if(listed&&caseId)await loadCase(caseId);else if(listed&&versionPreview){review={id:versionPreview.id,status:versionPreview.status,actor:{name:versionPreview.creatorName||t('Chưa ghi nhận','未記錄')},at:versionPreview.createdAt||t('Chưa ghi nhận','未記錄'),reason:t('Chi tiết phiên bản · chỉ đọc','版本詳情 · 唯讀'),before:{},content:versionPreview.snapshot,contentIssues:versionPreview.contentIssues,legacy:true};draw();}
     if(current())overlay.querySelector('[data-close]').focus({preventScroll:true});
   };
-  // Shared restore preview is read-only until an explicit, revision-checked apply.
-  window.previewSharedDraftRestore=async({client,savedId,onApplied,masterScope=null,isCurrent=()=>true})=>{
-    const restoreOwner=captureRestoreOwner(),restoreAllowed=()=>isCurrent()&&restoreOwnerCurrent(restoreOwner)&&['history','edit','restore'].every(key=>client.permission(key)===true);
-    if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
-    await freshHistoryPermission(client,()=>isCurrent()&&restoreOwnerCurrent(restoreOwner),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');
-    if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
-    const preview=await client.previewRestore(savedId,{isCurrent:()=>isCurrent()&&restoreOwnerCurrent(restoreOwner),requireAcceptedAccess:true}),zh=document.documentElement.lang.startsWith('zh');
-    if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
-    const t=(vi,cn)=>zh?cn:vi,h=value=>String(value??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const opener=document.activeElement,overlay=document.createElement('div');overlay.className='shared-restore-overlay';
-    const rows=[];
-    const beforeCollections=historyCollections(preview.before),afterCollections=historyCollections(preview.after);
-    for(const collection of new Set([...Object.keys(beforeCollections),...Object.keys(afterCollections)])){
-      const before=beforeCollections[collection]||[],after=afterCollections[collection]||[];
-      if(!Array.isArray(before)||!Array.isArray(after))continue;
-      const old=new Map(before.map((row,index)=>[historyRowKey(row,index),row])),next=new Map(after.map((row,index)=>[historyRowKey(row,index),row]));
-      for(const id of new Set([...old.keys(),...next.keys()])){
-        const a=old.get(id),b=next.get(id);if(JSON.stringify(a)===JSON.stringify(b))continue;
-        rows.push({label:b?.checkNo||b?.code||a?.checkNo||a?.code||id,collection,before:a,after:b});
-      }
-    }
-    const masterImpact=()=>{
-      if(!['AB','C'].includes(masterScope))return '';
-      const scope=masterScope==='AB'?t('Toàn bộ AB (chuyền A, B)','整個 AB（A、B 線）'):t('Toàn bộ C (chuyền C)','整個 C（C 線）');
-      const labels={products:t('Sản phẩm','產品'),categoryGroups:t('Nhóm sản phẩm','類別'),lines:t('Chuyền','線別'),stages:t('Công đoạn','工段')},changes=window.VersionDraftUI.masterChanges(preview.before,preview.after);
-      const summary=Object.entries(labels).map(([key,label])=>{const changed=changes.filter(row=>row.kind===key);return `<li data-restore-count="${key}"><b>${label}</b> · ${t('Thêm','新增')} ${changed.filter(row=>row.action==='added').length} · ${t('Sửa','修改')} ${changed.filter(row=>row.action==='modified').length} · ${t('Bỏ','移除')} ${changed.filter(row=>row.action==='removed').length}</li>`;}).join('');
-      return `<section class="shared-restore-impact" data-master-restore-scope="${masterScope}"><strong>${t('Phạm vi khôi phục','還原範圍')}：${scope}</strong><p>${t('Bộ lọc không thu hẹp phạm vi. Nội dung lịch sử sẽ thay thế bản nháp chung hiện tại, kể cả thay đổi chưa lưu. Muốn giữ nội dung hiện tại, hãy hủy và lưu trước.','篩選不縮小還原範圍。歷史內容將取代目前共用草稿，包括未儲存修改。若要保留現在內容，請先取消並儲存。')}</p><ul>${summary}</ul><p>${t('Các khác biệt bên dưới đối chiếu bản nháp hiện tại và nội dung sau khi khôi phục. Vẫn cần lưu, gửi duyệt và phê duyệt để có hiệu lực.','下方差異列出目前草稿與還原後內容。套用後仍須儲存、送審及核准才會正式生效。')}</p></section>`;
-    };
-    let page=0,busy=false,closed=false,requestSequence=0,viewSequence=0;
-    const current=token=>!closed&&overlay.isConnected&&isCurrent()&&restoreOwnerCurrent(restoreOwner)&&(token===undefined||token===requestSequence);
-    const labels={nameVi:'Tên / 名稱',name:'Tên / 名稱',standard:'Tiêu chuẩn / 標準',description:'Mô tả / 敘述',methodVi:'Phương pháp / 方法',note:'Ghi chú / 備註',equipmentId:'Thiết bị / 檢具',rules:'Tần suất / 頻率',rule:'Tần suất / 頻率',photos:'Ảnh / 圖片',mediaItems:'Ảnh / 圖片',deleted:'Đã xóa / 刪除',isDeleted:'Đã xóa / 刪除'};
-    function fieldValue(key,value){
-      const mediaKeys=['photos','mediaItems','standardPhotos','methodPhotos'];
-      const media=mediaKeys.includes(key)&&Array.isArray(value)?value:key==='photoId'&&value?[{id:value}]:null;
-      if(media)return media.map(photo=>{const url=client.mediaURL(photo);return url?`<figure><img decoding="async" loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%" src="${h(url)}" alt="${h(photo.name||t('Ảnh lịch sử','歷史圖片'))}"><figcaption>${h(photo.name||'')}</figcaption></figure>`:`<p>${t('Ảnh không khả dụng','圖片不可用')}</p>`;}).join('')||'—';
-      return h(typeof value==='object'?JSON.stringify(value,(_key,v)=>typeof v==='string'&&v.startsWith('data:')?'[Ảnh / 圖片]':v,2):typeof value==='string'&&value.startsWith('data:')?'[Ảnh / 圖片]':value);
-    }
-    function fields(row,other){if(!row)return `<p>${t('Không tồn tại','不存在')}</p>`;return `<dl>${Object.keys({...row,...other}).filter(k=>JSON.stringify(row[k])!==JSON.stringify(other?.[k])).map(k=>`<dt>${h(labels[k]||k)}</dt><dd>${fieldValue(k,row[k])}</dd>`).join('')}</dl>`;}
-    function render(){const rendered=++viewSequence,actionable=()=>current()&&rendered===viewSequence;overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-labelledby="shared-restore-title"><header><h3 id="shared-restore-title">${t('Xem trước khôi phục lịch sử','歷史還原差異預覽')}</h3><button type="button" data-close aria-label="${t('Đóng','關閉')}">×</button></header><main>${masterImpact()}<p>${t('Áp dụng chỉ thay đổi bản nháp chung chưa lưu. Không lưu tự động, không sửa hồ sơ lịch sử.','套用只產生共用草稿的未儲存修改；不會自動儲存，不改寫歷史案件。')}</p><p>${h(preview.source.actor.name)} · ${h(preview.source.at)} · ${h(preview.restoreSaveId)}</p><p>${rows.length} ${t('mục thay đổi','筆變更')} · ${t('Phiên bản bản nháp','草稿版本')} ${preview.expectedRevision}</p>${!rows.length?`<p class="shared-restore-no-change" role="status">${t('Nội dung lịch sử trùng với bản nháp hiện tại; không cần khôi phục.','歷史內容與目前草稿相同，無需還原。')}</p>`:''}<div role="alert" id="shared-restore-error"></div>${rows.slice(page*10,page*10+10).map(row=>`<article><h4>${h(row.collection)} · ${h(row.label)}</h4><div class="shared-restore-diff"><section><h4>${t('Bản nháp hiện tại','目前草稿')}</h4>${fields(row.before,row.after)}</section><section><h4>${t('Sau khi áp dụng','還原套用後')}</h4>${fields(row.after,row.before)}</section></div></article>`).join('')}<nav><button type="button" data-prev ${!page?'disabled':''}>${t('Trước','上一頁')}</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button type="button" data-next ${(page+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav></main><footer><button type="button" data-close>${t('Hủy','取消')}</button><button type="button" data-apply ${!rows.length||!restoreAllowed()?'disabled':''}>${t('Xác nhận áp dụng · chưa lưu','確認套用 · 尚未儲存')}</button></footer></section>`;
-      overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
-      overlay.querySelector('[data-prev]').onclick=()=>actionable()&&navigate(-1);overlay.querySelector('[data-next]').onclick=()=>actionable()&&navigate(1);
-      overlay.querySelector('[data-apply]').onclick=async()=>{if(busy||!rows.length||!actionable()||!restoreAllowed())return;const token=++requestSequence;busy=true;overlay.querySelectorAll('button').forEach(b=>b.disabled=true);
-        try{
-          await freshHistoryPermission(client,()=>current(token),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');
-          if(!current(token)||!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
-          const result=await client.command(preview.generation,'restore',{restoreSaveId:preview.restoreSaveId,expectedRevision:preview.expectedRevision});
-          if(current(token))await onApplied(result);busy=false;close();
-        }catch(error){busy=false;if(!current(token)){close(true);return;}if([401,403].includes(error.status)){close(true);return;}render();overlay.querySelector('#shared-restore-error').textContent=error.message==='RESTORE_RECONFIRM'?t('Bản nháp đã thay đổi. Đóng và xem trước lại; chưa áp dụng.','草稿已改變，請關閉並重新預覽；尚未套用。'):window.sharedDraftErrorMessage(error);}
-        finally{busy=false;}
-      };
-    }
-    async function navigate(offset){
-      if(busy||!current()||!restoreAllowed())return;const token=++requestSequence;
-      try{await freshHistoryPermission(client,()=>current(token),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');if(!current(token)||!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');page+=offset;render();}
-      catch(error){if(!current(token))return;if([401,403].includes(error.status)){close(true);return;}overlay.querySelector('#shared-restore-error').textContent=window.sharedDraftErrorMessage(error);}
-    }
-    function close(force=false){if(closed||busy&&force!==true)return;closed=true;requestSequence++;overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(restoreOwnerCurrent(restoreOwner)&&opener?.isConnected)opener.focus({preventScroll:true});}
-    function keyboard(e){if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')];const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first||!e.shiftKey&&document.activeElement===last){e.preventDefault();(e.shiftKey?last:first)?.focus();}}}
-    render();document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);overlay.querySelector('[data-close]').focus({preventScroll:true});
-  };
+  // Retained compatibility entry point rejects retired draft restore requests.
+  window.previewSharedDraftRestore=async()=>{throw Error('DRAFT_RESTORE_NOT_SUPPORTED');};
 })();

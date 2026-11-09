@@ -137,6 +137,7 @@ export async function decodeValues(raw:string):Promise<Record<string,string>> {
 }
 const normalizeUserId = (value: unknown) => legacyJsonValueText((value || '') as JsonValue).trim().toLowerCase();
 export async function readState(options:RecordRead={}): Promise<State> {
+  if(options.keys?.includes('platformUsers')&&!options.keys.includes('processAccessControl'))options={...options,keys:[...options.keys,'processAccessControl']};
   const deliver=(state:State):State=>options.effectiveOnly?{...state,values:effectiveDeliveryValues(state.values),deliveryOnly:true}:state;
   // Schema is owned by the checked-in Drizzle migrations, never by public reads.
   const row = await env.DB.prepare(
@@ -239,7 +240,7 @@ function permissionEvaluator(request:Request,state:State,user:PermissionActor){
   const role = stored ? effectiveAccess(stored, state.values) : null;
   const workflowModule=moduleForURL(request.url);
   return (key:string)=>{
-    if(stored&&isPrimary(stored))return true;
+    if(stored&&isPrimary(stored)&&!role?.draftReviewPolicyActive)return true;
     // Preview actors retain existing business preview access, never account access.
     if(!stored&&user.id==='admin')return !key.startsWith('users.')&&!key.startsWith('user-');
     const op=operationForLegacy(key);

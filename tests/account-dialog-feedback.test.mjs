@@ -74,7 +74,7 @@ void test('only the exact known password-prewrite 503 releases the sender unknow
 });
 
 void test('unrelated revision advance at prewrite needs no second confirmation and uses the refreshed model',async()=>{
- const f=fixture(),read=f.ctx.load,send=f.ctx.send;let observed;f.ctx.load=async()=>{if(f.posts()===0)f.ctx.model={...f.ctx.model,revision:42};return read();};f.ctx.send=async payload=>{observed=f.ctx.model.revision;return send(payload);};await f.run();assert.equal(observed,42);assert.equal(f.posts(),1);assert.equal(f.dialog.closed,true);assert(f.ctx.noticeValue());
+ const f=fixture(),read=f.ctx.load.bind(f.ctx),send=f.ctx.send.bind(f.ctx);let observed;f.ctx.load=async()=>{if(f.posts()===0)f.ctx.model={...f.ctx.model,revision:42};return read();};f.ctx.send=async payload=>{observed=f.ctx.model.revision;return send(payload);};await f.run();assert.equal(observed,42);assert.equal(f.posts(),1);assert.equal(f.dialog.closed,true);assert(f.ctx.noticeValue());
 });
 
 void test('validation feedback uses interface language rather than a foreign browser validationMessage',()=>{

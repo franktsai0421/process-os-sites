@@ -13,9 +13,9 @@ const registry=fixture.boundaries,policy=createDraftReviewPolicy(registry),off=O
 const pinned=fixture.routineReceiptSource,snippet=fs.readFileSync(new URL('./fixtures/'+pinned.fixture,import.meta.url),'utf8');
 assert.equal(createHash('sha256').update(snippet).digest('hex'),pinned.functionSHA256);
 const context=vm.createContext({ROUTINE_PAGE_SCOPE:'routine-fqc:page',demand(value,code,status=409){if(!value)throw Object.assign(Error(code),{code,status});}});
-const module=new vm.SourceTextModule(stripTypeScriptTypes(snippet,{mode:'transform'}),{context});
-await module.link(()=>{throw Error('RECEIPT_FIXTURE_IMPORT_REFUSED');});await module.evaluate();
-const actualReceiptCheck=module.namespace.assertRoutinePageReceiptAccess;
+const permissionModule=new vm.SourceTextModule(stripTypeScriptTypes(snippet,{mode:'transform'}),{context});
+await permissionModule.link(()=>{throw Error('RECEIPT_FIXTURE_IMPORT_REFUSED');});await permissionModule.evaluate();
+const actualReceiptCheck=permissionModule.namespace.assertRoutinePageReceiptAccess;
 const actor={id:'synthetic-routine-reviewer',admin:false};
 function permissions(cells={},high=false){
  const subject={id:actor.id,role:'custom_routine',enabled:true},roles={custom_routine:{name:'Synthetic routine',views:[],permissions:[],access:{...off,'routine.view':true,...cells,...(high?{'approval.view':true,'approval.approve':true}:{})}}};
@@ -28,7 +28,7 @@ function owner(caps,action='return'){
 function sourceAllows(p,c,a=actor){
  try{actualReceiptCheck(c,'synthetic-operation',{actor:a,allowed:key=>p[key]===true,...Object.fromEntries(['create','delete','revise','revoke','settings'].map(key=>[key,p[key]===true]))});return true;}catch(error){assert(['FORBIDDEN','OPERATION_NOT_FOUND','ROUTINE_PAGE_OWNER_MISMATCH','ROUTINE_PAGE_RECEIPT_SOURCE_REQUIRED'].includes(error.code));return false;}
 }
-void test('captured registry pins the new RF endpoint, whole-page scope and existing routine permission module',()=>{
+void test('captured registry pins the new RF endpoint, whole-page scope and existing routine permission permissionModule',()=>{
  assert.equal(fixture.sourceCommit,'e5c3c780fac8413ede01809d5fc871ad0477a225');assert.equal(fixture.workingSourceSHA256,'c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7');assert.equal(registry.length,13);assert.equal(fixture.runtimeIntegrated,false);assert.equal(pinned.fullRouteExecuted,false);
  const p=permissions({'routine.withdraw':true});assert.equal(p.endpoint,'/api/routine-fqc/page');assert.equal(p.scope,'routine-fqc:page');assert.equal(p.stateKey,'routineFqcControl');assert.equal(p.permissionModule,'routine');
  for(const selector of ['', '?permissions=1','?operationId=synthetic-operation','?compact=1'])assert.equal(moduleForURL(p.endpoint+selector),'routine');

@@ -235,16 +235,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});
       }
       if(query.has('versionId')){const activeView=iqcEditingRequested(request,adapter.key,adapter.scope)&&query.get('versionId')===control.activeVersionId;if(!permissions.history&&!activeView)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply(activeView?{version,revision:state.revision,permissions,activeVersionId:control.activeVersionId,generation:flow?.generation||null}:{version}):reply({error:'VERSION_NOT_FOUND'},404);}
-      if(query.has('restoreSaveId')){
-        if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
-        if(adapter.requiresDelete?.(control,{action:'restore'})&&!await can(request,state,'master.delete'))return reply({error:'FORBIDDEN'},403);
-        if(!flow||openedVersion(control)?.status!=='draft')return reply({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
-        const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return reply({error:'SAVE_NOT_FOUND'},404);
-        const context=adapter.context(control,state,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]});
-        const after=context.restoreContent?context.restoreContent(cloneDraft(saved.content),flow.working):saved.content;
-        await assertRestoreAccess(request,state,flow.working,after);
-        return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
-      }
+      if(query.has('restoreSaveId')){return reply({error:'DRAFT_RESTORE_NOT_SUPPORTED'},422);}
       if(query.has('operationId')){const receipt=flow?.receipts[query.get('operationId')!];if(!receipt)return reply({error:'OPERATION_NOT_FOUND'},404);
         const action=JSON.parse(receipt.fingerprint).action,permission=action==='apply'||action==='restore'||action==='begin-v1'?'edit':action;
         if(receipt.actorId!==actor.id||!permissions[permission as DraftPermission]||action==='restore'&&!permissions.restore)return reply({error:'FORBIDDEN'},403);return reply({receipt:receipt.result,...(query.get('accessEvent')==='1'?{operationAction:action}:{}),...(action==='begin-v1'?{operationKind:'begin-v1'}:{})});}
@@ -330,6 +321,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(creates&&workflowModule&&accessKeys.includes(workflowModule+'.create')&&!await can(request,state,workflowModule+'.create'))return reply({error:'FORBIDDEN'},403);
           if((command.action==='restore'||adapter.requiresRestore?.(control,command))&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
           stage('adapter-apply');
+          if(command.action==='restore'&&!Object.hasOwn(control.workflow.receipts,command.operationId))return reply({error:'DRAFT_RESTORE_NOT_SUPPORTED'},422);
           const already=control.workflow.receipts[command.operationId],beforeRestore=command.action==='restore'?cloneDraft(control.workflow.working):null;const result=await adapter.apply(control,command,context);
           if(command.action==='restore'&&!already)await assertRestoreAccess(request,state,beforeRestore,result.state.working);
           control.workflow=result.state;receipt=result.receipt;

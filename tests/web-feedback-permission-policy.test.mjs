@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {DatabaseSync} from 'node:sqlite';
 import {randomUUID} from 'node:crypto';
 import {workerSource} from './helpers/native-worker-source.mjs';
-import {accessKeys,effectiveCells,roleEditable} from '../public/process/access-policy.mjs';
+import {accessKeys,roleEditable} from '../public/process/access-policy.mjs';
 async function fixture(){
  const db=new DatabaseSync(':memory:'),objects=new Map(),effects={writes:0,objectReads:0};let beforeWrite=null;
  for(const name of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+name,'utf8'));
@@ -63,7 +63,7 @@ void test('feedback delegation cannot manage other accounts or change protected 
 });
 void test('revoking export during ZIP retrieval denies bytes before response delivery',async()=>{
  const f=await fixture();try{const preview=await f.call('synthetic-editor','export-preview',{ids:[f.issue.id],imageIds:[]}),batch=preview.body.batches[0],made=await f.call('synthetic-editor','export-approved',{ids:batch.ids,versions:batch.versions,imageIds:batch.imageIds,operationId:randomUUID()});assert.equal(made.status,201);
- const get=f.env.STATE_ARCHIVE.get;f.env.STATE_ARCHIVE.get=async key=>{const value=await get(key);if(key.endsWith('.zip'))f.revoke('feedback.exchange');return value;};
+ const get=f.env.STATE_ARCHIVE.get.bind(f.env.STATE_ARCHIVE);f.env.STATE_ARCHIVE.get=async key=>{const value=await get(key);if(key.endsWith('.zip'))f.revoke('feedback.exchange');return value;};
  const before=f.snapshot(),r=await f.call('synthetic-editor','download',undefined,'&id='+made.body.id);assert.equal(r.status,409);assert.equal(r.body.error,'AUTH_CHANGED_RELOAD');assert.deepEqual(f.snapshot(),before);
  }finally{f.close();}
 });

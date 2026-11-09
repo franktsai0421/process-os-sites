@@ -102,15 +102,7 @@ export async function GET(request:Request) {
       const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
       return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
     }
-    if(query.has('restoreSaveId')){
-      if(!permissions.history||!permissions.restore)return reply({error:'FORBIDDEN'},403);
-      if(!flow||openIpqc(control)?.status!=='draft')return reply({error:flow?.pendingId?'PENDING_LOCKED':'BEGIN_REQUIRED'},409);
-      const saved=flow.saves.find(s=>s.id===query.get('restoreSaveId'));if(!saved)return reply({error:'SAVE_NOT_FOUND'},404);
-      const context=ipqcWorkflowContext(control,{actor:{id:actor.id,name:actor.name,admin:actor.role==='admin'},at:new Date().toISOString(),id:()=>crypto.randomUUID(),allowed:p=>permissions[p]},[]);
-      const after=context.restoreContent!(copyIpqc(saved.content),flow.working);
-      await assertRestoreAccess(request,state,flow.working,after);
-      return reply({generation:flow.generation,expectedRevision:flow.revision,restoreSaveId:saved.id,before:flow.working,after,source:{actor:saved.actor,at:saved.at}});
-    }
+    if(query.has('restoreSaveId')){return reply({error:'DRAFT_RESTORE_NOT_SUPPORTED'},422);}
     if(query.get('history')==='cases') {
       if(!permissions.history)return reply({error:'FORBIDDEN'},403);
       const cases=[...(flow?.cases||[])].reverse(),before=query.get('before');
@@ -232,6 +224,7 @@ export async function POST(request:Request) {
         if(!openIpqc(control)&&!control.workflow?.receipts[body.command.operationId])return reply({error:'BEGIN_REQUIRED'},409);
         if(body.command.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
         if(body.command.moduleAction?.startsWith('create')&&!permissions.create)return reply({error:'FORBIDDEN'},403);
+        if(body.command.action==='restore'&&!Object.hasOwn(control.workflow?.receipts||{},body.command.operationId))return reply({error:'DRAFT_RESTORE_NOT_SUPPORTED'},422);
         if(body.command.action==='restore'&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
         if(body.command.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===body.command!.input?.productCode&&p.stages.includes(body.command!.input?.stageCode||'')))
           return reply({error:'PRODUCT_STAGE_INVALID'},422);

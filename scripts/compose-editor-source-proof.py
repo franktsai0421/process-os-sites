@@ -52,6 +52,8 @@ NEW_TARGETS = {
     'previous_followup': 'd1ff4a61b2a8c81a206ec358ab2614393c171e94',
     'routine_page_runtime': 'e5c3c780fac8413ede01809d5fc871ad0477a225',
     'page_history_runtime': 'dfe1679274b1c06c2f0b8898e1fc196158dbdba2',
+    'boundary_followup': 'f79c046d9886eae551ceb73368d1346b3f97c90e',
+    'account_preparation': 'ea5811141f308a615a78b6c763b124f1612fad47',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',

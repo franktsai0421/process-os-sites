@@ -45,21 +45,21 @@ export function prepareDraftReviewPolicy(user,roles,control={}){
  if(alive&&source.status==='confirmation-required')blocked.push(frozen({code:'PLATFORM_APPROVAL_CONFIRMATION_REQUIRED',subject:source.subject}));
  if(high&&!before['approval.view'])blocked.push(frozen({code:'PLATFORM_APPROVAL_VIEW_REQUIRED'}));
  after['approval.approve']=high&&before['approval.view']===true;
- for(const module of modules){
-  const view=alive&&before[module+'.view']===true;
-  const reviewer=before[module+'.approve']===true||before[module+'.return']===true;
-  if(alive&&reviewer&&!view)blocked.push(frozen({code:'MODULE_REVIEW_VIEW_REQUIRED',module}));
-  after[module+'.submit']=view&&(before[module+'.submit']===true||reviewer||high);
-  const correction=view&&(before[module+'.withdraw']===true||reviewer||high);
-  after[module+'.withdraw']=correction;after[module+'.return']=correction;
-  after[module+'.approve']=view&&high;
+ for(const permissionModule of modules){
+  const view=alive&&before[permissionModule+'.view']===true;
+  const reviewer=before[permissionModule+'.approve']===true||before[permissionModule+'.return']===true;
+  if(alive&&reviewer&&!view)blocked.push(frozen({code:'MODULE_REVIEW_VIEW_REQUIRED',module:permissionModule}));
+  after[permissionModule+'.submit']=view&&(before[permissionModule+'.submit']===true||reviewer||high);
+  const correction=view&&(before[permissionModule+'.withdraw']===true||reviewer||high);
+  after[permissionModule+'.withdraw']=correction;after[permissionModule+'.return']=correction;
+  after[permissionModule+'.approve']=view&&high;
  }
  const delta=Object.keys(after).filter(key=>before[key]!==after[key]).map(key=>frozen({key,before:before[key],after:after[key]}));
  const result=frozen({kind:'draft-review-policy-preview',projectionReady:blocked.length===0,platformApprovalSource:source,before:frozen({...before}),after:frozen(after),delta:frozen(delta),blocked:frozen(blocked),runtimeActivated:false});
  prepared.set(result,{alive,high:after['approval.approve']===true});return result;
 }
 
-// Use the compiled #102 registry, never page/scope/module identifiers supplied
+// Use the compiled #102 registry, never page/scope/permissionModule identifiers supplied
 // by a request. All thirteen business pages must be present exactly once.
 export function createDraftReviewPolicy(boundaries){
  if(!Array.isArray(boundaries)||boundaries.length!==modules.length)throw Error('REVIEW_PAGE_REGISTRY');
@@ -74,9 +74,9 @@ export function createDraftReviewPolicy(boundaries){
    const boundary=pages.get(page),proof=prepared.get(plan);
    if(!boundary)throw Error('REVIEW_PAGE_INVALID');
    if(!proof||!plan.projectionReady)throw Error('REVIEW_POLICY_UNRESOLVED');
-   const cells=plan.after,module=boundary.permissionModule,view=proof.alive&&cells[module+'.view']===true;
-   const correction=view&&cells[module+'.withdraw']===true;
-   return frozen({...boundary,view,edit:view&&cells[module+'.edit']===true,save:view&&cells[module+'.save']===true,submit:view&&cells[module+'.submit']===true,withdraw:correction,return:correction,approve:view&&proof.high,history:view});
+   const cells=plan.after,permissionModule=boundary.permissionModule,view=proof.alive&&cells[permissionModule+'.view']===true;
+   const correction=view&&cells[permissionModule+'.withdraw']===true;
+   return frozen({...boundary,view,edit:view&&cells[permissionModule+'.edit']===true,save:view&&cells[permissionModule+'.save']===true,submit:view&&cells[permissionModule+'.submit']===true,withdraw:correction,return:correction,approve:view&&proof.high,history:view});
   },
  });
 }

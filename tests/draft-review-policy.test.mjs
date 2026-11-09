@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {accessKeys} from '../public/process/access-policy.mjs';
-import {prepareDraftReviewPolicy,platformApprovalSource,createDraftReviewPolicy,draftOperationPermission,draftReviewReceiptAllowed} from '../public/process/draft-review-policy.mjs';
+import {prepareDraftReviewPolicy,createDraftReviewPolicy,draftOperationPermission,draftReviewReceiptAllowed} from '../public/process/draft-review-policy.mjs';
 import {workerSource} from './helpers/native-worker-source.mjs';
 const registry=JSON.parse(fs.readFileSync(new URL('./fixtures/draft-review-page-boundaries.json',import.meta.url))).boundaries;
 const policy=createDraftReviewPolicy(registry),modules=registry.map(entry=>entry.permissionModule);

@@ -41,5 +41,5 @@ export function workerSource(env={},options={}){
   if(specifier.startsWith('.'))return source(path.resolve(path.dirname(parent.identifier),specifier));
   throw Error('DEPENDENCY_IMPORT_REFUSED');
  };
- return {async load(relative){const module=source(path.resolve(checkout,relative));if(module.status==='unlinked')await module.link(link);if(module.status==='linked')await module.evaluate();return module.namespace;},get loadedModules(){return [...cache.keys()];}};
+ return {async load(relative){const sourceModule=source(path.resolve(checkout,relative));if(sourceModule.status==='unlinked')await sourceModule.link(link);if(sourceModule.status==='linked')await sourceModule.evaluate();return sourceModule.namespace;},get loadedModules(){return [...cache.keys()];}};
 }

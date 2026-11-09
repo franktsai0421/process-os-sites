@@ -6,10 +6,10 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-const require=createRequire(import.meta.url),proof=require('../scripts/background-check-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
+const require=createRequire(import.meta.url),proof=require('../scripts/background-check-source-contract.cjs'),unified=require('../scripts/unified-draft-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
 const main='9fbba823090f03da8385c8d92f5e59293d19d2f1',show=file=>execFileSync('git',['show',main+':'+file]),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-const checkout=file=>canonicalCheckout(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));
-void test('all four #100 executable modules and its timer inventory are byte-identical after account integration',()=>{
+const checkout=file=>unified.project(canonicalCheckout(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'account_preparation');
+void test('combined source preserves exact account predecessor and its #100 no-poll lineage',()=>{
  for(const file of ['public/process/shared-draft-client.js','public/process/process-authoring-v3.js','public/process/process-ipqc.js','public/process/effective-version-notice.js','scripts/browser-timer-inventory.mjs','tests/fixtures/browser-timer-inventory.json'])assert.deepEqual(checkout(file),show(file),file);
 });
 void test('index inverse retains every #100 rule and predecessor, adding only known account cache-version changes',()=>{
