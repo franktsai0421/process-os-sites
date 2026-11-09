@@ -39,3 +39,16 @@ Frank指定舊對話 `01a1b57f-bda8-75bf-a224-1320cc24a028`。Personal Context�
 ## 有效版本更新後的清單快取
 
 最終生命週期補驗另重現：先載歷史清單、實際Save／Submit／他人Approve，再接受新page control後，舊cache仍讓新核准case不出現在選單。共同viewer現以adapter提供的已接受有效版識別cache；新AB/C/LINES、Routine整頁／原逐文件、舊主資料／PROCESS、FQC、IPQC AB、檢具、模具、Canvas均提供各自有效版（IPQC AB另含舊scope vector），不混用writer body或權限。BOM與IQC/C各自既有viewer機制保留，沒有重寫。四項真實簽章核准後再開選單的測試確認新case出現、返回不重送；正常Save沒有新有效版不會冒充歷史，也沒有加入poll。十個實際修改前端資產以cache1更新，舊歷史cache斷言不改。
+
+## 最終固定結果
+
+本機真merge `96d0bda07241f36a83329fe4ffdcbe84236bb07a` 的雙親是既有查看 `2e4d20f4560fe1480576680d07edcf903b67fef9` 與指定e5；語言修正553420d後，最終產品runtime為 `978bbc425837101f6e14624d8867fe871ed34a14`，精確來源proof提交 `f99e0a1960bab826e6a39dbcbf148215aecacd07`。後續交付文件不改runtime。
+
+- 全十三頁、AB/C/LINES新page、Routine整頁／原文件與common API：**474 PASS，0 FAIL／SKIP**，包含四項真正核准後清單更新、新語言事件與封存撤權；`approved-history-cache-all-viewers.log`。
+- 正常來源／witness／exact inverse、導航、資產、歷史離頁完整負例及現行delegation：**2050 PASS，0 FAIL／SKIP**；`approved-history-cache-source-gates.log`。82 runtime files、1101 exact inverses、23真實targets／227 bounded Git objects，原79歷史請求不改。manifest **4,185,584 bytes**、witness **3,264,675 bytes**，維持原5MiB上限。
+- Routine舊receipt／actual route／manual generation及指定畫布POST／一鍵／原子Save、主資料衝突／保留回歸：**472 PASS，0 FAIL，3 SKIP**，`routine-page-history-writer-canvas-regression.log`。三項僅缺固定c82a395 paired-performance前身，不能聲稱配對效能改善；該批後續只有顯示／快取修改，writer/server runtime不變。
+- e5整頁kernel、route、UI、domain helpers與master runtime／UI／review／public-authority共八支實際腳本全部PASS；逐支檢查數與耗時在`routine-page-history-owner-results.json`。後續查看cache／語言改動另有actual UI及全頁回歸，不把未載viewer的舊UI腳本當新viewer驗收。
+- 最終正常typed lint／非增量TypeScript PASS；無輪詢28＋28、source composer16、source boundary及受保護build（指定真實f99 HEAD、含postbuild auth）PASS。未重新安裝依賴；沿用相同lock輸入既有安裝，沒有改build guard。
+- 直接取製程原`reproduce-e5-legacy-archive.cjs`的真legacy create/Save/Submit/Approve合成步驟，只更改修正後預期及測試標籤：inline與records均當次403、不回approved內容，下一次401。原程式／衍生probe SHA另存provenance；未改parent檔案或真資料。
+
+本批全部為本機隔離證據；GitHub未上傳／未跑遠端CI，測試站未部署，原生desktop／iPhone／IME／真帳號／實站NOT_RUN。十三頁逐頁遠端／測試站／實際驗收欄均保留未驗，不能以本機viewer完成宣稱草稿分界／照片UNKNOWN／權限／完整製程發布完成。
