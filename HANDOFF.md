@@ -1,3 +1,7 @@
+## 2026-11-09 — Account/main compatibility merge
+
+Pinned main 021f0f3 (#99) is integrated locally with both documentation histories and all CI steps preserved. Account runtime files remain at 4b21d0f; unchanged main catalog/reducer/stage-link assertions pass through the existing source-only fixture. [Compatibility evidence and unresolved scope/permission decisions](docs/acceptance/accounts-permissions-20261109.md#最新-main-相容性整合021f0f3). No build retry, live account/data change, upload, remote merge or deployment.
+
 ## 2026-11-09 — Account dialog feedback and canonical readback
 
 Independent successor to 54a735f: account dialogs show busy feedback, keep Confirm disabled after unknown/incomplete/mismatched results, canonicalize readback targets and reject missing non-delete ACK targets. Password notices explicitly leave new-password login acceptance pending. #92 CSS is byte-identical. [Synthetic regressions and remaining blockers](docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象). No API, true-account, permission, build or remote mutation.
@@ -21,6 +25,10 @@ Return/reject and withdrawal no longer request self-approval confirmation from t
 ## 2026-11-09 — Account Save capability labels (local candidate)
 
 Account matrices now label existing Edit-implies-Save capabilities in both languages while preserving raw grants and write payloads. Eleven actual workflow GETs agree with the presentation; no account, ACL or data mutation. [Scope and remaining gates](docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No upload or deployment.
+
+# 2026-11-09 — Process platform stage catalog batch
+
+Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
 
 ## 2026-11-09 — Routine FQC explicit generation candidate
 

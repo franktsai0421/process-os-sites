@@ -1,3 +1,7 @@
+## 2026-11-09 — Merge main into local account candidate
+
+Pinned main 021f0f3 (#99) is integrated locally with both documentation histories and all CI steps preserved. Account runtime files remain at 4b21d0f; unchanged main catalog/reducer/stage-link assertions pass through the existing source-only fixture. [Compatibility evidence and unresolved scope/permission decisions](../docs/acceptance/accounts-permissions-20261109.md#最新-main-相容性整合021f0f3). No build retry, live account/data change, upload, remote merge or deployment.
+
 ## 2026-11-09 — Make account confirmation state explicit
 
 Account Save shows progress and preserves input/prior disabled states; unresolved outcomes block Confirm while offering read-only verification. Canonical IDs and required non-delete ACK targets prevent false readback success. Localized errors/reset titles and password acceptance wording clarify outcomes. [Tests and release limits](../docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象).
@@ -21,6 +25,10 @@ Local kernel and shared review dialog no longer classify returning one’s own p
 ## 2026-11-09 — Explain derived account Save capability
 
 Local account UI candidate displays Edit-includes-Save labels for the ten existing adapters, preserves configured cells/overrides and pins the new account asset. Six targeted tests and 75 existing regressions pass; native/browser/live acceptance remains separate. [Details](../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明).
+
+## 2026-11-09 — New-stage approved catalog inheritance candidate
+
+New stage review snapshots include approved preset names/media and global custom flow types with new stage-specific IDs and no copied machine assignments. Missing custom type gets an explicit custom choice; divergent catalog keys refuse before submission. Existing stages, fixed source approval, permissions, locks, receipts and CAS remain. Independent review found ID collision/reference masking and lone-surrogate URI failures. Shared ID reservation and total UTF-16 encoding fix generation; approval validates fixed new IDs without rewriting cases or historical identities. No migration or deployed data change. See [scope and acceptance boundaries](../docs/acceptance/process-platform-tracking-20261109.md).
 
 ## 2026-11-09 — Routine FQC explicit generation
 

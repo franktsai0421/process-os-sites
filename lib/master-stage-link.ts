@@ -13,6 +13,51 @@ export function stageDefaultTemplates(code:string){return presets.map(([key,name
  const asset=key+'.png',src='assets/process-templates/'+asset;
  return{id:code+'-FLOW-'+String(index+1).padStart(2,'0'),presetKey:key,presetVersion:'20260911-5900',name,mode,people:1,machineIds:[],media:src,mediaName:asset,mediaType:'image/png',mediaItems:[{src,name:asset,type:'image/png'}],...(key==='machine-assembly'?{equipment:[]}:{})};
 });}
+// Template references use global IDs. Retain the complete approved namespace,
+// including stages removed by this link, and reserve all generated IDs together.
+function approvedTemplateIds(approved:Snapshot){
+ const ids=new Set<string>();for(const value of Object.values(approved))for(const item of Array.isArray(value)?value:[])if(typeof item?.id==='string')ids.add(item.id);return ids;
+}
+function allocateTemplateId(base:string,reserved:Set<string>){
+ let id=base,suffix=1;while(reserved.has(id))id=base+':'+suffix++;reserved.add(id);return id;
+}
+// Fixed-width UTF-16 code units preserve every accepted JS/JSON string, including
+// lone surrogates, without URI errors or replacement-character normalization.
+function templateIdComponent(value:string){let encoded='';for(let i=0;i<value.length;i++)encoded+=value.charCodeAt(i).toString(16).padStart(4,'0');return encoded;}
+// Global presets use presetKey and custom types use catalogKey. IDs and
+// machines belong to one stage. Only derive from the pinned approved snapshot.
+function stageCatalogTemplatesWithIds(code:string,approved:Snapshot,reserved:Set<string>){
+ const catalog=new Map<string,Record<string,unknown>>(),approvedPresets=new Map<string,Record<string,unknown>>(),knownPresets=new Set(presets.map(([key])=>key));
+ for(const value of Object.values(approved))for(const item of Array.isArray(value)?value:[]){
+  if(!item||typeof item!=='object')continue;
+  const preset=knownPresets.has(item.presetKey);
+  if(!preset&&(item.presetKey||typeof item.catalogKey!=='string'||!item.catalogKey))continue;
+  if(item.editorType!==undefined&&!['entry','manual','inspection','machine','exit','custom'].includes(item.editorType))throw new DraftConflict('PROCESS_TEMPLATE_TYPE_INVALID',422);
+  if(typeof item.name!=='string'||item.mediaItems!==undefined&&!Array.isArray(item.mediaItems))throw new DraftConflict('PROCESS_TEMPLATE_INVALID',422);
+  const key=preset?item.presetKey:item.catalogKey,target=preset?approvedPresets:catalog;
+  const template:Record<string,unknown>=preset?{presetKey:key}:{catalogKey:key};
+  for(const field of ['name','editorType','mode','people','media','mediaName','mediaType','mediaItems'])if(Object.hasOwn(item,field))template[field]=cloneDraft(item[field]);
+  const prior=target.get(key);
+  if(prior&&stableDraftJSON(prior)!==stableDraftJSON(template))throw new DraftConflict('PROCESS_CATALOG_TEMPLATE_CONFLICT',409);
+  target.set(key,template);
+ }
+ if(![...catalog.values()].some(item=>!item.editorType||item.editorType==='custom')){
+  let key='default-custom';while(catalog.has(key))key='_'+key;
+  catalog.set(key,{catalogKey:key,name:'自訂',editorType:'custom',mode:'human',people:1,media:null,mediaName:'',mediaType:'',mediaItems:[]});
+ }
+ const required=stageDefaultTemplates(code).map(fallback=>{
+  const source=approvedPresets.get(fallback.presetKey),id=allocateTemplateId(fallback.id,reserved);if(!source)return {...fallback,id};
+  // Preserve scalar/absent media as well as explicit empty mediaItems; adding
+  // fallback assets here would change the approved source's visible content.
+  const next:Record<string,unknown>={...fallback};
+  for(const field of ['media','mediaName','mediaType','mediaItems'])delete next[field];
+  return {...next,...cloneDraft(source),id,machineIds:[]};
+ });
+ return [...required,...[...catalog].map(([key,item])=>({
+  ...cloneDraft(item),id:allocateTemplateId('stage-catalog:u16:'+templateIdComponent(code)+':'+templateIdComponent(key),reserved),machineIds:[],
+ }))];
+}
+export function stageCatalogTemplates(code:string,approved:Snapshot){return stageCatalogTemplatesWithIds(code,approved,approvedTemplateIds(approved));}
 export function pendingStageProcessLinks(root:Root){return Object.entries(root.workflowScopes||{}).flatMap(([scope,flow])=>
  (flow.cases as (typeof flow.cases[number]&{linkedProcess?:StageProcessLink})[]).filter(c=>c.status==='pending'&&c.id===flow.pendingId&&c.linkedProcess).map(c=>({scope,id:c.id,link:c.linkedProcess!})));}
 export function assertProcessLinkAvailable(root:Root,exceptCaseId?:string){const pending=pendingStageProcessLinks(root).filter(c=>c.id!==exceptCaseId);
@@ -26,14 +71,22 @@ export function stageProcessLink(root:Root,scope:string,content:Snapshot,values:
  const impact=stageReferences(values,removedMasterStages(root.active[scope],content),root.active[scope],root);if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
  const source=root.versions.find(v=>v.scope==='PROCESS'&&v.status==='approved'&&stableDraftJSON(v.snapshot)===stableDraftJSON(process));
  if(!source)throw new DraftConflict('PROCESS_EFFECTIVE_BASELINE_CONFLICT',409);
- const after={...process};for(const code of removed)delete after[code];for(const code of added)after[code]=stageDefaultTemplates(code);
+ const after={...process},reserved=approvedTemplateIds(process);for(const code of removed)delete after[code];for(const code of added)after[code]=stageCatalogTemplatesWithIds(code,process,reserved);
  return{scope:'PROCESS',baseVersionId:source.id,added,removed,before:cloneDraft(process),content:cloneDraft(after)};
+}
+function assertPinnedTemplateIds(link:StageProcessLink){
+ const reserved=approvedTemplateIds(link.before);
+ for(const code of link.added){const templates=link.content[code];
+  if(!Array.isArray(templates))throw new DraftConflict('PROCESS_TEMPLATE_ID_COLLISION',409);
+  for(const item of templates){if(typeof item?.id!=='string'||!item.id||reserved.has(item.id))throw new DraftConflict('PROCESS_TEMPLATE_ID_COLLISION',409);reserved.add(item.id);}
+ }
 }
 export function checkPinnedStageProcessLink(root:Root,link:StageProcessLink,caseId:string){
  assertProcessLinkAvailable(root,caseId);
  const source=root.versions.find(v=>v.id===link.baseVersionId&&v.scope==='PROCESS'&&v.status==='approved');
  if(!source||stableDraftJSON(root.active.PROCESS)!==stableDraftJSON(link.before)||stableDraftJSON(source.snapshot)!==stableDraftJSON(link.before))
   throw new DraftConflict('PROCESS_SOURCE_VERSION_CHANGED',409,{baseVersionId:link.baseVersionId,resolveUrl:'/process/?system=process&view=approval'});
+ assertPinnedTemplateIds(link);
 }
 export function activateStageProcessLink(root:Root,link:StageProcessLink,caseId:string,actor:DraftActor,at:string){
  checkPinnedStageProcessLink(root,link,caseId);

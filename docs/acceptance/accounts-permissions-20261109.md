@@ -157,3 +157,15 @@ SPA 的 protected login 原本把後端中文 error 直接顯示，越文模式�
 這批可獨立審查的 source hunk 已完成；與舊帳密候選整合時須語意合併 submit 的 canonical target／ACK／button-state hunk，保留候選 fresh prewrite、native validation、語言來源、ownership／unknown fences，禁止整份覆蓋。四項草稿／審核權政策 FAIL、真帳號登入／重設驗收、原生畫面與原先上傳狀態仍是具體未完成項。沒有 GitHub／Site mutation，也沒有把先前拒絕或 UNCERTAIN 操作重送。
 
 最新只讀 GitHub 核對：#92 merged=true，merge 仍為 638615807dafc32782dc327d56b348b6e4c82902；main 已因 #99 合併前進至 021f0f388b16ebcdff0f64ff44039d2ea07f4165。該 commit 的 parent 為 d4ac309，12 個 changed files 中未改帳號 JS／CSS，與本批只重疊 Local safety 和首頁交接／CHANGELOG。本分支仍保留 d4ac309 為基底，沒有把最新 main、其他候選或任何資料移入。整合需保留 #99 的 CI／文件內容；#99 是新工段沿用流程類型修復，不代表獨立草稿／權限拆分已完成。
+
+
+## 最新 main 相容性整合（021f0f3）
+
+依後續指示，已將固定 main 021f0f388b16ebcdff0f64ff44039d2ea07f4165（#99，parent d4ac309）合入同一帳號候選工作樹。這是本地 feature branch 的相容性整合，不是合併 GitHub main、資料移轉或發布。未建立新 checkout，未安裝／連結依賴，未重試正常建置或既有上傳。上一節「尚未整合」是當時狀態，這節取代該狀態。
+
+- 對 main 的 12 個 changed files 逐一核對：產品差異僅 master-stage-link；帳號 JS/CSS、登入、access policy、帳號 API、feedback API 均未由 main 修改。與帳號候選重疊的 Local safety 自動保留 #99 原目錄測試及全部帳號命令；HANDOFF／CHANGELOG 只在頂部新增紀錄衝突，已保留雙方完整段落。其餘 #99 程式、原測試及兩份專用 workflow 與固定 main 位元組一致。
+- 新增來源相容性 adapter，使用已存在的 native-worker-source，在同一 checkout 讀取原封不動的三份測試文字，只替換其 TypeScript dependency loader port；原 assertions 完全未修改。執行 #99 原目錄 20 個 node:test、獨立線別 reducer 42 groups，以及 inline／records 各 13 個實際 stage-link API groups。23 個 node:test cases PASS（20 原案例 + 3 wrappers；內層群組不另加總為 node:test 數）。與前批完整 18-file suite 合跑最終 278/278 PASS、0 skipped，證據為 account-main-compat-regression.json。
+- adapter 初次執行的兩個失敗是 fixture literals／Response.json 的 realm 差異，及未預載入 master-process-lock，均在測試載入層定位修正。fixture 現維持 Node 正常 realm，Worker modules 留在隔離 realm；預備來源清單取自既有固定 load calls，仍經 source fixture 的同 checkout／非 symlink／路徑／無依賴／禁止 outbound checks。沒有改 assertions、弱化型別／建置／業務守衛，亦不是 compiled Worker 驗收。
+- 原三份測試仍依 main 的標準命令保留；新相容性測試另加入帳號的 Node 來源命令，不取代 lint、typecheck、normal build 或原生瀏覽器 gate。
+
+明確未完成仍為四項需求診斷 FAIL：舊審核轉成下層送審／撤回且不得升高階、可核對的新高階權來源及其下層包含規則、return／withdraw 逐層同權。#99 的 42-group LINES reducer 仍是未接 storage／HTTP／codec／CAS 的獨立候選；不能因 unit PASS 就開始賦予真人 LINES 權限。須先由草稿工作固定 active scope manifest／資料切換，再整合矩陣、effectiveCells、API／receipt／kernel 與 before/after 權限預覽。DEMO ADMIN 管理普通帳號的規則另待業務決定。真帳號登入／重設驗收、normal build／完整 lint/typecheck、Windows/native browser／手機與實站驗收，以及被拒／不明來源傳送的核查仍是相同外部限制。
