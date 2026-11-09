@@ -112,8 +112,9 @@
 - PASS：資料保留／快照用途分界 8 組合成演練，含上述已重現的分發 port 限制及 cutoff 安全拒絕。合成目標 R2/DB 寫入不等於真實持久資料寫入。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
+- PASS：合併 #99 後，在獨立乾淨 clone 重新執行新增 11／14／8 組契約、document boundary、line reducer、master workflow、20 項 stage catalog、stage link、lines API 及 307 項 legacy bridge／Begin／permission／receipt 回歸。來源邊界、全專案 lint、型別與受控 build 也通過；沿用同版本既有安裝依賴，沒有重新安裝或改 build guard。最後只更新本段文件，程式／測試 bytes 沒有再變。
 - NOT_RUN：新所有權 storage／CAS／HTTP／UI 全生命週期、雙身分、正式帳號、真資料遷移與備份還原、原生瀏覽器／手機／IME、Cloudflare 實站。
-- NOT_RUN：完整 build／遠端 CI；本批未改前端資產，純規劃模組尚無 runtime consumer，實際 admission 改動已有 handler 定向回歸。後續接線後須重新驗證真正最終程式。
-- GitHub：此批尚未上傳、建立 PR、合併或部署。舊 243-path create_tree UNKNOWN 與先前檢具 create_tree 拒絕保持原狀，本批沒有重送、拆包上傳或改用遠端路徑繞過。
+- NOT_RUN：新獨立候選的遠端 CI／原生瀏覽器；後續接線後須重新驗證真正最終程式。本機 build 不代表正式站或全部瀏覽器驗收。
+- GitHub：本批只準備獨立草稿 PR，實際上傳／PR 狀態以遠端回執為準；不宣稱已合併或部署。舊 243-path create_tree UNKNOWN 與先前檢具 create_tree 拒絕保持原狀，本批沒有重送舊 payload、拆包接續或改用遠端路徑繞過。
 
 沒有 schema／正式資料變更，沒有修改帳號／角色 cell，也沒有啟動或重連 C2C 連接器。
