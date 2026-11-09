@@ -28,6 +28,23 @@
 
 照片以每個穩定 ID 的整筆 metadata 作原子單位；同一照片的多個欄位不拆。重排、legacy 缺 ID／混合 ID、重複 ID 維持保守整清單比較或重新核對。FQC 設備關聯組、頻率規則組，以及 IQC 有序 supplierIds 清單仍為原子決策單位；IQC rules 僅三方 ID／順序完全相同時逐條比較，不做規則內欄位及結構合併。這些界線不標成全欄位完整合併。
 
+## 最終共同來源驗證
+
+Runtime 固定於 `eb8adc1b1f9ba5ff9bd63a1d9d59fff24f58062f`；後續僅來源帳本、測試緩衝與本文。來源證明使用真 Git commit/tree/blob，44 個 current runtime files、293 個具名精確 inverse、13 個新增來源不存在證明；原七個 target 均保留，再增加原4a交付與原ce824 runtime。歷史79筆 ref/path witness、舊 helper pins／hash／span／負向控制未放寬。
+
+| 正常 CI／相關檢查 | 最終結果 |
+| --- | --- |
+| Global decisions and pre-dispatch authority | 839/839 PASS |
+| Same-page input retention | 115/115 PASS |
+| Draft entry and timer removal | 127/127 PASS |
+| Exact source and predecessor proofs | 611/611 PASS |
+| 既有 local-safety 離頁完整 gate | 463/463 PASS |
+| 標準 lint／TypeScript | PASS |
+| 原安全掃描器 | 修改208檔零finding；全庫兩個合成負控制 finding 逐byte與main一致，未改掃描規則 |
+| 標準受保護 build／compiled HTTP／bundle consumer | 最終HEAD與結果另由外部交付manifest及日誌綁定，不用較早runtime測試冒充 |
+
+這些測試組有重疊，不相加為總覆蓋。首次來源組因讀取固定2MB舊帳本碰到Node預設輸出緩衝上限，610/611；僅將該真固定Git路徑的輸出緩衝設為有界8MiB後全611通過，完整舊斷言仍保留。首次失敗log與修復後log都保留。
+
 ## 其他對話／遠端相依
 
 本次唯讀確認 GitHub main 仍為 `d4ac309fe05c89288af226b52c18161865ccdcb8`。
