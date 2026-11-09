@@ -8,6 +8,13 @@ async function removedLine(f){let control=await f.begin('LINES');const line=copy
 (async()=>{
  for(const record of [false,true]){
   const mode=record?'records':'inline';
+  await check(mode+' generic aggregate writer cannot initialize managed page layout',async()=>{
+   const f=await fixture(record);try{const legacy=copy(f.root);delete legacy.pageDraftLayout;for(const key of ['AB.catalog','C.catalog','LINES'])delete legacy.active[key];legacy.versions=legacy.versions.filter(version=>!['AB.catalog','C.catalog','LINES'].includes(version.scope));
+    await f.install({...f.values,masterDataControl:JSON.stringify(legacy)});const state=await f.core.readState(),before=JSON.stringify(await f.readRoot()),api=f.load('app/api/shared-state/route.ts');
+    const response=await api.POST(new Request(f.base+'/api/shared-state',{method:'POST',headers:{cookie:f.cookies.writer,origin:f.base,'content-type':'application/json'},body:JSON.stringify({baseRevision:state.revision,updates:{masterDataControl:JSON.stringify(f.root)}})}));
+    assert.equal(response.status,409,'managed layout is not a generic client field: '+JSON.stringify(await response.json()));assert.equal(JSON.stringify(await f.readRoot()),before);
+   }finally{f.close();}
+  });
   await check(mode+' restored parent with new child still requires create',async()=>{
    const f=await fixture(record);try{const users=JSON.parse(f.values.platformUsers);users.find(user=>user.id==='writer').accessOverrides['lines.create']=false;await f.install({...f.values,platformUsers:JSON.stringify(users)});
     const {control,line}=await removedLine(f),before=JSON.stringify(await f.readRoot()),restored={...line,stages:[{id:'brand-new-stage',code:'A-NEW',name:'New child'}]};

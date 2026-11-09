@@ -41,12 +41,17 @@
   {
     "file": "app/api/shared-state/route.ts",
     "beforeHash": "8655284f2d68a09595b09e7532d770ef28b2e4a0b843c8af16f0b60ee17a2b83",
-    "afterHash": "e1fc2411f085cfb088ebb631e1b19f63a9f2deb2d766328766837e309d334499",
+    "afterHash": "1e9c95510c43808d09df196970fa6792e1eb61e32523b68da4977492710ec155",
     "rules": [
       {
-        "offset": 9076,
+        "offset": 2746,
         "before": "",
-        "after": "    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});\n"
+        "after": "}\n// Page ownership and its baselines are initialized only by the separately\n// authorized data cutover, never by an ordinary aggregate replacement.\nfunction hasManagedMasterPages(value:unknown){\n if(!value||typeof value!=='object'||Array.isArray(value))return false;\n const root=value as Record<string,unknown>,owned=(scope:unknown)=>typeof scope==='string'&&['AB.catalog','C.catalog','LINES'].includes(scope);\n const owners=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).some(owned);\n return Object.hasOwn(root,'pageDraftLayout')||owners(root.active)||owners(root.workflowScopes)||Array.isArray(root.versions)&&root.versions.some(version=>version&&typeof version==='object'&&owned((version as Record<string,unknown>).scope));\n"
+      },
+      {
+        "offset": 9848,
+        "before": "",
+        "after": "    if(key==='masterDataControl'&&(hasManagedMasterPages(adoptedMaster)||hasManagedMasterPages(parse(value as string,null))))return Response.json({error:'MASTER_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});\n"
       }
     ]
   },

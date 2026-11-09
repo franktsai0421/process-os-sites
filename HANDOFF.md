@@ -1,3 +1,7 @@
+## 2026-11-09 Managed layout 守門與相依
+
+作者自查補一般 aggregate 不得建立／移除／改寫 server-managed pageLayout／owner baseline，inline/records 負控制已重現並拒絕無寫入。最新衝突來源88a4a2c已唯讀核對，保留其PROCESS照片組／排序、RF late ACK及domain localSave；本題master comparer只開放AB/C/LINES。未匯入、未上傳、未重送UNKNOWN；獨審中止狀態不變。
+
 ## 2026-11-09 Runtime 初審修正與未完成界線
 
 972e3a8 初審回報 parent restore 可帶新 child 漏查 create，以及 companion active 未綁原 approved 來源兩個 P2。已留修正前負控制並補逐層 identity 分類、三 owner 來源解析和 verified-only 相容讀取／public references；新增八組 memory regressions。獨審隨後因 possible cybersecurity risk 被內容安全機制中止，沒有整輪 PASS、未重送；目前新修正只有作者測試。原生 browser OS socket EPERM、舊登入 fixture baseline failure、完整 UI 等價／routine 整頁／權限 policy／版本查看相依仍需保留。

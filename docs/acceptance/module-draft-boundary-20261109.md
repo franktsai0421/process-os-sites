@@ -2,9 +2,15 @@
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
+## Managed layout 邊界與最新並行來源
+
+作者另在 inline／records 自查重現一般 legacy aggregate replacement 可附加新 layout／owner baselines 的缺口。現已把 pageDraftLayout、AB.catalog／C.catalog／LINES active／versions／workflowScopes 視為 server-managed 欄位；一般 shared-state 寫入無論提出或已持有這些欄位皆拒絕，不能以一般帳號的 JSON replacement 啟用／降版。原樣切換仍走另行確認的資料方案，本題未建立自助切換入口。review regressions 增為十組，修正前反例與拒絕無寫入均保留。此項是作者自查，沒有獨審 PASS。
+
+最新衝突候選為 88a4a2c6959dea76acfbaee24c11eb8e20494d5f（tree 6b3c533844ecd3b14fd9d426b533744a0fa82d5e），包含 7ef04ed。本次唯讀核對其 RF domain 24 行 validator 整合、routine UI late ACK 及 PROCESS photo/ordering 改動，沒有整批匯入。此處 master page comparator 僅允許 AB／C／LINES，不能拿 7ef 的舊 PROCESS photo 分支替代 88a 的照片組／別名／排序行為。後續合併須保留 88a 的 per-document atomic localSave、實際晚到輸入與 File／圖片上傳修正，再接本題整頁 owner；版本查看／畫布候選也不由此覆蓋。
+
 ## Runtime 初審發現與修正（獨立審查未完成）
 
-972e3a8／ddff7a2 的獨審回報兩個 P2：恢復舊線別時可附帶新工段而未查 create；本頁 baseline 正確時，另一 owner 的 active body 未逐一核對核准來源。已在 inline／records 重現失敗反例，修正為整份復原 subtree 各 ID／原 parent 的歷史來源判別，以及所有 companion 的 approved body／pointer／唯一 ID 解析。合法舊 parent＋child 仍可由 edit 恢復，新 child 仍需 create；unknown reserved ID 不復用。驗證、相容讀取及 public/stage references 均只由驗證後來源組成，不信任過期 compatibility mirror。新增八組 review regressions，包含無寫入拒絕及合法恢復正控制。
+972e3a8／ddff7a2 的獨審回報兩個 P2：恢復舊線別時可附帶新工段而未查 create；本頁 baseline 正確時，另一 owner 的 active body 未逐一核對核准來源。已在 inline／records 重現失敗反例，修正為整份復原 subtree 各 ID／原 parent 的歷史來源判別，以及所有 companion 的 approved body／pointer／唯一 ID 解析。合法舊 parent＋child 仍可由 edit 恢復，新 child 仍需 create；unknown reserved ID 不復用。驗證、相容讀取及 public/stage references 均只由驗證後來源組成，不信任過期 compatibility mirror。新增八組來源／復原 review regressions（另加兩組 managed-layout controls），包含無寫入拒絕及合法恢復正控制。
 
 該獨審子工作在完成兩項回報後，被內容安全機制以 possible cybersecurity risk 中止，**沒有完整審查 PASS**。沒有重送／改寫同一審查要求，已查房間近訊息但未取得針對此中止的新使用者指示。後續修正目前是作者自查／合成測試，不以先前 build 或部分審查取代新 tree 複審。原生 Chromium 的 OS socket EPERM 也仍未解；沒有更換 flags／executor 繞過。
 

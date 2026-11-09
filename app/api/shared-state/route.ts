@@ -44,6 +44,14 @@ function hasNewLegacySubmission(key:string,beforeRaw:string|undefined,afterRaw:s
   if(key==='masterDataControl')return newPending(before?.versions,after?.versions,true);
   return Object.entries(after?.libraries||{}).some(([name,library])=>newPending(before?.libraries?.[name]?.versions,(library as {versions?:unknown})?.versions));
 }
+// Page ownership and its baselines are initialized only by the separately
+// authorized data cutover, never by an ordinary aggregate replacement.
+function hasManagedMasterPages(value:unknown){
+ if(!value||typeof value!=='object'||Array.isArray(value))return false;
+ const root=value as Record<string,unknown>,owned=(scope:unknown)=>typeof scope==='string'&&['AB.catalog','C.catalog','LINES'].includes(scope);
+ const owners=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).some(owned);
+ return Object.hasOwn(root,'pageDraftLayout')||owners(root.active)||owners(root.workflowScopes)||Array.isArray(root.versions)&&root.versions.some(version=>version&&typeof version==='object'&&owned((version as Record<string,unknown>).scope));
+}
 const processPresetKeys = [
   'entry',
   'manual',
@@ -181,6 +189,7 @@ export async function POST(request: Request) {
     if(key==='qualityMasterControl'&&parse(state.values[key],null)?.libraries?.fqc?.workflow)
       return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});
     const adoptedMaster=parse(state.values.masterDataControl,null);
+    if(key==='masterDataControl'&&(hasManagedMasterPages(adoptedMaster)||hasManagedMasterPages(parse(value as string,null))))return Response.json({error:'MASTER_PAGE_CUTOVER_REQUIRED'},{status:409,headers});
     if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});
     if(adoptedMaster&&(key==='processMasterData'||key==='masterDataControl'&&
       stableDraftJSON(parse(value as string,null)?.active?.PROCESS)!==stableDraftJSON(adoptedMaster.active?.PROCESS))){

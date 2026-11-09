@@ -1,3 +1,7 @@
+## 2026-11-09 Managed layout 守門與相依
+
+補 server-managed page-layout／owner namespace 的一般 aggregate 寫入守門，禁止普通 JSON replacement 啟用分頁；十組 inline/records review controls。核對88a4a2c依賴，master page comparer限定AB/C/LINES，不替代其PROCESS照片組與RF晚到輸入行為。沒有真資料切換或新的獨審PASS。
+
 ## 2026-11-09 Runtime 初審修正與未完成界線
 
 修正 runtime 初審兩個 P2：逐層檢查復原子項的 create 權限與同 parent 歷史身分；所有 companion 的 approved body／pointer／ID 核對，讀取與驗證不採用未核准 active 或過期相容鏡像。inline/records 八組反例與正控制。獨立審查被內容安全機制中止，沒有新 tree 完整 PASS；未重送、未上傳／切換。
