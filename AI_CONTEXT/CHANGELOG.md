@@ -24,6 +24,10 @@ The V2 header counts the same projected rows as the cards, including after Save 
 ## 2026-11-09 — #100 main 與同頁核准版本本機整合
 
 本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+修正 runtime 初審兩個 P2：逐層檢查復原子項的 create 權限與同 parent 歷史身分；所有 companion 的 approved body／pointer／ID 核對，讀取與驗證不採用未核准 active 或過期相容鏡像。inline/records 八組反例與正控制。獨立審查被內容安全機制中止，沒有新 tree 完整 PASS；未重送、未上傳／切換。
+
 ## 2026-11-09 主資料分頁 runtime 候選（未切換）
 
 補 catalog/LINES 的資料 marker 守門 route、基本本機編輯 UI、整組衝突續存與同 ID 復原、同 CAS topology／PROCESS link；生效 catalog 明確標示兩個核准來源，不生成 combined approval。保留舊 owner 收據／歷史，fence 舊 writer；一般 payload 不輸出私人草稿。未切真資料／schema／部署；原生瀏覽器與完整 UI 等價仍未驗。[驗證界線](../docs/acceptance/module-draft-boundary-20261109.md)。

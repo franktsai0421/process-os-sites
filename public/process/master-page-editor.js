@@ -25,7 +25,7 @@
   function lines(parent){const tabs=node('div',undefined,parent);for(const scope of ['AB','C'])button(tabs,scope,()=>{part=scope;},!busy);
    const rows=mine[part].lines,body=table(parent,[t('線別代碼','Mã chuyền'),t('名稱','Tên'),t('操作','Thao tác')]);
    for(const line of rows){const row=node('tr',undefined,body);field(row,t('線別代碼','Mã chuyền'),line,'code');field(row,t('線別名稱','Tên chuyền'),line,'name');const actions=node('td',undefined,row);
-    button(actions,t('刪除線別','Xóa chuyền'),()=>{rows.splice(rows.indexOf(line),1);},canEdit()&&permissions.delete===true);
+    button(actions,t('刪除線別','Xóa chuyền'),()=>{rows.splice(rows.indexOf(line),1);},canEdit()&&permissions.delete===true&&!line.stages.length&&!base[part].lines.find(row=>row.id===line.id)?.stages.length);
     const stageRow=node('tr',undefined,body),cell=node('td',undefined,stageRow);cell.colSpan=3;
     const stages=table(cell,[t('工段代碼','Mã công đoạn'),t('工段名稱','Tên công đoạn'),t('機器','Máy'),t('資產編號','Mã tài sản'),t('人數','Số người'),t('操作','Thao tác')]);
     for(const stage of line.stages){const r=node('tr',undefined,stages);field(r,t('工段代碼','Mã công đoạn'),stage,'code');field(r,t('工段名稱','Tên công đoạn'),stage,'name');field(r,t('機器','Máy'),stage,'machine');field(r,t('資產編號','Mã tài sản'),stage,'assetNumber');const people=field(r,t('人數','Số người'),stage,'operators','number');people.oninput=()=>{if(canEdit()&&owner()){stage.operators=Number(people.value);showDirty();}};

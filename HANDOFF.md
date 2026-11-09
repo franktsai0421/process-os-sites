@@ -21,6 +21,10 @@ Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank mer
 # 2026-11-09 - Independent canvas count batch
 
 Based on merged main 021f0f3 (#99), this batch changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. Both #99 CI and documentation additions are retained; concurrent global draft edits are not absorbed. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+972e3a8 初審回報 parent restore 可帶新 child 漏查 create，以及 companion active 未綁原 approved 來源兩個 P2。已留修正前負控制並補逐層 identity 分類、三 owner 來源解析和 verified-only 相容讀取／public references；新增八組 memory regressions。獨審隨後因 possible cybersecurity risk 被內容安全機制中止，沒有整輪 PASS、未重送；目前新修正只有作者測試。原生 browser OS socket EPERM、舊登入 fixture baseline failure、完整 UI 等價／routine 整頁／權限 policy／版本查看相依仍需保留。
+
 ## 2026-11-09 主資料 runtime 接線接續
 
 在 8560869 後新增受儲存 marker 守門的 catalog/LINES 真 route、writer、codec/CAS 與基本 UI；使用已建立 baseline，不自行 migration。inline/records 生命週期、union PROCESS link、跨頁 CAS、R2 撤權、原收據與 public 隱私已用 memory fixtures 核對；UI 真 transport＋合成 DOM 驗整組衝突／原 ID 復原／取消／UNKNOWN。原生 Chromium OS socket EPERM，未繞過，完整 UI 等價／真切換／版本查看整合仍未完成；routine 整頁接線仍待後續。公開上傳 UNKNOWN 未重送。[完整候選狀態](docs/acceptance/module-draft-boundary-20261109.md)。
