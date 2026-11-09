@@ -112,7 +112,20 @@
    else if(!m||!r){conflicts.push({path:[...path,{id}],before:b,mine:m,latest:r});value=choice==='latest'?r:m;}
    else{value={id};for(const field of new Set([...Object.keys(b||{}),...Object.keys(m),...Object.keys(r)])){if(field==='id')continue;const base=b?.[field],local=m[field],remote=r[field];let next;if(same(local,base))next=remote;else if(same(remote,base)||same(local,remote))next=local;else{conflicts.push({path:[...path,{id},field],before:base,mine:local,latest:remote});next=choice==='latest'?remote:local;}if(next!==undefined)value[field]=clone(next);}}
    if(value)result.push(clone(value));
-  }return {value:result,conflicts};
+  }
+  const rows=new Map(result.map(row=>[row.id,row])),oldIds=before.map(row=>row.id),oldSet=new Set(oldIds),mineIds=mine.map(row=>row.id).filter(id=>rows.has(id)),latestIds=latest.map(row=>row.id).filter(id=>rows.has(id));
+  const common=oldIds.filter(id=>mineIds.includes(id)&&latestIds.includes(id)),commonSet=new Set(common),ownOrder=mineIds.filter(id=>commonSet.has(id)),peerOrder=latestIds.filter(id=>commonSet.has(id)),ownMoved=!same(common,ownOrder),peerMoved=!same(common,peerOrder);
+  const addedBoth=mineIds.filter(id=>!oldSet.has(id)&&latestIds.includes(id)),slot=(list,id)=>list.slice(0,list.indexOf(id)).filter(key=>commonSet.has(key)).sort();
+  let orderConflict=ownMoved&&peerMoved&&!same(ownOrder,peerOrder)||!same(mineIds.filter(id=>addedBoth.includes(id)),latestIds.filter(id=>addedBoth.includes(id)))||addedBoth.some(id=>!same(slot(mineIds,id),slot(latestIds,id)));
+  const candidateOrder=ownMoved?ownOrder:peerOrder;
+  // Independent insertions retain their relative slot, including "after all"
+  // when a peer reorders existing photos. Crossing anchors require one choice.
+  for(const list of [mineIds,latestIds])for(const id of list.filter(id=>!commonSet.has(id))){const at=list.indexOf(id),left=list.slice(0,at).filter(key=>commonSet.has(key)),right=list.slice(at+1).filter(key=>commonSet.has(key));if(left.some(a=>right.some(b=>candidateOrder.indexOf(a)>candidateOrder.indexOf(b))))orderConflict=true;}
+  if(orderConflict)conflicts.push({path:[...path,'order'],before:oldIds,mine:mineIds,latest:latestIds});
+  const preferMine=orderConflict?choice!=='latest':ownMoved,primary=preferMine?mineIds:latestIds,secondary=preferMine?latestIds:mineIds,order=primary.slice();
+  for(const id of secondary)if(!order.includes(id)){const after=new Set(secondary.slice(secondary.indexOf(id)+1).filter(key=>commonSet.has(key))),index=order.findIndex(key=>after.has(key));if(index>=0)order.splice(index,0,id);else order.push(id);}
+  for(const id of rows.keys())if(!order.includes(id))order.push(id);
+  return {value:order.map(id=>rows.get(id)),conflicts};
  }
  async function prepareLocalSave(){
   const c=client,owner=actor,identity=window.ProcessSync?.identity,identityEpoch=window.ProcessSync?.identityGeneration?.(),epoch=viewEpoch,selectedId=selected,basis=localBase,snapshot=localSnapshot,generation=localGeneration||flow()?.generation,delivery=window.ProcessSync?.captureDelivery?.();
