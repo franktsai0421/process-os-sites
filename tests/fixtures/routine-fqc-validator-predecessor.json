@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "7ef04ed741249816aac2f1336cf15f888ff92fa0",
+  "sourcePath": "lib/routine-fqc.ts",
+  "sourceSha256": "36f63ff98d7b5a1ed48de99ebe9ffa1a1e3503e05cc522d4a3ed6399a7769cf3",
+  "linkedCase": "function linkedCase(c: RoutineFqc, doc: Document, jobId: string) {\n  if (doc.caseId)\n    return c.cases.find((a) => a.id === doc.caseId && a.jobId === jobId);\n  if (doc.correctionOf)\n    return c.cases.find(\n      (a) => a.jobId === jobId && a.reportIds.includes(doc.correctionOf!),\n    );\n}\n",
+  "structureBody": "\n            structure(content,previous);\n            if (doc.kind === 'report') for (const line of content.lines) {\n              const required = linkedCase(c,doc,line.jobId)?.requiredSamples || [];\n              if (!required.length) continue;\n              for (const row of line.results) {\n                const oldRow = previous.lines.find(l => l.id === line.id)?.results.find(r => r.id === row.id);\n                demand(row.samples.every(sample => required.includes(sample)) || (oldRow && stableDraftJSON(oldRow.samples) === stableDraftJSON(row.samples)), 'RETEST_SAMPLE_FIXED');\n              }\n            }\n",
+  "linkedCaseSha256": "20371f003e0c86ede6cefd1146328044b29aaa86e0fe9e5d9b2f11e5d1c85e99",
+  "structureBodySha256": "9a13e87b2eac4acc4c8e8991e01f80b4d24f8798b3742277b228ceae41a43f3c",
+  "demand": "function demand(ok: unknown, code: string, status = 422): asserts ok {\n  if (!ok) throw new DraftConflict(code, status);\n}",
+  "demandSha256": "87760268581211db3e99f2f2837996d23fcad19a7b2e2b634a4c46421099499f"
+}
