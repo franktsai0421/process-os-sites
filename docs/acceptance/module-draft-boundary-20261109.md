@@ -74,23 +74,23 @@ catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES wr
 
 ## 逐頁現況
 
-| 真正功能頁 | 現行草稿所有權 | 本批結果／未完成 |
+| 真正功能頁 | 本機候選 scope | 整合結果／範圍 |
 | --- | --- | --- |
-| 製程編輯台 | `process:platform` | 已是整頁一份；workspace／類別／工段為內部畫布。未改 runtime，跨畫布 Save 本輪 NOT_RUN |
-| AB 產線與類別 | 目前實站 `master:AB`；候選 `master:AB.catalog` | 新入口 writer/CAS/基本 UI 已接，受資料 marker 守門；未真切換，Excel／進階操作已補合成候選；完整 UI／原生驗收未完成 |
-| C 產線與類別 | 目前實站 `master:C`；候選 `master:C.catalog` | 同上；不含線別草稿 |
-| 線別與工段管理 | 目前實站借用 AB/C；候選單一 `master:LINES` | 完整 topology writer、同 CAS union PROCESS link 與基本 UI 已接；AB/C 是同一 content 分區。Excel／路線整理合成候選已補；未真切換，仍待完整 UI／原生驗收 |
-| 流程資料 | `master:PROCESS` | 已獨立；模板、名稱、媒體與設備總表／機器 modal 同頁，不拆成新模組 |
-| FQC | `fqc` | 已獨立；錯誤碼／項目／矩陣為內部視角，生命週期本輪 NOT_RUN |
-| IQC | `iqc` | 已獨立；零件／項目／供應商等同頁，生命週期本輪 NOT_RUN |
-| IPQC A/B | `ipqc-ab:module`，另保留 legacy 群組相容入口 | 現用整模組；A/B／群組／工段不拆，生命週期本輪 NOT_RUN |
-| IPQC C | `ipqc-c` | 已獨立，生命週期本輪 NOT_RUN |
-| BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
-| 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
-| 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 整頁 runtime／建立取消更正／固定送審核准 effects／HTTP codec-CAS／UI-File／原收據及舊 writer fence 已接，受資料 marker 守門；尚未切換，查看工作與原生驗收待整合 |
+| 製程編輯台 | `process:platform` | 已語意合入製程／畫布／衝突與已核准查看；同頁多畫布保留，原生與真資料驗收未執行 |
+| AB 產線與類別 | `master:AB.catalog` | catalog writer／CAS／進階 Excel／UI／核准查看合入；同頁 A/B 可整份送審，未啟用 marker |
+| C 產線與類別 | `master:C.catalog` | 同上，獨立於 AB 和線別工段；未啟用 marker |
+| 線別與工段管理 | `master:LINES` | 一份 owner 含 AB/C 分區；topology／PROCESS link／CAS／UI／Excel／查看合入；其他頁只引用其核准來源 |
+| 流程資料 | `master:PROCESS` | 模板與機器同頁；PROCESS 照片／排序衝突及只讀查看合入 |
+| FQC | `fqc` | 獨立 owner；標準／矩陣為同頁；刪除與 File／衝突／只讀查看合入 |
+| IQC | `iqc` | 獨立 owner；零件／供應商／項目同頁；晚到輸入／照片／衝突／查看合入 |
+| IPQC A/B | `ipqc-ab:module` | A/B、群組與工段為同頁篩選；保留必要 legacy 相容入口；本機衝突／查看合入 |
+| IPQC C | `ipqc-c` | 獨立 owner；比較回歸、衝突／查看及最後身分檢查合入 |
+| BOM | `bom` | 獨立 owner；樹與根件同頁；衝突／本機保留／只讀查看合入 |
+| 模具 | `tooling` | 獨立 owner；同頁目錄／表單不拆；圖片明確 Save 才上傳、衝突／查看合入 |
+| 檢具與測試設備 | `routine-equipment` | 獨立 owner；替換交易保留；衝突／只讀查看合入 |
+| 例行 FQC | `routine-fqc:page` | 整頁建立／Save／固定送審／核准 effects／codec-CAS／UI-File／照片 UNKNOWN／整頁與原文件核准查看合入；未啟用 marker |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
-| 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
+| 帳號／權限、即時報告及 placeholder | 非業務共用草稿 | 表單不另建草稿；帳號元件已合入但沒有真人授權遷移 |
 
 以上「已獨立」只表示程式中的 scope 分離，不代表存取／撤回／權限／多人整組選擇均已驗收。全站衝突、背景輪詢、歷史與權限另有並行候選；本批不以其舊測試替代最終合樹驗收。
 

@@ -6,6 +6,8 @@
 
 權限 resolver 已接入實際伺服器，但只在受信任 `processAccessControl` 的 `draftReviewPolicy:page-v1`、schema 2、primary binding 及可驗主要管理員授權來源一致時生效；無標記維持舊判斷，標記不支援或來源不明則拒絕高階審核／送審／更正，不新增 view/edit/save。所有選擇性身分讀取同步讀取此來源。沒有 initializer、真人授權或真資料切換。缺稽核的真人高階授權仍須另行核定。
 
+整合回歸：多人決策1081／同頁保留115／明確檢查與history撤權351通過。原來源總測試2814初跑2808通過，六項前置版本/快取斷言已修正並在來源守門維持下複驗；最終完整結果另見收據。乾淨副本4e5e665 source-check及build通過，產品runtime與e14f268一致。
+
 本機十三頁 signed owner／fresh-view／跨頁收據檢查及十三組核心送審流程通過；RF HTTP14／UI12／照片6、master 進階11及 account/source policy67 通過。來源固定 e14f268，29 個真實前置提交與79項原始歷史請求保留。來源證據97檔／1790投影，完整span pool另以可讀JSON及SHA核對，三份檔各小於原5MiB限制，不放寬檢查。最終建置及其餘回歸以固定提交收據為準，不能以先前批次代表本候選。沒有實站或原生瀏覽器驗收。測試選檔曾誤含原生 account password 測試而再遇同一 socket EPERM；已記錄並停止，未換途徑。
 
 公開 create_tree 成功回執後讀回404仍為 UNKNOWN；未重送、未建立遠端commit/ref、未合併或部署。獨立審查仍因原內容安全中止而未完成。切換前仍需完整原資料／待審案件盤點、baseline adoption 及經確認的切換方案；不可把允許捨棄舊工作草稿解讀為刪除待審、已核准歷史、收據或照片。
