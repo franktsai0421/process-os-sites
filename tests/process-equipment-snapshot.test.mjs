@@ -58,3 +58,14 @@ void test('unknown Sync retains exact sent snapshot without persisting command; 
 void test('unrelated typing does not rescan sources, clone equipment or send network requests',async()=>{const f=await fixture(pinned()),m=f.open(),field=m.dialog.querySelector('[data-field]'),count=f.clones,choices=f.choices;for(let i=0;i<1000;i++){field.value='Name '+i;field.oninput({target:field});}assert.equal(f.clones,count);assert.equal(f.choices,choices);assert.equal(f.calls.length,0);assert.equal(m.draft.machineDetails[0].mediaItems[0].src,'eq-one-old.png');});
 
 void test('equipment changes preserve keyboard focus and panel scroll, including a retired-row removal',async()=>{for(const retired of [false,true]){const f=await fixture(pinned());if(retired)f.retire('eq-one');const m=f.open();f.tab();const body=m.dialog.querySelector('.pe-modal-body'),field=body.querySelector('[data-machine="eq-one"]');body.scrollTop=83;field.focus();await f.choose('eq-one',false);assert.equal(body.scrollTop,83);assert.equal(f.document.activeElement.isConnected,true);assert.equal(f.document.activeElement.dataset.machine,retired?'eq-two':'eq-one');}});
+
+for(const lang of ['zh','vi'])void test(`custom machine modal selects approved current-line/current-stage equipment in ${lang}`,async()=>{
+ const original={...operation(),name:'Custom machine from catalog',templateId:'custom-machine-type'};
+ const f=await fixture(original);f.document.documentElement.lang=lang;
+ f.box.processMaster[stage].push({id:'custom-machine-type',catalogKey:'custom-machine',editorType:'machine',name:'Custom machine from catalog'});
+ f.box.processMaster[stage][0].equipment.push({...photo('wrong-line','v1'),line:'B'});
+ f.box.processMaster['A-OTHER']=[{presetKey:'machine-assembly',equipment:[{...photo('wrong-stage','v1'),stageCode:'A-OTHER'}]}];
+ f.box.machines.push({no:'legacy-line-only',line:'A',name:'Legacy catalog'});
+ f.open();f.tab();const choices=f.document.querySelectorAll('[data-machine]').map(row=>row.dataset.machine);
+ assert.deepEqual(choices,['eq-one','eq-two']);assert.equal(f.calls.length,0);assert.equal(f.local.counts().fields,0);assert.equal(f.original.name,original.name);
+});

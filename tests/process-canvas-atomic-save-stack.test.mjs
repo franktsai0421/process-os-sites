@@ -36,11 +36,11 @@ async function fixture({remote,manager=locks(),storage=disk(),session=disk(),pri
 }
 const clear=f=>{f.remote.calls.length=0;},rows=f=>f.local.project(workspace,stage,f.api.flow().working.workspaces[0].stages.S);
 const routeHarness=createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs');
-async function routeServer(storage,compact,{activeSaved=false,initialModel=content(),processMaster={}}={}){
+async function routeServer(storage,compact,{activeSaved=false,initialModel=content(),processMaster={},actors=null}={}){
  const db=new DatabaseSync(':memory:'),objects=new Map(),calls=[];let interleave=false,writes=0,loss=null,beforeNextSave=null;
  db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,"values" TEXT NOT NULL,updated_at TEXT NOT NULL)');
  const env={PROCESS_SESSION_SECRET:webcrypto.randomUUID(),DB:{prepare(sql){let args=[];return{bind(...v){args=v;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){if(interleave&&sql.startsWith('UPDATE shared_state SET revision=')){interleave=false;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}const changes=Number(db.prepare(sql).run(...args).changes);writes+=changes;return{meta:{changes}};}};}},STATE_ARCHIVE:{async put(k,v){objects.set(k,v);},async head(k){return objects.has(k)?{}:null;},async get(k){return objects.has(k)?{text:async()=>String(objects.get(k))}:null;}}};
- const h=routeHarness(env),core=h('lib/process-state.ts'),users=['actor-a','actor-b'].map(id=>({id,name:id,role:'admin',enabled:true,authMode:'platform',accessOverrides:Object.fromEntries(accessKeys.map(k=>[k,true]))}));
+ const h=routeHarness(env),core=h('lib/process-state.ts'),users=actors||['actor-a','actor-b'].map(id=>({id,name:id,role:'admin',enabled:true,authMode:'platform',accessOverrides:Object.fromEntries(accessKeys.map(k=>[k,true]))}));
  const model=copy(initialModel),flow=h('lib/shared-draft.ts').createSharedDraft('process:platform',model,null,webcrypto.randomUUID());
  if(activeSaved){flow.active.id='effective';flow.baseId='effective';flow.saved={id:'saved-base',revision:0,content:copy(model),actor:{id:'actor-a',name:'actor-a'},at:'2026-10-31T00:00:00Z',contributors:{}};flow.saves=[flow.saved];}
  const values={platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify({active:{AB:{products:[],lines:[{code:'A',stages:[{code:'S'},{code:'T'}]},{code:'B',stages:[{code:'U'}]}]},C:{products:[],lines:[]},PROCESS:processMaster},versions:[]}),bomOverrides:JSON.stringify({replaceAll:true,data:{}}),processAuthoringControl:JSON.stringify({activeVersionId:activeSaved?'effective':null,versions:[...(activeSaved?[{id:'effective',number:0,status:'approved',snapshot:copy(model),history:[],revision:0}]:[]),{id:'draft',number:1,status:'draft',snapshot:model,history:[],revision:0}],workflow:flow})};
@@ -756,3 +756,34 @@ for (const storage of ['inline', 'records-v1'])
       remote.close();
     }
   });
+
+// Distinct non-admin writer/reviewer through the actual signed HTTP route and SQLite/R2.
+// This does not stand in for the approval platform UI or live-role acceptance.
+for(const storage of ['inline','records-v1'])void test(`complete saved-process lifecycle separates writer/reviewer and immutable history on ${storage}`,async()=>{
+ const user=(id,allowed)=>({id,name:id,role:'staff',enabled:true,authMode:'platform',inheritRole:false,lines:['A','B','C'],views:['editor','approval'],permissions:[],accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,allowed.includes(key)]))});
+ const actors=[user('actor-a',['editor.view','editor.edit','editor.save','editor.submit','editor.withdraw']),user('actor-b',['editor.view','editor.approve','editor.return'])];
+ const remote=await routeServer(storage,true,{activeSaved:true,actors});try{
+  const f=await fixture({remote}),activeBefore=copy(f.api.flow().active.content);
+  f.edit('First saved stage');assert.equal(await f.api.save(),true);f.stage('T');f.local.edit(workspace,'T',[{id:'two',f:'x',value:72}]);assert.equal(await f.api.save(),true);
+  const saved=copy(f.api.flow().saved);assert.equal(saved.content.workspaces[0].stages.S[0].name,'First saved stage');assert.equal(saved.content.workspaces[0].stages.T[0].x,72);
+  f.stage('S');f.edit('Unsent must stay out of review');assert.equal(rows(f)[0].name,'Unsent must stay out of review');
+  const send=async(who,action,details={})=>{remote.who(who);const control=await remote.persisted(),flow=control.workflow,command={action,generation:flow.generation,expectedRevision:flow.revision,clientId:webcrypto.randomUUID(),sequence:1,operationId:webcrypto.randomUUID(),reason:'Synthetic full lifecycle',...details};const response=await remote.fetch('/api/process-authoring/workflow?caseMetadata=1',{method:'POST',body:JSON.stringify({command})});return {response,body:await response.json()};};
+  const submitted=await send('actor-a','submit',{savedId:saved.id});assert.equal(submitted.response.status,200,JSON.stringify(submitted.body));
+  let control=await remote.persisted();const caseId=control.workflow.pendingId,reviewCase=control.workflow.cases.find(c=>c.id===caseId);assert(caseId);assert.deepEqual(copy(reviewCase.content),saved.content);assert.deepEqual(copy(control.workflow.active.content),activeBefore);assert.equal(f.local.counts().fields,1);
+  for(const [who,action]of [['actor-a','approve'],['actor-b','submit'],['actor-b','save'],['actor-b','withdraw']]){
+   const before=copy((await remote.persisted()).workflow),writes=remote.writes(),denied=await send(who,action,{caseId,savedId:saved.id});assert.equal(denied.response.status,403,who+' '+action);assert.equal(remote.writes(),writes);assert.deepEqual(copy((await remote.persisted()).workflow),before);
+  }
+  const pendingEdit=await send('actor-a','apply',{patches:[{op:'set',path:['workspaces',{id:workspace},'stages','S',{id:'one'},'name'],value:'forbidden while pending'}],guards:[{path:['workspaces',{id:workspace},'stages','S',{id:'one'},'name'],value:'First saved stage'}]});assert.equal(pendingEdit.response.status,409,JSON.stringify(pendingEdit.body));assert.equal(pendingEdit.body.error,'PENDING_LOCKED');
+  const approved=await send('actor-b','approve',{caseId,acknowledgedContentIssues:reviewCase.contentIssues.issues});assert.equal(approved.response.status,200,JSON.stringify(approved.body));
+  control=await remote.persisted();assert.equal(control.workflow.pendingId,null);assert.equal(control.activeVersionId,caseId);assert.deepEqual(copy(control.workflow.active.content),saved.content);assert.deepEqual(copy(control.workflow.cases.find(c=>c.id===caseId).content),saved.content);assert.notEqual(control.workflow.generation,submitted.body.receipt.generation);
+  const approvedWrites=remote.writes(),approvedState=copy(control.workflow);const withdraw=await send('actor-a','withdraw',{caseId});assert.equal(withdraw.response.status,409);assert.equal(withdraw.body.error,'BEGIN_REQUIRED');assert.equal(remote.writes(),approvedWrites);assert.deepEqual(copy((await remote.persisted()).workflow),approvedState);
+  // Reopening a genuine new draft still cannot withdraw the already approved case.
+  remote.who('actor-a');const begun=await remote.fetch('/api/process-authoring/workflow',{method:'POST',body:JSON.stringify({action:'begin'})});assert.equal(begun.status,200,await begun.clone().text());
+  const withdrawnAfterBegin=await send('actor-a','withdraw',{caseId});assert.equal(withdrawnAfterBegin.response.status,409);assert.equal(withdrawnAfterBegin.body.error,'CASE_NOT_PENDING');
+  const reopened=await fixture({remote});assert.equal(await reopened.api.save(),true);const unchanged=await send('actor-a','submit',{savedId:reopened.api.flow().saved.id});assert.equal(unchanged.response.status,422);assert.equal(unchanged.body.error,'NO_SUBSTANTIVE_CHANGE');
+  reopened.edit('Explicit new revision');assert.equal(await reopened.api.save(),true);const resubmitted=await send('actor-a','submit',{savedId:reopened.api.flow().saved.id});assert.equal(resubmitted.response.status,200,JSON.stringify(resubmitted.body));assert.notEqual(resubmitted.body.receipt.caseId,caseId);
+  const changed=await remote.persisted();assert.equal(changed.workflow.cases.find(c=>c.id===resubmitted.body.receipt.caseId).content.workspaces[0].stages.S[0].name,'Explicit new revision');assert.equal(changed.workflow.active.content.workspaces[0].stages.S[0].name,'First saved stage');
+  remote.who('actor-b');const history=await remote.fetch('/api/process-authoring/workflow?approvedOnly=1&versionId='+encodeURIComponent(caseId));assert.equal(history.status,200);const historical=await history.json();assert.deepEqual(copy(historical.version.snapshot),saved.content);assert.equal(historical.version.approvalEvidence.savedId,saved.id);
+  const before=copy((await remote.persisted()).workflow),writes=remote.writes();const metadata=await remote.fetch('/api/process-authoring/workflow?approvedOnly=1&uiHistory=1');assert.equal(metadata.status,200);assert.equal(remote.writes(),writes);assert.deepEqual(copy((await remote.persisted()).workflow),before);
+ }finally{remote.close();}
+});

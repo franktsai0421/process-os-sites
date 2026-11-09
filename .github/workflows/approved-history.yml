@@ -37,3 +37,4 @@ jobs:
       - run: node --test --test-concurrency=2 tests/canvas-approved-history.test.mjs tests/authoring-begin-readiness.test.mjs tests/authoring-departure.test.mjs tests/authoring-readiness-render.test.mjs tests/authoring-review-status.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
       - run: node --test --test-concurrency=2 tests/ipqc-c-save-choices-actual-stack.test.mjs
       - run: node --test --test-concurrency=2 tests/canvas-post-authority-stack.test.mjs tests/process-equipment-snapshot.test.mjs
+      - run: node --test tests/process-category-canvas.test.mjs
