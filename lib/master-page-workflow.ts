@@ -1,3 +1,4 @@
+import {approvedMasterPageSource} from './master-approved-pages';
 import { applyDraftCommand, cloneDraft, DraftConflict, sameDraftValue, stableDraftJSON,
   type DraftContext, type DraftPatch, type DraftPath, type SharedDraft } from './shared-draft';
 import { masterWorkflowAdapter } from './master-workflow';
@@ -21,9 +22,7 @@ function flatten(value:Snapshot):Snapshot {
   return {lines:scopes.flatMap(scope => array((value[scope] as Snapshot)?.lines))};
 }
 function snapshot(root:Root,page:Page):Snapshot {
-  const selected=root.active[owner(page)];
-  assertMasterPageContent(page,selected);
-  return selected;
+  return approvedMasterPageSource(root,page).content;
 }
 function uniqueSelectors(path:DraftPath) {
   for (const step of path) if (typeof step !== 'string' && (!step || typeof step !== 'object' ||
@@ -52,6 +51,15 @@ function reservedEntity(source:SharedDraft<Snapshot>,path:DraftPath,id:string) {
   };
   return [source.active.content,...source.saves.map(save=>save.content)].some(find);
 }
+function insertedSubtree(page:Page,path:DraftPath,value:{id:string;[key:string]:unknown}) {
+  const nodes=[{path,value}];
+  if(page==='LINES'&&path.length===2&&path[1]==='lines'&&Array.isArray(value.stages))for(const stage of value.stages)
+    nodes.push({path:[...path,{id:value.id},'stages'],value:stage});
+  return nodes;
+}
+function restorable(flow:SharedDraft<Snapshot>,path:DraftPath,value:{id:string}) {
+  return typeof value?.id==='string'&&flow.tombstones.includes(stableDraftJSON([...path,{id:value.id}]))&&reservedEntity(flow,path,value.id);
+}
 function atomicSave(page:Page,flow:SharedDraft<Snapshot>, command:Parameters<typeof applyDraftCommand<Snapshot>>[1] & {input?:Record<string,unknown>}, context:DraftContext<Snapshot>) {
   if (flow.receipts[command.operationId]) return applyDraftCommand(flow,command,context);
   if (!context.allowed('view') || !context.allowed('edit') || !context.allowed('save')) throw new DraftConflict('FORBIDDEN',403);
@@ -63,9 +71,13 @@ function atomicSave(page:Page,flow:SharedDraft<Snapshot>, command:Parameters<typ
     for (const patch of batch.patches) {
       admitPatch(page,patch);
       if(patch.op==='insert'){
-        const key=stableDraftJSON([...patch.path,{id:patch.value?.id}]);
-        if(staged.tombstones.includes(key)&&typeof patch.value?.id==='string'&&reservedEntity(flow,patch.path,patch.value.id))
-          staged={...staged,tombstones:staged.tombstones.filter(marker=>marker!==key)};
+        for(const node of insertedSubtree(page,patch.path,patch.value)){
+          const key=stableDraftJSON([...node.path,{id:node.value?.id}]);
+          if(staged.tombstones.includes(key)){
+            if(typeof node.value?.id!=='string'||!reservedEntity(flow,node.path,node.value.id))throw new DraftConflict('ENTITY_ID_RESERVED',409);
+            staged={...staged,tombstones:staged.tombstones.filter(marker=>marker!==key)};
+          }
+        }
       }
       const exact=batch.guards.find(row => row && Array.isArray(row.path) && sameDraftValue(row.path,patch.path));
       const last=patch.path.at(-1),guard=exact || (patch.op==='set'&&typeof last==='string' ? batch.guards.find(row=>row&&sameDraftValue(row.path,patch.path.slice(0,-1))&&row.value&&typeof row.value==='object'&&!Object.hasOwn(row.value,last)):undefined);
@@ -146,8 +158,8 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
       else if (command.action === 'apply' || command.action === 'restore' || command.moduleAction || command.input || command.patches?.length)
         throw new DraftConflict('MASTER_PAGE_EXPLICIT_SAVE_REQUIRED',422);
     },
-    requiresCreate:(control,command)=>!!command.patches?.some(patch=>patch.op==='insert'&&!(control.workflow&&
-      control.workflow.tombstones.includes(stableDraftJSON([...patch.path,{id:patch.value?.id}]))&&typeof patch.value?.id==='string'&&reservedEntity(control.workflow,patch.path,patch.value.id))),
+    requiresCreate:(control,command)=>!!command.patches?.some(patch=>patch.op==='insert'&&(!control.workflow||
+      insertedSubtree(page,patch.path,patch.value).some(node=>!restorable(control.workflow!,node.path,node.value)))),
     requiresDelete:(_control,command)=>!!command.patches?.some(patch=>patch.op==='remove'||patch.op==='set'&&['stages','defaultStages'].some(field=>field===patch.path.at(-1))&&
       Array.isArray(command.input?.batches)&&(command.input.batches as {guards:{path:DraftPath;value:unknown}[]}[]).some(batch=>batch.guards.some(guard=>sameDraftValue(guard.path,patch.path)&&Array.isArray(guard.value)&&guard.value.some(value=>!Array.isArray(patch.value)||!patch.value.includes(value))))),
     context(control,state,base) {
@@ -158,6 +170,7 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
       const validators=scopes.map(part => {
         const legacy=masterWorkflowAdapter(part),validation=cloneDraft(root);
         delete validation.pageDraftLayout;
+        for(const target of scopes)validation.active[target]={...snapshot(root,target),lines:(snapshot(root,'LINES')[target] as Snapshot).lines};
         validation.versions=validation.versions.filter(version=>!['AB','C'].includes(version.scope)||!['draft','pending','pending-test'].includes(version.status));
         // Structural validators ignore only this exact fixed case's own link;
         // the actual approval separately rechecks its pinned PROCESS source.
@@ -224,9 +237,9 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
       if(flow.pendingId?(pending.length!==1||pending[0].id!==flow.pendingId||pending[0].savedId!==flow.saved?.id||!sameDraftValue(pending[0].content,flow.working)):pending.length>0)throw new DraftConflict('MASTER_PAGE_CASE_SAVE_MISMATCH',409);
       let link:StageProcessLink|null=null;
       type Review=typeof flow.cases[number]&{linkedProcess?:StageProcessLink};
-      const linkRoot={...root,active:{...root.active,LINES:flatten(snapshot(root,'LINES'))}};
+      const topologyScope='__page-lines-topology',linkRoot={...root,active:{...root.active,[topologyScope]:flatten(snapshot(root,'LINES'))}};
       if (!already && page === 'LINES') {
-        if (command.action === 'submit' && flow.saved) link=stageProcessLink(linkRoot,'LINES',flatten(flow.saved.content),referenceValues,flow.pendingId || undefined);
+        if (command.action === 'submit' && flow.saved) link=stageProcessLink(linkRoot,topologyScope,flatten(flow.saved.content),referenceValues,flow.pendingId || undefined);
         if (command.action === 'approve') {link=(flow.cases.find(review=>review.id === command.caseId) as Review|undefined)?.linkedProcess || null;if (link) checkPinnedStageProcessLink(root,link,command.caseId!);}
       }
       if (!already && command.action === 'save') context.structure(flow.working,flow.working);

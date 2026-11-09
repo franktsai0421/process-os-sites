@@ -29,12 +29,13 @@ export function projectMasterCatalog(key: string, raw: string): string | undefin
   if (key !== 'masterDataControl') return undefined;
   const root = existing(raw);
   if(root.pageDraftLayout==='page-v1'){
+   for(const scope of ['AB.catalog','LINES'])if(root.workflowScopes?.[scope]&&(!root.workflowScopes[scope].active||!Object.hasOwn(root.workflowScopes[scope].active,'content')))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
    const ids=root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>version.id);
    if(ids.some(id=>root.versions!.filter(version=>version.id===id).length!==1))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
    return JSON.stringify({pageDraftLayout:root.pageDraftLayout,
     active:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,root.active![scope]])),
     versions:root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>({id:version.id,scope:version.scope,status:version.status,snapshot:version.snapshot})),
-    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,{active:root.workflowScopes?.[scope]?.active}]))});
+    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].filter(scope=>root.workflowScopes?.[scope]).map(scope=>[scope,{active:root.workflowScopes![scope].active}]))});
   }
   const versions = root.versions!.filter(v => v.scope === scope);
   if (!root.workflowScopes?.[scope]) throw new MasterCatalogLegacyFallback();

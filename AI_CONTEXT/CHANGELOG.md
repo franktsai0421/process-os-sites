@@ -1,3 +1,7 @@
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+修正 runtime 初審兩個 P2：逐層檢查復原子項的 create 權限與同 parent 歷史身分；所有 companion 的 approved body／pointer／ID 核對，讀取與驗證不採用未核准 active 或過期相容鏡像。inline/records 八組反例與正控制。獨立審查被內容安全機制中止，沒有新 tree 完整 PASS；未重送、未上傳／切換。
+
 ## 2026-11-09 主資料分頁 runtime 候選（未切換）
 
 補 catalog/LINES 的資料 marker 守門 route、基本本機編輯 UI、整組衝突續存與同 ID 復原、同 CAS topology／PROCESS link；生效 catalog 明確標示兩個核准來源，不生成 combined approval。保留舊 owner 收據／歷史，fence 舊 writer；一般 payload 不輸出私人草稿。未切真資料／schema／部署；原生瀏覽器與完整 UI 等價仍未驗。[驗證界線](../docs/acceptance/module-draft-boundary-20261109.md)。

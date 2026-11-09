@@ -65,7 +65,7 @@
   {
     "file": "lib/master-catalog.ts",
     "beforeHash": "238af6ece410d58d8c57b2b72719ff1971d5cb97196dbf74415fbcedf4fbcda1",
-    "afterHash": "a155e573143c2ddbc818809aca49eeff7d3df5c939a0a9ea3e8eb03ef0f5ba10",
+    "afterHash": "afa815f8e5498d54bbdbca1e8b1189a98a15f942d8e979099f69296650469a5e",
     "rules": [
       {
         "offset": 0,
@@ -85,10 +85,10 @@
       {
         "offset": 1476,
         "before": "  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);\n",
-        "after": "  const root = existing(raw);\n  if(root.pageDraftLayout==='page-v1'){\n   const ids=root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>version.id);\n   if(ids.some(id=>root.versions!.filter(version=>version.id===id).length!==1))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);\n   return JSON.stringify({pageDraftLayout:root.pageDraftLayout,\n    active:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,root.active![scope]])),\n    versions:root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>({id:version.id,scope:version.scope,status:version.status,snapshot:version.snapshot})),\n    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,{active:root.workflowScopes?.[scope]?.active}]))});\n  }\n  const versions = root.versions!.filter(v => v.scope === scope);\n"
+        "after": "  const root = existing(raw);\n  if(root.pageDraftLayout==='page-v1'){\n   for(const scope of ['AB.catalog','LINES'])if(root.workflowScopes?.[scope]&&(!root.workflowScopes[scope].active||!Object.hasOwn(root.workflowScopes[scope].active,'content')))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);\n   const ids=root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>version.id);\n   if(ids.some(id=>root.versions!.filter(version=>version.id===id).length!==1))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);\n   return JSON.stringify({pageDraftLayout:root.pageDraftLayout,\n    active:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,root.active![scope]])),\n    versions:root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>({id:version.id,scope:version.scope,status:version.status,snapshot:version.snapshot})),\n    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].filter(scope=>root.workflowScopes?.[scope]).map(scope=>[scope,{active:root.workflowScopes![scope].active}]))});\n  }\n  const versions = root.versions!.filter(v => v.scope === scope);\n"
       },
       {
-        "offset": 3295,
+        "offset": 3580,
         "before": "  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);\n",
         "after": "  const root = existing(raw);\n  if(root.pageDraftLayout==='page-v1')return {catalog:approvedMasterPageCatalog(root,'AB')};\n  const versions = root.versions!.filter(v => v.scope === scope);\n"
       }
@@ -126,12 +126,17 @@
   {
     "file": "lib/master-stage-references.ts",
     "beforeHash": "66f78e81d2249f3ef3c8d8fcda6512b8f3c48ae91e1ff7da9afbf172a65434af",
-    "afterHash": "8cd7154aa979a374c31e616f36f1629a651fcb73415c3619b6a44d4e26d59851",
+    "afterHash": "e8731f356724ad861f8b46180d9c1da76e4c7ff68551e855dffc33f0a4d777ce",
     "rules": [
       {
-        "offset": 2711,
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedMasterPageCatalog} from './master-approved-pages';\n"
+      },
+      {
+        "offset": 2778,
         "before": "  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS')catalog(content,'master:active:'+scope,scope.toLowerCase());\n  for(const v of rows(master.versions))if(['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());\n  for(const [scope,value]of Object.entries(object(master.workflowScopes))){const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}\n",
-        "after": "  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS'&&(master.pageDraftLayout!=='page-v1'||['AB','C'].includes(scope)))catalog(content,'master:active:'+scope,scope.toLowerCase());\n  const retired=(scope:unknown)=>master.pageDraftLayout==='page-v1'&&['AB','C'].includes(str(scope));\n  for(const v of rows(master.versions))if(!retired(v.scope)&&['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());\n  for(const [scope,value]of Object.entries(object(master.workflowScopes))){if(retired(scope))continue;const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}\n"
+        "after": "  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS'&&(master.pageDraftLayout!=='page-v1'||['AB','C'].includes(scope)))catalog(master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master as Parameters<typeof approvedMasterPageCatalog>[0],scope as 'AB'|'C').content:content,'master:active:'+scope,scope.toLowerCase());\n  const retired=(scope:unknown)=>master.pageDraftLayout==='page-v1'&&['AB','C'].includes(str(scope));\n  for(const v of rows(master.versions))if(!retired(v.scope)&&['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());\n  for(const [scope,value]of Object.entries(object(master.workflowScopes))){if(retired(scope))continue;const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}\n"
       }
     ]
   },
@@ -160,12 +165,17 @@
   {
     "file": "lib/process-state.ts",
     "beforeHash": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
-    "afterHash": "12aeddc5fc431f9aaae72170ddbcac3a58579cad9fb1f27511f12ddbaf25e84e",
+    "afterHash": "8459d013380dce07a2355006e2a1aef6f485a15053ecd182f5f0b1eebd967882",
     "rules": [
       {
-        "offset": 21383,
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedMasterPageCatalog} from './master-approved-pages';\n"
+      },
+      {
+        "offset": 21450,
         "before": "  if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\r\n",
-        "after": "  if(master?.pageDraftLayout==='page-v1'){\n    // New page readers use their authenticated owner endpoint. The general\n    // Site payload carries effective compatibility content only, never old\n    // abandoned drafts or a fabricated combined approved version.\n    delete master.workflowScopes;\n    master.active=Object.fromEntries(['AB','C','PROCESS'].filter(scope=>master.active?.[scope]).map(scope=>[scope,master.active[scope]]));\n    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));\n    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});\n  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\n"
+        "after": "  if(master?.pageDraftLayout==='page-v1'){\n    // New page readers use their authenticated owner endpoint. The general\n    // Site payload carries effective compatibility content only, never old\n    // abandoned drafts or a fabricated combined approved version.\n    delete master.workflowScopes;\n    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};\n    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));\n    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});\n  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\n"
       }
     ]
   },

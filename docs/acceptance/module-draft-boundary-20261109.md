@@ -2,6 +2,16 @@
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
+## Runtime 初審發現與修正（獨立審查未完成）
+
+972e3a8／ddff7a2 的獨審回報兩個 P2：恢復舊線別時可附帶新工段而未查 create；本頁 baseline 正確時，另一 owner 的 active body 未逐一核對核准來源。已在 inline／records 重現失敗反例，修正為整份復原 subtree 各 ID／原 parent 的歷史來源判別，以及所有 companion 的 approved body／pointer／唯一 ID 解析。合法舊 parent＋child 仍可由 edit 恢復，新 child 仍需 create；unknown reserved ID 不復用。驗證、相容讀取及 public/stage references 均只由驗證後來源組成，不信任過期 compatibility mirror。新增八組 review regressions，包含無寫入拒絕及合法恢復正控制。
+
+該獨審子工作在完成兩項回報後，被內容安全機制以 possible cybersecurity risk 中止，**沒有完整審查 PASS**。沒有重送／改寫同一審查要求，已查房間近訊息但未取得針對此中止的新使用者指示。後續修正目前是作者自查／合成測試，不以先前 build 或部分審查取代新 tree 複審。原生 Chromium 的 OS socket EPERM 也仍未解；沒有更換 flags／executor 繞過。
+
+既有 test-master-read-projection 在本候選與還原乾淨的 8560869 副本均因 fixture 缺 ProcessAccountTransition 而失敗；沒有修改該 fixture 或放寬產品守門。歷史 #100／事件／例行來源 pins 原值保留，新 test-only exact inverse 只回復本 runtime delta 後驗原歷史來源，還原 bytes 不執行；新增來源順序／快取斷言保留精確 bytes 與順序。
+
+權限工作 0c89b6a／98789f9 的十三頁 fixture 已核對與本候選 owner／endpoint／stateKey 一致，尚未接入其 resolved policy。四項現用權限差距仍不算解決，缺主要管理員明確稽核的真人高階映射仍交 Frank 決定；沒有套用真人帳號／角色資料。版本查看仍由另一工作實作。
+
 ## 2026-11-09 主資料 runtime 接線候選（未切換）
 
 新增 `/api/master/pages?scope=AB|C|LINES`，使用既有登入、權限、識別 Begin、原收據、全 shared_state revision CAS 及 immutable-record codec。只有受信任資料中已存在 `pageDraftLayout:page-v1` 與三個已建立的獨立有效 baseline 才接受；查詢／環境變數不會啟用、初始化或轉移資料。目標 versions／workflowScopes keys 是 `AB.catalog`、`C.catalog`、`LINES`，active 同時保留各 owner 內容與僅由核准來源組成的 AB/C 相容讀取。沒有 SQL schema 或新 shared_state key。
