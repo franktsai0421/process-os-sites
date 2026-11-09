@@ -117,6 +117,7 @@ async function fixture(t, { withPeer = false } = {}) {
     objects: [...objects].map(([key, item]) => [key, item.bytes.toString('base64'), clone(item.options || {})]),
   });
   const setRight=(key,enabled)=>{const row=db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),values=JSON.parse(row.values),users=JSON.parse(values.platformUsers);for(const user of users)user.accessOverrides[key]=enabled;values.platformUsers=JSON.stringify(users);db.prepare('UPDATE shared_state SET revision=?,"values"=? WHERE id=1').run(row.revision+1,JSON.stringify(values));};
+  const stagePhoto=name=>{const bytes=Buffer.from('synthetic photo '+name),id=createHash('sha256').update(bytes).digest('hex');objects.set('routine-fqc/photos/'+id,{bytes,options:{}});return id;};
   const storedValues = () => JSON.parse(db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values);
   const control = () => model.parseRoutine(storedValues()[model.RF_KEY]);
   const document = (id) => control().documents.find((item) => item.id === id);
@@ -183,7 +184,7 @@ async function fixture(t, { withPeer = false } = {}) {
       caseId: document(id).flow.pendingId, reason: 'Synthetic review', selfReviewConfirmed: true,
     }));
   }
-  return { counts, persisted, verifyBackups, setRight, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve, beforeCAS: hook => { beforeCAS = hook; } };
+  return { counts, persisted, verifyBackups, setRight, stagePhoto, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve, beforeCAS: hook => { beforeCAS = hook; } };
 }
 
 async function rejectedWithoutCommit(f, command, status, code) {
@@ -692,6 +693,65 @@ void test('atomic Save returning working to an existing snapshot still advances 
   const before=f.document(id).flow.revision,command=f.draft(id,'save',{moduleAction:'save-local-v1',patches:[{op:'set',path:['notes'],value:''}],guards:[{path:['notes'],value:'shared unsaved'}]}),result=(await f.accepted(command)).result;
   assert.equal(result.revision,before+1);assert.equal(result.unchanged,false);assert.equal(result.savedId,saved.id);assert.equal(f.document(id).flow.saves.length,1);assert.equal(f.document(id).flow.working.notes,'');assert.deepEqual(clone(f.document(id).flow.contributors),{});
   const after=f.persisted();const replay=await f.post(command);assert.equal(replay.status,200);assert.deepEqual(replay.body.result,result);assert.deepEqual(f.persisted(),after);
+});
+
+
+const localState=x=>JSON.stringify({buffers:[...x.ui.api.s.buffers],bases:[...x.ui.api.s.bases],generations:[...x.ui.api.s.bufferGenerations],retry:x.ui.api.s.retry,markers:[...x.ui.store.map]});
+function filter(x,key,value) {const input=x.ui.root.querySelector('[data-filter="'+key+'"]');assert(input,key);input.value=value;input.onchange();}
+function selectDocument(x,id,tab='reports') {const button=x.ui.root.querySelector('[data-tab="'+tab+'"]');assert(button,tab);button.click();for(const [selector,key]of [['[data-work-state]','workState'],['[data-kind]','kind']])x.ui.root.querySelectorAll(selector).find(node=>node.dataset[key]==='')?.click();const row=x.ui.root.querySelector('[data-id="'+id+'"]');assert(row,id);row.click();}
+
+for(const lang of ['zh','vi'])void test('rendered '+lang+' same-page search/date/status/tab and approved-plan round trip retain exact RAM basis without writes',async t=>{
+  const x=await rendered(t);x.ui.document.documentElement.lang=lang;x.ui.paint();x.input('[data-field="notes"]','unsaved report input');x.input('[data-result-field="value"]','unsaved cell');
+  const original=localState(x),initial=x.f.persisted(),plan=x.f.document(x.id).planId;
+  for(const [key,value]of [['query','not-visible'],['line','missing-line'],['category','missing-category'],['item','missing-item'],['outcome','fail'],['review','approved'],['caseState','closed'],['dateMode','actual'],['from','2099-01-01'],['to','2099-01-02']]){filter(x,key,value);assert.equal(localState(x),original);}
+  await x.ui.button('clear-filter').click();assert.equal(localState(x),original);
+  selectDocument(x,x.id);for(const selector of ['[data-work-state="pending"]','[data-kind="disposal"]']){const button=x.ui.root.querySelector(selector);if(button){button.click();assert.equal(localState(x),original);}}
+  // Opening the linked formal plan is read-only viewing inside Routine FQC.
+  selectDocument(x,x.id);const link=x.ui.root.querySelector('[data-doc="'+plan+'"]');assert(link);link.click();assert(x.ui.root.querySelector('[data-field="title"]').disabled);assert.equal(localState(x),original);
+  selectDocument(x,x.id);assert.equal(x.ui.root.querySelector('[data-field="notes"]').value,'unsaved report input');assert.equal(x.ui.root.querySelector('[data-result-field="value"]').value,'unsaved cell');assert.equal(localState(x),original);
+  await x.ui.button('submit').click();assert.equal(x.calls.filter(call=>call.method==='POST').length,0);assert.equal(localState(x),original);assert.deepEqual(x.f.persisted(),initial);assert.match(x.ui.api.s.error,lang==='vi'?/chưa lưu/:/尚未儲存/);
+});
+
+void test('rendered unknown Save survives same-page filters and formal-document viewing; no stale saved snapshot is submitted',async t=>{
+  const x=await rendered(t);x.input('[data-field="notes"]','commit-lost input');let lost=true;const fetch=x.ui.box.fetch.bind(x.ui.box);
+  x.ui.box.fetch=async(url,options)=>{if(lost&&url.includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});const response=await fetch(url,options);if(lost&&options?.method==='POST')throw Error('Synthetic committed response lost');return response;};
+  await x.ui.button('save').click();assert(x.ui.api.s.retry);const original=localState(x),initial=x.f.persisted(),postCount=x.calls.filter(c=>c.method==='POST').length;
+  filter(x,'query','hidden');filter(x,'from','2099-01-01');filter(x,'review','approved');await x.ui.button('clear-filter').click();selectDocument(x,x.id);
+  x.ui.root.querySelector('[data-doc="'+x.f.document(x.id).planId+'"]').click();selectDocument(x,x.id);await x.ui.button('submit').click();
+  assert.equal(localState(x),original);assert.deepEqual(x.f.persisted(),initial);assert.equal(x.calls.filter(c=>c.method==='POST').length,postCount);
+  lost=false;await x.ui.api.act('retry');assert.equal(x.ui.api.s.retry,null);assert.equal(x.calls.filter(c=>c.method==='POST').length,postCount);
+});
+
+for(const choice of ['mine','theirs','cancel'])for(const lang of ['zh','vi'])void test('rendered '+lang+' '+choice+' preserves both new result rows, independent photos and unrelated fields',async t=>{
+  const x=await rendered(t);x.ui.document.documentElement.lang=lang;x.ui.paint();const minePhoto=x.f.stagePhoto('mine'),peerPhoto=x.f.stagePhoto('peer');
+  x.input('[data-field="title"]','mine title');x.input('[data-field="notes"]','mine notes');await x.ui.button('add-result:0').click();
+  const local=x.ui.api.s.buffers.get(x.id),newRow=local.lines[0].results.at(-1);newRow.value='mine added result';newRow.photos.push(minePhoto);local.lines[0].results[0].photos.push(minePhoto);local.evidence.push(minePhoto);
+  await x.peer(c=>{c.title='peer title';c.evidence.push(peerPhoto);c.lines[0].results[0].photos.push(peerPhoto);c.lines[0].results[1].notes='peer independent note';c.lines[0].results.push({id:'peer-new-result',samples:[],outcome:'',value:'peer added result',notes:'',photos:[peerPhoto]});});
+  const before=x.f.persisted(),arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await arriving;assert.equal(dialog.querySelectorAll('li').length,1,'only the shared title is a true conflict');x.choose(dialog,choice);await running;if(choice==='cancel'){assert.deepEqual(x.f.persisted(),before);assert.equal(x.calls.filter(c=>c.method==='POST').length,0);assert(x.ui.api.s.buffers.get(x.id).lines[0].results[0].photos.includes(minePhoto));return;}
+  const saved=x.f.document(x.id).flow.saved.content,rows=saved.lines[0].results;assert.equal(x.ui.api.s.error,'');assert.equal(saved.title,choice==='mine'?'mine title':'peer title');assert.equal(saved.notes,'mine notes');assert.deepEqual(clone(saved.evidence),[peerPhoto,minePhoto]);assert.equal(rows[1].notes,'peer independent note');assert.deepEqual(clone(rows[0].photos),[peerPhoto,minePhoto]);assert(rows.some(row=>row.id===newRow.id&&row.photos.includes(minePhoto)));assert(rows.some(row=>row.id==='peer-new-result'&&row.photos.includes(peerPhoto)));assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+});
+
+void test('photo membership merges removal and independent additions without deleting immutable R2 assets',async t=>{
+  const x=await rendered(t),old=x.f.stagePhoto('old'),mine=x.f.stagePhoto('new mine'),peer=x.f.stagePhoto('new peer');await x.peer(c=>c.lines[0].results[0].photos.push(old));await x.ui.api.refresh();x.ui.api.s.buffers.delete(x.id);x.ui.api.s.bases.delete(x.id);x.ui.paint();
+  x.ui.api.s.buffers.get(x.id).lines[0].results[0].photos=[mine];await x.peer(c=>c.lines[0].results[0].photos.push(peer));const before=x.f.persisted();await x.ui.button('save').click();
+  assert.equal(x.ui.api.s.error,'');assert.deepEqual(clone(x.f.document(x.id).flow.saved.content.lines[0].results[0].photos),[peer,mine]);assert.deepEqual(x.f.persisted().objects,before.objects);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+});
+
+void test('retest draft can view its original approved report and return without losing input or submitting an older saved version',async t=>{
+  const x=await rendered(t),photo=x.f.stagePhoto('approved failure');await x.peer(c=>{c.lines[0].results=[{id:'failed',samples:['FIXTURE-A'],outcome:'fail',value:'bad reading',notes:'failure evidence',photos:[photo]}];});await x.f.approve(x.id);
+  const incident=x.f.control().cases[0],retest=(await x.f.accepted(x.f.command('followup',{caseId:incident.id,kind:'report',notes:'Synthetic improvement'}))).result.documentId;
+  await x.f.accepted(x.f.draft(retest,'save'));await x.ui.api.refresh();selectDocument(x,retest);x.input('[data-field="notes"]','unsaved retest notes');const original=localState(x),before=x.f.persisted(),posts=x.calls.filter(c=>c.method==='POST').length;
+  const link=x.ui.root.querySelector('[data-doc="'+x.id+'"]');assert(link,'retest exposes original report link');link.click();assert(x.ui.root.querySelector('[data-field="title"]').disabled);selectDocument(x,retest);assert.equal(x.ui.root.querySelector('[data-field="notes"]').value,'unsaved retest notes');assert.equal(localState(x),original);
+  await x.ui.button('submit').click();assert.equal(x.calls.filter(c=>c.method==='POST').length,posts);assert.equal(localState(x),original);assert.deepEqual(x.f.persisted(),before);
+});
+
+void test('switching between two draft documents keeps separate bases and Save publishes only its selected document',async t=>{
+  const x=await rendered(t),plan=x.f.document(x.id).planId,correction=(await x.f.accepted(x.f.command('correct',{documentId:plan,reason:'Synthetic plan correction'}))).result.documentId;
+  await x.f.accepted(x.f.draft(correction,'save'));await x.ui.api.refresh();selectDocument(x,x.id);x.input('[data-field="notes"]','report local only');const reportBase=JSON.stringify(x.ui.api.s.bases.get(x.id));
+  selectDocument(x,correction,'plans');x.input('[data-field="notes"]','plan local only');const planInput=JSON.stringify(x.ui.api.s.buffers.get(correction)),planBase=JSON.stringify(x.ui.api.s.bases.get(correction)),planGeneration=x.ui.api.s.bufferGenerations.get(correction);
+  selectDocument(x,x.id);assert.equal(JSON.stringify(x.ui.api.s.bases.get(x.id)),reportBase);assert.equal(x.ui.root.querySelector('[data-field="notes"]').value,'report local only');await x.ui.button('save').click();
+  assert.equal(x.ui.api.s.error,'');assert.equal(x.f.document(x.id).flow.saved.content.notes,'report local only');assert.equal(x.f.document(correction).flow.saved.content.notes,'');assert.equal(JSON.stringify(x.ui.api.s.buffers.get(correction)),planInput);assert.equal(JSON.stringify(x.ui.api.s.bases.get(correction)),planBase);assert.equal(x.ui.api.s.bufferGenerations.get(correction),planGeneration);
+  assert.deepEqual(x.calls.filter(c=>c.method==='POST').map(c=>c.body.documentId),[x.id]);selectDocument(x,correction,'plans');await x.ui.button('submit').click();assert.equal(x.calls.filter(c=>c.method==='POST').length,1);assert.equal(x.f.document(correction).flow.pendingId,null);
 });
 
 // Optional explicit local comparison input; core current-code tests above never

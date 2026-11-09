@@ -1364,6 +1364,14 @@
     function merge(b,m,r,path) {
       if (equal(m,b)) return copy(r);
       if (equal(r,b) || equal(m,r)) return copy(m);
+      // Photo references are membership edits: independent immutable uploads
+      // must survive either choice for an unrelated text/result conflict.
+      // Single-sample selection and every other ordered field remain atomic.
+      const photoRefs = value => Array.isArray(value) && value.every(id=>typeof id==='string') && new Set(value).size===value.length;
+      if (['photos','evidence'].includes(path.at(-1)) && [b,m,r].every(photoRefs)) {
+        const retained = new Set([...new Set([...b,...m,...r])].filter(id=>b.includes(id)?m.includes(id)&&r.includes(id):m.includes(id)||r.includes(id)));
+        return [...new Set([...r,...m])].filter(id=>retained.has(id));
+      }
       const records = value => Array.isArray(value) && value.every(row => row && typeof row.id === 'string') && new Set(value.map(row=>row.id)).size === value.length;
       if (records(b) && records(m) && records(r)) {
         const rows = new Map(), bm=new Map(b.map(row=>[row.id,row])), mm=new Map(m.map(row=>[row.id,row])), rm=new Map(r.map(row=>[row.id,row]));
