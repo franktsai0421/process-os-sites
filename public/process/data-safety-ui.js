@@ -176,7 +176,7 @@
       try { value = await response.json(); }
       catch (error) { if (response.ok) return transition.unconfirmed(token); throw error; }
       if (!transition.current(token)) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-      if (!response.ok) throw Error(value?.error || '帳號或密碼錯誤');
+      if (!response.ok) { const error = Error(value?.error || '帳號或密碼錯誤'); error.code = value?.code; throw error; }
       if (typeof value?.user?.id !== 'string' || !value.user.id) return transition.unconfirmed(token);
       const user = { ...value.user };
       let changedInput;
@@ -207,6 +207,20 @@
     } finally { transition.finish(token); }
   }
   function bindProtectedPlatformLogin() {
+    const failureText = error => {
+      const messages = [
+        ['ACCOUNT_NOT_FOUND', '帳號不存在', 'Không tìm thấy tài khoản'],
+        ['ACCOUNT_DISABLED', '此帳號已停用', 'Tài khoản đã bị vô hiệu hóa'],
+        ['PASSWORD_INCORRECT', '密碼錯誤', 'Mật khẩu không đúng'],
+        ['NO_PERMISSION', '此帳號尚未設定使用權限', 'Tài khoản chưa được cấp quyền sử dụng'],
+        ['LOGIN_RATE_LIMITED', '登入次數過多，請稍後重試', 'Đăng nhập quá nhiều lần; vui lòng thử lại sau'],
+        ['LOGIN_LIMIT_UNAVAILABLE', '登入暫時無法使用', 'Tạm thời không thể đăng nhập'],
+        ['LOGIN_STORAGE_UNAVAILABLE_REOPEN_REQUIRED', '登入已確認，但瀏覽器儲存失敗。請保全輸入並重新載入，不要重送登入。', 'Đã xác nhận đăng nhập nhưng lưu trữ trình duyệt bị lỗi. Bảo toàn nội dung rồi tải lại; không gửi lại đăng nhập.'],
+        ['ACCOUNT_INPUT_CHANGED_REOPEN_REQUIRED', '登入等待期間輸入已變更。請保全輸入並核對目前頁面提示，不要重送登入。', 'Nội dung đã đổi trong lúc chờ đăng nhập. Bảo toàn nội dung và kiểm tra hướng dẫn trên trang; không gửi lại đăng nhập.'],
+      ];
+      const message = messages.find(row => row[0] === error?.code || row[0] === error?.message || row[1] === error?.message);
+      return message ? accountText(message[1], message[2]) : accountText('無法完成登入，請核對目前頁面提示。', 'Không thể hoàn tất đăng nhập; hãy kiểm tra hướng dẫn trên trang.');
+    };
     document.querySelectorAll('[data-quick-login]').forEach(
       (button) =>
         (button.onclick = () => {
@@ -216,7 +230,8 @@
           password.value = '';
           password.focus();
           const hint = document.querySelector('.login-hint');
-          hint.textContent = `請輸入 ${button.querySelector('b')?.textContent || button.dataset.quickLogin} 的平台密碼`;
+          const name = button.querySelector('b')?.textContent || button.dataset.quickLogin;
+          hint.textContent = accountText(`請輸入 ${name} 的平台密碼`, `Nhập mật khẩu nền tảng của ${name}`);
           hint.classList.remove('error');
         }),
     );
@@ -230,13 +245,13 @@
         try {
           if (await platformLogin(id, password) === false) submit.disabled = false;
         } catch (error) {
-          hint.textContent = error.message;
+          hint.textContent = failureText(error);
           hint.classList.add('error');
           submit.disabled = false;
         }
       };
     const hint = document.querySelector('.login-hint');
-    if (hint) hint.textContent = '請使用由 ADMIN 建立的平台帳號與密碼。';
+    if (hint) hint.textContent = accountText('請使用由 ADMIN 建立的平台帳號與密碼。', 'Sử dụng tài khoản và mật khẩu nền tảng do ADMIN tạo.');
   }
   const oldLogin = renderLogin;
   renderLogin = function () {

@@ -1,3 +1,7 @@
+## 2026-11-09 — SPA login language candidate
+
+Protected SPA login renders known server codes/legacy messages in the current document language; unknown details become localized page guidance. Confirmed-login storage/input errors retain no-resend guidance. Internal error messages/codes, identity checks, transition cleanup and unknown handoff remain unchanged. Initial and quick-account hints also follow language. Standalone /login remains its existing bilingual entry and has not been redesigned. [Source/API tests and limits](../../docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸).
+
 ## 2026-11-09 — Persistent account results and retained IDs
 
 Local account UI keeps the last verified result after successful ACK/readback, owned by the current identity and page lifetime; unknown and read-only checks never become success. Chinese/Vietnamese delete feedback now names the retained account code. [Boundaries and tests](../../docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). No storage/API/authorization change.

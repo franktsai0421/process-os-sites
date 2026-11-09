@@ -26,7 +26,7 @@ check('MODULE_SUBMISSION_DOES_NOT_GRANT_PLATFORM_APPROVAL',false,ownModule['appr
 const ordinary=cells({...off,'dashboard.view':true});
 check('FEEDBACK_VISIBLE_TO_EVERY_ENABLED_COMPANY_ACCOUNT',true,ordinary['feedback.view'],'Enabled ordinary account with one legitimate page view and explicit feedback view=false');
 const feedback=cells({...off,'feedback.view':true,'feedback.edit':true,'feedback.exchange':true});
-check('FEEDBACK_EDIT_EXPORT_FOLLOW_EXPLICIT_GRANTS',{edit:true,exchange:true},{edit:feedback['feedback.edit'],exchange:feedback['feedback.exchange']},'Non-admin synthetic role; policy currently has adminOps ceiling');
+check('FEEDBACK_EDIT_EXPORT_FOLLOW_EXPLICIT_GRANTS',{edit:true,exchange:true},{edit:feedback['feedback.edit'],exchange:feedback['feedback.exchange']},'Non-admin synthetic role; explicit feedback edit/export grants');
 const actualAccess=effectiveAccess({id:'synthetic-line-user',role:'synthetic',enabled:true,inheritRole:true},{},{synthetic:{name:'Synthetic',lines:['A'],views:['data'],permissions:[],access:{'bom.view':true}}});
 check('SAME_PAGE_A_B_C_LINES_VISIBLE',['A','B','C'],actualAccess.lines,'EffectiveAccess output only; no business data fetched');
 const actor={id:'synthetic-reviewer',name:'Synthetic reviewer',admin:false};
@@ -52,6 +52,16 @@ check('RETURN_AND_WITHDRAW_USE_SAME_PENDING_AUTHORITY',withdraw,returned,'Same p
 const self=source.cases[0].actor;
 check('RETURN_AND_WITHDRAW_USE_SAME_SELF_CONFIRMATION',execute('withdraw',['withdraw','return'],'pending',self),execute('return',['withdraw','return'],'pending',self),'Same author and pending case, no selfReviewConfirmed');
 check('APPROVED_VERSION_CANNOT_BE_WITHDRAWN',{status:409,code:'CASE_NOT_PENDING'},execute('withdraw',['withdraw'],'approved'),'Pure transition kernel; state is unchanged');
+// Reproduce the prerequisite collision without reading any real account data.
+const migration=await sourceModules.load('lib/access-migration.ts');
+const legacyRole={id:'custom_synthetic_review',name:'Synthetic legacy reviewer',lines:['A'],views:['approval'],permissions:['approval.approve','approval.reject']};
+const plan=await migration.prepareAccessMigration({platformUsers:JSON.stringify([{id:'frank',name:'Synthetic primary',role:'admin',enabled:true},{id:'synthetic-reviewer',name:'Synthetic reviewer',role:legacyRole.id,enabled:true,inheritRole:true}]),processCustomRoles:JSON.stringify([legacyRole]),processRoleTemplateOverrides:'{}'});
+const mapped=JSON.parse(plan.values.processRoleTemplateOverrides)[legacyRole.id].access;
+const dependencies={
+ highGrantProvenance:{status:'REVIEW_REQUIRED',originalExplicitHighGrant:false,mappedPlatformApprove:mapped['approval.approve'],mappedBomSubmit:mapped['bom.submit'],mappedBomWithdraw:mapped['bom.withdraw'],migrationMetadata:JSON.parse(plan.values.processAccessControl).migration,reason:'Existing mappingVersion=2 can materialize legacy approval as the same saved approval.approve cell; that cell alone cannot establish a newly confirmed high grant.'},
+ draftScopes:{status:'DEPENDENCY_NOT_INTEGRATED',lineAdmin:P.moduleForURL('?view=data&dataTab=line-admin'),abWorkflow:P.moduleForURL('/api/master/workflow?scope=AB'),independentLinesWorkflow:P.moduleForURL('/api/master/workflow?scope=LINES'),reason:'Confirmed sequence requires independent drafts before applying module-specific grants.'},
+ correctionAuthority:{status:'COORDINATED_CHANGE_REQUIRED',layers:['role/individual configured cells','source/review UI capabilities','shared workflow permissions and receipt GET','shared draft kernel','routine-FQC outer receipt permission'],reason:'Changing only the transition action would leave existing configured grants and replay/receipt paths inconsistent.'}
+};
 const failed=checks.filter(c=>c.status==='FAIL').length;
-console.log(JSON.stringify({head,status:failed?'REQUIREMENTS_NOT_MET':'PASS',checks,failed,realAccountsRead:false,realCredentialsRead:false,liveWrites:false,browserAcceptance:false},null,2));
+console.log(JSON.stringify({head,status:failed?'REQUIREMENTS_NOT_MET':'PASS',checks,failed,dependencies,realAccountsRead:false,realCredentialsRead:false,liveWrites:false,browserAcceptance:false},null,2));
 process.exitCode=failed?1:0;

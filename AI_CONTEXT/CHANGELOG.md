@@ -1,3 +1,7 @@
+## 2026-11-09 — Localize SPA account login feedback
+
+The protected SPA login binding translates current API codes and legacy known messages, including quick-account and initial hints, and keeps internal errors/unknown transitions intact. Add generated-credential source API regressions. [Scope and unresolved policy dependencies](../docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸). No live reset, migration or publication.
+
 ## 2026-11-09 — Honor feedback operation grants
 
 Helper feedback view is always available to enabled accounts. Explicit edit/export grants support non-admin staff, with fresh auth/CAS, safe approved export and own-handoff history/download; legacy raw export and primary-only deletion remain restricted. Both language controls follow capabilities. [Candidate tests and limitations](../docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作).

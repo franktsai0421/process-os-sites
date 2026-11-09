@@ -1,6 +1,6 @@
 # 帳號與權限：需求盤點及未完成驗收
 
-2026-11-09 UTC。這份交接是新的獨立盤點，不是帳密修復完成或可發布證明。
+2026-11-09 UTC。首次盤點後已追加五批本機候選；不是帳密修復完成或可發布證明。最新：feedback 兩項原始政策差距已修，10 項需求診斷為 6 PASS／4 FAIL；四項相依阻擋見文末。真帳號、GitHub 與測試站狀態仍分開追蹤。
 
 ## 固定來源與已確認狀態
 
@@ -12,7 +12,7 @@
 - Sites 保存版本 v42 的 source 是 `1fae5ae3a6f4bed27f829dd475ee2c8fa4ad370b`，查詢時沒有 deployment ID；v41 有成功 publish 收據，source `2e59923b1f27d39baa960d724381e7515beebd51`。僅可確認 v41 曾部署成功，不以保存 v42 推定已部署，也不以登入畫面推定正在服務哪個 source。
 - 本次只讀 GitHub open PR 集合沒有帳密／權限 PR。沒有查出舊未確認 upload 的完整 manifest；未建立新權限修復 PR，不宣稱舊上傳成功或失敗。
 
-## 使用者問題逐項追蹤
+## 首次盤點：使用者問題逐項追蹤（後續候選見下方各批）
 
 | 項目 | 本機／來源 | GitHub | 測試站 | 實際驗收 |
 | --- | --- | --- | --- | --- |
@@ -113,3 +113,28 @@ node scripts/audit-account-permission-requirements.mjs
 - 本批完整 lint／TypeScript／normal build／native browser／Windows CI／實體裝置／真帳號／實站 NOT_RUN；依賴缺失與先前 SOURCE_SYMLINK_REFUSED 保留，不重試、不換路或跳過 postinstall。未上傳 GitHub／merge／部署。先前來源傳送拒絕與主要整合 upload UNCERTAIN 不變。
 
 套用前須審核實際授權前後差異；這批是可審查來源候選，不能把 source tests 當真人權限已更新。與既有 feedback 工作整合須依 hunk 合併新的 capability、safe export 與 fresh CAS 保護，保留其雙來源、歷史／operation receipts 和預設關閉的事件啟用。
+
+
+## 第五批本機修復：登入提示語言與帳號來源回歸
+
+SPA 的 protected login 原本把後端中文 error 直接顯示，越文模式因此混入中文。只在呈現層依目前 document language 對應已知 code／舊訊息；初始及 quick-account 提示亦本地化。內部 Error 保留原 message 並攜帶伺服器 code，未知錯誤不透出原文，提供核對頁面的提示；已確認登入但儲存／等待輸入變更的訊息保留不重送說明。fetch、cookie、身分核對、transition finally、5xx／斷線／成功回覆不合法的 unknown handoff 都不改。獨立 /login 仍是現有雙語入口，本批沒有宣稱逐頁翻譯完成。data-safety-ui cache tag 與確切 navigation 契約同步。
+
+- 4 個新 UI ports 測試首次全 RED，修正後 4/4 PASS：中越文、6 個 API code 與舊中文訊息、初始／快速帳號、未知／舊身分錯誤、實際 platformLogin 的內部拒絕／成功／stale／unknown 清理。與 navigation 合跑 37/37 PASS。最終把新帳號／語言／feedback 來源測試與既有帳號結果、身分 fences、導覽、Begin／receipt、feedback、import-pending 合跑 237/237 PASS、0 skipped。未改舊 login-reentry 的原錯誤斷言。
+- 7 個新增實際來源 API 測試 PASS：同權限不同帳號、既有 plaintext／scrypt、空白及中越文密碼、管理重設後新密碼登入／舊密碼與舊 session 失效、自改舊密碼核對、stale revision／CAS 競態、新增／更名／停啟用／軟刪與代碼保留、同級／primary／同源及輸出不洩漏秘密。只在 memory SQL/R2 使用 generated credentials；不是 phung／Frank 的真實密碼或站台操作。登入只更新合成限流表，不重寫帳號。
+- 測試開發時曾把「DEMO 不可重設普通帳號」當預期，實際 200；核對既有規格／測試後發現這不是已確認規則（既有 DEMO negatives 是同級／primary）。移除未經確認的預期，沒有放寬產品守衛或隱藏已確認需求失敗。現行 DEMO ADMIN 可管理普通帳號的政策需要另行決定；本輪不改這項業務規則，也不操作任何真帳號。
+- 此批只改 SPA 訊息呈現及 cache，另增來源測試到原 Windows CI，保留原所有檢查與失敗傳播。原 CRLF 保留，JS syntax／明確 cr-at-eol diff check PASS。完整 lint/type/build、舊需 TypeScript 依賴的 login-reentry runner、native browser／Windows CI／實體 IME／實站 NOT_RUN。先前正常 build 的 SOURCE_SYMLINK_REFUSED 未重試；沒有恢復依賴連結、跳過安裝或換 checkout。
+
+## 四項未完成政策：已重現的相依與決策界線
+
+診斷腳本保留全部十個原斷言，仍以 exit 1 回報四個 FAIL，另附合成移轉與 scope 證據，不能用其餘測試通過消除它們：
+
+| 原始差距 | 實際來源證據 | 下一個具體條件 |
+| --- | --- | --- |
+| 舊審核不得升為版本平台確認 | 現行 legacy fallback 即可使 approval.approve=true；實際 prepareAccessMigration 將只有舊 approval 檢視／approve/reject 的合成角色寫成同名 saved approval.approve=true，metadata 只有 mappingVersion=2／credentialHashing，無逐格新高階授權來源 | 不能把既有勾選當新高階權。整合者需選定可核對的新高階授權／遷移表示，產生逐角色及覆寫 before/after；實際帳號授權由使用者決定 |
+| 舊模組審核者應得送審／撤回 | 同合成角色移轉後 bom.submit／withdraw 仍 false；其餘 12 個現有 submit modules 亦 FAIL | 依已確認的「先獨立草稿再對應權限」順序，先固定新 module/scope manifest，再預覽映射，保留既有 denies／歷史及不升高階 |
+| 高階確認包含模組送審／撤回 | 明確 high fixture 已有模組 view，但 12 個模組的 submit／withdraw 仍 false | 與新高階表示、獨立 scope、UI 派生能力和後端一起整合；不得因 high 順帶開未授查看或其他 create/delete/restore |
+| 發回／撤回為同待審功能 | 同案件 withdraw-only actor 撤回200、return403；kernel 按 action 取權，route operation receipt GET 亦按原 action，routine-FQC 還有外層 receipt gate，角色與個人矩陣仍各有獨立格 | 同批同步有效授權、來源頁／版本平台 capability、receipt lookup、kernel 和 routine outer receipt；舊收據／歷史保留，禁止只改一處來掩蓋不一致 |
+
+這些是明確整合相依，故沒有在這個 main-based 分支先行改動 runtime 審核／撤回語意。已核對 GitHub main 仍 d4ac309。開啟的 [#99](https://github.com/franktsai0421/process-os-sites/pull/99)（83dcd5c，PR 描述）明示未含權限模組調整或草稿資料切換，另一拆分候選採 LINES 整頁草稿但尚待資料／權限與 PROCESS link 適配。實際 moduleForURL('?view=data&dataTab=line-admin')=lines，舊 '/api/master/workflow?scope=AB'=ab，而 scope=LINES=null；不能宣稱該相依已整合。此工作沒有操作其他工作樹。
+
+可交付內容已具體固定在本地 commits，沒有 GitHub mutation。原主要整合來源 upload 仍 UNCERTAIN（缺完整結果／manifest），既有來源傳送拒絕 BLOCKED 原樣保留，未重送、拆分傳送或換路。發布／合併及真帳號重設不在這批實作結果內；帳號與權限合併仍交使用者決定。

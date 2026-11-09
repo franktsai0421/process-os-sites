@@ -1,3 +1,7 @@
+## 2026-11-09 — Login language and policy dependencies
+
+SPA login hints/errors now follow the selected Chinese/Vietnamese language while internal error codes and reentry/unknown guards remain. Actual source-only account tests cover reset→fresh login, revocation, CAS and lifecycle with generated credentials. [Tests and four unresolved policy dependencies](docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸). Main remains d4ac309; #99 explicitly does not integrate draft/permission splitting. No upload, true-account mutation or build retry.
+
 ## 2026-11-09 — Feedback permission candidate
 
 All enabled accounts can view helper feedback; explicit edit/exchange grants drive non-admin controls and server operations. Delegated exports use reviewed safe projections and own approved handoffs; original-image ACL and primary-only deletion stay enforced. [Source-level verification and release limits](docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作). No live account change, build retry, upload or deployment. Four policy diagnostics remain failing.
