@@ -31,6 +31,7 @@ function assertPredecessor(bytes,file){
 }
 function assertIndexSuccessor(bytes,before,file,editorSource){
   raw(bytes);raw(before);assert.equal(file,contract.index,'Routine cache proof wrong file');
+  bytes=require('./background-check-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(hash(before),contract.indexBeforeHash,'Routine cache predecessor differs from merged main');
   if(bytes.includes(Buffer.from('editor-line-selection.js?v=20261109-projected-count1'))){const count=require('./editor-count-source-contract.cjs');try{bytes=count.projectIndex(bytes,editorSource??editorCountSource(path.resolve(__dirname,'..')));}catch(error){assert.fail('Routine cache successor must change only its own exact tag; count layer: '+error.message);}}
   const marker=Buffer.from(contract.oldTag),next=Buffer.from(contract.newTag),offset=before.indexOf(marker);

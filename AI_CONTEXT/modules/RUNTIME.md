@@ -1,3 +1,7 @@
+## 2026-11-09 Background check retirement candidate
+
+Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.
+
 ## 2026-11-06 — Role-template layout candidate
 
 The account matrix uses responsive columns and explicit extra-operation descriptions; constrained role workspaces place the role list above the matrix and short dialogs use one body scroll region (CSS `20261106-role-layout2`); empty disclosures become explanations while cells, overrides and write semantics remain. [Evidence and readonly permission mapping](../../docs/acceptance/role-template-layout-20261106/README.md). Source-only candidate; no role/account or authorization-policy changes, merge or deployment.
