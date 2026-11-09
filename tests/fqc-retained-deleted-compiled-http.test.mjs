@@ -30,7 +30,9 @@ async function compiledFixture(h,{allowDelete=true}={}){
  const native=await createRootEntryFixture({syntheticBindings:{PROCESS_IMPORT_ENABLED:'0',PROCESS_SESSION_SECRET:h.f.env.PROCESS_SESSION_SECRET}});
  try{
   for(const sql of fs.readFileSync(new URL('../scripts/session-revocation-schema.sql',import.meta.url),'utf8').replace(/^--.*$/gm,'').split(';').map(value=>value.trim()).filter(value=>/^CREATE (?:TABLE|INDEX) /.test(value)))await native.db.prepare(sql).run();
-  await native.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,?,?,?)').bind(state.revision,JSON.stringify(values),'synthetic').run();
+  const bucket=await native.mf.getR2Bucket('STATE_ARCHIVE');
+  const encoded=await h.f.records.encodeRecordValues(bucket,values);
+  await native.db.prepare('INSERT INTO shared_state(id,revision,"values",updated_at) VALUES(1,?,?,?)').bind(state.revision,encoded,'synthetic').run();
   const origin=native.url.origin,requests=[];
   const dispatch=(url,options={})=>{
    requests.push({url:String(url),method:options.method||'GET',body:options.body});
@@ -48,6 +50,16 @@ async function readWorkflow(compiled){
  const response=await compiled.dispatch('/api/fqc/workflow?caseMetadata=1');
  assert.equal(response.status,200);
  return(await response.json()).control;
+}
+
+// Storage oracle only: use the production decoder with full/default hydration.
+// The public workflow response intentionally hides saves; do not alter that API.
+async function readStoredFqc(h,compiled){
+ const row=await compiled.db.prepare('SELECT "values" FROM shared_state WHERE id=1').first();
+ assert(row);
+ const bucket=await compiled.mf.getR2Bucket('STATE_ARCHIVE');
+ const decoded=await h.f.records.decodeRecordValues(bucket,JSON.parse(row.values));
+ return JSON.parse(decoded.values.qualityMasterControl).libraries.fqc;
 }
 
 void test('compiled FQC actual comparison/Mine keeps final tombstone, local payload and peer independent fields in one POST',async()=>{
@@ -84,6 +96,10 @@ void test('compiled FQC actual comparison/Mine keeps final tombstone, local payl
   assert.equal(saved.errors.find(error=>error.id==='independent').name,'Compiled independent local error');
   assert.equal(after.workflow.revision,before.workflow.revision+1);
   assert.equal(after.workflow.saved.id,result.receipt.savedId);
+  const stored=await readStoredFqc(h,compiled);
+  assert.deepEqual(stored.workflow.saves.find(save=>save.id===before.workflow.saved.id),before.workflow.saved,'compiled Save must not mutate the old immutable saved snapshot');
+  assert.equal(stored.workflow.saved.id,result.receipt.savedId);
+  assert.deepEqual(stored.workflow.saved.content,saved);
   assert.equal(h.ui.c.__fqcTest.transport().hasUnknown(),false);
   console.log(JSON.stringify({execution:'compiled-Miniflare-HTTP',case:'fqc-retain-deleted-mine',programCommit:compiled.programCommit,buildEntrySha256:compiled.buildEntrySha256,posts:h.posts().length,browser:false,nativeUI:false}));
  }finally{await compiled?.close();h.close();}
