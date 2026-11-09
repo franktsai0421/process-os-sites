@@ -457,23 +457,30 @@
     if(!saveEqual(local.filter(row=>common.has(row.id)).map(row=>row.id),peer.filter(row=>common.has(row.id)).map(row=>row.id)))return null;
     const changes=[];
     for(const old of before)if(!local.some(row=>row.id===old.id)){const current=peer.find(row=>row.id===old.id);if(current)changes.push({id:old.id,value:null,conflict:!saveEqual(current,old),originals});}
-    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});}
+    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;
+      // Only name/note metadata may split. Image identity (id/src), MIME and
+      // unknown fields remain a whole record whenever either side changes them.
+      const keys=new Set([...Object.keys(old||{}),...Object.keys(row),...Object.keys(current||{})]);
+      if(old&&current&&typeof old.src==='string'&&old.src===row.src&&old.src===current.src&&![...keys].some(key=>!['id','src','name','note'].includes(key)&&(!saveEqual(old[key],row[key])||!saveEqual(old[key],current[key])))){
+        for(const field of ['name','note'])if(!saveEqual(old[field],row[field])&&!saveEqual(current[field],row[field]))changes.push({id:row.id,value:row,fields:[field],conflict:!saveEqual(old[field],current[field]),originals});
+      }else changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});
+    }
     return changes;
   }
   function applyPhotoChange(rows,change){
     const index=rows.findIndex(row=>row.id===change.id);if(change.value===null){if(index>=0)rows.splice(index,1);return;}
-    if(index>=0){rows[index]=clone(change.value);return;}
+    if(index>=0){if(change.fields){for(const field of change.fields){if(Object.hasOwn(change.value,field))rows[index][field]=clone(change.value[field]);else delete rows[index][field];}}else rows[index]=clone(change.value);return;}
     const originalIndex=change.originals.indexOf(change.id);if(originalIndex<0){rows.push(clone(change.value));return;}
     const later=new Set(change.originals.slice(originalIndex+1)),originals=new Set(change.originals),position=rows.findIndex(row=>later.has(row.id)||!originals.has(row.id));rows.splice(position<0?rows.length:position,0,clone(change.value));
   }
   function compareLocalSave(base,local,latest){
-    const units=[],conflicts=new Map(),revivals=new Map();
+    const units=[],conflicts=new Map(),revivals=new Map(),retained=new Map();
     const conflict=(unit,key,label,unsupported=false)=>{unit.conflict=key;const old=conflicts.get(key);conflicts.set(key,{label,unsupported:unsupported||old?.unsupported});};
     const add=(kind,row,fields,insert=false)=>{const unit={kind,id:row.id,fields,insert,row};units.push(unit);return unit;};
     for(const kind of ['errors','items'])for(const row of local[kind]){
       const before=base[kind].find(r=>r.id===row.id),peer=latest[kind].find(r=>r.id===row.id),label=row.name||row.id;
       if(!before){const unit=add(kind,row,[],true);if(peer){if(saveEqual(peer,row)){unit.same=true;continue;}conflict(unit,kind+':'+row.id+':identity',label+' · '+(isVi()?'Mã đã tồn tại':'同識別項目已存在'),true);}continue;}
-      if(row.isDeleted&&(!peer||peer.isDeleted)){
+      if(row.isDeleted&&!peer){
         const payload=sharedFields[kind].filter(field=>field!=='isDeleted'&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
         if(payload.some(field=>!peer||!saveEqual(row[field],peer[field]))){const unit=add(kind,row,payload);conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa; thay đổi nội dung cần kiểm tra':'已刪除；內容修改需重新核對'),true);}
         continue;
@@ -481,15 +488,16 @@
       const touched=sharedFields[kind].filter(field=>!['productCodes','productRefs','products'].includes(field)&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
       const groups=[];for(const field of touched){const group=saveFieldGroups.find(g=>g.includes(field))||[field];if(!groups.includes(group)&&!groups.some(g=>g.length===1&&g[0]===field))groups.push(group);}
       for(const fields of groups){
+        if(row.isDeleted&&peer?.isDeleted&&fields.every(field=>saveEqual(row[field],peer[field])))continue;
         const photos=fields.length===1&&fields[0]==='mediaItems'&&peer?photoChanges(before.mediaItems,row.mediaItems,peer.mediaItems):null;
-        if(photos){if(peer.isDeleted&&!photos.length)photos.push({id:null,value:null,originals:[],noop:true});for(const photo of photos){const unit=add(kind,row,fields);unit.photo=photo;
-          if(peer.isDeleted){revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa ở bản chung':'對方已刪除'));}
-          else if(photo.conflict)conflict(unit,kind+':'+row.id+':mediaItems:'+photo.id,label+' · '+(photo.value?.name||photo.id));
+        if(photos){if(peer.isDeleted&&!row.isDeleted&&!photos.length)photos.push({id:null,value:null,originals:[],noop:true});for(const photo of photos){const unit=add(kind,row,fields);unit.photo=photo;
+          if(peer.isDeleted){if(row.isDeleted){retained.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});unit.keepDeleted=true;}else revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa ở bản chung':'對方已刪除'));}
+          else if(photo.conflict)conflict(unit,kind+':'+row.id+':mediaItems:'+photo.id+':'+(photo.fields?.join('/')||'record'),label+' · '+(photo.value?.name||photo.id)+(photo.fields?' · '+photo.fields.join(' / '):''));
         }continue;}
         const unit=add(kind,row,fields),value=r=>Object.fromEntries(fields.map(f=>[f,r?.[f]]));
         if(!peer||peer.isDeleted){
           if(peer?.isDeleted&&fields.length===1&&fields[0]==='isDeleted'&&row.isDeleted===true){unit.same=true;continue;}
-          if(peer?.isDeleted)revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});
+          if(peer?.isDeleted){if(row.isDeleted){retained.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});unit.keepDeleted=true;}else revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});}
           conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa ở bản chung':'對方已刪除'),!peer);continue;
         }
         if(saveEqual(value(peer),value(row))){unit.same=true;continue;}
@@ -510,19 +518,21 @@
       revivals.set('errors:'+parent.id,{collection:'errors',id:parent.id,tombstone:clone(parent)});unit.same=false;conflict(unit,'items:'+unit.id+':removed',(unit.row.name||unit.id)+' · '+(isVi()?'Mục lỗi cha đã bị xóa':'所屬錯誤代碼已刪除'));
     }
     function materialize(choice,check=true){
-      const next=clone(latest),patches=[],guards=[],matrixCells=[],reviveRows=[],photoTouched=new Set();
+      const next=clone(latest),patches=[],guards=[],matrixCells=[],reviveRows=[],retainDeletedRows=[],photoTouched=new Set();
+      if(choice==='mine')for(const keep of retained.values())retainDeletedRows.push(clone(keep));
       if(choice==='mine')for(const revive of revivals.values()){next[revive.collection].find(row=>row.id===revive.id).isDeleted=false;reviveRows.push(clone(revive));}
       for(const unit of units){if(unit.same||choice==='theirs'&&unit.conflict)continue;
         if(check&&unit.conflict&&conflicts.get(unit.conflict).unsupported)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');
         if(unit.cell){const row=next.items.find(r=>r.id===unit.id&&!r.isDeleted);if(!row){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}const codes=new Set(row.productCodes||[]);if(unit.cell.value)codes.add(unit.cell.productCode);else codes.delete(unit.cell.productCode);matrixCells.push({...unit.cell,base:(latest.items.find(r=>r.id===unit.id)?.productCodes||[]).includes(unit.cell.productCode)});row.productCodes=[...codes];continue;}
         if(unit.insert){if(next[unit.kind].some(r=>r.id===unit.id)){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}next[unit.kind].push(clone(unit.row));patches.push({op:'insert',path:[unit.kind],value:clone(unit.row)});continue;}
-        const row=next[unit.kind].find(r=>r.id===unit.id&&!r.isDeleted);if(!row){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}
+        const row=next[unit.kind].find(r=>r.id===unit.id&&(!r.isDeleted||unit.keepDeleted));if(!row){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}
         if(unit.photo){if(!unit.photo.noop){applyPhotoChange(row.mediaItems,unit.photo);photoTouched.add(unit.id);}continue;}
         for(const field of unit.fields)if(unit.row[field]!==undefined&&!saveEqual(row[field],unit.row[field])){const path=[unit.kind,{id:unit.id},field];guards.push({path,value:row[field]});patches.push({op:'set',path,value:clone(unit.row[field])});row[field]=clone(unit.row[field]);}
       }
       for(const id of photoTouched){const row=next.items.find(value=>value.id===id),before=latest.items.find(value=>value.id===id);if(!saveEqual(row.mediaItems,before.mediaItems)){const path=['items',{id},'mediaItems'];guards.push({path,value:clone(before.mediaItems)});patches.push({op:'set',path,value:clone(row.mediaItems)});}}
+      for(const keep of retainDeletedRows){const path=[keep.collection,{id:keep.id},'isDeleted'];patches.push({op:'set',path,value:true});guards.push({path,value:true},{path:[keep.collection,{id:keep.id}],value:clone(keep.tombstone)});}
       if(check)for(const item of next.items.filter(r=>!r.isDeleted)){const parent=next.errors.find(r=>r.id===item.errorId&&!r.isDeleted);if(!parent||parent.category!==item.category)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');}
-      return {snapshot:next,detail:{moduleAction:'save-local-v1',patches,guards,input:{matrixCells,...(reviveRows.length?{reviveRows}:{})}}};
+      return {snapshot:next,detail:{moduleAction:'save-local-v1',patches,guards,input:{matrixCells,...(reviveRows.length?{reviveRows}:{}),...(retainDeletedRows.length?{retainDeletedRows}:{})}}};
     }
     // A local parent removal must not silently remove a peer's new child. A
     // child referencing a removed parent cannot invent restoration of that row.
@@ -534,9 +544,9 @@
     }
     return {conflicts:[...conflicts.values()],materialize};
   }
-  function chooseSaveConflicts(conflicts,attempt){
+  function chooseSaveConflicts(conflicts,attempt,omittedMatrix=[]){
     return new Promise(resolve=>{
-      const overlay=modal(`<h2 id="fqc-save-choice-title">${isVi()?'Chọn cách xử lý xung đột':'選擇衝突處理方式'}</h2><p>${isVi()?'Áp dụng một lựa chọn cho tất cả xung đột. Các thay đổi không xung đột vẫn được giữ.':'一次處理所有衝突，沒有衝突的雙方修改都會保留。'}</p><ul>${conflicts.map(c=>`<li>${h(c.label)}${c.unsupported?' · '+h(isVi()?'Cần kiểm tra cấu trúc; không tự khôi phục':'結構需重新核對，不會自動復原'):''}</li>`).join('')}</ul><div class="fqc-modal-actions"><button type="button" class="button" data-fqc-save-choice="mine">${isVi()?'Dùng của tôi':'用我的'}</button><button type="button" class="button" data-fqc-save-choice="theirs">${isVi()?'Dùng của người khác':'用對方的'}</button><button type="button" class="button ghost" data-fqc-save-choice="cancel">${isVi()?'Hủy':'取消'}</button></div>`);
+      const overlay=modal(`<h2 id="fqc-save-choice-title">${isVi()?'Chọn cách xử lý xung đột':'選擇衝突處理方式'}</h2><p>${isVi()?'Áp dụng một lựa chọn cho tất cả xung đột. Các thay đổi không xung đột vẫn được giữ.':'一次處理所有衝突，沒有衝突的雙方修改都會保留。'}</p>${omittedMatrix.length?`<p data-fqc-deleted-matrix-warning role="note">${isVi()?'Không áp dụng thay đổi ma trận sản phẩm cục bộ của mục đã xóa trong lần lưu này. “Dùng của tôi” giữ trạng thái xóa cuối và nội dung, không lưu các lựa chọn ma trận này:':'本次不套用已刪除項目的本機產品矩陣變更。「用我的」會保留最終刪除與內容，不會保存這些矩陣選取：'} ${h(omittedMatrix.join('、'))}</p>`:''}<ul>${conflicts.map(c=>`<li>${h(c.label)}${c.unsupported?' · '+h(isVi()?'Cần kiểm tra cấu trúc; không tự khôi phục':'結構需重新核對，不會自動復原'):''}</li>`).join('')}</ul><div class="fqc-modal-actions"><button type="button" class="button" data-fqc-save-choice="mine">${isVi()?'Dùng của tôi':'用我的'}</button><button type="button" class="button" data-fqc-save-choice="theirs">${isVi()?'Dùng của người khác':'用對方的'}</button><button type="button" class="button ghost" data-fqc-save-choice="cancel">${isVi()?'Hủy':'取消'}</button></div>`);
       overlay.querySelector('[role="dialog"]')?.setAttribute('aria-labelledby','fqc-save-choice-title');
       const opener=document.activeElement;let done=false;
       const finish=choice=>{if(done)return;done=true;document.removeEventListener('keydown',key,true);overlay.remove();if(!document.querySelector('.fqc-modal-overlay'))document.body.classList.remove('fqc-modal-open');if(attempt.close===close)attempt.close=null;if(opener?.isConnected)opener.focus();resolve(choice);};
@@ -580,7 +590,8 @@
     while(true){
       flow=evidence.result.control.workflow;latest=saveReadSnapshot(evidence.result);
       if((flow?.generation??null)!==(generation??null)||!evidence.result.control.versions.some(v=>v.id===versionId&&v.status==='draft'))throw Error('STALE_GENERATION');
-      const compared=compareLocalSave(base,snapshot,latest),choice=compared.conflicts.length?await chooseSaveConflicts(compared.conflicts,attempt):'mine';
+      const omittedMatrix=snapshot.items.filter(row=>row.isDeleted&&(matrixBatch?.rows.get(row.id)?.changed.size||base.items.some(before=>before.id===row.id&&['productCodes','productRefs','products'].some(field=>!saveEqual(before[field],row[field]))))).map(row=>row.name||row.checkNo||row.id);
+      const compared=compareLocalSave(base,snapshot,latest),choice=compared.conflicts.length?await chooseSaveConflicts(compared.conflicts,attempt,omittedMatrix):'mine';
       if(choice==='cancel')return false;
       if(!current())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
       if(compared.conflicts.length){
@@ -600,7 +611,8 @@
       if(evidence.result.control.workflow?.generation!==begun.receipt.generation||!saveEqual(saveReadSnapshot(evidence.result),latest))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     }
     if(!current())throw Error('FQC_OPERATION_CONTEXT_CHANGED');
-    if(chosen.detail.input.reviveRows)chosen.detail.input.draftVersionId=evidence.result.control.versions.find(version=>version.status==='draft').id;
+    if(chosen.detail.input.retainDeletedRows&&evidence.result.permissions?.delete!==true)throw Error('FORBIDDEN');
+    if(chosen.detail.input.reviveRows||chosen.detail.input.retainDeletedRows)chosen.detail.input.draftVersionId=evidence.result.control.versions.find(version=>version.status==='draft').id;
     if(rejection){if(!client.discardRejectedLocalSave(rejection.command))throw Error('CONFIRMED_REJECTION_REQUIRED');localRejection=null;rejection=null;}
     // Clearing a proven rejection is not a new comparison. The original local
     // base and intent stay in RAM until this exact Save is acknowledged.
