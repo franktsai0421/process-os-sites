@@ -1,3 +1,7 @@
+## 2026-11-09 — Routine FQC explicit generation candidate
+
+Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
+
 # 2026-11-06 — Role-template layout candidate
 
 UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained. V41 follow-up adds workspace-width role placement and short-dialog scrolling; expanded full-page evidence retains the separate Windows visibility CI gate. No permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.

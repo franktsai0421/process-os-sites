@@ -130,7 +130,7 @@ void test('changed persistent-navigation executable references have coherent new
   'process-authoring-v3.js':'20261104-begin-receipt1',
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261108-equipment-ci-recovery1',
-  'routine-fqc.js':'20261103-simple-departure1',
+  'routine-fqc.js':'20261108-manual-generate2',
   'access-event-reporter.js':'20261106-access-offline3',
   'shared-draft-client.js':'20261108-equipment-ci-recovery1',
   'shared-state.js':'20261106-access-offline1',
