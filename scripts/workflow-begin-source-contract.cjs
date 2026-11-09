@@ -149,12 +149,17 @@ function historicalBeginSource(bytes,file){
 }
 function withoutDurableBegin(bytes,file){
  assert(Buffer.isBuffer(bytes),'Begin-v1 projection requires raw source bytes');
+ // Exact outer union only; unknown edits remain unprojected and fail below.
+ bytes=require('./unified-draft-source-contract.cjs').project(bytes,file,'main');
  // Only the exact reviewed C GET successor is normalized here, so direct
  // Begin callers and the Local Save chain share one inverse entry.
  if(file==='app/api/ipqc-c/workflow/route.ts'){
   const readIO=require('./ipqc-c-read-io-source-contract.cjs');
   if(hash(bytes)===readIO.afterHash)bytes=readIO.withoutWorkflowReadAhead(bytes);
  }
+ // Retain the independently verified BOM successor chain before old pins.
+ bytes=require('./bom-main-integration-source-contract.cjs').project(bytes,file,'bom');
+ bytes=require('./bom-successor-source-contract.cjs').projectBomSuccessor(bytes,file);
  bytes=require('./access-event-source-contract.cjs').withoutAccessEventMetadata(bytes,file);
  // Keep the exact reviewed BOM-only source as its own historical input;
  // integrated source still requires its separate exact union hash above.

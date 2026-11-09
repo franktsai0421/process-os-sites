@@ -28,6 +28,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint -- --format unix
       - run: npx tsc --noEmit --incremental false
+      - name: Exact unified source and predecessor proofs
+        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs tests/access-event-main-integration.test.cjs tests/bom-main-integration-source-contract.test.cjs tests/bom-successor-source-contract.test.cjs tests/bom-unsent-source-contract.test.cjs tests/equipment-save-choice-source.test.cjs tests/routine-fqc-source-contract.test.cjs tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs
       - name: Global decisions and pre-dispatch authority
         run: >-
           node --test --test-concurrency=2
