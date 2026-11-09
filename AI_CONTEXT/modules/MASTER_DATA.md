@@ -1,3 +1,7 @@
+## 2026-11-09 — 主資料全組衝突候選
+
+master-shared-client 的 AB/C 與 PROCESS 明確 Save 以固定原本機基準、原 ordered journal 的最終意圖與最新 working 三方比較；穩定 ID 保留其他記錄及欄位，結構與排序也是同一全組選擇。選後讀到新 revision 時重比，命令帶 expectedRevision 與逐 patch guards，server 仍驗證資料／權限／引用。PROCESS 成功收據只退休原 sent prefix，後續輸入以接受的 predispatch merged snapshot 為基準，不使用較晚 readback 冒充原操作內容。主資料及 IPQC 引用區不定時讀取。線別工段仍共用 AB/C scope；未啟用 split-v1 或遷移資料。[候選與驗收](../../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
+
 ## 2026-11-09 — AB/C 顯示欄位存取衝突首批
 
 明確 Save 前讀取權威版本，既有產品名稱／規格／單位與線別／工段名稱的整批衝突只選一次用我的／對方；非衝突保留，取消不 POST。選擇結果仍帶觀察值 guards，未知結果不重送。混入類別、路線、增刪或排序的整批維持原 guards，沒有自動恢復已刪資料。線別工段仍共用 AB/C，PROCESS 仍原 scope；此批沒有草稿分拆或取消輪詢整合。[候選與限制](../../docs/acceptance/abc-field-save-choice-20261109/README.md)。

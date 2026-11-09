@@ -1,3 +1,7 @@
+## 2026-11-09 — 全業務草稿整組衝突本機候選
+
+各草稿頁面採 Save-time 三方比較、整組 mine/theirs/cancel、無衝突保留及選後換版重比；共同傳輸保留原收據／UNKNOWN／世代／權限／CAS。例行 FQC private Apply + Save 在同一 CAS 保存原命令收據；IPQC A/B 增加 optional coldOrigin lineage metadata（無 SQL migration），C 照片按穩定 ID／順序處理。頁面所有權分拆、遠端上傳與實站驗收未完成。[逐頁界線與證據](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
+
 ## 2026-11-09 — AB/C existing-field conflict choice candidate
 
 Adds one Save-time mine/theirs/cancel dialog for batches of existing product

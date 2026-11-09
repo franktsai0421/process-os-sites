@@ -1,0 +1,46 @@
+name: Unified draft Save choices
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: unified-draft-choices-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  unified-draft-choices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: npx tsc --noEmit --incremental false
+      - name: Global decisions and pre-dispatch authority
+        run: >-
+          node --test --test-concurrency=2
+          tests/master-save-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
+          tests/quality-comparison-callback-owner.test.mjs
+          tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs tests/fqc-compared-save-client.test.mjs
+          tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
+          tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
+          tests/ipqc-c-save-choices-actual-stack.test.mjs tests/ipqc-c-structural-save-actual-stack.test.mjs
+          tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs
+          tests/equipment-save-choice.test.mjs tests/canvas-save-conflict-choice.test.mjs
+          tests/tooling-global-save-choice.test.mjs tests/routine-fqc-durable-route.test.mjs
+      - name: Draft entry and timer removal
+        run: node --test tests/master-explicit-refresh.test.mjs tests/quality-master-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs
+      - run: npm run sites:source-check
+      - run: npm run build

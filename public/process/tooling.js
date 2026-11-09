@@ -90,7 +90,7 @@
   add('p',t('Giữ mọi thay đổi không xung đột. Lựa chọn sẽ tiếp tục lưu; hủy không lưu.','非衝突修改完整保留。選擇後繼續儲存；取消不儲存。'));
   for(const c of conflicts){const section=add('section','');add('h3',c.path.map(p=>typeof p==='string'?p:p.id).join(' / '),section);for(const [label,value]of [[t('Của tôi','我的內容'),c.mine],[t('Của người khác','對方內容'),c.latest]]){add('h4',label,section);add('pre',JSON.stringify(value,null,2)??t('Đã xóa','已移除'),section);}}
   const actions=add('div','');actions.className='pe-review-actions';
-  let answer=null;for(const [value,label]of [['mine',t('Dùng tất cả của tôi','全部採用我的')],['latest',t('Dùng tất cả của người khác','全部採用對方的')],[null,t('Hủy','取消')]]){const b=add('button',label,actions);b.type='button';b.dataset.conflictChoice=value||'cancel';b.onclick=()=>{answer=value;d.close();};}
+  let answer=null;for(const [value,label]of [['mine',t('Dùng của tôi','用我的')],['latest',t('Dùng của người khác','用對方的')],[null,t('Hủy','取消')]]){const b=add('button',label,actions);b.type='button';b.dataset.conflictChoice=value||'cancel';b.onclick=()=>{answer=value;d.close();};}
   d.onclose=()=>{d.remove();resolve(answer);};document.body.append(d);d.showModal();
  });}
  async function prepareLocalSave(){

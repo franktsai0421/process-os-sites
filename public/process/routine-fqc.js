@@ -1395,9 +1395,9 @@
     const value=(content,path)=>content===null?t('已移除','Đã xóa'):Array.isArray(content)&&['photos','evidence'].includes(path.at(-1))?content.length+' '+t('張照片','ảnh'):typeof content==='object'&&!Array.isArray(content)?[content.samples?.join(', '),content.outcome,content.value,content.notes].filter(Boolean).join(' · '):Array.isArray(content)?content.join(', '):String(content);
     const result=await dialog(t('儲存衝突','Xung đột khi lưu'),
       `<p>${h(t('以下欄位已被雙方修改。請一次選擇所有衝突使用我的或他人的值；雙方其他修改都會保留並立即儲存。','Các trường sau đã được cả hai bên sửa. Chọn giá trị của tôi hoặc người khác cho mọi xung đột; các thay đổi còn lại của cả hai được giữ và lưu ngay.'))}</p><ul>${conflicts.map(conflict=>`<li><b>${h(label(conflict.path))}</b><p>${h(t('我的','Của tôi'))}: ${h(value(conflict.mine,conflict.path))}</p><p>${h(t('他人的','Của người khác'))}: ${h(value(conflict.theirs,conflict.path))}</p></li>`).join('')}</ul>`,
-      t('使用我的並儲存','Dùng của tôi và lưu'), (el,close)=>{
+      t('用我的','Dùng của tôi'), (el,close)=>{
         const theirs=document.createElement('button');theirs.type='button';theirs.className='rf-btn';theirs.setAttribute('data-rf-conflict-theirs','true');
-        theirs.textContent=t('使用他人的並儲存','Dùng của người khác và lưu');theirs.onclick=()=>close('theirs');el.querySelector('.rf-actions').append(theirs);
+        theirs.textContent=t('用對方的','Dùng của người khác');theirs.onclick=()=>close('theirs');el.querySelector('.rf-actions').append(theirs);
       });
     return result===null?null:result==='theirs'?'theirs':'mine';
   }

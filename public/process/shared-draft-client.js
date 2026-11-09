@@ -827,10 +827,13 @@
     const fqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(fqcFreeze);Object.freeze(value);}return value;};
     function fqcEnabled(){if(!fqcComparedSave)throw Error('FQC_COMPARISON_SCOPE_REQUIRED');}
     function fqcCurrent(entry,allowConsumed=false){
-      fqcEnabled();assertOwner();
-      if(!entry||entry.consumed&&!allowConsumed||entry.observation!==fqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved||entry.current()!==true)throw Error('FQC_SAVE_COMPARISON_RETIRED');
-      if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');
-      return true;
+      fqcEnabled();
+      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==fqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('FQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};
+      assertPin();if(entry.checking){entry.reentered=true;throw Error('FQC_SAVE_COMPARISON_RETIRED');}
+      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}
+      // A caller predicate may synchronously change identity or start another
+      // read. Recheck every private lease field after that callback returns.
+      assertPin();if(!current)throw Error('FQC_SAVE_COMPARISON_RETIRED');return true;
     }
     function fqcEntry(token){const entry=fqcComparisons.get(token);fqcCurrent(entry);return entry;}
     function fqcAdmission(command){
@@ -889,10 +892,13 @@
     const iqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(iqcFreeze);Object.freeze(value);}return value;};
     function iqcEnabled(){if(!iqcComparedSave)throw Error('IQC_COMPARISON_SCOPE_REQUIRED');}
     function iqcCurrent(entry,allowConsumed=false){
-      iqcEnabled();assertOwner();
-      if(!entry||entry.consumed&&!allowConsumed||entry.observation!==iqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved||entry.current()!==true)throw Error('IQC_SAVE_COMPARISON_RETIRED');
-      if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');
-      return true;
+      iqcEnabled();
+      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==iqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('IQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};
+      assertPin();if(entry.checking){entry.reentered=true;throw Error('IQC_SAVE_COMPARISON_RETIRED');}
+      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}
+      // A caller predicate may synchronously change identity or start another
+      // read. Recheck every private lease field after that callback returns.
+      assertPin();if(!current)throw Error('IQC_SAVE_COMPARISON_RETIRED');return true;
     }
     function iqcEntry(token){const entry=iqcComparisons.get(token);iqcCurrent(entry);return entry;}
     function iqcAdmission(command){
