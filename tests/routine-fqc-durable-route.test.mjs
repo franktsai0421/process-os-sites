@@ -24,7 +24,7 @@ const schemaFiles = [
   'drizzle/0003_login_limits.sql',
 ];
 
-async function fixture(t, { withPeer = false } = {}) {
+async function fixture(t, { withPeer = false, productCodes = ['FIXTURE-A'] } = {}) {
   const db = new DatabaseSync(':memory:');
   t.after(() => db.close());
   for (const file of schemaFiles) db.exec(fs.readFileSync(file, 'utf8'));
@@ -98,7 +98,7 @@ async function fixture(t, { withPeer = false } = {}) {
         reviewedAt: today + 'T00:00:00Z',
         snapshot: { errors: [], items: [{
           id: 'fixture-item', name: 'Synthetic weekly check', checkNo: 'SYNTHETIC-1',
-          line: 'A', category: 'QA', isEnabled: true, productCodes: ['FIXTURE-A'],
+          line: 'A', category: 'QA', isEnabled: true, productCodes,
           rule: { cadence: 'time', timeFrequency: 'weekly' },
         }] },
       }],
@@ -564,8 +564,8 @@ void test('actual full routine UI → actual route: independent peer Save is pre
   t.diagnostic('Peer Save race source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
 });
 
-async function rendered(t,kind='report') {
-  const f=await fixture(t,{withPeer:true}),plan=await f.createPlan();let id=plan;
+async function rendered(t,kind='report',options) {
+  const f=await fixture(t,{withPeer:true,...options}),plan=await f.createPlan();let id=plan;
   if(kind==='report') {
     await f.approve(plan);id=(await f.accepted(f.command('create-report',{documentId:plan}))).result.documentId;
     const line=f.document(id).flow.working.lines[0];
@@ -832,4 +832,60 @@ void test('actual painted Update → route CAS race recomputes against latest st
   assert.notEqual(post.body.operationId, peerOperation.operationId);
   assert(f.control().receipts[post.body.operationId]); assert(f.control().receipts[peerOperation.operationId]);
   f.verifyBackups();
+});
+
+for(const choice of ['mine','theirs','cancel'])void test('late Save ACK keeps the original basis of a newer result-cell conflict until explicit '+choice,async t=>{
+ const x=await rendered(t);x.input('[data-field="title"]','first Save title');await x.peer(c=>c.lines[0].results[0].value='peer reading before Save');let edited=false;
+ x.afterPost(body=>{if(!edited&&body.command?.action==='save'){edited=true;x.input('[data-result-field="value"]','new reading typed during Save');}});
+ await x.ui.button('save').click();assert.equal(x.ui.api.s.error,'');assert.equal(x.f.document(x.id).flow.saved.content.lines[0].results[0].value,'peer reading before Save');
+ assert.equal(x.ui.root.querySelector('[data-result-field="value"]').value,'new reading typed during Save');
+ assert.equal(x.ui.api.s.bases.get(x.id).lines[0].results[0].value,'base value','the ACK cannot relabel unseen peer content as the basis of a newer local edit');
+ const before=x.f.persisted(),arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await Promise.race([arriving,running.then(()=>null)]);assert(dialog,'the next explicit Save must show the still-unresolved cell conflict');assert.equal(dialog.querySelectorAll('li').length,1);x.choose(dialog,choice);await running;
+ if(choice==='cancel'){assert.deepEqual(x.f.persisted(),before);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);assert.equal(x.ui.api.s.buffers.get(x.id).lines[0].results[0].value,'new reading typed during Save');return;}
+ assert.equal(x.ui.api.s.error,'');assert.equal(x.f.document(x.id).flow.saved.content.lines[0].results[0].value,choice==='mine'?'new reading typed during Save':'peer reading before Save');assert.equal(x.calls.filter(c=>c.method==='POST').length,2);
+});
+
+for(const choice of ['mine','theirs'])void test('coherent single-sample choice remains one field under '+choice+' while independent row notes survive',async t=>{
+ const x=await rendered(t,'report',{productCodes:['FIXTURE-A','FIXTURE-B']});x.input('[data-field="title"]','local title');const sample=x.ui.root.querySelector('[data-sample="FIXTURE-A"]');assert(sample);sample.checked=true;sample.onchange();
+ await x.peer(c=>{c.lines[0].results[0].samples=['FIXTURE-B'];c.lines[0].results[1].notes='peer independent row';});
+ const arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await arriving;assert.equal(dialog.querySelectorAll('li').length,1);x.choose(dialog,choice);await running;
+ const saved=x.f.document(x.id).flow.saved.content;assert.equal(x.ui.api.s.error,'');assert.deepEqual(clone(saved.lines[0].results[0].samples),[choice==='mine'?'FIXTURE-A':'FIXTURE-B']);assert.equal(saved.lines[0].results[1].notes,'peer independent row');assert.equal(saved.title,'local title');assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+});
+
+void test('late ACK without a true new conflict merges saved peer row/photo additions with newer local input',async t=>{
+ const x=await rendered(t),photo=x.f.stagePhoto('peer late ack retained');x.input('[data-field="title"]','first captured title');await x.peer(c=>{c.lines[0].results[0].photos.push(photo);c.lines[0].results.push({id:'peer-added-before-ack',samples:[],outcome:'',value:'peer row',notes:'',photos:[photo]});});let edited=false;
+ x.afterPost(body=>{if(!edited&&body.command?.action==='save'){edited=true;x.input('[data-field="notes"]','new notes while saving');}});await x.ui.button('save').click();
+ const local=x.ui.api.s.buffers.get(x.id),basis=x.ui.api.s.bases.get(x.id),saved=x.f.document(x.id).flow.saved.content;assert.equal(x.ui.api.s.error,'');assert.equal(local.notes,'new notes while saving');assert.equal(saved.notes,'');assert.deepEqual(clone(basis),clone(saved));assert(local.lines[0].results.some(row=>row.id==='peer-added-before-ack'));assert(local.lines[0].results[0].photos.includes(photo));
+ await x.ui.button('save').click();assert.equal(x.ui.api.s.error,'');assert.equal(x.f.document(x.id).flow.saved.content.notes,'new notes while saving');assert(x.f.document(x.id).flow.saved.content.lines[0].results.some(row=>row.id==='peer-added-before-ack'));assert.equal(x.calls.filter(c=>c.method==='POST').length,2);
+});
+
+void test('existing comparison composes two actual document snapshots under one whole-group preference without page registration or writes',async t=>{
+ const x=await rendered(t),plan=x.f.document(x.id).planId,second=(await x.f.accepted(x.f.command('correct',{documentId:plan,reason:'Synthetic second editable document'}))).result.documentId;await x.f.accepted(x.f.draft(second,'save'));
+ const ids=[x.id,second],base={documents:ids.map(id=>({id,content:clone(x.f.document(id).flow.working)}))},mine=clone(base),minePhoto=x.f.stagePhoto('composition mine'),peerPhoto=x.f.stagePhoto('composition peer');
+ mine.documents[0].content.title='mine report title';mine.documents[0].content.lines[0].results[0].photos.push(minePhoto);mine.documents[0].content.lines[0].results.push({id:'composition-mine-row',samples:[],outcome:'',value:'mine row',notes:'',photos:[minePhoto]});mine.documents[1].content.notes='mine plan notes';mine.documents[1].content.evidence.push(minePhoto);
+ await x.peer(c=>{c.title='peer report title';c.lines[0].results[0].photos.push(peerPhoto);c.lines[0].results.push({id:'composition-peer-row',samples:[],outcome:'',value:'peer row',notes:'',photos:[peerPhoto]});});
+ const flow=x.f.document(second).flow,peer=x.f.draft(second,'save',{moduleAction:'save-local-v1',patches:[{op:'set',path:['notes'],value:'peer plan notes'},{op:'set',path:['evidence'],value:[peerPhoto]}],guards:[{path:['notes'],value:flow.working.notes},{path:['evidence'],value:flow.working.evidence}]});assert.equal((await x.f.post(peer,'peer')).status,200);
+ const remote={documents:ids.map(id=>({id,content:clone(x.f.document(id).flow.working)}))},persisted=x.f.persisted(),input=JSON.stringify({base,mine,remote}),compare=x.ui.api.mergeSaveContent;
+ const initial=compare(base,mine,remote);assert.equal(initial.conflicts.length,2);assert.deepEqual(clone(initial.conflicts.map(conflict=>conflict.path.slice(0,3))),[['documents',{id:x.id},'content'],['documents',{id:second},'content']]);
+ for(const choice of ['mine','theirs']){const whole=compare(base,mine,remote,choice);assert.equal(whole.content.documents[0].content.title,choice==='mine'?'mine report title':'peer report title');assert.equal(whole.content.documents[1].content.notes,choice==='mine'?'mine plan notes':'peer plan notes');const rows=whole.content.documents[0].content.lines[0].results;assert(rows.some(row=>row.id==='composition-mine-row'));assert(rows.some(row=>row.id==='composition-peer-row'));assert.deepEqual(clone(rows[0].photos),[peerPhoto,minePhoto]);assert.deepEqual(clone(whole.content.documents[1].content.evidence),[peerPhoto,minePhoto]);for(let index=0;index<ids.length;index++)assert.deepEqual(clone(whole.content.documents[index].content),clone(compare(base.documents[index].content,mine.documents[index].content,remote.documents[index].content,choice).content));}
+ assert.equal(JSON.stringify({base,mine,remote}),input);assert.deepEqual(x.f.persisted(),persisted);assert.equal(x.calls.length,0,'pure composition does not read, save, submit or register the future whole-page draft');
+});
+
+void test('a late conflict in another cell cannot revive the old mine value after the first Save explicitly chose theirs',async t=>{
+ const x=await rendered(t);x.input('[data-field="title"]','old mine title');await x.peer(c=>{c.title='explicitly chosen peer title';c.lines[0].results[0].value='peer cell before first Save';});let edited=false;
+ x.afterPost(body=>{if(!edited&&body.command?.action==='save'){edited=true;x.input('[data-result-field="value"]','new cell while saving');}});
+ const arriving=x.nextDialog(),first=x.ui.button('save').click(),firstDialog=await arriving;assert.equal(firstDialog.querySelectorAll('li').length,1);x.choose(firstDialog,'theirs');await first;
+ assert.equal(x.ui.api.s.error,'');assert.equal(x.f.document(x.id).flow.saved.content.title,'explicitly chosen peer title');assert.equal(x.ui.api.s.buffers.get(x.id).title,'old mine title');assert.equal(x.ui.api.s.bases.get(x.id).title,'old mine title','unchanged captured mine is not a new local title intent');
+ const secondArriving=x.nextDialog(),second=x.ui.button('save').click(),secondDialog=await secondArriving;assert.equal(secondDialog.querySelectorAll('li').length,1,'only the genuinely new result-cell conflict needs a decision');x.choose(secondDialog,'mine');await second;
+ const saved=x.f.document(x.id).flow.saved.content;assert.equal(x.ui.api.s.error,'');assert.equal(saved.title,'explicitly chosen peer title');assert.equal(saved.lines[0].results[0].value,'new cell while saving');assert.equal(x.calls.filter(c=>c.method==='POST').length,2);
+});
+
+void test('original Save receipt recovery never treats a later peer snapshot as sent or silently reapplies the old mine choice',async t=>{
+ const x=await rendered(t);x.input('[data-field="title"]','old unsent mine title');await x.peer(c=>{c.title='first chosen peer title';c.lines[0].results[0].value='peer first reading';});const inputBasis=clone(x.ui.api.s.bases.get(x.id));let edited=false,lost=true;const fetch=x.ui.box.fetch.bind(x.ui.box);
+ x.afterPost(body=>{if(!edited&&body.command?.action==='save'){edited=true;x.input('[data-result-field="value"]','late local reading');}});
+ x.ui.box.fetch=async(url,options)=>{if(lost&&url.includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});const response=await fetch(url,options);if(lost&&options?.method==='POST')throw Error('Synthetic response lost after known server commit');return response;};
+ const arriving=x.nextDialog(),first=x.ui.button('save').click(),dialog=await arriving;x.choose(dialog,'theirs');await first;const original=x.ui.api.s.retry;assert(original);const operationId=original.operationId,sentSavedId=x.f.control().receipts[operationId].result.savedId,metadata=[...x.ui.store.map];
+ assert.equal(x.f.document(x.id).flow.saved.content.title,'first chosen peer title');await x.peer(c=>{c.lines[0].results[1].notes='later peer Save after the original operation';});const laterSavedId=x.f.document(x.id).flow.saved.id;assert.notEqual(laterSavedId,sentSavedId);assert.deepEqual([...x.ui.store.map],metadata);
+ lost=false;await x.ui.api.act('retry');assert.equal(x.ui.api.s.retry,null);assert.equal(x.calls.filter(c=>c.method==='POST').length,1,'receipt recovery never resends a write');assert.equal(x.f.control().receipts[operationId].result.savedId,sentSavedId);assert.equal(x.ui.api.getData().control.documents.find(d=>d.id===x.id).flow.saved.id,laterSavedId);assert.deepEqual(clone(x.ui.api.s.bases.get(x.id)),inputBasis,'later readback is not relabelled as the basis or content of the original sent Save');
+ const persisted=x.f.persisted(),nextDialog=x.nextDialog(),next=x.ui.button('save').click(),review=await nextDialog;assert(review.querySelectorAll('li').length>=1);x.choose(review,'cancel');await next;assert.deepEqual(x.f.persisted(),persisted);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);assert.equal(x.ui.api.s.buffers.get(x.id).lines[0].results[0].value,'late local reading');
 });
