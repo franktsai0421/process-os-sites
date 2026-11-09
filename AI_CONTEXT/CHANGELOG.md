@@ -1,3 +1,7 @@
+## 2026-11-09 — 模組草稿分界前置候選
+
+主資料頁面所有權預演改以單一 LINES 頁面含 AB/C 分區；catalog 分開、PROCESS 不拆。固定來源完整性並保留全部 legacy root，reserved page selector 在實際 API 進入前拒絕。未提供切換 writer、未遷移或發布，非全頁拆分完成。[範圍與待決](../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

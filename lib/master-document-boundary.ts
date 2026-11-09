@@ -30,6 +30,9 @@ export const masterDocumentDescriptors: readonly MasterDocumentDescriptor[] = Ob
 // An absent selector retains the exact legacy route. A partial, duplicated or
 // unsupported selector must never fall through to a combined AB/C workflow.
 export function parseMasterDocumentSelector(query: URLSearchParams): MasterDocumentDescriptor | null {
+  // Page ownership is still a review-only plan. Never ignore a new caller's
+  // page marker and accidentally dispatch a combined legacy AB/C mutation.
+  if (query.has('page')) throw new DraftConflict('MASTER_DOCUMENT_SELECTOR_INVALID', 422);
   if (!query.has('area') && !query.has('layout')) return null;
   if (['scope', 'area', 'layout'].some(key => query.getAll(key).length !== 1) ||
     query.get('layout') !== 'split-v1') throw new DraftConflict('MASTER_DOCUMENT_SELECTOR_INVALID', 422);
