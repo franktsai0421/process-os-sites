@@ -1,3 +1,7 @@
+## 2026-11-09 #102 遠端讀回與本機衝突處理
+
+原五檔tree e80d87a已完整讀回並逐blob對上，不再把該筆列UNKNOWN；243/R4仍404及UNKNOWN，不重送。已本機合入ee7d4fd，三處衝突保留已測整合與較嚴canonical selector/guard規則，產品runtime無變。實站D1 revision707值仍截斷、無next_offset，無法完成真實pending／approved／照片引用核對。詳細 [續查紀錄](docs/acceptance/module-draft-boundary-20261109.md)。合法完整上傳、精確遠端CI／完整審查及真資料切換仍未完成，未改遠端程式、資料或權限。
+
 ## 2026-11-09 三路語意整合候選（本機，未切換）
 
 #102 已以實際 merge 納入製程 `7e409a0`、統一已核准查看 `a57aa1d`、權限 `ea58111`，並保留本題 `f79c046` 的 master 進階／Excel 操作、例行 FQC 照片 UNKNOWN 防重送與本人發回規則。十三個實際功能頁仍各自擁有草稿／送審；篩選不建立新模組，線別工段只在自己的核准後供其他頁引用。例行 FQC 為整頁 owner。新已核准版本選擇器含 RF 整頁；舊封存最後身分與版本檢查保留。
@@ -216,6 +220,8 @@ Return/reject and withdrawal no longer request self-approval confirmation from t
 ## 2026-11-09 — Account Save capability labels (local candidate)
 
 Account matrices now label existing Edit-implies-Save capabilities in both languages while preserving raw grants and write payloads. Eleven actual workflow GETs agree with the presentation; no account, ACL or data mutation. [Scope and remaining gates](docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No upload or deployment.
+
+#102 追蹤時自查修正未啟用名稱 Save 的貢獻者：同次暫改又改回保留原歸屬，混合真正修改仍正確標記；修正前反例已重現，名稱契約補為 15 組。這是作者自查，尚無獨立 review。與 #100/#101/#88 的直接重疊均為文件；未做跨 PR 合併，也未啟用拆分或變更真資料。各 head CI 與審查以遠端回執為準。
 
 # 2026-11-09 — Process platform stage catalog batch
 

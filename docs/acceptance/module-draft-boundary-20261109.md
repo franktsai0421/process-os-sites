@@ -1,3 +1,13 @@
+## 2026-11-09 #102 遠端衝突與寫入結果續查
+
+本輪唯讀重新查得原五檔 expected tree e80d87a839799d13ea3954cc2f6ade8510bf7129，recursive 回應未截斷，五個路徑／mode／blob SHA 全部對上原 intent。這筆改標為 EXPECTED_TREE_READBACK_CONFIRMED；沒有重送 create_tree，沒有替舊 tree 建 commit 或移動ref。遠端 #102仍是ee7d4fd、main為9fbba823。舊243 expected tree ee1352c與R4 a3dbc76仍404；404不代表未執行，原243 manifest亦未復原。不能證明新完整payload與歷史UNKNOWN／帳號PENDING範圍獨立前，不藉整合重送。
+
+已本機合入遠端ee7d4fd。三處衝突逐項比對：遠端contributor net-change修正及測試已包含於候選，保留候選新增的canonical selector／guard拒絕別名；文件以現行整合矩陣為準，遠端修正紀錄保留。產品runtime不變。此合併使候選同時包含現行main及PR head，但遠端mergeable狀態要等合法更新後才會改變。
+
+實站只讀overview完整，shared_state id1 revision707的values被工具截斷（truncated_values=1，next_offset=null）。不把這筆分頁視為完整資料或備份；十三頁真實pending／approved／media數量與R2引用閉包仍未核對，不能假設沒有待審或照片齊全。保留原DB/R2、舊scope／案件／Save／receipt／照片key與outcome，切換前須完整原樣來源及隔離可驗還原，遇任何pending先維持原owner處理，無新增核准或刪除。
+
+新精確遠端版本的CI及完整審查尚待合法上傳；既有ee7d4fd CI僅證明原前置元件。原獨審內容安全中止仍未重啟或更換reviewer，未合併、啟用或動真資料。
+
 ## 2026-11-09 三路語意整合候選（本機，未切換）
 
 #102 已以實際 merge 納入製程 `7e409a0`、統一已核准查看 `a57aa1d`、權限 `ea58111`，並保留本題 `f79c046` 的 master 進階／Excel 操作、例行 FQC 照片 UNKNOWN 防重送與本人發回規則。十三個實際功能頁仍各自擁有草稿／送審；篩選不建立新模組，線別工段只在自己的核准後供其他頁引用。例行 FQC 為整頁 owner。新已核准版本選擇器含 RF 整頁；舊封存最後身分與版本檢查保留。
