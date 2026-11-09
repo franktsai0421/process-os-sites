@@ -32,10 +32,11 @@
   if(target===sourceStage||!visibleStages().includes(target))return Promise.resolve({status:'unchanged'});
   const navigation=host.ProcessDeliveryNavigation;
   if(!navigation?.guardAction)return Promise.resolve({status:'blocked'});
-  return navigation.guardAction({key:'editor-stage:'+JSON.stringify([sourceKey,target]),label:target,run(){
+  const action={key:'editor-stage:'+JSON.stringify([sourceKey,target]),label:target,run(){
    if(key()!==sourceKey||view()!==sourceView||sourceView.stage!==sourceStage||!visibleStages().includes(target))throw Error('EDITOR_CONTEXT_CHANGED_REOPEN_REQUIRED');
    remember();clearLink();sourceView.stage=target;render();
-  }});
+  }};
+  return host.ProcessAuthoringV3?.enabled?.()&&host.ProcessAuthoringV3.changeCanvasView?host.ProcessAuthoringV3.changeCanvasView(action):navigation.guardAction(action);
  }
  function bind(){resizeObserver?.disconnect();const root=document.querySelector('.pe-editor');if(!root)return;const vp=root.querySelector('.pe-viewport'),v=view(),saved=viewport();vp.scrollLeft=saved.left;vp.scrollTop=saved.top;vp.onscroll=remember;
   root.querySelectorAll('[data-pe-stage]').forEach(b=>b.onclick=()=>{void changeStage(b.dataset.peStage).catch(e=>toast(issueText(e)));});
