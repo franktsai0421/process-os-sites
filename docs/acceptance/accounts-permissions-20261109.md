@@ -295,3 +295,23 @@ remote main 仍沒有 fresh requestValue/load、`load(true)`、native validation
 原 27-file **370/370 source tests PASS** 與完整 source/history/worktree gate（620 commits、5466 blobs、2033 source files）仍精確對應 `d29767e`，這輪未改程式，因此重用而不重跑。全部改動為文字，無新增 binary；來源 gate 沒有真資料或憑證輸出。十份 checked-in workflows 都是 pull_request／contents:read，未找到 deploy commands；外部自動 hosting hooks 未另驗，不宣稱所有外部觸發不存在。正常 build、lint/typecheck、原 TypeScript harness、compiled Windows/browser、實體 IME／裝置及真人登入仍未驗收，不能宣稱可合併或發布。
 
 完整獨立性矩陣、產品 blob 比對、原 turn／patch 識別與缺證據欄位保留在專案外 evidence 的 `account-upload-independence-assessment.json`；不把操作識別或對話來源紀錄當公開程式 payload。已完成的獨立程式工作仍包括三項 UI 續修、合成帳密／CRUD、停用重設邊界與十三頁審核前置碼。接下來可在來源／#102 registry 真正變動時補相容測試、由 #102 owner 接入既有介面，並向原操作持有者核查終端／接收紀錄；不以重跑既有 PASS 或另造新上傳取代缺失證據。現用四項權限 FAIL 仍須等完整接線，真人資料／權限、main 和測試站未動。
+
+
+## #102 e5c3c78 例行 FQC 整頁權限相容接線
+
+接續指定的本機候選 `e5c3c780fac8413ede01809d5fc871ad0477a225`，從該 commit 的原 Git blob 唯讀核對 registry，SHA-256 精確為 `c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7`，與當下 #102 工作檔一致。十三頁中只有 ROUTINE_FQC endpoint 由 `/api/routine-fqc` 改為 **`/api/routine-fqc/page`**，scope 仍 **`routine-fqc:page`**、permissionModule 仍 **`routine`**、stateKey 仍 **`routineFqcControl`**；其餘十二頁不改。帳號分支的 registry fixture 已更新來源 pin，不再把舊 endpoint 當整頁入口。
+
+新的 RF `operationPermissions` 會保留每個原操作實際所需能力。普通 Save 可能另需 create/delete/revise/revoke；domain-v1 的 wire action 雖為 save，其 review receipt 可能真正要求 approve；configure 另需 settings。原 action-only helper 不足以判定這些收據，不能拿它取代 RF 外層守門。
+
+在既有未註冊的 `draft-review-policy.mjs` 增加 `routinePageReceiptAllowed(permissions, owner, operationId, actor)`：只接受新 RF 整頁 endpoint／scope／module 的 metadata，查同一 actor 的 own receipt／own capability ledger，要求目前 view 及全部原能力。return 以相同 correction 權核對；create/delete/revise/revoke/settings 需由 fresh route 原授權另外提供，不由高階確認自動推定。歷史 ledger 中的 ADMIN 要求仍保留，未知／缺少能力、legacy document scope、舊 endpoint、外來 actor 及撤權均拒絕。此函式不改 fingerprint／原 receipt／資料，也不取代 parseRoutinePage、RF assertRoutinePageReceiptAccess、enabled／selector／CAS／identity 或其他較嚴 gate。
+
+定向 **19/19 source cases PASS**（既有權限前置 12、新 RF 相容 7）。RF 測試使用從 pinned commit 原樣擷取的 `assertRoutinePageReceiptAccess` 純函式 snapshot，SHA-256 `312ac31b6be32f641ac9d7ab96154b7c6288d02a0488272250f89a0a0c4e3b9b`；原模組 hash `36a8132ff7f9a5dd3e02f0b1a12a4c10364f1a98982fe878a9d9664d8e065cfb` 保留於 fixture provenance。僅該無 import 的純函式透過 Node 內建 TS stripping／VM 執行，再與新 helper 比對；**不是執行完整 RF module／HTTP route、build、Windows 或實站**，沒有放寬既有 same-checkout worker-source loader，也沒有換 checkout／executor 避開 guard。額外測 metadata／scope、原操作附加能力、domain receipt、不改原資料、撤權與 own-property 保護；測試列入既有 Local safety source 命令。
+
+### #102 仍需共同修正的本人發回差距
+
+唯讀檢查同一 e5c3c78 發現兩層尚未採入帳號分支既定政策，不能把 endpoint 對齊當作四項規則已完成：
+
+- `lib/routine-fqc-page.ts` 第 186 行把 approve／return 同列，對本人案件要求 ctx.actor.admin；第 199 行也對本人 return 的新 receipt 追加 admin 能力。依已確認「發回／撤回同待審修正」規則，新 return 的本人額外 ADMIN 應與 withdraw 協調，而核准保留本人的較嚴確認。舊 ledger 不可直接刪 admin 重寫歷史；新操作規則與舊 receipt replay 分開。
+- 該候選 `lib/shared-draft.ts` 的 selfReview 仍為 action !== withdraw，會要求本人 return 的 selfReviewConfirmed。帳號分支已在既有 8b1e471 改為只有 approve；#102 合樹需保留這個修正及本人核准保護，不整檔覆蓋任一方。
+
+本輪沒有直接改 #102 的 active writer，也沒有在帳號分支複製整個 RF backend 或啟用 runtime policy。交付的 helper 可在 #102 合樹後，以 fresh route 原 domain capabilities 加上 resolved review projection 做額外收據查核；完整 POST、receipt GET、UI／矩陣必須一起採同一投影，不能只接某一入口。現用診斷的四項 FAIL、真實角色／帳號、原拒絕／UNKNOWN 傳送及建置限制仍保留，無遠端操作。

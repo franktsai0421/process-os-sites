@@ -91,3 +91,18 @@ export function draftReviewReceiptAllowed(permissions,receipt,actorId){
  const operation=receipt?.action,permission=draftOperationPermission(operation);
  return !!permission&&typeof actorId==='string'&&actorId.length>0&&receipt?.actorId===actorId&&permissions?.view===true&&permissions[permission]===true&&(operation!=='restore'||permissions.restore===true);
 }
+
+// RF whole-page receipts retain their original capability ledger, including
+// create/delete/revise/revoke/settings/admin requirements. Use fresh route
+// permissions merged with the resolved review projection; never infer these
+// additional grants from approval or replace the RF parser/outer receipt guard.
+const routineReceiptCapabilities=frozen(['view','edit','save','submit','withdraw','approve','return','create','delete','revise','revoke','settings','admin']);
+export function routinePageReceiptAllowed(permissions,owner,operationId,actor){
+ if(permissions?.page!=='ROUTINE_FQC'||permissions.endpoint!=='/api/routine-fqc/page'||permissions.permissionModule!=='routine'||permissions.scope!=='routine-fqc:page'||owner?.page?.workflow?.scope!==permissions.scope||permissions.view!==true)return false;
+ if(typeof operationId!=='string'||!operationId||typeof actor?.id!=='string'||!actor.id)return false;
+ const receipts=owner.page.workflow.receipts,ledger=owner.page.operationPermissions;
+ if(!has(receipts,operationId)||receipts[operationId]?.actorId!==actor.id||!has(ledger,operationId))return false;
+ const caps=ledger[operationId];
+ if(!Array.isArray(caps)||!caps.length||!caps.includes('view')||caps.some(cap=>!routineReceiptCapabilities.includes(cap)))return false;
+ return caps.every(cap=>cap==='admin'?actor.admin===true:permissions[cap==='return'?'withdraw':cap]===true);
+}

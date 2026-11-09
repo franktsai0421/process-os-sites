@@ -1,3 +1,7 @@
+## 2026-11-09 — RF whole-page review compatibility with #102 e5c3c78
+
+Pinned registry SHA c7e2a312 now maps ROUTINE_FQC to /api/routine-fqc/page, keeping scope routine-fqc:page and routine.*. Added an unregistered whole-page receipt helper preserving the original actor/capability ledger, extra domain rights and historical ADMIN requirements; 19 targeted source cases pass. Only the pinned pure receipt guard snapshot is executed, not the full route/build. #102 still needs the existing approve-only self-confirmation fix and coordination of its own-return ADMIN guard/new receipts. No other writer, live policy, accounts or remote operations changed. [Exact contract and remaining integration](../../docs/acceptance/accounts-permissions-20261109.md#102-e5c3c78-例行-fqc-整頁權限相容接線).
+
 ## 2026-11-09 — Independent account confirmation fixes
 
 Account validation now uses the interface language and retains separate recovery alerts; native constraints remain enabled. Clean status/delete confirmations hold departure during the fresh prewrite read. Definite input/access rejections retain inputs without a misleading read-only cure; CAS, unknown and acknowledged-readback recovery keep their original guards. Synthetic disabled-password reset proves no implicit enable. #92 CSS and #100 runtime remain unchanged. Compiled test registration now checks disabled Confirm using native form APIs; it has not been executed here. [Negative controls, source validation and #102 boundaries](../../docs/acceptance/accounts-permissions-20261109.md#不需等待草稿拆分的帳號介面續修).

@@ -1,7 +1,7 @@
 {
-  "sourceCommit": "85608697401175f987ac586fabd9613d2233e8b1",
+  "sourceCommit": "e5c3c780fac8413ede01809d5fc871ad0477a225",
   "sourceFile": "lib/draft-page-boundaries.ts",
-  "workingSourceSHA256": "be44c1f957fd8f00b1321286e12eb015e7e7d99d5b0ba8ad09121244f69a89a9",
+  "workingSourceSHA256": "c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7",
   "runtimeIntegrated": false,
   "boundaries": [
     {
@@ -92,8 +92,17 @@
       "page": "ROUTINE_FQC",
       "scope": "routine-fqc:page",
       "permissionModule": "routine",
-      "endpoint": "/api/routine-fqc",
+      "endpoint": "/api/routine-fqc/page",
       "stateKey": "routineFqcControl"
     }
-  ]
+  ],
+  "routineReceiptSource": {
+    "commit": "e5c3c780fac8413ede01809d5fc871ad0477a225",
+    "sourceFile": "lib/routine-fqc-page.ts",
+    "moduleSHA256": "36a8132ff7f9a5dd3e02f0b1a12a4c10364f1a98982fe878a9d9664d8e065cfb",
+    "function": "assertRoutinePageReceiptAccess",
+    "fixture": "routine-page-receipt-access.source.txt",
+    "functionSHA256": "312ac31b6be32f641ac9d7ab96154b7c6288d02a0488272250f89a0a0c4e3b9b",
+    "fullRouteExecuted": false
+  }
 }
