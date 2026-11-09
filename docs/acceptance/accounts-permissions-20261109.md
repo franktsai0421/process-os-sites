@@ -272,3 +272,26 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 | 真人角色／高階歧義與正式切換 | 沒有讀取名單或寫入設定 | 有權完整核對後才提交具體待決名單；保留 CAS、authEpoch、還原及明確切換程序 |
 
 本輪沒有新增要求 Frank 立即回答的真人決策；未取得具體完整名單，不以假設要求批准。既有拒絕與結果不明操作未重送，沒有傳送來源、push、PR、部署、schema 或真實 DB/R2 寫入。
+
+
+## GitHub 獨立交付範圍核對
+
+本次只做上傳前唯讀核對，程式／fixture 固定為 `d29767eaacade26b74b40ee41db4d0b7422c5709`。最新 GitHub main 仍為 `9fbba823`；公開 repository、已連線帳號與擁有者相符且有 push 權限，使用者已有明確上 GitHub 指示，不以缺少重複授權作阻擋。open PR 為 #102、#101、#88；沒有因此推定舊操作未執行。
+
+本分支相對 main 有 **56 個變更路徑**，包含原帳密 candidate `efa7b75` 的全部 **18 個路徑**。`app/api/platform-login/route.ts`、`app/api/user-access/route.ts`、`lib/passwords.ts` 三個 blob 與該候選完全一致；CSS 亦相同，JS 為後續語意整合版。最新 UI 批次共 14 路徑，其中 7 路徑與該既有傳送範圍重疊。路徑重疊本身不是重送的唯一證據，但 exact backend blobs 與現用前置依賴可證明不能把整個候選稱作全新獨立來源。
+
+remote main 仍沒有 fresh requestValue/load、`load(true)`、native validation 節點及 PASSWORD_SERVICE_UNAVAILABLE 等既有前置接線。最新批次不是可直接套 main 的完整獨立修正；換分支名稱、重寫同功能、拆出同檔片段或改由其他通道發送，不會消除原來源範圍與結果不明操作的限制。本輪沒有做這些動作，也沒有建立空遠端分支／blob／tree／commit／PR。
+
+已比對原 delivery manifest、account／AB／feedback transmission receipts 和可見對話紀錄。原拒絕的回報明示「授權在審查完成前發生變化，無法套用」，該拒絕嘗試被回報未執行；但另外 account／AB 的 steered turn 仍是接收端 byte verification PENDING，feedback 為 PENDING_INCOMPLETE。原 source manifest 也記錄早先 UNKNOWN 批次完整範圍 unavailable。這些不同操作不能互相代替；sender 的 remote_writes=false、接收排隊 steered、無 PR 或 GitHub object 讀不到，都不證明接收端／後續所有步驟沒有執行。
+
+目前缺少的具體證據：
+
+1. 原遭拒操作的 operation ID、精確目標與 source manifest，能和當前 candidate／另一筆 steered 操作正確關聯。
+2. 原 account 與 AB steered turn 的終端狀態、接收端對 exact patch SHA 的 byte verification，以及後續 GitHub 步驟是否執行的權威回執。
+3. 早先 UNKNOWN 批次的完整 base/head、path/blob 與終端結果，才能主張某個公開範圍確實不重疊。
+
+這是需向原操作持有者核查的紀錄，不是要求 Frank 再說一次「同意」。目前選定工具沒有該 cloud turn 的終端讀取能力，且原中控連接器不得重啟；未以新的工具／工作區重送。只有確定相同遭拒動作未執行，且有實質相關新證據時，才依原規則評估同操作一次重試；結果仍不明則繼續保留。
+
+原 27-file **370/370 source tests PASS** 與完整 source/history/worktree gate（620 commits、5466 blobs、2033 source files）仍精確對應 `d29767e`，這輪未改程式，因此重用而不重跑。全部改動為文字，無新增 binary；來源 gate 沒有真資料或憑證輸出。十份 checked-in workflows 都是 pull_request／contents:read，未找到 deploy commands；外部自動 hosting hooks 未另驗，不宣稱所有外部觸發不存在。正常 build、lint/typecheck、原 TypeScript harness、compiled Windows/browser、實體 IME／裝置及真人登入仍未驗收，不能宣稱可合併或發布。
+
+完整獨立性矩陣、產品 blob 比對、原 turn／patch 識別與缺證據欄位保留在專案外 evidence 的 `account-upload-independence-assessment.json`；不把操作識別或對話來源紀錄當公開程式 payload。已完成的獨立程式工作仍包括三項 UI 續修、合成帳密／CRUD、停用重設邊界與十三頁審核前置碼。接下來可在來源／#102 registry 真正變動時補相容測試、由 #102 owner 接入既有介面，並向原操作持有者核查終端／接收紀錄；不以重跑既有 PASS 或另造新上傳取代缺失證據。現用四項權限 FAIL 仍須等完整接線，真人資料／權限、main 和測試站未動。
