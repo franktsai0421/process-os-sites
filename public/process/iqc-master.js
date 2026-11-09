@@ -2,6 +2,7 @@
   const displayDraftError = error => {
     const code=typeof error==='string'?error:error?.message;
     if(['RESULT_UNKNOWN_CHECK_BEFORE_RETRY','PREVIOUS_OPERATION_UNKNOWN','WORKFLOW_MUTATION_TIMEOUT_UNKNOWN'].includes(code))return t('尚未確認前次操作是否完成。請查詢結果，不要重複送出；目前輸入仍保留。','Chưa xác nhận thao tác trước đã hoàn tất. Hãy kiểm tra kết quả, không gửi lại; giữ nguyên đầu vào.');
+    if(code==='IQC_REVIVE_CREATE_REQUIRED')return t('恢復此項目需要新增權限，尚未送出任何儲存。輸入仍保留；可再次儲存並選擇對方的版本。','Khôi phục mục này cần quyền tạo; chưa gửi thao tác lưu. Đầu vào được giữ lại; bạn có thể lưu lại và chọn phiên bản của người khác.');
     return window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
   };
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -12,8 +13,8 @@
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let localBase=null,localSnapshot=null,localGeneration=null,localBeginReceipt=null,pendingLocalSave=false;
   let control = null, revision = null, root = null, reviewRoot = null;
-  let sharedClient=null,sharedActor='',sharedClientOwner=null;const pollTimer=window.createForegroundPoll();let dialogBase=null,dialogGeneration=null,dialogBeginReceipt=null;
-  let loadSequence=0,mountSequence=0,reviewBindSequence=0,mutationSequence=0,readDenied=null,reviewContainer=null;
+  let sharedClient=null,sharedActor='',sharedClientOwner=null;let dialogBase=null,dialogGeneration=null,dialogBeginReceipt=null;
+  let loadSequence=0,mountSequence=0,reviewBindSequence=0,readDenied=null,reviewContainer=null;
   let versionReadSequence=0,versionReadError=null,activeDeferredId='';
   // Private document-lifetime containment only: no reopen, serialize, discard or auto-apply.
   const editorOwners = new Set();
@@ -27,7 +28,7 @@
   host.addEventListener('process-delivery-invalidated', disposePhotoViewers);
   function transport(){const actor=identity()?.id;if(!actor)throw Error('LOGIN_REQUIRED');
     const person=identity(),epoch=host.ProcessSync?.identityGeneration?.(),delivery=host.ProcessSync?.captureDelivery?.();
-    if(sharedActor!==actor||sharedClientOwner?.person!==person||sharedClientOwner?.epoch!==epoch||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.delivery&&host.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=actor;sharedClientOwner={person,epoch,delivery};sharedClient=window.createSharedDraftClient({durableBegin:true,endpoint:apiUrl+'/workflow?caseMetadata=1',externalDurableBounded:{scope:'IQC'},allowUnknownDeparture:true,responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
+    if(sharedActor!==actor||sharedClientOwner?.person!==person||sharedClientOwner?.epoch!==epoch||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.delivery&&host.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=actor;sharedClientOwner={person,epoch,delivery};sharedClient=window.createSharedDraftClient({iqcComparedSave:true,durableBegin:true,endpoint:apiUrl+'/workflow?caseMetadata=1',externalDurableBounded:{scope:'IQC'},allowUnknownDeparture:true,responseProjection:'iqc-edit-v1',legacyArchive:true,conditionalState:true,guardAccessResults:true,actorId:actor,headers:()=>({...window.ProcessSync?.platformHeaders?.(),'Content-Type':'application/json'}),permissionGates:{create:'#iqc-add-part,#iqc-add-error,[data-add-item],#iqc-list-add',edit:'#iqc-page [data-edit-item],#iqc-page [data-edit-error],#iqc-page [data-edit-part],#iqc-manage-suppliers,#iqc-manage-categories,#iqc-item-form button[type=submit],#iqc-error-form button[type=submit],#iqc-part-form button[type=submit],#iqc-list-save,#iqc-managed-rows [data-row-edit]',save:'#iqc-save',submit:'#iqc-submit',withdraw:'#iqc-withdraw,#iqc-review-withdraw',approve:'#iqc-review-approve',return:'#iqc-review-reject',history:'#iqc-case-history',delete:'#iqc-managed-rows [data-row-remove],#iqc-page [data-delete-item],#iqc-page [data-delete-error],#iqc-page [data-delete-part]'}});}
     return sharedClient;
   }
   const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -116,7 +117,7 @@
         if(owned&&client.permission('view')===false&&['receipt','state'].some(kind=>client.readDenialVersion?.(kind)!==pauses.get(kind)&&[401,403].includes(client.readPauseState?.(kind)?.status)))denyRead(error);
         throw error;
       }
-      assert();if(recoveringBegin){if(localSnapshot){localBeginReceipt ||= copy(recovered.receipt);localGeneration ??= localBeginReceipt.generation;}if(dialogBase){dialogBeginReceipt ||= copy(recovered.receipt);dialogGeneration ??= dialogBeginReceipt.generation;}if(owner){owner.beginReceipt ||= copy(recovered.receipt);owner.generation ??= owner.beginReceipt.generation;}}await load({assert});assert();if(pendingLocalSave&&!recoveringBegin){localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;pendingLocalSave=false;}render();
+      assert();if(recoveringBegin){if(localSnapshot){localBeginReceipt ||= copy(recovered.receipt);localGeneration ??= localBeginReceipt.generation;}if(dialogBase){dialogBeginReceipt ||= copy(recovered.receipt);dialogGeneration ??= dialogBeginReceipt.generation;}if(owner){owner.beginReceipt ||= copy(recovered.receipt);owner.generation ??= owner.beginReceipt.generation;}}const reread=await load({assert});assert();if(pendingLocalSave&&!recoveringBegin){if(typeof pendingLocalSave==='object')settleLocalSave(pendingLocalSave,reread);else{localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;pendingLocalSave=false;}}render();
     })();
     operationCheck=flight;try{return await flight;}finally{if(operationCheck===flight)operationCheck=null;}
   }
@@ -171,6 +172,180 @@
     versionReadError=null;
     try{await load(owner);if(ui.versionId===id)render();}catch(error){if(ui.versionId===id&&error.message!=='DELIVERY_SUPERSEDED'){versionReadError=error;render();notice(displayDraftError(error));}}
   }
+  let activePost=null,activeSaveComparison=null;
+  const comparisonCancellable=()=>activeSaveComparison?.phase==='comparing'||activeSaveComparison?.phase==='preparing'&&activeSaveComparison.dispatched?.()===false;
+  function cancelSaveComparison(){
+    if(!comparisonCancellable())return;
+    const attempt=activeSaveComparison;if(attempt.retireBegin&&attempt.retireBegin()!==true)return;attempt.cancelled=true;attempt.close?.();attempt.cancel(false);activeSaveComparison=null;
+    if(activePost===attempt.operation){activePost=null;ui.busy=false;}
+  }
+  host.addEventListener('process-delivery-invalidated',cancelSaveComparison);
+  const saveJSON=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
+  const saveEqual=(a,b)=>saveJSON(a)===saveJSON(b);
+  const saveCollections=['categories','suppliers','parts','errors','items'];
+  const saveFields={categories:['nameVi'],suppliers:['nameVi'],parts:['nameVi','specificationVi','categoryId','supplierIds','photos','isEnabled','isDeleted'],errors:['nameVi','isDeleted'],items:['nameVi','toolVi','methodVi','rules','isEnabled','inspectionSpecVi','inspectionMode','equipmentId','mediaItems','isDeleted']};
+  function saveReadSnapshot(data){
+    validateIqcPayload(data,true);
+    const flow=data.control.workflow,drafts=data.control.versions.filter(v=>v.status==='draft');
+    if(flow?.pendingId||data.control.versions.some(v=>v.status==='pending'))throw Error('PENDING_LOCKED');
+    if(drafts.length!==1)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
+    const snapshot=flow?.working||drafts[0].snapshot;
+    if(flow&&(flow.scope!=='iqc'||!saveEqual(snapshot,drafts[0].snapshot)))throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
+    for(const key of saveCollections)if(!Array.isArray(snapshot?.[key])||snapshot[key].some(row=>!row||typeof row.id!=='string'||!row.id)||new Set(snapshot[key].map(row=>row.id)).size!==snapshot[key].length)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
+    return snapshot;
+  }
+  const sameRuleOrder=(...arrays)=>arrays.every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length)&&arrays.slice(1).every(rows=>saveEqual(arrays[0].map(row=>row.id),rows.map(row=>row.id)));
+  function compareLocalSave(base,local,latest){
+    const units=[],conflicts=new Map(),reviveRoots=new Map(),latestById=Object.fromEntries(saveCollections.map(kind=>[kind,new Map(latest[kind].map(row=>[row.id,row]))]));
+    const partsByCode=new Map();for(const part of latest.parts){const values=partsByCode.get(part.code)||[];values.push(part);partsByCode.set(part.code,values);}
+    const conflict=(unit,key,label,unsupported=false)=>{unit.conflict=key;const previous=conflicts.get(key);conflicts.set(key,{label,unsupported:unsupported||previous?.unsupported});};
+    for(const kind of saveCollections){
+      if(!Array.isArray(base[kind])||!Array.isArray(local[kind])||new Set(base[kind].map(row=>row.id)).size!==base[kind].length||new Set(local[kind].map(row=>row.id)).size!==local[kind].length)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
+      const localIds=new Set(local[kind].map(row=>row.id)),baseById=new Map(base[kind].map(row=>[row.id,row]));
+      for(const before of base[kind])if(!localIds.has(before.id)){
+        const peer=latestById[kind].get(before.id),unit={kind,id:before.id,remove:true};units.push(unit);
+        if(!peer){unit.same=true;continue;}
+        if(!['categories','suppliers'].includes(kind))conflict(unit,kind+':'+before.id, before.nameVi||before.id,true);
+        else if(!saveEqual(before,peer))conflict(unit,kind+':'+before.id,before.nameVi||before.id);
+      }
+      for(const row of local[kind]){
+        const before=baseById.get(row.id),peer=latestById[kind].get(row.id),label=row.nameVi||row.id;
+        if(!before){const unit={kind,id:row.id,row,insert:true};units.push(unit);if(peer){if(saveEqual(row,peer))unit.same=true;else conflict(unit,kind+':'+row.id,label,true);}continue;}
+        const fields=saveFields[kind].filter(field=>row[field]!==undefined&&!saveEqual(row[field],before[field]));
+        const groups=[];for(const field of fields){const group=kind==='items'&&['inspectionMode','equipmentId'].includes(field)?['inspectionMode','equipmentId']:[field];if(!groups.some(value=>value[0]===group[0]))groups.push(group);}
+        for(const group of groups){
+          if(kind==='items'&&group[0]==='rules'&&peer&&sameRuleOrder(before.rules,row.rules,peer.rules)){
+            for(let index=0;index<row.rules.length;index++){
+              const rule=row.rules[index],oldRule=before.rules[index],peerRule=peer.rules[index];if(saveEqual(rule,oldRule))continue;
+              const unit={kind,id:row.id,row,fields:group,ruleId:rule.id,rule};units.push(unit);
+              if(peer.isDeleted)conflict(unit,kind+':'+row.id+':removed',label+' · '+t('對方已刪除','Đã xóa ở bản chung'),true);
+              else if(saveEqual(rule,peerRule))unit.same=true;
+              else if(!saveEqual(peerRule,oldRule))conflict(unit,kind+':'+row.id+':rule:'+rule.id,label+' · '+t('檢查規則','Quy tắc kiểm tra')+' '+(index+1));
+            }
+            continue;
+          }
+          const unit={kind,id:row.id,row,fields:group};units.push(unit);const values=value=>Object.fromEntries(group.map(field=>[field,value?.[field]]));
+          if(!peer||peer.isDeleted){if(group[0]==='isDeleted'&&row.isDeleted===true){unit.same=true;continue;}conflict(unit,kind+':'+row.id+':removed',label+' · '+t('對方已刪除','Đã xóa ở bản chung'),true);continue;}
+          if(saveEqual(values(row),values(peer))){unit.same=true;continue;}
+          if(group[0]==='isDeleted'&&row.isDeleted===true?!saveEqual(peer,before):!saveEqual(values(peer),values(before)))conflict(unit,kind+':'+row.id+':'+group[0],label+' · '+group.join(' / '));
+        }
+      }
+    }
+    function revivalChain(kind,row){
+      const chain=[];
+      const parentPart=code=>{const rows=partsByCode.get(code)||[];if(rows.length!==1)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');return rows[0];};
+      if(!row||!['parts','errors','items'].includes(kind))throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');
+      const add=(key,value)=>{if(value.isDeleted===true)chain.push({collection:key,id:value.id,tombstone:copy(value)});};add(kind,row);
+      if(kind==='items'){const error=latestById.errors.get(row.errorId);if(!error||error.partCode!==row.partCode)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');add('errors',error);add('parts',parentPart(row.partCode));}
+      else if(kind==='errors')add('parts',parentPart(row.partCode));
+      return chain;
+    }
+    for(const unit of units){if(unit.remove||unit.insert||unit.row.isDeleted===true)continue;const row=latestById[unit.kind].get(unit.id);
+      if(!row||!['parts','errors','items'].includes(unit.kind))continue;
+      try{const chain=revivalChain(unit.kind,row);if(!chain.length)continue;
+        const id=unit.kind+':'+unit.id+':removed';unit.same=false;unit.conflict=id;conflicts.set(id,{label:(unit.row.nameVi||unit.id)+' · '+t('對方已刪除項目或所屬資料','Mục hoặc dữ liệu cha đã bị xóa'),unsupported:false});
+        reviveRoots.set(unit.kind+':'+unit.id,{collection:unit.kind,id:unit.id,row:copy(row),chain});
+      }catch{conflict(unit,unit.kind+':'+unit.id+':removed',unit.row.nameVi||unit.id,true);}
+    }
+    const validReferences=next=>{const categories=new Set(next.categories.map(row=>row.id)),suppliers=new Set(next.suppliers.map(row=>row.id)),parts=new Set(next.parts.map(row=>row.code)),errors=new Map(next.errors.map(row=>[row.id,row.partCode]));return next.parts.every(part=>(!part.categoryId||categories.has(part.categoryId))&&part.supplierIds.every(id=>suppliers.has(id)))&&next.errors.every(error=>parts.has(error.partCode))&&next.items.every(item=>errors.get(item.errorId)===item.partCode&&parts.has(item.partCode));};
+    function materialize(choice,check=true){
+      const next=copy(latest),nextById=Object.fromEntries(saveCollections.map(kind=>[kind,new Map(next[kind].map(row=>[row.id,row]))])),reviveRows=new Map(),roots=[];
+      if(choice==='mine')for(const root of reviveRoots.values()){roots.push({collection:root.collection,id:root.id,row:copy(root.row)});for(const entry of root.chain){reviveRows.set(entry.collection+':'+entry.id,entry);nextById[entry.collection].get(entry.id).isDeleted=false;}}
+      for(const unit of units){if(unit.same||unit.conflict&&choice==='theirs')continue;
+        if(unit.conflict&&conflicts.get(unit.conflict).unsupported){if(check)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');continue;}
+        if(unit.remove){next[unit.kind]=next[unit.kind].filter(row=>row.id!==unit.id);continue;}
+        if(unit.insert){next[unit.kind].push(copy(unit.row));continue;}
+        const row=nextById[unit.kind].get(unit.id);if(!row||row.isDeleted){if(check)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');continue;}
+        if(unit.ruleId){row.rules=row.rules.map(rule=>rule.id===unit.ruleId?copy(unit.rule):rule);continue;}
+        for(const field of unit.fields)if(unit.row[field]!==undefined)row[field]=copy(unit.row[field]);
+      }
+      if(check&&!validReferences(next))throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');
+      const changes=snapshotChanges(latest,next),revival=path=>path[2]==='isDeleted'&&reviveRows.has(path[0]+':'+path[1]?.id);
+      return {snapshot:next,detail:{moduleAction:reviveRows.size?'save-local-revive-v1':'save-local-v1',patches:changes.patches.filter(patch=>!revival(patch.path)),guards:changes.guards.filter(guard=>!revival(guard.path)),...(reviveRows.size?{input:{reviveRows:[...reviveRows.values()],reviveRoots:roots}}:{})}};
+    }
+    // A peer's new reference must not disappear with a local catalog removal.
+    const mine=materialize('mine',false).snapshot;
+    for(const part of mine.parts){
+      const missing=[...(!part.categoryId||mine.categories.some(row=>row.id===part.categoryId)?[]:[['categories',part.categoryId]]),...part.supplierIds.filter(id=>!mine.suppliers.some(row=>row.id===id)).map(id=>['suppliers',id])];
+      for(const [kind,id]of missing)for(const unit of units)if(unit.kind===kind&&unit.id===id&&unit.remove||unit.kind==='parts'&&unit.id===part.id&&(unit.insert||unit.fields?.includes(kind==='categories'?'categoryId':'supplierIds')))conflict(unit,'reference:'+kind+':'+id,(part.nameVi||part.code)+' · '+t('關聯已變更','Liên kết đã đổi'),true);
+    }
+    return {conflicts:[...conflicts.values()],materialize};
+  }
+  function chooseSaveConflicts(conflicts,attempt){
+    return new Promise(resolve=>{
+      const overlay=document.createElement('div');overlay.className='iqc-dialog-overlay';
+      overlay.innerHTML=`<section class="iqc-dialog" role="dialog" aria-modal="true" aria-labelledby="iqc-save-choice-title"><h2 id="iqc-save-choice-title">${t('選擇衝突處理方式','Chọn cách xử lý xung đột')}</h2><p>${t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột. Giữ các thay đổi không xung đột.')}</p><ul>${conflicts.map(value=>`<li>${h(value.label)}${value.unsupported?' · '+h(t('結構需重新核對，不會自動復原','Cần kiểm tra cấu trúc; không tự khôi phục')):''}</li>`).join('')}</ul><div class="iqc-actions"><button type="button" class="button" data-iqc-save-choice="mine">${t('用我的','Dùng của tôi')}</button><button type="button" class="button" data-iqc-save-choice="theirs">${t('用對方的','Dùng của người khác')}</button><button type="button" class="button ghost" data-iqc-save-choice="cancel">${t('取消','Hủy')}</button></div></section>`;
+      const opener=document.activeElement;let done=false;
+      const finish=choice=>{if(done)return;done=true;document.removeEventListener('keydown',key,true);overlay.remove();if(attempt.close===close)attempt.close=null;if(opener?.isConnected)opener.focus({preventScroll:true});resolve(choice);};
+      const close=()=>finish('cancel');attempt.close=close;
+      const key=event=>{if(event.key==='Escape'){event.preventDefault();close();}if(event.key==='Tab'){const buttons=[...overlay.querySelectorAll('[data-iqc-save-choice]')],index=buttons.indexOf(document.activeElement);if(event.shiftKey&&index<=0||!event.shiftKey&&index===buttons.length-1){event.preventDefault();buttons[event.shiftKey?buttons.length-1:0].focus();}}};
+      document.addEventListener('keydown',key,true);overlay.querySelectorAll('[data-iqc-save-choice]').forEach(button=>{button.onclick=()=>finish(button.dataset.iqcSaveChoice);});document.body.append(overlay);overlay.querySelector('[data-iqc-save-choice="cancel"]').focus({preventScroll:true});
+    });
+  }
+  function settleLocalSave(attempt,data){
+    const latest=saveReadSnapshot(data),later=snapshotChanges(attempt.snapshot,localSnapshot||attempt.snapshot);
+    if(!later.patches.length){localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;pendingLocalSave=false;return;}
+    const next=copy(latest),base=copy(latest);
+    for(const patch of later.patches){const [kind,entity,field]=patch.path;
+      if(patch.op==='insert'){if(next[kind].some(row=>row.id===patch.value.id))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');next[kind].push(copy(patch.value));continue;}
+      const row=next[kind].find(value=>value.id===entity.id),sent=attempt.chosen[kind].find(value=>value.id===entity.id),before=base[kind].find(value=>value.id===entity.id);
+      if(!row||!sent||row.isDeleted)throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
+      if(patch.op==='remove'){next[kind]=next[kind].filter(value=>value.id!==entity.id);base[kind]=base[kind].map(value=>value.id===entity.id?copy(sent):value);}
+      else if(kind==='items'&&field==='rules'){
+        const original=attempt.snapshot.items.find(value=>value.id===entity.id)?.rules;
+        if(!sameRuleOrder(original,patch.value,sent.rules,row.rules))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
+        for(let index=0;index<patch.value.length;index++)if(!saveEqual(original[index],patch.value[index])){row.rules[index]=copy(patch.value[index]);before.rules[index]=copy(sent.rules[index]);}
+      }
+      else{row[field]=copy(patch.value);if(sent[field]===undefined)delete before[field];else before[field]=copy(sent[field]);}
+    }
+    localBase=base;localSnapshot=next;localGeneration=attempt.generation;pendingLocalSave=false;
+  }
+  async function saveCompared(client,requestCurrent,operation,owner){
+    const snapshot=copy(localSnapshot),base=copy(localBase),generation=localGeneration;let versionId=selected()?.id,pinnedGeneration=localGeneration;
+    let model=control,sourceFlow=control.workflow,sourceGeneration=control.workflow?.generation,sourceRevision=control.workflow?.revision,sourcePending=control.workflow?.pendingId,loaded=loadSequence,observedRevision=revision,local=saveJSON(localSnapshot),baseRaw=saveJSON(localBase),denied=readDenied;
+    const attempt={operation,phase:'comparing',cancelled:false,close:null};const cancelled=new Promise(resolve=>{attempt.cancel=resolve;});activeSaveComparison=attempt;
+    const current=()=>!attempt.cancelled&&requestCurrent()&&activePost===operation&&control===model&&control.workflow===sourceFlow&&control.workflow?.generation===sourceGeneration&&control.workflow?.revision===sourceRevision&&control.workflow?.pendingId===sourcePending&&loadSequence===loaded&&revision===observedRevision&&readDenied===denied&&saveJSON(localSnapshot)===local&&saveJSON(localBase)===baseRaw&&localGeneration===pinnedGeneration&&sharedClient===client&&selected()?.id===versionId&&client.isRuntimeCurrent?.()!==false;
+    try{
+      if(!control.workflow&&(localBeginReceipt||dialogBeginReceipt||owner?.beginReceipt))throw Error('AUTHORITATIVE_READBACK_REQUIRED');
+      let evidence=await Promise.race([client.compareForSave({isCurrent:current}),cancelled]);if(attempt.cancelled)return false;attempt.dispatched=()=>client.comparisonDispatched?.(evidence);
+      owner?.assert();if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');
+      let latest,flow,chosen;
+      while(true){
+        latest=saveReadSnapshot(evidence.result);flow=evidence.result.control.workflow;
+        if((flow?.generation??null)!==(generation??null)||!evidence.result.control.versions.some(value=>value.id===versionId&&value.status==='draft'))throw Error('STALE_GENERATION');
+        const compared=compareLocalSave(base,snapshot,latest),choice=compared.conflicts.length?await chooseSaveConflicts(compared.conflicts,attempt):'mine';if(choice==='cancel')return false;
+        owner?.assert();if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');
+        if(compared.conflicts.length){
+          const shown=evidence;evidence=await Promise.race([client.compareForSave({isCurrent:current}),cancelled]);
+          if(attempt.cancelled)return false;owner?.assert();if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');
+          if(!saveEqual(shown.result.control,evidence.result.control)||!saveEqual(shown.result.permissions,evidence.result.permissions))continue;
+        }
+        chosen=compared.materialize(choice);break;
+      }
+      if(chosen.detail.moduleAction==='save-local-revive-v1'&&evidence.result.permissions?.create!==true)throw Error('IQC_REVIVE_CREATE_REQUIRED');
+      if(!flow){
+        attempt.phase='preparing';attempt.retireBegin=()=>client.retireComparedBegin?.(evidence);let begun;try{begun=await Promise.race([client.beginCompared(evidence,{isCurrent:current}),cancelled]);if(attempt.cancelled)return false;}catch(error){if(client.hasUnknownBegin())throw Object.assign(Error('RESULT_UNKNOWN_CHECK_BEFORE_RETRY'),{cause:error});throw error;}finally{attempt.retireBegin=null;}owner?.assert();if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');
+        if(!begun.receipt?.generation)throw Error('AUTHORITATIVE_READBACK_REQUIRED');localBeginReceipt=copy(begun.receipt);localGeneration=begun.receipt.generation;
+        validateIqcPayload(begun,false);control=begun.control;revision=begun.revision;activeDeferredId=begun.iqcProjection?.activeVersionId||'';versionReadSequence++;
+        if(control.workflow?.generation!==localGeneration)throw Error('STALE_GENERATION');
+        // Only acknowledged Begin updates the generation. It never replaces input or its baseline.
+        model=control;sourceFlow=control.workflow;sourceGeneration=sourceFlow.generation;sourceRevision=sourceFlow.revision;sourcePending=sourceFlow.pendingId;ui.versionId=control.versions.find(value=>value.status==='draft')?.id||'';versionId=selected()?.id;pinnedGeneration=localGeneration;observedRevision=revision;loaded=loadSequence;denied=readDenied;local=saveJSON(localSnapshot);baseRaw=saveJSON(localBase);
+        attempt.phase='comparing';evidence=await Promise.race([client.compareForSave({isCurrent:current}),cancelled]);if(attempt.cancelled)return false;
+        if(evidence.result.control.workflow?.generation!==localGeneration||!saveEqual(saveReadSnapshot(evidence.result),latest))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      }
+      if(chosen.detail.moduleAction==='save-local-revive-v1'&&evidence.result.permissions?.create!==true)throw Error('IQC_REVIVE_CREATE_REQUIRED');
+      if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');owner?.assert();attempt.phase='preparing';
+      if(chosen.detail.input)chosen.detail.input.draftVersionId=evidence.result.control.versions.find(value=>value.status==='draft').id;
+      const command=client.prepareComparedSave(evidence,chosen.detail,{isCurrent:current});
+      const submitted={snapshot,chosen:chosen.snapshot,generation:command.generation,command};pendingLocalSave=submitted;
+      const result=await Promise.race([client.sendPrepared(command),cancelled]);if(attempt.cancelled)return false;owner?.assert();
+      if(!requestCurrent()||activePost!==operation||sharedClient!==client||control!==model||loadSequence!==loaded||revision!==observedRevision||readDenied!==denied)throw Error('DELIVERY_SUPERSEDED');
+      const data=client.verifiedReadback(result,command.operationId);if(!data)throw Error('BOUNDED_READBACK_REQUIRED');
+      if(data.control?.workflow?.generation!==command.generation)throw Error('STALE_GENERATION');
+      settleLocalSave(submitted,data);versionReadSequence++;control=data.control;revision=data.revision;activeDeferredId=data.iqcProjection?.activeVersionId||'';
+      window.dispatchEvent(new CustomEvent('quality-equipment-references-updated'));return result;
+    }finally{attempt.close?.();if(activeSaveComparison===attempt)activeSaveComparison=null;}
+  }
   async function load(owner) {
     owner?.assert();
     const sequence=++loadSequence,actor=identity(),actorId=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();
@@ -201,13 +376,14 @@
     if (!Number.isInteger(revision)) throw Error('IQC 後端尚未載入，沒有寫入空資料');
     if(['save','submit'].includes(action)&&document.querySelector('.iqc-dialog-overlay'))throw Error(t('請先套用或取消目前表單，再儲存或送審。','Hãy áp dụng hoặc hủy biểu mẫu trước khi lưu hoặc gửi duyệt.'));
     if(action==='submit'&&localSnapshot)throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');
-    const requestActor=identity(),requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,delivery=window.ProcessSync?.captureDelivery?.();
-    const requestCurrent=()=>identity()===requestActor&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
-    mutationSequence++;ui.busy = true; render();
+    const requestActor=identity(),requestEpoch=window.ProcessSync?.identityGeneration?.(),requestMount=mountSequence,requestRoot=root,delivery=window.ProcessSync?.captureDelivery?.();
+    const requestCurrent=()=>identity()===requestActor&&requestEpoch===window.ProcessSync?.identityGeneration?.()&&requestMount===mountSequence&&root===requestRoot&&(!requestRoot||requestRoot.isConnected)&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
+    const operation={};activePost=operation;ui.busy = true; render();
     try {
       // Pending pre-V3 cases retain their exact legacy content until concluded.
       if(action!=='import'&&(control.workflow||!control.versions.some(v=>v.status==='pending'))){
         const client=transport();if(client.hasUnknown())throw Error('PREVIOUS_OPERATION_UNKNOWN');
+        if(action==='save'&&localSnapshot)return await saveCompared(client,requestCurrent,operation,owner);
         if(!control.workflow&&['save','submit'].includes(action)&&!mayEdit())throw Error(t('舊版草稿須由具編輯權限者先啟用共用草稿','Bản nháp cũ cần người có quyền sửa chuyển sang bản nháp chung'));
         if(!control.workflow||action==='begin'){
           if(localBeginReceipt||dialogBeginReceipt||owner?.beginReceipt)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
@@ -282,7 +458,7 @@
       if (action === 'begin' || action === 'withdraw' || action === 'reject')
         ui.versionId = control.versions.find(version => version.status === 'draft')?.id || '';
       return data;
-    } finally { ui.busy = false; if(readDenied||!owner||owner.current())render(); }
+    } finally { if(activePost===operation){activePost=null;ui.busy = false; if(readDenied||!owner||owner.current())render();} }
   }
   function versionBar() {
     const v = selected();
@@ -425,35 +601,7 @@
     if (!root) return;
     const mountToken=++mountSequence,mountLoadSequence=loadSequence+1,mountIdentity=identity(),mountEpoch=window.ProcessSync?.identityGeneration?.(),ownedRoot=root,delivery=window.ProcessSync?.captureDelivery?.(),current=()=>mountToken===mountSequence&&loadSequence===mountLoadSequence&&identity()===mountIdentity&&(typeof mountEpoch!=='number'||window.ProcessSync?.identityGeneration?.()===mountEpoch)&&!window.ProcessSync?.requiresReload&&root===ownedRoot&&ownedRoot.isConnected&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));
     navigationError=null;try { await load();if(!current())return; render(); } catch (error) {if(!current())return;navigationError=error; root.innerHTML = `<section class="iqc-panel iqc-alert" role="alert">${h(displayDraftError(error))} <button class="button ghost" id="iqc-retry">${t('重新載入','Tải lại')}</button></section>`; root.querySelector('#iqc-retry').onclick = () => mount(container); }
-    if(current())scheduleRefresh();
   }
-  function scheduleRefresh(){const pollScheduleOwner=pollTimer.capture();const delivery=window.ProcessSync?.captureDelivery?.(),current=()=>pollTimer.isCurrent(pollScheduleOwner)&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));pollTimer.schedule(async()=>{
-    if(!current())return;
-    if(!root?.isConnected&&!reviewRoot?.isConnected)return;
-    const actor=identity(),epoch=window.ProcessSync?.identityGeneration?.(),loadOwner=loadSequence,mutationOwner=mutationSequence;
-    let ownedControl=control,ownedRevision=revision;
-    const ownerCurrent=()=>current()&&!ui.busy&&!window.ProcessSync?.requiresReload&&identity()===actor&&(typeof epoch!=='number'||window.ProcessSync?.identityGeneration?.()===epoch)&&loadSequence===loadOwner&&mutationSequence===mutationOwner;
-    const modelCurrent=()=>ownerCurrent()&&control===ownedControl&&revision===ownedRevision;
-    try{if(!ui.busy&&identity()?.id&&document.visibilityState!=='hidden'&&transport().canPoll('state')){
-      const flow=control?.workflow,result=await transport().read(flow?`${flow.generation}:${flow.revision}`:'',{isCurrent:modelCurrent,requireAcceptedAccess:true});
-      if(!modelCurrent())return;if(!result.unchanged&&result.control){const wasOpen=['draft','pending'].includes(selected()?.status);validateIqcPayload(result,true);if(!modelCurrent())return;versionReadSequence++;control=result.control;revision=result.revision;activeDeferredId=result.iqcProjection?.activeVersionId||'';
-        ownedControl=control;ownedRevision=revision;
-        if(wasOpen)ui.versionId=control.versions.find(v=>['draft','pending'].includes(v.status))?.id||control.activeVersionId||'';
-        if(selected()?.snapshotDeferred&&!document.querySelector('.iqc-dialog-overlay,.iqc-lightbox')){
-          const id=selected().id,hydration=hydrateVersion(id,()=>modelCurrent()&&selected()?.id===id),hydrationSequence=versionReadSequence;
-          await hydration;
-          // Hydration legitimately replaces control; only its unchanged owner may render it.
-          if(!ownerCurrent()||revision!==ownedRevision||versionReadSequence!==hydrationSequence||selected()?.id!==id)return;
-          ownedControl=control;
-        }
-        if(!modelCurrent())return;
-        if(!document.querySelector('.iqc-dialog-overlay')&&!root?.contains(document.activeElement))render();
-        else {const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('共用內容已更新；彈窗輸入保留，套用時核對來源。','Nội dung chung đã cập nhật; giữ dữ liệu cửa sổ và kiểm tra nguồn khi áp dụng.');}
-      }
-    }}catch(error){if(!modelCurrent())return;const status=root?.querySelector('#iqc-shared-status');if(status)status.textContent=t('同步讀取失敗；未覆蓋目前內容。','Không đọc được dữ liệu đồng bộ; giữ nguyên nội dung.')+' '+displayDraftError(error);}
-    // A superseded model must not cancel this still-owned foreground scheduler.
-    finally{if(current())scheduleRefresh();}
-  });}
   function twoConfirm(label) {
     return confirm(`${label}？`) && confirm(`${label}。此操作會寫入 IQC 草稿，請再次確認。`);
   }
@@ -615,7 +763,7 @@
     on('#iqc-preview', 'click', async () => { try { const response = await fetch('/process/iqc-source.json', { cache: 'no-store' }); if (!response.ok) throw Error('IQC 來源預覽尚未建立'); const preview = await response.json(); if (preview.snapshot?.parts?.length !== 187) throw Error('IQC 來源筆數不符，沒有提供匯入'); ui.preview = preview; ui.previewError = preview.ready ? '' : '類別對照檔尚未核對完成；可預覽來源，但不能匯入草稿'; } catch (error) { ui.previewError = error.message; } render(); });
     on('#iqc-import', 'click', importPreview);
     on('#iqc-begin', 'click', async () => { try { await post('begin'); notice(t('IQC 草稿已開啟','Đã mở bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
-    on('#iqc-save', 'click', async () => { try { await post('save');notice(t('IQC 草稿已保存並共用','Đã lưu và chia sẻ bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
+    on('#iqc-save', 'click', async () => { try { const saved=await post('save');if(saved===false)return;notice(t('IQC 草稿已保存並共用','Đã lưu và chia sẻ bản nháp IQC')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-submit', 'click', async () => { try { const result=await post('submit'); if(result)notice(t('IQC 草稿已送出主管審核','Đã gửi bản nháp IQC để quản lý duyệt')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-withdraw', 'click', async () => { try { await post('withdraw'); void window.RoutineEquipmentUI?.reconcilePendingReplacements?.(); notice(t('IQC 送審已撤回，仍保留同一草稿','Đã rút hồ sơ IQC; bản nháp được giữ lại')); } catch (error) { notice(displayDraftError(error)); } });
     on('#iqc-to-review', 'click', () => { document.querySelector('[data-dual-view="approval"]')?.click(); setTimeout(() => document.querySelector('#approval-tab-quality')?.click(), 0); });
@@ -833,7 +981,7 @@
     if(client.permission('view')!==true||client.permission('edit')!==true||control.workflow.pendingId)throw Error('PENDING_OR_PERMISSION_LOCKED');
     if(batch.input.value.trim()!==value)throw Error('LOCAL_CHANGED');
     if(value===batch.baseName)return;
-    let reservation=null,dispatched=false;mutationSequence++;ui.busy=true;paintErrorRecovery();
+    let reservation=null,dispatched=false;ui.busy=true;paintErrorRecovery();
     try{
       persistErrorRecovery(batch);const path=['errors',{id:batch.rowId},'nameVi'],command=client.prepareRecovery(control.workflow.generation,{patches:[{op:'set',path,value}],guards:[{path,value:batch.baseName}]}),rejectionProof=client.rejectionCapability(command);
       const prepared=session.prepareWrite({operationId:command.operationId,generation:command.generation});reservation=prepared.reservation;if(!prepared.ok||!prepared.durable){if(reservation)session.cancelPrepared(reservation);throw Error(prepared.code||'RECOVERY_STORAGE_UNAVAILABLE');}
@@ -1180,12 +1328,12 @@
   let moduleDeparture;
   host.IQCMasterUI = { navigation:{get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
     root:()=>root,flow:()=>control?.workflow,context:()=>[mountSequence,control?.workflow?.generation,ui.versionId,sharedClient?.permission('save'),sharedClient?.permission('edit')],
-    current:()=>!readDenied&&sharedActor===identity()?.id,busy:()=>ui.busy,unknown:()=>sharedClient?.hasUnknown(),failed:()=>sharedClient?.hasSyncFailures(),
+    current:()=>!readDenied&&sharedActor===identity()?.id,busy:()=>ui.busy&&!comparisonCancellable(),unknown:()=>sharedClient?.hasUnknown(),failed:()=>sharedClient?.hasSyncFailures(),
     local:()=>!!localSnapshot||!!document.querySelector('.iqc-dialog-overlay'),sharedOwned:()=>false,
     unknownTransports:()=>[sharedClient],unknownReady:()=>!ui.busy,discardUnknown:()=>discardLocalInput(),canSave:()=>selected()?.status==='draft'&&!!mayDraftAction('save'),canDiscard:()=>mayEdit()&&sharedClient?.permission('edit')===true,
     save:owner=>post('save',{},owner),dialogs:()=>[...document.querySelectorAll('.iqc-dialog-overlay')],
     discard:discardLocalInput,
-  }),{autoAbandon:true,allowUnload:()=>!ui.busy});},requiresSave:()=>false,saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy,error:()=>navigationError,reset(){versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();pollTimer.cancel();root=null;reviewRoot=null;localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
-  function discardLocalInput(){if(errorBatch?.pending)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');const owners=[...editorOwners].filter(owner=>!owner.terminal&&owner.overlay.isConnected);for(const owner of owners)owner.assert();localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;for(const owner of owners){owner.onClose?.();owner.terminal=true;owner.detach();editorOwners.delete(owner);}dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;render();}
+  }),{autoAbandon:true,allowUnload:()=>!ui.busy||comparisonCancellable()});},requiresSave:()=>false,saveForDeparture:()=>post('save'),canLeave:()=>!ui.busy||comparisonCancellable(),error:()=>navigationError,reset(){cancelSaveComparison();pendingLocalSave=false;versionReadSequence++;versionReadError=null;activeDeferredId='';loadSequence++;mountSequence++;reviewBindSequence++;readDenied=null;reviewContainer=null;disposePhotoViewers();root=null;reviewRoot=null;localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;control=null;revision=null;dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;ui.versionId='';ui.preview=null;ui.openItems.clear();navigationError=null;}}, html, mount, reviewHTML, bindReview, pendingCount, renderApprovedDetail };
+  function discardLocalInput(){cancelSaveComparison();pendingLocalSave=false;if(errorBatch?.pending)throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');const owners=[...editorOwners].filter(owner=>!owner.terminal&&owner.overlay.isConnected);for(const owner of owners)owner.assert();localBase=null;localSnapshot=null;localGeneration=null;localBeginReceipt=null;for(const owner of owners){owner.onClose?.();owner.terminal=true;owner.detach();editorOwners.delete(owner);}dialogBase=null;dialogGeneration=null;dialogBeginReceipt=null;render();}
 
 })(window);

@@ -100,9 +100,15 @@ void test('actual cell Save rejection keeps choices; explicit abandonment then S
     await ui.c.__fqcTest.sharedAction('begin');await ui.c.__fqcTest.recoverySession().ready;await new Promise(setImmediate);
     await ui.main.querySelector('[data-matrix-item="item"]').click();
     const peer=f.realm('other');await peer.client.read();
-    await peer.client.command(ui.library.workflow.generation,'apply',{patches:[{op:'set',path:['items',{id:'item'},'isDeleted'],value:true}],guards:[{path:['items',{id:'item'},'isDeleted']}]});
-    const before=JSON.stringify(await f.state()),writes=posts(f).length;
-    await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/FQC_MATRIX_SCOPE_CHANGED/);
+    let before,writes;const client=ui.c.__fqcTest.transport(),send=client.sendPrepared;
+    client.sendPrepared=async(command,options)=>{
+      // Retain a real POST rejection: the peer deletes after comparison/prepare.
+      client.sendPrepared=send;
+      await peer.client.command(ui.library.workflow.generation,'apply',{patches:[{op:'set',path:['items',{id:'item'},'isDeleted'],value:true}],guards:[{path:['items',{id:'item'},'isDeleted']}]});
+      before=JSON.stringify(await f.state());writes=posts(f).length;
+      return send(command,options);
+    };
+    await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/DRAFT_REVISION_CHANGED_RECONFIRM/);
     assert.equal(ui.c.__fqcTest.transport().hasUnknown(),false);assert.equal(ui.c.__fqcTest.transport().hasSyncFailures(),true);
     assert.equal(ui.c.__fqcTest.matrixDirty(),true);assert.equal(ui.main.querySelector('[data-matrix-item="item"]').textContent,'✓');
     assert.equal(JSON.stringify(await f.state()),before);assert.equal(posts(f).length,writes+1);

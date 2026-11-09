@@ -26,10 +26,15 @@ export function buildMatrixMultiuserSeed(createSharedDraft,options={}) {
   seed.initialControl=clone(c);seed.contentBytes=Buffer.byteLength(JSON.stringify(seed.initialContent));seed.seedBytes=Buffer.byteLength(JSON.stringify(seed.values));
   return seed;
 }
-export function exactMatrixFailure({method,path,operationId,status,body,bodyText,failed},expected) {
+export function exactMatrixFailure({method,path,operationId,status,body,bodyText,failed,command},expected) {
   if(!expected||typeof expected.operationId!=='string'||!expected.operationId||operationId!==expected.operationId||path!=='/api/fqc/workflow')return false;
   if(expected.kind==='lost-ack')return method==='POST'&&failed===true&&status===null;
   if(expected.kind==='receipt404')return method==='GET'&&failed===false&&status===404&&bodyText==='{"error":"OPERATION_NOT_FOUND"}';
+  // Observation allowance only: this kind never grants a teardown token.
+  if(expected.kind==='revision409')return method==='POST'&&failed===false&&status===409&&body?.error==='DRAFT_REVISION_CHANGED_RECONFIRM'&&
+    typeof body.requestId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.requestId)&&
+    Number.isSafeInteger(expected.revision)&&expected.revision>=0&&typeof expected.generation==='string'&&!!expected.generation&&
+    command?.operationId===operationId&&command.action==='save'&&command.moduleAction==='save-local-v1'&&command.expectedRevision===expected.revision&&command.generation===expected.generation;
   return expected.kind==='guard409'&&typeof expected.itemId==='string'&&expected.itemId.length>0&&method==='POST'&&failed===false&&status===409&&body?.error==='DEPENDENCY_CHANGED_RECONFIRM'&&
     typeof body.requestId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.requestId)&&
     Array.isArray(body.details?.path)&&body.details.path[0]==='items'&&body.details.path[1]?.id===expected.itemId&&body.details.path[2]==='productCodes'&&body.details.path.length===3;
@@ -63,9 +68,9 @@ export function observeMatrixPage(page,{origin,allowed,unexpected,stage}) {
   const request=req=>{if(api(req)){if(req.method()==='POST'){lastPost=req;postSequence++;}inflight.add(req);requests.set(req,{stage:stage(),postSequence});}};
   const failure=(req,status,bodyText,body,failed)=>{
     const u=api(req);if(!u)return;
-    let operationId;try{operationId=req.method()==='POST'?req.postDataJSON()?.command?.operationId:u.searchParams.get('operationId');}catch{}
+    let operationId,command;try{command=req.method()==='POST'?req.postDataJSON()?.command:undefined;operationId=command?.operationId??u.searchParams.get('operationId');}catch{}
     const rule=allowed.get(req);
-    if(!exactMatrixFailure({method:req.method(),path:u.pathname,operationId,status,body,bodyText,failed},rule))
+    if(!exactMatrixFailure({method:req.method(),path:u.pathname,operationId,status,body,bodyText,failed,command},rule))
       unexpected.push({stage:requests.get(req)?.stage??stage(),kind:failed?'network':'http',path:u.pathname,status});
     else if(rule.kind==='guard409')confirmedGuards.set(req,{operationId,itemId:rule.itemId,rule,postSequence:requests.get(req)?.postSequence});
   };
@@ -166,6 +171,8 @@ export async function runMatrixMultiuserBrowser() {
           const rows=network.flatMap(row=>row.requests.rows),posted=rows.filter(row=>row.method==='POST');
           if(name==='lost-ack-original-receipt-never-repost') {
             assert.equal(posted.length,1);assert.equal(posted[0].failed,true);assert.equal(rows.filter(row=>row.status===404).length,2,'one automatic plus one explicit receipt lookup');
+          } else if(name==='overlapping-flight-refusal-then-explicit-fresh-save') {
+            assert.equal(posted.length,3);assert.equal(posted.filter(row=>row.status===409).length,1);assert.equal(posted.filter(row=>row.status===200).length,2);
           } else {
             assert.equal(posted.length,2);assert.equal(posted.filter(row=>row.status===409).length,0);assert.equal(posted.filter(row=>row.status===200).length,2);
           }
@@ -181,15 +188,39 @@ export async function runMatrixMultiuserBrowser() {
       assert.equal(await b.page.locator(cell(seed.ids.secondItem,seed.ids.product)).getAttribute('aria-pressed'),'true');
       await measure(b,'actor-b-save','#fqc-save',async()=>{await matrixClean(b.page);await idle(b.page);},async()=>{assert.deepEqual(await codes(seed.ids.item),[seed.ids.product]);assert.deepEqual(await codes(seed.ids.secondItem),[seed.ids.product]);assert.deepEqual((await control()).workflow.saved.content,(await control()).workflow.working);},1);
       await reload(a);await reload(b);
-      await functional('overlapping-flight-different-cells-merge',[a,b],async()=>{
+      await functional('overlapping-flight-refusal-then-explicit-fresh-save',[a,b],async()=>{
         await choose(a,seed.ids.thirdItem,seed.ids.product2);await choose(b,seed.ids.thirdItem,seed.ids.product);
-        let release,heldCommand;const held=new Promise(resolve=>{a.intercept=async(route,req,u)=>{
+        const localBefore=await a.page.evaluate(()=>window.FQCMasterUI.control.libraries.fqc.versions.find(v=>v.status==='draft').snapshot);
+        let release,heldCommand,heldRequest,postAttempts=0,explicitRetry=false,freshReads=0,retryCommand;
+        const held=new Promise(resolve=>{a.intercept=async(route,req,u)=>{
+          if(req.method()==='GET'&&u.pathname==='/api/fqc/workflow'&&!u.searchParams.has('operationId')&&explicitRetry)freshReads++;
           if(req.method()==='POST'&&u.pathname==='/api/fqc/workflow'){
-            assert.equal(heldCommand,undefined);heldCommand=req.postDataJSON().command;assert.equal(heldCommand.action,'save');assert.equal(heldCommand.moduleAction,'save-local-v1');assert.deepEqual(heldCommand.input.matrixCells,[{itemId:seed.ids.thirdItem,productCode:seed.ids.product2,base:false,value:true}]);
-            resolve();await new Promise(done=>{release=done;});return route.continue();
+            postAttempts++;const current=req.postDataJSON().command;
+            assert.equal(current.action,'save');assert.equal(current.moduleAction,'save-local-v1');assert.deepEqual(current.input.matrixCells,[{itemId:seed.ids.thirdItem,productCode:seed.ids.product2,base:false,value:true}]);
+            if(!heldCommand){
+              heldCommand=current;heldRequest=req;assert(Number.isSafeInteger(current.expectedRevision));
+              allowed.set(req,{kind:'revision409',operationId:current.operationId,revision:current.expectedRevision,generation:current.generation});
+              resolve();await new Promise(done=>{release=done;});
+            }else{
+              assert.equal(explicitRetry,true,'no automatic retry after a stale comparison');assert.equal(postAttempts,2);assert(freshReads>0,'explicit retry requires a fresh read');
+              assert.notEqual(current.operationId,heldCommand.operationId);assert(current.expectedRevision>heldCommand.expectedRevision);retryCommand=current;
+            }
           }return route.continue();
         };});
-        try{await click(a,'#fqc-save');await deadline(held,'first original matrix POST');await save(b);assert.deepEqual(await codes(seed.ids.thirdItem),[seed.ids.product]);release();release=null;await matrixClean(a.page);await idle(a.page);assert.deepEqual(new Set(await codes(seed.ids.thirdItem)),new Set([seed.ids.product,seed.ids.product2]));assert.deepEqual((await control()).workflow.saved.content,(await control()).workflow.working);assert.equal(await a.page.evaluate(()=>window.sharedDraftAccountState().unknown),false);}finally{release?.();a.intercept=null;}
+        try{
+          await click(a,'#fqc-save');await deadline(held,'first original matrix POST');await save(b);
+          assert.deepEqual(await codes(seed.ids.thirdItem),[seed.ids.product]);const peerOnly=await control();
+          release();release=null;
+          await a.page.waitForFunction(()=>{const account=window.sharedDraftAccountState();return account.queued===0&&account.failed&&!account.unknown&&window.FQCMasterUI.navigation.hasLocalChanges()&&document.querySelector('#fqc-save')?.disabled===false;});
+          // Known refusal is intentionally failed, so do not use clean-success idle here.
+          await a.observer.drain();assert.deepEqual(report.unexpected,[]);assert.equal(postAttempts,1);
+          assert.equal(a.observer.rejectedTeardownToken(heldRequest),null,'revision observation cannot authorize ending a failed page');
+          assert.deepEqual(await control(),peerOnly);assert.deepEqual(await a.page.evaluate(()=>window.FQCMasterUI.control.libraries.fqc.versions.find(v=>v.status==='draft').snapshot),localBefore);
+          assert.equal(await a.page.locator(cell(seed.ids.thirdItem,seed.ids.product2)).getAttribute('aria-pressed'),'true');
+          explicitRetry=true;await save(a);assert.equal(postAttempts,2);assert(retryCommand);assert.equal(retryCommand.expectedRevision,peerOnly.workflow.revision);
+          assert.deepEqual(new Set(await codes(seed.ids.thirdItem)),new Set([seed.ids.product,seed.ids.product2]));assert.deepEqual((await control()).workflow.saved.content,(await control()).workflow.working);
+          assert.deepEqual(await a.page.evaluate(()=>{const s=window.sharedDraftAccountState();return {unknown:s.unknown,failed:s.failed};}),{unknown:false,failed:false});
+        }finally{release?.();a.intercept=null;}
       });
       await reload(a);await reload(b);
       await functional('same-row-independent-add-remove-merge',[a,b],async()=>{

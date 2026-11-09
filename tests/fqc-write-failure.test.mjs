@@ -10,11 +10,12 @@ for(const mode of ['required-read','encode','cas-before','cas-after'])void test(
   await ui.c.__fqcTest.sharedAction('begin');ui.c.__fqcTest.openErrorModal('error');const form=ui.doc.querySelector('.fqc-modal-form'),input=form.querySelector('[name="name"]');input.value='Synthetic error test';
   const before=f.db.prepare('SELECT * FROM shared_state').get(),start=f.requests.length,prepare=f.env.DB.prepare.bind(f.env.DB);
   const fault=()=>{throw Error('SYNTHETIC_PRIVATE_DETAIL Bearer synthetic-secret');};
-  if(mode==='required-read'){const key=JSON.parse(before.values).__processRecords.values.qualityMasterControl.key;f.hooks.get=k=>{if(k===key)fault();};}
+  // Keep this failure on the original POST business-read, after fresh comparison.
+  const prepared=()=>{if(mode==='required-read'){const key=JSON.parse(before.values).__processRecords.values.qualityMasterControl.key;f.hooks.get=k=>{if(k===key)fault();};}};
   if(mode==='encode')f.hooks.put=fault;
   if(mode==='cas-before')f.hooks.run=sql=>{if(sql.startsWith('UPDATE shared_state'))fault();};
   if(mode==='cas-after')f.env.DB.prepare=sql=>{const statement=prepare(sql);if(sql.startsWith('UPDATE shared_state')){const run=statement.run.bind(statement);statement.run=async()=>{await run();fault();};}return statement;};
-  await form.onsubmit({preventDefault(){},target:form});assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,0);await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/WORKFLOW_WRITE_FAILED/);assert.equal(ui.c.__fqcTest.ui.lastError,'WORKFLOW_WRITE_FAILED');assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(input.value,'Synthetic error test');
+  await form.onsubmit({preventDefault(){},target:form});assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,0);await assert.rejects(ui.c.__fqcTest.sharedAction('save',{},prepared),/WORKFLOW_WRITE_FAILED/);assert.equal(ui.c.__fqcTest.ui.lastError,'WORKFLOW_WRITE_FAILED');assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(input.value,'Synthetic error test');
   const writes=f.requests.slice(start).filter(r=>r.method==='POST');assert.equal(writes.length,1);assert.equal(writes[0].status,500);assert.equal(writes[0].result.error,'WORKFLOW_WRITE_FAILED');assert.match(writes[0].result.requestId,/^[0-9a-f-]{36}$/);
   const log=messages.find(args=>args[0]==='[shared-workflow]');assert(log);assert.equal(log[2],writes[0].result.requestId);assert.deepEqual(JSON.parse(log[4]),{stage:mode==='required-read'?'business-read':mode==='encode'?'record-encode':'state-cas',reason:'UNCLASSIFIED_EXCEPTION'});assert(!JSON.stringify(log).includes('synthetic-secret'));assert(!JSON.stringify(writes[0].result).includes('SYNTHETIC_PRIVATE_DETAIL'));
   await assert.rejects(ui.c.__fqcTest.sharedAction('save'),/UNKNOWN_OPERATION_CHECK_REQUIRED/);assert(ui.c.__fqcTest.transport().hasUnknown());assert.equal(f.requests.slice(start).filter(r=>r.method==='POST').length,1);
