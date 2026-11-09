@@ -104,7 +104,7 @@
   };
   let root,
     data,
-    loading = false;
+    loading = false, mountOwner = null;
   const btn = (action, text, disabled = false, extra = '') =>
     `<button type="button" class="rf-btn ${extra}" data-action="${action}" ${disabled ? 'disabled' : ''}>${text}</button>`;
   function html() {
@@ -221,10 +221,27 @@
   window.addEventListener('pageshow',()=>{receiptSuspended=false;});
   let inFlightMutation=0,navigationError=null;
   const readPause=window.createScopedReadPause('例行 FQC / FQC định kỳ');
-  async function read(query = '') {
+  const refreshErrorOwners = new WeakMap();
+  async function read(query = '', accepts = () => true) {
     const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
-    const r = await fetch(endpoint + query, { cache: 'no-store' });let v;try{v=await r.json();}catch(error){readPause.denied(kind,r.status,pauseOwner,()=>read(query));if([401,403].includes(r.status))error.status=r.status;throw error;}
-    if(delivery&&window.ProcessSync.isCurrentDelivery(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
+    const assertCurrent = () => {
+      if (!accepts() || (delivery && window.ProcessSync.isCurrentDelivery(delivery) === false))
+        throw Error('DELIVERY_SUPERSEDED');
+    };
+    let r, v;
+    assertCurrent();
+    try { r = await fetch(endpoint + query, { cache: 'no-store' }); }
+    catch (error) { assertCurrent(); throw error; }
+    assertCurrent();
+    try { v = await r.json(); }
+    catch (error) {
+      // Rejected bodies must not install a denial notice in a newer view.
+      assertCurrent();
+      readPause.denied(kind, r.status, pauseOwner, () => read(query));
+      if ([401, 403].includes(r.status)) error.status = r.status;
+      throw error;
+    }
+    assertCurrent();
     if (!r.ok){readPause.denied(kind,r.status,pauseOwner,()=>read(query));throw Object.assign(Error(v.error || 'FQC_READ_FAILED'),{status:r.status});}
     readPause.success(kind,pauseOwner);
     if(kind==='state')receiptObserveRead(v,owner);
@@ -302,7 +319,8 @@
     return prefix + (issueNames[issue.message] ? t(...issueNames[issue.message]) : issue.message || issue.code);
   }
   function fault(e) {
-    if(e?.message==='DELIVERY_SUPERSEDED')return;
+    const owns = refreshErrorOwners.get(e);
+    if(e?.message==='DELIVERY_SUPERSEDED' || (owns && !owns()))return;
     s.error =
       e.message === 'VALIDATION_FAILED'
         ? t(
@@ -316,10 +334,10 @@
     if (!s.issues.length && e.message !== 'VALIDATION_FAILED') s.issues = [{ message: s.error, path: [] }];
     paint();
   }
-  async function post(command) {
-    inFlightMutation++;try{return await postOwned(command);}finally{inFlightMutation--;}
+  async function post(command, accepts) {
+    inFlightMutation++;try{return await postOwned(command, accepts);}finally{inFlightMutation--;}
   }
-  async function postOwned(command) {
+  async function postOwned(command, accepts = () => true) {
     const pin=receiptPin();if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     receiptInstall(pin.actor);if(receiptInvalid)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');
     const original=receiptRecord;
@@ -327,7 +345,7 @@
       if(command?.operationId!==original.meta.operationId)throw Error('PREVIOUS_OPERATION_UNKNOWN');
       if(original.ram&&JSON.stringify(command)!==JSON.stringify(original.ram))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
       if(original.notSent||original.rejectedCode){const message=original.rejectedCode||'ROUTINE_OPERATION_NOT_SENT_RETRY_ACTION';receiptClear(original,pin);throw Error(message);}
-      const found=await read('?operationId='+encodeURIComponent(original.meta.operationId));
+      const found=await read('?operationId='+encodeURIComponent(original.meta.operationId), accepts);
       return receiptTerminal(original,found,pin);
     }
     const body=clone({...command,operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
@@ -337,7 +355,7 @@
       if(!current()||body.action!=='draft'||!['apply','restore'].includes(body.command?.action)||live?.scope!==scope||live.generation!==record.meta.generation||result?.unchanged!==false)return;
       window.SharedDraftDeparture?.register?.(scope);window.SharedDraftDeparture?.confirmed?.(scope,body.command,{receipt:result},departureOwner);
     };
-    const receipt=async()=>{if(!current())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');const found=await read('?operationId='+encodeURIComponent(body.operationId));return receiptTerminal(record,found,pin);};
+    const receipt=async()=>{if(!current())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');const found=await read('?operationId='+encodeURIComponent(body.operationId), accepts);return receiptTerminal(record,found,pin);};
     let response,value;
     if(!current()||!receiptWriteAllowed(body)||receiptStore().getItem(record.key)!==record.raw)throw Error('ROUTINE_RECEIPT_DISPATCH_CHANGED');
     try{record.notSent=false;response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});value=await response.json();}
@@ -352,26 +370,62 @@
     }
     return receiptTerminal(record,value,pin);
   }
-  async function refresh(generate = false) {
-    const next = await read();
-    // A read started before a review/cancellation may finish after a newer read.
-    // Never publish that older aggregate into the active document or checklist.
-    if (data && next.identity.id === data.identity.id && next.control.revision < data.control.revision) return;
-    if (data && next.identity.id !== data.identity.id) {
-      s.buffers.clear();
-      s.bases.clear();
-      s.selected = null;
+  // This token belongs to one explicit entry/update, never to an idle timer.
+  // Pin the actual identity object as well as epoch/delivery: a replacement
+  // object for the same account cannot inherit an earlier generation intent.
+  let refreshSequence = 0, generationRefresh = null;
+  const normalWork = () => root?.isConnected && root.matches?.('#routine-fqc-root') &&
+    !s.reviewPlatform && s.module === 'FQC' && ['jobs', 'plans', 'reports', 'cases', 'documents'].includes(s.tab);
+  async function refresh(generate = false, configured = false) {
+    if (generate && generationRefresh?.current()) return;
+    const pin = receiptPin(), identity = window.ProcessSync?.identity,
+      sequence = ++refreshSequence, tab = s.tab, workModule = s.module, review = s.reviewPlatform,
+      unknownAtStart = receiptInvalid || (!!s.retry && !(configured && receiptRecord?.meta.action === 'configure' &&
+        receiptRecord.terminal && receiptOwnedPin(receiptRecord.terminal.pin)));
+    let observed = data, view = data?.permissions?.view, edit = data?.permissions?.edit;
+    const current = () => sequence === refreshSequence && receiptCurrent(pin) &&
+      root?.isConnected && identity === window.ProcessSync?.identity &&
+      s.tab === tab && s.module === workModule && s.reviewPlatform === review &&
+      data === observed && data?.permissions?.view === view && data?.permissions?.edit === edit;
+    const adopt = next => { data = observed = next; view = next.permissions.view; edit = next.permissions.edit; };
+    const token = generate ? { current } : null;
+    if (token) generationRefresh = token;
+    try {
+      if (token && data) paint();
+      const next = await read('', current);
+      if (!current()) return;
+      // Both the aggregate and storage revision must remain monotonic. A newer
+      // explicit read or local permission revocation also retires this intent.
+      if (data && next.identity.id === data.identity.id &&
+          (next.control.revision < data.control.revision || next.revision < data.revision)) return;
+      if (data && next.identity.id !== data.identity.id) {
+        s.buffers.clear(); s.bases.clear(); s.selected = null;
+      }
+      adopt(next);
+      reconcileSelection();
+      if (generate && !unknownAtStart && current() && normalWork() && !s.retry && !receiptInvalid &&
+          !readPause.state('state') && !inFlightMutation && data.enabled !== false &&
+          data.permissions.view === true && data.permissions.edit === true && data.control.startDate) {
+        // No buffer, basis, draft payload or client date is sent. The existing
+        // server generates from its fresh authorized state/company date and CAS.
+        await post({ action: 'generate' }, current);
+        if (!current()) return;
+        const generated = await read('', current);
+        if (!current()) return;
+        if (generated.control.revision >= data.control.revision && generated.revision >= data.revision) adopt(generated);
+      }
+      s.error = receiptInvalid ? receiptStorageNotice() : s.retry ? receiptNotice() : '';
+      s.issues = [];
+    } catch (error) {
+      // A sent operation still owns its original receipt. Retiring its UI
+      // intent only suppresses late error presentation, never marks it unsent.
+      if (!current()) throw Error('DELIVERY_SUPERSEDED');
+      if (error && typeof error === 'object') refreshErrorOwners.set(error, current);
+      throw error;
+    } finally {
+      if (generationRefresh === token) generationRefresh = null;
+      if (current()) paint();
     }
-    data = next;
-    reconcileSelection();
-    if (generate && !s.retry && s.tab !== 'history' && data.permissions.edit && data.control.startDate) {
-      await post({ action: 'generate' });
-      const generated = await read();
-      if (generated.control.revision >= data.control.revision) data = generated;
-    }
-    s.error = receiptInvalid ? receiptStorageNotice() : s.retry ? receiptNotice() : '';
-    s.issues = [];
-    paint();
   }
   let historySearch, historyLanguage, pendingHistoryItem;
   async function ensureHistorySearch() {
@@ -381,18 +435,23 @@
     }
   }
   async function mount(container, historyMode = false) {
-    const delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>!delivery||window.ProcessSync.isCurrentDelivery(delivery);navigationError=null;
+    navigationError=null;
     s.reviewPlatform = false;
     root = container.matches?.('#routine-fqc-root')
       ? container
       : container.querySelector('#routine-fqc-root');
     if (!root) return;
     if (historyMode) s.tab = 'history';
-    if (loading) return;
+    if (loading && mountOwner?.()) return;
+    const pin = receiptPin(), identity = window.ProcessSync?.identity;
+    const owns = () => receiptCurrent(pin) && root?.isConnected && identity === window.ProcessSync?.identity;
+    let available = false;
+    mountOwner = owns;
     loading = true;
     try {
-      const a = await read('?availability=1');if(!owns())return;
-      if (!a.enabled) {
+      const a = await read('?availability=1', owns);if(!owns())return;
+      available = a.enabled === true;
+      if (!available) {
         root.innerHTML = `<div class="rf-empty"><b>${t('例行檢查準備中', 'Đang chuẩn bị kiểm tra định kỳ')}</b>${t('3040 完成驗收後啟用', 'Kích hoạt sau nghiệm thu 3040')}</div>`;
         return;
       }
@@ -401,7 +460,10 @@
     } catch (e) {
       if(owns()){navigationError=e;fault(e);}
     } finally {
-      if(owns())loading = false;
+      if (mountOwner === owns) {
+        loading = false; mountOwner = null;
+        if (owns() && available && data) paint();
+      }
     }
   }
   const docs = () => data?.control.documents || [],
@@ -691,7 +753,7 @@
       overdue = c.jobs.filter(
         (j) => !j.completion && j.end < data.today,
       ).length;
-    root.innerHTML = `<header class="rf-hero"><div><div class="rf-eyebrow">QUALITY ASSURANCE / ROUTINE INSPECTION</div><h2>${t('例行檢查 · FQC', 'Kiểm tra định kỳ · FQC')}</h2><p>${t('從排程、檢查到改善結案，每一筆都有依據。', 'Theo dõi lịch kiểm tra, kết quả và cải thiện đến khi đóng hồ sơ.')}</p></div>${btn('settings', t('⚙ 排程設定', '⚙ Lịch kiểm tra'), !p.settings, 'soft')}</header>${location.port === '3040' ? `<div class="rf-test">3040 · ${t('隔離測試環境 — 測試資料與日常資料分開', 'Môi trường thử nghiệm độc lập với dữ liệu hàng ngày')}</div>` : ''}<nav class="rf-modules">${['FQC', 'IQC', t('模具檢查', 'Kiểm tra khuôn'), t('檢具與測試設備校準', 'Hiệu chuẩn thiết bị')].map((m, i) => `<button data-module="${i}" class="${s.module === String(i) || (s.module === 'FQC' && i === 0) ? 'active' : ''}">${m}</button>`).join('')}</nav><div class="rf-main">${
+    root.innerHTML = `<header class="rf-hero"><div><div class="rf-eyebrow">QUALITY ASSURANCE / ROUTINE INSPECTION</div><h2>${t('例行檢查 · FQC', 'Kiểm tra định kỳ · FQC')}</h2><p>${t('從排程、檢查到改善結案，每一筆都有依據。', 'Theo dõi lịch kiểm tra, kết quả và cải thiện đến khi đóng hồ sơ.')}</p></div><div class="rf-actions">${normalWork() ? btn('update-current', t('更新', 'Cập nhật'), s.busy || loading) : ''}${btn('settings', t('⚙ 排程設定', '⚙ Lịch kiểm tra'), !p.settings, 'soft')}</div></header>${location.port === '3040' ? `<div class="rf-test">3040 · ${t('隔離測試環境 — 測試資料與日常資料分開', 'Môi trường thử nghiệm độc lập với dữ liệu hàng ngày')}</div>` : ''}<nav class="rf-modules">${['FQC', 'IQC', t('模具檢查', 'Kiểm tra khuôn'), t('檢具與測試設備校準', 'Hiệu chuẩn thiết bị')].map((m, i) => `<button data-module="${i}" class="${s.module === String(i) || (s.module === 'FQC' && i === 0) ? 'active' : ''}">${m}</button>`).join('')}</nav><div class="rf-main">${
       s.module !== 'FQC'
         ? `<div class="rf-empty"><span class="rf-icon">◇</span><b>${t('功能建置中', 'Đang xây dựng')}</b>${t('此入口尚未開始管理，原資料後台仍可使用。', 'Chưa bắt đầu quản lý; dữ liệu gốc vẫn sử dụng được.')}</div>`
         : `<nav class="rf-tabs">${[
@@ -728,7 +790,7 @@
     if (s.tab === 'history' && historySearch) historySearch.bind(root);
     else mountDraft();
     root.querySelectorAll('button').forEach((b) => {
-      if (s.busy) b.disabled = true;
+      if (s.busy || generationRefresh?.current()) b.disabled = true;
     });
     restoreView();
   }
@@ -1084,7 +1146,7 @@
           s.highlight = '';
           s.selected = null;
           s.overdue = false;
-          if (leavingHistory && s.tab !== 'history') void refresh(true);
+          if (leavingHistory && s.tab !== 'history') void refresh(true).catch(fault);
           else paint();
         }),
     );
@@ -1379,7 +1441,7 @@
     return f?.get('reason')?.trim();
   }
   async function act(action, el) {
-    if (s.busy || s.dialogOpen) return;
+    if (s.busy || s.dialogOpen || generationRefresh?.current()) return;
     try {
       if (
         s.retry &&
@@ -1389,6 +1451,7 @@
           'clear-filter',
           'expand-report',
           'refresh',
+          'update-current',
           'export',
         ].includes(action)
       )
@@ -1471,6 +1534,12 @@
         return;
       }
       let command, extra;
+      if (action === 'update-current') {
+        // A retired normal-page button is not an authorization on review/history.
+        if (!normalWork() || !el?.isConnected || !root.contains(el) || el.disabled) return;
+        await refresh(true);
+        return;
+      }
       if (action === 'refresh') {
         await refresh();
         return;
@@ -1609,8 +1678,9 @@
       }
       fault(e);
     } finally {
-      s.busy = false;
-      paint();
+      // Update owns no busy mutation; refresh/fault already paints its owner.
+      // A retired Update must not repaint or unlock a different page's action.
+      if (!['update-current', 'refresh'].includes(action)) { s.busy = false; paint(); }
     }
   }
   async function settings() {
@@ -1646,7 +1716,7 @@
         startDate: f.get('start'),
         expectedRevision: data.control.revision,
       });
-      await refresh(true);
+      await refresh(true, true);
     } finally {
       s.busy = false;
       paint();
@@ -1843,7 +1913,7 @@
       s.selected = b.dataset.reviewDoc; s.reviewCase = doc().flow.pendingId; s.selfReview = null; s.cancelConfirm = null;
       const url = new URL(location.href); url.searchParams.set('rfDocument', s.selected); if (s.reviewCase) url.searchParams.set('rfCase', s.reviewCase); else url.searchParams.delete('rfCase'); if(!window.ProcessDeliveryNavigation?.replaceDisplayURL?.(url))history.replaceState(history.state, '', url); paint();
     });
-    root.querySelectorAll('button').forEach((b) => { if (s.busy) b.disabled = true; });
+    root.querySelectorAll('button').forEach((b) => { if (s.busy || generationRefresh?.current()) b.disabled = true; });
   }
   async function bindReview(container) {
     const area = container?.querySelector('#review-routine-fqc'); if (!area) return;
@@ -1900,53 +1970,6 @@
     },
   };
   window.addEventListener('process-language-change', () => paint());
-  // Read-only synchronization does not replace unsaved local fields. A subsequent
-  // Save uses per-field guards and the server's current shared-document revision.
-  setInterval(async () => {
-    if (
-      !root?.isConnected ||
-      !readPause.canPoll('state') ||
-      s.busy ||
-      s.retry ||
-      document.hidden ||
-      document.querySelector('dialog[open]')
-    )
-      return;
-    try {
-      let next = await read();
-      if (data && next.identity.id === data.identity.id && next.control.revision < data.control.revision) return;
-      const scheduleChanged =
-        next.today !== data?.today ||
-        JSON.stringify(next.sources) !== JSON.stringify(data?.sources);
-      const catalogChanged =
-        JSON.stringify(next.catalog) !== JSON.stringify(data?.catalog);
-      if (scheduleChanged && s.tab !== 'history' && next.permissions.edit && next.control.startDate) {
-        await post({ action: 'generate' });
-        next = await read();
-      }
-      if (
-        next.control.revision === data?.control.revision &&
-        !scheduleChanged &&
-        !catalogChanged
-      )
-        return;
-      for (const d of docs())
-        if (!dirty(d)) {
-          s.buffers.delete(d.id);
-          s.bases.delete(d.id);
-        }
-      data = next;
-      reconcileSelection();
-      if (!docs().some((d) => dirty(d))) paint();
-    } catch {
-      const status = root.querySelector('[data-vd-sync]');
-      if (status)
-        status.textContent = t(
-          '同步失敗；輸入保留，可重試',
-          'Đồng bộ thất bại; giữ dữ liệu nhập, có thể thử lại',
-        );
-    }
-  }, 15000);
   window.addEventListener('beforeunload', (e) => {
     if (docs().some((d) => dirty(d))) {
       e.preventDefault();

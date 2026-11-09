@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
 const source=fs.readFileSync('public/process/routine-fqc.js','utf8'),shared=fs.readFileSync('public/process/shared-draft-client.js','utf8'),copy=structuredClone;
-const instrument=source.replace('  function paint() {','  function paint() { if(window.skipPaint)return;').replace(/\}\)\(\);\s*$/,'window.testRoutine={s,postOwned,read,save,refresh,act,buffer,dirty,record:()=>receiptRecord,setData:v=>data=v,getData:()=>data,setRoot:v=>root=v};})();');
+const instrument=source.replace('  function paint() {','  function paint() { if(window.skipPaint)return;').replace(/\}\)\(\);\s*$/,'window.testRoutine={s,postOwned,read,save,refresh,act,bind,settings,buffer,dirty,setHistorySearch:v=>historySearch=v,setDialog:fn=>dialog=fn,record:()=>receiptRecord,setData:v=>data=v,getData:()=>data,setRoot:v=>root=v};})();');
 assert.notEqual(instrument,source);assert(instrument.includes('window.testRoutine='));
 function storage(){const map=new Map(),calls=[];let fault=null;return{map,calls,setFault:fn=>fault=fn,get length(){fault?.('length');return map.size;},key(i){fault?.('key');return [...map.keys()][i]??null;},getItem(k){calls.push(['get',k]);fault?.('get',k);return map.get(k)??null;},setItem(k,v){calls.push(['set',k,v]);fault?.('set',k,v);map.set(k,v);},removeItem(k){calls.push(['remove',k]);fault?.('remove',k);map.delete(k);}};}
-export function fixture({store=storage(),actor='owner',remote=null}={}){
+export function fixture({store=storage(),actor='owner',remote=null,schedulers={setInterval(){},setTimeout,clearTimeout}}={}){
  const content={title:'Original',date:'2026-10-31',notes:'',reason:'',disposition:'',evidence:[],lines:[]};
  remote||={identity:{id:actor},permissions:{view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true},revision:50,control:{revision:10,startDate:'2026-10-31',documents:[{id:'doc',kind:'plan',flow:{scope:'routine-fqc:doc',generation:'generation-1',revision:5,working:copy(content),saved:{id:'saved-original',revision:4,content:copy(content)},pendingId:null,active:{id:null},cases:[]}}],jobs:[],cases:[]},sources:[],catalog:{},today:'2026-10-31'};
  let epoch=1,delivery=1,mode='ok',error={error:'PROXY_UNKNOWN'},errorStatus=409,afterPost=()=>{},afterRead=()=>{},alterReceipt=x=>x;const receipts=new Map(),calls=[],listeners=new Map();
  const sync={identity:{id:actor},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:x=>x===delivery};
  const win={ProcessSync:sync,localStorage:store,skipPaint:true,addEventListener(name,fn){const all=listeners.get(name)||[];all.push(fn);listeners.set(name,all);}};
- const box={window:win,document:{documentElement:{lang:'zh'},hidden:false,querySelector:()=>null,addEventListener(){}},crypto:webcrypto,setInterval(){},setTimeout,clearTimeout,AbortController,URL,URLSearchParams,Response,console,structuredClone,async fetch(url,options={}){
+ const box={window:win,document:{documentElement:{lang:'zh'},hidden:false,querySelector:()=>null,addEventListener(){}},crypto:webcrypto,...schedulers,AbortController,URL,URLSearchParams,Response,console,structuredClone,async fetch(url,options={}){
   const method=options.method||'GET';calls.push({url,method,body:options.body||'',responseBytes:0});const call=calls.at(-1);const response=(value,status=200)=>{call.responseBytes=Buffer.byteLength(JSON.stringify(value));return Response.json(value,{status});};
   if(method==='POST'){
    const body=JSON.parse(options.body);if(mode==='reject')return response(error,errorStatus);if(mode==='lost')throw Error('LOST');
