@@ -16,7 +16,7 @@
 | 線別與工段管理 | `master:AB`、`master:C` | 各 scope 新 approved-only PASS | 已接單一同頁 selector／核准快照／回原 RAM；AB/C 兩邊暫存保留，沿用原 scope，合成 DOM／實際 handler PASS |
 | AB 產線與類別 | `master:AB` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照，移除本頁舊案件／還原入口，30 項新主資料情境及 80 項既有回歸 PASS |
 | C 產線與類別 | `master:C` | 新 approved-only PASS | 已接同頁 selector，保留 C 自己的版本、權限、pending 與原 RAM；與 AB/C／線別共同驗證 PASS |
-| 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 模板與機器是同頁視角；需同頁唯讀展示，不以現行機器資料替代歷史 |
+| 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 已接原頁單一 selector／核准快照／回原 RAM；模板與機器同頁分組、歷史照片取固定引用，20 項實際頁面新情境與 27 組既有名稱／恢復 PASS |
 | FQC | `fqc` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM，移除本頁舊案件／還原入口；矩陣與比較基準保留，本機定向測試 PASS，原生與實站未驗 |
 | IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
 | IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | `ipqc-ab.js` 尚未轉接；舊群組與新整份版本的唯讀聯集 helper 已有，但未註冊到本批 API／UI，不可宣稱舊版聯集完整 |
@@ -119,3 +119,13 @@ shared bridge 的明確 display lease 保護直接 writer、prepared command、�
 發現並修正 `2ddd2151` 檢查點的模具 busy 結束後 selector 未重啟問題；舊 bundle 是已被取代的局部檢查點，不作最新交付。明確 refreshControls、原生 close 清理及讀取期間 checks 退休保護不增加輪詢。FQC 已驗證目錄與 session 的穩定身份持有者分離於單次讀回 display epoch，保留矩陣 session、一般欄位及目錄可用性；真實入口 bind 的矩陣歷史返回後明確 Save 恰送原選擇一次，真正離頁才放棄 local，UNKNOWN 原 journal 不查詢／不重送。
 
 最新受影響本機回歸 **421/421 PASS、0 SKIP**，日誌 `master-and-quality-history-runtime-verified.log`；FQC 目錄純來源 42 項 PASS，typed lint／TypeScript／source boundary PASS。新 source proof／build 應綁後續實際產品 commit；不可引用舊 `2ddd2151` 的 build 證明新 runtime。尚餘 PROCESS 模板／機器、製程編輯台／畫布、IPQC A/B 舊新聯集、例行 FQC 文件前端；GitHub 全列未上傳、本批未部署、原生／實機／實站未驗。
+
+## PROCESS 流程資料／模板／機器
+
+原頁使用 `process-approved-version`；移除原未核准版本選單、歷史紀錄／還原入口，以及選版本時的 discardLocal／名稱與機器 abandon。版本資料只進獨立純唯讀 renderer，模板、各工段的巢狀機器與照片均來自選定快照，不查現行機器資料。返回草稿只更新 permissions 並重繪原 writer；儲存後選單可再次使用。審核平台的已核准版本可轉入同頁 detail，未核准案件由伺服器拒絕。
+
+明確 PROCESS display lease 保護既有 bridge；原生事件、property callbacks、名稱 Apply 及機器 RAF 有同頁世代／原節點保護。未套用名稱、開啟視窗、照片／Save／共享操作進行中阻擋切換而保留內容。一般同頁重繪可重新取回同一歷史選擇；UNKNOWN 不讀原收據、不重送，pending 返回後仍鎖定。真實入口函式以 AST 讀取，搭配實際機器元件／共同 UI／bridge／signed handlers／SQLite／Map-R2：**20/20 新情境 PASS**；既有名稱／恢復／引用 **27 組 PASS**。typed lint／TypeScript PASS。
+
+跨頁擴充批次 `process-master-cross-module-runtime.log` 為 **323 PASS / 325，2 FAIL，0 SKIP**。兩項 `process-equipment-snapshot.test.mjs` 的舊「beforeSave 必須拒絕尚未 Sync」斷言，在真實前任 `3f6e736e` 的設備來源也相同失敗（`process-equipment-snapshot-checkpoint-baseline.log`）；測試實際讀取的設備函式範圍與前任完全相等，畫布／authoring／local store 原始碼未改。這是既有畫布 Save 契約與舊測試相依的未解狀態，沒有刪斷言或假稱全綠；尚未合併獨立畫布候選 `80745895`，其 REVIEW 要求 parent 先協調另一畫布 owner。這兩項未作 GitHub 合併通過證明。
+
+新增 CI 保留 PROCESS 新測試及原名稱保護腳本。四個實際修改 asset（app／process-equipment／master-data／VersionDraftUI）更新 cache `20261109-process-approved-history5`；其餘 tag／歷史 source pin 不變。尚餘 IPQC A/B 舊新聯集、製程編輯台／畫布及例行 FQC；全列本批未上 GitHub、未部署、原生／實站未驗。

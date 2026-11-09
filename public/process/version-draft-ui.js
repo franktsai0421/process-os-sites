@@ -392,9 +392,31 @@
   const priorValidation=host.renderSharedDraftValidation;
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));
+  // PROCESS uses its existing writer and scope. Only this display controller
+  // receives immutable approved snapshots; source data and private buffers stay put.
+  let processHistoryView=null,processHistoryEpoch=0,processHistoryLease=null,processHistoryResume=null,processHistoryFlight=null;
+  const processHistoryCurrent=()=>!processHistoryResume&&!processHistoryView?.blocked;
+  const captureProcessDisplay=()=>{const epoch=processHistoryEpoch,root=document.querySelector('#data-content');return()=>epoch===processHistoryEpoch&&processHistoryCurrent()&&root===document.querySelector('#data-content');};
+  function retireProcessHistory(){processHistoryEpoch++;processHistoryView?.retire();processHistoryView=null;processHistoryResume=null;}
+  if(host.ProcessMasterVersioning)Object.assign(host.ProcessMasterVersioning,{guardCurrentHandler:processMasterHandler,currentDisplay:processHistoryCurrent,captureDisplay:captureProcessDisplay,retireApprovedHistory:retireProcessHistory,openApprovedVersion:id=>processHistoryView?.openVersion(id),refreshHistoryControls:()=>processHistoryView?.refreshControls(),historyReady:()=>processHistoryFlight||Promise.resolve()});
+  function mountProcessHistory(shell,log,empty){
+    const shared=host.MasterDataWorkflow.shared,client=shared.client('PROCESS'),root=document.querySelector('#data-content'),resume=processHistoryResume;processHistoryResume=null;
+    processHistoryView?.retire();
+    if(processHistoryLease!==shared){processHistoryLease=shared;shared.setApprovedDisplayLease('PROCESS',{current:processHistoryCurrent,epoch:()=>processHistoryEpoch,refresh:()=>processHistoryView?.refreshControls()});}
+    processHistoryView=createApprovedHistory({root,shell,client,empty,selectId:'process-approved-version',initialBlocked:!!resume,
+      isCurrent:()=>state.view==='data'&&state.dataTab==='process-master'&&document.querySelector('#data-content')===root&&shared.client('PROCESS')===client,
+      canChoose:()=>!shared.busy()&&!saveProcessMasterDraft.flight&&!host.ProcessMasterVersioning.departureNames.dirty()&&!host.ProcessEquipment?.hasUnappliedChanges?.()&&!document.querySelector('dialog[open]')&&![...root.querySelectorAll('[data-master-media]')].some(input=>input.disabled||input.files?.length),
+      onBoundary(){processHistoryEpoch++;},
+      onDenied(){shared.retireUndispatchedSaveChoice?.('PROCESS');},
+      renderCurrent(){processHistoryView=null;state.processMasterVersionId=processMasterDraft()?.id||processMasterPending()?.id||selectedProcessMasterVersion()?.id;repaintProcessMasterPage();},
+      validateSnapshot:snapshot=>snapshot&&typeof snapshot==='object'&&!Array.isArray(snapshot)&&Object.values(snapshot).every(list=>Array.isArray(list)&&list.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&(row.equipment===undefined||Array.isArray(row.equipment)&&row.equipment.every(item=>item&&typeof item==='object'&&!Array.isArray(item))))),
+      renderSnapshot(target,snapshot,current){const fields={name:['名稱','Tên'],nameVi:['越文名稱','Tên tiếng Việt'],id:['編號','Mã'],equipment:['機器／設備','Máy / thiết bị'],mediaItems:['歷史圖片','Ảnh lịch sử'],stageCode:['工段','Công đoạn'],number:['設備編號','Mã thiết bị'],note:['備註','Ghi chú']};renderApprovedCollections(target,snapshot,{collections:Object.keys(snapshot),fields,mediaURL:photo=>client.mediaURL(photo)},current);}
+    });
+    processHistoryFlight=resume?.id?processHistoryView.openVersion(resume.id):null;if(processHistoryFlight)void processHistoryFlight;
+  }
   const previousDataBind=bindDataInner;
-  bindDataInner=function(tab){previousDataBind(tab);if(tab!=='process-master')return;
+  bindDataInner=function(tab){if(tab==='process-master'){processHistoryResume=processHistoryView?.historical?{id:processHistoryView.selectedId}:null;if(processHistoryResume)processHistoryEpoch++;processHistoryView?.retire();processHistoryView=null;}previousDataBind(tab);if(tab!=='process-master')return;for(const node of document.querySelector('#data-content')?.querySelectorAll('input,select,button,textarea')||[])for(const property of ['oninput','onchange','onclick','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=processMasterHandler(node,node[property]);
     const shared=host.MasterDataWorkflow?.shared;
-    mount(document.querySelector('#data-content'),{header:'.process-master-version',historyClient:()=>shared.client('PROCESS'),module:document.documentElement.lang==='vi'?'Dữ liệu quy trình PROCESS':'PROCESS 流程資料',scope:'PROCESS',version:selectedProcessMasterVersion(),versions:processMasterVersions(),active:processMasterVersions().find(v=>v.status==='approved'),flow:shared?.flow('PROCESS'),actions:{begin:'#process-master-new-draft',save:'#save-master-data',submit:'#process-master-submit',review:'#process-master-review',withdraw:'#process-master-withdraw'},errors:'[data-shared-issue-kind="error"]',missing:'[data-shared-issue-kind="missing"]',history:['.process-master-history','[data-process-history]','[data-shared-issue-kind="warning"]'],status:['#process-shared-status']});
+    mount(document.querySelector('#data-content'),{header:'.process-master-version',historyClient:()=>shared.client('PROCESS'),mountApprovedHistory:mountProcessHistory,module:document.documentElement.lang==='vi'?'Dữ liệu quy trình PROCESS':'PROCESS 流程資料',scope:'PROCESS',version:selectedProcessMasterVersion(),versions:processMasterVersions(),active:processMasterVersions().find(v=>v.status==='approved'),flow:shared?.flow('PROCESS'),actions:{begin:'#process-master-new-draft',save:'#save-master-data',submit:'#process-master-submit',review:'#process-master-review',withdraw:'#process-master-withdraw'},errors:'[data-shared-issue-kind="error"]',missing:'[data-shared-issue-kind="missing"]',history:['[data-shared-issue-kind="warning"]'],remove:['.process-master-history','[data-process-history]'],status:['#process-shared-status']});
   };
 })(window);

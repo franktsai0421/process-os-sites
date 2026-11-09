@@ -1,3 +1,7 @@
+## 2026-11-09 — PROCESS 同頁核准版本本機批次
+
+流程資料／模板／機器已接單一同頁 selector、獨立核准快照與回原 RAM，移除舊歷史／還原與切換時 discard。新增 20 項 PASS，既有名稱／恢復 27 組 PASS；跨頁 323/325，兩項未修改畫布同步舊斷言在真實前任同樣失敗，未放寬／刪除測試。尚未協調整合獨立畫布 80745895；AB 聯集與例行 FQC 尚待接。未上傳、未部署、原生與實站未驗。[逐頁狀態與完整限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — AB/C、線別工段核准版本本機批次
 
 本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](docs/acceptance/approved-history-unification-20261109/README.md)。
