@@ -5,8 +5,8 @@
  const t=(vi,zh)=>document.documentElement.lang==='vi'?vi:zh;
  const title=()=>t('Thiết bị khuôn','模具設備'),scope=()=>t('Toàn bộ thiết bị khuôn','模具設備全庫');
  const empty=()=>({tools:[],categories:[],custodians:[],suppliers:[],manufacturers:[],transfers:[]});
- const clone=v=>JSON.parse(JSON.stringify(v)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
- let readOnlyBusy=false,polling=false,readEpoch=0,viewEpoch=0,beginRecovery=null,checksRun=null,checksStatus='unchecked',checksPaintPending=false;
+ const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ let readOnlyBusy=false,viewEpoch=0,beginRecovery=null,checksRun=null,checksStatus='unchecked',checksPaintPending=false;
  let localBase=null,localSnapshot=null,localGeneration=null,pendingLocalSave=false;
  let control=null,client=null,actor='',host=null,reviewHost=null,selected='',checks=null,error='',busy=false,dialog=null,iqc=null,page=0;
  const caseVersionNumbers=new Map();
@@ -51,7 +51,7 @@
  }
  function flushChecks(){if(checksPaintPending&&!checksPaintPending()){checksPaintPending=false;return;}if(!checksPaintPending||busy||dialog||host?.querySelector('.tooling-inline-editor')||document.activeElement?.isConnected&&document.activeElement.matches('input,textarea,select'))return;checksPaintPending=false;paint();paintReview();syncActions();}
  function syncActions(){for(const [selector,permission,allowed]of [['#tooling-begin','edit',!beginRecovery&&!flow()?.pendingId],['#tooling-save','save',draftActionAllowed('save')],['#tooling-submit','submit',draftActionAllowed('submit')&&!localSnapshot],['#tooling-withdraw','withdraw',!!flow()?.pendingId]]){const b=host?.querySelector(selector);if(b)b.disabled=busy||!allowed||!client?.permission(permission);}const recovery=host?.querySelector('#tooling-enter-existing');if(recovery)recovery.disabled=busy||!beginRecovery||!!beginRecovery.invalid;reviewHost?.querySelectorAll('[data-tooling-action]').forEach(b=>b.disabled=busy||!client?.permission(b.dataset.toolingAction));}
- async function run(action,readOnly=false){if(busy)return;readEpoch++;readOnlyBusy=readOnly;const epoch=viewEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));busy=true;syncActions();error='';window.VersionDraftUI.updateSync(host,true,false);try{const response=await action();await read(response?.control?response:undefined,owns);if(!owns())return;paint();paintReview();return response;}catch(e){if(!owns())return;error=e.message;const node=dialog?.querySelector('[data-editor-error]')||host?.querySelector('.tooling-inline-editor [role=alert]');if(node)node.textContent=error;else paint();paintReview();}finally{if(owns()){busy=false;readOnlyBusy=false;window.VersionDraftUI.updateSync(host,false,!!error);syncActions();}}}
+ async function run(action,readOnly=false){if(busy)return;readOnlyBusy=readOnly;const epoch=viewEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));busy=true;syncActions();error='';window.VersionDraftUI.updateSync(host,true,false);try{const response=await action();await read(response?.control?response:undefined,owns);if(!owns())return;paint();paintReview();return response;}catch(e){if(!owns())return;error=e.message;const node=dialog?.querySelector('[data-editor-error]')||host?.querySelector('.tooling-inline-editor [role=alert]');if(node)node.textContent=error;else paint();paintReview();}finally{if(owns()){busy=false;readOnlyBusy=false;window.VersionDraftUI.updateSync(host,false,!!error);syncActions();}}}
  const beginUnconfirmed=()=>t('Kết quả tạo bản nháp chưa xác nhận. Chỉ đọc lại trạng thái; không gửi lại yêu cầu tạo.','建立要求結果尚未確認。請重新檢查並進入已存在草稿；不會重送建立要求。');
  async function beginDraft(){
   if(beginRecovery)throw Error(beginUnconfirmed());
@@ -82,13 +82,45 @@
   if(!localBase){localBase=clone(basis);localGeneration=flow().generation;}localSnapshot=next;
   if(!localChanges().patches.length){localBase=null;localSnapshot=null;localGeneration=null;}
  }
- async function command(action,details={}){if(beginRecovery)throw Error(beginUnconfirmed());readEpoch++;if(action==='apply'){stageChanges(details);return;}return transport().command(flow().generation,action,details);}
+ async function command(action,details={}){if(beginRecovery)throw Error(beginUnconfirmed());if(action==='apply'){stageChanges(details);return;}return transport().command(flow().generation,action,details);}
+ function chooseSaveConflicts(conflicts){return new Promise(resolve=>{
+  const d=document.createElement('dialog');d.className='tooling-save-conflicts pe-shared-preview';d.dataset.i18nSkip='true';
+  const add=(tag,text,parent=d)=>{const n=document.createElement(tag);n.textContent=text;parent.append(n);return n;};
+  add('h2',t('Xung đột khi lưu: chọn cho tất cả trường xung đột','儲存衝突：一次選擇全部衝突欄位'));
+  add('p',t('Giữ mọi thay đổi không xung đột. Lựa chọn sẽ tiếp tục lưu; hủy không lưu.','非衝突修改完整保留。選擇後繼續儲存；取消不儲存。'));
+  for(const c of conflicts){const section=add('section','');add('h3',c.path.map(p=>typeof p==='string'?p:p.id).join(' / '),section);for(const [label,value]of [[t('Của tôi','我的內容'),c.mine],[t('Của người khác','對方內容'),c.latest]]){add('h4',label,section);add('pre',JSON.stringify(value,null,2)??t('Đã xóa','已移除'),section);}}
+  const actions=add('div','');actions.className='pe-review-actions';
+  let answer=null;for(const [value,label]of [['mine',t('Dùng tất cả của tôi','全部採用我的')],['latest',t('Dùng tất cả của người khác','全部採用對方的')],[null,t('Hủy','取消')]]){const b=add('button',label,actions);b.type='button';b.dataset.conflictChoice=value||'cancel';b.onclick=()=>{answer=value;d.close();};}
+  d.onclose=()=>{d.remove();resolve(answer);};document.body.append(d);d.showModal();
+ });}
+ async function prepareLocalSave(){
+  const c=client,owner=actor,identity=window.ProcessSync?.identity,identityEpoch=window.ProcessSync?.identityGeneration?.(),epoch=viewEpoch,selectedId=selected,basis=localBase,snapshot=localSnapshot,generation=localGeneration||flow()?.generation,delivery=window.ProcessSync?.captureDelivery?.();
+  const owns=()=>c===client&&owner===actor&&owner===window.ProcessSync?.identity?.id&&epoch===viewEpoch&&selectedId===selected&&basis===localBase&&snapshot===localSnapshot&&!window.ProcessSync?.requiresReload&&(typeof identityEpoch==='number'?identityEpoch===window.ProcessSync?.identityGeneration?.():identity===window.ProcessSync?.identity)&&(!delivery||window.ProcessSync.isCurrentDelivery?.(delivery)!==false);
+  const original=localChanges();let fresh=await c.read(undefined,{requireAcceptedAccess:true}),f=fresh.control?.workflow;
+  const check=()=>{if(!owns())throw Error('DELIVERY_SUPERSEDED');if(f?.generation!==generation||flow()?.generation!==generation)throw Error('STALE_GENERATION');if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true||fresh.permissions?.save!==true||f.pendingId||!fresh.control.versions.some(v=>v.status==='draft'))throw Error('PENDING_OR_PERMISSION_LOCKED');};
+  for(;;){check();
+  const value=path=>{let v=f.working;for(const part of path)v=typeof part==='string'?v?.[part]:Array.isArray(v)?v.find(row=>row.id===part.id):undefined;return v;};
+  const comparisons=original.patches.map(p=>{const before=original.guards.find(g=>same(g.path,p.path))?.value,latest=p.op==='insert'?value(p.path)?.find(r=>r.id===p.value.id):value(p.path),mine=p.op==='remove'?undefined:p.value;return {patch:p,path:p.path,before,latest,mine,conflict:p.op==='insert'?!!latest&&!same(latest,mine):!same(latest,before)&&!same(latest,mine)};}),conflicts=comparisons.filter(c=>c.conflict);
+  const choice=conflicts.length?await chooseSaveConflicts(conflicts):'mine';if(!choice)return null;check();
+  if(conflicts.length){const checked=await c.read(undefined,{requireAcceptedAccess:true}),basis=value=>{const c=value.control,f=c.workflow;return {generation:f.generation,revision:f.revision,working:f.working,savedId:f.saved?.id,pendingId:f.pendingId,baseId:f.baseId,activeVersionId:c.activeVersionId,drafts:c.versions.filter(v=>v.status==='draft').map(v=>v.id)};},changed=!same(basis(fresh),basis(checked));fresh=checked;f=fresh.control?.workflow;check();if(changed)continue;}
+
+  const patches=[],guards=[];
+  for(const item of comparisons){const p=item.patch;if(item.conflict&&choice==='latest'||same(item.latest,item.mine))continue;
+   // A removed row is authoritative; choosing local fields cannot recreate its
+   // immutable source/code/history under a different insert operation.
+   if(p.op!=='insert'&&p.path.length===3&&!value(p.path.slice(0,2)))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+   if(p.op==='insert'&&item.latest)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+   patches.push(clone(p));if(p.op!=='insert')guards.push({path:clone(p.path),value:clone(item.latest)});
+  }
+  return {moduleAction:'save-local-v1',patches,guards,expectedRevision:f.revision};
+  }
+ }
  async function saveOrSubmit(action){
   if(!draftActionAllowed(action))throw Error('FORBIDDEN');
   if(dialog||host?.querySelector('.tooling-inline-editor'))throw Error(t('Áp dụng hoặc hủy biểu mẫu trước khi lưu / gửi duyệt; dữ liệu nhập được giữ lại.','請先套用或取消目前表單，再儲存或送審；輸入仍保留。'));
   if(action==='save'){
    if(localSnapshot&&localGeneration!==flow().generation)throw Error('STALE_GENERATION');
-   const details=localSnapshot?{moduleAction:'save-local-v1',...localChanges()}:{};
+   const details=await prepareLocalSave();if(details===null)return null;
    pendingLocalSave=!!localSnapshot;
    try{const result=await command('save',details);localBase=null;localSnapshot=null;localGeneration=null;pendingLocalSave=false;return result;}
    catch(e){if(!client.hasUnknown()){pendingLocalSave=false;client.discardRejected(details.patches?.map(p=>p.path)||[]);}throw e;}
@@ -98,7 +130,7 @@
   const reason=await window.VersionDraftUI.confirmSubmit('',scope(),{missingCount:checks?.saved?.length||0,savedVersion:{id:snapshot.savedId,revision:snapshot.expectedRevision,at:f.saved.at,actor:f.saved.actor?.name}});if(reason===null)return;
   if(c!==client||owner!==actor||owner!==window.ProcessSync?.identity?.id||epoch!==viewEpoch||selectedId!==version()?.id||!draftActionAllowed('submit')||(typeof identityEpoch==='number'?identityEpoch!==window.ProcessSync?.identityGeneration?.():identity!==window.ProcessSync?.identity)||delivery&&window.ProcessSync?.isCurrentDelivery?.(delivery)===false)throw Error('DELIVERY_SUPERSEDED');
   if(flow()?.generation!==generation||flow()?.revision!==snapshot.expectedRevision||flow()?.saved?.id!==snapshot.savedId)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
-  readEpoch++;return c.command(generation,'submit',{...snapshot,reason});
+  return c.command(generation,'submit',{...snapshot,reason});
  }
  function currentLocation(s,id){const effective=new Map(),roots=new Map();for(let i=0,n=s.transfers.length;i<n;i++){if(!(i in s.transfers))continue;const tr=s.transfers[i];if(tr.toolId!==id)continue;const key=tr.correctionOf?roots.get(tr.correctionOf):tr.id;if(!key)continue;roots.set(tr.id,key);effective.set(key,tr);}let location=s.tools.find(r=>r.id===id)?.location;for(const tr of effective.values())if(tr.to.holderId&&(tr.to.kind==='internal'?s.custodians:s.suppliers).some(h=>h.id===tr.to.holderId))location=tr.to;return location;}
  function locationName(s,l){return !l?'—':`${l.kind==='internal'?t('Nội bộ','內部'):t('Bên ngoài','外部')} · ${(l.kind==='internal'?s.custodians:s.suppliers).find(r=>r.id===l.holderId)?.nameVi||t('Chưa chọn','未選擇')}`;}
@@ -208,18 +240,8 @@
   dialogs:()=>dialog?[dialog]:[],
   closeClean(){if(dialog&&!dialog.querySelector('button[type=submit]')){const old=dialog;dialog=null;old.close();old.remove();}},
   discard(){localBase=null;localSnapshot=null;localGeneration=null;const old=dialog;dialog=null;if(old){old.close();old.remove();}host?.querySelector('.tooling-inline-editor')?.remove();},
- }),{autoAbandon:true,allowUnload:()=>!busy});},requiresSave:()=>false,saveForDeparture:()=>run(()=>saveOrSubmit('save')),canLeave:()=>!(busy&&!readOnlyBusy)&&!dialog&&!host?.querySelector('.tooling-inline-editor'),error:()=>error?Error(error):null,reset(){localBase=null;localSnapshot=null;localGeneration=null;viewEpoch++;readEpoch++;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';checksPaintPending=false;polling=false;busy=false;readOnlyBusy=false;host=null;reviewHost=null;control=null;checks=null;selected='';iqc=null;caseVersionNumbers.clear();error='';}},html,mount(root){host=root;return run(async()=>{},true);},reviewHTML,bindReview(root){reviewHost=root;return run(async()=>{},true);},pendingCount:()=>flow()?.pendingId?1:0};
+ }),{autoAbandon:true,allowUnload:()=>!busy});},requiresSave:()=>false,saveForDeparture:()=>run(()=>saveOrSubmit('save')),canLeave:()=>!(busy&&!readOnlyBusy)&&!dialog&&!host?.querySelector('.tooling-inline-editor'),error:()=>error?Error(error):null,reset(){localBase=null;localSnapshot=null;localGeneration=null;viewEpoch++;checksRun?.controller.abort();checksRun=null;checksStatus='unchecked';checksPaintPending=false;busy=false;readOnlyBusy=false;host=null;reviewHost=null;control=null;checks=null;selected='';iqc=null;caseVersionNumbers.clear();error='';}},html,mount(root){host=root;return run(async()=>{},true);},reviewHTML,bindReview(root){reviewHost=root;return run(async()=>{},true);},pendingCount:()=>flow()?.pendingId?1:0};
  window.addEventListener('process-language-change',()=>{if(!dialog){paint();paintReview();}});
- // A background read is not a mutation. Keep action availability stable and
- // discard stale read results once a user action or navigation takes ownership.
- async function poll(){flushChecks();const visible=host?.isConnected&&host.dataset.activeTab==='quality-mold-equipment'||reviewHost?.isConnected;if(beginRecovery||document.visibilityState==='hidden'||!visible||!client||!client.canPoll('state')||client.hasUnknown()&&!client.canPoll('receipt')||busy||polling||dialog||host?.querySelector('.tooling-inline-editor')||document.activeElement?.matches('input,textarea,select'))return;
-  const epoch=viewEpoch,readToken=readEpoch,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>epoch===viewEpoch&&readToken===readEpoch&&!busy&&!dialog&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));polling=true;
-  try{const f=flow(),result=await transport().read(f?`${f.generation}:${f.revision}`:undefined);if(!owns())return;if(!result.unchanged){await read(result,owns);if(owns()){paint();paintReview();syncActions();}}}
-  catch(e){if(owns()){error=e.message;window.VersionDraftUI.updateSync(host,false,true);}}
-  finally{if(epoch===viewEpoch)polling=false;}
- }
  document.addEventListener('focusout',()=>{void Promise.resolve().then(flushChecks);});
- const foregroundPoll=window.createForegroundPoll();
- async function pollTick(){try{await poll();}finally{foregroundPoll.schedule(pollTick);}}
- foregroundPoll.schedule(pollTick);
+
 })();
