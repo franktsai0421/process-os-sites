@@ -229,8 +229,10 @@
     const moved=rows=>!saveEqual(ids(rows).filter(id=>old.has(id)),originals.filter(id=>rows.some(row=>row.id===id))),localMoved=moved(b),peerMoved=moved(c),common=new Set(localIds.filter(id=>remote.has(id))),sharedOrder=rows=>ids(rows).filter(id=>common.has(id));
     const inside=rows=>rows.some((row,index)=>!old.has(row.id)&&rows.slice(index+1).some(value=>old.has(value.id))),sharedNew=localIds.some(id=>!old.has(id)&&remote.has(id));
     const localPrimary=suppliers&&localIds[0]!==originals[0],peerPrimary=suppliers&&peerIds[0]!==originals[0],orderConflict=(((localMoved||inside(b))&&(peerMoved||inside(c))||sharedNew)&&!saveEqual(sharedOrder(b),sharedOrder(c)))||(suppliers&&localPrimary&&peerPrimary&&localIds[0]!==peerIds[0]);
-    const changes=[];
-    for(const row of a)if(!mine.has(row.id)&&remote.has(row.id))changes.push({id:row.id,value:null,conflict:!saveEqual(row,remote.get(row.id))||peerMoved});
+    // Deletion depends on this ID's relative position, not every peer reorder.
+    // The separate primary check still guards a newly selected supplier.
+    const peerMovedId=id=>originals.some((other,index)=>remote.has(other)&&(index<originals.indexOf(id))!==(peerIds.indexOf(other)<peerIds.indexOf(id))),changes=[];
+    for(const row of a)if(!mine.has(row.id)&&remote.has(row.id))changes.push({id:row.id,value:null,conflict:!saveEqual(row,remote.get(row.id))||peerMovedId(row.id)});
     for(const row of b){const prior=old.get(row.id),current=remote.get(row.id);if(prior&&saveEqual(prior,row)&&((!localMoved&&!(localPrimary&&row.id===localIds[0]))||current))continue;if(current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!prior&&!current||!!current&&(!prior||!saveEqual(prior,current))});}
     const reorder=(rows,choice,accepted)=>{
       const preferLocal=accepted!==undefined||localMoved&&(!orderConflict||choice==='mine')||localPrimary&&(!orderConflict||choice==='mine'),primary=accepted|| (preferLocal?localIds:peerIds),secondary=accepted?peerIds:preferLocal?peerIds:localIds;
