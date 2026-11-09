@@ -1,4 +1,6 @@
-import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {fixture} from './foreground-poll.test.mjs';import ts from 'typescript';
+// Retained legacy producer fence tests under a test-only callback driver.
+// Production no-idle behavior is checked by global-background-checks.test.mjs.
+import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {fixture} from './retired-poll-fixture.mjs';import ts from 'typescript';
 const actualVariable=(source,name)=>{const ast=ts.createSourceFile('ipqc-c.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),found=[];const walk=node=>{if(ts.isVariableDeclaration(node)&&node.name.getText(ast)===name)found.push(node);ts.forEachChild(node,walk);};walk(ast);assert.equal(found.length,1,'unique actual C closure '+name);return 'const '+found[0].getText(ast)+';';};
 const actualFunction=(source,name)=>{const ast=ts.createSourceFile('routine-equipment.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),found=[];const walk=node=>{if(ts.isFunctionDeclaration(node)&&node.name?.getText(ast)===name)found.push(node);ts.forEachChild(node,walk);};walk(ast);assert.equal(found.length,1,'unique actual equipment closure '+name);return found[0].getText(ast);};
 const equipmentOwnerFunctions=['inputPrincipalCurrent','inputTargetCurrent','inputOwnerCurrent','rememberInputOwner','routineTabIsActive'];

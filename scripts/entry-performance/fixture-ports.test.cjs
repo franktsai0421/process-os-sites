@@ -8,5 +8,5 @@ void (async()=>{
  const owner=poll.capture();poll.schedule(()=>{calls++;});poll.cancel();assert.equal(poll.isCurrent(owner),false);assert.equal(clock.pending(),0);
  const failure=new Error('synthetic');poll.schedule(()=>{throw failure;});await assert.rejects(()=>clock.runNext(),e=>e===failure);assert.equal(clock.pending(),0);
  poll.schedule(()=>{calls++;});poll.dispose();clock.focus(false);clock.focus(true);assert.equal(clock.pending(),0);assert.equal(calls,3);
- console.log(JSON.stringify({status:'PASS',checks:6,scope:'actual shipped scheduler under event/virtual-clock ports; client timeout ports unchanged; no browser'}));
+ console.log(JSON.stringify({status:'PASS',checks:6,scope:'test-only retired callback driver under event/virtual-clock ports; client timeout ports unchanged; no browser'}));
 })().catch(error=>{console.error(error);process.exitCode=1;});
