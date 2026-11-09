@@ -15,5 +15,5 @@
    }catch(error){if(owned()&&![401,403].includes(error.status))notice(t('尚無法查證正式版本，現有資料不變。','Chưa thể kiểm tra phiên bản chính thức; giữ nguyên dữ liệu.')).dataset.loadError='1';}finally{if(epoch===generation)busy=false;}}
   window.addEventListener('process-language-change',()=>{const b=document.querySelector('#effective-version-notice');if(!b)return;b.querySelector('p').textContent=b.dataset.loadError?t('尚無法查證正式版本，現有資料不變。','Chưa thể kiểm tra phiên bản chính thức; giữ nguyên dữ liệu.'):t('正式版本已更新，請另開新頁查看。','Có phiên bản chính thức mới; mở trang mới để xem.');const a=b.querySelector('a');if(a)a.textContent=t('另開最新版','Mở phiên bản mới');});
   window.EffectiveVersionNotice={check,setAutomaticPolicy,reset:()=>{generation++;busy=false;known=null;document.querySelector('#effective-version-notice')?.remove();}};
-  window.addEventListener('focus',()=>void check());document.addEventListener('visibilitychange',()=>void check());void check();
+  void check();
 })();

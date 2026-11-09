@@ -1,3 +1,11 @@
+## 2026-11-09 — Retire periodic web checks
+
+Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).
+
+## 2026-11-09 — New-stage approved catalog inheritance candidate
+
+New stage review snapshots include approved preset names/media and global custom flow types with new stage-specific IDs and no copied machine assignments. Missing custom type gets an explicit custom choice; divergent catalog keys refuse before submission. Existing stages, fixed source approval, permissions, locks, receipts and CAS remain. Independent review found ID collision/reference masking and lone-surrogate URI failures. Shared ID reservation and total UTF-16 encoding fix generation; approval validates fixed new IDs without rewriting cases or historical identities. No migration or deployed data change. See [scope and acceptance boundaries](../docs/acceptance/process-platform-tracking-20261109.md).
+
 ## 2026-11-09 — 同頁篩選與整組存取追加候選
 
 線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。

@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 
 // Actual implementation, in-memory transport/DOM doubles; no server, browser,
 // credentials, business/storage writes or source rewriting.
 const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
-// Keep the fixture's unrelated read ports, but execute the actual production poll gate.
+// Default fixtures execute the actual inert production scheduler. Explicit legacy
+// callback cases opt into the pinned test-only retired driver to retain race fences.
 const sharedSource = fs.readFileSync(new URL('../public/process/shared-draft-client.js', import.meta.url), 'utf8');
+const retiredSource = fs.readFileSync(new URL('../scripts/entry-performance/fixtures/retired-foreground-scheduler.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+assert.equal(createHash('sha256').update(retiredSource).digest('hex'), '3882190900e8e886ae9910e62ac0495299c0d681c5fcd72c7b5bc05a7861a5cd', 'pin the test-only historical scheduler; never substitute it for current-runtime coverage');
 // The following client registry may gain unrelated maps; it is only the end
 // boundary, not part of the polling implementation exercised by this fixture.
 const pauseStartMarker = '  window.createScopedReadPause = label => {';
@@ -37,7 +41,7 @@ const master = { revision: 7, permissions: { view: true }, control: { activeVers
   { id: 'ab-v1', status: 'approved', snapshot: { products: [{ code: 'P' }], lines: [], categoryGroups: [] } }
 ] } };
 const shared = { revision: 7, permissions: { view: true }, control: { workflow: { generation: 'fqc-generation', revision: 1 } } };
-function fixture(cells = { 'ab.view': true, 'equipment.view': true }) {
+function fixture(cells = { 'ab.view': true, 'equipment.view': true }, { retiredCallbackDriver = false } = {}) {
   const reads = { shared: queue(), master: queue(), equipment: queue(), permission: queue() };
   let epoch = 1, active = true, clock = 0, timerId = 0, focused = true;
   const activeTimers = new Map();
@@ -64,8 +68,8 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }) {
     render: () => results.renders.push(box.state()), pollShared: () => results.polls++,
     read() { throw Error('STORAGE_ACCESS_REFUSED'); }
   };
-  // Real listener registration/dispatch semantics for the actual shared scheduler.
-  // Existing event handles remain available to original assertions; no scheduler stub.
+  // Real listener registration/dispatch semantics for current runtime and the
+  // explicitly opted-in retired callback driver; event assertions keep real dispatch.
   for(const target of [box.window,box.document]){const listeners=new Map();target.addEventListener=(name,callback)=>{if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(callback);if(target===box.window)events[name]=()=>target.dispatchEvent({type:name});};target.removeEventListener=(name,callback)=>listeners.get(name)?.delete(callback);target.dispatchEvent=event=>{const pendingEvents=Array.from(listeners.get(event.type)||[]);for(const callback of pendingEvents)callback.call(target,event);return true;};}
   box.document.hasFocus=()=>focused;
   // The real IIFE receives window as host. Model only the two explicit read
@@ -74,6 +78,7 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }) {
   box.window.hasPermission = key => cells[key] === true;
   vm.createContext(box);
   vm.runInContext(pauseSource, box);
+  if (retiredCallbackDriver) vm.runInContext(retiredSource, box);
   const pause = box.window.createScopedReadPause('FQC readiness fixture');
   client.canPoll = kind => pause.canPoll(kind);
   vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=window.createForegroundPoll(),workspaceReady=()=>false;` +
@@ -102,7 +107,11 @@ void test('preserves sequential FQC then AB then narrowed equipment reads, rende
   f.reads.master.pending[0].resolve(clone(master)); await flush();
   assert.equal(f.reads.equipment.pending.length, 1); assert.equal(f.results.renders.length, 0); assert.equal(f.results.polls, 0);
   f.reads.equipment.pending[0].resolve({}); await done;
-  assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1); assert.equal(f.results.polls, 1);
+  assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1); assert.equal(f.results.polls, 0);
+  assert.equal(f.timers.length, 0);
+  f.focus(false); f.visibility(false); f.focus(true); f.visibility(true); await flush();
+  assert.equal(f.timers.length, 0); assert.equal(f.reads.shared.pending.length, 1);
+  assert.equal(f.reads.master.pending.length, 1); assert.equal(f.reads.equipment.pending.length, 1);
   assert.equal(f.results.renders[0].equipment.activeVersionId, 'tool-v1'); assert.equal(f.results.renders[0].master.products[0].code, 'P');
   assert.equal(f.reads.permission.pending.length, 0);
   assert.equal(f.results.fetches[0].url, '/api/routine-equipment?catalog=effective');
@@ -196,8 +205,8 @@ for (const event of ['process-shared-state-updated', 'routine-equipment-updated'
   assert.equal(f.results.adopted.length, 0); assert.equal(f.results.renders.length, 0); assert.equal(f.reads.shared.pending.length, 1);
 });
 
-for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`${source} from previous mount cannot adopt, render or reschedule into next mount`, async () => {
-  const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
+for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`[retired callback driver] ${source} from previous mount cannot adopt, render or reschedule into next mount`, async () => {
+  const f = fixture(undefined, { retiredCallbackDriver: true }), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
   if (source === 'shared event') f.events['process-shared-state-updated']();
   else if (source === 'equipment event') f.events['routine-equipment-updated']();
   else poll = f.timers[0]();
@@ -209,8 +218,8 @@ for (const source of ['shared event', 'equipment event', 'in-flight poll']) void
   assert.equal(f.results.adopted.length, 2); assert.equal(f.results.renders.length, 2); assert.equal(f.results.polls, 2);
 });
 
-for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`${source} cannot adopt after same-id epoch change without remount`, async () => {
-  const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
+for (const source of ['shared event', 'equipment event', 'in-flight poll']) void test(`[retired callback driver] ${source} cannot adopt after same-id epoch change without remount`, async () => {
+  const f = fixture(undefined, { retiredCallbackDriver: true }), first = f.box.bind(f.element); await resolveContent(f); await first; let poll;
   if (source === 'shared event') f.events['process-shared-state-updated']();
   else if (source === 'equipment event') f.events['routine-equipment-updated']();
   else poll = f.timers[0]();
@@ -221,8 +230,8 @@ for (const source of ['shared event', 'equipment event', 'in-flight poll']) void
 });
 
 
-void test('actual scoped403 pause sends no automatic GET; only current successful recovery resumes polling', async () => {
-  const f = fixture(), done = f.box.bind(f.element); await resolveContent(f); await done;
+void test('[retired callback driver] actual scoped403 pause blocks legacy callbacks; only current successful recovery permits their GET path', async () => {
+  const f = fixture(undefined, { retiredCallbackDriver: true }), done = f.box.bind(f.element); await resolveContent(f); await done;
   const owner = f.pause.capture();
   f.pause.denied('state', 403, owner, async () => { throw Error('EXPLICIT_RECHECK_PORT_NOT_INVOKED'); });
   assert.equal(f.pause.canPoll('state'), false);
@@ -239,4 +248,24 @@ void test('actual scoped403 pause sends no automatic GET; only current successfu
   assert.equal(f.reads.shared.pending.length, 2, 'current recovery permits the existing GET path');
   f.reads.shared.pending[1].resolve({ unchanged: true }); await poll;
   assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1);
+});
+
+// Current runtime has no scheduled callback. Preserve non-timer event ownership
+// coverage against the actual inert scheduler, in addition to legacy races above.
+for (const event of ['process-shared-state-updated', 'routine-equipment-updated']) for (const change of ['remount', 'epoch']) void test(`current ${event} reply is fenced after ${change} with zero timer registration`, async () => {
+  const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first;
+  f.events[event]();
+  let next;
+  if (change === 'remount') next = f.box.bind(f.element); else f.epoch(2);
+  if (event === 'routine-equipment-updated') f.reads.equipment.pending[1].resolve({});
+  else f.reads.shared.pending[1].resolve(clone(shared));
+  await flush();
+  assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1);
+  assert.equal(f.results.polls, 0); assert.equal(f.timers.length, 0);
+  if (next) {
+    await resolveContent(f, { sharedIndex: event === 'routine-equipment-updated' ? 1 : 2, masterIndex: 1, equipmentIndex: event === 'routine-equipment-updated' ? 2 : 1 });
+    await next;
+    assert.equal(f.results.adopted.length, 2); assert.equal(f.results.renders.length, 2);
+    assert.equal(f.results.polls, 0); assert.equal(f.timers.length, 0);
+  }
 });

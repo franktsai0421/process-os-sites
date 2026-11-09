@@ -1,4 +1,4 @@
-/* Actual IQC closure + shared client/scheduler, synthetic DOM/transport only. */
+/* Actual IQC closure + shared client, test-only retired callback driver, synthetic DOM/transport only. */
 
 let reachedAssertions=false;process.once('beforeExit',()=>{if(!reachedAssertions&&!process.exitCode){console.error('IQC_FIXTURE_INCOMPLETE: unresolved synthetic request or skipped assertion tail');process.exitCode=1;}});
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
@@ -38,5 +38,5 @@ const checks=[];async function check(name,fn){await fn();checks.push(name);}
  if(mode==='success'){assert.equal(f.api.get().control.workflow.active.content.parts[0].nameVi,'hydrated-11');assert.equal(f.window.renders,renders+1);assert.equal(f.requests.length,3,'exact one hydration GET');}else if(['ack','load'].includes(mode)){assert.equal(f.api.get().revision,12);assert.equal(f.api.get().control.workflow.active.content.parts[0].nameVi,'state-12');}else if(mode==='reset')assert.equal(f.api.get().control,null);else assert.equal(f.api.get().control.workflow.active.content,undefined);
  assert.equal(f.posts(),mode==='ack'?1:0);assert.equal(f.clock.pending(),['reset','actor'].includes(mode)?0:1);});
  await check('shared default full-read contract unchanged',async()=>{const f=await loaded(),old=f.api.client().read();await tick();const newer=f.api.client().permissions();await tick();f.respond(2,{revision:12,permissions:{...permissions,edit:false}});await newer;f.respond(1,payload(11));assert.equal((await old).revision,11);assert.equal(f.api.client().permission('edit'),false);assert.equal(f.posts(),0);});
- reachedAssertions=true;console.log(JSON.stringify({status:'PASS',checks:checks.length,cases:checks,scope:'Actual IQC post/load/poll/hydrate and shipped shared-client/scheduler with render-only stub, synthetic deferred fetch/DOM; not browser or server/data-loss evidence.'},null,2));
+ reachedAssertions=true;console.log(JSON.stringify({status:'PASS',checks:checks.length,cases:checks,scope:'Actual IQC post/load/poll/hydrate and shipped shared-client with test-only callback driver with render-only stub, synthetic deferred fetch/DOM; not browser or server/data-loss evidence.'},null,2));
 })().catch(error=>{console.error(error);process.exitCode=1;});
