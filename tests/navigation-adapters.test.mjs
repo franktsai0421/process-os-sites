@@ -158,8 +158,59 @@ void test('changed persistent-navigation executable references have coherent new
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
  const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
  for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
+ const followupReferences=[...unified.restore(currentIndex,'public/process/index.html','previous_followup').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const followupExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ for(const [file,version]of Object.entries(followupExpected))assert.deepEqual(followupReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
+ for(let i=1;i<ordered.length;i++)assert(followupReferences.indexOf(`${ordered[i-1]}?v=${followupExpected[ordered[i-1]]}`)<followupReferences.indexOf(`${ordered[i]}?v=${followupExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
+ const mainBackgroundExpected={
+  'master-reference-viewer.js':'20261030-pr5152-integrated1',
+  'editor-line-selection.js':'20261030-pr54-integrated1',
+  'app.js':'20261105-process-local-save1',
+  'approval-tabs.js':'20261025-navigation2',
+  'bom-workspace.js':'20261105-bom-atomic1',
+  'bootstrap.js':'20261104-draft-integration1',
+  'canvas-local.js':'20261104-begin-receipt1',
+  'canvas-recovery-store.js':'20261104-canvas-integration1',
+  'delivery-navigation.js':'20261104-canvas-integration1',
+  'dual-system.js':'20261025-navigation2',
+  'effective-version-notice.js':'20261109-explicit-checks1',
+  'fqc-master.js':'20261104-begin-generation2',
+  'ipqc-ab.js':'20261105-ab-scope-input1',
+  'ipqc-c.js':'20261106-c-local-gauge-preview1',
+  'iqc-master.js':'20261106-number-hint1',
+  'master-data.js':'20261105-process-local-save1',
+  'master-shared-client.js':'20261105-process-local-save1',
+  'permission-controls.js':'20261029-dispatch-rights1',
+  'process-authoring-v3.js':'20261109-explicit-checks1',
+  'quality-review-overview.js':'20261101-quality-review-admission1',
+  'routine-equipment.js':'20261108-equipment-ci-recovery1',
+  'routine-fqc.js':'20261108-manual-generate2',
+  'access-event-reporter.js':'20261106-access-offline3',
+  'shared-draft-client.js':'20261109-explicit-checks3',
+  'shared-state.js':'20261106-access-offline1',
+  'tooling.js':'20261105-tooling-local-save1',
+  'user-access.js':'20261106-role-layout1',
+  'navigation-forms.js':'20261025-navigation2',
+  'process-ipqc.js':'20261109-explicit-checks1',
+  'data-safety-ui.js':'20261027-login-reentry1',
+  'process-equipment.js':'20261105-process-local-save1',
+  'process-editor.js':'20261104-canvas-integration1',
+  'master-review.js':'20261030-pr54-integrated1',
+  'process-ipqc.css':'20261031-bom-ab-recovery1',
+  'process-equipment.css':'20261029-flow1',
+  'photo-viewer.css':'20261029-photo2',
+  'version-workflow.js':'20261030-access-fusion1',
+  'i18n.js':'20261029-photo1',
+  'user-access.css':'20261106-role-layout2',
+  'user-access-initial-read.js':'20261029-users-load2',
+  'web-feedback-entry.js':'20261106-access-offline1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
+ };
+ const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main_background').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [file,version]of Object.entries(mainBackgroundExpected))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' main #100');
+ for(let i=1;i<ordered.length;i++)assert(mainBackgroundReferences.indexOf(`${ordered[i-1]}?v=${mainBackgroundExpected[ordered[i-1]]}`)<mainBackgroundReferences.indexOf(`${ordered[i]}?v=${mainBackgroundExpected[ordered[i]]}`),'main #100 reporter/recovery ordering remains exact');
  const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
- const currentExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ const currentExpected=Object.fromEntries(Object.entries(followupExpected).map(([file,version])=>[file,version==='20261109-unified-save-choice2'?'20261109-unified-main1001':version]));
  for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
  for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));

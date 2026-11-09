@@ -8,7 +8,9 @@ function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,
 const committedSource=execFileSync('git',['show','HEAD:public/process/process-authoring-v3.js'],{cwd:root});
 assert.equal(createHash('sha256').update(candidateSource).digest('hex'),createHash('sha256').update(committedSource.toString().replace(/\r\n/g,'\n')).digest('hex'),'authoring checkout differs from HEAD beyond checkout EOL');
 const currentSource=committedSource;
-let baselineSource=require('./background-check-source-contract.cjs').projectKnown(currentSource,'public/process/process-authoring-v3.js').toString().replace(/\r\n/g,'\n');
+// Only exact integrated bytes may enter the unchanged #100 historical inverse.
+const backgroundSource=require('./unified-draft-source-contract.cjs').project(currentSource,'public/process/process-authoring-v3.js','main_background');
+let baselineSource=require('./background-check-source-contract.cjs').projectKnown(backgroundSource,'public/process/process-authoring-v3.js').toString().replace(/\r\n/g,'\n');
 // Build the reviewed current-source panel control without changing the candidate.
 // Atomic Save/recovery code outside these exact departure spans is shared by both
 // arms; historical baseline provenance is retained separately in the inverse JSON.
