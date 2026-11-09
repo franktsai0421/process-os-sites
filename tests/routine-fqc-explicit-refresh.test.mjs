@@ -1,3 +1,4 @@
+import historicalCache from '../scripts/historical-source-fixture.cjs';
 import unified from '../scripts/unified-draft-source-contract.cjs';
 import {execFileSync} from 'node:child_process';
 // Full production closure and actual shared receipt/read-pause helpers. Only the
@@ -133,6 +134,6 @@ void test('normal Update and separate read-only Refresh are bilingual; cache mat
   const shell=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString();
   assert.equal(shell.match(/routine-fqc\.js\?v=20261109-unified-save-choice1/g)?.length, 1);
   assert.equal(unified.restore(currentIndex,'public/process/index.html','previous_followup').toString().match(/routine-fqc\.js\?v=20261109-unified-save-choice2/g)?.length,1);
-  assert.equal(currentIndex.toString().match(/routine-fqc\.js\?v=20261109-conflict-continuation1/g)?.length,1);
-  assert.equal(unified.restore(currentIndex,'public/process/index.html','main_background').toString().match(/routine-fqc\.js\?v=20261108-manual-generate2/g)?.length,1);
+  const currentCache=historicalCache.expectedCurrentCache('routine-fqc.js');assert.equal([...currentIndex.toString().matchAll(/data-process-src="([^"]+)"/g)].filter(match=>match[1]==='routine-fqc.js?v='+currentCache).length,1);
+  assert.equal(unified.restore(currentIndex,'public/process/index.html','main100').toString().match(/routine-fqc\.js\?v=20261108-manual-generate2/g)?.length,1);
 });

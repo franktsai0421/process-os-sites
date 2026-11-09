@@ -1,3 +1,7 @@
+## 2026-11-09 — 製程合樹最新草稿與已核准歷史交付
+
+真merge #102 dfdfe76、衝突88a4a2c及版本owner2e4d20f，保留no-poll、當前畫布Save、history owner與UNKNOWN。新增publicState在隱去私有scope前驗證正式來源修正42cdba6；避免把另一筆核准工段當目前來源。新page／canvas歷史63、public authority12及各頁route／UI檢查通過，正常lint／TS／build通過。未啟用marker、未改真資料／schema／ACL、未上傳或部署。舊422交接已解；主資料完整UI、routine整頁與實站仍待交付。[現況矩陣](../docs/acceptance/process-editor-complete-20261109.md)。
+
 ## 2026-11-09 — 畫布操作文案與歷史分工交接
 
 畫布中越文說明明確區分「存取當前畫布」與「送審整份已存製程」，共享更新提示不再指向已移除的查看最新共享入口；只改文案及cache，無交易／權限／資料變更。新AB/C/LINES歷史422的固定接口與普通GET200正控制已交付parent，依最新指示由統一已核准版本查看owner負責API／selector，本owner未實作；主資料UI及routine scope仍由草稿拆分owner負責。

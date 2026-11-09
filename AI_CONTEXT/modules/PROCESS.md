@@ -1,3 +1,7 @@
+## 2026-11-09 完整本機候選接線
+
+本機a2c5f55已保留當前畫布原子Save／整份已存送審、無輪詢、未存離頁放棄及UNKNOWN收據；合入#102固定dfdfe、草稿衝突88及版本owner2e。新AB/C/LINES核准歷史422已解，trusted marker未開；完整UI、routine整頁及實站未完成。現行目標與精確依賴見[驗收矩陣](../../docs/acceptance/process-editor-complete-20261109.md)，下方舊敘述按其固定來源閱讀。
+
 ## 2026-11-09 — 本機畫布核准版本與當前scope Save整合
 
 真實merge採用e3d92846畫布單一原頁核准版本selector、V3/legacy核准聯集與獨立display lease；保留807同頁view gate及當前畫布Save，歷史選取會失效已排程gate與舊handler，其他畫布journal/form不被保存或清除。回草稿fresh權限限制編輯/存取，原UNKNOWN原樣查收據不重送。來源/正常回歸/實站界線見[整合矩陣](../../docs/acceptance/process-editor-complete-20261109.md)。#102未啟用前置與本批歷史顯示分開，無資料模型/schema改動。

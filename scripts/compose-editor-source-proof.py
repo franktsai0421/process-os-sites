@@ -48,6 +48,8 @@ NEW_TARGETS = {
     'boundary_runtime': '972e3a8cad7be5da7af0f4d7519fc36ff8bb2b6d',
     'boundary_revision': 'dfdfe76f0060a127ac2c08fff0fd780263695cb9',
     'conflict_revision': '88a4a2c6959dea76acfbaee24c11eb8e20494d5f',
+    'page_history': '2e4d20f4560fe1480576680d07edcf903b67fef9',
+    'previous_followup': 'd1ff4a61b2a8c81a206ec358ab2614393c171e94',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',

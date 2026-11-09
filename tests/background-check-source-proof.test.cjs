@@ -10,10 +10,10 @@ for(const contract of proof.contracts)void test(contract.file+' restores exact m
  for(const changed of [bytes.toString(),new Uint8Array(bytes)])assert.throws(()=>proof.restorePredecessor(changed,contract.file),/raw source bytes/);
  assert.throws(()=>proof.restorePredecessor(bytes,'unknown'),/wrong file/);
  assert.equal(proof.projectKnown(Buffer.concat([bytes,Buffer.from(' ')]),contract.file).length,bytes.length+1);
- const drift=Buffer.concat([current,Buffer.from(' ')]),unprojected=unified.project(drift,contract.file,'main_background');assert.deepEqual(unprojected,drift);assert.throws(()=>proof.restorePredecessor(unprojected,contract.file),/pinned bytes/);
+ const drift=Buffer.concat([actual,Buffer.from(' ')]),unprojected=unified.project(drift,contract.file,'main100');assert.deepEqual(unprojected,drift);assert.throws(()=>proof.restorePredecessor(unprojected,contract.file),/pinned bytes/);
 });
 
-void test('background helper and all original contract pins stay exact main #100 committed bytes',()=>{
- assert.equal(unified.manifest.targets.main_background.commit,'9fbba823090f03da8385c8d92f5e59293d19d2f1');
- for(const file of ['scripts/background-check-source-contract.cjs','scripts/background-check-source-contracts.json']){const current=unified.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));assert.deepEqual(current,execFileSync('git',['show','9fbba823090f03da8385c8d92f5e59293d19d2f1:'+file]));}
+void test('background contracts stay exact main #100 and helper adds only the fixed page projection',()=>{
+ assert.equal(unified.manifest.targets.main100.commit,'9fbba823090f03da8385c8d92f5e59293d19d2f1');
+ for(const file of ['scripts/background-check-source-contract.cjs','scripts/background-check-source-contracts.json']){const current=unified.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));const before=execFileSync('git',['show','9fbba823090f03da8385c8d92f5e59293d19d2f1:'+file]);if(file.endsWith('.json'))assert.deepEqual(current,before);else{const extension="bytes=require('./master-page-runtime-source-contract.cjs').projectKnown(bytes,file);",text=current.toString();assert.equal(text.split(extension).length,2,'Exactly one fixed page pre-projection');assert.deepEqual(Buffer.from(text.replace(extension,'')),before,'All original background inverse code and contracts remain byte exact');}}
 });

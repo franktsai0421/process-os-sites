@@ -98,7 +98,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-shared-client.js':'20261105-process-local-save1',
   'master-data.js':'20261105-process-local-save1',
  };
- const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main_background').toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main100').toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [asset,version]of Object.entries(mainBackgroundVersions))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
  const currentReferences=[...currentIndex.toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const asset of Object.keys(versions)){const currentVersion=historicalCache.expectedCurrentCache(asset);assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}

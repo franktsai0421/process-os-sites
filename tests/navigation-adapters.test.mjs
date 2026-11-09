@@ -212,7 +212,7 @@ void test('changed persistent-navigation executable references have coherent new
   'web-feedback-entry.js':'20261106-access-offline1',
   'master-admin-ui.js':'20261105-abc-local-save1',
  };
- const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main_background').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main100').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version]of Object.entries(mainBackgroundExpected))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' main #100');
  for(let i=1;i<ordered.length;i++)assert(mainBackgroundReferences.indexOf(`${ordered[i-1]}?v=${mainBackgroundExpected[ordered[i-1]]}`)<mainBackgroundReferences.indexOf(`${ordered[i]}?v=${mainBackgroundExpected[ordered[i]]}`),'main #100 reporter/recovery ordering remains exact');
  const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);

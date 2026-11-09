@@ -1,44 +1,32 @@
 # 製程編輯台完整目標與整合狀態
 
-目前受保護產品合樹基準固定於 `42917bfcf940f034ba3cad318bc89bf470baf686`，tree `34ddcd2ec9b0473679db4463bcfa9b54da1b2689`；先前59027／58c855交付保留。後續純畫布文案／cache修正ddcc7a6未改歷史API／selector或任何資料交易，最終HEAD見外部manifest。保留已合併 #99／#100 的 main `9fbba823`、#101 計數、d1／807、歷史 `e3d92846` 與 #102 固定972e3a8受資料marker守門之runtime的真實血緣。此候選尚未上傳完整程式、合併或部署。
+本輪產品固定 `a2c5f551d0b897f19bceb4205fcf934daf759467`，tree `cb17482250ecabed17a5626c3c9f4d61370b568a`。真實合入 #102 固定 `dfdfe76`、草稿衝突固定 `88a4a2c`、版本查看 owner 固定 `2e4d20f`，保留 main `9fbba823`（含 #99／#100）、#101 計數、畫布目前 scope Save、全部既有核准歷史及 UNKNOWN 收據。沒有拷入其他工作樹 dirty 程式，也沒有獨立重寫版本查看 owner 的 API／selector。
 
-使用者要求完整製程編輯台一起上同一 PR；#101 保持 Draft，遠端仍是計數元件 `8f1f243`，該元件四組 CI 成功不能代替完整候選的新 HEAD CI。#102 的新固定runtime已本機合樹；尚缺新owner歷史與完整UI、例行整頁接線。未凍結的dirty程式未拷入。精確交界見[剩餘相依](process-editor-remaining-dependencies-20261109.md)。
+完整程式尚未上傳 GitHub、合併或部署。#101 遠端仍是 Draft `8f1f243`，#102 遠端 Draft `ee7d4fd`；前者舊 CI 不能代替本輪完整 HEAD。page-v1 marker 未啟用，不能把本機 writer 合樹說成正式資料已拆分。[精確相依](process-editor-remaining-dependencies-20261109.md)。
 
-| 目標 | 本機整合結果 | 尚需完成 |
+| 完整目標 | 本機證據／行為 | 尚待驗收或整合 |
 | --- | --- | --- |
-| 篩選後可切頁，不把系統空工段當修改 | 空工段比較修正已納入；群組／類別篩選留在同一份製程草稿 | 最終實站切頁；40 秒現象未重現 |
-| 切頁、線別、工段直接放棄未存，不提示、不恢復 | RAM-only 及已審 silent departure；59027 將線別／工段接回 checked abandonment，類別篩選保留 RAM | 實體 IME、原生瀏覽器及實站 |
-| 一個存取草稿 | 當前畫布節點、內容、連線一起原子保存；其他畫布已存及未送修改／表單保留 | 真實資料驗收 |
-| Save 時才比對、整組我的／對方、保留無衝突內容 | fresh GET→POST→GET；目前畫布衝突範圍、結構依賴、選擇中改版、revision/CAS 均保留 | 兩位真實使用者流程 |
-| 刪除／連線／同編號新增與 UNKNOWN | 實際控制器與 signed SQLite route 已測；UNKNOWN 保留原 operationId、anchor、sent 快照與 registry，只查原收據，不重送 | 實站失敗流程 |
-| 取消同步、多餘按鈕及背景檢查 | 移除畫布 Sync、最新共享、未送恢復、undo/redo UI，保留 UNKNOWN 防重送；#100 無固定輪詢整合 | 頂部／全螢幕／舊快取實站巡查 |
-| 類別主要工段及機器連動 | 類別已核准 defaultStages 優先；#99 新工段繼承已核准 catalog、自訂類型與獨立 ID；機器依線別／工段 | C/GIA CONG 實際設定及新增→核准→類別→畫布 |
-| 不同頁面各自草稿及權限，同頁篩選不拆模組 | 此候選保持 process:platform；已真實合入972主資料頁面writer／CAS／基本UI（marker未啟用） | #102 真正 codec/CAS、舊 writer fences、審核／歷史／UI 與安全轉換 |
-| 送審整份已存製程，核准固定快照，不可撤回 | 現有 workflow、pending／權限／CAS guards 保留，Save 不偷送審 | 完整角色及實站生命週期 |
-| 原頁已核准歷史唯讀，不回填 writer | 真實 merge e3d92846：13 組頁面含畫布、PROCESS 模板機器、IPQC AB、例行 FQC；返回草稿 fresh edit/save permission，display epoch 拒絕舊 handler／排程 filter | #102 新 ownership 與原生／實站整合 |
-| 存取後流程數立即更新 | #101 投影計數已合入，同一 visible canvas projection | 實站數字核對 |
-| 速度 >5 秒優化、>10 秒優先及完整驗收 | 本機功能證據保留 | 桌機／iPhone／IME／兩人／測試站；40 秒原因未查明 |
+| 篩選後切頁，不把系統補的空工段當未存 | 已納入假 dirty 比較修正，同頁群組／類別仍屬同一份製程草稿 | 實站空白／不同群組與類別離頁；40 秒原因未查明 |
+| 切頁、線別、工段放棄未存，不確認、不恢復 | RAM-only 與 silent departure，保留已送 UNKNOWN 防重送紀錄 | 原生瀏覽器、實體手機與 IME |
+| 一鍵存取當前畫布 | 節點、內容、連線同存；其他畫布已存內容與本機修改保留；送審送整份已存製程 | 真實帳號完整流程 |
+| Save 才比對，整組我的／對方，保留無衝突修改 | fresh GET→一次 POST→GET，revision/CAS、刪除、連線、同編號新增與選擇中 peer 改版保護 | 兩人及失敗流程實站 |
+| UNKNOWN 不重送 | 保留原 operationId、anchor、sent 與 registry；只查原收據，不當未存恢復刪除 | 實站斷線／晚到回覆 |
+| 移除同步、最新共享、undo/redo、未存恢復及固定輪詢 | 畫布舊入口已移除；#100 無輪詢、所有歷史 fresh 權限及固定前身負向檢查保留 | 頂部／全螢幕／舊快取巡查 |
+| 類別主要工段、自訂流程與機器連動 | 類別已核准 defaultStages 優先，明確空設定及 legacy fallback；新增工段繼承自訂流程型別、機器依線別／工段 | C/GIA CONG 與新增→核准→類別→畫布 |
+| 真正不同頁面各自草稿與權限 | #102 AB.catalog／C.catalog／LINES writer、來源驗證、CAS 與基本 UI 已合樹，marker 未開；same-page filter 不另拆模組 | 完整主資料 UI、例行 FQC 整頁接線與安全資料切換 |
+| 送審、撤回與審核權限分開 | 整份已存製程送審，固定核准快照、pending／角色／CAS 保留，核准不可撤回 | 全角色實站生命週期 |
+| 原頁只讀核准歷史 | 舊 13 組頁面與新 AB/C/LINES 原頁 selector 都已合樹；保留來源身分與 late display／actor／revision fence；回草稿 fresh 權限 | 例行 FQC 新整頁 owner 歷史、原生與實站 |
+| 存取後步驟／流程數立即更新 | #101 計數使用 visible canvas projection | 實站數字 |
+| 等待時間及完整驗收 | 本機合成、signed route、SQLite／Map R2 分別留證 | 桌面、iPhone、IME、兩人、測試站；>5 秒優化、>10 秒優先；40 秒未查明 |
 
-本輪合樹產品及source／cache檢查結果、仍缺422新owner歷史與routine接線，見[精確相依與本輪證據](process-editor-remaining-dependencies-20261109.md)。下列59027數字是保留的前一檢查點，不代替42917合樹結果。
+草稿衝突88增量已納入 PROCESS 照片／排序、IQC 晚到輸入與供應商順序、FQC 刪除、例行 FQC late ACK、Tooling 只在 Save 上傳照片及 UNKNOWN 保護。Tooling 保留原 history display epoch 與舊 handler 防護，shared client 保留比較前／回呼後 owner 檢查，沒有覆回較舊共用檔案。
 
-三項草稿規則已由使用者確認：舊草稿可不保留、A 可送含 AB 修改的整份案件、例行 FQC 整頁一份草稿；全部草稿頁在 #102 統一。這些不再是待答問題，但尚未實作完成或切換真實資料。
+本輪另修正 `42cdba6`：public state 在移除私有 workflowScopes 前，先完成正式 AB/C 類別及工段來源驗證；否則可能把另一筆已核准工段當成目前正式來源。12 個 inline／records 案例 PASS，獨立 reviewer 用舊程式反證 8 個拒絕案例失敗；新程式全部通過，GET 零寫入。
 
-## 本輪驗證與限制
+版本查看 owner 的 2e4d20f 已修正原新三頁 approvedOnly 422；合樹後新三頁與畫布歷史63 PASS。舊 `PAGE_HISTORY_OWNER_HANDOFF.md`／422 probe 是交接前重現紀錄，不能再當本輪故障。例行整頁與主資料完整 UI 仍由草稿拆分 owner 處理。
 
-- 59027 相關畫布、歷史、選擇器、Save 與設備合併套件：223 PASS、0 FAIL、3 個既有 optional performance SKIP。SKIP 缺固定 c82a395 基準，不當作效能通過。
-- 線別／工段首輪 11 PASS；獨立 reviewer 產品複核 PASS，history×line 競態 2 PASS。UNKNOWN 測試補強後另 1 PASS，實際非空 anchor、sent、registry bytes 不變。
-- f61a00b1 是 e3d 後的測試交付，沒有新產品差異。逐段納入 18 個 signed 設備案例、processMaster fixture、persisted reader 及必要 CI；沒有覆寫 root 當前畫布 Save 或歷史 permission gate。18 新案例加 4 原路由樣本共 22 PASS，這是本機證據，不是上游 173 PASS／3 SKIP 的重貼。
-- Save 舊測試預期 POST→GET 已改為 fresh 比較 GET→POST→GET，確認 only one POST、fresh expectedRevision、peer 其他畫布保留。另 4 signed route 反例驗證比較前撤權零寫入、比較後 peer 修改由 revision/CAS 拒絕；未只更改 count 斷言。
-- 前一相同歷史功能 runtime 的 13 頁實際堆疊 383 PASS、核心 355 PASS、送審 feedback 60 組 PASS；本輪線別政策增量另列，不能把不同批次或重疊套件相加為全站覆蓋數。
-- 59027 正常 lint、非增量 TypeScript、guarded build 均 PASS。初次 build 缺必要 PROCESS_PROGRAM_COMMIT 而拒絕，保留 log；提供精確程式提交後正常 build 成功，未繞過 guard。
-- 精確來源：20 固定 targets、58 current、777 projections、189 bounded 真 Git objects、79 原歷史 requests；原 173 物件與固定 targets 順序／值完整保留。只替換前 current e9 的 4 個 source-chain 物件；e9 完整證據另存。contract 5,223,479 bytes，未提高 5MiB 限制。這不是功能或實站驗收。
-- 完整來源歷史、乾淨 consumer 與最終 source gates 以本次外部 manifest／logs 的實際結果為準；之前 27a 的證據不能代替新 HEAD。
+最終來源／快取／前身鏈／導覽／收據／無輪詢完整套件2030 PASS、0 FAIL、0 SKIP；來源composer 16 PASS。獨立產品語意複核182 PASS，無新 must-fix；原始輸出為reviewer工具stdout，沒有另造測試log。
 
-## 發布阻擋
+本輪檢查分批保留：88受影響功能317 PASS；既有歷史／C回呼272 PASS；新page／畫布歷史63 PASS；page public authority、review、runtime、UI全部 PASS；lint、非增量TS與正常 guarded build PASS。套件有重疊，不能相加為全站覆蓋率。25 固定來源、76 current、1180 inverse、226 bounded 真 Git objects、79 原歷史 requests；原固定 pins、173 物件及5MiB guard保留。來源證據與合成測試不能代替實站驗收，最終收據見外部 delivery manifest。
 
-舊 243-path create_tree 結果仍 UNKNOWN，缺原精確 payload／未執行證據；404 不足。原設備 tree 拒絕亦保留，未以 #101、新 PR、拆分或其他管道重送。PR #101 說明文字更新另已獲使用者明確同意，與程式傳送分開。
-
-未啟用頁面資料／schema／ACL 切換、未接觸真實業務資料、未啟動或重連中控系統 connector、未合併或部署。原 V42 結果未明不重送。真實瀏覽器、手機／IME、兩人、效能及測試站仍 NOT_RUN，完整製程目標尚未完成。
-
-
-後續分工已依parent最新更正：所有核准歷史API／selector由「統一已核准版本查看」owner實作；本製程owner只提供新三頁普通GET200／history422、資料完全不變的精確重現與相依，繼續畫布範圍。主資料UI及例行FQC scope由草稿拆分owner處理。
+使用者已確認舊草稿可不保留、A 可送整份 AB、例行 FQC 整頁一份草稿；不是待答問題。真資料／schema／ACL／connector／發布均未操作。舊243-path create_tree UNKNOWN 缺原payload與未執行證據，設備tree既有拒絕保留；不以 #101、新PR、拆分或其他executor重送。V42未知操作未重送。完整目標仍 NOT_READY。
