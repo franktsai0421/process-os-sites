@@ -13,9 +13,10 @@ const fs=__esmImport0,vm=__esmImport1,assert=__esmImport2;
  const host={querySelector:s=>s==='#bw-query'?input:s==='#bw-file'?file:s==='.bw-results'?result:s==='.bw-detail'?detail:s==='.bw-error'?error:null,querySelectorAll:()=>[]};
  // Only the current owner/quarantine ports used by the actual bind closure are
  // supplied. No transport, storage, server or successful-write stub is added.
- const context={ui:{query:'',code:'R',position:'chosen'},edit:null,error:'',ownerQuarantined:false,actor:'fixture-owner',index:()=>idx,document:{querySelector:s=>s==='.bw-workspace'?host:s==='.bw-error'?error:null},window:{ProcessSync:{identity:{id:'fixture-owner'}},VersionDraftUI:{preserveView:()=>()=>preserve++}},remember(){},detail:()=>context.ui.code,h:s=>String(s??''),t:zh=>zh};
+ const context={ui:{query:'',code:'R',position:'chosen'},edit:null,error:'',historicalDisplay:()=>false,ownerQuarantined:false,actor:'fixture-owner',index:()=>idx,document:{querySelector:s=>s==='.bw-workspace'?host:s==='.bw-error'?error:null},window:{ProcessSync:{identity:{id:'fixture-owner'}},VersionDraftUI:{preserveView:()=>()=>preserve++}},remember(){},detail:()=>context.ui.code,h:s=>String(s??''),t:zh=>zh};
  const handlers=section(' function updateSearch(', '\n function selectedRows(')+section(' function resultsHTML(', '\n function contentHTML(')+section(' function bind(){', '\n function renderReview(')+';this.bindSearch=bind;';
  const missingPort={...context};delete missingPort.ownerQuarantined;vm.createContext(missingPort);vm.runInContext(handlers,missingPort);assert.throws(()=>missingPort.bindSearch(),/ownerQuarantined is not defined/,'the original missing-port fixture failure is not hidden by production fallback');
+ const missingHistoryPort={...context};delete missingHistoryPort.historicalDisplay;vm.createContext(missingHistoryPort);vm.runInContext(handlers,missingHistoryPort);assert.throws(()=>missingHistoryPort.bindSearch(),/historicalDisplay is not defined/,'standalone history display port is required by actual bind');
  vm.createContext(context);vm.runInContext(handlers,context);
  for(const owner of ['quarantined','different','logged-out']){
   context.ownerQuarantined=owner==='quarantined';context.window.ProcessSync.identity=owner==='logged-out'?null:{id:owner==='different'?'other-owner':'fixture-owner'};

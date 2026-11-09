@@ -32,6 +32,19 @@ export const bomWorkflowAdapter:WorkflowAdapter<BomSnapshot,BomControl>={
    if(!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
    const operations=command.input?.operations;
    if(command.patches!==undefined||command.guards!==undefined||!Array.isArray(operations)||operations.length>4096)throw new DraftConflict('BOM_LOCAL_SAVE_INVALID',422);
+   // Optional BOM-only occurrence plan. Original operations/digests stay on
+   // the wire; derive the candidate again here before the existing one-CAS Save.
+   if(command.input?.reconciliation!==undefined){
+    const proof=command.input.reconciliation as {base?:unknown;candidateDigest?:unknown;decision?:unknown};
+    if(Object.keys(command.input).some(key=>!['operations','reconciliation'].includes(key))||!proof||typeof proof!=='object'||Array.isArray(proof)||Object.keys(proof).some(key=>!['base','candidateDigest','decision'].includes(key))||!Object.hasOwn(proof,'base')||!Object.hasOwn(proof,'candidateDigest')||typeof proof.candidateDigest!=='string'||!/^[a-f0-9]{64}$/.test(proof.candidateDigest))throw new DraftConflict('BOM_OCCURRENCE_PLAN_INVALID',422);
+    if(command.expectedRevision===undefined||command.expectedRevision!==flow.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM',409);
+    if(!context.allowed('import' as never))throw new DraftConflict('FORBIDDEN',403);
+    let next;
+    try{next=(await Bom.reconcileOccurrenceSave(proof.base,operations,flow.working.bom,proof.decision)).next;}catch(e){throw new DraftConflict((e as Error).message,409);}
+    if(await Bom.candidateDigest(next)!==proof.candidateDigest)throw new DraftConflict('BOM_OCCURRENCE_CANDIDATE_CHANGED',409);
+    const fingerprint=context.commandFingerprint||stableDraftJSON(command),applied=applyDraftCommand(flow,{...command,action:'apply',expectedRevision:undefined,patches:[{op:'set',path:['bom'],value:next}]},{...context,commandFingerprint:fingerprint});
+    return applyDraftCommand({...applied.state,receipts:flow.receipts,sequences:flow.sequences},{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});
+   }
    // Replay the confirmed operations against request-local state only. Each
    // original field guard/import digest checks the result of the preceding op.
    // The route persists only the final Save through its existing single CAS.

@@ -1160,6 +1160,7 @@
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
+      ...(beginPath==='/api/bom/workflow'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true})}:{}),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
       ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),

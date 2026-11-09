@@ -100,6 +100,110 @@ export async function semanticDigest(bom) {
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical(semantic(bom))));
   return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
 }
+// Digest the complete candidate, including immutable source attribution.
+export async function candidateDigest(bom) {
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical(bom)));
+  return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+}
+const exactKeys=(value,keys)=>!!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
+const equal=(a,b)=>canonical(a)===canonical(b);
+const reconcileFail=()=>{throw Error('BOM_IMPORT_STRUCTURE_RECONFIRM');};
+// Replay ORIGINAL ordered intent against its original basis. Do not replace a
+// selected import's digest/decisions with a fresh comparison against latest.
+async function occurrenceIntent(base,operations) {
+  validate(base);
+  if(!Array.isArray(operations)||operations.length>4096)throw Error('BOM_LOCAL_SAVE_INVALID');
+  let original=copy(base),structural=false;
+  for(const operation of operations){
+    if(!operation||typeof operation!=='object'||Array.isArray(operation)||Object.keys(operation).some(key=>!['patches','guards','moduleAction','input'].includes(key)))throw Error('BOM_LOCAL_SAVE_INVALID');
+    if(operation.moduleAction!==undefined){
+      if(operation.moduleAction!=='import-digiwin'||!exactKeys(operation,['moduleAction','input']))throw Error('BOM_ACTION_INVALID');
+      const input=operation.input;
+      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['sheets','file','importMode','baseDigest','decisions'].includes(key))||input.importMode!=='incremental-v1'||input.baseDigest!==await semanticDigest(original))throw Error('BOM_IMPORT_BASE_CHANGED');
+      const batch=compare(original,parseMatrices(input.sheets,{file:input.file}));
+      if(!Array.isArray(input.decisions)||batch.changes.length!==input.decisions.length)throw Error('BOM_IMPORT_DECISIONS_CHANGED');
+      batch.changes.forEach((change,i)=>{const decision=input.decisions[i];if(!exactKeys(decision,['decision'])&&!exactKeys(decision,['decision','value'])||!['keep','accept','edit'].includes(decision.decision))throw Error('BOM_IMPORT_DECISIONS_CHANGED');Object.assign(change,decision);});
+      if(batch.changes.some(change=>change.kind==='structure'&&change.decision!=='keep'))structural=true;
+      original=applyComparison(original,batch);
+    }else{
+      if(!exactKeys(operation,['patches','guards'])||!Array.isArray(operation.patches)||!Array.isArray(operation.guards)||operation.patches.length!==operation.guards.length||operation.patches.length>256)throw Error('BOM_LOCAL_SAVE_INVALID');
+      const seen=new Set();
+      for(const [i,patch]of operation.patches.entries()){
+        const guard=operation.guards[i],path=patch?.path;
+        if(!exactKeys(patch,['op','path','value'])||patch.op!=='set'||!Array.isArray(path)||path.length!==4||path[0]!=='bom'||typeof path[1]!=='string'||!exactKeys(path[2],['id'])||typeof path[2].id!=='string'||!editableFields.includes(path[3])||typeof patch.value!=='string'||!exactKeys(guard,['path','value'])||!equal(path,guard.path)||typeof guard.value!=='string'||seen.has(canonical(path)))throw Error('BOM_MANUAL_BASE_CONFLICT');
+        seen.add(canonical(path));const row=original[path[1]]?.find(row=>row.id===path[2].id),field=path[3];
+        if(!row||row[field]!==guard.value||row.level>1&&numericFields.includes(field))throw Error('BOM_MANUAL_BASE_CONFLICT');
+        row[field]=patch.value;
+      }
+    }
+    validate(original);
+  }
+  if(!structural)throw Error('BOM_OCCURRENCE_RECONCILIATION_REQUIRED');
+  return original;
+}
+const occurrenceValue=(row,field)=>row&&Object.hasOwn(row,field)?{present:true,value:copy(row[field])}:{present:false};
+const occurrenceFields=[...editableFields,'source'];
+// Project the final ordered local intent once. In particular, a later local edit
+// to the same cell cannot silently override an earlier "theirs" decision.
+function projectOccurrenceIntent(base,mine,latest,choice='theirs') {
+  const next=copy(latest),conflicts=[];
+  for(const root of Object.keys(mine).sort()){
+    const beforeRows=base[root]||[],afterRows=mine[root],beforeById=new Map(beforeRows.map(row=>[row.id,row]));
+    if(!equal(beforeRows.map(row=>row.id),afterRows.filter(row=>beforeById.has(row.id)).map(row=>row.id)))reconcileFail();
+    const currentRows=next[root]||[],currentById=new Map(currentRows.map(row=>[row.id,row])),added=[];
+    for(const row of afterRows){
+      const before=beforeById.get(row.id),current=currentById.get(row.id);
+      if(!before&&!current){added.push(copy(row));continue;}
+      if(!current){
+        // Never recreate a remotely removed row/root, even for "all mine".
+        if(!equal(before,row))reconcileFail();
+        continue;
+      }
+      for(const field of new Set([...Object.keys(before||{}),...Object.keys(row)])){
+        const oldValue=occurrenceValue(before,field),mineValue=occurrenceValue(row,field),theirValue=occurrenceValue(current,field);
+        if(before&&equal(oldValue,mineValue))continue;
+        if(equal(mineValue,theirValue))continue;
+        if(!occurrenceFields.includes(field)){
+          // Identity, parent, path, order and ERP levels are never editable.
+          reconcileFail();
+        }
+        if(!before||!equal(oldValue,theirValue)){
+          conflicts.push({kind:before?'field':'new-occurrence',root,id:row.id,field,base:oldValue,mine:mineValue,theirs:theirValue});
+          if(choice!=='mine')continue;
+        }
+        if(mineValue.present)current[field]=copy(mineValue.value);else delete current[field];
+      }
+    }
+    // A new occurrence needs its actual surviving parent, never a copied old
+    // subtree. Omitted peer-deleted descendants remain absent.
+    const surviving=new Set([...currentById.keys(),...added.map(row=>row.id)]);
+    if(added.some(row=>row.parentId&&!surviving.has(row.parentId)))reconcileFail();
+    if(added.length)next[root]=mergeOccurrences(currentRows,added);
+  }
+  conflicts.sort((a,b)=>{const x=canonical([a.root,a.id,a.field]),y=canonical([b.root,b.id,b.field]);return x<y?-1:x>y?1:0;});
+  validate(next);return{next,conflicts};
+}
+// Conflict and review digests are freshness/integrity checks, not credentials.
+// The full basis, original journal and complete latest snapshot are pinned so
+// even a disjoint late change invalidates an already displayed decision.
+export async function occurrenceConflictDigest(conflicts) {
+  if(!Array.isArray(conflicts))throw Error('BOM_OCCURRENCE_DECISION_INVALID');
+  return candidateDigest({kind:'bom-occurrence-conflicts-v1',conflicts});
+}
+export async function reviewOccurrenceSave(base,operations,latest) {
+  validate(latest);
+  const mine=await occurrenceIntent(base,operations),review=projectOccurrenceIntent(base,mine,latest);
+  const reviewDigest=await candidateDigest({kind:'bom-occurrence-save-review-v1',base,operations,latest,conflicts:review.conflicts});
+  return{...review,reviewDigest};
+}
+export async function reconcileOccurrenceSave(base,operations,latest,decision) {
+  const review=await reviewOccurrenceSave(base,operations,latest);
+  if(decision===undefined){if(review.conflicts.length)reconcileFail();return review;}
+  if(!exactKeys(decision,['choice','conflictsDigest','reviewDigest'])||!['mine','theirs'].includes(decision.choice)||!['conflictsDigest','reviewDigest'].every(key=>typeof decision[key]==='string'&&/^[a-f0-9]{64}$/.test(decision[key]))||!review.conflicts.length)throw Error('BOM_OCCURRENCE_DECISION_INVALID');
+  if(decision.reviewDigest!==review.reviewDigest||decision.conflictsDigest!==await occurrenceConflictDigest(review.conflicts))throw Error('BOM_OCCURRENCE_REVIEW_CHANGED');
+  if(decision.choice==='theirs')return review;
+  return{...projectOccurrenceIntent(base,await occurrenceIntent(base,operations),latest,'mine'),reviewDigest:review.reviewDigest};
+}
 export const exportRows = bom => [columns,...Object.values(bom).flatMap(rows=>rows.map(r=>fields.map(f=>numericFields.includes(f)&&r.level>1?'':r[f])))];
 // A partial report never implies deletion. Match immutable occurrence paths,
 // retain omitted siblings/subtrees, and append new occurrences to their parent.

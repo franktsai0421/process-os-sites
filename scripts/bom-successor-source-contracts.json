@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Test-only exact standalone BOM successor composition and independent current-source attestation; no runtime transform or whole-history acceptance.",
+  "provenance": {
+    "bomSourceCommit": "6354299922c702c80e7a8a16e4fad03efb48d4d4",
+    "verifiedMainCommit": "dc34874913c417ac5e3194a7e3c3956d971eb0d0",
+    "masterBaseline": "Existing PR94 source on verified main; not introduced by BOM. Only its static inverse is reused."
+  },
+  "contracts": [
+    {
+      "group": "bom",
+      "file": "lib/versioned-shared-workflow.ts",
+      "beforeHash": "b220a014deff38f2a0e47ba3cb01ec36084ff34f49cb46f1bf51ce6ccfafbb7e",
+      "afterHash": "7810585ff095ee56aa7edc004d5059818724dea6d48730b33b5707c39b9b3042",
+      "beforeBytes": 39510,
+      "afterBytes": 43498,
+      "rules": [
+        {
+          "name": "reviewed BOM span 1",
+          "beforeOffset": 0,
+          "afterOffset": 0,
+          "before": "",
+          "after": "import {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';\n"
+        },
+        {
+          "name": "reviewed BOM span 2",
+          "beforeOffset": 16780,
+          "afterOffset": 16873,
+          "before": "",
+          "after": "      const bomApproved=adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&new URL(request.url).pathname==='/api/bom/workflow'&&selectors.has('approvedOnly');\n      if(bomApproved){\n        // An approved-only request must never fall through to a legacy/body\n        // selector, nor ask metadata reads to hydrate a historical case body.\n        const listing=selectors.has('uiHistory'),detail=selectors.has('versionId'),allowed=new Set(['approvedOnly','caseMetadata','compact',...(listing?['uiHistory','versionBefore']:['versionId'])]);\n        if(selectors.get('approvedOnly')!=='1'||listing===detail||[...selectors.keys()].some(key=>!allowed.has(key)||selectors.getAll(key).length!==1)||listing&&selectors.get('uiHistory')!=='1'||detail&&(!selectors.get('versionId')||selectors.get('versionId')!.length>512)||selectors.has('caseMetadata')&&selectors.get('caseMetadata')!=='1'||selectors.has('compact')&&selectors.get('compact')!=='1'||(selectors.get('versionBefore')?.length||0)>512)return reply({error:'INVALID_APPROVED_HISTORY_QUERY'},422);\n      }\n"
+        },
+        {
+          "name": "reviewed BOM span 3",
+          "beforeOffset": 19716,
+          "afterOffset": 20869,
+          "before": "",
+          "after": "      // BOM opts in without changing the history policy of existing modules.\n      // Refresh authorization after all selected reads/hydration, including\n      // metadata aggregate I/O. No stale permission snapshot authorizes output.\n      const approvedReadCurrent=async()=>{\n        const fresh=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}),freshActor=await identity(request,fresh),freshPermissions=await currentPermissions(request,fresh);\n        if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history)return reply({error:'FORBIDDEN'},403);\n        if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);\n        // Session revocation is separate from the shared-state revision fence.\n        const finalActor=await identity(request,fresh);\n        return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;\n      };\n      if(bomApproved&&query.has('uiHistory')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const rows=approvedVersions(control,true).slice().reverse(),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;\n        if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);\n        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};\n        return await approvedReadCurrent()||reply(body);\n      }\n"
+        },
+        {
+          "name": "reviewed BOM span 4",
+          "beforeOffset": 20786,
+          "afterOffset": 23915,
+          "before": "",
+          "after": "      }\n      if(bomApproved&&query.has('versionId')){\n        if(!permissions.history)return reply({error:'FORBIDDEN'},403);\n        const version=approvedVersion(control,query.get('versionId')!,true);\n        if(!version)return reply({error:'VERSION_NOT_FOUND'},404);\n        const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};\n        // One selected snapshot only. Compatibility history streams can start\n        // delivering before R2 hydration completes; this opt-in must not expose\n        // even a prefix until its final authorization check has passed.\n        const rendered=state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,responseHeaders):reply(body),json=await rendered.text();\n        return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});\n"
+        }
+      ]
+    },
+    {
+      "group": "bom",
+      "file": "public/process/shared-draft-client.js",
+      "beforeHash": "cb5fccf31b25d24751f5d72422cc744a3c6024e9e2142bf55db6189942d12352",
+      "afterHash": "8e20a20104dfc75de70d4eaf1460aa1e49e335833915340bbe33ab10de6e0101",
+      "beforeBytes": 167585,
+      "afterBytes": 167967,
+      "rules": [
+        {
+          "name": "reviewed BOM span 1",
+          "beforeOffset": 121449,
+          "afterOffset": 121449,
+          "before": "",
+          "after": "      ...(beginPath==='/api/bom/workflow'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true})}:{}),\n"
+        }
+      ]
+    },
+    {
+      "group": "bom",
+      "file": "lib/bom-workflow.ts",
+      "beforeHash": "03072124ab0b511bd9d5ea7760ba2d4b8144db64a12f590346ca59765390e114",
+      "afterHash": "023f2fd8a4cdcdd0d919cacd94c24a346fe6fe135b91946da06687ec61d45378",
+      "beforeBytes": 7802,
+      "afterBytes": 9557,
+      "rules": [
+        {
+          "name": "reviewed BOM span 1",
+          "beforeOffset": 3188,
+          "afterOffset": 3188,
+          "before": "",
+          "after": "   // Optional BOM-only occurrence plan. Original operations/digests stay on\n   // the wire; derive the candidate again here before the existing one-CAS Save.\n   if(command.input?.reconciliation!==undefined){\n    const proof=command.input.reconciliation as {base?:unknown;candidateDigest?:unknown;decision?:unknown};\n    if(Object.keys(command.input).some(key=>!['operations','reconciliation'].includes(key))||!proof||typeof proof!=='object'||Array.isArray(proof)||Object.keys(proof).some(key=>!['base','candidateDigest','decision'].includes(key))||!Object.hasOwn(proof,'base')||!Object.hasOwn(proof,'candidateDigest')||typeof proof.candidateDigest!=='string'||!/^[a-f0-9]{64}$/.test(proof.candidateDigest))throw new DraftConflict('BOM_OCCURRENCE_PLAN_INVALID',422);\n    if(command.expectedRevision===undefined||command.expectedRevision!==flow.revision)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM',409);\n    if(!context.allowed('import' as never))throw new DraftConflict('FORBIDDEN',403);\n    let next;\n    try{next=(await Bom.reconcileOccurrenceSave(proof.base,operations,flow.working.bom,proof.decision)).next;}catch(e){throw new DraftConflict((e as Error).message,409);}\n    if(await Bom.candidateDigest(next)!==proof.candidateDigest)throw new DraftConflict('BOM_OCCURRENCE_CANDIDATE_CHANGED',409);\n    const fingerprint=context.commandFingerprint||stableDraftJSON(command),applied=applyDraftCommand(flow,{...command,action:'apply',expectedRevision:undefined,patches:[{op:'set',path:['bom'],value:next}]},{...context,commandFingerprint:fingerprint});\n    return applyDraftCommand({...applied.state,receipts:flow.receipts,sequences:flow.sequences},{...command,expectedRevision:undefined},{...context,commandFingerprint:fingerprint});\n   }\n"
+        }
+      ]
+    },
+    {
+      "group": "master",
+      "file": "app/api/master/workflow/route.ts",
+      "beforeHash": "e59302315b30f2e2bce1d47ea6d6ea4f9d7228babaa0ddfc23267fee90ec2de8",
+      "afterHash": "ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f",
+      "historicalPin": "e59302315b30f2e2bce1d47ea6d6ea4f9d7228babaa0ddfc23267fee90ec2de8",
+      "beforeBytes": 5336,
+      "afterBytes": 5829,
+      "rules": [
+        {
+          "afterOffset": 740,
+          "name": "remove selector guard import and helper",
+          "before": "",
+          "after": "import {assertMasterDocumentRouteAvailable} from '@/lib/master-document-boundary';\n\nfunction documentBoundary(request:Request):Response|null{\n try{assertMasterDocumentRouteAvailable(new URL(request.url).searchParams);return null;}\n catch(error){if(!(error instanceof DraftConflict))throw error;\n  return Response.json({error:error.code},{status:error.status,headers:responseHeaders});}\n}\n",
+          "beforeOffset": 740
+        },
+        {
+          "afterOffset": 4822,
+          "name": "restore exact historical GET dispatch",
+          "before": "export const GET=(request:Request)=>new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'\n ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request);\n",
+          "after": "export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'\n ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request));\n",
+          "beforeOffset": 4434
+        },
+        {
+          "afterOffset": 5220,
+          "name": "remove selector guard POST early return",
+          "before": "",
+          "after": " const boundary=documentBoundary(request);if(boundary)return boundary;\n",
+          "beforeOffset": 4798
+        }
+      ]
+    }
+  ],
+  "currentDependencies": [
+    {
+      "file": "lib/approved-history.ts",
+      "sha256": "3af9737bbb2760d08f04bd2ec098350d29ba19ad7381a2246ff711c992d38d44",
+      "bytes": 3687,
+      "purpose": "strict immutable approval evidence and selected snapshot"
+    },
+    {
+      "file": "lib/process-state.ts",
+      "sha256": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
+      "bytes": 25771,
+      "purpose": "session identity, permissions and shared-state revision"
+    },
+    {
+      "file": "lib/user-access.ts",
+      "sha256": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+      "bytes": 2592,
+      "purpose": "effective role access"
+    },
+    {
+      "file": "lib/shared-draft.ts",
+      "sha256": "2671a3f9677f253956f5a8d8e4687724bcd3689f9131b07b4488c1e2579bb1db",
+      "bytes": 17143,
+      "purpose": "command admission, receipt replay and revision fences"
+    },
+    {
+      "file": "lib/workflow-begin.ts",
+      "sha256": "078045e3ef3467a2e5fa34559c5e9a1a62abefd5e89dc6ab08ee108d021ad2b5",
+      "bytes": 3195,
+      "purpose": "Begin identity, basis and receipt admission"
+    },
+    {
+      "file": "lib/draft-restore-access.ts",
+      "sha256": "7c92948cd0ed62583ec352bffc17b414abcd63a914456bfc3b5535f96dd4ea96",
+      "bytes": 2905,
+      "purpose": "restore admission"
+    },
+    {
+      "file": "lib/state-records-response.ts",
+      "sha256": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
+      "bytes": 2112,
+      "purpose": "selected immutable snapshot serialization"
+    },
+    {
+      "file": "public/process/bom-domain.mjs",
+      "sha256": "5f72340c005ea09f9233efc493ef74c1c500580b26c92ef0c96db6a249e9d22c",
+      "bytes": 20824,
+      "purpose": "occurrence reconciliation and candidate digest"
+    },
+    {
+      "file": "public/process/version-draft-ui.js",
+      "sha256": "0a609f37f2882e86a62dba8db88af0a91eddcdf51b78742208e441c362b63423",
+      "bytes": 57418,
+      "purpose": "BOM-only approved history rendering"
+    },
+    {
+      "file": "public/process/bom-workspace.js",
+      "sha256": "906396550269feac61b8b96a3caab66064926015fa5f9e11400f274fdde87188",
+      "bytes": 94962,
+      "purpose": "BOM occurrence command and approved-history integration"
+    },
+    {
+      "file": "lib/master-document-boundary.ts",
+      "sha256": "7ef5bcf7c3da7d1e839929c28f81913cdc1c70909c60710091137c3a1efb10d7",
+      "bytes": 17048,
+      "purpose": "pre-existing PR94 master document selector boundary"
+    },
+    {
+      "file": "app/api/bom/workflow/route.ts",
+      "sha256": "62bc80a17f942cccb0ba654c30fd6b819ce85e126ef2fd8135acbae33fc785ca",
+      "bytes": 297,
+      "purpose": "BOM GET/POST route delegates and endpoint boundary"
+    }
+  ]
+}

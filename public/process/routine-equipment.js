@@ -121,8 +121,9 @@
           if(!row||!actual)throw Error('SYNC_CONFIRMATION_REQUIRED');
           for(const field of key==='categories'?['code']:key==='equipment'?['assetCode','pieceMark']:[]){row[field]=actual[field];if(current&&current[field]===before[field])current[field]=actual[field];}
         }
+        if(batch.comparedSave)settleEquipmentBatch(batch,canonical);
         for(const [id,pin]of batch.sentPhotos){const current=pendingPhotos.get(id),find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);acknowledgeFormPhoto(id,pin.entry,find(batch.sentInput),find(canonical));if(current!==pin.entry)URL.revokeObjectURL(pin.url);if(current===pin.entry&&current.file===pin.file&&current.url===pin.url){for(const key of ['equipment','groups','categories','subcategories']){const row=working?.[key].find(r=>r.id===id),sent=canonical[key].find(r=>r.id===id);if(row&&sent)row.photoId=sent.photoId;}URL.revokeObjectURL(pin.url);pendingPhotos.delete(id);}}
-        syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
+        if(!batch.comparedSave)syncBase=canonical;pendingSaveBatch=null;localBeginReceipt=null;
       }
       else if(!local&&open()?.status==='draft'){working=snapshotOf(open());syncBase=clone(working);syncGeneration=control.workflow.generation;}
       selectedVersionId=open()?.id||selectedVersionId;readUnavailable=false;rememberInputOwner();
@@ -170,11 +171,144 @@
     }else return false;
     return same(actual,expected);
   }catch{return false;}} // Malformed ACK validation must latch readUnavailable, never invite another POST.
+  // Save compares only this captured RAM batch. Structural/source guards never
+  // become ordinary Mine/Theirs choices, and the original base stays untouched.
+  let equipmentSaveChoice = null, equipmentSaveComparison = null;
+  function retireEquipmentSaveComparison(){
+    const comparison=equipmentSaveComparison;
+    if(!comparison||!comparison.current())return;
+    // The comparison has not uploaded or dispatched. Invalidate only its private
+    // attempt before departure inspects busy again; late GETs cannot adopt/send.
+    equipmentSaveComparison=null;writeShared.attempt=null;busy=false;equipmentSaveChoice?.();
+  }
+  const equipmentSaveCollections = ['equipment','groups','categories','subcategories','issues'];
+  function compareEquipmentSave(base,mine,latest,photos){
+    for(const data of [base,mine,latest])for(const key of equipmentSaveCollections){
+      const rows=data?.[key];if(!Array.isArray(rows)||rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)||typeof row.id!=='string'||!row.id)||new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('INVALID_EQUIPMENT_SNAPSHOT');
+    }
+    for(const [id]of photos){
+      const count=data=>equipmentSaveCollections.filter(key=>key!=='issues').reduce((sum,key)=>sum+data[key].filter(row=>row.id===id).length,0);
+      if(count(mine)!==1||count(base)>1||count(latest)>1)throw Error(t('照片目標不明：不同類型有相同識別；本次未上傳或存取，輸入仍保留。','Không xác định được đích ảnh: các loại khác nhau có cùng mã. Chưa tải ảnh hay lưu; dữ liệu nhập được giữ lại.'));
+    }
+    const original=snapshotChanges(base,mine),units=[],conflicts=[],photoRows=new Set();
+    const photoKeys=key=>key==='equipment'?['photoId','photoHidden']:['photoId'];
+    const labels={name:['名稱','Tên'],nameZh:['中文名稱','Tên tiếng Trung'],nameVi:['越南文名稱','Tên tiếng Việt'],unit:['單位','Đơn vị'],spec:['規格','Quy cách'],owner:['保管人','Người giữ'],enabled:['啟用','Kích hoạt'],calibrationMethod:['校正方式','Cách hiệu chuẩn'],calibrationCycle:['校正週期','Chu kỳ hiệu chuẩn'],customCycle:['自訂週期','Chu kỳ tùy chỉnh'],calibratedAt:['校正日期','Ngày hiệu chuẩn'],expiresAt:['到期日期','Ngày hết hạn'],notes:['備註','Ghi chú'],intakeDate:['入庫日期','Ngày nhập kho'],confirmed:['來源確認','Xác nhận nguồn'],status:['狀態','Trạng thái'],resolution:['處理結果','Kết quả xử lý']};
+    const values=(row,fields)=>fields.map(field=>row?.[field]??(field==='photoHidden'?false:''));
+    const add=(key,id,fields,pending)=>{
+      const before=base[key].find(row=>row.id===id),local=mine[key].find(row=>row.id===id),peer=latest[key].find(row=>row.id===id);
+      if(!before||!local||!peer)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+      const old=values(before,fields),next=values(local,fields),remote=values(peer,fields);
+      const conflict=!equipmentContentEqual(old,remote)&&(!!pending||!equipmentContentEqual(next,remote));
+      const unit={key,id,fields,pending,conflict};units.push(unit);
+      const preview=(row,entry)=>({hidden:row.photoHidden===true,url:row.photoHidden?'':entry?.url||(row.photoId?api+'/photo?id='+encodeURIComponent(row.photoId):row.photoSource?.webPath||'')});
+      if(conflict)conflicts.push({photo:fields.includes('photoId')?{mine:preview(local,pending),theirs:preview(peer)}:null,label:local.name||local.nameVi||local.assetCode||id,fields:fields.includes('photoId')?t('照片','Ảnh'):fields.map(field=>labels[field]?t(...labels[field]):field).join(' / '),mine:pending?t('新照片','Ảnh mới')+' · '+(pending.file.name||t('本機圖片','Ảnh cục bộ')):next,theirs:remote});
+    };
+    for(const patch of original.patches){
+      if(patch.op!=='set'||['groupId','categoryId','subcategoryId'].includes(patch.path[2]))continue;
+      const [key,entity,field]=patch.path;
+      if(['photoId','photoHidden'].includes(field)){const token=key+':'+entity.id;if(photoRows.has(token))continue;photoRows.add(token);add(key,entity.id,photoKeys(key),photos.get(entity.id));}
+      else add(key,entity.id,[field]);
+    }
+    for(const [id,pending]of photos){
+      const key=equipmentSaveCollections.find(kind=>kind!=='issues'&&mine[kind].some(row=>row.id===id));if(!key)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');
+      if(!base[key].some(row=>row.id===id))continue; // Insert still uses original parent/source guards.
+      const token=key+':'+id;if(!photoRows.has(token)){photoRows.add(token);add(key,id,photoKeys(key),pending);}
+    }
+    return {conflicts,materialize(choice){
+      if(!['mine','theirs'].includes(choice))throw Error('INVALID_EQUIPMENT_SAVE_CHOICE');
+      const desired=clone(latest),patches=[],guards=[],chosenPhotos=new Map(photos),ordinary=new Set(units.flatMap(unit=>unit.fields.map(field=>JSON.stringify([unit.key,{id:unit.id},field]))));
+      // Keep original structural commands AND whole-parent/row guards verbatim.
+      for(const patch of original.patches)if(!ordinary.has(JSON.stringify(patch.path))){
+        patches.push(clone(patch));const [key,entity,field]=patch.path;
+        if(patch.op==='insert'){if(desired[key].some(row=>row.id===patch.value.id))throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');desired[key].push(clone(patch.value));}
+        else {const index=desired[key].findIndex(row=>row.id===entity.id);if(index<0)throw Error('ENTITY_REMOVED_OR_AMBIGUOUS');if(patch.op==='remove')desired[key].splice(index,1);else desired[key][index][field]=clone(patch.value);}
+      }
+      for(const guard of original.guards)if(!ordinary.has(JSON.stringify(guard.path)))guards.push(clone(guard));
+      for(const unit of units){
+        if(unit.conflict&&choice==='theirs'){if(unit.pending)chosenPhotos.delete(unit.id);continue;}
+        const local=mine[unit.key].find(row=>row.id===unit.id),peer=latest[unit.key].find(row=>row.id===unit.id),row=desired[unit.key].find(row=>row.id===unit.id);
+        for(const field of unit.fields){const value=local[field]??(field==='photoHidden'?false:''),path=[unit.key,{id:unit.id},field];row[field]=clone(value);
+          if(!equipmentContentEqual(value,peer[field])||unit.pending){patches.push({op:'set',path,value:clone(value)});guards.push({path,value:peer[field]});}
+        }
+      }
+      const order=path=>{const index=original.patches.findIndex(patch=>equipmentContentEqual(patch.path,path));return index<0?original.patches.length:index;};
+      patches.sort((a,b)=>order(a.path)-order(b.path));
+      return {local:desired,patches,guards,chosenPhotos};
+    }};
+  }
+  function chooseEquipmentSave(conflicts,current){
+    return new Promise(resolve=>{
+      const overlay=document.createElement('div'),prior=document.activeElement;
+      overlay.className='routine-modal-backdrop';overlay.setAttribute('data-equipment-save-conflicts','');
+      const valueHTML=(item,side)=>{const image=item.photo?.[side];return image?image.hidden?h(t('已移除','Đã xóa')):image.url?'<img src="'+h(image.url)+'" alt="'+h(t('衝突照片預覽','Xem trước ảnh xung đột'))+'" style="display:block;max-width:180px;max-height:150px;object-fit:contain">':h(t('無照片','Không có ảnh')):h(JSON.stringify(item[side]));};
+      overlay.innerHTML=`<section class="routine-modal" role="dialog" aria-modal="true" aria-labelledby="equipment-save-choice-title" style="width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto;overflow-wrap:anywhere"><h2 id="equipment-save-choice-title">${t('選擇衝突處理方式','Chọn cách xử lý xung đột')}</h2><p>${t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột; giữ các thay đổi không xung đột.')}</p><ul>${conflicts.map(item=>`<li><strong>${h(item.label)} · ${h(item.fields)}</strong><p>${t('我的','Của tôi')}: ${valueHTML(item,'mine')}</p><p>${t('對方的','Của người khác')}: ${valueHTML(item,'theirs')}</p></li>`).join('')}</ul><div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="button" data-equipment-save-choice="mine">${t('用我的','Dùng của tôi')}</button><button type="button" class="button" data-equipment-save-choice="theirs">${t('用對方的','Dùng của người khác')}</button><button type="button" class="button ghost" data-equipment-save-choice="cancel">${t('取消','Hủy')}</button></div></section>`;
+      let done=false;const close=value=>{if(done)return;done=true;overlay.remove();document.removeEventListener('keydown',keydown);window.removeEventListener('pagehide',cancel);if(equipmentSaveChoice===cancel)equipmentSaveChoice=null;if(current()&&prior?.isConnected)prior.focus?.({preventScroll:true});resolve(value);};
+      const cancel=()=>close('cancel'),keydown=event=>{if(event.key==='Escape'){event.preventDefault();cancel();}else if(event.key==='Tab'){const buttons=[...overlay.querySelectorAll('button')],first=buttons[0],last=buttons.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}};
+      equipmentSaveChoice=cancel;for(const button of overlay.querySelectorAll('[data-equipment-save-choice]'))button.onclick=()=>close(current()?button.dataset.equipmentSaveChoice:'cancel');
+      overlay.onclick=event=>{if(event.target===overlay)cancel();};document.addEventListener('keydown',keydown);window.addEventListener('pagehide',cancel);document.body.append(overlay);overlay.querySelector('[data-equipment-save-choice="cancel"]').focus();
+    });
+  }
+  // Reconcile only after durable confirmation. Later input is kept, and fields
+  // changed after dispatch keep the basis they actually saw if peers changed it.
+  function settleEquipmentBatch(batch,canonical){
+    const next=clone(canonical),basis=clone(canonical),before=batch.sentInput;
+    for(const key of equipmentSaveCollections){
+      for(const prior of before[key]){
+        const current=working?.[key].find(row=>row.id===prior.id),index=next[key].findIndex(row=>row.id===prior.id),baseIndex=basis[key].findIndex(row=>row.id===prior.id);
+        if(!current){if(index>=0)next[key].splice(index,1);continue;}
+        const pending=pendingPhotos.get(prior.id),captured=batch.sentPhotos?.get(prior.id),sameCaptured=captured&&pending===captured.entry&&pending?.file===captured.file&&pending?.url===captured.url;
+        const photoFields=key==='equipment'?['photoId','photoHidden']:['photoId'],laterPhoto=key!=='issues'&&!sameCaptured&&!!(pending||captured||photoFields.some(field=>!equipmentContentEqual(current[field],prior[field])));
+        if(equipmentContentEqual(current,prior)&&!laterPhoto)continue;
+        if(index<0){next[key].push(clone(current));if(baseIndex<0)basis[key].push(clone(prior));continue;}
+        for(const field of new Set([...Object.keys(prior),...Object.keys(current)]))if(!equipmentContentEqual(current[field],prior[field])){
+          if(Object.hasOwn(current,field))next[key][index][field]=clone(current[field]);else delete next[key][index][field];
+          if(!['photoId','photoHidden'].includes(field)&&!equipmentContentEqual(canonical[key].find(row=>row.id===prior.id)?.[field],prior[field])){
+            if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];
+          }
+        }
+        if(laterPhoto){
+          const ownPhoto=captured&&batch.chosenPhotos?.has(prior.id);
+          for(const field of key==='equipment'?['photoId','photoHidden']:['photoId']){
+            // A new File is an intent even when its JSON fields equal the old
+            // batch. Theirs never hides it or silently changes its seen basis.
+            const value=ownPhoto&&pending&&field==='photoId'&&equipmentContentEqual(current[field],prior[field])?canonical[key].find(row=>row.id===prior.id)?.[field]:current[field];
+            if(value===undefined)delete next[key][index][field];else next[key][index][field]=clone(value);
+            if(!ownPhoto){if(Object.hasOwn(prior,field))basis[key][baseIndex][field]=clone(prior[field]);else delete basis[key][baseIndex][field];}
+          }
+        }
+      }
+      for(const row of working?.[key]||[])if(!before[key].some(prior=>prior.id===row.id)&&!next[key].some(actual=>actual.id===row.id))next[key].push(clone(row));
+      // Open handlers and nodeDialog.prior own row references, not just IDs.
+      // Update their existing objects rather than detaching the next form.
+      if(working)working[key]=next[key].map(row=>{
+        const current=working[key].find(value=>value.id===row.id);if(!current)return row;
+        if(nodeDialog?.prior===current){
+          const oldName=current.name||current.nameVi||current.nameZh||'';
+          const keepSeen=field=>{const seen=nodeDialog.comparisonBasis ||= {key,id:row.id,generation:syncGeneration,fields:{}};if(!Object.hasOwn(seen.fields,field))seen.fields[field]={present:Object.hasOwn(current,field),value:Object.hasOwn(current,field)?clone(current[field]):null};};
+          // Uncompleted node input is private too. Preserve the basis it saw,
+          // without applying its name/spec/photo or completing the dialog.
+          if(nodeDialog.name===oldName)nodeDialog.name=row.name||row.nameVi||row.nameZh||'';else keepSeen('name');
+          if(nodeDialog.spec===(current.spec||''))nodeDialog.spec=row.spec||'';else keepSeen('spec');
+          const pin=batch.sentPhotos?.get(row.id),photo=nodeDialog.pendingPhoto,nodePhotoChanged=nodeDialog.photoRemoved||photo&&(!pin||photo!==pin.entry||photo.file!==pin.file||photo.url!==pin.url);
+          if(nodePhotoChanged&&!batch.chosenPhotos?.has(row.id))keepSeen('photoId');
+          if(!nodeDialog.photoRemoved&&!photo&&nodeDialog.photoId===(current.photoId||''))nodeDialog.photoId=row.photoId||'';
+        }
+        for(const field of Object.keys(current))if(!Object.hasOwn(row,field))delete current[field];Object.assign(current,row);return current;
+      });
+      if(key==='equipment'&&formSnapshot){
+        const prior=before[key].find(row=>row.id===formSnapshot.id),sent=canonical[key].find(row=>row.id===formSnapshot.id);
+        if(prior&&sent)for(const field of new Set([...Object.keys(prior),...Object.keys(sent)]))if(equipmentContentEqual(formSnapshot[field],prior[field])){
+          if(Object.hasOwn(sent,field))formSnapshot[field]=clone(sent[field]);else delete formSnapshot[field];
+        }
+      }
+    }
+    syncBase=basis;
+  }
   async function writeShared(action,more={},departureOwner){
     departureOwner?.assert();
     if(!inputOwnerCurrent()){readUnavailable=true;message=t('帳號或登入世代已變更；原輸入保留但不會載入或送到新帳號，請先重新核對。','Tài khoản hoặc phiên đăng nhập đã đổi; giữ dữ liệu cũ nhưng không hiển thị hay gửi bằng tài khoản mới. Hãy đối chiếu lại.');render();return null;}
     if(readUnavailable||controlActor!==identity()?.id){message=t('資料讀取失敗；保留目前內容，請先重新載入核對。','Không tải được dữ liệu; giữ nội dung hiện tại, hãy tải lại và đối chiếu trước.');render();return null;}
-    if(busy)return null;
+    if(busy||equipmentSaveChoice)return null;
     if(action==='apply'){
       if(!editable())return null;
       message=t('已完成表單，修改僅保留於本機；請存取草稿。','Đã hoàn tất biểu mẫu; thay đổi chỉ ở máy này. Hãy lưu bản nháp.');
@@ -195,8 +329,8 @@
     const assertOwned=()=>{departureOwner?.assert();if(!owns())throw Error('DELIVERY_SUPERSEDED');};
     const advance=()=>{versionId=selectedVersionId;generation=control?.workflow?.generation;activeId=control?.activeVersionId;modelRevision=revision;flowRevision=control?.workflow?.revision;rememberInputOwner(delivery);};
     const sentNodeDialog=nodeDialog,sentAddForm=newEquipmentForm,inputStamp=()=>JSON.stringify([nodeDialog,newEquipmentForm,editingEquipmentId]);
-    const local=working&&clone(working),sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
-    const uploadedPhotos=new Map(),samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};
+    let local=working&&clone(working);const sentInput=local&&clone(local),base=clone(syncBase||open()&&snapshotOf(open())||null),sentPhotos=new Map([...pendingPhotos].map(([id,entry])=>[id,{entry,file:entry.file,url:entry.url}])),stamp=inputStamp();
+    const uploadedPhotos=new Map();let chosenPhotos=sentPhotos,comparedSave=false,comparisonAttempt=null;const samePhoto=(id,pin)=>{const entry=pendingPhotos.get(id);return entry===pin.entry&&entry.file===pin.file&&entry.url===pin.url;};
     writeShared.attempt=attempt;busy=true;readIntent++;
     const priorFocusedId=host?.contains(document.activeElement)?document.activeElement.id:'';
     host?.querySelectorAll('#routine-save,#routine-submit').forEach(button=>{button.disabled=true;});
@@ -223,9 +357,21 @@
       if(action==='save'){
         if(localBeginReceipt&&flow.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
         if(syncGeneration&&flow.generation!==syncGeneration)throw Error('STALE_GENERATION');
-        // Only the captured photo entries belong to this dispatch. A later preview is a next batch.
-        for(const [id,pending]of sentPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);}}
-        detail={moduleAction:'save-local-v1',...snapshotChanges(base||flow.working,local||flow.working)};
+        comparisonAttempt={current:owns};equipmentSaveComparison=comparisonAttempt;
+        const fresh=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();
+        const latest=fresh.control?.workflow;
+        if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true)throw Error('FORBIDDEN');
+        if(!Number.isSafeInteger(fresh.revision)||fresh.revision<revision||latest?.scope!=='routine-equipment'||latest.generation!==flow.generation||latest.pendingId||!Number.isSafeInteger(latest.revision)||latest.revision<flow.revision||fresh.control.activeVersionId!==control.activeVersionId||!fresh.control.versions?.some(version=>version.id===open()?.id&&version.status==='draft'))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+        const comparison=compareEquipmentSave(base||flow.working,sentInput||flow.working,latest.working,sentPhotos);
+        const choice=comparison.conflicts.length?await chooseEquipmentSave(comparison.conflicts,owns):'mine';assertOwned();if(choice==='cancel')return null;
+        const plan=comparison.materialize(choice);local=plan.local;chosenPhotos=plan.chosenPhotos;comparedSave=true;
+        detail={moduleAction:'save-local-v1',expectedRevision:latest.revision,patches:plan.patches,guards:plan.guards};
+        equipmentSaveComparison=null;
+        // Only captured, chosen photos upload. Later previews remain a next batch.
+        for(const [id,pending]of chosenPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);
+          const key=equipmentSaveCollections.find(kind=>local[kind].includes(row)),insert=detail.patches.find(patch=>patch.op==='insert'&&patch.path[0]===key&&patch.value.id===id),path=[key,{id},'photoId'];
+          if(insert)insert.value.photoId=photoId;else {const patch=detail.patches.find(patch=>equipmentContentEqual(patch.path,path));if(!patch)throw Error('DEPENDENCY_GUARD_REQUIRED');patch.value=photoId;}
+        }}
       }else if(action==='submit'){
         const snapshot=window.captureSharedDraftSubmission(flow);submissionGeneration=flow.generation;
         assertOwned();const reason=await window.VersionDraftUI.confirmSubmit(window.VersionDraftUI.reasonFor(selected(),flow),t('檢具全庫','Toàn bộ thiết bị'),{savedVersion:{id:snapshot.savedId,revision:snapshot.expectedRevision,at:flow.saved.at,actor:flow.saved.actor?.name}});assertOwned();if(reason===null)return null;
@@ -237,7 +383,7 @@
         assertOwned();const answer=await window.VersionDraftUI.confirmReview({action,scope:t('檢具全庫','Toàn bộ thiết bị')+' · '+caseId,reason:more.comment||'',selfReview:action!=='withdraw'&&c?.actor.id===actorId});assertOwned();if(!answer)return null;detail={caseId,...answer};
       }
       const commandGeneration=action==='save'?syncGeneration||flow.generation:submissionGeneration||flow.generation;
-      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos};
+      if(action==='save')pendingSaveBatch={local,sentInput,sentPhotos,chosenPhotos,comparedSave};
       assertOwned();const result=await client.command(commandGeneration,commandAction,detail);assertOwned();
       // A fallback read is metadata only; it must not reset RAM before settlement.
       let confirmed=result;if(!confirmed.control){assertOwned();try{confirmed=await client.read();}catch(error){if(owns())readUnavailable=true;throw error;}assertOwned();if(confirmed.permissions?.view!==true){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}}
@@ -250,7 +396,7 @@
         }catch(error){if(hasInsert){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}throw error;}
       }
       if(action==='save'&&(!result.receipt?.savedId||confirmed.control.workflow.saved?.id!==result.receipt.savedId||!equipmentContentEqual(confirmed.control.workflow.saved.content,confirmed.control.workflow.working))){readUnavailable=true;throw Error('SYNC_CONFIRMATION_REQUIRED');}
-      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&sentPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
+      const nextInput=JSON.stringify(working)!==JSON.stringify(sentInput)||nodeDialog!==sentNodeDialog||newEquipmentForm!==sentAddForm||stamp!==inputStamp()||action==='save'&&chosenPhotos.size!==uploadedPhotos.size||pendingPhotos.size!==sentPhotos.size||[...sentPhotos].some(([id,entry])=>!samePhoto(id,entry));
       control=confirmed.control;revision=confirmed.revision;selectedVersionId=open()?.id||active()?.id||'';advance();
       if(action!=='save'){submitProblems=[];problemSnapshot=null;openErrors=false;}
       if(nextInput){
@@ -258,13 +404,13 @@
         if(action==='save'){
           // Adopt only this batch's canonical insert allocation/defaults, never peer fields.
           for(const patch of detail.patches.filter(p=>p.op==='insert')){const key=patch.path[0],before=sentInput[key].find(r=>r.id===patch.value.id),current=working[key].find(r=>r.id===patch.value.id),actual=confirmed.control.workflow.working[key].find(r=>r.id===patch.value.id);if(current&&actual){for(const [field,value]of Object.entries(actual))if(JSON.stringify(current[field])===JSON.stringify(before[field]))current[field]=clone(value);Object.assign(local[key].find(r=>r.id===actual.id),clone(actual));}}
-          for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
+          if(!comparedSave)for(const [id,entry]of sentPhotos){const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id),current=find(working),before=find(sentInput),sent=find(local);
             if(current&&before&&sent&&samePhoto(id,entry)&&current.photoId===before.photoId&&current.photoHidden===before.photoHidden)current.photoId=sent.photoId;
           }
-          syncBase=clone(local);
+          if(comparedSave)settleEquipmentBatch({sentInput,sentPhotos,chosenPhotos},local);else syncBase=clone(local);
         }
       }else{working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow.generation;}
-      if(action==='save')for(const [id,entry]of uploadedPhotos){
+      if(action==='save')for(const [id,entry]of sentPhotos){
         const find=data=>['equipment','categories','subcategories','groups'].flatMap(k=>data?.[k]||[]).find(row=>row.id===id);
         acknowledgeFormPhoto(id,entry.entry,find(sentInput),find(local));
         if(!samePhoto(id,entry)){URL.revokeObjectURL(entry.url);continue;}
@@ -289,7 +435,7 @@
         message=t('已儲存的送審內容未通過驗證，請查看報錯與待補。修正後須手動儲存再送審。','Nội dung đã lưu để gửi duyệt chưa đạt kiểm tra. Xem lỗi và mục cần bổ sung; sửa rồi lưu thủ công trước khi gửi lại.');
       }
       return null;
-    }finally{const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
+    }finally{if(equipmentSaveComparison===comparisonAttempt)equipmentSaveComparison=null;const updateUI=owns();if(writeShared.attempt===attempt){writeShared.attempt=null;busy=false;}if(updateUI){if(action==='apply'&&document.activeElement?.matches('[data-issue-result]')){const status=host?.querySelector('#routine-shared-status');if(status)status.textContent=displayDraftError(message);}else{
       const focusedId=host?.contains(document.activeElement)?document.activeElement.id:priorFocusedId,scrollX=window.scrollX,scrollY=window.scrollY;
       render();if(focusedId){document.getElementById(focusedId)?.focus({preventScroll:true});window.scrollTo(scrollX,scrollY);}
     }}}
@@ -1331,6 +1477,9 @@
     }
 
     const collection = kind === 'category' ? working.categories : kind === 'subcategory' ? working.subcategories : working.groups;
+    if(prior&&!collection.includes(prior)){
+      nodeDialog.error=t('此項目已變更或移除；輸入仍保留，請重新核對，不會自動新增。','Mục này đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu, không tự tạo lại.');render();return;
+    }
     if (prior) {
       prior.name = name;
       if (kind === 'group') prior.spec = spec;
@@ -1366,6 +1515,12 @@
       selectedGroup = newId;
     }
 
+    if(dialog.comparisonBasis){
+      const seen=dialog.comparisonBasis,before=seen.generation===syncGeneration&&syncBase?.[seen.key]?.find(row=>row.id===seen.id);
+      if(!before)throw Error('STALE_GENERATION');
+      for(const [field,value]of Object.entries(seen.fields)){if(value.present)before[field]=clone(value.value);else delete before[field];}
+      delete dialog.comparisonBasis;
+    }
     syncHierarchy();
     dialog.name=name;dialog.spec=spec;
     const sentDialog=JSON.stringify(dialog);
@@ -3695,7 +3850,7 @@
     const base=window.VersionDraftUI.createDeparture(config);let held=null;
     const legacy=()=>{try{const markers=[beginRecoveryKey(identity()?.id),fqcTransferKey(identity()?.id)].map(key=>[key,sessionStorage.getItem(key)]).filter(([,raw])=>raw!==null);return markers.length&&![sharedClient,fqcTransferClient].some(client=>client?.hasUnknown()||client?.hasSyncFailures())&&inputOwnerCurrent()&&!busy&&!transferBusy()?JSON.stringify(markers):null;}catch{return null;}};
     const valid=record=>record&&record.raw===legacy()&&record.actor===identity()&&record.epoch===window.ProcessSync?.identityGeneration?.();
-    return {...base,autoAbandon:true,allowUnload:()=>!busy&&!transferBusy(),
+    return {...base,autoAbandon:true,allowUnload:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),
       inspect(){const status=base.inspect(),raw=legacy();if(raw===null)return status;return {state:valid(held)?'departing':'unknown',departureId:held?.id,canAbandon:!held,canSave:false,canDiscard:false,reason:beginRecoveryMessage()};},
       async abandon(){const raw=legacy();if(raw===null)return base.abandon();const record={raw,actor:identity(),epoch:window.ProcessSync?.identityGeneration?.(),id:{}};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;return {departureId:record.id,release(){if(held===record)held=null;}};},
       closeClean(){if(held){if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');return;}return base.closeClean();},
@@ -3708,14 +3863,14 @@
     navigation:{get departure(){return moduleDeparture ||= equipmentDeparture({
     root:()=>host,flow:()=>control?.workflow,sharedOwned:()=>false,sharedDirty:()=>false,
     context:()=>[controlActor,selectedVersionId,control?.workflow?.generation,sharedClient?.permission('save'),sharedClient?.permission('edit')],
-    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy||transferBusy()||!!equipmentReadAttempt,
+    current:()=>controlActor===identity()?.id&&inputOwnerCurrent(),busy:()=>busy&&!equipmentSaveComparison||transferBusy()||!!equipmentReadAttempt,
     unknown:()=>sharedClient?.hasUnknown()||fqcTransferClient?.hasUnknown()||hasBeginRecovery(),failed:()=>sharedClient?.hasSyncFailures()||fqcTransferClient?.hasSyncFailures(),
     unknownTransports:()=>[sharedClient,fqcTransferClient],unknownReady:()=>{try{return !readBeginRecovery();}catch{return false;}},discardUnknown(){this.discard();},
     local:()=>!!editingEquipmentId||isDirty()||isFormDirty()||!!pendingPhotos.size||!!nodeDialog||!!transferDialog||addingEquipment,
     canSave:()=>!!canDraftAction('save'),canDiscard:()=>editable()&&sharedClient?.permission('edit')===true,
     save:owner=>saveDraft('save',owner),dialogs:()=>[...host?.querySelectorAll('.routine-modal-backdrop,.routine-dialog-backdrop')||[]],
-    discard(){equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
-  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!busy&&!transferBusy(),error:()=>navigationError,reset(){viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
+    discard(){retireEquipmentSaveComparison();equipmentEditRequest++;const urls=new Set([...pendingPhotos.values()].map(pending=>pending.url));for(const photo of [newEquipmentForm?.pendingPhoto,nodeDialog?.pendingPhoto])if(photo?.url)urls.add(photo.url);for(const url of urls)URL.revokeObjectURL(url);pendingPhotos.clear();localBeginReceipt=null;pendingSaveBatch=null;formPendingPhoto=null;editingEquipmentId='';formSnapshot=null;nodeDialog=null;transferDialog=null;addingEquipment=false;newEquipmentForm=null;newEquipmentOwner=null;working=open()?.status==='draft'?snapshotOf(open()):null;syncBase=working&&clone(working);syncGeneration=control.workflow?.generation;render();},
+  });},requiresSave:()=>false,saveForDeparture:()=>saveDraft('save'),canLeave:()=>!(busy&&!equipmentSaveComparison)&&!transferBusy(),error:()=>navigationError,reset(){retireEquipmentSaveComparison();equipmentSaveChoice?.();viewDialog?.references?.closeDetail?.();equipmentEditRequest++;writeShared.attempt=null;busy=false;equipmentReadAttempt=null;host=null;reviewHost=null;control=null;revision=null;working=null;controlActor='';readUnavailable=false;selectedVersionId='';editingEquipmentId='';selectedEquipmentId='';syncBase=null;syncGeneration=null;localBeginReceipt=null;pendingSaveBatch=null;inputOwner=null;viewDialog=null;formSnapshot=null;problemSnapshot=null;invalidateEquipmentReferences();equipmentRefReads.clear();navigationError=null;}},
     html,
     mount,
     reviewHTML,
