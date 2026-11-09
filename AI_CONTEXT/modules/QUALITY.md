@@ -1,3 +1,7 @@
+## 2026-11-09 — 全頁草稿分界與例行 FQC 整頁目標
+
+FQC／IQC／IPQC AB／IPQC C／BOM／檢具／模具現有 owner 分離；篩選不是新草稿。例行 FQC 已確認改為 routine-fqc:page，新增未註冊多文件單次 Save 核心，原來源／retest 規則與舊文件路徑共用同一純驗證函式。十三組合成 Save 契約不等於新版文件建立、整頁核准副作用、route/CAS/UI 或遷移已完成；現行例行頁仍逐文件。舊 working 可放棄不包含待審／已核准歷史或原收據。與未發布 7ef04ed 的逐文件 localSave 須語意整合，不能整檔覆蓋。[全站矩陣及未完成項](../../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 
 Equipment retry can revalidate retained input after delivery-only drift while actor object/id, epoch, host/target, generation and all original guards remain unchanged. A fresh exact-scope permission GET and private one-use confirmation renew only the existing runtime delivery; no journal, unknown command or receipt is replaced. Equipment Save snapshot equality ignores JSON object-key order but preserves array order and exact keys/types/values. Other shared workflows retain their comparison behavior. [Source proof, regression evidence and limits](../../docs/acceptance/equipment-no-poll-20261108/README.md). No model, persistence format, ACL or schema change.

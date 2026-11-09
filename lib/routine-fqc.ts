@@ -711,6 +711,20 @@ function validateCaseLink(c: RoutineFqc, doc: Document) {
   }
 }
 
+// Shared structural rule for document edits and the unregistered whole-page
+// Save core. Read-only: no receipts, revisions, approvals or business effects.
+export function validateRoutineContentEdit(c: RoutineFqc, doc: Document, content: Content, previous: Content) {
+  structure(content, previous);
+  if (doc.kind === 'report') for (const line of content.lines) {
+    const required = linkedCase(c, doc, line.jobId)?.requiredSamples || [];
+    if (!required.length) continue;
+    for (const row of line.results) {
+      const oldRow = previous.lines.find(l => l.id === line.id)?.results.find(r => r.id === row.id);
+      demand(row.samples.every(sample => required.includes(sample)) || (oldRow && stableDraftJSON(oldRow.samples) === stableDraftJSON(row.samples)), 'RETEST_SAMPLE_FIXED');
+    }
+  }
+}
+
 function approveEffects(c: RoutineFqc, doc: Document, ctx: Context) {
   validateCaseLink(c, doc);
   const content = doc.flow.active.content;
@@ -1038,15 +1052,7 @@ export function executeRoutine(
           activeId: doc.flow.active.id,
           semantic: (x) => x,
           structure: (content, previous) => {
-            structure(content,previous);
-            if (doc.kind === 'report') for (const line of content.lines) {
-              const required = linkedCase(c,doc,line.jobId)?.requiredSamples || [];
-              if (!required.length) continue;
-              for (const row of line.results) {
-                const oldRow = previous.lines.find(l => l.id === line.id)?.results.find(r => r.id === row.id);
-                demand(row.samples.every(sample => required.includes(sample)) || (oldRow && stableDraftJSON(oldRow.samples) === stableDraftJSON(row.samples)), 'RETEST_SAMPLE_FIXED');
-              }
-            }
+            validateRoutineContentEdit(c, doc, content, previous);
           },
           validate: (content) => {
             const issues = reportIssues(content, doc.kind);

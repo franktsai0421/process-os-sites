@@ -1,3 +1,9 @@
+## 2026-11-09 — #102 全站草稿分界接續
+
+使用者已回答：舊草稿可不要、A/B 整份可送審、例行 FQC 改整頁草稿，並要求 #102 包含所有有草稿頁。這三項已不是待決；仍不得推定刪除 pending、已核准歷史、原 receipts 或不可恢復資料。十三業務頁＋私人 feedback 矩陣／owner 合約、pending/完整來源切換規劃與例行 FQC 多文件單次 Save 核心已加入本機；後者未接新建文件／整頁 review 副作用／codec/CAS/UI，不能稱統一拆分完成。既有九個獨立 owner 也只完成來源／owner 合約核對，未作全頁實站驗收。
+
+真實 Sites 唯讀回傳被截斷，未取得完整 pending／approved 數，不能當 cutoff 已驗證。另一未發布候選 7ef04ed（tree3365004）的 master/routine/shared-client 是直接相依；只做唯讀及記憶體語意組合測試，未整批匯入，不可覆蓋其 localSave／UNKNOWN 改動。原公開五檔 create_tree 依新相關答覆只重試一次，工具回成功 SHA、GET讀回404；不據404重送、不移動ref，#102遠端狀態仍須核對。舊243-path UNKNOWN保持原狀。[完整矩陣](docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — 各頁草稿分界：切換前置小批
 
 獨立自 main d4ac309，已合併 main 021f0f3（#99）並保留其工段邏輯與測試。盤點 line-admin 借用 AB/C、PROCESS 模板／機器同頁；新增單一 LINES 頁面邊界純預演、完整來源保全及 revision/digest/approved pins，未啟用 storage/UI/CAS。實際 route 拒絕未支援 page marker，避免誤落 legacy writer。重大切換需決定舊 combined pending/working cutoff、AB/C 分區權限與例行文件例外；[具體候選、公開邊界與逐頁狀態](docs/acceptance/module-draft-boundary-20261109.md)。沒有真資料、schema、帳號權限或部署變更；獨立草稿 PR 的遠端狀態以交付回執為準，不重送歷史 UNKNOWN／拒絕操作。

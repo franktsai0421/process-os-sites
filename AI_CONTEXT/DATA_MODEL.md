@@ -1,5 +1,7 @@
 ## 2026-11-09 主資料頁面所有權預演
 
+全站分界目標已列在 `draft-page-boundaries.ts`：十三個業務頁 owner，另列私人 feedback 的 origin／actor IndexedDB 隔離。`draft-page-cutover.ts` 是未註冊的純切換規劃，保留 master／routine 原字串與全部歷史／收據，遇 pending 或不完整來源拒絕；不是 DB/R2 備份或 migration。`RoutinePageContent` 候選僅 `{documents:[{id,content}]}`，`routine-fqc-page-save.ts` 在記憶體回傳一份 page working/saved/receipt，不寫逐文件 flow 或異常案件。未採用新儲存格式、schema、codec 或資料切換；新版整頁審核及業務副作用仍待接線。
+
 `master-page-boundary.ts` 是未註冊的純規劃模組，不新增 SQL、shared_state key、workflow、Save 或案件。候選投影為 AB.catalog、C.catalog、整頁 LINES（content.AB.lines/content.C.lines）；PROCESS 保留。來源固定 revision、完整 root SHA-256 及 AB/C/PROCESS approved vector；全部 legacy working/saved/pending/history/receipts/未知欄位留在原 owner 的記憶體保全輸出。非外部備份，也不證明 R2／媒體存在。實際 storage／CAS／codec／歷史讀取與資料切換待接線及決策，詳 [候選](../docs/acceptance/module-draft-boundary-20261109.md)。
 
 未註冊的 `master-page-name-save.ts` 只在 request memory 產生單一 LINES 名稱儲存結果，使用既有 SharedDraft 欄位及原 receipt fingerprint；沒有持久化 key、控制資料初始化或資料移轉。

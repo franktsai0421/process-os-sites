@@ -2,6 +2,8 @@
 
 線別與工段管理必須有自己的整頁草稿，不再共用 AB/C 類別草稿；同頁 A/B/C 視角不拆份。下方 2026-10-07「線別與工段管理使用 AB/C 主資料文稿」為歷史實作，已被最新要求取代。其他獨立模組維持整份，不因搜尋／篩選縮小；資料引用只採已核准來源。切換尚未啟用，依 [SHARED_DRAFT 最新規則](SHARED_DRAFT.md) 及 [盤點／候選](../../acceptance/module-draft-boundary-20261109.md) 區分需求與現況。
 
+後續已確認：AB 整頁已存快照可包含 A/B 修改一併送審；例行 FQC 也是一個整頁 owner，文件為內部內容。舊 working 可放棄，但待審、已核准歷史及原收據不得默默刪除或換 owner；真實切換另需確認及完整驗證。這些是目標政策，實作／未接線狀態按上述逐頁矩陣判定。
+
 ## 2026-10-29 後續明確權限規則（使用者已確認）
 
 本次確認取代下文較早候選中「保留 IPQC-C 舊 review/view/withdraw 例外」的範圍：IPQC-C 要有本模組 view，撤回要有 withdraw；核准／發回依模組 approve／return，不另外綁 approval.view。版本確認平台入口仍需其自身查看，不能反向授予 IPQC-C 內容。legacy 創建者限制、pending、CAS、固定 saved 快照與自審確認保留。獨立還原授權與依賴見 [使用者權限規格](PERMISSIONS_ADMIN.md)，驗證及未測範圍見[候選交接](../../acceptance/USERS_CLOUD_CLEAR_RIGHTS_29102026.md)。

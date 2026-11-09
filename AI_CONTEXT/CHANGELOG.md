@@ -1,3 +1,7 @@
+## 2026-11-09 — 全站草稿分界統一範圍（未完成接線）
+
+已採納三項答覆並把十三業務草稿頁與私人 feedback 納入同一矩陣：舊未核准 working 可放棄、AB 整份 A/B 送審、例行 FQC 整頁一份。新增全頁 owner／權限合約、完整來源／pending 保護的純切換規劃及例行多文件原子 Save 核心；原結構／retest 驗證共用，不產生逐文件暫存收據或核准副作用。LINES URL 權限明確使用 lines.*。沒有新 schema、備份診斷程式、真資料刪除／切換、啟用或部署；現行 AB/C↔line-admin 及例行逐文件 UI 仍待整頁接線。[逐頁完成及缺口](../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — 模組草稿分界前置候選
 
 主資料頁面所有權預演改以單一 LINES 頁面含 AB/C 分區；catalog 分開、PROCESS 不拆。固定來源完整性並保留全部 legacy root，reserved page selector 在實際 API 進入前拒絕。未提供切換 writer、未遷移或發布，非全頁拆分完成。[範圍與待決](../docs/acceptance/module-draft-boundary-20261109.md)。

@@ -1,10 +1,10 @@
-# 各功能頁草稿分界：盤點與切換前置候選
+# 全站各功能頁草稿分界：實作與驗收矩陣
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
 ## 獨立公開候選邊界
 
-相對 #100 的 main，本機候選新增三個未註冊的頁面預演／名稱 Save／整頁生命週期模組、四份合成回歸測試、必要的規格／交接，以及 AB/C CI 四條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
+相對 #100 的 main，本機候選包含主資料頁面預演／名稱 Save／整頁生命週期、十三頁 owner 合約、切換規劃及例行 FQC 整頁 Save 核心，合計七份定向合成測試已列入 AB/C CI。現用程式差異還包括 master route 的未支援 page marker 拒絕、`scope=LINES` 明確映射 `lines.*`，以及例行 FQC 原結構／retest 驗證抽為同一個純函式供兩種 Save 使用。沒有改帳號或角色權限值，沒有接入新頁面的 UI／master writer／storage/CAS、執行 migration 或啟用拆分；#99 工段及 #100 定時檢查改動保留。
 
 公開 main 已核對，本機相容分支沒有納入其他未發布功能，也沒有匯入舊 243-path／quality／equipment 上傳 payload。既有本機整合歷史沒有整段上傳；遠端 #102 仍是 ee7d4fd，後續公開範圍須按最終來源另核對授權與審查；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
 
@@ -24,7 +24,7 @@
 | BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
 | 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
 | 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | `routine-fqc:<documentId>` | 依每張檢查文件持久化。不同文件是否也要改成全頁一份，現有確認規則未明確涵蓋；須另確認，不自行重組文件案件 |
+| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 13 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
 | 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
 
@@ -99,13 +99,25 @@ current-approved 引用只回傳固定版本的副本，不採用 working/saved/
 
 本次方案已可審查，重用 6645b42 的合成證據且未修改其測試或產品來源；不重複跑沒有受影響的 suite。**真實完整 DB/R2／媒體原樣備份與還原仍 NOT_RUN**，沒有執行 cutoff／adoption、改權限或啟用拆分。若現有選定環境沒有受授權的完整原樣取得／還原能力，就停在這個邊界回報；本題不另造備份診斷程式來補位。
 
-## 尚需使用者決定的具體事項
+## 三項已決政策與仍需保護的資料
 
-1. **舊 combined 草稿如何切換。** 建議在舊流程正常結清待審及需要保留的未核准修改後，再從固定已核准版本建立新頁面草稿；永久保留舊版本、saved、案件和原 receipt 命名空間。若要帶著未結清 combined 草稿並行切換，必須另設舊案可處理範圍、交叉鎖及衝突政策。本預演只保留並列問題，不自動撤回／發回、清空、假核准或轉成新案。
-2. **單一線別頁內的權限。** 操作應對應 `lines.*`，不沿用 AB/C 編輯／送審權。AB-only／C-only 帳號是否可保存與送審包含另一分區內容的整頁快照，需要決定：建議允許有對應資料查看權的分區編輯，整頁送審／審核要求能查看全部案件內容；不可顯示隱藏分區，也不可默默漏掉它。這是建議，尚未寫入 permission policy、帳號或範本。
-3. **例行 FQC 例外。** 它目前每張文件一份，與主資料 FQC 分開。請確認「同頁一份」是否只指主資料編輯頁並保留例行文件邊界。
+使用者已明確選擇：舊未核准草稿可放棄、可送包含 A/B 的整份已存草稿、例行 FQC 全頁一份；並要求最終 #102 涵蓋所有草稿功能頁。這三項不是待答問題。線別頁使用自己的 `lines.*`，A/B 是同頁資料，不自動替帳號加權限。
 
-依本次委派明示「重大架構、資料與權限的合併需使用者決定」及 [AGENTS](../../AGENTS.md) 的資料／發布界線，先交付具體候選再等決定。沒有要求重新確認已授權的本機開發，也沒有任何自動審查拒絕。
+「草稿可不要」不擴大為刪除待審案件、歷史／immutable Save、原 receipts、異常案件或媒體。未註冊的 `draft-page-cutover.ts` 固定完整來源 revision、master digest／approved vector 及例行 FQC 原字串 digest；待審（含 orphan pointer／舊 pending version）、來源缺損或 approved case 與原 Save 不符時整批拒絕，原資料不動。新的投影只引用既有已核准來源，沒有生成核准人、核准案件或新 workflow。PROCESS 原有草稿和其他九個已獨立模組不列為此次可放棄的資料。
+
+唯讀實站資料檢視的 shared_state 欄位遭截斷，**未能確認完整待審／已核准版本數或 cutoff 可執行**。本機僅有合成完整來源驗證；不能把不完整讀取當作「沒有待審」。正式切換須先取得可完整核對的唯讀狀態、驗證原樣還原與全部 writer／UI 接線，再由使用者確認具體切換；本次不執行。
+
+## 十三頁共同合約與例行 FQC 存取核心
+
+`draft-page-boundaries.ts` 集中列出十三個真正頁面的 owner、endpoint、permission module 與現況遷移標記。`test-draft-page-boundaries.cjs` 直接載入現有 adapters／IPQC-C Begin／workflowAccess 核對 scope、storage key、篩選不變 owner、交叉 owner 拒絕及 LINES 不落入 AB/C／broad-data 權限。這是 owner／權限合約，不是十三頁 UI 或生命週期驗收。IPQC AB 群組 legacy Save／Submit 已拒絕，舊 Apply／案件／收據入口保留相容；私人 feedback 維持帳號隔離，版本確認平台也不另建草稿。
+
+`routine-fqc-page-save.ts` 提供未註冊的單一 `routine-fqc:page` 既有文件 Save：多文件 ordered guarded edits 在同次記憶體暫存，只有一份 working／Save／revision／sequence／原 receipt。無衝突欄位保留，後批驗證／權限失敗不改任何文件或業務 domain；改回原值保留原貢獻者。原來源／retest 規則由 `routine-fqc.ts` 的同一純驗證函式執行，沒有模擬逐文件 Apply、產生逐文件收據或觸發核准副作用。13 組契約涵蓋多文件原子性、兩人／篩選、pending lock、世代／重播、不可變來源／正式文件／retest／照片驗證失敗及完整來源需求。
+
+**仍未完成的例行整頁工作：** 文件新建／刪除／更正的整頁暫存、新版 Begin／固定整頁案件、核准副作用只對該固定差異執行一次、舊操作 fence／原收據查詢、媒體驗證、codec／CAS、toolbar／比較／review／歷史與正式文件輸出。現行 UI 仍逐文件；不能把此核心稱為全頁已接上。
+
+## 與全站衝突候選的協調
+
+已唯讀核對另一工作提供的 `7ef04ed741249816aac2f1336cf15f888ff92fa0`（tree `336500430fbccb61dd7f42afef5704a38f284c6c`），未整批匯入或上傳。其 master bridge／master-data、routine-fqc UI、routine-fqc domain、versioned workflow 與本題後續接線直接相依；其中 routine 已有逐文件 localSave 原子化，仍不是整頁 owner。此處的 `validateRoutineContentEdit` 抽取需在該候選上語意合併，保留它的 localSave 與原 receipt 修正，不能用本分支整檔蓋回。文件／CI 也須保留雙方新段落；實際最終合樹另驗。已在記憶體語意組合該 routine module 與本純驗證抽取，13 組整頁 Save 契約通過且保留其 localSave 分支；沒有產生合併 tree 或改對方候選。後續版本查看候選 e3d92846 仍未發布且有既知 Canvas 測試失敗／80745895 未整合，須另核對其 master/routine/history UI 相依，不能把頁面數等同 #102 已整合。
 
 ## 後續接線與整合順序
 

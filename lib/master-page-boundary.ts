@@ -1,4 +1,5 @@
 import { cloneDraft, DraftConflict, type DraftPatch, stableDraftJSON } from './shared-draft';
+import { confirmedDraftBoundaryPolicy } from './draft-page-boundaries';
 import {
   assertMasterOwnedCommand, assertMasterOwnedContent, masterDocumentDescriptors,
   previewMasterDocumentSplit, type MasterDocumentPreviewRoot, type MasterSplitSourceVector,
@@ -117,7 +118,8 @@ export async function previewMasterPageSplit(source: MasterPageSource, expected:
     issues: legacy.issues,
     legacy: legacy.legacy,
     identities: legacy.identities,
-    decisionsRequired: ['LEGACY_CUTOFF_POLICY', 'LINES_PARTITION_PERMISSIONS'] as const,
+    confirmedPolicy: confirmedDraftBoundaryPolicy,
+    decisionsRequired: [] as const,
     implementationRequired: ['STORAGE_CODEC_CAS', 'WRITERS_AND_OLD_CLIENT_FENCE', 'REVIEW_HISTORY_RECEIPTS',
       'PROCESS_LINK_AND_APPROVED_PROJECTION', 'UI_LIFECYCLE_AND_BACKUP_RESTORE'] as const,
   };

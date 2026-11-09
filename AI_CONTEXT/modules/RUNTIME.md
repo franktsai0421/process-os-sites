@@ -1,3 +1,7 @@
+## 2026-11-09 — 全頁草稿 owner 與 LINES 權限入口
+
+十三個業務頁的 owner／endpoint／permission module 集中於未註冊分界合約；私人 feedback 仍由 origin／actor 隔離。`moduleForURL` 對 master workflow 的 scope=LINES 明確回 lines，現有 workflowAccess 因而只查 lines.*，不繼承 ab/c 或 broad data；沒有改帳號／角色設定或啟用新 writer。#100 停用背景定時檢查的現用檔案保留。切換 source 查詢不完整時不得判定沒有 pending。[範圍及資料保護](../../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 Background check retirement candidate
 
 Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.

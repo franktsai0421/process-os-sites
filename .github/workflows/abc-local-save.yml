@@ -34,6 +34,9 @@ jobs:
           node scripts/test-master-page-boundary.cjs
           node scripts/test-master-page-name-save.cjs
           node scripts/test-master-line-page-workflow.cjs
+          node scripts/test-draft-page-boundaries.cjs
+          node scripts/test-draft-page-cutover.cjs
+          node scripts/test-routine-fqc-page-save.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
           node --test tests/process-stage-catalog.test.cjs
