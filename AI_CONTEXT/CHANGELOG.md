@@ -1,3 +1,7 @@
+## 2026-11-09 例行 FQC domain 函式共用
+
+抽取不建立 flow 的 metadata/content builder、固定內容 review/case-link 與業務 effects；既有 route 維持原流程／receipt。七組合成契約含 legacy 真核准重播不重跑 effects。沒有新增整頁 route、migration、真資料或啟用；整頁建立／審核／媒體UI仍待實作。
+
 ## 2026-11-09 Managed layout 守門與相依
 
 補 server-managed page-layout／owner namespace 的一般 aggregate 寫入守門，禁止普通 JSON replacement 啟用分頁；十組 inline/records review controls。核對88a4a2c依賴，master page comparer限定AB/C/LINES，不替代其PROCESS照片組與RF晚到輸入行為。沒有真資料切換或新的獨審PASS。

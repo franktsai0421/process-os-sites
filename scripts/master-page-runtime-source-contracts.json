@@ -305,5 +305,82 @@
         "after": "      if(pageLocalBegin&&flow&&flow.scope!==departureScope(endpoint))throw Error('MASTER_PAGE_OWNER_MISMATCH');\n"
       }
     ]
+  },
+  {
+    "file": "lib/routine-fqc.ts",
+    "beforeHash": "c7e948099a20dd57fd645017153f6e51b5cbb148ebbd24e336c77d3f320e7165",
+    "afterHash": "5e6be3edbb1db8e0fefdb7a5f6963a5cd8492eaa93d5b6fe279aedd809a5d66b",
+    "rules": [
+      {
+        "offset": 2426,
+        "before": "",
+        "after": "export type RoutineDocumentMetadata = Omit<Document, 'flow'>;\nexport type RoutineBusinessState = Omit<RoutineFqc, 'documents'> & { documents: RoutineDocumentMetadata[] };\nexport type RoutineDocumentLinks = Partial<Pick<RoutineDocumentMetadata, 'planId' | 'caseId' | 'correctionOf'>>;\n\n"
+      },
+      {
+        "offset": 19746,
+        "before": "function addDocument(\n  c: RoutineFqc,\n",
+        "after": "export function buildRoutineDocumentDraft(\n  c: Pick<RoutineFqc, 'cases'> & { documents: Pick<Document, 'kind'>[] },\n"
+      },
+      {
+        "offset": 19904,
+        "before": "  ctx: Context,\n  extra: Partial<Document> = {},\n",
+        "after": "  ctx: Pick<Context, 'actor' | 'at' | 'today'>,\n  extra: RoutineDocumentLinks = {},\n"
+      },
+      {
+        "offset": 19992,
+        "before": "",
+        "after": "  demand(Object.keys(extra).every(key => ['planId', 'caseId', 'correctionOf'].includes(key)) &&\n    Object.values(extra).every(value => value === null || typeof value === 'string'), 'DOCUMENT_LINKS_INVALID');\n"
+      },
+      {
+        "offset": 21518,
+        "before": "  const flow = createSharedDraft(\n    'routine-fqc:' + id,\n    content,\n    null,\n    crypto.randomUUID(),\n  );\n",
+        "after": "  const metadata: RoutineDocumentMetadata = {\n    id, number, kind, planId: null, caseId: null, correctionOf: null,\n    createdAt: ctx.at, owner: cloneDraft(ctx.actor), ...extra,\n  };\n  return {metadata, content};\n}\n// Legacy dispatch alone creates its historical per-document flow. The page\n// path can use the builder above without fabricating a flow, Save or review.\nfunction addDocument(c: RoutineFqc, kind: Document['kind'], jobs: Job[], ctx: Context, extra: RoutineDocumentLinks = {}) {\n  const {metadata, content} = buildRoutineDocumentDraft(c, kind, jobs, ctx, extra);\n  const flow = createSharedDraft('routine-fqc:' + metadata.id, content, null, crypto.randomUUID());\n"
+      },
+      {
+        "offset": 22258,
+        "before": "  const doc: Document = {\n    id,\n    number,\n    kind,\n    planId: null,\n    caseId: null,\n    correctionOf: null,\n    createdAt: ctx.at,\n    owner: ctx.actor,\n    flow,\n    ...extra,\n  };\n",
+        "after": "  const doc: Document = {...metadata, flow};\n"
+      },
+      {
+        "offset": 22344,
+        "before": "function linkedCase(c: RoutineFqc, doc: Document, jobId: string) {\n",
+        "after": "function linkedCase(c: Pick<RoutineFqc, 'cases'>, doc: Pick<RoutineDocumentMetadata, 'caseId' | 'correctionOf'>, jobId: string) {\n"
+      },
+      {
+        "offset": 23618,
+        "before": "function validateCaseLink(c: RoutineFqc, doc: Document) {\n",
+        "after": "export function validateRoutineCaseLink(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content) {\n"
+      },
+      {
+        "offset": 23931,
+        "before": "      item && doc.flow.working.lines.every((l) => l.jobId === item.jobId),\n",
+        "after": "      item && content.lines.every((l) => l.jobId === item.jobId),\n"
+      },
+      {
+        "offset": 24382,
+        "before": "",
+        "after": "function validateCaseLink(c: RoutineFqc, doc: Document) {\n  validateRoutineCaseLink(c, doc, doc.flow.working);\n}\n\n"
+      },
+      {
+        "offset": 24653,
+        "before": "export function validateRoutineContentEdit(c: RoutineFqc, doc: Document, content: Content, previous: Content) {\n",
+        "after": "export function validateRoutineContentEdit(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content, previous: Content) {\n"
+      },
+      {
+        "offset": 25329,
+        "before": "function approveEffects(c: RoutineFqc, doc: Document, ctx: Context) {\n  validateCaseLink(c, doc);\n  const content = doc.flow.active.content;\n",
+        "after": "// Submission rules accept explicit metadata/content, without a per-document flow.\nexport function routineDocumentReviewIssues(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content): DraftIssue[] {\n  const issues = reportIssues(content, doc.kind);\n  if (doc.kind === 'report')\n    for (const line of content.lines) {\n      const a = linkedCase(c, doc, line.jobId);\n      if (!a) continue;\n      if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))\n        issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});\n      if (\n        !line.results.some((r) => r.outcome === 'unable') &&\n        a.requiredSamples.some(\n          (s) => !line.results.flatMap((r) => r.samples).includes(s),\n        )\n      )\n        issues.push({\n          kind: 'error',\n          path: ['lines', { id: line.id }],\n          message: 'RETEST_REQUIRED_SAMPLES',\n        });\n    }\n  return issues;\n}\n\n// Staged business effects only. No permissions, flow, Save, receipt, revision\n// or idempotence is created here. The authenticated transaction must first\n// approve its fixed case once and invoke only its server-derived changed set.\nexport function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc: RoutineDocumentMetadata,\n  content: Content, ctx: Pick<Context, 'actor' | 'at'>) {\n  validateRoutineCaseLink(c, doc, content);\n"
+      },
+      {
+        "offset": 37628,
+        "before": "          validate: (content) => {\n            const issues = reportIssues(content, doc.kind);\n            if (doc.kind === 'report')\n              for (const line of content.lines) {\n                const a = linkedCase(c, doc, line.jobId);\n                if (!a) continue;\n                if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))\n                  issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});\n                if (\n                  !line.results.some((r) => r.outcome === 'unable') &&\n                  a.requiredSamples.some(\n                    (s) => !line.results.flatMap((r) => r.samples).includes(s),\n                  )\n                )\n                  issues.push({\n                    kind: 'error',\n                    path: ['lines', { id: line.id }],\n                    message: 'RETEST_REQUIRED_SAMPLES',\n                  });\n              }\n            return issues;\n          },\n",
+        "after": "          validate: content => routineDocumentReviewIssues(c, doc, content),\n"
+      },
+      {
+        "offset": 37861,
+        "before": "          approveEffects(c, doc, ctx);\n",
+        "after": "          applyRoutineDocumentApprovalEffects(c, doc, doc.flow.active.content, ctx);\n"
+      }
+    ]
   }
 ]

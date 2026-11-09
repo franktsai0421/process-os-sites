@@ -1,3 +1,7 @@
+## 2026-11-09 例行整頁 domain 接續
+
+已抽出 metadata/content builder、無 flow 的 case/review 驗證及固定 Content 業務 effects，原 legacy dispatch／原 receipt 不變。七組 metadata-only／真 legacy replay memory 契約；不是整頁 orchestration、CAS 或 UI。下一批須 metadata resolver＋server-derived fixed changedDocumentIds/pins，保留88a localSave/late ACK/File；不得用逐文件 executeRoutine 循環冒充整頁。獨審中止、原生 browser 限制及公開 tree UNKNOWN 仍未解。
+
 ## 2026-11-09 Managed layout 守門與相依
 
 作者自查補一般 aggregate 不得建立／移除／改寫 server-managed pageLayout／owner baseline，inline/records 負控制已重現並拒絕無寫入。最新衝突來源88a4a2c已唯讀核對，保留其PROCESS照片組／排序、RF late ACK及domain localSave；本題master comparer只開放AB/C/LINES。未匯入、未上傳、未重送UNKNOWN；獨審中止狀態不變。

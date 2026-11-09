@@ -1,3 +1,7 @@
+## 2026-11-09 例行文件 metadata 工作介面
+
+新增 RoutineDocumentMetadata／RoutineBusinessState 型別及無 flow 的內容 builder，僅供未來 staged domain orchestration。現用 routineFqcControl.documents 仍是原 Document+flow 儲存格式，沒有 migration/schema/key 變更。原審核路徑把固定 active.content 傳給業務 effects；helper 不建立假 Save/approved case/receipt。
+
 ## 2026-11-09 主資料分頁資料布局候選
 
 目標資料布局新增受信任 `pageDraftLayout:page-v1`，active／versions.scope／workflowScopes 使用 AB.catalog、C.catalog、LINES；原 AB/C 版本／flow／Save／receipt 原樣保留只讀，已退役草稿不作目前引用。新入口要求 baseline 已存在，不會 adoption 或生成核准人／案件。既有 records codec 以 owner active snapshot 與同 scope version body 對應，合成 inline/records 重開已測；沒有 SQL/schema/key 變更或真資料切換。生效 AB/C 是有明確 catalog＋LINES approved source vector 的只讀組合，不能冒充舊 combined version。一般 public payload 使用明確允許欄位，不含私人 extensions／草稿。[資料介面與未完成項](../docs/acceptance/module-draft-boundary-20261109.md)。

@@ -1,0 +1,49 @@
+/* Actual domain helpers and legacy kernel; synthetic data and forbidden storage. */
+const assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
+let reads=0,writes=0;
+const load=require('./ipqc-ab-import-harness.cjs')({DB:{prepare(){reads++;throw Error('UNEXPECTED_DB');}},STATE_ARCHIVE:{get(){reads++;throw Error('UNEXPECTED_R2');},put(){writes++;throw Error('UNEXPECTED_R2');}}});
+const api=load('lib/routine-fqc.ts'),copy=value=>JSON.parse(JSON.stringify(value)),checks=[];
+const actor={id:'synthetic-author',name:'Synthetic author',admin:false},reviewer={id:'synthetic-reviewer',name:'Synthetic reviewer',admin:false};
+const ctx={actor,at:'2026-11-09T00:00:00Z',today:'2026-11-09',allowed:()=>true,settings:true,revoke:true,revise:true};
+function fixture(){const domain=api.emptyRoutine(),source={id:'standard',name:'Synthetic standard',code:'Q1',line:'A',category:'G',errorCode:'E1',description:'Original source',versionId:'original-approved-fqc',version:'1',effectiveDate:'2026-01-01',frequency:'weekly',frequencyText:'weekly',products:[{code:'P1',name:'One'},{code:'P2',name:'Two'}]};domain.jobs.push({id:'job',itemId:'standard',period:'fixture-period',start:'2026-11-09',end:'2026-11-15',source,planId:null,completion:null,createdAt:'fixture'});domain.receipts['retained-operation']={actorId:actor.id,fingerprint:'original untouched bytes',result:{retained:true}};return{domain,source};}
+function check(name,fn){fn();checks.push(name);}
+check('builder returns detached metadata and frozen-source content without flow or any domain mutation',()=>{
+ const {domain,source}=fixture(),before=JSON.stringify(domain),result=api.buildRoutineDocumentDraft(domain,'plan',domain.jobs,ctx);
+ assert.equal(JSON.stringify(domain),before);assert.equal(Object.hasOwn(result.metadata,'flow'),false);assert.equal(result.metadata.kind,'plan');assert.equal(result.content.lines[0].source.versionId,'original-approved-fqc');
+ source.name='Later mutable source';assert.equal(result.content.lines[0].source.name,'Synthetic standard');result.metadata.owner.name='Changed return';assert.equal(actor.name,'Synthetic author');
+ assert.equal(result.content.lines[0].jobId,'job');assert.equal(result.metadata.number,'FQC-PLN-20261109-0001');
+});
+check('retest rows keep per-sample identities and reject workflow metadata smuggling without writes',()=>{
+ const {domain}=fixture();domain.cases.push({id:'case',jobId:'job',requiredSamples:['P1','P2']});const before=JSON.stringify(domain),result=api.buildRoutineDocumentDraft(domain,'report',domain.jobs,ctx,{planId:'plan',caseId:'case'});
+ assert.deepEqual(copy(result.content.lines[0].results.map(row=>row.samples)),[['P1'],['P2']]);assert.equal(new Set(result.content.lines[0].results.map(row=>row.id)).size,2);assert.equal(result.metadata.caseId,'case');assert.equal(JSON.stringify(domain),before);
+ assert.throws(()=>api.buildRoutineDocumentDraft(domain,'plan',domain.jobs,ctx,{flow:{scope:'fake'}}),error=>error.code==='DOCUMENT_LINKS_INVALID');assert.equal(JSON.stringify(domain),before);
+});
+check('plan effects consume metadata without flow and leave revision, root events and original receipts alone',()=>{
+ const {domain}=fixture(),built=api.buildRoutineDocumentDraft(domain,'plan',domain.jobs,ctx),ledger=JSON.stringify(domain.receipts);domain.documents.push(built.metadata);
+ api.applyRoutineDocumentApprovalEffects(domain,built.metadata,built.content,ctx);assert.equal(domain.jobs[0].planId,built.metadata.id);assert.equal(domain.revision,0);assert.equal(domain.events.length,0);assert.equal(JSON.stringify(domain.receipts),ledger);assert.equal(Object.hasOwn(domain.documents[0],'flow'),false);
+});
+check('fixed report content drives real failure completion and abnormal-case sample state without workflow records',()=>{
+ const {domain}=fixture(),built=api.buildRoutineDocumentDraft(domain,'report',domain.jobs,ctx,{planId:'approved-plan'}),row=built.content.lines[0].results[0];row.samples=['P1'];row.outcome='fail';row.notes='Synthetic failure';row.photos=['a'.repeat(64)];domain.documents.push(built.metadata);
+ const ledger=JSON.stringify(domain.receipts);api.applyRoutineDocumentApprovalEffects(domain,built.metadata,built.content,ctx);assert.equal(domain.jobs[0].completion.kind,'fail');assert.equal(domain.cases.length,1);assert.equal(domain.cases[0].status,'open');assert.deepEqual(copy(domain.cases[0].requiredSamples),['P1']);assert.equal(domain.cases[0].reportIds[0],built.metadata.id);assert.equal(domain.cases[0].events.length,1);assert.equal(JSON.stringify(domain.receipts),ledger);assert(!JSON.stringify(domain.documents).includes('"flow"'));
+});
+check('metadata-only review retains required sample and case-link guards',()=>{
+ const {domain}=fixture();domain.cases.push({id:'case',jobId:'job',status:'open',requiredSamples:['P1','P2'],reportIds:[],events:[]});const built=api.buildRoutineDocumentDraft(domain,'report',domain.jobs,ctx,{planId:'plan',caseId:'case'}),row=built.content.lines[0].results[0];built.content.lines[0].results=[row];row.samples=['P1'];row.outcome='pass';row.value='1';
+ assert(api.routineDocumentReviewIssues(domain,built.metadata,built.content).some(issue=>issue.message==='RETEST_REQUIRED_SAMPLES'));
+ const wrong=copy(built.content);wrong.lines[0].jobId='another-job';const before=JSON.stringify(domain);assert.throws(()=>api.applyRoutineDocumentApprovalEffects(domain,built.metadata,wrong,ctx),error=>error.code==='CASE_LINK_INVALID');assert.equal(JSON.stringify(domain),before);
+});
+check('disposal and correction effects preserve original business relationships without per-document approvals',()=>{
+ const {domain}=fixture();domain.cases.push({id:'case',jobId:'job',planId:'plan',status:'open',result:'fail',requiredSamples:['P1'],reportIds:['original-report'],events:[],improvements:[]});
+ const disposal=api.buildRoutineDocumentDraft(domain,'disposal',domain.jobs,ctx,{planId:'plan',caseId:'case'});disposal.content.reason='Synthetic disposal';api.applyRoutineDocumentApprovalEffects(domain,disposal.metadata,disposal.content,ctx);assert.equal(domain.cases[0].status,'disposed');assert.equal(domain.jobs[0].completion.kind,'disposal');
+ const original={...disposal.metadata,id:'original-report',kind:'report',caseId:null,correctionOf:null};domain.documents.push(original);const correction=api.buildRoutineDocumentDraft(domain,'report',domain.jobs,ctx,{planId:'plan',correctionOf:'original-report'});const row=correction.content.lines[0].results[0];row.samples=['P1'];row.outcome='pass';row.value='1';correction.content.reason='Fixed source correction';api.applyRoutineDocumentApprovalEffects(domain,correction.metadata,correction.content,ctx);assert.equal(original.impact[0].id,correction.metadata.id);assert.equal(domain.cases[0].status,'ready-close');assert(domain.cases[0].events.some(event=>event.action==='correction-reopened'));assert.equal(domain.revision,0);
+});
+check('legacy real create Save Submit Approve and exact outer receipt replay still execute effects only once',()=>{
+ const {domain,source}=fixture();
+ function outer(action,extra={},context=ctx){const command={action,operationId:randomUUID(),expectedRevision:domain.revision,...extra};const result=api.executeRoutine(domain,command,[source],context);return{command,result};}
+ const plan=outer('create-plan',{jobIds:['job']});
+ function draft(doc,action,sequence,extra={},context=ctx){const operationId=randomUUID(),command={action:'draft',operationId,documentId:doc.id,command:{action,operationId,clientId:'client-'+context.actor.id,sequence,generation:doc.flow.generation,...extra}};const result=api.executeRoutine(domain,command,[source],context);return{command,result};}
+ const p=domain.documents.find(doc=>doc.id===plan.result.documentId);draft(p,'save',1);draft(p,'submit',2,{expectedRevision:p.flow.revision,savedId:p.flow.saved.id,reason:'Synthetic plan'});draft(p,'approve',1,{caseId:p.flow.pendingId,reason:'Approved plan'},{...ctx,actor:reviewer});
+ const report=outer('create-report',{documentId:p.id,jobIds:['job']}),d=domain.documents.find(doc=>doc.id===report.result.documentId),path=['lines',{id:d.flow.working.lines[0].id},'results'],before=copy(d.flow.working.lines[0].results),after=copy(before);Object.assign(after[0],{samples:['P1'],outcome:'fail',notes:'Failure',photos:['a'.repeat(64)]});
+ draft(d,'apply',1,{patches:[{op:'set',path,value:after}],guards:[{path,value:before}]});draft(d,'save',2);draft(d,'submit',3,{expectedRevision:d.flow.revision,savedId:d.flow.saved.id,reason:'Synthetic report'});const approved=draft(d,'approve',1,{caseId:d.flow.pendingId,reason:'Approved report'},{...ctx,actor:reviewer});
+ const original=JSON.stringify(domain),events=domain.cases[0].events.length;assert.equal(domain.cases.length,1);assert.equal(domain.jobs[0].completion.kind,'fail');assert.deepEqual(copy(api.executeRoutine(domain,approved.command,[source],{...ctx,actor:reviewer})),copy(approved.result));assert.equal(JSON.stringify(domain),original);assert.equal(domain.cases[0].events.length,events);
+});
+assert.equal(reads,0);assert.equal(writes,0);console.log(JSON.stringify({status:'PASS',checks,storageReads:reads,storageWrites:writes,scope:'metadata/review/fixed-content staged business helper extraction and existing legacy dispatch; no new whole-page route or orchestration'},null,2));

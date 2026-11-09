@@ -151,6 +151,18 @@ current-approved 引用只回傳固定版本的副本，不採用 working/saved/
 
 已核准版本查看統一由另一項工作負責；本題只提供 owner/scope 與保存／送審資料介面依賴，不重複修改其版本查看元件。需要該工作配合 LINES、AB/C catalog、routine-fqc:page 新 scope；其尚未整合項與 Canvas 失敗仍須各自處理。
 
+## 例行 FQC 整頁接線的 domain 函式抽取（未啟用整頁）
+
+從現用 routine-fqc.ts 抽出 buildRoutineDocumentDraft（metadata/content，沒有 flow）、validateRoutineCaseLink、routineDocumentReviewIssues、以及 applyRoutineDocumentApprovalEffects（明確固定 Content 與 staged business domain）。原 addDocument 仍只在 legacy dispatch 建立逐文件 flow；原 approve dispatch 傳入 kernel 已核准的 active.content。原結構／retest／提交 issues 保留，同一原 outer receipt replay 不重跑 effects。新增七組 DB/R2 零讀寫契約，含無 fake flow 的 plan/report/disposal/correction business effects、來源與 owner 複本、requiredSamples、錯誤 links 無 domain 變更，以及真 legacy create/Apply/Save/Submit/Approve/replay。
+
+這些 helper 不自行驗登入／權限、不作 CAS／receipt／revision、不提供 idempotence，也不是新 page approval。後續整頁 orchestrator 必須先核准固定 Save 案件，從 server 推導 changedDocumentIds 及依賴 pins，只對該固定差異執行一次，所有 domain/pageflow/receipt 同 CAS。不能循環呼叫 legacy executeRoutine 製造逐文件 Save/approval。
+
+尚未完成：metadata-only effective document resolver、穩定新文件建立／取消／更正／followup 暫存、整頁 Begin/Submit/Withdraw/Review、codec/CAS/舊 writer fence、全部本次媒體與 File、整頁 toolbar 及與88a late ACK／衝突的完整接線。現用 routine 仍逐文件，不能說例行整頁草稿已完成。原始真人資料、待審與歷史未操作。
+
+本次 helper 抽取：七組新契約及既有 Routine 254 項檢查通過，整頁既有文件 Save core 的 14 組仍通過；lint、TypeScript、diff 檢查通過。這些數字不包含原生瀏覽器或完整整頁流程驗收。
+
+版本查看另一路已提供 2e4d20f4560fe1480576680d07edcf903b67fef9（tree 1c423112e0e6dc66e22b7f5b959a7565640466ac），處理新 AB／C／LINES 核准歷史 422。此處只記錄依賴，未匯入、覆蓋或宣稱與 88a4a2c 衝突候選及 Routine 整頁流程已整合；版本查看由原工作負責。
+
 ## 與全站衝突候選的協調
 
 已唯讀核對另一工作提供的 `7ef04ed741249816aac2f1336cf15f888ff92fa0`（tree `336500430fbccb61dd7f42afef5704a38f284c6c`），未整批匯入或上傳。其 master bridge／master-data、routine-fqc UI、routine-fqc domain、versioned workflow 與本題後續接線直接相依；其中 routine 已有逐文件 localSave 原子化，仍不是整頁 owner。此處的 `validateRoutineContentEdit` 抽取需在該候選上語意合併，保留它的 localSave 與原 receipt 修正，不能用本分支整檔蓋回。文件／CI 也須保留雙方新段落；實際最終合樹另驗。已在記憶體語意組合該 routine module 與本純驗證抽取，13 組整頁 Save 契約通過且保留其 localSave 分支；沒有產生合併 tree 或改對方候選。後續版本查看候選 e3d92846 仍未發布且有既知 Canvas 測試失敗／80745895 未整合，須另核對其 master/routine/history UI 相依，不能把頁面數等同 #102 已整合。

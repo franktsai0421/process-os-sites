@@ -1,3 +1,7 @@
+## 2026-11-09 例行 FQC domain 抽取
+
+現用 builder／case-link／review issues／approval effects 已分離為明確 metadata＋Content 的 server helper；舊 dispatch 仍保留原流程／收據。新 helper 不建立 flow/Save/approval，不自行作權限、CAS、receipt 或 idempotence；未註冊新整頁 route。整頁 fixed changed set／source pins、建立取消更正及媒體UI仍待接線。七組合成契約與既有 route 回歸另列於唯一分界矩陣。
+
 ## 2026-11-09 — 全頁草稿分界與例行 FQC 整頁目標
 
 FQC／IQC／IPQC AB／IPQC C／BOM／檢具／模具現有 owner 分離；篩選不是新草稿。例行 FQC 已確認改為 routine-fqc:page，新增未註冊多文件單次 Save 核心，原來源／retest 規則與舊文件路徑共用同一純驗證函式。十三組合成 Save 契約不等於新版文件建立、整頁核准副作用、route/CAS/UI 或遷移已完成；現行例行頁仍逐文件。舊 working 可放棄不包含待審／已核准歷史或原收據。與未發布 7ef04ed 的逐文件 localSave 須語意整合，不能整檔覆蓋。[全站矩陣及未完成項](../../docs/acceptance/module-draft-boundary-20261109.md)。
