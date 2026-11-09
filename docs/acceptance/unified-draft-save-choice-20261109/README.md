@@ -1,6 +1,6 @@
 # 全站草稿存取衝突整合候選
 
-基準：GitHub main `b06394ce0065849733399423afd2d906761d69c1`。本文件描述獨立本機候選；不代表已上 GitHub、合併、部署或正式帳號驗收。各模組最終 evidence 仍須綁定整合 commit。
+原始基準：GitHub main `b06394ce0065849733399423afd2d906761d69c1`。已語意合併最新 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）；主 runtime／index 保持通過驗證的 def45f9 精確 bytes。本文件描述獨立本機候選；不代表已上 GitHub、合併、部署或正式帳號驗收。各模組最終 evidence 仍須綁定整合 commit。
 
 ## 已確認的共同契約
 
@@ -52,4 +52,4 @@
 
 各模組 actual handler + synthetic DOM／SQLite／Map-R2 測試不等同原生瀏覽器、Windows、實體 iPhone、真實 IME 或正式站驗收。完整整合 build、來源逆轉證明與正常 CI 接線由整合批次固定後核對。
 
-舊品質 243-path create_tree 結果仍 UNKNOWN；本次唯讀查詢既知 tree `beddd52759e5cd322e6d64b658b6e8c0a2f84025` 回 404，不能當作未執行證據。原 payload 範圍不完整，因此不以假定互不重疊或分拆方式重送。先前檢具 create_tree 也曾被自動審查拒絕，理由是當時只有進度查詢授權、公開原始碼／文件目的地未確認。本次沒有重試該操作，也沒有繞道上傳。GitHub 上傳、合併與部署未完成，需沿原操作查證及適用授權處理。
+舊品質 243-path create_tree 結果仍 UNKNOWN；本次唯讀查詢既知 tree `ee1352c5508376713bae156e205701e512c3212c`（另品質批次 `beddd52759e5cd322e6d64b658b6e8c0a2f84025` 也另查） 回 404，不能當作未執行證據。原 payload 範圍不完整，因此不以假定互不重疊或分拆方式重送。先前檢具 create_tree 也曾被自動審查拒絕，理由是當時只有進度查詢授權、公開原始碼／文件目的地未確認。本次沒有重試該操作，也沒有繞道上傳。GitHub 上傳、合併與部署未完成，需沿原操作查證及適用授權處理。

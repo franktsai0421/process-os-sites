@@ -12,6 +12,10 @@ receipts remain. Structural/category/route edits retain the original flow.
 [Scope, tests and outstanding page/PROCESS boundaries](../docs/acceptance/abc-field-save-choice-20261109/README.md).
 Local only; no schema, data, GitHub write or deployment.
 
+## 2026-11-09 — Routine FQC explicit generation
+
+Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).
+
 ## 2026-11-08 — Equipment explicit recheck and ACK comparison candidate
 
 Equipment Save confirms complete saved/working JSON content without object-key-order dependence. Keys, primitive types/values, array positions, receipt/generation/revision and owner fences remain required. Explicit same-owner/epoch/generation delivery recheck reads fresh permissions through the existing client, then uses a private one-use confirmation after all caller checks to renew only runtime delivery. Original client, journal, guards and UNKNOWN receipt destinations remain; no automatic POST or permission bypass. Both equipment and shared-client cache tags advance together. The historical source pins are retained through an exact test-only composition back to PR 97. [Scope and verification limits](../docs/acceptance/equipment-no-poll-20261108/README.md). No schema, live data, deployment or conflict-resolution feature.

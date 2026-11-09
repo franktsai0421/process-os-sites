@@ -1,8 +1,12 @@
+## 2026-11-09 — Explicit entry and Update generation
+
+Normal entry and the normal page's 更新 / Cập nhật button perform state GET, eligible generate POST, then state GET. Fresh view/edit permission, enabled state and start date gate generation. No idle, focus or fixed-second scheduler remains. History, review, previews and denied-read recovery are read-only. Dirty document buffers/bases are preserved; an unresolved original write, including receipt 404, never authorizes resend. View/identity/epoch/delivery ownership fences both successful and rejected responses. Backend, persistent model and schema are unchanged. [Current behavior and limits](../../docs/acceptance/routine-fqc-explicit-generation-20261109.md).
+
 ## 2026-10-13 搜尋與歷史
 
 需求唯一來源為[規格第 9 節](../../docs/specs/current/ROUTINE_FQC.md#9-搜尋與歷史2026-10-13-更新)，分層驗收與限制見[搜尋驗收](../../docs/routine-fqc/20261013-search-acceptance.md)。新增 public/process/routine-fqc-search.mjs：buildSearchIndex 建唯讀關聯索引，querySearch 以工作期別、來源身份、同項產品条件查詢；15 個分類數量獨立、兩區單選。有效正式報告依樣品追蹤失敗及核准更正鏈；原文件明細不被目前結果覆寫。
 
-routine-fqc.js 僅在歷史頁掛載獨立搜尋 UI；同語言更新保留輸入 DOM、組字時延後刷新；原項目回查延後到資料載入再套用。歷史讀取不 Generate，離開歷史回到正常工作分頁沿用原同步。CSS 限定 rf-history，手機單欄明細與返回位置避開固定頁首。
+routine-fqc.js 僅在歷史頁掛載獨立搜尋 UI；同語言更新保留輸入 DOM、組字時延後刷新；原項目回查延後到資料載入再套用。歷史讀取不 Generate；離開歷史回到正常工作分頁執行一次符合權限的生成。CSS 限定 rf-history，手機單欄明細與返回位置避開固定頁首。
 
 GET /api/routine-fqc?search-preview=1 使用原 view gate，從正式啟用可解析來源及既有未來工作投影下一期，不写資料、備份、收據或 R2。既有 ?preview=1 排程設定 gate 保持。無 schema、migration、權限配置或持久資料模型變更；索引、查詢、返回堆疊與預覽只在記憶體。
 
@@ -62,7 +66,7 @@ resultOpen／sampleOpen只在瀏覽器記展開狀態；所有重畫先讀現有
 
 有舊工作時，下一段從最後截止日的翌日開始，套用目前正式頻率的曆期終日。頻率變更的首段可縮短，再對齊曆期。例如月轉週：10/31 結束舊月，11/1 是過渡週的最後一日，下一週 11/2–11/8；無空窗、無重疊，不刪舊工作。預覽會包括下一尚未產生期別，即使它在未來。
 
-執行採請求時補齊：開啟 FQC 時生成截至公司當日的工作；頁面同步檢查日期與來源變更時補齊。關頁／停機後下次開啟補齊，不另外建立系統服務或任意開埠。產生工作仍需已設定起始日及有編輯權限的登入；只讀者不觸發寫入。
+執行採請求時補齊：開啟 FQC 時生成截至公司當日的工作；開頁期間只有按更新才重新檢查日期與來源變更並補齊，無背景輪詢。關頁／停機後下次開啟補齊，不另外建立系統服務或任意開埠。產生工作仍需已設定起始日及有編輯權限的登入；只讀者不觸發寫入。
 
 ## 照片、搜尋與匯出
 

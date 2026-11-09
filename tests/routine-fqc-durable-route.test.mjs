@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import { createHash, randomUUID, webcrypto } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { manualUI } from './fixtures/routine-fqc-manual-ui.mjs';
+import { manualUI, dirty, inputs } from './fixtures/routine-fqc-manual-ui.mjs';
 
 // Actual Workers route and production routine/shared-draft kernels. The only
 // substitutes are ephemeral SQLite, Map-backed R2, and a synthetic signed user;
@@ -33,6 +33,7 @@ async function fixture(t, { withPeer = false } = {}) {
     ['fixture/unrelated-retained-object', { bytes: Buffer.from('synthetic retained bytes'), options: {} }],
   ]);
   const counts = { post: 0, get: 0, receiptGet: 0, stateGet: 0, dbRun: 0, r2Put: 0, r2Head: 0 };
+  let beforeCAS = null;
   const env = {
     PROCESS_SESSION_SECRET: randomUUID(),
     DB: {
@@ -43,6 +44,9 @@ async function fixture(t, { withPeer = false } = {}) {
           async first() { return db.prepare(sql).get(...args) || null; },
           async all() { return { results: db.prepare(sql).all(...args) }; },
           async run() {
+            if (sql.startsWith('UPDATE shared_state SET revision=') && beforeCAS) {
+              const hook = beforeCAS; beforeCAS = null; await hook();
+            }
             counts.dbRun++;
             return { meta: { changes: Number(db.prepare(sql).run(...args).changes) } };
           },
@@ -179,7 +183,7 @@ async function fixture(t, { withPeer = false } = {}) {
       caseId: document(id).flow.pendingId, reason: 'Synthetic review', selfReviewConfirmed: true,
     }));
   }
-  return { counts, persisted, verifyBackups, setRight, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve };
+  return { counts, persisted, verifyBackups, setRight, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve, beforeCAS: hook => { beforeCAS = hook; } };
 }
 
 async function rejectedWithoutCommit(f, command, status, code) {
@@ -707,3 +711,65 @@ if (process.env.ROUTINE_FQC_BASELINE_JS) {
     t.diagnostic('Explicit same-data baseline/current counts and bytes: ' + JSON.stringify({ before, after }));
   });
 }
+
+
+async function generatingUI(f) {
+  const initial = (await f.get()).body;
+  const tab = manualUI({ actor: initial.identity.id, remote: clone(initial) });
+  const calls = [];
+  tab.box.fetch = async (url, options) => {
+    const method = options.method || 'GET';
+    calls.push({ method, url, body: options.body ? JSON.parse(options.body) : null });
+    return f.dispatch(url, options);
+  };
+  return { ...tab, calls, methods: () => calls.map(call => call.method) };
+}
+
+void test('actual painted Update → route/SQLite: fresh company date and repeated updates never duplicate due jobs', async t => {
+  const f = await fixture(t);
+  const today = (await f.get()).body.today;
+  await f.accepted(f.command('configure', { startDate: today }));
+  const tab = await generatingUI(f), before = { ...f.counts };
+  tab.api.getData().today = '2000-01-01'; tab.api.getData().sources = [];
+  await tab.button().click();
+  const first = clone(f.control().jobs);
+  assert.equal(first.length, 1);
+  assert.equal(tab.api.getData().today, today);
+  assert.equal(tab.api.getData().sources[0].id, 'fixture-item');
+  assert(first[0].start <= today && first[0].end >= today);
+  assert.equal(f.control().documents.length, 0, 'generation creates due work, not inspection reports');
+  for (let i = 0; i < 2; i++) await tab.button().click();
+  assert.deepEqual(clone(f.control().jobs), first, 'same item/period is stable across distinct explicit operations');
+  assert.deepEqual(tab.methods(), Array(3).fill(['GET', 'POST', 'GET']).flat());
+  assert.deepEqual(f.delta(before), { post: 3, get: 6, receiptGet: 0, stateGet: 6, dbRun: 3, r2Put: 0, r2Head: 0 });
+  assert.equal(tab.store.map.size, 0); f.verifyBackups();
+});
+
+void test('actual painted Update → route CAS race recomputes against latest state and retains all original dirty inputs', async t => {
+  const f = await fixture(t), planId = await f.createPlan();
+  const tab = await generatingUI(f), before = { ...f.counts };
+  const input = dirty(tab), originalDocuments = clone(f.control().documents), jobs = clone(f.control().jobs);
+  const originalBases = JSON.stringify([...tab.api.s.bases]);
+  let peerOperation;
+  f.beforeCAS(async () => {
+    peerOperation = f.command('generate');
+    await f.accepted(peerOperation);
+    tab.api.s.buffers.get(planId).notes = 'New local input while actual CAS is pending';
+  });
+  await tab.button().click();
+  assert(peerOperation);
+  assert.deepEqual(tab.methods(), ['GET', 'POST', 'GET']);
+  assert.deepEqual(f.delta(before), { post: 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: 3, r2Put: 0, r2Head: 0 });
+  assert.deepEqual(clone(f.control().jobs), jobs);
+  assert.deepEqual(clone(f.control().documents), originalDocuments, 'generate never saves or mutates documents');
+  assert.notEqual(inputs(tab), input, 'only the deliberate new input changed');
+  assert.equal(tab.api.s.buffers.get(planId).notes, 'New local input while actual CAS is pending');
+  assert.equal(JSON.stringify([...tab.api.s.bases]), originalBases);
+  assert.equal(tab.api.getData().control.revision, f.control().revision);
+  assert.equal(tab.store.map.size, 0);
+  const post = tab.calls.find(call => call.method === 'POST');
+  assert.deepEqual(Object.keys(post.body).sort(), ['action', 'operationId']);
+  assert.notEqual(post.body.operationId, peerOperation.operationId);
+  assert(f.control().receipts[post.body.operationId]); assert(f.control().receipts[peerOperation.operationId]);
+  f.verifyBackups();
+});
