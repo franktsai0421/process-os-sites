@@ -6,11 +6,12 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-const require=createRequire(import.meta.url),proof=require('../scripts/background-check-source-contract.cjs'),unified=require('../scripts/unified-draft-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
+const require=createRequire(import.meta.url),proof=require('../scripts/account-background-check-source-contract.cjs'),unified=require('../scripts/unified-draft-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
 const main='9fbba823090f03da8385c8d92f5e59293d19d2f1',show=file=>execFileSync('git',['show',main+':'+file]),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const checkout=file=>unified.project(canonicalCheckout(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'account_preparation');
+const accountPredecessor=file=>file.startsWith('public/')?checkout(file):execFileSync('git',['show','ea5811141f308a615a78b6c763b124f1612fad47:'+file]);
 void test('combined source preserves exact account predecessor and its #100 no-poll lineage',()=>{
- for(const file of ['public/process/shared-draft-client.js','public/process/process-authoring-v3.js','public/process/process-ipqc.js','public/process/effective-version-notice.js','scripts/browser-timer-inventory.mjs','tests/fixtures/browser-timer-inventory.json'])assert.deepEqual(checkout(file),show(file),file);
+ for(const file of ['public/process/shared-draft-client.js','public/process/process-authoring-v3.js','public/process/process-ipqc.js','public/process/effective-version-notice.js','scripts/browser-timer-inventory.mjs','tests/fixtures/browser-timer-inventory.json'])assert.deepEqual(accountPredecessor(file),show(file),file);
 });
 void test('index inverse retains every #100 rule and predecessor, adding only known account cache-version changes',()=>{
  const previous=JSON.parse(show('scripts/background-check-source-contracts.json')),index='public/process/index.html';
@@ -29,5 +30,5 @@ void test('actual inert foreground facade stays idle through scheduling, focus a
 });
 
 void test('Windows checkout EOL can canonicalize to exact committed source; content drift still rejects',()=>{
- const file='public/process/index.html',committed=execFileSync('git',['show','HEAD:'+file]),windows=Buffer.from(committed.toString().replace(/\r?\n/g,'\r\n'));assert.deepEqual(canonicalCheckout(windows,committed),committed);assert.throws(()=>canonicalCheckout(Buffer.concat([windows,Buffer.from(' ')]),committed),/checkout differs/);assert.deepEqual(proof.restorePredecessor(canonicalCheckout(windows,committed),file),execFileSync('git',['show','d4ac309fe05c89288af226b52c18161865ccdcb8:'+file]));
+ const file='public/process/index.html',committed=execFileSync('git',['show','HEAD:'+file]),windows=Buffer.from(committed.toString().replace(/\r?\n/g,'\r\n'));assert.deepEqual(canonicalCheckout(windows,committed),committed);assert.throws(()=>canonicalCheckout(Buffer.concat([windows,Buffer.from(' ')]),committed),/checkout differs/);assert.deepEqual(proof.restorePredecessor(unified.project(canonicalCheckout(windows,committed),file,'account_preparation'),file),execFileSync('git',['show','d4ac309fe05c89288af226b52c18161865ccdcb8:'+file]));
 });

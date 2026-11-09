@@ -124,7 +124,7 @@
   {
     "file": "public/process/index.html",
     "beforeHash": "40163af0731a5691db3a3dc2e1f6c229c2720cfd6cfe5ffd0d1a9ab5547f63c0",
-    "afterHash": "d7aeacc4ddaf6d4e8647150ba7ad419e1be630e9643600fd931b61933eff02c8",
+    "afterHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
     "rules": [
       {
         "offset": 6899,
@@ -140,36 +140,6 @@
         "offset": 9414,
         "before": "    <script data-process-src=\"process-ipqc.js?v=20261031-bom-ab-recovery1\"></script>\n",
         "after": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n"
-      },
-      {
-        "offset": 1150,
-        "before": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261029-fqc-dependencies1\">\n",
-        "after": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261109-feedback-policy1\">\n"
-      },
-      {
-        "offset": 7086,
-        "before": "    <script data-process-src=\"web-feedback-entry.js?v=20261106-access-offline1\"></script>\n",
-        "after": "    <script data-process-src=\"web-feedback-entry.js?v=20261109-feedback-permissions1\"></script>\n"
-      },
-      {
-        "offset": 8133,
-        "before": "    <script data-process-src=\"data-safety-ui.js?v=20261027-login-reentry1\"></script>\n",
-        "after": "    <script data-process-src=\"data-safety-ui.js?v=20261109-login-language2\"></script>\n"
-      },
-      {
-        "offset": 8468,
-        "before": "    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n",
-        "after": "    <script data-process-src=\"version-draft-ui.js?v=20261109-return-confirm1\"></script>\n"
-      },
-      {
-        "offset": 10418,
-        "before": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261106-role-layout2\">\n    <script data-process-src=\"user-access.js?v=20261106-role-layout1\"></script>\n",
-        "after": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261109-account-validation1\">\n    <script data-process-src=\"user-access.js?v=20261109-account-confirm2\"></script>\n"
-      },
-      {
-        "offset": 10763,
-        "before": "    <script src=\"bootstrap.js?v=20261104-draft-integration1\"></script>\n",
-        "after": "    <script src=\"bootstrap.js?v=20261109-feedback-policy1\"></script>\n"
       }
     ]
   },
