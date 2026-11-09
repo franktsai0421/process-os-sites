@@ -19,7 +19,7 @@ async function setup(record){const f=await fixture(record),root=copy(f.root),dra
    if(kind==='c-catalog-content')root.workflowScopes['C.catalog'].active.content.products.push({id:'not-approved',code:'synthetic'});
    if(kind==='alternate-approved-topology'){root.active.LINES.AB.lines[0].name='Alternate approved source';root.versions.push({...copy(root.versions.find(v=>v.id==='approved-LINES')),id:'approved-alternate-topology',snapshot:copy(root.active.LINES)});}
    await f.install({...f.values,masterDataControl:JSON.stringify(root)});const state=await f.core.readState(),input=JSON.stringify(state.values),metrics=f.metrics();
-   const module=f.load('lib/master-approved-pages.ts'),page=kind==='c-catalog-content'?'C':'AB';assert.throws(()=>module.approvedMasterPageCatalog(root,page),error=>error.code==='MASTER_EFFECTIVE_BASELINE_CONFLICT'&&error.status===409,'direct approved source guard is the negative control');
+   const authority=f.load('lib/master-approved-pages.ts'),page=kind==='c-catalog-content'?'C':'AB';assert.throws(()=>authority.approvedMasterPageCatalog(root,page),error=>error.code==='MASTER_EFFECTIVE_BASELINE_CONFLICT'&&error.status===409,'direct approved source guard is the negative control');
    assert.throws(()=>f.core.publicState(state,'writer'),error=>error.code==='MASTER_EFFECTIVE_BASELINE_CONFLICT'&&error.status===409,'public response must not discard an inconsistent pointer then fall back');assert.equal(JSON.stringify(state.values),input);assert.deepEqual(f.metrics(),metrics);
   }finally{f.close();}});
  }

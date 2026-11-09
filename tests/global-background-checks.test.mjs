@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
 import '../scripts/entry-performance/foreground-poll.test.mjs';
 import {draftModules,assertNoDraftPoll,assertDraftInitializerIdle,assertExplicitHistoryPermissions} from '../scripts/entry-performance/draft-no-poll-fixture.mjs';
 import {browserTimerInventory,readBrowserSources} from '../scripts/browser-timer-inventory.mjs';
@@ -33,4 +35,21 @@ void test('inventory follows client imports and aliases without including server
  sources.set('lib/client.mjs',"const setTimer=options.setTimeout||window.setTimeout.bind(window);setTimer(()=>{},250);");assert.equal(browserTimerInventory(sources).timers[0].kind,'setTimeout');
  sources.set('lib/client.mjs',"import('./'+unreviewed);");assert.throws(()=>browserTimerInventory(sources),/REQUIRES_AUDIT/);
  sources.set('lib/client.mjs',"import './missing.mjs';");assert.throws(()=>browserTimerInventory(sources),/UNRESOLVED_BROWSER_IMPORT/);
+});
+
+const root=process.cwd();
+// Current source proof: removed producers stay absent and each complete shipped
+// initializer/event wiring executes. foreground-poll.test.mjs tests the current
+// inert compatibility shim; no removed legacy callback is fabricated here.
+for(const file of draftModules)void test(file+' complete current initializer/events contain no draft scheduler or requests',async()=>{
+ await assertDraftInitializerIdle(root,file);
+});
+for(const file of ['bom-workspace.js','tooling.js'])void test(file+' complete initializer/events without identity issue no request',async()=>{
+ await assertDraftInitializerIdle(root,file,{identity:null});
+});
+void test('renamed schedulers and recovery callbacks cannot hide a draft reader',()=>{
+ for(const text of ['setInterval(()=>read(),4000);','window.createForegroundPoll();','renamed.schedule(()=>read());','session.schedule(()=>{matrixSnapshot();return transport.read();});'])assert.throws(()=>assertNoDraftPoll(root,'negative-probe.js',text),/retired|hide a draft reader/);
+});
+void test('history and restore explicit actions require fresh exact-true permissions and current owner',async()=>{
+ assert.deepEqual(await assertExplicitHistoryPermissions(root),{cases:44,negativeProbes:3,permissionTimers:0});
 });

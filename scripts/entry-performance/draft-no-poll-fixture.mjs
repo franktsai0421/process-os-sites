@@ -44,3 +44,30 @@ export function assertDirtyFlushRetained(root){
  function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='setTimeout'&&node.arguments[0]?.getText(ast)==='flush'&&node.arguments[1]?.getText(ast)==='250')matches.push(node);ts.forEachChild(node,visit);}visit(ast);assert.equal(matches.length,1,'generic dirty flush retains its 250ms producer');
  let calls=0;const c={timer:null,flush:()=>calls++,setTimeout(fn,ms){assert.equal(ms,250);fn();return 1;}};vm.runInNewContext('timer='+matches[0].getText(ast),c);assert.equal(calls,1);assert.equal(c.timer,1);return 1;
 }
+
+export async function assertExplicitHistoryPermissions(root){
+ const text=source(root,'shared-draft-client.js'),ast=ts.createSourceFile('shared-draft-client.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),found=[],timers=[];
+ function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text==='freshHistoryPermission')found.push(node.getText(ast));if(ts.isCallExpression(node)&&['setTimeout','setInterval'].includes(node.expression.getText(ast))&&node.getText(ast).includes('client.permissions'))timers.push(node.getText(ast));ts.forEachChild(node,visit);}visit(ast);
+ assert.equal(found.length,1,'actual explicit permission helper required');assert.deepEqual(timers,[],'history/restore permission checks have zero timer producers');assert.doesNotMatch(text,/permissionTimer|checkPermission/);
+ async function run(helper,keys,mode,key){
+  let reads=0,current=mode!=='stale-before';const permissions=Object.fromEntries(keys.map(key=>[key,true]));
+  if(mode==='false')permissions[key]=false;if(mode==='missing')delete permissions[key];if(mode==='truthy')permissions[key]='true';
+  const owner=()=>current,c={};vm.createContext(c);vm.runInContext(helper+';this.check=freshHistoryPermission;',c);
+  const client={async permissions(options){reads++;assert.equal(options.isCurrent,owner,'forward exact caller owner predicate');assert.equal(options.requireAcceptedAccess,true,'fresh reads require accepted permissions');if(mode==='stale-after')current=false;if(['401','403'].includes(mode))throw Object.assign(Error('denied'),{status:Number(mode)});return{permissions};}};
+  const pending=c.check(client,owner,keys,'EXPLICIT_PERMISSION_DENIED');
+  if(mode==='allow')await pending;
+  else await assert.rejects(pending,error=>['stale-before','stale-after'].includes(mode)?error.message==='HISTORY_CONTEXT_CHANGED':['401','403'].includes(mode)?error.status===Number(mode):error.message==='EXPLICIT_PERMISSION_DENIED'&&error.status===403);
+  assert.equal(reads,mode==='stale-before'?0:1,'exactly one explicit read, no retry');
+ }
+ let cases=0;for(const keys of [['history'],['history','edit','restore'],['history','approve'],['history','return']]){
+  for(const mode of ['allow','stale-before','stale-after','401','403']){await run(found[0],keys,mode);cases++;}
+  for(const key of keys)for(const mode of ['false','missing','truthy']){await run(found[0],keys,mode,key);cases++;}
+ }
+ const mutations=[
+  [found[0].replace("if(!current())throw Error('HISTORY_CONTEXT_CHANGED');",''),'stale-before'],
+  [found[0].replace("if(!current())throw Error('HISTORY_CONTEXT_CHANGED');\n    if(keys",'if(keys'),'stale-after'],
+  [found[0].replace("state.permissions?.[key]!==true","!state.permissions?.[key]"),'truthy'],
+ ];
+ for(const [helper,mode]of mutations){assert.notEqual(helper,found[0],'negative control changes actual helper');await assert.rejects(()=>run(helper,['history'],mode,'history'),'weakened permission helper must fail');}
+ return {cases,negativeProbes:mutations.length,permissionTimers:timers.length};
+}

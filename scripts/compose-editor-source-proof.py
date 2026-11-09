@@ -46,6 +46,8 @@ NEW_TARGETS = {
     'history_complete': 'e3d92846cd6e5963213c2970f65c9e019895d6c9',
     'previous_editor_runtime': '380d016fc80fe9a92b6f38eeb5f8519e536315b0',
     'boundary_runtime': '972e3a8cad7be5da7af0f4d7519fc36ff8bb2b6d',
+    'boundary_revision': 'dfdfe76f0060a127ac2c08fff0fd780263695cb9',
+    'conflict_revision': '88a4a2c6959dea76acfbaee24c11eb8e20494d5f',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',
