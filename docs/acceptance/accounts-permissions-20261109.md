@@ -84,3 +84,16 @@ node scripts/audit-account-permission-requirements.mjs
 - 最新需求診斷為 4 PASS／6 FAIL、exit 1：RETURN_AND_WITHDRAW_USE_SAME_SELF_CONFIRMATION 已 PASS；其餘六項原樣保留。不是全部修復完成。
 
 正常 build 在最終產品提交 `8b1e471` 以 SOURCE_SYMLINK_REFUSED 退出 1，尚未編譯，列本機環境 BLOCKED；沒有繞過或重試。已只移除本工作建立的 node_modules 連結，兄弟工作相依不動；清理後正常 source-boundary check PASS。標準 postinstall 限獨立 checkout，本 worktree 不符合，所以沒有跳過安裝腳本或換 checkout 繞過守衛。Native browser／Windows CI／實體裝置／真帳號、GitHub upload／merge 和 Site 發布均未執行。兩批仍是本機候選，先前未知 upload／傳送拒絕的邊界維持。
+
+
+## 第三批本機修復：持續結果提示與刪除代碼說明
+
+針對第 5／6 項：帳號頁在收到有效儲存回覆並成功讀回核對後，新增持續的「上次操作已儲存並讀回確認」狀態列，不依賴短暫 toast。明確讀回恢復成功也可顯示，但未確認寫入、已收到 ACK 卻未讀回、對象已變、換身分及重新登入分支不宣稱成功。下一次有效確認嘗試先清除上次結果；只讀核對未寫入不能變成成功。狀態只存在本頁記憶體，綁原 identity stamp，在導覽 reset／delivery invalidation 清除；語言切換重畫用目前語言，不持久保存訊息或輸入。
+
+刪除確認與 ACCOUNT_EXISTS 的中越文，明確區分「帳號代碼」：刪除保留業務資料、歷史和原帳號代碼，同一代碼不能重建。這是現行後端行為的說明，不是新增刪除／還原／重用規則，也不限制顯示姓名重複。沒有刪除或重設任何真帳號。
+
+新增 13 個實際 submit/content 函式加 synthetic DOM/response ports 回歸，首次 11 個案例時為 4 FAIL／7 PASS；完成後涵蓋持續顯示、中越文、六種拒絕／未確認情況、GET-only 恢復與核對、下一操作清除，以及舊身分／非帳號頁不帶結果。與既有 navigation／receipt／identity-fence／dialog／initial-read 合跑最終 88/88 PASS、0 skipped。所有模式只有原一筆寫入 port，沒有新網路或真人資料操作。
+
+本批不需重建相依或建置；繼續在同一工作區用內建 Node 執行，沒有回復 symlink、重試 SOURCE_SYMLINK_REFUSED、改路徑、跳過安裝腳本或修改建置 guard。JS 語法／普通 diff／source-boundary 檢查 PASS。新的完整 lint、TypeScript、normal build、native browser、Windows CI、實體裝置／IME 與實站驗收 NOT_RUN；不能把前兩批的 lint／typecheck 當成本批已執行。先前 6 個政策需求仍未改動，沒有新權限鍵、schema、資料遷移或帳號設定變更。未上傳 GitHub。
+
+與既有帳密候選整合時，只合這些結果呈現 hunk、ACCOUNT_EXISTS 文案和刪除說明，保留候選的 fresh prewrite、原生驗證、語言來源與 unknown fences；不可用本檔整份覆蓋候選，也不可把新提示插到尚未完成讀回的路徑。

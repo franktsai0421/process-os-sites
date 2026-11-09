@@ -1,3 +1,7 @@
+## 2026-11-09 — Account result notices (local candidate)
+
+Account settings retain a verified-result notice after ACK plus successful readback; failed/unknown/stale/relogin branches cannot publish success. Clear on the next confirmed attempt or navigation and localize at render time. Delete confirmation explains retained account IDs. [Scope, regression ports and unrun gates](docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). Same checkout, no build retry, account mutation or upload.
+
 ## 2026-11-09 — Pending correction self-confirmation (local candidate)
 
 Return/reject and withdrawal no longer request self-approval confirmation from the original author; approve still requires it. Kernel and shared dialog agree, retaining permission/CAS/receipt guards and old audit records. Remaining requirement failures: six. [Batch scope and evidence](docs/acceptance/accounts-permissions-20261109.md#第二批本機修復發回與撤回的自審確認). No upload, real-account change or deployment.

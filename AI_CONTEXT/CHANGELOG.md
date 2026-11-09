@@ -1,3 +1,7 @@
+## 2026-11-09 — Keep account result feedback readable
+
+Local account candidate retains verified Save/readback feedback instead of relying only on a toast, clears it for the next attempt/navigation and rejects stale identity results. Delete/duplicate-code text explains existing ID retention in both languages. [Verification and limitations](../docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). No real-account or permission change, build retry or upload.
+
 ## 2026-11-09 — Align correction self-confirmation
 
 Local kernel and shared review dialog no longer classify returning one’s own pending case as self-approval. Own approval keeps explicit confirmation; existing operation grants, reasons, pending/CAS and historical receipts remain. Return/withdraw permission unification remains open. [Tests and limits](../docs/acceptance/accounts-permissions-20261109.md#第二批本機修復發回與撤回的自審確認).

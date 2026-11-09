@@ -1,3 +1,7 @@
+## 2026-11-09 — Persistent account results and retained IDs
+
+Local account UI keeps the last verified result after successful ACK/readback, owned by the current identity and page lifetime; unknown and read-only checks never become success. Chinese/Vietnamese delete feedback now names the retained account code. [Boundaries and tests](../../docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). No storage/API/authorization change.
+
 ## 2026-11-09 — Account Save capability labels
 
 Local UI candidate labels the ten existing Edit-implies-Save adapters without rewriting cells or overrides; own/role/individual views update the explanation in both languages. [Verification and boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No backend policy or real-account change.
