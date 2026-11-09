@@ -21,6 +21,8 @@ export function stageCatalogTemplates(code:string,approved:Snapshot){
   if(!item||typeof item!=='object')continue;
   const preset=knownPresets.has(item.presetKey);
   if(!preset&&(item.presetKey||typeof item.catalogKey!=='string'||!item.catalogKey))continue;
+  if(item.editorType!==undefined&&!['entry','manual','inspection','machine','exit','custom'].includes(item.editorType))throw new DraftConflict('PROCESS_TEMPLATE_TYPE_INVALID',422);
+  if(typeof item.name!=='string'||item.mediaItems!==undefined&&!Array.isArray(item.mediaItems))throw new DraftConflict('PROCESS_TEMPLATE_INVALID',422);
   const key=preset?item.presetKey:item.catalogKey,target=preset?approvedPresets:catalog;
   const template:Record<string,unknown>=preset?{presetKey:key}:{catalogKey:key};
   for(const field of ['name','editorType','mode','people','media','mediaName','mediaType','mediaItems'])if(Object.hasOwn(item,field))template[field]=cloneDraft(item[field]);

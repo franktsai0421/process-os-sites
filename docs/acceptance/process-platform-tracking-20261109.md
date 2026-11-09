@@ -29,8 +29,8 @@ b1598b6：獨立畫布候選，來源 dc34874。e460d76：BOM＋畫布＋history
 
 ## 本批驗證
 
-- 新增工段共用類型：13 項 PASS。含已核准預設名稱、空／scalar 媒體保留、來源不變、共用鍵去重／不一致拒絕、不帶機器、ID 分隔碰撞、無共用鍵舊資料保留、來源變更拒絕核准。
-- 真正 master workflow handler：inline 與 records-v1 各 8 組 PASS，覆蓋 fixed Save／Submit／Approve、PROCESS busy、withdraw／approve 競態、來源版本 pin；fixture 含已核准自訂類型。
+- 新增工段共用類型：14 項 PASS。含已核准預設名稱、空／scalar 媒體保留、來源不變、共用鍵去重／不一致拒絕、不帶機器、ID 分隔碰撞、無共用鍵舊資料保留、來源變更拒絕核准。
+- 真正 master workflow handler：inline 與 records-v1 各 9 組 PASS，覆蓋 fixed Save／Submit／Approve、PROCESS busy、withdraw／approve 競態、來源版本 pin 及非法來源拒絕傳播；fixture 含已核准自訂類型。
 - 既有 AB 權限與製程主資料引用：58 項 PASS；沒有以管理員成功取代拒絕角色測試。
 - lint、非增量 TypeScript、來源 boundary：PASS；完整歷史來源掃描已取得公開 main 歷史並檢查 594 個 commits，PASS。提交後須再核對最終 HEAD。
 - 已存在匹配 lockfile 的依賴以隔離副本重用；不是全新安裝驗收。首次依賴 symlink 被 source boundary 正常拒絕，已改用實體副本，未改防護。

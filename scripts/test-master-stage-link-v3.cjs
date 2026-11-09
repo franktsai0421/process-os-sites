@@ -73,5 +73,15 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
   await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Thêm công đoạn'}),caseId=sent.receipt.caseId,current=await state();current.root.versions.find(v=>v.id==='PROCESS-active').status='superseded';current.root.versions.push({...root.versions.find(v=>v.scope==='PROCESS'),id:'process-new-active'});const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));const before=(await state()).s.revision;
   assert.equal((await run('AB','reviewer','approve',{caseId},409)).error,'PROCESS_SOURCE_VERSION_CHANGED');assert.equal((await state()).s.revision,before);assert.equal((await state()).root.workflowScopes.AB.pendingId,caseId);
  });
+ await check('T45 malformed approved PROCESS metadata cannot be propagated at final submission',async()=>{
+  await reset();const savedId=await prepareStage(),current=await state();
+  current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').mediaItems='invalid-source';
+  current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const before=(await state()).s.revision;
+  assert.equal((await run('AB','a','submit',{savedId,reason:'Reject malformed approved template'},422)).error,'PROCESS_TEMPLATE_INVALID');
+  const after=await state();assert.equal(after.s.revision,before);assert.equal(after.root.workflowScopes.AB.pendingId,null);assert.equal(after.root.active.PROCESS['A-NEW'],undefined);
+ });
  console.log(JSON.stringify({result:'PASS_ISOLATED',checks,realLocalWrites:0,browser:'NOT_EXECUTED'}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

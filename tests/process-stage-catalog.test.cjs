@@ -267,3 +267,16 @@ void test('legacy scalar preset media retains absence and never gains a fallback
     assert.equal(Object.hasOwn(inherited, 'mediaItems'), false);
   }
 });
+
+void test('malformed approved metadata cannot propagate into a new stage', () => {
+  for (const fields of [
+    { name: 42 },
+    { mediaItems: null },
+    { editorType: 'unknown-kind' },
+  ]) {
+    const r = root([{ ...copy(custom), ...fields }]),
+      before = copy(r);
+    assert.throws(() => prepare(r), /PROCESS_TEMPLATE_(?:TYPE_)?INVALID/);
+    assert.deepEqual(copy(r), before);
+  }
+});
