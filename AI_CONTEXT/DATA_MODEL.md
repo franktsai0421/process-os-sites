@@ -4,6 +4,8 @@
 
 未註冊的 `master-page-name-save.ts` 只在 request memory 產生單一 LINES 名稱儲存結果，使用既有 SharedDraft 欄位及原 receipt fingerprint；沒有持久化 key、控制資料初始化或資料移轉。
 
+後續 `master-line-page-workflow.ts` 僅在記憶體接受已建立的 `scope:master:LINES`／VersionedControl。既有 approved baseline、單一 draft/pending 投影、working/saved/cases、Begin 與命令原收據須屬同頁且完整 hydrate；不一致拒絕，不自動修補。此型別不是已採用的儲存格式，沒有 codec／SQL／migration／loader；不從舊 AB/C root 製造核准版。既有名稱編輯的版本投影及只讀 current-approved 引用已可做合成驗證，完整 topology／PROCESS 交易另待準備。
+
 合成 restore 演練區分原樣 records 與去機密分發快照：後者 `cleanJson` 會遞迴正規化 JSON 外觀字串，可能改動業務文字及原 fingerprint，不得代替 cutoff 原樣還原備份；新預演在原 pins 下拒絕差異。完整 DB／媒體還原尚未驗收。[已重現限制與安全方案](../docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
 
 ## 2026-11-05 — 事件版本與匯出預覽內容核對

@@ -33,6 +33,7 @@ jobs:
           node scripts/test-master-document-boundary.cjs
           node scripts/test-master-page-boundary.cjs
           node scripts/test-master-page-name-save.cjs
+          node scripts/test-master-line-page-workflow.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
           node --test tests/process-stage-catalog.test.cjs

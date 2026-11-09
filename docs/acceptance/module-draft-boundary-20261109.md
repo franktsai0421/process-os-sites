@@ -4,9 +4,9 @@
 
 ## 獨立公開候選邊界
 
-相對 #100 的 main，此批只新增兩個未註冊的頁面預演／名稱 Save 模組、三份合成回歸測試、必要的規格／交接，以及 AB/C CI 三條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
+相對 #100 的 main，本機候選新增三個未註冊的頁面預演／名稱 Save／整頁生命週期模組、四份合成回歸測試、必要的規格／交接，以及 AB/C CI 四條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
 
-來源為本次已核對公開 main 上的新提交，沒有匯入舊 243-path／quality／equipment 上傳 payload 或未發布整合祖先。新候選以 main 為遠端 parent，只公開本批差異；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
+公開 main 已核對，本機相容分支沒有納入其他未發布功能，也沒有匯入舊 243-path／quality／equipment 上傳 payload。既有本機整合歷史沒有整段上傳；遠端 #102 仍是 ee7d4fd，後續公開範圍須按最終來源另核對授權與審查；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
 
 ## 逐頁現況
 
@@ -49,6 +49,16 @@
 測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
 
 獨審補充後，名稱元件的 patch／guard 實體 selector 僅接受純 `{id:string}`（非空 ID），拒絕額外鍵、陣列或缺少字串 ID 的 selector，避免同一實體的不同外觀被誤當不同 contributor intent。拒絕發生在 staging 前，不修改原命令或 fingerprint；共用 kernel 與既有 writer 的相容格式不變。
+
+## #100 後續本機生命週期增量
+
+[master-line-page-workflow.ts](../../lib/master-line-page-workflow.ts) 僅接受已建立的單一 `master:LINES` approved control，不從舊 AB/C root 生成核准版，也不決定舊 pending/working cutoff。識別式 Begin 固定 basis／原 owner 收據；一份 AB/C content 共用 working/saved/case/generation。既有名稱 Save 沿用已複審的 selector admission；送審、撤回、發回、核准沿用 shared kernel 並產生同一頁的 NumericVersion 投影。開始修改／權限／來源及後批驗證失敗均不得改來源。
+
+current-approved 引用只回傳固定版本的副本，不採用 working/saved/pending；版本改變或權限失效拒絕。這是後續 catalog writer 的依賴元件，尚未讓真實 AB/C 頁面改讀它。所有 control／版本／原收據要完整 hydrate；saved、pending、draft 投影不一致及重複實體識別拒絕，不自動修補。
+
+16 組合成契約涵蓋完整既有名稱生命週期、雙人非衝突／衝突、全頁 pending lock、終止後原收據重播、no-change／確認版本、撤權、錯誤引用、序列化重開與媒體保留。context callbacks 是未來同一交易提供的完整頁面權限／引用驗證，沒有替使用者選定 AB/C 分區規則。新增／刪除／改 code、PROCESS link planner、歷史版 UI、codec／CAS、HTTP、舊 caller fence、資料 adoption 與實站仍未完成。新 Apply／restore 被拒絕；舊收據仍在原 owner 保留，不由此元件轉換或重送。
+
+本增量與 #100 相容整合尚未獨立審查或 build/browser；dc5bc6a 的複審只適用其原 tree。此處沒有新增備份診斷程式，也沒有執行真資料遷移、啟用或上傳。
 
 ## 資料安全演練與重大發現
 
