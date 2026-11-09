@@ -321,8 +321,9 @@ export function publicState(state: State,actorId?:string) {
     // New page readers use their authenticated owner endpoint. The general
     // Site payload carries effective compatibility content only, never old
     // abandoned drafts or a fabricated combined approved version.
-    delete master.workflowScopes;
+    // Validate both current approval pointers before omitting private owner proof.
     master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};
+    delete master.workflowScopes;
     master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));
     values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});
   }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;
