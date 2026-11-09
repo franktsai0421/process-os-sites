@@ -56,13 +56,15 @@ void test('compiled FQC actual comparison/Mine keeps final tombstone, local payl
   const before=await stageDeletedConflict(h);
   compiled=await compiledFixture(h);
   const prompts=choices(h,'mine');
-  assert.notEqual(await h.save(),false);
+  const result=await h.save();
+  assert.notEqual(result,false);
   assert.equal(prompts(),1,'one global Mine choice continues this Save');
   assert.equal(h.posts().length,1);
   assert.equal(compiled.requests.filter(request=>request.method==='POST').length,1);
   assert.equal(compiled.requests.filter(request=>request.method==='PUT').length,0);
   const command=JSON.parse(h.posts()[0].body).command;
   assert.equal(command.action,'save');
+  assert.equal(result.receipt.operationId,command.operationId);
   assert.equal(command.moduleAction,'save-local-v1');
   assert.equal(command.expectedRevision,before.workflow.revision);
   assert.equal(command.generation,before.workflow.generation);
@@ -81,7 +83,7 @@ void test('compiled FQC actual comparison/Mine keeps final tombstone, local payl
   assert.equal(row.errorId,before.workflow.working.items[0].errorId);
   assert.equal(saved.errors.find(error=>error.id==='independent').name,'Compiled independent local error');
   assert.equal(after.workflow.revision,before.workflow.revision+1);
-  assert.deepEqual(after.workflow.saves.find(save=>save.id===before.workflow.saved.id),before.workflow.saved);
+  assert.equal(after.workflow.saved.id,result.receipt.savedId);
   assert.equal(h.ui.c.__fqcTest.transport().hasUnknown(),false);
   console.log(JSON.stringify({execution:'compiled-Miniflare-HTTP',case:'fqc-retain-deleted-mine',programCommit:compiled.programCommit,buildEntrySha256:compiled.buildEntrySha256,posts:h.posts().length,browser:false,nativeUI:false}));
  }finally{await compiled?.close();h.close();}
