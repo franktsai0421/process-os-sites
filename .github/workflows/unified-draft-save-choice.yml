@@ -29,20 +29,21 @@ jobs:
       - run: npm run lint -- --format unix
       - run: npx tsc --noEmit --incremental false
       - name: Exact unified source and predecessor proofs
-        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs tests/access-event-main-integration.test.cjs tests/bom-main-integration-source-contract.test.cjs tests/bom-successor-source-contract.test.cjs tests/bom-unsent-source-contract.test.cjs tests/equipment-save-choice-source.test.cjs tests/routine-fqc-source-contract.test.cjs tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs
+        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs tests/access-event-main-integration.test.cjs tests/bom-main-integration-source-contract.test.cjs tests/bom-successor-source-contract.test.cjs tests/bom-unsent-source-contract.test.cjs tests/equipment-save-choice-source.test.cjs tests/routine-fqc-source-contract.test.cjs tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs tests/background-check-source-proof.test.cjs
       - name: Global decisions and pre-dispatch authority
         run: >-
           node --test --test-concurrency=2
-          tests/master-save-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
+          tests/master-save-merge.test.mjs tests/process-legacy-photo-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
           tests/quality-comparison-callback-owner.test.mjs
           tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs tests/fqc-compared-save-client.test.mjs
-          tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
-          tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs
+          tests/iqc-save-choice.test.mjs tests/iqc-stable-lists.test.mjs tests/iqc-supplier-primary-tail.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
+          tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs tests/fqc-retained-deleted-save.test.mjs tests/fqc-retained-deleted-ui.test.mjs
+          tests/fqc-photo-metadata.test.mjs tests/fqc-file-local-save.test.mjs
           tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
           tests/ipqc-c-save-choices-actual-stack.test.mjs tests/ipqc-c-structural-save-actual-stack.test.mjs
           tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs
           tests/equipment-save-choice.test.mjs tests/canvas-save-conflict-choice.test.mjs
-          tests/tooling-global-save-choice.test.mjs tests/routine-fqc-durable-route.test.mjs
+          tests/tooling-save-only-files.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-content-validator.test.mjs
       - name: Same-page input retention
         run: >-
           node --test --test-concurrency=2
@@ -51,7 +52,14 @@ jobs:
           tests/quality-stable-photo-merge.test.mjs
           tests/bom-page-local-retention.test.mjs tests/equipment-page-local-retention.test.mjs
           tests/ipqc-c-filter-preservation.test.mjs
+      - name: Merged main explicit checks
+        run: >-
+          node --test --test-concurrency=2
+          tests/global-background-checks.test.mjs tests/shared-draft-restore-admission.test.cjs
+          tests/fqc-readiness.test.mjs tests/process-stage-catalog.test.cjs
       - name: Draft entry and timer removal
         run: node --test tests/master-explicit-refresh.test.mjs tests/quality-master-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs
       - run: npm run sites:source-check
       - run: npm run build
+      - name: Compiled draft protocol HTTP
+        run: node --test --test-concurrency=1 tests/iqc-save-choice-compiled-http.test.mjs tests/fqc-retained-deleted-compiled-http.test.mjs

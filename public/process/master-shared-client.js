@@ -194,8 +194,16 @@
       // A reload has no RAM pin; departure may have abandoned/replaced the local
       // batches. Neither case grants permission to discard or resurrect input.
       if(remaining&&ownerMatches(remaining.owner)&&remaining.generation===pin.generation&&remaining.batches.length>=pin.batches.length&&pin.batches.every((batch,i)=>remaining.batches[i]===batch)){
-        remaining.base=copy(pin.acceptedSnapshot);
-        remaining.batches=remaining.batches.slice(pin.batches.length);
+        const suffix=remaining.batches.slice(pin.batches.length);
+        // A late whole-photo-array setter still contains the original primary,
+        // even when the user only appended a tail after choosing theirs. Derive
+        // its actual unsent intent against the fixed sent snapshot, never the
+        // later receipt readback. Conflicting late intent waits for explicit Save.
+        remaining.base=copy(pin.intentSnapshot);remaining.batches=suffix;
+        if(suffix.length){
+          const intent=projectLocal(pin.intentSnapshot,suffix),comparison=compareMasterSnapshots(pin.intentSnapshot,intent,pin.acceptedSnapshot,'PROCESS');
+          if(!comparison.conflicts.length){remaining.base=copy(pin.acceptedSnapshot);remaining.batches=comparison.materialize('mine').filter(batch=>batch.patches.length);}
+        }
         if(!remaining.batches.length)discardLocal('PROCESS');
       }
       processSave=null;
@@ -207,20 +215,77 @@
       const entityList=value=>Array.isArray(value)&&value.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string');
       const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
       const label=path=>path.map(part=>typeof part==='string'?part:part.id).join(' · ');
+      // Legacy photo src is a comparison key only: never add a persisted ID or
+      // infer that a new src inherits metadata from a removed photo.
+      function processMedia(before,own,other,path,choice){
+        const lists=[before.mediaItems,own.mediaItems,other.mediaItems];
+        if(!lists.every(Array.isArray)||lists.some(list=>list.some(row=>row&&Object.hasOwn(row,'id'))))return null;
+        const fields=['mediaItems','media','mediaName','mediaType'],group=value=>Object.fromEntries(fields.filter(key=>Object.hasOwn(value,key)).map(key=>[key,value[key]]));
+        const groups=[before,own,other].map(group),valid=list=>list.every(row=>object(row)&&typeof row.src==='string'&&row.src)&&new Set(list.map(row=>row.src)).size===list.length;
+        const aliases=value=>{const first=value.mediaItems[0];return ['media','mediaName','mediaType'].every((key,index)=>!Object.hasOwn(value,key)||equal(value[key],[first?.src||null,first?.name||'',first?.type||''][index]));};
+        const fallback=reason=>{
+          if(equal(groups[1],groups[0]))return clone(groups[2]);
+          if(equal(groups[2],groups[0])||equal(groups[1],groups[2]))return clone(groups[1]);
+          if(choice===undefined)conflicts.push({path:[...path,'mediaItems'],label:label(path)+' · '+t('照片組：無法安全辨識（','Nhóm ảnh: không thể xác định an toàn (')+reason+')',mine:clone(groups[1]),theirs:clone(groups[2])});
+          return clone(groups[choice==='mine'?1:2]);
+        };
+        if(!lists.every(valid))return fallback(t('來源重複或不完整','nguồn trùng hoặc thiếu'));
+        if(![before,own,other].every(aliases))return fallback(t('主照片別名不一致','bí danh ảnh chính không khớp'));
+        if(!lists[0].length)return fallback(t('缺少原主照片基準','thiếu cơ sở ảnh chính gốc'));
+        const [base,mine,peer]=lists,maps=lists.map(list=>new Map(list.map(row=>[row.src,row]))),firsts=lists.map(list=>list[0]),sources=firsts.map(row=>row?.src);
+        const changedTailSource=[1,2].some(side=>base.slice(1).some(row=>!maps[side].has(row.src)&&lists[side].some(item=>!maps[0].has(item.src)&&item.src!==sources[side])&&(!maps[3-side].has(row.src)||!equal(maps[3-side].get(row.src),row))));
+        if(changedTailSource)return fallback(t('更換來源無法可靠配對','không thể ghép nguồn ảnh thay thế'));
+        let principalConflict=false,principal=sources[0],principalSide=null;
+        if(!sources.every(src=>src===sources[0])){
+          if(equal(firsts[1],firsts[0])){principal=sources[2];principalSide=2;}
+          else if(equal(firsts[2],firsts[0])||equal(firsts[1],firsts[2])){principal=sources[1];principalSide=1;}
+          else principalConflict=true;
+          // Promoting an existing tail photo depends on that photo surviving.
+          if(principal!==undefined&&maps[0].has(principal)&&(!maps[1].has(principal)||!maps[2].has(principal)))principalConflict=true;
+          if(principalConflict){
+            if(choice===undefined)conflicts.push({path:[...path,'mediaItems'],label:label(path)+' · '+t('主照片／相依移除','Ảnh chính / xóa phụ thuộc'),mine:clone(firsts[1]),theirs:clone(firsts[2])});
+            principalSide=choice==='mine'?1:2;principal=sources[principalSide];
+          }
+        }
+        const selected=choice==='mine'?1:2,principalKeys=new Set(sources.filter(src=>src!==undefined)),rows=new Map(),keys=[...new Set([...peer,...mine,...base].map(row=>row.src))];
+        for(const src of keys){
+          let row;
+          // A competing replacement is part of the principal choice, not an
+          // independent append. Existing tails outside this group still merge.
+          if(principalConflict&&principalKeys.has(src)&&(!maps[1].has(src)||!maps[2].has(src)))row=clone(maps[selected].get(src));
+          else row=merge(maps[0].get(src),maps[1].get(src),maps[2].get(src),[...path,'mediaItems',src],choice);
+          if(row!==undefined)rows.set(src,row);
+        }
+        const ids=lists.map(list=>list.map(row=>row.src)),currentPrincipals=new Set(sources.slice(1)),common=ids[0].filter(src=>!currentPrincipals.has(src)&&maps[1].has(src)&&maps[2].has(src)&&rows.has(src)),commonSet=new Set(common),orders=ids.slice(1).map(list=>list.filter(src=>commonSet.has(src))),moved=orders.map(order=>!equal(order,common));
+        const sharedNew=ids[1].filter(src=>!maps[0].has(src)&&maps[2].has(src)&&!currentPrincipals.has(src)&&rows.has(src)),sharedTail=new Set([...common,...sharedNew]),sharedOrders=ids.slice(1).map(list=>list.filter(src=>sharedTail.has(src)));
+        const orderConflict=moved.every(Boolean)&&!equal(orders[0],orders[1])||sharedNew.length>0&&!equal(sharedOrders[0],sharedOrders[1]);
+        if(orderConflict&&choice===undefined)conflicts.push({path:[...path,'mediaItems'],label:label(path)+' · '+t('照片順序','Thứ tự ảnh'),mine:ids[1],theirs:ids[2]});
+        const preferMine=orderConflict?choice==='mine':moved[0],tailSide=preferMine?1:2,primary=ids[principalSide??tailSide],secondary=ids[(principalSide??tailSide)===1?2:1],newTail=src=>!maps[0].has(src)&&!principalKeys.has(src),order=primary.filter(src=>rows.has(src)&&!newTail(src));
+        // Principal choice owns only its dependent positions. Tail order is a
+        // separate three-way unit: keep the other side's independent reorder,
+        // even when the global choice selected this side's principal photo.
+        const tailOrder=orders[tailSide-1];let tailIndex=0;
+        for(let index=0;index<order.length;index++)if(commonSet.has(order[index]))order[index]=tailOrder[tailIndex++];
+        const insert=(sequence,include)=>{for(let index=0;index<sequence.length;index++){
+          const src=sequence[index];if(!include(src)||!rows.has(src)||order.includes(src))continue;
+          const after=sequence.slice(index+1).find(key=>order.includes(key));
+          if(after!==undefined)order.splice(order.indexOf(after),0,src);else order.push(src);
+        }};
+        insert(secondary,src=>!newTail(src));
+        // Tail anchors and append tie order follow the tail comparison, never
+        // a conflicting principal choice. Peer additions precede local ties.
+        insert(ids[tailSide],newTail);insert(ids[3-tailSide],newTail);
+        for(const src of rows.keys())if(!order.includes(src))order.push(src);
+        if(principal!==undefined&&rows.has(principal)){const index=order.indexOf(principal);order.splice(index,1);order.unshift(principal);}
+        const mediaItems=order.map(src=>rows.get(src)),result={mediaItems},first=mediaItems[0];
+        // Aliases are derived from the final first row, including merged metadata
+        // and the surviving first tail after an independently deleted principal.
+        for(const [index,key]of ['media','mediaName','mediaType'].entries())if([before,own,other].some(value=>Object.hasOwn(value,key)))result[key]=[first?.src||null,first?.name||'',first?.type||''][index];
+        return result;
+      }
       function merge(before,own,other,path,choice){
         if(equal(own,before))return clone(other);
         if(equal(other,before)||equal(own,other))return clone(own);
-        // Legacy PROCESS photos have no entity ID. Only an unchanged, nonempty
-        // prefix proves these are independent additions (including the primary
-        // photo); replacement/deletion/reorder remain conservative conflicts.
-        if(scope==='PROCESS'&&path.at(-1)==='mediaItems'&&Array.isArray(before)&&before.length&&[own,other].every(Array.isArray)){
-          const valid=list=>list.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&!Object.hasOwn(row,'id')&&typeof row.src==='string'&&row.src)&&new Set(list.map(row=>row.src)).size===list.length;
-          if([before,own,other].every(valid)&&[own,other].every(list=>list.length>=before.length&&before.every((row,index)=>equal(row,list[index])))){
-            const otherBySrc=new Map(other.map(row=>[row.src,row]));
-            if(own.every(row=>!otherBySrc.has(row.src)||equal(row,otherBySrc.get(row.src))))
-              return clone([...other,...own.filter(row=>!otherBySrc.has(row.src))]);
-          }
-        }
         if(entityList(before)&&entityList(own)&&entityList(other)){
           for(const list of [before,own,other])if(new Set(list.map(row=>row.id)).size!==list.length)throw Error('CATALOG_IDENTITY_INVALID');
           const maps=[before,own,other].map(list=>new Map(list.map(row=>[row.id,row]))),ids=[...new Set([...other,...own,...before].map(row=>row.id))],rows=new Map();
@@ -245,7 +310,9 @@
           return order.map(id=>rows.get(id));
         }
         if(object(before)&&object(own)&&object(other)){
-          const result={};for(const key of new Set([...Object.keys(before),...Object.keys(own),...Object.keys(other)])){
+          const media=scope==='PROCESS'?processMedia(before,own,other,path,choice):null,result=media||{};
+          for(const key of new Set([...Object.keys(before),...Object.keys(own),...Object.keys(other)])){
+            if(media&&['mediaItems','media','mediaName','mediaType'].includes(key))continue;
             const value=merge(before[key],own[key],other[key],[...path,key],choice);if(value!==undefined)result[key]=value;
           }return result;
         }
@@ -326,7 +393,7 @@
       await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       const comparison=compareCatalog?await comparedCatalogBatches(scope,local,current,c,saveOwner,input):{batches:copy(local?.batches||[]),acceptedSnapshot:copy(current.working)};if(comparison===null)return null;const {batches,acceptedSnapshot,expectedRevision}=comparison;
       const command=c.prepare(current.generation,'save',{...detail,...(expectedRevision===undefined?{}:{expectedRevision}),moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
-      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],acceptedSnapshot};
+      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],intentSnapshot:compareCatalog?projectLocal(local.base,JSON.parse(input.original)):copy(current.working),acceptedSnapshot};
       let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}catch(error){if(scope==='PROCESS'&&!c.hasUnknown()&&processSave?.operationId===command.operationId)processSave=null;throw error;}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       // Transport validates the original receipt and readback before clearing its

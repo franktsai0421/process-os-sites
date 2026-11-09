@@ -1,5 +1,5 @@
 // Current shipped sources only. Removed draft callers must not be replaced with
-// a permissive fake timer; live history/restore permission timers are separate.
+// a permissive fake timer; history/restore permissions are checked on explicit actions.
 import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import ts from 'typescript';import {webcrypto} from 'node:crypto';import {canvasDOM} from '../login-reentry-dom.mjs';
 export const draftModules=['process-authoring-v3.js','master-data.js','fqc-master.js','iqc-master.js','ipqc-ab.js','ipqc-c.js','routine-equipment.js','bom-workspace.js','tooling.js'];
 const source=(root,name)=>fs.readFileSync(path.join(root,'public/process',name),'utf8');
@@ -8,13 +8,13 @@ export function assertNoDraftPoll(root,name,text=source(root,name)){
  function visit(node){if(ts.isCallExpression(node)){const callee=node.expression.getText(ast);if(['matrixRecoverySession.schedule','session.schedule'].includes(callee)){const body=node.arguments[0]?.getText(ast)||'';assert.match(body,/matrixSnapshot|errorProjection/,name+' schedules only explicit recovery capture');assert.doesNotMatch(body,/(?:\bfetch|\.(?:read|permissions))\s*\(/,name+' recovery capture cannot hide a draft reader');}if(/(?:^|\.)setInterval$|(?:^|\.)createForegroundPoll$/.test(callee)||ts.isPropertyAccessExpression(node.expression)&&node.expression.name.text==='schedule'&&!['matrixRecoverySession.schedule','session.schedule'].includes(callee))forbidden.push(callee);}if(ts.isFunctionDeclaration(node)&&/^(?:pollMaster|pollShared|pollTick|poll|scheduleRefresh|scheduleSharedRefresh)$/.test(node.name?.text||''))forbidden.push(node.name.text);ts.forEachChild(node,visit);}visit(ast);
  assert.deepEqual(forbidden,[],name+' has no retired recurring draft reader or renamed scheduler call');return text;
 }
-export async function assertDraftInitializerIdle(root,name){
+export async function assertDraftInitializerIdle(root,name,{identity={id:'owner'}}={}){
  const text=assertNoDraftPoll(root,name),dom=canvasDOM(),document=dom.document;document.visibilityState='visible';const timers=new Map(),calls=[],store=new Map();let sequence=0;
  const storage={get length(){return store.size;},key:i=>[...store.keys()][i]??null,getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
  const c={...dom,console,crypto:webcrypto,structuredClone,URL,URLSearchParams,Response,Request,AbortController,AbortSignal,TextEncoder,location:{origin:'https://no-poll.invalid',pathname:'/process/',href:'https://no-poll.invalid/process/'},localStorage:storage,sessionStorage:storage,hasPermission:()=>false,readStore:()=>null,escapeHtml:String,queueMicrotask,
   setTimeout(fn,ms){const id=++sequence;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),setInterval(){throw Error('DRAFT_INTERVAL_FORBIDDEN:'+name);},clearInterval(){},MutationObserver:class{observe(){}disconnect(){}},
   state:{view:'data',masterScope:'AB'},data:{products:[],categories:[]},lines:[],routing:{productRoutes:{},lines:[]},processMaster:{},ipqcMatrix:{},bindView(){},renderInspector(){},bindData(){},bindDataInner(){},bindApproval(){},render(){},editor(){},
-  ProcessSync:{deliveryProjection:true,identity:{id:'owner'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:v=>v===1,platformHeaders:()=>({}),requiresReload:false},
+  ProcessSync:{deliveryProjection:true,identity,identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:v=>v===1,platformHeaders:()=>({}),requiresReload:false},
   createMasterSharedBridge:()=>({diff:()=>({patches:[],guards:[]}),flow:()=>null,permissions:()=>({})}),VersionDraftUI:{mount(){},updateSaved(){},preserveView:()=>()=>{},t:v=>v},fetch:async(url,o={})=>{calls.push({url,method:o.method||'GET'});throw Error('IDLE_READ_FORBIDDEN:'+name);}
  };c.window=c;dom.events(c);vm.createContext(c);vm.runInContext(source(root,'shared-draft-client.js'),c);c.createForegroundPoll=()=>{throw Error('DRAFT_SCHEDULER_FORBIDDEN:'+name);};
  vm.runInContext(text,c,{filename:name});

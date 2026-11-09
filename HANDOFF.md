@@ -61,6 +61,13 @@ Based on merged main 021f0f3 (#99), this batch changes only the selector count a
 Frank 手動合併 #100 後，已核對公開 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`／tree `6eee3963fec61a540c144a920fbb3f65949d5e10`，另開本機相容分支整合；CHANGELOG／SHARED_DRAFT 保留雙方段落，#100 的程式與測試維持原樣。先前已複審的 dc5bc6a 留在原分支；後續整合須按新來源驗證。遠端 #102 的 selector 修正上傳仍被目的地授權審查擋下，沒有重試或換路；不啟用拆分、不改真資料、不合併或部署。
 
 Frank 要求優先拆分後，新增未接線 `master-line-page-workflow.ts` 與 18 組純合成測試，補單一 LINES 既有名稱的 identified Begin／Save／案件／版本及核准來源處理。需要已建立的 page-owned approved baseline，不從舊 root adoption；callbacks 只代表未來受信任交易權限／引用驗證，沒有選擇 AB/C 分區政策。完整 topology／PROCESS planner、codec／CAS、舊 caller fence、UI 與真資料切換仍待完成；新元件初審在 13c6e02 發現案件與數字投影可同向偏離原 Save；已補固定 savedId／content 及 pending current saved 綁定，等待新 tree 定向複審。build/browser 尚未執行，不得沿用 dc5bc6a 的舊複審充數。公開新增範圍也不同於先前被拒的五檔，須另依最終來源核對授權，不能重送舊 payload。
+## 2026-11-09 — 草稿衝突處理續作
+
+從 7ef04ed 繼續整合 PROCESS／IQC 照片與清單、例行 FQC late ACK、FQC 墓碑 payload，以及模具 File 明確 Save 後上傳。舊工作草稿可放棄、A 可送整份 A/B、例行 FQC 整頁一份已確認；持久分界仍由 #102 接線，未刪待審／核准歷史或動真資料。[逐頁實作、相依與上傳界線](docs/acceptance/draft-conflict-continuation-20261109/README.md)。
+
+## 2026-11-09 — 統一草稿候選納入已合併 main #99／#100
+
+已於隔離分支真正merge main `9fbba823`，同時保留inert背景排程、history/restore明確操作權限與既有整組Save／CAS／原收據fences。原d1交付不覆寫，Canvas獨立候選與持久分拆未混入；未上傳或部署。[整合內容、驗證及界線](docs/acceptance/unified-main100-integration-20261109/README.md)。
 
 # 2026-11-09 — Process platform stage catalog batch
 

@@ -77,6 +77,29 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-data.js':'20261109-unified-save-choice1',
  };
  for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
+ const followupReferences=[...unified.restore(currentIndex,'public/process/index.html','previous_followup').toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [asset,version]of Object.entries(versions)){const currentVersion=version==='20261109-unified-save-choice1'||asset==='master-admin-ui.js'?'20261109-unified-save-choice2':version;assert.deepEqual(followupReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}
+ const mainBackgroundVersions={
+  'local-draft-recovery.js':'20261103-fqc-generation1',
+  'shared-draft-client.js':'20261109-explicit-checks3',
+  'process-authoring-v3.js':'20261109-explicit-checks1',
+  'process-ipqc.js':'20261109-explicit-checks1',
+  'effective-version-notice.js':'20261109-explicit-checks1',
+  'fqc-master.js':'20261104-begin-generation2',
+  'fqc-master.css':'20261104-single-save1',
+  'tooling.js':'20261105-tooling-local-save1',
+  'tooling.css':'20261007-2',
+  'ipqc-ab.js':'20261105-ab-scope-input1',
+  'routine-equipment.js':'20261108-equipment-ci-recovery1',
+  'process-equipment.js':'20261105-process-local-save1',
+  'app.js':'20261105-process-local-save1',
+  'bom-workspace.js':'20261105-bom-atomic1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
+  'master-shared-client.js':'20261105-process-local-save1',
+  'master-data.js':'20261105-process-local-save1',
+ };
+ const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main_background').toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [asset,version]of Object.entries(mainBackgroundVersions))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
  const currentReferences=[...currentIndex.toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const asset of Object.keys(versions)){const currentVersion=historicalCache.expectedCurrentCache(asset);assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}
 });

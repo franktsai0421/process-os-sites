@@ -1496,7 +1496,14 @@
     if(!saved?.saved||saved.saved.id!==result.savedId||!sameRoutineValue(saved.saved.content,merged.content))throw Error('SAVE_RECHECK_REQUIRED');
     const local=s.buffers.get(d.id);
     if(sameRoutineValue(local,c)){s.buffers.delete(d.id);s.bases.delete(d.id);}
-    else if(local){s.buffers.set(d.id,mergeSaveContent(c,local,merged.content,'mine').content);s.bases.set(d.id,clone(merged.content));}
+    else if(local){
+      const rebased=mergeSaveContent(c,local,merged.content);
+      // An ACK settles only the captured Save. Newer input still belongs to
+      // its captured basis; never silently choose mine for a late conflict.
+      // The next explicit Save must compare that intent and ask once again.
+      if(rebased.conflicts.length)s.bases.set(d.id,clone(c));
+      else{s.buffers.set(d.id,rebased.content);s.bases.set(d.id,clone(merged.content));}
+    }
     return result;
   }
   function dialog(title, body, submit = t('確認', 'Xác nhận'), onready) {

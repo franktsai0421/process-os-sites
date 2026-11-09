@@ -26,3 +26,10 @@ void test('initial unified and prior runtime remain distinct true targets with i
  const initial=proof.restore(read('public/process/index.html'),'public/process/index.html','initial_unified'),previous=proof.restore(read('public/process/index.html'),'public/process/index.html','previous_runtime');assert.deepEqual(initial,previous);
  assert.equal(blob(initial),witness.resolve(targets.initial_unified,'public/process/index.html'));assert.equal(blob(previous),witness.resolve(targets.previous_runtime,'public/process/index.html'));
 });
+
+void test('main #100 index retains its exact explicit-check cache stage before the unchanged background inverse',()=>{
+ const file='public/process/index.html',current=read(file),background=proof.restore(current,file,'main_background'),before=proof.restore(current,file,'latest_main');assert.deepEqual(require('../scripts/background-check-source-contract.cjs').restorePredecessor(background,file),before);
+ const references=[...background.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const expected={'shared-draft-client.js':'20261109-explicit-checks3','process-authoring-v3.js':'20261109-explicit-checks1','process-ipqc.js':'20261109-explicit-checks1','effective-version-notice.js':'20261109-explicit-checks1','master-admin-ui.js':'20261105-abc-local-save1'};
+ for(const [asset,version]of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
+});

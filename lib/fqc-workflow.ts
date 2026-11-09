@@ -16,6 +16,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
  const matrixCatalog=new WeakMap<object,{code:string;category?:string;name?:string;specification?:string}[]|null>();
  return{key:'qualityMasterControl',scope:'fqc',empty:()=>({errors:[],items:[]}),photoPrefix:'fqc/photos/',photoIds:()=>[],
    requiresCreate:(_control,command)=>command.action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.reviveRows)&&command.input.reviveRows.length>0,
+   requiresDelete:(_control,command)=>command.action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.retainDeletedRows)&&command.input.retainDeletedRows.length>0,
    preparedModel:true,permissionOnlyRead:true,recordMutation:'fqc-existing-set',fqcLifecycle8Mutation:true,
   needsFullHistory:command=>!!command?.patches?.some(p=>p.op==='insert'),
   parse(raw,prepared){root=(prepared|| (raw===undefined?{schemaVersion:1,libraries:{}}:JSON.parse(raw))) as typeof root;if(root.schemaVersion!==1||!root.libraries)throw new DraftConflict('FQC_EXISTING_DATA_INVALID',422);
@@ -80,10 +81,10 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
    };
    matrixCatalog.set(result,matrixProducts);return result;
   },
-  apply:function applyFqc(control:FqcLibrary,command:ModuleDraftCommand,context:DraftContext<FqcSnapshot>):ReturnType<typeof applyDraftCommand<FqcSnapshot>>{const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
+  apply:function applyFqc(control:FqcLibrary,command:ModuleDraftCommand,context:DraftContext<FqcSnapshot>,retainedTargets?:ReadonlySet<string>):ReturnType<typeof applyDraftCommand<FqcSnapshot>>{const flow=control.workflow!;if(flow.receipts[command.operationId])return applyDraftCommand(flow,command,context);
    if(command.action==='save'&&command.moduleAction==='save-local-v1'){
     assertFqcLocalSaveCommand(command);
-    if(!Array.isArray(command.patches)||!Array.isArray(command.guards)||!command.input||Object.keys(command.input).some(k=>!['matrixCells','expectedAB','reviveRows','draftVersionId'].includes(k))||!Array.isArray(command.input.matrixCells))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);
+    if(!Array.isArray(command.patches)||!Array.isArray(command.guards)||!command.input||Object.keys(command.input).some(k=>!['matrixCells','expectedAB','reviveRows','retainDeletedRows','draftVersionId'].includes(k))||!Array.isArray(command.input.matrixCells))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);
     if(!context.allowed('view')||!context.allowed('edit'))throw new DraftConflict('FORBIDDEN',403);
     const fingerprint=context.commandFingerprint||stableDraftJSON(command),internalContext={...context,commandFingerprint:fingerprint};
     // Pure transitions only: no intermediate receipt, working body or Save can
@@ -97,6 +98,18 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     // Reactivate only exact current-draft tombstones. The route's existing
     // requiresCreate hook checks fqc.create; edit/view and all normal guards
     // remain mandatory. No historical body or client replacement row is used.
+    // Only this invocation may edit an exact current tombstone while keeping it
+    // deleted. Never activate/copy a historical row or publish an intermediate state.
+    const retained=new Set<string>();
+    const parentValid=(row:Row,working:FqcSnapshot)=>{const parents=working.errors.filter(parent=>parent.id===row.errorId);return parents.length===1&&parents[0].category===row.category&&parents[0].line===row.line;};
+    if(Array.isArray(command.input.retainDeletedRows)){
+     if(command.expectedRevision!==flow.revision||command.generation!==flow.generation||flow.pendingId||control.versions.filter(v=>v.status==='draft').length!==1||control.versions.filter(v=>v.id===command.input!.draftVersionId&&v.status==='draft').length!==1)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');
+     for(const value of command.input.retainDeletedRows){const keep=value as {collection:'errors'|'items';id:string;tombstone:Row},rows=flow.working[keep.collection].filter(row=>row.id===keep.id),row=rows[0];
+      if(rows.length!==1||row.isDeleted!==true||keep.collection==='items'&&!parentValid(row,flow.working))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
+      if(stableDraftJSON(row)!==stableDraftJSON(keep.tombstone))throw new DraftConflict('DEPENDENCY_CHANGED_RECONFIRM',409,{path:[keep.collection,{id:keep.id}]});
+      retained.add(JSON.stringify([keep.collection,keep.id]));
+     }
+    }
     let source=control;
     if(Array.isArray(command.input.reviveRows)){
      if(command.expectedRevision!==flow.revision||command.generation!==flow.generation||flow.pendingId||control.versions.filter(v=>v.id===command.input!.draftVersionId&&v.status==='draft').length!==1)throw new DraftConflict('DRAFT_REVISION_CHANGED_RECONFIRM');
@@ -108,7 +121,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
      }
      source={...control,workflow:{...flow,working}};
     }
-    let next=applyFqc(source,{...command,guards,action:'apply',moduleAction:undefined,input:command.input.expectedAB?{expectedAB:command.input.expectedAB}:undefined},internalContext).state;
+    let next=applyFqc(source,{...command,guards,action:'apply',moduleAction:undefined,input:command.input.expectedAB?{expectedAB:command.input.expectedAB}:undefined},internalContext,retained).state;
     const reset=(state:SharedDraft<FqcSnapshot>)=>({...state,revision:flow.revision,receipts:flow.receipts,sequences:flow.sequences});
     next=reset(next);
     if(command.input.matrixCells.length){
@@ -120,6 +133,9 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
     if(Array.isArray(command.input.reviveRows)){
      for(const value of command.input.reviveRows){const revive=value as {collection:'errors'|'items';id:string;tombstone:Row},row=result.state.working[revive.collection].find(row=>row.id===revive.id);if(!row||row.isDeleted!==false||row.category!==revive.tombstone.category||row.line!==revive.tombstone.line||(revive.collection==='errors'?row.code!==revive.tombstone.code:row.checkNo!==revive.tombstone.checkNo))throw new DraftConflict('FQC_REVIVE_CHANGED_RECONFIRM');}
      for(const value of command.input.matrixCells){const cell=value as {itemId:string;productCode:string;value:boolean},row=result.state.working.items.find(row=>row.id===cell.itemId&&!row.isDeleted);if(!row||row.productCodes.includes(cell.productCode)!==cell.value)throw new DraftConflict('FQC_REVIVE_CHANGED_RECONFIRM');}
+    }
+    if(Array.isArray(command.input.retainDeletedRows))for(const value of command.input.retainDeletedRows){const keep=value as {collection:'errors'|'items';id:string;tombstone:Row},row=result.state.working[keep.collection].find(row=>row.id===keep.id);
+     if(!row||row.isDeleted!==true||row.category!==keep.tombstone.category||row.line!==keep.tombstone.line||(keep.collection==='errors'?row.code!==keep.tombstone.code:row.checkNo!==keep.tombstone.checkNo)||keep.collection==='items'&&!parentValid(row,result.state.working))throw new DraftConflict('INVALID_FQC_LOCAL_SAVE',422);
     }
     // Save may reuse an identical saved snapshot while this operation still
     // changed legacy working content. The aggregate revision must expose it.
@@ -148,7 +164,7 @@ export function fqcWorkflowAdapter():WorkflowAdapter<FqcSnapshot,FqcLibrary>{
      if(collection==='errors'){const row=p.value as Row&{code:string};if(typeof row.category!=='string'||typeof row.line!=='string')throw new DraftConflict('CATEGORY_REQUIRED',422);const same=allErrors.filter(e=>e.category===row.category),sample=same.find(e=>/-FQC-L\d+$/i.test(e.code)),prefix=sample?sample.code.replace(/\d+$/,''):row.category.replace(/[-/()]/g,'')+'-FQC-L';row.code=prefix+String(Math.max(0,...same.map(e=>Number(e.code.match(/(\d+)$/)?.[1])||0))+1).padStart(2,'0');allErrors.push(row);}
      else{const row=p.value as Item,parent=flow.working.errors.find(e=>e.id===row.errorId&&!e.isDeleted)||patches.filter(q=>q.op==='insert'&&q.path[0]==='errors').map(q=>(q as Extract<DraftPatch,{op:'insert'}>).value as Row&{code:string}).find(e=>e.id===row.errorId&&!e.isDeleted);if(!parent)throw new DraftConflict('ERROR_PARENT_INVALID',422);const match=parent.code.match(/^(.*-FQC-L)0?(\d+)$/i),prefix=match?match[1]+Number(match[2])+'-':parent.code+'-';row.category=parent.category;row.line=parent.line;row.checkNo=prefix+String(Math.max(0,...allItems.filter(i=>i.errorId===row.errorId).map(i=>Number(i.checkNo.match(/-(\d+)$/)?.[1])||0))+1).padStart(2,'0');allItems.push(row);}
     }else{if(p.op!=='set'||p.path.length!==3||!entity||typeof entity==='string'||typeof field!=='string'||!fields[collection].includes(field))throw new DraftConflict('UNSUPPORTED_ITEM_PATCH',422);
-     if(!flow.working[collection].some(r=>r.id===entity.id&&!r.isDeleted))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
+     if(!flow.working[collection].some(r=>r.id===entity.id&&(!r.isDeleted||retainedTargets?.has(JSON.stringify([collection,entity.id])))))throw new DraftConflict('ENTITY_REMOVED_OR_AMBIGUOUS');
      if(!(command.guards||[]).some(g=>stableDraftJSON(g.path)===stableDraftJSON(p.path)))throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED',422);
      // Explicit selection must remain effective even when its ID is unchanged.
      // Untouched historical references retain the ordinary Save/structure rules.

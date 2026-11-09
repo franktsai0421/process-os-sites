@@ -948,6 +948,7 @@
       if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();
       assertReadCurrent();
       try{fqcBeforeRequest(body);iqcBeforeRequest(body);}catch(cause){if(!body)throw cause;const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
+      assertReadCurrent();
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);

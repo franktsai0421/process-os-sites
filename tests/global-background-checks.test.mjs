@@ -1,9 +1,9 @@
-// Actual retired scheduler and exact caller closures. Synthetic ports, no live data.
+// Complete current initializers and inert compatibility shim. Synthetic ports, no live data.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
-import ts from 'typescript';
+import '../scripts/entry-performance/foreground-poll.test.mjs';
+import {draftModules,assertNoDraftPoll,assertDraftInitializerIdle,assertExplicitHistoryPermissions} from '../scripts/entry-performance/draft-no-poll-fixture.mjs';
 import {browserTimerInventory,readBrowserSources} from '../scripts/browser-timer-inventory.mjs';
 const read=name=>fs.readFileSync('public/process/'+name,'utf8');
 const shared=read('shared-draft-client.js');
