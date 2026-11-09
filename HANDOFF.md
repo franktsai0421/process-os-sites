@@ -1,3 +1,7 @@
+## 2026-11-09 — 帳密整合結果
+
+本機 `fe6dcb6` 已整合 account-only `efa7b75` 並保留 #100，26-file source regression 345/345 PASS；來源／歷史 gate PASS。四項 scope／grant-provenance 權限差距仍未修完，#102 Draft 未接完，不改真人帳號／權限。完整 build／compiled Windows／browser／實站及舊傳送拒絕／receiver-PENDING 關卡仍未解除，本輪沒有遠端寫入。[目標狀態與證據](docs/acceptance/accounts-permissions-20261109.md#本輪整合驗證與剩餘交付關卡)。
+
 ## 2026-11-09 — Integrate the existing account recovery candidate locally
 
 Semantically compose efa7b75 onto the #100 account branch: credential compatibility/secret-free diagnostics, uniform anonymous failures, prewrite fresh reads, native validation and localized ownership-safe UI. Retain current ACK/target/result/unknown safeguards, #92 layout and #100 bytes. [Scope, source tests and unresolved transfer/native/#102 gates](docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75). No original transmission retry, real-account mutation or external write.

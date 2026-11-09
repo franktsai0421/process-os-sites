@@ -206,3 +206,20 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 先前來源傳送限制仍保留：舊 account text-transfer 與 AB text-transfer receipts 只記錄 steered，receiver byte verification=PENDING；使用者房間的既有回報指出帳密／IPQC AB 那次被授權審查拒絕，原因是「授權在審查完成前發生變化，無法套用」。這些不是本輪重新傳送或新的 GitHub mutation，也不因本機已讀回 exact commit 就宣稱原接收端已完成。本輪 source import 僅在同一 workspace／本地 Git；未傳送到原 receiver thread、GitHub 或 Site。
 
 仍不能宣稱 phung／Frank 真帳密可用；本機合成帳號通過、原生 compiled Windows job／實站登入驗收分開。正常 build 先前 SOURCE_SYMLINK_REFUSED 與 worktree postinstall 限制未繞過；完整 lint/typecheck、原 handler suite 的 TypeScript harness、native browser／compiled worker／Windows CI 目前缺相依或受既有環境限制，沒有改腳本跳過或換 checkout。
+
+
+### 本輪整合驗證與剩餘交付關卡
+
+本機來源提交 `fe6dcb66b8d7c909c662d6eb214442f9712d725d`：26-file source regression **345/345 PASS、0 skipped/cancelled**。完整命令、終端計數及輸出保存在專案外 evidence 的 `account-recovery-integrated-regression.json`／`.log`。正常來源邊界 PASS；完整 source/history/worktree gate PASS（616 commits、5438 unique blobs、2030 source files，無真人資料或憑證輸出）。這是同一 checkout 的來源回歸，不是 compiled Worker／原生 Windows／browser／測試站驗收。
+
+| 目標 | 本機來源狀態 | GitHub／實際驗收狀態 |
+| --- | --- | --- |
+| 登入／重設密碼 | 帳密候選已語意整合；合成缺憑證／錯誤憑證、原密碼、加密服務故障、明確後續確認與登入回歸通過 | 尚未上傳本分支；phung／Frank 真帳號未變更或驗收 |
+| 新增／編輯／停用／刪除／更多操作 | 實際 API 合成測試及 UI 確認前 fresh read、結果 ownership、ACK／讀回／unknown 防重送通過 | 尚待 compiled/browser 與測試站逐按鈕驗收；刪除代碼仍保留，不自動重用 |
+| 語言／提示／角色範本 | 帳號頁與登入提示中越文來源回歸通過；#92 layout 保留，只擴充既有 validation error selectors | 全站逐頁語言、IME、桌面／手機視覺未驗收 |
+| 權限規則 | 診斷 **6 PASS／4 FAIL**，沒有套用遷移或改真人權限 | 舊 review 不升高階、舊 review 對應模組送審撤回、高階含模組送審撤回、發回與撤回共用待審權限仍未完成；依 #102 active scope／grant provenance 協調 |
+| GitHub／測試站 | 已固定可審查本機提交，無資料／schema migration | main 仍 `9fbba823`；#102 Draft head `ee7d4fd`、未合併，該 PR 的後續 tree 操作結果未重送；本分支未 push／PR／部署 |
+
+已讀回最新使用者「請繼續執行直到工作解決並上github」（2026-11-09 07:44 UTC），這是目前的上傳意圖；不把它當成舊未知操作已失敗的證明。舊帳密傳送拒絕與 text-transfer receiver verification=PENDING 是不同記錄，仍需原傳送端的終端回執／接收端驗證對應確切 operation，才能判斷可否重試已拒絕而未執行的相同動作。本輪沒有用其他通道、拆檔、換 executor 或重新傳送原來源繞過限制；GitHub 上看不到分支／PR 本身不是原操作未執行的證明。
+
+本輪沒有新自動審查拒絕；仍保留先前的「授權在審查完成前發生變化，無法套用」與 SOURCE_SYMLINK_REFUSED。未執行正常 build、依賴安裝、完整 lint/typecheck、原 TypeScript harness suite、compiled/browser／Windows acceptance，不聲稱候選可發布。資料模型、既有真人帳號／角色／密碼、DB/R2、main、測試站均未寫入。
