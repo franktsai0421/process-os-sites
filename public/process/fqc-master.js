@@ -452,7 +452,11 @@
     for(const kind of ['errors','items'])for(const row of local[kind]){
       const before=base[kind].find(r=>r.id===row.id),peer=latest[kind].find(r=>r.id===row.id),label=row.name||row.id;
       if(!before){const unit=add(kind,row,[],true);if(peer){if(saveEqual(peer,row)){unit.same=true;continue;}conflict(unit,kind+':'+row.id+':identity',label+' · '+(isVi()?'Mã đã tồn tại':'同識別項目已存在'),true);}continue;}
-      if(row.isDeleted&&(!peer||peer.isDeleted))continue;
+      if(row.isDeleted&&(!peer||peer.isDeleted)){
+        const payload=sharedFields[kind].filter(field=>field!=='isDeleted'&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
+        if(payload.some(field=>!peer||!saveEqual(row[field],peer[field]))){const unit=add(kind,row,payload);conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa; thay đổi nội dung cần kiểm tra':'已刪除；內容修改需重新核對'),true);}
+        continue;
+      }
       const touched=sharedFields[kind].filter(field=>!['productCodes','productRefs','products'].includes(field)&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
       const groups=[];for(const field of touched){const group=saveFieldGroups.find(g=>g.includes(field))||[field];if(!groups.includes(group)&&!groups.some(g=>g.length===1&&g[0]===field))groups.push(group);}
       for(const fields of groups){const unit=add(kind,row,fields),value=r=>Object.fromEntries(fields.map(f=>[f,r?.[f]]));
@@ -472,6 +476,11 @@
           else if((peer.productCodes||[]).includes(code)===value)unit.same=true;
         }
       }
+    }
+    // A selected current-draft child may require its existing soft-deleted
+    // parent. Revive exact current tombstones together; never invent a row.
+    for(const unit of units){if(unit.kind!=='items'||unit.insert||unit.row.isDeleted)continue;const peer=latest.items.find(row=>row.id===unit.id),parent=latest.errors.find(row=>row.id===unit.row.errorId);if(!peer||!parent||parent.isDeleted!==true||parent.category!==unit.row.category||peer.errorId!==parent.id||peer.category!==parent.category)continue;
+      revivals.set('errors:'+parent.id,{collection:'errors',id:parent.id,tombstone:clone(parent)});unit.same=false;conflict(unit,'items:'+unit.id+':removed',(unit.row.name||unit.id)+' · '+(isVi()?'Mục lỗi cha đã bị xóa':'所屬錯誤代碼已刪除'));
     }
     function materialize(choice,check=true){
       const next=clone(latest),patches=[],guards=[],matrixCells=[],reviveRows=[];

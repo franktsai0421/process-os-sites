@@ -619,7 +619,7 @@
     document.body.append(overlay);
     sharedClient?.gatePermissions?.();
     overlay.style.zIndex = String(100010 + document.querySelectorAll('.iqc-dialog-overlay').length);
-    const owner = { overlay, base:dialogBase, generation:dialogGeneration, terminal:false,
+    const owner = { overlay, base:copy(snap()), generation:control?.workflow?.generation||null, terminal:false,
       detach(){overlay.inert=true;document.removeEventListener('keydown',esc);overlay.remove();},
       current(){
         if(owner.terminal)return false;
@@ -651,8 +651,22 @@
     owner?.assert();
     const v = draft(); if (!v) throw Error('IQC 草稿不是可修改狀態');
     if(!mayEdit()||control.workflow?.pendingId||transport().hasUnknown())throw Error('PENDING_OR_PERMISSION_LOCKED');
-    if(!localBase){localBase=copy(owner?.base||dialogBase||v.snapshot);localGeneration=owner?.generation??dialogGeneration??control.workflow?.generation;localBeginReceipt=copy(owner?.beginReceipt||dialogBeginReceipt||localBeginReceipt);}
-    localSnapshot=copy(next);
+    if(!localBase){localBase=copy(v.snapshot);localGeneration=owner?.generation??dialogGeneration??control.workflow?.generation;localBeginReceipt=copy(owner?.beginReceipt||dialogBeginReceipt||localBeginReceipt);}
+    if(owner){
+      // Apply only this form's delta onto current page input. Another form or
+      // an acknowledged readback may have advanced unrelated local fields.
+      const ownerBase=copy(owner.base),changes=snapshotChanges(ownerBase,copy(next)),merged=copy(localSnapshot||v.snapshot),basisSnapshot=copy(localBase);
+      for(const patch of changes.patches){const [kind,entity,field]=patch.path;
+        if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');merged[kind].push(copy(patch.value));continue;}
+        const row=merged[kind].find(value=>value.id===entity.id);if(!row)throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
+        if(patch.op==='remove'){merged[kind]=merged[kind].filter(value=>value.id!==entity.id);continue;}
+        const basis=basisSnapshot[kind].find(value=>value.id===entity.id),old=ownerBase[kind].find(value=>value.id===entity.id);
+        if(kind==='items'&&field==='rules'&&old&&sameRuleOrder(old.rules,patch.value,row.rules)){
+          for(let index=0;index<patch.value.length;index++)if(!saveEqual(old.rules[index],patch.value[index])){if(basis&&sameRuleOrder(basis.rules,row.rules)&&saveEqual(row.rules[index],basis.rules[index]))basis.rules[index]=copy(old.rules[index]);row.rules[index]=copy(patch.value[index]);}
+        }else{if(basis&&old&&saveEqual(row[field],basis[field])){if(old[field]===undefined)delete basis[field];else basis[field]=copy(old[field]);}row[field]=copy(patch.value);}
+      }
+      localBase=basisSnapshot;localSnapshot=merged;
+    }else localSnapshot=copy(next);
     render();
     notice(t('已套用本機修改，請保存後共用','Đã áp dụng cục bộ; lưu để chia sẻ'));
 
@@ -672,7 +686,7 @@
   }
   async function mutateSnapshot(change, success, owner) {
     owner?.assert();
-    const next = copy(owner?.base||dialogBase||localSnapshot||draft().snapshot); change(next); await saveSnapshot(next, success, owner);
+    const next = copy(owner?.base||localSnapshot||draft().snapshot); change(next); await saveSnapshot(next, success, owner);
   }
   async function upload(file, owner) {
     if(readDenied)throw readDenied;
@@ -792,7 +806,7 @@
 
   function manageList(kind) {
     const title = kind === 'categories' ? t('修改類別清單', 'Sửa danh sách nhóm') : t('修改供應商清單', 'Sửa danh sách nhà cung cấp');
-    const rows = copy(draft().snapshot[kind]);
+    const rows = copy(snap()[kind]);
     const sorted = () => [...rows].sort((a,b) => {
       const rank = item => kind === 'suppliers' ? item.nameVi === 'NƯỚC NGOÀI' ? 0 : item.nameVi === 'CÔNG TY' ? 1 : 2 : 0;
       return rank(a)-rank(b) || a.nameVi.localeCompare(b.nameVi, 'vi');
@@ -809,7 +823,7 @@
       overlay.querySelectorAll('[data-row-name]').forEach(input => input.oninput = () => { if(!owner.current())return; const item = rows.find(row => row.id === input.dataset.rowName); item.nameVi = input.value; input.closest('[data-row-id]').querySelector('[data-row-label]').textContent = input.value; });
       overlay.querySelectorAll('[data-row-remove]').forEach(button => button.onclick = () => { if(!owner.current())return;
         const item = rows.find(row => row.id === button.dataset.rowRemove);
-        const references = draft().snapshot.parts.filter(part => kind === 'categories' ? part.categoryId === item.id : part.supplierIds.includes(item.id));
+        const references = snap().parts.filter(part => kind === 'categories' ? part.categoryId === item.id : part.supplierIds.includes(item.id));
         if (references.length) { overlay.querySelector('#iqc-list-error').textContent = `${references.length} ${t('個零件仍在使用，請先改派', 'linh kiện đang sử dụng; hãy chuyển trước')}`; return; }
         if (!twoConfirm(`${t('刪除', 'Xóa')} ${item.nameVi}`)) return;
         rows.splice(rows.indexOf(item),1); draw();
@@ -827,7 +841,7 @@
     const formActor=identity(),formActorId=formActor?.id,formGeneration=control?.workflow?.generation,formVersionId=selected()?.id;
     const formCurrent=()=>owner.current()&&identity()===formActor&&formActor?.id===formActorId&&control?.workflow?.generation===formGeneration&&selected()?.id===formVersionId;
     const assertFormCurrent=()=>{if(!formCurrent())throw Error('DEPENDENCY_CHANGED_RECONFIRM');if(control?.workflow?.pendingId||transport().permission('edit')===false)throw Error('PENDING_OR_PERMISSION_LOCKED');};
-    const data = draft().snapshot, old = data.parts.find(item => item.code === code), suppliers = [...data.suppliers].sort((a,b) => {
+    const data = snap(), old = data.parts.find(item => item.code === code), suppliers = [...data.suppliers].sort((a,b) => {
       const rank = x => x.nameVi === 'NƯỚC NGOÀI' ? 0 : x.nameVi === 'CÔNG TY' ? 1 : 2;
       return rank(a)-rank(b) || a.nameVi.localeCompare(b.nameVi,'vi');
     });
