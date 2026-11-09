@@ -8,6 +8,7 @@ import {randomUUID,randomBytes as realRandomBytes} from 'node:crypto';
 import vm from 'node:vm';
 import {workerSource} from './helpers/native-worker-source.mjs';
 import {accessKeys} from '../public/process/access-policy.mjs';
+import {prepareDraftReviewPolicy} from '../public/process/draft-review-policy.mjs';
 async function fixture(options={}){
  const db=new DatabaseSync(':memory:'),objects=new Map(),cookies=new Map(),password=randomUUID();let beforeUpdate=null;
  for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+file,'utf8'));
@@ -65,4 +66,16 @@ void test('login storage, malformed account collection and absent signer fail cl
 });
 void test('non-string and overlength passwords reject as known input errors before mutation',async()=>{
  const f=await fixture();try{const before=f.snapshot();for(const password of [[randomUUID()],123456789,'x'.repeat(201)]){const r=await f.post('frank',{action:'password',id:'synthetic-first',password,confirmation:password});assert.equal(r.status,400);assert.equal(r.body.error,typeof password==='string'?'PASSWORD_LENGTH':'INVALID_INPUT');assert.deepEqual(f.snapshot(),before);}}finally{f.close();}
+});
+
+void test('actual primary role/user grant audits can prove preview provenance; unrelated edits do not create new grants',async()=>{
+ const f=await fixture();try{
+  const roleId='custom_synthetic_review',granted={'approval.view':true,'approval.approve':true,'bom.view':true};
+  const created=await f.post('frank',{action:'create-role',id:roleId,name:'Synthetic review audit',access:granted});assert.equal(created.status,200,JSON.stringify(created.body));
+  const account=await f.post('frank',{action:'update-user',id:'synthetic-first',changes:granted});assert.equal(account.status,200,JSON.stringify(account.body));
+  const latest=JSON.parse(f.snapshot().row.values),control=JSON.parse(latest.processAccessControl),roles=(await f.source.load('lib/user-access.ts')).roleTemplates(latest),target=JSON.parse(latest.platformUsers).find(u=>u.id==='synthetic-first'),before=f.snapshot();
+  for(const subject of [target,{id:'synthetic-role-member',role:roleId,enabled:true}]){const plan=prepareDraftReviewPolicy(subject,roles,control);assert(plan.projectionReady);assert.equal(plan.platformApprovalSource.status,'confirmed-explicit');assert.equal(plan.after['approval.approve'],true);assert.equal(plan.after['bom.submit'],true);assert.equal(plan.after['bom.withdraw'],true);assert.equal(plan.after['bom.return'],true);assert.equal(JSON.stringify(plan).includes(f.password),false);}
+  assert.deepEqual(f.snapshot(),before);assert.equal((await f.post('frank',{action:'update-user',id:target.id,name:'Synthetic unrelated rename'})).status,200);
+  const renamed=JSON.parse(f.snapshot().row.values),next=prepareDraftReviewPolicy(JSON.parse(renamed.platformUsers).find(u=>u.id===target.id),(await f.source.load('lib/user-access.ts')).roleTemplates(renamed),JSON.parse(renamed.processAccessControl));assert.equal(next.platformApprovalSource.auditId,control.audit.find(e=>e.action==='update-user'&&e.target===target.id).id);
+ }finally{f.close();}
 });

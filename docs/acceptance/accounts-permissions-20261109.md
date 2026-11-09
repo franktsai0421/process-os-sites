@@ -223,3 +223,23 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 已讀回最新使用者「請繼續執行直到工作解決並上github」（2026-11-09 07:44 UTC），這是目前的上傳意圖；不把它當成舊未知操作已失敗的證明。舊帳密傳送拒絕與 text-transfer receiver verification=PENDING 是不同記錄，仍需原傳送端的終端回執／接收端驗證對應確切 operation，才能判斷可否重試已拒絕而未執行的相同動作。本輪沒有用其他通道、拆檔、換 executor 或重新傳送原來源繞過限制；GitHub 上看不到分支／PR 本身不是原操作未執行的證明。
 
 本輪沒有新自動審查拒絕；仍保留先前的「授權在審查完成前發生變化，無法套用」與 SOURCE_SYMLINK_REFUSED。未執行正常 build、依賴安裝、完整 lint/typecheck、原 TypeScript harness suite、compiled/browser／Windows acceptance，不聲稱候選可發布。資料模型、既有真人帳號／角色／密碼、DB/R2、main、測試站均未寫入。
+
+
+## 十三頁審核權限前置元件（尚未啟用）
+
+依接續 #102 協調指示，唯讀核對其本機 `draft-page-boundaries.ts`：本機 commit `85608697401175f987ac586fabd9613d2233e8b1`，當下未提交 registry SHA-256 `be44c1f957fd8f00b1321286e12eb015e7e7d99d5b0ba8ad09121244f69a89a9`。十三個 page／scope／permissionModule／endpoint／stateKey 投影存於測試 fixture，並於測試後重新讀回確認 hash 和語意相同。未改對方 worktree、未取得或套用其 routes／CAS／writer。GitHub main 仍 `9fbba823`、#102 Draft 未合併 head `ee7d4fd`。
+
+新增 `public/process/draft-review-policy.mjs`，沒有註冊到 index、API 或現用 `effectiveCells`，不建立環境開關或 migration。它提供：
+
+- `platformApprovalSource`：依個人明確 override／角色來源判別高階格；舊 legacy 權不算高階確認。現有 schema2／固定主要管理員綁定下，原稽核中該主要管理員對同一帳號／角色的明確 false／缺格→true 才證明新授權；未變 true 快照不產生證據。缺紀錄、撤權、不完整後續、刪除或綁定異常保守阻擋，不拿 mappingVersion=2 當授權證明。這是受信任持久來源的投影；不從 request 接受此判定，也不是新的驗證或確認機制。
+- `prepareDraftReviewPolicy`：純記憶體 before／after／delta／blocked 預演，沒有傳回帳密資料。把既有模組 review 格對應到有查看權的送審與修正；只有已確認高階者能核准，並包含其可見頁的送審／修正。修改、保存、其他頁查看及還原不由此增加。發回／撤回的能力一致。疑義投影不能作 permission；不可把 `projectionReady` 當正式 cutover 準備完成。
+- `createDraftReviewPolicy`：從將來安裝的十三頁 compiled registry 建立封閉映射，拒絕缺頁、重複 scope／module、未知模組及外來／序列化／待決 plan；registry 複製固定，不受 caller 之後改物件影響。同頁線別／群組／類別不是新 owner，不收 request 自行指定的 registry。
+- `draftOperationPermission`／`draftReviewReceiptAllowed`：指令與原收據使用相同 correction 能力，仍查本人、目前查看／操作權及 restore 額外權限；未知或原型屬性 action 拒絕。原收據本身、fingerprint 與 audit status 不轉換或重寫。
+
+12 個定向來源 tests PASS。真實 shared-draft kernel 跑全部十三個 captured owners 的 return／withdraw，核對 pending 解除、immutable Save／active 保留、原來源不變、撤權／已核准／revision／generation／reason／exact receipt replay 守門。另在原 `account-source-api` fixture 用現有 API 實際 create-role／update-user 產生合成稽核，證明來源判別讀得懂真正 audit shape；無關改名不生成高階授權證據。沒有用手造稽核當作唯一整合證據。初次已核准反例被 fixture 的舊 sequence 提前擋住，修正為目前 client sequence 後才斷言 CASE_NOT_PENDING，沒有放寬產品核心。
+
+後續 #102 接線必須同時採用同一 resolved projection：角色／個人矩陣與 server projection、source／review UI、workflow permissions、POST kernel context、operationId receipt GET 及 routine-FQC 外層 receipt；不得只改 kernel 使診斷假綠。新元件依現行 `effectiveCells` 取原格，不能直接反向匯入該函式形成循環；正式整合需分離 configured cells 與 resolved capability，並保留各 adapter 既有較嚴 gate。以 fresh authorized state 核對 registry／來源及舊 writer fence，現有 CAS、authEpoch 撤權、完整 DB/R2 還原和資料切換程序仍由原工作負責。
+
+真正需要 Frank 決定的情況已具體化：**某已移轉帳號／角色有 approval.approve=true，但沒有完整主要管理員明確授權稽核，或後續紀錄不完整**。此時預演回 `PLATFORM_APPROVAL_CONFIRMATION_REQUIRED`，不能猜其為舊 reviewer 或新高階；須先以有權的完整唯讀名單核對，再針對明確對象核定高階權。這輪沒有讀真人名單、不提空白名單讓使用者核准，也沒有執行真實設定。
+
+現用診斷仍維持 6 PASS／4 FAIL，因為此準備元件沒有接入現用 route／ACL。先完成此獨立實作並交予 #102 接線；舊拒絕、receiver PENDING、build guard 及真實切換限制原樣保留，無遠端寫入。

@@ -1,3 +1,7 @@
+## 2026-11-09 — Draft review policy preparation for #102
+
+Added an unregistered pure review-policy preview with primary-audit grant provenance, thirteen-page registry capabilities and shared correction/receipt checks. Twelve targeted source cases plus actual account API audit-shape coverage pass; runtime routes, migration, epochs and true accounts are unchanged. The existing diagnostic still has four failures until #102 adopts the projection across every authorization layer. Ambiguous mapped high grants remain blocked for a concrete authorized roster review. [Integration contract and limits](../docs/acceptance/accounts-permissions-20261109.md#十三頁審核權限前置元件尚未啟用).
+
 ## 2026-11-09 — 帳密來源整合回歸
 
 本機 `fe6dcb6` 已整合 account-only `efa7b75` 並保留 #100，26-file source regression 345/345 PASS；來源／歷史 gate PASS。四項 scope／grant-provenance 權限差距仍未修完，#102 Draft 未接完，不改真人帳號／權限。完整 build／compiled Windows／browser／實站及舊傳送拒絕／receiver-PENDING 關卡仍未解除，本輪沒有遠端寫入。[目標狀態與證據](../docs/acceptance/accounts-permissions-20261109.md#本輪整合驗證與剩餘交付關卡)。
