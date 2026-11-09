@@ -1,3 +1,7 @@
+## 2026-11-09 新工段繼承共用類型候選
+
+`master-stage-link.ts` 在固定工段案件內，從同一已核准 PROCESS 快照帶入 presetKey 預設設定與 catalogKey 共用自訂類型（含名稱及媒體缺省語意）；新增 ID 與空機器選取，無自訂時加入自訂。舊工段、舊 ID、來源與歷史不改；來源不一致拒絕。ID 分配以整份已核准與新增案件命名空間防碰撞，鍵採完整 UTF-16 編碼；核准拒絕舊碰撞固定內容而不重生，撤回／發回與原收據保留。無 SQL/schema 或帳號權限變更。實際路由／records-v1 測試與完整平台未完成項見 [本批追蹤](../../docs/acceptance/process-platform-tracking-20261109.md)。這不是畫布／全站草稿整合或實站驗收。
+
 ## 2026-11-05 BOM 原子存取候選
 
 `save-local-v1` 在 request memory 依序驗證本機手動／已確認 Digiwin 操作，最後一次 CAS 保存 working、saved 和原收據。保留原 guards、匯入基準／決策、L2、角色、pending、歷史與引用。BOM edit 包含 Save；送審／核准／匯入分開。離頁無提示放棄未送輸入；未知 Begin／Save 留原持久標記、只查原收據，舊無識別碼紀錄不視為 clean。從未合併 PR77 分支衍生，未發布；[驗證與共用檔協調](../../docs/acceptance/bom-atomic-save-20261105/README.md)。

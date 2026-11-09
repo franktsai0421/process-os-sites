@@ -10,6 +10,12 @@ const author = { id: 'author-fixture', name: 'Synthetic author', admin: false };
 const reviewer = { id: 'reviewer-fixture', name: 'Synthetic reviewer', admin: false };
 let ids = 0, groups = 0;
 const source = (scope, line) => ({ lines: [{ id: 'line-' + line, code: line, name: line, extension: 'retain', stages: [{ id: 'stage-1', code: line + '-1', name: 'One' }] }], products: [{ id: 'product-' + line, code: 'P-' + line, name: 'Product', line, category: 'Fixture', stages: [line + '-1'], routeMode: 'exception' }], categoryGroups: [{ id: 'group-' + line, line, name: 'Fixture', defaultStages: [line + '-1'] }], extension: { untouched: scope } });
+function assertNewStageTemplates(actual, code) {
+  assert.deepEqual(plain(actual.filter(t => t.presetKey)), plain(stageDefaultTemplates(code)));
+  const custom = actual.filter(t => !t.presetKey);
+  assert.equal(custom.length, 1); assert.equal(custom[0].name, '自訂');
+  assert.equal(custom[0].editorType, 'custom'); assert.deepEqual(plain(custom[0].machineIds), []);
+}
 function fixture(scope = 'AB') {
   const root = { active: { AB: source('AB', 'A'), C: source('C', 'C'), PROCESS: { 'A-1': plain(stageDefaultTemplates('A-1')), 'C-1': plain(stageDefaultTemplates('C-1')) } }, versions: [], workflowScopes: {}, extension: { untouched: true } };
   for (const key of ['AB', 'C', 'PROCESS']) root.versions.push({ id: 'source-' + key, scope: key, status: 'approved', snapshot: plain(root.active[key]), number: 1 });
@@ -64,7 +70,7 @@ for (const scope of ['AB', 'C']) {
     retain(f, () => code(() => run(f, rename(f, f.line, 'Locked')), 'PENDING_LOCKED'));
     retain(f, () => code(() => run(f, command(f, 'approve', { caseId })), 'SELF_REVIEW_CONFIRM_REQUIRED'));
     const priorCatalog = plain(f.ctx.root.active[scope].products), result = run(f, command(f, 'approve', { caseId }), { actor: reviewer });
-    assert.equal(result.process.active[f.line + '-2'].length, 5); assert.equal(f.control.workflow.active.content.lines[0].stages.length, 2);
+    assertNewStageTemplates(result.process.active[f.line + '-2'], f.line + '-2'); assert.equal(f.control.workflow.active.content.lines[0].stages.length, 2);
     assert.deepEqual(plain(f.ctx.root.active[scope].products), priorCatalog); publishFixture(f, result);
     assert.equal(api.approvedMasterLineOptions(f.ctx.root, scope).content.lines[0].stages.length, 2);
     assert.equal(f.control.workflow.saved, null); assert.equal(f.control.workflow.saves.length, 1);
@@ -219,7 +225,7 @@ for (const scope of ['AB', 'C']) {
     const result = run(f, command(f, 'approve', { caseId }), { actor: reviewer });
     assert.equal(result.control.workflow.cases.at(-1).status, 'approved');
     assert.equal(f.ctx.root.workflowScopes[scope + '.lines'].pendingId, caseId);
-    assert.equal(result.process.active[f.line + '-2'].length, 5);
+    assertNewStageTemplates(result.process.active[f.line + '-2'], f.line + '-2');
   });
   check(scope + ' sibling split working/saved/pending reserves stage codes and keeps other links locked', () => {
     for (const kind of ['working', 'saved', 'pending']) {
