@@ -1,6 +1,6 @@
 ## 2026-11-09 — Account compatibility with merged #100
 
-Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). No build/install retry, real account/data change, remote write or deployment.
+Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). Final available source suite: 324/324 PASS, including the five original #100 inverse proofs; TypeScript-dependent AST/restore checks remain environment-blocked. No build/install retry, real account/data change, remote write or deployment.
 
 ## 2026-11-09 — Account/main compatibility merge
 

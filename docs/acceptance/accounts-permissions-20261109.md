@@ -184,3 +184,5 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 擴大測試第一次 command 包含 shared-draft-restore-admission，部分實際 C API 組在動態載入舊 TypeScript harness 時報 MODULE_NOT_FOUND:typescript。這是**部分執行後的環境 BLOCKED**，不能列為完整 PASS。其原檔及 CI 保留，沒有 stub 掉 API 或修改斷言。global-background-checks／browser-timer-inventory／poll-wiring／bounded-media／canvas-manual-sync 的完整原命令同樣需 TypeScript，未在缺依賴時冒稱跑過；compiled equipment-transfer、native browser／Windows／hosted 仍 NOT_RUN。已讀知 worktree 的標準 postinstall 不適用，故不安裝／借用依賴，不恢復 symlink、不換路、不重試 SOURCE_SYMLINK_REFUSED。
 
 本輪只做本地 feature merge、共同檔案相依與來源回歸。仍有四項原始政策診斷 FAIL，以及 inactive 草稿 scope／授權來源／return-withdraw／DEMO 業務決策；沒有因此改任何真人帳號、角色設定、資料／schema、發布或 GitHub main。先前被拒傳送與 UNCERTAIN upload 均原狀保留。
+
+#100 合併後已提交來源 4bb0da3 的完整可用來源回歸先為 323/323 PASS；新 integration test 再採既有 strict canonicalCheckout 處理 Windows checkout EOL，新增純合成 CRLF／內容漂移拒絕案例後，以同一 25-file suite 重跑 **324/324 PASS、0 skipped／cancelled**。原 #100 五個 source-proof cases 全部 PASS，原 beforeHash、retirement rules、raw/drift negatives 與正常 CI step 皆保留；新測試沒有把 Windows EOL 模擬當原生 Windows 驗收。證據：account-main100-final-regression.json。完整 AST inventory 與部分還原 API 的缺依賴限制仍照上文列 BLOCKED，不包含在這 324 項通過宣稱內。
