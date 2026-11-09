@@ -194,7 +194,7 @@
         // prefix proves these are independent additions (including the primary
         // photo); replacement/deletion/reorder remain conservative conflicts.
         if(scope==='PROCESS'&&path.at(-1)==='mediaItems'&&Array.isArray(before)&&before.length&&[own,other].every(Array.isArray)){
-          const valid=list=>list.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.src==='string'&&row.src)&&new Set(list.map(row=>row.src)).size===list.length;
+          const valid=list=>list.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&!Object.hasOwn(row,'id')&&typeof row.src==='string'&&row.src)&&new Set(list.map(row=>row.src)).size===list.length;
           if([before,own,other].every(valid)&&[own,other].every(list=>list.length>=before.length&&before.every((row,index)=>equal(row,list[index])))){
             const otherBySrc=new Map(other.map(row=>[row.src,row]));
             if(own.every(row=>!otherBySrc.has(row.src)||equal(row,otherBySrc.get(row.src))))
