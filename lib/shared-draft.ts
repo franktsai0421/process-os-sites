@@ -180,7 +180,9 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     const caseIndex=state.cases.findIndex(c=>c.id===command.caseId);
     const reviewCase=caseIndex<0?undefined:{...state.cases[caseIndex]};
     if (!reviewCase || state.pendingId !== reviewCase.id || reviewCase.status !== 'pending') fail('CASE_NOT_PENDING');
-    const selfReview = command.action !== 'withdraw' && reviewCase.actor.id === ctx.actor.id;
+    // Returning a pending case is correction, just like withdrawal. Only
+    // approval of one's own content requires self-review confirmation.
+    const selfReview = command.action === 'approve' && reviewCase.actor.id === ctx.actor.id;
     if (selfReview && !command.selfReviewConfirmed) fail('SELF_REVIEW_CONFIRM_REQUIRED');
     if (command.action !== 'approve' && !command.reason?.trim() && !(command.action === 'withdraw' && ctx.optionalReasonPolicy === 'routine-fqc' && source.scope.startsWith('routine-fqc:'))) fail('REASON_REQUIRED', 422);
     if (command.action === 'approve') {

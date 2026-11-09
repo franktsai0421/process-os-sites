@@ -69,3 +69,18 @@ node scripts/audit-account-permission-requirements.mjs
 新回歸最初 4 FAIL／1 PASS，產品修正後最終 6/6 PASS：中越文、role／individual、view/edit/save 組合、所有 162 個原 checkbox 的值與 disabled 邊界、修改後原節點同步、唯讀／deny 保全；第六組直接讀 11 個實際 workflow handlers 的 permissions GET，十個模組與 editor 的能力及標籤一致，DB／R2 零寫入。另既有 navigation、receipt、identity fence、dirty dialog／初讀 75/75 PASS，scoped normal lint／diff check PASS。
 
 既有 38 項 audit 的比較是 raw Save cell 與派生 API capability，原斷言仍會 FAIL；本批修的是畫面明確呈現派生能力，沒有偽造 raw cells 相等。前述 7 個政策／kernel 需求差距仍須分批處理，未因這批顯示修正變成 PASS。Native browser、Windows CI、真帳號與部署未執行；既有 browser HOLD 未繞過。未上傳 GitHub。
+
+
+## 第二批本機修復：發回與撤回的自審確認
+
+只處理已確認的一個差異：原作者發回自己的待審案件，不再被當成「核准自己的內容」。`lib/shared-draft.ts` 只對 approve 計算 selfReview；共用 VersionDraftUI 即使接到舊 caller 的 selfReview=true，也只在 approve 顯示並回傳自審確認。reject／return／withdraw 仍須理由；補齊 return 的中越文標題。本人核准仍要求 selfReviewConfirmed，已核准仍不能發回／撤回，原權限、generation、expectedRevision、pending、CAS 與收據重播前的撤權檢查均保留。舊收據重播不改舊 selfReview 歷史欄位。
+
+這批沒有合併 return／withdraw 的權限鍵：目前 return-only／withdraw-only 的差異仍是下一個獨立遷移／權限議題，不宣稱完整「同一功能」已實作，也不將舊角色自動升級或實際重設任何帳號。
+
+- 新增 9 組回歸：純 kernel、實際共用 route＋合成 adapter 的持久化／拒絕 CAS、歷史收據不變，以及實際 confirmReview 函式的中越文 DOM ports。首次 RED 包含 SELF_REVIEW_CONFIRM_REQUIRED；fixture 起初缺 pending version 投影而先被 BEGIN_REQUIRED 拒絕，補齊 fixture 後再確認真正 RED。沒有放寬產品守衛。
+- 來源頁／kernel、no-change／Submit、navigation 選組 75/75 PASS；品質確認／fences／receipt 選組 112/112 PASS（計數有重疊）；既有 V3 kernel runner 15 組 PASS。兩批新測試合跑 15/15 PASS。
+- 製程 submit-feedback 只將有終端摘要的 S4／S8 算 2 組 PASS。原完整命令在 S6 前後停止產生進度，exit 0 但沒有最後 PASS_BOUNDED_SUBMIT_FEEDBACK 摘要，列 INCOMPLETE，不當整支通過；未因此改動其他製程工作。
+- 正常完整 lint 與 TypeScript noEmit PASS。原檔 review helper 保留既有 CRLF；普通 diff --check 回報新行的 CR，另以明確 cr-at-eol 且保留其餘空白規則檢查 PASS，整檔沒有行尾空白。完整 lint 初次發現新增 node:test 註冊的 floating-promises，按既有模式明確 void；第一批對應修正提交為 `38f4b93`，取用第一批須同時包含 `dab20d2` 與 `38f4b93`。沒有停用規則或刪減斷言。
+- 最新需求診斷為 4 PASS／6 FAIL、exit 1：RETURN_AND_WITHDRAW_USE_SAME_SELF_CONFIRMATION 已 PASS；其餘六項原樣保留。不是全部修復完成。
+
+本批目前使用的既有 dependency link 位於兄弟 checkout；正常 build 有 dependency-root 守衛，不能用搬換 checkout、覆寫 guard 或環境變數繞過。正常 build 的實際結果記在交付收據；native browser／Windows CI／實體裝置／真帳號、GitHub upload／merge 和 Site 發布均未執行。兩批是本機候選，先前未知 upload／傳送拒絕的邊界維持。

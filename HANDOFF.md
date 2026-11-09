@@ -1,3 +1,7 @@
+## 2026-11-09 — Pending correction self-confirmation (local candidate)
+
+Return/reject and withdrawal no longer request self-approval confirmation from the original author; approve still requires it. Kernel and shared dialog agree, retaining permission/CAS/receipt guards and old audit records. Remaining requirement failures: six. [Batch scope and evidence](docs/acceptance/accounts-permissions-20261109.md#第二批本機修復發回與撤回的自審確認). No upload, real-account change or deployment.
+
 ## 2026-11-09 — Account Save capability labels (local candidate)
 
 Account matrices now label existing Edit-implies-Save capabilities in both languages while preserving raw grants and write payloads. Eleven actual workflow GETs agree with the presentation; no account, ACL or data mutation. [Scope and remaining gates](docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No upload or deployment.
