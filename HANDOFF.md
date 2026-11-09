@@ -8,6 +8,10 @@
 
 依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
 
+# 2026-11-09 — Process platform stage catalog batch
+
+Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.

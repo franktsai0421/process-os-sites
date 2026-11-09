@@ -35,6 +35,7 @@ jobs:
           node scripts/test-master-page-name-save.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
+          node --test tests/process-stage-catalog.test.cjs
           node scripts/test-master-stage-link-v3.cjs
           node scripts/test-master-product-route-mode.cjs
           node scripts/test-master-field-guards.cjs
