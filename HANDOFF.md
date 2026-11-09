@@ -23,10 +23,29 @@ Based on merged main 021f0f3 (#99), this batch changes only the selector count a
 後續 8 組資料安全演練確認：去機密分發快照會重寫 JSON 外觀文字與其 receipt fingerprint，不能作為這次拆分的原樣還原備份；原來源 pins 會安全拒絕該結果。原樣 records 復原可保留原文字／收據。重大用途限制已回報；維持未啟用，沒有改全域 scrubber 或真實資料。[證據、資料安全方案及未驗範圍](docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
 
 依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
+## 2026-11-09 — 十三組草稿頁原頁核准版本本機完成
+
+最後補上製程編輯台／Canvas 與嚴格舊核准聯集，獨立 display lease 保留原 journal／UNKNOWN／pending；回草稿能以一次實際全站 Save 保存原修改。新畫布 viewer 不需套入另候選 80745895，該候選仍獨立待協調。7ef04ed7 的 C request-entry pin 修正 bbc5f9d 已語意採用，未覆寫共同 client。全頁／C 572 PASS、製程原流程149 PASS；其他來源、build、最終例數以實際提交 receipt 為準。保留舊 Canvas-post 次數斷言的前任重現失敗與不完整 submit-feedback run，無全 CI 綠燈聲明。未上傳／部署／原生或實站驗收，無 schema／ACL／真資料修改。[逐頁狀態與界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — #100 main 與同頁核准版本本機整合
+
+本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
 
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
+
+## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
+
+每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — IPQC A/B 同頁核准新舊聯集（本機）
+
+原頁接單一 selector、嚴格核准整份／舊群組聯集與回原 RAM，不新增持久 aliases 或 scope。26 新實際堆疊情境、543/543 受影響跨頁回歸、78 route、13 helper 及 lint／TS PASS；UNKNOWN／File／pending 保留，metadata 不讀歷史 body，最後權限／revision 防護有實測。尚餘例行 FQC 文件及待 parent 協調的畫布；未上傳／部署／原生或實站驗收。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — PROCESS 同頁核准版本本機批次
+
+流程資料／模板／機器已接單一同頁 selector、獨立核准快照與回原 RAM，移除舊歷史／還原與切換時 discard。新增 20 項 PASS，既有名稱／恢復 27 組 PASS；跨頁 323/325，兩項未修改畫布同步舊斷言在真實前任同樣失敗，未放寬／刪除測試。尚未協調整合獨立畫布 80745895；AB 聯集與例行 FQC 尚待接。未上傳、未部署、原生與實站未驗。[逐頁狀態與完整限制](docs/acceptance/approved-history-unification-20261109/README.md)。
 
 ## 2026-11-09 — AB/C、線別工段核准版本本機批次
 

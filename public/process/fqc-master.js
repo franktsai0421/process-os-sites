@@ -650,10 +650,10 @@
   // Reads are owned by this exact identity epoch and mount, not just an id
   // which can reappear after logout/login. Abort alone is not an adoption fence.
   function currentReadOwner(isCurrent = () => true, displayScoped = true) {
-    const actorObject=identity(),actorId = actorObject?.id;
+    const actorId = identity()?.id;
     const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),displayEpoch=historyDisplayEpoch;
     if (!actorId) throw Error('LOGIN_REQUIRED');
-    return () => (!displayScoped||historyAllowsMutation()&&displayEpoch===historyDisplayEpoch) && identity()===actorObject && isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
+    return () => (!displayScoped||historyAllowsMutation()&&displayEpoch===historyDisplayEpoch) && isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
       window.ProcessSync?.identityGeneration?.() === epoch && mountSequence === mount &&
       !window.ProcessSync?.requiresReload;
   }

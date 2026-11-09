@@ -8,6 +8,10 @@
 
 `master-stage-link.ts` 在固定工段案件內，從同一已核准 PROCESS 快照帶入 presetKey 預設設定與 catalogKey 共用自訂類型（含名稱及媒體缺省語意）；新增 ID 與空機器選取，無自訂時加入自訂。舊工段、舊 ID、來源與歷史不改；來源不一致拒絕。ID 分配以整份已核准與新增案件命名空間防碰撞，鍵採完整 UTF-16 編碼；核准拒絕舊碰撞固定內容而不重生，撤回／發回與原收據保留。無 SQL/schema 或帳號權限變更。實際路由／records-v1 測試與完整平台未完成項見 [本批追蹤](../../docs/acceptance/process-platform-tracking-20261109.md)。這不是畫布／全站草稿整合或實站驗收。
 
+## 2026-11-09 — PROCESS 同頁核准版本本機批次
+
+流程資料／模板／機器已接單一同頁 selector、獨立核准快照與回原 RAM，移除舊歷史／還原與切換時 discard。新增 20 項 PASS，既有名稱／恢復 27 組 PASS；跨頁 323/325，兩項未修改畫布同步舊斷言在真實前任同樣失敗，未放寬／刪除測試。尚未協調整合獨立畫布 80745895；AB 聯集與例行 FQC 尚待接。未上傳、未部署、原生與實站未驗。[逐頁狀態與完整限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — AB/C、線別工段同頁核准歷史
 
 本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](../../docs/acceptance/approved-history-unification-20261109/README.md)。

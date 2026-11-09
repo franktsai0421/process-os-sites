@@ -106,6 +106,35 @@
   let root,
     data,
     loading = false, mountOwner = null;
+  let historyDisplayEpoch=0,approvedHistoryView=null,historyDocument=null;
+  const historyClients=new Map();
+  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const captureHistoryDisplay=()=>{const epoch=historyDisplayEpoch,page=root;return()=>epoch===historyDisplayEpoch&&page===root&&historyAllowsMutation();};
+  function retireApprovedHistory(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;}
+  function guardWorking(node,callback){const current=captureHistoryDisplay();return function(...args){if(!node?.isConnected||!current())return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls());approvedHistoryView?.refreshControls();return result;};}
+  function guardDocumentCallbacks(){for(const node of root?.querySelector('.rf-document')?.querySelectorAll('input,select,textarea,button')||[])for(const property of ['onclick','oninput','onchange','onkeydown','oncompositionstart','oncompositionend'])if(typeof node[property]==='function')node[property]=guardWorking(node,node[property]);}
+  function approvedClient(documentId){
+    const prior=historyClients.get(documentId);if(prior?.isRuntimeCurrent())return prior;
+    const sync=window.ProcessSync,actor=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.(),watchers=new Set();let permissions={...data.permissions,delete:false};
+    const current=()=>actor===window.ProcessSync?.identity&&actor?.id===data?.identity?.id&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&window.ProcessSync?.isCurrentDelivery?.(delivery)===true;
+    async function get(query,options={}){const owns=()=>current()&&options.isCurrent?.()!==false;if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');const params=new URLSearchParams({approvedOnly:'1',documentId,...query});let response,value;
+      try{response=await fetch(endpoint+'?'+params,{cache:'no-store',headers:{...window.ProcessSync?.platformHeaders?.(),'X-Process-Expected-Actor':actor.id}});value=await response.json();if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');if(!response.ok){if([401,403].includes(response.status)){permissions=Object.fromEntries(Object.keys(permissions).map(key=>[key,false]));for(const watch of watchers)watch();}throw Object.assign(Error(value.error||'FQC_READ_FAILED'),{status:response.status});}if(value.documentId!==documentId||value.actorId!==actor.id)throw Error('APPROVED_HISTORY_AUTHORITY_REQUIRED');permissions={...value.permissions};for(const watch of watchers)watch();return value;}
+      catch(error){if(!owns())throw Error('APPROVED_HISTORY_SUPERSEDED');throw error;}
+    }
+    const client={isRuntimeCurrent:current,permission:key=>permissions[key],watchApprovedAccess(callback){watchers.add(callback);return()=>watchers.delete(callback);},permissions:options=>get({permissions:'1'},options),approvedHistory:(query,options)=>get({uiHistory:'1',...(query?.versionBefore?{versionBefore:query.versionBefore}:{})},options),approvedVersion:(id,options)=>get({versionId:id},options),mediaURL:photo=>{const id=typeof photo==='string'?photo:photo?.id;return /^[a-f0-9]{64}$/.test(id||'')?endpoint+'/photo?id='+id:'';}};
+    historyClients.set(documentId,client);return client;
+  }
+  function mountApprovedHistory(shell,log,empty){
+    const d=doc(),page=root,documentRoot=root.querySelector('.rf-document'),client=approvedClient(d.id);historyDocument=d.id;
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',
+      isCurrent:()=>root===page&&doc()?.id===d.id&&!s.reviewPlatform&&root.querySelector('.rf-document')===documentRoot,
+      canChoose:()=>!s.busy&&!s.dialogOpen&&!inFlightMutation&&!generationRefresh?.current()&&!document.querySelector('.rf-modal[open]'),
+      onBoundary(){historyDisplayEpoch++;},renderCurrent(){approvedHistoryView=null;historyDocument=null;paint();},
+      validateSnapshot:value=>value&&typeof value.title==='string'&&typeof value.date==='string'&&Array.isArray(value.lines)&&value.lines.every(row=>row&&typeof row==='object'&&Array.isArray(row.results))&&Array.isArray(value.evidence),
+      renderSnapshot(target,value,current){const {lines,...document}=value;window.VersionDraftUI.renderApprovedCollections(target,{document:[document],lines},{collections:['document','lines'],fields:{document:['核准文件','Hồ sơ đã duyệt'],title:['文件名稱','Tên hồ sơ'],date:['實際日期','Ngày thực tế'],notes:['備註','Ghi chú'],lines:['原核准項目與結果','Hạng mục và kết quả đã duyệt'],source:['原固定來源','Nguồn cố định'],results:['檢查結果','Kết quả'],evidence:['處置證據','Bằng chứng xử lý'],photos:['歷史照片','Ảnh lịch sử']},mediaFields:['evidence'],mediaURL:photo=>client.mediaURL(photo)},current);}
+    });
+  }
   const btn = (action, text, disabled = false, extra = '') =>
     `<button type="button" class="rf-btn ${extra}" data-action="${action}" ${disabled ? 'disabled' : ''}>${text}</button>`;
   function html() {
@@ -226,9 +255,10 @@
   const readPause=window.createScopedReadPause('例行 FQC / FQC định kỳ');
   const refreshErrorOwners = new WeakMap();
   async function read(query = '', accepts = () => true) {
+    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const owner=receiptPin(),delivery=window.ProcessSync?.captureDelivery?.(),pauseOwner=readPause.capture(),kind=query.includes('operationId=')?'receipt':query?'auxiliary':'state';
     const assertCurrent = () => {
-      if (!accepts() || (delivery && window.ProcessSync.isCurrentDelivery(delivery) === false))
+      if (!displayCurrent() || !accepts() || (delivery && window.ProcessSync.isCurrentDelivery(delivery) === false))
         throw Error('DELIVERY_SUPERSEDED');
     };
     let r, v;
@@ -341,6 +371,7 @@
     inFlightMutation++;try{return await postOwned(command, accepts);}finally{inFlightMutation--;}
   }
   async function postOwned(command, accepts = () => true) {
+    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const pin=receiptPin();if(!receiptOwnedPin(pin))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
     receiptInstall(pin.actor);if(receiptInvalid)throw Error('ROUTINE_RECEIPT_STORAGE_INVALID');
     const original=receiptRecord;
@@ -352,7 +383,7 @@
       return receiptTerminal(original,found,pin);
     }
     const body=clone({...command,operationId:command.operationId||id()});if(!receiptWriteAllowed(body))throw Error('FORBIDDEN');
-    const record=receiptCreate(body,pin),current=()=>receiptOwnedPin(pin)&&receiptRecord===record;
+    const record=receiptCreate(body,pin),current=()=>displayCurrent()&&receiptOwnedPin(pin)&&receiptRecord===record;
     const departureOwner=window.SharedDraftDeparture?.capture?.(),scope='routine-fqc:'+body.documentId;
     record.confirmed=result=>{const live=data?.control?.documents?.find(d=>d.id===body.documentId)?.flow;
       if(!current()||body.action!=='draft'||!['apply','restore'].includes(body.command?.action)||live?.scope!==scope||live.generation!==record.meta.generation||result?.unchanged!==false)return;
@@ -438,6 +469,7 @@
     }
   }
   async function mount(container, historyMode = false) {
+    retireApprovedHistory();
     navigationError=null;
     s.reviewPlatform = false;
     root = container.matches?.('#routine-fqc-root')
@@ -736,6 +768,7 @@
   }
   function paint() {
     if (!root?.isConnected) return;
+    if(approvedHistoryView?.historical&&historyDocument===doc()?.id&&!s.reviewPlatform){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;
     for (const node of root.querySelectorAll('.rf-result[data-result-id]')) s.resultOpen.set(node.dataset.resultId,node.open);
     for (const node of root.querySelectorAll('.rf-samples[data-sample-key]')) s.sampleOpen.set(node.dataset.sampleKey,node.open);
     const restoreView = preserveRoutineView();
@@ -790,7 +823,7 @@
               '',
             )}</div>${!c.startDate ? `<div class="rf-notice">${t('尚未開始管理。設定管理起始日並預覽後，才會產生應檢工作。', 'Chưa bắt đầu quản lý. Thiết lập ngày bắt đầu và xem trước lịch.')} ${btn('settings', t('設定起始日', 'Thiết lập ngày'), !p.settings)}</div>` : ''}${s.error ? `<div class="rf-notice error" role="alert">${h(s.error)} ${s.retry ? btn('retry', t('查原操作收據（不重送）', 'Kiểm tra biên nhận (không gửi lại)')) : ''}</div>` : ''}${frequencyNotice()}${quickFilters()}${filters()}<div class="rf-layout ${s.wide ? 'rf-wide' : ''} ${s.selected ? 'has-selection' : ''}"><section class="rf-panel rf-list-panel">${list()}</section><section class="rf-panel rf-detail-panel ${s.tab === 'jobs' && !s.selected ? 'rf-selection-panel' : ''}"><div class="rf-detail">${btn('back', t('← 返回清單', '← Về danh sách'), false, 'rf-back')}${detail()}</div></section></div><p class="rf-footer-note">Asia/Ho_Chi_Minh · ${t('涵蓋產品與實測樣品分開記錄。歷史以當次正式快照為準。', 'Sản phẩm bao phủ và mẫu thực thử được lưu riêng; lịch sử dùng bản chụp đã duyệt.')}</p>`}`
     }</div>`;
-    bind();
+    bind();guardDocumentCallbacks();
     if (s.tab === 'history' && historySearch) historySearch.bind(root);
     else mountDraft();
     root.querySelectorAll('button').forEach((b) => {
@@ -814,6 +847,7 @@
       };
       window.VersionDraftUI?.mount(root.querySelector('.rf-document'), {
         header: '.rf-draft-header',
+        ...(!s.reviewPlatform?{mountApprovedHistory}:{}),
         module: 'FQC · ' + reportLabel(d),
         scope: d.number,
         version: v,
@@ -1116,6 +1150,7 @@
     return `<h3>${h(a.number)}</h3>${tag(a.status)} <p>${h(j.source.name)}</p>${coverage(j.source)}<p class="rf-subtle">${h(j.start + ' — ' + j.end)} · ${t('原不合格與每次複測都會保留', 'Lưu kết quả ban đầu và mọi lần thử lại')}</p><div class="rf-actions">${retestActions(a)}${btn('followup-waiver', t('申請本期免做', 'Đề nghị miễn kỳ'), done(a) || a.result !== 'unable' || a.unresolvedFailureSamples?.length || !data.permissions.edit)}${btn('followup-disposal', t('申請處置結案', 'Đề nghị đóng xử lý'), done(a) || (a.result !== 'fail' && !a.unresolvedFailureSamples?.length) || !data.permissions.edit)}${btn('close', t('確認結案', 'Xác nhận đóng'), a.status !== 'ready-close' || !data.permissions.approve, 'primary')}</div>${s.busy ? '<p role="status">' + t('正在處理，請稍候…','Đang xử lý, vui lòng chờ…') + '</p>' : ''}${s.error ? '<div class="rf-notice error" role="alert">' + h(s.error) + (s.retry ? btn('retry',t('查原操作收據（不重送）','Kiểm tra biên nhận (không gửi lại)')) : '') + '</div>' : ''}<ol class="rf-timeline">${a.events.map((e) => `<li><b>${h(label(e.action))}</b><time>${h(e.at)} · ${h(e.actor.name)}</time><p>${h(e.reason)}</p>${e.documentId ? `<button class="rf-report-link" data-doc="${e.documentId}">${h(docs().find((d) => d.id === e.documentId)?.number || e.documentId)}</button>` : ''}</li>`).join('')}</ol>${a.improvements.map((i) => `<div class="rf-notice"><b>${t('改善紀錄', 'Ghi cải thiện')}</b><p>${h(i.notes)}</p><small>${h(i.actor.name + ' · ' + i.at)}</small><div class="rf-photos">${i.photos.map(photo).join('')}</div></div>`).join('')}`;
   }
   function choose(value, tab = s.tab) {
+    retireApprovedHistory();
     const leavingReviewForCase = s.reviewPlatform && tab === 'cases';
     if (tab !== s.tab) s.highlight = '';
     s.selected = value;
@@ -1145,6 +1180,7 @@
     root.querySelectorAll('[data-tab]').forEach(
       (b) =>
         (b.onclick = () => {
+          retireApprovedHistory();
           const leavingHistory = s.tab === 'history';
           s.tab = b.dataset.tab;
           s.highlight = '';
@@ -1321,6 +1357,7 @@
     root.querySelectorAll('.rf-upload').forEach((el) => el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.querySelector('input').click(); } });
   }
   async function draft(action, extra = {}, target = doc()) {
+    assertCurrentDisplay();
     const d = target,
       operationId = id();
     return post({
@@ -1410,11 +1447,12 @@
     return result===null?null:result==='theirs'?'theirs':'mine';
   }
   async function save(target = doc()) {
+    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();
     const d = target;
     if(!d||status(d)!=='draft'||data.permissions.save!==true||dirty(d)&&data.permissions.edit!==true)throw Error('FORBIDDEN');
     if(s.bufferGenerations.has(d.id)&&s.bufferGenerations.get(d.id)!==d.flow.generation)throw Error('STALE_GENERATION');
     const life=receiptLifecycle,page=root,identity=data.identity.id,syncIdentity=window.ProcessSync?.identity,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;
-    const current=()=>!receiptSuspended&&life===receiptLifecycle&&root===page&&page?.isConnected!==false&&data?.identity?.id===identity&&syncIdentity===window.ProcessSync?.identity&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;
+    const current=()=>displayCurrent()&&!receiptSuspended&&life===receiptLifecycle&&root===page&&page?.isConnected!==false&&data?.identity?.id===identity&&syncIdentity===window.ProcessSync?.identity&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;
     const c=clone(buffer(d)),base=clone(s.bases.get(d.id)),hasEdits=!sameRoutineValue(c,base);
     const fresh=async()=>{
       const next=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');
@@ -1501,6 +1539,7 @@
     return f?.get('reason')?.trim();
   }
   async function act(action, el) {
+    assertCurrentDisplay();
     if (s.busy || s.dialogOpen || generationRefresh?.current()) return;
     try {
       if (
@@ -1977,7 +2016,7 @@
   }
   async function bindReview(container) {
     const area = container?.querySelector('#review-routine-fqc'); if (!area) return;
-    root = area; s.reviewPlatform = true; s.tab = 'documents';
+    retireApprovedHistory();root = area; s.reviewPlatform = true; s.tab = 'documents';
     const url = new URL(location.href);
     if (url.searchParams.get('rfDocument')) s.selected = url.searchParams.get('rfDocument');
     s.reviewCase = url.searchParams.get('rfCase'); s.selfReview = null;
@@ -1987,7 +2026,7 @@
     const count = liveDocs().filter((d) => status(d) === 'pending').length;
     const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = count;
   }
-  async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
+  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
 
   // Navigation consumes only unsent RAM. Exact unknown-operation metadata
   // remains in storage and continues to fence every Routine FQC write.
@@ -2026,10 +2065,10 @@
       locked:()=>departureDocuments().some(d=>status(d)!=='draft'),
       localSave:()=>!s.dialogOpen,
       localReason:()=>s.dialogOpen?t('請留頁完成或取消目前視窗；不會代為確認建立、上傳或送審。','Ở lại hoàn tất hoặc hủy cửa sổ; không tự xác nhận tạo, tải ảnh hoặc gửi duyệt.'):t('儲存會依原日常 FQC 流程，逐份提交本機修改並固定各文件版本；不會送審或刪除文件。','Lưu gửi các thay đổi cục bộ và cố định phiên bản từng hồ sơ FQC; không gửi duyệt hoặc xóa hồ sơ.'),
-      canSave:()=>data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
+      canSave:()=>historyAllowsMutation()&&data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
       async save(){s.busy=true;try{for(const d of departureDocuments())await save(d);return true;}finally{s.busy=false;paint();}},
       discard(){for(const dialog of document.querySelectorAll('.rf-modal[open]'))dialog.querySelector('[data-cancel]')?.click();for(const d of docs())if(dirty(d)){s.buffers.delete(d.id);s.bases.delete(d.id);}paint();},
-    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
+    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
     html,
     mount,
     reviewHTML,

@@ -28,9 +28,9 @@ export function approvedVersion<T>(control:VersionedControl<T>,id:string,strict=
 }
 
 export type LegacyProcessVersion={id:string;number:number;status:string;category:string;line:string;stages:unknown;creatorId?:string;creatorName?:string;createdAt?:string;updatedAt?:string;history?:{action?:string;actor?:string;actorId?:string;actorName?:string;at?:string}[]};
-export function legacyProcessEvidence(v:LegacyProcessVersion){
- if(v.id.startsWith('shared-')||!['approved','superseded'].includes(v.status))return null;
- const event=v.history?.find(e=>['approved','approve'].includes(e.action||'')&&e.at&&(e.actorId||e.actorName||e.actor));
+export function legacyProcessEvidence(v:LegacyProcessVersion,strict=false){
+ if(typeof v.id!=='string'||v.id.startsWith('shared-')||!['approved','superseded'].includes(v.status)||strict&&(!v.id||v.id.length>490||!Number.isSafeInteger(v.number)||v.number<1||typeof v.category!=='string'||!v.category||typeof v.line!=='string'||!v.line))return null;
+ const event=(Array.isArray(v.history)?v.history:[]).find(e=>['approved','approve'].includes(e.action||'')&&e.at&&(e.actorId||e.actorName||e.actor)&&(!strict||typeof e.at==='string'&&Number.isFinite(Date.parse(e.at))&&[e.actorName,e.actor].some(value=>typeof value==='string'&&!!value.trim())));
  return event?{kind:'legacy-approval' as const,caseId:null,savedId:null,approvedBy:event.actorName||event.actor||null,approvedAt:event.at||null}:null;
 }
-export function legacyProcessProjection(v:LegacyProcessVersion){const evidence=legacyProcessEvidence(v);if(!evidence)return null;return {id:'legacy-process:'+v.id,number:v.number,status:'superseded',snapshot:{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages}]},revision:0,creatorId:v.creatorId||'',creatorName:v.creatorName||'',createdAt:v.createdAt||'',updatedAt:v.updatedAt||'',history:[],category:v.category,line:v.line,approvalEvidence:evidence};}
+export function legacyProcessProjection(v:LegacyProcessVersion,strict=false){const evidence=legacyProcessEvidence(v,strict);if(!evidence)return null;return {id:'legacy-process:'+v.id,number:v.number,status:'superseded',snapshot:{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages}]},revision:0,creatorId:v.creatorId||'',creatorName:v.creatorName||'',createdAt:v.createdAt||'',updatedAt:v.updatedAt||'',history:[],category:v.category,line:v.line,approvalEvidence:evidence};}

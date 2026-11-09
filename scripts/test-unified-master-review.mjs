@@ -97,7 +97,8 @@ for(const bom of [false,true])for(const routine of [false,true]){
 
 // Retained producer fencing uses a test-only retired driver, never production timing.
 const {fixture:foregroundFixture}=await import('./entry-performance/retired-poll-fixture.mjs');
-const bomSource=readSource('bom-workspace.js');
+const {retiredDraftSource}=await import('./entry-performance/retired-draft-source.mjs');
+const bomSource=retiredDraftSource(process.cwd(),'bom-workspace.js');
 assert.match(bomSource,/const foregroundPoll=window\.createForegroundPoll\(\)/,'legacy composition retains compatible facade; runtime scheduling is covered by no-background tests');
 function bomPermissions(){return{view:true,create:true,edit:true,delete:true,save:true,submit:true,withdraw:true,approve:true,return:true,history:true,restore:true,import:true};}
 function bomReadResult(){return{revision:11,permissions:bomPermissions(),control:bomControl()};}

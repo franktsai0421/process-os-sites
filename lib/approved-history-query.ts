@@ -23,8 +23,8 @@ export function approvedHistoryQuery(request:Request,key:string,scope:string){
   matches=key==='ipqcABMasterControl'&&(wholeModule?scope==='ipqc-ab:module'&&!q.has('scope'):!!group&&group.length<=500&&!q.has('module')&&scope==='ipqc-ab:'+group);
   routing.push(wholeModule?'module':'scope');
  }
- const listing=q.has('uiHistory'),detail=q.has('versionId');
+ const listing=q.has('uiHistory'),detail=q.has('versionId'),idLimit=pathname==='/api/ipqc-ab/workflow'&&q.get('module')==='1'?1024:512;
  const allowed=new Set(['approvedOnly','caseMetadata','compact',...routing,...(listing?['uiHistory','versionBefore']:['versionId'])]);
- if(!matches||q.get('approvedOnly')!=='1'||listing===detail||[...q.keys()].some(k=>!allowed.has(k)||q.getAll(k).length!==1)||listing&&q.get('uiHistory')!=='1'||detail&&(!q.get('versionId')||q.get('versionId')!.length>512)||q.has('caseMetadata')&&q.get('caseMetadata')!=='1'||q.has('compact')&&q.get('compact')!=='1'||(q.get('versionBefore')?.length||0)>512)throw new DraftConflict('INVALID_APPROVED_HISTORY_QUERY',422);
+ if(!matches||q.get('approvedOnly')!=='1'||listing===detail||[...q.keys()].some(k=>!allowed.has(k)||q.getAll(k).length!==1)||listing&&q.get('uiHistory')!=='1'||detail&&(!q.get('versionId')||q.get('versionId')!.length>idLimit)||q.has('caseMetadata')&&q.get('caseMetadata')!=='1'||q.has('compact')&&q.get('compact')!=='1'||(q.get('versionBefore')?.length||0)>idLimit)throw new DraftConflict('INVALID_APPROVED_HISTORY_QUERY',422);
  return true;
 }

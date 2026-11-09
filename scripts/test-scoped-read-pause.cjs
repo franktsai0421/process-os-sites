@@ -43,6 +43,7 @@ async function iqcConsumer({workflowScope='iqc'}={}){
 (async()=>{
  const wiring=await import('./entry-performance/draft-no-poll-fixture.mjs');
  for(const name of wiring.draftModules)await check('P '+name+' complete initializer/events never schedule draft reads',async()=>{await wiring.assertDraftInitializerIdle(source,name);});
+ await check('P current explicit history permissions use no background timer',async()=>{assert.equal(await wiring.assertExplicitPermissionReads(source),14);});
  await check('P pinned retired history permission fixtures retain original revocation controls',async()=>{assert.equal(await wiring.assertLivePermissionTimers(source,historical.readPublic('history_frozen','shared-draft-client.js')),10);});
  await check('P generic dirty flush remains separate and active',()=>{assert.equal(wiring.assertDirtyFlushRetained(source),1);});
  await check('I IQC closure bindings fail closed when any explicit-read dependency is missing',async()=>{

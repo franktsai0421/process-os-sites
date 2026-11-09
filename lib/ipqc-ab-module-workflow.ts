@@ -1,3 +1,5 @@
+import {abApprovedMetadata,legacyAbVersion} from './ipqc-ab-approved-history';
+import {approvedVersion} from './approved-history';
 import {abLocalScopes,applyAbLocalScopes} from './ipqc-ab-local-save';
 import {parseAbControl,activeAb,openAb,copyAb,type AbControl,type AbSnapshot,type AbVersion} from './ipqc-ab';
 import {abWorkflowAdapter,type AbSharedScope} from './ipqc-ab-workflow';
@@ -50,6 +52,7 @@ export function abModuleWorkflowAdapter():WorkflowAdapter<AbModuleSnapshot,AbMod
   return root;
  }
   return{key:'ipqcABMasterControl',scope:'ipqc-ab:module',preparedModel:true,permissionOnlyRead:true,
+  approvedHistory:{metadata:()=>abApprovedMetadata(root,true),version:id=>id.startsWith('legacy-ab:')?legacyAbVersion(root,id,true):root.moduleDraft?approvedVersion(root.moduleDraft,id,true):null},
   needsFullHistory:command=>command?.moduleAction==='save-local-v1',
   requiresCreate:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('create')||c.moduleAction==='restore-item-local-v1')),
   requiresDelete:(_control,command)=>command.moduleAction==='save-local-v1'&&abLocalScopes(command as Parameters<typeof abLocalScopes>[0]).some(s=>s.changes.some(c=>c.moduleAction?.startsWith('delete'))),

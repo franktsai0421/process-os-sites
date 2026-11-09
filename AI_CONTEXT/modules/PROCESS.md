@@ -5,6 +5,9 @@
 ## 2026-11-09 畫布投影流程數候選
 
 選取列在 V2 使用與方塊相同的 ProcessCanvasLocal.project 計算當前可見工段流程數；Save 推進投影但保留舊 editor map 時也能更新。只讀顯示與自身 cache tag，無資料／權限／schema 變更。[範圍與證據](../../docs/acceptance/editor-projected-count-20261109.md)。
+## 2026-11-09 — 製程原頁核准歷史查看
+
+編輯台只用 canvas-approved-version 選當前草稿／真正已核准 V3 及舊核准聯集；不可編輯快照留同頁，沒有 restore/apply 或歷史彈窗入口。獨立 display epoch 不改 journal、generation、Canvas edit epoch 或原 UNKNOWN；普通 adopt 退休工作稿 selector，不誤鎖新模型。原表單、gesture、在途 Save 阻擋版本切換；回當前只讀 permissions、可保存原 journal，pending 鎖不變。舊來源 stages inline aggregate 保留，不宣稱已拆 body；buffer 後角色／session／revision fence。80745895 的其他 view-filter 保留改動仍未整合，未覆蓋其工作。[狀態／測試／限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真資料修改。
 
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 

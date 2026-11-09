@@ -1,6 +1,6 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與品質／AB/C 主資料前端
+# 全草稿頁已核准歷史版本查看：共同讀取與十三組頁面前端
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及 IQC／FQC／模具前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及十三組已接前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -12,19 +12,19 @@
 
 | 實際頁面 | 現有 scope／來源 | 本機 API | 本機前端與剩餘工作 |
 | --- | --- | --- | --- |
-| 製程編輯台／畫布 | `process:platform` | 新 approved-only PASS | `process-authoring-v3.js` 仍以舊歷史彈窗查看；需同頁顯示與工作區選擇保護 |
+| 製程編輯台／畫布 | `process:platform` | 新 approved-only PASS | 已接單一 `canvas-approved-version`／原頁核准快照與回原 journal；V3 與嚴格舊核准聯集，實際作者端／Canvas journal／common／簽章 API PASS；獨立 80745895 保留未整合 |
 | 線別與工段管理 | `master:AB`、`master:C` | 各 scope 新 approved-only PASS | 已接單一同頁 selector／核准快照／回原 RAM；AB/C 兩邊暫存保留，沿用原 scope，合成 DOM／實際 handler PASS |
 | AB 產線與類別 | `master:AB` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照，移除本頁舊案件／還原入口，30 項新主資料情境及 80 項既有回歸 PASS |
 | C 產線與類別 | `master:C` | 新 approved-only PASS | 已接同頁 selector，保留 C 自己的版本、權限、pending 與原 RAM；與 AB/C／線別共同驗證 PASS |
-| 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 模板與機器是同頁視角；需同頁唯讀展示，不以現行機器資料替代歷史 |
+| 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 已接原頁單一 selector／核准快照／回原 RAM；模板與機器同頁分組、歷史照片取固定引用，20 項實際頁面新情境與 27 組既有名稱／恢復 PASS |
 | FQC | `fqc` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM，移除本頁舊案件／還原入口；矩陣與比較基準保留，本機定向測試 PASS，原生與實站未驗 |
 | IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
-| IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | `ipqc-ab.js` 尚未轉接；舊群組與新整份版本的唯讀聯集 helper 已有，但未註冊到本批 API／UI，不可宣稱舊版聯集完整 |
+| IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | 已接同頁單一 selector 與核准新整份／舊 A/B 群組的唯讀聯集；固定 case content、原群組與照片／RAM／UNKNOWN／pending 保留；26 項新實際堆疊情境與跨頁回歸 PASS |
 | IPQC C | `ipqc-c` | 既有專用 approved-only 路由 | 基準已有同頁 selector／唯讀投影及回當前；本批重新執行其實際 common／transport／handler 測試，非原生瀏覽器驗收 |
 | BOM | `bom` | 既有路由沿新共同查詢規則，PASS | 基準已有同頁唯讀與原 writer 保全；本批移除僅有 formal pointer 的未審核基準，不重寫 BOM 本機編輯／Save |
 | 檢具與測試設備 | `routine-equipment` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照並切回原 RAM；移除本頁案件／還原入口，保留跨品質交易與原重新核對機制；22 項新實際 handler 情境及 68 項 Save 回歸 PASS，原生／實站未驗 |
 | 模具 | `tooling` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM；器具、目錄與移轉以唯讀分組、搜尋與分頁展示，不另拆草稿；本機定向測試 PASS，原生與實站未驗 |
-| 例行 FQC | `routine-fqc:<documentId>` | 自有文件／案件路由，未在本批修改 | 另有歷史頁籤與已核准文件查看；需逐文件接同一 selector，不能套用 numeric-version API 冒充完成 |
+| 例行 FQC | `routine-fqc:<documentId>` | 自有每文件 approved-only 讀取，PASS | 已接每份文件原頁單一 selector／核准 case 快照／回原多文件 RAM；專用 API，不冒用 numeric-version API；34 項新查看情境及 191 項既有收據／handler／手動產生回歸 PASS |
 
 問題回報是私人 IndexedDB 草稿，無「已核准共用業務版本」；例行報告資料庫與其他未實作例行頁籤是 placeholder；帳號／權限即時表單不是共用業務草稿。不改這些資料模型。
 
@@ -119,3 +119,79 @@ shared bridge 的明確 display lease 保護直接 writer、prepared command、�
 發現並修正 `2ddd2151` 檢查點的模具 busy 結束後 selector 未重啟問題；舊 bundle 是已被取代的局部檢查點，不作最新交付。明確 refreshControls、原生 close 清理及讀取期間 checks 退休保護不增加輪詢。FQC 已驗證目錄與 session 的穩定身份持有者分離於單次讀回 display epoch，保留矩陣 session、一般欄位及目錄可用性；真實入口 bind 的矩陣歷史返回後明確 Save 恰送原選擇一次，真正離頁才放棄 local，UNKNOWN 原 journal 不查詢／不重送。
 
 最新受影響本機回歸 **421/421 PASS、0 SKIP**，日誌 `master-and-quality-history-runtime-verified.log`；FQC 目錄純來源 42 項 PASS，typed lint／TypeScript／source boundary PASS。新 source proof／build 應綁後續實際產品 commit；不可引用舊 `2ddd2151` 的 build 證明新 runtime。尚餘 PROCESS 模板／機器、製程編輯台／畫布、IPQC A/B 舊新聯集、例行 FQC 文件前端；GitHub 全列未上傳、本批未部署、原生／實機／實站未驗。
+
+## PROCESS 流程資料／模板／機器
+
+原頁使用 `process-approved-version`；移除原未核准版本選單、歷史紀錄／還原入口，以及選版本時的 discardLocal／名稱與機器 abandon。版本資料只進獨立純唯讀 renderer，模板、各工段的巢狀機器與照片均來自選定快照，不查現行機器資料。返回草稿只更新 permissions 並重繪原 writer；儲存後選單可再次使用。審核平台的已核准版本可轉入同頁 detail，未核准案件由伺服器拒絕。
+
+明確 PROCESS display lease 保護既有 bridge；原生事件、property callbacks、名稱 Apply 及機器 RAF 有同頁世代／原節點保護。未套用名稱、開啟視窗、照片／Save／共享操作進行中阻擋切換而保留內容。一般同頁重繪可重新取回同一歷史選擇；UNKNOWN 不讀原收據、不重送，pending 返回後仍鎖定。真實入口函式以 AST 讀取，搭配實際機器元件／共同 UI／bridge／signed handlers／SQLite／Map-R2：**20/20 新情境 PASS**；既有名稱／恢復／引用 **27 組 PASS**。typed lint／TypeScript PASS。
+
+跨頁擴充批次 `process-master-cross-module-runtime.log` 為 **323 PASS / 325，2 FAIL，0 SKIP**。兩項 `process-equipment-snapshot.test.mjs` 的舊「beforeSave 必須拒絕尚未 Sync」斷言，在真實前任 `3f6e736e` 的設備來源也相同失敗（`process-equipment-snapshot-checkpoint-baseline.log`）；測試實際讀取的設備函式範圍與前任完全相等，畫布／authoring／local store 原始碼未改。這是既有畫布 Save 契約與舊測試相依的未解狀態，沒有刪斷言或假稱全綠；尚未合併獨立畫布候選 `80745895`，其 REVIEW 要求 parent 先協調另一畫布 owner。這兩項未作 GitHub 合併通過證明。
+
+新增 CI 保留 PROCESS 新測試及原名稱保護腳本。四個實際修改 asset（app／process-equipment／master-data／VersionDraftUI）更新 cache `20261109-process-approved-history5`；其餘 tag／歷史 source pin 不變。尚餘 IPQC A/B 舊新聯集、製程編輯台／畫布及例行 FQC；全列本批未上 GitHub、未部署、原生／實站未驗。
+
+## IPQC A/B 新整份與舊群組核准聯集
+
+`ipqcab-approved-version` 在原頁顯示當前草稿、已核准整份版本及舊群組版本；各舊版標明 A/B 群組，依固定快照分組列錯誤、工段、檢查項目、照片及相符原設備，不讀當前目錄或回寫 writer。已核准來源引用也轉入相同 selector，不另開歷史視窗。舊 `.ipqcab-history`／案件還原入口移除；原審核平台業務案件保留。
+
+共同 workflow adapter 只新增明確 read-only provider；僅 IPQC AB module 註冊既有 `abApprovedMetadata`／`legacyAbVersion` 的 strict 模式。聯集排除正式指標、未核准、shared superseded、整份投影 aliases 和重複 module IDs，舊版 ID 是可逆顯示身分，不入庫，不改持久 scope。原核准 case ID／來源 scope／來源 version ID 保持原值，前端核對完整對應，未偽造核准 evidence。module 複合 ID／cursor 有 1024 字元界線，其餘路由仍為 512。
+
+display epoch 與既有 mutation lifetime 分開，保留原 localScopes／bases／File／localSent／UNKNOWN intent。讀回、直接 writer／upload／原收據查詢入口及舊 DOM 事件有顯示持有者保護；開啟表單、比較或執行中阻擋切換，休止的原 UNKNOWN 可查看版本且不查詢或重送。回草稿只讀 permissions 並重繪原 RAM；真正 Submit 形成 pending 後往返仍鎖定。初始 module permissions 完成後才啟用 selector，身份／epoch／delivery 防止晚到回覆授權。
+
+新實際完整 AB component／common／default client／簽章 HTTP handlers／records-v1 SQLite／Map-R2 **26/26 PASS**。包含雙語、新舊 47 筆核准分頁、來源身分負向、固定 case content、原 File 往返後明確 Save 只 PUT 一次、UNKNOWN 零查詢／零重送、實際 pending、實際撤權、一般晚到讀回、舊事件。R2 插樁證明聯集 metadata 不載入歷史 body、舊 case detail 僅讀一個正文；正文 hydration 期間 revision／撤權改變均在回傳內容前拒絕。
+
+受影響全部 AB Save／衝突與共同查看頁面 **543/543 PASS、0 SKIP**，正常 route **78/78 PASS**，核准證據 helper **13 組 PASS**，typed lint／TypeScript PASS。原抽取式 caller fixture 改為載入實際新增 guard，新增歷史 display 零讀取／零 prepare 的負向控制；未放寬產品防線。保存最初 fixture 缺儲存方法、缺整份核准投影、缺真實日期與抽取式 guard 的失敗證據；修正 fixture，未刪測試。此前 PROCESS 提交 `4032ec4` 的來源 **672/672 PASS**、guarded build PASS；本批 source／build 須重新綁實際後續提交。
+
+本批 GitHub／測試站未更新、原生／實機／實站未驗。尚餘例行 FQC 每份文件及製程編輯台／畫布；獨立畫布 80745895 的 parent 協調未取得證據，未整合。舊 243-path UNKNOWN 與 equipment create_tree 拒絕仍不重送，不因本批局部完成解除。
+
+## 例行 FQC 每份文件
+
+新增精確 `approvedOnly=1&documentId=...` 的專用 list／detail／permissions GET，仍沿用每文件 `routine-fqc:<documentId>`，沒有新增 numeric control、scope 或 writer。僅實際 approved case 的完整原 creator／savedId／reviewer／時間證據可列；不取其他文件、不取 saved 或 pending／returned／withdrawn、不以正式指標代核准證據。metadata 不讀舊正文，detail 只序列化所選 immutable case；序列化完成後重新查 view／history、session、enabled 及全域 revision。混合、重複、超長、restore／receipt／preview selectors 在 DB／R2 前拒絕。
+
+原頁 `routine-fqc-approved-version` 與專用只讀 client 只存核准顯示及實際 GET permissions，不參與原 business read／receiptObserve／POST。選歷史不動 buffers／bases／bufferGenerations／s.retry／原 metadata；切回只讀 permissions，重繪原內容。保留多文件暫存、照片固定 SHA 引用及原審核平台；歷史展示只有純資料，不提供 Save／Submit／還原／套用。版本 view 的 epoch、舊欄位／按鈕、一般 read／Save／POST 入口保護晚到回覆，實際視窗／上傳／寫入／產生進行中不切換。文件切換只退休顯示，不丟另一份暫存；真正離頁仍沿原規則。
+
+**225/225 PASS、0 SKIP**：34 項新實際完整 Routine closure／common／簽章 handlers／kernel／SQLite／Map-R2 情境，以及 191 項原 durable receipt／actual route／manual generation。新情境涵蓋雙語 inline／records、新舊核准證據、跨文件拒絕、多 buffer 返回後恰一次 Save、原 UNKNOWN 零查詢／零重送且可於返回後明確查原收據、真實 Submit pending、真實撤權、舊一般讀回不可清 UNKNOWN、晚到 body、舊 DOM callback、精確 envelope 與 R2 最後權限／revision 防護。plan 為實際 API 建立及核准；為測試既有 reopened 持久狀態，僅在私有 fixture 初始化該狀態，**沒有宣稱 revoke-plan 成功**（其現行權限曾回 403，原紀錄保留，未改權限）。報告／免做／處置另外驗證既有持久 kind 的純唯讀 renderer，不冒稱完整建立／複測／處置生命周期。records fixture 的 sentinel 使用合法 JSON，原 codec 沒有放寬。
+
+typed lint／TypeScript PASS；Routine JS／VersionDraftUI 更新 `20261109-routine-approved-history7`，其餘資產與歷史 tags 保留。此前 IPQC AB 真實產品提交 `6fc2b96` 的完整來源 685/685 PASS、guarded build PASS；本批後續 source／build 與新 main 整合仍須綁實際提交。GitHub／測試站未更新，原生／實機／實站未驗；畫布頁仍是唯一未接前端的頁面。
+
+收到 parent 的 #100 合併通知後，已用 GitHub 直接核實 main／PR #100 均為 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（含 #99），並唯讀 fetch 真實 Git 物件。後續本機語意整合須保留其 inert foreground facade、無定時 server read、既有明確 read owner 錯誤語意、source inverses 與正常 CI；目前尚未把該 main 合併進本候選，不將前一版測試當成已整合證明。舊未知／拒絕上傳限制維持。
+
+## #100 最新 main 本機語意整合
+
+已唯讀核實並 fetch `9fbba823090f03da8385c8d92f5e59293d19d2f1`（#100，含 #99），將真實 main merge 到本地候選。保留 inert foreground facade、無週期 server read、明確讀取前後 owner 檢查與 HTTP 錯誤優先順序，以及新增工段繼承已核准 PROCESS 目錄；未吸收、覆寫或上傳獨立畫布候選 80745895。
+
+FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重新整理；歷史 display lease 和原表單依然保留其更嚴格的所有權檢查。IQC 新增的唯一計時器是主動選取核准版本的 45 秒中止 deadline，非輪詢，已列入精確 timer inventory。相應現行資產升到 `20261109-approved-history-main100-8`，不改歷史 cache pins。
+
+保留 main 和本候選各自不同的驗證：目前九個完整模組初始化／focus／visibility 不產生輪詢；七個已退役 producer 的舊回呼從真實 d4ac309 Git 來源以有限 witness 取出，僅在測試手動 driver 執行，並由現行程式無 producer 斷言保護。這些 cached callback 測試不代表產品仍安裝 timer。原 9 個來源 target 保留，新增 `main_100`，原 background exact inverse 和負向控制不放寬。
+
+製程編輯台仍未完成原頁唯讀前端與舊核准聯集。獨立 80745895 交付文件明文要求 parent 先協調另一畫布工作；此處已提出協調需求，未把該候選當作已整合，也未以本批完成十二組頁面宣稱全站完成。GitHub 本批仍未上傳、未部署；原先 create_tree 結果不明及 equipment 上傳自動審查拒絕仍未解除、未重送。資料／schema／ACL 無變更。
+
+### 固定整合結果
+
+產品 merge `bfa26509bf7b29a2855f84da290d971dd4dca3a7` 已包含真實 main #100；交付前再以 GitHub 唯讀核實 main 仍為 `9fbba823090f03da8385c8d92f5e59293d19d2f1`。
+
+- **418/418 PASS**：十個實際頁面／API 查看套件，加 #99 stage catalog 與 #100 FQC readiness。其餘已完成頁面原有更大批次結果見上述逐頁紀錄。
+- **775/775 PASS**：完整 named predecessor／bounded witness／來源負向控制，以及 #100 原五檔 exact inverse。原九個 target、舊 hash／歷史 pin 不變，新增 main_100。
+- **239/239 PASS**：#100 手動畫布同步、原收據恢復、restore admission、read deadline、全站 timer inventory、inert scheduler 與 fixture ports；最初 cache 失敗已在最終固定 source 下重跑通過。
+- **79/79 PASS**：來源相依的原導覽／收據／五檔 inverse；原歷史 cache 預期全部保留，目前 cache 以有限明確 map 驗證。IQC 原 closure fixture 補入實際 display guard 宣告，新增 history-before-read／late display epoch 負向。
+- **九個 current initializers** 零 request／零 timer；**14 個明確 permission GET、1 dirty-flush、4 negative probes**，以及原 equipment 28 項回歸 PASS。current scoped read pause 與 frozen cached callback companion 各自完成，後者 **50 groups PASS**。
+- #100 原 panel differential **15 cases PASS**，完整 baseline hash 仍為 a8a0b53…；以 unified→main_100→原 background inverse 組合，未改 baseline pin。EOL fixture **78 checks PASS**；IQC cached closure **24 checks PASS**；AB/C/PROCESS/BOM review composition **37 cases PASS**。cached suite 僅從真實 d4 取歷史 producer，不把其 timer 裝入產品。
+- typed lint、TypeScript、Sites source boundary、diff check 與受保護 build **PASS**。Build 只證明編譯與既有已知 public auth 檢查，不宣稱通用敏感資料掃描或發布許可。
+
+日誌存放本機兄弟目錄 `approved-history-unified-evidence-20261109`；最終 bundle／main-relative patch／receipt 另固定候選提交與 SHA256。沒有 GitHub Actions CI／PR review、測試站或原生瀏覽器驗收結果。既有兩項未修改 Canvas equipment snapshot 斷言曾在前任同樣失敗，仍保留其紀錄；本批沒有把那些未解限制改成 PASS。資料模型／schema／ACL 無改動；沒有真實資料寫入。
+
+## 最後一批：製程編輯台／畫布與 7ef04ed7 相依
+
+本批已接畫布原頁 `canvas-approved-version`，目前草稿與真正已核准的 V3／舊 `approvalVersions` 共用同一 selector。移除編輯台舊未核准版本 selector、草稿歷史彈窗／還原入口、孤立產品問題的舊封存彈窗；案件審核平台保留原業務案件查看，不把它當作草稿版本清單。歷史以獨立不可編輯的工作區／工段／流程欄位展示，可展開核對連線 IDs、設備 IDs、作業說明、BOM 選擇與該版圖片；不將歷史塞入目前畫布 renderer、journal 或活資料引用。此為同頁唯讀快照，沒有歷史圖形拖曳／編輯。
+
+`processApprovedGET` 僅處理原 approvedOnly 查詢，保留原非 opt-in GET／POST／scope／角色／CAS。舊版本須有核准事件、有效日期與審核者文字；排除 shared／未核准、重複來源 IDs 與投影 ID 衝突，不以正式指標冒充核准。metadata 不取 V3 歷史 body，detail 固定取核准 case.content；舊 stages 本來就 inline 在一個保留 aggregate，清楚承認需讀這個 aggregate，沒有宣稱它已拆為按版 body。選定內容 buffer 後再核對角色／session／global revision；新 metadata／detail 不寫資料或持久 aliases。
+
+歷史 display epoch 與原 Canvas edit epoch／journal／generation／owned ledger 分開。writer、直接 Canvas Sync／Save／Discard／recovery、舊原生屬性事件及原普通讀回有保護；畫布 renderer 重新綁事件後也補上同一 fence。原表單／gesture／操作執行中阻擋切換，休止的舊 Sync UNKNOWN 與目前全站 Save UNKNOWN 可查看歷史且不查收據、不重送。切回只讀 permissions，回原 RAM／journal；原 pending 仍鎖定。普通成功 adopt 會退休工作稿 selector，不把合法最新工作稿誤當歷史唯讀。
+
+已唯讀取入真實 `7ef04ed741249816aac2f1336cf15f888ff92fa0`；精確採用其中產品修正 `bbc5f9d106b4027b2d33b70b2a8f3d5eb0a580f1`（request 入口先 pin C comparison version，防止同步 callback 使舊請求取得新 Begin proof）及其新實際回歸。沒有整份覆寫共用 client 或宣稱完整候選合併／發布；其餘共同 main／原 d1ff 改動早已保留，source proof 增列 draft_main100 比對 target。80745895 並未整合，仍待 parent 協調其另外的 stage／category／line 保留改動；本批版本查看無需先套入它。
+
+全頁查看與 C 比較 **572/572 PASS**；畫布新實際堆疊另固定最終日誌，包含雙語 inline／records、聯集分頁、不可修改／舊 callback、原 UNKNOWN、真正 pending、body／aggregate 撤權與 revision fence、原生表單、回原 journal 後一次真正 Save、操作執行中與拒絕返回。製程既有 Begin／離頁／就緒／審核狀態／真實 atomic Save **149/149 PASS**；原 unknown recovery **4 groups PASS**，原 evidence helpers **13 groups PASS**。新 fixture 最初補齊 bindDataInner／crypto／Canvas accept 及合法工段；未放寬產品門檻。原歷史可編輯 restore 的 R12 改驗無入口與原 SUBMIT_STATE_UNCONFIRMED command fence，未取消 transport 負向。
+
+舊 panel 效能差分比較的是舊歷史 UI，不能再宣稱與目前新 UI 相同；完整原 15 cases／hash／78 EOL 負向保留為明示 frozen 4a10e935→d4 基準，現行行為另由新 stack 測試及完整 source proof 驗證。原 Canvas-post suite 一項『empty atomic Save』要求 POST/GET，實際為合法比較 GET/POST/GET；同一斷言已在真實前任 fe162bc 重現，不刪測試、不放寬計數。該套件另外 204 PASS、3 SKIP／1 FAIL 的初始合併紀錄保留，未聲稱全域無失敗。原完整 submit-feedback script 曾未到最終 JSON，R12／S6 各自有完整終點證據；未將不完整 run 計成全套 PASS。
+
+本批四個修改資產（shared client、authoring、Canvas local、editor）用 `20261109-canvas-approved-history9`，其他 tags 與全部歷史 pins 保留。schema／資料模型／ACL／真實業務資料無變動。GitHub 本批未上傳、測試站未部署、原生／實機／實站未驗；舊未知／拒絕上傳限制持續。前面 fe162bc／main100 交付包已變成十二組頁面的歷史檢查點，最終交付以後續 canvas receipt／bundle 為準。

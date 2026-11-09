@@ -1,10 +1,11 @@
+import {retiredDraftSource} from '../scripts/entry-performance/retired-draft-source.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 
-// Actual implementation, in-memory transport/DOM doubles; no server, browser,
+// Current bind/catalog implementation, and explicitly selected frozen d4 cached callbacks; in-memory transport/DOM doubles; no server, browser,
 // credentials, business/storage writes or source rewriting.
 const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
 // Default fixtures execute the actual inert production scheduler. Explicit legacy
@@ -23,10 +24,10 @@ assert.equal(sharedSource.indexOf(pauseEndMarker), pauseEnd);
 assert.equal(sharedSource.indexOf(pauseStartMarker, pauseStart + pauseStartMarker.length), -1);
 assert.equal(sharedSource.indexOf(pauseEndMarker, pauseEnd + pauseEndMarker.length), -1);
 const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
-const part = (start, end) => {
-  const a = source.indexOf(start), b = source.indexOf(end, a + start.length);
+const sourcePart = (text,start,end) => {
+  const a = text.indexOf(start), b = text.indexOf(end, a + start.length);
   assert(a >= 0 && b > a);
-  return source.slice(a, b);
+  return text.slice(a, b);
 };
 const clone = value => JSON.parse(JSON.stringify(value));
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -42,6 +43,7 @@ const master = { revision: 7, permissions: { view: true }, control: { activeVers
 ] } };
 const shared = { revision: 7, permissions: { view: true }, control: { workflow: { generation: 'fqc-generation', revision: 1 } } };
 function fixture(cells = { 'ab.view': true, 'equipment.view': true }, { retiredCallbackDriver = false } = {}) {
+  const profileSource=retiredCallbackDriver?retiredDraftSource(process.cwd(),'fqc-master.js'):source,part=(start,end)=>sourcePart(profileSource,start,end);
   const reads = { shared: queue(), master: queue(), equipment: queue(), permission: queue() };
   let epoch = 1, active = true, clock = 0, timerId = 0, focused = true;
   const activeTimers = new Map();
@@ -81,9 +83,9 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }, { retiredC
   if (retiredCallbackDriver) vm.runInContext(retiredSource, box);
   const pause = box.window.createScopedReadPause('FQC readiness fixture');
   client.canPoll = kind => pause.canPoll(kind);
-  vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=window.createForegroundPoll(),workspaceReady=()=>false;` +
+  vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=window.createForegroundPoll(),workspaceReady=()=>false,historyDisplayEpoch=0,approvedHistoryView=null;` + source.match(/  const historyAllowsMutation=[^\n]+/)[0] +
     part('  async function loadShared(', '  function changes(') +
-    part('  function pollShared()', '  const ui =') +
+    (retiredCallbackDriver?part('  function pollShared()', '  const ui ='):'') +
     part('  let equipmentCache =', '  function eqPhotoUrl(') +
     part('  let masterCatalogCache =', '  function snapshotFromCanonical(') +
     part('  function bind(element) {', '  function fqcTabIsActive()') +

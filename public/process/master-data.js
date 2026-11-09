@@ -1143,7 +1143,7 @@
         busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>departureScopes().some(scope=>shared.client(scope).hasUnknown()),failed:()=>departureScopes().some(scope=>shared.client(scope).hasSyncFailures()),
         unknownTransports:()=>departureScopes().map(scope=>shared.client(scope)),discardUnknown(){this.discard();},
         local:()=>departureScopes().some(scope=>shared.localDirty(scope))||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&(window.ProcessMasterVersioning?.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.()),
-        canSave:()=>shared.permissions(departureScope())?.save===true,
+        canSave:()=>shared.permissions(departureScope())?.save===true&&(departureScope()!=='PROCESS'||window.ProcessMasterVersioning?.currentDisplay?.()!==false),
         canDiscard:()=>state.dataTab==='line-admin'?departureScopes().filter(scope=>shared.localDirty(scope)||scope===departureScope()&&departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))).every(scope=>shared.permissions(scope)?.edit===true):shared.permissions(departureScope())?.edit===true,
         save:()=>shared.execute(departureScope(),'save'),
         discard(){for(const scope of departureScopes())shared.discardLocal(scope);closeDepartureDialogs();},
@@ -1163,6 +1163,7 @@
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
       window.MasterAdminUI?.retireApprovedHistory?.();
+      window.ProcessMasterVersioning?.retireApprovedHistory?.();
       clearProcessPageInputs();
       deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};

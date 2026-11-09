@@ -90,6 +90,7 @@ void test('exact opt-in refuses unknown routes, keys, scopes and ambiguous routi
   ['/api/ipqc-ab/workflow?scope=A:Fixture&module=1&approvedOnly=1&uiHistory=1','ipqcABMasterControl','ipqc-ab:module'],
   ['/api/ipqc-ab/workflow?module=0&approvedOnly=1&uiHistory=1','ipqcABMasterControl','ipqc-ab:module'],
   ['/api/master/workflow?scope=AB&approvedOnly=1&versionId='+('x'.repeat(513)),'masterDataControl','master:AB'],
+  ['/api/ipqc-ab/workflow?module=1&approvedOnly=1&versionId='+('x'.repeat(1025)),'ipqcABMasterControl','ipqc-ab:module'],
   ['/api/bom/workflow?approvedOnly=1&uiHistory=1&versionBefore='+('x'.repeat(513)),'bomMasterControl','bom'],
  ])assert.throws(()=>query(new Request('http://fixture'+url),key,scope),e=>e.code==='INVALID_APPROVED_HISTORY_QUERY');
  assert.equal(query(new Request('http://fixture/api/other?uiHistory=1'),'other','other'),false);
