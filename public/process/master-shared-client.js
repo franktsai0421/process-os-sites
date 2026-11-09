@@ -174,8 +174,16 @@
       // A reload has no RAM pin; departure may have abandoned/replaced the local
       // batches. Neither case grants permission to discard or resurrect input.
       if(remaining&&ownerMatches(remaining.owner)&&remaining.generation===pin.generation&&remaining.batches.length>=pin.batches.length&&pin.batches.every((batch,i)=>remaining.batches[i]===batch)){
-        remaining.base=copy(pin.acceptedSnapshot);
-        remaining.batches=remaining.batches.slice(pin.batches.length);
+        const suffix=remaining.batches.slice(pin.batches.length);
+        // A late whole-photo-array setter still contains the original primary,
+        // even when the user only appended a tail after choosing theirs. Derive
+        // its actual unsent intent against the fixed sent snapshot, never the
+        // later receipt readback. Conflicting late intent waits for explicit Save.
+        remaining.base=copy(pin.intentSnapshot);remaining.batches=suffix;
+        if(suffix.length){
+          const intent=projectLocal(pin.intentSnapshot,suffix),comparison=compareMasterSnapshots(pin.intentSnapshot,intent,pin.acceptedSnapshot,'PROCESS');
+          if(!comparison.conflicts.length){remaining.base=copy(pin.acceptedSnapshot);remaining.batches=comparison.materialize('mine').filter(batch=>batch.patches.length);}
+        }
         if(!remaining.batches.length)discardLocal('PROCESS');
       }
       processSave=null;
@@ -356,7 +364,7 @@
       await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       const comparison=compareCatalog?await comparedCatalogBatches(scope,local,current,c,saveOwner,input):{batches:copy(local?.batches||[]),acceptedSnapshot:copy(current.working)};if(comparison===null)return null;const {batches,acceptedSnapshot,expectedRevision}=comparison;
       const command=c.prepare(current.generation,'save',{...detail,...(expectedRevision===undefined?{}:{expectedRevision}),moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
-      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],acceptedSnapshot};
+      if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[],intentSnapshot:compareCatalog?projectLocal(local.base,JSON.parse(input.original)):copy(current.working),acceptedSnapshot};
       let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}catch(error){if(scope==='PROCESS'&&!c.hasUnknown()&&processSave?.operationId===command.operationId)processSave=null;throw error;}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       // Transport validates the original receipt and readback before clearing its
