@@ -1,3 +1,7 @@
+## 2026-11-09 — 全部草稿的存取衝突要求與首批界線
+
+使用者要求只有按存取時核對衝突，整組選「用我的」或「用對方的」，沒有衝突的修改保留，取消原多人同步，並要求各分頁草稿獨立。這是待完成的全站要求，不宣告現有 scope 已分拆。首批 AB/C 候選僅處理既有產品名稱／規格／單位與線別／工段名稱；混入結構、類別或路線修改仍保留原 guards。PROCESS、各分頁持久草稿隔離與 master 取消輪詢整合仍未由此批完成。[實作範圍與驗證界線](../../acceptance/abc-field-save-choice-20261109/README.md)。
+
 ## 2026-11-05 AB/C: local completion and one explicit Save
 
 This AB/C candidate covers master products, categories, group defaults/product exceptions and the selected AB/C line/stage entry, separately from IPQC A/B. Form completion retains ordered original-basis guarded changes in the current page; only explicit Save atomically shares them and creates/retains the saved snapshot. Edit includes Save; create/delete/Submit/review remain distinct. Search/filter/poll preserve local input. Leaving the current editing destination/scope silently drops only unsent input; current product↔line/stage destination changes replace the shell projection and therefore also drop unsent input. Unknown Begin/Save retain original scoped markers, generation, operation and sent guards through departure/reopen; only original receipt lookup can settle them, never a 404 retry. Submit refuses local unsaved content and never auto-saves or sends an older snapshot. Existing shared working/saved/pending/effective/history and linked PROCESS cases remain. This supersedes older two-stage Apply/Save and prompted departure wording only for this candidate. [Implementation and acceptance boundary](../../acceptance/abc-local-save-20261105/README.md).

@@ -1,3 +1,13 @@
+## 2026-11-09 — AB/C existing-field conflict choice candidate
+
+Adds one Save-time mine/theirs/cancel dialog for batches of existing product
+name/specification/unit and line/stage name edits, preserving both sides'
+nonconflicting changes. Pins input before flush and across the authorized read
+and dialog; observed-value guards, server authority/CAS and original unknown
+receipts remain. Structural/category/route edits retain the original flow.
+[Scope, tests and outstanding page/PROCESS boundaries](../docs/acceptance/abc-field-save-choice-20261109/README.md).
+Local only; no schema, data, GitHub write or deployment.
+
 ## 2026-11-08 — Equipment explicit recheck and ACK comparison candidate
 
 Equipment Save confirms complete saved/working JSON content without object-key-order dependence. Keys, primitive types/values, array positions, receipt/generation/revision and owner fences remain required. Explicit same-owner/epoch/generation delivery recheck reads fresh permissions through the existing client, then uses a private one-use confirmation after all caller checks to renew only runtime delivery. Original client, journal, guards and UNKNOWN receipt destinations remain; no automatic POST or permission bypass. Both equipment and shared-client cache tags advance together. The historical source pins are retained through an exact test-only composition back to PR 97. [Scope and verification limits](../docs/acceptance/equipment-no-poll-20261108/README.md). No schema, live data, deployment or conflict-resolution feature.

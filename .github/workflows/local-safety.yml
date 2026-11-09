@@ -81,7 +81,7 @@ jobs:
       - name: AB C integrated local Save and scoped recovery contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-bridge-ownership.test.mjs tests/master-shared-clone.test.mjs
+          node --test tests/abc-save-conflict-choice.test.mjs tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-bridge-ownership.test.mjs tests/master-shared-clone.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: BOM atomic Save and original-operation browser recovery
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}

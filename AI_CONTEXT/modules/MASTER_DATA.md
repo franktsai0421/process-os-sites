@@ -1,3 +1,7 @@
+## 2026-11-09 — AB/C 顯示欄位存取衝突首批
+
+明確 Save 前讀取權威版本，既有產品名稱／規格／單位與線別／工段名稱的整批衝突只選一次用我的／對方；非衝突保留，取消不 POST。選擇結果仍帶觀察值 guards，未知結果不重送。混入類別、路線、增刪或排序的整批維持原 guards，沒有自動恢復已刪資料。線別工段仍共用 AB/C，PROCESS 仍原 scope；此批沒有草稿分拆或取消輪詢整合。[候選與限制](../../docs/acceptance/abc-field-save-choice-20261109/README.md)。
+
 ## 2026-11-05 BOM 原子存取候選
 
 `save-local-v1` 在 request memory 依序驗證本機手動／已確認 Digiwin 操作，最後一次 CAS 保存 working、saved 和原收據。保留原 guards、匯入基準／決策、L2、角色、pending、歷史與引用。BOM edit 包含 Save；送審／核准／匯入分開。離頁無提示放棄未送輸入；未知 Begin／Save 留原持久標記、只查原收據，舊無識別碼紀錄不視為 clean。從未合併 PR77 分支衍生，未發布；[驗證與共用檔協調](../../docs/acceptance/bom-atomic-save-20261105/README.md)。

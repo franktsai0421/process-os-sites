@@ -1,3 +1,11 @@
+# 2026-11-09 — AB/C field Save choice candidate
+
+Small independent local slice from main b06394c: existing product display fields
+and line/stage names gain one Save-time conflict choice. Category/route/structure,
+PROCESS and per-tab stored-draft separation remain open; master polling removal
+is a separate candidate. [Scope, verification and retained boundaries](docs/acceptance/abc-field-save-choice-20261109/README.md).
+No remote write, live data, migration, connector action or deployment.
+
 # 2026-11-06 — Role-template layout candidate
 
 UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained. V41 follow-up adds workspace-width role placement and short-dialog scrolling; expanded full-page evidence retains the separate Windows visibility CI gate. No permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.

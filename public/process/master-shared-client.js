@@ -4,7 +4,7 @@
   const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
   host.createMasterSharedBridge=({control,onChange,processLocalSave=false})=>{
     const clients=new Map(),clientOwners=new Map(),bases=new Map(),generations=new Map(),permissions=new Map(),readTokens=new Map(),readOwners=new Map();let busy=false;
-    const localScopes=new Set(['AB','C',...(processLocalSave?['PROCESS']:[])]),locals=new Map(),stateRevisions=new Map();let processSaving=false,processSave=null;
+    const localScopes=new Set(['AB','C',...(processLocalSave?['PROCESS']:[])]),locals=new Map(),stateRevisions=new Map(),saveChoices=new Map();let processSaving=false,processSave=null;
     const client=scope=>{const actor=host.ProcessSync?.identity?.id;if(!actor)throw Error('LOGIN_REQUIRED');const key=actor+':'+scope;
       if((scope==='PROCESS'||localScopes.has(scope))&&clients.has(key)&&(!ownerMatches(clientOwners.get(key))||clients.get(key).isRuntimeCurrent?.()===false||localScopes.has(scope)&&clients.get(key).isBeginRuntimeCurrent?.()===false)){clients.delete(key);clientOwners.delete(key);readTokens.delete(key);}
       if(!clients.has(key)){clients.set(key,host.createSharedDraftClient({endpoint:'/api/master/workflow?scope='+encodeURIComponent(scope)+'&caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},...(scope==='PROCESS'?{externalDurableBounded:{scope:'PROCESS'},...(processLocalSave?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,processLocalSave:true}:{})}:localScopes.has(scope)?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true}:{})}));if(scope==='PROCESS'||localScopes.has(scope))clientOwners.set(key,captureOwner());}return clients.get(key);
@@ -151,7 +151,7 @@
     }
     function productReferenceCode(scope,product){const existing=flow(scope)?.working?.products?.find(p=>p.id===product?.id);if(existing)return existing.code;return locals.get(scope)?.batches.some(b=>b.patches.some(p=>p.op==='insert'&&p.path.length===1&&p.path[0]==='products'&&p.value.id===product?.id))?null:product?.code;}
 
-    function discardLocal(scope){locals.delete(scope);const version=draft(scope);if(version&&flow(scope))version.snapshot=copy(flow(scope).working);}
+    function discardLocal(scope){saveChoices.get(scope)?.();locals.delete(scope);const version=draft(scope);if(version&&flow(scope))version.snapshot=copy(flow(scope).working);}
     function stageLocal(scope){
       const current=flow(scope),c=client(scope);if(!current)throw Error('BEGIN_REQUIRED');
       if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
@@ -179,14 +179,99 @@
       }
       processSave=null;
     }
+    // First independent choice batch: existing AB/C display fields only.
+    // Structural edits and route/category membership retain their original
+    // ordered guards. Never derive authorization or restore removed entities.
+    function compareCatalogFields(batches,latest){
+      const units=new Map(),fieldLabels={name:['名稱','Tên'],specification:['規格','Quy cách'],unit:['單位','Đơn vị']};
+      const eligible=path=>Array.isArray(path)&&typeof path[1]?.id==='string'&&(
+        path.length===3&&(path[0]==='products'&&['name','specification','unit'].includes(path[2])||path[0]==='lines'&&path[2]==='name')||
+        path.length===5&&path[0]==='lines'&&path[2]==='stages'&&typeof path[3]?.id==='string'&&path[4]==='name');
+      for(const batch of batches){
+        if(batch.patches.length!==batch.guards.length)return null;
+        for(const patch of batch.patches){
+          if(patch.op!=='set'||!eligible(patch.path))return null;
+          const key=JSON.stringify(patch.path),matches=batch.guards.filter(g=>JSON.stringify(g.path)===key);
+          if(matches.length!==1)return null;
+          const before=matches[0].value,unit=units.get(key);
+          if(unit&&!equal(unit.mine,before))return null;
+          if(unit)unit.mine=patch.value;else units.set(key,{path:patch.path,before,mine:patch.value});
+        }
+      }
+      const conflicts=[];let changed=false;
+      for(const unit of units.values()){
+        // Check every ID traversal, so absent/ambiguous rows never become an
+        // undefined field that can be recreated by selecting "mine".
+        let row=latest;
+        for(const part of unit.path.slice(0,-1)){
+          if(typeof part==='string')row=row?.[part];
+          else{const matches=Array.isArray(row)?row.filter(value=>value.id===part.id):[];if(matches.length!==1)return null;row=matches[0];}
+        }
+        if(!row||typeof row!=='object')return null;
+        unit.theirs=row[unit.path.at(-1)];unit.noChange=equal(unit.before,unit.mine);
+        unit.conflict=!unit.noChange&&!equal(unit.before,unit.theirs)&&!equal(unit.mine,unit.theirs);
+        changed ||= !equal(unit.before,unit.theirs);
+        const kind=unit.path[0]==='products'?t('產品','Sản phẩm'):unit.path.length===5?t('工段','Công đoạn'):t('線別','Chuyền');
+        unit.label=kind+' · '+(row.code||row.id)+' · '+t(...fieldLabels[unit.path.at(-1)]);
+        if(unit.conflict)conflicts.push(unit);
+      }
+      return {conflicts,materialize(choice){
+        if(!changed)return batches;
+        const patches=[],guards=[];
+        for(const unit of units.values()){
+          // A local edit then revert is no intent to overwrite a peer's edit.
+          if(unit.noChange)continue;
+          guards.push({path:unit.path,value:unit.theirs});
+          if(unit.conflict&&choice==='theirs'||equal(unit.mine,unit.theirs))continue;
+          patches.push({op:'set',path:unit.path,value:unit.mine});
+        }
+        return [{patches,guards}];
+      }};
+    }
+    function chooseCatalogConflicts(scope,conflicts,current){
+      return new Promise(resolve=>{
+        const dialog=document.createElement('dialog'),prior=document.activeElement;
+        dialog.className='vd-confirm';dialog.dataset.masterSaveConflicts=scope;dialog.style.overflowWrap='anywhere';dialog.setAttribute('aria-labelledby','master-save-choice-title');
+        const add=(tag,text,parent=dialog)=>{const node=document.createElement(tag);node.textContent=text;parent.append(node);return node;};
+        add('h2',t('選擇衝突處理方式','Chọn cách xử lý xung đột')).id='master-save-choice-title';
+        add('p',t('一次處理所有衝突，沒有衝突的雙方修改都會保留。','Áp dụng một lựa chọn cho tất cả xung đột; giữ các thay đổi không xung đột.'));
+        const list=add('ul',''),format=value=>value===undefined?t('未填寫','Chưa nhập'):String(value);
+        for(const unit of conflicts){const item=add('li','',list);add('strong',unit.label,item);add('p',t('我的：','Của tôi: ')+format(unit.mine),item);add('p',t('對方的：','Của người khác: ')+format(unit.theirs),item);}
+        const actions=add('div','');actions.className='vd-actions';let done=false;
+        const finish=choice=>{if(done)return;done=true;if(saveChoices.get(scope)===cancel)saveChoices.delete(scope);host.removeEventListener('pagehide',cancel);dialog.remove();if(current()&&prior?.isConnected)prior.focus?.({preventScroll:true});resolve(choice);};
+        const cancel=()=>finish('cancel');saveChoices.set(scope,cancel);
+        for(const [choice,label]of [['mine',t('用我的','Dùng của tôi')],['theirs',t('用對方的','Dùng của người khác')],['cancel',t('取消','Hủy')]]){const button=add('button',label,actions);button.type='button';button.className='button'+(choice==='cancel'?' ghost':'');button.dataset.masterSaveChoice=choice;button.onclick=()=>finish(choice);if(choice==='cancel')button.autofocus=true;}
+        dialog.addEventListener('cancel',event=>{event.preventDefault();cancel();});dialog.addEventListener('close',cancel);host.addEventListener('pagehide',cancel);document.body.append(dialog);dialog.showModal();
+      });
+    }
+    async function comparedCatalogBatches(scope,local,current,c,owner,input){
+      const {original,snapshot}=input,generation=current.generation;
+      const currentInput=()=>ownerMatches(owner)&&flow(scope)?.generation===generation&&locals.get(scope)===local&&JSON.stringify(local?.batches||[])===original&&JSON.stringify(draft(scope)?.snapshot)===snapshot;
+      const assertCurrent=()=>{if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(flow(scope)?.generation!==generation)throw Error('STALE_GENERATION');if(!currentInput()||document.querySelector('#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');if(c.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');};
+      assertCurrent();const fresh=await c.read();assertCurrent();
+      const next=fresh.control?.workflow;
+      if(!next||next.generation!==generation)throw Error('STALE_GENERATION');
+      if(!Number.isSafeInteger(next.revision)||next.revision<flow(scope).revision||Number.isSafeInteger(fresh.revision)&&fresh.revision<(stateRevisions.get(scope)??-1))throw Error('RECOVERY_READBACK_REQUIRED');
+      if(!['view','edit','save'].every(key=>fresh.permissions?.[key]===true&&c.permission(key)===true))throw Error('FORBIDDEN');
+      if(next.pendingId)throw Error('PENDING_LOCKED');
+      const batches=JSON.parse(original),comparison=compareCatalogFields(batches,next.working);
+      if(!comparison)return batches;
+      const choice=comparison.conflicts.length?await chooseCatalogConflicts(scope,comparison.conflicts,currentInput):'mine';
+      assertCurrent();if(choice==='cancel')return null;
+      if(flow(scope).revision>next.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      if(!['view','edit','save'].every(key=>c.permission(key)===true))throw Error('FORBIDDEN');
+      return comparison.materialize(choice);
+    }
     async function saveLocal(scope,detail){
       if(document.querySelector(scope==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]'))throw Error('UNAPPLIED_CHANGES_APPLY_REQUIRED');
       const local=locals.get(scope),current=flow(scope),c=client(scope),saveOwner=captureOwner();
       if(!current)throw Error('BEGIN_REQUIRED');
       if(local&&(!ownerMatches(local.owner)||local.generation!==current.generation))throw Error('STALE_GENERATION');
       if(c.permission('save')!==true)throw Error('FORBIDDEN');
+      const compareCatalog=['AB','C'].includes(scope)&&!!local?.batches.length,input=compareCatalog?{original:JSON.stringify(local.batches),snapshot:JSON.stringify(draft(scope)?.snapshot)}:null;
       await c.flush();if(!ownerMatches(saveOwner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
-      const batches=copy(local?.batches||[]),command=c.prepare(current.generation,'save',{...detail,moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
+      const batches=compareCatalog?await comparedCatalogBatches(scope,local,current,c,saveOwner,input):copy(local?.batches||[]);if(batches===null)return null;
+      const command=c.prepare(current.generation,'save',{...detail,moduleAction:'save-local-v1',patches:batches.flatMap(b=>b.patches),input:{batches}}),owner=captureOwner();
       if(scope==='PROCESS')processSave={operationId:command.operationId,generation:current.generation,owner,batches:local?.batches.slice()||[]};
       let result;processSaving=scope==='PROCESS';try{result=await c.sendPrepared(command);}catch(error){if(scope==='PROCESS'&&!c.hasUnknown()&&processSave?.operationId===command.operationId)processSave=null;throw error;}finally{processSaving=false;}
       if(!ownerMatches(owner))throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
@@ -243,6 +328,6 @@
         if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
       }finally{busy=false;}
     }
-    return{isLocalProcessInsert,localProcess:processLocalSave,localDirty,productReferenceCode,discardLocal,resetReads(){processSave=null;locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
+    return{isLocalProcessInsert,localProcess:processLocalSave,localDirty,productReferenceCode,discardLocal,resetReads(){for(const cancel of saveChoices.values())cancel();processSave=null;locals.clear();stateRevisions.clear();readOwners.clear();bases.clear();generations.clear();permissions.clear();readTokens.clear();},client,load,patch,preparePatch,rejectionCapability,hasConfirmedRejection,isConfirmedRejection,finalizeRejected,dispatchPreparedPatch,finishPreparedPatch,sendPreparedPatch,readRecovery,receiptRecovery,execute,submit,review,history,recover,flow,discardRejected:(scope,paths)=>client(scope).discardRejected(paths),renderValidation:(scope,options)=>host.ProcessSync?.identity?.id&&host.renderSharedDraftValidation({...options,client:client(scope),flow:flow(scope),language:document.documentElement.lang==='vi'?'vi':'zh'}),permissions:scope=>permissions.get(scope),busy:()=>busy,adopted:scope=>!!flow(scope),diff};
   };
 })(window);
