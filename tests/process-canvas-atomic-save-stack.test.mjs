@@ -284,10 +284,12 @@ void test('actual category retains one draft while stage and line silently aband
 void test('actual line switch retains UNKNOWN receipt bytes and never resends while abandoning newer unsent input',async()=>{
  const remote=await routeServer('inline',true,{activeSaved:true});try{
   const f=await fixture({remote}),stats=selectionNavigation(f);f.edit('Sent');remote.loss('after');assert.equal(await f.api.save(),false);assert(f.local.pending());f.edit('Newer unsent');
-  const before=[...f.storage.data].filter(([k])=>k.includes('receipt')||k.includes('canvas')),pending=f.local.pending();clear(f);
-  assert.equal((await f.api.changeCanvasView({kind:'line',key:'line:B',label:'B',run(){f.state.editorLine='B';}})).status,'ready');assert.equal(f.state.editorLine,'B');assert.equal(f.local.pending(),pending);assert.equal(remote.calls.length,0);assert.equal(stats().prompts,0);assert.equal(stats().abandoned,1);
+  const anchors=[...f.storage.data].map(([key,raw])=>({key,raw,value:JSON.parse(raw)})).filter(({value})=>value.kind==='unknown'&&value.reference?.channel==='canvas-v2');assert.equal(anchors.length,1,'one durable UNKNOWN anchor must exist');
+  const anchor=anchors[0],reference=copy(anchor.value.reference),snapshot=JSON.parse(f.storage.data.get(anchor.value.snapshotKey));assert.equal(reference.generation,f.api.flow().generation);assert.equal(reference.operationId,remote.calls.find(c=>c.kind==='post').wire.receipt.operationId);assert(snapshot.sent,'original sent command snapshot required');
+  const sentBytes=JSON.stringify(snapshot.sent),registries=[...f.storage.data].filter(([key,raw])=>{const value=JSON.parse(raw);return key!==anchor.key&&value.state==='armed'&&value.reference?.operationId===reference.operationId;});assert.equal(registries.length,1,'original armed lineage registry required');clear(f);
+  assert.equal((await f.api.changeCanvasView({kind:'line',key:'line:B',label:'B',run(){f.state.editorLine='B';}})).status,'ready');assert.equal(f.state.editorLine,'B');assert(f.local.pending());assert.equal(remote.calls.length,0);assert.equal(stats().prompts,0);assert.equal(stats().abandoned,1);
   // The original durable command remains available; only later unsent edits drop.
-  for(const [key,value]of before.filter(([k])=>k.includes('receipt')))assert.equal(f.storage.data.get(key),value);
+  assert.equal(f.storage.data.get(anchor.key),anchor.raw,'UNKNOWN anchor remains byte-identical');assert.equal(JSON.stringify(JSON.parse(f.storage.data.get(anchor.value.snapshotKey)).sent),sentBytes,'sent command bytes remain identical');for(const [key,raw]of registries)assert.equal(f.storage.data.get(key),raw,'original armed registry remains byte-identical');
   assert.equal(f.local.project(workspace,stage)[0].name,'Sent');
  }finally{remote.close();}
 });
