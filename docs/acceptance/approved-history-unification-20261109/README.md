@@ -195,3 +195,11 @@ FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重
 舊 panel 效能差分比較的是舊歷史 UI，不能再宣稱與目前新 UI 相同；完整原 15 cases／hash／78 EOL 負向保留為明示 frozen 4a10e935→d4 基準，現行行為另由新 stack 測試及完整 source proof 驗證。原 Canvas-post suite 一項『empty atomic Save』要求 POST/GET，實際為合法比較 GET/POST/GET；同一斷言已在真實前任 fe162bc 重現，不刪測試、不放寬計數。該套件另外 204 PASS、3 SKIP／1 FAIL 的初始合併紀錄保留，未聲稱全域無失敗。原完整 submit-feedback script 曾未到最終 JSON，R12／S6 各自有完整終點證據；未將不完整 run 計成全套 PASS。
 
 本批四個修改資產（shared client、authoring、Canvas local、editor）用 `20261109-canvas-approved-history9`，其他 tags 與全部歷史 pins 保留。schema／資料模型／ACL／真實業務資料無變動。GitHub 本批未上傳、測試站未部署、原生／實機／實站未驗；舊未知／拒絕上傳限制持續。前面 fe162bc／main100 交付包已變成十二組頁面的歷史檢查點，最終交付以後續 canvas receipt／bundle 為準。
+
+### 收尾補驗與已修正夾具
+
+畫布最終 **18/18 PASS**，另含「保有 view/history、撤掉 edit/save」後切回仍保留 journal 但禁止編輯／存取；回草稿以真正 accepted permission 更新本地 UI，直接 gate 亦尊重目前 transport 拒絕，不以舊模型權限開放。手動 Canvas 原測試 **38/38 PASS**；抽取 closure 的夾具帶入實際 historyReadOnly 宣告與原 transport port，未放寬權限負向。
+
+完整 submit-feedback 已修正並 **60 groups PASS**：原 S5 permission 情境曾向另一個新 client 丟不完整回覆，不能代表目前 writer 撤權；現在對原 captured transport 的真正回覆只撤 submit，並加入 beforeExit 完成標記，所有案例完整到 JSON 終點。R12 保留原 SUBMIT_STATE_UNCONFIRMED transport fence，UI 改驗不存在歷史／restore 入口。先前未完成日誌保留，不再是待解阻擋。
+
+產品 1a147d9 的來源 **826/826 PASS**、build PASS；新權限 guard 的最終 product/source/build 與 bundle hash 依後續 receipt 固定。原 main 回歸 **239/239 PASS**、navigation/source 相依 **79/79 PASS**，current scoped read **44 groups PASS**／cached companion **50 groups PASS**，九個完整 initializers、14 permission、1 dirty flush 與 4 negatives PASS。新 frozen benchmark 的輸出明示真實來源 commits 與 currentUIBenchmark=false；原 15 cases 與 78 EOL checks 保留。

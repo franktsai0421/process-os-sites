@@ -148,8 +148,8 @@ void test('retained operation form is never exposed under another account or inv
 
 function useActualLocalEditGate(f){
  const authoring=fs.readFileSync('public/process/process-authoring-v3.js','utf8'),match=authoring.match(/canEditLocalCanvas:(\(\)=>.*?),canEditCanvas:/);assert(match,'actual authoring edit gate');
- const permissions={edit:true},control={versions:[{status:'draft'}]},box={host:f.ctx,ownFlow:()=>true,permissions,control,flow:f.model,submitStateUnconfirmed:false};
- f.ctx.ProcessAuthoringV3.canEditLocalCanvas=vm.runInNewContext('('+match[1]+')',box);return{permissions,control,box};
+ const permissions={edit:true},control={versions:[{status:'draft'}]},box={approvedHistoryView:null,transport:{permission:key=>permissions[key]},host:f.ctx,ownFlow:()=>true,permissions,control,flow:f.model,submitStateUnconfirmed:false};
+ const guard=authoring.match(/ const historyReadOnly=([^\n]+)/);assert(guard,'actual history display guard');f.ctx.ProcessAuthoringV3.canEditLocalCanvas=vm.runInNewContext('const historyReadOnly='+guard[1]+'\n('+match[1]+')',box);return{permissions,control,box};
 }
 void test('confirmed pending blocks further local edits and POST but retains visible dirty buffer',async()=>{
  const f=await browserFixture();useActualLocalEditGate(f);f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);assert(f.local.dirty());
