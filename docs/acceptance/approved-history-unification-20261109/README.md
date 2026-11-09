@@ -203,3 +203,9 @@ FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重
 完整 submit-feedback 已修正並 **60 groups PASS**：原 S5 permission 情境曾向另一個新 client 丟不完整回覆，不能代表目前 writer 撤權；現在對原 captured transport 的真正回覆只撤 submit，並加入 beforeExit 完成標記，所有案例完整到 JSON 終點。R12 保留原 SUBMIT_STATE_UNCONFIRMED transport fence，UI 改驗不存在歷史／restore 入口。先前未完成日誌保留，不再是待解阻擋。
 
 產品 1a147d9 的來源 **826/826 PASS**、build PASS；新權限 guard 的最終 product/source/build 與 bundle hash 依後續 receipt 固定。原 main 回歸 **239/239 PASS**、navigation/source 相依 **79/79 PASS**，current scoped read **44 groups PASS**／cached companion **50 groups PASS**，九個完整 initializers、14 permission、1 dirty flush 與 4 negatives PASS。新 frozen benchmark 的輸出明示真實來源 commits 與 currentUIBenchmark=false；原 15 cases 與 78 EOL checks 保留。
+
+### 最終本機產品與驗證
+
+最終產品提交 `d4a5ef923c3b7fb5dee4eb55836e9e86f801d2ad`，基於已核實且已合併的 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`。保留 11 個真實來源 target（原九個＋main_100＋僅比對的 draft_main100），**826/826 完整 source／witness／inverse 負向 PASS**。本產品的新畫布＋原作者端／真實 atomic Save／manual Sync 合計 **205/205 PASS**，完整 submit-feedback **60 groups PASS**；build、typed lint、TypeScript PASS，無 skip。此前全頁／C **572 PASS**、current main 回歸 **239 PASS**、navigation/source **79 PASS** 與明確限制保持有效，沒有為此反覆擴測已通過且未改動的其他模組。
+
+所有十三列均為本機已接前端並有隔離測試證據；GitHub 本批仍 **NOT_UPLOADED**、測試站 **NOT_DEPLOYED**、GitHub CI／審查及原生／實機／實站驗收均 **NOT_RUN**。保留並行 80745895 未整合，以及上述前任重現的 legacy Canvas-post 次數斷言失敗；不以這些本機 PASS 聲稱全站 CI 或實際驗收通過。上傳受原未知 create_tree／自動審查拒絕限制，沒有重送、拆分繞過或重連原 connector。

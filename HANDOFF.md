@@ -1,6 +1,6 @@
 ## 2026-11-09 — 十三組草稿頁原頁核准版本本機完成
 
-最後補上製程編輯台／Canvas 與嚴格舊核准聯集，獨立 display lease 保留原 journal／UNKNOWN／pending；回草稿能以一次實際全站 Save 保存原修改。新畫布 viewer 不需套入另候選 80745895，該候選仍獨立待協調。7ef04ed7 的 C request-entry pin 修正 bbc5f9d 已語意採用，未覆寫共同 client。全頁／C 572 PASS、製程原流程149 PASS；其他來源、build、最終例數以實際提交 receipt 為準。保留舊 Canvas-post 次數斷言的前任重現失敗與不完整 submit-feedback run，無全 CI 綠燈聲明。未上傳／部署／原生或實站驗收，無 schema／ACL／真資料修改。[逐頁狀態與界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+最後補上製程編輯台／Canvas 與嚴格舊核准聯集，獨立 display lease 保留原 journal／UNKNOWN／pending；回草稿能以一次實際全站 Save 保存原修改。新畫布 viewer 不需套入另候選 80745895，該候選仍獨立待協調。7ef04ed7 的 C request-entry pin 修正 bbc5f9d 已語意採用，未覆寫共同 client。產品 d4a5ef9：全頁／C 572 PASS、新畫布與原製程205 PASS、完整來源826 PASS、完整送審回饋60組 PASS、build／lint／TS PASS。submit-feedback 已修正原 transport 夾具並完整結束；仍保留舊 Canvas-post 次數斷言的前任重現失敗，無全 CI 綠燈聲明。未上傳／部署／原生或實站驗收，無 schema／ACL／真資料修改。[逐頁狀態與界線](docs/acceptance/approved-history-unification-20261109/README.md)。
 
 ## 2026-11-09 — #100 main 與同頁核准版本本機整合
 
