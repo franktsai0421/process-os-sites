@@ -1,4 +1,4 @@
-/* Stage canvas and operation form. Edits stay local until explicit current-canvas Sync. */
+/* Stage canvas and operation form. Edits stay local until explicit current-canvas Save. */
 (function(host){
  'use strict';
  const G=host.ProcessEditorGraph,copy=v=>structuredClone(v),h=v=>escapeHtml(String(v??'')),t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
@@ -88,7 +88,7 @@
    b.onpointercancel=()=>{b.onpointermove=null;clearLink();finishInteraction();};
   };
  });root.onpointermove=previewLink;}
- async function action(a,o){if(a==='edit')return open(o);if(a==='album')return album(operationWorkMediaItems(o),o.name);if(a==='delete')return remove(o);if(a==='add')return add();if(a==='help')return ask(t('點內容編輯；拖標題移動；點照片開相簿。點出口再點另一方塊入口建立連線；點連線移除。空白處可平移。移動、連線與自動整理先保留本機；按存取草稿一次保存目前畫布變更與整份製程。','Nhấn nội dung để sửa; kéo tiêu đề; nhấn ảnh để mở album. Chọn đầu ra rồi đầu vào để nối. Nhấn dây để xóa. Kéo nền để di chuyển. Áp dụng xong vẫn cần lưu bản nháp.'));
+ async function action(a,o){if(a==='edit')return open(o);if(a==='album')return album(operationWorkMediaItems(o),o.name);if(a==='delete')return remove(o);if(a==='add')return add();if(a==='help')return ask(t('點內容編輯；拖標題移動；點照片開相簿。點出口再點另一方塊入口建立連線；點連線移除。空白處可平移。移動、連線與自動整理先保留本機；完成編輯後，按存取草稿一次保存目前畫布的方塊、內容與連線。送審使用整份已存製程。','Nhấn nội dung để sửa; kéo tiêu đề; nhấn ảnh để mở album. Chọn đầu ra rồi đầu vào để nối. Nhấn dây để xóa. Kéo nền để di chuyển. Hoàn tất chỉnh sửa rồi nhấn Lưu bản nháp để lưu các ô, nội dung và liên kết của sơ đồ hiện tại. Gửi duyệt dùng toàn bộ quy trình đã lưu.'));
   if(a==='save')return host.ProcessAuthoringV3.save();
   if(a==='recover-form'){const saved=Object.entries(localCanvas().forms()).find(([k])=>{const [w,s]=JSON.parse(k);return w===wid()&&s===view().stage;});if(saved)return open(saved[1].original,saved[1].isNew);return;}
   if(a==='shared')return;
