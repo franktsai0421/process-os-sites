@@ -44,7 +44,7 @@ function fixture({routeFetch=null,guardAccessResults=false}={}){
  const openHistory=async(options={})=>{await window.openSharedDraftHistory({client,editable:()=>editable,onApplied:async()=>{applied++;},caseId:'case0',...options});return overlays.at(-1);};
  function idle(){assert.equal(timers.size,0,'idle dialogs have no recurring timers or pending request deadlines');}
  const stable=()=>({input:clone(input),dirtyInput:{value:dirtyInput.value,selectionStart:dirtyInput.selectionStart,selectionEnd:dirtyInput.selectionEnd,isConnected:dirtyInput.isConnected},recovery:[...memory],storageWrites:clone(storageWrites)});
- return{window,listeners,client,calls,overlays,body,memory,storageWrites,input,inputBefore,stable,idle,openPreview,openHistory,hydrate:()=>client.permissions(),setAccess:value=>{access=value;},setEditable:value=>{editable=value;},intercept:fn=>{intercept=fn;},applied:()=>applied};
+ return{window,listeners,client,calls,overlays,body,memory,storageWrites,input,inputBefore,stable,idle,openPreview,openHistory,focused:()=>document.activeElement,hydrate:()=>client.permissions(),setAccess:value=>{access=value;},setEditable:value=>{editable=value;},intercept:fn=>{intercept=fn;},applied:()=>applied};
 }
 const button=(overlay,kind)=>{const result=overlay.querySelector('[data-'+kind+']');assert(result,kind+' button exists');return result;};
 function retained(f,before,start,label){assert.equal(f.calls.length,start,label+' zero dispatch');assert.deepEqual(f.stable(),before,label+' input/recovery unchanged');assert.equal(f.applied(),0);}
@@ -218,4 +218,13 @@ for(const mode of ['id','status'])void test('same-object review '+mode+' change 
 });
 for(const denied of [false,true])void test('newer legacy list supersedes delayed fixed history '+(denied?'denial':'success')+' without cache or UI adoption',async()=>{
  const f=fixture();await f.hydrate();f.client.withLegacyArchive();let release,started;const ready=new Promise(resolve=>{started=resolve;});f.intercept(async(call,response)=>{if(call.url.includes('history=cases')){started();await new Promise(resolve=>{release=resolve;});return denied?Response.json({error:'FORBIDDEN'},{status:403}):Response.json({cases:[{id:'stale0',actor:{name:'stale'}}]});}return response;});const opening=f.openHistory({caseId:null});await ready;const overlay=f.overlays.at(-1);await button(overlay,'archive').listeners.click();assert(overlay.innerHTML.includes('legacy0'));const rendered=overlay.innerHTML;release();await opening;assert.equal(overlay.innerHTML,rendered);assert.equal(f.client.permission('history'),true);assert.equal(posts(f).length,0);f.idle();
+});
+
+for(const query of ['permissions=1','history=cases'])void test('history initial '+query+' 503 keeps focus inside its open error dialog',async()=>{
+ const f=fixture();await f.hydrate();const opener=f.focused(),before=f.stable();
+ f.intercept((call,response)=>call.url.includes(query)?Response.json({error:'SYNTHETIC_UNAVAILABLE'},{status:503}):response);
+ const overlay=await f.openHistory({caseId:null});assert.equal(overlay.isConnected,true);assert.equal(f.body.style.overflow,'hidden');
+ assert.notEqual(f.focused(),opener);assert.equal(f.focused(),button(overlay,'close'));
+ assert.equal(f.calls.filter(call=>call.method==='POST').length,0);assert.deepEqual(f.stable(),before);f.idle();
+ button(overlay,'close').onclick();assert.equal(overlay.isConnected,false);assert.equal(f.body.style.overflow,'');assert.equal(f.focused(),opener);
 });

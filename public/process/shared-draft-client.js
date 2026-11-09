@@ -744,7 +744,8 @@
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body,readOptions,equipmentRecheck) {
       // Explicit history reads cannot adopt a reply after their view has changed.
-      const assertReadCurrent=()=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Error('ACCESS_READ_SUPERSEDED');};
+      // A known HTTP refusal still carries its status for existing callers.
+      const assertReadCurrent=status=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Object.assign(Error('ACCESS_READ_SUPERSEDED'),Number.isInteger(status)&&status>=400?{status}:{});};
       assertReadCurrent();
       // Only the private explicit equipment permission read may use its new delivery pin.
       const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};
@@ -784,8 +785,8 @@
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         // An owned HTTP denial remains authoritative even when its body is not JSON.
         // projectAccess fences stale reads; original parse/HTTP errors and unknown evidence remain.
-        phase='body';let result;try{result=await response.json();}catch(error){assertReadCurrent();if(!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
-        assertReadCurrent();assertRequestOwner();
+        phase='body';let result;try{result=await response.json();}catch(error){assertReadCurrent(response.status);if(!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
+        assertReadCurrent(response.status);assertRequestOwner();
         if(abEntry)abAssert(abEntry,body.command);
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
@@ -1233,8 +1234,8 @@ const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(old
       loading=false;draw();return true;
     }
     document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);
-    if(!await loadList()||!current())return;
-    if(legacy&&legacyVersionId)await loadCase(legacyVersionId);else if(caseId)await loadCase(caseId);else if(versionPreview){review={id:versionPreview.id,status:versionPreview.status,actor:{name:versionPreview.creatorName||t('Chưa ghi nhận','未記錄')},at:versionPreview.createdAt||t('Chưa ghi nhận','未記錄'),reason:t('Chi tiết phiên bản · chỉ đọc','版本詳情 · 唯讀'),before:{},content:versionPreview.snapshot,contentIssues:versionPreview.contentIssues,legacy:true};draw();}
+    const listed=await loadList();if(!current())return;
+    if(listed&&legacy&&legacyVersionId)await loadCase(legacyVersionId);else if(listed&&caseId)await loadCase(caseId);else if(listed&&versionPreview){review={id:versionPreview.id,status:versionPreview.status,actor:{name:versionPreview.creatorName||t('Chưa ghi nhận','未記錄')},at:versionPreview.createdAt||t('Chưa ghi nhận','未記錄'),reason:t('Chi tiết phiên bản · chỉ đọc','版本詳情 · 唯讀'),before:{},content:versionPreview.snapshot,contentIssues:versionPreview.contentIssues,legacy:true};draw();}
     if(current())overlay.querySelector('[data-close]').focus({preventScroll:true});
   };
   // Shared restore preview is read-only until an explicit, revision-checked apply.

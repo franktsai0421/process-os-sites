@@ -1,9 +1,14 @@
 /* Source VM differential. No browser, server, real HTTP or business writes. */
-const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{createRequire}=require('node:module'),{createHash}=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{createRequire}=require('node:module'),{createHash}=require('node:crypto'),{execFileSync}=require('node:child_process');
 const root=process.env.PANEL_TEST_ROOT||path.resolve(__dirname,'..'),candidate=process.env.PANEL_CANDIDATE||path.join(root,'public/process/process-authoring-v3.js'),fixturePath=path.join(root,'scripts/test-authoring-save-validation-ui.cjs');
 const candidateSource=fs.readFileSync(candidate,'utf8').replace(/\r\n/g,'\n');
 function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,'portable baseline requires one exact source anchor: '+from.slice(0,90));return source.replace(from,to);}
-let baselineSource=candidateSource;
+// Admit checkout EOL only against actual committed bytes, then compose the exact
+// background-check inverse before the unchanged departure/panel historical pins.
+const committedSource=execFileSync('git',['show','HEAD:public/process/process-authoring-v3.js'],{cwd:root});
+assert.equal(createHash('sha256').update(candidateSource).digest('hex'),createHash('sha256').update(committedSource.toString().replace(/\r\n/g,'\n')).digest('hex'),'authoring checkout differs from HEAD beyond checkout EOL');
+const currentSource=committedSource;
+let baselineSource=require('./background-check-source-contract.cjs').projectKnown(currentSource,'public/process/process-authoring-v3.js').toString().replace(/\r\n/g,'\n');
 // Build the reviewed current-source panel control without changing the candidate.
 // Atomic Save/recovery code outside these exact departure spans is shared by both
 // arms; historical baseline provenance is retained separately in the inverse JSON.

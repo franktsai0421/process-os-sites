@@ -2,223 +2,309 @@
   {
     "file": "public/process/access-event-reporter.js",
     "line": 49,
+    "kind": "setTimeout",
     "hash": "bcce5308127adc32d8b43f93e54c6df15acb2a597e33b48280c8dd688d76de79",
     "purpose": "One startup resume for recorded observations; no periodic recurrence."
   },
   {
     "file": "public/process/app.js",
-    "line": 1092,
+    "line": 1093,
+    "kind": "setTimeout",
     "hash": "a862d3881fa429c8a3076b8642faff03bdfd2e8f6be739d8d006b1e9278a4e11",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/app.js",
-    "line": 3123,
+    "line": 3124,
+    "kind": "setTimeout",
     "hash": "09ef4a10185f97e2b967b1c99bc0cdd3188022038225b44a9de1eeecac7af5db",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/app.js",
-    "line": 3147,
+    "line": 3148,
+    "kind": "setTimeout",
     "hash": "09ef4a10185f97e2b967b1c99bc0cdd3188022038225b44a9de1eeecac7af5db",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/app.js",
-    "line": 3289,
+    "line": 3290,
+    "kind": "setTimeout",
     "hash": "3959e82da5ee45d49c5a896e803a1fd9541a73e0293427bde779998b885a2045",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/app.js",
-    "line": 3729,
+    "line": 3730,
+    "kind": "setInterval",
     "hash": "e6433730de759afe2358bea43c4c28076846ca5e29664dea01a6a7e46a0d477d",
     "purpose": "Local display clock/elapsed time; callback issues no request."
   },
   {
+    "file": "public/process/canvas-recovery-store.js",
+    "line": 359,
+    "kind": "setTimeout",
+    "hash": "309bacd56e47a3be05b52ee860fc7574b32e0f94a047ee9ebba837231e413d6b",
+    "purpose": "Edit-triggered local storage debounce; separate unsent-recovery work."
+  },
+  {
+    "file": "public/process/canvas-recovery-store.js",
+    "line": 468,
+    "kind": "setTimeout",
+    "hash": "4fa3711c37c277c8e911a6b978a39305661d5550cf87e89b38e5511f71436886",
+    "purpose": "Edit-triggered local storage debounce; separate unsent-recovery work."
+  },
+  {
     "file": "public/process/data-safety-ui.js",
-    "line": 88,
+    "line": 89,
+    "kind": "setTimeout",
     "hash": "c49d5f5fd8f39cbf1298774a279937f6d29876ac207d15349d7e6de7e87adefb",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/delivery-navigation.js",
     "line": 171,
+    "kind": "setTimeout",
     "hash": "ed02a79198de67aea5bbb69d4835afee47aa8e029e7a351f1835c211f2ff97f2",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/flow-zoom.js",
     "line": 70,
+    "kind": "setTimeout",
     "hash": "bcd6fa9433a119293df0eb6ba77b426b7e5a23c8747c1c633e7b70e65522ef34",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 1229,
+    "line": 1230,
+    "kind": "setTimeout",
     "hash": "35eab17034311e2f9e19d372b94b507479601f28cb2d4d240ed22b134d978256",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 2059,
+    "line": 2060,
+    "kind": "setTimeout",
     "hash": "3d682c9ba050cadb6c53b9f3f3780b33a163a86058347c473f45e0b33bfaa26e",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/fqc-master.js",
-    "line": 2065,
+    "line": 2066,
+    "kind": "setTimeout",
     "hash": "030505c36323ad8c6752c5cfa43369fb3c84b29a38141a0f8ae43ccb1a5a88c5",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/ipqc-ab.js",
     "line": 374,
+    "kind": "setTimeout",
     "hash": "c732e0ea70156628bfd4c078b30ac97b520724810d30468f9b82c669fedd519c",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "public/process/iqc-master.js",
     "line": 82,
+    "kind": "setTimeout",
     "hash": "ca7232c103adb4a1610a8bbf6e046c25b1449ffb627b2a3d4d19fce8b88bd4dd",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/iqc-master.js",
     "line": 621,
+    "kind": "setTimeout",
     "hash": "418b477fa48d48f5b026d7c057ea4a9b47a5c8dce921c112c2af219f881b93b3",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
+    "file": "public/process/local-draft-recovery.js",
+    "line": 479,
+    "kind": "setTimeout",
+    "hash": "d628e986e079d0729fc931f69d604b2d156668caba4309b9c0187d50e1f715c0",
+    "purpose": "Edit-triggered local storage debounce; separate unsent-recovery work."
+  },
+  {
     "file": "public/process/process-authoring-v3.js",
     "line": 75,
+    "kind": "setTimeout",
     "hash": "f1f01bf4f0fe78146c81dd1c9826e10e6db3f579b5ec346255b3b6ff1fa9ef7c",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/process-authoring-v3.js",
-    "line": 309,
+    "line": 312,
+    "kind": "setTimeout",
     "hash": "af1952c450c8f74f3e3805c75df2d2e053604d7cd6852c3bba73fb31dab6c7d9",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/routine-equipment.js",
-    "line": 1768,
+    "line": 1769,
+    "kind": "setTimeout",
     "hash": "affc9f30645a4e839fb95e8b879bae38a3b6662599ede77a06b9dd02682fe7f3",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/routine-fqc.js",
-    "line": 1767,
+    "line": 1768,
+    "kind": "setTimeout",
     "hash": "c49d5f5fd8f39cbf1298774a279937f6d29876ac207d15349d7e6de7e87adefb",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/routine-fqc.js",
-    "line": 1875,
+    "line": 1876,
+    "kind": "setTimeout",
     "hash": "e295168eadf324da6d9337df83d99e3c57cee4135379dee37d7133803e4b6d93",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/shared-draft-client.js",
     "line": 765,
+    "kind": "setTimeout",
     "hash": "9627d0d4438e91b6d1c66cc409a6531b91d7837cc1ff617a2c2a8c2805889c10",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "public/process/shared-state.js",
     "line": 532,
+    "kind": "setTimeout",
     "hash": "559b75b9af9b2cf1b212729ad57a4806a69bcfb59dd23bf183e0558b2a23d919",
     "purpose": "One-shot edit-triggered write debounce; separate from periodic background checks."
   },
   {
     "file": "public/process/spreadsheet-loader.js",
     "line": 18,
+    "kind": "setTimeout",
     "hash": "c77e9df1a8554117658ba0c32bc9f6830371cf1c81a0bf97a772bfa513cc2a34",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "public/process/system-upgrade.js",
     "line": 121,
+    "kind": "setTimeout",
     "hash": "7cd60f05e5ed3700b55827525c55e77910cda673e8b42d94442687ee91b9efee",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/system-upgrade.js",
     "line": 161,
+    "kind": "setTimeout",
     "hash": "49c0e0f9c0f472c5772214b6b498db0d8387a5c76432799089effbd115616175",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/user-access-initial-read.js",
     "line": 8,
+    "kind": "setTimeout",
     "hash": "f235235070acca3da666f588f4162197e5e7c64784f0336c310183a4c9652fab",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "public/process/user-access.js",
     "line": 18,
+    "kind": "setTimeout",
     "hash": "c4acefcdf58e25f315084be953bcbb04f86a77974f1b88310b3b8286eac55ab9",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "public/process/version-workflow.js",
     "line": 224,
+    "kind": "setTimeout",
     "hash": "3adc748ba2559a1633bd96c981720b1651ddae0c0ac5cdc62cffd73c8046ecaa",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/web-feedback.js",
     "line": 178,
+    "kind": "setTimeout",
     "hash": "0ca4fab3338b303d6ee27a91422288b946aeb8723d33d377d7376e041ccfd23a",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/web-feedback.js",
     "line": 276,
+    "kind": "setTimeout",
     "hash": "052ae4e6c078fa39408db37ec072a3a42812ffb27212a96bfc3e2c049d9eecb4",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/web-feedback.js",
     "line": 362,
+    "kind": "setTimeout",
     "hash": "970a1e1bc9de6248904e983ae015ba3f9880073a2e7620046ed0881d4e5e4a67",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/vendor/xlsx.full.min.js",
     "line": 10,
+    "kind": "setTimeout",
     "hash": "56ee369618db886132ded7eec59d0a035b89f07d3980cc536a21aa214557f8f0",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "public/process/vendor/xlsx.full.min.js",
     "line": 10,
+    "kind": "setTimeout",
     "hash": "56ee369618db886132ded7eec59d0a035b89f07d3980cc536a21aa214557f8f0",
     "purpose": "One-shot user-action UI/focus/highlight or object-URL cleanup; no idle network recurrence."
   },
   {
     "file": "app/setup/import/apply-client.tsx",
     "line": 13,
+    "kind": "setInterval",
     "hash": "addd09f04cb0915ad33fd022d879ba9fd0d2b139143886e68188631d5b717e0a",
     "purpose": "Local display clock/elapsed time; callback issues no request."
   },
   {
     "file": "app/setup/import/observation-client.tsx",
     "line": 11,
+    "kind": "setTimeout",
     "hash": "a63777306067d3cdb0bc55dee91c8369b9166d2ad9adcd11f5cbc6f33d63a3af",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "app/setup/import/observation-client.tsx",
     "line": 16,
+    "kind": "setTimeout",
     "hash": "a63777306067d3cdb0bc55dee91c8369b9166d2ad9adcd11f5cbc6f33d63a3af",
     "purpose": "Deadline for one explicit/initial request or resource load."
   },
   {
     "file": "app/setup/import/verify-client.tsx",
     "line": 11,
+    "kind": "setInterval",
     "hash": "e01b49f1229835d4044047da0c113112e7b1dbb783a12edb77351f896788afaa",
     "purpose": "Local display clock/elapsed time; callback issues no request."
+  },
+  {
+    "file": "lib/snapshot-owner-applier.mjs",
+    "line": 14,
+    "kind": "setTimeout",
+    "hash": "4ed442af0c0ca3f4c8b8aaa88d9fa75a958237a94493e53496361f293cc35959",
+    "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
+  },
+  {
+    "file": "lib/snapshot-owner-copy-recovery.mjs",
+    "line": 7,
+    "kind": "setTimeout",
+    "hash": "7f25d5a2f6213d84234bc0ed2c28c82ee4cb2ce5067c39df1243d47687982ad2",
+    "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
+  },
+  {
+    "file": "lib/snapshot-owner-verifier.mjs",
+    "line": 13,
+    "kind": "setTimeout",
+    "hash": "1861ef7011880f74520223e402c7cff60cf5ea2bad2fcaed6060dee057a569f8",
+    "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
+  },
+  {
+    "file": "lib/startup-assets-client.mjs",
+    "line": 14,
+    "kind": "setTimeout",
+    "hash": "89da54ee48e7872bab6366fa83c2b88540536b5783fb3c7e44d284bcd5682c2d",
+    "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
   }
 ]

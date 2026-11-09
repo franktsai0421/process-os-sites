@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import {createHash} from 'node:crypto';
+import {browserTimerInventory,readBrowserSources} from '../scripts/browser-timer-inventory.mjs';
 const read=name=>fs.readFileSync('public/process/'+name,'utf8');
 const shared=read('shared-draft-client.js');
 const shim=shared.slice(shared.indexOf('  window.createForegroundPoll ='),shared.indexOf('  // Local Begin feedback only:'));
@@ -20,12 +20,24 @@ for(const file of ['bom-workspace.js','tooling.js'])void test(file+' actual star
  const f=fixture(),source=read(file),start=source.indexOf(' const foregroundPoll=window.createForegroundPoll();'),end=source.indexOf(' foregroundPoll.schedule(pollTick);',start);assert(start>=0&&end>start);
  vm.runInContext(source.slice(start,end+' foregroundPoll.schedule(pollTick);'.length),f.c);assert.deepEqual(f.state(),{requests:0,timers:0,listeners:0});
 });
-void test('all browser timeout/interval sites are explicitly inventoried; new timer requires audit',()=>{
- const roots=['public','app','components','hooks'],actual=[];
- for(const root of roots)for(const rel of fs.readdirSync(root,{recursive:true})){const file=(root+'/'+rel).replaceAll('\\','/');if(!/\.(?:m?js|tsx?|html)$/.test(file)||!fs.statSync(file).isFile())continue;const source=fs.readFileSync(file,'utf8'),ast=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true);function walk(n){if(ts.isCallExpression(n)&&/(?:^|\.)(?:setTimeout|setInterval)$/.test(n.expression.getText(ast))){const text=n.getText(ast).replace(/\r\n/g,'\n');actual.push({file,hash:createHash('sha256').update(text).digest('hex')});}ts.forEachChild(n,walk);}walk(ast);}
+void test('client import graph and timer aliases match the audited inventory',()=>{
+ const {timers:actual}=browserTimerInventory(readBrowserSources());
  const expected=JSON.parse(fs.readFileSync('tests/fixtures/browser-timer-inventory.json','utf8'));
- assert.deepEqual(actual.sort((a,b)=>(a.file+a.hash).localeCompare(b.file+b.hash)),expected.map(({file,hash})=>({file,hash})).sort((a,b)=>(a.file+a.hash).localeCompare(b.file+b.hash)));
+ assert.deepEqual(actual.map(({file,kind,hash})=>({file,kind,hash})).sort((a,b)=>(a.file+a.hash).localeCompare(b.file+b.hash)),expected.map(({file,kind,hash})=>({file,kind,hash})).sort((a,b)=>(a.file+a.hash).localeCompare(b.file+b.hash)));
  assert.doesNotMatch(shared,/permissionTimer|checkPermission/);
  for(const file of ['effective-version-notice.js','process-ipqc.js','process-authoring-v3.js'])assert.doesNotMatch(read(file),/setInterval\s*\(/,file);
  assert.doesNotMatch(read('effective-version-notice.js'),/addEventListener\(['"](?:focus|visibilitychange)/);
+});
+
+void test('inventory follows client imports and aliases without including server-only scheduling',()=>{
+ const sources=new Map([
+  ['app/page.tsx',"'use client';import '@/lib/client.mjs';"],
+  ['lib/client.mjs',"const later=globalThis['setTimeout'].bind(globalThis);const alias=later;alias(()=>{},100);import('./other.mjs?v=1');"],
+  ['lib/other.mjs',"const {setInterval:repeat}=globalThis;repeat(()=>{},250);"],
+  ['lib/server-only.mjs',"setInterval(()=>fetch('/backup'),60000);"],
+ ]);
+ const result=browserTimerInventory(sources);assert.deepEqual(result.reachable,['app/page.tsx','lib/client.mjs','lib/other.mjs']);assert.deepEqual(result.timers.map(t=>t.kind),['setTimeout','setInterval']);
+ sources.set('lib/client.mjs',"const setTimer=options.setTimeout||window.setTimeout.bind(window);setTimer(()=>{},250);");assert.equal(browserTimerInventory(sources).timers[0].kind,'setTimeout');
+ sources.set('lib/client.mjs',"import('./'+unreviewed);");assert.throws(()=>browserTimerInventory(sources),/REQUIRES_AUDIT/);
+ sources.set('lib/client.mjs',"import './missing.mjs';");assert.throws(()=>browserTimerInventory(sources),/UNRESOLVED_BROWSER_IMPORT/);
 });
