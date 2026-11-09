@@ -12,6 +12,7 @@ import {
   type DraftActor,
   type DraftIssue,
   type DraftPermission,
+  type DraftContext,
 } from './shared-draft';
 import type { State } from './process-state';
 
@@ -592,7 +593,7 @@ export type RoutineCommand = {
   notes?: string;
   photos?: string[];
   kind?: Document['kind'];
-  command?: DraftCommand;
+  command?: DraftCommand & { moduleAction?: 'save-local-v1' };
   selfReviewConfirmed?: boolean;
 };
 function addDocument(
@@ -868,6 +869,7 @@ export function executeRoutine(
           ? 'approve'
           : 'edit';
     demand(permission && ctx.allowed(permission), 'FORBIDDEN', 403);
+    if (cmd.command?.moduleAction === 'save-local-v1' && cmd.command.patches?.length) demand(ctx.allowed('edit'), 'FORBIDDEN', 403);
     if (cmd.action === 'configure') demand(ctx.settings, 'FORBIDDEN', 403);
     if (['revoke-plan', 'delete-plan'].includes(cmd.action)) demand(ctx.revoke, 'FORBIDDEN', 403);
     if (cmd.action === 'restore-document' && c.documents.find((d) => d.id === cmd.documentId)?.flow.active.id) demand(ctx.revoke, 'FORBIDDEN', 403);
@@ -987,7 +989,10 @@ export function executeRoutine(
           'OPERATION_ID_MISMATCH',
         );
         demand(docStatus(doc) !== 'approved', 'FORMAL_DOCUMENT_IMMUTABLE', 409);
-        if (command.action === 'apply') {
+        const localSave = command.action === 'save' && command.moduleAction === 'save-local-v1';
+        demand(command.moduleAction === undefined || localSave, 'PATCH_NOT_ALLOWED');
+        if (localSave) demand(Number.isSafeInteger(command.expectedRevision), 'DRAFT_REVISION_REQUIRED', 409);
+        if (command.action === 'apply' || localSave) {
           demand(
             command.patches &&
               command.patches.every(
@@ -1029,15 +1034,15 @@ export function executeRoutine(
             'NO_SUBSTANTIVE_CHANGE',
             422,
           );
-        const applied = applyDraftCommand(doc.flow, command, {
+        const draftContext: DraftContext<Content> = {
           actor: ctx.actor,
           optionalReasonPolicy: 'routine-fqc',
           at: ctx.at,
           id: () => crypto.randomUUID(),
           allowed: ctx.allowed,
           activeId: doc.flow.active.id,
-          semantic: (x) => x,
-          structure: (content, previous) => {
+          semantic: (x: Content) => x,
+          structure: (content: Content, previous: Content) => {
             structure(content,previous);
             if (doc.kind === 'report') for (const line of content.lines) {
               const required = linkedCase(c,doc,line.jobId)?.requiredSamples || [];
@@ -1048,7 +1053,7 @@ export function executeRoutine(
               }
             }
           },
-          validate: (content) => {
+          validate: (content: Content) => {
             const issues = reportIssues(content, doc.kind);
             if (doc.kind === 'report')
               for (const line of content.lines) {
@@ -1070,7 +1075,25 @@ export function executeRoutine(
               }
             return issues;
           },
-        });
+        };
+        // Stage guarded edits in request memory. Only the outer route CAS may
+        // publish the final working, immutable Save and original receipt.
+        let saveSource = doc.flow, workingChanged = false;
+        if (localSave && command.patches!.length) {
+          demand(ctx.allowed('save'), 'FORBIDDEN', 403);
+          const staged = applyDraftCommand(doc.flow, { ...command, action: 'apply' }, draftContext);
+          workingChanged = !staged.receipt.unchanged;
+          saveSource = { ...doc.flow, working: staged.state.working, contributors: staged.state.contributors };
+        }
+        const applied = applyDraftCommand(saveSource, command, draftContext);
+        // Returning to an existing saved snapshot still changes working. Keep
+        // one document revision and the exact full-command receipt in that case.
+        if (workingChanged && applied.receipt.unchanged) {
+          applied.state.revision = doc.flow.revision + 1;
+          applied.state.contributors = {};
+          applied.receipt = { ...applied.receipt, revision: applied.state.revision, unchanged: false };
+          applied.state.receipts[command.operationId] = { ...applied.state.receipts[command.operationId], result: cloneDraft(applied.receipt) };
+        }
         doc.flow = applied.state;
         result = applied.receipt;
         if (command.action === 'approve') {

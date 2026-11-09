@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import { createHash, randomUUID, webcrypto } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { manualUI } from './fixtures/routine-fqc-manual-ui.mjs';
 
 // Actual Workers route and production routine/shared-draft kernels. The only
 // substitutes are ephemeral SQLite, Map-backed R2, and a synthetic signed user;
@@ -111,6 +112,7 @@ async function fixture(t, { withPeer = false } = {}) {
     tables: tables.map((name) => [name, clone(db.prepare(`SELECT * FROM "${name.replaceAll('"', '""')}" ORDER BY rowid`).all())]),
     objects: [...objects].map(([key, item]) => [key, item.bytes.toString('base64'), clone(item.options || {})]),
   });
+  const setRight=(key,enabled)=>{const row=db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),values=JSON.parse(row.values),users=JSON.parse(values.platformUsers);for(const user of users)user.accessOverrides[key]=enabled;values.platformUsers=JSON.stringify(users);db.prepare('UPDATE shared_state SET revision=?,"values"=? WHERE id=1').run(row.revision+1,JSON.stringify(values));};
   const storedValues = () => JSON.parse(db.prepare('SELECT "values" FROM shared_state WHERE id=1').get().values);
   const control = () => model.parseRoutine(storedValues()[model.RF_KEY]);
   const document = (id) => control().documents.find((item) => item.id === id);
@@ -177,7 +179,7 @@ async function fixture(t, { withPeer = false } = {}) {
       caseId: document(id).flow.pendingId, reason: 'Synthetic review', selfReviewConfirmed: true,
     }));
   }
-  return { counts, persisted, verifyBackups, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve };
+  return { counts, persisted, verifyBackups, setRight, storedValues, control, document, dispatch, get, post, command, draft, accepted, delta, createPlan, approve };
 }
 
 async function rejectedWithoutCommit(f, command, status, code) {
@@ -396,17 +398,17 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   ui.s.bases.set(planId, clone(ui.doc().flow.working));
   ui.s.buffers.set(planId, { ...clone(ui.doc().flow.working), notes: uiSentText });
   if (nextInput) tab.afterPost((command) => {
-    if (command.command?.action === 'apply') ui.s.buffers.get(planId).notes = uiNextText;
+    if (command.command?.action === 'save') ui.s.buffers.get(planId).notes = uiNextText;
   });
   const counts = { ...f.counts };
   const receipt = await ui.save();
-  assert.equal(receipt.operationId, tab.calls[2].body.operationId);
+  assert.equal(receipt.operationId, tab.calls[1].body.operationId);
   assert.deepEqual(tab.calls.map((call) => [call.method, call.body?.command?.action || 'state']), [
-    ['POST', 'apply'], ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
-  ], 'actual dirty Save is original Apply/readback/fixed Save/readback, with no extra receipt GET or resend');
+    ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
+  ], 'actual dirty Save compares, atomically Saves, and reads back without a second write or resend');
   assert.ok(tab.calls.every((call) => call.status === 200));
   assert.deepEqual(f.delta(counts), {
-    post: 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: 2, r2Put: 0, r2Head: 0,
+    post: 1, get: 2, receiptGet: 0, stateGet: 2, dbRun: 1, r2Put: 0, r2Head: 0,
   });
   const saved = f.document(planId).flow;
   assert.equal(saved.saved.id, receipt.savedId);
@@ -424,10 +426,10 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   }
   assert.equal(ui.s.retry, null);
   if (durableStorage) {
-    assert.equal(tab.localStorage.writes.length, 2, 'exactly one metadata marker before each POST');
+    assert.equal(tab.localStorage.writes.length, 1, 'one metadata marker before the atomic Save POST');
     assert.equal(tab.sessionStorage.writes.length, 0, 'no generic full-command session persistence');
     for (const [index, write] of tab.localStorage.writes.entries()) {
-      const meta = JSON.parse(write.value), command = tab.calls[index * 2].body;
+      const meta = JSON.parse(write.value), command = tab.calls[1].body;
       assert.match(write.key, /^routine-fqc-receipt-v1:/);
       assert.deepEqual(Object.keys(meta).sort(), receiptMetadataFields);
       assert.equal(meta.operationId, command.operationId);
@@ -439,7 +441,7 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
       assert.equal(meta.documentRevision, initial.body.control.documents[0].flow.revision + index);
       assert.equal(write.value.includes(uiSentText), false);
       assert.equal(write.value.includes(uiNextText), false);
-      for (const call of tab.calls.slice(index * 2, index * 2 + 2)) {
+      for (const call of tab.calls.slice(1, 3)) {
         assert.deepEqual(call.markersAtDispatch, [[write.key, write.value]],
           'durable original metadata exists before POST and remains until actual full readback');
       }
@@ -458,17 +460,17 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   };
 }
 
-void test('actual full routine UI → actual route: dirty Save is 2 POST + 2 GET and metadata-only durability', async (t) => {
+void test('actual full routine UI → actual route: dirty Save is 1 POST + 2 GET and metadata-only durability', async (t) => {
   const metrics = await runActualUISave(t, routineUISource);
   t.diagnostic('Current UI source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
   t.diagnostic('Synthetic actual UI/route bytes (not browser timing): ' + JSON.stringify(metrics));
 });
 
-void test('actual full routine UI → actual route: input made during Apply remains the next unsent batch', async (t) => {
+void test('actual full routine UI → actual route: input made during atomic Save remains the next unsent batch', async (t) => {
   await runActualUISave(t, routineUISource, { nextInput: true });
 });
 
-void test('actual full routine UI → actual route: independent peer Save before guarded Apply may advance savedId', async (t) => {
+void test('actual full routine UI → actual route: independent peer Save is preserved by fresh comparison before atomic Save', async (t) => {
   const f = await fixture(t, { withPeer: true }), planId = await f.createPlan();
   const applyNotes = (value) => f.accepted(f.draft(planId, 'apply', {
     patches: [{ op: 'set', path: ['notes'], value }],
@@ -510,27 +512,27 @@ void test('actual full routine UI → actual route: independent peer Save before
     post: 1, get: 0, receiptGet: 0, stateGet: 0, dbRun: 1, r2Put: 0, r2Head: 0,
   }, 'peer Save is counted separately from the owner UI operation');
 
-  let observedApply = null;
+  let observedSave = null;
   tab.afterPost((command) => {
     assert.equal(ui.s.buffers.get(planId).title, localTitle, 'original local input survives each in-flight POST');
-    if (command.command.action === 'apply') {
-      observedApply = clone(f.control().receipts[command.operationId].result);
-      assert.equal(observedApply.revision, 7);
-      assert.equal(observedApply.savedId, savedB, 'actual Apply ACK legitimately contains the peer newer savedId');
-      assert.equal(observedApply.generation, generation);
-      assert.equal(observedApply.unchanged, false);
+    if (command.command.action === 'save') {
+      observedSave = clone(f.control().receipts[command.operationId].result);
+      assert.equal(observedSave.revision, 7);
+      assert.notEqual(observedSave.savedId, savedB, 'atomic Save creates the merged fixed snapshot');
+      assert.equal(observedSave.generation, generation);
+      assert.equal(observedSave.unchanged, false);
       assert.deepEqual(command.command.guards, [{ path: ['title'], value: titleBefore }]);
     }
   });
   const ownCounts = { ...f.counts }, saved = await ui.save();
-  assert.ok(observedApply);
+  assert.ok(observedSave);
   assert.deepEqual(tab.calls.map((call) => [call.method, call.body?.command?.action || 'state']), [
-    ['POST', 'apply'], ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
+    ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
   ]);
   assert.deepEqual(f.delta(ownCounts), {
-    post: 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: 2, r2Put: 0, r2Head: 0,
+    post: 1, get: 2, receiptGet: 0, stateGet: 2, dbRun: 1, r2Put: 0, r2Head: 0,
   }, 'legal peer progress creates no extra receipt lookup or resend');
-  assert.equal(saved.revision, 8);
+  assert.equal(saved.revision, 7);
   assert.notEqual(saved.savedId, savedB);
   assert.equal(f.document(planId).flow.saved.actor.id, initial.body.identity.id);
   assert.equal(f.document(planId).flow.saved.content.title, localTitle);
@@ -539,17 +541,15 @@ void test('actual full routine UI → actual route: independent peer Save before
   assert.equal(ui.s.buffers.has(planId), false);
   assert.equal(ui.s.bases.has(planId), false);
   assert.equal(ui.s.retry, null, 'higher-revision legitimate Apply is not trapped as permanent unknown');
-  assert.equal(tab.localStorage.writes.length, 2);
-  const [applyMeta, saveMeta] = tab.localStorage.writes.map((write) => JSON.parse(write.value));
-  assert.equal(applyMeta.savedId, savedA);
-  assert.equal(applyMeta.documentRevision, 5);
+  assert.equal(tab.localStorage.writes.length, 1);
+  const [saveMeta] = tab.localStorage.writes.map((write) => JSON.parse(write.value));
   assert.equal(saveMeta.savedId, savedB);
-  assert.equal(saveMeta.documentRevision, 7);
-  assert.equal(saveMeta.requestedRevision, 7);
-  for (const [index, write] of tab.localStorage.writes.entries()) {
+  assert.equal(saveMeta.documentRevision, 6);
+  assert.equal(saveMeta.requestedRevision, 6);
+  for (const write of tab.localStorage.writes) {
     assert.deepEqual(Object.keys(JSON.parse(write.value)).sort(), receiptMetadataFields);
     assert.equal(write.value.includes(localTitle), false);
-    for (const call of tab.calls.slice(index * 2, index * 2 + 2)) {
+    for (const call of tab.calls.slice(1, 3)) {
       assert.deepEqual(call.markersAtDispatch, [[write.key, write.value]], 'each terminal marker waits for its actual full GET');
     }
   }
@@ -557,6 +557,137 @@ void test('actual full routine UI → actual route: independent peer Save before
   assert.equal(tab.sessionStorage.writes.length, 0);
   f.verifyBackups();
   t.diagnostic('Peer Save race source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
+});
+
+async function rendered(t,kind='report') {
+  const f=await fixture(t,{withPeer:true}),plan=await f.createPlan();let id=plan;
+  if(kind==='report') {
+    await f.approve(plan);id=(await f.accepted(f.command('create-report',{documentId:plan}))).result.documentId;
+    const line=f.document(id).flow.working.lines[0];
+    await f.accepted(f.draft(id,'apply',{patches:[{op:'set',path:['lines',{id:line.id},'results'],value:['row-a','row-b'].map(id=>({id,samples:[],outcome:'',value:'base value',notes:'base note',photos:[]}))}],guards:[{path:['lines',{id:line.id},'results'],value:clone(line.results)}]}));
+    await f.accepted(f.draft(id,'save'));
+  }
+  const initial=(await f.get()).body,ui=manualUI({actor:initial.identity.id,remote:initial});
+  ui.box.FormData=class {getAll(){return [];}get(){return null;}};
+  ui.api.s.selected=id;ui.api.s.tab=kind==='report'?'reports':'plans';ui.paint();
+  const calls=[];let afterPost=async()=>{};
+  ui.box.fetch=async(url,options)=>{options ||= {};calls.push({url,method:options.method||'GET',body:options.body&&JSON.parse(options.body)});const response=await f.dispatch(url,options);if(options.method==='POST')await afterPost(calls.at(-1).body,response);return response;};
+  const input=(selector,value)=>{const node=ui.root.querySelector(selector);assert(node,selector);node.value=value;node.oninput();};
+  const peer=async(change)=>{const content=clone(f.document(id).flow.working);change(content);const patches=[];for(const key of ['title','date','notes','reason','disposition','evidence'])if(JSON.stringify(content[key])!==JSON.stringify(f.document(id).flow.working[key]))patches.push({op:'set',path:[key],value:content[key]});for(const line of content.lines)if(JSON.stringify(line.results)!==JSON.stringify(f.document(id).flow.working.lines.find(x=>x.id===line.id).results))patches.push({op:'set',path:['lines',{id:line.id},'results'],value:line.results});const response=await f.post(f.draft(id,'save',{moduleAction:'save-local-v1',patches,guards:patches.map(p=>({path:p.path,value:p.path.length===1?f.document(id).flow.working[p.path[0]]:f.document(id).flow.working.lines.find(x=>x.id===p.path[1].id).results}))}),'peer');assert.equal(response.status,200,JSON.stringify(response.body));};
+  const nextDialog=()=>new Promise(resolve=>{ui.document.body.onappend=node=>{if(node.tagName==='DIALOG'){ui.document.body.onappend=null;resolve(node);}};});
+  const choose=(dialog,choice)=>{if(choice==='cancel')return dialog.querySelector('[data-cancel]').click();if(choice==='theirs')return dialog.querySelector('[data-rf-conflict-theirs]').click();const form=dialog.querySelector('form');return form.onsubmit({target:form,preventDefault(){}});};
+  return {f,id,ui,calls,input,peer,nextDialog,choose,afterPost:fn=>afterPost=fn};
+}
+
+void test('rendered Save merges independent cells in the same result row and retains search filters, with one route CAS',async t=>{
+  const x=await rendered(t);x.input('[data-result-field="value"]','local value');
+  x.ui.api.s.query='retained search';x.ui.api.s.line='retained line';
+  await x.peer(c=>{c.lines[0].results[0].notes='peer same row';c.lines[0].results[1].value='peer other row';});
+  const before={...x.f.counts};await x.ui.button('save').click();
+  assert.equal(x.ui.api.s.error,'');assert.deepEqual(x.calls.map(x=>x.method),['GET','POST','GET']);
+  assert.equal(x.f.delta(before).dbRun,1);assert.equal(x.calls[1].body.command.moduleAction,'save-local-v1');
+  const saved=x.f.document(x.id).flow.saved.content;assert.equal(saved.lines[0].results[0].value,'local value');assert.equal(saved.lines[0].results[0].notes,'peer same row');assert.equal(saved.lines[0].results[1].value,'peer other row');
+  assert.equal(x.ui.api.s.query,'retained search');assert.equal(x.ui.api.s.line,'retained line');assert.equal(x.ui.api.dirty(x.ui.api.getData().control.documents.find(d=>d.id===x.id)),false);
+});
+
+for(const choice of ['mine','theirs','cancel'])for(const lang of ['zh','vi'])void test(`rendered ${lang} ${choice}: one global decision covers all true conflicts, both sides keep unrelated edits`,async t=>{
+  const x=await rendered(t);x.ui.document.documentElement.lang=lang;x.ui.paint();
+  x.input('[data-field="title"]','mine title');x.input('[data-field="notes"]','mine only');x.input('[data-result-field="value"]','mine cell');
+  await x.peer(c=>{c.title='peer title';c.lines[0].results[0].value='peer cell';c.lines[0].results[1].notes='peer only';});
+  const before=x.f.persisted(),arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await arriving;
+  assert.equal(dialog.querySelectorAll('li').length,2);assert.equal(x.calls.filter(x=>x.method==='POST').length,0);
+  x.choose(dialog,choice);await running;
+  assert.equal(x.ui.api.s.error,'');
+  if(choice==='cancel'){assert.deepEqual(x.f.persisted(),before);assert.equal(x.ui.api.s.buffers.get(x.id).title,'mine title');assert.equal(x.calls.length,1);return;}
+  assert.deepEqual(x.calls.map(x=>x.method),['GET','GET','POST','GET']);
+  const saved=x.f.document(x.id).flow.saved.content;assert.equal(saved.title,choice==='mine'?'mine title':'peer title');assert.equal(saved.lines[0].results[0].value,choice==='mine'?'mine cell':'peer cell');assert.equal(saved.notes,'mine only');assert.equal(saved.lines[0].results[1].notes,'peer only');assert.equal(x.ui.api.dirty(x.ui.api.getData().control.documents.find(d=>d.id===x.id)),false);
+});
+
+void test('rendered dialog re-compares changed document before dispatch, includes newly conflicting fields, and still writes once',async t=>{
+  const x=await rendered(t);x.input('[data-field="title"]','mine title');x.input('[data-field="notes"]','mine notes');await x.peer(c=>c.title='peer title 1');
+  const first=x.nextDialog(),running=x.ui.button('save').click(),dialog=await first;
+  await x.peer(c=>{c.title='peer title 2';c.notes='peer notes';});
+  const second=x.nextDialog();x.choose(dialog,'mine');const again=await second;
+  assert.equal(again.querySelectorAll('li').length,2);assert.equal(x.calls.filter(c=>c.method==='POST').length,0);
+  x.choose(again,'theirs');await running;assert.equal(x.ui.api.s.error,'');
+  assert.equal(x.f.document(x.id).flow.saved.content.title,'peer title 2');assert.equal(x.f.document(x.id).flow.saved.content.notes,'peer notes');assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+});
+
+void test('actual atomic Save rejects stale revision, invalid photo and protected source without any partial write',async t=>{
+  const f=await fixture(t),id=await f.createPlan();
+  const make=(extra={})=>f.draft(id,'save',{moduleAction:'save-local-v1',patches:[{op:'set',path:['notes'],value:'mine'}],guards:[{path:['notes'],value:''}],...extra});
+  await rejectedWithoutCommit(f,make({expectedRevision:100}),409,'DRAFT_REVISION_CHANGED_RECONFIRM');
+  await rejectedWithoutCommit(f,make({patches:[{op:'set',path:['evidence'],value:['a'.repeat(64)]}],guards:[{path:['evidence'],value:[]}]}),422,'PHOTO_NOT_UPLOADED');
+  await rejectedWithoutCommit(f,make({patches:[{op:'set',path:['lines'],value:[]}],guards:[{path:['lines'],value:clone(f.document(id).flow.working.lines)}]}),422,'PATCH_NOT_ALLOWED');
+  await rejectedWithoutCommit(f,make({guards:[{path:['notes'],value:'stale'}]}),409,'DEPENDENCY_CHANGED_RECONFIRM');
+  const original=make(),accepted=await f.accepted(original),after=f.persisted();assert.equal(accepted.result.revision,1);assert.equal(f.document(id).flow.saves.length,1);
+  const replay=await f.post(original);assert.equal(replay.status,200);assert.deepEqual(replay.body.result,accepted.result);assert.deepEqual(f.persisted(),after);
+});
+
+function installDeparture(ui) {
+  const source=fs.readFileSync('public/process/version-draft-ui.js','utf8'),a=source.indexOf('  function createDeparture(config){'),b=source.indexOf('  host.VersionDraftUI=',a);
+  vm.runInContext('const host=window;'+source.slice(a,b)+'window.VersionDraftUI={createDeparture,mount(){},updateSaved(){}};',ui.box);
+  return ui.win.RoutineFQCUI.navigation.departure;
+}
+
+void test('rendered silent departure drops unsent RAM only, preserves shared history and performs zero requests',async t=>{
+  const x=await rendered(t);x.input('[data-field="notes"]','abandon me');const before=x.f.persisted(),departure=installDeparture(x.ui);
+  assert.equal(departure.autoAbandon,true);assert.equal(departure.inspect().state,'dirty');
+  const lease=await departure.abandon();assert.equal(departure.inspect().state,'departing');departure.closeClean();lease.release();
+  assert.equal(x.ui.api.dirty(x.ui.api.getData().control.documents.find(d=>d.id===x.id)),false);assert.equal(x.calls.length,0);assert.deepEqual(x.f.persisted(),before);
+  assert.equal(routineUISource.includes("window.addEventListener('beforeunload'"),false,'RAM-only edits do not request a native unload prompt');
+});
+
+void test('actual committed-but-lost Save keeps original metadata across silent departure; retry and 404 never resend',async t=>{
+  const x=await rendered(t);x.input('[data-field="notes"]','sent once');let lost=true;const realFetch=x.ui.box.fetch.bind(x.ui.box);
+  x.ui.box.fetch=async(url,options)=>{options ||= {};if(lost&&url.includes('operationId='))return Response.json({error:'OPERATION_NOT_FOUND'},{status:404});const response=await realFetch(url,options);if(lost&&options.method==='POST')throw Error('Synthetic lost response after commit');return response;};
+  await x.ui.button('save').click();const retry=x.ui.api.s.retry,marker=[...x.ui.store.map];assert(retry);assert.equal(x.f.document(x.id).flow.saved.content.notes,'sent once');
+  await x.ui.api.act('retry');assert.deepEqual([...x.ui.store.map],marker);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+  const departure=installDeparture(x.ui);assert.equal(departure.inspect().canAbandon,true);const lease=await departure.abandon();assert.equal(departure.inspect().state,'departing');departure.closeClean();lease.release();
+  assert.deepEqual([...x.ui.store.map],marker);assert.equal(x.ui.api.s.retry.operationId,retry.operationId);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+  lost=false;await x.ui.api.act('retry');assert.equal(x.ui.api.s.retry,null);assert.equal(x.calls.filter(c=>c.method==='POST').length,1);assert.equal(x.ui.store.map.size,0);
+});
+
+for(const mode of ['save-permission','edit-permission','pending','generation','pagehide','identity'])void test('rendered '+mode+' change while deciding cannot dispatch or lose original input',async t=>{
+  const x=await rendered(t,'plan');x.input('[data-field="title"]','mine title');await x.peer(c=>c.title='peer title');const arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await arriving;
+  if(mode==='save-permission')x.f.setRight('routine.save',false);
+  if(mode==='edit-permission')x.f.setRight('routine.edit',false);
+  if(mode==='pending'||mode==='generation') {
+    const submitted=await x.f.accepted(x.f.draft(x.id,'submit',{savedId:x.f.document(x.id).flow.saved.id}));assert(submitted.result.caseId);
+    if(mode==='generation')await x.f.accepted(x.f.draft(x.id,'return',{caseId:submitted.result.caseId,reason:'Synthetic return',selfReviewConfirmed:true}));
+  }
+  if(mode==='pagehide'){x.ui.event('pagehide');x.ui.event('pageshow');}
+  if(mode==='identity')x.ui.sync.identity={...x.ui.sync.identity};
+  x.choose(dialog,'mine');await running;if(!['pagehide','identity'].includes(mode))assert(x.ui.api.s.error);assert.equal(x.calls.filter(c=>c.method==='POST').length,0);assert.equal(x.ui.api.s.buffers.get(x.id).title,'mine title');
+});
+
+void test('actual server permits Save-only snapshots but rejects applying local patches without edit, including replay',async t=>{
+  const f=await fixture(t),id=await f.createPlan();f.setRight('routine.edit',false);
+  const empty=f.draft(id,'save',{moduleAction:'save-local-v1',patches:[],guards:[]});await f.accepted(empty);
+  const changed=f.draft(id,'save',{moduleAction:'save-local-v1',patches:[{op:'set',path:['notes'],value:'no edit'}],guards:[{path:['notes'],value:''}]});await rejectedWithoutCommit(f,changed,403,'FORBIDDEN');
+  f.setRight('routine.edit',true);await f.accepted(changed);f.setRight('routine.edit',false);const before=f.persisted(),replay=await f.post(changed);assert.equal(replay.status,403);assert.equal(replay.body.error,'FORBIDDEN');assert.deepEqual(f.persisted(),before);
+});
+
+void test('same-result row additions, deletion versus changed row, and cell convergence retain both sides',async t=>{
+  const x=await rendered(t);const content=x.ui.api.s.buffers.get(x.id),newRow=id=>({id,samples:[],outcome:'',value:id,notes:'',photos:[]});
+  content.lines[0].results.push(newRow('mine-added'));content.lines[0].results[0].value='converged';content.lines[0].results.splice(1,1);
+  await x.peer(c=>{c.lines[0].results.push(newRow('peer-added'));c.lines[0].results[0].value='converged';c.lines[0].results[1].notes='peer changed deleted row';});
+  const arriving=x.nextDialog(),running=x.ui.button('save').click(),dialog=await arriving;assert.equal(dialog.querySelectorAll('li').length,1);x.choose(dialog,'theirs');await running;
+  const rows=x.f.document(x.id).flow.saved.content.lines[0].results;assert.deepEqual(clone(rows.map(row=>row.id)),['row-a','row-b','peer-added','mine-added']);assert.equal(rows[0].value,'converged');assert.equal(rows[1].notes,'peer changed deleted row');assert.equal(x.calls.filter(c=>c.method==='POST').length,1);
+});
+
+void test('a post-comparison racing Save is a known refusal and is never resubmitted automatically',async t=>{
+  const x=await rendered(t);x.input('[data-field="notes"]','mine notes');const fetch=x.ui.box.fetch.bind(x.ui.box);let raced=false;
+  x.ui.box.fetch=async(url,options)=>{if(options?.method==='POST'&&!raced){raced=true;await x.peer(c=>c.title='peer racing title');}return fetch(url,options);};
+  await x.ui.button('save').click();assert.equal(x.calls.filter(c=>c.method==='POST').length,1);assert.match(x.ui.api.s.error,/DRAFT_REVISION_CHANGED_RECONFIRM/);assert.equal(x.ui.api.s.retry,null);assert.equal(x.ui.store.map.size,0);assert.equal(x.ui.api.s.buffers.get(x.id).notes,'mine notes');assert.equal(x.f.document(x.id).flow.saved.content.notes,'');assert.equal(x.f.document(x.id).flow.saved.content.title,'peer racing title');
+});
+
+void test('atomic Save returning working to an existing snapshot still advances one revision and preserves that saved ID',async t=>{
+  const f=await fixture(t),id=await f.createPlan();await f.accepted(f.draft(id,'save'));const saved=f.document(id).flow.saved;
+  await f.accepted(f.draft(id,'apply',{patches:[{op:'set',path:['notes'],value:'shared unsaved'}],guards:[{path:['notes'],value:''}]}));
+  const before=f.document(id).flow.revision,command=f.draft(id,'save',{moduleAction:'save-local-v1',patches:[{op:'set',path:['notes'],value:''}],guards:[{path:['notes'],value:'shared unsaved'}]}),result=(await f.accepted(command)).result;
+  assert.equal(result.revision,before+1);assert.equal(result.unchanged,false);assert.equal(result.savedId,saved.id);assert.equal(f.document(id).flow.saves.length,1);assert.equal(f.document(id).flow.working.notes,'');assert.deepEqual(clone(f.document(id).flow.contributors),{});
+  const after=f.persisted();const replay=await f.post(command);assert.equal(replay.status,200);assert.deepEqual(replay.body.result,result);assert.deepEqual(f.persisted(),after);
 });
 
 // Optional explicit local comparison input; core current-code tests above never

@@ -16,6 +16,9 @@ export function manualUI(options = {}) {
     doc.number ||= 'SYNTHETIC-PLAN'; doc.familyId ||= doc.id; doc.flow.saves ||= [];
   }
   f.api.setData(structuredClone(f.remote));
+  // Native childNodes is required by the real content-issue redraw path.
+  const prototype=Object.getPrototypeOf(document.createElement('div'));
+  Object.defineProperty(prototype,'childNodes',{get(){return this.children;}});
   const root = document.createElement('section'); root.id = 'routine-fqc-root';
   document.body.append(root); f.api.setRoot(root); f.api.s.selected = null;
   f.api.setHistorySearch({ html: () => '<div class="rf-history"></div>', bind() {}, update() {}, openForItem() {} });

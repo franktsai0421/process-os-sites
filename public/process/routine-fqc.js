@@ -85,6 +85,7 @@
     to: '',
     dateMode: 'period',
     buffers: new Map(),
+    bufferGenerations: new Map(),
     bases: new Map(),
     issues: [],
     busy: false,
@@ -205,10 +206,12 @@
       if(has(404,'DOCUMENT_NOT_FOUND')||has(422,'COMMAND_REQUIRED,OPERATION_ID_MISMATCH,INVALID_OPERATION')||has(409,'FORMAL_DOCUMENT_IMMUTABLE,STALE_GENERATION,STALE_CLIENT_OPERATION'))return true;
       if(cmd.action!=='restore'&&receiptInt(cmd.expectedRevision)&&has(409,'DRAFT_REVISION_CHANGED_RECONFIRM'))return true;
       if(!['approve','return','withdraw'].includes(cmd.action)&&has(409,'PENDING_LOCKED'))return true;
-      if(cmd.action==='apply'&&(has(422,'PATCH_NOT_ALLOWED,DEPENDENCY_GUARD_REQUIRED,INVALID_PATCHES,INVALID_PATH,INVALID_ENTITY_PATH,INVALID_FIELD,INVALID_VALUE')||has(409,'ENTITY_REMOVED_OR_AMBIGUOUS')))return true;
-      if(cmd.action==='apply'&&has(409,'DEPENDENCY_CHANGED_RECONFIRM'))return Array.isArray(value.details?.path)&&cmd.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(value.details.path))===true;
-      if(['apply','restore'].includes(cmd.action)&&has(422,'CONTENT_INVALID,TEXT_INVALID,PHOTO_ID_INVALID,DOCUMENT_ITEMS_IMMUTABLE,SOURCE_SNAPSHOT_IMMUTABLE,RETEST_REQUIREMENT_IMMUTABLE,DUPLICATE_LINE,RESULTS_INVALID,RESULT_ID_INVALID,RESULT_INVALID,SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE,SINGLE_SAMPLE_REQUIRED,RETEST_SAMPLE_FIXED,UNABLE_MUST_NOT_HAVE_SAMPLES'))return true;
+      const guarded=cmd.action==='apply'||cmd.action==='save'&&cmd.moduleAction==='save-local-v1';
+      if(guarded&&(has(422,'PATCH_NOT_ALLOWED,DEPENDENCY_GUARD_REQUIRED,INVALID_PATCHES,INVALID_PATH,INVALID_ENTITY_PATH,INVALID_FIELD,INVALID_VALUE')||has(409,'ENTITY_REMOVED_OR_AMBIGUOUS')))return true;
+      if(guarded&&has(409,'DEPENDENCY_CHANGED_RECONFIRM'))return Array.isArray(value.details?.path)&&cmd.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(value.details.path))===true;
+      if((guarded||cmd.action==='restore')&&has(422,'CONTENT_INVALID,TEXT_INVALID,PHOTO_ID_INVALID,DOCUMENT_ITEMS_IMMUTABLE,SOURCE_SNAPSHOT_IMMUTABLE,RETEST_REQUIREMENT_IMMUTABLE,DUPLICATE_LINE,RESULTS_INVALID,RESULT_ID_INVALID,RESULT_INVALID,SAMPLE_OUTSIDE_COVERAGE_OR_DUPLICATE,SINGLE_SAMPLE_REQUIRED,RETEST_SAMPLE_FIXED,UNABLE_MUST_NOT_HAVE_SAMPLES'))return true;
       if(cmd.action==='restore'&&receiptText(cmd.restoreSaveId)&&receiptInt(cmd.expectedRevision)&&(has(409,'RESTORE_RECONFIRM')||has(404,'SAVE_NOT_FOUND')))return true;
+      if(cmd.action==='save'&&cmd.moduleAction==='save-local-v1'&&has(409,'DRAFT_REVISION_REQUIRED'))return true;
       if(cmd.action==='submit'&&(has(409,'DRAFT_REVISION_REQUIRED,SUCCESSFUL_SAVE_REQUIRED,SAVED_VERSION_CHANGED_RECONFIRM,UNSAVED_CHANGES_SAVE_REQUIRED,ACTIVE_VERSION_CHANGED')||has(422,'NO_SUBSTANTIVE_CHANGE,VALIDATION_FAILED')))return true;
       if(['submit','approve'].includes(cmd.action)&&(has(422,'CASE_LINK_REQUIRED,CASE_LINK_INVALID')||has(409,'CASE_CHANGED_USE_CURRENT_FLOW')))return true;
       if(['approve','return','withdraw'].includes(cmd.action)&&receiptText(cmd.caseId)&&(has(409,'CASE_NOT_PENDING')||cmd.action!=='withdraw'&&(has(409,'SELF_REVIEW_CONFIRM_REQUIRED')||has(403,'SELF_REVIEW_ADMIN_ONLY'))||cmd.action==='approve'&&(has(409,'ACTIVE_VERSION_CHANGED')||has(422,'VALIDATION_FAILED'))||cmd.action==='return'&&has(422,'REASON_REQUIRED')))return true;
@@ -399,7 +402,7 @@
       if (data && next.identity.id === data.identity.id &&
           (next.control.revision < data.control.revision || next.revision < data.revision)) return;
       if (data && next.identity.id !== data.identity.id) {
-        s.buffers.clear(); s.bases.clear(); s.selected = null;
+        s.buffers.clear();s.bufferGenerations.clear(); s.bases.clear(); s.selected = null;
       }
       adopt(next);
       reconcileSelection();
@@ -517,6 +520,7 @@
     if (!s.buffers.has(d.id)) {
       s.buffers.set(d.id, clone(d.flow.working));
       s.bases.set(d.id, clone(d.flow.working));
+      s.bufferGenerations.set(d.id,d.flow.generation);
     }
     const working = s.buffers.get(d.id);
     if (d.kind === 'report' && status(d) === 'draft') for (const line of working.lines) {
@@ -1344,61 +1348,109 @@
     if(doc().flow.generation!==generation||doc().flow.revision!==snapshot.expectedRevision||doc().flow.saved?.id!==snapshot.savedId||dirty(doc()))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     return {...snapshot,generation,reason:''};
   }
+  function sameRoutineValue(a,b) {
+    if(a===b)return true;
+    if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
+    if(Array.isArray(a)||Array.isArray(b))return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((value,index)=>sameRoutineValue(value,b[index]));
+    const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&sameRoutineValue(a[key],b[key]));
+  }
+  // Three-way comparison runs only as part of explicit Save. Collections
+  // retain remote order and merge result identities; sample/photo arrays are
+  // individual field values, never positional result-row replacements.
+  function mergeSaveContent(base, mine, theirs, preference) {
+    const conflicts = [], absent = Symbol('absent');
+    const equal = (a,b) => a === absent || b === absent ? a === b : sameRoutineValue(a,b);
+    const copy = value => value === absent ? absent : clone(value);
+    function merge(b,m,r,path) {
+      if (equal(m,b)) return copy(r);
+      if (equal(r,b) || equal(m,r)) return copy(m);
+      const records = value => Array.isArray(value) && value.every(row => row && typeof row.id === 'string') && new Set(value.map(row=>row.id)).size === value.length;
+      if (records(b) && records(m) && records(r)) {
+        const rows = new Map(), bm=new Map(b.map(row=>[row.id,row])), mm=new Map(m.map(row=>[row.id,row])), rm=new Map(r.map(row=>[row.id,row]));
+        for (const id of new Set([...r.map(row=>row.id),...m.map(row=>row.id),...b.map(row=>row.id)])) {
+          const value=merge(bm.get(id)??absent,mm.get(id)??absent,rm.get(id)??absent,[...path,{id}]);
+          if(value!==absent)rows.set(id,value);
+        }
+        return [...rows.values()];
+      }
+      if ([b,m,r].every(value=>value!==absent && value && typeof value==='object' && !Array.isArray(value))) {
+        const value={};
+        for(const key of new Set([...Object.keys(r),...Object.keys(m),...Object.keys(b)])) {
+          const merged=merge(Object.hasOwn(b,key)?b[key]:absent,Object.hasOwn(m,key)?m[key]:absent,Object.hasOwn(r,key)?r[key]:absent,[...path,key]);
+          if(merged!==absent)value[key]=merged;
+        }
+        return value;
+      }
+      conflicts.push({path,mine:m===absent?null:copy(m),theirs:r===absent?null:copy(r)});
+      return copy(preference==='theirs'?r:m);
+    }
+    return {content:merge(base,mine,theirs,[]),conflicts};
+  }
+  async function chooseSaveConflicts(conflicts, target) {
+    const fields={title:t('文件名稱','Tên hồ sơ'),date:t('實際日期','Ngày thực tế'),notes:t('備註','Ghi chú'),reason:t('申請原因','Lý do đề nghị'),disposition:t('處置內容','Nội dung xử lý'),evidence:t('處置照片','Ảnh xử lý'),samples:t('實測樣品','Mẫu thực thử'),outcome:t('結果','Kết quả'),value:t('實測值','Giá trị thực thử'),photos:t('照片','Ảnh')};
+    const label=path=>{
+      const line=target.flow.working.lines.find(line=>line.id===path[1]?.id),row=line?.results.findIndex(row=>row.id===path[3]?.id);
+      return path[0]==='lines'?[line?.source.name||t('檢查項目','Hạng mục kiểm tra'),t('結果列','Dòng kết quả')+(row>=0?' '+(row+1):''),fields[path.at(-1)]||''].filter(Boolean).join(' · '):fields[path[0]]||t('文件內容','Nội dung hồ sơ');
+    };
+    const value=(content,path)=>content===null?t('已移除','Đã xóa'):Array.isArray(content)&&['photos','evidence'].includes(path.at(-1))?content.length+' '+t('張照片','ảnh'):typeof content==='object'&&!Array.isArray(content)?[content.samples?.join(', '),content.outcome,content.value,content.notes].filter(Boolean).join(' · '):Array.isArray(content)?content.join(', '):String(content);
+    const result=await dialog(t('儲存衝突','Xung đột khi lưu'),
+      `<p>${h(t('以下欄位已被雙方修改。請一次選擇所有衝突使用我的或他人的值；雙方其他修改都會保留並立即儲存。','Các trường sau đã được cả hai bên sửa. Chọn giá trị của tôi hoặc người khác cho mọi xung đột; các thay đổi còn lại của cả hai được giữ và lưu ngay.'))}</p><ul>${conflicts.map(conflict=>`<li><b>${h(label(conflict.path))}</b><p>${h(t('我的','Của tôi'))}: ${h(value(conflict.mine,conflict.path))}</p><p>${h(t('他人的','Của người khác'))}: ${h(value(conflict.theirs,conflict.path))}</p></li>`).join('')}</ul>`,
+      t('使用我的並儲存','Dùng của tôi và lưu'), (el,close)=>{
+        const theirs=document.createElement('button');theirs.type='button';theirs.className='rf-btn';theirs.setAttribute('data-rf-conflict-theirs','true');
+        theirs.textContent=t('使用他人的並儲存','Dùng của người khác và lưu');theirs.onclick=()=>close('theirs');el.querySelector('.rf-actions').append(theirs);
+      });
+    return result===null?null:result==='theirs'?'theirs':'mine';
+  }
   async function save(target = doc()) {
     const d = target;
     if(!d||status(d)!=='draft'||data.permissions.save!==true||dirty(d)&&data.permissions.edit!==true)throw Error('FORBIDDEN');
-    const page=root,identity=data.identity.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;
-    const current=()=>root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;
-    const c = clone(buffer(d)),
-      base = s.bases.get(d.id),
-      patches = [];
-    for (const k of [
-      'title',
-      'date',
-      'notes',
-      'reason',
-      'disposition',
-      'evidence',
-    ])
-      if (JSON.stringify(c[k]) !== JSON.stringify(base[k]))
-        patches.push({ op: 'set', path: [k], value: c[k] });
-    for (const l of c.lines) {
-      const b = base.lines.find((o) => o.id === l.id);
-      if (JSON.stringify(l.results) !== JSON.stringify(b.results))
-        patches.push({
-          op: 'set',
-          path: ['lines', { id: l.id }, 'results'],
-          value: l.results,
-        });
-    }
-    if (patches.length) {
-      await draft('apply', {
-        patches,
-        guards: patches.map((p) => ({
-          path: p.path,
-          value:
-            p.path.length === 1
-              ? base[p.path[0]]
-              : base.lines.find((l) => l.id === p.path[1].id).results,
-        })),
-      }, d);
+    if(s.bufferGenerations.has(d.id)&&s.bufferGenerations.get(d.id)!==d.flow.generation)throw Error('STALE_GENERATION');
+    const life=receiptLifecycle,page=root,identity=data.identity.id,syncIdentity=window.ProcessSync?.identity,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;
+    const current=()=>!receiptSuspended&&life===receiptLifecycle&&root===page&&page?.isConnected!==false&&data?.identity?.id===identity&&syncIdentity===window.ProcessSync?.identity&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;
+    const c=clone(buffer(d)),base=clone(s.bases.get(d.id)),hasEdits=!sameRoutineValue(c,base);
+    const fresh=async()=>{
+      const next=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');
+      const latest=next.control.documents.find(row=>row.id===d.id);
+      if(next.identity.id!==identity||latest?.flow.generation!==generation)throw Error('STALE_GENERATION');
+      if(next.revision<data.revision||next.control.revision<data.control.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+      data=next;
+      if(!latest||latest.cancelled||status(latest)!=='draft')throw Error('PENDING_LOCKED');
+      if(data.permissions.save!==true||hasEdits&&data.permissions.edit!==true)throw Error('FORBIDDEN');
+      return latest;
+    };
+    let latest=await fresh(),merged;
+    for(let attempt=0;attempt<5;attempt++) {
+      merged=mergeSaveContent(base,c,latest.flow.working);
+      if(!merged.conflicts.length)break;
+      const compared=clone(latest.flow),choice=await chooseSaveConflicts(merged.conflicts,d);
       if(!current())throw Error('DELIVERY_SUPERSEDED');
-      const fresh = await read();
-      if(!current())throw Error('DELIVERY_SUPERSEDED');
-      if (fresh.control.revision >= data.control.revision) data = fresh;
-      if(!current())throw Error('DELIVERY_SUPERSEDED');
-      s.bases.set(d.id, clone(c));
+      if(choice===null)return null;
+      latest=await fresh();
+      if(compared.revision!==latest.flow.revision||compared.saved?.id!==latest.flow.saved?.id||!sameRoutineValue(compared.working,latest.flow.working)) {
+        if(attempt===4)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+        continue;
+      }
+      merged=mergeSaveContent(base,c,latest.flow.working,choice);break;
     }
     if(!current())throw Error('DELIVERY_SUPERSEDED');
-    const latest=docs().find(row=>row.id===d.id);
-    const result=await draft('save', { expectedRevision: latest.flow.revision }, latest);
+    const patches=[];
+    for(const key of ['title','date','notes','reason','disposition','evidence'])if(!sameRoutineValue(merged.content[key],latest.flow.working[key]))patches.push({op:'set',path:[key],value:merged.content[key]});
+    // Lines and source snapshots are immutable; only existing result collections
+    // can be edited. Row/cell merging above has already retained both sides.
+    if(!sameRoutineValue(merged.content.lines.map(line=>({...line,results:[]})),latest.flow.working.lines.map(line=>({...line,results:[]}))))throw Error('DOCUMENT_ITEMS_IMMUTABLE');
+    for(const line of merged.content.lines) {
+      const remote=latest.flow.working.lines.find(row=>row.id===line.id);
+      if(!sameRoutineValue(line.results,remote.results))patches.push({op:'set',path:['lines',{id:line.id},'results'],value:line.results});
+    }
+    const result=await draft('save',{moduleAction:'save-local-v1',expectedRevision:latest.flow.revision,patches,guards:patches.map(patch=>({path:patch.path,value:patch.path.length===1?latest.flow.working[patch.path[0]]:latest.flow.working.lines.find(line=>line.id===patch.path[1].id).results}))},latest);
     if(!current())throw Error('DELIVERY_SUPERSEDED');
-    const fresh=await read();if(!current())throw Error('DELIVERY_SUPERSEDED');
-    if(fresh.control.revision>=data.control.revision)data=fresh;
-    if(!current())throw Error('DELIVERY_SUPERSEDED');
+    const next=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');
+    if(next.control.revision>=data.control.revision)data=next;
     const saved=docs().find(row=>row.id===d.id)?.flow;
-    if(!saved?.saved||JSON.stringify(saved.saved.content)!==JSON.stringify(saved.working))throw Error('SAVE_RECHECK_REQUIRED');
-    if(JSON.stringify(s.buffers.get(d.id))===JSON.stringify(c)){s.buffers.delete(d.id);s.bases.delete(d.id);}
+    if(!saved?.saved||saved.saved.id!==result.savedId||!sameRoutineValue(saved.saved.content,merged.content))throw Error('SAVE_RECHECK_REQUIRED');
+    const local=s.buffers.get(d.id);
+    if(sameRoutineValue(local,c)){s.buffers.delete(d.id);s.bases.delete(d.id);}
+    else if(local){s.buffers.set(d.id,mergeSaveContent(c,local,merged.content,'mine').content);s.bases.set(d.id,clone(merged.content));}
     return result;
   }
   function dialog(title, body, submit = t('確認', 'Xác nhận'), onready) {
@@ -1430,7 +1482,7 @@
       };
       document.body.append(el);
       el.showModal();
-      onready?.(el);
+      onready?.(el,close);
     });
   }
   async function reason(title) {
@@ -1645,7 +1697,7 @@
       }
       s.cancelConfirm = null;
       s.error = '';
-      await refresh();
+      if(action!=='save')await refresh();
       if(!receiptCurrent(mutationOwner))throw Error('DELIVERY_SUPERSEDED');
       if (['approve', 'return', 'withdraw'].includes(action)) {
         s.buffers.delete(mutationDocument);
@@ -1929,11 +1981,34 @@
   }
   async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
 
+  // Navigation consumes only unsent RAM. Exact unknown-operation metadata
+  // remains in storage and continues to fence every Routine FQC write.
+  function routineDeparture(config) {
+    const base=window.VersionDraftUI.createDeparture(config);let held=null,completed=null;
+    const anchor=()=>{
+      if(receiptInvalid||!receiptRecord||s.busy||inFlightMutation||s.dialogOpen)return null;
+      const pin=receiptPin();if(!receiptOwnedPin(pin))return null;
+      try{return receiptStore().getItem(receiptRecord.key)===receiptRecord.raw?{record:receiptRecord,raw:receiptRecord.raw,pin}:null;}catch{return null;}
+    };
+    const valid=record=>{const live=anchor();return !!live&&live.record===record.anchor.record&&live.raw===record.anchor.raw&&receiptOwnedPin(record.anchor.pin);};
+    return {...base,autoAbandon:true,allowUnload:()=>!s.busy&&!inFlightMutation,
+      inspect(){if(held&&valid(held))return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:receiptNotice()};const state=base.inspect();return state.state==='unknown'&&anchor()?{...state,canAbandon:true}:state;},
+      async abandon(){
+        if(base.inspect().state!=='unknown')return base.abandon();
+        const captured=anchor();if(held||!captured)throw Error('DEPARTURE_CONTEXT_CHANGED');
+        const record={id:{},anchor:captured};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;
+        return {departureId:record.id,release(){if(held===record)held=null;}};
+      },
+      covered:()=>!!completed||base.covered(),
+      otherDraftsPending:()=>window.sharedDraftDepartureBlocked?.()??false,
+      closeClean(){if(!held)return base.closeClean();if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');completed=held;},
+    };
+  }
   let moduleDeparture;
   const departureSharedOwned=d=>{const tracked=d.flow?.scope==='routine-fqc:'+d.id;if(tracked)window.SharedDraftDeparture?.register?.(d.flow.scope);const owned=tracked?window.SharedDraftDeparture?.owns?.(d.flow):null;if(typeof owned==='boolean')return owned;if(!window.sharedDraftNeedsSave?.(d.flow))return false;const stamps=d.flow.contributors,actors=stamps&&typeof stamps==='object'&&!Array.isArray(stamps)?Object.values(stamps).map(value=>value?.actor?.id):[];return !actors.length||actors.some(actor=>typeof actor!=='string'||!actor||actor===window.ProcessSync?.identity?.id);};
   const departureDocuments=()=>docs().filter(d=>dirty(d)||departureSharedOwned(d));
   window.RoutineFQCUI = {
-    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({
+    navigation:{get departure(){return moduleDeparture ||= routineDeparture({
       root:()=>root,context:()=>[s.selected,data?.identity?.id,data?.permissions?.save,data?.permissions?.edit,docs().map(d=>[d.id,d.flow.generation])],
       current:()=>!data?.identity||!window.ProcessSync?.identity||data.identity.id===window.ProcessSync.identity.id,
       busy:()=>s.busy||!!inFlightMutation,unknown:()=>!!s.retry,
@@ -1946,7 +2021,7 @@
       canSave:()=>data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
       async save(){s.busy=true;try{for(const d of departureDocuments())await save(d);return true;}finally{s.busy=false;paint();}},
       discard(){for(const dialog of document.querySelectorAll('.rf-modal[open]'))dialog.querySelector('[data-cancel]')?.click();for(const d of docs())if(dirty(d)){s.buffers.delete(d.id);s.bases.delete(d.id);}paint();},
-    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
+    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
     html,
     mount,
     reviewHTML,
@@ -1970,9 +2045,4 @@
     },
   };
   window.addEventListener('process-language-change', () => paint());
-  window.addEventListener('beforeunload', (e) => {
-    if (docs().some((d) => dirty(d))) {
-      e.preventDefault();
-    }
-  });
 })();
