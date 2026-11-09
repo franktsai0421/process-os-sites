@@ -1,6 +1,12 @@
 # 各功能頁草稿分界：盤點與切換前置候選
 
-基準：GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`。本分支為獨立小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可發布版本。
+原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99）。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
+
+## 獨立公開候選邊界
+
+相對 #99 的 main，此批只新增兩個未註冊的頁面預演／名稱 Save 模組、三份合成回歸測試、必要的規格／交接，以及 AB/C CI 三條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
+
+來源為本次已核對公開 main 上的新提交，沒有匯入舊 243-path／quality／equipment 上傳 payload 或未發布整合祖先。新候選以 main 為遠端 parent，只公開本批差異；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
 
 ## 逐頁現況
 
