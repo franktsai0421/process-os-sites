@@ -38,8 +38,11 @@ Initial failure evidence is retained. The initial equipment-only tests reproduce
 five failing cases. The synthetic input helper then gained native-equivalent
 property-handler delivery (`oninput` plus registered input listeners); two
 intermediate failures were fixture delivery gaps, not additional product bugs.
-The final test suite is also executed against immutable base bytes to retain a
-precise before/after control. No old failure is relabeled as a pass.
+The final equipment suite against immutable `4a10e93` bytes produces 7 FAIL /
+5 PASS; the same final suite on this fix produces 12/12 PASS (plus 5/5 BOM
+controls, 17/17 total). Baseline log:
+`/tmp/equipment-page-local-retention-baseline-final.log`. No old failure is
+relabeled as a pass.
 
 The earlier minimal equipment fixture reports missing FQC reference confirmation
 when opening an edit form because that fixture intentionally supplies incomplete
