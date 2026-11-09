@@ -1,3 +1,7 @@
+## 2026-11-09 — Account compatibility with merged #100
+
+Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). No build/install retry, real account/data change, remote write or deployment.
+
 ## 2026-11-09 — Account/main compatibility merge
 
 Pinned main 021f0f3 (#99) is integrated locally with both documentation histories and all CI steps preserved. Account runtime files remain at 4b21d0f; unchanged main catalog/reducer/stage-link assertions pass through the existing source-only fixture. [Compatibility evidence and unresolved scope/permission decisions](docs/acceptance/accounts-permissions-20261109.md#最新-main-相容性整合021f0f3). No build retry, live account/data change, upload, remote merge or deployment.

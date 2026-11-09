@@ -169,3 +169,18 @@ SPA 的 protected login 原本把後端中文 error 直接顯示，越文模式�
 - 原三份測試仍依 main 的標準命令保留；新相容性測試另加入帳號的 Node 來源命令，不取代 lint、typecheck、normal build 或原生瀏覽器 gate。
 
 明確未完成仍為四項需求診斷 FAIL：舊審核轉成下層送審／撤回且不得升高階、可核對的新高階權來源及其下層包含規則、return／withdraw 逐層同權。#99 的 42-group LINES reducer 仍是未接 storage／HTTP／codec／CAS 的獨立候選；不能因 unit PASS 就開始賦予真人 LINES 權限。須先由草稿工作固定 active scope manifest／資料切換，再整合矩陣、effectiveCells、API／receipt／kernel 與 before/after 權限預覽。DEMO ADMIN 管理普通帳號的規則另待業務決定。真帳號登入／重設驗收、normal build／完整 lint/typecheck、Windows/native browser／手機與實站驗收，以及被拒／不明來源傳送的核查仍是相同外部限制。
+
+
+## #100 合併後相容性（固定 main 9fbba823）
+
+Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e59293d19d2f1，並只 fetch 該 main 的歷史到既有 repository；這是下載官方已合併來源，不是重送任何舊 upload／被拒傳送。接著在同一 worktree 合入固定 main，未使用其他候選工作樹。
+
+五處內容衝突逐一處理：CHANGELOG／RUNTIME／SHARED_DRAFT 保留雙方新增政策；index 同時保留 #100 shared-client／authoring／IPQC／notice 的新版本與帳號候選的 user-access／login／return-confirm／feedback／policy／bootstrap 版本；navigation 精確期望同步兩方版本，沒有回退為舊 cache tag。兩份 CI 自動合併後保留 #100 no-poll／source-proof／foreground tests 和全部既有帳號／feedback 命令。
+
+#100 的四個執行模組（shared-draft-client、process-authoring-v3、process-ipqc、effective-version-notice）及 browser timer inventory 程式／清單均維持與固定 main 完全相同。新 account-background-compat 回歸確認這些位元組及 inert scheduler 在反覆 schedule、cancel、focus／visibility 狀態改變時不產生 callback、timer 或 listener。此為來源／VM port 驗證，不能冒充 native browser 或整個 AST 盤點重跑。
+
+共同相依包括 index 的精確 source inverse：原 #100 index afterHash 僅涵蓋 main 的版本號，而帳號候選另有 6 組版本號差異。保留原 beforeHash 與原 3 個背景檢查 inverse rules，追加這 6 組 account cache-only inverse，afterHash 固定合併後完整 index。其他四個 contracts 與原 proof 程式／測試完全不動。新增測試逐一核對原 rules 前綴完全一致、新差異移除版本號後相同、逆向中間值等於 main 9fb index、最後仍還原 d4ac309 原位元組，並拒絕空白／截短／舊 main 等錯誤來源；沒有改 source/history 掃描器或加入寬鬆通過條件。
+
+擴大測試第一次 command 包含 shared-draft-restore-admission，部分實際 C API 組在動態載入舊 TypeScript harness 時報 MODULE_NOT_FOUND:typescript。這是**部分執行後的環境 BLOCKED**，不能列為完整 PASS。其原檔及 CI 保留，沒有 stub 掉 API 或修改斷言。global-background-checks／browser-timer-inventory／poll-wiring／bounded-media／canvas-manual-sync 的完整原命令同樣需 TypeScript，未在缺依賴時冒稱跑過；compiled equipment-transfer、native browser／Windows／hosted 仍 NOT_RUN。已讀知 worktree 的標準 postinstall 不適用，故不安裝／借用依賴，不恢復 symlink、不換路、不重試 SOURCE_SYMLINK_REFUSED。
+
+本輪只做本地 feature merge、共同檔案相依與來源回歸。仍有四項原始政策診斷 FAIL，以及 inactive 草稿 scope／授權來源／return-withdraw／DEMO 業務決策；沒有因此改任何真人帳號、角色設定、資料／schema、發布或 GitHub main。先前被拒傳送與 UNCERTAIN upload 均原狀保留。

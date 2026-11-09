@@ -1,3 +1,7 @@
+## 2026-11-09 — Account compatibility with merged #100
+
+Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](../docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). No build/install retry, real account/data change, remote write or deployment.
+
 ## 2026-11-09 — Merge main into local account candidate
 
 Pinned main 021f0f3 (#99) is integrated locally with both documentation histories and all CI steps preserved. Account runtime files remain at 4b21d0f; unchanged main catalog/reducer/stage-link assertions pass through the existing source-only fixture. [Compatibility evidence and unresolved scope/permission decisions](../docs/acceptance/accounts-permissions-20261109.md#最新-main-相容性整合021f0f3). No build retry, live account/data change, upload, remote merge or deployment.
@@ -25,6 +29,10 @@ Local kernel and shared review dialog no longer classify returning one’s own p
 ## 2026-11-09 — Explain derived account Save capability
 
 Local account UI candidate displays Edit-includes-Save labels for the ten existing adapters, preserves configured cells/overrides and pins the new account asset. Six targeted tests and 75 existing regressions pass; native/browser/live acceptance remains separate. [Details](../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明).
+
+## 2026-11-09 — Retire periodic web checks
+
+Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).
 
 ## 2026-11-09 — New-stage approved catalog inheritance candidate
 
