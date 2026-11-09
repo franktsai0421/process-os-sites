@@ -10,9 +10,9 @@
  let localBase=null,localSnapshot=null,localGeneration=null,pendingLocalSave=false;
  // Page RAM only. A dispatched photo PUT has no durable operation receipt:
  // retain its content hash and only read that URI after an ambiguous response.
- const photoFiles=new Map();let photoFileObjects=new WeakMap();
+ const photoFiles=new Map(),photoOutcomes=new Map();let photoFileObjects=new WeakMap();
  const photoUrl=photo=>photoFiles.get(photo.id)?.url||'/api/tooling/photo?id='+photo.id;
- function clearPhotoFiles(retainConfirmed=false){for(const entry of photoFiles.values())URL.revokeObjectURL(entry.url);photoFiles.clear();if(!retainConfirmed)photoFileObjects=new WeakMap();}
+ function clearPhotoFiles(retainConfirmed=false){for(const entry of photoFiles.values())URL.revokeObjectURL(entry.url);photoFiles.clear();if(!retainConfirmed){photoFileObjects=new WeakMap();photoOutcomes.clear();}}
  function prunePhotoFiles(extra=[]){const used=new Set([...(localSnapshot?.tools||[]).flatMap(row=>row.photos||[]),...extra].map(photo=>photo.id));for(const [id,entry]of photoFiles)if(!used.has(id)){URL.revokeObjectURL(entry.url);photoFiles.delete(id);}}
  const photoOwner=()=>({identity:window.ProcessSync?.identity,epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.(),generation:flow()?.generation,client,view:viewEpoch});
  const photoOwnerCurrent=owner=>owner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(owner.epoch)&&owner.epoch>=0&&owner.epoch===window.ProcessSync?.identityGeneration?.()&&owner.delivery!=null&&window.ProcessSync?.isCurrentDelivery?.(owner.delivery)===true&&owner.generation===flow()?.generation&&owner.client===client&&owner.client?.isRuntimeCurrent?.()!==false&&owner.client?.isBeginRuntimeCurrent?.()!==false&&owner.view===viewEpoch&&!window.ProcessSync?.requiresReload;
@@ -23,9 +23,12 @@
   for(const patch of details.patches){const photos=patch.op==='insert'&&patch.path[0]==='tools'?patch.value.photos:patch.op==='set'&&patch.path[0]==='tools'&&patch.path[2]==='photos'?patch.value:null;if(!Array.isArray(photos))continue;
    for(const photo of photos){const entry=photoFiles.get(photo.id);if(!entry)continue;check();if(!photoOwnerCurrent(entry.owner))throw Error('PHOTO_OWNER_CHANGED');
     if(!entry.hash){const {prepareBrowserPhoto}=await import('./photo-policy.mjs?v=20261023-lossless1');check();entry.payload=(await prepareBrowserPhoto(entry.file)).blob;check();const bytes=await entry.payload.arrayBuffer();check();entry.hash=await digest(bytes);check();}
+    // File selection may return a new File object for the same bytes. Keep
+    // outcomes by normalized content hash, without retaining File/payload data.
+    let outcome=photoOutcomes.get(entry.hash);if(!outcome){outcome={owner:entry.owner,dispatched:false,confirmed:null};photoOutcomes.set(entry.hash,outcome);}if(!photoOwnerCurrent(outcome.owner))throw Error('PHOTO_OWNER_CHANGED');entry.dispatched=outcome.dispatched;entry.confirmed=outcome.confirmed;
     if(!entry.confirmed){
-     if(entry.dispatched){const response=await fetch('/api/tooling/photo?id='+entry.hash,{cache:'no-store',signal:AbortSignal.timeout(45000)});check();if(!response.ok||await digest(await response.arrayBuffer())!==entry.hash)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');check();entry.confirmed=entry.hash;}
-     else{entry.dispatched=true;let response,result;try{response=await fetch('/api/tooling/photo',{method:'PUT',headers:{'Content-Type':entry.payload.type},body:entry.payload,signal:AbortSignal.timeout(45000)});result=await response.json();}catch{throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}if(response.ok&&result.id===entry.hash)entry.confirmed=result.id;check();if(!entry.confirmed)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}
+     if(entry.dispatched){const response=await fetch('/api/tooling/photo?id='+entry.hash,{cache:'no-store',signal:AbortSignal.timeout(45000)});check();if(!response.ok||await digest(await response.arrayBuffer())!==entry.hash)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');check();entry.confirmed=outcome.confirmed=entry.hash;}
+     else{entry.dispatched=outcome.dispatched=true;let response,result;try{response=await fetch('/api/tooling/photo',{method:'PUT',headers:{'Content-Type':entry.payload.type},body:entry.payload,signal:AbortSignal.timeout(45000)});result=await response.json();}catch{throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}if(response.ok&&result.id===entry.hash)entry.confirmed=outcome.confirmed=result.id;check();if(!entry.confirmed)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');}
     }
     photo.id=entry.confirmed;
    }

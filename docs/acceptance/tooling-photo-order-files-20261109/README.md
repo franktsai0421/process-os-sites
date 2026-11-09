@@ -85,3 +85,22 @@ omitted occurrences. Routine equipment retains whole parent/source/remove guards
 and the coupled photoId/photoHidden choice. Tooling IQC links remain set membership;
 transfer location/source validation remains the existing backend atomic guard.
 No new scope split, transfer transaction or approved-view policy is added here.
+
+## Independent review: normalized hash outcome identity
+
+Review reproduced that a newly constructed File for the same physical contents
+could bypass the first exact-File WeakMap and issue a second PUT after unknown
+or confirmed outcomes. Both repository counterexamples fail before this fix
+(`/tmp/tooling-file-hash-outcome-before.log`, 2/2 FAIL). Outcomes are now also
+indexed by normalized payload hash within the same owner/view/generation/client.
+The hash registry stores only owner/dispatched/confirmed metadata; it does not
+strongly retain File or payload bytes. A new File with the same normalized hash
+adopts that original outcome: unknown permits only the hash GET; confirmed reuses
+the original URI. True departure/owner reset clears this RAM registry; success
+retains its small outcome metadata. Late ACKs hold only their original record
+reference and cannot update a replacement owner's registry record.
+
+Final full command above: PASS 53/53 (26.4 s), including 18 File cases, original
+32 grouped Tooling cases and 3 atomic route cases. Log:
+`/tmp/tooling-file-hash-outcome-final.log`; scoped runtime lint and diff checks PASS.
+Cross-reload/native/device/hosted limits and lack of durable photo receipts remain.
