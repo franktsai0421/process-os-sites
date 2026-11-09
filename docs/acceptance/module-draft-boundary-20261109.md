@@ -1,5 +1,27 @@
 ## 2026-11-09 #102 遠端衝突與寫入結果續查
 
+### 十三頁本輪驗證範圍
+
+下表「Signed／核心」為實際 signed endpoint 的 owner／跨頁收據／即時view撤權，以及各scope共用核心Save／Submit／本人發回／核准。不是十三頁各自完整業務effects或審核平台全流程。c2935af重跑此組通過；ae8c208的頁面衝突／只讀查看證據可重用，因app/lib/public/process逐檔相同且來源97檔attestation通過。
+
+| 實際頁面 | Signed／核心 | 頁面合成證據（重用PASS） | 真實切換／完整實站流程 |
+| --- | --- | --- | --- |
+| 製程編輯台 | PASS | 畫布整組衝突、其他畫布保留、同頁核准查看 | BLOCKED／NOT_RUN |
+| AB產線與類別 | PASS | catalog／owner Excel／進階UI／核准查看 | BLOCKED／NOT_RUN |
+| C產線與類別 | PASS | catalog／owner Excel／進階UI／核准查看 | BLOCKED／NOT_RUN |
+| 線別與工段 | PASS | topology／PROCESS連結／單owner AB/C／Excel／核准查看 | BLOCKED／NOT_RUN |
+| 流程資料 | PASS | PROCESS照片／排序合併、模板／機器同頁、核准查看 | BLOCKED／NOT_RUN |
+| FQC | PASS | 刪除與保留File、矩陣／衝突、核准查看 | BLOCKED／NOT_RUN |
+| IQC | PASS | 晚到輸入／供應商／照片、衝突、核准查看 | BLOCKED／NOT_RUN |
+| IPQC A/B | PASS | module scope／群組篩選、衝突與版本fence、核准查看 | BLOCKED／NOT_RUN |
+| IPQC C | PASS | 實際Save choices／結構更正／核准查看／最後auth fence | BLOCKED／NOT_RUN |
+| BOM | PASS | 樹／根件本機保留、衝突、真common-selector＋handler歷史36項 | BLOCKED／NOT_RUN |
+| 檢具與測試設備 | PASS | 同頁保留、衝突、核准快照／照片只讀 | BLOCKED／NOT_RUN |
+| 模具 | PASS | File僅Save上傳、UNKNOWN原結果防重PUT、同頁保留／核准查看 | BLOCKED／NOT_RUN |
+| 例行FQC | PASS | 整頁HTTP14／UI12／photo6、固定effects與CAS／整頁核准查看 | BLOCKED／NOT_RUN |
+
+切換安全10組、原樣保全／缺歷史與待審專用媒體拒絕8組為隔離合成測試；真DB/R2備份還原、全部照片bytes/hash、真pending與已核准數量、兩端撤回入口、實體IME／手機／兩人實站仍未驗。由於live revision707資料截斷，所有頁面的真資料欄均為BLOCKED，沒有把未知數量當0。完整上傳還與18個既有帳號傳送路徑重疊，5個可比舊blob中4個原樣相同，13個舊blob缺現成可核對物件；原243完整manifest未復原，仍無法證明獨立範圍。需原傳送owner提供對應終態／receiver hash和GitHub後續操作回執，不重送或換工具傳送。
+
 本輪唯讀重新查得原五檔 expected tree e80d87a839799d13ea3954cc2f6ade8510bf7129，recursive 回應未截斷，五個路徑／mode／blob SHA 全部對上原 intent。這筆改標為 EXPECTED_TREE_READBACK_CONFIRMED；沒有重送 create_tree，沒有替舊 tree 建 commit 或移動ref。遠端 #102仍是ee7d4fd、main為9fbba823。舊243 expected tree ee1352c與R4 a3dbc76仍404；404不代表未執行，原243 manifest亦未復原。不能證明新完整payload與歷史UNKNOWN／帳號PENDING範圍獨立前，不藉整合重送。
 
 已本機合入遠端ee7d4fd。三處衝突逐項比對：遠端contributor net-change修正及測試已包含於候選，保留候選新增的canonical selector／guard拒絕別名；文件以現行整合矩陣為準，遠端修正紀錄保留。產品runtime不變。此合併使候選同時包含現行main及PR head，但遠端mergeable狀態要等合法更新後才會改變。
