@@ -1132,8 +1132,10 @@
   }
   let moduleDeparture;
   const departureScope=()=>state.dataTab==='process-master'?'PROCESS':state.masterScope;
+  const departureScopes=()=>state.dataTab==='line-admin'?['AB','C']:[departureScope()];
   const departureDialogs=()=>[...document.querySelectorAll(departureScope()==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')];
-  const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
+  const clearProcessPageInputs=()=>{window.ProcessMasterVersioning?.departureNames.discard();window.ProcessEquipment?.abandon?.();};
+  const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}if(departureScope()==='PROCESS')clearProcessPageInputs();};
   window.MasterDataWorkflow = {
     control: () => control,
     canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),
@@ -1141,14 +1143,14 @@
       get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
         sharedOwned:()=>false,
-        context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
-        busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
-        unknownTransports:()=>[shared.client(departureScope())],discardUnknown(){this.discard();},
-        local:()=>shared.localDirty(departureScope())||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
-        canSave:()=>shared.permissions(departureScope())?.save===true,
-        canDiscard:()=>shared.permissions(departureScope())?.edit===true,
+        context:()=>[state.dataTab,departureScope(),deliveryGeneration,...departureScopes().map(scope=>[scope,shared.flow(scope)?.generation,shared.permissions(scope)?.save,shared.permissions(scope)?.edit])],
+        busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>departureScopes().some(scope=>shared.client(scope).hasUnknown()),failed:()=>departureScopes().some(scope=>shared.client(scope).hasSyncFailures()),
+        unknownTransports:()=>departureScopes().map(scope=>shared.client(scope)),discardUnknown(){this.discard();},
+        local:()=>departureScopes().some(scope=>shared.localDirty(scope))||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&(window.ProcessMasterVersioning?.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.()),
+        canSave:()=>shared.permissions(departureScope())?.save===true&&(departureScope()!=='PROCESS'||window.ProcessMasterVersioning?.currentDisplay?.()!==false),
+        canDiscard:()=>state.dataTab==='line-admin'?departureScopes().filter(scope=>shared.localDirty(scope)||scope===departureScope()&&departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))).every(scope=>shared.permissions(scope)?.edit===true):shared.permissions(departureScope())?.edit===true,
         save:()=>shared.execute(departureScope(),'save'),
-        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal(departureScope());if(departureScope()==='PROCESS')window.ProcessEquipment?.abandon?.();closeDepartureDialogs();},
+        discard(){for(const scope of departureScopes())shared.discardLocal(scope);closeDepartureDialogs();},
         dialogs:departureDialogs,closeClean:closeDepartureDialogs,
       }),{get autoAbandon(){return true;},allowUnload:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.()});},
       requiresSave(){
@@ -1165,31 +1167,22 @@
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
       window.ProcessMasterPages?.reset();
-      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
+      window.MasterAdminUI?.retireApprovedHistory?.();
+      window.ProcessMasterVersioning?.retireApprovedHistory?.();
+      clearProcessPageInputs();
+      deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
       seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};
       const incoming=readStore(STORAGE,null)||{active:{},versions:[]};
       for(const key of Object.keys(control))delete control[key];Object.assign(control,incoming);
-      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();
+      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();
     },
     persist,
     record,
     applyActive,
     shared,
   };
-  const sharedPoll=window.createForegroundPoll();
-  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{
-    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;
-    try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){
-      const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');
-      if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;
-        const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];
-        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}
-        if(changed){applyActive();render();}
-      }
-    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}
-  });}
-  pollMaster();
+  // Read on explicit entry and workflow actions; no timed draft sync.
   applyActive();
   window.addEventListener('process-shared-state-updated', () => {
     platformUsers = readStore('platformUsers', platformUsers);

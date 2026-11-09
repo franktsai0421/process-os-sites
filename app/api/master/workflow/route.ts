@@ -63,7 +63,7 @@ async function productReferences(request:Request){
   return reply({revision:state.revision,...visibleCatalogReferences(catalogReferences(state.values,[code]),user?effectiveAccess(user,state.values).cells:{})});
  }catch{return reply({error:'REFERENCE_CHECK_UNAVAILABLE'},503);}
 }
-export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
+export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('approvedOnly')?versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'',{legacyArchive:true})).GET(request):new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
  ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'',{legacyArchive:['operationId','history','caseId','legacyHistory','legacyVersionId','versionId','uiHistory','reviewMetadata'].some(key=>new URL(request.url).searchParams.has(key))})).GET(request));
 export const POST=async(request:Request)=>{
  const boundary=documentBoundary(request);if(boundary)return boundary;

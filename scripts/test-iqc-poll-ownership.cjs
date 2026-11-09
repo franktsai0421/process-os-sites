@@ -1,8 +1,8 @@
-/* Actual IQC closure + shared client, test-only retired callback driver, synthetic DOM/transport only. */
+/* Frozen true d4 IQC cached closure + actual current shared client, test-only manual callback driver. Current IQC no-poll initializer is checked separately; no browser/live claims. */
 
 let reachedAssertions=false;process.once('beforeExit',()=>{if(!reachedAssertions&&!process.exitCode){console.error('IQC_FIXTURE_INCOMPLETE: unresolved synthetic request or skipped assertion tail');process.exitCode=1;}});
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
-const source=fs.readFileSync(path.resolve(process.argv[2]||process.env.PROCESS_IQC_SOURCE||'public/process/iqc-master.js'),'utf8');
+const suppliedSource=process.argv[2]||process.env.PROCESS_IQC_SOURCE;const current=fs.readFileSync(path.resolve(suppliedSource||'public/process/iqc-master.js'),'utf8');if(!suppliedSource)assert.doesNotMatch(current,/createForegroundPoll|function scheduleRefresh\(/,'current IQC producer must remain removed');const source=suppliedSource?current:require('./unified-draft-historical-source.cjs').read('d4ac309fe05c89288af226b52c18161865ccdcb8','public/process/iqc-master.js').toString('utf8');
 const shared=fs.readFileSync(path.resolve(process.env.PROCESS_SHARED_DRAFT_SOURCE||'public/process/shared-draft-client.js'),'utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve)),copy=value=>structuredClone(value);
 const permissions={view:true,edit:true,save:true,submit:false,withdraw:false,approve:false,return:false,history:true,delete:false};

@@ -1,6 +1,11 @@
 ## 2026-11-09 owner Excel 與進階本機操作
 
 新頁已接完整 owner Excel、舊 combined/外部中越文產品格式及線別檔相容；AB/C 不匯入或保存檔內 lines，LINES 一檔含 AB/C 同一草稿。精確保留本頁 ID、optional 欄位與原 metadata，外來新 ID 重新分配，未知改寫拒絕。產品規格／單位／越文、類別 rename 同步本頁產品、最大路線／例外及排序已接，沿既有 MasterAdminUI 純規則。選檔／整理先留本機，取消保留 File，Save 才共用；fresh page exchange＋原 capability 控制匯入匯出，不借其他頁權限。真 XLSX／實際 client-route 合成契約及十三頁 owner/撤權矩陣另列[唯一狀態](../../docs/acceptance/module-draft-boundary-20261109.md)。原生 layout、正式資料切換及 resolved policy/歷史查看整合尚未驗收。
+## 2026-11-09 新 AB/C/LINES 已核准查看
+
+新 page-v1 歷史 API 與原頁 selector 已接，保留 scope／trusted marker／原 RAM／pending／UNKNOWN。新舊來源各自保留核准證據，不偽造 LINES 合併核准；正常資料接收退休舊顯示避免重繪卡住。本機合成 API/UI 驗證，不代表真切換、原生或已發布。[本批規則與界線](../../docs/acceptance/master-page-approved-history-20261109.md)。
+
+## 2026-11-09 草稿分界前置候選
 
 ## 2026-11-09 各頁 runtime 候選
 
@@ -19,6 +24,26 @@
 ## 2026-11-09 新工段繼承共用類型候選
 
 `master-stage-link.ts` 在固定工段案件內，從同一已核准 PROCESS 快照帶入 presetKey 預設設定與 catalogKey 共用自訂類型（含名稱及媒體缺省語意）；新增 ID 與空機器選取，無自訂時加入自訂。舊工段、舊 ID、來源與歷史不改；來源不一致拒絕。ID 分配以整份已核准與新增案件命名空間防碰撞，鍵採完整 UTF-16 編碼；核准拒絕舊碰撞固定內容而不重生，撤回／發回與原收據保留。無 SQL/schema 或帳號權限變更。實際路由／records-v1 測試與完整平台未完成項見 [本批追蹤](../../docs/acceptance/process-platform-tracking-20261109.md)。這不是畫布／全站草稿整合或實站驗收。
+
+## 2026-11-09 — PROCESS 同頁核准版本本機批次
+
+流程資料／模板／機器已接單一同頁 selector、獨立核准快照與回原 RAM，移除舊歷史／還原與切換時 discard。新增 20 項 PASS，既有名稱／恢復 27 組 PASS；跨頁 323/325，兩項未修改畫布同步舊斷言在真實前任同樣失敗，未放寬／刪除測試。尚未協調整合獨立畫布 80745895；AB 聯集與例行 FQC 尚待接。未上傳、未部署、原生與實站未驗。[逐頁狀態與完整限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — AB/C、線別工段同頁核准歷史
+
+本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
+## 2026-11-09 — 主資料全組衝突候選
+
+master-shared-client 的 AB/C 與 PROCESS 明確 Save 以固定原本機基準、原 ordered journal 的最終意圖與最新 working 三方比較；穩定 ID 保留其他記錄及欄位，結構與排序也是同一全組選擇。選後讀到新 revision 時重比，命令帶 expectedRevision 與逐 patch guards，server 仍驗證資料／權限／引用。PROCESS 成功收據只退休原 sent prefix，後續輸入以接受的 predispatch merged snapshot 為基準，不使用較晚 readback 冒充原操作內容。主資料及 IPQC 引用區不定時讀取。線別工段仍共用 AB/C scope；未啟用 split-v1 或遷移資料。[候選與驗收](../../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
+
+## 2026-11-09 — AB/C 顯示欄位存取衝突首批
+
+明確 Save 前讀取權威版本，既有產品名稱／規格／單位與線別／工段名稱的整批衝突只選一次用我的／對方；非衝突保留，取消不 POST。選擇結果仍帶觀察值 guards，未知結果不重送。混入類別、路線、增刪或排序的整批維持原 guards，沒有自動恢復已刪資料。線別工段仍共用 AB/C，PROCESS 仍原 scope；此批沒有草稿分拆或取消輪詢整合。[候選與限制](../../docs/acceptance/abc-field-save-choice-20261109/README.md)。
 
 ## 2026-11-05 BOM 原子存取候選
 

@@ -15,7 +15,7 @@ try{
  const file=args.length?args[1]:path.join(scriptRoot,'public/process/fqc-master.js');
  const source=fs.readFileSync(file,'utf8');new vm.Script(source,{filename:'fqc-master.js'});
  const noStorage=()=>{throw Error('STORAGE_ACCESS_REFUSED');};
- const equipmentBox={Error,AbortSignal,mountSequence:0,window:{ProcessSync:{identity:{id:'TEST-ACTOR'},identityGeneration:()=>0}},console:{error(){}},isVi:()=>false,fetch:null,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage}};
+ const equipmentBox={Error,AbortSignal,mountSequence:0,historyDisplayEpoch:0,historyAllowsMutation:()=>true,window:{ProcessSync:{identity:{id:'TEST-ACTOR'},identityGeneration:()=>0}},console:{error(){}},isVi:()=>false,fetch:null,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage}};
  equipmentBox.identity=()=>equipmentBox.window.ProcessSync.identity;
  vm.createContext(equipmentBox);
  const ownerSource=slice(source,'  function currentReadOwner(','  async function loadEquipmentCatalog(');
@@ -38,7 +38,7 @@ try{
  ])await equipment(name,status,body,true,nonJSON);
  await equipment('existing approved equipment preserved',200,approved);
  await test('forced equipment403 never returns cached empty success',async()=>{equipmentBox.reset();equipmentBox.fetch=async()=>({status:200,ok:true,json:async()=>copy(empty)});await equipmentBox.load();equipmentBox.fetch=async()=>({status:403,ok:false,json:async()=>({error:'FORBIDDEN'})});let refused=false;try{await equipmentBox.load({force:true});}catch{refused=true;}check(refused&&equipmentBox.state().equipmentLoadError!==null);});
- const box={Error,Map,mountSequence:0,console:{error(){}},isVi:()=>false,clone:copy,read:noStorage,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},window:{ProcessSync:{identity:{id:'TEST-ACTOR'},platformHeaders:()=>({'Content-Type':'application/json','x-test-header':'normal'})}}};
+ const box={Error,Map,mountSequence:0,historyDisplayEpoch:0,historyAllowsMutation:()=>true,console:{error(){}},isVi:()=>false,clone:copy,read:noStorage,localStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},sessionStorage:{getItem:noStorage,setItem:noStorage,removeItem:noStorage},window:{ProcessSync:{identity:{id:'TEST-ACTOR'},platformHeaders:()=>({'Content-Type':'application/json','x-test-header':'normal'})}}};
  // Match the real IIFE host and grant only explicit AB/equipment read cells.
  let dependencyCells={'ab.view':true,'equipment.view':true};
  box.host=box.window;box.window.hasPermission=key=>dependencyCells[key]===true;

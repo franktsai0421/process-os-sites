@@ -1,3 +1,22 @@
+## 2026-11-09 完整本機候選接線
+
+本機a2c5f55已保留當前畫布原子Save／整份已存送審、無輪詢、未存離頁放棄及UNKNOWN收據；合入#102固定dfdfe、草稿衝突88及版本owner2e。新AB/C/LINES核准歷史422已解，trusted marker未開；完整UI、routine整頁及實站未完成。現行目標與精確依賴見[驗收矩陣](../../docs/acceptance/process-editor-complete-20261109.md)，下方舊敘述按其固定來源閱讀。
+
+## 2026-11-09 — 本機畫布核准版本與當前scope Save整合
+
+真實merge採用e3d92846畫布單一原頁核准版本selector、V3/legacy核准聯集與獨立display lease；保留807同頁view gate及當前畫布Save，歷史選取會失效已排程gate與舊handler，其他畫布journal/form不被保存或清除。回草稿fresh權限限制編輯/存取，原UNKNOWN原樣查收據不重送。來源/正常回歸/實站界線見[整合矩陣](../../docs/acceptance/process-editor-complete-20261109.md)。#102未啟用前置與本批歷史顯示分開，無資料模型/schema改動。
+
+## 完整製程編輯台單一PR整合（本機未發布）
+
+以已凍結計數／無輪詢／草稿／歷史／同頁篩選／未啟用boundary候選建立共同底座；當前畫布Save與其他畫布RAM分離，原UNKNOWN收據不改。另承接7ef的精確C request-entry consent防護，不覆蓋共同client，資產版本與來源witness隨runtime固定。[完整目標及尚缺門檻](../../docs/acceptance/process-editor-complete-20261109.md)。#101元件CI PASS仍保持草稿，沒有完整上傳或部署。
+
+## 2026-11-09 畫布投影流程數候選
+
+選取列在 V2 使用與方塊相同的 ProcessCanvasLocal.project 計算當前可見工段流程數；Save 推進投影但保留舊 editor map 時也能更新。只讀顯示與自身 cache tag，無資料／權限／schema 變更。[範圍與證據](../../docs/acceptance/editor-projected-count-20261109.md)。
+## 2026-11-09 — 製程原頁核准歷史查看
+
+編輯台只用 canvas-approved-version 選當前草稿／真正已核准 V3 及舊核准聯集；不可編輯快照留同頁，沒有 restore/apply 或歷史彈窗入口。獨立 display epoch 不改 journal、generation、Canvas edit epoch 或原 UNKNOWN；普通 adopt 退休工作稿 selector，不誤鎖新模型。原表單、gesture、在途 Save 阻擋版本切換；回當前只讀 permissions、可保存原 journal，pending 鎖不變。舊來源 stages inline aggregate 保留，不宣稱已拆 body；buffer 後角色／session／revision fence。80745895 的其他 view-filter 保留改動仍未整合，未覆蓋其工作。[狀態／測試／限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真資料修改。
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。

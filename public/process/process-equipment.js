@@ -27,21 +27,21 @@
     return list.find(template => template.presetKey === unifiedKind) || list.find(template => template.presetKey === legacyKind);
   }
   function currentEquipmentMount(area, content, owner) {
-    return !!area?.isConnected && document.querySelector('#data-content') === area &&
+    return host.ProcessMasterVersioning?.currentDisplay?.()!==false && !!area?.isConnected && document.querySelector('#data-content') === area &&
       area.querySelector('#equipment-panel') === content && !host.ProcessSync?.requiresReload &&
       (!owner || host.ProcessSync?.isCurrentDelivery?.(owner) === true);
   }
   function repaint(showDialog = false, focusSearch = false, focusField = '') {
     const area = document.querySelector('#data-content');
     if (!area) return;
-    const top = scrollY, owner = host.ProcessSync?.captureDelivery?.(), generation = ++repaintGeneration;
+    const top = scrollY, owner = host.ProcessSync?.captureDelivery?.(), generation = ++repaintGeneration,displayCurrent=host.ProcessMasterVersioning?.captureDisplay?.()||(()=>true);
     area.innerHTML = processMasterView();
     bindDataInner('process-master');
     const content = area.querySelector('#equipment-panel'), input = area.querySelector('#equipment-search'),
       dialog = area.querySelector('#equipment-editor-dialog'),
       field = focusField ? area.querySelector(`[data-equipment-field="${CSS.escape(focusField)}"]`) : null;
     requestAnimationFrame(() => {
-      if (generation !== repaintGeneration || !currentEquipmentMount(area, content, owner) || host.ProcessNavigationForms?.composing?.() ||
+      if (!displayCurrent() || generation !== repaintGeneration || !currentEquipmentMount(area, content, owner) || host.ProcessNavigationForms?.composing?.() ||
           input && (!input.isConnected || area.querySelector('#equipment-search') !== input) ||
           showDialog && dialog && (!dialog.isConnected || area.querySelector('#equipment-editor-dialog') !== dialog)) return;
       scrollTo(0, top);
@@ -164,6 +164,7 @@
     return true;
   }
   function openEditor(id = '', focusField = '') {
+    if(host.ProcessMasterVersioning?.currentDisplay?.()===false)return;
     const row = uniqueEntries(currentProcessMasterData()).find(item => item.equipment.id === id),
       stageCode = row?.equipment.stageCode || routing.lines[0]?.stages[0]?.code || '';
     editing = row
@@ -259,9 +260,10 @@
       repaint(true);
     } catch (error) { toast(error.message);if(editing===target&&dialog.isConnected){const retry=document.createElement('button');retry.type='button';retry.className='button ghost equipment-photo-retry';retry.textContent=t('重試照片上傳','Thử tải ảnh lại');retry.onclick=()=>updatePhotos(mode,pendingFiles);dialog.querySelector('.equipment-dialog-photos').append(retry);}}finally{target.uploading=false;status.remove();}
   }
+  function listenEquipment(node,type,callback){node?.addEventListener(type,host.ProcessMasterVersioning?.guardCurrentHandler?.(node,callback)||callback);}
   function bind() {
     document.querySelectorAll('[data-equipment-open]').forEach(button => button.onclick = () => document.querySelector('#equipment-panel')?.scrollIntoView({block:'start',behavior:'smooth'}));
-    document.querySelector('#add-equipment')?.addEventListener('click',() => openEditor());
+    listenEquipment(document.querySelector('#add-equipment'),'click',() => openEditor());
     bindEquipmentRows(document);
     const searchInput = document.querySelector('#equipment-search');
     if (searchInput) {
@@ -274,26 +276,26 @@
       };
       for(const [type,handler] of searchInput.processEquipmentCompositionHandlers||[])searchInput.removeEventListener(type,handler);
       searchInput.processEquipmentCompositionHandlers=[['compositionstart',()=>{composing=true;}],['compositionend',event=>{composing=false;updateSearch(event);}]];
-      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers)searchInput.addEventListener(type,handler);
+      for(const [type,handler] of searchInput.processEquipmentCompositionHandlers)listenEquipment(searchInput,type,handler);
       searchInput.oninput = updateSearch;
     }
-    document.querySelector('#equipment-line-filter')?.addEventListener('change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
-    document.querySelector('#equipment-stage-filter')?.addEventListener('change',event => { stageFilter = event.target.value; repaint(); });
-    document.querySelector('#equipment-filter-clear')?.addEventListener('click',() => { search = lineFilter = stageFilter = ''; repaint(); });
+    listenEquipment(document.querySelector('#equipment-line-filter'),'change',event => { lineFilter = event.target.value; stageFilter = ''; repaint(); });
+    listenEquipment(document.querySelector('#equipment-stage-filter'),'change',event => { stageFilter = event.target.value; repaint(); });
+    listenEquipment(document.querySelector('#equipment-filter-clear'),'click',() => { search = lineFilter = stageFilter = ''; repaint(); });
     const closeEditor = () => {
       if (committing || editing?.uploading) return;
       if (editing && JSON.stringify(editing.record)!==editing.initial && !confirm(t('設備內容尚未套用，確定放棄變更？','Nội dung máy chưa áp dụng. Bỏ thay đổi?'))) return;
       document.querySelector('#equipment-editor-dialog')?.close(); editing=null;
     };
     document.querySelectorAll('[data-equipment-close]').forEach(button => button.onclick = closeEditor);
-    document.querySelector('#equipment-editor-dialog')?.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
+    listenEquipment(document.querySelector('#equipment-editor-dialog'),'cancel',event=>{event.preventDefault();closeEditor();});
     document.querySelectorAll('[data-equipment-field]').forEach(input => input.oninput = () => { if (editing) editing.record[input.dataset.equipmentField] = input.value; });
-    document.querySelector('[data-equipment-stage]')?.addEventListener('change',event => { if (editing) { editing.record.stageCode = event.target.value; editing.record.line = event.target.value.split('-')[0]; } });
-    document.querySelector('[data-equipment-photo-add]')?.addEventListener('change',event => updatePhotos('add',event.target.files));
-    document.querySelector('[data-equipment-photo-replace]')?.addEventListener('change',event => updatePhotos('replace',event.target.files));
+    listenEquipment(document.querySelector('[data-equipment-stage]'),'change',event => { if (editing) { editing.record.stageCode = event.target.value; editing.record.line = event.target.value.split('-')[0]; } });
+    listenEquipment(document.querySelector('[data-equipment-photo-add]'),'change',event => updatePhotos('add',event.target.files));
+    listenEquipment(document.querySelector('[data-equipment-photo-replace]'),'change',event => updatePhotos('replace',event.target.files));
     document.querySelectorAll('[data-equipment-remove-photo]').forEach(button => button.onclick = () => { editing?.record.mediaItems.splice(Number(button.dataset.equipmentRemovePhoto),1); repaint(true); });
-    document.querySelector('[data-equipment-save]')?.addEventListener('click',commitEditor);
-    document.querySelector('[data-equipment-delete]')?.addEventListener('click',async() => {
+    listenEquipment(document.querySelector('[data-equipment-save]'),'click',commitEditor);
+    listenEquipment(document.querySelector('[data-equipment-delete]'),'click',async() => {
       if (!editableProcessMasterData() || !editing || !canDeleteProcessMaster()) return;
       const target = editing, snapshot=copy(target.base);
       try{if(!await confirmProcessMasterRemoval('equipment',target.record.id,target.record.number||target.record.name))return;}catch(error){toast(error.message);return;}

@@ -1,5 +1,6 @@
 import {can} from './process-state';
 import {approvedMasterPageSource} from './master-approved-pages';
+import {createMasterPageApprovedHistory} from './master-page-approved-history';
 import { applyDraftCommand, cloneDraft, DraftConflict, sameDraftValue, stableDraftJSON,
   type DraftContext, type DraftPatch, type DraftPath, type SharedDraft } from './shared-draft';
 import { masterWorkflowAdapter } from './master-workflow';
@@ -128,7 +129,7 @@ export function masterPageWorkflowAdapter(page:Page):WorkflowAdapter<Snapshot,Co
     return root;
   }
   return {
-    key:'masterDataControl',scope:'master:'+scope,preparedModel:true,permissionOnlyRead:true,
+    key:'masterDataControl',scope:'master:'+scope,preparedModel:true,permissionOnlyRead:true,approvedHistory:createMasterPageApprovedHistory(page,()=>root),
     async access(request,state,permissions){const permissionModule=page==='LINES'?'lines':page.toLowerCase(),exchange=permissions.view&&await can(request,state,permissionModule+'.exchange');return {...permissions,import:exchange&&await can(request,state,'master.import'),export:exchange&&await can(request,state,'master.export')};},
     needsReferenceHistory:()=>true,needsFullHistory:()=>true,
     empty:()=>page === 'LINES' ? {AB:{lines:[]},C:{lines:[]}} : {products:[],categoryGroups:[]},

@@ -11,7 +11,7 @@
       UNSAVED_CHANGES_SAVE_REQUIRED:['共用草稿有儲存後的新修改。請先儲存，再核對版本並送審；目前修改仍保留。','Bản nháp chung có thay đổi sau lần lưu. Hãy lưu rồi kiểm tra phiên bản trước khi gửi duyệt; các thay đổi vẫn được giữ.'],
       DRAFT_REVISION_REQUIRED:['此分頁缺少送審版本確認。請先保留未套用內容，再重新開啟最新頁面。','Tab này thiếu thông tin xác nhận phiên bản gửi duyệt. Hãy giữ nội dung chưa áp dụng rồi mở lại trang mới nhất.'],
       WORKFLOW_V3_REQUIRED:['此舊版流程無法確認已儲存的送審版本，暫停新送審。請保留內容並由管理者核對共用草稿採用狀態。','Quy trình cũ này không xác minh được bản đã lưu để gửi duyệt. Hãy giữ nội dung và nhờ quản trị viên kiểm tra trạng thái bản nháp chung.'],
-      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次未送審。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; chưa gửi duyệt. Hãy kiểm tra và lưu nội dung mới nhất.'],
+      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次操作未完成。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; thao tác chưa hoàn tất. Hãy kiểm tra và lưu nội dung mới nhất.'],
       UNAPPLIED_CHANGES_APPLY_REQUIRED:['尚有未套用內容。請先明確套用或放棄這些輸入，再儲存或送審。','Còn nội dung chưa áp dụng. Hãy áp dụng rõ ràng hoặc bỏ các nội dung đó trước khi lưu hay gửi duyệt.'],
       PENDING_LOCKED:['此範圍已送審，暫時不能寫入。尚未送出的輸入仍保留。','Phạm vi này đang chờ duyệt nên chưa thể ghi. Nội dung chưa gửi vẫn được giữ.'],
       RESTORE_PERMISSION_REQUIRED:['沒有還原歷史至草稿的權限，資料未變更。','Không có quyền khôi phục lịch sử vào bản nháp; dữ liệu chưa thay đổi.'],
@@ -293,7 +293,7 @@
     verify:(client,result,command,token,model)=>canvasAuthorityClients.get(client)?.verify?.(result,command,token,model)||null,
     accept:(primary,client,result,command,token,model)=>canvasAuthorityClients.get(primary)?.accept?.(client,result,command,token,model)||null
   });
-  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false}) => {
+  window.createSharedDraftClient = ({endpoint,actorId,headers,legacyArchive=false,permissionGates,conditionalState=false,guardAccessResults=false,responseProjection,externalDurableCanvas,externalDurableBounded,abCreateRejections,allowUnknownDeparture=false,durableBegin=false,equipmentLocalSave=false,processLocalSave=false,fqcComparedSave=false,iqcComparedSave=false}) => {
     // Hosted FQC Apply can legitimately finish after the old 15s cutoff. The
     // exact bounded FQC and IQC routes share authoring's 45s budget, not an unbounded
     // retry. Timeout still means unknown and only the original receipt is read.
@@ -307,6 +307,8 @@
     const abCreate=abCreateRejections===true;
     if(abCreateRejections!==undefined){const [path,search='']=endpoint.split('?'),params=new URLSearchParams(search),scope=params.get('scope');if(!abCreate||externalStrict||path!=='/api/ipqc-ab/workflow'||params.getAll('scope').length!==1||!/^[AB]:\S.*$/.test(scope||'')||scope!==scope.trim()||params.getAll('caseMetadata').length!==1||params.get('caseMetadata')!=='1'||endpoint!==`/api/ipqc-ab/workflow?scope=${encodeURIComponent(scope)}&caseMetadata=1`)throw Error('AB_CREATE_SCOPE_REQUIRED');}
     const boundedScopes={PROCESS:'master:PROCESS',FQC:'fqc',IQC:'iqc','IPQC-C':'ipqc-c',BOM:'bom',TOOLING:'tooling','IPQC-AB':'ipqc-ab:module'},boundedScope=Object.hasOwn(boundedScopes,externalDurableBounded?.scope)?boundedScopes[externalDurableBounded.scope]:null;
+    if(fqcComparedSave!==false&&(fqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='fqc'||endpoint!=='/api/fqc/workflow?caseMetadata=1'))throw Error('FQC_COMPARISON_SCOPE_REQUIRED');
+    if(iqcComparedSave!==false&&(iqcComparedSave!==true||!durableBegin||!guardAccessResults||boundedScope!=='iqc'||endpoint!=='/api/iqc/workflow?caseMetadata=1'))throw Error('IQC_COMPARISON_SCOPE_REQUIRED');
     const abModule=externalDurableBounded?.scope==='IPQC-AB';
     if(abModule&&endpoint!=='/api/ipqc-ab/workflow?module=1&caseMetadata=1')throw Error('BOUNDED_EXTERNAL_SCOPE_REQUIRED');
     const boundedExactRoute=['iqc','ipqc-c','bom','tooling'].includes(boundedScope);
@@ -326,15 +328,25 @@
     const externalCurrent=()=>!externalStrict||(!externalBounded||clientPagehideGeneration===transportPagehideGeneration)&&departureOwnerCurrent(externalOwner)&&Number.isSafeInteger(externalOwner.epoch)&&externalOwner.epoch>=0&&externalOwner.identity===window.ProcessSync?.identity&&(!externalOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(externalOwner.delivery)!==false);
     // A proof callback belongs to one runtime/owner, never the generic cache or
     // another Canvas instance created after identity/delivery invalidation.
-    const transportKey=actorId+':'+endpoint+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
+    const transportKey=actorId+':'+endpoint+(fqcComparedSave?':fqc-compared-save-v1':iqcComparedSave?':iqc-compared-save-v1':'')+(durableBegin?':begin-v1':'')+(equipmentLocalSave?':equipment-local-save-v1':'')+(externalCanvas?':external-canvas:'+crypto.randomUUID():externalBounded?':external-bounded':abCreate?':ab-create':''),sessionScope=departureScope(endpoint);
     window.SharedDraftDeparture.register(sessionScope);
     if(transports.has(transportKey)&&(!durableBegin||transports.get(transportKey).isBeginRuntimeCurrent())&&(!externalBounded||transports.get(transportKey).isRuntimeCurrent())&&(!abCreate||transports.get(transportKey).isCreateRuntimeCurrent())){const cached=transports.get(transportKey);if(guardAccessResults)cached.useAccessResultGuard();if(permissionGates)cached.setPermissionGates(permissionGates);if(conditionalState)cached.useStateRevision();return legacyArchive?cached.withLegacyArchive():cached;}
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
+    const approvedAccessListeners=new Set();
+    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/master/pages','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
+    let cComparisonVersion=0;const cSaveDecisions=new WeakMap(),cSaveCallers=new WeakMap();
+    function assertCDecision(version,current){
+      let valid=true;try{if(current!==undefined)valid=typeof current==='function'&&current()===true;if(valid)assertOwner();}catch{valid=false;}
+      // The callback may retire access synchronously. Check the original version
+      // after it returns; never register new authority for an old UI decision.
+      if(!valid||version!==cComparisonVersion){const error=Object.assign(Error('SAVE_COMPARISON_RETIRED'),{notSent:true});externalUnsent.add(error);throw error;}
+    }
+    function assertCComparison(command){if(boundedScope==='ipqc-c'&&cSaveDecisions.has(command))assertCDecision(cSaveDecisions.get(command),cSaveCallers.get(command));}
     const captureAccess=options=>{const sync=window.ProcessSync;return {sequence:++accessIssued,epoch:accessEpoch,identity:sync?.identity,identityEpoch:accessGuard?sync?.identityGeneration?.():undefined,isCurrent:options?.isCurrent};};
     const ownsAccess=owner=>{const sync=window.ProcessSync;return owner.epoch===accessEpoch&&(!sync||(!sync.requiresReload&&sync.identity?.id===actorId&&sync.identity===owner.identity&&(typeof owner.identityEpoch!=='number'||owner.identityEpoch===sync.identityGeneration?.())))&&(!owner.delivery||sync?.isCurrentDelivery?.(owner.delivery)!==false)&&(!owner.isCurrent||owner.isCurrent());};
     // Only the existing complete nine-boolean snapshot shape supplies defaults for new explicit cells.
@@ -353,8 +365,9 @@
       const revoked=previous&&Object.keys(access).some(key=>previous[key]===true&&access[key]===false);
       accessObserved=Math.max(accessObserved,owner.sequence);
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
-      if(denied||revoked)accessFence=accessIssued;
+      if(denied||revoked){accessFence=accessIssued;if(boundedScope==='ipqc-c')cComparisonVersion++;}
       gateControls(denied||revoked);
+      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -409,7 +422,12 @@
       const task=(async()=>{assertBegin(record);return finishBegin(record,await request(query('operationId='+encodeURIComponent(record.operationId))));})();beginRead=task;
       void task.then(()=>{if(beginRead===task)beginRead=null;},()=>{if(beginRead===task)beginRead=null;});return task;
     }
-    async function beginV1(identity,attempt){
+    // C's first Save can compare a legacy snapshot without allocating an operation.
+    // Only an original accepted workflow GET is a capability, never copied JSON.
+    const cBeginReads=new WeakMap(),cBeginDispatch=new WeakMap();
+    const cBeginReadRaw=value=>JSON.stringify({revision:value.revision,basis:value.beginBasis,workflow:value.workflow});
+    async function beginV1(identity,attempt,comparison){
+      const qualityComparison=!!comparison&&(fqcComparedSave||iqcComparedSave),cComparison=!!comparison&&boundedScope==='ipqc-c';
       const attemptSequence=++beginAttemptSequence;if(attempt)attempt.sequence=attemptSequence;
       if(identity!==undefined&&(!identity||Object.keys(identity).sort().join(',')!=='basis,operationId'||!beginUUID(identity.operationId)||!validBeginBasis(identity.basis)))throw Error('INVALID_BEGIN_IDENTITY');
       const prepared=identity===undefined?null:JSON.parse(JSON.stringify(identity));
@@ -417,17 +435,32 @@
       assertOwner();if(window.ProcessSync?.requiresReload)throw Error('DELIVERY_INVALIDATED_REOPEN_REQUIRED');
       if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');if(unknown||recoveryInvalid)throw Error('PREVIOUS_OPERATION_UNKNOWN');if(beginPending||queued||retryPending)throw Error('OPERATION_IN_PROGRESS');
       const feedback=beginFeedback(endpoint);queued++;
+      // A compared quality read may retire only its own unsent reservation, once.
+      const reservation={task:null,released:false,retired:false,phase:'authority-read'};
+      const release=()=>{if(reservation.released)return;reservation.released=true;if(beginPending===reservation.task)beginPending=null;queued--;feedback();};
+      let retireRead;const retiredRead=new Promise(resolve=>{retireRead=resolve;});
+      const retire=()=>{
+        if(reservation.retired)return true;
+        if(!qualityComparison||comparison.dispatched||reservation.phase!=='authority-read'||reservation.released||beginPending!==reservation.task||queued!==1||beginRecord||beginRaw||beginInvalid||unknown||recoveryInvalid||retryPending||beginRead)return false;
+        try{if(sessionStorage.getItem(beginKey)!==null||sessionStorage.getItem(key)!==null)return false;}catch{return false;}
+        reservation.retired=true;release();retireRead(null);return true;
+      };
+      if(qualityComparison)comparison.retireBegin=retire;
       const task=(async()=>{
-        const fresh=await request(endpoint,undefined,{requireAcceptedAccess:true});assertOwner();if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');
-        const basis=captureBeginBasis(fresh);if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
+        if(qualityComparison)(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);const comparisonObservation=(iqcComparedSave?iqcObservation:fqcObservation)+1;
+        const read=request(endpoint,undefined,{requireAcceptedAccess:true,...(qualityComparison?{isCurrent:()=>!reservation.retired&&comparison.current()===true}:{})});
+        const fresh=await(qualityComparison?Promise.race([read,retiredRead]):read);if(reservation.retired)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');reservation.phase='reserving';assertOwner();
+        if(qualityComparison){if(comparisonObservation!==(iqcComparedSave?iqcObservation:fqcObservation)||comparison.current()!==true||JSON.stringify(fresh.control)!==JSON.stringify(comparison.result.control)||fresh.revision!==comparison.result.revision||JSON.stringify(fresh.permissions)!==JSON.stringify(comparison.result.permissions)||access?.view!==true||access?.edit!==true)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');comparison.observation=(iqcComparedSave?iqcObservation:fqcObservation);comparison.accessEpoch=accessEpoch;comparison.accessFence=accessFence;comparison.accessObserved=accessObserved;(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);}
+        if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');
+        const basis=captureBeginBasis(fresh);if(cComparison&&(comparison.current()!==true||comparison.version!==cComparisonVersion||!beginRuntimeCurrent()||cBeginReadRaw(fresh)!==comparison.raw))throw Error('BEGIN_COMPARISON_CHANGED');if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
         if(prepared&&Object.keys(basis).some(key=>prepared.basis[key]!==basis[key]))throw Error('BEGIN_BASIS_CHANGED');
-        const record={version:1,actorId,endpoint:beginScopePath,operationId:prepared?.operationId||crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;if(attempt)attempt.record=record;
+        const record={version:1,actorId,endpoint:beginScopePath,operationId:prepared?.operationId||crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;if(cComparison)cBeginDispatch.set(record,comparison);if(attempt)attempt.record=record;
         try{sessionStorage.setItem(beginKey,beginRaw);assertBegin(record);}catch(cause){try{if(sessionStorage.getItem(beginKey)===null){beginRecord=null;beginRaw=null;beginInvalid=false;}}catch{beginInvalid=true;}throw Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true,cause});}
         // Once handed to POST transport, a fetch error or 404 cannot prove no write.
         if(attempt)attempt.dispatched=true;
         try{return await finishBegin(record,await request(endpoint,{action:'begin-v1',begin:{operationId:record.operationId,basis:JSON.parse(JSON.stringify(basis))}}));}
-        catch(error){const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}
-      })();beginPending=task;try{return await task;}finally{if(beginPending===task)beginPending=null;queued--;feedback();}
+        catch(error){if(comparison&&!comparison.dispatched&&externalUnsent.has(error)&&beginRecord===record)clearBegin(record);const proof=beginResponses.get(error);if(proof?.record===record&&proof.raw===beginRaw&&beginUUID(error.requestId)&&((error.status===422&&error.message==='INVALID_BEGIN_IDENTITY')||(error.status===409&&error.message==='BEGIN_BASIS_CHANGED'))){clearBegin(record);}if(beginRecord===record)reportAccessEvent({action:'begin-v1',operationId:record.operationId});throw error;}
+      })();reservation.task=task;beginPending=task;try{return await task;}finally{release();if(comparison?.retireBegin===retire)delete comparison.retireBegin;}
     }
     if(durableBegin)beginOutstanding();
     const accountClient={actorId,browseWithoutSettlement:()=>externalBounded&&boundedScope==='ipqc-c',queued:()=>queued,unknown:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&(!!unknown||recoveryInvalid||!beginRetired&&beginOutstanding()),failed:()=>!boundedProjectionRetired&&!equipmentProjectionRetired&&!!syncFailures.size,departureCovered:()=>departureCovered(),unloadAllowed:()=>durableBegin&&!!beginRecord&&departureCovered()||allowUnknownDeparture&&(['iqc','tooling','bom'].includes(boundedScope)||masterLocalBegin||equipmentLocalSave)&&departureEligible()};clients.add(accountClient);
@@ -477,6 +510,30 @@
     const canvasObserving=canvasPrimary||canvasTarget;
     let canvasObservation=0,canvasRequests=0,canvasBasis=null;
     const canvasOriginalReads=new WeakMap(),canvasCommands=new WeakMap(),canvasArms=new Map(),canvasPosts=new WeakMap();
+    // Only an issued Canvas Save and its original HTTP POST can prove that
+    // revision/field guards rejected the write. Public error flags, receipt GETs
+    // and copied commands cannot mint this private capability.
+    const canvasRejectionTokens=new WeakMap(),canvasRejectionIssued=new WeakMap(),canvasRejectionResponses=new WeakMap();
+    function canvasRejectionCurrent(pin){return !!pin&&!pin.consumed&&canvasTarget&&externalCurrent()&&clientPagehideGeneration===transportPagehideGeneration&&pin.pagehide===transportPagehideGeneration&&canvasOwnerCurrent(pin.owner)&&JSON.stringify(pin.command)===pin.raw;}
+    function canvasRejectionResponse(error,command,status,result){
+      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);
+      if(!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw||status!==409||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||''))return;
+      const path=JSON.stringify(result.details?.path),guard=result.error==='DEPENDENCY_CHANGED_RECONFIRM'&&command.guards?.some(g=>JSON.stringify(g.path)===path);
+      if(result.error!=='DRAFT_REVISION_CHANGED_RECONFIRM'&&!guard)return;
+      canvasRejectionResponses.set(error,{pin,flight,kind:'http',status,code:result.error,requestId:result.requestId,details:JSON.stringify(result.details),notSent:error.notSent});
+    }
+    function canvasRejectionUnsent(error,command){
+      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);
+      if(!externalUnsent.has(error)||!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw)return;
+      // This error is created only by the transport's failed durability check,
+      // before fetch. It is never inferred from a caller-supplied public flag.
+      canvasRejectionResponses.set(error,{pin,flight,kind:'unsent',status:error.status,code:error.message,requestId:error.requestId,details:JSON.stringify(error.details),notSent:true});
+    }
+    function confirmedCanvasRejection(error,command,token){
+      try{const pin=canvasRejectionTokens.get(token),proof=canvasRejectionResponses.get(error),failure=syncFailures.get(command?.operationId);
+        return canvasRejectionCurrent(pin)&&pin.command===command&&proof?.pin===pin&&proof.flight===pin.flight&&!!pin.flight&&failure?.error===error&&JSON.stringify(failure.command)===pin.raw&&(proof.kind==='http'||proof.kind==='unsent'&&externalUnsent.has(error))&&error.notSent===proof.notSent&&error.status===proof.status&&error.message===proof.code&&error.requestId===proof.requestId&&JSON.stringify(error.details)===proof.details;
+      }catch{return false;}
+    }
     function canvasBasisCurrent(basis){return !!basis&&basis===canvasBasis&&basis.accessEpoch===accessEpoch&&canvasOwnerCurrent(basis.owner)&&canvasSame(access,basis.permissions)&&canvasSame(basis.response.control,basis.control)&&basis.response.revision===basis.globalRevision;}
     function canvasCapture(source,model){
       try{const basis=canvasOriginalReads.get(source)||canvasAuthoritySources.get(source);if(!canvasPrimary||canvasRequests||!canvasBasisCurrent(basis)||model!==basis.response.control&&!canvasSame(model,basis.control))return null;
@@ -616,7 +673,7 @@
     }
     function boundedRejection(error,command){
       const proof=boundedResponses.get(error),id=error.requestId,code=error.message,action=command.action;
-      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches);
+      const iqcLocalSave=boundedScope==='iqc'&&action==='save'&&['save-local-v1','save-local-revive-v1'].includes(command.moduleAction)&&Array.isArray(command.patches);
       if(!proof||proof.record!==boundedRecord||proof.operationId!==command.operationId||proof.raw!==JSON.stringify(command)||!externalCurrent()||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||''))return false;
       if(boundedScope==='tooling'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.patches)&&Array.isArray(command.guards)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.guards.some(guard=>JSON.stringify(guard.path)===JSON.stringify(error.details.path));
@@ -625,7 +682,7 @@
       }
       if(abModule&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.scopes)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.input.scopes.some(s=>s.scope===error.details.scope&&s.changes?.some(c=>c.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details.path))));
-        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;
+        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED','DRAFT_REVISION_REQUIRED','DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(code))return true;
         if(error.status===422&&['INVALID_AB_LOCAL_SAVE','INVALID_AB_MATRIX','LOCAL_SAVE_LIMIT','INVALID_LOCAL_ID','DEPENDENCY_GUARD_REQUIRED','ERROR_IN_USE','STAGE_INVALID','INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code))return true;
       }
       if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
@@ -672,6 +729,7 @@
         if(patches&&error.status===422&&['UNSUPPORTED_ITEM_PATCH','DEPENDENCY_GUARD_REQUIRED'].includes(code))return true;
         if(boundedScope==='iqc'){
           if(iqcLocalSave&&error.status===422&&code==='PHOTO_NOT_UPLOADED')return true;
+          if(moduleAction==='save-local-revive-v1'&&error.status===422&&['INVALID_IQC_LOCAL_REVIVAL','EQUIPMENT_UNAVAILABLE'].includes(code))return true;
           if(iqcLocalSave&&error.status===409&&['PART_REMOVED','ERROR_REMOVED'].includes(code))return true;
           if(patches&&error.status===422&&['INVALID_COLLECTION','SERVER_NUMBER_REQUIRED','SOFT_DELETE_REQUIRED'].includes(code))return true;
           if((patches||moduleIntent)&&error.status===422&&['IQC 草稿格式錯誤','IQC 草稿缺少必要清單','IQC 資料 ID 重複或空白','IQC 原始編號或新增編號重複','既有 IQC 編號不可刪除或重編；請使用停用標記','IQC 資料欄位不完整','類別或供應商名稱不可空白或重複','IQC 停用標記格式錯誤','錯誤代碼找不到所屬零件或越文名稱空白'].includes(code))return true;
@@ -706,7 +764,9 @@
         // the exact serialized request exceeded the same UTF-8 byte threshold.
         if((importing||manual&&proof.manualBodyTooLarge===true)&&error.status===413&&code==='COMMAND_TOO_LARGE')return true;
       }
+      if(boundedScope==='iqc'&&action==='save'&&command.moduleAction==='save-local-revive-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='IQC_REVIVE_CHANGED_RECONFIRM')return true;
       if(error.status===409&&['STALE_GENERATION','STALE_CLIENT_OPERATION','PENDING_LOCKED','CONCURRENT_CHANGE_RETRY','BEGIN_REQUIRED'].includes(code))return true;
+      if(boundedScope==='fqc'&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.reviveRows)&&error.status===409&&code==='FQC_REVIVE_CHANGED_RECONFIRM')return true;
       if(error.status===409&&code==='DRAFT_REVISION_CHANGED_RECONFIRM'&&action!=='restore'&&boundedInteger(command.expectedRevision))return true;
       if(action==='restore'&&boundedText(command.restoreSaveId)&&boundedInteger(command.expectedRevision))return error.status===409&&code==='RESTORE_RECONFIRM'||error.status===404&&code==='SAVE_NOT_FOUND';
       if(action==='submit'&&boundedText(command.savedId)&&boundedInteger(command.expectedRevision))return error.status===422&&['REASON_REQUIRED','VALIDATION_FAILED','NO_SUBSTANTIVE_CHANGE'].includes(code)||error.status===409&&['DRAFT_REVISION_CHANGED_RECONFIRM','SUCCESSFUL_SAVE_REQUIRED','SAVED_VERSION_CHANGED_RECONFIRM','UNSAVED_CHANGES_SAVE_REQUIRED','ACTIVE_VERSION_CHANGED'].includes(code)||boundedScope==='master:PROCESS'&&error.status===409&&code==='PROCESS_MASTER_IN_USE';
@@ -744,15 +804,151 @@
       if(!record.historical&&record.command)window.SharedDraftDeparture.confirmed(sessionScope,record.command,result,record.owner);
       boundedClear(record);const settled=['ipqc-c','bom'].includes(boundedScope)?{...result,permissions:readback.permissions}:{...result,control:readback.control,permissions:readback.permissions};boundedReadbacks.set(settled,{readback,operationId:receipt.operationId,receiptRaw:JSON.stringify(receipt),generation:flow.generation,revision:flow.revision});return settled;
     }
+    // FQC's explicit Save owns a one-use comparison, not a reusable permission.
+    // The WeakMap token is issued only by a fresh accepted state GET. Any other
+    // request retires it, including a denial followed by a later grant.
+    let fqcObservation=0;
+    const fqcComparisons=new WeakMap(),fqcCommands=new Map(),fqcBegins=new Map();
+    const fqcJSON=value=>JSON.stringify(value);
+    const fqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(fqcFreeze);Object.freeze(value);}return value;};
+    function fqcEnabled(){if(!fqcComparedSave)throw Error('FQC_COMPARISON_SCOPE_REQUIRED');}
+    function fqcCurrent(entry,allowConsumed=false){
+      fqcEnabled();
+      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==fqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('FQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};
+      assertPin();if(entry.checking){entry.reentered=true;throw Error('FQC_SAVE_COMPARISON_RETIRED');}
+      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}
+      // A caller predicate may synchronously change identity or start another
+      // read. Recheck every private lease field after that callback returns.
+      assertPin();if(!current)throw Error('FQC_SAVE_COMPARISON_RETIRED');return true;
+    }
+    function fqcEntry(token){const entry=fqcComparisons.get(token);fqcCurrent(entry);return entry;}
+    function fqcAdmission(command){
+      if(!fqcComparedSave||command?.action!=='save'||command.moduleAction!=='save-local-v1')return null;
+      const entry=fqcCommands.get(command.operationId);
+      if(!entry||entry.raw!==fqcJSON(command))throw Error('FQC_SAVE_COMPARISON_REQUIRED');
+      fqcCurrent(entry,true);return entry;
+    }
+    function fqcBeforeRequest(body){
+      if(!fqcComparedSave)return;
+      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;
+      if(entry)fqcCurrent(entry,true);
+      fqcObservation++;
+      if(entry)entry.observation=fqcObservation;
+    }
+    function fqcBeforeFetch(body){
+      const entry=body?.command?fqcAdmission(body.command):body?.action==='begin-v1'?fqcBegins.get(body.begin?.operationId):null;
+      if(entry){fqcCurrent(entry,true);entry.dispatched=true;}
+    }
+    async function fqcCompare({isCurrent}={}){
+      fqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_SAVE_COMPARISON_RETIRED');
+      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');
+      fqcCommands.clear();
+      const observation=fqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});
+      if(observation!==fqcObservation||queued)throw Error('FQC_SAVE_COMPARISON_RETIRED');
+      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');
+      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('FQC_SAVE_AUTHORITY_REQUIRED');
+      const flow=result.control.workflow;
+      if(flow&&(flow.scope!=='fqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'FQC_SAVE_AUTHORITY_REQUIRED');
+      const token=fqcFreeze({result:JSON.parse(fqcJSON(result))});
+      const entry={result:token.result,current:isCurrent,observation:fqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};
+      fqcComparisons.set(token,entry);fqcCurrent(entry);return token;
+    }
+    function fqcDispatched(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}
+    function fqcRetireBegin(token){fqcEnabled();const entry=fqcComparisons.get(token);if(!entry)throw Error('FQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}
+    function fqcPrepare(token,details,{isCurrent}={}){
+      const entry=fqcEntry(token),flow=entry.result.control.workflow;
+      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||details?.moduleAction!=='save-local-v1'||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('FQC_SAVE_COMPARISON_REQUIRED');
+      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;
+      const command=client.prepare(flow.generation,'save',{...JSON.parse(fqcJSON(details)),expectedRevision:flow.revision});
+      entry.consumed=true;entry.raw=fqcJSON(command);fqcCommands.set(command.operationId,entry);return command;
+    }
+    async function fqcBegin(token,{isCurrent}={}){
+      const entry=fqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('FQC_BEGIN_COMPARISON_REQUIRED');
+      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;
+      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};
+      fqcBegins.set(identity.operationId,entry);
+      try{return await beginV1(identity,null,entry);}finally{fqcBegins.delete(identity.operationId);}
+    }
+    // IQC's explicit Save owns a one-use comparison, not a reusable permission.
+    // The WeakMap token is issued only by a fresh accepted state GET. Any other
+    // request retires it, including a denial followed by a later grant.
+    let iqcObservation=0;
+    const iqcComparisons=new WeakMap(),iqcCommands=new Map(),iqcBegins=new Map();
+    const iqcJSON=value=>JSON.stringify(value);
+    const iqcFreeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(iqcFreeze);Object.freeze(value);}return value;};
+    function iqcEnabled(){if(!iqcComparedSave)throw Error('IQC_COMPARISON_SCOPE_REQUIRED');}
+    function iqcCurrent(entry,allowConsumed=false){
+      iqcEnabled();
+      const assertPin=()=>{assertOwner();if(!entry||entry.reentered||entry.consumed&&!allowConsumed||entry.observation!==iqcObservation||entry.accessEpoch!==accessEpoch||entry.accessFence!==accessFence||entry.accessObserved!==accessObserved)throw Error('IQC_SAVE_COMPARISON_RETIRED');if(access?.view!==true||access?.edit!==true)throw Error('FORBIDDEN');};
+      assertPin();if(entry.checking){entry.reentered=true;throw Error('IQC_SAVE_COMPARISON_RETIRED');}
+      let current;entry.checking=true;try{current=entry.current()===true;}finally{entry.checking=false;}
+      // A caller predicate may synchronously change identity or start another
+      // read. Recheck every private lease field after that callback returns.
+      assertPin();if(!current)throw Error('IQC_SAVE_COMPARISON_RETIRED');return true;
+    }
+    function iqcEntry(token){const entry=iqcComparisons.get(token);iqcCurrent(entry);return entry;}
+    function iqcAdmission(command){
+      if(!iqcComparedSave||command?.action!=='save'||!['save-local-v1','save-local-revive-v1'].includes(command.moduleAction))return null;
+      const entry=iqcCommands.get(command.operationId);
+      if(!entry||entry.raw!==iqcJSON(command))throw Error('IQC_SAVE_COMPARISON_REQUIRED');
+      iqcCurrent(entry,true);return entry;
+    }
+    function iqcBeforeRequest(body){
+      if(!iqcComparedSave)return;
+      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;
+      if(entry)iqcCurrent(entry,true);
+      iqcObservation++;
+      if(entry)entry.observation=iqcObservation;
+    }
+    function iqcBeforeFetch(body){
+      const entry=body?.command?iqcAdmission(body.command):body?.action==='begin-v1'?iqcBegins.get(body.begin?.operationId):null;
+      if(entry){iqcCurrent(entry,true);entry.dispatched=true;}
+    }
+    async function iqcCompare({isCurrent}={}){
+      iqcEnabled();if(typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_SAVE_COMPARISON_RETIRED');
+      assertMutationAdmission();if(unknown||queued)throw Error('OPERATION_IN_PROGRESS');
+      iqcCommands.clear();
+      const observation=iqcObservation+1,result=await request(endpoint,undefined,{isCurrent,requireAcceptedAccess:true});
+      if(observation!==iqcObservation||queued)throw Error('IQC_SAVE_COMPARISON_RETIRED');
+      if(result.permissions?.view===false||result.permissions?.edit===false||access?.view===false||access?.edit===false)throw Error('FORBIDDEN');
+      if(isCurrent()!==true||result.permissions?.view!==true||result.permissions?.edit!==true||access?.view!==true||access?.edit!==true||!Number.isSafeInteger(result.revision)||!Array.isArray(result.control?.versions)||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions[key]==='boolean')||result.unchanged)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
+      const flow=result.control.workflow;
+      if(flow&&(flow.scope!=='iqc'||typeof flow.generation!=='string'||!Number.isSafeInteger(flow.revision)||flow.revision<0||flow.pendingId!==null))throw Error(flow?.pendingId?'PENDING_LOCKED':'IQC_SAVE_AUTHORITY_REQUIRED');
+      const token=iqcFreeze({result:JSON.parse(iqcJSON(result))});
+      const entry={result:token.result,current:isCurrent,observation:iqcObservation,accessEpoch,accessFence,accessObserved,consumed:false,dispatched:false};
+      iqcComparisons.set(token,entry);iqcCurrent(entry);return token;
+    }
+    function iqcDispatched(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.dispatched===true;}
+    function iqcRetireBegin(token){iqcEnabled();const entry=iqcComparisons.get(token);if(!entry)throw Error('IQC_SAVE_COMPARISON_REQUIRED');return entry.retireBegin?.()===true;}
+    function iqcPrepare(token,details,{isCurrent}={}){
+      const entry=iqcEntry(token),flow=entry.result.control.workflow;
+      if(!flow||typeof isCurrent!=='function'||isCurrent()!==true||!['save-local-v1','save-local-revive-v1'].includes(details?.moduleAction)||details.generation!==undefined||details.expectedRevision!==undefined)throw Error('IQC_SAVE_COMPARISON_REQUIRED');
+      if(details.moduleAction==='save-local-revive-v1'&&entry.result.permissions?.create!==true)throw Error('IQC_REVIVE_CREATE_REQUIRED');
+      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;
+      const command=client.prepare(flow.generation,'save',{...JSON.parse(iqcJSON(details)),expectedRevision:flow.revision});
+      entry.consumed=true;entry.raw=iqcJSON(command);iqcCommands.set(command.operationId,entry);return command;
+    }
+    async function iqcBegin(token,{isCurrent}={}){
+      const entry=iqcEntry(token);if(entry.result.control.workflow||typeof isCurrent!=='function'||isCurrent()!==true)throw Error('IQC_BEGIN_COMPARISON_REQUIRED');
+      const original=entry.current;entry.current=()=>original()===true&&isCurrent()===true;entry.consumed=true;
+      const identity={operationId:crypto.randomUUID(),basis:captureBeginBasis(entry.result)};
+      iqcBegins.set(identity.operationId,entry);
+      try{return await beginV1(identity,null,entry);}finally{iqcBegins.delete(identity.operationId);}
+    }
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body,readOptions,equipmentRecheck) {
+      // A caller may retire C consent before access capture. Never mint a
+      // new-version Begin proof for a request that started in an older version.
+      const cRequestVersion=cComparisonVersion;
       // Explicit history reads cannot adopt a reply after their view has changed.
       // A known HTTP refusal still carries its status for existing callers.
       const assertReadCurrent=status=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Object.assign(Error('ACCESS_READ_SUPERSEDED'),Number.isInteger(status)&&status>=400?{status}:{});};
       // Only the private explicit equipment permission read may use its new delivery pin.
       const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};
       if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();
+      assertReadCurrent();
+      try{fqcBeforeRequest(body);iqcBeforeRequest(body);}catch(cause){if(!body)throw cause;const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
       assertReadCurrent();
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
@@ -773,7 +969,7 @@
         if(externalCanvas&&body){
           assertMutationAdmission();
           try{if(body.command?.action!=='apply'||externalProof(body.command)!==true)throw Error('CANVAS_DURABLE_DISPATCH_REQUIRED');}
-          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
+          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);if(canvasTarget)canvasRejectionUnsent(error,body.command);throw error;}
           assertMutationAdmission();
         }
         if(externalBounded&&body?.command){
@@ -783,9 +979,13 @@
           boundedProofs.delete(command.operationId);assertMutationAdmission();if(record!==boundedRecord||sessionStorage.getItem(record.key)!==boundedSentinel){const error=Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});externalUnsent.add(error);throw error;}
         }
         if(body?.action==='begin-v1'){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}
+        if(body?.action==='begin-v1'&&cBeginDispatch.has(beginRecord)&&(cBeginDispatch.get(beginRecord).current()!==true||cBeginDispatch.get(beginRecord).version!==cComparisonVersion)){const record=beginRecord;clearBegin(record);throw Error('BEGIN_COMPARISON_CHANGED');}
+        if(body?.action==='begin-v1')assertBegin(beginRecord);
+        if(body?.command)assertCComparison(body.command);
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
-        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
+        if((fqcComparedSave||iqcComparedSave)&&body)try{fqcBeforeFetch(body);iqcBeforeFetch(body);}catch(cause){const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
+        let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         // An owned HTTP denial remains authoritative even when its body is not JSON.
         // Stale non-JSON replies preserve their original parse/HTTP error but cannot change access or read-pause state.
@@ -802,7 +1002,7 @@
           if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&typeof value.__liveContent==='string'){const [key,field]=value.__liveContent.split('#');if(!Object.hasOwn(live,key)||field&&(!live[key]||typeof live[key]!=='object'||!Object.hasOwn(live[key],field)))throw Error('INVALID_WORKFLOW_RESPONSE');return JSON.parse(JSON.stringify(field?live[key][field]:live[key]));}
           if(Array.isArray(value))return value.map(expand);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,child])=>[key,expand(child)]));return value;};
           const {liveContent:_live,wireVersion:_version,...body}=result;result=expand(body);}
-        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
+        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(canvasTarget&&body?.command)canvasRejectionResponse(error,body.command,response.status,result);if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
         // Real HTTP errors above retain their original status even for stale ownership.
         if(accessGuard&&!body&&(!ownsAccess(accessOwner)||(kind==='permissions'||readOptions?.requireAcceptedAccess===true)&&!acceptedAccess))throw Error('ACCESS_READ_SUPERSEDED');
         // Pair a full owned projection with its state revision. Metadata-only
@@ -814,6 +1014,10 @@
         if(canUsePost){freezeBomAuthority(result.control);freezeBomAuthority(result.receipt);boundedPostAuthorities.set(result,{...postPin,globalRevision:result.revision,control:result.control,receiptRaw:JSON.stringify(result.receipt),generation:flow.generation,revision:flow.revision,modelVersion:boundedKnownVersion});}
         if(canvasObserving)try{canvasObserveResponse(result,body,response.ok,canvasObserved,canvasRequestOwner,kind);canvasObservePost(result,body,canvasObserved);}catch{canvasBasis=null;canvasPosts.delete(result);}
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.success(kind,pauseOwner);
+        // Caller currency may synchronously invalidate ownership. Never mint a
+        // new-version proof for an old response after that callback returns.
+        const cReadVersion=cComparisonVersion;
+        if(durableBegin&&boundedScope==='ipqc-c'&&accessGuard&&acceptedAccess&&ownsAccess(accessOwner)&&accessOwner.epoch===accessEpoch&&cRequestVersion===cReadVersion&&cReadVersion===cComparisonVersion&&!body&&kind==='state'&&result.workflow===null&&validBeginBasis(result.beginBasis)&&result.beginBasis.generation===null&&result.beginBasis.openVersionStatus==='draft'&&result.permissions?.view===true&&result.permissions?.edit===true&&beginRuntimeCurrent())cBeginReads.set(result,{raw:cBeginReadRaw(result),version:cReadVersion,used:false});
         return result;
       } catch(error) {
         if(canvasPrimary)canvasBasis=null;
@@ -901,6 +1105,7 @@
       }
       if(retry)return client.receipt(command.operationId,command.action==='apply'?command.generation:undefined);
       if(externalBounded&&!boundedKnown)try{await request(endpoint,undefined,{requireAcceptedAccess:true});}catch(cause){throw Object.assign(Error('BOUNDED_PREFLIGHT_UNAVAILABLE'),{notSent:true,cause});}
+      fqcAdmission(command);iqcAdmission(command);
       // Keep the operation before transport so closing the tab cannot create a blind retry.
       try{if(!unknown)retain(command,owner);}catch(error){error.notSent=true;if(externalBounded)boundedRegisterRejection(error,command,preparedFlights.get(command.operationId)?.promise);throw error;}
       try {const original=confirmedReceipt(await request(endpoint,{command}),command.operationId,command.action==='apply'?command.generation:undefined,command.action),result=await masterSaveReadback(equipmentLocalSave?await equipmentTerminal(original,command,true):original,command);const abEntry=abSelected.get(command.operationId);if(abEntry)abClear(abEntry,command);if(externalBounded)return await boundedTerminal(result,boundedRecord,true);window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(!abEntry)retain(null);if(command.action!=='apply')validation=null;return result;}
@@ -959,11 +1164,13 @@
     const client={
       canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),readDenialVersion:kind=>readPause.denialVersion(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
+      compareForSave:iqcComparedSave?iqcCompare:fqcCompare,prepareComparedSave:iqcComparedSave?iqcPrepare:fqcPrepare,comparisonDispatched:iqcComparedSave?iqcDispatched:fqcDispatched,retireComparedBegin:iqcComparedSave?iqcRetireBegin:fqcRetireBegin,
       permission: key=>access?.[key],
       gatePermissions:()=>{assertOwner();gateControls();},
       setPermissionGates(value){gates=value;gateControls();return client;},
       withLegacyArchive(){client.legacyHistory=(before,options)=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options);client.legacyVersion=(id,options)=>request(query(`legacyVersionId=${encodeURIComponent(id)}`),undefined,options);return client;},
-      invalidateReadState(){accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
+      comparisonVersion:()=>boundedScope==='ipqc-c'?cComparisonVersion:null,
+      invalidateReadState(){if(boundedScope==='ipqc-c')cComparisonVersion++;accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
       // Internal one-way cached-client upgrade; no downgrade or queue replacement.
       useAccessResultGuard(){if(!accessGuard){accessGuard=true;accessEpoch++;}return client;},
       useStateRevision(){conditionalState=true;return client;},
@@ -999,12 +1206,21 @@
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: (before,options)=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),
+      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
       ...(legacyArchive?{legacyHistory:(before,options)=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),legacyVersion:(id,options)=>request(query(`legacyVersionId=${encodeURIComponent(id)}`),undefined,options)}:{}),
       reviewCase: (id,options)=>request(query(`caseId=${encodeURIComponent(id)}`),undefined,options),
       previewRestore: (id,options)=>request(query(`restoreSaveId=${encodeURIComponent(id)}`),undefined,options),
+      async beginCompared(source,isCurrent){
+        if(iqcComparedSave)return iqcBegin(source,isCurrent);if(fqcComparedSave)return fqcBegin(source,isCurrent);
+        const proof=cBeginReads.get(source);
+        if(!durableBegin||boundedScope!=='ipqc-c'||!proof||proof.used||typeof isCurrent!=='function')throw Error('BEGIN_COMPARISON_REQUIRED');
+        proof.used=true; // Consume before any caller callback, including re-entry.
+        if(isCurrent()!==true||proof.version!==cComparisonVersion||!beginRuntimeCurrent()||proof.raw!==cBeginReadRaw(source))throw Error('BEGIN_COMPARISON_REQUIRED');
+        return beginV1(undefined,undefined,{raw:proof.raw,version:proof.version,current:isCurrent});
+      },
       async beginWithIdentity(identity){
         if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');
         const attempt={raw:null,record:null,dispatched:false,sequence:0};
@@ -1077,6 +1293,18 @@
       mediaURL(photo){if(typeof photo?.src==='string'&&/^(?:data:image\/(?:png|jpeg|webp|gif|avif);base64,|\/(?!\/))/.test(photo.src))return photo.src;
         if(typeof photo?.src==='string'&&photo.src.startsWith('assets/')){const url=new URL(photo.src,location.origin+'/process/');if(url.origin===location.origin&&url.pathname.startsWith('/process/assets/'))return url.pathname+url.search;}
         return /^[a-f0-9]{64}$/.test(photo?.id||'')?endpoint.split('?')[0].replace(/\/workflow$/,'')+'/photo?id='+photo.id:'';},
+      canvasRejectionCapability(command){
+        assertOwner();const snapshot=canvasCommands.get(command);
+        if(!canvasTarget||!snapshot||!canvasJSONMatches(command,snapshot)||command.action!=='apply'||command.moduleAction!=='save-canvas-v1'||!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0||canvasRejectionIssued.has(command))throw Error('CANVAS_SAVE_PREPARATION_REQUIRED');
+        const raw=JSON.stringify(command);
+        const token=Object.freeze({}),pin={command,raw,owner:canvasOwner(),pagehide:transportPagehideGeneration,flight:null,consumed:false};
+        canvasRejectionTokens.set(token,pin);canvasRejectionIssued.set(command,pin);return token;
+      },
+      isConfirmedCanvasRejection:confirmedCanvasRejection,
+      discardRejectedCanvasSave(command,error,token){
+        assertOwner();if(unknown||queued||preparedFlights.size||!confirmedCanvasRejection(error,command,token))return false;
+        const pin=canvasRejectionTokens.get(token);syncFailures.delete(command.operationId);pin.consumed=true;canvasRejectionIssued.delete(command);return true;
+      },
       rejectionCapability(command){
         assertOwner();const raw=JSON.stringify(command);if(!externalBounded||boundedSelectedObjects.get(command)!==raw)throw Error('BOUNDED_RECOVERY_COMMAND_REQUIRED');
         const token=Object.freeze({}),proof={clientId,raw,flight:preparedFlights.get(command.operationId)?.promise||null,current:externalCurrent};rejectionCapabilities.set(token,proof);
@@ -1090,10 +1318,11 @@
       isCreateRuntimeCurrent:()=>abCreate&&clientPagehideGeneration===transportPagehideGeneration,
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
-      prepare(generation,action,details={}) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
+      prepare(generation,action,details={},isCurrent) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const cSave=boundedScope==='ipqc-c'&&action==='save',cVersion=cComparisonVersion;if(cSave)assertCDecision(cVersion,isCurrent);const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(cSave){cSaveDecisions.set(command,cVersion);if(isCurrent!==undefined)cSaveCallers.set(command,isCurrent);assertCComparison(command);}if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
       receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command,options) {
+        fqcAdmission(command);iqcAdmission(command);
         assertMutationAdmission();if(externalCanvas&&command?.action!=='apply')throw Object.assign(Error('CANVAS_EXTERNAL_APPLY_ONLY'),{notSent:true});
         const abEntry=abSelected.get(command?.operationId),abIssued=abCommands.get(command);if(abCreate&&(abEntry||abIssued||['create-item','create-error'].includes(command?.moduleAction))){if(!abEntry||abIssued!==abEntry)throw Error('AB_CREATE_PREPARATION_REQUIRED');abAssert(abEntry,command);if(abEntry.flight)return abEntry.flight;}
         if(externalBounded&&boundedSelectedObjects.has(command)&&boundedSelectedObjects.get(command)!==JSON.stringify(command))throw Object.assign(Error('OPERATION_ID_PAYLOAD_MISMATCH'),{notSent:true});
@@ -1102,14 +1331,16 @@
         if(existing){if(JSON.stringify(existing.command)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');return existing.promise;}
         if(externalBounded&&boundedSelected.has(command.operationId)){if(boundedSelected.get(command.operationId)!==JSON.stringify(command)||typeof options?.assertDispatch!=='function')throw Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});boundedProofs.set(command.operationId,options.assertDispatch);}
         // Capture the admitted JSON payload; a caller cannot mutate a queued command.
-        command=JSON.parse(JSON.stringify(command));
+        assertCComparison(command);const cVersion=cSaveDecisions.get(command),cCurrent=cSaveCallers.get(command);
+        const canvasRejectionPin=canvasTarget?canvasRejectionIssued.get(command):null;
+        command=JSON.parse(JSON.stringify(command));if(canvasRejectionPin)canvasRejectionIssued.set(command,canvasRejectionPin);if(cVersion!==undefined){cSaveDecisions.set(command,cVersion);if(cCurrent!==undefined)cSaveCallers.set(command,cCurrent);}
         if(unknown?.operationId===command.operationId&&JSON.stringify(unknown)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
         if(beginPending||retryPending)throw Error('OPERATION_IN_PROGRESS');
         assertMutationAdmission();const retry=unknown?.operationId===command.operationId,owner=retry?unknownOwner:departureOwner();queued++;const {action}=command;
-        const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
+        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();assertCComparison(command);if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
           if(action==='submit'){const advisory=await request(query('permissions=1'));assertMutationAdmission();if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
-          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);});
-        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;
+          return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);if(fqcComparedSave)fqcCommands.delete(command.operationId);});
+        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(canvasRejectionPin&&!canvasRejectionPin.flight&&canvasRejectionCurrent(canvasRejectionPin)&&canvasRejectionPin.raw===JSON.stringify(command))canvasRejectionPin.flight=flight;if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;
         if(abEntry)abEntry.flight=result;
         void result.then(()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);},()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);});
         tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){

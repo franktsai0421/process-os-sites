@@ -1087,8 +1087,8 @@ export function executeRoutine(
           id: () => crypto.randomUUID(),
           allowed: ctx.allowed,
           activeId: doc.flow.active.id,
-          semantic: (x) => x,
-          structure: (content, previous) => {
+          semantic: (x: Content) => x,
+          structure: (content: Content, previous: Content) => {
             validateRoutineContentEdit(c, doc, content, previous);
           },
           validate: content => routineDocumentReviewIssues(c, doc, content),
@@ -1103,6 +1103,8 @@ export function executeRoutine(
           saveSource = { ...doc.flow, working: staged.state.working, contributors: staged.state.contributors };
         }
         const applied = applyDraftCommand(saveSource, command, draftContext);
+        // Returning to an existing saved snapshot still changes working. Keep
+        // one document revision and the exact full-command receipt in that case.
         if (workingChanged && applied.receipt.unchanged) {
           applied.state.revision = doc.flow.revision + 1;
           applied.state.contributors = {};

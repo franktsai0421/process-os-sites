@@ -41,3 +41,15 @@ C 查看／修改單欄順序：基本資訊 → 啟用標準／CPK → 檢查�
 新類型隨原本固定工段案件核准才生效，保留來源版本、pending／PROCESS 忙碌、引用、權限及 CAS 保護。本補充未授權回填既有核准工段或修改歷史；完整平台需求與各候選的驗收界線見 [追蹤矩陣](../../acceptance/process-platform-tracking-20261109.md)。
 
 新增工段模板 ID 必須避開當前已核准 PROCESS 的全部工段 ID，且同一固定案件所有新增 ID 共同保留；特殊 Unicode 鍵不應造成編碼錯誤或被替換。核准不重生固定內容，只拒絕新增 ID 碰撞的舊案件並保留正常撤回／發回；不改既有或歷史 ID。
+
+## 編輯台版本查看（2026-11-09）
+
+同頁同一篩選欄提供當前草稿與有核准證據的歷史；歷史嚴格唯讀，不存取、送審、撤回、還原或套用。V3 核准 case 與舊真實核准來源以只讀聯集展示；正式指標、未存修改、其他共用草稿、未核准 Save／退回／撤回／pending 不當歷史。原 journal／權限／generation／UNKNOWN 與 pending 保護不因版本查看改變；切回恢復原草稿。開表單／gesture／操作執行中須先保全當前狀態。此顯示需求不改既有後端角色與原相容 API，也不授權把舊內容寫回目前草稿。
+
+## 2026-11-09 製程畫布存取與核准版本整合契約
+
+明確按「存取草稿」時，先讀取目前權限、世代、revision、pending與共享內容，再比對當前畫布journal。正常存取為比較GET → 單次原子Apply＋Save POST → 必要權威讀回GET；空白patch亦不能略過先比對。衝突選擇後重讀核對，對方再改版須重新選擇或由POST的expectedRevision／guard／CAS拒絕，不能覆蓋成舊內容。第一次比較前撤銷edit/save，不得產生POST；比較之後失效亦由送出／伺服器防護拒絕。
+
+只送當前畫布的方塊、內容與連線；其他畫布已存內容、其他本機journal與未完成表單保留，沒有另按Sync的前置要求。legacy Sync相容路徑與已送UNKNOWN仍按原operationId/generation查收據，不能換操作編號或自動再送；查明舊Apply不等於完成新的Save，後續輸入仍保持未存，下一次明確存取再比較。
+
+同頁核准版本以獨立display lease唯讀顯示V3與確實核准的舊版本，不能回填當前writer或復活舊handler。跨歷史邊界會失效已排程的同頁篩選callback；返回當前草稿先核對fresh edit/save權限，再恢復原RAM。Save/Submit/pending/UNKNOWN不因歷史查看重設，送審仍依整份已存製程固定快照。新增整合來源與native／實站界線見[完整矩陣](../../acceptance/process-editor-complete-20261109.md)。

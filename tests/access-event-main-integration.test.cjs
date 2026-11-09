@@ -2,6 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{createHash}=require('node:crypto');
 const {withoutAccessEventMetadata:metadataProject}=require('../scripts/access-event-source-contract.cjs');
 const readIO=require('../scripts/ipqc-c-read-io-source-contract.cjs'),{execFileSync}=require('node:child_process');
+const unified=require('../scripts/unified-draft-source-contract.cjs');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Compose exact existing successors before the unchanged reporting proof.
 // Historical pins and every other file remain untouched.
@@ -13,8 +14,8 @@ const cRoute='app/api/ipqc-c/workflow/route.ts';
 // Windows may convert any LF blob, not just the C workflow route.
 const checkoutLF=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
 const canonicalSource=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'Reporting proof requires raw source bytes');assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
-const readSource=file=>require('../scripts/master-page-runtime-source-contract.cjs').projectKnown(canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file);
-const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+const readSource=file=>unified.project(canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'main');
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -119,7 +120,7 @@ void test('Feedback path filters include every C reporting inverse dependency',(
  const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8').replace(/\r\n/g,'\n'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
  for(const file of [cRoute,noPoll.file,masterRoute.file,'public/process/shared-draft-client.js','scripts/equipment-ci-repair-source-contract.cjs','scripts/master-route-successor-source-contract.cjs','scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
 });
-const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
+const file='public/process/shared-draft-client.js',current=readSource(file);
 for(const [label,from,to]of [
  ['pre-dispatch proof','if(attempt)attempt.dispatched=true;','if(false)attempt.dispatched=true;'],
  ['ACK readback','result=await masterSaveReadback(', 'result=await Promise.resolve('],
@@ -153,7 +154,7 @@ void test('normal Local safety CI registers no-poll, sent-batch, quarantine, ins
 });
 
 for(const contract of equipmentRepair.contracts)void test('equipment CI repair retains exact d4ac309 source and predecessor: '+contract.file,()=>{
- const bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(readSource(contract.file),contract.file),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
+ const bytes=unified.project(canonicalSource(fs.readFileSync(contract.file),execFileSync('git',['show','HEAD:'+contract.file])),contract.file,'latest_main'),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
  assert.equal(hash(bytes),contract.afterHash);assert.equal(hash(prior),contract.beforeHash);assert.deepEqual(bytes,copy);
  assert.equal(contract.beforeHash,contract.file===noPoll.file?noPoll.afterHash:'cb5fccf31b25d24751f5d72422cc744a3c6024e9e2142bf55db6189942d12352');
  assert.equal(hash(project(bytes,contract.file)),main[contract.file]);

@@ -40,6 +40,91 @@ on:
       - 'tests/web-feedback*'
       - 'scripts/test-web-feedback.cjs'
       - '.github/workflows/feedback-queues.yml'
+      - 'app/api/bom/workflow/route.ts'
+      - 'app/api/ipqc-ab/photo/route.ts'
+      - 'app/api/ipqc-ab/route.ts'
+      - 'app/api/ipqc-ab/workflow/route.ts'
+      - 'lib/approved-history.ts'
+      - 'lib/bom-workflow.ts'
+      - 'lib/draft-restore-access.ts'
+      - 'lib/fqc-local-save.ts'
+      - 'lib/fqc-workflow.ts'
+      - 'lib/ipqc-ab-local-lineage.ts'
+      - 'lib/ipqc-ab-local-save.ts'
+      - 'lib/ipqc-ab-module-workflow.ts'
+      - 'lib/ipqc-ab-workflow.ts'
+      - 'lib/ipqc-c-workflow.ts'
+      - 'lib/iqc-local-save.ts'
+      - 'lib/iqc-workflow.ts'
+      - 'lib/master-document-boundary.ts'
+      - 'lib/process-authoring-workflow.ts'
+      - 'lib/process-state.ts'
+      - 'lib/routine-fqc.ts'
+      - 'lib/shared-draft.ts'
+      - 'lib/state-records-response.ts'
+      - 'lib/user-access.ts'
+      - 'lib/versioned-shared-workflow.ts'
+      - 'lib/workflow-begin.ts'
+      - 'public/process/app.js'
+      - 'public/process/bom-domain.mjs'
+      - 'public/process/bom-workspace.css'
+      - 'public/process/bom-workspace.js'
+      - 'public/process/canvas-local.js'
+      - 'public/process/canvas-recovery-store.js'
+      - 'public/process/effective-version-notice.js'
+      - 'public/process/fqc-master.js'
+      - 'public/process/ipqc-ab.js'
+      - 'public/process/ipqc-c.css'
+      - 'public/process/ipqc-c.js'
+      - 'public/process/iqc-master.css'
+      - 'public/process/iqc-master.js'
+      - 'public/process/master-data.js'
+      - 'public/process/master-shared-client.js'
+      - 'public/process/process-authoring-v3.js'
+      - 'public/process/process-editor.js'
+      - 'public/process/process-ipqc.js'
+      - 'public/process/routine-fqc.js'
+      - 'public/process/tooling.js'
+      - 'public/process/version-draft-ui.js'
+      - 'scripts/batch3-workflow-source-contract.cjs'
+      - 'scripts/bom-main-integration-source-contract.cjs'
+      - 'scripts/bom-successor-source-contract.cjs'
+      - 'scripts/bom-successor-source-contracts.json'
+      - 'scripts/bom-unsent-source-contract.cjs'
+      - 'scripts/bom-unsent-source-contract.json'
+      - 'scripts/equipment-save-choice-fixture.mjs'
+      - 'scripts/equipment-save-choice-source-contract.cjs'
+      - 'scripts/generate-unified-draft-source-contract.py'
+      - 'scripts/test-workflow-begin-old-server.cjs'
+      - 'scripts/unified-draft-source-contract.cjs'
+      - 'scripts/unified-draft-source-contract.json'
+      - 'scripts/unified-draft-source-engine.cjs'
+      - 'scripts/unified-draft-source-witness.cjs'
+      - 'scripts/unified-draft-source-witness.json'
+      - 'scripts/workflow-begin-source-contract.cjs'
+      - 'tests/access-event-main-integration.test.cjs'
+      - 'tests/batch3-workflow-source-contract.test.cjs'
+      - 'tests/bom-main-integration-source-contract.test.cjs'
+      - 'tests/bom-successor-source-contract.test.cjs'
+      - 'tests/bom-unsent-source-contract.test.cjs'
+      - 'tests/equipment-save-choice-source.test.cjs'
+      - 'tests/equipment-save-choice.test.mjs'
+      - 'tests/unified-draft-source-contract.test.cjs'
+      - 'tests/unified-draft-source-engine.test.cjs'
+      - 'tests/unified-draft-source-witness.test.cjs'
+      - 'lib/equipment-workflow.ts'
+      - 'lib/master-workflow.ts'
+      - 'lib/tooling-workflow.ts'
+      - 'public/process/master-admin-ui.js'
+      - 'public/process/process-equipment.js'
+      - 'scripts/bom-main-integration-source-contract.json'
+      - 'scripts/unified-draft-historical-requests.json'
+      - 'scripts/unified-draft-historical-source.cjs'
+      - 'scripts/fqc-apply-fixture.cjs'
+      - 'scripts/test-fqc-feedback-races.cjs'
+      - 'tests/iqc-save-choice-fixture.mjs'
+      - 'tests/iqc-revival-wire.test.mjs'
+      - 'tests/fqc-revive-save.test.mjs'
 permissions:
   contents: read
 jobs:
@@ -53,6 +138,9 @@ jobs:
       WRANGLER_WRITE_LOGS: 'false'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
@@ -61,6 +149,13 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node scripts/sites-source-check.mjs
+      - name: Exact unified source and predecessor proofs
+        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs
+      - run: node --test tests/bom-main-integration-source-contract.test.cjs
+      - run: node --test tests/bom-unsent-source-contract.test.cjs
+      - run: node --test tests/bom-successor-source-contract.test.cjs tests/access-event-main-integration.test.cjs
+      - run: node --test tests/equipment-save-choice.test.mjs tests/equipment-save-choice-source.test.cjs
+      - run: node --test tests/bom-approved-history-real-common.test.mjs
       - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-migration.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-event-main-integration.test.cjs tests/access-events-api.test.cjs tests/access-event-export-consistency.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
       - run: node scripts/test-local-schema.mjs
       - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci

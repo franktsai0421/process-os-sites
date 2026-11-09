@@ -9,15 +9,17 @@
   const owner=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.()&&(!delivery||host.ProcessSync?.isCurrentDelivery?.(delivery)!==false);
   const client=host.createSharedDraftClient({endpoint:'/api/master/pages?scope='+page+'&caseMetadata=1',actorId:actor.id,durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,legacyArchive:true,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'}});
   let container,control,permissions={},base,mine,generation,busy=false,error='',part='AB',filter='',readSequence=0,choiceDialog,pendingImportFile,importApplied=false,lineFilter='',categoryFilter='';
+  const history=host.ProcessMasterPageHistory?.create({page,client,owner,control:()=>control,busy:()=>busy,dirty:()=>dirty(),dialog:()=>choiceDialog,permissions:value=>{permissions={...permissions,...value};},render:()=>render()});
+  const displayCurrent=()=>history?.mutable()!==false;
   const flow=()=>control?.workflow,dirty=()=>mine!==undefined&&(!same(mine,base)||!!pendingImportFile);
   const current=()=>flow()?.working||control?.versions.find(version=>version.id===control.activeVersionId)?.snapshot;
   const assertOwner=()=>{if(!owner())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');};
-  function adopt(result,reset=false){assertOwner();if(!result.control||result.control.page!==page)throw Error('MASTER_PAGE_OWNER_MISMATCH');control=result.control;permissions=result.permissions||permissions;
+  function adopt(result,reset=false){assertOwner();history?.assertMutable();if(!result.control||result.control.page!==page)throw Error('MASTER_PAGE_OWNER_MISMATCH');history?.retire();control=result.control;permissions=result.permissions||permissions;
    if(reset||mine===undefined){base=copy(current());mine=copy(base);generation=flow()?.generation;pendingImportFile=undefined;importApplied=false;}}
-  async function read(reset=false){const sequence=++readSequence,result=await client.read();assertOwner();if(sequence!==readSequence)throw Error('MASTER_CATALOG_READ_SUPERSEDED');adopt(result,reset);return result;}
-  function canEdit(){return !!flow()&&!flow().pendingId&&permissions.edit===true&&!busy&&!client.hasUnknown();}
+  async function read(reset=false){history?.assertMutable();const ticket=history?.stamp(),sequence=++readSequence,result=await client.read(undefined,{isCurrent:()=>history?history.current(ticket):owner()});assertOwner();if(history&&!history.current(ticket)||sequence!==readSequence)throw Error('MASTER_CATALOG_READ_SUPERSEDED');adopt(result,reset);return result;}
+  function canEdit(){return displayCurrent()&&!!flow()&&!flow().pendingId&&permissions.edit===true&&!busy&&!client.hasUnknown();}
   function button(parent,label,action,enabled=true){const result=node('button',label,parent);result.type='button';result.className='button ghost';result.disabled=!enabled;result.onclick=()=>void act(action);return result;}
-  async function act(action){if(busy)return;busy=true;error='';render();try{assertOwner();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;if(owner())render();}}
+  async function act(action){if(busy)return;busy=true;error='';render();try{assertOwner();history?.assertMutable();await action();}catch(failure){if(owner())error=host.sharedDraftErrorMessage?.(failure)||failure.message;}finally{busy=false;if(owner())render();}}
   function change(row,key,input){input.disabled=!canEdit();input.value=Array.isArray(row[key])?row[key].join(', '):row[key]??'';input.oninput=()=>{if(!canEdit()||!owner())return;row[key]=Array.isArray(row[key])?input.value.split(',').map(value=>value.trim()).filter(Boolean):input.value;showDirty();};}
   function field(parent,label,row,key,type='text'){const cell=node('td',undefined,parent),input=node('input',undefined,cell);input.type=type;input.setAttribute('aria-label',label);change(row,key,input);return input;}
   function showDirty(){const status=container?.querySelector('[data-page-dirty]');if(status)status.textContent=dirty()?t('本機尚未存取','Thay đổi chưa lưu'):t('沒有本機修改','Không có thay đổi cục bộ');}
@@ -37,15 +39,15 @@
   }
   async function transferAccess(kind,token){const result=await client.permissions({isCurrent:token,requireAcceptedAccess:true});assertOwner();if(!token())throw Error('IMPORT_CONTEXT_CHANGED');permissions=result.permissions||{};if(permissions.view!==true||permissions[kind]!==true)throw Error('FORBIDDEN');}
   async function importFile(file){
-   const original=JSON.stringify(mine),initialGeneration=generation,target=container,partition=part,token=()=>owner()&&container===target&&target?.isConnected&&target.dataset.activeTab===(page==='LINES'?'line-admin':page)&&generation===initialGeneration&&part===partition&&JSON.stringify(mine)===original;
+   const original=JSON.stringify(mine),initialGeneration=generation,target=container,partition=part,historyTicket=history?.stamp(),token=()=>displayCurrent()&&(!history||history.current(historyTicket))&&owner()&&container===target&&target?.isConnected&&target.dataset.activeTab===(page==='LINES'?'line-admin':page)&&generation===initialGeneration&&part===partition&&JSON.stringify(mine)===original;
    await transferAccess('import',token);if(!permissions.edit||!flow()||flow().pendingId||client.hasUnknown())throw Error('FORBIDDEN');
-   const buffer=await file.arrayBuffer();if(!token())throw Error('IMPORT_CONTEXT_CHANGED');const fresh=await client.read();assertOwner();if(!token()||fresh.control?.workflow?.generation!==initialGeneration)throw Error('IMPORT_CONTEXT_CHANGED');permissions=fresh.permissions||{};if(!fresh.permissions?.edit||!fresh.permissions?.import||fresh.control.workflow.pendingId)throw Error('FORBIDDEN');
+   const buffer=await file.arrayBuffer();if(!token())throw Error('IMPORT_CONTEXT_CHANGED');const fresh=await client.read(undefined,{isCurrent:token,requireAcceptedAccess:true});assertOwner();if(!token()||fresh.control?.workflow?.generation!==initialGeneration)throw Error('IMPORT_CONTEXT_CHANGED');permissions=fresh.permissions||{};if(!fresh.permissions?.edit||!fresh.permissions?.import||fresh.control.workflow.pendingId)throw Error('FORBIDDEN');
    const parsed=host.MasterPageTransfer.parse(buffer,page,partition),references=fresh.control.references.lines||[],next=host.MasterPageTransfer.stage(mine,parsed,page,references),needs=host.MasterPageTransfer.requirements(mine,next,page);if(needs.create&&fresh.permissions.create!==true||needs.delete&&fresh.permissions.delete!==true)throw Error('FORBIDDEN');
    if(!host.confirm(parsed.complete?t('以檔案取代本頁相同範圍的本機資料？其他頁草稿不變；線別參考不會匯入。按存取草稿才共用保存。','Thay dữ liệu cục bộ cùng phạm vi bằng tệp? Không đổi bản nháp trang khác hoặc chuyền tham khảo. Chỉ chia sẻ khi Lưu bản nháp.'):t('舊格式只新增或更新檔案內資料，其餘保留。先留本機，按存取草稿才共用保存。','Tệp cũ chỉ thêm/cập nhật dữ liệu có trong tệp. Giữ dữ liệu khác; chỉ chia sẻ khi Lưu bản nháp.')))return;
    await transferAccess('import',token);if(!permissions.edit||needs.create&&permissions.create!==true||needs.delete&&permissions.delete!==true)throw Error('FORBIDDEN');if(needs.delete&&!confirmRemoval(t('刪除檔案未保留的本頁項目或路線工段？核准後才套用，既有歷史保留。','Xóa mục hoặc công đoạn không giữ trong tệp? Chỉ áp dụng sau duyệt; giữ lịch sử.')))return;
    if(!token())throw Error('IMPORT_CONTEXT_CHANGED');mine=next;importApplied=true;
   }
-  async function exportFile(){const original=JSON.stringify(mine),target=container,token=()=>owner()&&container===target&&target?.isConnected&&target.dataset.activeTab===(page==='LINES'?'line-admin':page)&&JSON.stringify(mine)===original;await transferAccess('export',token);const snapshot=copy(mine),book=host.MasterPageTransfer.workbook(snapshot,page,control.references.lines||[]);if(!token())throw Error('IMPORT_CONTEXT_CHANGED');host.XLSX.writeFile(book,(page==='LINES'?'LINES':page+'_catalog')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');}
+  async function exportFile(){const original=JSON.stringify(mine),target=container,historyTicket=history?.stamp(),token=()=>displayCurrent()&&(!history||history.current(historyTicket))&&owner()&&container===target&&target?.isConnected&&target.dataset.activeTab===(page==='LINES'?'line-admin':page)&&JSON.stringify(mine)===original;await transferAccess('export',token);const snapshot=copy(mine),book=host.MasterPageTransfer.workbook(snapshot,page,control.references.lines||[]);if(!token())throw Error('IMPORT_CONTEXT_CHANGED');host.XLSX.writeFile(book,(page==='LINES'?'LINES':page+'_catalog')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');}
   function lines(parent){const tabs=node('div',undefined,parent);for(const scope of ['AB','C'])button(tabs,scope,()=>{part=scope;},!busy);
    const rows=mine[part].lines,body=table(parent,[t('線別代碼','Mã chuyền'),t('名稱','Tên'),t('操作','Thao tác')]);
    for(const line of rows){const row=node('tr',undefined,body);field(row,t('線別代碼','Mã chuyền'),line,'code');field(row,t('線別名稱','Tên chuyền'),line,'name');const actions=node('td',undefined,row);
@@ -96,6 +98,7 @@
     dialog.addEventListener('cancel',event=>{event.preventDefault();cancel();});host.addEventListener('pagehide',cancel);document.body.append(dialog);dialog.showModal();});
   }
   async function save(){
+   history?.assertMutable();
    if(pendingImportFile&&!importApplied)throw Error(t('請先套用匯入檔，或取消本機修改後再存取。','Áp dụng tệp nhập hoặc hủy thay đổi cục bộ trước khi lưu.'));if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
    const input=copy(mine),original=JSON.stringify(mine),oldBase=copy(base),oldGeneration=generation;
    for(let attempt=0;attempt<8;attempt++){
@@ -111,6 +114,7 @@
    throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
   }
   async function lifecycle(action){
+   history?.assertMutable();
    if(dirty())throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');if(client.hasUnknown())throw Error('UNKNOWN_OPERATION_CHECK_REQUIRED');
    const fresh=await read(),current=fresh.control.workflow,pending=current?.pendingId;
    if(!same(base,current?.working)){adopt(fresh,true);throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');}
@@ -122,7 +126,7 @@
    const result=await client.command(current.generation,action,{reason,expectedRevision:current.revision,...(action==='submit'?host.captureSharedDraftSubmission(current):{caseId:pending}),...(self?{selfReviewConfirmed:true}:{})});adopt(result,true);
   }
   function render(){
-   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;container.replaceChildren();container.dataset.masterPage=page;
+   if(!container||!container.isConnected||!owner()||container.dataset.activeTab!==(page==='LINES'?'line-admin':page))return;if(history?.historical())return;container.replaceChildren();container.dataset.masterPage=page;
    const panel=node('section',undefined,container);panel.className='panel';node('h2',page==='LINES'?t('線別與工段管理','Chuyền và công đoạn'):page+t(' 產線與類別',' · Sản phẩm và nhóm'),panel);
    const status=node('p','',panel);status.dataset.pageDirty='';showDirty();if(error){const message=node('p',error,panel);message.setAttribute('role','alert');}
    const toolbar=node('div',undefined,panel);toolbar.className='actions';
@@ -133,7 +137,7 @@
    if(client.hasUnknown())button(toolbar,t('查詢原操作結果','Tra cứu kết quả thao tác'),async()=>{const result=await client.resolveUnknown();assertOwner();if(result?.control)adopt(result,true);else await read(true);},!busy);
    if(!control){node('p',t('載入中…','Đang tải…'),panel);return;}
    if(flow()?.pendingId)node('p',t('本頁整份草稿待審，無法修改。','Toàn bộ bản nháp của trang đang chờ duyệt, không thể sửa.'),panel);
-   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty());if(page==='LINES')lines(panel);else catalogs(panel);
+   transferToolbar(panel);button(toolbar,t('取消本機修改','Hủy thay đổi cục bộ'),()=>{if(host.confirm(t('放棄本頁尚未存取的修改？','Bỏ thay đổi chưa lưu của trang?'))){discardLocal();pendingImportFile=undefined;importApplied=false;}},canEdit()&&dirty());if(page==='LINES')lines(panel);else catalogs(panel);history?.mount(container);history?.guardDOM(container);
   }
   const discardLocal=()=>{if(base!==undefined)mine=copy(base);pendingImportFile=undefined;importApplied=false;};
   const departure=host.VersionDraftUI?.createDeparture({root:()=>container,flow,ownsRuntimeLocal:()=>true,sharedOwned:()=>false,current:owner,
@@ -141,7 +145,7 @@
    local:dirty,localSave:()=>true,canSave:()=>permissions.save===true,canDiscard:()=>permissions.edit===true,save,discard:discardLocal,discardUnknown:discardLocal,
    dialogs:()=>choiceDialog?[choiceDialog]:[],closeClean:()=>{if(choiceDialog&&!busy){choiceDialog.remove();choiceDialog=null;}}});
   if(departure){departure.autoAbandon=true;departure.allowUnload=()=>!busy;}
-  return {owner,departure,busy:()=>busy,deactivate(){container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
+  return {owner,departure,busy:()=>busy,deactivate(){history?.retire();container=null;if(!client.hasUnknown()&&!busy){control=undefined;base=undefined;mine=undefined;generation=undefined;}},mount(element){container=element;render();if(!control||!dirty()&&!busy)void act(()=>read(true));},dirty,save:()=>act(save),reset(){history?.retire();container=null;},inspect:()=>({base:copy(base),mine:copy(mine),generation,pendingImportFile,importApplied,error,permissions})};
  }
  host.ProcessMasterPages={departure:()=>instances.get(activePage)?.departure,leave(){if(activePage)instances.get(activePage)?.deactivate();activePage=null;},mount(container,{page}){if(activePage&&activePage!==page)instances.get(activePage)?.deactivate();activePage=page;if(!['AB','C','LINES'].includes(page))throw Error('SCOPE_INVALID');let instance=instances.get(page);if(!instance?.owner()){instance=editor(page);instances.set(page,instance);}instance.mount(container);return instance;},reset(){for(const instance of instances.values())instance.reset();instances.clear();activePage=null;},busy:()=>[...instances.values()].some(instance=>instance.busy())};
 })(window);

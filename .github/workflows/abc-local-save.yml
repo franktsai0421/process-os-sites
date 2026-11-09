@@ -27,7 +27,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint -- --format unix
       - run: npx tsc --noEmit
-      - run: node --test tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-shared-clone.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs tests/workflow-begin-receipt.test.cjs tests/master-bridge-ownership.test.mjs tests/navigation-adapters.test.mjs tests/lines-submit-snapshot-integration.test.mjs
+      - run: node --test tests/abc-save-conflict-choice.test.mjs tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-shared-clone.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs tests/workflow-begin-receipt.test.cjs tests/master-bridge-ownership.test.mjs tests/navigation-adapters.test.mjs tests/lines-submit-snapshot-integration.test.mjs
       - name: Existing master and legacy compatibility
         run: |
           node scripts/test-master-document-boundary.cjs
@@ -44,11 +44,13 @@ jobs:
           node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-review-regressions.cjs
+          node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-ui.cjs
           node scripts/test-master-page-transfer.cjs
           node scripts/test-master-page-tools-ui.cjs
           node scripts/test-draft-thirteen-pages.cjs
           node scripts/test-routine-page-photo-outcome.cjs
+          node --test --test-concurrency=2 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
           node --test tests/master-page-runtime-source.test.cjs tests/batch3-workflow-source-contract.test.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs

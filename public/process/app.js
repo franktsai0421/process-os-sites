@@ -1632,7 +1632,7 @@ function currentProcessMasterData() {
 }
 function editableProcessMasterData() {
   const selected = selectedProcessMasterVersion();
-  return selected?.status === 'draft'&&!processMasterPending()&&window.MasterDataWorkflow?.shared.permissions('PROCESS')?.edit===true ? selected.snapshot : null;
+  return window.ProcessMasterVersioning?.currentDisplay?.()!==false&&selected?.status === 'draft'&&!processMasterPending()&&window.MasterDataWorkflow?.shared.permissions('PROCESS')?.edit===true ? selected.snapshot : null;
 }
 function persistProcessMasterControl() {
   return window.MasterDataWorkflow?.persist?.('PROCESS');
@@ -1660,7 +1660,7 @@ window.addEventListener('beforeunload', event => {
 });
 function bindProcessMasterName(input) {
   const shared=window.MasterDataWorkflow.shared,owner=window.ProcessSync?.identity,generation=shared.flow('PROCESS')?.generation;
-  const ownerEpoch=window.ProcessSync?.identityGeneration?.()??0,delivery=window.ProcessSync?.captureDelivery?.();
+  const ownerEpoch=window.ProcessSync?.identityGeneration?.()??0,delivery=window.ProcessSync?.captureDelivery?.(),displayCurrent=window.ProcessMasterVersioning?.captureDisplay?.()||(()=>true);
   const key=input.closest('.master-template')?.dataset.templateKey,snapshot=editableProcessMasterData();
   if(!snapshot)return;
   const previous=[...processMasterNameBindings].find(binding=>binding.owner===owner&&binding.generation===generation&&binding.key===key&&!binding.input.isConnected&&!binding.clean());
@@ -1672,7 +1672,7 @@ function bindProcessMasterName(input) {
   let recovery=null,recoveryNotice='',recoveryVerified=false,recoveryBusy=false,localRevision=0,pendingCommand=null,pendingSending=null,recoveryDialog=null,rejectionCleanup=null;
   const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
   const ownerCurrent=()=>!abandoned&&window.ProcessSync?.identity===owner&&(window.ProcessSync?.identityGeneration?.()??0)===ownerEpoch&&(!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==false)&&shared.flow('PROCESS')?.generation===generation;
-  const owned=()=>input.isConnected&&ownerCurrent()&&Boolean(editableProcessMasterData());
+  const owned=()=>displayCurrent()&&input.isConnected&&ownerCurrent()&&Boolean(editableProcessMasterData());
   const dirty=()=>edited&&baseline.some(row=>row.value!==desired);
   const baseVersion=flow=>JSON.stringify([flow?.generation,flow?.revision,flow?.saved?.id??null]);
   const permission=name=>shared.client('PROCESS').permission?.(name)===true;
@@ -1885,7 +1885,7 @@ function updateProcessSharedStatus() {
   let panel=document.querySelector('#process-shared-status');
   if(!panel){panel=document.createElement('section');panel.id='process-shared-status';panel.className='master-edit-note';panel.setAttribute('role','status');bar.before(panel);}
   const dirty=shared.localDirty('PROCESS')||window.ProcessMasterVersioning?.departureNames.dirty()||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content);
-  panel.innerHTML=`<p>${t('共用草稿範圍','Phạm vi bản nháp chung')}: PROCESS · ${flow.pendingId?t('待審鎖定','Đang chờ duyệt · đã khóa'):dirty?t('尚未儲存','Chưa lưu'):t('已儲存','Đã lưu')} · ${t('儲存者','Người lưu')}: ${escapeHtml(flow.saved?.actor.name||'—')}</p><div class="master-version-actions"><button type="button" class="button ghost" data-process-history>${t('固定案件／歷史還原','Hồ sơ cố định / Khôi phục')}</button><button type="button" class="button ghost" data-process-recover>${t('查詢未知操作結果','Kiểm tra kết quả chưa rõ')}</button></div>`;
+  panel.innerHTML=`<p>${t('共用草稿範圍','Phạm vi bản nháp chung')}: PROCESS · ${flow.pendingId?t('待審鎖定','Đang chờ duyệt · đã khóa'):dirty?t('尚未儲存','Chưa lưu'):t('已儲存','Đã lưu')} · ${t('儲存者','Người lưu')}: ${escapeHtml(flow.saved?.actor.name||'—')}</p><div class="master-version-actions"><button type="button" class="button ghost" data-process-recover>${t('查詢未知操作結果','Kiểm tra kết quả chưa rõ')}</button></div>`;
   shared.renderValidation('PROCESS',{after:panel,label:issue=>issue.path?.[0]+' / '+(issue.path?.[1]?.id||''),onLocate:issue=>{
     if(shared.permissions('PROCESS')?.edit===false)return;
     state.processMasterVersionId=processMasterDraft()?.id;repaintProcessMasterPage();
@@ -1895,7 +1895,7 @@ function updateProcessSharedStatus() {
       window.ProcessEquipment?.locate(issue.path?.[3]?.id, 'name');
     }else{const target=card?.querySelector('[data-master-name]');target?.scrollIntoView({block:'center'});target?.focus({preventScroll:true});}
   }});
-  panel.querySelector('[data-process-history]').onclick=()=>shared.history('PROCESS').catch(error=>toast(error.message));
+
   panel.querySelector('[data-process-recover]').onclick=()=>shared.recover('PROCESS').catch(error=>toast(error.message));
   window.VersionDraftUI?.updateSaved(document.querySelector('#data-content .vd-card'),flow,dirty);
   if(bar.classList.contains('vd-card'))panel.replaceChildren();
@@ -1936,11 +1936,9 @@ window.ProcessMasterVersioning = {
   },
   validate: validateProcessMasterSnapshot,
   showVersion(id) {
-    this.departureNames.discard();window.MasterDataWorkflow.shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();
-    state.processMasterVersionId = id;
-    state.dataTab = 'process-master';
-    state.view = 'data';
-    render();
+    state.dataTab = 'process-master';state.view = 'data';
+    if(!document.querySelector('#process-approved-version'))render();
+    return this.openApprovedVersion?.(id);
   },
 };
 async function beginProcessMasterDraft() {
@@ -1955,12 +1953,12 @@ async function beginProcessMasterDraft() {
 function saveProcessMasterDraft() {
   if(saveProcessMasterDraft.flight)return saveProcessMasterDraft.flight;
   const save=async()=>{
-    try{await flushProcessMasterNames();await window.MasterDataWorkflow.shared.execute('PROCESS','save');
+    try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.execute('PROCESS','save');if(!result)return;
       toast(document.documentElement.lang==='vi'?'Đã lưu bản nháp chung.':'已存取共用草稿。');
       if(!document.querySelector('#equipment-editor-dialog[open]')&&(!window.ProcessMasterVersioning||!window.ProcessMasterVersioning.departureNames.dirty()))repaintProcessMasterPage();
     }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}
   };
-  saveProcessMasterDraft.flight=save().finally(()=>{delete saveProcessMasterDraft.flight;});return saveProcessMasterDraft.flight;
+  saveProcessMasterDraft.flight=save().finally(()=>{delete saveProcessMasterDraft.flight;window.ProcessMasterVersioning?.refreshHistoryControls?.();});return saveProcessMasterDraft.flight;
 }
 async function submitProcessMasterDraft() {
   try{if(window.MasterDataWorkflow.shared.localProcess&&(window.MasterDataWorkflow.shared.localDirty('PROCESS')||window.ProcessMasterVersioning.departureNames.dirty()||window.ProcessEquipment?.hasUnappliedChanges?.()))throw Error('UNSAVED_CHANGES_SAVE_REQUIRED');await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.submit('PROCESS');if(!result)return;
@@ -1987,7 +1985,7 @@ function processMasterVersionBar() {
       superseded: '歷史核准',
     };
   if (!selected) return '';
-  return `<section class="master-version-bar process-master-version"><div><small>PROCESS MASTER VERSION</small><h3>流程資料 · V${selected.number} <span class="master-status ${selected.status}">${status[selected.status] || selected.status}</span></h3><p>${selected.status === 'draft' ? '先儲存草稿，再送主管審核；核准前不會影響製程編輯台。' : '唯讀查閱；製程編輯台目前使用已核准版本。'} 目前生效：V${active?.number || 1}</p></div><label class="master-version-select">選擇版本／草稿<select id="process-master-version-choice">${versions.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected.id ? 'selected' : ''}>V${item.number} · ${status[item.status] || item.status} · ${new Date(item.updatedAt).toLocaleString('zh-TW')}</option>`).join('')}</select></label><div class="master-version-actions">${!draft && !pending ? '<button class="button signal" id="process-master-new-draft">建立新版本草稿</button>' : ''}${selected.status === 'draft' ? '<button class="button ghost" id="save-master-data">儲存草稿</button><button class="button signal" id="process-master-submit">送出主管審核</button>' : ''}${selected.status === 'pending' && (selected.creatorId === currentUser?.id || currentUser?.role === 'admin' || canExchangeProcessMaster('approval.withdraw')) ? '<button class="button ghost" id="process-master-withdraw">解除送審，繼續修改</button>' : ''}${selected.status === 'pending' ? '<button class="button ghost" id="process-master-review">查看送審案件</button>' : ''}</div></section><details class="master-history process-master-history"><summary>版本紀錄與操作歷程 · ${versions.length}</summary><div>${versions.map((item) => `<button type="button" data-process-master-history="${escapeHtml(item.id)}"><b>V${item.number} · ${status[item.status] || item.status}</b><small>${escapeHtml(item.creatorName)} · ${new Date(item.updatedAt).toLocaleString('zh-TW')}</small></button>`).join('')}</div></details>`;
+  return `<section class="master-version-bar process-master-version"><div><small>PROCESS MASTER VERSION</small><h3>流程資料 · V${selected.number} <span class="master-status ${selected.status}">${status[selected.status] || selected.status}</span></h3><p>${selected.status === 'draft' ? '先儲存草稿，再送主管審核；核准前不會影響製程編輯台。' : '唯讀查閱；製程編輯台目前使用已核准版本。'} 目前生效：V${active?.number || 1}</p></div><div class="master-version-actions">${!draft && !pending ? '<button class="button signal" id="process-master-new-draft">建立新版本草稿</button>' : ''}${selected.status === 'draft' ? '<button class="button ghost" id="save-master-data">儲存草稿</button><button class="button signal" id="process-master-submit">送出主管審核</button>' : ''}${selected.status === 'pending' && (selected.creatorId === currentUser?.id || currentUser?.role === 'admin' || canExchangeProcessMaster('approval.withdraw')) ? '<button class="button ghost" id="process-master-withdraw">解除送審，繼續修改</button>' : ''}${selected.status === 'pending' ? '<button class="button ghost" id="process-master-review">查看送審案件</button>' : ''}</div></section>`;
 }
 function processMasterExcelRows(source) {
   const templates = [],
@@ -3319,6 +3317,11 @@ function bindData() {
   );
   bindDataInner('products');
 }
+function processMasterHandler(node,callback) {
+  const current=window.ProcessMasterVersioning?.captureDisplay?.()||(()=>true);
+  return function(...args){if(node?.isConnected===false||!current()||window.ProcessMasterVersioning?.currentDisplay?.()===false)return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>window.ProcessMasterVersioning?.refreshHistoryControls?.());window.ProcessMasterVersioning?.refreshHistoryControls?.();return result;};
+}
+function listenProcessMaster(node,type,callback){node?.addEventListener(type,processMasterHandler(node,callback));}
 function bindDataInner(tab) {
   if (tab === 'products') {
     const q = document.querySelector('#product-search');
@@ -3379,42 +3382,12 @@ function bindDataInner(tab) {
     };
     document.querySelectorAll('[data-master-name]').forEach(bindProcessMasterName);
     document.querySelectorAll('[data-master-type]').forEach(input=>input.onchange=async()=>{const before=editableProcessMasterData(),key=input.closest('[data-template-key]').dataset.templateKey;if(!before||input.disabled)return;const next=JSON.parse(JSON.stringify(before));for(const template of processMasterCatalogMatches(next,key)){template.editorType=input.value;template.mode=input.value==='machine'?'machine':'human';}input.disabled=true;try{await applyProcessMasterSnapshot(before,next);repaintProcessMasterPage();}catch(error){toast(error.message);}finally{input.disabled=false;}});
-    document.querySelector('#process-master-version-choice')?.addEventListener(
-      'change',
-      (event) => {
-        window.ProcessMasterVersioning.departureNames.discard();window.MasterDataWorkflow.shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();
-        state.processMasterVersionId = event.target.value;
-        document.querySelector('#data-content').innerHTML = processMasterView();
-        bindDataInner('process-master');
-      },
-    );
-    document.querySelectorAll('[data-process-master-history]').forEach(
-      (button) =>
-        (button.onclick = () => {
-          window.ProcessMasterVersioning.departureNames.discard();window.MasterDataWorkflow.shared.discardLocal('PROCESS');window.ProcessEquipment?.abandon?.();
-          state.processMasterVersionId = button.dataset.processMasterHistory;
-          document.querySelector('#data-content').innerHTML = processMasterView();
-          bindDataInner('process-master');
-        }),
-    );
-    document.querySelector('#process-master-new-draft')?.addEventListener(
-      'click',
-      beginProcessMasterDraft,
-    );
-    document.querySelector('#process-master-submit')?.addEventListener(
-      'click',
-      submitProcessMasterDraft,
-    );
-    document.querySelector('#process-master-withdraw')?.addEventListener(
-      'click',
-      withdrawProcessMasterDraft,
-    );
-    document.querySelector('#process-master-review')?.addEventListener(
-      'click',
-      () => {
+    listenProcessMaster(document.querySelector('#process-master-new-draft'),'click',beginProcessMasterDraft);
+    listenProcessMaster(document.querySelector('#process-master-submit'),'click',submitProcessMasterDraft);
+    listenProcessMaster(document.querySelector('#process-master-withdraw'),'click',withdrawProcessMasterDraft);
+    listenProcessMaster(document.querySelector('#process-master-review'),'click',() => {
         window.MasterReview.open('PROCESS', selectedProcessMasterVersion()?.id);
-      },
-    );
+      });
     const exportButton = document.querySelector('#export-process-master');
     if (exportButton) exportButton.onclick = window.ProcessSpreadsheet?.wrap('process-export',exportProcessMasterData,()=>selectedProcessMasterVersion()?.id)||exportProcessMasterData;
     const importButton = document.querySelector('#import-process-master'),
@@ -3506,10 +3479,7 @@ function bindDataInner(tab) {
           bindDataInner('process-master');
         };
       });
-    document.querySelector('#save-master-data')?.addEventListener(
-      'click',
-      saveProcessMasterDraft,
-    );
+    listenProcessMaster(document.querySelector('#save-master-data'),'click',saveProcessMasterDraft);
   }
   if (tab === 'users') {
     document.querySelector('#add-user').onclick = () => {
@@ -3758,6 +3728,7 @@ window.ProcessRuntimeProjection={
   applyPlayerIntent,
   canLeave:()=>[...processMasterNameBindings].every(binding=>binding.clean()),
   install(catalog){
+    window.ProcessMasterVersioning?.retireApprovedHistory?.();
     if(catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!catalog.imported||!catalog.routing||!catalog.lineC)throw Error('BOOTSTRAP_INVALID_CATALOG');
     const replace=(target,value)=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,value);};
     replace(data,catalog.imported);replace(routing,catalog.routing);

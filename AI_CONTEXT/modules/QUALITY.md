@@ -10,6 +10,34 @@ RF 整頁照片依原 input hash／帳號隔離 sent journal＋R2 outcome 唯讀
 
 現用 builder／case-link／review issues／approval effects 已分離為明確 metadata＋Content 的 server helper；舊 dispatch 仍保留原流程／收據。新 helper 不建立 flow/Save/approval，不自行作權限、CAS、receipt 或 idempotence；未註冊新整頁 route。整頁 fixed changed set／source pins、建立取消更正及媒體UI仍待接線。七組合成契約與既有 route 回歸另列於唯一分界矩陣。
 
+
+## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
+
+每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — IPQC A/B 同頁核准新舊聯集（本機）
+
+原頁接單一 selector、嚴格核准整份／舊群組聯集與回原 RAM，不新增持久 aliases 或 scope。26 新實際堆疊情境、543/543 受影響跨頁回歸、78 route、13 helper 及 lint／TS PASS；UNKNOWN／File／pending 保留，metadata 不讀歷史 body，最後權限／revision 防護有實測。尚餘例行 FQC 文件及待 parent 協調的畫布；未上傳／部署／原生或實站驗收。[逐頁矩陣與限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 版本 selector 與 FQC 矩陣生命週期收尾
+
+本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 已核准歷史與 d1ff 草稿篩選語意合併（本機）
+
+承接 `d1ff4a61` 的晚到輸入、照片及篩選保護，保留 IQC／FQC／模具／檢具的同頁核准歷史顯示與回原草稿。受影響 371 項情境分批 PASS，含 IQC 原 File/blob 跨歷史返回後只於明確 Save 上傳一次；原 9 個 named predecessors 與完整 historical witness 待合併 source 固定後重新生成。未上傳／合併 GitHub／部署；其他歷史頁仍未接完。[逐頁狀態與整合限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
+
+FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
+
+## 2026-11-09 — IQC 同頁核准歷史首批前端
+
+IQC 只在同一 selector 列當前草稿與已核准版本，使用獨立歷史 display snapshot 重用唯讀 detailPanel；保留原 control、RAM、比較基準、pending 及 UNKNOWN 原收據。已移除本頁舊歷史／還原彈窗入口。display epoch、舊回呼退休、撤權隔離與歷史照片來源有定向驗證；原生／實站未驗證，其他草稿頁尚未全數統一。[逐頁狀態與證據](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema 或真實資料變更。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
 ## 2026-11-09 — 全頁草稿分界與例行 FQC 整頁目標
 
 FQC／IQC／IPQC AB／IPQC C／BOM／檢具／模具現有 owner 分離；篩選不是新草稿。例行 FQC 已確認改為 routine-fqc:page，新增未註冊多文件單次 Save 核心，原來源／retest 規則與舊文件路徑共用同一純驗證函式。十三組合成 Save 契約不等於新版文件建立、整頁核准副作用、route/CAS/UI 或遷移已完成；現行例行頁仍逐文件。舊 working 可放棄不包含待審／已核准歷史或原收據。與未發布 7ef04ed 的逐文件 localSave 須語意整合，不能整檔覆蓋。[全站矩陣及未完成項](../../docs/acceptance/module-draft-boundary-20261109.md)。

@@ -267,6 +267,12 @@ export async function createFqcPermissionPhase(request:Request,state:State){
   if(url.pathname!=='/api/fqc/workflow'||url.searchParams.has('scope'))throw Error('INVALID_PERMISSION_PHASE');
   return createWorkflowPermissionPhase(request,state);
 }
+// Exact A/B workflow only. Each selected snapshot and CAS retry gets its own
+// phase; the shared route retains fresh checks before returning/persisting.
+export async function createIpqcABPermissionPhase(request:Request,state:State){
+  if(new URL(request.url).pathname!=='/api/ipqc-ab/workflow')throw Error('INVALID_PERMISSION_PHASE');
+  return createWorkflowPermissionPhase(request,state);
+}
 async function createWorkflowPermissionPhase(request:Request,state:State){
   const keys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode'];
   const auth=keys.map(key=>state.values[key]),revision=state.revision;
@@ -315,7 +321,7 @@ export function publicState(state: State,actorId?:string) {
     // New page readers use their authenticated owner endpoint. The general
     // Site payload carries effective compatibility content only, never old
     // abandoned drafts or a fabricated combined approved version.
-    // Verify current owner pointers before omitting their private proof.
+    // Validate both current approval pointers before omitting private owner proof.
     master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};
     delete master.workflowScopes;
     master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));

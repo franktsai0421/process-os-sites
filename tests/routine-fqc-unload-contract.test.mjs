@@ -1,3 +1,6 @@
+import historicalSource from '../scripts/historical-source-fixture.cjs';
+// Historical browser capability tests use the exact reviewed d4 source. Current
+// silent departure deliberately removed beforeunload; current delegation is tested below.
 // Modern beforeunload capability contract only; synthetic cancellation is not
 // proof of a native prompt, user activation, browser floor or mobile delivery.
 import assert from 'node:assert/strict';
@@ -7,7 +10,7 @@ import {test} from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
-const file='public/process/routine-fqc.js',current=fs.readFileSync(file,'utf8'),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
+const file='public/process/routine-fqc.js',current=historicalSource.readPublic('main','routine-fqc.js'),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
 assert.equal(createHash('sha256').update(previous).digest('hex'),'ed342c34242df88c2b6edb71d2f2025b284a4fe41026ffbd92d0fb614f03c3f7');
 const lf=text=>text.replace(/\r\n/g,'\n');
 // Among the pinned functions, only Save changed in checkpoint1ab4ccf: ownership,
@@ -16,8 +19,7 @@ const lf=text=>text.replace(/\r\n/g,'\n');
 const reviewedSaveSHA='2b085f67fcfe5d5fa250624abba7ed5bc1dc3bcfb65b66ecc815119fa60ba29b';
 function assertPreservedContract(source){
  const actual=functions(lf(source)),baseline=functions(lf(previous));
- for(const key of ['dirty','docs'])assert.equal(actual[key],baseline[key],key+' retains its existing behavior');
- assert.equal(actual.leave,'()=>pageDraftMode?window.RoutineFqcPage.canLeave():'+baseline.leave.slice(4),'exact old SPA guards survive behind the explicit new-owner branch');
+ for(const key of ['dirty','docs','leave'])assert.equal(actual[key],baseline[key],key+' retains its existing behavior');
  assert.equal(createHash('sha256').update(actual.save).digest('hex'),reviewedSaveSHA,'complete reviewed per-document Save contract is preserved');
  assert.equal(actual.unload,baseline.unload.replace("      e.returnValue = '';\n",''),'only the legacy returnValue assignment is removed from beforeunload');
 }
@@ -39,13 +41,12 @@ void test('LF and CRLF contracts agree; removing any retained guard or Save revi
  ]){const target=key==='docs'?code[key].slice(6,-1):code[key],replacement=key==='docs'?changed.slice(6,-1):changed;assert.notEqual(replacement,target,key+' negative fixture changed');assert.ok(text.includes(target),key+' mutation locates actual source');assert.throws(()=>assertPreservedContract(text.replace(target,replacement)),key+' protection is required');}
 });
 function functions(source){const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);const out={};function visit(n){if(ts.isFunctionDeclaration(n)&&['dirty','save','draft','buffer'].includes(n.name?.text))out[n.name.text]=n.getText(tree);if(ts.isVariableDeclaration(n)&&['docs','doc','status'].includes(n.name.getText(tree))&&ts.isArrowFunction(n.initializer))out[n.name.getText(tree)]='const '+n.getText(tree)+';';if(ts.isPropertyAssignment(n)&&n.name.getText(tree)==='canLeave')out.leave=n.initializer.getText(tree);if(ts.isCallExpression(n)&&n.expression.getText(tree)==='window.addEventListener'&&n.arguments[0]?.text==='beforeunload')out.unload=n.getText(tree);ts.forEachChild(n,visit);}visit(tree);for(const key of ['dirty','docs','leave','save','unload'])assert.ok(out[key],key);return out;}
-function fixture(source){const code=functions(source),s={buffers:new Map(),bases:new Map(),busy:false,retry:false,dialogOpen:false},data={control:{documents:[{id:'a'},{id:'b'}]}},listeners=[];const c={s,data,pageDraftMode:false,inFlightMutation:false,window:{addEventListener:(name,fn)=>listeners.push({name,fn})}};vm.createContext(c);vm.runInContext(code.dirty+'\n'+code.docs+'\n'+code.unload+';this.canLeave='+code.leave,c);assert.equal(listeners.length,1);assert.equal(listeners[0].name,'beforeunload');return{s,c,handler:listeners[0].fn};}
+function fixture(source){const code=functions(source),s={buffers:new Map(),bases:new Map(),busy:false,retry:false,dialogOpen:false},data={control:{documents:[{id:'a'},{id:'b'}]}},listeners=[];const c={s,data,inFlightMutation:false,window:{addEventListener:(name,fn)=>listeners.push({name,fn})}};vm.createContext(c);vm.runInContext(code.dirty+'\n'+code.docs+'\n'+code.unload+';this.canLeave='+code.leave,c);assert.equal(listeners.length,1);assert.equal(listeners[0].name,'beforeunload');return{s,c,handler:listeners[0].fn};}
 for(const mode of ['no-buffer','equal-buffer','dirty-first','dirty-second','reverted'])void test('actual dirty and beforeunload handler '+mode,()=>{
  const result=[];for(const source of [previous,current]){const f=fixture(source);if(mode!=='no-buffer'){f.s.bases.set('a',{notes:'saved'});f.s.buffers.set('a',{notes:mode==='dirty-first'?'new':'saved'});}if(mode==='dirty-second'){f.s.bases.set('b',{notes:'saved'});f.s.buffers.set('b',{notes:'new'});}if(mode==='reverted'){f.s.buffers.get('a').notes='new';f.s.buffers.get('a').notes='saved';}
  const event=new Event('beforeunload',{cancelable:true});let writes=0;Object.defineProperty(event,'returnValue',{get:()=>true,set:()=>writes++});const snapshot=JSON.stringify([...f.s.buffers]);const value=f.handler(event);assert.equal(value,undefined);assert.equal(JSON.stringify([...f.s.buffers]),snapshot);const dirty=mode.startsWith('dirty');assert.equal(event.defaultPrevented,dirty);assert.equal(f.c.canLeave(),!dirty);assert.equal(writes,source===previous&&dirty?1:0);result.push({cancelled:event.defaultPrevented,leave:f.c.canLeave()});}assert.deepEqual(result[1],result[0]);
 });
 void test('remaining SPA busy/retry/dialog/inflight guards are independently retained',()=>{const f=fixture(current);for(const key of ['busy','retry','dialogOpen']){f.s[key]=true;assert.equal(f.c.canLeave(),false);f.s[key]=false;}f.c.inFlightMutation=true;assert.equal(f.c.canLeave(),false);f.c.inFlightMutation=false;assert.equal(f.c.canLeave(),true);});
-void test('new page mode delegates to its real page owner and never weakens legacy guards',()=>{const f=fixture(current);let allow=false,calls=0;f.c.window.RoutineFqcPage={canLeave:()=>{calls++;return allow;}};f.c.pageDraftMode=true;assert.equal(f.c.canLeave(),false);allow=true;assert.equal(f.c.canLeave(),true);assert.equal(calls,2);f.c.pageDraftMode=false;f.s.retry=true;assert.equal(f.c.canLeave(),false);assert.equal(calls,2);});
 void test('modern handler never touches legacy returnValue even when accessor would throw',()=>{const f=fixture(current);f.s.bases.set('a',{});f.s.buffers.set('a',{notes:'dirty'});const event=new Event('beforeunload',{cancelable:true});Object.defineProperty(event,'returnValue',{get(){throw Error('LEGACY_READ');},set(){throw Error('LEGACY_WRITE');}});assert.doesNotThrow(()=>f.handler(event));assert.equal(event.defaultPrevented,true);});
 
 
@@ -107,4 +108,9 @@ for(const denied of ['missing-target','pending','save-permission','edit-permissi
 void test('actual Save permits save-only for clean local input and rejects mismatched saved readback',async()=>{
  const clean=saveFixture();clean.s.buffers.set('a',copy(clean.s.bases.get('a')));clean.c.data.permissions.edit=false;await clean.c.save(clean.target());assert.deepEqual(clean.calls.map(call=>call.command.action),['save']);
  const f=saveFixture({mismatchedReadback:true}),inputs=copy([...f.s.buffers]);await assert.rejects(f.c.save(f.target()),/SAVE_RECHECK_REQUIRED/);assert.deepEqual(copy([...f.s.buffers]),inputs);assert.equal(f.calls.length,2);
+});
+
+void test('current runtime has no beforeunload producer and delegates page ownership while retaining legacy busy/UNKNOWN guards',()=>{
+ const source=fs.readFileSync(file,'utf8'),tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let leave;const unload=[];function visit(n){if(ts.isPropertyAssignment(n)&&n.name.getText(tree)==='canLeave')leave=n.initializer.getText(tree);if(ts.isCallExpression(n)&&n.expression.getText(tree)==='window.addEventListener'&&n.arguments[0]?.text==='beforeunload')unload.push(n.getText(tree));ts.forEachChild(n,visit);}visit(tree);assert.deepEqual(unload,[]);assert(leave);
+ let allowed=false,calls=0;const s={busy:false,retry:false,dialogOpen:false},c={pageDraftMode:true,window:{RoutineFqcPage:{canLeave:()=>{calls++;return allowed;}}},s,inFlightMutation:false,docs:()=>[],dirty:()=>false};vm.createContext(c);vm.runInContext('this.canLeave='+leave,c);assert.equal(c.canLeave(),false);allowed=true;assert.equal(c.canLeave(),true);assert.equal(calls,2);c.pageDraftMode=false;for(const key of ['busy','retry','dialogOpen']){s[key]=true;assert.equal(c.canLeave(),false);s[key]=false;}c.inFlightMutation=true;assert.equal(c.canLeave(),false);c.inFlightMutation=false;assert.equal(c.canLeave(),true);assert.equal(calls,2);
 });

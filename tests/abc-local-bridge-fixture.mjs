@@ -12,6 +12,6 @@ export async function fixture({scope='AB',disk=new Map(),api,sharedSource}={}){
   if((mode==='lost'||mode==='lost-begin')&&body)throw Error('Synthetic lost ACK');return response;
  };
  vm.createContext(box);for(const p of ['shared-draft-client.js','master-shared-client.js'])vm.runInContext(p==='shared-draft-client.js'&&sharedSource!==undefined?sharedSource:fs.readFileSync('public/process/'+p,'utf8'),box);
- const bridge=box.createMasterSharedBridge({control});await bridge.load(scope);
+ const bridge=box.createMasterSharedBridge({control,processLocalSave:scope==='PROCESS'});await bridge.load(scope);
  return {f,box,bridge,control,disk,calls,scope,draft:()=>control.versions.find(v=>v.scope===scope&&v.status==='draft'),mode:v=>mode=v,form:v=>form=v,emit:name=>{for(const fn of events.get(name)||[])fn({});},posts:()=>calls.filter(c=>c.method==='POST')};
 }

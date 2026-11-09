@@ -18,10 +18,11 @@ const locks={request:async(name,_options,callback)=>{if(heldLocks.has(name))retu
 async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generation='gen1',epoch:initialEpoch=1,writeFail=false,lockSupported=true}={}){
  const {document}=canvasDOM(),area=document.createElement('section');document.body.append(area);document.documentElement.lang='zh';
  const products=Array.from({length:size},(_,i)=>({code:'P'+i,name:'Synthetic '+i,kind:'product',specification:''}));
- const item={id:'I1',checkNo:'FQC-01',name:'Synthetic',category:'A',productCodes:[],productRefs:[],products:[]};
- const flow={generation,revision:3,pendingId:null,working:{errors:[],items:[clone(item)]},saved:{id:'save1',at:'2026-10-30T00:00:00Z',actor:{name:'Synthetic editor'},content:{errors:[],items:[clone(item)]}}};
+ const error={id:'E1',name:'Synthetic parent',category:'A'};
+ const item={id:'I1',errorId:'E1',checkNo:'FQC-01',name:'Synthetic',category:'A',productCodes:[],productRefs:[],products:[]};
+ const flow={scope:'fqc',generation,revision:3,pendingId:null,working:{errors:[clone(error)],items:[clone(item)]},saved:{id:'save1',at:'2026-10-30T00:00:00Z',actor:{name:'Synthetic editor'},content:{errors:[clone(error)],items:[clone(item)]}}};
  const version={id:'draft1',status:'draft',snapshot:clone(flow.working)},library={workflow:flow,versions:[version]};
- let actor={id:actorId},epoch=initialEpoch,poll=null,unknown=false,sequence=0,deferred=null,receipt=null,confirmAction=async()=> 'reason';
+ let actor={id:actorId},epoch=initialEpoch,unknown=false,sequence=0,deferred=null,receipt=null,confirmAction=async()=> 'reason';
  let receiptReady;const receiptStarted=new Promise(resolve=>receiptReady=resolve);
  let remoteRevision=3;const remote=clone(flow.working),events=new Map();
  const stats={posts:0,reads:0,stateReads:0,writes:0,renders:0,adopts:0,commands:[],notices:[],statuses:[],syncStatuses:[]};
@@ -42,17 +43,22 @@ async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generat
   receipt:async(id,gen)=>{stats.reads++;if(mode==='wait'){unknown=true;return new Promise(resolve=>{deferred=()=>{unknown=false;resolve({receipt});};receiptReady();});}if(mode==='unknown')throw Object.assign(Error('OPERATION_NOT_FOUND'),{status:404});if(receipt?.operationId!==id||receipt?.generation!==gen)throw Error('RECEIPT_NOT_FOUND');unknown=false;return{receipt};},
   command:async (generation,action,detail)=>{stats.posts++;stats.commands.push({generation,action,...detail});return{};},
   read:async()=>{stats.stateReads++;return{permissions:{view:client.permission('view')===true,edit:client.permission('edit')===true},control:{...clone(library),workflow:{...library.workflow,revision:remoteRevision,saved:clone(remoteSaved),working:clone(remote)},versions:library.versions.map(v=>({...v,snapshot:clone(remote)}))}};}};
- const box={console,Map,Set,JSON,Error,Object,Array,Number,String,TextEncoder,Uint8Array,setTimeout,clearTimeout,sessionStorage:store,localStorage:store,CustomEvent:class{constructor(type){this.type=type;}},document,ui:{saving:false},hostElement:area,sharedClient:client,activeSharedAction:null,pendingCommandFeedback:null,syncBase:clone(flow.working),syncGeneration:generation,beginGenerationConflict:null,localRejection:null,sharedFields:{errors:['name','isDeleted'],items:['name','description','productCodes','productRefs','products','isDeleted']},
-  clone,h:String,isVi:()=>document.documentElement.lang==='vi',identity:()=>actor,editable:()=>library.versions[0],library:()=>library,transport:()=>client,canEditDraft:()=>client.permission('edit')===true,
+ // Synthetic transport comparison ports enforce the fresh evidence they expose.
+ const comparisons=new WeakMap();
+ client.compareForSave=async({isCurrent})=>{const result=await client.read();if(!isCurrent())throw Error('FQC_OPERATION_CONTEXT_CHANGED');if(!result.permissions.view||!result.permissions.edit)throw Error('FORBIDDEN');const evidence={result};comparisons.set(evidence,{isCurrent,revision:remoteRevision});return evidence;};
+ client.prepareComparedSave=(evidence,detail,{isCurrent})=>{const pin=comparisons.get(evidence);if(!pin||!pin.isCurrent()||!isCurrent()||pin.revision!==remoteRevision||!client.permission('view')||!client.permission('edit')||unknown)throw Error('FQC_OPERATION_CONTEXT_CHANGED');comparisons.delete(evidence);return client.prepare(evidence.result.control.workflow.generation,'save',{...detail,expectedRevision:pin.revision});};
+ const box={control:library,console,Map,Set,JSON,Error,Object,Array,Number,String,TextEncoder,Uint8Array,setTimeout,clearTimeout,sessionStorage:store,localStorage:store,CustomEvent:class{constructor(type){this.type=type;}},document,ui:{saving:false},hostElement:area,sharedClient:client,activeSharedAction:null,pendingCommandFeedback:null,syncBase:clone(flow.working),syncGeneration:generation,beginGenerationConflict:null,localRejection:null,sharedFields:{errors:['name','isDeleted'],items:['name','description','productCodes','productRefs','products','isDeleted']},
+  clone,h:String,isVi:()=>document.documentElement.lang==='vi',identity:()=>actor,selected:()=>library.versions[0],editable:()=>library.versions[0],library:()=>library,transport:()=>client,canEditDraft:()=>client.permission('edit')===true,
   currentReadOwner:()=>{const original=actor,e=epoch;return()=>actor===original&&epoch===e;},catalog:()=>({comparisonReady:true,products,productMap:new Map(products.map(p=>[p.code,p]))}),
   adopt:r=>{stats.adopts++;if(r.control){Object.assign(library,r.control);box.syncBase=clone(r.control.workflow.working);}},render:()=>{stats.renders++;box.api?.paintMatrixActions();},toast:m=>stats.notices.push(m),displayDraftError:e=>e?.message||e,
-  workspaceReady:()=>true,sharedPoll:{capture:()=>1,isCurrent:()=>true,schedule:fn=>{poll=fn;},cancel(){}},
+  workspaceReady:()=>true,fqcTabIsActive:()=>true,
   window:{crypto:webcrypto,setTimeout,clearTimeout,localStorage:store,sessionStorage:store,navigator:lockSupported?{locks}:{},confirm:()=>true,
    addEventListener(name,callback){const list=events.get(name)||[];list.push(callback);events.set(name,list);},removeEventListener(name,callback){events.set(name,(events.get(name)||[]).filter(fn=>fn!==callback));},ProcessSync:{identityGeneration:()=>epoch},dispatchEvent(){},VersionDraftUI:{updateSync:(_root,busy,failed,dirty)=>stats.syncStatuses.push({busy,failed,dirty}),updateSaved:(_root,_flow,dirty)=>stats.statuses.push(dirty),reasonFor:()=>'',confirmSubmit:(...args)=>confirmAction(...args)}}};
  vm.createContext(box);vm.runInContext(recoverySource,box);vm.runInContext(sessionSource,box);
  vm.runInContext(cut(shared,'  window.captureSharedDraftSubmission=','  // Begin alone'),box);
- vm.runInContext(cut(source,'  // Matrix choices stay private','  const commandFeedbackPending=')+cut(source,'  async function loadShared(','  async function reconcileLocalConflict(')+cut(source,'  function pollShared()','  const ui =')+cut(source,'  async function submitDraft()','  async function withdrawDraft()')+cut(source,'  function matrixHTML(','  function bindEvents()')+'\nthis.api={toggleMatrixChoice,applyMatrixChoices,discardMatrixChoices,reconcileMatrixChoices,matrixDirty,matrixToolbarHTML,paintMatrixActions,matrixHTML,pollShared,submitDraft,assertNoUnapplied,persistMatrixChoices,restoreMatrixChoices,restoreMatrixRecord,discardMatrixRecord,resolveMatrixRecord,openMatrixRecovery,session:()=>matrixRecoverySession,recoveryState:()=>({ready:matrixRecoveryReady,blocked:matrixRecoveryBlocked,note:matrixRecoveryNote,error:matrixRecoveryError,tab:matrixRecoverySession?.runtimeId}),matrixCommand,getBatch:()=>matrixBatch};',box);
- vm.runInContext(cut(source,'  async function sharedAction(','  function pollShared()')+'this.actualSharedAction=sharedAction;',box);
+ vm.runInContext(cut(source,'  // Matrix choices stay private','  const commandFeedbackPending=')+cut(source,'  async function loadShared(','  async function reconcileLocalConflict(')+cut(source,'  async function submitDraft()','  async function withdrawDraft()')+cut(source,'  function matrixHTML(','  function bindEvents()')+'\nthis.api={toggleMatrixChoice,applyMatrixChoices,discardMatrixChoices,reconcileMatrixChoices,matrixDirty,matrixToolbarHTML,paintMatrixActions,matrixHTML,submitDraft,assertNoUnapplied,persistMatrixChoices,restoreMatrixChoices,restoreMatrixRecord,discardMatrixRecord,resolveMatrixRecord,openMatrixRecovery,session:()=>matrixRecoverySession,recoveryState:()=>({ready:matrixRecoveryReady,blocked:matrixRecoveryBlocked,note:matrixRecoveryNote,error:matrixRecoveryError,tab:matrixRecoverySession?.runtimeId}),matrixCommand,getBatch:()=>matrixBatch};',box);
+ vm.runInContext(cut(source,'  let localSaveAttempt=','  const ui =')+'this.actualSharedAction=sharedAction;',box);
+ vm.runInContext(cut(source,"  window.addEventListener('process-shared-state-updated'","  window.addEventListener('routine-equipment-updated'"),box);
  box.sharedAction=async(action,detail)=>{if(action==='save')return box.actualSharedAction(action,detail);box.api.assertNoUnapplied();stats.posts++;stats.commands.push({action,...detail});};
  // Explicitly construct an already-sent legacy Apply record. New clicks never
  // schedule or dispatch this protocol; only historical receipt recovery uses it.
@@ -73,7 +79,7 @@ async function fixture({mode='ok',size=100,records=new Map(),actorId='A',generat
  const paint=()=>{area.innerHTML=box.api.matrixToolbarHTML()+box.api.matrixHTML(library.versions[0],'A',products,true);box.api.paintMatrixActions();};paint();
  const button=i=>area.querySelector(`[data-matrix-product="P${i}"]`);
  return{api:box.api,box,stats,version,library,products,area,document,client,paint,button,remote,records,store,emit:name=>events.get(name)?.slice().forEach(callback=>callback()),writeFail:value=>{writeFail=value;},
-  waitReceipt:()=>receiptStarted,changeMode:value=>{mode=value;},actor:value=>{actor={id:value};},epoch:()=>epoch++,resolve:()=>deferred(),poll:()=>poll(),confirm:fn=>{confirmAction=fn;},flow:()=>library.workflow,remoteRevision:value=>{remoteRevision=value;}};
+  waitReceipt:()=>receiptStarted,changeMode:value=>{mode=value;},actor:value=>{actor={id:value};},epoch:()=>epoch++,resolve:()=>deferred(),confirm:fn=>{confirmAction=fn;},flow:()=>library.workflow,remoteRevision:value=>{remoteRevision=value;}};
 }
 
 void test('100 matrix clicks send zero commands, preserve source and avoid full redraw',async()=>{
@@ -102,8 +108,8 @@ void test('legacy unknown Apply queries original receipt without another POST or
 void test('legacy pending Apply can still query its receipt after edit is revoked',async()=>{
  const f=await fixture({mode:'unknown'});f.api.toggleMatrixChoice(f.button(1));await f.api.legacyApply();f.client.permission=permission=>permission!=='edit';f.changeMode('ok');await f.api.legacyApply();assert.equal(f.stats.posts,1);assert.equal(f.stats.reads,1);assert.equal(f.api.matrixDirty(),false);
 });
-void test('poll, search, language and independent repaint retain local matrix batch',async()=>{
- const f=await fixture();f.api.toggleMatrixChoice(f.button(7));f.api.pollShared();await f.poll();assert.equal(f.stats.adopts,0);
+void test('explicit shared-state notification, search, language and independent repaint retain local matrix batch',async()=>{
+ const f=await fixture();f.api.toggleMatrixChoice(f.button(7));f.emit('process-shared-state-updated');await Promise.resolve();assert.equal(f.stats.adopts,0);assert.equal(f.stats.stateReads,0,'dirty matrix blocks the actual event read');
  f.box.ui.search='P7';f.document.documentElement.lang='vi';f.paint();assert.equal(f.button(7).textContent,'✓');assert.equal(f.api.getBatch().count,1);assert.equal(f.area.querySelector('#fqc-matrix-apply').hidden,true);
  f.box.ui.search='';f.document.documentElement.lang='zh';f.paint();assert.equal(f.button(7).textContent,'✓');assert.equal(f.stats.posts,0);
 });

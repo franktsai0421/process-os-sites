@@ -1,3 +1,6 @@
+import historicalCache from '../scripts/historical-source-fixture.cjs';
+import unified from '../scripts/unified-draft-source-contract.cjs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -30,6 +33,7 @@ void test('cold destination keeps an installed quality tab ahead of an old displ
 for(const tab of ['AB','C'])void test('cold destination retains actual authorized '+tab+' master renderer',()=>{const f=masterTabFixture(tab,{master:true});f.box.bindData();assert.equal(f.state.dataTab,tab);assert.equal(f.state.masterScope,tab);assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 void test('legacy nonprojected quality intent retains existing master fallback',()=>{const f=masterTabFixture('quality-iqc',{projected:false,master:true});f.box.bindData();assert.equal(f.state.dataTab,'AB');assert.match(f.content.innerHTML,/master-organized/);assert.deepEqual(f.calls,['master','tabs']);});
 const iqcSource=source('iqc-master.js'),iqcLoad=part(iqcSource,'  async function load(owner) {','  async function post(');
+const iqcDisplay=part(iqcSource,'  const historyAllowsMutation=','  const guardWorking=');
 const iqcAdmission=part(iqcSource,'  const completeSnapshot=','  async function hydrateVersion('),iqcSelected=part(iqcSource,'  const selected =','  const active =');
 assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includes('control?.versions.find'),'actual admission and selection source required');
 // IQC now admits one complete fresh response, not two independent reads.
@@ -37,11 +41,11 @@ assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includ
 // the full shared transport is exercised by the dedicated IQC race suites.
 function iqcLoadFixture(){
  let epoch=1;const response=deferred(),events=[],actor={id:'synthetic'},options=[];
- const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
+ const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',historyDisplayEpoch:0,approvedHistoryView:null,ui:{versionId:''},identity:()=>actor,
   window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch}},
   transport:()=>({read:(token,opt)=>{assert.equal(token,undefined);assert.equal(opt.requireAcceptedAccess,true);assert.equal(opt.isCurrent(),true);events.push('combined');options.push(opt);return response.promise;}}),
   denyRead:error=>{box.readDenied=error;}};
- vm.createContext(box);vm.runInContext(iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
+ vm.createContext(box);vm.runInContext(iqcDisplay+iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
 }
 const iqcFull=()=>({revision:9,permissions:Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true])),control:{schemaVersion:1,versions:[],issues:[],reservedErrorCodes:[],reservedCheckNos:[]}});
 for(const kind of ['delivery','entry-owner'])void test('actual IQC load rejects old '+kind+' without installing model',async()=>{
@@ -59,6 +63,10 @@ for(const missing of ['control','permissions'])void test('actual IQC combined re
  const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/IQC/),full=iqcFull();delete full[missing];f.response.resolve(full);
  await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);assert(f.box.readDenied);assert.deepEqual(f.events,['combined']);
 });
+for(const change of ['display-epoch','readonly'])void test('actual IQC load refuses late '+change+' without installing model',async()=>{
+ const f=iqcLoadFixture(),promise=f.box.load(),rejected=assert.rejects(promise,/DELIVERY_SUPERSEDED/);if(change==='display-epoch')f.box.historyDisplayEpoch++;else f.box.approvedHistoryView={blocked:true};assert.equal(f.options[0].isCurrent(),false);f.response.resolve(iqcFull());await rejected;assert.equal(f.box.control,null);assert.equal(f.box.revision,null);
+});
+void test('actual IQC readonly display rejects load before its first request',async()=>{const f=iqcLoadFixture();f.box.approvedHistoryView={blocked:true};await assert.rejects(f.box.load(),/APPROVED_HISTORY_READ_ONLY/);assert.deepEqual(f.events,[]);assert.equal(f.box.control,null);});
 const accountSource=source('user-access.js');
 const accountRequest=part(accountSource,' async function requestValue(options={}){','\n function expireSession()');
 const accountSend=part(accountSource,' async function send(payload){','\n function paint()');
@@ -111,6 +119,58 @@ void test('changed persistent-navigation executable references have coherent new
  const expected={
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
   'editor-line-selection.js':'20261030-pr54-integrated1',
+  'app.js':'20261109-unified-save-choice1',
+  'approval-tabs.js':'20261025-navigation2',
+  'bom-workspace.js':'20261109-unified-save-choice1',
+  'bootstrap.js':'20261104-draft-integration1',
+  'canvas-local.js':'20261109-unified-save-choice1',
+  'canvas-recovery-store.js':'20261109-unified-save-choice1',
+  'delivery-navigation.js':'20261104-canvas-integration1',
+  'dual-system.js':'20261025-navigation2',
+  'effective-version-notice.js':'20261109-unified-save-choice1',
+  'fqc-master.js':'20261109-unified-save-choice1',
+  'ipqc-ab.js':'20261109-unified-save-choice1',
+  'ipqc-c.js':'20261109-unified-save-choice1',
+  'iqc-master.js':'20261109-unified-save-choice1',
+  'master-data.js':'20261109-unified-save-choice1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
+  'master-shared-client.js':'20261109-unified-save-choice1',
+  'permission-controls.js':'20261029-dispatch-rights1',
+  'process-authoring-v3.js':'20261109-unified-save-choice1',
+  'quality-review-overview.js':'20261101-quality-review-admission1',
+  'routine-equipment.js':'20261109-unified-save-choice1',
+  'routine-fqc.js':'20261109-unified-save-choice1',
+  'access-event-reporter.js':'20261106-access-offline3',
+  'shared-draft-client.js':'20261109-unified-save-choice1',
+  'shared-state.js':'20261106-access-offline1',
+  'tooling.js':'20261109-unified-save-choice1',
+  'user-access.js':'20261106-role-layout1',
+  'navigation-forms.js':'20261025-navigation2',
+  'process-ipqc.js':'20261109-unified-save-choice1',
+  'data-safety-ui.js':'20261027-login-reentry1',
+  'process-equipment.js':'20261105-process-local-save1',
+  'process-editor.js':'20261109-unified-save-choice1',
+  'master-review.js':'20261030-pr54-integrated1',
+  'process-ipqc.css':'20261031-bom-ab-recovery1',
+  'process-equipment.css':'20261029-flow1',
+  'photo-viewer.css':'20261029-photo2',
+  'version-workflow.js':'20261030-access-fusion1',
+  'i18n.js':'20261029-photo1',
+  'user-access.css':'20261106-role-layout2',
+  'user-access-initial-read.js':'20261029-users-load2',
+  'web-feedback-entry.js':'20261106-access-offline1',
+ };
+ const currentIndex=unified.canonicalSource(fs.readFileSync('public/process/index.html'),execFileSync('git',['show','HEAD:public/process/index.html'])),html=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString(),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
+ const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
+ for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
+ const followupReferences=[...unified.restore(currentIndex,'public/process/index.html','previous_followup').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const followupExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ for(const [file,version]of Object.entries(followupExpected))assert.deepEqual(followupReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
+ for(let i=1;i<ordered.length;i++)assert(followupReferences.indexOf(`${ordered[i-1]}?v=${followupExpected[ordered[i-1]]}`)<followupReferences.indexOf(`${ordered[i]}?v=${followupExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
+ const mainBackgroundExpected={
+  'master-reference-viewer.js':'20261030-pr5152-integrated1',
+  'editor-line-selection.js':'20261030-pr54-integrated1',
   'app.js':'20261105-process-local-save1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
@@ -120,22 +180,22 @@ void test('changed persistent-navigation executable references have coherent new
   'delivery-navigation.js':'20261104-canvas-integration1',
   'dual-system.js':'20261025-navigation2',
   'effective-version-notice.js':'20261109-explicit-checks1',
-  'fqc-master.js':'20261109-page-catalog1',
+  'fqc-master.js':'20261104-begin-generation2',
   'ipqc-ab.js':'20261105-ab-scope-input1',
   'ipqc-c.js':'20261106-c-local-gauge-preview1',
   'iqc-master.js':'20261106-number-hint1',
-  'master-data.js':'20261109-page-owners1',
+  'master-data.js':'20261105-process-local-save1',
   'master-shared-client.js':'20261105-process-local-save1',
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261109-explicit-checks1',
   'quality-review-overview.js':'20261101-quality-review-admission1',
   'routine-equipment.js':'20261108-equipment-ci-recovery1',
-  'routine-fqc.js':'20261109-page1',
+  'routine-fqc.js':'20261109-complete-routine-page2',
   'routine-fqc-page.js':'20261109-photo-outcome1',
-  'master-page-editor.js':'20261109-page-tools1',
+  'master-page-editor.js':'20261109-integrated-drafts1',
   'master-page-transfer.js':'20261109-page-tools1',
   'access-event-reporter.js':'20261106-access-offline3',
-  'shared-draft-client.js':'20261109-routine-page1',
+  'shared-draft-client.js':'20261109-explicit-checks3',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
   'user-access.js':'20261106-role-layout1',
@@ -153,11 +213,15 @@ void test('changed persistent-navigation executable references have coherent new
   'user-access.css':'20261106-role-layout2',
   'user-access-initial-read.js':'20261029-users-load2',
   'web-feedback-entry.js':'20261106-access-offline1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
  };
- const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
- for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
- const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
- for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
+ const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main100').toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [file,version]of Object.entries(mainBackgroundExpected))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' main #100');
+ for(let i=1;i<ordered.length;i++)assert(mainBackgroundReferences.indexOf(`${ordered[i-1]}?v=${mainBackgroundExpected[ordered[i-1]]}`)<mainBackgroundReferences.indexOf(`${ordered[i]}?v=${mainBackgroundExpected[ordered[i]]}`),'main #100 reporter/recovery ordering remains exact');
+ const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const currentExpected=Object.fromEntries(Object.keys(expected).map(file=>[file,historicalCache.expectedCurrentCache(file)]));
+ for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
+ for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));
 });
 

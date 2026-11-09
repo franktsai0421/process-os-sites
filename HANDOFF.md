@@ -3,6 +3,9 @@
 已補 owner-scoped master Excel／舊格式相容、本機產品欄位／類別 rename／最大路線／順序；page exchange 獨立檢查。主資料真 XLSX12／UI11、十三頁 signed owner/view/foreign-receipt＋common kernel 檢查通過。RF media lost-ACK counterexample 已補 sent hash journal＋actor R2 outcome，只讀原結果；UI12含重開與404防重PUT、photo API6組。本人發回對齊 ea58111：保留 return/原因/pending/版本 gate，不新增admin或self-confirm，舊receipt caps不放寬。正式提交／後續完整回歸以 evidence 為準。
 
 已核對製程7e409a0／查看a1c52dd／權限ea58111，不整批覆蓋。legacyArchive late auth P2／新page history由查看owner修；本題提供新API/資料介面。[逐頁矩陣](docs/acceptance/module-draft-boundary-20261109.md)。真切換／還原及全站實站與獨審未完成；禁止重送既往UNKNOWN、重試獨審或Chromium拒絕。
+## 2026-11-09 — e5整頁FQC本機合樹，兩項P2待owner修正
+
+已依#102／#101優先順序真merge5729e17，保留原製程／歷史／UNKNOWN。整頁接線及主要回歸PASS，但legacyArchive晚到撤權、照片PUT未知重送已實際重現；新整頁history仍缺API／selector。詳[現行阻擋](docs/acceptance/process-editor-remaining-dependencies-20261109.md)。不單獨合併#101，未啟用marker或公開更新程式。
 
 ## 2026-11-09 例行整頁候選收尾與整合順序
 
@@ -24,6 +27,34 @@ RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save
 
 作者自查補一般 aggregate 不得建立／移除／改寫 server-managed pageLayout／owner baseline，inline/records 負控制已重現並拒絕無寫入。最新衝突來源88a4a2c已唯讀核對，保留其PROCESS照片組／排序、RF late ACK及domain localSave；本題master comparer只開放AB/C/LINES。未匯入、未上傳、未重送UNKNOWN；獨審中止狀態不變。
 
+
+## 2026-11-09 — 完整製程合入dfdfe／88／2e固定交付，仍NOT_READY
+
+產品a2c5f55真實合入最新#102、草稿衝突與版本owner；新三頁歷史422已解除。publicState正式來源驗證P2另修42cdba6，12案例及獨立舊碼反證成立。marker未開、完整UI與routine整頁仍未交付，未上傳／部署。[現行完整矩陣](docs/acceptance/process-editor-complete-20261109.md)；[精確剩餘相依](docs/acceptance/process-editor-remaining-dependencies-20261109.md)。下方舊972／422段落僅歷史檢查點。
+
+## 2026-11-09 — 完整製程與972頁面runtime已本機合樹，仍NOT_READY
+
+產品42917bf保留完整畫布／已核准歷史與#102固定972受marker守門之writer，未切真資料或上傳。277畫布／C回呼、162歷史及1550來源相依PASS，guarded build／lint／TS PASS；新pages approvedOnly三頁仍422，版本adapter及routine整頁仍未完成。[精確交界與下一步](docs/acceptance/process-editor-remaining-dependencies-20261109.md)。原UNKNOWN／拒絕不重送。下方舊檢查點按其日期／來源閱讀，不能作新樹狀態。
+
+## 2026-11-09 — 完整歷史候選已合入本機畫布整合
+
+已保留root27a檢查點並以真實雙親合入1a/e3d92846完成歷史前端；807與當前scope Save保留。只讀display epoch另封住已排程view gate，fresh返回權限保護本機writer。新永久cross-regression已加入；正按新runtime重建來源與cache證據，不能用舊819通過當新樹驗證。#102的dirty全頁切換不拷入；GitHub完整程式與實站仍未更新。詳[最新矩陣](docs/acceptance/process-editor-complete-20261109.md)。
+
+## 2026-11-09 — 最新草稿決定已核實
+
+舊草稿可不保留、A可整份AB送審、例行FQC整頁共用，全部草稿頁面由#102統一；三項不再待答。此整合仍只含b172未啟用前置，不能把規則確認當作拆分完成或在本批執行真資料轉換。完整來源、測試及外部阻擋見下方矩陣與本機delivery manifest。
+
+# 完整製程編輯台單一PR要求
+
+使用者要求所有已討論製程編輯台修改一起在同一PR交付。#1018f元件4CI全PASS但不先獨立合併；本機整合分支不改其他對話工作樹，不用#101／新PR重送舊UNKNOWN。原頁核准歷史、真實scope/權限切換與實站仍未全部完成。[完整矩陣與順序](docs/acceptance/process-editor-complete-20261109.md)。
+
+# 2026-11-09 — Integration status
+
+Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank merged #100, preserving #99 (021f0f3). PR101 remains Draft under the complete-editor single-PR requirement; its 8f component has four passing CI but the complete tree has not been uploaded. Local 380d016 runtime preserves actual main #100 and the frozen candidates; only the exact bbc5 C request-entry guard/test from newer7ef was added, with strict expanded source evidence. New history-owner bfa2650 is not yet absorbed. No Site deployment or real-data operation was performed.
+
+# 2026-11-09 - Independent canvas count batch
+
+Based on merged main 021f0f3 (#99), this batch changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. Both #99 CI and documentation additions are retained; concurrent global draft edits are not absorbed. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
 ## 2026-11-09 Runtime 初審修正與未完成界線
 
 972e3a8 初審回報 parent restore 可帶新 child 漏查 create，以及 companion active 未綁原 approved 來源兩個 P2。已留修正前負控制並補逐層 identity 分類、三 owner 來源解析和 verified-only 相容讀取／public references；新增八組 memory regressions。獨審隨後因 possible cybersecurity risk 被內容安全機制中止，沒有整輪 PASS、未重送；目前新修正只有作者測試。原生 browser OS socket EPERM、舊登入 fixture baseline failure、完整 UI 等價／routine 整頁／權限 policy／版本查看相依仍需保留。
@@ -49,6 +80,13 @@ RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save
 後續 8 組資料安全演練確認：去機密分發快照會重寫 JSON 外觀文字與其 receipt fingerprint，不能作為這次拆分的原樣還原備份；原來源 pins 會安全拒絕該結果。原樣 records 復原可保留原文字／收據。重大用途限制已回報；維持未啟用，沒有改全域 scrubber 或真實資料。[證據、資料安全方案及未驗範圍](docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
 
 依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
+## 2026-11-09 — 十三組草稿頁原頁核准版本本機完成
+
+最後補上製程編輯台／Canvas 與嚴格舊核准聯集，獨立 display lease 保留原 journal／UNKNOWN／pending；回草稿能以一次實際全站 Save 保存原修改。新畫布 viewer 不需套入另候選 80745895，該候選仍獨立待協調。7ef04ed7 的 C request-entry pin 修正 bbc5f9d 已語意採用，未覆寫共同 client。產品 d4a5ef9：全頁／C 572 PASS、新畫布與原製程205 PASS、完整來源826 PASS、完整送審回饋60組 PASS、build／lint／TS PASS。submit-feedback 已修正原 transport 夾具並完整結束；仍保留舊 Canvas-post 次數斷言的前任重現失敗，無全 CI 綠燈聲明。未上傳／部署／原生或實站驗收，無 schema／ACL／真資料修改。[逐頁狀態與界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — #100 main 與同頁核准版本本機整合
+
+本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
 
 #102 追蹤時自查修正未啟用名稱 Save 的貢獻者：同次暫改又改回保留原歸屬，混合真正修改仍正確標記；修正前反例已重現，名稱契約補為 15 組。這是作者自查，尚無獨立 review。與 #100/#101/#88 的直接重疊均為文件；未做跨 PR 合併，也未啟用拆分或變更真資料。各 head CI 與審查以遠端回執為準。
 
@@ -57,10 +95,65 @@ RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save
 Frank 手動合併 #100 後，已核對公開 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`／tree `6eee3963fec61a540c144a920fbb3f65949d5e10`，另開本機相容分支整合；CHANGELOG／SHARED_DRAFT 保留雙方段落，#100 的程式與測試維持原樣。先前已複審的 dc5bc6a 留在原分支；後續整合須按新來源驗證。遠端 #102 的 selector 修正上傳仍被目的地授權審查擋下，沒有重試或換路；不啟用拆分、不改真資料、不合併或部署。
 
 Frank 要求優先拆分後，新增未接線 `master-line-page-workflow.ts` 與 18 組純合成測試，補單一 LINES 既有名稱的 identified Begin／Save／案件／版本及核准來源處理。需要已建立的 page-owned approved baseline，不從舊 root adoption；callbacks 只代表未來受信任交易權限／引用驗證，沒有選擇 AB/C 分區政策。完整 topology／PROCESS planner、codec／CAS、舊 caller fence、UI 與真資料切換仍待完成；新元件初審在 13c6e02 發現案件與數字投影可同向偏離原 Save；已補固定 savedId／content 及 pending current saved 綁定，等待新 tree 定向複審。build/browser 尚未執行，不得沿用 dc5bc6a 的舊複審充數。公開新增範圍也不同於先前被拒的五檔，須另依最終來源核對授權，不能重送舊 payload。
+## 2026-11-09 — 草稿衝突處理續作
+
+從 7ef04ed 繼續整合 PROCESS／IQC 照片與清單、例行 FQC late ACK、FQC 墓碑 payload，以及模具 File 明確 Save 後上傳。舊工作草稿可放棄、A 可送整份 A/B、例行 FQC 整頁一份已確認；持久分界仍由 #102 接線，未刪待審／核准歷史或動真資料。[逐頁實作、相依與上傳界線](docs/acceptance/draft-conflict-continuation-20261109/README.md)。
+
+## 2026-11-09 — 統一草稿候選納入已合併 main #99／#100
+
+已於隔離分支真正merge main `9fbba823`，同時保留inert背景排程、history/restore明確操作權限與既有整組Save／CAS／原收據fences。原d1交付不覆寫，Canvas獨立候選與持久分拆未混入；未上傳或部署。[整合內容、驗證及界線](docs/acceptance/unified-main100-integration-20261109/README.md)。
 
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
+
+## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
+
+每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — IPQC A/B 同頁核准新舊聯集（本機）
+
+原頁接單一 selector、嚴格核准整份／舊群組聯集與回原 RAM，不新增持久 aliases 或 scope。26 新實際堆疊情境、543/543 受影響跨頁回歸、78 route、13 helper 及 lint／TS PASS；UNKNOWN／File／pending 保留，metadata 不讀歷史 body，最後權限／revision 防護有實測。尚餘例行 FQC 文件及待 parent 協調的畫布；未上傳／部署／原生或實站驗收。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — PROCESS 同頁核准版本本機批次
+
+流程資料／模板／機器已接單一同頁 selector、獨立核准快照與回原 RAM，移除舊歷史／還原與切換時 discard。新增 20 項 PASS，既有名稱／恢復 27 組 PASS；跨頁 323/325，兩項未修改畫布同步舊斷言在真實前任同樣失敗，未放寬／刪除測試。尚未協調整合獨立畫布 80745895；AB 聯集與例行 FQC 尚待接。未上傳、未部署、原生與實站未驗。[逐頁狀態與完整限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — AB/C、線別工段核准版本本機批次
+
+本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 已核准歷史與 d1ff 草稿篩選語意合併（本機）
+
+承接 `d1ff4a61` 的晚到輸入、照片及篩選保護，保留 IQC／FQC／模具／檢具的同頁核准歷史顯示與回原草稿。受影響 371 項情境分批 PASS，含 IQC 原 File/blob 跨歷史返回後只於明確 Save 上傳一次；原 9 個 named predecessors 與完整 historical witness 待合併 source 固定後重新生成。未上傳／合併 GitHub／部署；其他歷史頁仍未接完。[逐頁狀態與整合限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
+
+FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
+
+## 2026-11-09 — 已接續首批 IQC 同頁核准版本前端
+
+IQC 使用同位置單一 selector，已核准快照以原 detailPanel 唯讀顯示並可切回保留的當前 RAM；本頁舊歷史／還原彈窗入口移除。display epoch 阻擋舊回應與工作回呼，保留 UNKNOWN、pending、原比較基準與照片。32 項新查看、53 項 Save／離頁、76 項 BOM/C 共用、89 項其他 IQC 回歸及兩支投影腳本 PASS。其他頁面尚未完成，無 GitHub／部署變更。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 全頁核准版本查看首批（本機，未發布）
+
+已在獨立候選以 ce824f2 為基準盤點全部草稿頁，新增共同 approved-only GET 精確 envelope 與 source/body／權限防護；78 項新 route 測試、76 項 BOM/C common 實際 handler、68 項既有權限／收據回歸及 12 組 helper PASS。沒有接通其他頁的同頁 selector，不可宣稱全站完成；Github／測試站仍未更新，保留既有 243-path UNKNOWN 與拒絕操作邊界。[逐頁矩陣、來源與接續](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
+# 2026-11-09 — 全站明確存取／整組衝突選擇本機整合
+
+以 main b06394c 在隔離整合分支合併 master AB/C/PROCESS、Canvas、FQC、IQC、IPQC A/B/C、BOM、模具、檢具及例行 FQC。選擇前後均保護原輸入／權限／世代，選後換版重比，同次 Save，不重送 UNKNOWN。root 獨立審查補正主資料接受基準／巢狀排序與共用 quality predicate 後的 owner 漂移。逐頁草稿所有權、各批證據與外部阻擋見[統一候選](docs/acceptance/unified-draft-save-choice-20261109/README.md)。線別工段獨立持久 scope 仍未啟用，需單獨重大所有權切換決定。未上傳／合併／部署；不可重送舊 243-path UNKNOWN 或覆蓋另一路畫布平台清單工作。
+
+# 2026-11-09 — AB/C field Save choice candidate
+
+Small independent local slice from main b06394c: existing product display fields
+and line/stage names gain one Save-time conflict choice. Category/route/structure,
+PROCESS and per-tab stored-draft separation remain open; master polling removal
+is a separate candidate. [Scope, verification and retained boundaries](docs/acceptance/abc-field-save-choice-20261109/README.md).
+No remote write, live data, migration, connector action or deployment.
 
 ## 2026-11-09 — Routine FQC explicit generation candidate
 

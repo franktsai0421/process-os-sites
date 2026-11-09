@@ -1,3 +1,4 @@
+import {approvedVersion,approvedVersions,approvedVersionEvidence} from '@/lib/approved-history';
 import {beginBasis,parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from '@/lib/workflow-begin';
 import {ipqcCCreateCommand,readIpqcCCreateMutationState,encodeIpqcCCreateMutationState} from '@/lib/ipqc-c-create-record-mutation';
 import {ipqcCSaveCommand,readIpqcCSaveMutationState,encodeIpqcCSaveMutationState} from '@/lib/ipqc-c-save-record-mutation';
@@ -52,6 +53,11 @@ function projection(control:IpqcWorkflowControl, actor:{id:string;name:string},a
 export async function GET(request:Request) {
   try {
     const query=new URL(request.url).searchParams;
+    const approvedOnly=query.has('approvedOnly');
+    if(approvedOnly){
+      const listing=query.has('uiHistory'),detail=query.has('versionId'),allowed=new Set(['approvedOnly','caseMetadata','compact',...(listing?['uiHistory','versionBefore']:['versionId'])]);
+      if(query.get('approvedOnly')!=='1'||listing===detail||[...query.keys()].some(key=>!allowed.has(key)||query.getAll(key).length!==1)||listing&&query.get('uiHistory')!=='1'||detail&&(!query.get('versionId')||query.get('versionId')!.length>512)||query.has('caseMetadata')&&query.get('caseMetadata')!=='1'||query.has('compact')&&query.get('compact')!=='1'||(query.get('versionBefore')?.length||0)>512)return reply({error:'INVALID_APPROVED_HISTORY_QUERY'},422);
+    }
     // The create terminal check needs current authority and C workflow only.
     // Keep its full response/fresh GET; do not reuse POST authority or narrow
     // history/restore/receipt queries when selectors are combined.
@@ -62,6 +68,31 @@ export async function GET(request:Request) {
     if(!actor||!permissions.view)return reply({error:'FORBIDDEN'},403);
     if(query.has('permissions'))return reply({permissions,revision:state.revision,otherReviewerAvailable:otherReviewerAvailable(state,actor.id)});
     const control=readControl(state),flow=control.workflow;
+    if(approvedOnly){
+      if(!permissions.history)return reply({error:'FORBIDDEN'},403);
+      // Same immutable-case proof and final authorization boundary as the
+      // reviewed BOM reader. C keeps unreviewed formal baselines in current view.
+      const approvedReadCurrent=async()=>{
+        const fresh=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode']}),freshActor=await identity(request,fresh),freshPermissions=await access(request,fresh);
+        if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history)return reply({error:'FORBIDDEN'},403);
+        if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);
+        const finalActor=await identity(request,fresh);
+        return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;
+      };
+      if(query.has('uiHistory')){
+        const rows=approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse(),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
+        if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
+        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};
+        return await approvedReadCurrent()||reply(body);
+      }
+      const version=approvedVersion(control,query.get('versionId')!,true);
+      if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);
+      const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};
+      // Hydrate only the selected immutable body before returning ANY bytes;
+      // a revocation during R2 I/O must not leak a streamed response prefix.
+      const rendered=state.recordStorage?recordJSONResponse(body,env.STATE_ARCHIVE,responseHeaders):reply(body),json=await rendered.text();
+      return await approvedReadCurrent()||new Response(json,{headers:responseHeaders});
+    }
     if(query.has('uiHistory'))return permissions.history?reply(workflowInterfaceMetadata(control,query)):reply({error:'FORBIDDEN'},403);
     if(query.has('versionId')){if(!permissions.history)return reply({error:'FORBIDDEN'},403);const version=control.versions.find(v=>v.id===query.get('versionId'));return version?reply({version}):reply({error:'VERSION_NOT_FOUND'},404);}
     if(query.has('legacyHistory')||query.has('legacyVersionId')){
@@ -133,7 +164,7 @@ export async function POST(request:Request) {
       const changes:unknown=body.command.localChanges;
       const valid=Array.isArray(changes)&&changes.length<=256&&changes.every(change=>object(change)&&
         Object.keys(change).every(key=>['moduleAction','input','patches','guards','localId'].includes(key))&&
-        (change.moduleAction===undefined||typeof change.moduleAction==='string'&&['create-error','create-item','delete-error','delete-item'].includes(change.moduleAction))&&
+        (change.moduleAction===undefined||typeof change.moduleAction==='string'&&['create-error','create-item','delete-error','delete-item','revive-error','revive-item'].includes(change.moduleAction))&&
         (change.input===undefined||object(change.input)&&(change.input.item===undefined||object(change.input.item)))&&
         (change.localId===undefined||typeof change.localId==='string')&&
         (change.patches===undefined||Array.isArray(change.patches)&&change.patches.every(patch=>object(patch)&&patch.op==='set'&&path(patch.path)&&Object.hasOwn(patch,'value')))&&
@@ -157,6 +188,7 @@ export async function POST(request:Request) {
       const existingReceipt=body.command&&control.workflow?.receipts[body.command.operationId];
       if(body.command&&(!existingReceipt||isWorkflowDigestFingerprint(existingReceipt.fingerprint)))context.commandFingerprint=await workflowCommandFingerprint(body.command);
       const originalStructure=context.structure;
+      const preserveStructuralEquipment=body.command?.action==='save'&&body.command.localChanges?.some(change=>['revive-error','revive-item','delete-error','delete-item'].includes(change.moduleAction||''));
       const equipment=parse(state.values.routineEquipmentControl,{}) as {activeVersionId?:string;versions?:EquipmentVersion[]};
       const effective=equipment.versions?.find(v=>v.id===equipment.activeVersionId&&v.status==='approved');
       const selected=new Map((effective?.equipment||[]).map(e=>[e.id,e]));
@@ -169,6 +201,13 @@ export async function POST(request:Request) {
         if(stringIds)for(const item of previous.items)if(!priorById.has(item.id))priorById.set(item.id,item);
         for(const item of content.items) {
           const old=stringIds?priorById.get(item.id):previous.items.find(i=>i.id===item.id);
+          // Explicit atomic deletion/revival retains legacy own-property presence as well
+          // as values. A changed selection still uses the current catalog below.
+          if(preserveStructuralEquipment&&old&&old.equipmentId===item.equipmentId){
+            if(Object.hasOwn(old,'equipmentSnapshot'))item.equipmentSnapshot=old.equipmentSnapshot;
+            else delete item.equipmentSnapshot;
+            continue;
+          }
           if(!item.equipmentId){item.equipmentSnapshot=null;continue;}
           if(old?.equipmentId===item.equipmentId){item.equipmentSnapshot=old.equipmentSnapshot;continue;}
           const choice=selected.get(item.equipmentId);if(!choice||choice.enabled===false)throw new DraftConflict('EQUIPMENT_UNAVAILABLE',422);
@@ -197,7 +236,7 @@ export async function POST(request:Request) {
         if(body.command.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===body.command!.input?.productCode&&p.stages.includes(body.command!.input?.stageCode||'')))
           return reply({error:'PRODUCT_STAGE_INVALID'},422);
         for(const change of body.command.localChanges||[]) {
-          if(change.moduleAction?.startsWith('create')&&!permissions.create||change.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
+          if((change.moduleAction?.startsWith('create')||change.moduleAction?.startsWith('revive'))&&!permissions.create||change.moduleAction?.startsWith('delete')&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
           if(change.moduleAction==='create-error'&&!master.active?.C?.products?.some(p=>p.code===change.input?.productCode&&p.stages.includes(change.input?.stageCode||'')))return reply({error:'PRODUCT_STAGE_INVALID'},422);
         }
         const alreadyAccepted=control.workflow?.receipts[body.command.operationId],beforeChange=copyIpqc(control.workflow?.working||openIpqc(control)?.snapshot||{errors:[],items:[]});
