@@ -5,7 +5,9 @@ const env={PROCESS_SESSION_SECRET:randomUUID(),STATE_ARCHIVE:{async put(k,v){obj
 const load=harness(env),core=load('lib/process-state.ts'),api=load('app/api/master/workflow/route.ts'),legacy=load('app/api/shared-state/route.ts'),link=load('lib/master-stage-link.ts'),copy=v=>JSON.parse(JSON.stringify(v)),sessions={},seq={};
  const users=['a','b','reviewer'].map(id=>({id,name:id,role:'rd',enabled:true,inheritRole:false,views:['data','approval'],permissions:['approval.submit','approval.withdraw','approval.approve','approval.reject','approval.compare','master.delete']}));
 const catalog=line=>({products:[{code:line+'1',name:'Sản phẩm',line,category:'G',stages:[line+'-CUT']}],lines:[{code:line,name:line,stages:[{code:line+'-CUT',name:'Cắt'}]}],categoryGroups:[{line,name:'G'}]});
-const active={AB:catalog('A'),C:catalog('C'),PROCESS:{'A-CUT':link.stageDefaultTemplates('A-CUT'),'C-CUT':link.stageDefaultTemplates('C-CUT')}},root={active:copy(active),versions:Object.entries(active).map(([scope,snapshot])=>({scope,snapshot:copy(snapshot),id:scope+'-active',number:1,status:'approved',revision:1,creatorId:'system',creatorName:'system',createdAt:'fixture',updatedAt:'fixture',history:[]}))};
+const active={AB:catalog('A'),C:catalog('C'),PROCESS:{'A-CUT':[...link.stageDefaultTemplates('A-CUT'),{id:'A-CUT-CUSTOM-fixture',catalogKey:'custom-stage-fixture',name:'自訂測試流程',editorType:'custom',mode:'human',people:1,machineIds:[],mediaItems:[]}],'C-CUT':link.stageDefaultTemplates('C-CUT')}};
+for(const templates of Object.values(active.PROCESS)){const entry=templates.find(t=>t.presetKey==='entry');Object.assign(entry,{name:'已核准自訂進站名',media:null,mediaName:'',mediaType:'',mediaItems:[]});}
+const root={active:copy(active),versions:Object.entries(active).map(([scope,snapshot])=>({scope,snapshot:copy(snapshot),id:scope+'-active',number:1,status:'approved',revision:1,creatorId:'system',creatorName:'system',createdAt:'fixture',updatedAt:'fixture',history:[]}))};
 db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(JSON.stringify({platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify(root),processMasterData:JSON.stringify(root.active.PROCESS)}),'fixture');
 const url=scope=>'http://fixture/api/master/workflow?scope='+scope+'&caseMetadata=1';
 async function get(scope,who='a',query=''){const r=await api.GET(new Request(url(scope)+query,{headers:sessions[who]}));assert.equal(r.status,200);return r.json();}
@@ -19,14 +21,14 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
  if(process.env.V3_STORAGE==='records'){const original=await core.readState();db.prepare('UPDATE shared_state SET "values"=?').run(await load('lib/state-records.ts').encodeRecordValues(env.STATE_ARCHIVE,original.values));}
  await post('AB','a',{action:'begin'});await post('C','b',{action:'begin'});
  const newStage={id:'stage:A-NEW',code:'A-NEW',name:'Công đoạn thử nghiệm'};
- await check('T45 necessary templates only, pinned fixed case; saved-only stage snapshot',async()=>{
+ await check('T45 approved catalog types and defaults, pinned fixed case; saved-only stage snapshot',async()=>{
   await run('AB','a','apply',{patches:[{op:'insert',path:['lines',{id:'lines:A'},'stages'],value:newStage}]});const saved=(await run('AB','b','save')).control.workflow.saved;
   await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}],guards:[{path:['products',{id:'products:A1'},'name'],value:'Sản phẩm'}]});
   assert.equal((await run('AB','a','submit',{savedId:saved.id,reason:'Reject unsaved working'},409)).error,'UNSAVED_CHANGES_SAVE_REQUIRED');
   await run('AB','a','apply',{patches:[{op:'set',path:['products',{id:'products:A1'},'name'],value:'Sản phẩm'}],guards:[{path:['products',{id:'products:A1'},'name'],value:'unsaved unrelated edit'}]});
   const submitted=await run('AB','a','submit',{savedId:saved.id,reason:'Thêm công đoạn và mẫu bắt buộc'}),record=(await get('AB','a','&caseId='+submitted.receipt.caseId)).reviewCase;
-  assert.equal(record.linkedProcess.baseVersionId,'PROCESS-active');assert.deepEqual(record.linkedProcess.added,['A-NEW']);assert.deepEqual(record.linkedProcess.removed,[]);assert.deepEqual(record.linkedProcess.before,root.active.PROCESS);
-  assert.deepEqual(record.linkedProcess.content['A-CUT'],root.active.PROCESS['A-CUT']);assert.deepEqual(record.linkedProcess.content['A-NEW'],copy(link.stageDefaultTemplates('A-NEW')));assert.equal(record.content.products[0].name,'Sản phẩm');
+  assert.equal(record.linkedProcess.baseVersionId,'PROCESS-active');const inherited=record.linkedProcess.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture');assert.equal(inherited.name,'自訂測試流程');const inheritedEntry=record.linkedProcess.content['A-NEW'].find(t=>t.presetKey==='entry');assert.equal(inheritedEntry.name,'已核准自訂進站名');assert.equal(inheritedEntry.media,null);assert.deepEqual(inheritedEntry.mediaItems,[]);assert.notEqual(inherited.id,'A-CUT-CUSTOM-fixture');assert.deepEqual(record.linkedProcess.added,['A-NEW']);assert.deepEqual(record.linkedProcess.removed,[]);assert.deepEqual(record.linkedProcess.before,root.active.PROCESS);
+  assert.deepEqual(record.linkedProcess.content['A-CUT'],root.active.PROCESS['A-CUT']);assert.deepEqual(record.linkedProcess.content['A-NEW'],copy(link.stageCatalogTemplates('A-NEW',root.active.PROCESS)));assert.equal(record.content.products[0].name,'Sản phẩm');
   const current=await state();assert.deepEqual(current.root.active.PROCESS,root.active.PROCESS);assert.equal(current.root.workflowScopes.PROCESS,undefined);
  });
  await check('T16/T17 PROCESS begin/direct legacy bypass blocked; unrelated C editing allowed',async()=>{
@@ -70,6 +72,60 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
  await check('T45 source formal version changes before approval cannot activate a linked case',async()=>{
   await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Thêm công đoạn'}),caseId=sent.receipt.caseId,current=await state();current.root.versions.find(v=>v.id==='PROCESS-active').status='superseded';current.root.versions.push({...root.versions.find(v=>v.scope==='PROCESS'),id:'process-new-active'});const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));const before=(await state()).s.revision;
   assert.equal((await run('AB','reviewer','approve',{caseId},409)).error,'PROCESS_SOURCE_VERSION_CHANGED');assert.equal((await state()).s.revision,before);assert.equal((await state()).root.workflowScopes.AB.pendingId,caseId);
+ });
+ await check('T45 malformed approved PROCESS metadata cannot be propagated at final submission',async()=>{
+  await reset();const savedId=await prepareStage(),current=await state();
+  current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').mediaItems='invalid-source';
+  current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const before=(await state()).s.revision;
+  assert.equal((await run('AB','a','submit',{savedId,reason:'Reject malformed approved template'},422)).error,'PROCESS_TEMPLATE_INVALID');
+  const after=await state();assert.equal(after.s.revision,before);assert.equal(after.root.workflowScopes.AB.pendingId,null);assert.equal(after.root.active.PROCESS['A-NEW'],undefined);
+ });
+ await check('T45 total Unicode catalog IDs survive actual stage Save Submit Approve',async()=>{
+  for(const key of [String.fromCharCode(0xd800),String.fromCharCode(0xdc00),'😀',':%']){
+   await reset();const current=await state();current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').catalogKey=key;
+   current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+   const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+   db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+   const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Unicode catalog fixture'}),fixed=(await get('AB','a','&caseId='+sent.receipt.caseId)).reviewCase.linkedProcess;
+   assert.ok(fixed.content['A-NEW'].some(t=>t.catalogKey===key));await run('AB','reviewer','approve',{caseId:sent.receipt.caseId});
+   const after=await state();assert.deepEqual(after.root.active.PROCESS,fixed.content);
+  }
+ });
+ await check('T45 reserved template IDs preserve final approved old-stage reference protection',async()=>{
+  await reset();const current=await state(),sourceId=link.stageCatalogTemplates('A-NEW',current.root.active.PROCESS).find(t=>t.catalogKey==='custom-stage-fixture').id;
+  current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').id=sourceId;
+  current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'ID collision fixture'}),fixed=(await get('AB','a','&caseId='+sent.receipt.caseId)).reviewCase.linkedProcess;
+  const newId=fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id;assert.notEqual(newId,sourceId);
+  await run('AB','reviewer','approve',{caseId:sent.receipt.caseId});const approved=await state();assert.deepEqual(approved.root.active.PROCESS,fixed.content);
+  const ids=Object.values(approved.root.active.PROCESS).flat().map(t=>t.id);assert.equal(new Set(ids).size,ids.length);
+  const values={...approved.s.values,approvalVersions:JSON.stringify([{id:'published-old-stage',status:'approved',category:'Fixture',line:'A',stages:{'A-CUT':[{id:'op-old',templateId:sourceId}]}}])};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(values,approved.s));
+  await post('PROCESS','a',{action:'begin'});const working=(await get('PROCESS')).control.workflow.working,path=['A-CUT',{id:sourceId}],row=working['A-CUT'].find(t=>t.id===sourceId),before=(await state()).s.revision;
+  assert.equal((await run('PROCESS','a','apply',{patches:[{op:'remove',path}],guards:[{path,value:row}]},409)).error,'PROCESS_MASTER_IN_USE');
+  const after=await state();assert.equal(after.s.revision,before);assert.ok(after.root.active.PROCESS['A-CUT'].some(t=>t.id===sourceId));assert.ok(after.root.active.PROCESS['A-NEW'].some(t=>t.id===newId));
+ });
+ await check('T45 pre-fix pinned collision cannot approve or mutate; withdrawal and return still work',async()=>{
+  for(const action of ['withdraw','return']){
+   await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Legacy fixed collision fixture'}),caseId=sent.receipt.caseId,current=await state();
+   const fixed=current.root.workflowScopes.AB.cases.find(c=>c.id===caseId).linkedProcess;
+   fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id=current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').id;
+   const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+   const before=await state();assert.equal((await run('AB','reviewer','approve',{caseId},409)).error,'PROCESS_TEMPLATE_ID_COLLISION');const after=await state();assert.equal(after.s.revision,before.s.revision);assert.deepEqual(after.root,before.root);assert.equal(after.root.workflowScopes.AB.pendingId,caseId);
+   await run('AB',action==='return'?'reviewer':'b',action,{caseId,reason:'Keep fixed content and release review'});assert.equal((await state()).root.workflowScopes.AB.pendingId,null);
+  }
+ });
+ await check('T45 safe legacy pinned IDs remain fixed through approval and original receipt replay',async()=>{
+  await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Legacy fixed safe fixture'}),caseId=sent.receipt.caseId,current=await state();
+  const fixed=current.root.workflowScopes.AB.cases.find(c=>c.id===caseId).linkedProcess;fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id='legacy-fixed-safe-id';const expected=copy(fixed.content);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const approval=await cmd('AB','reviewer','approve',{caseId});await post('AB','reviewer',{command:approval});const approved=await state();assert.deepEqual(approved.root.active.PROCESS,expected);
+  await post('AB','reviewer',{command:approval});const replayed=await state();assert.equal(replayed.s.revision,approved.s.revision);assert.deepEqual(replayed.root,approved.root);
  });
  console.log(JSON.stringify({result:'PASS_ISOLATED',checks,realLocalWrites:0,browser:'NOT_EXECUTED'}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

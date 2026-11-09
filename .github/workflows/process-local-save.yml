@@ -32,6 +32,7 @@ jobs:
         run: |
           node scripts/test-process-master-name-guards.cjs
           node scripts/test-master-workflow-v3.cjs
+          node --test tests/process-stage-catalog.test.cjs
           node scripts/test-master-stage-link-v3.cjs
           node scripts/test-master-product-route-mode.cjs
           node scripts/test-master-field-guards.cjs

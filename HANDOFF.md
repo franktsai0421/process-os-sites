@@ -1,6 +1,14 @@
+# 2026-11-09 — Integration status
+
+PR99 merged as 021f0f388b16ebcdff0f64ff44039d2ea07f4165 after all three CI checks and independent review passed. The canvas count PR101 remains a separate draft; its integration must pass new-head CI. No Site deployment or real-data operation was performed.
+
 # 2026-11-09 - Independent canvas count batch
 
-Main d4ac309 successor changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. It does not absorb concurrent global draft or PR99 edits. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
+Based on merged main 021f0f3 (#99), this batch changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. Both #99 CI and documentation additions are retained; concurrent global draft edits are not absorbed. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
+
+# 2026-11-09 — Process platform stage catalog batch
+
+Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
 
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
