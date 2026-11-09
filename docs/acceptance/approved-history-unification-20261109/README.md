@@ -66,7 +66,15 @@
 
 writer、upload、一般 read 及頁面 callbacks 有 display epoch 保護；開啟編輯／新增／節點／照片／移轉視窗、寫入／比較／核對、pending photo 或上傳中阻擋切換。保留原 delivery-only recheck 與 FQC 跨模組移轉機制。新增 22 項實際共用 UI／簽章 HTTP handler／SQLite／Map-R2 情境 PASS（含實際 Submit pending、UNKNOWN 零查詢／零重送、舊讀回、雙語及照片來源）；原 equipment Save 68 項 PASS。這不是原生／實站驗收。檢具 JS cache tag 同 `20261109-quality-approved-history2`。
 
-收到另批草稿／篩選候選 `d1ff4a61` 後已定位真實本機來源 `draft-filter-followup-20261109`，已語意合併其 FQC／IQC 晚到輸入、照片及篩選保護，保留同頁歷史 display lease；受影響 371 項執行情境已分批驗證（351 項共同批次，修正測試結尾 hook 後 20 項模具），無跳過。typed lint／TypeScript／source boundary PASS；完整來源證明與 build 尚待固定本次整合 source 後驗證，沒有重複上傳。
+收到另批草稿／篩選候選 `d1ff4a61` 後已定位真實本機來源 `draft-filter-followup-20261109`，已語意合併其 FQC／IQC 晚到輸入、照片及篩選保護，保留同頁歷史 display lease；受影響 371 項執行情境已分批驗證（351 項共同批次，修正測試結尾 hook 後 20 項模具），無跳過。typed lint／TypeScript／source boundary PASS；完整來源證明 660/660 PASS，48 個 current files／329 個精確 projections／原九個 named targets 與 79 個 historical requests 均保留；source 固定 `e339db59fba457a5bfaf4ca4868bad7120b5c2b4`，build 另由本機 receipt 記錄，沒有重複上傳。
+
+## 本次整合驗證收據
+
+- 受影響 runtime：371 個不同情境已分批驗證；共同批次 351 PASS，最後 20 項模具因 fixture hook 限定模組結尾後單獨 20 PASS。保留失敗整批 log 與所有修復日誌，不把先前 351/371 冒充單一整批成功。
+- API＋BOM＋IPQC-C：正常 approved-history route／common／primary transport 的 154/154 PASS；核准證據 helper 12 組 PASS。資料均為隔離 SQLite／Map-R2／合成 DOM／簽章 fixture，不是真實帳號或實站資料。
+- 完整原 CI 來源與前任證明：660/660 PASS，0 FAIL、0 SKIP。48 個實際 current files，329 個 exact projections，22 個真正新檔不存在證明；保留原九個 named predecessors、79 個 bounded historical ref/path、所有舊 hash／span 與負向控制。最初唯一檢具 live cache tag 舊預期失敗已保留，僅更新目前 tag 斷言後完整重跑通過，歷史 tag 與 source pin 不變。
+- 完整 typed lint、非增量 TypeScript、source boundary 及 diff whitespace PASS；最終 build／交付 HEAD／runtime 相等證據另由本機 receipt 綁定。依賴為相同 lockfile 的本機實體副本，不是假稱乾淨網路安裝。
+- 原生 Chromium／實體 iPhone／真實 IME、獨立審查、GitHub CI、遠端 PR／merge／測試站／實站完整生命週期均 NOT_RUN。其他版本頁面仍依上方矩陣接續，不因新候選合併而全數完成。
 
 ## 草稿／篩選候選語意相依整合
 
