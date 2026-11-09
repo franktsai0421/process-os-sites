@@ -306,5 +306,12 @@
     "kind": "setTimeout",
     "hash": "89da54ee48e7872bab6366fa83c2b88540536b5783fb3c7e44d284bcd5682c2d",
     "purpose": "Deadline for one explicit startup/import/verification request; no periodic recurrence."
+  },
+  {
+    "file": "public/process/iqc-master.js",
+    "line": 34,
+    "kind": "setTimeout",
+    "hash": "37e332670e8d966e14011e2787d6bf3f4c226d45dfba25c98c086e4eaef68802",
+    "purpose": "One 45000ms AbortController deadline for an explicitly saved photo PUT; cleared in finally, never repeated or triggered by idle/focus/visibility."
   }
 ]

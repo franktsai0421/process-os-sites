@@ -39,6 +39,7 @@ NEW_TARGETS = {
     'history_frozen': FROZEN,
     'filter807': '80745895c952ea7415cedfac9de27235116a4100',
     'boundary102': 'b172aaf53e6c2da6f9c5b1a6b331d15944340c03',
+    'main100': '9fbba823090f03da8385c8d92f5e59293d19d2f1',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',
@@ -415,7 +416,7 @@ def write_pair(outputs, values):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True, help='Exact final committed runtime SHA; no working source is read')
-    parser.add_argument('--target', action='append', required=True, help='All six fixed new name=SHA pins are mandatory')
+    parser.add_argument('--target', action='append', required=True, help='All fixed new name=SHA pins are mandatory')
     parser.add_argument('--repository', default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument('--objects-from', action='append', default=[], help='Optional genuine local Git repo for read-only historical objects; never fetches/imports')
     parser.add_argument('--output', required=True, help='New external contract JSON path')
