@@ -1,3 +1,7 @@
+## 完整製程編輯台單一PR整合（本機未發布）
+
+以已凍結計數／無輪詢／草稿／歷史／同頁篩選／未啟用boundary候選建立共同底座；當前畫布Save與其他畫布RAM分離，原UNKNOWN收據不改。[完整目標及尚缺門檻](../../docs/acceptance/process-editor-complete-20261109.md)。#101元件CI PASS仍保持草稿，沒有完整上傳或部署。
+
 ## 2026-11-09 畫布投影流程數候選
 
 選取列在 V2 使用與方塊相同的 ProcessCanvasLocal.project 計算當前可見工段流程數；Save 推進投影但保留舊 editor map 時也能更新。只讀顯示與自身 cache tag，無資料／權限／schema 變更。[範圍與證據](../../docs/acceptance/editor-projected-count-20261109.md)。

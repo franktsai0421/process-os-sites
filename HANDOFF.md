@@ -1,3 +1,7 @@
+# 完整製程編輯台單一PR要求
+
+使用者要求所有已討論製程編輯台修改一起在同一PR交付。#1018f元件4CI全PASS但不先獨立合併；本機整合分支不改其他對話工作樹，不用#101／新PR重送舊UNKNOWN。原頁核准歷史、真實scope/權限切換與實站仍未全部完成。[完整矩陣與順序](docs/acceptance/process-editor-complete-20261109.md)。
+
 # 2026-11-09 — Integration status
 
 PR99 merged as 021f0f388b16ebcdff0f64ff44039d2ea07f4165 after all three CI checks and independent review passed. The canvas count PR101 remains a separate draft; its integration must pass new-head CI. No Site deployment or real-data operation was performed.

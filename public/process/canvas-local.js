@@ -1,4 +1,4 @@
-/* Local canvas journal. Explicit Save publishes and saves all current-page canvas edits atomically. Legacy Sync remains receipt-compatible. */
+/* Local canvas journal. Explicit Save atomically saves the current canvas and retains other local canvases. Legacy Sync remains receipt-compatible. */
 (function (host) {
  'use strict';
  const clone=v=>v===undefined?undefined:structuredClone(v);
@@ -173,8 +173,9 @@
    if(patches.length>256)throw Error('CANVAS_BATCH_LIMIT_256');
    return {workspace:w,stage:s,entries,dependencies,patches,guards};
   }
-  reviewAll(content){
-   const scopes=this.counts().scopes,parts=scopes.map(([w,s])=>this.review(w,s,content));
+  reviewAll(content,scopes=this.counts().scopes){
+   if(!Array.isArray(scopes)||scopes.some(pair=>!Array.isArray(pair)||pair.length!==2||pair.some(value=>typeof value!=='string'||!value)))throw Error('CANVAS_SCOPE_REQUIRED');
+   const parts=scopes.map(([w,s])=>this.review(w,s,content));
    return {content,scopes,changes:parts.flatMap(r=>r.changes.map(c=>({...c,workspace:r.workspace,stage:r.stage}))),blockers:parts.flatMap(r=>r.blockers),removedRemotely:parts.flatMap(r=>r.removedRemotely),removedLinks:parts.flatMap(r=>r.removedLinks),groups:parts.flatMap(r=>r.groups)};
   }
   deletionImpactAll(review,decision){const parts=review.scopes.map(([w,s])=>this.deletionImpact(this.review(w,s,review.content),decision));return {nodes:parts.flatMap(p=>p.nodes),links:parts.flatMap(p=>p.links)};}
@@ -295,7 +296,7 @@
   const close=add('button',t('關閉','Đóng'));close.type='button';close.onclick=()=>dialog.close();dialog.onclose=()=>dialog.remove();document.body.append(dialog);dialog.showModal();
  }
  function ensure(){accept(api()?.flow());if(!ready||!recovery?.status().ready||!journal||!runtimeCurrent())throw Error('CANVAS_LOAD_REQUIRED');return journal;}
- function update(){const el=document.querySelector('.pe-local-status');if(!el)return;const at=current(),stats=journal?journalStats(journal):null,c=stats?.counts,formCount=stats?.formCount||0,here=at&&journal?canvasCounts(journal,at.workspace,at.stage):null;el.textContent=[lastBatch?t(`本批寫入成功：${lastBatch} 項變更。`,`Đã lưu ${lastBatch} thay đổi.`):'',note,storageError,tabStorageError,formCount?t(`另有 ${formCount} 個未完成表單，請開啟方塊繼續編輯。`,`Có ${formCount} biểu mẫu chưa hoàn tất; mở bước để tiếp tục.`):'',c?.fields?t(`目前畫布 ${here?.fields||0} 項；其他畫布 ${c.fields-(here?.fields||0)} 項尚未存取。存取草稿一次保存全部畫布變更與整份製程。`,`Sơ đồ hiện tại: ${here?.fields||0}; sơ đồ khác: ${c.fields-(here?.fields||0)} thay đổi chưa lưu. Lưu bản nháp ghi mọi thay đổi sơ đồ và toàn bộ quy trình.`):t('本機沒有未存變更；存取草稿保存整份製程。','Không có thay đổi cục bộ chưa lưu; lưu bản nháp lưu toàn bộ quy trình.')].filter(Boolean).join(' · ');el.title=c?.scopes.map(([w,s])=>w+' / '+s).join('\n')||'';const sync=document.querySelector('[data-pe="sync"]');if(sync){sync.disabled=!!departureLease||!!running||(!journal?.pending&&!api()?.canEditCanvas())||!ready;sync.textContent=running?t('同步中…','Đang đồng bộ…'):journal?.pending?t('查原批次收據','Kiểm tra biên nhận lô cũ'):t('同步目前畫布','Đồng bộ sơ đồ hiện tại');sync.title=!api()?.canEditCanvas()?t('待審或權限鎖定，保留本機內容。','Chờ duyệt hoặc thiếu quyền; giữ nội dung cục bộ.') : '';}}
+ function update(){const el=document.querySelector('.pe-local-status');if(!el)return;const at=current(),stats=journal?journalStats(journal):null,c=stats?.counts,formCount=stats?.formCount||0,here=at&&journal?canvasCounts(journal,at.workspace,at.stage):null;el.textContent=[lastBatch?t(`本批寫入成功：${lastBatch} 項變更。`,`Đã lưu ${lastBatch} thay đổi.`):'',note,storageError,tabStorageError,formCount?t(`另有 ${formCount} 個未完成表單，請開啟方塊繼續編輯。`,`Có ${formCount} biểu mẫu chưa hoàn tất; mở bước để tiếp tục.`):'',c?.fields?t(`目前畫布 ${here?.fields||0} 項；其他畫布 ${c.fields-(here?.fields||0)} 項尚未存取。存取草稿只保存目前畫布變更；其他畫布未存內容保留。`,`Sơ đồ hiện tại: ${here?.fields||0}; sơ đồ khác: ${c.fields-(here?.fields||0)} thay đổi chưa lưu. Lưu bản nháp chỉ ghi sơ đồ hiện tại; giữ thay đổi chưa lưu ở sơ đồ khác.`):t('本機沒有未存變更；存取草稿保存整份製程。','Không có thay đổi cục bộ chưa lưu; lưu bản nháp lưu toàn bộ quy trình.')].filter(Boolean).join(' · ');el.title=c?.scopes.map(([w,s])=>w+' / '+s).join('\n')||'';const sync=document.querySelector('[data-pe="sync"]');if(sync){sync.disabled=!!departureLease||!!running||(!journal?.pending&&!api()?.canEditCanvas())||!ready;sync.textContent=running?t('同步中…','Đang đồng bộ…'):journal?.pending?t('查原批次收據','Kiểm tra biên nhận lô cũ'):t('同步目前畫布','Đồng bộ sơ đồ hiện tại');sync.title=!api()?.canEditCanvas()?t('待審或權限鎖定，保留本機內容。','Chờ duyệt hoặc thiếu quyền; giữ nội dung cục bộ.') : '';}}
  function localChange(fn){admit();if(!(api()?.canEditLocalCanvas?.()??api()?.canEditCanvas()))throw Error('PENDING_OR_PERMISSION_LOCKED');const start=performance.now();fn(ensure());recoveryRevision++;lastBatch=0;persist();timing('local-update',start);}
  const localRecord=value=>({...value.record(),forms:{},pending:null});
  // Protocol and receipt identity belong to the originally issued batch, not
@@ -376,7 +377,7 @@
    // valid only while a second readonly authority read has identical content.
    for(;;){
     candidate=new Journal(j.content,clone(j.record()));candidate.views=new Map(j.views);candidate.reviewed=new Set(j.reviewed);candidate.history=clone(j.history);candidate.redoHistory=clone(j.redoHistory);
-    const review=candidate.reviewAll(fresh.control.workflow.working),needsChoice=review.changes.some(c=>c.conflict)||review.removedRemotely.length;
+    const review=candidate.reviewAll(fresh.control.workflow.working,[[workspace,stage]]),needsChoice=review.changes.some(c=>c.conflict)||review.removedRemotely.length;
     let decision='mine';if(needsChoice){decision=await host.ProcessEditorV2.resolveSaveConflicts(review);if(!decision)return null;}
     requireReview();verifyRecoveryRead(fresh);
     // The Delete action already confirms local removal. New peer-dependent
@@ -388,7 +389,7 @@
      const checked=await api().readCanvasRecovery(pin);requireReview();verifyRecoveryRead(checked);
      const basis=value=>{const c=value.control,f=c.workflow;return {generation:f.generation,revision:f.revision,working:f.working,savedId:f.saved?.id,pendingId:f.pendingId,baseId:f.baseId,activeVersionId:c.activeVersionId,drafts:c.versions.filter(v=>v.status==='draft').map(v=>v.id)};};const changed=!equal(basis(fresh),basis(checked));fresh=checked;if(changed)continue;
     }
-    candidate.resolveAll(review,decision,impact.nodes.length>0);candidate.freezeAll();break;
+    candidate.resolveAll(review,decision,impact.nodes.length>0);candidate.freeze(workspace,stage);break;
    }
    api().acceptCanvasRecovery(fresh);
    if(!unchanged()||api().flow().revision!==fresh.control.workflow.revision)throw Error('CANVAS_REVIEW_CHANGED');
@@ -415,7 +416,7 @@
    };
   }
 
-  try{batch=j.pending||(save?j.freezeAll():j.freeze(w??at?.workspace,s??at?.stage));}catch(error){rollbackSave?.();note=t('整批保留；請核對共享內容：','Giữ nguyên cả lô; đối chiếu nội dung chung: ')+(error.details?.conflicts||[]).map(c=>c.stage+' / '+c.id+' / '+c.field).join('、');update();throw error;}
+  try{batch=j.pending||j.freeze(w??at?.workspace,s??at?.stage);}catch(error){rollbackSave?.();note=t('整批保留；請核對共享內容：','Giữ nguyên cả lô; đối chiếu nội dung chung: ')+(error.details?.conflicts||[]).map(c=>c.stage+' / '+c.id+' / '+c.field).join('、');update();throw error;}
   if(j.pending&&retryKnownRejection(session,j,batch,stamp))return api().flow();
   if(!batch.patches.length&&!save&&!j.pending)return api().flow();
   if(!batch.command){
@@ -498,7 +499,7 @@
   added(w,s,id,to){const e=journal?.entries[journal.token(w,s,id,'nextIds')];return !!e&&(e.value||[]).includes(to)&&!(e.base||[]).includes(to);},
   travel(w,s,redo){localChange(j=>j.travel(w,s,redo));},flushRecovery:persistNow,
   async discard(w,s){if(running||journal?.pending)throw Error('CANVAS_RECEIPT_REQUIRED');const at=current();w??=at?.workspace;s??=at?.stage;if(!w||!s)throw Error('CANVAS_SCOPE_REQUIRED');const stamp=captureRecoveryOwner(),session=recovery,revision=recoveryRevision;if(!await confirmCanvas(t('放棄目前畫布尚未同步的本機變更？其他畫布保留。','Bỏ thay đổi cục bộ chưa đồng bộ của sơ đồ này? Giữ các sơ đồ khác.')))return;requireRecoveryCurrent(session,stamp,revision);ensure().discard(w,s);note='';persistNow();api()?.updateLocalSaveState?.();},
-  async beforeSave(){admit();const j=ensure();if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');if(Object.keys(j.forms).length)throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(api().ownedLedger?.hasRevertRecovery?.())throw Error('OWNED_LEDGER_REVERT_UNCONFIRMED');if(api().canSaveCanvas?.()===false)throw Error('PENDING_OR_PERMISSION_LOCKED');const result=await sync(undefined,undefined,true);if(result===null)return null;return {canvasHandled:true,canvasSaved:result?.canvasSaveConfirmed===true};}
+  async beforeSave(){admit();const j=ensure();if(running)throw Error('CANVAS_SYNC_IN_PROGRESS');const at=current();if(!at?.workspace||!at?.stage)throw Error('CANVAS_SCOPE_REQUIRED');if(Object.keys(j.forms).some(key=>{const scope=JSON.parse(key);return scope[0]===at.workspace&&scope[1]===at.stage;}))throw Error('LOCAL_INPUT_REQUIRES_ACTION');if(api().ownedLedger?.hasRevertRecovery?.())throw Error('OWNED_LEDGER_REVERT_UNCONFIRMED');if(api().canSaveCanvas?.()===false)throw Error('PENDING_OR_PERMISSION_LOCKED');const result=await sync(undefined,undefined,true);if(result===null)return null;return {canvasHandled:true,canvasSaved:result?.canvasSaveConfirmed===true};}
  };
  // oxlint-disable-next-line typescript/no-deprecated -- Browser exit prompt for unsynchronized local work.
  host.addEventListener('beforeunload',e=>{persistNow();if(host.ProcessDeliveryNavigation?.canUnloadWithoutPrompt?.()===true)return;if(journal?.pending||running){e.preventDefault();e.returnValue='畫布尚未同步 / Sơ đồ chưa đồng bộ';}});

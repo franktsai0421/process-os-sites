@@ -1,3 +1,7 @@
+## 完整製程編輯台整合（本機）
+
+保留count/no-poll/frozen draft/history/filter/inactive boundary雙親與功能，局部Save改回使用者確認的當前畫布，其餘本機內容及舊global UNKNOWN收據保留。尚未更新#101產品來源、傳送完整payload或部署。[目標、證據與阻擋](../docs/acceptance/process-editor-complete-20261109.md)。
+
 ## 2026-11-09 — Current canvas projection count
 
 The V2 header counts the same projected rows as the cards, including after Save advances the authoritative projection while the editor copy is retained. Legacy paths, hidden stages, input and write semantics stay unchanged. [Scope and checks](../docs/acceptance/editor-projected-count-20261109.md).

@@ -486,3 +486,12 @@ for(const invalid of ['clone-token','other-session','reused','epoch','runtime','
  else assert.equal(prepared.ok,false);
  assert.equal(posts,0);assert(![...f.disk.data.values()].some(raw=>raw.includes('save-canvas-v1')),'private command is not persisted');f.store.close();if(target!==f)target.store.close();
 });
+
+void test('legacy whole-page Save UNKNOWN retains its original global reference and settles without resend',async()=>{
+ const f=await fixture().ready(),record=canvasPayload(),second='["w","T","b","x"]';record.entries[second]={w:'w',s:'T',id:'b',f:'x',base:0,value:7};record.baselines['["w","T","b"]']={id:'b',stageCode:'T',x:0,nextIds:[]};
+ const input=writeInput(()=>record);input.reference.workspace='process:platform';input.reference.stage='*';input.sent={workspace:'process:platform',stage:'*',entries:record.entries,dependencies:{}};
+ const command={...commandFor(input),source:'canvas-v2:'+JSON.stringify(['process:platform','*']),moduleAction:'save-canvas-v1',expectedRevision:1};command.patches.push({op:'set',path:['workspaces',{id:'w'},'stages','T',{id:'b'},'x'],value:7});command.guards.push({path:['workspaces',{id:'w'},'stages','T',{id:'b'},'x'],value:0});
+ const token=f.store.captureSaveCommand(command,input.reference),prepared=f.store.prepareWrite({...input,commandPin:token});assert.equal(prepared.ok,true);let posts=0;await assert.rejects(f.store.dispatchPrepared(prepared.reservation,command,async()=>{posts++;throw Error('lost legacy response');}));assert.equal(posts,1);const unknown=f.store.preview(f.store.key);assert.equal(unknown.reference.workspace,'process:platform');assert.equal(unknown.reference.stage,'*');assert.equal(unknown.reference.operationId,command.operationId);assert.equal(f.store.prepareWrite(input).ok,false);
+ verified(f);const proof=evidence(input);proof.receipt.savedId='legacy-global-saved';proof.workflow.saved={id:'legacy-global-saved'};f.ctx.baseVersion=JSON.stringify(['g1',2,'legacy-global-saved']);const settled=f.store.settleReceipt(unknown.token,proof,clearSent);assert.equal(settled.ok,true);assert.equal(Object.keys(settled.payload.entries).length,0);assert.equal(posts,1);assert.equal(f.store.status().unknown,false);f.store.close();
+ const foreign=await fixture().ready();assert.equal(foreign.store.prepareWrite({...input,commandPin:{...token}}).ok,false,'a copied foreign Save pin cannot authorize the legacy global reference');assert.equal(foreign.store.status().unknown,false);foreign.store.close();
+});
