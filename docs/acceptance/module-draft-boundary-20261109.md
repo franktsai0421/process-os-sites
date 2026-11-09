@@ -44,7 +44,7 @@
 
 實際 HTTP 前置守門現在拒絕任何尚未支援的 `page` marker，防止新 caller 被忽略標記後落入舊 combined AB/C writer。新 preview 沒有 HTTP、storage、環境開關或啟用 writer；舊 route 其餘行為保留。
 
-等待業務決定期間，另增 [master-page-name-save.ts](../../lib/master-page-name-save.ts)：只處理已存在線別／工段的名稱，整頁 ordered Save 在記憶體完成後只回傳一個 working＋saved＋sequence＋receipt 結果。後批 guard／validator 或權限失敗不改來源；沿用 shared kernel 的世代、pending、原 receipt 身分與精確重播。只接受 `master:LINES` 所有權及完整 owned history，不建立初始草稿、不推定 ACL cell、不接 HTTP／storage/CAS；新增刪除、code／路線／結構與 PROCESS link 均不由此元件處理。未決的舊資料切換和分區權限沒有被預設或繞過。
+等待業務決定期間，另增 [master-page-name-save.ts](../../lib/master-page-name-save.ts)：只處理已存在線別／工段的名稱，整頁 ordered Save 在記憶體完成後只回傳一個 working＋saved＋sequence＋receipt 結果。後批 guard／validator 或權限失敗不改來源；沿用 shared kernel 的世代、pending、原 receipt 身分與精確重播。同次暫改又復原的欄位保留原貢獻者，不把中間態的修改者寫進最終 Save；其他真正修改仍歸屬實際操作者。只接受 `master:LINES` 所有權及完整 owned history，不建立初始草稿、不推定 ACL cell、不接 HTTP／storage/CAS；新增刪除、code／路線／結構與 PROCESS link 均不由此元件處理。未決的舊資料切換和分區權限沒有被預設或繞過。
 
 測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
 
@@ -108,13 +108,25 @@
 實際命令及最終輸出保留在工作區 `module-draft-boundary-evidence-20261109/`，摘要隨本次交付提供。新測試已加入 AB C local Save CI，沒有放寬既有測試。測試重用工作區既有依賴，沒有安裝、seed 或啟動開發服務。
 
 - PASS：新頁面邊界／純預演的 11 組合成契約；實際 GET/POST 的 reserved page/split admission，DB/R2 零讀寫。
-- PASS：單一 LINES 名稱 Save／真實 shared kernel 14 組合成契約，DB/R2 零讀寫；它不是完整新頁面 adapter 的生命週期驗收。
+- PASS：單一 LINES 名稱 Save／真實 shared kernel 15 組合成契約，DB/R2 零讀寫；補上「暫改再改回」的貢獻者負控制與混合真修改案例。修正前會留下假貢獻者，修正後保留原歸屬；它不是完整新頁面 adapter 的生命週期驗收。
 - PASS：資料保留／快照用途分界 8 組合成演練，含上述已重現的分發 port 限制及 cutoff 安全拒絕。合成目標 R2/DB 寫入不等於真實持久資料寫入。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
-- PASS：合併 #99 後，在獨立乾淨 clone 重新執行新增 11／14／8 組契約、document boundary、line reducer、master workflow、20 項 stage catalog、stage link、lines API 及 307 項 legacy bridge／Begin／permission／receipt 回歸。來源邊界、全專案 lint、型別與受控 build 也通過；沿用同版本既有安裝依賴，沒有重新安裝或改 build guard。最後只更新本段文件，程式／測試 bytes 沒有再變。
+- PASS：首次合併 #99 後，在獨立乾淨 clone 重新執行當時的 11／14／8 組契約、document boundary、line reducer、master workflow、20 項 stage catalog、stage link、lines API 及 307 項 legacy bridge／Begin／permission／receipt 回歸。來源邊界、全專案 lint、型別與受控 build 也通過；沿用同版本既有安裝依賴，沒有重新安裝或改 build guard。後續未啟用名稱元件的貢獻者修正採 15 組及 lint／型別定向驗證；其餘實際 UI／API／writer／kernel 未變，既有結果按範圍保留，遠端 CI 綁定各自 head。
 - NOT_RUN：新所有權 storage／CAS／HTTP／UI 全生命週期、雙身分、正式帳號、真資料遷移與備份還原、原生瀏覽器／手機／IME、Cloudflare 實站。
 - NOT_RUN：新獨立候選的遠端 CI／原生瀏覽器；後續接線後須重新驗證真正最終程式。本機 build 不代表正式站或全部瀏覽器驗收。
 - GitHub：本批只準備獨立草稿 PR，實際上傳／PR 狀態以遠端回執為準；不宣稱已合併或部署。舊 243-path create_tree UNKNOWN 與先前檢具 create_tree 拒絕保持原狀，本批沒有重送舊 payload、拆包接續或改用遠端路徑繞過。
 
 沒有 schema／正式資料變更，沒有修改帳號／角色 cell，也沒有啟動或重連 C2C 連接器。
+
+## 審查與其他 PR 的相依
+
+本輪已讀回 #102 的 head `b172aaf53e6c2da6f9c5b1a6b331d15944340c03`：AB C local Save 與 PROCESS local Save 通過，Local safety 尚在執行；該結果不能冒充後續 head 的結果。當時沒有 GitHub review 或 comment。貢獻者問題由作者自查重現並補回歸，**不是獨立審查通過**；Frank 的架構／資料／權限合併決定與另外的獨立審查仍保留。
+
+| 對照 PR／本輪 head | 與 #102 的直接重疊 | 整合準備 |
+| --- | --- | --- |
+| #100 `158bb6b7ad3b98eda8104ef9a271073ee1caf0b3` | CHANGELOG、SHARED_DRAFT | 背景輪詢政策與頁面所有權規則可並存；文件需保留兩者新段落。沒有現用程式檔案重疊，也沒有啟用新頁面元件的依賴 |
+| #101 `8f1f24321764d7aaa51941bce8c48b2b6634ac6d` | CHANGELOG、HANDOFF | 畫布總數修正與本批守門／未啟用元件分開；文件標頭需語意合併 |
+| #88 `f0e9ae37731411801fda72c2e8843d30e467d091` | CHANGELOG、HANDOFF | 沒有本批 runtime 依賴；#88 自身舊基準與 IQC 驗收由其 owner 另行確認 |
+
+以上是指定 head 的檔案／來源分析，沒有執行三批的合併、沒有把文件無重疊推定為完整合樹驗收，也不要求先合併 #102 才能處理其他批。未發布的全站整組衝突、權限與版本查看候選仍須在真正最終來源另驗，不以這張表推定相容。
