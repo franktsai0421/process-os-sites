@@ -1,3 +1,7 @@
+## 2026-11-09 — Integrate the existing account recovery candidate locally
+
+Semantically compose efa7b75 onto the #100 account branch: credential compatibility/secret-free diagnostics, uniform anonymous failures, prewrite fresh reads, native validation and localized ownership-safe UI. Retain current ACK/target/result/unknown safeguards, #92 layout and #100 bytes. [Scope, source tests and unresolved transfer/native/#102 gates](docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75). No original transmission retry, real-account mutation or external write.
+
 ## 2026-11-09 — Account compatibility with merged #100
 
 Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). Final available source suite: 324/324 PASS, including the five original #100 inverse proofs; TypeScript-dependent AST/restore checks remain environment-blocked. No build/install retry, real account/data change, remote write or deployment.
@@ -37,6 +41,10 @@ Isolated b06394c successor with main d4ac309 (#98) merged handles the missing ap
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
+
+# 2026-11-08 — Recovered account confirmation candidate
+
+Reconstruct the verified account delta on main `dc348749` with three-way merge, retaining the newer role-template UI. Fresh prewrite verification, localized form recovery, fail-closed credential diagnostics and a scoped Windows compiled acceptance workflow are described in [Account login/password](docs/sites/ACCOUNT_LOGIN_PASSWORD.md). This is local candidate preparation only; real-account recovery, browser/CI acceptance, complete-history source review and publication are not implied.
 
 # 2026-11-06 — Role-template layout candidate
 

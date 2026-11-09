@@ -1,3 +1,7 @@
+## 2026-11-09 — Account recovery integrated with main #100
+
+The local account branch now includes the account-only `efa7b75` candidate on the preserved #100 baseline. Confirmation freezes inputs, performs a fresh authorized actor/target read before POST, keeps server CAS and unknown-write fences, and verifies acknowledged results by a fresh read. Only the exact prewrite `503/PASSWORD_SERVICE_UNAVAILABLE` permits a later explicit confirmation; uncertain writes never resend automatically. Native validation feedback and credential-state notices are bilingual and persistent. Credential metadata requires existing per-target password-management rights; anonymous failures are uniform and contain no account diagnosis. CSS changes only extend existing error rules to validation feedback, retaining #92 layout. Source tests are distinct from compiled Windows/browser and real-account acceptance. Four scope/provenance permission failures remain coupled to #102; no policy migration or real account change is included. [Evidence, unavailable checks and transfer boundaries](../../docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75).
+
 ## 2026-11-09 — Account dialog candidate
 
 Account submit now compares the API-normalized target ID, requires a returned target for non-delete ACKs and cannot certify an invalid ACK via null/null readback. Busy dialogs expose aria-busy and a progress label. Unknown, incomplete and changed-target outcomes keep Confirm disabled; inputs remain available for copying and existing recovery only reads. Persistent notices retain only owner, canonical ID and a password-change boolean, never payload/credentials, and explicitly leave fresh-password login pending. Reset-other/own titles and four known API errors are localized; Vietnamese operation summaries use commas. [Evidence and integration boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象).
@@ -17,6 +21,10 @@ Local UI candidate labels the ten existing Edit-implies-Save adapters without re
 ## 2026-11-09 Background check retirement candidate
 
 Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.
+
+## 2026-11-08 — Account confirmation and credential diagnostics
+
+The account controller performs fresh authorized actor/target verification before its first POST and retains the final server CAS and unknown-write fence. Password validation and known prewrite failures preserve input. Login failures expose no account-specific diagnostic, and credential-state metadata follows existing per-target password rights. Current behavior and separate acceptance gates: [Account login/password](../../docs/sites/ACCOUNT_LOGIN_PASSWORD.md). No real credential, permission, migration or deployment changes are part of this candidate.
 
 ## 2026-11-06 — Role-template layout candidate
 

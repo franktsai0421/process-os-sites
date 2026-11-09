@@ -13,3 +13,7 @@ void test('native source fixture loads real policy/identity/workflow/feedback wi
 void test('native source fixture refuses entries outside the checkout and non-source extensions',async()=>{
  const source=workerSource();await assert.rejects(()=>source.load('../outside.ts'),/SOURCE_OUTSIDE_CHECKOUT/);await assert.rejects(()=>source.load('lib/synthetic.json'),/SOURCE_EXTENSION_REFUSED/);await assert.rejects(()=>source.load('tests/native-worker-source.test.mjs'),/SOURCE_DIRECTORY_REFUSED/);
 });
+
+void test('source fixture permits only explicit salt/derive failure ports, never arbitrary builtin overrides',()=>{
+ assert.throws(()=>workerSource({}, {cryptoOverrides:{createHash(){}}}),/CRYPTO_PORT_REFUSED/);assert.throws(()=>workerSource({}, {cryptoOverrides:{scrypt:'not a function'}}),/CRYPTO_PORT_REFUSED/);
+});

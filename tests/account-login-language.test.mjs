@@ -9,7 +9,7 @@ function fixture(language,error){
  const context={document:{documentElement:{lang:language},querySelector:s=>({'#login-submit':submit,'#login-id':id,'#login-password':password,'.login-hint':hint})[s],querySelectorAll:()=>[quick]},accountText:(zh,vi)=>language==='vi'?vi:zh,platformLogin:async()=>{calls++;throw error;}};vm.createContext(context);vm.runInContext(binding+';bindProtectedPlatformLogin();',context);return{context,hint,id,password,submit,quick,calls:()=>calls};
 }
 void test('login failures use the selected language for server codes and legacy error text',async()=>{
- const cases=[['ACCOUNT_NOT_FOUND','帳號不存在'],['ACCOUNT_DISABLED','此帳號已停用'],['PASSWORD_INCORRECT','密碼錯誤'],['NO_PERMISSION','此帳號尚未設定使用權限'],['LOGIN_RATE_LIMITED','登入次數過多，請稍後重試'],['LOGIN_LIMIT_UNAVAILABLE','登入暫時無法使用']];
+ const cases=[['LOGIN_FAILED','帳號或密碼錯誤，或暫時無法登入'],['ACCOUNT_NOT_FOUND','帳號不存在'],['ACCOUNT_DISABLED','此帳號已停用'],['PASSWORD_INCORRECT','密碼錯誤'],['NO_PERMISSION','此帳號尚未設定使用權限'],['LOGIN_RATE_LIMITED','登入次數過多，請稍後重試'],['LOGIN_LIMIT_UNAVAILABLE','登入暫時無法使用']];
  for(const language of ['zh','vi'])for(const [code,message]of cases)for(const modern of [false,true]){const error=Error(message);if(modern)error.code=code;const f=fixture(language,error);await f.submit.onclick();assert.equal(f.calls(),1);assert.equal(f.submit.disabled,false);if(language==='vi'){assert.doesNotMatch(f.hint.textContent,/[\u3400-\u9fff]/);assert.match(f.hint.textContent,/[A-Za-z]/);}else assert.match(f.hint.textContent,/[\u3400-\u9fff]/);assert.doesNotMatch(f.hint.textContent,/ACCOUNT_|PASSWORD_|LOGIN_/);}
 });
 void test('initial and quick-login hints are localized and never insert a stored password',()=>{

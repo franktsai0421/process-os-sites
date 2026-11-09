@@ -441,7 +441,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test --test-concurrency=1 scripts/test-user-access.mjs scripts/test-draft-restore-access.mjs scripts/test-legacy-draft-rights.mjs scripts/test-user-access-initial-read.mjs scripts/test-user-access-response-fence.mjs scripts/test-user-access-projection-reuse.mjs tests/account-save-capability-label.test.mjs tests/account-result-notice.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --experimental-vm-modules --test tests/account-source-api.test.mjs tests/account-login-language.test.mjs tests/account-dialog-feedback.test.mjs scripts/test-own-account-entry.mjs tests/account-main-source-compat.test.mjs tests/account-background-compat.test.mjs
+          node --experimental-vm-modules --test tests/account-source-api.test.mjs tests/account-login-language.test.mjs tests/account-dialog-feedback.test.mjs scripts/test-own-account-entry.mjs tests/account-main-source-compat.test.mjs tests/account-background-compat.test.mjs tests/native-account-ci-contract.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/test-fqc-feedback-races.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

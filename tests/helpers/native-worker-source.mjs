@@ -7,13 +7,15 @@ import {stripTypeScriptTypes} from 'node:module';
 import {webcrypto} from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 const checkout=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
-export function workerSource(env={}){
+export function workerSource(env={},options={}){
+ const cryptoOverrides=options.cryptoOverrides||{};if(Object.keys(cryptoOverrides).some(key=>!['randomBytes','scrypt'].includes(key)||typeof cryptoOverrides[key]!=='function'))throw Error('CRYPTO_PORT_REFUSED');
+ const consolePort=options.consolePort||console;
  if(typeof vm.SourceTextModule!=='function')throw Error('Run isolated tests with --experimental-vm-modules');
- const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,ReadableStream,TextEncoder,TextDecoder,AbortController,Buffer,crypto:webcrypto,Date,performance,console,atob,btoa,structuredClone,setTimeout,clearTimeout,fetch(){throw Error('SYNTHETIC_OUTBOUND_FORBIDDEN');}}),cache=new Map();
+ const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,ReadableStream,TextEncoder,TextDecoder,AbortController,Buffer,crypto:webcrypto,Date,performance,console:consolePort,atob,btoa,structuredClone,setTimeout,clearTimeout,fetch(){throw Error('SYNTHETIC_OUTBOUND_FORBIDDEN');}}),cache=new Map();
  async function builtin(specifier){
   if(!['node:crypto','node:buffer'].includes(specifier))throw Error('UNEXPECTED_NATIVE_IMPORT');
   if(!cache.has(specifier)){
-   const exports=await import(specifier),names=Object.keys(exports);
+   const original=await import(specifier),exports=specifier==='node:crypto'?{...original,...cryptoOverrides}:original,names=Object.keys(exports);
    cache.set(specifier,new vm.SyntheticModule(names,function(){for(const name of names)this.setExport(name,exports[name]);},{context,identifier:specifier}));
   }
   return cache.get(specifier);

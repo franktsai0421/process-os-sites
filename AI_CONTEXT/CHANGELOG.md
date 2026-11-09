@@ -1,3 +1,7 @@
+## 2026-11-09 — Integrate the existing account recovery candidate locally
+
+Semantically compose efa7b75 onto the #100 account branch: credential compatibility/secret-free diagnostics, uniform anonymous failures, prewrite fresh reads, native validation and localized ownership-safe UI. Retain current ACK/target/result/unknown safeguards, #92 layout and #100 bytes. [Scope, source tests and unresolved transfer/native/#102 gates](../docs/acceptance/accounts-permissions-20261109.md#既有帳密候選的本機語意整合efa7b75). No original transmission retry, real-account mutation or external write.
+
 ## 2026-11-09 — Account compatibility with merged #100
 
 Pinned main 9fbba823 is integrated in the existing local account branch. Preserve #100 runtime bytes, inert scheduling and every CI gate; combine account cache tags and append an exact cache-only index inverse while retaining original retirement rules/predecessor. [Merge scope, source verification and dependency-blocked tests](../docs/acceptance/accounts-permissions-20261109.md#100-合併後相容性固定-main-9fbba823). No build/install retry, real account/data change, remote write or deployment.
@@ -45,6 +49,10 @@ Remove the 15-second reader/generator. Normal entry and the bilingual Update but
 ## 2026-11-08 — Equipment explicit recheck and ACK comparison candidate
 
 Equipment Save confirms complete saved/working JSON content without object-key-order dependence. Keys, primitive types/values, array positions, receipt/generation/revision and owner fences remain required. Explicit same-owner/epoch/generation delivery recheck reads fresh permissions through the existing client, then uses a private one-use confirmation after all caller checks to renew only runtime delivery. Original client, journal, guards and UNKNOWN receipt destinations remain; no automatic POST or permission bypass. Both equipment and shared-client cache tags advance together. The historical source pins are retained through an exact test-only composition back to PR 97. [Scope and verification limits](../docs/acceptance/equipment-no-poll-20261108/README.md). No schema, live data, deployment or conflict-resolution feature.
+
+## 2026-11-08 — Account login and password confirmation recovery
+
+Recovered the verified account-source delta on current main while preserving the role-template UI. Added fresh prewrite actor/target checks, localized validation and safe credential failure diagnostics, plus isolated handler and Windows compiled confirmation coverage. No schema, live credential or permission changes. [Current account contract](../docs/sites/ACCOUNT_LOGIN_PASSWORD.md); exact-run acceptance remains separately reported.
 
 ## 2026-11-07 — Reject inactive master document selectors
 

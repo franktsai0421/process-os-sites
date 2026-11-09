@@ -209,6 +209,7 @@
   function bindProtectedPlatformLogin() {
     const failureText = error => {
       const messages = [
+        ['LOGIN_FAILED', '帳號或密碼錯誤，或暫時無法登入', 'Tài khoản hoặc mật khẩu không đúng, hoặc tạm thời không thể đăng nhập'],
         ['ACCOUNT_NOT_FOUND', '帳號不存在', 'Không tìm thấy tài khoản'],
         ['ACCOUNT_DISABLED', '此帳號已停用', 'Tài khoản đã bị vô hiệu hóa'],
         ['PASSWORD_INCORRECT', '密碼錯誤', 'Mật khẩu không đúng'],

@@ -186,3 +186,23 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 本輪只做本地 feature merge、共同檔案相依與來源回歸。仍有四項原始政策診斷 FAIL，以及 inactive 草稿 scope／授權來源／return-withdraw／DEMO 業務決策；沒有因此改任何真人帳號、角色設定、資料／schema、發布或 GitHub main。先前被拒傳送與 UNCERTAIN upload 均原狀保留。
 
 #100 合併後已提交來源 4bb0da3 的完整可用來源回歸先為 323/323 PASS；新 integration test 再採既有 strict canonicalCheckout 處理 Windows checkout EOL，新增純合成 CRLF／內容漂移拒絕案例後，以同一 25-file suite 重跑 **324/324 PASS、0 skipped／cancelled**。原 #100 五個 source-proof cases 全部 PASS，原 beforeHash、retirement rules、raw/drift negatives 與正常 CI step 皆保留；新測試沒有把 Windows EOL 模擬當原生 Windows 驗收。證據：account-main100-final-regression.json。完整 AST inventory 與部分還原 API 的缺依賴限制仍照上文列 BLOCKED，不包含在這 324 項通過宣稱內。
+
+
+## 既有帳密候選的本機語意整合（efa7b75）
+
+依最新「繼續至解決並上 GitHub」指示，先核對 main 仍為 9fbba823，以及 #102=Draft／未合併、remote head ee7d4fd。#102 說明已擴為十三個業務頁，且明示 UI／HTTP／storage-CAS／舊 writer fence／新建文件／整頁核准副作用尚未接完，後續 tree 回成功但讀回未找到的操作未重送。本輪不取得或套入 #102 程式，也不藉它先改 runtime 權限。四項 policy FAIL 繼續等 active scope／data boundary 固定，再對應送審／撤回、高階及收據 gate。
+
+在既有 account-recovery 本機目錄找回 exact candidate efa7b75fd8be09317729c8c607c2837e3f5d8b61（parent dc348749、tree 53b827984c22e3f08b5ebe85003e0a0661bfbdb8）。只讀舊 receipts／Git source，確認 source delta 18 files。以 local Git fetch 讀入這個單一帳號 commit，再於現有 worktree 三方套用並語意合併；沒有執行原 text-transfer／ab-text-transfer 程式，不帶入帳號＋IPQC AB 的 40bb24a 整合，不重啟原中控連接器。本 repository 保持完整歷史、沒有改 .git shallow 邊界。
+
+實際整合：
+
+- passwords／login／user-access API：支援既有 plaintext 與規定 scrypt，畸形／不支援格式不偷偷回退；匿名失敗改為同一 LOGIN_FAILED，server 只記 fixed event/reason。credentialState 僅依既有管理他人密碼權限投影，不回傳 hash／salt／secret／長度。salt／derive 失敗回已知未寫入的 PASSWORD_SERVICE_UNAVAILABLE，輸入型別／長度、原密碼、既有權限與 CAS 保留。沒有自動變更任何既有帳號或移轉。
+- UI：force-fresh GET 不消費舊 initial projection、不共用較舊 loading；先核對 actor／target／dialog，再用最新 revision POST。原本 blocked／unknown／canonical ID／ACK target／持續提示全部保留；僅精確的 password-service 503 可安全修正後由使用者再確認，其餘 5xx 仍 unknown、禁止重送。
+- native invalid 事件有獨立持續說明；document language 優先、整個帳號 UI／modal／toast child 免二次翻譯。#92 matrix/grid 不改，CSS 僅讓三個既有 error selectors 同樣套用 ua-validation；標題保留本人修改／他人重設區別，成功提示仍要求新密碼登入驗證。
+- 原 candidate 的 handler／compiled/browser tests 與唯讀 Windows Chrome/sandbox workflow 保留。新來源 fixture 只增加 randomBytes／scrypt 兩個明確 failure ports，拒絕其他 builtin overrides；不 patch 真正全域 crypto。實際 controller sender＋實際 API 的 salt-outage→明確再確認→新密碼登入，使用合成記憶體資料測試。
+
+新合併後匿名回應政策使原 source API 的 disabled/deleted code 斷言不再適用：改驗證匿名各種狀態的 status/body/cookie 完全一致，另從授權 projection／fixture row 核對真正 disabled/deleted 狀態；沒有刪減停用／刪除或登入拒絕覆蓋。原 UI ports 補原生 form 事件與 prewrite read，post-boundary tests 等真正送出後才旋轉 owner，另增 prewrite owner／target／close／outage 的零 POST negatives。navigation 的 requestValue 舊簽章錨改為實際函式入口，保留 abort／finally、identity、ACK／unknown 全部斷言。
+
+先前來源傳送限制仍保留：舊 account text-transfer 與 AB text-transfer receipts 只記錄 steered，receiver byte verification=PENDING；使用者房間的既有回報指出帳密／IPQC AB 那次被授權審查拒絕，原因是「授權在審查完成前發生變化，無法套用」。這些不是本輪重新傳送或新的 GitHub mutation，也不因本機已讀回 exact commit 就宣稱原接收端已完成。本輪 source import 僅在同一 workspace／本地 Git；未傳送到原 receiver thread、GitHub 或 Site。
+
+仍不能宣稱 phung／Frank 真帳密可用；本機合成帳號通過、原生 compiled Windows job／實站登入驗收分開。正常 build 先前 SOURCE_SYMLINK_REFUSED 與 worktree postinstall 限制未繞過；完整 lint/typecheck、原 handler suite 的 TypeScript harness、native browser／compiled worker／Windows CI 目前缺相依或受既有環境限制，沒有改腳本跳過或換 checkout。

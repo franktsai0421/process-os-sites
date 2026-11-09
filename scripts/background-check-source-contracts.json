@@ -124,7 +124,7 @@
   {
     "file": "public/process/index.html",
     "beforeHash": "40163af0731a5691db3a3dc2e1f6c229c2720cfd6cfe5ffd0d1a9ab5547f63c0",
-    "afterHash": "c644633fa83742f8f2daa235228f7ae6b0242c99679ae48b4651e7fa3ad86a97",
+    "afterHash": "92da855f115e3f8cc5252ab50ac5bba3cdf246b4964507cd533ea50aea5f9694",
     "rules": [
       {
         "offset": 6899,
@@ -154,7 +154,7 @@
       {
         "offset": 8133,
         "before": "    <script data-process-src=\"data-safety-ui.js?v=20261027-login-reentry1\"></script>\n",
-        "after": "    <script data-process-src=\"data-safety-ui.js?v=20261109-login-language1\"></script>\n"
+        "after": "    <script data-process-src=\"data-safety-ui.js?v=20261109-login-language2\"></script>\n"
       },
       {
         "offset": 8468,
@@ -162,12 +162,12 @@
         "after": "    <script data-process-src=\"version-draft-ui.js?v=20261109-return-confirm1\"></script>\n"
       },
       {
-        "offset": 10493,
-        "before": "    <script data-process-src=\"user-access.js?v=20261106-role-layout1\"></script>\n",
-        "after": "    <script data-process-src=\"user-access.js?v=20261109-account-feedback2\"></script>\n"
+        "offset": 10418,
+        "before": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261106-role-layout2\">\n    <script data-process-src=\"user-access.js?v=20261106-role-layout1\"></script>\n",
+        "after": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261109-account-validation1\">\n    <script data-process-src=\"user-access.js?v=20261109-account-recovery1\"></script>\n"
       },
       {
-        "offset": 10757,
+        "offset": 10764,
         "before": "    <script src=\"bootstrap.js?v=20261104-draft-integration1\"></script>\n",
         "after": "    <script src=\"bootstrap.js?v=20261109-feedback-policy1\"></script>\n"
       }
