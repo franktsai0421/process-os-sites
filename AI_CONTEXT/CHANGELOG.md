@@ -1,3 +1,7 @@
+## 2026-11-09 — Make account confirmation state explicit
+
+Account Save shows progress and preserves input/prior disabled states; unresolved outcomes block Confirm while offering read-only verification. Canonical IDs and required non-delete ACK targets prevent false readback success. Localized errors/reset titles and password acceptance wording clarify outcomes. [Tests and release limits](../docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象).
+
 ## 2026-11-09 — Localize SPA account login feedback
 
 The protected SPA login binding translates current API codes and legacy known messages, including quick-account and initial hints, and keeps internal errors/unknown transitions intact. Add generated-credential source API regressions. [Scope and unresolved policy dependencies](../docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸). No live reset, migration or publication.

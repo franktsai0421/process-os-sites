@@ -43,3 +43,7 @@ void test('create/edit/disable/enable/delete persist and deleted account codes c
 void test('ordinary users, admin peers and cross-origin requests cannot reset protected credentials or manage primary',async()=>{
  const f=await fixture();try{const before=f.snapshot(),secret=randomUUID();for(const [actor,id]of [['synthetic-first','synthetic-second'],['synthetic-manager','frank']])assert.equal((await f.post(actor,{action:'password',id,password:secret,confirmation:secret})).status,403,actor+' -> '+id);assert.equal((await f.post('frank',{action:'password',id:'synthetic-first',password:secret,confirmation:secret},'https://foreign.invalid')).status,403);for(const action of ['delete-user','status-user'])assert.equal((await f.post('frank',{action,id:'frank',enabled:false})).status,403);assert.deepEqual(f.snapshot(),before);}finally{f.close();}
 });
+
+void test('account mutation canonicalizes a padded uppercase target before ACK, audit and session invalidation',async()=>{
+ const f=await fixture();try{const r=await f.post('frank',{action:'update-user',id:'  SYNTHETIC-FIRST  ',name:'Synthetic canonical name'});assert.equal(r.status,200);assert.equal(r.body.users.find(u=>u.id==='synthetic-first').name,'Synthetic canonical name');assert.equal((await f.get('synthetic-first')).status,401);assert.equal(JSON.parse(JSON.parse(f.snapshot().row.values).processAccessControl).audit.at(-1).target,'synthetic-first');assert.equal((await f.sign('SYNTHETIC-FIRST')).status,200);}finally{f.close();}
+});

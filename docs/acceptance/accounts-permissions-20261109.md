@@ -1,10 +1,10 @@
 # 帳號與權限：需求盤點及未完成驗收
 
-2026-11-09 UTC。首次盤點後已追加五批本機候選；不是帳密修復完成或可發布證明。最新：feedback 兩項原始政策差距已修，10 項需求診斷為 6 PASS／4 FAIL；四項相依阻擋見文末。真帳號、GitHub 與測試站狀態仍分開追蹤。
+2026-11-09 UTC。首次盤點後已追加六批本機候選；不是帳密修復完成或可發布證明。最新：feedback 兩項原始政策差距已修，10 項需求診斷為 6 PASS／4 FAIL；四項相依阻擋見文末。真帳號、GitHub 與測試站狀態仍分開追蹤。
 
 ## 固定來源與已確認狀態
 
-- GitHub main／本次產品來源：`d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。
+- 首次盤點的 GitHub main／本次基底產品來源：`d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。
 - #92 已於 2026-11-06 合併，merge `638615807dafc32782dc327d56b348b6e4c82902`；只有角色版面成果，不能代替帳密或全功能驗收。
 - 新帳密候選 `efa7b75fd8be09317729c8c607c2837e3f5d8b61`，與 IPQC A/B 的本機整合 `40bb24a5e3185b04b10a27024c900f9cbf02ffc5`。這兩份既有候選未由本工作重套或上傳。
 - 既有後續雲端收據已分別確認兩個候選的完整來源歷史通過；原淺層 checkout 的失敗仍保留，不能混為同次執行。整合版另有 296 項 Node、16 個 compiled 帳號情境、7 個 compiled A/B＋帳號情境與 lint/type/build 的既有收據；不是瀏覽器或真帳號驗收。
@@ -135,6 +135,25 @@ SPA 的 protected login 原本把後端中文 error 直接顯示，越文模式�
 | 高階確認包含模組送審／撤回 | 明確 high fixture 已有模組 view，但 12 個模組的 submit／withdraw 仍 false | 與新高階表示、獨立 scope、UI 派生能力和後端一起整合；不得因 high 順帶開未授查看或其他 create/delete/restore |
 | 發回／撤回為同待審功能 | 同案件 withdraw-only actor 撤回200、return403；kernel 按 action 取權，route operation receipt GET 亦按原 action，routine-FQC 還有外層 receipt gate，角色與個人矩陣仍各有獨立格 | 同批同步有效授權、來源頁／版本平台 capability、receipt lookup、kernel 和 routine outer receipt；舊收據／歷史保留，禁止只改一處來掩蓋不一致 |
 
-這些是明確整合相依，故沒有在這個 main-based 分支先行改動 runtime 審核／撤回語意。已核對 GitHub main 仍 d4ac309。開啟的 [#99](https://github.com/franktsai0421/process-os-sites/pull/99)（83dcd5c，PR 描述）明示未含權限模組調整或草稿資料切換，另一拆分候選採 LINES 整頁草稿但尚待資料／權限與 PROCESS link 適配。實際 moduleForURL('?view=data&dataTab=line-admin')=lines，舊 '/api/master/workflow?scope=AB'=ab，而 scope=LINES=null；不能宣稱該相依已整合。此工作沒有操作其他工作樹。
+這些是明確整合相依，故沒有在這個 main-based 分支先行改動 runtime 審核／撤回語意。已核對 GitHub main 仍 d4ac309。當時開啟的 [#99](https://github.com/franktsai0421/process-os-sites/pull/99)（83dcd5c，PR 描述）明示未含權限模組調整或草稿資料切換，另一拆分候選採 LINES 整頁草稿但尚待資料／權限與 PROCESS link 適配。實際 moduleForURL('?view=data&dataTab=line-admin')=lines，舊 '/api/master/workflow?scope=AB'=ab，而 scope=LINES=null；不能宣稱該相依已整合。此工作沒有操作其他工作樹。
 
 可交付內容已具體固定在本地 commits，沒有 GitHub mutation。原主要整合來源 upload 仍 UNCERTAIN（缺完整結果／manifest），既有來源傳送拒絕 BLOCKED 原樣保留，未重送、拆分傳送或換路。發布／合併及真帳號重設不在這批實作結果內；帳號與權限合併仍交使用者決定。
+
+
+## 第六批本機修復：帳號對話框狀態與讀回對象
+
+依後續指示繼續處理不依賴草稿拆分的帳號 UI。本批以 54a735f 為基準；先核對 #92：目前 user-access.css 與合併提交 638615807dafc32782dc327d56b348b6e4c82902 的 blob 完全相同（a14f05b96daa06047a9df0c5201d5ecb7a5d3464），本批不改 CSS／角色版面、API、帳號／權限 policy 或 schema。
+
+原先 blocked 的 Confirm 在 finally 恢復可按，之後按下早退而無反應。現在保存期間顯示「保存並核對中」與 aria-busy；未確認／讀回失敗／對象已變時 Confirm 保持停用，輸入仍能複製。新開對話框遇既有 unknown 也立即顯示不重送說明並停用 Confirm。原本確定的 4xx 拒絕可以恢復供使用者修正後確認，既有 disabled 控制保持；重複點擊不增加 send。唯讀核對不 POST，只有有效 ACK 對象與讀回完全相同才可顯示成功；舊身分回覆不關閉／核准舊視窗。
+
+另一個真實來源缺口是 UI 允許輸入大寫代碼，API 會 trim/lowercase，但讀回比較找原大寫 ID；ACK 與讀回可能同為 null 而誤判成功。現依同一 canonical ID 核對，且非 delete 的 ACK 缺少對象一律不認成功，後續 null/null 唯讀核對亦不能解除。delete 的合法「對象已移除」結果保留。沒有自動重送、偽造 role/grant 或改真人資料。
+
+持續結果只記 owner／canonical ID／password-change boolean；密碼變更明列仍需用新密碼重新登入驗證，不能當真帳號可登入的證據。原本的本人原密碼欄位保留，他人改為「重設密碼」標題；補四個既有 API code 的明確中越文，越文其他權限摘要改用逗號。其餘語言來源／二次翻譯問題仍由既有帳密候選的整合追蹤，本批不重套或轉送該候選。
+
+- 新 dialog-feedback 測試最初 10/10 RED；修正後擴充至 14/14 PASS，涵蓋 user／role、兩語、等待／原 disabled、unknown／readback／null ACK、canonical target、唯讀恢復及舊 owner。新增實際 source API case 亦確認 padded uppercase 目標在 ACK／audit／session 失效均使用 canonical ID。
+- 擴大回歸初次 255 項中 254 PASS／1 FAIL：既有 test-own-account-entry 未載入 ownPermissions，呼叫 ownAccount 時未建立 dialog；對未修改 main d4ac309 的來源在記憶體重跑同樣 FAIL。其舊「不能包含任何矩陣」斷言也不符合現有本人唯讀權限功能。夾具改載入實際 ownPermissions／matrix，核對全部 162 格 disabled、沒有恢復／其他人管理控制，保留其他人資料、本人密碼、DEMO password、viewer、epoch／identity、normalizer 與自訂角色名 negatives；不以 stub 掉權限內容取得 PASS。該修正已單獨 PASS，並加入既有帳號 CI 命令。修正後以相同 18 個檔案完整重跑：255/255 PASS、0 skipped；完整命令及終端計數見外部 evidence 的 account-dialog-final-regression.json。
+- JS syntax、diff check PASS；本機完整 lint／typecheck／normal build、native dialog／鍵盤／手機／IME、遠端 Windows CI／實站仍 NOT_RUN。維持同一 worktree，沒有依賴連結、安裝／build 重試、換路或改守衛。
+
+這批可獨立審查的 source hunk 已完成；與舊帳密候選整合時須語意合併 submit 的 canonical target／ACK／button-state hunk，保留候選 fresh prewrite、native validation、語言來源、ownership／unknown fences，禁止整份覆蓋。四項草稿／審核權政策 FAIL、真帳號登入／重設驗收、原生畫面與原先上傳狀態仍是具體未完成項。沒有 GitHub／Site mutation，也沒有把先前拒絕或 UNCERTAIN 操作重送。
+
+最新只讀 GitHub 核對：#92 merged=true，merge 仍為 638615807dafc32782dc327d56b348b6e4c82902；main 已因 #99 合併前進至 021f0f388b16ebcdff0f64ff44039d2ea07f4165。該 commit 的 parent 為 d4ac309，12 個 changed files 中未改帳號 JS／CSS，與本批只重疊 Local safety 和首頁交接／CHANGELOG。本分支仍保留 d4ac309 為基底，沒有把最新 main、其他候選或任何資料移入。整合需保留 #99 的 CI／文件內容；#99 是新工段沿用流程類型修復，不代表獨立草稿／權限拆分已完成。

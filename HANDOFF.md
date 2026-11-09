@@ -1,3 +1,7 @@
+## 2026-11-09 — Account dialog feedback and canonical readback
+
+Independent successor to 54a735f: account dialogs show busy feedback, keep Confirm disabled after unknown/incomplete/mismatched results, canonicalize readback targets and reject missing non-delete ACK targets. Password notices explicitly leave new-password login acceptance pending. #92 CSS is byte-identical. [Synthetic regressions and remaining blockers](docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象). No API, true-account, permission, build or remote mutation.
+
 ## 2026-11-09 — Login language and policy dependencies
 
 SPA login hints/errors now follow the selected Chinese/Vietnamese language while internal error codes and reentry/unknown guards remain. Actual source-only account tests cover reset→fresh login, revocation, CAS and lifecycle with generated credentials. [Tests and four unresolved policy dependencies](docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸). Main remains d4ac309; #99 explicitly does not integrate draft/permission splitting. No upload, true-account mutation or build retry.

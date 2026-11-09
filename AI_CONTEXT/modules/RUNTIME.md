@@ -1,3 +1,7 @@
+## 2026-11-09 — Account dialog candidate
+
+Account submit now compares the API-normalized target ID, requires a returned target for non-delete ACKs and cannot certify an invalid ACK via null/null readback. Busy dialogs expose aria-busy and a progress label. Unknown, incomplete and changed-target outcomes keep Confirm disabled; inputs remain available for copying and existing recovery only reads. Persistent notices retain only owner, canonical ID and a password-change boolean, never payload/credentials, and explicitly leave fresh-password login pending. Reset-other/own titles and four known API errors are localized; Vietnamese operation summaries use commas. [Evidence and integration boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第六批本機修復帳號對話框狀態與讀回對象).
+
 ## 2026-11-09 — SPA login language candidate
 
 Protected SPA login renders known server codes/legacy messages in the current document language; unknown details become localized page guidance. Confirmed-login storage/input errors retain no-resend guidance. Internal error messages/codes, identity checks, transition cleanup and unknown handoff remain unchanged. Initial and quick-account hints also follow language. Standalone /login remains its existing bilingual entry and has not been redesigned. [Source/API tests and limits](../../docs/acceptance/accounts-permissions-20261109.md#第五批本機修復登入提示語言與帳號來源回歸).
