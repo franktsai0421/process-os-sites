@@ -18,7 +18,7 @@
 | 製程編輯台、畫布 | `process:platform` | 整個編輯台一次保存；workspace／類別／工段仍是頁內視角 |
 | AB 產線與類別 | `master:AB` | 產品、類別與路線三方合併；仍包含既有 AB 線別資料 |
 | C 產線與類別 | `master:C` | 同上，與 AB 分開 |
-| 線別與工段管理 | 仍共用 `master:AB`／`master:C` | 雙選可用於目前 scope；**獨立持久草稿尚未啟用** |
+| 線別與工段管理 | 仍共用 `master:AB`／`master:C` | 雙選可用於目前 scope；**獨立持久草稿及同頁 AB/C 篩選完整保存尚未啟用** |
 | 流程資料／模板／機器 | `master:PROCESS` | 同一流程資料頁；機器 modal 不另拆草稿 |
 | FQC | `fqc` | 錯誤碼、項目與矩陣同模組 |
 | IQC | `iqc` | 零件、項目、供應商／類別同模組 |
@@ -53,3 +53,5 @@
 各模組 actual handler + synthetic DOM／SQLite／Map-R2 測試不等同原生瀏覽器、Windows、實體 iPhone、真實 IME 或正式站驗收。完整整合 build、來源逆轉證明與正常 CI 接線由整合批次固定後核對。
 
 舊品質 243-path create_tree 結果仍 UNKNOWN；本次唯讀查詢既知 tree `ee1352c5508376713bae156e205701e512c3212c`（另品質批次 `beddd52759e5cd322e6d64b658b6e8c0a2f84025` 也另查） 回 404，不能當作未執行證據。原 payload 範圍不完整，因此不以假定互不重疊或分拆方式重送。先前檢具 create_tree 也曾被自動審查拒絕，理由是當時只有進度查詢授權、公開原始碼／文件目的地未確認。本次沒有重試該操作，也沒有繞道上傳。GitHub 上傳、合併與部署未完成，需沿原操作查證及適用授權處理。
+
+[整合驗證紀錄與剩餘界線](VALIDATION.md)。
