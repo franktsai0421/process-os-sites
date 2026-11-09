@@ -1,3 +1,7 @@
+## 2026-11-09 — 已接續首批 IQC 同頁核准版本前端
+
+IQC 使用同位置單一 selector，已核准快照以原 detailPanel 唯讀顯示並可切回保留的當前 RAM；本頁舊歷史／還原彈窗入口移除。display epoch 阻擋舊回應與工作回呼，保留 UNKNOWN、pending、原比較基準與照片。32 項新查看、53 項 Save／離頁、76 項 BOM/C 共用、89 項其他 IQC 回歸及兩支投影腳本 PASS。其他頁面尚未完成，無 GitHub／部署變更。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — 全頁核准版本查看首批（本機，未發布）
 
 已在獨立候選以 ce824f2 為基準盤點全部草稿頁，新增共同 approved-only GET 精確 envelope 與 source/body／權限防護；78 項新 route 測試、76 項 BOM/C common 實際 handler、68 項既有權限／收據回歸及 12 組 helper PASS。沒有接通其他頁的同頁 selector，不可宣稱全站完成；Github／測試站仍未更新，保留既有 243-path UNKNOWN 與拒絕操作邊界。[逐頁矩陣、來源與接續](docs/acceptance/approved-history-unification-20261109/README.md)。

@@ -147,3 +147,5 @@ body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay:
 .iqc-page .iqc-alert-list li{margin:6px 0;overflow-wrap:anywhere}
 .iqc-page .iqc-alert-list button{margin-left:8px}
 @media(max-width:520px){.iqc-page .iqc-version .iqc-actions{justify-content:stretch}.iqc-page .iqc-version .iqc-actions label,.iqc-page .iqc-version .iqc-actions button{width:100%}.iqc-page .iqc-item-number{align-items:flex-start}}
+
+.iqc-approved-view .iqc-part-list button{display:block;width:100%;min-height:44px;text-align:left;white-space:normal;overflow-wrap:anywhere}

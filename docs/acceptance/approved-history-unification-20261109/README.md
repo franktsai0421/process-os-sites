@@ -1,6 +1,6 @@
-# 全草稿頁已核准歷史版本查看：第一批共同讀取能力
+# 全草稿頁已核准歷史版本查看：共同讀取與首批 IQC 前端
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件是盤點及首批後端成果，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及首批 IQC 前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -18,7 +18,7 @@
 | C 產線與類別 | `master:C` | 新 approved-only PASS | 同上，保留 C 自己的版本與權限 |
 | 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 模板與機器是同頁視角；需同頁唯讀展示，不以現行機器資料替代歷史 |
 | FQC | `fqc` | 新 approved-only PASS | `fqc-master.js` 仍開案件／歷史彈窗；需保留矩陣 RAM 與原比較基準 |
-| IQC | `iqc` | 新 approved-only PASS | `iqc-master.js` 仍有可還原彈窗；需轉接、保留本機表單／照片 |
+| IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
 | IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | `ipqc-ab.js` 尚未轉接；舊群組與新整份版本的唯讀聯集 helper 已有，但未註冊到本批 API／UI，不可宣稱舊版聯集完整 |
 | IPQC C | `ipqc-c` | 既有專用 approved-only 路由 | 基準已有同頁 selector／唯讀投影及回當前；本批重新執行其實際 common／transport／handler 測試，非原生瀏覽器驗收 |
 | BOM | `bom` | 既有路由沿新共同查詢規則，PASS | 基準已有同頁唯讀與原 writer 保全；本批移除僅有 formal pointer 的未審核基準，不重寫 BOM 本機編輯／Save |
@@ -28,14 +28,26 @@
 
 問題回報是私人 IndexedDB 草稿，無「已核准共用業務版本」；例行報告資料庫與其他未實作例行頁籤是 placeholder；帳號／權限即時表單不是共用業務草稿。不改這些資料模型。
 
-## 本批實作
+## 第一批共同 API
 
 - `approved-history-query.ts` 精確綁定實際 pathname、adapter key、scope 與 AB module／group routing；只接受 list 或單一 detail，拒絕重複、混合、legacy、receipt、restore、catalog、references 等參數，且在讀取資料前拒絕。
 - 共同 workflow GET 擴展原 BOM 的 approved-only 能力到 FQC、IQC、檢具、模具、製程、主資料及 IPQC AB。保持一般 GET／POST、CAS、pending、角色、原收據與舊相容介面。
 - metadata 只讀核准證據、不載入歷史 body；detail 使用固定核准案件 content。完整序列化後重新查核登入、view／history、global revision 與 session，防止撤權期間先釋出內容前綴。
 - formal-baseline 仍是共用 helper 的正式指標描述，但新 approved-only 列表與 detail 均排除；有實際 legacy approval 或完整 approved case 證據才列歷史。IPQC C 既有規則一致，未清除或重寫基準資料。
 - master 及 process-authoring 的 wrapper 先將 approved-only 交給共同 parser，防止混入其他 selector 而繞到舊讀取分支。
-- 沒有修改 shared-draft-client、VersionDraftUI 或各頁 writer，避免本批與正在進行的 Save／衝突統一工作互相覆寫。前端剩餘不是測試失敗的替代說法，而是尚未實作的工作。
+- 第一批共同 API 沒有修改各頁 writer；下列接續 IQC 前端只語意修改必要 client／display admission，不覆寫其他 Save／衝突成果。其餘前端仍是未完成工作。
+
+## 接續首批前端：IQC
+
+- IQC 原版本選擇器由同一位置的 `iqc-approved-version` 接手，僅列當前草稿及具核准證據的版本，按需分頁載入。移除本頁 `openSharedDraftHistory`／案件還原入口；共用相容 API 保留供未轉接頁面使用。
+- 歷史用獨立顯示快照及自身搜尋／零件／錯誤選擇，重用 IQC `detailPanel(..., true)`。保留原 `control`、selected version、localBase／localSnapshot、generation、原收據、儲存狀態與頁內篩選；不是把歷史資料塞進 writer 後再鎖按鈕。
+- 選歷史前同步進入 display epoch；直接 post／本機套用／upload／load 入口及舊工作回呼拒絕跨世代。切回只讀新 permissions，再重繪現有 RAM。延遲 workflow／版本／預覽回覆無權更新新頁或恢復舊 grant。
+- 未完成編輯表單、照片視窗、上傳、收據查詢或 Save 比較／寫入仍在進行時，版本切換保守阻擋；不關閉表單或丟棄輸入。歷史下保留 UNKNOWN 標記，不查收據、不重送、不撤回 pending。真實 Submit 建立的隔離 pending 案件也保持原鎖及返回後的 Withdraw 控制。撤銷 view 時退休未 dispatch 的 Save 選擇並隔離原表單，保留 RAM／基準；重新授權不復活舊操作。
+- 檢具資訊只取核准快照且 ID 必須相符；照片使用歷史引用，不借用現行 registry。失效引用／圖片載入錯誤有提示。歷史搜尋不重建輸入節點，composition 期間等待，保留同頁草稿篩選；照片視窗關閉後恢復 selector 可用性。
+- `shared-draft-client` 只為明確 IQC bounded scope 增加 approved GET／access watcher；approved-only 不帶 editing projection，沿用原 URLSearchParams。一般 IQC GET／POST 仍用原 projection。VersionDraftUI 只額外允許明確 IQC adapter，其他模組不自動當作已完成。
+- IQC JS／CSS、共用 client／VersionDraftUI 四個資產更新同一 cache tag `20261109-iqc-approved-history1`，保留其餘資產順序與 tags。歷史零件列最小 44px，沿用既有 850px 響應式版面；沒有冒稱實體手機或原生 IME 驗收。
+
+前端驗證：32 項 IQC actual module/common/primary transport/handler 新測試 PASS；53 項 IQC Save／離頁回歸及 76 項 BOM/C 共用回歸 PASS；另 89 項既有表單、照片、比較 Save、已驗證讀回及兩支 deferred projection UI／race scripts PASS。最初額外 URL 全域依賴造成的既有 VM fixture 失敗已修正為沿用 URLSearchParams，相關原日誌保留；投影 UI fixture 補上真實 isConnected／退休節點語意，未放寬產品 guard。前端所依賴的來源證據會以新產品 commit 重新生成，保留全部原 named predecessors／負向控制。
 
 ## BOM 候選來源核對
 

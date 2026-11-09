@@ -1,3 +1,7 @@
+## 2026-11-09 — IQC 同頁已核准版本查看候選
+
+同一 selector 載入具審核證據的快照，以獨立顯示狀態重用 IQC 唯讀詳細版面；返回保留原草稿 RAM、篩選、原基準、pending 與 UNKNOWN 收據。本頁舊歷史／還原彈窗入口移除，原相容 API 保留。完成可追溯的隔離測試，原生／實站未驗證，未上傳或部署。[驗證及全頁剩餘](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — 全頁核准歷史讀取首批候選
 
 精確綁定 approved-only GET 的 route、scope 和 envelope，擴展 BOM 的固定核准內容及讀後授權／session／revision 防護至 numeric-version 草稿 API，排除無審核證據的 formal baseline。各頁同頁 selector 與 legacy 聯集仍待完成；無 schema、資料或發布變更。[逐頁盤點與實測界線](../docs/acceptance/approved-history-unification-20261109/README.md)。

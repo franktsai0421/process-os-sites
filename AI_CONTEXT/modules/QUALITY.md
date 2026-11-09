@@ -1,3 +1,7 @@
+## 2026-11-09 — IQC 同頁核准歷史首批前端
+
+IQC 只在同一 selector 列當前草稿與已核准版本，使用獨立歷史 display snapshot 重用唯讀 detailPanel；保留原 control、RAM、比較基準、pending 及 UNKNOWN 原收據。已移除本頁舊歷史／還原彈窗入口。display epoch、舊回呼退休、撤權隔離與歷史照片來源有定向驗證；原生／實站未驗證，其他草稿頁尚未全數統一。[逐頁狀態與證據](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema 或真實資料變更。
+
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 
 Equipment retry can revalidate retained input after delivery-only drift while actor object/id, epoch, host/target, generation and all original guards remain unchanged. A fresh exact-scope permission GET and private one-use confirmation renew only the existing runtime delivery; no journal, unknown command or receipt is replaced. Equipment Save snapshot equality ignores JSON object-key order but preserves array order and exact keys/types/values. Other shared workflows retain their comparison behavior. [Source proof, regression evidence and limits](../../docs/acceptance/equipment-no-poll-20261108/README.md). No model, persistence format, ACL or schema change.
