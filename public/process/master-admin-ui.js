@@ -371,7 +371,7 @@
       if(ui.scope!==state.masterScope){ui.scope=state.masterScope;ui.line='';ui.category='';ui.search='';}
       if(state.masterSection==='lines'){
         ui.line='';ui.category='';
-        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label><details class="master-lines-rules"><summary>${t('保存、權限與刪除規則','Quy tắc lưu, quyền và xóa')}</summary><p>${t('完成只保留本機修改；存取草稿才共用並保存整份 AB 或 C；核准後才更新正式資料。搜尋與篩選不影響存取範圍。離開編輯範圍會直接放棄未送出的修改。','Hoàn tất chỉ giữ thay đổi ở máy này; Lưu chia sẻ toàn bộ AB hoặc C; chỉ phê duyệt mới cập nhật dữ liệu hiệu lực. Bộ lọc không giới hạn phạm vi lưu. Rời vùng sửa sẽ bỏ đầu vào chưa gửi.')}</p><p>${t('線別頁入口使用「線別與工段管理」查看權限；新增、修改、刪除、保存及審核依目前 AB／C 範圍權限。','Quyền xem Chuyền và công đoạn mở trang; thêm, sửa, xóa, lưu và duyệt dùng quyền của phạm vi AB/C hiện tại.')}</p><p>${t('線別有子工段不能刪除。工段仍被生效路線、共用草稿、已保存草稿、待審案件或保留流程引用時，後端會再次阻擋。歷史核准版本保留唯讀，不因僅存在舊歷史就一律禁止刪除；歷史還原仍需重新檢查引用與權限。','Không xóa chuyền còn công đoạn. Tuyến hiệu lực, bản nháp, bản đã lưu, hồ sơ chờ duyệt và quy trình còn tham chiếu được kiểm tra lại trước khi xóa. Lịch sử cũ vẫn chỉ đọc, không tự chặn mọi thao tác xóa; khôi phục vẫn kiểm tra quyền và tham chiếu.')}</p></details>${lineExcelToolbar()}${lineEditor()}</div>`;
+        return `<div class="master-shell master-organized" data-i18n-skip="true">${versionBar()}${deletionAccess()}<label class="master-lines-scope">${t('管理範圍','Phạm vi quản lý')}<select id="master-lines-scope">${options([{value:'AB',label:t('A B 產線','Chuyền A B')},{value:'C',label:t('C 產線','Chuyền C')}],state.masterScope)}</select></label><details class="master-lines-rules"><summary>${t('保存、權限與刪除規則','Quy tắc lưu, quyền và xóa')}</summary><p>${t('完成只保留本機修改；切換 AB／C、搜尋及篩選會保留未存內容。存取只保存目前 AB 或 C 範圍，核准後才更新正式資料。離開本頁會放棄尚未送出的修改。','Hoàn tất chỉ giữ thay đổi cục bộ; đổi AB/C, tìm kiếm và lọc vẫn giữ dữ liệu chưa lưu. Lưu chỉ áp dụng phạm vi AB hoặc C đang chọn; phê duyệt mới cập nhật dữ liệu hiệu lực. Rời trang sẽ bỏ đầu vào chưa gửi.')}</p><p>${t('線別頁入口使用「線別與工段管理」查看權限；新增、修改、刪除、保存及審核依目前 AB／C 範圍權限。','Quyền xem Chuyền và công đoạn mở trang; thêm, sửa, xóa, lưu và duyệt dùng quyền của phạm vi AB/C hiện tại.')}</p><p>${t('線別有子工段不能刪除。工段仍被生效路線、共用草稿、已保存草稿、待審案件或保留流程引用時，後端會再次阻擋。歷史核准版本保留唯讀，不因僅存在舊歷史就一律禁止刪除；歷史還原仍需重新檢查引用與權限。','Không xóa chuyền còn công đoạn. Tuyến hiệu lực, bản nháp, bản đã lưu, hồ sơ chờ duyệt và quy trình còn tham chiếu được kiểm tra lại trước khi xóa. Lịch sử cũ vẫn chỉ đọc, không tự chặn mọi thao tác xóa; khôi phục vẫn kiểm tra quyền và tham chiếu.')}</p></details>${lineExcelToolbar()}${lineEditor()}</div>`;
       }
       const catalog=current(),cats=categoryEntries(catalog).filter(g=>!ui.line||g.line===ui.line);
       if(ui.category&&!cats.some(g=>g.name===ui.category))ui.category='';
@@ -422,13 +422,15 @@
       on('#master-view-review','click',()=>host.MasterReview.open(state.masterScope,selected()?.id));
       on('#master-lines-scope','change',async e=>{
         const input=e.target,previous=state.masterScope,next=input.value,identity=window.ProcessSync?.identity,
-          actorId=identity?.id,epoch=window.ProcessSync?.identityGeneration?.();
-        if(window.MasterDataWorkflow?.canLeave?.()===false){input.value=previous;return;}
+          actorId=identity?.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.();
+        if(next===previous)return;
+        if(!['AB','C'].includes(next)||window.MasterDataWorkflow?.canLeave?.()===false){input.value=previous;return;}
         input.disabled=true;
-        const ownsView=()=>input.isConnected&&state.view==='data'&&state.masterSection==='lines'&&state.masterScope===previous
+        const ownsView=()=>input.isConnected&&state.view==='data'&&state.dataTab==='line-admin'&&state.masterSection==='lines'&&state.masterScope===previous
           &&window.ProcessSync?.identity===identity&&window.ProcessSync?.identity?.id===actorId&&window.ProcessSync?.identityGeneration?.()===epoch
+          &&(delivery==null||window.ProcessSync?.isCurrentDelivery?.(delivery)===true)
           &&window.MasterDataWorkflow?.canLeave?.()!==false&&!document.querySelector('#master-edit-dialog[open]');
-        try{await (window.MasterDataWorkflow?.loadScope?window.MasterDataWorkflow.loadScope(next):shared.load(next));if(!ownsView())return;let lease;try{if(shared.client(previous).hasUnknown()){const departure=window.MasterDataWorkflow.navigation.departure;lease=await departure.abandon();if(!ownsView())return;departure.closeClean();}else shared.discardLocal(previous);state.masterScope=next;}finally{lease?.release();}ui.line='';ui.category='';redraw();}
+        try{await (window.MasterDataWorkflow?.loadScope?window.MasterDataWorkflow.loadScope(next):shared.load(next));if(!ownsView())return;state.masterScope=next;ui.line='';ui.category='';redraw();}
         catch(error){if(ownsView()){input.value=previous;toast(displayDraftError(error));}}
         finally{if(input.isConnected){input.disabled=false;if(state.masterScope===previous)input.value=previous;}}
       });

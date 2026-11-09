@@ -1128,6 +1128,7 @@
   }
   let moduleDeparture;
   const departureScope=()=>state.dataTab==='process-master'?'PROCESS':state.masterScope;
+  const departureScopes=()=>state.dataTab==='line-admin'?['AB','C']:[departureScope()];
   const departureDialogs=()=>[...document.querySelectorAll(departureScope()==='PROCESS'?'#equipment-editor-dialog[open]':'#master-edit-dialog[open]')];
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
@@ -1137,14 +1138,14 @@
       get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
         sharedOwned:()=>false,
-        context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
-        busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>shared.client(departureScope()).hasUnknown(),failed:()=>shared.client(departureScope()).hasSyncFailures(),
-        unknownTransports:()=>[shared.client(departureScope())],discardUnknown(){this.discard();},
-        local:()=>shared.localDirty(departureScope())||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
+        context:()=>[state.dataTab,departureScope(),deliveryGeneration,...departureScopes().map(scope=>[scope,shared.flow(scope)?.generation,shared.permissions(scope)?.save,shared.permissions(scope)?.edit])],
+        busy:()=>shared.busy()||window.MasterAdminUI?.departureBusy?.()||shared.permissions(departureScope())?.edit!==false&&departureDialogs().some(dialog=>dialog.querySelector('button[type=submit]:disabled')),unknown:()=>departureScopes().some(scope=>shared.client(scope).hasUnknown()),failed:()=>departureScopes().some(scope=>shared.client(scope).hasSyncFailures()),
+        unknownTransports:()=>departureScopes().map(scope=>shared.client(scope)),discardUnknown(){this.discard();},
+        local:()=>departureScopes().some(scope=>shared.localDirty(scope))||departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))||departureScope()==='PROCESS'&&window.ProcessMasterVersioning?.departureNames.dirty(),
         canSave:()=>shared.permissions(departureScope())?.save===true,
-        canDiscard:()=>shared.permissions(departureScope())?.edit===true,
+        canDiscard:()=>state.dataTab==='line-admin'?departureScopes().filter(scope=>shared.localDirty(scope)||scope===departureScope()&&departureDialogs().some(dialog=>dialog.querySelector('[type=submit]'))).every(scope=>shared.permissions(scope)?.edit===true):shared.permissions(departureScope())?.edit===true,
         save:()=>shared.execute(departureScope(),'save'),
-        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();shared.discardLocal(departureScope());if(departureScope()==='PROCESS')window.ProcessEquipment?.abandon?.();closeDepartureDialogs();},
+        discard(){if(departureScope()==='PROCESS')window.ProcessMasterVersioning.departureNames.discard();for(const scope of departureScopes())shared.discardLocal(scope);if(departureScope()==='PROCESS')window.ProcessEquipment?.abandon?.();closeDepartureDialogs();},
         dialogs:departureDialogs,closeClean:closeDepartureDialogs,
       }),{get autoAbandon(){return true;},allowUnload:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.()});},
       requiresSave(){

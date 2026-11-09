@@ -22,3 +22,17 @@ for(const scope of ['AB','C','PROCESS'])void test(`${scope}: a race after final 
  const first=x.bridge.execute(scope,'save');await d.wait();d.choose('mine');await assert.rejects(first,/DRAFT_REVISION_CHANGED_RECONFIRM/);assert.deepEqual(x.f.row(),before);assert.equal(x.posts().length,1);assert.equal(x.bridge.client(scope).hasUnknown(),false);assert.equal(x.disk.size,0);assert(x.bridge.localDirty(scope));
  x.box.fetch=fetch;const second=x.bridge.execute(scope,'save');await d.wait();d.choose('theirs');const result=await second;let value=result.control.workflow.saved.content;for(const part of path)value=typeof part==='string'?value[part]:value.find(r=>r.id===part.id);assert.equal(value,'Latest peer');assert.equal(x.posts().length,2);
 });
+
+const photo=src=>({src,name:src+'.png',type:'image/png'});
+for(const place of ['template','equipment'])void test(`PROCESS ${place} independent photo appends survive the same atomic Save with unrelated edits`,async t=>{
+ const x=await fixture({scope:'PROCESS'});t.after(x.f.close);const d=conflictDOM(x),template=['A-CUT',{id:place==='template'?'A-CUT-FLOW-02':'A-CUT-FLOW-04'}],path=place==='template'?[...template,'mediaItems']:[...template,'equipment',{id:'photo-machine'},'mediaItems'];
+ if(place==='equipment'){const parent=[...template,'equipment'];const response=await x.f.request('POST',x.f.command('apply',{patches:[{op:'insert',path:parent,value:{id:'photo-machine',name:'Machine',number:'M1',stageCode:'A-CUT',line:'A',kind:'machine-assembly',mediaItems:[photo('original')]}}],guards:[]}));assert.equal(response.status,200,JSON.stringify(response.body));await x.bridge.load('PROCESS');}
+ let original=x.draft().snapshot;for(const key of path)original=typeof key==='string'?original[key]:original.find(row=>row.id===key.id);assert(original.length>0);
+ await local(x,path,[...copy(original),photo('mine-added')]);await local(x,[...template,'name'],'Mine name');await peer(x,path,[...copy(original),photo('peer-added')]);const result=await x.bridge.execute('PROCESS','save');let saved=result.control.workflow.saved.content;for(const key of path)saved=typeof key==='string'?saved[key]:saved.find(row=>row.id===key.id);assert.deepEqual(copy(saved),[...copy(original),photo('peer-added'),photo('mine-added')]);assert.equal(result.control.workflow.saved.content['A-CUT'].find(row=>row.id===template[1].id).name,'Mine name');assert.equal(d.opened(),0);assert.equal(x.posts().length,1);
+});
+void test('PROCESS photo append inference is bounded: ambiguous primary, replacement, duplicates, metadata and other modules still conflict',()=>{
+ const h=helper(),p=photo('original'),mine=photo('mine'),peer=photo('peer');
+ const cases=[{base:[],mine:[mine],peer:[peer],scope:'PROCESS'},{base:[p],mine:[mine],peer:[p,peer],scope:'PROCESS'},{base:[p],mine:[p,p],peer:[p,peer],scope:'PROCESS'},{base:[p],mine:[p,mine],peer:[p,{...mine,name:'different'}],scope:'PROCESS'},{base:[p],mine:[p,mine],peer:[p,peer],scope:'AB'}];
+ for(const c of cases){const comparison=h.compare({mediaItems:c.base},{mediaItems:c.mine},{mediaItems:c.peer},c.scope);assert.equal(comparison.conflicts.length,1);for(const choice of ['mine','theirs'])assert.deepEqual(copy(h.project({mediaItems:c.peer},comparison.materialize(choice)).mediaItems),choice==='mine'?c.mine:c.peer);}
+ const c=h.compare({mediaItems:[p]},{mediaItems:[p,mine]},{mediaItems:[p,mine,peer]},'PROCESS');assert.equal(c.conflicts.length,0);assert.deepEqual(copy(h.project({mediaItems:[p,mine,peer]},c.materialize('mine')).mediaItems),[p,mine,peer]);
+});
