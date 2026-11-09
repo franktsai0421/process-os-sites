@@ -29,3 +29,15 @@ for(const scope of ['fqc','iqc'])for(const trigger of [1,2,3,4])for(const drift 
   assert.equal(posts.length,0,'a callback cannot retain old Save consent by returning true');
   assert.match(rejected?.message||'',/COMPARISON_RETIRED|OWNER_CHANGED|ACCOUNT_CHANGED/);
 });
+
+for(const scope of ['fqc','iqc'])void test(`${scope} swallowed predicate reentry cannot preserve Save consent`,async()=>{
+  const f=await fixture(),posts=[],content=structuredClone(f.library);content.workflow.scope=scope;
+  const permissions={view:true,edit:true,create:true,save:true,submit:true,withdraw:true,approve:true,return:true,history:true,delete:true,restore:true};
+  f.c.fetch=async(url,options={})=>{if(options.method==='POST'){posts.push({url,body:options.body});return new Promise(()=>{});}return Response.json({revision:1,control:structuredClone(content),permissions});};
+  const client=f.c.createSharedDraftClient({endpoint:`/api/${scope}/workflow?caseMetadata=1`,actorId:f.c.ProcessSync.identity.id,headers:()=>f.c.ProcessSync.platformHeaders(),durableBegin:true,guardAccessResults:true,externalDurableBounded:{scope:scope.toUpperCase()},[scope+'ComparedSave']:true});
+  let armed=false,entered=false,inner;
+  const options={isCurrent:()=>{if(armed&&!entered){entered=true;try{client.sendPrepared(command);}catch(error){inner=error;}}return true;}};
+  const token=await client.compareForSave(options),command=client.prepareComparedSave(token,{moduleAction:'save-local-v1',patches:[],guards:[],...(scope==='fqc'?{input:{matrixCells:[]}}:{})},options);
+  f.c.ProcessSync.platformHeaders=()=>{armed=true;return {};};let rejected;void client.sendPrepared(command).catch(error=>{rejected=error;});await tick();await tick();
+  assert.equal(entered,true);assert.equal(posts.length,0);assert.match(inner?.message||'',/COMPARISON_RETIRED/);assert.match(rejected?.message||'',/COMPARISON_RETIRED/);
+});
