@@ -3,6 +3,7 @@
     const code=typeof error==='string'?error:error?.message;
     if(['RESULT_UNKNOWN_CHECK_BEFORE_RETRY','PREVIOUS_OPERATION_UNKNOWN','WORKFLOW_MUTATION_TIMEOUT_UNKNOWN'].includes(code))return t('尚未確認前次操作是否完成。請查詢結果，不要重複送出；目前輸入仍保留。','Chưa xác nhận thao tác trước đã hoàn tất. Hãy kiểm tra kết quả, không gửi lại; giữ nguyên đầu vào.');
     if(code==='PHOTO_UPLOAD_RESULT_UNKNOWN')return t('尚未確認照片上傳結果，已停止重送。工作稿尚未送出，輸入仍保留。','Chưa xác nhận kết quả tải ảnh; đã dừng gửi lại. Chưa gửi bản nháp; đầu vào được giữ lại.');
+    if(code==='IQC_PHOTO_IDENTITY_RECHECK_REQUIRED')return t('照片識別在上傳後重疊，尚未送出工作稿。請再次儲存，以已確認的照片識別重新比較。','Mã ảnh trùng sau khi tải; chưa gửi bản nháp. Hãy lưu lại để so sánh bằng mã ảnh đã xác nhận.');
     if(code==='IQC_LOCAL_PHOTO_UNAVAILABLE')return t('本機照片已無法取得，尚未送出儲存。請重新開啟編輯器核對照片。','Không còn ảnh cục bộ; chưa gửi thao tác lưu. Hãy mở lại trình chỉnh sửa để kiểm tra ảnh.');
     if(code==='IQC_REVIVE_CREATE_REQUIRED')return t('恢復此項目需要新增權限，尚未送出任何儲存。輸入仍保留；可再次儲存並選擇對方的版本。','Khôi phục mục này cần quyền tạo; chưa gửi thao tác lưu. Đầu vào được giữ lại; bạn có thể lưu lại và chọn phiên bản của người khác.');
     return window.sharedDraftErrorMessage?.(error) ?? (typeof error === 'string' ? error : error?.message || String(error ?? ''));
@@ -14,7 +15,7 @@
   const photoUrl = '/api/iqc/photo';
   const ui = { search: '', supplier: '', category: '', partCode: '', errorId: '', versionId: '', openItems: new Set(), busy: false, preview: null, previewError: '' };
   let localBase=null,localSnapshot=null,localGeneration=null,localBeginReceipt=null,pendingLocalSave=false;
-  // File bytes and blob previews belong only to this module lifetime.
+  // Files stay in document RAM; reset clears active previews and map entries.
   const localPhotos=new Map(),unknownPhotoFingerprints=new Set();
   function photoReferences(snapshot){return [...(snapshot?.parts||[]).flatMap(row=>row.photos||[]),...(snapshot?.items||[]).flatMap(row=>row.mediaItems||[])];}
   function clearLocalPhotos(){for(const entry of localPhotos.values())URL.revokeObjectURL(entry.preview);localPhotos.clear();}
@@ -35,7 +36,7 @@
       }catch(error){if(dispatched&&!accepted){entry.uploadUnknown=true;unknownPhotoFingerprints.add(fingerprint);}throw error;}finally{clearTimeout(timer);}
       if(localPhotos.get(id)!==entry)throw Error('IQC_SAVE_COMPARISON_RETIRED');
     }
-    if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');return resolveLocalPhotos(snapshot);
+    if(!current())throw Error('IQC_SAVE_COMPARISON_RETIRED');const resolved=resolveLocalPhotos(snapshot);for(const row of [...resolved.parts,...resolved.items]){const photos=row.photos||row.mediaItems||[];if(new Set(photos.map(photo=>photo.id)).size!==photos.length)throw Error('IQC_PHOTO_IDENTITY_RECHECK_REQUIRED');}return resolved;
   }
   let control = null, revision = null, root = null, reviewRoot = null;
   let sharedClient=null,sharedActor='',sharedClientOwner=null;let dialogBase=null,dialogGeneration=null,dialogBeginReceipt=null;
@@ -220,6 +221,27 @@
     return snapshot;
   }
   const sameRuleOrder=(...arrays)=>arrays.every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length)&&arrays.slice(1).every(rows=>saveEqual(arrays[0].map(row=>row.id),rows.map(row=>row.id)));
+  // Only unique stable photo identities and preserved order prove independence.
+  // Peer additions precede independent local additions; moved lists stay atomic.
+  function photoChanges(before,local,peer){
+    const valid=rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length;
+    if(![before,local,peer].every(valid))return null;
+    const originals=before.map(row=>row.id),rank=new Map(originals.map((id,index)=>[id,index]));
+    const ordered=rows=>{let last=-1,appended=false;for(const row of rows){if(!rank.has(row.id)){appended=true;continue;}if(appended||rank.get(row.id)<=last)return false;last=rank.get(row.id);}return true;};
+    if(!ordered(local)||!ordered(peer))return null;
+    const common=new Set(local.filter(row=>!rank.has(row.id)&&peer.some(value=>value.id===row.id)).map(row=>row.id));
+    if(!saveEqual(local.filter(row=>common.has(row.id)).map(row=>row.id),peer.filter(row=>common.has(row.id)).map(row=>row.id)))return null;
+    const changes=[];
+    for(const old of before)if(!local.some(row=>row.id===old.id)){const current=peer.find(row=>row.id===old.id);if(current)changes.push({id:old.id,value:null,conflict:!saveEqual(current,old),originals});}
+    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});}
+    return changes;
+  }
+  function applyPhotoChange(rows,change){
+    const index=rows.findIndex(row=>row.id===change.id);if(change.value===null){if(index>=0)rows.splice(index,1);return;}
+    if(index>=0){rows[index]=copy(change.value);return;}
+    const originalIndex=change.originals.indexOf(change.id);if(originalIndex<0){rows.push(copy(change.value));return;}
+    const later=new Set(change.originals.slice(originalIndex+1)),originals=new Set(change.originals),position=rows.findIndex(row=>later.has(row.id)||!originals.has(row.id));rows.splice(position<0?rows.length:position,0,copy(change.value));
+  }
   function compareLocalSave(base,local,latest){
     const units=[],conflicts=new Map(),reviveRoots=new Map(),latestById=Object.fromEntries(saveCollections.map(kind=>[kind,new Map(latest[kind].map(row=>[row.id,row]))]));
     const partsByCode=new Map();for(const part of latest.parts){const values=partsByCode.get(part.code)||[];values.push(part);partsByCode.set(part.code,values);}
@@ -239,6 +261,8 @@
         const fields=saveFields[kind].filter(field=>row[field]!==undefined&&!saveEqual(row[field],before[field]));
         const groups=[];for(const field of fields){const group=kind==='items'&&['inspectionMode','equipmentId'].includes(field)?['inspectionMode','equipmentId']:[field];if(!groups.some(value=>value[0]===group[0]))groups.push(group);}
         for(const group of groups){
+          const photoField=kind==='parts'&&group[0]==='photos'?'photos':kind==='items'&&group[0]==='mediaItems'?'mediaItems':null,photos=photoField&&peer?photoChanges(before[photoField],row[photoField],peer[photoField]):null;
+          if(photos){if(peer.isDeleted&&!photos.length)photos.push({id:null,value:null,originals:[],noop:true});for(const photo of photos){const unit={kind,id:row.id,row,fields:group,photo};units.push(unit);if(photo.conflict)conflict(unit,kind+':'+row.id+':'+photoField+':'+photo.id,label+' · '+(photo.value?.name||photo.id));}continue;}
           if(kind==='items'&&group[0]==='rules'&&peer&&sameRuleOrder(before.rules,row.rules,peer.rules)){
             for(let index=0;index<row.rules.length;index++){
               const rule=row.rules[index],oldRule=before.rules[index],peerRule=peer.rules[index];if(saveEqual(rule,oldRule))continue;
@@ -281,6 +305,7 @@
         if(unit.remove){next[unit.kind]=next[unit.kind].filter(row=>row.id!==unit.id);continue;}
         if(unit.insert){next[unit.kind].push(copy(unit.row));continue;}
         const row=nextById[unit.kind].get(unit.id);if(!row||row.isDeleted){if(check)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');continue;}
+        if(unit.photo){if(!unit.photo.noop)applyPhotoChange(row[unit.fields[0]],unit.photo);continue;}
         if(unit.ruleId){row.rules=row.rules.map(rule=>rule.id===unit.ruleId?copy(unit.rule):rule);continue;}
         for(const field of unit.fields)if(unit.row[field]!==undefined)row[field]=copy(unit.row[field]);
       }
@@ -321,12 +346,17 @@
         if(!sameRuleOrder(original,patch.value,sent.rules,row.rules))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
         for(let index=0;index<patch.value.length;index++)if(!saveEqual(original[index],patch.value[index])){row.rules[index]=copy(patch.value[index]);before.rules[index]=copy(sent.rules[index]);}
       }
-      else{row[field]=copy(patch.value);if(['photos','mediaItems'].includes(field))for(const photo of row[field]){const entry=localPhotos.get(photo.id);if(entry?.uploaded){photo.id=entry.uploaded.id;photo.src=entry.uploaded.src;}}if(sent[field]===undefined)delete before[field];else before[field]=copy(sent[field]);}
+      else if(['photos','mediaItems'].includes(field)){
+        const original=resolveLocalPhotos(attempt.snapshot)[kind].find(value=>value.id===entity.id)?.[field],photos=photoChanges(original,patch.value,original);
+        if(!photos||!photoChanges(sent[field],row[field],sent[field]))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
+        for(const change of photos){applyPhotoChange(row[field],change);applyPhotoChange(before[field],{...change,value:sent[field].find(photo=>photo.id===change.id)||null,originals:sent[field].map(photo=>photo.id)});}
+      }
+      else{row[field]=copy(patch.value);if(sent[field]===undefined)delete before[field];else before[field]=copy(sent[field]);}
     }
     localBase=base;localSnapshot=next;localGeneration=attempt.generation;pendingLocalSave=false;
   }
   async function saveCompared(client,requestCurrent,operation,owner){
-    const snapshot=copy(localSnapshot),base=copy(localBase),generation=localGeneration,photoPins=localPhotoPins(localSnapshot);let versionId=selected()?.id,pinnedGeneration=localGeneration;
+    const snapshot=resolveLocalPhotos(localSnapshot),base=resolveLocalPhotos(localBase),generation=localGeneration,photoPins=localPhotoPins(localSnapshot);let versionId=selected()?.id,pinnedGeneration=localGeneration;
     let model=control,sourceFlow=control.workflow,sourceGeneration=control.workflow?.generation,sourceRevision=control.workflow?.revision,sourcePending=control.workflow?.pendingId,loaded=loadSequence,observedRevision=revision,local=saveJSON(localSnapshot),baseRaw=saveJSON(localBase),denied=readDenied;
     const attempt={operation,phase:'comparing',cancelled:false,close:null};const cancelled=new Promise(resolve=>{attempt.cancel=resolve;});activeSaveComparison=attempt;
     const current=()=>!attempt.cancelled&&requestCurrent()&&activePost===operation&&photosCurrent(photoPins)&&control===model&&control.workflow===sourceFlow&&control.workflow?.generation===sourceGeneration&&control.workflow?.revision===sourceRevision&&control.workflow?.pendingId===sourcePending&&loadSequence===loaded&&revision===observedRevision&&readDenied===denied&&saveJSON(localSnapshot)===local&&saveJSON(localBase)===baseRaw&&localGeneration===pinnedGeneration&&sharedClient===client&&selected()?.id===versionId&&client.isRuntimeCurrent?.()!==false;
