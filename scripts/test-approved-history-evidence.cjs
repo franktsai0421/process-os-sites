@@ -125,4 +125,9 @@ check('AB detail uses immutable approved case content and missing base remains n
   assert.equal(selected.approvalEvidence.kind, 'approved-case');
   assert.equal(ab.abApprovedMetadata(root).length, 1);
 });
+check('strict AB union excludes unreviewed formal pointers without changing legacy compatibility', () => {
+  const f=abRoot();f.legacy.history=[{...legacyApproval,at:'2026-11-09T00:00:00.000Z'}];assert.equal(ab.abApprovedMetadata(f.root).length,2);const rows=ab.abApprovedMetadata(f.root,true);assert.deepEqual(plain(rows.map(row=>row.id)),[ab.legacyAbId('A','legacy-one')]);
+  const baseline=version('formal-only',{status:'approved'});f.root.scopes.A.versions.push(baseline);f.root.scopes.A.activeVersionId=baseline.id;
+  assert.equal(ab.legacyAbVersion(f.root,ab.legacyAbId('A',baseline.id),true),null);assert.equal(ab.abApprovedMetadata(f.root,true).length,1);
+});
 console.log('PASS approved-history evidence groups=' + groups + ' NO_STORAGE RUNTIME_UNREGISTERED');

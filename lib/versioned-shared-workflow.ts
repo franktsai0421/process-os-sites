@@ -48,6 +48,11 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   key:string;scope:string;parse:(raw:string|undefined,prepared?:unknown)=>C;empty:()=>T;preparedModel?:boolean;
   // Opt in only when access reads identity/role state, never domain content.
   permissionOnlyRead?:boolean;
+  // Explicit read-only union for existing legacy scopes; no stored aliases.
+  approvedHistory?:{
+    metadata:()=>{id:string;number:number;status:string;creatorName:string;createdAt:string;approvalEvidence:ReturnType<typeof approvedVersionEvidence>;sourceScope?:string;sourceVersionId?:string}[];
+    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null;
+  };
   // Server-only opt-in; the mutation helper further checks storage and command.
   recordMutation?:'fqc-existing-set'|'process-save';
   processFlowMutation?:boolean;
@@ -205,9 +210,9 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       };
       if(approvedOnlyRead&&query.has('uiHistory')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
-        const rows=approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse(),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
+        const rows=adapter.approvedHistory?.metadata()||approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse().map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
-        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};
+        const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};
         return await approvedReadCurrent()||reply(body);
       }
       if(query.has('uiHistory'))return permissions.history?reply(workflowInterfaceMetadata(control,query)):reply({error:'FORBIDDEN'},403);
@@ -220,7 +225,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       }
       if(approvedOnlyRead&&query.has('versionId')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
-        const version=approvedVersion(control,query.get('versionId')!,true);
+        const version=adapter.approvedHistory?adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);
         if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);
         const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};
         // One selected snapshot only. Compatibility history streams can start

@@ -19,7 +19,7 @@
 | 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 已接原頁單一 selector／核准快照／回原 RAM；模板與機器同頁分組、歷史照片取固定引用，20 項實際頁面新情境與 27 組既有名稱／恢復 PASS |
 | FQC | `fqc` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM，移除本頁舊案件／還原入口；矩陣與比較基準保留，本機定向測試 PASS，原生與實站未驗 |
 | IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
-| IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | `ipqc-ab.js` 尚未轉接；舊群組與新整份版本的唯讀聯集 helper 已有，但未註冊到本批 API／UI，不可宣稱舊版聯集完整 |
+| IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | 已接同頁單一 selector 與核准新整份／舊 A/B 群組的唯讀聯集；固定 case content、原群組與照片／RAM／UNKNOWN／pending 保留；26 項新實際堆疊情境與跨頁回歸 PASS |
 | IPQC C | `ipqc-c` | 既有專用 approved-only 路由 | 基準已有同頁 selector／唯讀投影及回當前；本批重新執行其實際 common／transport／handler 測試，非原生瀏覽器驗收 |
 | BOM | `bom` | 既有路由沿新共同查詢規則，PASS | 基準已有同頁唯讀與原 writer 保全；本批移除僅有 formal pointer 的未審核基準，不重寫 BOM 本機編輯／Save |
 | 檢具與測試設備 | `routine-equipment` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照並切回原 RAM；移除本頁案件／還原入口，保留跨品質交易與原重新核對機制；22 項新實際 handler 情境及 68 項 Save 回歸 PASS，原生／實站未驗 |
@@ -129,3 +129,17 @@ shared bridge 的明確 display lease 保護直接 writer、prepared command、�
 跨頁擴充批次 `process-master-cross-module-runtime.log` 為 **323 PASS / 325，2 FAIL，0 SKIP**。兩項 `process-equipment-snapshot.test.mjs` 的舊「beforeSave 必須拒絕尚未 Sync」斷言，在真實前任 `3f6e736e` 的設備來源也相同失敗（`process-equipment-snapshot-checkpoint-baseline.log`）；測試實際讀取的設備函式範圍與前任完全相等，畫布／authoring／local store 原始碼未改。這是既有畫布 Save 契約與舊測試相依的未解狀態，沒有刪斷言或假稱全綠；尚未合併獨立畫布候選 `80745895`，其 REVIEW 要求 parent 先協調另一畫布 owner。這兩項未作 GitHub 合併通過證明。
 
 新增 CI 保留 PROCESS 新測試及原名稱保護腳本。四個實際修改 asset（app／process-equipment／master-data／VersionDraftUI）更新 cache `20261109-process-approved-history5`；其餘 tag／歷史 source pin 不變。尚餘 IPQC A/B 舊新聯集、製程編輯台／畫布及例行 FQC；全列本批未上 GitHub、未部署、原生／實站未驗。
+
+## IPQC A/B 新整份與舊群組核准聯集
+
+`ipqcab-approved-version` 在原頁顯示當前草稿、已核准整份版本及舊群組版本；各舊版標明 A/B 群組，依固定快照分組列錯誤、工段、檢查項目、照片及相符原設備，不讀當前目錄或回寫 writer。已核准來源引用也轉入相同 selector，不另開歷史視窗。舊 `.ipqcab-history`／案件還原入口移除；原審核平台業務案件保留。
+
+共同 workflow adapter 只新增明確 read-only provider；僅 IPQC AB module 註冊既有 `abApprovedMetadata`／`legacyAbVersion` 的 strict 模式。聯集排除正式指標、未核准、shared superseded、整份投影 aliases 和重複 module IDs，舊版 ID 是可逆顯示身分，不入庫，不改持久 scope。原核准 case ID／來源 scope／來源 version ID 保持原值，前端核對完整對應，未偽造核准 evidence。module 複合 ID／cursor 有 1024 字元界線，其餘路由仍為 512。
+
+display epoch 與既有 mutation lifetime 分開，保留原 localScopes／bases／File／localSent／UNKNOWN intent。讀回、直接 writer／upload／原收據查詢入口及舊 DOM 事件有顯示持有者保護；開啟表單、比較或執行中阻擋切換，休止的原 UNKNOWN 可查看版本且不查詢或重送。回草稿只讀 permissions 並重繪原 RAM；真正 Submit 形成 pending 後往返仍鎖定。初始 module permissions 完成後才啟用 selector，身份／epoch／delivery 防止晚到回覆授權。
+
+新實際完整 AB component／common／default client／簽章 HTTP handlers／records-v1 SQLite／Map-R2 **26/26 PASS**。包含雙語、新舊 47 筆核准分頁、來源身分負向、固定 case content、原 File 往返後明確 Save 只 PUT 一次、UNKNOWN 零查詢／零重送、實際 pending、實際撤權、一般晚到讀回、舊事件。R2 插樁證明聯集 metadata 不載入歷史 body、舊 case detail 僅讀一個正文；正文 hydration 期間 revision／撤權改變均在回傳內容前拒絕。
+
+受影響全部 AB Save／衝突與共同查看頁面 **543/543 PASS、0 SKIP**，正常 route **78/78 PASS**，核准證據 helper **13 組 PASS**，typed lint／TypeScript PASS。原抽取式 caller fixture 改為載入實際新增 guard，新增歷史 display 零讀取／零 prepare 的負向控制；未放寬產品防線。保存最初 fixture 缺儲存方法、缺整份核准投影、缺真實日期與抽取式 guard 的失敗證據；修正 fixture，未刪測試。此前 PROCESS 提交 `4032ec4` 的來源 **672/672 PASS**、guarded build PASS；本批 source／build 須重新綁實際後續提交。
+
+本批 GitHub／測試站未更新、原生／實機／實站未驗。尚餘例行 FQC 每份文件及製程編輯台／畫布；獨立畫布 80745895 的 parent 協調未取得證據，未整合。舊 243-path UNKNOWN 與 equipment create_tree 拒絕仍不重送，不因本批局部完成解除。
