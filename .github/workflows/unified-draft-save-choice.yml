@@ -37,6 +37,7 @@ jobs:
           tests/quality-comparison-callback-owner.test.mjs
           tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs tests/fqc-compared-save-client.test.mjs
           tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
+          tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs
           tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
           tests/ipqc-c-save-choices-actual-stack.test.mjs tests/ipqc-c-structural-save-actual-stack.test.mjs
           tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs

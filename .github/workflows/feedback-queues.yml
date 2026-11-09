@@ -118,6 +118,11 @@ on:
       - 'scripts/bom-main-integration-source-contract.json'
       - 'scripts/unified-draft-historical-requests.json'
       - 'scripts/unified-draft-historical-source.cjs'
+      - 'scripts/fqc-apply-fixture.cjs'
+      - 'scripts/test-fqc-feedback-races.cjs'
+      - 'tests/iqc-save-choice-fixture.mjs'
+      - 'tests/iqc-revival-wire.test.mjs'
+      - 'tests/fqc-revive-save.test.mjs'
 permissions:
   contents: read
 jobs:
