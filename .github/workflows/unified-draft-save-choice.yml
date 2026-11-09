@@ -36,7 +36,7 @@ jobs:
           tests/master-save-merge.test.mjs tests/process-legacy-photo-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
           tests/quality-comparison-callback-owner.test.mjs
           tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs tests/fqc-compared-save-client.test.mjs
-          tests/iqc-save-choice.test.mjs tests/iqc-stable-lists.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
+          tests/iqc-save-choice.test.mjs tests/iqc-stable-lists.test.mjs tests/iqc-supplier-primary-tail.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
           tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs tests/fqc-retained-deleted-save.test.mjs tests/fqc-retained-deleted-ui.test.mjs
           tests/fqc-photo-metadata.test.mjs tests/fqc-file-local-save.test.mjs
           tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
@@ -61,3 +61,5 @@ jobs:
         run: node --test tests/master-explicit-refresh.test.mjs tests/quality-master-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs
       - run: npm run sites:source-check
       - run: npm run build
+      - name: Compiled draft protocol HTTP
+        run: node --test --test-concurrency=1 tests/iqc-save-choice-compiled-http.test.mjs tests/fqc-retained-deleted-compiled-http.test.mjs
