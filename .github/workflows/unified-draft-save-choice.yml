@@ -29,7 +29,13 @@ jobs:
       - run: npm run lint -- --format unix
       - run: npx tsc --noEmit --incremental false
       - name: Exact unified source and predecessor proofs
-        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs tests/access-event-main-integration.test.cjs tests/bom-main-integration-source-contract.test.cjs tests/bom-successor-source-contract.test.cjs tests/bom-unsent-source-contract.test.cjs tests/equipment-save-choice-source.test.cjs tests/routine-fqc-source-contract.test.cjs tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs tests/background-check-source-proof.test.cjs
+        run: node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs tests/unified-draft-source-pool.test.cjs tests/master-page-runtime-source.test.cjs tests/account-background-compat.test.mjs tests/access-event-main-integration.test.cjs tests/bom-main-integration-source-contract.test.cjs tests/bom-successor-source-contract.test.cjs tests/bom-unsent-source-contract.test.cjs tests/equipment-save-choice-source.test.cjs tests/routine-fqc-source-contract.test.cjs tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs tests/background-check-source-proof.test.cjs
+      - name: Thirteen page ownership and gated review policy
+        run: |
+          node scripts/test-draft-thirteen-pages.cjs
+          node scripts/test-draft-review-runtime.cjs
+          node scripts/test-draft-restore-retirement.cjs
+          node --experimental-vm-modules --test --test-concurrency=2 tests/draft-review-policy.test.mjs tests/routine-page-review-policy.test.mjs tests/account-source-api.test.mjs tests/web-feedback-permission-policy.test.mjs
       - name: Global decisions and pre-dispatch authority
         run: >-
           node --test --test-concurrency=2
