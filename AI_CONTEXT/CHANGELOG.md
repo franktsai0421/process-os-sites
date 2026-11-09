@@ -1,3 +1,7 @@
+## 2026-11-09 新頁 owner 核准歷史
+
+基於真實679合樹（含972），接通新 AB.catalog／C.catalog／LINES approved-only API 與原頁版本查看，修正422與送審後舊顯示阻擋重繪。保留原來源證據、未存內容、pending／UNKNOWN及權限fences；未啟用marker或碰真資料。未上傳／部署；後續候選仍待協調。[本批驗證與交付](../docs/acceptance/master-page-approved-history-20261109.md)。
+
 ## 2026-11-09 — 本機完整製程合入受保護頁面owner
 
 真merge42917bf整合#102固定972，保留no-poll、IPQC owner／restore、當前畫布Save、核准歷史及UNKNOWN；未啟用page-v1、未碰真資料／schema／ACL／遠端。新增非admin完整saved-process生命週期及C五工段／自訂機器回歸，8項獨立複核PASS。來源以可逐byte還原V1的indexed refs保存21targets與原173物件／79請求，大小降回5MiB內。新頁歷史route實測422，仍NOT_READY；詳[相依矩陣](../docs/acceptance/process-editor-remaining-dependencies-20261109.md)。
