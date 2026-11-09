@@ -29,3 +29,15 @@
 本次唯讀核查 main=`9fbba823090f03da8385c8d92f5e59293d19d2f1`；#102 仍 draft/open、未 merge，remote head=`ee7d4fdc750ab5227f25559f52c9edac62b09086`，不是本機修正972。後續寫入前須重新查最新遠端。
 
 原243-path GitHub create_tree 結果 UNKNOWN，原 payload 無法完整核查；404 不證明未執行。另 equipment create_tree 曾被自動審查拒絕，原因為當時僅進度授權且公開來源／文件目的地未確認。依 parent 明確限制，本批不重送、不拆分繞過、不新開 PR／executor 改道；只產生本機可審查 commit／bundle／receipt。沒有上傳、合併、部署或啟用 marker。
+
+## 固定本機結果
+
+產品提交 `dfe1679274b1c06c2f0b8898e1fc196158dbdba2`；精確來源提交 `5a685b6514bba78354bc687386ea0e0445817f78`。來源綁定前者的真實 runtime/tree，後者只更新證據；最終文件提交不更改 runtime。保留21個既有 targets、原79歷史請求及原 frozen witness 物件，76 runtime files／1003 exact inverses；manifest 3,890,831 bytes、witness 3,214,579 bytes，均低於既有5MiB guard，未提高限制。
+
+- 全頁 viewer／新三頁／共同 API：**427 PASS，0 FAIL，0 SKIP**，含本批新 API 21＋UI 21；`page-history-all-viewers.log`。
+- 完整來源／witness／inverse／導航負向：**1738 PASS，0 FAIL，0 SKIP**；`page-history-source-gates.log`。
+- 指定畫布 POST／設備一鍵 Save／原子 Save 及主資料衝突／篩選／snapshot：**276 PASS，0 FAIL，3 SKIP**；`page-history-writer-and-canvas-regression.log`。三項僅因固定 c82a395 paired-performance baseline 缺失，沒有聲稱成對效能改善；舊紅燈不是略過或改弱斷言。
+- 原 master-page writer runtime 13組及 UI 8組 PASS；核准證據13組、無輪詢28＋28項、source composer 16項、正常 typed lint、TypeScript、source boundary PASS。
+- 受保護 build 指定實際 `5a685b6514bba78354bc687386ea0e0445817f78` PASS，含 postbuild auth check；不是發布批准。首次漏填 program commit 的建置被既有 guard 拒絕，補實際 SHA 後通過，沒有更改 guard。
+
+這些是本機隔離證據，不是 GitHub CI、原生瀏覽器／iPhone／IME／測試站或真實生命週期驗收。原 API/UI 初始失敗、lint fixture 問題及搜尋 synthetic DOM 選取問題的日誌均留在外部 evidence 目錄；產品重繪缺陷已實際修正。後續合入 ddcc/88 或例行 FQC 新 scope 後，必須依新固定 runtime 重新驗證相關共用程式與精確來源。
