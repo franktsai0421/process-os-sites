@@ -26,7 +26,7 @@
 
 Frank指定舊對話 `01a1b57f-bda8-75bf-a224-1320cc24a028`。Personal Context回報此對話不可用，房間訊息以該ID搜尋無直接結果；因此不聲稱已讀其完整turn或全部交付清單，也沒有啟動／傳訊／刪除舊對話。房間唯讀搜尋「BOM 核准」已完整取完32筆，找回2026-11-07的同頁selector／移除歷史視窗／BOM規則，以及11-08歷史底層與11-09 BOM本機整合的既有進度紀錄。這些對話進度不代替Git／測試證據，亦不產生新的上傳授權。
 
-本機獨立核對：真實 `4960d74f0db395e34f2faef91325345b55c22927` 已是此分支祖先，且原BOM交付README／REVIEW記錄其parent合樹、原頁唯讀／回當前、原RAM／receipt、CRLF及淺clone修正。當前 `bom-workspace.js` 仍沿用原workspace與VersionDraftUI history model，沒有另寫BOM查看；共用viewer及read-only lease在此後全頁工作擴充。差異可由保留的 `bom_integration` exact projection逐byte回到真實4960；所有舊pins與負例保留，並在本次新runtime重跑BOM actual-common及全頁viewer檢查。原scope相容後端保留，不等同現行頁面仍有舊歷史彈窗／還原入口。
+本機獨立核對：真實 `4960d74f0db395e34f2faef91325345b55c22927` 是保留的 `bom_integration` 來源比對target，**不是此分支Git祖先**；BOM由先前語意整合保留。原BOM交付README／REVIEW記錄其原候選parent合樹、原頁唯讀／回當前、原RAM／receipt、CRLF及淺clone修正。當前 `bom-workspace.js` 仍沿用原workspace與VersionDraftUI history model，沒有另寫BOM查看；共用viewer及read-only lease在此後全頁工作擴充。差異可由保留的 `bom_integration` exact projection逐byte回到真實4960；所有舊pins與負例保留，並在本次新runtime重跑BOM actual-common及全頁viewer檢查。原scope相容後端保留，不等同現行頁面仍有舊歷史彈窗／還原入口。
 
 已涵蓋可核對的功能成果：BOM入口／同頁selector／純查看／返回原草稿、共用核准證據與最後權限fences、逐頁移除歷史彈窗，以及十三頁接線；本批只補後續新page協定和legacyArchive P2。無法直接歸屬舊thread的未見commit不猜測、不匯入；若有其他獨立交付需parent補具體SHA後另作差異核對。這是檢索界線，不是要求重新描述既有規則。
 
