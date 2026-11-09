@@ -130,4 +130,4 @@ check('strict AB union excludes unreviewed formal pointers without changing lega
   const baseline=version('formal-only',{status:'approved'});f.root.scopes.A.versions.push(baseline);f.root.scopes.A.activeVersionId=baseline.id;
   assert.equal(ab.legacyAbVersion(f.root,ab.legacyAbId('A',baseline.id),true),null);assert.equal(ab.abApprovedMetadata(f.root,true).length,1);
 });
-console.log('PASS approved-history evidence groups=' + groups + ' NO_STORAGE RUNTIME_UNREGISTERED');
+console.log('PASS approved-history evidence groups=' + groups + ' READ_ONLY_HELPERS_NO_STORAGE_NOT_API_ACCEPTANCE');

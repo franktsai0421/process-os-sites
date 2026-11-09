@@ -29,3 +29,4 @@ jobs:
       - run: node --test --test-concurrency=2 tests/process-master-approved-history.test.mjs
       - run: node scripts/test-process-master-name-guards.cjs
       - run: node --test --test-concurrency=2 tests/ipqc-ab-approved-history.test.mjs tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-local-save.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
+      - run: node --test --test-concurrency=2 tests/routine-fqc-approved-history.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-manual-generation.test.mjs

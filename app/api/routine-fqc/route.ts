@@ -1,3 +1,5 @@
+import {routineApprovedQuery,routineApprovedControl,routineApprovedRows,routineApprovedVersion} from '@/lib/routine-fqc-approved-history';
+import {recordJSONResponse} from '@/lib/state-records-response';
 import { env } from 'cloudflare:workers';
 import {workflowAccess} from '@/lib/versioned-shared-workflow';
 import {
@@ -48,7 +50,10 @@ const enabled = (
   state.values.routineFqcEnabled === '1';
 export async function GET(request: Request) {
   try {
+    const approved=routineApprovedQuery(request);
+    const authorityKeys=['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled'];
     const state = await readState({
+        ...(approved?{keys:[...authorityKeys,RF_KEY],modelKey:RF_KEY}:{}),
         deferHistory: true,
         deferDependencyHistory: true,
       }),
@@ -56,6 +61,23 @@ export async function GET(request: Request) {
       permissions = await access(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
     if (!permissions.view) return reply({ error: 'FORBIDDEN' }, 403);
+    if(approved){
+      if(!enabled(request,state))return reply({error:'FQC_NOT_ENABLED'},404);
+      const expected=request.headers.get('X-Process-Expected-Actor');if(!permissions.history||expected&&expected!==actor.id)return reply({error:'FORBIDDEN'},403);
+      const c=routineApprovedControl(state.recordStorage?.models.get(RF_KEY)||parseRoutine(state.values[RF_KEY])),d=c.documents.find(d=>d.id===approved.documentId);
+      if(!d)return reply({error:'DOCUMENT_NOT_FOUND'},404);
+      const accessPermissions={...permissions,delete:false};
+      let payload:unknown={approvedOnly:true,revision:state.revision,permissions:accessPermissions,documentId:d.id,actorId:actor.id,activeVersionId:d.flow.active.id};
+      if(approved.kind==='list'){const rows=routineApprovedRows(d),start=approved.before?rows.findIndex(v=>v.id===approved.before)+1:0;if(approved.before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);payload={...payload as object,versions:{rows:rows.slice(start,start+20),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};}
+      if(approved.kind==='detail'){const version=routineApprovedVersion(d,approved.versionId!);if(!version)return reply({error:'VERSION_NOT_FOUND'},404);payload={...payload as object,version};}
+      // Buffer exactly one selected body before the final role/revision/session fence.
+      const rendered=state.recordStorage?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):reply(payload),text=await rendered.text();
+      const fresh=await readState({keys:authorityKeys}),freshActor=await identity(request,fresh),freshPermissions=await access(request,fresh);
+      if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history||!enabled(request,fresh))return reply({error:'FORBIDDEN'},403);
+      if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);
+      const finalActor=await identity(request,fresh);if(!finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType)return reply({error:'FORBIDDEN'},403);
+      return new Response(text,{headers:responseHeaders});
+    }
     const c = parseRoutine(state.values[RF_KEY]),
       sources = routineSources(state),
       query = new URL(request.url).searchParams;

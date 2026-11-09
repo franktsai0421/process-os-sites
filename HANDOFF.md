@@ -1,3 +1,7 @@
+## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
+
+每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — IPQC A/B 同頁核准新舊聯集（本機）
 
 原頁接單一 selector、嚴格核准整份／舊群組聯集與回原 RAM，不新增持久 aliases 或 scope。26 新實際堆疊情境、543/543 受影響跨頁回歸、78 route、13 helper 及 lint／TS PASS；UNKNOWN／File／pending 保留，metadata 不讀歷史 body，最後權限／revision 防護有實測。尚餘例行 FQC 文件及待 parent 協調的畫布；未上傳／部署／原生或實站驗收。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
