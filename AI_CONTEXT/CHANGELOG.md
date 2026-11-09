@@ -1,3 +1,6 @@
+## 2026-11-09 例行 RF domain 相依整合（本機未啟用）
+語意保留 88a 逐文件 atomic Save 與本題 metadata／固定 Content effects 抽取，新增原收據、撤權、版本／guard、改回舊 Save 的回歸。整頁 RF orchestration 與 UI 仍未完成。來源驗證接線保留原 pins 與負例。
+
 ## 2026-11-09 例行 FQC domain 函式共用
 
 抽取不建立 flow 的 metadata/content builder、固定內容 review/case-link 與業務 effects；既有 route 維持原流程／receipt。七組合成契約含 legacy 真核准重播不重跑 effects。沒有新增整頁 route、migration、真資料或啟用；整頁建立／審核／媒體UI仍待實作。

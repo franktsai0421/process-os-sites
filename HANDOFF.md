@@ -1,3 +1,6 @@
+## 2026-11-09 RF domain／衝突候選相依
+已語意合入 88a 的例行 FQC domain atomic per-document Save，保留 metadata helper；九組 kernel 契約驗一次 Save/receipt、撤權、錯 guard/版本與返回舊 Save。不是整頁 writer、UI late ACK 或全 88a 候選整合。batch3 來源負例補精確 successor wrapper，原歷史 pins 全留。新本機來源需按實際 commit 測試；不得引用 f8be build 證明後續 runtime。詳見全頁分界矩陣。
+
 ## 2026-11-09 例行整頁 domain 接續
 
 已抽出 metadata/content builder、無 flow 的 case/review 驗證及固定 Content 業務 effects，原 legacy dispatch／原 receipt 不變。七組 metadata-only／真 legacy replay memory 契約；不是整頁 orchestration、CAS 或 UI。下一批須 metadata resolver＋server-derived fixed changedDocumentIds/pins，保留88a localSave/late ACK/File；不得用逐文件 executeRoutine 循環冒充整頁。獨審中止、原生 browser 限制及公開 tree UNKNOWN 仍未解。

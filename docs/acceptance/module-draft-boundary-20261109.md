@@ -153,6 +153,11 @@ current-approved 引用只回傳固定版本的副本，不採用 working/saved/
 
 ## 例行 FQC 整頁接線的 domain 函式抽取（未啟用整頁）
 
+最新相依核對已將 88a 的 RF domain 逐文件 atomic local Save 語意合入本分支，保留本題 metadata／explicit-content 抽取。新 Save 只在 request memory 套 guard edits，再產生一次原 Save／receipt／revision；原 receipt 重播仍查 edit，缺版本／錯 guard／撤權不變更 domain，改回既有 saved body 仍正確增加一次 working revision。新增兩組實際 kernel 整合負例，合計九組 helper 契約。這只整合 lib/routine-fqc.ts 的已知相依；88a 的 UI late ACK／PROCESS／IQC／FQC／tooling 等仍未整批納入，也不是整頁 RF owner。
+
+另更新 batch3 的 test-only successor 接線：先按新全來源精確 hash 還原，再驗原 unchanged historical pin。原歷史 hashes／before bytes 不改；PROCESS scope mutation 對目前六個 master owner 的真實 span 執行，CAS／session／Begin／create 等負例全留。初次 100/102 與後續修正紀錄均保留，不能把第一次紅燈記成通過。
+
+
 從現用 routine-fqc.ts 抽出 buildRoutineDocumentDraft（metadata/content，沒有 flow）、validateRoutineCaseLink、routineDocumentReviewIssues、以及 applyRoutineDocumentApprovalEffects（明確固定 Content 與 staged business domain）。原 addDocument 仍只在 legacy dispatch 建立逐文件 flow；原 approve dispatch 傳入 kernel 已核准的 active.content。原結構／retest／提交 issues 保留，同一原 outer receipt replay 不重跑 effects。新增七組 DB/R2 零讀寫契約，含無 fake flow 的 plan/report/disposal/correction business effects、來源與 owner 複本、requiredSamples、錯誤 links 無 domain 變更，以及真 legacy create/Apply/Save/Submit/Approve/replay。
 
 這些 helper 不自行驗登入／權限、不作 CAS／receipt／revision、不提供 idempotence，也不是新 page approval。後續整頁 orchestrator 必須先核准固定 Save 案件，從 server 推導 changedDocumentIds 及依賴 pins，只對該固定差異執行一次，所有 domain/pageflow/receipt 同 CAS。不能循環呼叫 legacy executeRoutine 製造逐文件 Save/approval。
