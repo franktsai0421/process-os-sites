@@ -155,3 +155,13 @@ display epoch 與既有 mutation lifetime 分開，保留原 localScopes／bases
 typed lint／TypeScript PASS；Routine JS／VersionDraftUI 更新 `20261109-routine-approved-history7`，其餘資產與歷史 tags 保留。此前 IPQC AB 真實產品提交 `6fc2b96` 的完整來源 685/685 PASS、guarded build PASS；本批後續 source／build 與新 main 整合仍須綁實際提交。GitHub／測試站未更新，原生／實機／實站未驗；畫布頁仍是唯一未接前端的頁面。
 
 收到 parent 的 #100 合併通知後，已用 GitHub 直接核實 main／PR #100 均為 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（含 #99），並唯讀 fetch 真實 Git 物件。後續本機語意整合須保留其 inert foreground facade、無定時 server read、既有明確 read owner 錯誤語意、source inverses 與正常 CI；目前尚未把該 main 合併進本候選，不將前一版測試當成已整合證明。舊未知／拒絕上傳限制維持。
+
+## #100 最新 main 本機語意整合
+
+已唯讀核實並 fetch `9fbba823090f03da8385c8d92f5e59293d19d2f1`（#100，含 #99），將真實 main merge 到本地候選。保留 inert foreground facade、無週期 server read、明確讀取前後 owner 檢查與 HTTP 錯誤優先順序，以及新增工段繼承已核准 PROCESS 目錄；未吸收、覆寫或上傳獨立畫布候選 80745895。
+
+FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重新整理；歷史 display lease 和原表單依然保留其更嚴格的所有權檢查。IQC 新增的唯一計時器是主動選取核准版本的 45 秒中止 deadline，非輪詢，已列入精確 timer inventory。相應現行資產升到 `20261109-approved-history-main100-8`，不改歷史 cache pins。
+
+保留 main 和本候選各自不同的驗證：目前九個完整模組初始化／focus／visibility 不產生輪詢；七個已退役 producer 的舊回呼從真實 d4ac309 Git 來源以有限 witness 取出，僅在測試手動 driver 執行，並由現行程式無 producer 斷言保護。這些 cached callback 測試不代表產品仍安裝 timer。原 9 個來源 target 保留，新增 `main_100`，原 background exact inverse 和負向控制不放寬。
+
+製程編輯台仍未完成原頁唯讀前端與舊核准聯集。獨立 80745895 交付文件明文要求 parent 先協調另一畫布工作；此處已提出協調需求，未把該候選當作已整合，也未以本批完成十二組頁面宣稱全站完成。GitHub 本批仍未上傳、未部署；原先 create_tree 結果不明及 equipment 上傳自動審查拒絕仍未解除、未重送。資料／schema／ACL 無變更。

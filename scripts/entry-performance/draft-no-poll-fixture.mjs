@@ -1,5 +1,5 @@
 // Current shipped sources only. Removed draft callers must not be replaced with
-// a permissive fake timer; live history/restore permission timers are separate.
+// a permissive fake timer; explicit history/restore authority is checked separately.
 import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import ts from 'typescript';import {webcrypto} from 'node:crypto';import {canvasDOM} from '../login-reentry-dom.mjs';
 export const draftModules=['process-authoring-v3.js','master-data.js','fqc-master.js','iqc-master.js','ipqc-ab.js','ipqc-c.js','routine-equipment.js','bom-workspace.js','tooling.js'];
 const source=(root,name)=>fs.readFileSync(path.join(root,'public/process',name),'utf8');
@@ -21,13 +21,15 @@ export async function assertDraftInitializerIdle(root,name){
  for(const type of ['focus','visibilitychange','pageshow']){c.dispatchEvent({type});document.dispatchEvent({type});}
  await new Promise(setImmediate);assert.equal(calls.length,0,name+' initialization/focus/visibility has no draft GET or POST');assert.equal(timers.size,0,name+' initialization/events have no timer');return {module:name,sourceAssertions:true,fullInitializer:true,requests:calls.length,timers:timers.size};
 }
-export async function assertLivePermissionTimers(root){
- const text=source(root,'shared-draft-client.js'),ast=ts.createSourceFile('shared-draft-client.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),callbacks=[];
- function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='setTimeout'&&node.arguments[1]?.getText(ast)==='4000'&&node.arguments[0].getText(ast).includes('client.permissions()'))callbacks.push(node.arguments[0].getText(ast));ts.forEachChild(node,visit);}visit(ast);assert.equal(callbacks.length,2,'history and restore retain separate 4s permission checks');
- let cases=0;for(const [index,callback]of callbacks.entries())for(const mode of ['allow','history-revoked','restore-revoked','401','403']){
-  let reads=0,closed=0,rearmed=0;const button={disabled:false},c={client:{permissions:async()=>{reads++;if(['401','403'].includes(mode))throw Object.assign(Error('denied'),{status:Number(mode)});return {permissions:{history:mode!=='history-revoked',edit:mode!=='restore-revoked'}};}},close:()=>closed++,overlay:{isConnected:true,querySelector:()=>button},restoreAllowed:()=>mode!=='restore-revoked',checkPermission:()=>rearmed++};
-  await vm.runInNewContext('('+callback+')()',c);assert.equal(reads,1);if(mode==='allow'){assert.equal(closed,0);assert.equal(rearmed,1);}else if(mode==='restore-revoked'&&index===0){assert.equal(button.disabled,true);assert.equal(closed,0);assert.equal(rearmed,1);}else{assert.equal(closed,1);assert.equal(rearmed,0);}cases++;
- }return cases;
+export async function assertExplicitPermissionReads(root){
+ const text=source(root,'shared-draft-client.js');assert.doesNotMatch(text,/permissionTimer|checkPermission/,'history permission polls are retired');
+ const dom=canvasDOM(),records=new Map(),calls=[],timers=new Map();let sequence=0,reply=()=>Response.json({revision:1,permissions:{view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true,delete:true},cases:[]});
+ const c={...dom,console,crypto:webcrypto,URL,URLSearchParams,Response,Request,AbortController,performance,location:{origin:'https://explicit.invalid',pathname:'/process/'},sessionStorage:{get length(){return records.size;},key:i=>[...records.keys()][i]??null,getItem:k=>records.get(k)??null,setItem:(k,v)=>records.set(k,v),removeItem:k=>records.delete(k)},ProcessSync:{identity:{id:'owner'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:x=>x===1,platformHeaders:()=>({})},setTimeout(fn,ms){assert.notEqual(ms,4000,'no recurring history permission check');const id=++sequence;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),fetch:async(url,options={})=>{calls.push({url,method:options.method||'GET'});return reply();}};c.window=c;dom.events(c);vm.createContext(c);vm.runInContext(text,c);
+ const client=c.createSharedDraftClient({endpoint:'/api/ipqc-c/workflow?caseMetadata=1',actorId:'owner',headers:()=>({}),legacyArchive:true,guardAccessResults:true});await client.permissions();let cases=1;
+ for(const name of ['history','reviewCase','previewRestore','legacyHistory','legacyVersion']){const before=calls.length;await client[name]('selected',{isCurrent:()=>true,requireAcceptedAccess:true});assert.equal(calls.length,before+1);assert.equal(calls.at(-1).method,'GET');cases++;await assert.rejects(client[name]('selected',{isCurrent:()=>false,requireAcceptedAccess:true}),/SUPERSEDED/);assert.equal(calls.length,before+1);cases++;}
+ let release,arrive,owned=true;const entered=new Promise(r=>arrive=r),gate=new Promise(r=>release=r);reply=()=>({status:200,ok:true,async json(){arrive();await gate;return{revision:2,permissions:{view:false,history:false}};}});const pending=client.permissions({isCurrent:()=>owned,requireAcceptedAccess:true});await entered;owned=false;release();await assert.rejects(pending,/SUPERSEDED/);assert.equal(client.permission('view'),true);cases++;
+ for(const status of [401,403]){reply=()=>Response.json({error:'FORBIDDEN'},{status});await assert.rejects(client.permissions({isCurrent:()=>true,requireAcceptedAccess:true}));assert.equal(client.permission('history'),false);cases++;}
+ assert.equal(calls.filter(c=>c.method==='POST').length,0);assert.equal(timers.size,0);assert.equal(cases,14);return cases;
 }
 export function assertDirtyFlushRetained(root){
  const text=source(root,'shared-state.js'),ast=ts.createSourceFile('shared-state.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),matches=[];

@@ -1,3 +1,11 @@
+## 2026-11-09 — #100 main 與同頁核准版本本機整合
+
+本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。最終測試、source proof 與 build 綁後續真實 merge SHA；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+# 2026-11-09 — Process platform stage catalog batch
+
+Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
+
 ## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
 
 每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](docs/acceptance/approved-history-unification-20261109/README.md)。

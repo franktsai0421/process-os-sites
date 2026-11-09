@@ -314,5 +314,33 @@
   {
     "ref": "82c058e7d2b205ddf885d747fdb8ac41bd52dd53",
     "file": "lib/fqc-workflow.ts"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/master-data.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/fqc-master.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/iqc-master.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/ipqc-ab.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/ipqc-c.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/bom-workspace.js"
+  },
+  {
+    "ref": "d4ac309fe05c89288af226b52c18161865ccdcb8",
+    "file": "public/process/tooling.js"
   }
 ]

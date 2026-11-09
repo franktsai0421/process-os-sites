@@ -62,35 +62,16 @@
       state:kind=>blocks.has(kind)?{status:blocks.get(kind).status}:null
     };
   };
-  // Scheduling only: no business/auth cache and no cancellation of sent requests.
-  // Existing module callbacks retain their read/adoption/input-preservation guards.
+  // Compatibility for separately cached modules: automatic polling is retired.
+  // No callback, timer, focus listener or visibility listener is retained.
+  // Explicit entry/Save/Submit reads remain owned by each module.
   window.createForegroundPoll = () => {
-    let timer=null,task=null,running=false,disposed=false,lastStart=null,urgent=false,generation=0;
-    const foreground=()=>document.visibilityState!=='hidden'&&document.hasFocus?.()!==false;
-    let wasForeground=foreground();
-    const clear=()=>{if(timer!==null)clearTimeout(timer);timer=null;};
-    function arm(){
-      clear();if(disposed||running||!task||!foreground())return;
-      const delay=urgent?0:lastStart===null?30000:Math.max(0,30000-(performance.now()-lastStart));
-      timer=setTimeout(async()=>{
-        timer=null;if(disposed||running||!task||!foreground())return;
-        const callback=task;task=null;urgent=false;running=true;lastStart=performance.now();
-        try{await callback();}finally{running=false;arm();}
-      },delay);
-    }
-    function visibility(){
-      const current=foreground();
-      if(!current)clear();
-      else if(!wasForeground&&(task||running)){urgent=true;arm();}
-      wasForeground=current;
-    }
-    document.addEventListener('visibilitychange',visibility);
-    window.addEventListener('focus',visibility);window.addEventListener('blur',visibility);
+    let generation=0,disposed=false;
     return {
-      schedule(callback){if(disposed)return;task=callback;arm();},
+      schedule(){},
       capture:()=>generation,isCurrent:owner=>!disposed&&owner===generation,
-      cancel(){generation++;clear();task=null;urgent=false;lastStart=null;},
-      dispose(){disposed=true;clear();task=null;urgent=false;document.removeEventListener('visibilitychange',visibility);window.removeEventListener('focus',visibility);window.removeEventListener('blur',visibility);}
+      cancel(){generation++;},
+      dispose(){disposed=true;generation++;}
     };
   };
   // Local Begin feedback only: retain forms and the existing module busy guards.
@@ -953,9 +934,13 @@
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body,readOptions,equipmentRecheck) {
+      // Explicit history reads cannot adopt a reply after their view has changed.
+      // A known HTTP refusal still carries its status for existing callers.
+      const assertReadCurrent=status=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Object.assign(Error('ACCESS_READ_SUPERSEDED'),Number.isInteger(status)&&status>=400?{status}:{});};
       // Only the private explicit equipment permission read may use its new delivery pin.
       const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};
       if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();
+      assertReadCurrent();
       try{fqcBeforeRequest(body);iqcBeforeRequest(body);}catch(cause){if(!body)throw cause;const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
@@ -995,9 +980,9 @@
         let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'&&!new URLSearchParams(url.split('?')[1]||'').has('approvedOnly')?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         // An owned HTTP denial remains authoritative even when its body is not JSON.
-        // projectAccess fences stale reads; original parse/HTTP errors and unknown evidence remain.
-        phase='body';let result;try{result=await response.json();}catch(error){if(!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
-        assertRequestOwner();
+        // Stale non-JSON replies preserve their original parse/HTTP error but cannot change access or read-pause state.
+        phase='body';let result;try{result=await response.json();}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
+        assertRequestOwner();assertReadCurrent(response.status);
         if(abEntry)abAssert(abEntry,body.command);
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
@@ -1175,7 +1160,7 @@
       permission: key=>access?.[key],
       gatePermissions:()=>{assertOwner();gateControls();},
       setPermissionGates(value){gates=value;gateControls();return client;},
-      withLegacyArchive(){client.legacyHistory=before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`));client.legacyVersion=id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`));return client;},
+      withLegacyArchive(){client.legacyHistory=(before,options)=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options);client.legacyVersion=(id,options)=>request(query(`legacyVersionId=${encodeURIComponent(id)}`),undefined,options);return client;},
       comparisonVersion:()=>boundedScope==='ipqc-c'?cComparisonVersion:null,
       invalidateReadState(){if(boundedScope==='ipqc-c')cComparisonVersion++;accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
       // Internal one-way cached-client upgrade; no downgrade or queue replacement.
@@ -1212,14 +1197,14 @@
         confirm();
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
-      history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
+      history: (before,options)=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),
       ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
-      ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),
-      reviewCase: id=>request(query(`caseId=${encodeURIComponent(id)}`)),
-      previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
+      ...(legacyArchive?{legacyHistory:(before,options)=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),legacyVersion:(id,options)=>request(query(`legacyVersionId=${encodeURIComponent(id)}`),undefined,options)}:{}),
+      reviewCase: (id,options)=>request(query(`caseId=${encodeURIComponent(id)}`),undefined,options),
+      previewRestore: (id,options)=>request(query(`restoreSaveId=${encodeURIComponent(id)}`),undefined,options),
       async beginCompared(source,isCurrent){
         if(iqcComparedSave)return iqcBegin(source,isCurrent);if(fqcComparedSave)return fqcBegin(source,isCurrent);
         const proof=cBeginReads.get(source);
@@ -1396,8 +1381,15 @@
     }
     after.after(panel);
   };
-  const captureRestoreOwner=()=>({id:window.ProcessSync?.identity?.id,identity:window.ProcessSync?.identity,epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.()});
-  const restoreOwnerCurrent=owner=>!window.ProcessSync||!!owner.id&&owner.id===window.ProcessSync.identity?.id&&!window.ProcessSync.requiresReload&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync.identityGeneration?.():owner.identity===window.ProcessSync.identity)&&(!owner.delivery||window.ProcessSync.isCurrentDelivery?.(owner.delivery)!==false);
+  const captureRestoreOwner=()=>({pagehide:transportPagehideGeneration,id:window.ProcessSync?.identity?.id,identity:window.ProcessSync?.identity,epoch:window.ProcessSync?.identityGeneration?.(),delivery:window.ProcessSync?.captureDelivery?.()});
+  const restoreOwnerCurrent=owner=>owner.pagehide===transportPagehideGeneration&&(!window.ProcessSync||!!owner.id&&owner.id===window.ProcessSync.identity?.id&&!window.ProcessSync.requiresReload&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync.identityGeneration?.():owner.identity===window.ProcessSync.identity)&&(!owner.delivery||window.ProcessSync.isCurrentDelivery?.(owner.delivery)!==false));
+  // Permission reads follow explicit actions only; idle dialogs issue no requests.
+  async function freshHistoryPermission(client,current,keys,error){
+    if(!current())throw Error('HISTORY_CONTEXT_CHANGED');
+    const state=await client.permissions({isCurrent:current,requireAcceptedAccess:true});
+    if(!current())throw Error('HISTORY_CONTEXT_CHANGED');
+    if(keys.some(key=>state.permissions?.[key]!==true))throw Object.assign(Error(error),{status:403});
+  }
   window.openSharedDraftHistory=async({client,editable,onApplied,masterScope=null,legacyFirst=false,legacyVersionId=null,caseId=null,versionPreview=null,reviewActions=[],onReview=null})=>{
     const restoreOwner=captureRestoreOwner(),restoreAllowed=()=>editable()&&client.permission?.('restore')===true&&restoreOwnerCurrent(restoreOwner);
     const zh=document.documentElement.lang.startsWith('zh'),t=(vi,cn)=>zh?cn:vi,h=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1407,14 +1399,16 @@
     const collectionLabel=kind=>{const key=moduleCollection(kind);return key?`IPQC · ${key[1]} · ${{bases:t('Phiên bản cơ sở','基準版本'),errors:t('Lỗi','不良項目'),items:t('Tiêu chuẩn','檢驗標準')}[key[2]]}`:kind;};
     const rowLabel=(kind,row)=>moduleCollection(kind)?.[2]==='bases'?'':row.checkNo||row.code||row.id;
     const rowHeading=(kind,row)=>{const key=moduleCollection(kind);if(!key)return `${h(collectionLabel(kind))} · ${h(rowLabel(kind,row))} · ${h(row.nameVi||row.name)}`;const present=value=>value!==null&&value!==undefined&&String(value).trim()!=='';return ['IPQC',key[1],{bases:t('Phiên bản cơ sở','基準版本'),errors:t('Lỗi','不良項目'),items:t('Tiêu chuẩn','檢驗標準')}[key[2]],key[2]==='bases'?undefined:[row.checkNo,row.code,row.id].find(present),[row.nameVi,row.name].find(present)].filter(present).map(h).join(' · ');};
-    const overlay=document.createElement('div');overlay.className='shared-restore-overlay';overlay.dataset.i18nSkip='true';const opener=document.activeElement;let listing=null,review=null,itemPage=0,loading=false,permissionTimer,legacy=!!legacyFirst&&!!client.legacyHistory;
-    const close=()=>{clearTimeout(permissionTimer);overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(opener?.isConnected)opener.focus({preventScroll:true});};
+    const overlay=document.createElement('div');overlay.className='shared-restore-overlay';overlay.dataset.i18nSkip='true';const opener=document.activeElement;let listing=null,review=null,itemPage=0,loading=false,closed=false,requestSequence=0,viewSequence=0,reviewBusy=false,previewBusy=false,legacy=!!legacyFirst&&!!client.legacyHistory;
+    const current=token=>!closed&&overlay.isConnected&&restoreOwnerCurrent(restoreOwner)&&(token===undefined||token===requestSequence);
+    const close=()=>{if(closed)return;closed=true;requestSequence++;overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(restoreOwnerCurrent(restoreOwner)&&opener?.isConnected)opener.focus({preventScroll:true});};
     const keyboard=e=>{if(document.querySelector('dialog[open]')||[...document.querySelectorAll('.shared-restore-overlay')].at(-1)!==overlay)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first||!e.shiftKey&&document.activeElement===last){e.preventDefault();(e.shiftKey?last:first)?.focus();}}};
-    const checkPermission=()=>{permissionTimer=setTimeout(async()=>{try{const state=await client.permissions();if(!state.permissions?.history){close();return;}}catch(e){if([401,403].includes(e.status)){close();return;}}const restoreButton=overlay.querySelector('[data-restore]');if(restoreButton&&!restoreAllowed())restoreButton.disabled=true;if(overlay.isConnected)checkPermission();},4000);};
     const labels={name:'Tên / 名稱',nameVi:'Tên / 名稱',description:'Mô tả / 敘述',standard:'Tiêu chuẩn / 標準',code:'Mã / 代碼',checkNo:'Mã kiểm tra / 檢查編號',equipmentId:'Thiết bị / 檢具',productCodes:'Sản phẩm / 產品',rule:'Tần suất / 頻率',rules:'Tần suất / 頻率',note:'Ghi chú / 備註',notes:'Ghi chú / 備註',isEnabled:'Kích hoạt / 啟用',enabled:'Kích hoạt / 啟用'};
     const photos=row=>row?[...(row.photos||[]),...(row.mediaItems||[]),...(row.standardPhotos||[]),...(row.methodPhotos||[]),...(row.photoId?[{id:row.photoId}]:[])].map(p=>({...p,url:client.mediaURL(p)})).filter(p=>p.url).map(p=>`<img decoding="async" src="${h(p.url)}" alt="${h(p.name||t('Ảnh tại thời điểm gửi','送審當時圖片'))}" loading="lazy" width="160" height="120" style="object-fit:contain;max-width:100%">`).join(''):'';
     const fields=row=>!row?`<p>${t('Không tồn tại','不存在')}</p>`:`<dl>${Object.entries(row).filter(([key])=>!['photos','mediaItems','standardPhotos','methodPhotos','photoId'].includes(key)).map(([key,value])=>`<dt>${h(labels[key]||key)}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${h(typeof value==='object'?JSON.stringify(value,(_k,v)=>typeof v==='string'&&v.startsWith('data:')?'[Ảnh / 圖片]':v,null,2):value)}</dd>`).join('')}</dl>${photos(row)}`;
     const draw=()=>{
+      if(!current())return;
+      const rendered=++viewSequence,actionable=()=>current()&&rendered===viewSequence;
       const oldCollections={...historyCollections(review?.before)},newCollections={...historyCollections(review?.content)};
       if(review?.linkedProcess){for(const [stage,templates]of Object.entries(review.linkedProcess.before||{}))oldCollections['PROCESS · '+stage]=templates;for(const [stage,templates]of Object.entries(review.linkedProcess.content||{}))newCollections['PROCESS · '+stage]=templates;}
 const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(oldCollections)])].flatMap(kind=>{const before=oldCollections[kind]||[],after=newCollections[kind]||[];if(!Array.isArray(before)||!Array.isArray(after))return[];const oldRows=new Map(before.map((r,index)=>[historyRowKey(r,index),r])),newRows=new Map(after.map((r,index)=>[historyRowKey(r,index),r]));return [...new Set([...oldRows.keys(),...newRows.keys()])].map(id=>{const old=oldRows.get(id),value=newRows.get(id);return{kind,row:value||old,after:value,old};});}):[];
@@ -1422,24 +1416,62 @@ const rows=review?[...new Set([...Object.keys(newCollections),...Object.keys(old
       // Prevent overlapping list/case reads from replacing the selected history view.
       if(loading)overlay.querySelectorAll('button:not([data-close])').forEach(button=>button.disabled=true);
       overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
-      overlay.querySelectorAll('[data-history-review]').forEach(button=>button.onclick=async()=>{const buttons=[...overlay.querySelectorAll('button')],disabled=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);try{if(await onReview(button.dataset.historyReview,review.id))close();}catch(error){showError(error);}finally{buttons.forEach((b,i)=>b.disabled=disabled[i]);}});
-      overlay.querySelector('[data-archive]')?.addEventListener('click',async()=>{legacy=!legacy;review=null;await loadList();});
-      overlay.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>loadCase(b.dataset.case));
-      overlay.querySelector('[data-back]')?.addEventListener('click',()=>{review=null;draw();});
-      overlay.querySelector('[data-more]')?.addEventListener('click',()=>loadList(listing.next));
-      overlay.querySelector('[data-prev]')?.addEventListener('click',()=>{itemPage--;draw();});overlay.querySelector('[data-next]')?.addEventListener('click',()=>{itemPage++;draw();});
-      overlay.querySelector('[data-restore]')?.addEventListener('click',async()=>{if(!restoreAllowed())return;try{await window.previewSharedDraftRestore({client,masterScope,savedId:review.savedId,onApplied:async result=>{await onApplied(result);close();}});}catch(error){showError(error);}});
+      overlay.querySelectorAll('[data-history-review]').forEach(button=>button.onclick=async()=>{
+        const action=button.dataset.historyReview,selected=review,selectedId=review?.id;
+        if(reviewBusy||button.disabled||!actionable()||selected?.id!==caseId||selected.status!=='pending'||!['approve','return'].includes(action)||!reviewActions.some(a=>a.name===action&&a.enabled===true))return;
+        const token=++requestSequence,reviewCurrent=()=>current(token)&&review===selected&&selected.id===selectedId&&selectedId===caseId&&selected.status==='pending'&&reviewActions.some(a=>a.name===action&&a.enabled===true),buttons=[...overlay.querySelectorAll('button')],disabled=buttons.map(b=>b.disabled);reviewBusy=true;buttons.forEach(b=>b.disabled=true);
+        try{await freshHistoryPermission(client,reviewCurrent,['history',action],'HISTORY_REVIEW_PERMISSION_REQUIRED');if(!reviewCurrent())return;if(await onReview(action,selectedId)) {if(current(token))close();}}
+        catch(error){if(current(token))showError(error);}finally{reviewBusy=false;if(current(token))buttons.forEach((b,i)=>b.disabled=disabled[i]);}
+      });
+      overlay.querySelector('[data-archive]')?.addEventListener('click',()=>actionable()&&loadList(undefined,!legacy));
+      overlay.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>actionable()&&loadCase(b.dataset.case));
+      overlay.querySelector('[data-back]')?.addEventListener('click',()=>actionable()&&navigate(()=>{review=null;}));
+      overlay.querySelector('[data-more]')?.addEventListener('click',()=>actionable()&&loadList(listing.next));
+      overlay.querySelector('[data-prev]')?.addEventListener('click',()=>actionable()&&navigate(()=>{itemPage--;}));overlay.querySelector('[data-next]')?.addEventListener('click',()=>actionable()&&navigate(()=>{itemPage++;}));
+      overlay.querySelector('[data-restore]')?.addEventListener('click',async()=>{
+        if(previewBusy||reviewBusy||!actionable()||!restoreAllowed())return;
+        const token=++requestSequence,selected=review;previewBusy=true;
+        try{await window.previewSharedDraftRestore({client,masterScope,savedId:selected.savedId,isCurrent:()=>current(token)&&review===selected&&editable(),onApplied:async result=>{if(!current(token))return;await onApplied(result);if(current(token))close();}});}
+        catch(error){if(current(token)){draw();showError(error);}}finally{previewBusy=false;}
+      });
     };
-    function showError(error){const p=document.createElement('p');p.role='alert';p.textContent=window.sharedDraftErrorMessage(error);overlay.querySelector('main').prepend(p);}
-async function loadList(before){loading=true;draw();try{if(legacy){const result=await client.legacyHistory(before);listing={...result,cases:result.versions.map(v=>({id:v.id,status:v.status,actor:{name:v.creatorName||v.creatorId||''},at:v.updatedAt||v.createdAt||'',reason:[v.category,v.line,'V'+v.number].filter(Boolean).join(' · ')}))};}else listing=await client.history(before);review=null;}catch(e){loading=false;draw();showError(e);return;}loading=false;draw();}
-    async function loadCase(id){loading=true;draw();try{if(legacy){const v=(await client.legacyVersion(id)).legacyVersion;review={id:v.id,status:v.status,actor:{name:v.creatorName||v.creatorId||''},at:v.updatedAt||v.createdAt||'',reason:t('Bản cũ được giữ nguyên. Thời gian từ dữ liệu cũ; không phải lần lưu bản nháp hiện tại.','完整保留舊版；時間來自舊資料，不代表本次草稿的儲存紀錄。'),before:{},content:v.snapshot||{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages||{}}]},legacy:true};}else review=(await client.reviewCase(id)).reviewCase;itemPage=0;}catch(e){loading=false;draw();showError(e);return;}loading=false;draw();}
-    document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);await loadList();if(legacy&&legacyVersionId)await loadCase(legacyVersionId);else if(caseId)await loadCase(caseId);else if(versionPreview){review={id:versionPreview.id,status:versionPreview.status,actor:{name:versionPreview.creatorName||t('Chưa ghi nhận','未記錄')},at:versionPreview.createdAt||t('Chưa ghi nhận','未記錄'),reason:t('Chi tiết phiên bản · chỉ đọc','版本詳情 · 唯讀'),before:{},content:versionPreview.snapshot,contentIssues:versionPreview.contentIssues,legacy:true};draw();}checkPermission();overlay.querySelector('[data-close]').focus({preventScroll:true});
+    function showError(error){if(!current())return;if([401,403].includes(error.status)&&error.message!=='RESTORE_PERMISSION_REQUIRED'){close();return;}const p=document.createElement('p');p.role='alert';p.textContent=window.sharedDraftErrorMessage(error);overlay.querySelector('main').prepend(p);}
+    async function navigate(change){
+      if(!current()||reviewBusy||previewBusy)return;const token=++requestSequence;
+      try{await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');if(!current(token))return;change();draw();}catch(error){if(current(token))showError(error);}
+    }
+    async function loadList(before,nextLegacy=legacy){
+      if(!current()||reviewBusy||previewBusy)return false;const token=++requestSequence;loading=true;draw();
+      try{
+        await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');
+        if(!current(token))return false;const options={isCurrent:()=>current(token),requireAcceptedAccess:true};
+        const result=await (nextLegacy?client.legacyHistory(before,options):client.history(before,options));if(!current(token))return false;
+        listing=nextLegacy?{...result,cases:result.versions.map(v=>({id:v.id,status:v.status,actor:{name:v.creatorName||v.creatorId||''},at:v.updatedAt||v.createdAt||'',reason:[v.category,v.line,'V'+v.number].filter(Boolean).join(' · ')}))}:result;legacy=nextLegacy;review=null;
+      }catch(error){if(current(token)){loading=false;draw();showError(error);}return false;}
+      loading=false;draw();return true;
+    }
+    async function loadCase(id){
+      if(!current()||reviewBusy||previewBusy)return false;const token=++requestSequence,selectedLegacy=legacy;loading=true;draw();
+      try{
+        await freshHistoryPermission(client,()=>current(token),['history'],'HISTORY_PERMISSION_REQUIRED');
+        if(!current(token))return false;const options={isCurrent:()=>current(token),requireAcceptedAccess:true};
+        const result=await (selectedLegacy?client.legacyVersion(id,options):client.reviewCase(id,options));if(!current(token))return false;
+        if(selectedLegacy){const v=result.legacyVersion;review={id:v.id,status:v.status,actor:{name:v.creatorName||v.creatorId||''},at:v.updatedAt||v.createdAt||'',reason:t('Bản cũ được giữ nguyên. Thời gian từ dữ liệu cũ; không phải lần lưu bản nháp hiện tại.','完整保留舊版；時間來自舊資料，不代表本次草稿的儲存紀錄。'),before:{},content:v.snapshot||{workspaces:[{id:JSON.stringify([v.category,v.line]),category:v.category,line:v.line,stages:v.stages||{}}]},legacy:true};}else review=result.reviewCase;itemPage=0;
+      }catch(error){if(current(token)){loading=false;draw();showError(error);}return false;}
+      loading=false;draw();return true;
+    }
+    document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);
+    const listed=await loadList();if(!current())return;
+    if(listed&&legacy&&legacyVersionId)await loadCase(legacyVersionId);else if(listed&&caseId)await loadCase(caseId);else if(listed&&versionPreview){review={id:versionPreview.id,status:versionPreview.status,actor:{name:versionPreview.creatorName||t('Chưa ghi nhận','未記錄')},at:versionPreview.createdAt||t('Chưa ghi nhận','未記錄'),reason:t('Chi tiết phiên bản · chỉ đọc','版本詳情 · 唯讀'),before:{},content:versionPreview.snapshot,contentIssues:versionPreview.contentIssues,legacy:true};draw();}
+    if(current())overlay.querySelector('[data-close]').focus({preventScroll:true});
   };
   // Shared restore preview is read-only until an explicit, revision-checked apply.
-  window.previewSharedDraftRestore=async({client,savedId,onApplied,masterScope=null})=>{
-    const restoreOwner=captureRestoreOwner(),restoreAllowed=()=>restoreOwnerCurrent(restoreOwner)&&['history','edit','restore'].every(key=>client.permission(key)===true);
+  window.previewSharedDraftRestore=async({client,savedId,onApplied,masterScope=null,isCurrent=()=>true})=>{
+    const restoreOwner=captureRestoreOwner(),restoreAllowed=()=>isCurrent()&&restoreOwnerCurrent(restoreOwner)&&['history','edit','restore'].every(key=>client.permission(key)===true);
     if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
-    const preview=await client.previewRestore(savedId),zh=document.documentElement.lang.startsWith('zh');
+    await freshHistoryPermission(client,()=>isCurrent()&&restoreOwnerCurrent(restoreOwner),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');
+    if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
+    const preview=await client.previewRestore(savedId,{isCurrent:()=>isCurrent()&&restoreOwnerCurrent(restoreOwner),requireAcceptedAccess:true}),zh=document.documentElement.lang.startsWith('zh');
     if(!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
     const t=(vi,cn)=>zh?cn:vi,h=value=>String(value??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const opener=document.activeElement,overlay=document.createElement('div');overlay.className='shared-restore-overlay';
@@ -1461,13 +1493,8 @@ async function loadList(before){loading=true;draw();try{if(legacy){const result=
       const summary=Object.entries(labels).map(([key,label])=>{const changed=changes.filter(row=>row.kind===key);return `<li data-restore-count="${key}"><b>${label}</b> · ${t('Thêm','新增')} ${changed.filter(row=>row.action==='added').length} · ${t('Sửa','修改')} ${changed.filter(row=>row.action==='modified').length} · ${t('Bỏ','移除')} ${changed.filter(row=>row.action==='removed').length}</li>`;}).join('');
       return `<section class="shared-restore-impact" data-master-restore-scope="${masterScope}"><strong>${t('Phạm vi khôi phục','還原範圍')}：${scope}</strong><p>${t('Bộ lọc không thu hẹp phạm vi. Nội dung lịch sử sẽ thay thế bản nháp chung hiện tại, kể cả thay đổi chưa lưu. Muốn giữ nội dung hiện tại, hãy hủy và lưu trước.','篩選不縮小還原範圍。歷史內容將取代目前共用草稿，包括未儲存修改。若要保留現在內容，請先取消並儲存。')}</p><ul>${summary}</ul><p>${t('Các khác biệt bên dưới đối chiếu bản nháp hiện tại và nội dung sau khi khôi phục. Vẫn cần lưu, gửi duyệt và phê duyệt để có hiệu lực.','下方差異列出目前草稿與還原後內容。套用後仍須儲存、送審及核准才會正式生效。')}</p></section>`;
     };
-    let page=0,busy=false,permissionTimer;
-    const checkPermission=()=>{permissionTimer=setTimeout(async()=>{
-      try{const state=await client.permissions();if(!state.permissions?.history||!state.permissions?.edit||!restoreAllowed()){close(true);return;}}
-      catch(error){if([401,403].includes(error.status)){close(true);return;}}
-      if(!restoreAllowed()){close(true);return;}
-      if(overlay.isConnected)checkPermission();
-    },4000);};
+    let page=0,busy=false,closed=false,requestSequence=0,viewSequence=0;
+    const current=token=>!closed&&overlay.isConnected&&isCurrent()&&restoreOwnerCurrent(restoreOwner)&&(token===undefined||token===requestSequence);
     const labels={nameVi:'Tên / 名稱',name:'Tên / 名稱',standard:'Tiêu chuẩn / 標準',description:'Mô tả / 敘述',methodVi:'Phương pháp / 方法',note:'Ghi chú / 備註',equipmentId:'Thiết bị / 檢具',rules:'Tần suất / 頻率',rule:'Tần suất / 頻率',photos:'Ảnh / 圖片',mediaItems:'Ảnh / 圖片',deleted:'Đã xóa / 刪除',isDeleted:'Đã xóa / 刪除'};
     function fieldValue(key,value){
       const mediaKeys=['photos','mediaItems','standardPhotos','methodPhotos'];
@@ -1476,16 +1503,26 @@ async function loadList(before){loading=true;draw();try{if(legacy){const result=
       return h(typeof value==='object'?JSON.stringify(value,(_key,v)=>typeof v==='string'&&v.startsWith('data:')?'[Ảnh / 圖片]':v,2):typeof value==='string'&&value.startsWith('data:')?'[Ảnh / 圖片]':value);
     }
     function fields(row,other){if(!row)return `<p>${t('Không tồn tại','不存在')}</p>`;return `<dl>${Object.keys({...row,...other}).filter(k=>JSON.stringify(row[k])!==JSON.stringify(other?.[k])).map(k=>`<dt>${h(labels[k]||k)}</dt><dd>${fieldValue(k,row[k])}</dd>`).join('')}</dl>`;}
-    function render(){overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-labelledby="shared-restore-title"><header><h3 id="shared-restore-title">${t('Xem trước khôi phục lịch sử','歷史還原差異預覽')}</h3><button type="button" data-close aria-label="${t('Đóng','關閉')}">×</button></header><main>${masterImpact()}<p>${t('Áp dụng chỉ thay đổi bản nháp chung chưa lưu. Không lưu tự động, không sửa hồ sơ lịch sử.','套用只產生共用草稿的未儲存修改；不會自動儲存，不改寫歷史案件。')}</p><p>${h(preview.source.actor.name)} · ${h(preview.source.at)} · ${h(preview.restoreSaveId)}</p><p>${rows.length} ${t('mục thay đổi','筆變更')} · ${t('Phiên bản bản nháp','草稿版本')} ${preview.expectedRevision}</p>${!rows.length?`<p class="shared-restore-no-change" role="status">${t('Nội dung lịch sử trùng với bản nháp hiện tại; không cần khôi phục.','歷史內容與目前草稿相同，無需還原。')}</p>`:''}<div role="alert" id="shared-restore-error"></div>${rows.slice(page*10,page*10+10).map(row=>`<article><h4>${h(row.collection)} · ${h(row.label)}</h4><div class="shared-restore-diff"><section><h4>${t('Bản nháp hiện tại','目前草稿')}</h4>${fields(row.before,row.after)}</section><section><h4>${t('Sau khi áp dụng','還原套用後')}</h4>${fields(row.after,row.before)}</section></div></article>`).join('')}<nav><button type="button" data-prev ${!page?'disabled':''}>${t('Trước','上一頁')}</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button type="button" data-next ${(page+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav></main><footer><button type="button" data-close>${t('Hủy','取消')}</button><button type="button" data-apply ${!rows.length||!restoreAllowed()?'disabled':''}>${t('Xác nhận áp dụng · chưa lưu','確認套用 · 尚未儲存')}</button></footer></section>`;
+    function render(){const rendered=++viewSequence,actionable=()=>current()&&rendered===viewSequence;overlay.innerHTML=`<section class="shared-restore-dialog" role="dialog" aria-modal="true" aria-labelledby="shared-restore-title"><header><h3 id="shared-restore-title">${t('Xem trước khôi phục lịch sử','歷史還原差異預覽')}</h3><button type="button" data-close aria-label="${t('Đóng','關閉')}">×</button></header><main>${masterImpact()}<p>${t('Áp dụng chỉ thay đổi bản nháp chung chưa lưu. Không lưu tự động, không sửa hồ sơ lịch sử.','套用只產生共用草稿的未儲存修改；不會自動儲存，不改寫歷史案件。')}</p><p>${h(preview.source.actor.name)} · ${h(preview.source.at)} · ${h(preview.restoreSaveId)}</p><p>${rows.length} ${t('mục thay đổi','筆變更')} · ${t('Phiên bản bản nháp','草稿版本')} ${preview.expectedRevision}</p>${!rows.length?`<p class="shared-restore-no-change" role="status">${t('Nội dung lịch sử trùng với bản nháp hiện tại; không cần khôi phục.','歷史內容與目前草稿相同，無需還原。')}</p>`:''}<div role="alert" id="shared-restore-error"></div>${rows.slice(page*10,page*10+10).map(row=>`<article><h4>${h(row.collection)} · ${h(row.label)}</h4><div class="shared-restore-diff"><section><h4>${t('Bản nháp hiện tại','目前草稿')}</h4>${fields(row.before,row.after)}</section><section><h4>${t('Sau khi áp dụng','還原套用後')}</h4>${fields(row.after,row.before)}</section></div></article>`).join('')}<nav><button type="button" data-prev ${!page?'disabled':''}>${t('Trước','上一頁')}</button><span>${page+1} / ${Math.max(1,Math.ceil(rows.length/10))}</span><button type="button" data-next ${(page+1)*10>=rows.length?'disabled':''}>${t('Sau','下一頁')}</button></nav></main><footer><button type="button" data-close>${t('Hủy','取消')}</button><button type="button" data-apply ${!rows.length||!restoreAllowed()?'disabled':''}>${t('Xác nhận áp dụng · chưa lưu','確認套用 · 尚未儲存')}</button></footer></section>`;
       overlay.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
-      overlay.querySelector('[data-prev]').onclick=()=>{page--;render();};overlay.querySelector('[data-next]').onclick=()=>{page++;render();};
-      overlay.querySelector('[data-apply]').onclick=async()=>{if(busy||!overlay.isConnected||!restoreAllowed())return;busy=true;overlay.querySelectorAll('button').forEach(b=>b.disabled=true);
-        try{const result=await client.command(preview.generation,'restore',{restoreSaveId:preview.restoreSaveId,expectedRevision:preview.expectedRevision});await onApplied(result);busy=false;close();}
-        catch(error){busy=false;if([401,403].includes(error.status)){close(true);return;}render();overlay.querySelector('#shared-restore-error').textContent=error.message==='RESTORE_RECONFIRM'?t('Bản nháp đã thay đổi. Đóng và xem trước lại; chưa áp dụng.','草稿已改變，請關閉並重新預覽；尚未套用。'):window.sharedDraftErrorMessage(error);}
+      overlay.querySelector('[data-prev]').onclick=()=>actionable()&&navigate(-1);overlay.querySelector('[data-next]').onclick=()=>actionable()&&navigate(1);
+      overlay.querySelector('[data-apply]').onclick=async()=>{if(busy||!rows.length||!actionable()||!restoreAllowed())return;const token=++requestSequence;busy=true;overlay.querySelectorAll('button').forEach(b=>b.disabled=true);
+        try{
+          await freshHistoryPermission(client,()=>current(token),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');
+          if(!current(token)||!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');
+          const result=await client.command(preview.generation,'restore',{restoreSaveId:preview.restoreSaveId,expectedRevision:preview.expectedRevision});
+          if(current(token))await onApplied(result);busy=false;close();
+        }catch(error){busy=false;if(!current(token)){close(true);return;}if([401,403].includes(error.status)){close(true);return;}render();overlay.querySelector('#shared-restore-error').textContent=error.message==='RESTORE_RECONFIRM'?t('Bản nháp đã thay đổi. Đóng và xem trước lại; chưa áp dụng.','草稿已改變，請關閉並重新預覽；尚未套用。'):window.sharedDraftErrorMessage(error);}
+        finally{busy=false;}
       };
     }
-    function close(force=false){if(busy&&force!==true)return;clearTimeout(permissionTimer);overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(opener?.isConnected)opener.focus({preventScroll:true});}
+    async function navigate(offset){
+      if(busy||!current()||!restoreAllowed())return;const token=++requestSequence;
+      try{await freshHistoryPermission(client,()=>current(token),['history','edit','restore'],'RESTORE_PERMISSION_REQUIRED');if(!current(token)||!restoreAllowed())throw Error('RESTORE_PERMISSION_REQUIRED');page+=offset;render();}
+      catch(error){if(!current(token))return;if([401,403].includes(error.status)){close(true);return;}overlay.querySelector('#shared-restore-error').textContent=window.sharedDraftErrorMessage(error);}
+    }
+    function close(force=false){if(closed||busy&&force!==true)return;closed=true;requestSequence++;overlay.remove();unlockScroll(overlay);document.removeEventListener('keydown',keyboard,true);if(restoreOwnerCurrent(restoreOwner)&&opener?.isConnected)opener.focus({preventScroll:true});}
     function keyboard(e){if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')];const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first||!e.shiftKey&&document.activeElement===last){e.preventDefault();(e.shiftKey?last:first)?.focus();}}}
-    render();document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);overlay.querySelector('[data-close]').focus({preventScroll:true});checkPermission();
+    render();document.body.append(overlay);lockScroll(overlay);document.addEventListener('keydown',keyboard,true);overlay.querySelector('[data-close]').focus({preventScroll:true});
   };
 })();

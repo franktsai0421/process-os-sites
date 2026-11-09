@@ -15,8 +15,8 @@ const read=file=>fs.readFileSync(path.join(sourceRoot,'public/process',file),'ut
 // Only the policy inverse uses raw committed bytes. Runtime checks below keep
 // reading the actual selected worktree, including a native CRLF checkout.
 const cHeadSource=execFileSync('git',['show','HEAD:public/process/ipqc-c.js'],{cwd:repositoryRoot});
-// Execute the selected source tree's real scheduler, including foreground producers.
-// Legacy interval extraction remains exact for unchanged authoring and pinned fixtures.
+// Retained tooling callbacks use an explicitly test-only retired driver.
+// Production no-idle behavior is checked separately; old fixture intervals stay exact.
 const pollingScheduler=(source,{fileName='tooling.js',readCall='transport().read'}={})=>{
  const ast=ts.createSourceFile(fileName,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),timers=[];
  assert.equal(ast.parseDiagnostics.length,0,'polling source parses');
@@ -51,6 +51,8 @@ const foregroundPorts=box=>{
 const pollingFixture=()=>{
  const timers=[],calls=[],updates=[],box={setInterval:(fn,ms)=>timers.push({fn,ms}),document:{visibilityState:'hidden',activeElement:null},host:{isConnected:true,dataset:{activeTab:'quality-mold-equipment'},querySelector:()=>null},reviewHost:null,client:{},busy:false,dialog:null,beginRecovery:null,polling:false,viewEpoch:1,readEpoch:1,flushChecks(){},syncActions(){},flow:()=>({generation:'g',revision:1}),window:{ProcessSync:{identity:{id:'synthetic'}},VersionDraftUI:{updateSync:(...args)=>updates.push(args)}}};
  vm.createContext(box);const gate=readGate(box),ports=foregroundPorts(box);let status=200;
+ // Preserve legacy callback denial/ownership assertions without restoring runtime polling.
+ vm.runInContext(fs.readFileSync(new URL('../scripts/entry-performance/fixtures/retired-foreground-scheduler.js',import.meta.url),'utf8'),box);
  box.client={canPoll:kind=>gate.canPoll(kind),hasUnknown:()=>false};box.transport=()=>({read:async token=>{calls.push(token);if(status!==200){gate.denied('state',status,gate.capture(),async()=>{});throw Error('synthetic read refusal '+status);}return{unchanged:true};}});
  const production=read('tooling.js'),foreground=production.includes('foregroundPoll.schedule(pollTick)');vm.runInContext(pollingScheduler(production),box);if(foreground){assert.equal(timers.length,0,'no legacy interval substituted');assert.equal(ports.pending(),0,'hidden document does not arm foreground poll');}else{assert.equal(timers.length,1);assert.equal(timers[0].ms,4000);}
  return{box,gate,calls,updates,poll:async()=>{ports.syncVisibility();if(foreground){if(ports.pending())await ports.runNext();}else await timers[0].fn();},status:value=>{status=value;}};
@@ -153,11 +155,18 @@ for(const name of ['fqc-master.js','iqc-master.js','routine-equipment.js','ipqc-
  }
 });
 void test('custom IPQC-C conditional protocol is not opted in',()=>{const line=part(read('ipqc-c.js'),'  function sharedTransport()', '  const workflowErrors=');assert(!line.includes('conditionalState:true'));});
-void test('tooling polling skips hidden documents and resumes its existing read in visible documents',async()=>{
+void test('retired tooling callback preserves hidden/visible and denied-read guards under test-only driver',async()=>{
  const {box,gate,calls,poll}=pollingFixture();await poll();assert.equal(calls.length,0);box.document.visibilityState='visible';await poll();assert.deepEqual(calls,['g:1']);gate.denied('state',403,gate.capture(),async()=>{});await poll();assert.deepEqual(calls,['g:1'],'actual denied gate prevents another automatic read');
 });
-void test('authoring polling skips hidden documents without altering manual/initial reads',()=>{
- const source=read('process-authoring-v3.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},enabled:()=>true,state:{view:'editor'},load:()=>calls.push('read'),window:{ProcessSync:{identity:{id:'synthetic'}}}};box.host=box.window;vm.createContext(box);const gate=readGate(box);box.client=()=>({canPoll:kind=>gate.canPoll(kind)});vm.runInContext(pollingScheduler(source,{fileName:'process-authoring-v3.js',readCall:'load'}),box);timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';timers[0]();assert.equal(calls.length,1);gate.denied('state',401,gate.capture(),async()=>{});timers[0]();assert.equal(calls.length,1,'actual denied gate prevents another automatic read');assert(source.includes(' if(enabled())void load();'));
+void test('authoring has no periodic read and retains its selected-source initial admission',()=>{
+ const source=read('process-authoring-v3.js'),timers=[],calls=[],box={setInterval:f=>timers.push(f),document:{visibilityState:'hidden',activeElement:null},enabled:()=>true,state:{view:'editor'},load:()=>calls.push('read'),window:{ProcessSync:{identity:{id:'synthetic'}}}};box.host=box.window;vm.createContext(box);
+ if(sourceMode==='readonly-fixture'&&source.includes('setInterval(')){
+  const gate=readGate(box);box.client=()=>({canPoll:kind=>gate.canPoll(kind)});vm.runInContext(pollingScheduler(source,{fileName:'process-authoring-v3.js',readCall:'load'}),box);timers[0]();assert.equal(calls.length,0);box.document.visibilityState='visible';timers[0]();assert.equal(calls.length,1);gate.denied('state',401,gate.capture(),async()=>{});timers[0]();assert.equal(calls.length,1);
+ }else{
+  assert.doesNotMatch(source,/setInterval\s*\(/);const initial=' if(enabled())void load();';assert.equal(source.split(initial).length,2,'one exact actual initial-load statement');
+  box.enabled=()=>false;vm.runInContext(initial,box);assert.deepEqual(calls,[]);box.enabled=()=>true;vm.runInContext(initial,box);assert.deepEqual(calls,['read']);assert.deepEqual(timers,[]);
+ }
+ assert(source.includes(' if(enabled())void load();'));
 });
 
 void test('tooling scheduler extraction fails closed for absent, ambiguous, nested, malformed or non-reading callbacks',()=>{
@@ -170,7 +179,7 @@ void test('tooling scheduler extraction fails closed for absent, ambiguous, nest
  }
 
 });
-for(const status of [401,403])void test(`tooling actual scheduler stops after ${status} and does not read while hidden`,async()=>{
+for(const status of [401,403])void test(`retired tooling callback stops after ${status} under test-only driver and does not read while hidden`,async()=>{
  const {box,gate,calls,updates,poll,status:setStatus}=pollingFixture();setStatus(status);
  for(let i=0;i<7;i++)await poll();assert.equal(calls.length,0);assert.equal(updates.length,0);
  box.document.visibilityState='visible';for(let i=0;i<7;i++)await poll();assert.deepEqual(calls,['g:1']);assert.equal(updates.length,1);assert.equal(gate.canPoll('state'),false);assert.equal(gate.state('state').status,status);
