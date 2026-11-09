@@ -20,6 +20,10 @@
 
 首輪共用傳輸／新工段323項中322通過，唯一失敗為已移除focus listener的舊fixture；改驗完全不註冊該listener後，相關22項通過。既有讀取race20項、合併後global/history165項通過。最終共同回歸、來源證明、lint、types、受保護build與compiled HTTP結果由本批manifest綁定；首輪失敗log保留，不冒充從未失敗。
 
+## 整合回歸修正
+
+首輪共同core為838/839，一個真實回歸來自新讀取預檢回呼：若回呼在request捕獲access之前invalidate C比較狀態後仍返回true，舊實作會以新版本發出Begin比較資格。最小修正先於所有caller callback捕獲request-entry C版本，發證時同時核對該版本及原回應後callback版本；不改#100的assertReadCurrent、HTTP status或明確權限政策。原1–5負控完整保留，再覆蓋目前全部7個回呼位置；正常cold Begin、普通grant讀取與既有拒絕／未知收據規則不放寬。首次失敗log保留，修正後全共同core須重跑。
+
 ## 持續保留的未完成／外部界線
 
 本批只是來源整合，不能據此宣稱測試站更新、原生或實站驗收完成。線別頁仍按目前AB/C舊scope Save；獨立持久草稿切換未啟用。照片重排／不可靠ID、同張照片整筆與不支援結構等保守界線沿[逐頁報告](../draft-filter-followup-20261109/README.md)。IQC照片PUT無durable操作收據，防重送hash僅目前document，沒有跨reload File復原保證。
