@@ -27,7 +27,7 @@ for (const test of cases) {
     const requireFixture = createRequire(fixture), mod = { exports: {} };
     const readFileSync = (file, ...args) => path.resolve(String(file)) === target ? source : fs.readFileSync(file, ...args);
     const requirePort = id => id === 'node:fs' ? { ...fs, readFileSync } : requireFixture(id);
-    const context = { require: requirePort, module: mod, exports: mod.exports, __dirname: path.dirname(fixture), process: { ...process, env: { ...process.env, INCOMING_TEST_ROOT: root, PANEL_TEST_ROOT: root, INCOMING_CANDIDATE: target, PANEL_CANDIDATE: target } }, console };
+    const context = { Buffer, require: requirePort, module: mod, exports: mod.exports, __dirname: path.dirname(fixture), process: { ...process, env: { ...process.env, INCOMING_TEST_ROOT: root, PANEL_TEST_ROOT: root, INCOMING_CANDIDATE: target, PANEL_CANDIDATE: target } }, console };
     vm.runInNewContext(prefix + '\nmodule.exports=' + test.output + ';', context, { filename: fixture });
     return mod.exports;
   }

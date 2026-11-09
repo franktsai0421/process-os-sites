@@ -85,7 +85,7 @@ void test('quota before dispatch retains durable old bytes and newest RAM, zero 
 void test('empty atomic Save compares first and pins its fresh revision before POST and readback',async()=>{
  const f=await fixture();f.edit('Before Save');await f.local.sync(workspace,stage);
  f.remote.flow.working.workspaces[0].stages.T[0].name='Peer before empty Save';f.remote.bump();const freshRevision=f.remote.flow.revision;clear(f);
- assert.equal(await f.api.save(),true);assert.deepEqual(methods(f),['GET','POST','GET']);assert.deepEqual(f.remote.calls.map(call=>call.kind),['state','post','state']);
+ assert.equal(await f.api.save(),true);assert.deepEqual(methods(f),['GET','POST','GET']);assert.deepEqual(f.remote.calls.map(call=>call.kind),['state','post','state']);assert.doesNotMatch(f.remote.calls[0].url,/[?&](?:since|operationId|permissions|uiHistory|versionId)=/,'comparison must read current full authority, not metadata/history/receipt');
  const command=f.remote.calls[1].command;assert.equal(command.moduleAction,'save-canvas-v1');assert.equal(command.expectedRevision,freshRevision);assert.deepEqual(command.patches,[]);assert.equal(command.source,'canvas-v2:'+JSON.stringify([workspace,stage]));
  assert.equal(f.api.flow().saved.content.workspaces[0].stages.T[0].name,'Peer before empty Save');assert.equal(f.remote.calls.filter(call=>call.kind==='receipt').length,0);assert(!f.local.pending());
  clear(f);f.edit('After Save');await f.local.sync(workspace,stage);assert.deepEqual(methods(f),['POST']);clear(f);f.edit('After GET');await f.local.sync(workspace,stage);assert.deepEqual(methods(f),['POST']);

@@ -10,6 +10,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {accessKeys} from '../public/process/access-policy.mjs';
 import {canvasDOM} from '../scripts/login-reentry-dom.mjs';
 import {createOwnedDraftLedger} from '../public/process/owned-draft-ledger.mjs';
+import {createDepartureCoordinator} from '../public/process/navigation-lifecycle.mjs';
 const source=name=>fs.readFileSync('public/process/'+name+'.js','utf8'),copy=structuredClone;
 const workspace=JSON.stringify(['Synthetic','A']),stage='S';
 const content=()=>({workspaces:[{id:workspace,category:'Synthetic',line:'A',stages:{S:[{id:'one',stageCode:'S',name:'Original',number:'1',editorType:'manual',productCodes:[],nextIds:[],x:0,y:0}],T:[{id:'two',stageCode:'T',name:'Other',number:'2',editorType:'manual',productCodes:[],nextIds:[],x:0,y:0}]}}]});
@@ -35,17 +36,17 @@ async function fixture({remote,manager=locks(),storage=disk(),session=disk(),pri
 }
 const clear=f=>{f.remote.calls.length=0;},rows=f=>f.local.project(workspace,stage,f.api.flow().working.workspaces[0].stages.S);
 const routeHarness=createRequire(import.meta.url)('../scripts/ipqc-ab-import-harness.cjs');
-async function routeServer(storage,compact,{activeSaved=false,initialModel=content()}={}){
+async function routeServer(storage,compact,{activeSaved=false,initialModel=content(),processMaster={}}={}){
  const db=new DatabaseSync(':memory:'),objects=new Map(),calls=[];let interleave=false,writes=0,loss=null,beforeNextSave=null;
  db.exec('CREATE TABLE shared_state(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,"values" TEXT NOT NULL,updated_at TEXT NOT NULL)');
  const env={PROCESS_SESSION_SECRET:webcrypto.randomUUID(),DB:{prepare(sql){let args=[];return{bind(...v){args=v;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){if(interleave&&sql.startsWith('UPDATE shared_state SET revision=')){interleave=false;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}const changes=Number(db.prepare(sql).run(...args).changes);writes+=changes;return{meta:{changes}};}};}},STATE_ARCHIVE:{async put(k,v){objects.set(k,v);},async head(k){return objects.has(k)?{}:null;},async get(k){return objects.has(k)?{text:async()=>String(objects.get(k))}:null;}}};
  const h=routeHarness(env),core=h('lib/process-state.ts'),users=['actor-a','actor-b'].map(id=>({id,name:id,role:'admin',enabled:true,authMode:'platform',accessOverrides:Object.fromEntries(accessKeys.map(k=>[k,true]))}));
  const model=copy(initialModel),flow=h('lib/shared-draft.ts').createSharedDraft('process:platform',model,null,webcrypto.randomUUID());
  if(activeSaved){flow.active.id='effective';flow.baseId='effective';flow.saved={id:'saved-base',revision:0,content:copy(model),actor:{id:'actor-a',name:'actor-a'},at:'2026-10-31T00:00:00Z',contributors:{}};flow.saves=[flow.saved];}
- const values={platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify({active:{AB:{products:[],lines:[{code:'A',stages:[{code:'S'},{code:'T'}]},{code:'B',stages:[{code:'U'}]}]},C:{products:[],lines:[]},PROCESS:{}},versions:[]}),bomOverrides:JSON.stringify({replaceAll:true,data:{}}),processAuthoringControl:JSON.stringify({activeVersionId:activeSaved?'effective':null,versions:[...(activeSaved?[{id:'effective',number:0,status:'approved',snapshot:copy(model),history:[],revision:0}]:[]),{id:'draft',number:1,status:'draft',snapshot:model,history:[],revision:0}],workflow:flow})};
+ const values={platformUsers:JSON.stringify(users),masterDataControl:JSON.stringify({active:{AB:{products:[],lines:[{code:'A',stages:[{code:'S'},{code:'T'}]},{code:'B',stages:[{code:'U'}]}]},C:{products:[],lines:[]},PROCESS:processMaster},versions:[]}),bomOverrides:JSON.stringify({replaceAll:true,data:{}}),processAuthoringControl:JSON.stringify({activeVersionId:activeSaved?'effective':null,versions:[...(activeSaved?[{id:'effective',number:0,status:'approved',snapshot:copy(model),history:[],revision:0}]:[]),{id:'draft',number:1,status:'draft',snapshot:model,history:[],revision:0}],workflow:flow})};
  const raw=storage==='records-v1'?await h('lib/state-records.ts').encodeRecordValues(env.STATE_ARCHIVE,values):JSON.stringify(values);db.prepare('INSERT INTO shared_state VALUES(1,1,?,?)').run(raw,'synthetic');
  const api=h('app/api/process-authoring/workflow/route.ts'),origin='https://fixture.invalid',tokens=Object.fromEntries(await Promise.all(users.map(async u=>[u.id,await core.demoSession(new Request(origin),u.id,false)])));let who='actor-a';
- return{calls,beforeSave:hook=>{beforeNextSave=hook;},loss:value=>{loss=value;},async revoke(){const state=await core.readState();const users=JSON.parse(state.values.platformUsers);users[0].accessOverrides['editor.edit']=false;const next={...state.values,platformUsers:JSON.stringify(users)},encoded=await core.encodeValues(next,state);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(encoded);},close:()=>db.close(),interleave:()=>{interleave=true;},writes:()=>writes,who:id=>{who=id;},stored:()=>db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),async fetch(relative,options={}){const url=new URL(relative,origin);if(!compact)url.searchParams.delete('compact');const method=options.method||'GET',request=new Request(url,{method,headers:{Origin:origin,'Content-Type':'application/json',Cookie:'process_demo='+(tokens[who]||'invalid')},...(options.body?{body:options.body}:{})});if(method==='POST'&&loss==='before'){calls.push({method,kind:'post',requestBytes:Buffer.byteLength(options.body||''),responseBytes:0});throw Error('lost before dispatch to route');}if(method==='POST'&&beforeNextSave&&JSON.parse(options.body).command?.moduleAction==='save-canvas-v1'){const hook=beforeNextSave;beforeNextSave=null;await hook();}const result=loss==='after'&&url.searchParams.has('operationId')?Response.json({error:'OPERATION_NOT_FOUND'},{status:404}):await api[method](request),raw=await result.clone().text();calls.push({method,kind:method==='POST'?'post':url.searchParams.has('operationId')?'receipt':'state',url:String(url),requestBytes:Buffer.byteLength(options.body||''),responseBytes:Buffer.byteLength(raw),wire:JSON.parse(raw),status:result.status});if(method==='POST'&&loss==='after')throw Error('lost after committed route');return result;}};
+ return{calls,async persisted(){const state=await core.readState();return JSON.parse(state.values.processAuthoringControl);},beforeSave:hook=>{beforeNextSave=hook;},loss:value=>{loss=value;},async revoke(){const state=await core.readState();const users=JSON.parse(state.values.platformUsers);users[0].accessOverrides['editor.edit']=false;const next={...state.values,platformUsers:JSON.stringify(users)},encoded=await core.encodeValues(next,state);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(encoded);},close:()=>db.close(),interleave:()=>{interleave=true;},writes:()=>writes,who:id=>{who=id;},stored:()=>db.prepare('SELECT revision,"values" FROM shared_state WHERE id=1').get(),async fetch(relative,options={}){const url=new URL(relative,origin);if(!compact)url.searchParams.delete('compact');const method=options.method||'GET',request=new Request(url,{method,headers:{Origin:origin,'Content-Type':'application/json',Cookie:'process_demo='+(tokens[who]||'invalid')},...(options.body?{body:options.body}:{})});if(method==='POST'&&loss==='before'){calls.push({method,kind:'post',requestBytes:Buffer.byteLength(options.body||''),responseBytes:0});throw Error('lost before dispatch to route');}if(method==='POST'&&beforeNextSave&&JSON.parse(options.body).command?.moduleAction==='save-canvas-v1'){const hook=beforeNextSave;beforeNextSave=null;await hook();}const result=loss==='after'&&url.searchParams.has('operationId')?Response.json({error:'OPERATION_NOT_FOUND'},{status:404}):await api[method](request),raw=await result.clone().text();calls.push({method,kind:method==='POST'?'post':url.searchParams.has('operationId')?'receipt':'state',url:String(url),requestBytes:Buffer.byteLength(options.body||''),responseBytes:Buffer.byteLength(raw),wire:JSON.parse(raw),status:result.status});if(method==='POST'&&loss==='after')throw Error('lost after committed route');return result;}};
 }
 
 for(const storage of ['inline','records-v1'])for(const compact of [false,true])void test(`production controller + transport + route ${storage}/${compact}: one Save, one CAS, fixed saved snapshot`,async()=>{
@@ -259,13 +260,35 @@ for(const choice of ['mine','latest'])void test(`current-canvas ${choice} deleti
  }finally{remote.close();}
 });
 
-void test('actual same-page stage/category handlers retain journals across views and Save publishes only the currently selected scope',async()=>{
+function selectionNavigation(f){
+ const adapter=f.api.navigation.departure;let prompts=0,abandoned=0;
+ f.box.ProcessEditorV2.departure={inspect:()=>({state:'clean',hasDialog:false}),freeze:()=>()=>{},discardLocal(){},closeClean(){}};
+ const coordinator=createDepartureCoordinator({owner:()=>({identity:f.box.ProcessSync.identity}),isCurrent:o=>o.identity===f.box.ProcessSync.identity,
+  inspect:()=>adapter.inspect(),autoAbandon:()=>adapter.autoAbandon,
+  async act(action){assert.equal(action,'abandon');abandoned++;return adapter.abandon();},show(){prompts++;}});
+ f.box.ProcessDeliveryNavigation={guardAction:spec=>coordinator.request({...spec,run:ticket=>{adapter.closeClean();const value=spec.run();if(ticket)coordinator.committed(ticket);return {status:'ready',value};}})};
+ return()=>({prompts,abandoned});
+}
+void test('actual category retains one draft while stage and line silently abandon unsent scopes without changing saved data',async()=>{
  const model=content(),other=JSON.stringify(['Other','B']);model.workspaces.push({id:other,category:'Other',line:'B',stages:{U:[{...copy(model.workspaces[0].stages.S[0]),id:'third',stageCode:'U',name:'Third'}]}});const remote=await routeServer('records-v1',true,{activeSaved:true,initialModel:model});try{
-  const f=await fixture({remote});f.edit('Local S');f.local.edit(workspace,'T',[{id:'two',f:'x',value:81}]);clear(f);let guardedDepartures=0,selectedStage='S';
-  Object.assign(f.box,{host:f.box,key:()=>f.state.category+':'+f.state.editorLine,view:()=>({}),visibleStages:()=>['S','T'],remember(){},clearLink(){},render(){},lines:[{code:'A'},{code:'B'}],currentUser:{role:'admin'},data:{products:[{code:'P-A',category:'Synthetic'},{code:'P-B',category:'Other'}]},routeFor:code=>({line:code==='P-A'?'A':'B'}),syncProductRoute(){},ensureCategoryEditor:()=>{}});
-  const stageView={stage:'S'};f.box.view=()=>stageView;f.box.ProcessDeliveryNavigation={guardAction(){guardedDepartures++;throw Error('FILTER_MUST_NOT_ENTER_DEPARTURE');}};
-  const editor=source('process-editor'),start=editor.indexOf(' function changeStage('),end=editor.indexOf(' function bind()',start);vm.runInContext(editor.slice(start,end)+'\nglobalThis.stageFilter=changeStage;',f.box);assert.equal((await f.box.stageFilter('T')).status,'ready');selectedStage=stageView.stage;f.stage(selectedStage);assert.equal(selectedStage,'T');assert.equal(f.local.counts().fields,2);
-  vm.runInContext(fs.readFileSync('public/process/editor-line-selection.js','utf8'),Object.assign(f.box,{MutationObserver:class{observe(){}},editorKey:()=>f.state.category+':'+f.state.editorLine}));assert.equal((await f.box.changeEditorSelection('B','Other')).status,'ready');assert.equal(f.state.editorLine,'B');assert.equal(f.local.counts().fields,2);f.local.edit(other,'U',[{id:'third',f:'name',value:'Local other'}]);assert.equal((await f.box.changeEditorSelection('A','Synthetic')).status,'ready');assert.equal(guardedDepartures,0);assert.equal(remote.calls.length,0,'scope filters issue no GET or POST');assert.equal(f.local.counts().fields,3);assert.equal(await f.api.save(),true);assert.equal(remote.calls.filter(c=>c.kind==='post').length,1);const saved=f.api.flow().saved.content;assert.equal(saved.workspaces[0].stages.S[0].name,'Original');assert.equal(saved.workspaces[0].stages.T[0].x,81);assert.equal(saved.workspaces[1].stages.U[0].name,'Third');assert.equal(f.local.project(workspace,'S')[0].name,'Local S');assert.equal(f.local.project(other,'U')[0].name,'Local other');assert.equal(f.local.counts().fields,2);
+  const f=await fixture({remote}),stats=selectionNavigation(f),saved=copy((await remote.persisted()).workflow.saved);f.edit('Local S');f.local.edit(workspace,'T',[{id:'two',f:'x',value:81}]);clear(f);
+  Object.assign(f.box,{host:f.box,key:()=>f.state.category+':'+f.state.editorLine,visibleStages:()=>['S','T'],remember(){},clearLink(){},render(){},lines:[{code:'A'},{code:'B'}],currentUser:{role:'admin'},data:{products:[{code:'P-A',category:'Synthetic'},{code:'P-A2',category:'Second'},{code:'P-B',category:'Other'}]},routeFor:code=>({line:code==='P-B'?'B':'A'}),syncProductRoute(){},ensureCategoryEditor:()=>{},MutationObserver:class{observe(){}},editorKey:()=>f.state.category+':'+f.state.editorLine});
+  vm.runInContext(fs.readFileSync('public/process/editor-line-selection.js','utf8'),f.box);
+  assert.equal((await f.box.changeEditorSelection('A','Second')).status,'ready');assert.equal(f.local.counts().fields,2);assert.equal((await f.box.changeEditorSelection('A','Synthetic')).status,'ready');assert.equal(f.local.counts().fields,2);assert.equal(stats().abandoned,0);
+  const stageView={stage:'S'};f.box.view=()=>stageView;
+  const editor=source('process-editor'),start=editor.indexOf(' function changeStage('),end=editor.indexOf(' function bind()',start);vm.runInContext(editor.slice(start,end)+'\nglobalThis.stageFilter=changeStage;',f.box);
+  assert.equal((await f.box.stageFilter('T')).status,'ready');f.stage(stageView.stage);assert.equal(stageView.stage,'T');assert.equal(f.local.counts().fields,0);assert.equal(f.local.project(workspace,'S')[0].name,'Original');assert.equal(f.local.project(workspace,'T')[0].x,0);
+  f.local.edit(workspace,'T',[{id:'two',f:'x',value:99}]);assert.equal((await f.box.changeEditorSelection('B','Other')).status,'ready');assert.equal(f.state.editorLine,'B');assert.equal(f.local.counts().fields,0);assert.deepEqual(stats(),{prompts:0,abandoned:2});assert.equal(remote.calls.length,0,'switches issue no GET or POST');assert.deepEqual(copy((await remote.persisted()).workflow.saved),saved);
+ }finally{remote.close();}
+});
+void test('actual line switch retains UNKNOWN receipt bytes and never resends while abandoning newer unsent input',async()=>{
+ const remote=await routeServer('inline',true,{activeSaved:true});try{
+  const f=await fixture({remote}),stats=selectionNavigation(f);f.edit('Sent');remote.loss('after');assert.equal(await f.api.save(),false);assert(f.local.pending());f.edit('Newer unsent');
+  const before=[...f.storage.data].filter(([k])=>k.includes('receipt')||k.includes('canvas')),pending=f.local.pending();clear(f);
+  assert.equal((await f.api.changeCanvasView({kind:'line',key:'line:B',label:'B',run(){f.state.editorLine='B';}})).status,'ready');assert.equal(f.state.editorLine,'B');assert.equal(f.local.pending(),pending);assert.equal(remote.calls.length,0);assert.equal(stats().prompts,0);assert.equal(stats().abandoned,1);
+  // The original durable command remains available; only later unsent edits drop.
+  for(const [key,value]of before.filter(([k])=>k.includes('receipt')))assert.equal(f.storage.data.get(key),value);
+  assert.equal(f.local.project(workspace,stage)[0].name,'Sent');
  }finally{remote.close();}
 });
 for(const kind of ['actor','actor-object','epoch','delivery','generation','reload','pending-write','raw-dialog'])void test(`same-page Canvas ${kind} gate preserves original journal/forms and makes zero requests`,async()=>{
@@ -316,3 +339,418 @@ for(const storage of ['inline','records-v1'])void test(`Save comparison revision
   const response=await remote.fetch('/api/process-authoring/workflow?caseMetadata=1'),body=await response.json();assert.equal(body.control.workflow.working.workspaces[0].stages.S[0].name,'Peer committed after compare');assert.deepEqual(body.control.workflow.saved,saved);
  }finally{remote.close();}
 });
+
+// Equipment Save contract: actual current authoring/transport/journal and signed
+// production handlers. No live data, sockets, or native browser assumptions.
+const equipmentDetail = (id, version) => ({
+  id,
+  no: id,
+  name: id,
+  number: id,
+  mediaItems: [
+    {
+      src: '/synthetic/' + id + '-' + version + '.png',
+      name: version,
+      type: 'image/png',
+    },
+  ],
+  custom: { retained: version },
+});
+function equipmentContent() {
+  const model = content(),
+    op = model.workspaces[0].stages.S[0];
+  Object.assign(op, {
+    editorType: 'machine',
+    mode: 'machine',
+    machineId: 'eq-one',
+    machineIds: ['eq-one'],
+    machineDetails: [equipmentDetail('eq-one', 'old')],
+  });
+  return model;
+}
+async function peerEquipment(f, value) {
+  const before = copy(
+      f.remote.flow
+        ? f.remote.flow.working.workspaces[0].stages.S[0].machineDetails
+        : f.api.flow().working.workspaces[0].stages.S[0].machineDetails,
+    ),
+    path = [
+      'workspaces',
+      { id: workspace },
+      'stages',
+      'S',
+      { id: 'one' },
+      'machineDetails',
+    ];
+  f.remote.who('actor-b');
+  try {
+    const response = await f.remote.fetch(
+      '/api/process-authoring/workflow?channel=canvas-v2',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          command: {
+            action: 'apply',
+            operationId: webcrypto.randomUUID(),
+            clientId: 'equipment-peer',
+            sequence: 1,
+            generation: f.api.flow().generation,
+            source: 'canvas-v2:' + JSON.stringify([workspace, stage]),
+            patches: [{ op: 'set', path, value }],
+            guards: [{ path, value: before }],
+          },
+        }),
+      },
+    );
+    assert.equal(response.status, 200, await response.clone().text());
+  } finally {
+    f.remote.who('actor-a');
+  }
+}
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: one global Save fixes detached selected snapshots and preserves saved/effective history`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+      processMaster: {
+        S: [
+          {
+            id: 'machine-template',
+            presetKey: 'machine-assembly',
+            equipment: [
+              equipmentDetail('eq-one', 'old'),
+              equipmentDetail('eq-two', 'selected-v1'),
+            ],
+          },
+        ],
+      },
+    });
+    try {
+      const f = await fixture({ remote }),
+        original = copy(rows(f)[0]),
+        saved = copy(f.api.flow().saved),
+        effective = copy(f.api.flow().active),
+        selected = equipmentDetail('eq-two', 'selected-v1'),
+        next = {
+          ...copy(original),
+          machineIds: ['eq-one', 'eq-two'],
+          machineDetails: [...copy(original.machineDetails), selected],
+        };
+      clear(f);
+      f.local.operation(workspace, stage, next, original);
+      assert.deepEqual(remote.calls, []);
+      selected.mediaItems[0].src = '/synthetic/MUST_NOT_RECAPTURE.png';
+      assert.equal(
+        rows(f)[0].machineDetails[1].mediaItems[0].src,
+        '/synthetic/eq-two-selected-v1.png',
+      );
+      const writes = remote.writes();
+      assert.equal(
+        await f.api.save(),
+        true,
+        JSON.stringify({
+          error: f.api.navigation.error()?.message,
+          replies: remote.calls
+            .filter((c) => c.status >= 400)
+            .map((c) => c.wire),
+        }),
+      );
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      assert.equal(remote.writes() - writes, 1);
+      assert.deepEqual(
+        f.api.flow().saved.content.workspaces[0].stages.S[0].machineDetails,
+        [...original.machineDetails, equipmentDetail('eq-two', 'selected-v1')],
+      );
+      assert.deepEqual(f.api.flow().active, effective);
+      const stored = await remote.persisted();
+      assert.deepEqual(
+        stored.workflow.saves.find((s) => s.id === saved.id)?.content,
+        saved.content,
+        'verify immutable old Save body in actual storage, not metadata-only GET',
+      );
+      assert.deepEqual(
+        stored.versions.find((v) => v.id === 'effective').snapshot,
+        effective.content,
+      );
+      assert(!f.local.dirty());
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: Save comparison merges peer equipment snapshot with my different field`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote });
+      f.edit('My name');
+      await peerEquipment(f, [equipmentDetail('eq-one', 'peer-v2')]);
+      let choices = 0;
+      f.box.ProcessEditorV2.resolveSaveConflicts = async () => {
+        choices++;
+        throw Error('DISJOINT_MUST_NOT_PROMPT');
+      };
+      clear(f);
+      assert.equal(await f.api.save(), true);
+      assert.equal(choices, 0);
+      const saved = f.api.flow().saved.content.workspaces[0].stages.S[0];
+      assert.equal(saved.name, 'My name');
+      assert.deepEqual(saved.machineDetails, [
+        equipmentDetail('eq-one', 'peer-v2'),
+      ]);
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      assert.equal(
+        remote.calls[0].method,
+        'GET',
+        'fresh comparison precedes the only Save',
+      );
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  for (const choice of ['mine', 'latest'])
+    void test(`equipment ${storage}: conflicting snapshots require ${choice} decision then one Save`, async () => {
+      const remote = await routeServer(storage, true, {
+        activeSaved: true,
+        initialModel: equipmentContent(),
+      });
+      try {
+        const f = await fixture({ remote });
+        f.local.edit(workspace, stage, [
+          {
+            id: 'one',
+            f: 'machineDetails',
+            value: [equipmentDetail('eq-one', 'mine-v2')],
+          },
+        ]);
+        await peerEquipment(f, [equipmentDetail('eq-one', 'peer-v2')]);
+        let choices = 0;
+        f.box.ProcessEditorV2.resolveSaveConflicts = async (review) => {
+          choices++;
+          assert(
+            review.changes.some(
+              (c) =>
+                (c.conflict && c.f === 'machineDetails') ||
+                (c.conflict && c.field === 'machineDetails'),
+            ),
+          );
+          return choice;
+        };
+        clear(f);
+        assert.equal(await f.api.save(), true);
+        assert.equal(choices, 1);
+        assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+        assert.deepEqual(
+          f.api.flow().saved.content.workspaces[0].stages.S[0].machineDetails,
+          [
+            equipmentDetail(
+              'eq-one',
+              choice === 'mine' ? 'mine-v2' : 'peer-v2',
+            ),
+          ],
+        );
+        assert(!f.local.dirty());
+      } finally {
+        remote.close();
+      }
+    });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: edit revoked after comparison rejects Save and retains local snapshot`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote }),
+        before = copy(f.api.flow().saved),
+        details = [equipmentDetail('eq-one', 'retained-local')];
+      f.local.edit(workspace, stage, [
+        { id: 'one', f: 'machineDetails', value: details },
+      ]);
+      remote.beforeSave(() => remote.revoke());
+      clear(f);
+      assert.equal(await f.api.save(), false);
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      assert(remote.calls.some((c) => c.status === 403));
+      assert.deepEqual(copy(f.api.flow().saved), before);
+      assert.deepEqual(rows(f)[0].machineDetails, details);
+      assert(f.local.dirty());
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: unknown atomic Save recovers only original snapshot; newer equipment needs next explicit Save`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote });
+      f.local.edit(workspace, stage, [
+        {
+          id: 'one',
+          f: 'machineDetails',
+          value: [equipmentDetail('eq-one', 'sent-v1')],
+        },
+      ]);
+      clear(f);
+      remote.loss('after');
+      assert.equal(await f.api.save(), false);
+      assert(f.local.pending());
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      f.local.edit(workspace, stage, [
+        {
+          id: 'one',
+          f: 'machineDetails',
+          value: [equipmentDetail('eq-one', 'next-v2')],
+        },
+      ]);
+      const reference = [...f.storage.data.values()]
+        .map((v) => {
+          try {
+            return JSON.parse(v);
+          } catch {
+            return {};
+          }
+        })
+        .find((v) => v.kind === 'unknown')?.reference;
+      assert(reference?.operationId);
+      remote.loss(null);
+      clear(f);
+      assert.equal(await f.api.save(), true);
+      assert(remote.calls.every((c) => c.method === 'GET'));
+      assert(
+        remote.calls.some(
+          (c) =>
+            c.kind === 'receipt' &&
+            c.url.includes(encodeURIComponent(reference.operationId)),
+        ),
+      );
+      assert.deepEqual(
+        f.api.flow().saved.content.workspaces[0].stages.S[0].machineDetails,
+        [equipmentDetail('eq-one', 'sent-v1')],
+      );
+      assert.deepEqual(rows(f)[0].machineDetails, [
+        equipmentDetail('eq-one', 'next-v2'),
+      ]);
+      assert(f.local.dirty());
+      clear(f);
+      assert.equal(await f.api.save(), true);
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      assert.deepEqual(
+        f.api.flow().saved.content.workspaces[0].stages.S[0].machineDetails,
+        [equipmentDetail('eq-one', 'next-v2')],
+      );
+      assert(!f.local.dirty());
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: an invented new machine is rejected even with a client snapshot`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote }),
+        original = copy(rows(f)[0]),
+        saved = copy(f.api.flow().saved),
+        next = {
+          ...copy(original),
+          machineIds: ['eq-one', 'invented-new'],
+          machineDetails: [
+            ...copy(original.machineDetails),
+            equipmentDetail('invented-new', 'client-only'),
+          ],
+        };
+      f.local.operation(workspace, stage, next, original);
+      clear(f);
+      assert.equal(await f.api.save(), false);
+      assert(
+        remote.calls.some(
+          (c) =>
+            c.status === 409 && c.wire.error === 'EDITOR_INTEGRITY_CONFLICT',
+        ),
+      );
+      assert.deepEqual(copy(f.api.flow().saved), saved);
+      assert.deepEqual(rows(f)[0].machineDetails, next.machineDetails);
+      assert(f.local.dirty());
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: cancelling snapshot conflict makes no Save and retains both inputs`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote }),
+        saved = copy(f.api.flow().saved);
+      f.local.edit(workspace, stage, [
+        {
+          id: 'one',
+          f: 'machineDetails',
+          value: [equipmentDetail('eq-one', 'mine-retained')],
+        },
+      ]);
+      await peerEquipment(f, [equipmentDetail('eq-one', 'peer-retained')]);
+      let choices = 0;
+      f.box.ProcessEditorV2.resolveSaveConflicts = async () => {
+        choices++;
+        return null;
+      };
+      clear(f);
+      const writes = remote.writes();
+      assert.equal(await f.api.save(), false);
+      assert.equal(choices, 1);
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 0);
+      assert.equal(remote.writes(), writes);
+      assert.deepEqual(rows(f)[0].machineDetails, [
+        equipmentDetail('eq-one', 'mine-retained'),
+      ]);
+      const stored = await remote.persisted();
+      assert.deepEqual(stored.workflow.saved.content, saved.content);
+      assert.deepEqual(
+        stored.workflow.working.workspaces[0].stages.S[0].machineDetails,
+        [equipmentDetail('eq-one', 'peer-retained')],
+      );
+      assert(f.local.dirty());
+    } finally {
+      remote.close();
+    }
+  });
+for (const storage of ['inline', 'records-v1'])
+  void test(`equipment ${storage}: clean local journal compares newer peer revision before one Save`, async () => {
+    const remote = await routeServer(storage, true, {
+      activeSaved: true,
+      initialModel: equipmentContent(),
+    });
+    try {
+      const f = await fixture({ remote });
+      assert(!f.local.dirty());
+      await peerEquipment(f, [equipmentDetail('eq-one', 'new-peer-revision')]);
+      clear(f);
+      assert.equal(await f.api.save(), true);
+      assert.equal(
+        remote.calls[0].method,
+        'GET',
+        'the comparison avoids saving with a stale revision',
+      );
+      assert.equal(remote.calls.filter((c) => c.method === 'POST').length, 1);
+      assert.deepEqual(
+        f.api.flow().saved.content.workspaces[0].stages.S[0].machineDetails,
+        [equipmentDetail('eq-one', 'new-peer-revision')],
+      );
+      assert(!f.local.dirty());
+    } finally {
+      remote.close();
+    }
+  });

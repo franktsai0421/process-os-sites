@@ -31,7 +31,7 @@ function changeEditorSelection(line,category){
   if(window.ProcessAuthoringV3?.enabled?.()&&window.ProcessAuthoringV3.changeCanvasView){
     const lineSelect=document.querySelector('#editor-line-select'),categorySelect=document.querySelector('#category-select');
     if(lineSelect)lineSelect.value=state.editorLine;if(categorySelect)categorySelect.value=state.category;
-    return window.ProcessAuthoringV3.changeCanvasView({key:'editor-selection:'+JSON.stringify([line,nextCategory]),label:line+' / '+nextCategory,run});
+    return window.ProcessAuthoringV3.changeCanvasView({kind:line===state.editorLine?'filter':'line',key:'editor-selection:'+JSON.stringify([line,nextCategory]),label:line+' / '+nextCategory,run});
   }
   if(window.ProcessDeliveryNavigation?.guardAction){
     // Native select already changed its visible value. Keep the current source

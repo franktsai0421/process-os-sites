@@ -32,7 +32,7 @@
   if(target===sourceStage||!visibleStages().includes(target))return Promise.resolve({status:'unchanged'});
   const navigation=host.ProcessDeliveryNavigation;
   if(!navigation?.guardAction)return Promise.resolve({status:'blocked'});
-  const action={key:'editor-stage:'+JSON.stringify([sourceKey,target]),label:target,run(){
+  const action={kind:'stage',key:'editor-stage:'+JSON.stringify([sourceKey,target]),label:target,run(){
    if(key()!==sourceKey||view()!==sourceView||sourceView.stage!==sourceStage||!visibleStages().includes(target))throw Error('EDITOR_CONTEXT_CHANGED_REOPEN_REQUIRED');
    remember();clearLink();sourceView.stage=target;render();
   }};

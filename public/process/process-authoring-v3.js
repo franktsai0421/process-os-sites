@@ -136,12 +136,17 @@ function adopt(result,replace=true,preserveCanvas=false){assertHistoryCurrent();
     // Advisory checks and paginated archives must not delay the usable canvas.
     if(!result.unchanged||!inspectionReady())inspectLater();
    }catch(e){if(owns()&&contextCurrent())error(e);}finally{if(owns()&&contextCurrent())panel();}})().finally(()=>{if(loading===pending){loading=null;approvedHistoryView?.refreshControls();}});loading=pending;return loading;}
- // A line/category/stage filter stays inside the same process:platform draft.
- // It must not enter the module-departure adapter, which deliberately abandons
- // unsent input. This gate never grants a mutation or adopts another generation.
- function changeCanvasView({run}){
+ // Category/group filters retain the same process:platform draft. Explicit
+ // line/stage changes use checked silent abandonment of unsent input.
+ // Neither path grants a mutation or adopts another generation.
+ function changeCanvasView({run,kind,key,label}){
   const displayEpoch=historyDisplayEpoch,c=transport,owner=identityStamp(),generation=flow()?.generation,contextEpoch=localContextEpoch;
   const current=()=>historyCurrent(displayEpoch)&&!submitStateUnconfirmed&&enabled()&&state.view==='editor'&&ownFlow()&&permissions.view===true&&loadedStamp?.identity===host.ProcessSync?.identity&&sameStamp(owner,identityStamp())&&owner.identity===host.ProcessSync?.identity&&generation===flow()?.generation&&contextEpoch===localContextEpoch&&!host.ProcessSync?.requiresReload;
+  if(kind==='line'||kind==='stage'){
+   const navigation=host.ProcessDeliveryNavigation;
+   if(typeof run!=='function'||!current()||!navigation?.guardAction)return Promise.resolve({status:'blocked'});
+   return navigation.guardAction({key,label,run(){if(!current())throw Error('CANVAS_REVIEW_CHANGED');return run();}});
+  }
   const idle=()=>!!c&&!busy&&!loading&&!ownIntentPending()&&!departureOperation&&!modalOpen()&&!editorChanged()&&!host.ProcessEditorV2?.interacting?.()&&!host.ProcessEditorV2?.departure?.inspect?.().hasDialog&&!c.hasUnknown()&&!c.hasSyncFailures()&&!host.ProcessCanvasLocal?.pending?.()&&host.ProcessCanvasLocal?.isReady?.()===true&&c.isRuntimeCurrent?.()!==false&&c.isBeginRuntimeCurrent?.()!==false;
   if(typeof run!=='function'||!current()||!idle())return Promise.resolve({status:'blocked'});
   return Promise.resolve().then(()=>{if(!current()||!idle())return {status:'blocked'};run();if(!current())throw Error('CANVAS_REVIEW_CHANGED');host.ProcessCanvasLocal?.update?.();return {status:'ready'};});
