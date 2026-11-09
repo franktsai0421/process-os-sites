@@ -1,4 +1,4 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與 IQC／FQC／模具／檢具前端
+# 全草稿頁已核准歷史版本查看：共同讀取與品質／AB/C 主資料前端
 
 基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及 IQC／FQC／模具前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
@@ -13,9 +13,9 @@
 | 實際頁面 | 現有 scope／來源 | 本機 API | 本機前端與剩餘工作 |
 | --- | --- | --- | --- |
 | 製程編輯台／畫布 | `process:platform` | 新 approved-only PASS | `process-authoring-v3.js` 仍以舊歷史彈窗查看；需同頁顯示與工作區選擇保護 |
-| 線別與工段管理 | `master:AB`、`master:C` | 各 scope 新 approved-only PASS | `master-admin-ui.js` 仍有案件／還原入口；與 AB/C 共用既有持久 scope，不在本批分拆 |
-| AB 產線與類別 | `master:AB` | 新 approved-only PASS | 原 VersionDraftUI 一般歷史仍需轉接 |
-| C 產線與類別 | `master:C` | 新 approved-only PASS | 同上，保留 C 自己的版本與權限 |
+| 線別與工段管理 | `master:AB`、`master:C` | 各 scope 新 approved-only PASS | 已接單一同頁 selector／核准快照／回原 RAM；AB/C 兩邊暫存保留，沿用原 scope，合成 DOM／實際 handler PASS |
+| AB 產線與類別 | `master:AB` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照，移除本頁舊案件／還原入口，30 項新主資料情境及 80 項既有回歸 PASS |
+| C 產線與類別 | `master:C` | 新 approved-only PASS | 已接同頁 selector，保留 C 自己的版本、權限、pending 與原 RAM；與 AB/C／線別共同驗證 PASS |
 | 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 模板與機器是同頁視角；需同頁唯讀展示，不以現行機器資料替代歷史 |
 | FQC | `fqc` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM，移除本頁舊案件／還原入口；矩陣與比較基準保留，本機定向測試 PASS，原生與實站未驗 |
 | IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
@@ -109,3 +109,13 @@ writer、upload、一般 read 及頁面 callbacks 有 display epoch 保護；開
 ## 接續順序
 
 共同 API 與 IQC／FQC／模具前端已完成本機定向驗證；維持單一寫入者，接續主資料／製程等剩餘頁面的顯示 lease／回當前與所有直接 writer callback 的 display epoch 防護。逐頁加上同頁 selector，移除舊彈窗／還原入口；舊 AB 群組與 legacy PROCESS 歷史需在原身分／scope 下唯讀聯集，不遷移、不拼造核准。例行 FQC 保留自有文件 ID 與完整 workflow 語意，另做投影。最後逐頁確認 RAM、open form、照片、pending、UNKNOWN、撤權、延遲回應及同頁篩選；遠端 CI／審查通過且無既有 UNKNOWN 阻擋後再依原授權處理 GitHub。正式資料／權限／重大架構與部署仍交 Frank 決定。
+
+## AB/C 主資料、線別工段與版本選單收尾
+
+AB 產線與類別、C 產線與類別、線別與工段在原頁使用單一 `master-approved-version`。嚴格已核准分頁及固定 case content 採獨立快照，產品／類別／線別／巢狀工段均不借用當前草稿；未有類別群組欄位的舊快照明示缺欄。回草稿保留兩個 scope 的本機內容、原基準、generation、pending 及 UNKNOWN，不呼叫 discardLocal。舊歷史視窗／還原入口移除，原審核平台可轉入同頁核准 detail，仍由伺服器驗證。沒有新增持久 scope、角色或 schema。
+
+shared bridge 的明確 display lease 保護直接 writer、prepared command、一般讀回與回執入口；切換前阻擋表單、存取、匯入及比較；舊身份物件／epoch／delivery／顯示世代／退休 DOM callback 不可回寫。已接受 transport permissions 只用實際 boolean 投影，不憑方法存在授權。新增 30 項主資料實際 component／bridge／common／signed handler 測試，另 80 項原合併／衝突／線別篩選回歸。
+
+發現並修正 `2ddd2151` 檢查點的模具 busy 結束後 selector 未重啟問題；舊 bundle 是已被取代的局部檢查點，不作最新交付。明確 refreshControls、原生 close 清理及讀取期間 checks 退休保護不增加輪詢。FQC 已驗證目錄與 session 的穩定身份持有者分離於單次讀回 display epoch，保留矩陣 session、一般欄位及目錄可用性；真實入口 bind 的矩陣歷史返回後明確 Save 恰送原選擇一次，真正離頁才放棄 local，UNKNOWN 原 journal 不查詢／不重送。
+
+最新受影響本機回歸 **421/421 PASS、0 SKIP**，日誌 `master-and-quality-history-runtime-verified.log`；FQC 目錄純來源 42 項 PASS，typed lint／TypeScript／source boundary PASS。新 source proof／build 應綁後續實際產品 commit；不可引用舊 `2ddd2151` 的 build 證明新 runtime。尚餘 PROCESS 模板／機器、製程編輯台／畫布、IPQC A/B 舊新聯集、例行 FQC 文件前端；GitHub 全列未上傳、本批未部署、原生／實機／實站未驗。

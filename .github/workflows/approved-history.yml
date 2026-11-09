@@ -24,4 +24,5 @@ jobs:
       - run: node scripts/test-approved-history-evidence.cjs
       - run: node --test tests/bom-approved-history-real-common.test.mjs tests/ipqc-c-approved-history.test.mjs tests/iqc-approved-history.test.mjs tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs
       - run: node --test tests/tooling-fqc-approved-history.test.mjs tests/equipment-approved-history.test.mjs tests/tooling-global-save-choice.test.mjs tests/equipment-save-choice.test.mjs tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs
+      - run: node --test --test-concurrency=2 tests/master-approved-history.test.mjs tests/master-save-merge.test.mjs tests/abc-save-conflict-choice.test.mjs tests/master-lines-filter-retention.test.mjs
       - run: npm run sites:source-check

@@ -30,7 +30,7 @@
   let historyDisplayEpoch=0,approvedHistoryView=null;
   const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
   const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
-  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=hostElement;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==hostElement||!node?.isConnected)return;return callback.apply(this,args);};};
+  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=hostElement;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==hostElement||(!node?.isConnected&&args[0]?.type!=='close'))return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls?.());approvedHistoryView?.refreshControls?.();return result;};};
   let workspaceReady = () => false, sharedStateCurrent = () => false, reviewReadSequence = 0;
   let beginGenerationConflict=null;
   let sharedClient,sharedClientOwner=null,sharedActor='',syncBase=null,syncGeneration=null;let pendingCommandFeedback=null,activeSharedAction=null;
@@ -55,7 +55,7 @@
       writeState:matrixDepartureDiscard?.current()===true?'idle':matrixOwner()&&matrixBatch.pending||sharedClient?.hasUnknown()?'unknown':'idle'};
   }
   function makeMatrixRecovery(){
-    const owned=currentReadOwner(workspaceReady);
+    const owned=currentReadOwner(workspaceReady,false);
     if(!window.LocalDraftRecoverySession)return null;
     const session=window.LocalDraftRecoverySession.create({getContext:()=>recoveryContext(owned),verifySupersededReceipt:evidence=>{const client=transport(),read=client.verifiedReadback?.(evidence.result,evidence.receipt?.operationId),flow=read?.control?.workflow;return owned()&&client.isSupersededRecovery?.(evidence.result)===true&&JSON.stringify(evidence.receipt)===JSON.stringify(evidence.result.receipt)&&evidence.workflow?.scope==='FQC:matrix'&&evidence.workflow.generation===flow?.generation&&evidence.workflow.revision===flow?.revision;},onStatus:result=>{if(session!==matrixRecoverySession||!owned()||!matrixOwner()||result.code==='SCHEDULED')return;matrixBatch.storageError=result.ok||result.code==='EMPTY'?'':matrixStorageMessage()+' '+result.code;paintMatrixActions();}});return session;
   }
@@ -399,7 +399,7 @@
   const commandFeedbackPending=()=>!!pendingCommandFeedback?.owned();
   const sharedFields={errors:['name','isDeleted'],items:['name','description','errorId','tool','equipmentId','equipmentSnapshot','mediaItems','isEnabled','rule','isMonthly','isQuarterly','isYearly','isCustomPeriod','customPeriodText','productCodes','productRefs','products','reason','note','isDeleted']};
   function transport(){const actor=identity(),id=actor?.id,epoch=window.ProcessSync?.identityGeneration?.();if(!id)throw Error('LOGIN_REQUIRED');if(sharedActor!==id||sharedClient?.isRuntimeCurrent?.()===false||sharedClientOwner?.actor!==actor||sharedClientOwner.epoch!==epoch||sharedClientOwner.delivery&&window.ProcessSync?.isCurrentDelivery?.(sharedClientOwner.delivery)===false){sharedActor=id;sharedClientOwner={actor,epoch,delivery:window.ProcessSync?.captureDelivery?.()};sharedClient=window.createSharedDraftClient({durableBegin:true,guardAccessResults:true,fqcComparedSave:true,endpoint:'/api/fqc/workflow?caseMetadata=1',externalDurableBounded:{scope:'FQC'},legacyArchive:true,conditionalState:true,actorId:id,headers:()=>window.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},permissionGates:{edit:'#fqc-page .matrix-cell,#fqc-add-item,#fqc-add-error,#fqc-page [data-edit-item],#fqc-page [data-edit-error],.fqc-modal-form button[type=submit]',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw,#quality-withdraw',history:'#fqc-cases',approve:'#quality-approve',return:'#quality-reject',delete:'#fqc-page [data-delete-item],#fqc-page [data-delete-error]'}});}return sharedClient;}
-  function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner();}
+  function adopt(result,selectOpen=false,confirmedBegin=false){if(beginGenerationConflict&&!confirmedBegin)throw Error('STALE_GENERATION');if(!result.control)return;const wasOpen=!selected()||['draft','pending'].includes(selected()?.status);ensureControl().libraries.fqc=result.control;if(wasOpen||selectOpen)ui.selectedVersionId=result.control.versions.find(v=>['draft','pending'].includes(v.status))?.id||result.control.activeVersionId||'';syncBase=clone(result.control.workflow?.working||selected()?.snapshot||{errors:[],items:[]});syncGeneration=result.control.workflow?.generation||null;sharedStateCurrent=currentReadOwner(()=>true,false);}
   async function loadShared(isCurrent=()=>true){const owned=currentReadOwner(isCurrent),r=await transport().read();if(!owned())throw Error('FQC_READ_SUPERSEDED');adopt(r);return r;}
   function changes(base,next){const patches=[],guards=[];for(const collection of ['errors','items']){
     // JSON snapshot rows use stable IDs. Keep find()'s first duplicate match.
@@ -407,7 +407,7 @@
     for(const row of next[collection]){const old=Number.isNaN(row.id)?undefined:firstById.get(row.id);if(!old){patches.push({op:'insert',path:[collection],value:row});continue;}
     for(const field of sharedFields[collection])if(row[field]!==undefined&&JSON.stringify(row[field])!==JSON.stringify(old[field])&&!(row[field]===''&&old[field]==null)){const path=[collection,{id:row.id},field];patches.push({op:'set',path,value:row[field]});guards.push({path,value:old[field]});}
   }}return{patches,guards};}
-  function localDirty(){return matrixDirty()||!!syncBase&&!!editable()&&changes(syncBase,editable().snapshot).patches.length>0;}
+  function localDirty(){const version=selected();return matrixDirty()||!!syncBase&&version?.status==='draft'&&changes(syncBase,version.snapshot).patches.length>0;}
   function localSnapshot(){
     const local=clone(editable()?.snapshot);if(!local)throw Error('AUTHORITATIVE_READBACK_REQUIRED');
     if(matrixOwner())for(const [id,row]of matrixBatch.rows){const item=local.items.find(item=>item.id===id);if(!item)throw Error('FQC_MATRIX_SCOPE_CHANGED');if(item.isDeleted)continue;for(const code of row.changed){const codes=new Set(item.productCodes);if(row.codes.has(code))codes.add(code);else codes.delete(code);item.productCodes=[...codes];}}
@@ -422,7 +422,7 @@
   }
   function discardLocalEdits(){
     if(localRejection){if(!transport().discardRejectedLocalSave(localRejection.command))throw Error('CONFIRMED_REJECTION_REQUIRED');localRejection=null;}
-    const version=editable();if(version&&syncBase)version.snapshot=clone(syncBase);
+    const version=selected();if(version?.status==='draft'&&syncBase)version.snapshot=clone(syncBase);
     ui.lastError=null;
   }
   async function reconcileLocalConflict(){try{return await sharedAction('save');}catch(error){toast(displayDraftError(error));return false;}}
@@ -649,16 +649,16 @@
   let equipmentCacheCurrent = () => false;
   // Reads are owned by this exact identity epoch and mount, not just an id
   // which can reappear after logout/login. Abort alone is not an adoption fence.
-  function currentReadOwner(isCurrent = () => true) {
-    const actorId = identity()?.id;
+  function currentReadOwner(isCurrent = () => true, displayScoped = true) {
+    const actorObject=identity(),actorId = actorObject?.id;
     const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),displayEpoch=historyDisplayEpoch;
     if (!actorId) throw Error('LOGIN_REQUIRED');
-    return () => historyAllowsMutation() && displayEpoch===historyDisplayEpoch && isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
+    return () => (!displayScoped||historyAllowsMutation()&&displayEpoch===historyDisplayEpoch) && identity()===actorObject && isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
       window.ProcessSync?.identityGeneration?.() === epoch && mountSequence === mount &&
       !window.ProcessSync?.requiresReload;
   }
   async function loadEquipmentCatalog({ force = false, isCurrent = () => true } = {}) {
-    const owned = currentReadOwner(isCurrent);
+    const owned = currentReadOwner(isCurrent),cacheOwner=currentReadOwner(()=>true,false);
     if (equipmentCache && !force && equipmentCacheCurrent() && owned()) return equipmentCache;
     const sequence = ++equipmentSequence;
     const assertCurrent = () => { if (!owned() || sequence !== equipmentSequence) throw Error('EQUIPMENT_READ_SUPERSEDED'); };
@@ -692,7 +692,7 @@
         };
         if (!['categories', 'subcategories', 'issues'].every(key => Array.isArray(catalog[key]))) throw Error('EQUIPMENT_CATALOG_INVALID');
       }
-      const commit = () => { assertCurrent(); equipmentCache = catalog; equipmentCacheCurrent = owned; equipmentLoadError = null; return catalog; };
+      const commit = () => { assertCurrent(); equipmentCache = catalog; equipmentCacheCurrent = cacheOwner; equipmentLoadError = null; return catalog; };
       return commit();
     } catch (e) {
       // A previous request must not erase a newer verified result or its error.
@@ -727,7 +727,7 @@
     if(typeof host.hasPermission==='function'&&(!host.hasPermission('ab.view')||!host.hasPermission('equipment.view')))throw Error(isVi()?'FQC cần quyền Xem AB và thiết bị để tải danh mục. Nhờ quản trị viên kiểm tra; hệ thống không tự cấp quyền.':'FQC 載入目錄需要 AB 與檢具查看權限。請管理者核對設定；系統不會自動授權。');
     const owner = identity()?.id, sequence = ++masterCatalogSequence;
     masterCatalogCache = null; masterCatalogActor = ''; masterCatalogCurrent = () => false;
-    const owned = currentReadOwner(isCurrent);
+    const owned = currentReadOwner(isCurrent),cacheOwner=currentReadOwner(()=>true,false);
     const assertCurrent = () => {
       if (!owned()) throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');
       if (sequence !== masterCatalogSequence) throw Error('MASTER_CATALOG_READ_SUPERSEDED');
@@ -742,7 +742,7 @@
         !Array.isArray(snapshot.products) || !Array.isArray(snapshot.lines) || !Array.isArray(snapshot.categoryGroups))
       throw Error(isVi() ? 'Không thể đọc danh mục AB đang có hiệu lực' : '無法讀取目前生效的 AB 主檔');
     const value = clone(snapshot);
-    const commit = () => { assertCurrent(); masterCatalogCache = value; masterCatalogActor = owner; masterCatalogCurrent = owned; return value; };
+    const commit = () => { assertCurrent(); masterCatalogCache = value; masterCatalogActor = owner; masterCatalogCurrent = cacheOwner; return value; };
     return commit();
   }
   function catalog() {
@@ -1152,7 +1152,7 @@
       canChoose:()=>!ui.saving&&!activeSharedAction&&!activeSaveComparison&&!document.querySelector('.fqc-modal-overlay'),
       onBoundary(){historyDisplayEpoch++;},
       onDenied(){cancelSaveComparison();for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);},
-      renderCurrent(){approvedHistoryView=null;workspaceReady=currentReadOwner(fqcTabIsActive);sharedStateCurrent=currentReadOwner();render();},
+      renderCurrent(){approvedHistoryView=null;workspaceReady=currentReadOwner(fqcTabIsActive,false);sharedStateCurrent=currentReadOwner(()=>true,false);render();},
       validateSnapshot:snapshot=>snapshot&&['errors','items'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row)))&&snapshot.items.every(row=>Array.isArray(row.productCodes)&&(!row.mediaItems||Array.isArray(row.mediaItems))),
       renderSnapshot:(target,snapshot,current)=>window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['errors','items'],fields:approvedFields,mediaURL:photo=>client.mediaURL(photo)},current)
     });
@@ -1628,7 +1628,7 @@
       sharedClient?.gatePermissions?.();
     };
   }
-  function closeModal(overlay) { overlay.remove(); document.body.classList.remove('fqc-modal-open'); }
+  function closeModal(overlay) { overlay.remove(); document.body.classList.remove('fqc-modal-open'); approvedHistoryView?.refreshControls?.(); }
   function openErrorModal(id = '') {
     const version = {...clone(editable()),snapshot:localSnapshot()}, errors = version.snapshot.errors, existing = errors.find(error => error.id === id), category = categoryName(version), code = existing?.code || nextErrorCode(category, errors);
     const vi = isVi(),newId = `fqc-error:${crypto.randomUUID()}`;
@@ -2827,7 +2827,7 @@
       await loadEquipmentCatalog({ force: true, isCurrent: owned });
       if (!owned()) return;
       adopt(shared);
-      workspaceReady = owned;
+      workspaceReady = currentReadOwner(mounted,false);
       render();
     })().catch(error => {
       if (!mounted()) return;
@@ -2976,7 +2976,7 @@
     localReason:()=>isVi()?'Ở lại và chọn “Áp dụng thay đổi ma trận” hoặc Áp dụng trong biểu mẫu; Lưu không tự áp dụng.':'請留頁按矩陣「套用變更」或原表單「套用修改」；儲存不會代為套用。',
     canSave:()=>!!editable()&&!!canDraftAction('save'),canDiscard:()=>!!editable()&&sharedClient?.permission('edit')===true,
     save:()=>sharedAction('save'),dialogs:()=>[...document.querySelectorAll('.fqc-modal-overlay')],
-    async discard(){cancelSaveComparison();for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();discardLocalEdits();},
+    async discard(){if(approvedHistoryView?.blocked){historyDisplayEpoch++;approvedHistoryView.retire();approvedHistoryView=null;workspaceReady=currentReadOwner(fqcTabIsActive,false);sharedStateCurrent=currentReadOwner(()=>true,false);}cancelSaveComparison();for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();discardLocalEdits();},
   }));},requiresSave:()=>false,saveForDeparture:()=>sharedAction('save'),hasLocalChanges:localDirty,canLeave:()=>!ui.saving&&!localDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;cancelSaveComparison();beginGenerationConflict=null;localRejection=null;localSaveAttempt=null;matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;matrixRecoveryContext='';matrixRecoveryBase='';matrixRecoveryReady=false;mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {

@@ -40,7 +40,7 @@
   let historyDisplayEpoch=0,approvedHistoryView=null,historyUploads=0;
   const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
   const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
-  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||!node?.isConnected)return;return callback.apply(this,args);};};
+  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=host;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==host||(!node?.isConnected&&args[0]?.type!=='close'))return;const result=callback.apply(this,args);if(result&&typeof result.finally==='function')return result.finally(()=>approvedHistoryView?.refreshControls?.());approvedHistoryView?.refreshControls?.();return result;};};
   let selectedVersionId = '', selectedCategory = '', selectedSubcategory = '', selectedGroup = '';
   let selectedEquipmentId = '', editingEquipmentId = '', search = '', busy = false, message = '', reviewHost = null;
   let equipmentPage = 1, submitProblems = [], openErrors = false, composing = false;
