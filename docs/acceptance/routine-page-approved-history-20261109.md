@@ -29,3 +29,9 @@ Frank指定舊對話 `01a1b57f-bda8-75bf-a224-1320cc24a028`。Personal Context�
 本機獨立核對：真實 `4960d74f0db395e34f2faef91325345b55c22927` 已是此分支祖先，且原BOM交付README／REVIEW記錄其parent合樹、原頁唯讀／回當前、原RAM／receipt、CRLF及淺clone修正。當前 `bom-workspace.js` 仍沿用原workspace與VersionDraftUI history model，沒有另寫BOM查看；共用viewer及read-only lease在此後全頁工作擴充。差異可由保留的 `bom_integration` exact projection逐byte回到真實4960；所有舊pins與負例保留，並在本次新runtime重跑BOM actual-common及全頁viewer檢查。原scope相容後端保留，不等同現行頁面仍有舊歷史彈窗／還原入口。
 
 已涵蓋可核對的功能成果：BOM入口／同頁selector／純查看／返回原草稿、共用核准證據與最後權限fences、逐頁移除歷史彈窗，以及十三頁接線；本批只補後續新page協定和legacyArchive P2。無法直接歸屬舊thread的未見commit不猜測、不匯入；若有其他獨立交付需parent補具體SHA後另作差異核對。這是檢索界線，不是要求重新描述既有規則。
+
+## 擴大回歸後的收尾
+
+修正真實 `process-language-change` 會進入舊Routine `paint()`、清掉新page畫面的缺陷：page模式只委派原page runtime重繪，不讀伺服器、不動File／mine／history selection。實際RoutineFQCUI入口＋語言事件驗證歷史仍在原選單、文字轉越文、切回原File物件與原內容不變；新page／舊Routine兩個修改資產升到history2。
+
+擴大source／legacy離頁首輪有49項失敗，根因為舊fixture要求現行程式仍存在已退役的beforeunload，連帶讓Save函式抽取無法建立。唯讀採用製程固定test-only提交7e409a0的同項修正：完整原beforeunload、Save SHA與所有負例改讀真正固定d4前身；另明確測現行沒有beforeunload、page owner delegation及舊busy/retry/dialog/inflight防線。不是刪除原負例、恢復輪詢或重開原生瀏覽器；目前actual common／全closure／signed handler測試獨立執行，不能把歷史函式測試稱作現行產品實測。沒有整批採用5729／7e runtime或其26-target證據。

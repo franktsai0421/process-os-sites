@@ -773,6 +773,7 @@
   }
   function paint() {
     if (!root?.isConnected) return;
+    if(pageDraftMode){window.RoutineFqcPage.repaint();return;}
     if(approvedHistoryView?.historical&&historyDocument===doc()?.id&&!s.reviewPlatform){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;
     for (const node of root.querySelectorAll('.rf-result[data-result-id]')) s.resultOpen.set(node.dataset.resultId,node.open);
     for (const node of root.querySelectorAll('.rf-samples[data-sample-key]')) s.sampleOpen.set(node.dataset.sampleKey,node.open);
