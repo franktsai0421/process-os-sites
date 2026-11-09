@@ -1,3 +1,7 @@
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
 # 2026-11-09 — 全站明確存取／整組衝突選擇本機整合
 
 以 main b06394c 在隔離整合分支合併 master AB/C/PROCESS、Canvas、FQC、IQC、IPQC A/B/C、BOM、模具、檢具及例行 FQC。選擇前後均保護原輸入／權限／世代，選後換版重比，同次 Save，不重送 UNKNOWN。root 獨立審查補正主資料接受基準／巢狀排序與共用 quality predicate 後的 owner 漂移。逐頁草稿所有權、各批證據與外部阻擋見[統一候選](docs/acceptance/unified-draft-save-choice-20261109/README.md)。線別工段獨立持久 scope 仍未啟用，需單獨重大所有權切換決定。未上傳／合併／部署；不可重送舊 243-path UNKNOWN 或覆蓋另一路畫布平台清單工作。

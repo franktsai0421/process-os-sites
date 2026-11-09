@@ -1,3 +1,7 @@
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 
 Equipment retry can revalidate retained input after delivery-only drift while actor object/id, epoch, host/target, generation and all original guards remain unchanged. A fresh exact-scope permission GET and private one-use confirmation renew only the existing runtime delivery; no journal, unknown command or receipt is replaced. Equipment Save snapshot equality ignores JSON object-key order but preserves array order and exact keys/types/values. Other shared workflows retain their comparison behavior. [Source proof, regression evidence and limits](../../docs/acceptance/equipment-no-poll-20261108/README.md). No model, persistence format, ACL or schema change.

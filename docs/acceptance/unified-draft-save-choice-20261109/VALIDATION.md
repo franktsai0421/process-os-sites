@@ -1,5 +1,7 @@
 # 整合驗證紀錄
 
+本頁保留原 `4a10e935` 交付紀錄；後續程式與最新界線見[同頁篩選追加候選](../draft-filter-followup-20261109/README.md)，原交付目錄未改。
+
 功能／資產固定版為 `def45f9837a5f5afc1dfad1118a1292cdf4e0143`；已合併 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。從 `ce824f2` 到後續來源證明、測試 fixture 與文件提交，`public/process`、`lib`、`app/api` 精確 bytes 不變；最終 HEAD／tree、檔案雜湊、命令及日誌由外部交付 manifest 綁定。以下計數有交疊，不相加作總覆蓋。
 
 | 證據 | 結果／有效範圍 |
@@ -20,7 +22,7 @@
 
 ## 尚未完成／不宣稱通過
 
-- 線別工段仍共用 AB/C 持久 scope；同頁 AB/C scope selector 仍保留舊 `discardLocal(previous)` 行為（`master-admin-ui.js`），Save／Submit 仍按所選舊 scope，並非一份完整獨立頁面草稿。此為架構切換的實際未完成範圍，不因有全組 chooser 而算完成；需先採納主文件的所有權／ACL／pending／歷史／receipt 無損切換方案。
+- 線別工段仍共用 AB/C 持久 scope；同頁 AB/C scope selector 仍保留舊 `discardLocal(previous)` 行為（`master-admin-ui.js`），Save／Submit 仍按所選舊 scope，並非一份完整獨立頁面草稿。此句描述原 4a 交付；[後續候選](../draft-filter-followup-20261109/README.md)已補同頁 RAM 保留，獨立持久 scope 仍未啟用。架構切換不因有全組 chooser 而算完成；需先採納主文件的所有權／ACL／pending／歷史／receipt 無損切換方案。
 - 原生 Chromium 啟動因環境禁止 socket 而失敗，沒有繞過或重試；桌機／iPhone 版面、實體手機、真實 IME、跨電腦與正式員工資料流程未驗收。合成 DOM 與 compiled HTTP 不代替這些項目。
 - 新整合批未上傳 GitHub、未建立 PR、未合併、未部署，也沒有新 GitHub CI 結論。#98 的既有合併不代表本批已上站。
 - 原 243-path tree `ee1352c5508376713bae156e205701e512c3212c` 與另品質 tree `beddd52759e5cd322e6d64b658b6e8c0a2f84025` 本次唯讀查詢均 404；仍為 UNKNOWN，不能據此證明未執行。原精確 payload 範圍未復原，未重送、未拆分繞行。

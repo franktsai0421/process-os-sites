@@ -1,3 +1,7 @@
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
 ## 2026-11-09 — 全業務草稿整組衝突本機候選
 
 各草稿頁面採 Save-time 三方比較、整組 mine/theirs/cancel、無衝突保留及選後換版重比；共同傳輸保留原收據／UNKNOWN／世代／權限／CAS。例行 FQC private Apply + Save 在同一 CAS 保存原命令收據；IPQC A/B 增加 optional coldOrigin lineage metadata（無 SQL migration），C 照片按穩定 ID／順序處理。頁面所有權分拆、遠端上傳與實站驗收未完成。[逐頁界線與證據](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。

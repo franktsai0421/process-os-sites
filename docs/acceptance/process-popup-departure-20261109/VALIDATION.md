@@ -37,10 +37,11 @@ Hash encoding: UTF-8 `JSON.stringify(sortedUniqueFailedNames)`, stripping only
 elapsed-time suffixes and excluding the reporter's “failing tests” heading.
 
 Raw logs and machine-readable results are retained locally outside the checkout:
-`/workspace/scratch/73c7e87b530a/process-popup-departure-evidence-20261109/`:
+外部交付的 `process-popup-original/`（原 `process-popup-departure-evidence-20261109/`）：
 `popup-current.log`, `popup-baseline.log`, `input-resource.log`,
 `bindings-current.log`, `bindings-baseline.log`, and `results.json` (full failure
 sets plus each log's SHA-256). No existing failed log was overwritten or removed.
 
-Remaining validation limits: inherited old-suite failures; no native/mobile UI
-run or deployed acceptance. No data-model impact identified.
+Later test-only follow-up `e52dcfa7` restores the binding fixture with actual current production declarations. The original 154 cases/assertions remain byte-identical; 12 nonempty-state and missing-dependency negatives were added. Its direct run is 166/166 PASS and the exact local-safety departure gate is 463/463 PASS. The earlier FAIL logs/table above remain historical evidence, not the final gate status.
+
+Remaining validation limits: no native/mobile UI run or deployed acceptance. No data-model impact identified.

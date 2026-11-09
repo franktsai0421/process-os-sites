@@ -43,6 +43,14 @@ jobs:
           tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs
           tests/equipment-save-choice.test.mjs tests/canvas-save-conflict-choice.test.mjs
           tests/tooling-global-save-choice.test.mjs tests/routine-fqc-durable-route.test.mjs
+      - name: Same-page input retention
+        run: >-
+          node --test --test-concurrency=2
+          tests/master-lines-filter-retention.test.mjs tests/process-popup-departure.test.mjs
+          tests/fqc-filter-and-parent-choice.test.mjs tests/iqc-filter-local-editing.test.mjs tests/iqc-local-photo-save.test.mjs
+          tests/quality-stable-photo-merge.test.mjs
+          tests/bom-page-local-retention.test.mjs tests/equipment-page-local-retention.test.mjs
+          tests/ipqc-c-filter-preservation.test.mjs
       - name: Draft entry and timer removal
         run: node --test tests/master-explicit-refresh.test.mjs tests/quality-master-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs
       - run: npm run sites:source-check

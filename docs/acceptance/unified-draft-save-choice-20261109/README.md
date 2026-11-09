@@ -1,5 +1,7 @@
 # 全站草稿存取衝突整合候選
 
+本頁保留原 `4a10e935` 交付紀錄；後續程式與最新界線見[同頁篩選追加候選](../draft-filter-followup-20261109/README.md)，原交付目錄未改。
+
 原始基準：GitHub main `b06394ce0065849733399423afd2d906761d69c1`。已語意合併最新 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）；主 runtime／index 保持通過驗證的 def45f9 精確 bytes。本文件描述獨立本機候選；不代表已上 GitHub、合併、部署或正式帳號驗收。各模組最終 evidence 仍須綁定整合 commit。
 
 ## 已確認的共同契約
@@ -18,7 +20,7 @@
 | 製程編輯台、畫布 | `process:platform` | 整個編輯台一次保存；workspace／類別／工段仍是頁內視角 |
 | AB 產線與類別 | `master:AB` | 產品、類別與路線三方合併；仍包含既有 AB 線別資料 |
 | C 產線與類別 | `master:C` | 同上，與 AB 分開 |
-| 線別與工段管理 | 仍共用 `master:AB`／`master:C` | 雙選可用於目前 scope；**獨立持久草稿及同頁 AB/C 篩選完整保存尚未啟用** |
+| 線別與工段管理 | 仍共用 `master:AB`／`master:C` | 雙選可用於目前 scope；原 4a 交付未修同頁 AB/C 丟 RAM；[後續候選](../draft-filter-followup-20261109/README.md)已補保留，但**獨立持久草稿仍未啟用** |
 | 流程資料／模板／機器 | `master:PROCESS` | 同一流程資料頁；機器 modal 不另拆草稿 |
 | FQC | `fqc` | 錯誤碼、項目與矩陣同模組 |
 | IQC | `iqc` | 零件、項目、供應商／類別同模組 |
