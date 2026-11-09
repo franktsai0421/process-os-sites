@@ -140,33 +140,18 @@ void test('unadopted Save or Submit cannot silently Begin without edit',async()=
  }
 });
 
-void test('history binding requires explicit restore; allowed button is disabled by unchanged revocation',async()=>{
- for(const {label,permissions} of [{label:'no edit or restore',permissions:perms()},{label:'edit-only with restore missing',permissions:perms({edit:true})},{label:'edit/save/submit with restore missing',permissions:perms({edit:true,save:true,submit:true})},...[false,null,0,1,'true',undefined].map(restore=>({label:'edit with restore '+String(restore),permissions:perms({edit:true,restore})}))]){
-  const denied=fixture({permissions});await denied.hydrate();denied.setModal();const before=stableInput(denied);denied.bindHistory();assert.equal(denied.nodes.has('#ipqcc-case-restore'),false,label);noWrites(denied,before,label+' history binding');
+// The latest user instruction removes the historical restore UI entirely.
+// Current operational permission/receipt checks below remain independently covered.
+void test('history binding never creates a restore or legacy archive entry, even with explicit restore permission',async()=>{
+ for(const restore of [true,false,null,0,1,'true',undefined]){
+  const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore})});await f.hydrate();f.setModal();const before=stableInput(f);f.bindHistory();
+  assert.equal(f.nodes.has('#ipqcc-case-restore'),false);assert.equal(f.nodes.has('#ipqcc-case-legacy'),false);noWrites(f,before,'readonly historical selector');
  }
- const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.bindHistory();const restore=f.nodes.get('#ipqcc-case-restore');assert(restore);assert.equal(restore.disabled,false);
- f.setModal();const before=stableInput(f);f.setCaps(perms());const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);
- for(const id of ['ipqcc-begin','ipqcc-case-restore','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,true,id+' revoked');
- assert.equal(f.ui.operationAllowed('edit'),false);noWrites(f,before,'unchanged revocation');
+ assert(!cSource.includes('previewSharedDraftRestore'));assert(!cSource.includes('openSharedDraftHistory'));
 });
-
-void test('Restore handler rechecks explicit permission, actor and terminal state before preview GET',async()=>{
- for(const mode of ['allowed','revoked','missing','malformed','actor','reload']){
-  const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.setModal();f.bindHistory();
-  const restore=f.nodes.get('#ipqcc-case-restore');assert(restore);assert.equal(restore.disabled,false);const before=stableInput(f);
-  // Keep the actual C callback and actual shared-client GET, replacing only the preview overlay DOM.
-  const previews=[];f.window.previewSharedDraftRestore=async({client,savedId})=>{previews.push(savedId);return client.previewRestore(savedId);};
-  if(['revoked','missing','malformed'].includes(mode)){
-   f.setCaps(perms({edit:true,save:true,submit:true,...(mode==='missing'?{}:{restore:mode==='revoked'?false:'true'})}));
-   const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);assert.equal(f.ui.operationAllowed('edit'),true);assert.equal(f.ui.operationAllowed('restore'),false);
-   if(mode==='revoked'){assert.equal(restore.disabled,true,'restore-only revocation disables the retained button');for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,false,id+' remains independently allowed');}
-  }else if(mode==='actor')f.sync.identity={id:'new-synthetic-actor'};
-  else if(mode==='reload')f.sync.requiresReload=true;
-  const start=f.calls.length;await restore.onclick();
-  assert.deepEqual(previews,mode==='allowed'?['saved-c']:[],mode+' preview admission');
-  assert.deepEqual(f.calls.slice(start).map(c=>[c.method,new URL(c.url,'http://fixture').searchParams.get('restoreSaveId')]),mode==='allowed'?[['GET','saved-c']]:[],mode+' actual transport');
-  noWrites(f,before,mode+' retained Restore handler');
- }
+void test('removing historical restore does not relax current edit/save/submit revocation or unknown receipts',async()=>{
+ const f=fixture({permissions:perms({edit:true,save:true,submit:true,restore:true})});await f.hydrate();f.setModal();const before=stableInput(f);f.setCaps(perms());const update=await f.client.read('g-c:3');assert.equal(update.unchanged,true);
+ for(const id of ['ipqcc-begin','ipqcc-save','ipqcc-submit'])assert.equal(f.nodes.get('#'+id).disabled,true,id+' revoked');assert.equal(f.ui.operationAllowed('edit'),false);noWrites(f,before,'unchanged revocation');
 });
 
 void test('401 and 403 permission refresh fail closed without discarding unsaved input or unknown receipt',async()=>{

@@ -1,7 +1,7 @@
 import type {VersionedControl,NumericVersion} from './versioned-shared-workflow';
 
 // Presentation evidence only: metadata reads must not hydrate immutable bodies.
-// A superseded shared draft is never approval evidence. Strict BOM reads also
+// A superseded shared draft is never approval evidence. Strict approved-history reads also
 // require an immutable reviewed-case stamp; other consumers retain their policy.
 export function approvedVersionEvidence<T>(control:VersionedControl<T>,v:NumericVersion<T>,strict=false){
  const c=control.workflow?.cases.find(c=>c.id===v.id);

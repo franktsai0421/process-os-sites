@@ -350,9 +350,18 @@
     const beginPredecessor=durableBegin?transports.get(transportKey):null;
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
+    const approvedAccessListeners=new Set();
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
+    let cComparisonVersion=0;const cSaveDecisions=new WeakMap(),cSaveCallers=new WeakMap();
+    function assertCDecision(version,current){
+      let valid=true;try{if(current!==undefined)valid=typeof current==='function'&&current()===true;if(valid)assertOwner();}catch{valid=false;}
+      // The callback may retire access synchronously. Check the original version
+      // after it returns; never register new authority for an old UI decision.
+      if(!valid||version!==cComparisonVersion){const error=Object.assign(Error('SAVE_COMPARISON_RETIRED'),{notSent:true});externalUnsent.add(error);throw error;}
+    }
+    function assertCComparison(command){if(boundedScope==='ipqc-c'&&cSaveDecisions.has(command))assertCDecision(cSaveDecisions.get(command),cSaveCallers.get(command));}
     const captureAccess=options=>{const sync=window.ProcessSync;return {sequence:++accessIssued,epoch:accessEpoch,identity:sync?.identity,identityEpoch:accessGuard?sync?.identityGeneration?.():undefined,isCurrent:options?.isCurrent};};
     const ownsAccess=owner=>{const sync=window.ProcessSync;return owner.epoch===accessEpoch&&(!sync||(!sync.requiresReload&&sync.identity?.id===actorId&&sync.identity===owner.identity&&(typeof owner.identityEpoch!=='number'||owner.identityEpoch===sync.identityGeneration?.())))&&(!owner.delivery||sync?.isCurrentDelivery?.(owner.delivery)!==false)&&(!owner.isCurrent||owner.isCurrent());};
     // Only the existing complete nine-boolean snapshot shape supplies defaults for new explicit cells.
@@ -371,8 +380,9 @@
       const revoked=previous&&Object.keys(access).some(key=>previous[key]===true&&access[key]===false);
       accessObserved=Math.max(accessObserved,owner.sequence);
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
-      if(denied||revoked)accessFence=accessIssued;
+      if(denied||revoked){accessFence=accessIssued;if(boundedScope==='ipqc-c')cComparisonVersion++;}
       gateControls(denied||revoked);
+      if(boundedScope==='ipqc-c')for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -426,7 +436,12 @@
       const task=(async()=>{assertBegin(record);return finishBegin(record,await request(query('operationId='+encodeURIComponent(record.operationId))));})();beginRead=task;
       void task.then(()=>{if(beginRead===task)beginRead=null;},()=>{if(beginRead===task)beginRead=null;});return task;
     }
+    // C's first Save can compare a legacy snapshot without allocating an operation.
+    // Only an original accepted workflow GET is a capability, never copied JSON.
+    const cBeginReads=new WeakMap(),cBeginDispatch=new WeakMap();
+    const cBeginReadRaw=value=>JSON.stringify({revision:value.revision,basis:value.beginBasis,workflow:value.workflow});
     async function beginV1(identity,attempt,comparison){
+      const qualityComparison=!!comparison&&(fqcComparedSave||iqcComparedSave),cComparison=!!comparison&&boundedScope==='ipqc-c';
       const attemptSequence=++beginAttemptSequence;if(attempt)attempt.sequence=attemptSequence;
       if(identity!==undefined&&(!identity||Object.keys(identity).sort().join(',')!=='basis,operationId'||!beginUUID(identity.operationId)||!validBeginBasis(identity.basis)))throw Error('INVALID_BEGIN_IDENTITY');
       const prepared=identity===undefined?null:JSON.parse(JSON.stringify(identity));
@@ -440,20 +455,20 @@
       let retireRead;const retiredRead=new Promise(resolve=>{retireRead=resolve;});
       const retire=()=>{
         if(reservation.retired)return true;
-        if(!comparison||comparison.dispatched||reservation.phase!=='authority-read'||reservation.released||beginPending!==reservation.task||queued!==1||beginRecord||beginRaw||beginInvalid||unknown||recoveryInvalid||retryPending||beginRead)return false;
+        if(!qualityComparison||comparison.dispatched||reservation.phase!=='authority-read'||reservation.released||beginPending!==reservation.task||queued!==1||beginRecord||beginRaw||beginInvalid||unknown||recoveryInvalid||retryPending||beginRead)return false;
         try{if(sessionStorage.getItem(beginKey)!==null||sessionStorage.getItem(key)!==null)return false;}catch{return false;}
         reservation.retired=true;release();retireRead(null);return true;
       };
-      if(comparison)comparison.retireBegin=retire;
+      if(qualityComparison)comparison.retireBegin=retire;
       const task=(async()=>{
-        if(comparison)(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);const comparisonObservation=(iqcComparedSave?iqcObservation:fqcObservation)+1;
-        const read=request(endpoint,undefined,{requireAcceptedAccess:true,...(comparison?{isCurrent:()=>!reservation.retired&&comparison.current()===true}:{})});
-        const fresh=await(comparison?Promise.race([read,retiredRead]):read);if(reservation.retired)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');reservation.phase='reserving';assertOwner();
-        if(comparison){if(comparisonObservation!==(iqcComparedSave?iqcObservation:fqcObservation)||comparison.current()!==true||JSON.stringify(fresh.control)!==JSON.stringify(comparison.result.control)||fresh.revision!==comparison.result.revision||JSON.stringify(fresh.permissions)!==JSON.stringify(comparison.result.permissions)||access?.view!==true||access?.edit!==true)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');comparison.observation=(iqcComparedSave?iqcObservation:fqcObservation);comparison.accessEpoch=accessEpoch;comparison.accessFence=accessFence;comparison.accessObserved=accessObserved;(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);}
+        if(qualityComparison)(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);const comparisonObservation=(iqcComparedSave?iqcObservation:fqcObservation)+1;
+        const read=request(endpoint,undefined,{requireAcceptedAccess:true,...(qualityComparison?{isCurrent:()=>!reservation.retired&&comparison.current()===true}:{})});
+        const fresh=await(qualityComparison?Promise.race([read,retiredRead]):read);if(reservation.retired)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');reservation.phase='reserving';assertOwner();
+        if(qualityComparison){if(comparisonObservation!==(iqcComparedSave?iqcObservation:fqcObservation)||comparison.current()!==true||JSON.stringify(fresh.control)!==JSON.stringify(comparison.result.control)||fresh.revision!==comparison.result.revision||JSON.stringify(fresh.permissions)!==JSON.stringify(comparison.result.permissions)||access?.view!==true||access?.edit!==true)throw Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED');comparison.observation=(iqcComparedSave?iqcObservation:fqcObservation);comparison.accessEpoch=accessEpoch;comparison.accessFence=accessFence;comparison.accessObserved=accessObserved;(iqcComparedSave?iqcCurrent:fqcCurrent)(comparison,true);}
         if(window.ProcessSync?.requiresReload||clientPagehideGeneration!==transportPagehideGeneration)throw Error('BEGIN_OWNER_CHANGED');
-        const basis=captureBeginBasis(fresh);if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
+        const basis=captureBeginBasis(fresh);if(cComparison&&(comparison.current()!==true||comparison.version!==cComparisonVersion||!beginRuntimeCurrent()||cBeginReadRaw(fresh)!==comparison.raw))throw Error('BEGIN_COMPARISON_CHANGED');if(fresh.permissions?.edit!==true||access?.edit!==true)throw Error('FORBIDDEN');if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');
         if(prepared&&Object.keys(basis).some(key=>prepared.basis[key]!==basis[key]))throw Error('BEGIN_BASIS_CHANGED');
-        const record={version:1,actorId,endpoint:beginScopePath,operationId:prepared?.operationId||crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;if(attempt)attempt.record=record;
+        const record={version:1,actorId,endpoint:beginScopePath,operationId:prepared?.operationId||crypto.randomUUID(),basis};beginRaw=JSON.stringify(record);beginRecord=record;if(cComparison)cBeginDispatch.set(record,comparison);if(attempt)attempt.record=record;
         try{sessionStorage.setItem(beginKey,beginRaw);assertBegin(record);}catch(cause){try{if(sessionStorage.getItem(beginKey)===null){beginRecord=null;beginRaw=null;beginInvalid=false;}}catch{beginInvalid=true;}throw Object.assign(Error('BEGIN_RECOVERY_STORAGE_UNAVAILABLE'),{notSent:true,cause});}
         // Once handed to POST transport, a fetch error or 404 cannot prove no write.
         if(attempt)attempt.dispatched=true;
@@ -657,7 +672,7 @@
       }
       if(abModule&&action==='save'&&command.moduleAction==='save-local-v1'&&Array.isArray(command.input?.scopes)){
         if(error.status===409&&code==='DEPENDENCY_CHANGED_RECONFIRM')return Array.isArray(error.details?.path)&&command.input.scopes.some(s=>s.scope===error.details.scope&&s.changes?.some(c=>c.guards?.some(g=>JSON.stringify(g.path)===JSON.stringify(error.details.path))));
-        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED'].includes(code))return true;
+        if(error.status===409&&['DRAFT_GENERATION_CHANGED','ENTITY_REMOVED_OR_AMBIGUOUS','PENDING_LOCKED','DRAFT_REVISION_REQUIRED','DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(code))return true;
         if(error.status===422&&['INVALID_AB_LOCAL_SAVE','INVALID_AB_MATRIX','LOCAL_SAVE_LIMIT','INVALID_LOCAL_ID','DEPENDENCY_GUARD_REQUIRED','ERROR_IN_USE','STAGE_INVALID','INVALID_EQUIPMENT_PAIR','EQUIPMENT_REQUIRED','EQUIPMENT_UNAVAILABLE','PHOTO_NOT_UPLOADED'].includes(code))return true;
       }
       if(boundedScope==='ipqc-c'&&action==='save'&&Array.isArray(command.localChanges)){
@@ -940,6 +955,9 @@
           boundedProofs.delete(command.operationId);assertMutationAdmission();if(record!==boundedRecord||sessionStorage.getItem(record.key)!==boundedSentinel){const error=Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});externalUnsent.add(error);throw error;}
         }
         if(body?.action==='begin-v1'){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}
+        if(body?.action==='begin-v1'&&cBeginDispatch.has(beginRecord)&&(cBeginDispatch.get(beginRecord).current()!==true||cBeginDispatch.get(beginRecord).version!==cComparisonVersion)){const record=beginRecord;clearBegin(record);throw Error('BEGIN_COMPARISON_CHANGED');}
+        if(body?.action==='begin-v1')assertBegin(beginRecord);
+        if(body?.command)assertCComparison(body.command);
         const postPin=bomPostPin(body?.command);
         const abEntry=abSelected.get(body?.command?.operationId);if(abEntry)abAssert(abEntry,body.command);
         if((fqcComparedSave||iqcComparedSave)&&body)try{fqcBeforeFetch(body);iqcBeforeFetch(body);}catch(cause){const error=Object.assign(Error(iqcComparedSave?'IQC_SAVE_COMPARISON_RETIRED':'FQC_SAVE_COMPARISON_RETIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
@@ -972,6 +990,10 @@
         if(canUsePost){freezeBomAuthority(result.control);freezeBomAuthority(result.receipt);boundedPostAuthorities.set(result,{...postPin,globalRevision:result.revision,control:result.control,receiptRaw:JSON.stringify(result.receipt),generation:flow.generation,revision:flow.revision,modelVersion:boundedKnownVersion});}
         if(canvasObserving)try{canvasObserveResponse(result,body,response.ok,canvasObserved,canvasRequestOwner,kind);canvasObservePost(result,body,canvasObserved);}catch{canvasBasis=null;canvasPosts.delete(result);}
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.success(kind,pauseOwner);
+        // Caller currency may synchronously invalidate ownership. Never mint a
+        // new-version proof for an old response after that callback returns.
+        const cReadVersion=cComparisonVersion;
+        if(durableBegin&&boundedScope==='ipqc-c'&&accessGuard&&acceptedAccess&&ownsAccess(accessOwner)&&accessOwner.epoch===accessEpoch&&cReadVersion===cComparisonVersion&&!body&&kind==='state'&&result.workflow===null&&validBeginBasis(result.beginBasis)&&result.beginBasis.generation===null&&result.beginBasis.openVersionStatus==='draft'&&result.permissions?.view===true&&result.permissions?.edit===true&&beginRuntimeCurrent())cBeginReads.set(result,{raw:cBeginReadRaw(result),version:cReadVersion,used:false});
         return result;
       } catch(error) {
         if(canvasPrimary)canvasBasis=null;
@@ -1118,12 +1140,13 @@
     const client={
       canPoll:kind=>readPause.canPoll(kind),readPauseState:kind=>readPause.state(kind),readDenialVersion:kind=>readPause.denialVersion(kind),
       validation(flow){if(window.ProcessSync&&window.ProcessSync.identity?.id!==actorId)return null;if(validation&&flow&&(validation.generation!==flow.generation||validation.savedId&&validation.savedId!==flow.saved?.id))validation=null;return access?.view===false?null:validation;},
-      compareForSave:iqcComparedSave?iqcCompare:fqcCompare,prepareComparedSave:iqcComparedSave?iqcPrepare:fqcPrepare,beginCompared:iqcComparedSave?iqcBegin:fqcBegin,comparisonDispatched:iqcComparedSave?iqcDispatched:fqcDispatched,retireComparedBegin:iqcComparedSave?iqcRetireBegin:fqcRetireBegin,
+      compareForSave:iqcComparedSave?iqcCompare:fqcCompare,prepareComparedSave:iqcComparedSave?iqcPrepare:fqcPrepare,comparisonDispatched:iqcComparedSave?iqcDispatched:fqcDispatched,retireComparedBegin:iqcComparedSave?iqcRetireBegin:fqcRetireBegin,
       permission: key=>access?.[key],
       gatePermissions:()=>{assertOwner();gateControls();},
       setPermissionGates(value){gates=value;gateControls();return client;},
       withLegacyArchive(){client.legacyHistory=before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`));client.legacyVersion=id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`));return client;},
-      invalidateReadState(){accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
+      comparisonVersion:()=>boundedScope==='ipqc-c'?cComparisonVersion:null,
+      invalidateReadState(){if(boundedScope==='ipqc-c')cComparisonVersion++;accessEpoch++;accessObserved=0;accessFence=0;accessRevision=-1;access=null;conditionalRead=null;validation=null;},
       // Internal one-way cached-client upgrade; no downgrade or queue replacement.
       useAccessResultGuard(){if(!accessGuard){accessGuard=true;accessEpoch++;}return client;},
       useStateRevision(){conditionalState=true;return client;},
@@ -1159,6 +1182,7 @@
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
+      ...(beginPath==='/api/ipqc-c/workflow'&&boundedScope==='ipqc-c'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true}),watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
       ...(beginPath==='/api/bom/workflow'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true})}:{}),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
@@ -1166,6 +1190,14 @@
       ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),
       reviewCase: id=>request(query(`caseId=${encodeURIComponent(id)}`)),
       previewRestore: id=>request(query(`restoreSaveId=${encodeURIComponent(id)}`)),
+      async beginCompared(source,isCurrent){
+        if(iqcComparedSave)return iqcBegin(source,isCurrent);if(fqcComparedSave)return fqcBegin(source,isCurrent);
+        const proof=cBeginReads.get(source);
+        if(!durableBegin||boundedScope!=='ipqc-c'||!proof||proof.used||typeof isCurrent!=='function')throw Error('BEGIN_COMPARISON_REQUIRED');
+        proof.used=true; // Consume before any caller callback, including re-entry.
+        if(isCurrent()!==true||proof.version!==cComparisonVersion||!beginRuntimeCurrent()||proof.raw!==cBeginReadRaw(source))throw Error('BEGIN_COMPARISON_REQUIRED');
+        return beginV1(undefined,undefined,{raw:proof.raw,version:proof.version,current:isCurrent});
+      },
       async beginWithIdentity(identity){
         if(!durableBegin||beginPath!=='/api/fqc/workflow'||!identity)throw Error('INVALID_BEGIN_IDENTITY');
         const attempt={raw:null,record:null,dispatched:false,sequence:0};
@@ -1251,7 +1283,7 @@
       isCreateRuntimeCurrent:()=>abCreate&&clientPagehideGeneration===transportPagehideGeneration,
       prepareCreate(generation,moduleAction,input){assertMutationAdmission();if(!abCreate||!['create-item','create-error'].includes(moduleAction))throw Error('AB_CREATE_SCOPE_REQUIRED');if(typeof generation!=='string'||!generation)throw Error('AB_CREATE_GENERATION_REQUIRED');const command=client.prepare(generation,'apply',{moduleAction,input}),entry={raw:JSON.stringify(command),owner:{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()},flight:null,consumed:false};abAssert(entry,command);abCommands.set(command,entry);abSelected.set(command.operationId,entry);return command;},
       finalizeRejectedCreate:abFinalize,
-      prepare(generation,action,details={}) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
+      prepare(generation,action,details={},isCurrent) {assertOwner();if(beginOutstanding())throw Error('PREVIOUS_BEGIN_UNKNOWN');const cSave=boundedScope==='ipqc-c'&&action==='save',cVersion=cComparisonVersion;if(cSave)assertCDecision(cVersion,isCurrent);const command={...details,action,generation,clientId,sequence:++sequence,operationId:crypto.randomUUID()};if(cSave){cSaveDecisions.set(command,cVersion);if(isCurrent!==undefined)cSaveCallers.set(command,isCurrent);assertCComparison(command);}if(canvasTarget)try{canvasCommands.set(command,canvasJSONCopy(command,true));}catch{/* Unsupported proof shape retains the original dispatch/GET path. */}return command;},
       receipt:async (id,generation)=>{assertOwner();const command=unknown?.operationId===id?unknown:null,owner=unknownOwner,expected=generation??(command?.action==='apply'?command.generation:undefined),result=await masterSaveReadback(confirmedReceipt(await request(query(`operationId=${encodeURIComponent(id)}`)),id,expected,command?.action),command);if(externalBounded&&boundedRecord?.operationId===id){const settled=await boundedTerminal(result,boundedRecord);if(!unknown)syncFailures.delete(id);return settled;}if(externalBounded&&boundedScope==='fqc'&&!boundedRecord&&boundedText(generation)&&boundedKnown&&boundedKnown.generation!==generation){return historicalReadback(result,null,await request(endpoint,undefined,{requireAcceptedAccess:true}));}if(command)window.SharedDraftDeparture.confirmed(sessionScope,command,result,owner);if(unknown?.operationId===id)retain(null);syncFailures.delete(id);return result;},
       command(generation,action,details={}) {return client.sendPrepared(client.prepare(generation,action,details));},
       sendPrepared(command,options) {
@@ -1264,11 +1296,12 @@
         if(existing){if(JSON.stringify(existing.command)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');return existing.promise;}
         if(externalBounded&&boundedSelected.has(command.operationId)){if(boundedSelected.get(command.operationId)!==JSON.stringify(command)||typeof options?.assertDispatch!=='function')throw Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});boundedProofs.set(command.operationId,options.assertDispatch);}
         // Capture the admitted JSON payload; a caller cannot mutate a queued command.
-        command=JSON.parse(JSON.stringify(command));
+        assertCComparison(command);const cVersion=cSaveDecisions.get(command),cCurrent=cSaveCallers.get(command);
+        command=JSON.parse(JSON.stringify(command));if(cVersion!==undefined){cSaveDecisions.set(command,cVersion);if(cCurrent!==undefined)cSaveCallers.set(command,cCurrent);}
         if(unknown?.operationId===command.operationId&&JSON.stringify(unknown)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
         if(beginPending||retryPending)throw Error('OPERATION_IN_PROGRESS');
         assertMutationAdmission();const retry=unknown?.operationId===command.operationId,owner=retry?unknownOwner:departureOwner();queued++;const {action}=command;
-        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
+        const result=tail.then(async()=>{fqcAdmission(command);iqcAdmission(command);assertMutationAdmission();assertCComparison(command);if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
           if(action==='submit'){const advisory=await request(query('permissions=1'));assertMutationAdmission();if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
           return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);if(fqcComparedSave)fqcCommands.delete(command.operationId);});
         const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;

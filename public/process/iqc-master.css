@@ -10,7 +10,7 @@
 .iqc-page .iqc-field-head h3{flex:1 1 160px}
 .iqc-page .iqc-part-list{overflow-anchor:none;scrollbar-gutter:stable}
 .iqc-dialog-overlay,.iqc-lightbox{overscroll-behavior:contain}
-body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay){overflow:hidden}
+body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay:not([hidden])){overflow:hidden}
 .iqc-dialog:has(.iqc-item-form){display:flex;overflow:hidden;min-height:0}
 .iqc-dialog .iqc-item-form{display:flex;flex-direction:column;max-height:calc(100dvh - 66px);min-height:0;width:100%}
 .iqc-dialog .iqc-item-form-header,.iqc-dialog .iqc-item-form>footer{flex:none}

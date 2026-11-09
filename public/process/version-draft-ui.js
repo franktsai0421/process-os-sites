@@ -106,6 +106,7 @@
 
   async function historyMetadata(shell,model,select,log,empty){
     if(bomHistoryModel(model))return bomHistoryMetadata(shell,model,log,empty);
+    if(model.module==='IPQC-C'&&typeof model.mountApprovedHistory==='function')return model.mountApprovedHistory(shell,log,empty);
     const client=model.historyClient?.();if(!client?.uiHistory||client.permission('history')===false)return;
     empty?.remove();
     const known=new Map(),sections={},pages={},cursors={versions:[''],saves:['']};let loading=false;
