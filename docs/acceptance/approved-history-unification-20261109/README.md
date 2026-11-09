@@ -1,6 +1,6 @@
 # 全草稿頁已核准歷史版本查看：第一批共同讀取能力
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。本文件是盤點及首批後端成果，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件是盤點及首批後端成果，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -47,7 +47,9 @@
 - BOM common／實際 transport／handler 35 項與 IPQC C 41 項，合計 76 PASS。僅更新 BOM 舊測試中 formal-baseline 的預期列表，保留其餘斷言。
 - 既有 AB 身分／權限重讀、重播、master clone 與各模組 Begin 收據回歸 68 PASS；純核准證據 helper 12 組 PASS。
 - 本批 typed lint、非增量 TypeScript、diff whitespace 與 source-boundary PASS。依賴使用相同 lockfile 的既有本機實體副本；不是乾淨網路安裝證據。最初 dependency symlink 被來源檢查拒絕後已換為實體副本，未改來源檢查。
-- 固定 commit 後的歷史來源 proof／guarded build 與完整 GitHub CI 狀態在後續紀錄補列，不能先宣稱 PASS。原有 immutable source pins 不因功能變更而自動有效，亦不得放寬或跳過。
+- 精確來源、真實 Git witness、所有舊 BOM／batch3 predecessor 及負向控制合計 **497 PASS、0 FAIL、0 SKIP**。來源 manifest 固定真實產品來源 `18e03fe`，保留全部七個原 named targets 與 bounded historical requests；新增 parser 是真正新檔，未捏造 predecessor。初始來源測試 18 FAIL 及原 missing-object 失敗日誌保留：之後納入並行 `bfb561a` 的來源 proof，再由真正的本機 Git 來源取得 `ed35ad1` 缺少物件，重新生成精確來源證明；沒有改弱舊 hash、跳過測試或寫造歷史物件。
+- 完整 typed lint 在明確 void 頂層 node:test 註冊後 PASS；原 6 個 no-floating-promises 失敗日誌保留。正常 guarded build 於 `0b9e1c6` PASS；以完整 `app/`、`lib/`、`public/process/` Git bytes 核對與整合後 `18e03fe` 相同，產品 runtime 證據有效。最後候選的 build stamp 與結果另由本機交付 receipt 記錄，不能把 build PASS 視為部署或 compiled-client 全面機密審核。
+- 原生瀏覽器、實體 iPhone、IME、完整逐頁生命週期、獨立審查、GitHub CI 與實站驗收 **NOT_RUN**。沒有宣稱前端全面驗收。
 
 ## GitHub 與發布阻擋
 
