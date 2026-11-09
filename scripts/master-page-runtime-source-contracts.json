@@ -248,7 +248,7 @@
   {
     "file": "public/process/index.html",
     "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
-    "afterHash": "87cbe76183b08fbf7f434a0bee888451d8831ac57523e1d031d83580258b9441",
+    "afterHash": "3f03281b1074c500db31b5db63f6bc188fd140069c397c5c9cd0d44b01ac72f8",
     "rules": [
       {
         "offset": 6899,
@@ -258,17 +258,17 @@
       {
         "offset": 7174,
         "before": "    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
-        "after": "    <script data-process-src=\"page-draft-merge.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261109-page-owners1\"></script>\n"
+        "after": "    <script data-process-src=\"page-draft-merge.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261109-page-tools1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261109-page-tools1\"></script>\n    <script data-process-src=\"master-data.js?v=20261109-page-owners1\"></script>\n"
       },
       {
-        "offset": 8977,
+        "offset": 9070,
         "before": "    <script data-process-src=\"fqc-master.js?v=20261104-begin-generation2\"></script>\n",
         "after": "    <script data-process-src=\"fqc-master.js?v=20261109-page-catalog1\"></script>\n"
       },
       {
-        "offset": 9883,
+        "offset": 9976,
         "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n",
-        "after": "    <script data-process-src=\"routine-fqc-page.js?v=20261109-page1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261109-page1\"></script>\n"
+        "after": "    <script data-process-src=\"routine-fqc-page.js?v=20261109-photo-outcome1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261109-page1\"></script>\n"
       }
     ]
   },
@@ -324,7 +324,7 @@
   {
     "file": "lib/routine-fqc.ts",
     "beforeHash": "c7e948099a20dd57fd645017153f6e51b5cbb148ebbd24e336c77d3f320e7165",
-    "afterHash": "b6061a8c755c450a04ca5e7ecf2bb3df8edea395f8ff9141dd7f93ea2e8ceaa5",
+    "afterHash": "b07d7b57765ae504b79426ed61f92b8611a4677004a99d3dbca76b09292e89d8",
     "rules": [
       {
         "offset": 0,
@@ -422,17 +422,22 @@
         "after": "        const localSave = command.action === 'save' && command.moduleAction === 'save-local-v1';\n        demand(command.moduleAction === undefined || localSave, 'PATCH_NOT_ALLOWED');\n        if (localSave) demand(Number.isSafeInteger(command.expectedRevision), 'DRAFT_REVISION_REQUIRED', 409);\n        if (command.action === 'apply' || localSave) {\n"
       },
       {
-        "offset": 37932,
+        "offset": 37364,
+        "before": "        if (['approve', 'return'].includes(command.action)) {\n",
+        "after": "        if (command.action === 'approve') {\n"
+      },
+      {
+        "offset": 37914,
         "before": "        const applied = applyDraftCommand(doc.flow, command, {\n",
         "after": "        const draftContext: DraftContext<Content> = {\n"
       },
       {
-        "offset": 38352,
+        "offset": 38334,
         "before": "          validate: (content) => {\n            const issues = reportIssues(content, doc.kind);\n            if (doc.kind === 'report')\n              for (const line of content.lines) {\n                const a = linkedCase(c, doc, line.jobId);\n                if (!a) continue;\n                if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))\n                  issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});\n                if (\n                  !line.results.some((r) => r.outcome === 'unable') &&\n                  a.requiredSamples.some(\n                    (s) => !line.results.flatMap((r) => r.samples).includes(s),\n                  )\n                )\n                  issues.push({\n                    kind: 'error',\n                    path: ['lines', { id: line.id }],\n                    message: 'RETEST_REQUIRED_SAMPLES',\n                  });\n              }\n            return issues;\n          },\n        });\n",
         "after": "          validate: content => routineDocumentReviewIssues(c, doc, content),\n        };\n        // Preserve the conflict candidate's atomic per-document Save until\n        // the separately guarded whole-page orchestrator replaces this owner.\n        let saveSource = doc.flow, workingChanged = false;\n        if (localSave && command.patches!.length) {\n          demand(ctx.allowed('save'), 'FORBIDDEN', 403);\n          const staged = applyDraftCommand(doc.flow, { ...command, action: 'apply' }, draftContext);\n          workingChanged = !staged.receipt.unchanged;\n          saveSource = { ...doc.flow, working: staged.state.working, contributors: staged.state.contributors };\n        }\n        const applied = applyDraftCommand(saveSource, command, draftContext);\n        if (workingChanged && applied.receipt.unchanged) {\n          applied.state.revision = doc.flow.revision + 1;\n          applied.state.contributors = {};\n          applied.receipt = { ...applied.receipt, revision: applied.state.revision, unchanged: false };\n          applied.state.receipts[command.operationId] = { ...applied.state.receipts[command.operationId], result: cloneDraft(applied.receipt) };\n        }\n"
       },
       {
-        "offset": 39681,
+        "offset": 39663,
         "before": "          approveEffects(c, doc, ctx);\n",
         "after": "          applyRoutineDocumentApprovalEffects(c, doc, doc.flow.active.content, ctx);\n"
       }
@@ -534,6 +539,18 @@
         "offset": 153868,
         "before": "    pendingCount: () => docs().filter((d) => status(d) === 'pending').length,\n",
         "after": "    pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():docs().filter((d) => status(d) === 'pending').length,\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/shared-draft.ts",
+    "beforeHash": "2671a3f9677f253956f5a8d8e4687724bcd3689f9131b07b4488c1e2579bb1db",
+    "afterHash": "112b76c33b5768c8b996d5d367e6d0b389b774ddf9d07e61d9ca6949c852fb11",
+    "rules": [
+      {
+        "offset": 11930,
+        "before": "    if (selfReview && !command.selfReviewConfirmed) fail('SELF_REVIEW_CONFIRM_REQUIRED');\n",
+        "after": "    if (command.action === 'approve' && selfReview && !command.selfReviewConfirmed) fail('SELF_REVIEW_CONFIRM_REQUIRED');\n"
       }
     ]
   }

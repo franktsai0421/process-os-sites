@@ -2,6 +2,16 @@
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支是未啟用的分界 runtime 候選；僅語意整合已記錄的 88a RF domain 相依，沒有整批帶入其他未發布候選。不是全頁拆分已完成，也不是可啟用切換的版本。
 
+## 2026-11-09 主資料進階操作、十三頁合成驗證與 RF 照片結果恢復（未切換）
+
+本批在 e5c3c78 後補主資料 owner Excel 及進階本機操作。AB/C 匯出只帶產品／類別與唯讀已核准線別參考；LINES 一檔保留 AB/C 分區。新格式與舊完整／外部中越文格式可讀；舊 combined catalog 的 lines 不會進入 catalog 草稿。匯入匹配本頁穩定 ID，外來新 ID 重新分配；保留未知原欄位，未支援改寫拒絕。完整新格式保留 omitted/null/空白與原順序，不暗中新增隱含類別。產品規格／單位／越文、類別 rename 同步本頁產品、篩選、依既有最大路線／例外規則整理與順序調整已接。全部先留本機，明確 Save 才沿 owner/CAS 保存；取消／晚到／撤權保留原 File 並阻擋不相符操作。匯入匯出使用該頁 exchange 與原 legacy capability，不借用其他頁的 exchange。
+
+RF 照片 P2 已修候選：原 File 於 Save 前計算 input SHA，送出前保存 origin/sessionStorage 帳號隔離 sent 記錄；同 File 已知成功重用原 photo ID。server 驗原 bytes hash，既有 lossless policy 後以實際 canonical hash 存圖，先記 actor-scoped `routine-fqc/page-uploads/<actor>/<inputHash>` outcome。未知時停 Save，只 GET `/api/routine-fqc/page/photo?uploadId=<原hash>`；404/缺 media/錯回覆均不重 PUT。查證成功才續存；重開執行環境仍讀原 sent journal。已知未開始且無 R2 write attempt 的驗證拒絕才回 `uploadNotStarted:true`，允許修正輸入。原 workflow UNKNOWN/收據不變；不是以 404 當作未執行。此 R2 outcome 是原媒體送出記錄，須與目前／歷史圖及原收據一併保留；不是可刪快取。
+
+依權限工作 ea58111 與 Frank 規則，本人發回不再新增 admin／本人核准確認；仍查發回權限、原因、pending 及版本。本人核准確認與 RF 原 admin gate 保留；新 return receipt 不新增 admin，既有 ledger 的原 caps 不重寫／放寬。共用核心仍記錄 selfReview。十三頁均以實際 signed handler 檢查 owner Begin 或原收據、跨 owner receipt 隔離、即時 view 撤權，並逐 scope 核對共用核心 Save/Submit/本人發回/核准；不代表十三頁所有業務 effects、layout 或原生 UI 都完成。
+
+已核對最新相依：製程 7e409a0（已合 e5）、查看 a1c52dd、權限 ea58111；沒有整批覆蓋其來源。製程交接的 legacyArchive 最後 session/revision fence P2 及新 page approvedOnly/history 協定由查看 owner 修，不由本題另作版本查看。其餘權限 resolved policy／完整整合、真實 baseline adoption 與原樣 DB/R2 還原仍未完成。主資料新操作與照片結果恢復均只有本機合成證據；先前獨審內容安全中止、Chromium EPERM、公開 create_tree UNKNOWN 保留，沒有重試／換路或啟用真資料。
+
 ## 2026-11-09 例行 FQC 整頁 runtime 與本機驗收候選
 
 例行頁已接上受儲存 `pageDraftLayout:page-v1` 守門的 `/api/routine-fqc/page`、`routine-fqc:page` 單一 owner，以及明確 Save 才送出本機新增／修改／取消與 File 的頁面。每份文件保留穩定 ID、kind、plan/case/correction links；不建立假的逐文件 flow 或核准案件。一次 Save 固定整頁內容，一次送審固定 changedDocumentIds、原 immutable Save 與 jobs/cases 來源；核准只對該固定變更執行既有業務 effects 一次，與整頁 CAS／原收據同交易。新來源仍須先取得可核准的 baseline；本候選沒有 initializer、資料 adoption 或真資料切換。
@@ -55,9 +65,9 @@ catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES wr
 | 真正功能頁 | 現行草稿所有權 | 本批結果／未完成 |
 | --- | --- | --- |
 | 製程編輯台 | `process:platform` | 已是整頁一份；workspace／類別／工段為內部畫布。未改 runtime，跨畫布 Save 本輪 NOT_RUN |
-| AB 產線與類別 | 目前實站 `master:AB`；候選 `master:AB.catalog` | 新入口 writer/CAS/基本 UI 已接，受資料 marker 守門；未真切換，完整 UI 等價／原生驗收未完成 |
+| AB 產線與類別 | 目前實站 `master:AB`；候選 `master:AB.catalog` | 新入口 writer/CAS/基本 UI 已接，受資料 marker 守門；未真切換，Excel／進階操作已補合成候選；完整 UI／原生驗收未完成 |
 | C 產線與類別 | 目前實站 `master:C`；候選 `master:C.catalog` | 同上；不含線別草稿 |
-| 線別與工段管理 | 目前實站借用 AB/C；候選單一 `master:LINES` | 完整 topology writer、同 CAS union PROCESS link 與基本 UI 已接；AB/C 是同一 content 分區。未真切換，仍待完整 UI／原生驗收 |
+| 線別與工段管理 | 目前實站借用 AB/C；候選單一 `master:LINES` | 完整 topology writer、同 CAS union PROCESS link 與基本 UI 已接；AB/C 是同一 content 分區。Excel／路線整理合成候選已補；未真切換，仍待完整 UI／原生驗收 |
 | 流程資料 | `master:PROCESS` | 已獨立；模板、名稱、媒體與設備總表／機器 modal 同頁，不拆成新模組 |
 | FQC | `fqc` | 已獨立；錯誤碼／項目／矩陣為內部視角，生命週期本輪 NOT_RUN |
 | IQC | `iqc` | 已獨立；零件／項目／供應商等同頁，生命週期本輪 NOT_RUN |

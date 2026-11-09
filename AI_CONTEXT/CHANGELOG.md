@@ -1,3 +1,7 @@
+## 2026-11-09 主資料進階操作及 RF 照片 UNKNOWN 修正候選
+
+補分頁 Excel／舊格式、穩定 ID/optional 欄位往返、本機類別／產品與最大路線整理；匯入匯出查自己的 exchange。RF 照片 sent hash/outcome 原結果恢復，遺失 ACK 或404不再重PUT；舊 workflow 收據保護保留。本人發回與最新權限規則一致，舊caps不放寬。十三頁 signed owner／撤權及共用核心合成驗證另列[最新矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。本機未切換、未上傳／合併／部署。
+
 ## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
 
 受既存 page-v1 baseline 守門的單一 owner 已接建立／取消／更正／followup、一次 Save／固定整頁送審核准 effects、實際 codec/CAS、舊 writer fence及原收據查詢、本機比較與 File/晚到輸入/UNKNOWN。保留真正舊 documents/history/receipt，無 fake per-document approvals。合成 kernel/HTTP/UI 與製程來源權威負控制另列[唯一矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。未執行真資料切換、角色變更、上傳重送、合併或部署；統一已核准查看／權限／其餘衝突及全站驗收仍待整合。下列舊前置段落是歷史紀錄。

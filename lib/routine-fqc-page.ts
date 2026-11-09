@@ -183,7 +183,7 @@ export function executeRoutinePage(source:RoutinePageRoot,command:RoutineWholePa
     demand(command.moduleAction===undefined&&command.input===undefined&&!command.patches?.length,'ROUTINE_PAGE_PATCH_NOT_ALLOWED',422);
     if(!['withdraw','return'].includes(command.action))validateWorking(c,flow.working);
     if(command.action==='submit'){const saved=flow.saves.find(save=>save.id===command.savedId);demand(saved&&sameDraftValue(saved,flow.saved),'ROUTINE_PAGE_SAVE_SOURCE_REQUIRED');}
-    if(['approve','return'].includes(command.action)){const review=flow.cases.find(review=>review.id===command.caseId);if(review?.actor.id===ctx.actor.id)demand(ctx.actor.admin,'SELF_REVIEW_ADMIN_ONLY',403);}
+    if(command.action==='approve'){const review=flow.cases.find(review=>review.id===command.caseId);if(review?.actor.id===ctx.actor.id)demand(ctx.actor.admin,'SELF_REVIEW_ADMIN_ONLY',403);}
     if(command.action==='approve'){const review=flow.cases.find(review=>review.id===command.caseId),fixed=review&&c.page.caseDependencies[review.id];demand(review&&fixed&&fixed.savedId===review.savedId&&flow.saves.some(save=>save.id===review.savedId&&sameDraftValue(save.content,review.content))&&sameDraftValue(fixed.changedDocumentIds,changed(review.before,review.content))&&fixed.dependency===pin(c,review.content,fixed.changedDocumentIds),'ROUTINE_PAGE_DEPENDENCY_CHANGED');}
     applied=applyDraftCommand(flow,command,context);
   }
@@ -196,7 +196,7 @@ export function executeRoutinePage(source:RoutinePageRoot,command:RoutineWholePa
   }
   const caps=['view',command.action];if(mutating)caps.push('edit');if(command.input?.creates.length)caps.push('create');if(command.input?.cancels.length)caps.push('delete');if(command.input?.creates.some(row=>row.type==='correction'))caps.push('revise');
   if(command.input?.cancels.some(entry=>old.active.content.documents.some(row=>row.id===entry.id&&!row.cancelled)))caps.push('revoke');
-  if(['approve','return'].includes(command.action)&&old.cases.find(review=>review.id===command.caseId)?.actor.id===ctx.actor.id)caps.push('admin');
+  if(command.action==='approve'&&old.cases.find(review=>review.id===command.caseId)?.actor.id===ctx.actor.id)caps.push('admin');
   c.page.operationPermissions={...c.page.operationPermissions,[command.operationId]:[...new Set(caps)]};
   c.revision++;c.events.push({action:'page:'+command.action,actor:cloneDraft(ctx.actor),at:ctx.at,reason:command.reason||''});
   return {root:c,...applied,replayed:false};

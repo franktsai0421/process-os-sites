@@ -1,3 +1,7 @@
+## 2026-11-09 owner Excel 與進階本機操作
+
+新頁已接完整 owner Excel、舊 combined/外部中越文產品格式及線別檔相容；AB/C 不匯入或保存檔內 lines，LINES 一檔含 AB/C 同一草稿。精確保留本頁 ID、optional 欄位與原 metadata，外來新 ID 重新分配，未知改寫拒絕。產品規格／單位／越文、類別 rename 同步本頁產品、最大路線／例外及排序已接，沿既有 MasterAdminUI 純規則。選檔／整理先留本機，取消保留 File，Save 才共用；fresh page exchange＋原 capability 控制匯入匯出，不借其他頁權限。真 XLSX／實際 client-route 合成契約及十三頁 owner/撤權矩陣另列[唯一狀態](../../docs/acceptance/module-draft-boundary-20261109.md)。原生 layout、正式資料切換及 resolved policy/歷史查看整合尚未驗收。
+
 ## 2026-11-09 各頁 runtime 候選
 
 新增 master-page-workflow＋/api/master/pages，受儲存布局 marker 守門，AB/C 只管 catalog、LINES 一份含 AB/C topology。共用現有 route CAS／Begin／權限／原收據；union PROCESS link 同 CAS，其他頁 working 不送出。新基本 UI 用本機三方比較，整組選擇續存、原 ID 復原與 UNKNOWN 查詢。舊 combined／generic writer 被 fence，舊 receipt/history 仍原 owner 只讀。尚未真切換；原生瀏覽器被 OS socket EPERM 阻擋，完整 UI 等價／已核准查看協調／adoption 未完成。[唯一狀態矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。

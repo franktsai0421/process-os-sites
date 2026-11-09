@@ -181,7 +181,7 @@ export function applyDraftCommand<T>(source: SharedDraft<T>, command: DraftComma
     const reviewCase=caseIndex<0?undefined:{...state.cases[caseIndex]};
     if (!reviewCase || state.pendingId !== reviewCase.id || reviewCase.status !== 'pending') fail('CASE_NOT_PENDING');
     const selfReview = command.action !== 'withdraw' && reviewCase.actor.id === ctx.actor.id;
-    if (selfReview && !command.selfReviewConfirmed) fail('SELF_REVIEW_CONFIRM_REQUIRED');
+    if (command.action === 'approve' && selfReview && !command.selfReviewConfirmed) fail('SELF_REVIEW_CONFIRM_REQUIRED');
     if (command.action !== 'approve' && !command.reason?.trim() && !(command.action === 'withdraw' && ctx.optionalReasonPolicy === 'routine-fqc' && source.scope.startsWith('routine-fqc:'))) fail('REASON_REQUIRED', 422);
     if (command.action === 'approve') {
       if (ctx.activeId !== reviewCase.baseId) fail('ACTIVE_VERSION_CHANGED');

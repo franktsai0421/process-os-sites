@@ -45,6 +45,10 @@ jobs:
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-review-regressions.cjs
           node scripts/test-master-page-ui.cjs
+          node scripts/test-master-page-transfer.cjs
+          node scripts/test-master-page-tools-ui.cjs
+          node scripts/test-draft-thirteen-pages.cjs
+          node scripts/test-routine-page-photo-outcome.cjs
           node --test tests/master-page-runtime-source.test.cjs tests/batch3-workflow-source-contract.test.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs

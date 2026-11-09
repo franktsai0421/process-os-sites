@@ -1,3 +1,7 @@
+## 2026-11-09 RF 照片 outcome 與本人發回
+
+RF 整頁照片依原 input hash／帳號隔離 sent journal＋R2 outcome 唯讀恢復；未知停止 Save，404 不會重 PUT，已知成功 File 重用原 photo ID。只有 server 證明 uploadNotStarted 才允許修正後再送；原 File、文字與 workflow UNKNOWN 不變。本人發回沿原權限／原因／案件保護，不要求 admin 或本人核准確認；本人核准與原 ledger caps 保留。[最新矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。沒有真圖、資料或角色變更。
+
 ## 2026-11-09 例行 FQC 整頁接線候選（未切換）
 
 已接 metadata-only resolver、穩定新建／取消／更正／followup、單一 page Save／固定來源 Submit/Review/effects、codec/CAS、舊 writer fence，以及本機比較／File／晚到輸入／UNKNOWN UI。路徑 `/api/routine-fqc/page`，scope `routine-fqc:page`；受既存 marker/baseline 守門，不自行初始化。管理 Update 不會保存 RAM 文字／File。既有文件 archive、待審／歷史／原收據保留；新已核准版本查看由另一工作處理。下列前置段落保留歷史狀態，以[最新實作與驗收矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)為準；不代表真資料切換、十三頁最終驗收或獨審 PASS。

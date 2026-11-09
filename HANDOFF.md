@@ -1,3 +1,9 @@
+## 2026-11-09 進階頁面與照片 P2 接續
+
+已補 owner-scoped master Excel／舊格式相容、本機產品欄位／類別 rename／最大路線／順序；page exchange 獨立檢查。主資料真 XLSX12／UI11、十三頁 signed owner/view/foreign-receipt＋common kernel 檢查通過。RF media lost-ACK counterexample 已補 sent hash journal＋actor R2 outcome，只讀原結果；UI12含重開與404防重PUT、photo API6組。本人發回對齊 ea58111：保留 return/原因/pending/版本 gate，不新增admin或self-confirm，舊receipt caps不放寬。正式提交／後續完整回歸以 evidence 為準。
+
+已核對製程7e409a0／查看a1c52dd／權限ea58111，不整批覆蓋。legacyArchive late auth P2／新page history由查看owner修；本題提供新API/資料介面。[逐頁矩陣](docs/acceptance/module-draft-boundary-20261109.md)。真切換／還原及全站實站與獨審未完成；禁止重送既往UNKNOWN、重試獨審或Chromium拒絕。
+
 ## 2026-11-09 例行整頁候選收尾與整合順序
 
 本批已接 RF whole-page kernel／實際 route＋codec-CAS／舊 writer fence＋原收據／本機 UI＋File；不是只有原未註冊 Save prototype。scope `routine-fqc:page`，endpoint `/api/routine-fqc/page`，同頁文件不再各建模組 flow。kernel13、HTTP14、UI9與製程來源權威12組合成檢查通過；精確提交與 source/build receipt 另附。受 marker/baseline 守門，沒有 initializer 或真資料切換。原 documents/flows/history/receipts 保留。

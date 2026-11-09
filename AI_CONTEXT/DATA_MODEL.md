@@ -1,3 +1,9 @@
+## 2026-11-09 原照片送出 outcome（候選、未啟用）
+
+新 header `X-Process-Upload-Hash` 固定原 File bytes SHA；server 驗證後按既有 lossless policy 得實際 photoId，先寫 `routine-fqc/page-uploads/<encoded actor id>/<inputHash>` 的 `{scope,inputHash,photoId,contentType,bytes}`，再存原 `routine-fqc/photos/<photoId>`。前者是 sent/outcome 記錄，缺 media 仍 UNKNOWN；GET uploadId 查原帳號且重新檢查 view/edit/save、session、revision，不產生任何寫入。相同 hash 的不同 MIME／大小拒絕。舊無 header photo PUT 相容。
+
+前端 sessionStorage 僅留 actor-scoped hash/MIME/size sent metadata，不保存 File bytes；原 File 留 RAM。任何 sent/未知記錄跨重開仍阻擋 PUT，404 不清除；明確 ACK 或原 outcome 證明成功才復用同一 photoId。R2 outcome 應與媒體及原收據一起原樣保留，不由清理／分發快照刪除。沒有 SQL/schema/key、真實 migration 或備份程式變更。本人發回只調整新操作的 gate；舊 caps/receipts 不遷移或重寫。
+
 ## 2026-11-09 例行 FQC page-v1 儲存候選
 
 `routineFqcControl` 新受信任布局為原 root 加 `pageDraftLayout:page-v1` 及 `page:{baseline:{id,content},workflow:SharedDraft<RoutineWholePage>,documentState,caseDependencies,operationPermissions}`。整頁 content 是 `{documents:[{id,metadata,content,cancelled}]}`，metadata 保留 number/kind/planId/caseId/correctionOf/createdAt/owner。原 documents 仍是唯讀原逐文件 archive，不用新 flow 替代；原 root receipts 不變。沒有新 SQL/schema/shared_state key，沒有 adoption/initializer。baseline 須覆蓋原真正已核准（含舊 reopened）文件，舊 pending/缺損來源拒絕。

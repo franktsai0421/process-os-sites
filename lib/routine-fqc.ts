@@ -1068,7 +1068,7 @@ export function executeRoutine(
             'DEPENDENCY_GUARD_REQUIRED',
           );
         }
-        if (['approve', 'return'].includes(command.action)) {
+        if (command.action === 'approve') {
           const pending = doc.flow.cases.find((x) => x.id === command.caseId);
           if (pending?.actor.id === ctx.actor.id)
             demand(ctx.actor.admin, 'SELF_REVIEW_ADMIN_ONLY', 403);
