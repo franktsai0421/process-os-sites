@@ -1,3 +1,7 @@
+## 2026-11-09 本輪新增公開阻擋
+
+#102後續說明更新被auto-review拒絕，理由為未具體授權公開此內部實作／測試／權限／資料狀態payload；確知未執行，讀回body未變，未重試／改路。已讀近訊息，最新「完整程式上傳」是在該拒絕前的既有要求，沒有針對確切說明文字的新授權。待核准文字及原拒絕保存在外部followup-pr102-body-PENDING-APPROVAL.md／followup-pr102-metadata-denial.json。舊#101拒絕也未重試。完整程式仍因原243/R4 UNKNOWN與帳號18path重疊、receiver PENDING而未上傳；不能透過新整合payload避開未釐清操作。新head CI／完整審查未執行；原ee7d三個CI成功不能代表整合候選。
+
 ## 2026-11-09 #102 遠端讀回與本機衝突處理
 
 原五檔tree e80d87a已完整讀回並逐blob對上，不再把該筆列UNKNOWN；243/R4仍404及UNKNOWN，不重送。已本機合入ee7d4fd，三處衝突保留已測整合與較嚴canonical selector/guard規則，產品runtime無變。實站D1 revision707值仍截斷、無next_offset，無法完成真實pending／approved／照片引用核對。詳細 [續查紀錄](docs/acceptance/module-draft-boundary-20261109.md)。合法完整上傳、精確遠端CI／完整審查及真資料切換仍未完成，未改遠端程式、資料或權限。
