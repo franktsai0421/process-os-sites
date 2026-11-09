@@ -97,3 +97,19 @@ node scripts/audit-account-permission-requirements.mjs
 本批不需重建相依或建置；繼續在同一工作區用內建 Node 執行，沒有回復 symlink、重試 SOURCE_SYMLINK_REFUSED、改路徑、跳過安裝腳本或修改建置 guard。JS 語法／普通 diff／source-boundary 檢查 PASS。新的完整 lint、TypeScript、normal build、native browser、Windows CI、實體裝置／IME 與實站驗收 NOT_RUN；不能把前兩批的 lint／typecheck 當成本批已執行。先前 6 個政策需求仍未改動，沒有新權限鍵、schema、資料遷移或帳號設定變更。未上傳 GitHub。
 
 與既有帳密候選整合時，只合這些結果呈現 hunk、ACCOUNT_EXISTS 文案和刪除說明，保留候選的 fresh prewrite、原生驗證、語言來源與 unknown fences；不可用本檔整份覆蓋候選，也不可把新提示插到尚未完成讀回的路徑。
+
+
+## 第四批本機修復：錯誤回報頁依授權操作
+
+需求診斷中的兩項原始 FAIL 已在本機候選修正：有效啟用帳號的 feedback.view 必含，不提供無效的取消勾選；feedback.edit／exchange 不再受 ADMIN 天花板限制，前後端均依授權。普通讀者維持基本投影，編輯者取得版本、處理備註和歷史供 CAS 更新。撤權與同時更新不能提交；原操作編號重播保留。新角色的查看預設同步，所有啟用帳號可查看的提示有中越文。
+
+非 ADMIN 安全匯出只使用 reviewed approved-helper-v1 投影及自己的交接歷史／下載，不能拿其他人的封存 ZIP；舊 raw export 仍限 ADMIN。圖片仍核原始存取 envelope，無原圖權時不能透過匯出取得圖片，明確空 imageIds 可匯出文字。Frank primary 軟刪、其他帳號管理限制及其他模組查看限制保持。access-queue 是另一條未接通分支，不因本批宣稱啟用。沒有 schema、資料或真人授權異動。
+
+新增內建 Node TS transform／VM source fixture：只讀本 checkout 的 app/api、lib、public/process 來源，拒絕 symlink／外部目錄／依賴 lookup／outbound fetch，無建置輸出。這是來源層合成單元驅動，不能當 compiled Worker 或正常 build。正常建置與安裝保護完全不動，也未重建 node_modules。
+
+- 新測試起初 6 FAIL；完成後 9 個 feedback 案例與 2 個 loader 邊界案例共 11/11 PASS。實際 route/SQLite memory/R2 memory 涵蓋讀者、停用、普通編輯／安全匯出、原圖拒絕、其他帳號／模組拒絕、CAS 撤權及下載過程撤權。實際 renderBoard/renderDetail 到第一個事件綁定前的模板經中越文 VM ports 驗證，非 native layout／完整互動驗收。
+- 既有 feedback cloud/access/layout、import-pending、navigation 合跑 93/93 PASS、0 skipped。editor readiness 5 cases／18 anchors PASS，source boundary、JS syntax、diff check PASS。CI 保留既有 lint/type/build/browser 步驟，另加這批 Node 來源測試，權限仍 contents:read。
+- 10 項需求診斷原斷言未刪減，現在 6 PASS／4 FAIL：舊審核不得升級、舊審核對應送審撤回、高階包含模組送審撤回，以及 return/withdraw 授權一致化仍未完成。腳本改用同工作區的內建來源 fixture，執行需 --experimental-vm-modules。
+- 本批完整 lint／TypeScript／normal build／native browser／Windows CI／實體裝置／真帳號／實站 NOT_RUN；依賴缺失與先前 SOURCE_SYMLINK_REFUSED 保留，不重試、不換路或跳過 postinstall。未上傳 GitHub／merge／部署。先前來源傳送拒絕與主要整合 upload UNCERTAIN 不變。
+
+套用前須審核實際授權前後差異；這批是可審查來源候選，不能把 source tests 當真人權限已更新。與既有 feedback 工作整合須依 hunk 合併新的 capability、safe export 與 fresh CAS 保護，保留其雙來源、歷史／operation receipts 和預設關閉的事件啟用。

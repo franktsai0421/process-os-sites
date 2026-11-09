@@ -35,6 +35,9 @@ on:
       - 'drizzle-sites-fresh/meta/0009_snapshot.json'
       - 'drizzle-sites-fresh/meta/_journal.json'
       - 'public/process/web-feedback*'
+      - 'public/process/access-policy.mjs'
+      - 'tests/helpers/native-worker-source.mjs'
+      - 'tests/native-worker-source.test.mjs'
       - 'tests/web-feedback*'
       - 'scripts/test-web-feedback.cjs'
       - '.github/workflows/feedback-queues.yml'
@@ -60,6 +63,7 @@ jobs:
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node scripts/sites-source-check.mjs
       - run: node --test tests/web-feedback-cloud.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-access.test.mjs tests/shared-draft-receipt-recovery.test.mjs tests/shared-unknown-departure.test.mjs tests/shared-draft-begin-v1.test.mjs tests/access-event-client.test.mjs tests/access-event-bridge.test.mjs tests/access-event-migration.test.mjs tests/access-event-panel.test.mjs tests/access-event-hook.test.mjs tests/access-event-main-integration.test.cjs tests/access-events-api.test.cjs tests/access-event-export-consistency.test.cjs tests/problem-export.test.cjs tests/problem-export-ui.test.mjs
+      - run: node --experimental-vm-modules --test tests/native-worker-source.test.mjs tests/web-feedback-permission-policy.test.mjs
       - run: node scripts/test-local-schema.mjs
       - run: node scripts/test-web-feedback.cjs .sites-runtime/feedback-queues-ci
       - run: npm run build

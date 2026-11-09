@@ -1,3 +1,7 @@
+## 2026-11-09 — Feedback permission candidate
+
+All enabled accounts can view helper feedback; explicit edit/exchange grants drive non-admin controls and server operations. Delegated exports use reviewed safe projections and own approved handoffs; original-image ACL and primary-only deletion stay enforced. [Source-level verification and release limits](docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作). No live account change, build retry, upload or deployment. Four policy diagnostics remain failing.
+
 ## 2026-11-09 — Account result notices (local candidate)
 
 Account settings retain a verified-result notice after ACK plus successful readback; failed/unknown/stale/relogin branches cannot publish success. Clear on the next confirmed attempt or navigation and localize at render time. Delete confirmation explains retained account IDs. [Scope, regression ports and unrun gates](docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). Same checkout, no build retry, account mutation or upload.

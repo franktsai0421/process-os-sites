@@ -1,3 +1,7 @@
+## 2026-11-09 — Helper permissions (local candidate; not deployed)
+
+`feedback.view` is effective for enabled, nondeleted accounts with a valid role and is no longer independently editable. `feedback.edit` and `feedback.exchange` are assignable to ordinary roles. Editors receive case versions, notes and processing history to update with fresh identity/revision/CAS; ordinary readers keep the minimal projection. Non-admin exporters use only approved-helper-v1 safe preview/generation and their own handoffs/downloads. Legacy raw ZIP stays ADMIN-only; private original-image envelopes and Frank primary deletion remain unchanged. Board/detail controls use capabilities rather than ADMIN. The access-event queue is a separate implementation and is not activated by this patch. [Tests and gates](../../docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作).
+
 ## 2026-11-06 — 存取清單回應與備註歸屬（候選）
 
 存取清單讀取固定當次分頁、游標及讀取序號；過時回應不能覆蓋較新的清單。讀取期間將舊事件備註欄設為唯讀，輸入處理再核對目前事件；既有未保存備註與待核對的更新仍依原流程保留。前端快取引用同步更新，原收據及未知操作防護不變。合成回應亂序測試與固定版本驗證另列。

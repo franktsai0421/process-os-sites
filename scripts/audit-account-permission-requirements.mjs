@@ -1,13 +1,12 @@
 // Read-only requirements diagnostic. Synthetic identities and a pure draft only.
 // Deliberately exits 1 while any confirmed requirement is not implemented.
 import assert from 'node:assert/strict';
-import {createRequire} from 'node:module';
+import {workerSource} from '../tests/helpers/native-worker-source.mjs';
 import {execFileSync} from 'node:child_process';
 import * as P from '../public/process/access-policy.mjs';
-const require=createRequire(import.meta.url);
-const load=require('./ipqc-ab-import-harness.cjs')();
-const {effectiveAccess}=load('lib/user-access.ts');
-const K=load('lib/shared-draft.ts');
+const sourceModules=workerSource();
+const {effectiveAccess}=await sourceModules.load('lib/user-access.ts');
+const K=await sourceModules.load('lib/shared-draft.ts');
 const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const checks=[];
 const check=(id,expected,actual,scope)=>checks.push({id,status:JSON.stringify(actual)===JSON.stringify(expected)?'PASS':'FAIL',scope,expected,actual});

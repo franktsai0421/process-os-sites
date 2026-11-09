@@ -1,3 +1,7 @@
+## 2026-11-09 — Honor feedback operation grants
+
+Helper feedback view is always available to enabled accounts. Explicit edit/export grants support non-admin staff, with fresh auth/CAS, safe approved export and own-handoff history/download; legacy raw export and primary-only deletion remain restricted. Both language controls follow capabilities. [Candidate tests and limitations](../docs/acceptance/accounts-permissions-20261109.md#第四批本機修復錯誤回報頁依授權操作).
+
 ## 2026-11-09 — Keep account result feedback readable
 
 Local account candidate retains verified Save/readback feedback instead of relying only on a toast, clears it for the next attempt/navigation and rejects stale identity results. Delete/duplicate-code text explains existing ID retention in both languages. [Verification and limitations](../docs/acceptance/accounts-permissions-20261109.md#第三批本機修復持續結果提示與刪除代碼說明). No real-account or permission change, build retry or upload.

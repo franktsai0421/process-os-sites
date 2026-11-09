@@ -114,7 +114,7 @@ void test('changed persistent-navigation executable references have coherent new
   'app.js':'20261105-process-local-save1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
-  'bootstrap.js':'20261104-draft-integration1',
+  'bootstrap.js':'20261109-feedback-policy1',
   'canvas-local.js':'20261104-begin-receipt1',
   'canvas-recovery-store.js':'20261104-canvas-integration1',
   'delivery-navigation.js':'20261104-canvas-integration1',
@@ -135,7 +135,7 @@ void test('changed persistent-navigation executable references have coherent new
   'shared-draft-client.js':'20261108-equipment-ci-recovery1',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
-  'user-access.js':'20261109-account-results1',
+  'user-access.js':'20261109-feedback-view1',
   'version-draft-ui.js':'20261109-return-confirm1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261031-bom-ab-recovery1',
@@ -150,7 +150,7 @@ void test('changed persistent-navigation executable references have coherent new
   'i18n.js':'20261029-photo1',
   'user-access.css':'20261106-role-layout2',
   'user-access-initial-read.js':'20261029-users-load2',
-  'web-feedback-entry.js':'20261106-access-offline1',
+  'web-feedback-entry.js':'20261109-feedback-permissions1',
  };
  const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);

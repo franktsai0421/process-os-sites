@@ -1,0 +1,43 @@
+// Node's built-in TS transform + VM modules for isolated source-level Worker tests.
+// No build output, dependency lookup, path relocation or production credentials.
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import {stripTypeScriptTypes} from 'node:module';
+import {webcrypto} from 'node:crypto';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+const checkout=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
+export function workerSource(env={}){
+ if(typeof vm.SourceTextModule!=='function')throw Error('Run isolated tests with --experimental-vm-modules');
+ const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,ReadableStream,TextEncoder,TextDecoder,AbortController,Buffer,crypto:webcrypto,Date,performance,console,atob,btoa,structuredClone,setTimeout,clearTimeout,fetch(){throw Error('SYNTHETIC_OUTBOUND_FORBIDDEN');}}),cache=new Map();
+ async function builtin(specifier){
+  if(!['node:crypto','node:buffer'].includes(specifier))throw Error('UNEXPECTED_NATIVE_IMPORT');
+  if(!cache.has(specifier)){
+   const exports=await import(specifier),names=Object.keys(exports);
+   cache.set(specifier,new vm.SyntheticModule(names,function(){for(const name of names)this.setExport(name,exports[name]);},{context,identifier:specifier}));
+  }
+  return cache.get(specifier);
+ }
+ function source(file){
+  let resolved=path.resolve(file);if(!resolved.startsWith(checkout+path.sep))throw Error('SOURCE_OUTSIDE_CHECKOUT');
+  const relative=path.relative(checkout,resolved).split(path.sep).join('/');
+  if(!/^(?:app\/api\/|lib\/|public\/process\/)/.test(relative))throw Error('SOURCE_DIRECTORY_REFUSED');
+  if(!path.extname(resolved))resolved+='.ts';
+  if(!['.ts','.mjs','.js'].includes(path.extname(resolved)))throw Error('SOURCE_EXTENSION_REFUSED');
+  if(fs.lstatSync(resolved).isSymbolicLink()||fs.realpathSync(resolved)!==resolved)throw Error('SOURCE_LINK_REFUSED');
+  if(!cache.has(resolved)){
+   const raw=fs.readFileSync(resolved,'utf8'),code=resolved.endsWith('.ts')?stripTypeScriptTypes(raw,{mode:'transform',sourceUrl:pathToFileURL(resolved).href}):raw;
+   cache.set(resolved,new vm.SourceTextModule(code,{context,identifier:resolved,initializeImportMeta(meta){meta.url=pathToFileURL(resolved).href;}}));
+  }
+  return cache.get(resolved);
+ }
+ if(!cache.has('cloudflare:workers'))cache.set('cloudflare:workers',new vm.SyntheticModule(['env'],function(){this.setExport('env',env);},{context,identifier:'cloudflare:workers'}));
+ const link=async(specifier,parent)=>{
+  if(specifier==='cloudflare:workers')return cache.get(specifier);
+  if(specifier.startsWith('node:'))return builtin(specifier);
+  if(specifier.startsWith('@/'))return source(path.join(checkout,specifier.slice(2)));
+  if(specifier.startsWith('.'))return source(path.resolve(path.dirname(parent.identifier),specifier));
+  throw Error('DEPENDENCY_IMPORT_REFUSED');
+ };
+ return {async load(relative){const module=source(path.resolve(checkout,relative));if(module.status==='unlinked')await module.link(link);if(module.status==='linked')await module.evaluate();return module.namespace;},get loadedModules(){return [...cache.keys()];}};
+}

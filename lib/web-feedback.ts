@@ -87,7 +87,8 @@ async function authorizedImage(request: Request, state: State, user: Actor, atta
 }
 async function mayReportPage(request: Request, state: State, user: Actor, location: Location) {
   // The quality shell grants these pages to company users; records/images remain separate.
-  if(location.view==='data'&&['users','web-feedback'].includes(location.tab))return user.role==='admin';
+  if(location.view==='data'&&location.tab==='users')return user.role==='admin';
+  if(location.view==='data'&&location.tab==='web-feedback')return can(request,state,'feedback.view');
   return user.role==='admin' || location.view.startsWith('quality-') || await can(request,state,'view:'+location.view);
 }
 async function read() {
@@ -136,17 +137,17 @@ export async function handleFeedback(request: Request) {
     return new Response(object.body,{headers:{'Content-Type':a.type,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
    }
    if(action==='download') {
-    if(!admin) return json({error:'ADMIN_REQUIRED'},403);
     const h=data.handoffs.find(h=>h.id===url.searchParams.get('id')); if(!h) return json({error:'NOT_FOUND'},404);
+    if(!admin&&(h.owner!==user.id||h.profile!=='approved-helper-v1'))return json({error:'EXPORT_OWNER_OR_PROFILE_REQUIRED'},403);
     if(h.profile==='approved-helper-v1')for(const issue of h.issues)for(const id of issue.attachments){const a=data.attachments.find(image=>image.id===id);if(!a||!await approvedImage(a))return json({error:'EXPORT_IMAGE_PERMISSION_REQUIRED'},403);}
     const object=await env.STATE_ARCHIVE.get(key(h.id)+'.zip'); if(!object) return json({error:'ZIP_MISSING'},503);
     if(h.profile==='approved-helper-v1'){await approvedFresh();const bytes=new Uint8Array(await object.arrayBuffer());if(bytes.length!==h.size||await sha256(bytes)!==h.sha256)return json({error:'ZIP_HASH_MISMATCH'},503);await approvedFresh();return new Response(bytes,{headers:{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="WebFeedback_${h.id}.zip"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
     return new Response(object.body,{headers:{'Content-Type':'application/zip','Content-Disposition':`attachment; filename="WebFeedback_${h.id}.zip"`,'Cache-Control':'no-store'}});
    }
    if(action==='handoffs') {
-    if(!admin)return json({error:'ADMIN_REQUIRED'},403);
-    const currentIssues=new Map(data.issues.map(i=>[i.id,i]));
-    return json({handoffs:data.handoffs.map(h=>({...h,latest:h.issues.map(i=>{const current=currentIssues.get(i.id);return {id:i.id,status:current?.deletedAt?'deleted':current?.status};})}))});
+    if(!admin)await approvedFresh();
+    const currentIssues=new Map(data.issues.map(i=>[i.id,i])),visible=admin?data.handoffs:data.handoffs.filter(h=>h.owner===user.id&&h.profile==='approved-helper-v1');
+    return json({handoffs:visible.map(h=>({...h,latest:h.issues.map(i=>{const current=currentIssues.get(i.id);return {id:i.id,status:current?.deletedAt?'deleted':current?.status};})}))});
    }
    if(action!=='list') return json({error:'UNKNOWN_ACTION'},404);
    const issues=[],attachmentIndex=new Map(data.attachments.map(a=>[a.id,a]));
@@ -154,7 +155,7 @@ export async function handleFeedback(request: Request) {
     if(i.deletedAt)continue;
     const attachments=[];
     for(const id of i.attachments) {const a=attachmentIndex.get(id); if(a && await authorizedImage(request,state,user,a)) attachments.push({id:a.id,name:a.name,type:a.type,size:a.size,sha256:a.sha256});}
-    issues.push(admin?{...i,attachments}:{id:i.id,batchId:i.batchId,reporter:i.reporter,createdAt:i.createdAt,description:i.description,status:i.status,location:{display:i.location.display,view:i.location.view,tab:i.location.tab,system:i.location.system},attachments,restrictedImages:i.attachments.length-attachments.length});
+    issues.push(admin?{...i,attachments}:{id:i.id,batchId:i.batchId,reporter:i.reporter,createdAt:i.createdAt,description:i.description,status:i.status,location:{display:i.location.display,view:i.location.view,tab:i.location.tab,system:i.location.system},...(permissions.edit?{version:i.version,notes:i.notes,history:i.history}:{}),attachments,restrictedImages:i.attachments.length-attachments.length});
    }
    return json({admin,permissions,issues,source:{kind:'submitted-feedback',coverage:'authorized-feedback-store-only',revision,readAt:now()}});
   }
@@ -193,7 +194,6 @@ export async function handleFeedback(request: Request) {
    }
    data.batches.push({key:batchKey,digest,ids});await write(revision,data);return json({ids,batchId},201);
   }
-  if(!admin) return json({error:'ADMIN_REQUIRED'},403);
   if(action==='delete') {
    const issue=data.issues.find(i=>i.id===body.id);if(!issue)fail('NOT_FOUND',404);
    if(issue.deletedAt)return json({id:issue.id,deleted:true,replayed:true});
@@ -208,10 +208,12 @@ export async function handleFeedback(request: Request) {
    const receipt=body.operationId===undefined?null:{key:user.id+':'+uuid(body.operationId),digest:await sha256(utf8(JSON.stringify({id:body.id,version:body.version,status:body.status,note:body.note})))};
    const previous=receipt&&issue.updateReceipts?.find(item=>item.key===receipt.key);
    const result=()=>({id:issue.id,version:issue.version,status:issue.status,notes:issue.notes,history:issue.history});
+   const fresh=await authState(),editor=await identity(request,fresh);
+   if(fresh.revision!==state.revision||editor?.id!==user.id||!await can(request,fresh,'feedback.edit')||fresh.values.maintenanceMode==='1')return json({error:'AUTH_CHANGED_RELOAD'},409);
    if(previous)return previous.digest===receipt?.digest?json({...result(),replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
    if(issue.version!==body.version) fail('CASE_CHANGED_RELOAD',409);
    if(!['open','done'].includes(body.status))fail('INVALID_STATUS');
-   const at=now();issue.status=body.status;issue.version++;issue.history.push({status:body.status,author:user.name,at});if(text(body.note,4000).trim())issue.notes.push({author:user.name,text:text(body.note,4000),at});if(receipt)issue.updateReceipts=[...(issue.updateReceipts||[]),receipt].slice(-32);await write(revision,data);return json(result());
+   const at=now();issue.status=body.status;issue.version++;issue.history.push({status:body.status,author:user.name,at});if(text(body.note,4000).trim())issue.notes.push({author:user.name,text:text(body.note,4000),at});if(receipt)issue.updateReceipts=[...(issue.updateReceipts||[]),receipt].slice(-32);await write(revision,data,state.revision);return json(result());
   }
   if(action==='export-preview'||action==='export-approved'){
    if(Object.keys(body).some(key=>!['ids','versions','imageIds','operationId'].includes(key)))return json({error:'INVALID_EXPORT_REQUEST'},422);
@@ -230,6 +232,7 @@ export async function handleFeedback(request: Request) {
    data.handoffs.push({id,operationId,owner:user.id,digest,generatedAt:archive.generatedAt,status:'generated',issues,sha256:archive.sha256,size:archive.bytes.length,profile:'approved-helper-v1'});await write(revision,data,state.revision);return json({id,status:'generated',count:items.length,size:archive.bytes.length},201);
   }
   if(action==='export') {
+   if(!admin)return json({error:'APPROVED_EXPORT_REQUIRED'},403);
    const operationId=uuid(body.operationId);if(!Array.isArray(body.ids)||!body.ids.length||body.ids.length>20||new Set(body.ids).size!==body.ids.length) fail('SELECT_1_TO_20');
    const digest=await sha256(utf8(JSON.stringify(body.ids))), previous=data.handoffs.find(h=>h.operationId===operationId&&h.owner===user.id);
    if(previous)return previous.digest===digest?json({id:previous.id,status:'generated',replayed:true}):json({error:'OPERATION_PAYLOAD_CHANGED'},409);
