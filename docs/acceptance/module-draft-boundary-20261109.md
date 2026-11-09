@@ -1,6 +1,14 @@
 # 全站各功能頁草稿分界：實作與驗收矩陣
 
-原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
+原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支是未啟用的分界 runtime 候選；僅語意整合已記錄的 88a RF domain 相依，沒有整批帶入其他未發布候選。不是全頁拆分已完成，也不是可啟用切換的版本。
+
+## 本機本輪交付與剩餘工作
+
+runtime 固定於 2bb1071e36f309aa2b8c384f47978b344e7dd9d7；隨後只補實際 RF route 測試及本段紀錄。新增 API 契約在隔離 SQLite／Map R2 驗：local Save 媒體未上傳、錯 guard 都不持久寫入；正常 Save／原 POST 和 receipt GET 重播只保留一次 Save／原收據；CAS 遇 peer generate 後重讀並保存兩者。原重播回應不冒充原 POST requestId。九組 helpers、十四組 page Save 核心、Routine **259 PASS**、來源證據 **102 PASS**、owner／cutover 契約、lint／types／diff 通過。13 組 master runtime、10 組 review regressions、8 組合成 UI 與 307 項共用回歸在 f8be0f6 通過；後續 runtime 只動 RF domain，沒有用新測試數宣稱全頁驗收。精確最終 source／build 以外部固定提交回執為準。
+
+尚需實作：例行 FQC metadata effective resolver、穩定新文件／取消／更正／followup、本頁單一 Submit／Review 固定變更集與 effects、實際 codec／CAS、舊 writer fence、page toolbar/File／媒體；master 新 UI 與既有匯入匯出／進階整理功能等價；與 88a 其餘 UI、2e4d20f 核准查看及 98789f9 權限 resolved policy 語意整合、全十三頁最終驗收。這些是程式缺口，不能列為等待三項業務決策，因為 Frank 已經回覆三項。
+
+GitHub 本輪唯讀核對：main=9fbba823090f03da8385c8d92f5e59293d19d2f1；#102 Draft/open/未 merge，source head 仍 ee7d4fdc750ab5227f25559f52c9edac62b09086（該舊 head 三個 CI success），不是本機 runtime。原 create_tree 回成功後讀回 404 仍 UNKNOWN，沒有重送、建立 commit 或移動 ref。獨審內容安全中止／原生 OS socket EPERM 未繞過，不能當作 PASS。沒有真資料、已核准／待審、真人權限、schema 或部署變更。
 
 ## Managed layout 邊界與最新並行來源
 

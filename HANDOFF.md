@@ -1,3 +1,6 @@
+## 2026-11-09 本輪固定交付
+RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save/receipt replay 及 CAS peer 保留已驗。Routine 259、source102、helpers9、page Save14 與 lint/types/diff PASS；後續測試／文件提交不改 runtime。最終 source/build receipt 在外部 evidence。十三頁功能缺口、權限／查看／88a UI 尚待整合，三項業務決策已答，不可再稱等待。詳 docs/acceptance/module-draft-boundary-20261109.md。公開 source UNKNOWN／獨審中止／原生限制不變。
+
 ## 2026-11-09 RF domain／衝突候選相依
 已語意合入 88a 的例行 FQC domain atomic per-document Save，保留 metadata helper；九組 kernel 契約驗一次 Save/receipt、撤權、錯 guard/版本與返回舊 Save。不是整頁 writer、UI late ACK 或全 88a 候選整合。batch3 來源負例補精確 successor wrapper，原歷史 pins 全留。新本機來源需按實際 commit 測試；不得引用 f8be build 證明後續 runtime。詳見全頁分界矩陣。
 

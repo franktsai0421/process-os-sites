@@ -643,3 +643,47 @@ void test('actual painted Update → route CAS race recomputes against latest st
   assert(f.control().receipts[post.body.operationId]); assert(f.control().receipts[peerOperation.operationId]);
   f.verifyBackups();
 });
+
+void test('actual routine route: integrated atomic local Save keeps one original receipt and rolls back invalid media/guards', async (t) => {
+  const f = await fixture(t), id = await f.createPlan();
+  const local = (value, extra = {}) => f.draft(id, 'save', {
+    moduleAction: 'save-local-v1',
+    patches: [{ op: 'set', path: ['notes'], value }],
+    guards: [{ path: ['notes'], value: f.document(id).flow.working.notes }], ...extra,
+  });
+  await t.test('missing uploaded media rejects the complete staged Save before persistent writes', async () => {
+    await rejectedWithoutCommit(f, local('not committed', {
+      patches: [{ op: 'set', path: ['evidence'], value: ['b'.repeat(64)] }],
+      guards: [{ path: ['evidence'], value: [] }],
+    }), 422, 'PHOTO_NOT_UPLOADED');
+  });
+  await t.test('stale guard rejects without creating an outer or document receipt', async () => {
+    await rejectedWithoutCommit(f, local('not committed', { guards: [{ path: ['notes'], value: 'stale peer value' }] }), 409, 'DEPENDENCY_CHANGED_RECONFIRM');
+  });
+  await t.test('actual Save and exact POST/GET replay publish only one Save, receipt and revision', async () => {
+    const domainRevision = f.control().revision, revision = f.document(id).flow.revision, command = local('保存一次 Tiếng Việt'), before = { ...f.counts };
+    const body = await f.accepted(command), saved = f.document(id).flow;
+    assert.equal(f.counts.dbRun - before.dbRun, 1);
+    assert.equal(f.control().revision, domainRevision + 1); assert.equal(saved.revision, revision + 1);
+    assert.equal(saved.working.notes, '保存一次 Tiếng Việt'); assert.equal(saved.saved.content.notes, saved.working.notes);
+    assert.equal(saved.saves.length, 1); assert.deepEqual(Object.keys(saved.receipts), [command.operationId]);
+    assert.deepEqual(JSON.parse(saved.receipts[command.operationId].fingerprint), command.command);
+    const persisted = f.persisted(), replay = await f.post(command); assert.equal(replay.status, 200); assert.deepEqual(replay.body.result, body.result);
+    assert.deepEqual((await f.get('?operationId=' + command.operationId)).body.result, body.result);
+    assert.deepEqual(f.persisted(), persisted); f.verifyBackups();
+  });
+});
+
+void test('actual routine route: atomic local Save retries fresh CAS without duplicating its Save or overwriting a peer operation', async (t) => {
+  const f = await fixture(t), id = await f.createPlan(), original = f.document(id).flow, domainRevision = f.control().revision;
+  const command = f.draft(id, 'save', { moduleAction: 'save-local-v1', patches: [{ op: 'set', path: ['notes'], value: 'Retried once' }], guards: [{ path: ['notes'], value: original.working.notes }] });
+  let peer;
+  f.beforeCAS(async () => { peer = f.command('generate'); await f.accepted(peer); });
+  await f.accepted(command);
+  const flow = f.document(id).flow;
+  assert(peer); assert.equal(f.control().revision, domainRevision + 2); assert.equal(flow.revision, original.revision + 1);
+  assert.equal(flow.saves.length, 1); assert.equal(flow.saved.content.notes, 'Retried once');
+  assert(f.control().receipts[peer.operationId]); assert(f.control().receipts[command.operationId]);
+  assert.deepEqual(Object.keys(flow.receipts), [command.operationId]);
+  assert.equal(f.storedValues().sentinel, 'unrelated synthetic module bytes'); f.verifyBackups();
+});
