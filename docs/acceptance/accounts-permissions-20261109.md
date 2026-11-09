@@ -83,4 +83,4 @@ node scripts/audit-account-permission-requirements.mjs
 - 正常完整 lint 與 TypeScript noEmit PASS。原檔 review helper 保留既有 CRLF；普通 diff --check 回報新行的 CR，另以明確 cr-at-eol 且保留其餘空白規則檢查 PASS，整檔沒有行尾空白。完整 lint 初次發現新增 node:test 註冊的 floating-promises，按既有模式明確 void；第一批對應修正提交為 `38f4b93`，取用第一批須同時包含 `dab20d2` 與 `38f4b93`。沒有停用規則或刪減斷言。
 - 最新需求診斷為 4 PASS／6 FAIL、exit 1：RETURN_AND_WITHDRAW_USE_SAME_SELF_CONFIRMATION 已 PASS；其餘六項原樣保留。不是全部修復完成。
 
-本批目前使用的既有 dependency link 位於兄弟 checkout；正常 build 有 dependency-root 守衛，不能用搬換 checkout、覆寫 guard 或環境變數繞過。正常 build 的實際結果記在交付收據；native browser／Windows CI／實體裝置／真帳號、GitHub upload／merge 和 Site 發布均未執行。兩批是本機候選，先前未知 upload／傳送拒絕的邊界維持。
+正常 build 在最終產品提交 `8b1e471` 以 SOURCE_SYMLINK_REFUSED 退出 1，尚未編譯，列本機環境 BLOCKED；沒有繞過或重試。已只移除本工作建立的 node_modules 連結，兄弟工作相依不動；清理後正常 source-boundary check PASS。標準 postinstall 限獨立 checkout，本 worktree 不符合，所以沒有跳過安裝腳本或換 checkout 繞過守衛。Native browser／Windows CI／實體裝置／真帳號、GitHub upload／merge 和 Site 發布均未執行。兩批仍是本機候選，先前未知 upload／傳送拒絕的邊界維持。
