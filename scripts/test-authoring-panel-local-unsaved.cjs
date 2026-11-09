@@ -27,7 +27,8 @@ assert.equal(integratedControl.historicalControlHash,departureInverse.currentSou
 assert.equal(createHash('sha256').update(fs.readFileSync(path.join(root,'scripts/entry-performance/fixtures/authoring-departure-inverse.json'))).digest('hex'),integratedControl.departureInverseHash);
 const integratedProof=require('./unified-draft-source-contract.cjs'),integratedWitness=require('./unified-draft-source-witness.cjs').createWitness(require('./unified-draft-source-witness.json'));
 integratedWitness.attest(integratedProof.manifest);
-assert.equal(integratedProof.manifest.source.commit,integratedControl.sourceCommit);assert.equal(integratedProof.manifest.source.tree,integratedControl.sourceTree);
+assert.equal(integratedProof.manifest.targets.editor_frozen.commit,integratedControl.sourceCommit);assert.equal(integratedProof.manifest.targets.editor_frozen.tree,integratedControl.sourceTree);
+assert.equal(integratedWitness.resolve(integratedProof.manifest.source.commit,integratedControl.sourcePath),integratedControl.sourceBlob,'Current panel source must retain the separately reviewed frame blob');
 assert.equal(integratedWitness.resolve(integratedControl.sourceCommit,integratedControl.sourcePath),integratedControl.sourceBlob);
 const frozenControlSource=integratedProof.canonicalSource(Buffer.from(candidateSource),committedSource).toString().replace(/\r\n/g,'\n');
 assert.equal(createHash('sha256').update(frozenControlSource).digest('hex'),integratedControl.sourceLFHash);

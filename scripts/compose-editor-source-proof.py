@@ -40,6 +40,8 @@ NEW_TARGETS = {
     'filter807': '80745895c952ea7415cedfac9de27235116a4100',
     'boundary102': 'b172aaf53e6c2da6f9c5b1a6b331d15944340c03',
     'main100': '9fbba823090f03da8385c8d92f5e59293d19d2f1',
+    'unified_main100': '7ef04ed741249816aac2f1336cf15f888ff92fa0',
+    'editor_frozen': 'a31039d33b17b9929e2f4de11cbd2119126f65b1',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',
@@ -395,7 +397,7 @@ def write_pair(outputs, values):
             handle = output.open('x', encoding='utf-8', newline='\n')
             created.append((output, handle, os.fstat(handle.fileno())))
         for (_, handle, _), value in zip(created, values):
-            handle.write(json.dumps(value, ensure_ascii=True, indent=2) + '\n')
+            handle.write(json.dumps(value, ensure_ascii=True, separators=(',', ':')) + '\n')
             handle.flush()
             os.fsync(handle.fileno())
     except BaseException:

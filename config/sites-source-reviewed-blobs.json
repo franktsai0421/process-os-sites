@@ -28,7 +28,8 @@
     },
     {"commit":"ae2ff91eca847faac12337e17cdcbfdfee78d789","entries":[{"path":"tests/master-ab-auth-phase-fixture.mjs","blob":"e83221cf75f18c9cdcda72baa69476a78b298077","categories":["ASSIGNED_SECRET"]}]},
     {"commit":"6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c","entries":[{"path":"tests/multiuser-local-recovery-helper.test.mjs","blob":"81c1f0947d8376352ba8670a7dade3c9c6954c35","categories":["PRIVATE_KEY"]}]},
-    {"commit":"7767ba5480cdc9f194fb72f4838ce6463a2cb2c0","entries":[{"path":"scripts/test-iqc-editing-projection-races.cjs","blob":"9c17679c4a2f5380e667facded10178c4e9dcc53","categories":["WORKSTATION_PATH"]}]}
+    {"commit":"7767ba5480cdc9f194fb72f4838ce6463a2cb2c0","entries":[{"path":"scripts/test-iqc-editing-projection-races.cjs","blob":"9c17679c4a2f5380e667facded10178c4e9dcc53","categories":["WORKSTATION_PATH"]}]},
+    {"commit":"2245941e658d67ba6d091e81fa9088b03be3a29b","entries":[{"path":"scripts/test-iqc-editing-projection-ui.cjs","blob":"43ca7bcdcfc0594c5401c38f198428d21132fbe1","categories":["WORKSTATION_PATH"]}]}
   ],
   "entries": [
     {

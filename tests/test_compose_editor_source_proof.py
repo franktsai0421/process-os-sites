@@ -139,7 +139,7 @@ class ComposerTests(unittest.TestCase):
         with self.assertRaisesRegex(ProofError, 'NAMED_TARGET_SET_OR_ORDER_DRIFT'):
             p['assert_target_pins'](manifest, pins)
 
-    def test_all_six_new_target_pins_required_without_old_alias_overwrite(self):
+    def test_all_new_target_pins_required_without_old_alias_overwrite(self):
         targets = p['NEW_TARGETS']
         args = [name + '=' + ref for name, ref in targets.items()]
         self.assertEqual(p['parse_new_targets'](args), targets)

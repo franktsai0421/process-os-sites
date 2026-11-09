@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {validatePolicy,authorizeSupplementalReviews,inspectSourceBytes,gitBlobId,runPreflight} from '../scripts/sites-ci-preflight.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url)),policy=JSON.parse(fs.readFileSync(new URL('../config/sites-source-reviewed-blobs.json',import.meta.url))),review=policy.supplementalReviews.find(r=>r.commit==='f58d847d86e318f75631540656a4ae013103461a');
 const checks=[],test=(name,run)=>{run();checks.push(name);};
-const fqcReview=policy.supplementalReviews.find(r=>r.commit==='6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'),iqcBeginReview=policy.supplementalReviews.find(r=>r.commit==='7767ba5480cdc9f194fb72f4838ce6463a2cb2c0'),negativeEntries=[...review.entries,...fqcReview.entries,...iqcBeginReview.entries];
+const fqcReview=policy.supplementalReviews.find(r=>r.commit==='6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c'),iqcBeginReview=policy.supplementalReviews.find(r=>r.commit==='7767ba5480cdc9f194fb72f4838ce6463a2cb2c0'),iqcUIOwnerReview=policy.supplementalReviews.find(r=>r.commit==='2245941e658d67ba6d091e81fa9088b03be3a29b'),negativeEntries=[...review.entries,...fqcReview.entries,...iqcBeginReview.entries,...iqcUIOwnerReview.entries];
 const proof=()=>({commits:new Set(policy.supplementalReviews.map(r=>r.commit)),pairs:new Map(policy.supplementalReviews.map(r=>[r.commit,new Set(r.entries.map(e=>e.path+'\0'+e.blob))]))});
 const git=(args,cwd=root)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['pipe','pipe','pipe']});
 test('five exact public history tuples and bodies exist without altering historical bytes',()=>{
@@ -19,7 +19,7 @@ test('general policy entries never accept either sensitive category',()=>{
  for(const category of ['PRIVATE_KEY','BEARER_LITERAL'])assert.throws(()=>validatePolicy({...policy,entries:[{path:'tests/example.mjs',blob:'a'.repeat(40),categories:[category]}]}),/SOURCE_REVIEW_POLICY_INVALID/);
 });
 test('supplement cannot change commit path blob category or widen any tuple',()=>{
- for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789','6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c',iqcBeginReview.commit])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['INLINE_MEDIA'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
+ for(const reviewedCommit of ['f58d847d86e318f75631540656a4ae013103461a','ae2ff91eca847faac12337e17cdcbfdfee78d789','6fb5e5b25e01603b1e34c1db4b99ed16a2ce8e0c',iqcBeginReview.commit,iqcUIOwnerReview.commit])for(const change of [r=>r.commit='a'.repeat(40),r=>r.entries[0].path='tests/other.mjs',r=>r.entries[0].blob='b'.repeat(40),r=>r.entries[0].categories=['INLINE_MEDIA'],r=>r.entries[0].categories.push('INLINE_MEDIA'),r=>r.entries.push({...r.entries[0],path:'tests/*'})]){const p=structuredClone(policy);change(p.supplementalReviews.find(r=>r.commit===reviewedCommit));assert.throws(()=>validatePolicy(p),/SOURCE_SUPPLEMENT_REVIEW_INVALID/);}
 });
 test('missing ancestor and incorrect tree membership refuse even the exported structural helper',()=>{
  const p=proof();p.commits.delete(review.commit);assert.throws(()=>authorizeSupplementalReviews(policy,p.commits,p.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
@@ -127,5 +127,11 @@ test('actual Git IQC Begin proof permits only exact historical bytes and rejects
    git(['checkout','--force','--detach',iqcBeginReview.commit+'^'],temp);fs.writeFileSync(path.join(temp,'config/sites-source-reviewed-blobs.json'),JSON.stringify(policy));assert.throws(()=>runPreflight(temp),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);
   }finally{if(prior===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=prior;}
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
+});
+test('IQC UI owner tuple pins the independently reviewed ancestor and unchanged synthetic receipt classification',()=>{
+ assert.deepEqual(iqcUIOwnerReview,{commit:'2245941e658d67ba6d091e81fa9088b03be3a29b',entries:[{path:'scripts/test-iqc-editing-projection-ui.cjs',blob:'43ca7bcdcfc0594c5401c38f198428d21132fbe1',categories:['WORKSTATION_PATH']}]});
+ const entry=iqcUIOwnerReview.entries[0],raw=execFileSync('git',['cat-file','blob',entry.blob],{cwd:root});assert.equal(git(['rev-parse',iqcUIOwnerReview.commit+':'+entry.path]).trim(),entry.blob);git(['merge-base','--is-ancestor',iqcUIOwnerReview.commit,'HEAD']);
+ const old=execFileSync('git',['cat-file','blob',review.entries.find(row=>row.path===entry.path).blob],{cwd:root});const key=['shared-draft-v3-operation','a','/api/iqc/workflow?caseMetadata=1'].join(':');assert(raw.includes(key)&&old.includes(key));assert.equal([...raw.toString().matchAll(/\b[A-Za-z]:[\\/]/g)].length,1);assert(raw.includes("identity:{id:'a'}"));assert(raw.includes('synthetic-legacy-full-command'));
+ const missing=proof();missing.commits.delete(iqcUIOwnerReview.commit);assert.throws(()=>authorizeSupplementalReviews(policy,missing.commits,missing.pairs),/SOURCE_SUPPLEMENT_NOT_ANCESTOR/);const wrong=proof();wrong.pairs.set(iqcUIOwnerReview.commit,new Set());assert.throws(()=>authorizeSupplementalReviews(policy,wrong.commits,wrong.pairs),/SOURCE_SUPPLEMENT_BLOB_MISMATCH/);
 });
 console.log(JSON.stringify({status:'PASS_EXACT_NEGATIVE_FIXTURE_PROOF_BOUNDARIES',checks,realData:false,network:false}));

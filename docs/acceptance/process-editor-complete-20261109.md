@@ -55,3 +55,9 @@ Frozen parents：main021／count8f／no-poll158／history3f6（含d1）／filter
 - 777項來源ledger／engine／witness檢查PASS；原9 targets原樣加7明列targets，共53 current、632 projections、164真Git objects、79原歷史requests。這是來源證據，不是功能或實站驗收。
 - 當前完整初始化不設草稿timer，仍執行明確讀取／拒絕權限／晚到回覆／UNKNOWN控制；原已退休callback只在明示歷史fixture跑，不宣稱為現行自動行為。歷史fixture從完整current attestation後明確named inverse重建，驗固定commit/tree/真blob；不依賴虛構ref或新增Git物件，免重複快照。
 - 完整編譯、乾淨來源consumer、最終全歷史掃描與獨立來源複核的最終結果另見交付manifest；尚未取得結果者不可推定PASS。桌機／實體iPhone／IME／兩人實站／40秒情況／最終GitHub CI與測試站仍未驗。
+
+## 新收到草稿main100候選的最小相依接入
+
+另案 `7ef04ed741249816aac2f1336cf15f888ff92fa0` 已讀取固定提交，沒有整檔覆蓋其共同client或把該候選當成已發布。只接其 `bbc5f9d` 的request-entry C比較版本防護及原新增測試；本機先6PASS/2FAIL重現callback1可誤取得Begin資格，再套精確5行產品patch。保存callback之前的版本，所有callback後資格必須仍屬同版，原fresh read／CAS／UNKNOWN／當前畫布Save及歷史顯示防護繼續保留。共用client cache另升local2；其他6個整合asset維持local1。
+
+原來源掃描的唯一新阻擋已由獨立審查確認為合成收據key（actor與API路徑相接）的分類，不是工作站路徑。只增真祖先2245941、該檔43ca7bc、WORKSTATION_PATH精確tuple；不改掃描regex、size threshold、原anchor、私有Git證明或其他hash。全歷史掃描與新callback後的最終結果須看交付manifest，不能套用13f基準的舊PASS。
