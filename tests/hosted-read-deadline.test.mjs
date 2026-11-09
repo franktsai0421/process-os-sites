@@ -56,10 +56,10 @@ function noticeFixture(ms){const c=clock(),calls=[],notices=[],intervals=[],node
  const document={hidden:false,documentElement:{lang:'vi'},addEventListener(){},querySelector(selector){if(selector==='main')return{prepend(n){nodes.set('#effective-version-notice',n);notices.push(n);}};if(selector.includes('[data-load-error]')){const n=nodes.get('#effective-version-notice');return n?.dataset.loadError?n:null;}return nodes.get(selector)||null;},createElement:node};
  vm.runInNewContext(source+'\n'+noticeSource,{window,document,localStorage:{getItem:k=>k==='processAuthoringControl'?'{}':null},location:{href:'/process/'},setInterval:fn=>intervals.push(fn),AbortSignal:{timeout(delay){const controller=new AbortController();c.setTimeout(()=>controller.abort(),delay);return controller.signal;}},fetch:(url,o)=>{calls.push(url);return responseAfter(c,ms,o.signal,{revision:496,effective:{processAuthoringControl:'active'}});}});
  return{c,calls,notices,window,intervals};}
-await test('16-second effective-version check succeeds without false error or overlapping polling',async()=>{
+await test('16-second effective-version check succeeds without false error or overlapping explicit reads',async()=>{
  const f=noticeFixture(16116);await f.c.tick(15001);void f.window.EffectiveVersionNotice.check();assert.equal(f.calls.length,1);await f.c.tick(1115);assert.equal(f.notices.length,0);assert.equal(f.calls.length,1);
 });
 await test('effective-version hung request remains bounded, displays warning and does not refresh data',async()=>{
- const f=noticeFixture(60000);await f.c.tick(30000);f.intervals[0]();assert.equal(f.calls.length,1);await f.c.tick(15000);await new Promise(resolve=>setImmediate(resolve));assert.equal(f.calls.length,1);assert.equal(f.notices.length,1);assert.equal(f.notices[0].dataset.loadError,'1');
+ const f=noticeFixture(60000);assert.deepEqual(f.intervals,[]);await f.c.tick(30000);void f.window.EffectiveVersionNotice.check();assert.equal(f.calls.length,1);await f.c.tick(15000);await new Promise(resolve=>setImmediate(resolve));assert.equal(f.calls.length,1);assert.equal(f.notices.length,1);assert.equal(f.notices[0].dataset.loadError,'1');await f.c.tick(120000);assert.equal(f.calls.length,1,'idle does not retry the timed-out read');assert.equal(f.c.pending,0);
 });
 console.log(JSON.stringify({status:'PASS',cases,synthetic:true,realData:false,network:false}));
