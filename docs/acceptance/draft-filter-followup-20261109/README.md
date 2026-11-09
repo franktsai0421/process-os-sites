@@ -1,5 +1,7 @@
 # 草稿同頁篩選與衝突語義追加核對
 
+本頁保留原d1交付紀錄；#99／#100後續整合見[最新main整合](../unified-main100-integration-20261109/README.md)，不是用本頁舊PR狀態代表目前main。
+
 基於已交付本機整合 `4a10e935ef8bd4cb3d4beecaa38ebf8c6f1508c2` 的獨立後續分支。原交付目錄與 bundle 不覆寫。本批不是上站、遠端 CI 或正式帳號驗收；最終 commit/tree 與測試日誌由新的外部交付 manifest 綁定。
 
 ## 逐頁結果
