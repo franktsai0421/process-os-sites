@@ -41,6 +41,7 @@ jobs:
           node scripts/test-master-page-review-regressions.cjs
           node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-ui.cjs
+          node --test --test-concurrency=2 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
           node --test tests/master-page-runtime-source.test.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs

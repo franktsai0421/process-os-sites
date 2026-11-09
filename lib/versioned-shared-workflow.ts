@@ -51,7 +51,7 @@ export type WorkflowAdapter<T,C extends VersionedControl<T>>={
   // Explicit read-only union for existing legacy scopes; no stored aliases.
   approvedHistory?:{
     metadata:()=>{id:string;number:number;status:string;creatorName:string;createdAt:string;approvalEvidence:ReturnType<typeof approvedVersionEvidence>;sourceScope?:string;sourceVersionId?:string}[];
-    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null;
+    version:(id:string)=>(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null|Promise<(NumericVersion<T>&{approvalEvidence:NonNullable<ReturnType<typeof approvedVersionEvidence>>;sourceScope?:string;sourceVersionId?:string})|null>;
   };
   // Server-only opt-in; the mutation helper further checks storage and command.
   recordMutation?:'fqc-existing-set'|'process-save';
@@ -225,7 +225,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       }
       if(approvedOnlyRead&&query.has('versionId')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
-        const version=adapter.approvedHistory?adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);
+        const version=adapter.approvedHistory?await adapter.approvedHistory.version(query.get('versionId')!):approvedVersion(control,query.get('versionId')!,true);
         if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);
         const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};
         // One selected snapshot only. Compatibility history streams can start

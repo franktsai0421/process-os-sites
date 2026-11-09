@@ -1,3 +1,5 @@
+> 新 `page-v1` 的 AB/C/LINES owner 已另接歷史 API 與原頁 selector；以[新頁交付](../master-page-approved-history-20261109.md)為最新相依，以下保留舊 combined owner 及逐批驗證歷史。
+
 # 全草稿頁已核准歷史版本查看：共同讀取與十三組頁面前端
 
 基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及十三組已接前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。

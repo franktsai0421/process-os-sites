@@ -1,3 +1,7 @@
+## 2026-11-09 新 AB/C/LINES 已核准查看
+
+新 page-v1 歷史 API 與原頁 selector 已接，保留 scope／trusted marker／原 RAM／pending／UNKNOWN。新舊來源各自保留核准證據，不偽造 LINES 合併核准；正常資料接收退休舊顯示避免重繪卡住。本機合成 API/UI 驗證，不代表真切換、原生或已發布。[本批規則與界線](../../docs/acceptance/master-page-approved-history-20261109.md)。
+
 ## 2026-11-09 草稿分界前置候選
 
 ## 2026-11-09 各頁 runtime 候選

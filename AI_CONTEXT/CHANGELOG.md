@@ -1,6 +1,9 @@
 ## 2026-11-09 — 畫布操作文案與歷史分工交接
 
 畫布中越文說明明確區分「存取當前畫布」與「送審整份已存製程」，共享更新提示不再指向已移除的查看最新共享入口；只改文案及cache，無交易／權限／資料變更。新AB/C/LINES歷史422的固定接口與普通GET200正控制已交付parent，依最新指示由統一已核准版本查看owner負責API／selector，本owner未實作；主資料UI及routine scope仍由草稿拆分owner負責。
+## 2026-11-09 新頁 owner 核准歷史
+
+基於真實679合樹（含972），接通新 AB.catalog／C.catalog／LINES approved-only API 與原頁版本查看，修正422與送審後舊顯示阻擋重繪。保留原來源證據、未存內容、pending／UNKNOWN及權限fences；未啟用marker或碰真資料。未上傳／部署；後續候選仍待協調。[本批驗證與交付](../docs/acceptance/master-page-approved-history-20261109.md)。
 
 ## 2026-11-09 — 本機完整製程合入受保護頁面owner
 
