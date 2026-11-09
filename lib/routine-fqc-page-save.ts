@@ -54,6 +54,18 @@ function editableProjection(value: Content) {
   for (const line of fixed.lines) delete (line as unknown as Record<string, unknown>).results;
   return fixed;
 }
+function validateWorkingSource(domain: RoutineFqc, working: RoutinePageContent) {
+  // Check the complete page even when only another document changes, or when
+  // Save has no patches. Historical snapshots remain bound to their old source.
+  for (const doc of working.documents) {
+    const targets = domain.documents.filter(row => row.id === doc.id);
+    if (targets.length !== 1) fail('ROUTINE_PAGE_CONTENT_INVALID');
+    const target = targets[0];
+    if (!sameDraftValue(editableProjection(doc.content), editableProjection(target.flow.working)))
+      throw new DraftConflict('ROUTINE_PAGE_REFERENCE_CHANGED', 409);
+    validateRoutineContentEdit(domain, target, doc.content, doc.content);
+  }
+}
 function validateChanges(domain: RoutineFqc, after: RoutinePageContent, before: RoutinePageContent) {
   content(after, domain); content(before, domain);
   if (!sameDraftValue(after.documents.map(doc => doc.id), before.documents.map(doc => doc.id))) fail('ROUTINE_PAGE_DOCUMENT_MEMBERSHIP_FIXED');
@@ -96,6 +108,7 @@ export function saveRoutineFqcPage(source: SharedDraft<RoutinePageContent>, comm
   if (!ctx.allowed('view') || !ctx.allowed('edit') || !ctx.allowed('save')) throw new DraftConflict('FORBIDDEN', 403);
   if (domain.documents.some(doc => doc.flow.pendingId || doc.flow.cases.some(review => review.status === 'pending')))
     throw new DraftConflict('LEGACY_PENDING_REQUIRES_REVIEW', 409);
+  validateWorkingSource(domain, source.working);
   let staged = source;
   for (const batch of batches) {
     staged = applyDraftCommand(staged, { ...command, action: 'apply', patches: batch.patches, guards: batch.guards }, ctx).state;

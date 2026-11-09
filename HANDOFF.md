@@ -1,5 +1,7 @@
 ## 2026-11-09 — #102 全站草稿分界接續
 
+獨審在 ff75a5c 重現整頁未改文件來源漂移與重複文件／案件／Save ID 兩個 P2；已留修正前負控制並補完整 working preflight（保留原收據優先重播）與 owner 唯一性拒絕。精確新 tree 複審另行紀錄。AB local-only／File／一次整組衝突及 UNKNOWN 等要求納入同題接線；版本查看由統一已核准版本查看工作負責，本題只協調 scope／介面。
+
 使用者已回答：舊草稿可不要、A/B 整份可送審、例行 FQC 改整頁草稿，並要求 #102 包含所有有草稿頁。這三項已不是待決；仍不得推定刪除 pending、已核准歷史、原 receipts 或不可恢復資料。十三業務頁＋私人 feedback 矩陣／owner 合約、pending/完整來源切換規劃與例行 FQC 多文件單次 Save 核心已加入本機；後者未接新建文件／整頁 review 副作用／codec/CAS/UI，不能稱統一拆分完成。既有九個獨立 owner 也只完成來源／owner 合約核對，未作全頁實站驗收。
 
 真實 Sites 唯讀回傳被截斷，未取得完整 pending／approved 數，不能當 cutoff 已驗證。另一未發布候選 7ef04ed（tree3365004）的 master/routine/shared-client 是直接相依；只做唯讀及記憶體語意組合測試，未整批匯入，不可覆蓋其 localSave／UNKNOWN 改動。原公開五檔 create_tree 依新相關答覆只重試一次，工具回成功 SHA、GET讀回404；不據404重送、不移動ref，#102遠端狀態仍須核對。舊243-path UNKNOWN保持原狀。[完整矩陣](docs/acceptance/module-draft-boundary-20261109.md)。

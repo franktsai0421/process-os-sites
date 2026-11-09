@@ -15,11 +15,21 @@ function hydrated(value: unknown): void {
     throw new DraftConflict('DRAFT_CUTOVER_SOURCE_NOT_HYDRATED', 409);
   for (const entry of Object.values(value)) hydrated(entry);
 }
+function uniqueOwners(entries: unknown[]) {
+  const ids = new Set<string>();
+  for (const entry of entries) {
+    if (!object(entry) || typeof entry.id !== 'string' || !entry.id)
+      throw new DraftConflict('DRAFT_CUTOVER_SOURCE_INVALID', 422);
+    if (ids.has(entry.id)) throw new DraftConflict('DRAFT_CUTOVER_OWNER_AMBIGUOUS', 409);
+    ids.add(entry.id);
+  }
+}
 function flowInventory(flow: unknown, expectedScope: string) {
   if (!object(flow) || flow.scope !== expectedScope || !object(flow.active) || !object(flow.active.content) || !object(flow.working) ||
     !Array.isArray(flow.saves) || !Array.isArray(flow.cases) || !object(flow.receipts) ||
     flow.pendingId !== null && (typeof flow.pendingId !== 'string' || !flow.pendingId))
     throw new DraftConflict('DRAFT_CUTOVER_SOURCE_INVALID', 422);
+  uniqueOwners(flow.saves); uniqueOwners(flow.cases);
   const cases = flow.cases as Row[];
   if (cases.some(entry => !object(entry))) throw new DraftConflict('DRAFT_CUTOVER_SOURCE_INVALID', 422);
   const pending = cases.filter(entry => entry.status === 'pending' || entry.status === 'pending-test').map(entry => entry.id);
@@ -71,6 +81,7 @@ export async function planDraftPageCutover(supplied: DraftCutoverSource, expecte
   if (Object.keys(root.workflowScopes || {}).some(scope => !['AB', 'C', 'PROCESS'].includes(scope)))
     throw new DraftConflict('DRAFT_CUTOVER_UNSUPPORTED_OWNER', 409);
   const masterFlows = Object.entries((root.workflowScopes || {}) as Row).map(([scope, flow]) => flowInventory(flow, 'master:' + scope));
+  uniqueOwners(routine.documents);
   const routineFlows = routine.documents.map(routineDocument);
   if ((root.versions as unknown[]).some(version => !object(version))) throw new DraftConflict('DRAFT_CUTOVER_SOURCE_INVALID', 422);
   const pendingVersions = (root.versions as Row[]).filter(version => version.status === 'pending' || version.status === 'pending-test');

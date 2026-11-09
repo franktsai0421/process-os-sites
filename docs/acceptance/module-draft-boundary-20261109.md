@@ -24,7 +24,7 @@
 | BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
 | 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
 | 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 13 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
+| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 14 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
 | 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
 
@@ -111,9 +111,17 @@ current-approved 引用只回傳固定版本的副本，不採用 working/saved/
 
 `draft-page-boundaries.ts` 集中列出十三個真正頁面的 owner、endpoint、permission module 與現況遷移標記。`test-draft-page-boundaries.cjs` 直接載入現有 adapters／IPQC-C Begin／workflowAccess 核對 scope、storage key、篩選不變 owner、交叉 owner 拒絕及 LINES 不落入 AB/C／broad-data 權限。這是 owner／權限合約，不是十三頁 UI 或生命週期驗收。IPQC AB 群組 legacy Save／Submit 已拒絕，舊 Apply／案件／收據入口保留相容；私人 feedback 維持帳號隔離，版本確認平台也不另建草稿。
 
-`routine-fqc-page-save.ts` 提供未註冊的單一 `routine-fqc:page` 既有文件 Save：多文件 ordered guarded edits 在同次記憶體暫存，只有一份 working／Save／revision／sequence／原 receipt。無衝突欄位保留，後批驗證／權限失敗不改任何文件或業務 domain；改回原值保留原貢獻者。原來源／retest 規則由 `routine-fqc.ts` 的同一純驗證函式執行，沒有模擬逐文件 Apply、產生逐文件收據或觸發核准副作用。13 組契約涵蓋多文件原子性、兩人／篩選、pending lock、世代／重播、不可變來源／正式文件／retest／照片驗證失敗及完整來源需求。
+`routine-fqc-page-save.ts` 提供未註冊的單一 `routine-fqc:page` 既有文件 Save：多文件 ordered guarded edits 在同次記憶體暫存，只有一份 working／Save／revision／sequence／原 receipt。無衝突欄位保留，後批驗證／權限失敗不改任何文件或業務 domain；改回原值保留原貢獻者。原來源／retest 規則由 `routine-fqc.ts` 的同一純驗證函式執行，沒有模擬逐文件 Apply、產生逐文件收據或觸發核准副作用。14 組契約涵蓋多文件原子性、兩人／篩選、pending lock、世代／重播、不可變來源／正式文件／retest／照片驗證失敗及完整來源需求。
 
 **仍未完成的例行整頁工作：** 文件新建／刪除／更正的整頁暫存、新版 Begin／固定整頁案件、核准副作用只對該固定差異執行一次、舊操作 fence／原收據查詢、媒體驗證、codec／CAS、toolbar／比較／review／歷史與正式文件輸出。現行 UI 仍逐文件；不能把此核心稱為全頁已接上。
+
+## 本輪獨審修正與接線要求
+
+獨審在 ff75a5c／e53b007 重現兩個 P2，修正前負控制已留存：整頁 Save 只驗改動文件，可能把另一張來源過期的文件一同保存；切換規劃未拒絕重複文件、案件或 immutable Save ID。現已在新 Save（包括零批次）之前驗整份 working 的原引用與結構，原操作收據重播先行且不受後來來源改版影響；未改動的正式／已取消文件仍可保留。規劃器拒絕不合法／重複 owner ID，避免以 find 任選其中一筆。14 組整頁 Save、10 組切換契約涵蓋這些反例；獨立複審以後續精確 tree 為準。ff75a5c 的乾淨 clone source check／受控 build 通過，只適用該修正前來源，不充當新 tree 的 build 證據。
+
+先前 AB 整合中可確認的草稿要求納入本題後續接線驗收：修改與 File 先留本機，明確 Save 才保存與上傳圖片；衝突一次選我的／對方、保留無衝突並接續同次 Save；對方刪除而選我的時恢復同一項；取消保留原文字與 File；Save 重查身分、權限與版本，UNKNOWN 查原收據且防重送；他人先開草稿後可重新比較續存。這些是跨頁交付條件，目前純核心沒有 File／UI 行為，不宣稱已驗收；先核對既有 7ef04ed 行為再語意接入，舊 243-path 清單不完整且操作 UNKNOWN，不猜內容、不重送。
+
+已核准版本查看統一由另一項工作負責；本題只提供 owner/scope 與保存／送審資料介面依賴，不重複修改其版本查看元件。需要該工作配合 LINES、AB/C catalog、routine-fqc:page 新 scope；其尚未整合項與 Canvas 失敗仍須各自處理。
 
 ## 與全站衝突候選的協調
 

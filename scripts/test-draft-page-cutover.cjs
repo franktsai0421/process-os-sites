@@ -121,6 +121,15 @@ async function rejects(source, expected, code) {
     const adopted = fixture(); adopted.root.workflowScopes.LINES = plain(adopted.root.workflowScopes.AB);
     const as = source(adopted); await rejects(as, pins(as), 'DRAFT_CUTOVER_UNSUPPORTED_OWNER');
   });
+  await check('duplicate routine document case and Save identities refuse ambiguous original owners', async () => {
+    for (const duplicate of ['document', 'case', 'save']) {
+      const f = fixture();
+      if (duplicate === 'document') f.rf.documents.push(plain(f.rf.documents[0]));
+      else if (duplicate === 'case') f.rf.documents[0].flow.cases.push(plain(f.rf.documents[0].flow.cases[0]));
+      else f.rf.documents[0].flow.saves.push(plain(f.rf.documents[0].flow.saves[0]));
+      const s = source(f); await rejects(s, pins(s), 'DRAFT_CUTOVER_OWNER_AMBIGUOUS');
+    }
+  });
   assert.equal(reads, 0); assert.equal(writes, 0);
   console.log(JSON.stringify({ status: 'PASS', checks, storageReads: reads, storageWrites: writes,
     scope: 'pure all-page inventory/cutover planning; no actual writer, adoption, DB/R2 recovery or live-data cutover' }, null, 2));

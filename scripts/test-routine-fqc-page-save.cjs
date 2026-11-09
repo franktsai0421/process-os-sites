@@ -123,6 +123,26 @@ check('unhydrated historical bodies and changed immutable document references re
   const changed = fixture(); changed.domain.documents[0].flow.working.lines[0].source.products.push({ code: 'Later product' });
   unchanged(changed, () => code(() => run(changed, command(changed, [edit('doc-one', '', 'No')])), 'ROUTINE_PAGE_REFERENCE_CHANGED'));
 });
+check('all working documents are checked before any new Save including empty batches while original receipts still replay', () => {
+  for (const empty of [false, true]) {
+    const f = fixture(); f.domain.documents[0].flow.working.lines[0].source.products.push({ code: 'Later product' });
+    const batches = empty ? [] : [edit('doc-two', '', 'Other document')];
+    unchanged(f, () => code(() => run(f, command(f, batches)), 'ROUTINE_PAGE_REFERENCE_CHANGED'));
+  }
+  const malformed = fixture(); malformed.flow.working.documents[0].content.notes = 123;
+  unchanged(malformed, () => code(() => run(malformed, command(malformed, [])), 'TEXT_INVALID'));
+  for (const status of ['approved', 'cancelled']) {
+    const kept = fixture();
+    if (status === 'approved') kept.domain.documents[0].flow.active.id = 'original-approved';
+    else kept.domain.documents[0].cancelled = { at: 'fixture' };
+    const original = plain(kept.flow.working.documents[0]);
+    run(kept, command(kept, [edit('doc-two', '', 'Other document')]));
+    assert.deepEqual(plain(kept.flow.saved.content.documents[0]), original);
+  }
+  const replay = fixture(), request = command(replay, [edit('doc-two', '', 'Saved')]), receipt = plain(run(replay, request).receipt);
+  replay.domain.documents[0].flow.working.lines[0].source.products.push({ code: 'Later product' });
+  unchanged(replay, () => assert.deepEqual(plain(run(replay, request).receipt), receipt));
+});
 assert.equal(reads, 0); assert.equal(writes, 0);
 console.log(JSON.stringify({ status: 'PASS', checks, storageReads: reads, storageWrites: writes,
   scope: 'unregistered routine whole-page existing-document Save core; not page creation approval effects HTTP/CAS or live migration' }, null, 2));
