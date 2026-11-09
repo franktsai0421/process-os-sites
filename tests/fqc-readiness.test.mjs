@@ -2,16 +2,44 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
 // Actual implementation, in-memory transport/DOM doubles; no server, browser,
 // credentials, business/storage writes or source rewriting.
 const source = fs.readFileSync(new URL('../public/process/fqc-master.js', import.meta.url), 'utf8');
-// Default fixtures execute the actual inert production scheduler. Explicit legacy
-// callback cases opt into the pinned test-only retired driver to retain race fences.
+// Default fixtures execute current load/bind/listeners without a scheduler producer.
+// Explicit retired callback cases use a separately pinned main100 module and the
+// test-only historical scheduler driver; they are not current-runtime coverage.
 const sharedSource = fs.readFileSync(new URL('../public/process/shared-draft-client.js', import.meta.url), 'utf8');
 const retiredSource = fs.readFileSync(new URL('../scripts/entry-performance/fixtures/retired-foreground-scheduler.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 assert.equal(createHash('sha256').update(retiredSource).digest('hex'), '3882190900e8e886ae9910e62ac0495299c0d681c5fcd72c7b5bc05a7861a5cd', 'pin the test-only historical scheduler; never substitute it for current-runtime coverage');
+// The retired producer was deleted from current production. Read its real main100
+// ancestor only for the explicitly labelled retired cases, with no source rewriting.
+const historicalPin = Object.freeze({
+  commit: '9fbba823090f03da8385c8d92f5e59293d19d2f1',
+  file: 'public/process/fqc-master.js',
+  blob: '0895e89f5dec41f36646e16172760922192e5671',
+  bytes: 225449,
+  sha256: 'f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528'
+});
+let historicalSource;
+function retiredFqcSource() {
+  if (historicalSource !== undefined) return historicalSource;
+  const git = args => execFileSync('git', args, { cwd: new URL('..', import.meta.url), maxBuffer: 1_000_000 });
+  const commit = git(['cat-file', 'commit', historicalPin.commit]);
+  const oid = (kind, bytes) => createHash('sha1').update(Buffer.from(`${kind} ${bytes.length}\0`)).update(bytes).digest('hex');
+  assert.equal(oid('commit', commit), historicalPin.commit, 'retired module must come from the genuine pinned commit');
+  git(['merge-base', '--is-ancestor', historicalPin.commit, 'HEAD']);
+  const entry = git(['ls-tree', historicalPin.commit, '--', historicalPin.file]).toString('utf8');
+  assert.equal(entry, `100644 blob ${historicalPin.blob}\t${historicalPin.file}\n`, 'pin the real ancestor commit/tree path');
+  const bytes = git(['show', `${historicalPin.commit}:${historicalPin.file}`]);
+  assert.equal(bytes.length, historicalPin.bytes);
+  assert.equal(oid('blob', bytes), historicalPin.blob, 'verify the actual historical Git blob');
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), historicalPin.sha256, 'unknown historical bytes fail closed');
+  historicalSource = bytes.toString('utf8');
+  return historicalSource;
+}
 // The following client registry may gain unrelated maps; it is only the end
 // boundary, not part of the polling implementation exercised by this fixture.
 const pauseStartMarker = '  window.createScopedReadPause = label => {';
@@ -23,10 +51,10 @@ assert.equal(sharedSource.indexOf(pauseEndMarker), pauseEnd);
 assert.equal(sharedSource.indexOf(pauseStartMarker, pauseStart + pauseStartMarker.length), -1);
 assert.equal(sharedSource.indexOf(pauseEndMarker, pauseEnd + pauseEndMarker.length), -1);
 const pauseSource = sharedSource.slice(pauseStart, pauseEnd);
-const part = (start, end) => {
-  const a = source.indexOf(start), b = source.indexOf(end, a + start.length);
-  assert(a >= 0 && b > a);
-  return source.slice(a, b);
+const part = (start, end, implementation) => {
+  const a = implementation.indexOf(start), b = implementation.indexOf(end, a + start.length);
+  assert(a >= 0 && b > a, `missing exact implementation boundary: ${start}`);
+  return implementation.slice(a, b);
 };
 const clone = value => JSON.parse(JSON.stringify(value));
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -65,7 +93,7 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }, { retiredC
     ensureControl() {}, html: () => 'initial', isVi: () => false, h: String,
     fqcTabIsActive: () => active,
     adopt: value => results.adopted.push(value),
-    render: () => results.renders.push(box.state()), pollShared: () => results.polls++,
+    render: () => results.renders.push(box.state()),
     read() { throw Error('STORAGE_ACCESS_REFUSED'); }
   };
   // Real listener registration/dispatch semantics for current runtime and the
@@ -79,15 +107,23 @@ function fixture(cells = { 'ab.view': true, 'equipment.view': true }, { retiredC
   vm.createContext(box);
   vm.runInContext(pauseSource, box);
   if (retiredCallbackDriver) vm.runInContext(retiredSource, box);
+  else {
+    assert.equal(source.includes('  function pollShared()'), false, 'current FQC has no automatic read producer');
+    assert.equal(/\bsharedPoll\b/.test(source), false, 'current FQC must not retain a scheduler owner');
+    box.window.createForegroundPoll = () => { throw Error('CURRENT_FQC_MUST_NOT_CONSTRUCT_RETIRED_POLLER'); };
+  }
+  const implementation = retiredCallbackDriver ? retiredFqcSource() : source;
+  const implementationPart = (start, end) => part(start, end, implementation);
   const pause = box.window.createScopedReadPause('FQC readiness fixture');
   client.canPoll = kind => pause.canPoll(kind);
-  vm.runInContext(`let mountSequence=0,hostElement=null,sharedPoll=window.createForegroundPoll(),workspaceReady=()=>false;` +
-    part('  async function loadShared(', '  function changes(') +
-    part('  function pollShared()', '  const ui =') +
-    part('  let equipmentCache =', '  function eqPhotoUrl(') +
-    part('  let masterCatalogCache =', '  function snapshotFromCanonical(') +
-    part('  function bind(element) {', '  function fqcTabIsActive()') +
-    part("  window.addEventListener('process-language-change'", "  window.addEventListener('fqc-equipment-references-updated'") +
+  vm.runInContext(`let mountSequence=0,hostElement=null,workspaceReady=()=>false;` +
+    (retiredCallbackDriver ? `const sharedPoll=window.createForegroundPoll();` : '') +
+    implementationPart('  async function loadShared(', '  function changes(') +
+    (retiredCallbackDriver ? implementationPart('  function pollShared()', '  const ui =') : '') +
+    implementationPart('  let equipmentCache =', '  function eqPhotoUrl(') +
+    implementationPart('  let masterCatalogCache =', '  function snapshotFromCanonical(') +
+    implementationPart('  function bind(element) {', '  function fqcTabIsActive()') +
+    implementationPart("  window.addEventListener('process-language-change'", "  window.addEventListener('fqc-equipment-references-updated'") +
     `this.bind=bind;this.loadEquipment=loadEquipmentCatalog;this.loadMaster=loadMasterCatalog;
      this.state=()=>({equipment:equipmentCache,master:masterCatalogCache,masterActor:masterCatalogActor,error:equipmentLoadError});
      this.cached=getCachedEquipment;this.catalogRead=catalog;`, box);
@@ -250,8 +286,8 @@ void test('[retired callback driver] actual scoped403 pause blocks legacy callba
   assert.equal(f.results.adopted.length, 1); assert.equal(f.results.renders.length, 1);
 });
 
-// Current runtime has no scheduled callback. Preserve non-timer event ownership
-// coverage against the actual inert scheduler, in addition to legacy races above.
+// Current FQC has no scheduler producer/constructor. Preserve its actual non-timer
+// listener ownership coverage separately from the historical callback races above.
 for (const event of ['process-shared-state-updated', 'routine-equipment-updated']) for (const change of ['remount', 'epoch']) void test(`current ${event} reply is fenced after ${change} with zero timer registration`, async () => {
   const f = fixture(), first = f.box.bind(f.element); await resolveContent(f); await first;
   f.events[event]();
