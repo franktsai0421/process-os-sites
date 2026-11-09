@@ -4,7 +4,7 @@
 
 # 2026-11-09 — Integration status
 
-Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank merged #100, preserving #99 (021f0f3). PR101 remains Draft under the complete-editor single-PR requirement; its 8f component has four passing CI but the complete tree has not been uploaded. Local a310 runtime preserves actual main #100 and the frozen candidates. New history-owner bfa2650 is not yet absorbed. No Site deployment or real-data operation was performed.
+Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank merged #100, preserving #99 (021f0f3). PR101 remains Draft under the complete-editor single-PR requirement; its 8f component has four passing CI but the complete tree has not been uploaded. Local 380d016 runtime preserves actual main #100 and the frozen candidates; only the exact bbc5 C request-entry guard/test from newer7ef was added, with strict expanded source evidence. New history-owner bfa2650 is not yet absorbed. No Site deployment or real-data operation was performed.
 
 # 2026-11-09 - Independent canvas count batch
 

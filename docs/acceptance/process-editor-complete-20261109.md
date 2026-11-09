@@ -48,7 +48,7 @@ Frozen parents：main021／count8f／no-poll158／history3f6（含d1）／filter
 
 ## 本次可複核的本機結果
 
-本機分支 `integration/process-editor-complete-20261109` 已以真實雙親保留8f、158、3f、807、b172及main9fb；產品固定在a31039d，後續來源／測試調整不改產品檔案。沒有 schema、ACL、真實業務資料或部署變更。
+本機分支 `integration/process-editor-complete-20261109` 已以真實雙親保留8f、158、3f、807、b172及main9fb；13f基準產品固定在a31039d；最新380d016再接精確C回呼修正與共用client cache local2，來源witness已按該runtime重新生成。沒有 schema、ACL、真實業務資料或部署變更。
 
 - 當前畫布Save兩個舊候選失敗反例修復，其他畫布未送內容保留；舊跨畫布UNKNOWN依原operationId查收據，不改pin、不重送。獨立畫布／scope／navigation159項PASS。
 - 來源／快取／切頁／收據139項PASS；共用no-poll9項、composer15項與受影響typed lint PASS。額外來源鏈先182/184，修正兩個current cache期望後54/54 affected suites PASS；原歷史期望未改。
@@ -61,3 +61,5 @@ Frozen parents：main021／count8f／no-poll158／history3f6（含d1）／filter
 另案 `7ef04ed741249816aac2f1336cf15f888ff92fa0` 已讀取固定提交，沒有整檔覆蓋其共同client或把該候選當成已發布。只接其 `bbc5f9d` 的request-entry C比較版本防護及原新增測試；本機先6PASS/2FAIL重現callback1可誤取得Begin資格，再套精確5行產品patch。保存callback之前的版本，所有callback後資格必須仍屬同版，原fresh read／CAS／UNKNOWN／當前畫布Save及歷史顯示防護繼續保留。共用client cache另升local2；其他6個整合asset維持local1。
 
 原來源掃描的唯一新阻擋已由獨立審查確認為合成收據key（actor與API路徑相接）的分類，不是工作站路徑。只增真祖先2245941、該檔43ca7bc、WORKSTATION_PATH精確tuple；不改掃描regex、size threshold、原anchor、私有Git證明或其他hash。全歷史掃描與新callback後的最終結果須看交付manifest，不能套用13f基準的舊PASS。
+
+最新固定runtime380d016的C實際堆疊139/139、來源／engine／witness／count／background／Routine819/819、panel15/15、全庫正常typed lint、guarded build均PASS。18個真target、53 current、654精確projection、173 bounded真objects、原79歷史requests；compact contract4,453,246 bytes，無提高5MiB來源blob限制。source-policy原15 unit與16組exact/private-proof/真Git祖先負控PASS。來源證據與功能套件有重疊，不能相加為完整覆蓋數。最終source-only全歷史／乾淨來源consumer結果由外部manifest綁定，不可先推定通過。

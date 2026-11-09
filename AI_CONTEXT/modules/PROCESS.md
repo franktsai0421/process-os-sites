@@ -1,6 +1,6 @@
 ## 完整製程編輯台單一PR整合（本機未發布）
 
-以已凍結計數／無輪詢／草稿／歷史／同頁篩選／未啟用boundary候選建立共同底座；當前畫布Save與其他畫布RAM分離，原UNKNOWN收據不改。[完整目標及尚缺門檻](../../docs/acceptance/process-editor-complete-20261109.md)。#101元件CI PASS仍保持草稿，沒有完整上傳或部署。
+以已凍結計數／無輪詢／草稿／歷史／同頁篩選／未啟用boundary候選建立共同底座；當前畫布Save與其他畫布RAM分離，原UNKNOWN收據不改。另承接7ef的精確C request-entry consent防護，不覆蓋共同client，資產版本與來源witness隨runtime固定。[完整目標及尚缺門檻](../../docs/acceptance/process-editor-complete-20261109.md)。#101元件CI PASS仍保持草稿，沒有完整上傳或部署。
 
 ## 2026-11-09 畫布投影流程數候選
 
