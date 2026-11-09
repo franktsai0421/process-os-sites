@@ -1,3 +1,9 @@
+## 2026-11-09 草稿分界前置候選
+
+實際 line-admin 仍借用 AB/C 的 scope；流程資料的模板／機器是同頁 `master:PROCESS`。`master-page-boundary.ts` 新增頁面所有權純預演：AB catalog、C catalog、單一 LINES（AB/C 為分區），完整保留舊 root 並固定 revision/digest/approved vector。沒有 storage／writer／UI adoption；route 拒絕未支援的 page marker，避免落回 combined writer。舊 split-v1 四文件及 line reducer 不等於新頁草稿已完成。[盤點、權限／舊案決策及接線](../../docs/acceptance/module-draft-boundary-20261109.md)。
+
+等待業務決定的獨立增量 `master-page-name-save.ts` 為未註冊、僅既有名稱的整頁 ordered Save。AB/C 同一 working/saved/receipt，後批失敗全保留來源；未建立控制資料、映射帳號權限或啟用寫入。不含 topology／PROCESS 變更，實際 UI/API/CAS 仍待接線。
+
 ## 2026-11-09 新工段繼承共用類型候選
 
 `master-stage-link.ts` 在固定工段案件內，從同一已核准 PROCESS 快照帶入 presetKey 預設設定與 catalogKey 共用自訂類型（含名稱及媒體缺省語意）；新增 ID 與空機器選取，無自訂時加入自訂。舊工段、舊 ID、來源與歷史不改；來源不一致拒絕。ID 分配以整份已核准與新增案件命名空間防碰撞，鍵採完整 UTF-16 編碼；核准拒絕舊碰撞固定內容而不重生，撤回／發回與原收據保留。無 SQL/schema 或帳號權限變更。實際路由／records-v1 測試與完整平台未完成項見 [本批追蹤](../../docs/acceptance/process-platform-tracking-20261109.md)。這不是畫布／全站草稿整合或實站驗收。

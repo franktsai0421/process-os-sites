@@ -31,6 +31,9 @@ jobs:
       - name: Existing master and legacy compatibility
         run: |
           node scripts/test-master-document-boundary.cjs
+          node scripts/test-master-page-boundary.cjs
+          node scripts/test-master-page-name-save.cjs
+          node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
           node --test tests/process-stage-catalog.test.cjs
           node scripts/test-master-stage-link-v3.cjs

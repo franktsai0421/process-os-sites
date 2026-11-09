@@ -8,6 +8,14 @@
 
 [逐頁邊界、驗收及尚未啟用的主資料分拆](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
 
+## 2026-11-09 主資料頁面所有權預演
+
+`master-page-boundary.ts` 是未註冊的純規劃模組，不新增 SQL、shared_state key、workflow、Save 或案件。候選投影為 AB.catalog、C.catalog、整頁 LINES（content.AB.lines/content.C.lines）；PROCESS 保留。來源固定 revision、完整 root SHA-256 及 AB/C/PROCESS approved vector；全部 legacy working/saved/pending/history/receipts/未知欄位留在原 owner 的記憶體保全輸出。非外部備份，也不證明 R2／媒體存在。實際 storage／CAS／codec／歷史讀取與資料切換待接線及決策，詳 [候選](../docs/acceptance/module-draft-boundary-20261109.md)。
+
+未註冊的 `master-page-name-save.ts` 只在 request memory 產生單一 LINES 名稱儲存結果，使用既有 SharedDraft 欄位及原 receipt fingerprint；沒有持久化 key、控制資料初始化或資料移轉。
+
+合成 restore 演練區分原樣 records 與去機密分發快照：後者 `cleanJson` 會遞迴正規化 JSON 外觀字串，可能改動業務文字及原 fingerprint，不得代替 cutoff 原樣還原備份；新預演在原 pins 下拒絕差異。完整 DB／媒體還原尚未驗收。[已重現限制與安全方案](../docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。
