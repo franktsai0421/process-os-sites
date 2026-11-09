@@ -205,3 +205,65 @@ void test('unkeyed legacy content remains at its source and is not guessed to be
   assert.ok(!fixed.content['A-NEW'].some((t) => t.id === legacy.id));
   assert.ok(fixed.content['A-NEW'].some((t) => t.editorType === 'custom'));
 });
+
+void test('approved preset names and explicit empty media survive new-stage creation', () => {
+  const r = root([]),
+    original = r.active.PROCESS['A-CUT'].find((t) => t.presetKey === 'entry');
+  original.name = '核准的進站';
+  original.media = null;
+  original.mediaName = '';
+  original.mediaType = '';
+  original.mediaItems = [];
+  r.versions[0].snapshot = copy(r.active.PROCESS);
+  const before = copy(r.active.PROCESS),
+    fixed = prepare(r);
+  const inherited = fixed.content['A-NEW'].find((t) => t.presetKey === 'entry');
+  assert.equal(inherited.name, original.name);
+  assert.equal(inherited.media, null);
+  assert.deepEqual(copy(inherited.mediaItems), []);
+  assert.notEqual(inherited.id, original.id);
+  assert.deepEqual(copy(r.active.PROCESS), before);
+});
+void test('preset machine metadata is inherited while per-stage equipment stays local', () => {
+  const r = root([]);
+  r.active.PROCESS['B-PACK'] = copy(link.stageDefaultTemplates('B-PACK'));
+  for (const [stage, rows] of Object.entries(r.active.PROCESS)) {
+    const machine = rows.find((t) => t.presetKey === 'machine-assembly');
+    machine.name = '已核准機器流程';
+    machine.equipment = [
+      { id: stage + '-equipment', line: stage[0], stageCode: stage },
+    ];
+    machine.machineIds = [stage + '-selected'];
+  }
+  r.versions[0].snapshot = copy(r.active.PROCESS);
+  const inherited = prepare(r).content['A-NEW'].find(
+    (t) => t.presetKey === 'machine-assembly',
+  );
+  assert.equal(inherited.name, '已核准機器流程');
+  assert.deepEqual(copy(inherited.equipment), []);
+  assert.deepEqual(copy(inherited.machineIds), []);
+});
+void test('conflicting approved preset catalog values refuse instead of choosing a stage arbitrarily', () => {
+  const r = root([]);
+  r.active.PROCESS['B-PACK'] = copy(link.stageDefaultTemplates('B-PACK'));
+  r.active.PROCESS['B-PACK'][0].name = '另一份進站';
+  r.versions[0].snapshot = copy(r.active.PROCESS);
+  assert.throws(() => prepare(r), /PROCESS_CATALOG_TEMPLATE_CONFLICT/);
+});
+
+void test('legacy scalar preset media retains absence and never gains a fallback image', () => {
+  for (const media of [null, 'master/photos/legacy-fixture']) {
+    const r = root([]),
+      entry = r.active.PROCESS['A-CUT'][0];
+    entry.media = media;
+    entry.mediaName = 'legacy.png';
+    entry.mediaType = 'image/png';
+    delete entry.mediaItems;
+    r.versions[0].snapshot = copy(r.active.PROCESS);
+    const inherited = prepare(r).content['A-NEW'].find(
+      (t) => t.presetKey === 'entry',
+    );
+    assert.equal(inherited.media, media);
+    assert.equal(Object.hasOwn(inherited, 'mediaItems'), false);
+  }
+});

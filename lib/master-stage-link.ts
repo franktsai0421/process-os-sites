@@ -13,23 +13,34 @@ export function stageDefaultTemplates(code:string){return presets.map(([key,name
  const asset=key+'.png',src='assets/process-templates/'+asset;
  return{id:code+'-FLOW-'+String(index+1).padStart(2,'0'),presetKey:key,presetVersion:'20260911-5900',name,mode,people:1,machineIds:[],media:src,mediaName:asset,mediaType:'image/png',mediaItems:[{src,name:asset,type:'image/png'}],...(key==='machine-assembly'?{equipment:[]}:{})};
 });}
-// Global custom types have catalogKey; id and machines belong to one stage.
-// Derive only from the pinned approved PROCESS snapshot, never working/saved.
+// Global presets use presetKey and custom types use catalogKey. IDs and
+// machines belong to one stage. Only derive from the pinned approved snapshot.
 export function stageCatalogTemplates(code:string,approved:Snapshot){
- const catalog=new Map<string,Record<string,unknown>>();
+ const catalog=new Map<string,Record<string,unknown>>(),approvedPresets=new Map<string,Record<string,unknown>>(),knownPresets=new Set(presets.map(([key])=>key));
  for(const value of Object.values(approved))for(const item of Array.isArray(value)?value:[]){
-  if(!item||typeof item!=='object'||item.presetKey||typeof item.catalogKey!=='string'||!item.catalogKey)continue;
-  const template:Record<string,unknown>={catalogKey:item.catalogKey};
+  if(!item||typeof item!=='object')continue;
+  const preset=knownPresets.has(item.presetKey);
+  if(!preset&&(item.presetKey||typeof item.catalogKey!=='string'||!item.catalogKey))continue;
+  const key=preset?item.presetKey:item.catalogKey,target=preset?approvedPresets:catalog;
+  const template:Record<string,unknown>=preset?{presetKey:key}:{catalogKey:key};
   for(const field of ['name','editorType','mode','people','media','mediaName','mediaType','mediaItems'])if(Object.hasOwn(item,field))template[field]=cloneDraft(item[field]);
-  const prior=catalog.get(item.catalogKey);
+  const prior=target.get(key);
   if(prior&&stableDraftJSON(prior)!==stableDraftJSON(template))throw new DraftConflict('PROCESS_CATALOG_TEMPLATE_CONFLICT',409);
-  catalog.set(item.catalogKey,template);
+  target.set(key,template);
  }
  if(![...catalog.values()].some(item=>!item.editorType||item.editorType==='custom')){
   let key='default-custom';while(catalog.has(key))key='_'+key;
   catalog.set(key,{catalogKey:key,name:'自訂',editorType:'custom',mode:'human',people:1,media:null,mediaName:'',mediaType:'',mediaItems:[]});
  }
- return [...stageDefaultTemplates(code),...[...catalog].map(([key,item])=>({
+ const required=stageDefaultTemplates(code).map(fallback=>{
+  const source=approvedPresets.get(fallback.presetKey);if(!source)return fallback;
+  // Preserve scalar/absent media as well as explicit empty mediaItems; adding
+  // fallback assets here would change the approved source's visible content.
+  const next:Record<string,unknown>={...fallback};
+  for(const field of ['media','mediaName','mediaType','mediaItems'])delete next[field];
+  return {...next,...cloneDraft(source),id:fallback.id,machineIds:[]};
+ });
+ return [...required,...[...catalog].map(([key,item])=>({
   ...cloneDraft(item),id:'stage-catalog:'+encodeURIComponent(code)+':'+encodeURIComponent(key),machineIds:[],
  }))];
 }
