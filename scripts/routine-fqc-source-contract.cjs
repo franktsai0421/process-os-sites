@@ -21,7 +21,6 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function raw(bytes){assert(Buffer.isBuffer(bytes),'Routine source proof requires raw Buffer bytes');}
 function assertSource(bytes,file){
   raw(bytes);assert.equal(file,contract.file,'Routine source proof wrong file');
-  bytes=require('./master-page-runtime-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(bytes.length,contract.afterLength,'Routine source pinned byte length');
   assert.equal(hash(bytes),contract.afterHash,'Routine source differs from pinned successor');
 }

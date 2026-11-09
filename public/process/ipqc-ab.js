@@ -984,7 +984,7 @@
   function validLegacyProjection(row){try{const ids=JSON.parse(row.id.slice(10));return row.id.startsWith('legacy-ab:')&&Array.isArray(ids)&&ids.length===2&&ids.every(v=>typeof v==='string'&&!!v)&&row.id==='legacy-ab:'+JSON.stringify(ids)&&row.sourceScope===ids[0]&&row.sourceVersionId===ids[1]&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===ids[1]);}catch{return false;}}
   function mountApprovedHistory(shell,log,empty){
     const page=host,client=moduleTransport();
-    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:page,shell,client,empty,selectId:'ipqcab-approved-version',
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:page,shell,client,empty,selectId:'ipqcab-approved-version',cacheKey:JSON.stringify([control?.moduleDraft?.activeVersionId||null,Object.entries(control?.scopes||{}).map(([key,value])=>[key,value.activeVersionId||null])]),
       isCurrent:()=>host===page&&page.isConnected&&page.dataset.activeTab==='quality-ipqc-ab'&&client===moduleClient,
       canChoose:()=>!busy&&!modal&&!viewer&&!localAttempt&&(!localSaveIntent||!!localSent)&&!localConflict,
       onBoundary(){historyDisplayEpoch++;},onDenied(){clearConflictEscape();},

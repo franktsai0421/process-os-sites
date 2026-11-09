@@ -1,6 +1,9 @@
 ## 2026-11-09 RF 照片 outcome 與本人發回
 
 RF 整頁照片依原 input hash／帳號隔離 sent journal＋R2 outcome 唯讀恢復；未知停止 Save，404 不會重 PUT，已知成功 File 重用原 photo ID。只有 server 證明 uploadNotStarted 才允許修正後再送；原 File、文字與 workflow UNKNOWN 不變。本人發回沿原權限／原因／案件保護，不要求 admin 或本人核准確認；本人核准與原 ledger caps 保留。[最新矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。沒有真圖、資料或角色變更。
+## 2026-11-09 例行整頁已核准查看與封存撤權修正
+
+真實合入e5與版本2e，接整頁核准／原文件唯讀聯集、同頁selector／回原File與UNKNOWN；修正legacyArchive最後撤權仍回內容。保留原writer與資料marker，不啟用真資料。照片PUT UNKNOWN另由草稿owner修，發布仍阻擋。[本批規則與驗收](../../docs/acceptance/routine-page-approved-history-20261109.md)。
 
 ## 2026-11-09 例行 FQC 整頁接線候選（未切換）
 

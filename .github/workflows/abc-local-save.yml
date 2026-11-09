@@ -41,6 +41,7 @@ jobs:
           node scripts/test-routine-whole-page.cjs
           node scripts/test-routine-whole-page-route.cjs
           node scripts/test-routine-whole-page-ui.cjs
+          node --test --test-concurrency=2 tests/routine-page-approved-history.test.mjs tests/routine-page-approved-history-ui.test.mjs
           node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-review-regressions.cjs

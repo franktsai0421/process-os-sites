@@ -335,7 +335,7 @@
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     const approvedAccessListeners=new Set();
-    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/master/pages','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
+    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/master/pages','/api/routine-fqc/page','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;

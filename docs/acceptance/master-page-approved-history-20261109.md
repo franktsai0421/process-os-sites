@@ -1,3 +1,5 @@
+> 例行FQC整頁介面後續已提供e5，本機版本查看接線與legacyArchive修正見[新紀錄](routine-page-approved-history-20261109.md)；下方保留本批原交付範圍。
+
 # 新頁面 owner 的核准版本查看
 
 本批基於製程整合固定 `679ad0e492dae15d40900324f140e8e81ca2633d`，其真實合樹已包含草稿分界 `972e3a8cad7be5da7af0f4d7519fc36ff8bb2b6d`、#100 main 與既有十三組核准查看。不整檔覆寫舊 f61/e3d 或其他候選。本批只接新頁歷史 API／原頁 selector，不負責啟用或變更草稿分界。

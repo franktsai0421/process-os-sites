@@ -127,7 +127,7 @@
   }
   function mountApprovedHistory(shell,log,empty){
     const d=doc(),page=root,documentRoot=root.querySelector('.rf-document'),client=approvedClient(d.id);historyDocument=d.id;
-    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',cacheKey:d.flow.active.id||null,
       isCurrent:()=>root===page&&doc()?.id===d.id&&!s.reviewPlatform&&root.querySelector('.rf-document')===documentRoot,
       canChoose:()=>!s.busy&&!s.dialogOpen&&!inFlightMutation&&!generationRefresh?.current()&&!document.querySelector('.rf-modal[open]'),
       onBoundary(){historyDisplayEpoch++;},renderCurrent(){approvedHistoryView=null;historyDocument=null;paint();},
@@ -773,6 +773,7 @@
   }
   function paint() {
     if (!root?.isConnected) return;
+    if(pageDraftMode){window.RoutineFqcPage.repaint();return;}
     if(approvedHistoryView?.historical&&historyDocument===doc()?.id&&!s.reviewPlatform){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;historyDocument=null;
     for (const node of root.querySelectorAll('.rf-result[data-result-id]')) s.resultOpen.set(node.dataset.resultId,node.open);
     for (const node of root.querySelectorAll('.rf-samples[data-sample-key]')) s.sampleOpen.set(node.dataset.sampleKey,node.open);

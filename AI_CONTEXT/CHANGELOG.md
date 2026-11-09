@@ -4,6 +4,9 @@
 ## 2026-11-09 — 固定e5整頁例行FQC合入製程審查候選
 
 合樹5729e17保留13模組history／current-canvas Save／late ACK／#100及42cd；例行整頁核心／route／UI接線存在，但新legacyArchive晚到撤權及photo PUT未知後重送兩個P2已重現。依分工交草稿／版本owner修正，整頁歷史契約待接；未上傳／部署或切真資料。[相依](../docs/acceptance/process-editor-remaining-dependencies-20261109.md)。
+## 2026-11-09 例行 FQC 整頁版本與 legacyArchive fence
+
+基於e5＋既有2e查看，接新整頁API／單一原頁selector，保留原文件核准來源／File／UNKNOWN。舊封存序列化後重查session／view/history／revision，修正晚到撤權P2。未修另一owner的照片PUT UNKNOWN，不宣稱發布就緒。[界線與證據](../docs/acceptance/routine-page-approved-history-20261109.md)。
 
 ## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
 
@@ -28,6 +31,11 @@
 ## 2026-11-09 — 畫布操作文案與歷史分工交接
 
 畫布中越文說明明確區分「存取當前畫布」與「送審整份已存製程」，共享更新提示不再指向已移除的查看最新共享入口；只改文案及cache，無交易／權限／資料變更。新AB/C/LINES歷史422的固定接口與普通GET200正控制已交付parent，依最新指示由統一已核准版本查看owner負責API／selector，本owner未實作；主資料UI及routine scope仍由草稿拆分owner負責。
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+修正 runtime 初審兩個 P2：逐層檢查復原子項的 create 權限與同 parent 歷史身分；所有 companion 的 approved body／pointer／ID 核對，讀取與驗證不採用未核准 active 或過期相容鏡像。inline/records 八組反例與正控制。獨立審查被內容安全機制中止，沒有新 tree 完整 PASS；未重送、未上傳／切換。
+
+
 ## 2026-11-09 新頁 owner 核准歷史
 
 基於真實679合樹（含972），接通新 AB.catalog／C.catalog／LINES approved-only API 與原頁版本查看，修正422與送審後舊顯示阻擋重繪。保留原來源證據、未存內容、pending／UNKNOWN及權限fences；未啟用marker或碰真資料。未上傳／部署；後續候選仍待協調。[本批驗證與交付](../docs/acceptance/master-page-approved-history-20261109.md)。

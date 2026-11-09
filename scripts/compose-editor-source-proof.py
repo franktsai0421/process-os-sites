@@ -51,6 +51,7 @@ NEW_TARGETS = {
     'page_history': '2e4d20f4560fe1480576680d07edcf903b67fef9',
     'previous_followup': 'd1ff4a61b2a8c81a206ec358ab2614393c171e94',
     'routine_page_runtime': 'e5c3c780fac8413ede01809d5fc871ad0477a225',
+    'page_history_runtime': 'dfe1679274b1c06c2f0b8898e1fc196158dbdba2',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',

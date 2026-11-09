@@ -412,7 +412,7 @@
       const scope=state.masterScope,section=state.masterSection,client=shared.client(scope),root=document.querySelector('.master-organized');
       const resume=historyRequested?.scope===scope?{...historyRequested,blocked:true}:historyResume?.scope===scope?historyResume:null;historyResume=null;historyRequested=null;
       approvedHistoryView?.retire();approvedHistoryScope=scope;approvedHistoryRoot=root;
-      approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root,shell,client,empty,selectId:'master-approved-version',initialBlocked:resume?.blocked===true,
+      approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root,shell,client,empty,selectId:'master-approved-version',cacheKey:shared.flow(scope)?.active.id||versions().find(v=>v.status==='approved')?.id||null,initialBlocked:resume?.blocked===true,
         isCurrent:()=>state.view==='data'&&state.masterScope===scope&&state.masterSection===section&&document.querySelector('.master-organized')===root&&shared.client(scope)===client,
         canChoose:()=>!shared.busy()&&!pendingImport&&!document.querySelector('dialog[open]'),
         onBoundary(){historyDisplayEpoch++;},

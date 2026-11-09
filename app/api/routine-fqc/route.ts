@@ -158,7 +158,16 @@ export async function GET(request: Request) {
     if(query.has('legacyArchive')){
       if(query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'||!permissions.history)return reply({error:'FORBIDDEN'},403);
       const approved=documents.filter(doc=>doc.flow.active.id||doc.flow.cases.some(review=>review.status==='approved')).map(doc=>{const cases=doc.flow.cases.filter(review=>review.status==='approved'),savedIds=new Set(cases.map(review=>review.savedId));return{id:doc.id,number:doc.number,kind:doc.kind,planId:doc.planId,caseId:doc.caseId,correctionOf:doc.correctionOf,source:{scope:doc.flow.scope,active:doc.flow.active,cases,saves:doc.flow.saves.filter(save=>savedIds.has(save.id))}};});
-      return reply({kind:'routine-legacy-document-archive-v1',documents:approved,permissions:{view:permissions.view,history:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false},identity:actor,revision:state.revision});
+      const expected=request.headers.get('X-Process-Expected-Actor');if(expected&&expected!==actor.id)return reply({error:'FORBIDDEN'},403);
+      const payload={kind:'routine-legacy-document-archive-v1',documents:approved,permissions:{view:permissions.view,history:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false},identity:actor,revision:state.revision};
+      // Complete archive hydration before final authority checks; no stream
+      // prefix may escape after a late revocation or revision/role change.
+      const rendered=state.recordStorage?recordJSONResponse(payload,env.STATE_ARCHIVE,responseHeaders):reply(payload),text=await rendered.text();
+      const fresh=await readState({keys:authorityKeys}),freshActor=await identity(request,fresh),freshPermissions=await access(request,fresh);
+      if(!freshActor||freshActor.id!==actor.id||freshActor.sessionType!==actor.sessionType||!freshPermissions.view||!freshPermissions.history||!enabled(request,fresh))return reply({error:'FORBIDDEN'},403);
+      if(fresh.revision!==state.revision||!await stateRevisionIsCurrent(fresh))return reply({error:'APPROVED_HISTORY_SUPERSEDED'},409);
+      const finalActor=await identity(request,fresh);if(!finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType)return reply({error:'FORBIDDEN'},403);
+      return new Response(text,{headers:responseHeaders});
     }
     if (query.has('export')) {
       if (!permissions.history) return reply({ error: 'FORBIDDEN' }, 403);
