@@ -13,6 +13,26 @@ export function stageDefaultTemplates(code:string){return presets.map(([key,name
  const asset=key+'.png',src='assets/process-templates/'+asset;
  return{id:code+'-FLOW-'+String(index+1).padStart(2,'0'),presetKey:key,presetVersion:'20260911-5900',name,mode,people:1,machineIds:[],media:src,mediaName:asset,mediaType:'image/png',mediaItems:[{src,name:asset,type:'image/png'}],...(key==='machine-assembly'?{equipment:[]}:{})};
 });}
+// Global custom types have catalogKey; id and machines belong to one stage.
+// Derive only from the pinned approved PROCESS snapshot, never working/saved.
+export function stageCatalogTemplates(code:string,approved:Snapshot){
+ const catalog=new Map<string,Record<string,unknown>>();
+ for(const value of Object.values(approved))for(const item of Array.isArray(value)?value:[]){
+  if(!item||typeof item!=='object'||item.presetKey||typeof item.catalogKey!=='string'||!item.catalogKey)continue;
+  const template:Record<string,unknown>={catalogKey:item.catalogKey};
+  for(const field of ['name','editorType','mode','people','media','mediaName','mediaType','mediaItems'])if(Object.hasOwn(item,field))template[field]=cloneDraft(item[field]);
+  const prior=catalog.get(item.catalogKey);
+  if(prior&&stableDraftJSON(prior)!==stableDraftJSON(template))throw new DraftConflict('PROCESS_CATALOG_TEMPLATE_CONFLICT',409);
+  catalog.set(item.catalogKey,template);
+ }
+ if(![...catalog.values()].some(item=>!item.editorType||item.editorType==='custom')){
+  let key='default-custom';while(catalog.has(key))key='_'+key;
+  catalog.set(key,{catalogKey:key,name:'自訂',editorType:'custom',mode:'human',people:1,media:null,mediaName:'',mediaType:'',mediaItems:[]});
+ }
+ return [...stageDefaultTemplates(code),...[...catalog].map(([key,item])=>({
+  ...cloneDraft(item),id:'stage-catalog:'+encodeURIComponent(code)+':'+encodeURIComponent(key),machineIds:[],
+ }))];
+}
 export function pendingStageProcessLinks(root:Root){return Object.entries(root.workflowScopes||{}).flatMap(([scope,flow])=>
  (flow.cases as (typeof flow.cases[number]&{linkedProcess?:StageProcessLink})[]).filter(c=>c.status==='pending'&&c.id===flow.pendingId&&c.linkedProcess).map(c=>({scope,id:c.id,link:c.linkedProcess!})));}
 export function assertProcessLinkAvailable(root:Root,exceptCaseId?:string){const pending=pendingStageProcessLinks(root).filter(c=>c.id!==exceptCaseId);
@@ -26,7 +46,7 @@ export function stageProcessLink(root:Root,scope:string,content:Snapshot,values:
  const impact=stageReferences(values,removedMasterStages(root.active[scope],content),root.active[scope],root);if(impact.total)throw new DraftConflict('STAGE_IN_USE',409,impact);
  const source=root.versions.find(v=>v.scope==='PROCESS'&&v.status==='approved'&&stableDraftJSON(v.snapshot)===stableDraftJSON(process));
  if(!source)throw new DraftConflict('PROCESS_EFFECTIVE_BASELINE_CONFLICT',409);
- const after={...process};for(const code of removed)delete after[code];for(const code of added)after[code]=stageDefaultTemplates(code);
+ const after={...process};for(const code of removed)delete after[code];for(const code of added)after[code]=stageCatalogTemplates(code,process);
  return{scope:'PROCESS',baseVersionId:source.id,added,removed,before:cloneDraft(process),content:cloneDraft(after)};
 }
 export function checkPinnedStageProcessLink(root:Root,link:StageProcessLink,caseId:string){

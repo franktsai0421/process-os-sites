@@ -1,3 +1,7 @@
+# 2026-11-09 — Process platform stage catalog batch
+
+Isolated main b06394c successor handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
+
 # 2026-11-06 — Role-template layout candidate
 
 UI-only matrix alignment/disclosure fix, with main `339df75` (#89/#90) integrated; independent documentation headers retained. V41 follow-up adds workspace-width role placement and short-dialog scrolling; expanded full-page evidence retains the separate Windows visibility CI gate. No permission/data/API policy changes. [Scope, isolated/compiled browser checks, readonly mapping and Draft PR boundary](docs/acceptance/role-template-layout-20261106/README.md). No merge/deployment; original reference image download failed and pixels remain unviewed.

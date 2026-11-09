@@ -1,3 +1,7 @@
+## 2026-11-09 — New-stage approved catalog inheritance candidate
+
+New stage review snapshots include approved global custom flow types with new stage-specific IDs and no copied machine assignments. Missing custom type gets an explicit custom choice; divergent catalog keys refuse before submission. Existing stages, fixed source approval, permissions, locks, receipts and CAS remain. No migration or deployed data change. See [scope and acceptance boundaries](../docs/acceptance/process-platform-tracking-20261109.md).
+
 ## 2026-11-08 — Equipment explicit recheck and ACK comparison candidate
 
 Equipment Save confirms complete saved/working JSON content without object-key-order dependence. Keys, primitive types/values, array positions, receipt/generation/revision and owner fences remain required. Explicit same-owner/epoch/generation delivery recheck reads fresh permissions through the existing client, then uses a private one-use confirmation after all caller checks to renew only runtime delivery. Original client, journal, guards and UNKNOWN receipt destinations remain; no automatic POST or permission bypass. Both equipment and shared-client cache tags advance together. The historical source pins are retained through an exact test-only composition back to PR 97. [Scope and verification limits](../docs/acceptance/equipment-no-poll-20261108/README.md). No schema, live data, deployment or conflict-resolution feature.
