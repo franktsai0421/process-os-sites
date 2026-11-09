@@ -1,3 +1,7 @@
+## 2026-11-09 — e5整頁FQC本機合樹，兩項P2待owner修正
+
+已依#102／#101優先順序真merge5729e17，保留原製程／歷史／UNKNOWN。整頁接線及主要回歸PASS，但legacyArchive晚到撤權、照片PUT未知重送已實際重現；新整頁history仍缺API／selector。詳[現行阻擋](docs/acceptance/process-editor-remaining-dependencies-20261109.md)。不單獨合併#101，未啟用marker或公開更新程式。
+
 ## 2026-11-09 例行整頁候選收尾與整合順序
 
 本批已接 RF whole-page kernel／實際 route＋codec-CAS／舊 writer fence＋原收據／本機 UI＋File；不是只有原未註冊 Save prototype。scope `routine-fqc:page`，endpoint `/api/routine-fqc/page`，同頁文件不再各建模組 flow。kernel13、HTTP14、UI9與製程來源權威12組合成檢查通過；精確提交與 source/build receipt 另附。受 marker/baseline 守門，沒有 initializer 或真資料切換。原 documents/flows/history/receipts 保留。

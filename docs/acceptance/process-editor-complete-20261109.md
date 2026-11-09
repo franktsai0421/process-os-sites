@@ -1,5 +1,18 @@
 # 製程編輯台完整目標與整合狀態
 
+## e5 整頁接線合樹後的發布阻擋
+
+本輪產品5729e17真實合入#102固定e5c3c78，保留25305c1／88／2e及42cd來源權威修正。例行FQC整頁核心、實際route、基本UI與照片接線已存在，不能再稱「只有未註冊核心」；但尚未完成可發布驗收。依最新順序，#102／#101先一起核對更新，再接其他整合；不先單獨合併#101。本輪未更新公開PR文字或上傳程式。
+
+1. **P2：legacyArchive晚到撤權。** `app/api/routine-fqc/route.ts` 的 `legacyArchive=1` 早return缺最終session／revision／權限fence。真signed私有fixture在最後permission await撤銷session後，inline及records仍200並回傳核准內容；下一次同cookie GET為401。版本查看owner需修正；本製程owner依分工沒有獨立改寫核准歷史API。
+2. **P2：照片PUT回覆未知後重送。** `public/process/routine-fqc-page.js:60` 直接PUT、pendingSave在POST準備後才建立，缺照片UNKNOWN／hash結果保護。私有實際UI＋photo handler模擬PUT已寫入但回覆遺失，第二次Save使同一File PUT從1變2並繼續workflow POST。交草稿拆分owner修正；需保存原照片sent／hash outcome，未知只查原結果，不能重PUT。
+3. **整頁歷史契約未接。** `/api/routine-fqc/page?approvedOnly=1&uiHistory=1`目前422 `ROUTINE_PAGE_SELECTOR_INVALID`；`?permissions=1`無revision，新UI只有文件選擇器。版本owner需接list/detail、新endpoint註冊與display／writer fences；用page.workflow.cases及savedId證明真整頁核准，舊document保留原scope與版本來源，不能假造成整頁核准。
+
+本機證據：整頁kernel13／route14／UI9 PASS，正式來源12及master review PASS；來源／cache／前身／導覽／收據／無輪詢1988 PASS；正常lint／非增量TS／guarded build PASS。擴大功能首輪303 PASS／74 FAIL，失效腳本數量及兩個舊fixture修正後，僅重跑原失敗組：legacy contracts73 PASS、script bundle4 PASS（有3項重疊，勿相加）。舊beforeunload完整負向證據改讀真正固定d4；目前程式明測沒有beforeunload、新page owner與舊busy／UNKNOWN guard保留；departure fixture載入真實history guards，未stub掉權限。兩個產品P2另留可重現反例，不因上述PASS宣稱已修。
+
+精確來源26 targets、80 current、1244 inverses、240真Git objects、79原requests，4,616,425 bytes，原25target順序／值、173＋138物件及5MiB guard保留。最終包裝head及source-only／乾淨consumer結果見外部manifest；不是GitHub CI或原生／實站。
+
+
 本輪產品固定 `a2c5f551d0b897f19bceb4205fcf934daf759467`，tree `cb17482250ecabed17a5626c3c9f4d61370b568a`。真實合入 #102 固定 `dfdfe76`、草稿衝突固定 `88a4a2c`、版本查看 owner 固定 `2e4d20f`，保留 main `9fbba823`（含 #99／#100）、#101 計數、畫布目前 scope Save、全部既有核准歷史及 UNKNOWN 收據。沒有拷入其他工作樹 dirty 程式，也沒有獨立重寫版本查看 owner 的 API／selector。
 
 完整程式尚未上傳 GitHub、合併或部署。#101 遠端仍是 Draft `8f1f243`，#102 遠端 Draft `ee7d4fd`；前者舊 CI 不能代替本輪完整 HEAD。page-v1 marker 未啟用，不能把本機 writer 合樹說成正式資料已拆分。[精確相依](process-editor-remaining-dependencies-20261109.md)。

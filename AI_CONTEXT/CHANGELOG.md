@@ -1,3 +1,7 @@
+## 2026-11-09 — 固定e5整頁例行FQC合入製程審查候選
+
+合樹5729e17保留13模組history／current-canvas Save／late ACK／#100及42cd；例行整頁核心／route／UI接線存在，但新legacyArchive晚到撤權及photo PUT未知後重送兩個P2已重現。依分工交草稿／版本owner修正，整頁歷史契約待接；未上傳／部署或切真資料。[相依](../docs/acceptance/process-editor-remaining-dependencies-20261109.md)。
+
 ## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
 
 受既存 page-v1 baseline 守門的單一 owner 已接建立／取消／更正／followup、一次 Save／固定整頁送審核准 effects、實際 codec/CAS、舊 writer fence及原收據查詢、本機比較與 File/晚到輸入/UNKNOWN。保留真正舊 documents/history/receipt，無 fake per-document approvals。合成 kernel/HTTP/UI 與製程來源權威負控制另列[唯一矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。未執行真資料切換、角色變更、上傳重送、合併或部署；統一已核准查看／權限／其餘衝突及全站驗收仍待整合。下列舊前置段落是歷史紀錄。

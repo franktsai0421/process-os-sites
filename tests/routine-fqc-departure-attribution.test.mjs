@@ -20,7 +20,7 @@ const departureConfig=routine.slice(configStart+'routineDeparture('.length,confi
 const part=(from,to)=>{
  const a=routine.indexOf(from),b=routine.indexOf(to,a);assert(a>=0&&b>a);return routine.slice(a,b);
 };
-const code=[part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
+const code=[part('  let historyDisplayEpoch=', '  function retireApprovedHistory'),part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
  part('  async function postOwned(','  async function refresh('),
  part('  function routineDeparture(config) {','  let moduleDeparture;'),
  part('  const departureSharedOwned=','  window.RoutineFQCUI ='),
