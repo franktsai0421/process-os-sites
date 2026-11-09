@@ -42,6 +42,7 @@ NEW_TARGETS = {
     'main100': '9fbba823090f03da8385c8d92f5e59293d19d2f1',
     'unified_main100': '7ef04ed741249816aac2f1336cf15f888ff92fa0',
     'editor_frozen': 'a31039d33b17b9929e2f4de11cbd2119126f65b1',
+    'history_complete': 'e3d92846cd6e5963213c2970f65c9e019895d6c9',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',

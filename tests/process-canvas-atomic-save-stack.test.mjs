@@ -297,3 +297,22 @@ void test('current-canvas Save retains another canvas unfinished form without bl
   assert.equal(await f.api.save(),true);assert.equal(remote.calls.filter(c=>c.kind==='post').length,1);assert.equal(f.api.flow().saved.content.workspaces[0].stages.T[0].name,'Other');assert.equal(f.local.form(workspace,'T','two').draft.name,'Unfinished other form');assert(!f.local.pending());
  }finally{remote.close();}
 });
+
+for(const storage of ['inline','records-v1'])void test(`Save comparison reads current edit permission before any POST on ${storage}`,async()=>{
+ const remote=await routeServer(storage,true,{activeSaved:true});try{
+  const f=await fixture({remote}),saved=copy(f.api.flow().saved);f.edit('Keep after permission changed');await remote.revoke();const before=copy(remote.stored());clear(f);
+  assert.equal(await f.api.save(),false);assert.deepEqual(remote.calls.map(call=>call.method),['GET']);assert.equal(remote.writes(),0);assert.deepEqual(copy(remote.stored()),before);
+  assert.deepEqual(copy(f.api.flow().saved),saved);assert.equal(rows(f)[0].name,'Keep after permission changed');assert.equal(f.local.counts().fields,1);assert(!f.local.pending());
+ }finally{remote.close();}
+});
+for(const storage of ['inline','records-v1'])void test(`Save comparison revision remains mandatory when peer writes before POST on ${storage}`,async()=>{
+ const remote=await routeServer(storage,true,{activeSaved:true});try{
+  const f=await fixture({remote}),saved=copy(f.api.flow().saved);f.edit('Mine retained');let command,choices=0;
+  interceptCanvas(f,(send,value,args)=>{if(value.moduleAction==='save-canvas-v1')command=copy(value);return send(value,...args);});
+  f.box.ProcessEditorV2.resolveSaveConflicts=async()=>{choices++;return 'mine';};remote.beforeSave(()=>peerName(f,'Peer committed after compare'));clear(f);
+  assert.equal(await f.api.save(),false);assert.equal(choices,0,'initial comparison was conflict-free');assert.equal(command.expectedRevision,0);assert.equal(remote.calls[0].method,'GET');
+  assert.equal(remote.calls.filter(call=>call.method==='POST'&&call.status===409).length,1);assert.equal(remote.calls.filter(call=>call.method==='POST'&&call.status===200).length,1,'only independent peer write succeeds');assert.equal(remote.calls.filter(call=>call.kind==='receipt').length,0);assert.equal(remote.writes(),1);
+  assert.deepEqual(copy(f.api.flow().saved),saved);assert.equal(rows(f)[0].name,'Mine retained');assert(f.local.dirty());assert(!f.local.pending());
+  const response=await remote.fetch('/api/process-authoring/workflow?caseMetadata=1'),body=await response.json();assert.equal(body.control.workflow.working.workspaces[0].stages.S[0].name,'Peer committed after compare');assert.deepEqual(body.control.workflow.saved,saved);
+ }finally{remote.close();}
+});

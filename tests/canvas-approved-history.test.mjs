@@ -15,3 +15,24 @@ void test('Canvas current global Save UNKNOWN is preserved across approved histo
 void test('Canvas actual Save in flight blocks a version switch without losing the journal',async t=>{let entered,release;const ready=new Promise(r=>entered=r),held=new Promise(r=>release=r);const f=await setup({intercept:async(_url,o,send)=>{if(o.method==='POST'){entered();await held;}return send();}});t.after(f.close);await f.open();f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'HELD_SAVE'}]);const saving=f.api.save();await ready;const count=f.calls.length;await f.choose('legacy-process:old-21');assert(!f.api.historyReadOnly());assert.equal(f.calls.length,count);release();assert.equal(await saving,true);assert.equal(f.api.flow().saved.content.workspaces[0].stages['A-CUT'][0].name,'HELD_SAVE');});
 void test('Canvas denied return clears approved content and retains original local journal',async t=>{const f=await setup();t.after(f.close);f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'RETAIN_ON_DENIED'}]);const flow=f.api.flow(),counts=structuredClone(f.canvas.counts());await f.open();await f.choose('legacy-process:old-21');f.f.revoke();await f.choose('');assert(f.api.historyReadOnly());assert.equal(f.api.flow(),flow);assert.deepEqual(structuredClone(f.canvas.counts()),counts);assert.doesNotMatch(f.display().textContent,/LEGACY_CANVAS/);assert(!f.api.canEditCanvas());});
 void test('Canvas return accepts current view/history while retaining revoked edit/save',async t=>{const f=await setup();t.after(f.close);f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'LOCAL_WITH_REVOKED_EDIT'}]);const counts=structuredClone(f.canvas.counts());await f.open();await f.choose('legacy-process:old-21');await f.f.mutateValues(values=>{const users=JSON.parse(values.platformUsers);users[0].accessOverrides={...users[0].accessOverrides,'editor.edit':false,'editor.save':false};values.platformUsers=JSON.stringify(users);});await f.choose('');assert(!f.api.historyReadOnly(),'view/history permits return');assert(!f.api.canEditLocalCanvas());assert(!f.api.canSaveCanvas());assert.throws(()=>f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'DENIED'}]),/PENDING_OR_PERMISSION_LOCKED/);assert.deepEqual(structuredClone(f.canvas.counts()),counts);assert(f.calls.every(c=>c.method==='GET'));});
+
+void test('history fences queued view filters and current-canvas Save retains another canvas journal and form',async t=>{
+ const f=await setup();t.after(f.close);
+ await f.f.mutateValues(values=>{
+  const control=JSON.parse(values.processAuthoringControl),addOther=workspace=>{
+   const operation=structuredClone(workspace.stages['A-CUT'][0]);Object.assign(operation,{id:'two',stageCode:'A-PACK',name:'Other original'});workspace.stages['A-PACK']=[operation];
+  };
+  addOther(control.workflow.working.workspaces[0]);for(const version of control.versions)if(version.snapshot?.workspaces?.[0])addOther(version.snapshot.workspaces[0]);values.processAuthoringControl=JSON.stringify(control);
+ });
+ await f.api.load();f.canvas.accept(f.api.flow());await f.canvas.recoveryReady();f.box.render();
+ f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'Current saved'}]);f.canvas.edit(wid,'A-PACK',[{id:'two',f:'name',value:'Other RAM'}]);
+ const original=structuredClone(f.api.flow().working.workspaces[0].stages['A-PACK'][0]);f.canvas.storeForm(wid,'A-PACK','two',{original,draft:{...original,note:'unfinished other'},isNew:false});
+ const before=structuredClone(f.canvas.counts());await f.open();let filterRuns=0;
+ const queued=f.api.changeCanvasView({run(){filterRuns++;}}),choosing=f.choose('legacy-process:old-21');
+ assert.equal((await queued).status,'blocked');await choosing;assert.equal(filterRuns,0);assert(f.api.historyReadOnly());
+ assert.equal((await f.api.changeCanvasView({run(){filterRuns++;}})).status,'blocked');assert.deepEqual(structuredClone(f.canvas.counts()),before);
+ await f.choose('');assert.equal((await f.api.changeCanvasView({run(){filterRuns++;}})).status,'ready');assert.equal(filterRuns,1);
+ const posts=f.calls.filter(call=>call.method==='POST').length;assert.equal(await f.api.save(),true);assert.equal(f.calls.filter(call=>call.method==='POST').length-posts,1);
+ const saved=f.api.flow().saved.content.workspaces[0].stages;assert.equal(saved['A-CUT'][0].name,'Current saved');assert.equal(saved['A-PACK'][0].name,'Other original');
+ assert.equal(f.canvas.project(wid,'A-PACK',[])[0].name,'Other RAM');assert.equal(f.canvas.form(wid,'A-PACK','two').draft.note,'unfinished other');assert.equal(f.canvas.counts().fields,1);
+});

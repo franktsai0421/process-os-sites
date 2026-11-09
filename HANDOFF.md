@@ -1,3 +1,7 @@
+## 2026-11-09 — 完整歷史候選已合入本機畫布整合
+
+已保留root27a檢查點並以真實雙親合入1a/e3d92846完成歷史前端；807與當前scope Save保留。只讀display epoch另封住已排程view gate，fresh返回權限保護本機writer。新永久cross-regression已加入；正按新runtime重建來源與cache證據，不能用舊819通過當新樹驗證。#102的dirty全頁切換不拷入；GitHub完整程式與實站仍未更新。詳[最新矩陣](docs/acceptance/process-editor-complete-20261109.md)。
+
 ## 2026-11-09 — 最新草稿決定已核實
 
 舊草稿可不保留、A可整份AB送審、例行FQC整頁共用，全部草稿頁面由#102統一；三項不再待答。此整合仍只含b172未啟用前置，不能把規則確認當作拆分完成或在本批執行真資料轉換。完整來源、測試及外部阻擋見下方矩陣與本機delivery manifest。

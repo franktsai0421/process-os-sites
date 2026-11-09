@@ -1,3 +1,11 @@
+## 2026-11-09 — 完成歷史前端候選已在本機合樹
+
+已以真實merge承接歷史owner固定 `1a147d9` 及最終 `e3d92846cd6e5963213c2970f65c9e019895d6c9`；包含13組頁面、PROCESS模板機器／IPQC AB／例行FQC及畫布原頁核准版本。保留root 807 view gate、當前畫布Save、其他畫布journal與未完成表單；歷史display epoch另外保護已排程view gate，回草稿採用fresh edit/save權限，不將歷史回填目前writer。
+
+第一輪原新Canvas/PROCESS/count41項與既有currentSave/conflict/UNKNOWN282項PASS。另把獨立memory整合案例收為永久實際堆疊regression：歷史阻擋已排程及新filter gate、回草稿再Save僅寫目前canvas一次，其他畫布修改/未完成表單保留。整批新e3d runtime、來源witness與cache需按最終HEAD重新驗證，下面舊檢查點的數字不可代替本輪。
+
+#102仍在另一owner實作，尚未凍結的page cutover/例行FQC共頁草稿程式沒有拷入；本候選只保留已審未啟用b172前置。無GitHub程式上傳、資料／schema／ACL切換或部署，原UNKNOWN/拒絕不重送。
+
 # 製程編輯台完整目標與單一 PR 整合門檻
 
 使用者最新要求：完整製程編輯台已討論修改一起放在同一個 PR。#101 維持草稿；8f1f243 的計數 CI 是元件證據，不是完整編輯台的合併授權。不得把既有 UNKNOWN 上傳透過 #101、新 PR、拆分或其他路徑重送。此文件與本機整合分支均不代表已上傳完整功能或測試站更新。
@@ -16,7 +24,7 @@
 | 已核准線別／工段與流程類型／機器連動，缺自訂補自訂 | #99已合併main021f0f3，3CI與獨立審查PASS；新工段繼承已核准preset/catalog設定、獨立防碰撞ID | 不回填舊歷史或複製機器；新選機器依線別/工段；需實際新增→核准→類別→畫布測試 |
 | 製程草稿與其他功能頁草稿／權限分開；同頁不依篩選另拆模組 | process:platform現有；#102 b172aaf為未啟用頁面ownership預演；line-admin仍未真正拆分 | 三規則已確認：舊草稿可不保留、A可整份AB送審、例行FQC整頁共用；完整codec/CAS/舊writer fences/PROCESS link/審核/歷史/UI及還原演練仍待#102實作驗證，不開flag冒充拆分 |
 | 送審／撤回與審核確認權限分開；核准後不得撤回 | main與各workflow有既有guards，帳號／權限由別案處理 | 各角色與各入口在完整樹、真實帳號驗證；不得用admin成功代替拒絕角色 |
-| 原頁只顯示已核准版本，唯讀；返回當前草稿，無歷史彈窗／回朔 | 本機已接固定3f6e736（含d1），API與部分模組前端PASS；另一owner後續9914864與bfa2650已提交PROCESS/IPQC AB/例行FQC及#100整合，但尚未納入此固定runtime | 畫布原頁只讀前端仍缺；另案已提交PROCESS模板機器／IPQC AB／routine前端，須以新凍結交付接入並驗證；不讀取其dirty測試／證據或以API PASS代替前端完成 |
+| 原頁只顯示已核准版本，唯讀；返回當前草稿，無歷史彈窗／回朔 | 本機已以真實merge接最終e3d92846（含先前3f/d1/main100），13組頁面原頁核准版本已接入，包含畫布及PROCESS模板機器 | 須驗證與root當前scope Save、807同頁view gate、原收據及新權限返回整合；不以API PASS代替前端／native與實站驗收 |
 | 存取後流程總數立即與畫布一致 | #101 8f1f243，獨立複核、36相關測試、build與598來源PASS；4CI全部PASS，但依最新單一完整PR要求保持草稿 | 元件尚未合併；舊版唯讀／篩選／新版Canvas API合入後重驗，不能宣稱所有數字皆修好 |
 | 進頁、切頁、存取、送審速度，>5秒優化、>10秒優先 | 有局部合成測試；本批沒有實站效能證據 | 分別量測可操作時間與完成時間、記錄資料量及網路；40秒未重現，不縮短deadline來假稱修復 |
 | 完整桌機、iPhone、IME、兩人生命週期與測試站驗收 | GitHub CI含隔離編譯瀏覽器；本機原生瀏覽器受環境限制 | 最終整合樹的草稿→存取→送審→核准→歷史、空畫布、類別/群組切頁、失敗與UNKNOWN必跑；實機/實站NOT_RUN |
@@ -65,3 +73,11 @@ Frozen parents：main021／count8f／no-poll158／history3f6（含d1）／filter
 最新固定runtime380d016的C實際堆疊139/139、來源／engine／witness／count／background／Routine819/819、panel15/15、全庫正常typed lint、guarded build均PASS。18個真target、53 current、654精確projection、173 bounded真objects、原79歷史requests；compact contract4,453,246 bytes，無提高5MiB來源blob限制。source-policy原15 unit與16組exact/private-proof/真Git祖先負控PASS。來源證據與功能套件有重疊，不能相加為完整覆蓋數。最終source-only全歷史／乾淨來源consumer結果由外部manifest綁定，不可先推定通過。
 
 最後本機交付：正常source-only history/worktree全667提交PASS；乾淨單分支無alternates、無node_modules且7ef commit不存在的consumer819/819 PASS；最終畫布Save/衝突/UNKNOWN282/282、cache/navigation/receipt182/182、count/stage/no-poll33/33 PASS，三輪獨立複核均無must-fix。測試與來源證據不是GitHub完整來源已上傳或實站完成；最新三項草稿決定已修正為#102待實作，無新DB/ACL/schema操作。
+
+## Save舊測試順序已核對（本機，未發布）
+
+已重現post-authority舊案例55 PASS / 1 FAIL / 3原有optional perf skip（缺固定c82基準）；失敗是空patch Save仍預期POST→GET。依存取先比對的要求維持產品GET→POST→GET，增加peer另一canvas更新與新revision，驗實際command expectedRevision、scope、空patch及保存peer內容；legacy Sync單POST快路徑仍保留，不混為新Save。
+
+機器fixture先補回實際historyReadOnly、transport.permission與Save guard（非允許所有操作stub）後重現17 PASS / 2舊UNSYNC斷言FAIL，再改成與production action相同的canvasHandled/canvasSaved入口，不多送獨立Save。驗機器快照一次原子POST固定、上游圖片更新不改已存內容；舊UNKNOWN先只查原收據、保留新版RAM，下一次明確Save才保存。兩組合併76 PASS / 0 FAIL / 3既有optional skips；原失敗logs保留。
+
+另4個signed SQLite route反例於inline與records-v1均PASS：比較前撤權零POST零寫入；比較後peer寫入由expectedRevision/CAS拒絕，只有peer成功、Mine及原saved保留、沒有receipt查詢或自動重送。獨立定向8項PASS，確認不是只改request count。新歷史全頁實際堆疊383項、Canvas既有核心355項、送審feedback60組PASS；與新4項有重疊，不加總作全站驗收。最終來源／build／完整CI／實站另據實記錄。

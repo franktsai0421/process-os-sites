@@ -1,3 +1,7 @@
+## 2026-11-09 — 製程畫布歷史與scope Save本機整合
+
+承接固定e3d92846全部核准歷史前端；保留目前scope Save、807同頁filter journal與UNKNOWN，補display epoch阻擋已排程filter穿越歷史／目前草稿。回草稿使用fresh edit/save權限；新永久兩canvas/form實際堆疊case驗證回來只送一次當前scope Save。無schema／真資料或部署。[整合門檻](../docs/acceptance/process-editor-complete-20261109.md)。
+
 ## 完整製程編輯台整合（本機）
 
 以實際main9fb（已含#99/#100）保留count/no-poll/frozen draft/history/filter/inactive boundary雙親與功能，局部Save改回使用者確認的當前畫布，其餘本機內容及舊global UNKNOWN收據保留。尚未更新#101產品來源、傳送完整payload或部署。[目標、證據與阻擋](../docs/acceptance/process-editor-complete-20261109.md)。

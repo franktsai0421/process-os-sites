@@ -21,7 +21,7 @@ for (const test of cases) {
   const code = fs.readFileSync(fixture, 'utf8');
   assert.equal(code.split(test.boundary).length, 2, test.name + ' unique fixture prefix');
   const prefix = code.slice(0, code.indexOf(test.boundary));
-  const raw = canonical(test.name==='panel'?require('node:child_process').execFileSync('git',['show','4a10e935ef8bd4cb3d4beecaa38ebf8c6f1508c2:'+test.target],{cwd:root,encoding:'utf8'}):fs.readFileSync(target, 'utf8'));
+  const raw = canonical(test.name==='panel'?require('../historical-source-fixture.cjs').readPublic('initial_unified','process-authoring-v3.js'):fs.readFileSync(target, 'utf8'));
   assert.equal(raw.split(test.marker).length, 2, test.name + ' unique mutation marker');
   function execute(source) {
     const requireFixture = createRequire(fixture), mod = { exports: {} };

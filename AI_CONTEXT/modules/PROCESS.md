@@ -1,3 +1,7 @@
+## 2026-11-09 — 本機畫布核准版本與當前scope Save整合
+
+真實merge採用e3d92846畫布單一原頁核准版本selector、V3/legacy核准聯集與獨立display lease；保留807同頁view gate及當前畫布Save，歷史選取會失效已排程gate與舊handler，其他畫布journal/form不被保存或清除。回草稿fresh權限限制編輯/存取，原UNKNOWN原樣查收據不重送。來源/正常回歸/實站界線見[整合矩陣](../../docs/acceptance/process-editor-complete-20261109.md)。#102未啟用前置與本批歷史顯示分開，無資料模型/schema改動。
+
 ## 完整製程編輯台單一PR整合（本機未發布）
 
 以已凍結計數／無輪詢／草稿／歷史／同頁篩選／未啟用boundary候選建立共同底座；當前畫布Save與其他畫布RAM分離，原UNKNOWN收據不改。另承接7ef的精確C request-entry consent防護，不覆蓋共同client，資產版本與來源witness隨runtime固定。[完整目標及尚缺門檻](../../docs/acceptance/process-editor-complete-20261109.md)。#101元件CI PASS仍保持草稿，沒有完整上傳或部署。
