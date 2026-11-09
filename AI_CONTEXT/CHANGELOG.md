@@ -1,3 +1,7 @@
+## 2026-11-09 — Explain derived account Save capability
+
+Local account UI candidate displays Edit-includes-Save labels for the ten existing adapters, preserves configured cells/overrides and pins the new account asset. Six targeted tests and 75 existing regressions pass; native/browser/live acceptance remains separate. [Details](../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明).
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

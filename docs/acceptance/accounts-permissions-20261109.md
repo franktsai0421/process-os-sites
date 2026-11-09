@@ -58,3 +58,14 @@ node scripts/audit-account-permission-requirements.mjs
 本輪只有新的診斷腳本與本交接文件，沒有產品、schema、migration、帳號、權限設定、備份、媒體或部署變更。既有帳密／A/B、製程和全站背景檢查候選均未覆寫。沒有 GitHub mutation。
 
 原主要整合上傳結果仍 **UNCERTAIN**（沒有完整清單／結果）；相關來源轉送拒絕仍是 **BLOCKED** 的既有操作，沒有在本輪重試。現有 browser/preview HOLD、native Windows CI 與真帳號驗收尚未解除。已核對站台登入入口不代表已完成帳密驗收。
+
+
+## 第一批本機修復：儲存能力說明
+
+後續工作沿本盤點 commit `c9537fd` 獨立進行，沒有重套或傳送既有帳密候選。角色 preview、角色／個人矩陣與自己的唯讀權限，對實際後端已由 Edit 派生 Save 的十個模組顯示「修改權已包含／Đã gồm trong quyền Sửa」。取消查看或修改時同步更新說明；單獨 Save、editor、routine 與 lines 不宣稱有未實作的派生能力。原始 checkbox／個別 deny／可編輯狀態及保存 payload 的資料來源不變，沒有改任何帳號或後端權限。
+
+產品變更只有 user-access.js 的顯示 helper、說明與同步節點，以及該 JS 的 index cache tag。沒有修改 CSS、登入、帳號 mutation、policy、workflow adapter 或資料庫。Local safety 原帳號命令追加一個 regression 檔，保留原步驟／trigger／token permissions 與失敗傳播。
+
+新回歸最初 4 FAIL／1 PASS，產品修正後最終 6/6 PASS：中越文、role／individual、view/edit/save 組合、所有 162 個原 checkbox 的值與 disabled 邊界、修改後原節點同步、唯讀／deny 保全；第六組直接讀 11 個實際 workflow handlers 的 permissions GET，十個模組與 editor 的能力及標籤一致，DB／R2 零寫入。另既有 navigation、receipt、identity fence、dirty dialog／初讀 75/75 PASS，scoped normal lint／diff check PASS。
+
+既有 38 項 audit 的比較是 raw Save cell 與派生 API capability，原斷言仍會 FAIL；本批修的是畫面明確呈現派生能力，沒有偽造 raw cells 相等。前述 7 個政策／kernel 需求差距仍須分批處理，未因這批顯示修正變成 PASS。Native browser、Windows CI、真帳號與部署未執行；既有 browser HOLD 未繞過。未上傳 GitHub。

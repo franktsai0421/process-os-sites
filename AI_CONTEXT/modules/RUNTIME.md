@@ -1,3 +1,7 @@
+## 2026-11-09 — Account Save capability labels
+
+Local UI candidate labels the ten existing Edit-implies-Save adapters without rewriting cells or overrides; own/role/individual views update the explanation in both languages. [Verification and boundaries](../../docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No backend policy or real-account change.
+
 ## 2026-11-06 — Role-template layout candidate
 
 The account matrix uses responsive columns and explicit extra-operation descriptions; constrained role workspaces place the role list above the matrix and short dialogs use one body scroll region (CSS `20261106-role-layout2`); empty disclosures become explanations while cells, overrides and write semantics remain. [Evidence and readonly permission mapping](../../docs/acceptance/role-template-layout-20261106/README.md). Source-only candidate; no role/account or authorization-policy changes, merge or deployment.

@@ -1,3 +1,7 @@
+## 2026-11-09 — Account Save capability labels (local candidate)
+
+Account matrices now label existing Edit-implies-Save capabilities in both languages while preserving raw grants and write payloads. Eleven actual workflow GETs agree with the presentation; no account, ACL or data mutation. [Scope and remaining gates](docs/acceptance/accounts-permissions-20261109.md#第一批本機修復儲存能力說明). No upload or deployment.
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
