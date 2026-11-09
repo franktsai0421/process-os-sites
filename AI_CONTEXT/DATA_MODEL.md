@@ -1,3 +1,7 @@
+## 2026-11-09 主資料分頁資料布局候選
+
+目標資料布局新增受信任 `pageDraftLayout:page-v1`，active／versions.scope／workflowScopes 使用 AB.catalog、C.catalog、LINES；原 AB/C 版本／flow／Save／receipt 原樣保留只讀，已退役草稿不作目前引用。新入口要求 baseline 已存在，不會 adoption 或生成核准人／案件。既有 records codec 以 owner active snapshot 與同 scope version body 對應，合成 inline/records 重開已測；沒有 SQL/schema/key 變更或真資料切換。生效 AB/C 是有明確 catalog＋LINES approved source vector 的只讀組合，不能冒充舊 combined version。一般 public payload 使用明確允許欄位，不含私人 extensions／草稿。[資料介面與未完成項](../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 主資料頁面所有權預演
 
 全站分界目標已列在 `draft-page-boundaries.ts`：十三個業務頁 owner，另列私人 feedback 的 origin／actor IndexedDB 隔離。`draft-page-cutover.ts` 是未註冊的純切換規劃，保留 master／routine 原字串與全部歷史／收據，遇 pending 或不完整來源拒絕；不是 DB/R2 備份或 migration。`RoutinePageContent` 候選僅 `{documents:[{id,content}]}`，`routine-fqc-page-save.ts` 在記憶體回傳一份 page working/saved/receipt，不寫逐文件 flow 或異常案件。未採用新儲存格式、schema、codec 或資料切換；新版整頁審核及業務副作用仍待接線。

@@ -1,3 +1,7 @@
+## 2026-11-09 主資料分頁 runtime 候選（未切換）
+
+補 catalog/LINES 的資料 marker 守門 route、基本本機編輯 UI、整組衝突續存與同 ID 復原、同 CAS topology／PROCESS link；生效 catalog 明確標示兩個核准來源，不生成 combined approval。保留舊 owner 收據／歷史，fence 舊 writer；一般 payload 不輸出私人草稿。未切真資料／schema／部署；原生瀏覽器與完整 UI 等價仍未驗。[驗證界線](../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — 全站草稿分界統一範圍（未完成接線）
 
 修正獨審兩項 P2：整頁 Save 先驗所有 working 文件的原引用／結構（包括零批次），原收據照原結果重播；切換規劃拒絕重複文件、案件與 immutable Save ID。新增修正前負控制及 14／10 組定向契約。未改現用 writer 或業務資料；AB 衝突／File／UNKNOWN 接線另列驗收，已核准版本查看維持另一工作負責。

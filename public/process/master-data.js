@@ -318,6 +318,10 @@
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
+    if(control.pageDraftLayout==='page-v1'&&!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();
+    if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(tab)){
+      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
+    }
     if(tab==='line-admin'){
       const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
       if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
@@ -1132,9 +1136,9 @@
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}};
   window.MasterDataWorkflow = {
     control: () => control,
-    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),
+    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),
     navigation:{
-      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
+      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
         sharedOwned:()=>false,
         context:()=>[departureScope(),shared.flow(departureScope())?.generation,deliveryGeneration,shared.permissions(departureScope())?.save,shared.permissions(departureScope())?.edit],
@@ -1160,6 +1164,7 @@
     },
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
+      window.ProcessMasterPages?.reset();
       deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;
       abProducts=[];seed.AB={name:'AB 產線與類別',products:data.products.filter(product=>['A','B'].includes(routeLine(product))).map(product=>({...clone(product),unit:product.unit||'待補',line:routeLine(product),stages:routeStages(product)})),lines:routing.lines.filter(line=>['A','B'].includes(line.code)).map(clone)};
       seed.C={name:'C 產線與類別',products:clone(window.LINE_C_MASTER?.products||[]),lines:[{code:'C',name:'零件加工線',stages:clone(window.LINE_C_MASTER?.stages||[])}]};

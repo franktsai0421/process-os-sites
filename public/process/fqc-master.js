@@ -578,8 +578,9 @@
     if (!isCurrent()) return null;
     assertCurrent();
     const current = result.control, active = Array.isArray(current?.versions) ? current.versions.filter(version => version && version.id === current.activeVersionId && version.status === 'approved') : [];
-    const snapshot = active.length === 1 ? active[0].snapshot : null;
-    if (result.permissions?.view !== true || typeof current?.activeVersionId !== 'string' || !current.activeVersionId || !snapshot ||
+    const composition=current?.catalog,composed=composition?.kind==='approved-page-composition-v1'&&composition.sources?.catalog?.scope==='master:AB.catalog'&&composition.sources?.lines?.scope==='master:LINES'&&[composition.sources.catalog.versionId,composition.sources.lines.versionId].every(id=>typeof id==='string'&&id.length>0);
+    const snapshot = composed ? composition.content : active.length === 1 ? active[0].snapshot : null;
+    if (result.permissions?.view !== true || !composed&&(typeof current?.activeVersionId !== 'string' || !current.activeVersionId) || !snapshot ||
         !Array.isArray(snapshot.products) || !Array.isArray(snapshot.lines) || !Array.isArray(snapshot.categoryGroups))
       throw Error(isVi() ? 'Không thể đọc danh mục AB đang có hiệu lực' : '無法讀取目前生效的 AB 主檔');
     const value = clone(snapshot);

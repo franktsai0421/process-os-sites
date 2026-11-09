@@ -2,7 +2,19 @@
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
-## 獨立公開候選邊界
+## 2026-11-09 主資料 runtime 接線候選（未切換）
+
+新增 `/api/master/pages?scope=AB|C|LINES`，使用既有登入、權限、識別 Begin、原收據、全 shared_state revision CAS 及 immutable-record codec。只有受信任資料中已存在 `pageDraftLayout:page-v1` 與三個已建立的獨立有效 baseline 才接受；查詢／環境變數不會啟用、初始化或轉移資料。目標 versions／workflowScopes keys 是 `AB.catalog`、`C.catalog`、`LINES`，active 同時保留各 owner 內容與僅由核准來源組成的 AB/C 相容讀取。沒有 SQL schema 或新 shared_state key。
+
+catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES writer 只改 AB/C 分區的 lines/stages，同頁篩選共用一份 Save／pending。完整 topology 沿用既有引用阻擋與 PROCESS 模板鎖，整頁只產生一份 union pinned PROCESS link，核准於同次 CAS 處理，不採用其他頁 working。每次新 Save 固定 owner revision／目前身分／權限；編碼後再查 session。固定案件綁原 immutable Save。舊 combined writer 與 generic master 寫入在 marker 後拒絕，舊 owner 的收據／歷史保持只讀。
+
+新的生效 catalog 回應是 `catalog:{kind:approved-page-composition-v1,sources:{catalog,lines},content}`，來源各自指向原核准版；不是新 combined 核准案件／版本。FQC 可讀新舊兩種協定。一般站台 payload 只帶 approved 相容 active、PROCESS 有效版本及 layout，避免輸出新舊私人草稿／root extensions。
+
+前端候選以各頁 owner 持有本機輸入，明確 Save 才傳送。整組選我的／對方後保留無衝突並續存；取消不傳送、保留文字；對方刪除可在同一原父項下恢復已知原 ID（新 ID 仍需 create）；UNKNOWN 沿原 endpoint 查原操作。新增選用欄位以原父 entity guard 證明不存在，避免 JSON 丟失 undefined。未新增本模組圖片輸入；File／媒體契約仍須在其他頁及例行整頁完成驗收。一般離開模組丟棄未傳送輸入；UNKNOWN markers 保留。
+
+實際 inline／records 路由與合成 DOM＋真 transport 已測；原生 Chromium 啟動遭 OS socket EPERM，未繞過，桌面／390px／觸控／布局未驗收。仍需完整 UI 功能等價（既有匯入匯出、進階整理）、版本查看工作對接、真資料 adoption／原樣 DB/R2 還原與明確切換確認；例行 FQC 仍只有未註冊整頁 Save 核心。本候選不可視為全站拆分完成、Ready、合併或部署許可。
+
+## 獨立公開候選邊界（此前小批，歷史）
 
 相對 #100 的 main，本機候選包含主資料頁面預演／名稱 Save／整頁生命週期、十三頁 owner 合約、切換規劃及例行 FQC 整頁 Save 核心，合計七份定向合成測試已列入 AB/C CI。現用程式差異還包括 master route 的未支援 page marker 拒絕、`scope=LINES` 明確映射 `lines.*`，以及例行 FQC 原結構／retest 驗證抽為同一個純函式供兩種 Save 使用。沒有改帳號或角色權限值，沒有接入新頁面的 UI／master writer／storage/CAS、執行 migration 或啟用拆分；#99 工段及 #100 定時檢查改動保留。
 
@@ -13,9 +25,9 @@
 | 真正功能頁 | 現行草稿所有權 | 本批結果／未完成 |
 | --- | --- | --- |
 | 製程編輯台 | `process:platform` | 已是整頁一份；workspace／類別／工段為內部畫布。未改 runtime，跨畫布 Save 本輪 NOT_RUN |
-| AB 產線與類別 | `master:AB`，含線別工段 | 尚未拆。預演投影為 `master:AB.catalog`，只含 products/categoryGroups |
-| C 產線與類別 | `master:C`，含線別工段 | 尚未拆。預演投影為 `master:C.catalog` |
-| 線別與工段管理 | 依目前 AB/C 選取借用上述兩份 | 尚未拆。預演為單一 `master:LINES`；新增未註冊的既有名稱 Save 元件，AB/C 分區在同一份 content，不能變成兩份頁面草稿 |
+| AB 產線與類別 | 目前實站 `master:AB`；候選 `master:AB.catalog` | 新入口 writer/CAS/基本 UI 已接，受資料 marker 守門；未真切換，完整 UI 等價／原生驗收未完成 |
+| C 產線與類別 | 目前實站 `master:C`；候選 `master:C.catalog` | 同上；不含線別草稿 |
+| 線別與工段管理 | 目前實站借用 AB/C；候選單一 `master:LINES` | 完整 topology writer、同 CAS union PROCESS link 與基本 UI 已接；AB/C 是同一 content 分區。未真切換，仍待完整 UI／原生驗收 |
 | 流程資料 | `master:PROCESS` | 已獨立；模板、名稱、媒體與設備總表／機器 modal 同頁，不拆成新模組 |
 | FQC | `fqc` | 已獨立；錯誤碼／項目／矩陣為內部視角，生命週期本輪 NOT_RUN |
 | IQC | `iqc` | 已獨立；零件／項目／供應商等同頁，生命週期本輪 NOT_RUN |

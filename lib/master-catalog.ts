@@ -1,9 +1,11 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import { normalizeMasterSnapshot } from './master-workflow';
 import { DraftConflict, stableDraftJSON } from './shared-draft';
 import { isImmutableRecordBody } from './state-records';
 
 type Row = Record<string, unknown>;
 type CatalogRoot = {
+  pageDraftLayout?:string;
   active?: Record<string, Row>;
   versions?: Row[];
   workflowScopes?: Record<string, { active: { id: string } }>;
@@ -13,7 +15,7 @@ export class MasterCatalogLegacyFallback extends Error {}
 const existing = (raw: string | undefined): CatalogRoot => {
   if (!raw) throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED', 422);
   const root = JSON.parse(raw) as CatalogRoot;
-  if (!root.active?.[scope] || !Array.isArray(root.versions))
+  if (!(root.pageDraftLayout==='page-v1'?root.active?.['AB.catalog']&&root.active?.LINES:root.active?.[scope]) || !Array.isArray(root.versions))
     throw new DraftConflict('MASTER_EXISTING_DATA_INVALID', 422);
   return root;
 };
@@ -25,7 +27,16 @@ const existing = (raw: string | undefined): CatalogRoot => {
 // No working/history body substitutes for active; never use as a write baseline.
 export function projectMasterCatalog(key: string, raw: string): string | undefined {
   if (key !== 'masterDataControl') return undefined;
-  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);
+  const root = existing(raw);
+  if(root.pageDraftLayout==='page-v1'){
+   const ids=root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>version.id);
+   if(ids.some(id=>root.versions!.filter(version=>version.id===id).length!==1))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);
+   return JSON.stringify({pageDraftLayout:root.pageDraftLayout,
+    active:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,root.active![scope]])),
+    versions:root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>({id:version.id,scope:version.scope,status:version.status,snapshot:version.snapshot})),
+    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,{active:root.workflowScopes?.[scope]?.active}]))});
+  }
+  const versions = root.versions!.filter(v => v.scope === scope);
   if (!root.workflowScopes?.[scope]) throw new MasterCatalogLegacyFallback();
   const activeId = root.workflowScopes?.[scope]?.active.id;
   const adopted = !!root.workflowScopes?.[scope], activeBody = root.active!.AB;
@@ -43,7 +54,9 @@ export function projectMasterCatalog(key: string, raw: string): string | undefin
 }
 
 export function masterCatalog(raw: string | undefined) {
-  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);
+  const root = existing(raw);
+  if(root.pageDraftLayout==='page-v1')return {catalog:approvedMasterPageCatalog(root,'AB')};
+  const versions = root.versions!.filter(v => v.scope === scope);
   const matching = (v: Row) => v.status === 'approved' &&
     stableDraftJSON(v.snapshot) === stableDraftJSON(root.active!.AB);
   const active = versions.find(v => v.id === root.workflowScopes?.[scope]?.active.id && matching(v)) ||

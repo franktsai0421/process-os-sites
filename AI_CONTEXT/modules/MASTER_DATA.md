@@ -1,3 +1,7 @@
+## 2026-11-09 各頁 runtime 候選
+
+新增 master-page-workflow＋/api/master/pages，受儲存布局 marker 守門，AB/C 只管 catalog、LINES 一份含 AB/C topology。共用現有 route CAS／Begin／權限／原收據；union PROCESS link 同 CAS，其他頁 working 不送出。新基本 UI 用本機三方比較，整組選擇續存、原 ID 復原與 UNKNOWN 查詢。舊 combined／generic writer 被 fence，舊 receipt/history 仍原 owner 只讀。尚未真切換；原生瀏覽器被 OS socket EPERM 阻擋，完整 UI 等價／已核准查看協調／adoption 未完成。[唯一狀態矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 草稿分界前置候選
 
 使用者已答三項並要求 #102 覆蓋所有草稿頁：舊未核准 working 可放棄、A/B 完整快照可送審、例行 FQC 整頁一份。待審、已核准歷史及原 receipts 仍保護，真實切換另確認。十三頁合約與切換規劃已加入；`scope=LINES` 現明確映射 lines.*，不會落入 AB/C／data fallback，但 LINES 實際新路由與 UI 尚未啟用。全頁完成／缺口以同一[逐頁矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)為準。

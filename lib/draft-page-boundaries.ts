@@ -4,9 +4,9 @@ import { DraftConflict } from './shared-draft';
 // describes ownership; it never grants access or enables a migration/route.
 export const draftPageBoundaries = Object.freeze(([
   { page: 'PROCESS_EDITOR', scope: 'process:platform', permissionModule: 'editor', endpoint: '/api/process-authoring/workflow', stateKey: 'processAuthoringControl', migration: 'existing' },
-  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/workflow?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },
-  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/workflow?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },
-  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/workflow?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },
+  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/pages?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },
+  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/pages?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },
+  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/pages?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },
   { page: 'PROCESS', scope: 'master:PROCESS', permissionModule: 'templates', endpoint: '/api/master/workflow?scope=PROCESS', stateKey: 'masterDataControl', migration: 'existing' },
   { page: 'FQC', scope: 'fqc', permissionModule: 'fqc', endpoint: '/api/fqc/workflow', stateKey: 'qualityMasterControl', migration: 'existing' },
   { page: 'IQC', scope: 'iqc', permissionModule: 'iqc', endpoint: '/api/iqc/workflow', stateKey: 'iqcMasterControl', migration: 'existing' },

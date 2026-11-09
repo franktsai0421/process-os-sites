@@ -119,6 +119,7 @@
   const departureOwnerCurrent=owner=>!!owner?.id&&!window.ProcessSync?.requiresReload&&owner.id===window.ProcessSync?.identity?.id&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync?.identityGeneration?.():owner.identity===window.ProcessSync?.identity);
   const departureScope=endpoint=>{
     const [path,query='']=endpoint.split('?'),params={get(key){const values=query.split('&').filter(part=>part.split('=')[0]===key);if(values.length!==1)return null;try{return decodeURIComponent(values[0].slice(key.length+1).replaceAll('+',' '));}catch{return null;}}};
+    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;
     if(path==='/api/master/workflow')return ['AB','C','PROCESS'].includes(params.get('scope'))?'master:'+params.get('scope'):null;
     if(path==='/api/ipqc-ab/workflow')return params.get('module')==='1'?'ipqc-ab:module':/^[AB]:.+/.test(params.get('scope')||'')?'ipqc-ab:'+params.get('scope'):null;
     return {'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/routine-equipment/workflow':'routine-equipment','/api/tooling/workflow':'tooling','/api/process-authoring/workflow':'process:platform'}[path]||null;
@@ -313,7 +314,8 @@
     const [beginPath,beginSearch='']=endpoint.split('?'),beginParams=durableBegin?new URLSearchParams(beginSearch):null;
     if(equipmentLocalSave&&(endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||externalStrict||!durableBegin))throw Error('EQUIPMENT_LOCAL_SCOPE_REQUIRED');
     if(processLocalSave!==false&&(processLocalSave!==true||!durableBegin||boundedScope!=='master:PROCESS'))throw Error('PROCESS_LOCAL_SCOPE_REQUIRED');
-    const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
+    const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;
+    const masterLocalBegin=pageLocalBegin||durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
     const beginScopePath=masterLocalBegin?beginPath+'?scope='+beginParams.get('scope'):beginPath;
     if(durableBegin&&!masterLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
@@ -385,6 +387,7 @@
       if(!control||!Number.isSafeInteger(result.revision)||result.revision<0||result.permissions?.view!==true||access?.view!==true)throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
       if(projected){if(!Object.hasOwn(result,'workflow')||!validBeginBasis(result.beginBasis)||(flow?.generation??null)!==result.beginBasis.generation)throw Error('INVALID_BEGIN_BASIS');}
       else if(!Array.isArray(control.versions))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
+      if(pageLocalBegin&&flow&&flow.scope!==departureScope(endpoint))throw Error('MASTER_PAGE_OWNER_MISMATCH');
       if(equipmentLocalSave&&flow&&flow.scope!=='routine-equipment')throw Error('EQUIPMENT_BEGIN_SCOPE_REQUIRED');
       if(flow&&(!beginText(flow.generation)||flow.generation===null||!Number.isSafeInteger(flow.revision)||flow.revision<0))throw Error('BEGIN_AUTHORITY_READ_REQUIRED');
       return control;

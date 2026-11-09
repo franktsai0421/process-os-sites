@@ -1,0 +1,294 @@
+[
+  {
+    "file": "app/api/master/stage-reference/route.ts",
+    "beforeHash": "9502ce64fbcf7242f20a547a5ced61542759d35f914ff3d266b843dbebebcb1a",
+    "afterHash": "8f58dc3ef4166e7fa80bd85b6bff4b556f4587286c50f7063e415cf4d6fc17b0",
+    "rules": [
+      {
+        "offset": 367,
+        "before": "  if(!['AB','C'].includes(scope))return reply({error:'SCOPE_INVALID'},422);\n",
+        "after": "  if(!['AB','C','LINES'].includes(scope))return reply({error:'SCOPE_INVALID'},422);\n"
+      },
+      {
+        "offset": 1525,
+        "before": "  const sourceModule=found.reference.module==='current'?scope.toLowerCase():found.reference.module;\n  if(!['ab','c','editor'].includes(sourceModule)||!await can(request,state,sourceModule+'.view'))return reply({error:'FORBIDDEN'},403);\n",
+        "after": "  const rawModule=found.reference.module==='current'?scope.toLowerCase():found.reference.module,sourceModule=rawModule==='ab.catalog'?'ab':rawModule==='c.catalog'?'c':rawModule;\n  if(!['ab','c','lines','editor'].includes(sourceModule)||!await can(request,state,sourceModule+'.view'))return reply({error:'FORBIDDEN'},403);\n"
+      },
+      {
+        "offset": 2306,
+        "before": "   moduleURL:sourceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+sourceModule.toUpperCase()});\n",
+        "after": "   moduleURL:sourceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+(sourceModule==='lines'?'line-admin':sourceModule.toUpperCase())});\n"
+      }
+    ]
+  },
+  {
+    "file": "app/api/master/workflow/route.ts",
+    "beforeHash": "ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f",
+    "afterHash": "ecf6f779320f311b5d09648d09c26606a97ba5e6a064d916a3cce126c919b985",
+    "rules": [
+      {
+        "offset": 2648,
+        "before": "  if(!preflight.recordStorage)return legacyCatalog(request);\n",
+        "after": "  if(!preflight.recordStorage){\n   if(JSON.parse(preflight.values.masterDataControl||'{}').pageDraftLayout!=='page-v1')return legacyCatalog(request);\n   const state=await readState({keys:[...authKeys,'masterDataControl']}),current=await identity(request,state),permissions=await catalogPermissions(request,state);\n   return !current||!permissions.view?reply({error:'FORBIDDEN'},403):reply({revision:state.revision,permissions,control:masterCatalog(state.values.masterDataControl)});\n  }\n"
+      },
+      {
+        "offset": 5459,
+        "before": " ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request));\n",
+        "after": " ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'',{legacyArchive:['operationId','history','caseId','legacyHistory','legacyVersionId','versionId','uiHistory','reviewMetadata'].some(key=>new URL(request.url).searchParams.has(key))})).GET(request));\n"
+      }
+    ]
+  },
+  {
+    "file": "app/api/shared-state/route.ts",
+    "beforeHash": "8655284f2d68a09595b09e7532d770ef28b2e4a0b843c8af16f0b60ee17a2b83",
+    "afterHash": "e1fc2411f085cfb088ebb631e1b19f63a9f2deb2d766328766837e309d334499",
+    "rules": [
+      {
+        "offset": 9076,
+        "before": "",
+        "after": "    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/draft-page-boundaries.ts",
+    "beforeHash": "ba56a63cd89b1db31baca835297aa0c3978e6a32bdba654761acfb538633fc50",
+    "afterHash": "be44c1f957fd8f00b1321286e12eb015e7e7d99d5b0ba8ad09121244f69a89a9",
+    "rules": [
+      {
+        "offset": 447,
+        "before": "  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/workflow?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },\n  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/workflow?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },\n  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/workflow?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },\n",
+        "after": "  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/pages?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },\n  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/pages?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },\n  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/pages?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/master-catalog.ts",
+    "beforeHash": "238af6ece410d58d8c57b2b72719ff1971d5cb97196dbf74415fbcedf4fbcda1",
+    "afterHash": "a155e573143c2ddbc818809aca49eeff7d3df5c939a0a9ea3e8eb03ef0f5ba10",
+    "rules": [
+      {
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedMasterPageCatalog} from './master-approved-pages';\n"
+      },
+      {
+        "offset": 308,
+        "before": "",
+        "after": "  pageDraftLayout?:string;\n"
+      },
+      {
+        "offset": 715,
+        "before": "  if (!root.active?.[scope] || !Array.isArray(root.versions))\n",
+        "after": "  if (!(root.pageDraftLayout==='page-v1'?root.active?.['AB.catalog']&&root.active?.LINES:root.active?.[scope]) || !Array.isArray(root.versions))\n"
+      },
+      {
+        "offset": 1476,
+        "before": "  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);\n",
+        "after": "  const root = existing(raw);\n  if(root.pageDraftLayout==='page-v1'){\n   const ids=root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>version.id);\n   if(ids.some(id=>root.versions!.filter(version=>version.id===id).length!==1))throw new DraftConflict('MASTER_EFFECTIVE_BASELINE_CONFLICT',409);\n   return JSON.stringify({pageDraftLayout:root.pageDraftLayout,\n    active:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,root.active![scope]])),\n    versions:root.versions!.filter(version=>['AB.catalog','LINES'].includes(String(version.scope))&&version.status==='approved').map(version=>({id:version.id,scope:version.scope,status:version.status,snapshot:version.snapshot})),\n    workflowScopes:Object.fromEntries(['AB.catalog','LINES'].map(scope=>[scope,{active:root.workflowScopes?.[scope]?.active}]))});\n  }\n  const versions = root.versions!.filter(v => v.scope === scope);\n"
+      },
+      {
+        "offset": 3295,
+        "before": "  const root = existing(raw), versions = root.versions!.filter(v => v.scope === scope);\n",
+        "after": "  const root = existing(raw);\n  if(root.pageDraftLayout==='page-v1')return {catalog:approvedMasterPageCatalog(root,'AB')};\n  const versions = root.versions!.filter(v => v.scope === scope);\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/master-page-boundary.ts",
+    "beforeHash": "253b39a0d7321d4c1a98c7dab374f0c43e3ca2307b9e596b72a2a706aa144d72",
+    "afterHash": "6cb494ebe2d382680c7519e034dde99be6997d2933c62a8f551b371ccb1d9d10",
+    "rules": [
+      {
+        "offset": 545,
+        "before": "// No route, storage adapter, environment flag or adoption writer imports this.\n",
+        "after": "// Runtime page adapters reuse only the ownership guards below. The preview\n// never activates a route, adopts a baseline or writes data.\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/master-stage-reference-response.ts",
+    "beforeHash": "79c02a0adcdd9045644e0946cba545395f73c81d84d5d66b39f748fb8072c647",
+    "afterHash": "2b4ec6016909bce7711e26f5d0ff6b33d01ccca618670e7b7672c3571dbcbc1b",
+    "rules": [
+      {
+        "offset": 736,
+        "before": "    const referenceModule=row.module==='current'?scope.toLowerCase():row.module;\n    if(!['ab','c','editor'].includes(referenceModule))continue;\n",
+        "after": "    const rawModule=row.module==='current'?scope.toLowerCase():row.module,referenceModule=rawModule==='ab.catalog'?'ab':rawModule==='c.catalog'?'c':rawModule;\n    if(!['ab','c','lines','editor'].includes(referenceModule))continue;\n"
+      },
+      {
+        "offset": 1083,
+        "before": "    if(allowed.get(referenceModule))references.push({...row,detailQuery:new URLSearchParams({scope,stage:row.stage,source:row.source,recordId:row.recordId||row.id,kind:row.kind}).toString(),resolveUrl:referenceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+referenceModule.toUpperCase()});\n",
+        "after": "    if(allowed.get(referenceModule))references.push({...row,detailQuery:new URLSearchParams({scope,stage:row.stage,source:row.source,recordId:row.recordId||row.id,kind:row.kind}).toString(),resolveUrl:referenceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+(referenceModule==='lines'?'line-admin':referenceModule.toUpperCase())});\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/master-stage-references.ts",
+    "beforeHash": "66f78e81d2249f3ef3c8d8fcda6512b8f3c48ae91e1ff7da9afbf172a65434af",
+    "afterHash": "8cd7154aa979a374c31e616f36f1629a651fcb73415c3619b6a44d4e26d59851",
+    "rules": [
+      {
+        "offset": 2711,
+        "before": "  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS')catalog(content,'master:active:'+scope,scope.toLowerCase());\n  for(const v of rows(master.versions))if(['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());\n  for(const [scope,value]of Object.entries(object(master.workflowScopes))){const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}\n",
+        "after": "  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS'&&(master.pageDraftLayout!=='page-v1'||['AB','C'].includes(scope)))catalog(content,'master:active:'+scope,scope.toLowerCase());\n  const retired=(scope:unknown)=>master.pageDraftLayout==='page-v1'&&['AB','C'].includes(str(scope));\n  for(const v of rows(master.versions))if(!retired(v.scope)&&['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());\n  for(const [scope,value]of Object.entries(object(master.workflowScopes))){if(retired(scope))continue;const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/master-workflow.ts",
+    "beforeHash": "2278552ad520fe5f251060c74d1296aef72e2ccd19ba747f9f4f2dd8d76d43f5",
+    "afterHash": "c454df67e25f0be469552ffdb02bac1c3a662acd97317b63a52c365000e95427",
+    "rules": [
+      {
+        "offset": 2293,
+        "before": "export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Library>{\n",
+        "after": "export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boolean}={}):WorkflowAdapter<Snapshot,Library>{\n"
+      },
+      {
+        "offset": 2541,
+        "before": " function serializeModel(control:Library){const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);\n",
+        "after": " function serializeModel(control:Library){if(options.legacyArchive)throw new DraftConflict('MASTER_LEGACY_ARCHIVE_READ_ONLY',409);const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);\n"
+      },
+      {
+        "offset": 4129,
+        "before": "",
+        "after": "   if(scope!=='PROCESS'&&(root as Root&{pageDraftLayout?:string}).pageDraftLayout==='page-v1'){\n    if(!options.legacyArchive)throw new DraftConflict('MASTER_LEGACY_WRITER_RETIRED',409);\n    const source=root.workflowScopes?.[scope]?.active.content;\n    if(!source)throw new DraftConflict('MASTER_LEGACY_ARCHIVE_UNAVAILABLE',409);\n    root={...root,active:{...root.active,[scope]:source}};\n   }\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/process-state.ts",
+    "beforeHash": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
+    "afterHash": "12aeddc5fc431f9aaae72170ddbcac3a58579cad9fb1f27511f12ddbaf25e84e",
+    "rules": [
+      {
+        "offset": 21383,
+        "before": "  if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\r\n",
+        "after": "  if(master?.pageDraftLayout==='page-v1'){\n    // New page readers use their authenticated owner endpoint. The general\n    // Site payload carries effective compatibility content only, never old\n    // abandoned drafts or a fabricated combined approved version.\n    delete master.workflowScopes;\n    master.active=Object.fromEntries(['AB','C','PROCESS'].filter(scope=>master.active?.[scope]).map(scope=>[scope,master.active[scope]]));\n    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));\n    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});\n  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\n"
+      }
+    ]
+  },
+  {
+    "file": "lib/versioned-shared-workflow.ts",
+    "beforeHash": "b220a014deff38f2a0e47ba3cb01ec36084ff34f49cb46f1bf51ce6ccfafbb7e",
+    "afterHash": "108dba7c0781a433439c79086fca296d25ebb909b9a0bec95fdbd6798470b63d",
+    "rules": [
+      {
+        "offset": 15084,
+        "before": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C','master:PROCESS'].includes(adapter.scope)||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n",
+        "after": "    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C','master:PROCESS','master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope)||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}\n"
+      },
+      {
+        "offset": 32797,
+        "before": "          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','master:PROCESS','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n",
+        "after": "          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','master:PROCESS','master:AB.catalog','master:C.catalog','master:LINES','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}\n"
+      },
+      {
+        "offset": 34623,
+        "before": "          const workflowModule=moduleForURL(request.url),creates=adapter.requiresCreate?.(control,command)||command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');\n",
+        "after": "          const workflowModule=moduleForURL(request.url),ownedMasterPage=adapter.key==='masterDataControl'&&['master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope),creates=adapter.requiresCreate?.(control,command)||!ownedMasterPage&&(command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert'));\n"
+      },
+      {
+        "offset": 38189,
+        "before": "        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n",
+        "after": "        if((begin||adapter.key==='masterDataControl'&&['master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope)||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/access-policy.mjs",
+    "beforeHash": "ee20c28128812eda2690fd281bd076fff8407bd7a4fde735b27995b7548f154f",
+    "afterHash": "8dba5279c30745ad17464460c1fc3fb41c6afc91c392f0392b3c6fbf93727bb7",
+    "rules": [
+      {
+        "offset": 9907,
+        "before": " const scope=q.get('scope');if(p==='/api/master/workflow'&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';\n",
+        "after": " const scope=q.get('scope');if(['/api/master/workflow','/api/master/pages'].includes(p)&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/fqc-master.js",
+    "beforeHash": "f8a6969cb108d3d25b8e842d7d1bb1a97fff9203fb42fb4a0878994156dc5528",
+    "afterHash": "e657d675b6809766cbf0c3f47eb0137a42b9aa6cfea5299a5a018dc7e25b03fb",
+    "rules": [
+      {
+        "offset": 70815,
+        "before": "    const snapshot = active.length === 1 ? active[0].snapshot : null;\r\n    if (result.permissions?.view !== true || typeof current?.activeVersionId !== 'string' || !current.activeVersionId || !snapshot ||\r\n",
+        "after": "    const composition=current?.catalog,composed=composition?.kind==='approved-page-composition-v1'&&composition.sources?.catalog?.scope==='master:AB.catalog'&&composition.sources?.lines?.scope==='master:LINES'&&[composition.sources.catalog.versionId,composition.sources.lines.versionId].every(id=>typeof id==='string'&&id.length>0);\n    const snapshot = composed ? composition.content : active.length === 1 ? active[0].snapshot : null;\n    if (result.permissions?.view !== true || !composed&&(typeof current?.activeVersionId !== 'string' || !current.activeVersionId) || !snapshot ||\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/index.html",
+    "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
+    "afterHash": "c4f098836537957a1783995ec332df23d8a0cdb58ad9f0b944c9096acf0fb3ab",
+    "rules": [
+      {
+        "offset": 6899,
+        "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n",
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261109-page-owners1\"></script>\n"
+      },
+      {
+        "offset": 7173,
+        "before": "    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
+        "after": "    <script data-process-src=\"page-draft-merge.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261109-page-owners1\"></script>\n"
+      },
+      {
+        "offset": 8976,
+        "before": "    <script data-process-src=\"fqc-master.js?v=20261104-begin-generation2\"></script>\n",
+        "after": "    <script data-process-src=\"fqc-master.js?v=20261109-page-catalog1\"></script>\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/master-data.js",
+    "beforeHash": "79dd392e82f176a7ee2ae4c73b0fc71068b4fdb70b285e2b8fa0df7f94faf470",
+    "afterHash": "3efc1a3693bf7902f6ccfabcf863d3a77b8ff25f1863316aa006c37a51e8fd57",
+    "rules": [
+      {
+        "offset": 17162,
+        "before": "",
+        "after": "    if(control.pageDraftLayout==='page-v1'&&!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();\n    if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(tab)){\n      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;\n    }\n"
+      },
+      {
+        "offset": 53992,
+        "before": "    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n",
+        "after": "    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n"
+      },
+      {
+        "offset": 54121,
+        "before": "      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n",
+        "after": "      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n"
+      },
+      {
+        "offset": 56667,
+        "before": "",
+        "after": "      window.ProcessMasterPages?.reset();\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/shared-draft-client.js",
+    "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
+    "afterHash": "c0f45c7c592640278157f9743977b1221101feab11ba1f17166d45993fed49fe",
+    "rules": [
+      {
+        "offset": 12978,
+        "before": "",
+        "after": "    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;\n"
+      },
+      {
+        "offset": 35075,
+        "before": "    const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;\n",
+        "after": "    const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;\n    const masterLocalBegin=pageLocalBegin||durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;\n"
+      },
+      {
+        "offset": 46865,
+        "before": "",
+        "after": "      if(pageLocalBegin&&flow&&flow.scope!==departureScope(endpoint))throw Error('MASTER_PAGE_OWNER_MISMATCH');\n"
+      }
+    ]
+  }
+]

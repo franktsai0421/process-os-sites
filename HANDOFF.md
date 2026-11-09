@@ -1,3 +1,7 @@
+## 2026-11-09 主資料 runtime 接線接續
+
+在 8560869 後新增受儲存 marker 守門的 catalog/LINES 真 route、writer、codec/CAS 與基本 UI；使用已建立 baseline，不自行 migration。inline/records 生命週期、union PROCESS link、跨頁 CAS、R2 撤權、原收據與 public 隱私已用 memory fixtures 核對；UI 真 transport＋合成 DOM 驗整組衝突／原 ID 復原／取消／UNKNOWN。原生 Chromium OS socket EPERM，未繞過，完整 UI 等價／真切換／版本查看整合仍未完成；routine 整頁接線仍待後續。公開上傳 UNKNOWN 未重送。[完整候選狀態](docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — #102 全站草稿分界接續
 
 獨審在 ff75a5c 重現整頁未改文件來源漂移與重複文件／案件／Save ID 兩個 P2；已留修正前負控制並補完整 working preflight（保留原收據優先重播）與 owner 唯一性拒絕。精確新 tree 複審另行紀錄。AB local-only／File／一次整組衝突及 UNKNOWN 等要求納入同題接線；版本查看由統一已核准版本查看工作負責，本題只協調 scope／介面。

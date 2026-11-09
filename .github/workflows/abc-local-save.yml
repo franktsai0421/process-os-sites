@@ -37,6 +37,9 @@ jobs:
           node scripts/test-draft-page-boundaries.cjs
           node scripts/test-draft-page-cutover.cjs
           node scripts/test-routine-fqc-page-save.cjs
+          node scripts/test-master-page-runtime.cjs
+          node scripts/test-master-page-ui.cjs
+          node --test tests/master-page-runtime-source.test.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
           node --test tests/process-stage-catalog.test.cjs
@@ -54,5 +57,6 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node tests/abc-local-save-browser.mjs
+      - run: node scripts/test-master-page-browser.cjs
       - name: Existing cold-start and cross-module departure contracts
         run: node --test --test-concurrency=1 tests/native-ab-startup.test.mjs tests/draft-abandon-native.test.mjs tests/shared-unknown-departure-native.test.mjs

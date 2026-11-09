@@ -7,7 +7,8 @@ import {
 
 // Review-only successor to the four split-v1 document projections. A real page
 // owns a draft; AB/C filters inside the line page do not own separate drafts.
-// No route, storage adapter, environment flag or adoption writer imports this.
+// Runtime page adapters reuse only the ownership guards below. The preview
+// never activates a route, adopts a baseline or writes data.
 export type MasterPage = 'AB' | 'C' | 'LINES' | 'PROCESS';
 type Snapshot = Record<string, unknown>;
 type Row = Record<string, unknown>;

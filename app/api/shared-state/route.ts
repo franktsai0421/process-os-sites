@@ -181,6 +181,7 @@ export async function POST(request: Request) {
     if(key==='qualityMasterControl'&&parse(state.values[key],null)?.libraries?.fqc?.workflow)
       return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});
     const adoptedMaster=parse(state.values.masterDataControl,null);
+    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});
     if(adoptedMaster&&(key==='processMasterData'||key==='masterDataControl'&&
       stableDraftJSON(parse(value as string,null)?.active?.PROCESS)!==stableDraftJSON(adoptedMaster.active?.PROCESS))){
       try{assertProcessLinkAvailable(adoptedMaster);}catch(error){return Response.json({error:(error as {code?:unknown}).code,details:(error as {details?:unknown}).details},{status:409,headers});}

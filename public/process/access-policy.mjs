@@ -96,7 +96,7 @@ export function moduleForURL(input){
  const url=new URL(input,'http://localhost'),p=url.pathname,q=url.searchParams;
  const api=[['/api/bom','bom'],['/api/ipqc-ab','ipqc-ab'],['/api/ipqc-c','ipqc-c'],['/api/iqc','iqc'],['/api/tooling','tooling'],['/api/routine-equipment','equipment'],['/api/routine-fqc','routine'],['/api/web-feedback','feedback'],['/api/process-authoring','editor'],['/api/process-ipqc','editor'],['/api/fqc','fqc']];
  for(const [prefix,id]of api)if(p===prefix||p.startsWith(prefix+'/'))return id;
- const scope=q.get('scope');if(p==='/api/master/workflow'&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';
+ const scope=q.get('scope');if(['/api/master/workflow','/api/master/pages'].includes(p)&&scope==='LINES')return'lines';if(scope==='AB')return'ab';if(scope==='C')return'c';if(scope==='PROCESS')return'templates';
  const tab=q.get('dataTab'),tabs={AB:'ab',C:'c',bom:'bom','line-admin':'lines','process-master':'templates',users:'users',fqc:'fqc','quality-fqc':'fqc',iqc:'iqc','quality-iqc':'iqc','quality-ipqc-ab':'ipqc-ab','quality-ipqc-c':'ipqc-c','quality-tooling':'tooling','quality-mold-equipment':'tooling','quality-routine-reports':'routine-reports','routine-equipment':'equipment','quality-routine-equipment':'equipment','web-feedback':'feedback'};
  if(q.get('view')==='data'&&tabs[tab])return tabs[tab];
  return ({editor:'editor',approval:'approval','quality-dashboard':'quality-dashboard','quality-search':'quality-search','quality-reports':'quality-reports',fpy:'fpy','quality-fpy':'fpy',routine:'routine','quality-inspections':'routine',dashboard:'dashboard',player:'player',dispatch:'dispatch',productStatus:'status'})[q.get('view')]||null;
