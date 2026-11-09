@@ -220,7 +220,41 @@
     for(const key of saveCollections)if(!Array.isArray(snapshot?.[key])||snapshot[key].some(row=>!row||typeof row.id!=='string'||!row.id)||new Set(snapshot[key].map(row=>row.id)).size!==snapshot[key].length)throw Error('IQC_SAVE_AUTHORITY_REQUIRED');
     return snapshot;
   }
-  const sameRuleOrder=(...arrays)=>arrays.every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length)&&arrays.slice(1).every(rows=>saveEqual(arrays[0].map(row=>row.id),rows.map(row=>row.id)));
+  // Stable rule IDs prove record independence; frequency fields on one rule
+  // remain atomic. Supplier IDs are membership cells with an explicit primary.
+  function orderedListPlan(before,local,peer,suppliers=false){
+    const wrap=rows=>suppliers?rows.map(id=>({id})):rows,valid=rows=>Array.isArray(rows)&&rows.every(row=>suppliers?typeof row==='string'&&row:row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>suppliers?row:row.id)).size===rows.length;
+    if(![before,local,peer].every(valid))return null;
+    const a=wrap(before),b=wrap(local),c=wrap(peer),ids=rows=>rows.map(row=>row.id),originals=ids(a),localIds=ids(b),peerIds=ids(c),old=new Map(a.map(row=>[row.id,row])),mine=new Map(b.map(row=>[row.id,row])),remote=new Map(c.map(row=>[row.id,row]));
+    const moved=rows=>!saveEqual(ids(rows).filter(id=>old.has(id)),originals.filter(id=>rows.some(row=>row.id===id))),localMoved=moved(b),peerMoved=moved(c),common=new Set(localIds.filter(id=>remote.has(id))),sharedOrder=rows=>ids(rows).filter(id=>common.has(id));
+    const inside=rows=>rows.some((row,index)=>!old.has(row.id)&&rows.slice(index+1).some(value=>old.has(value.id))),sharedNew=localIds.some(id=>!old.has(id)&&remote.has(id));
+    const localPrimary=suppliers&&localIds[0]!==originals[0],peerPrimary=suppliers&&peerIds[0]!==originals[0],orderConflict=(((localMoved||inside(b))&&(peerMoved||inside(c))||sharedNew)&&!saveEqual(sharedOrder(b),sharedOrder(c)))||(suppliers&&localPrimary&&peerPrimary&&localIds[0]!==peerIds[0]);
+    const changes=[];
+    for(const row of a)if(!mine.has(row.id)&&remote.has(row.id))changes.push({id:row.id,value:null,conflict:!saveEqual(row,remote.get(row.id))||peerMoved});
+    for(const row of b){const prior=old.get(row.id),current=remote.get(row.id);if(prior&&saveEqual(prior,row)&&((!localMoved&&!(localPrimary&&row.id===localIds[0]))||current))continue;if(current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!prior&&!current||!!current&&(!prior||!saveEqual(prior,current))});}
+    const reorder=(rows,choice,accepted)=>{
+      const preferLocal=accepted!==undefined||localMoved&&(!orderConflict||choice==='mine')||localPrimary&&(!orderConflict||choice==='mine'),primary=accepted|| (preferLocal?localIds:peerIds),secondary=accepted?peerIds:preferLocal?peerIds:localIds;
+      return orderListRows(rows,primary,secondary,suppliers,originals);
+    };
+    return{changes,orderConflict,localMoved,localPrimary,localIds,originals,wrap,unwrap:rows=>suppliers?rows.map(row=>row.id):rows,reorder};
+  }
+  function orderListRows(rows,primary,secondary,primaryMatters=false,originals=[]){
+    const byId=new Map(rows.map(row=>[row.id,row])),ordered=primary.filter(id=>byId.has(id));
+    for(let n=0;n<secondary.length;n++){const id=secondary[n];if(!byId.has(id)||ordered.includes(id))continue;const next=secondary.slice(n+1).find(value=>ordered.includes(value));if(next!==undefined)ordered.splice(ordered.indexOf(next),0,id);else{const previous=secondary.slice(0,n).reverse().find(value=>ordered.includes(value));if(originals.includes(id)&&previous!==undefined)ordered.splice(ordered.indexOf(previous)+1,0,id);else ordered.push(id);}}
+    for(const id of byId.keys())if(!ordered.includes(id))ordered.push(id);
+    if(primaryMatters&&byId.has(primary[0])){const at=ordered.indexOf(primary[0]);ordered.splice(at,1);ordered.unshift(primary[0]);}
+    return ordered.map(id=>byId.get(id));
+  }
+  function applyListChange(rows,change){const at=rows.findIndex(row=>row.id===change.id);if(change.value===null){if(at>=0)rows.splice(at,1);}else if(at>=0)rows[at]=copy(change.value);else rows.push(copy(change.value));}
+  // Pin touched late IDs to the accepted prefix, while untouched peer order
+  // and membership stay at the newest readback. No write is retried here.
+  function settleOrderedList(original,local,sent,latest,suppliers=false){
+    const delta=orderedListPlan(original,local,original,suppliers),intent=orderedListPlan(original,local,latest,suppliers),authority=orderedListPlan(sent,latest,sent,suppliers);if(!delta||!intent||!authority)throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
+    const next=copy(delta.wrap(latest)),basis=copy(delta.wrap(latest)),accepted=delta.wrap(sent);
+    for(const change of delta.changes){if(!delta.originals.includes(change.id)&&next.some(row=>row.id===change.id)&&!accepted.some(row=>row.id===change.id))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');applyListChange(next,change);applyListChange(basis,{...change,value:accepted.find(row=>row.id===change.id)||null});}
+    if(delta.localMoved||delta.localPrimary){if(delta.localIds.some(id=>accepted.some(row=>row.id===id)&&!next.some(row=>row.id===id)))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');return{next:delta.unwrap(intent.reorder(next,'mine')),base:delta.unwrap(delta.reorder(basis,'mine',accepted.map(row=>row.id)))};}
+    return{next:delta.unwrap(intent.reorder(next,'mine')),base:delta.unwrap(basis)};
+  }
   // Only unique stable photo identities and preserved order prove independence.
   // Peer additions precede independent local additions; moved lists stay atomic.
   function photoChanges(before,local,peer){
@@ -233,12 +267,15 @@
     if(!saveEqual(local.filter(row=>common.has(row.id)).map(row=>row.id),peer.filter(row=>common.has(row.id)).map(row=>row.id)))return null;
     const changes=[];
     for(const old of before)if(!local.some(row=>row.id===old.id)){const current=peer.find(row=>row.id===old.id);if(current)changes.push({id:old.id,value:null,conflict:!saveEqual(current,old),originals});}
-    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});}
+    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;
+      if(old&&current){if(old.src!==row.src||old.src!==current.src)return null;for(const field of new Set([...Object.keys(old),...Object.keys(row),...Object.keys(current)])){if(['id','src'].includes(field)||saveEqual(old[field],row[field]))continue;changes.push({id:row.id,value:row,fields:[field],conflict:!saveEqual(current[field],old[field])&&!saveEqual(current[field],row[field]),originals});}}
+      else changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});
+    }
     return changes;
   }
   function applyPhotoChange(rows,change){
     const index=rows.findIndex(row=>row.id===change.id);if(change.value===null){if(index>=0)rows.splice(index,1);return;}
-    if(index>=0){rows[index]=copy(change.value);return;}
+    if(index>=0){if(change.fields){for(const field of change.fields){if(Object.hasOwn(change.value,field))rows[index][field]=copy(change.value[field]);else delete rows[index][field];}}else rows[index]=copy(change.value);return;}
     const originalIndex=change.originals.indexOf(change.id);if(originalIndex<0){rows.push(copy(change.value));return;}
     const later=new Set(change.originals.slice(originalIndex+1)),originals=new Set(change.originals),position=rows.findIndex(row=>later.has(row.id)||!originals.has(row.id));rows.splice(position<0?rows.length:position,0,copy(change.value));
   }
@@ -263,15 +300,9 @@
         for(const group of groups){
           const photoField=kind==='parts'&&group[0]==='photos'?'photos':kind==='items'&&group[0]==='mediaItems'?'mediaItems':null,photos=photoField&&peer?photoChanges(before[photoField],row[photoField],peer[photoField]):null;
           if(photos){if(peer.isDeleted&&!photos.length)photos.push({id:null,value:null,originals:[],noop:true});for(const photo of photos){const unit={kind,id:row.id,row,fields:group,photo};units.push(unit);if(photo.conflict)conflict(unit,kind+':'+row.id+':'+photoField+':'+photo.id,label+' · '+(photo.value?.name||photo.id));}continue;}
-          if(kind==='items'&&group[0]==='rules'&&peer&&sameRuleOrder(before.rules,row.rules,peer.rules)){
-            for(let index=0;index<row.rules.length;index++){
-              const rule=row.rules[index],oldRule=before.rules[index],peerRule=peer.rules[index];if(saveEqual(rule,oldRule))continue;
-              const unit={kind,id:row.id,row,fields:group,ruleId:rule.id,rule};units.push(unit);
-              if(peer.isDeleted)conflict(unit,kind+':'+row.id+':removed',label+' · '+t('對方已刪除','Đã xóa ở bản chung'),true);
-              else if(saveEqual(rule,peerRule))unit.same=true;
-              else if(!saveEqual(peerRule,oldRule))conflict(unit,kind+':'+row.id+':rule:'+rule.id,label+' · '+t('檢查規則','Quy tắc kiểm tra')+' '+(index+1));
-            }
-            continue;
+          const listField=kind==='items'&&group[0]==='rules'?'rules':kind==='parts'&&group[0]==='supplierIds'?'supplierIds':null,plan=listField&&peer?orderedListPlan(before[listField],row[listField],peer[listField],listField==='supplierIds'):null;
+          if(plan){for(const change of plan.changes){const unit={kind,id:row.id,row,fields:group,listChange:change,listPlan:plan};units.push(unit);if(change.conflict)conflict(unit,kind+':'+row.id+':'+listField+':'+change.id,label+' · '+change.id);}
+            const unit={kind,id:row.id,row,fields:group,listOrder:plan,orderKey:kind+':'+row.id+':'+listField+':order'};units.push(unit);if(plan.orderConflict)conflict(unit,unit.orderKey,label+' · '+t('順序／第一供應商','Thứ tự / nhà cung cấp chính'));continue;
           }
           const unit={kind,id:row.id,row,fields:group};units.push(unit);const values=value=>Object.fromEntries(group.map(field=>[field,value?.[field]]));
           if(!peer||peer.isDeleted){if(group[0]==='isDeleted'&&row.isDeleted===true){unit.same=true;continue;}conflict(unit,kind+':'+row.id+':removed',label+' · '+t('對方已刪除','Đã xóa ở bản chung'),true);continue;}
@@ -300,15 +331,16 @@
     function materialize(choice,check=true){
       const next=copy(latest),nextById=Object.fromEntries(saveCollections.map(kind=>[kind,new Map(next[kind].map(row=>[row.id,row]))])),reviveRows=new Map(),roots=[];
       if(choice==='mine')for(const root of reviveRoots.values()){roots.push({collection:root.collection,id:root.id,row:copy(root.row)});for(const entry of root.chain){reviveRows.set(entry.collection+':'+entry.id,entry);nextById[entry.collection].get(entry.id).isDeleted=false;}}
-      for(const unit of units){if(unit.same||unit.conflict&&choice==='theirs')continue;
+      for(const unit of units){if(unit.listOrder)continue;if(unit.same||unit.conflict&&choice==='theirs')continue;
         if(unit.conflict&&conflicts.get(unit.conflict).unsupported){if(check)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');continue;}
         if(unit.remove){next[unit.kind]=next[unit.kind].filter(row=>row.id!==unit.id);continue;}
         if(unit.insert){next[unit.kind].push(copy(unit.row));continue;}
         const row=nextById[unit.kind].get(unit.id);if(!row||row.isDeleted){if(check)throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');continue;}
         if(unit.photo){if(!unit.photo.noop)applyPhotoChange(row[unit.fields[0]],unit.photo);continue;}
-        if(unit.ruleId){row.rules=row.rules.map(rule=>rule.id===unit.ruleId?copy(unit.rule):rule);continue;}
+        if(unit.listChange){const field=unit.fields[0],list=copy(unit.listPlan.wrap(row[field]));applyListChange(list,unit.listChange);row[field]=unit.listPlan.unwrap(list);continue;}
         for(const field of unit.fields)if(unit.row[field]!==undefined)row[field]=copy(unit.row[field]);
       }
+      for(const unit of units.filter(value=>value.listOrder)){if(unit.conflict&&choice==='theirs'&&unit.conflict!==unit.orderKey)continue;const row=nextById[unit.kind].get(unit.id);if(!row||row.isDeleted)continue;const field=unit.fields[0];row[field]=unit.listOrder.unwrap(unit.listOrder.reorder(unit.listOrder.wrap(row[field]),choice));}
       if(check&&!validReferences(next))throw Error('IQC_STRUCTURE_RECHECK_REQUIRED');
       const changes=snapshotChanges(latest,next),revival=path=>path[2]==='isDeleted'&&reviveRows.has(path[0]+':'+path[1]?.id);
       return {snapshot:next,detail:{moduleAction:reviveRows.size?'save-local-revive-v1':'save-local-v1',patches:changes.patches.filter(patch=>!revival(patch.path)),guards:changes.guards.filter(guard=>!revival(guard.path)),...(reviveRows.size?{input:{reviveRows:[...reviveRows.values()],reviveRoots:roots}}:{})}};
@@ -341,10 +373,8 @@
       const row=next[kind].find(value=>value.id===entity.id),sent=attempt.chosen[kind].find(value=>value.id===entity.id),before=base[kind].find(value=>value.id===entity.id);
       if(!row||!sent||row.isDeleted)throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
       if(patch.op==='remove'){next[kind]=next[kind].filter(value=>value.id!==entity.id);base[kind]=base[kind].map(value=>value.id===entity.id?copy(sent):value);}
-      else if(kind==='items'&&field==='rules'){
-        const original=attempt.snapshot.items.find(value=>value.id===entity.id)?.rules;
-        if(!sameRuleOrder(original,patch.value,sent.rules,row.rules))throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
-        for(let index=0;index<patch.value.length;index++)if(!saveEqual(original[index],patch.value[index])){row.rules[index]=copy(patch.value[index]);before.rules[index]=copy(sent.rules[index]);}
+      else if(kind==='items'&&field==='rules'||kind==='parts'&&field==='supplierIds'){
+        const original=attempt.snapshot[kind].find(value=>value.id===entity.id)?.[field],settled=settleOrderedList(original,patch.value,sent[field],row[field],field==='supplierIds');row[field]=settled.next;before[field]=settled.base;
       }
       else if(['photos','mediaItems'].includes(field)){
         const original=resolveLocalPhotos(attempt.snapshot)[kind].find(value=>value.id===entity.id)?.[field],photos=photoChanges(original,patch.value,original);
@@ -720,8 +750,19 @@
         const row=merged[kind].find(value=>value.id===entity.id);if(!row)throw Error('IQC_LATER_INPUT_RECHECK_REQUIRED');
         if(patch.op==='remove'){merged[kind]=merged[kind].filter(value=>value.id!==entity.id);continue;}
         const basis=basisSnapshot[kind].find(value=>value.id===entity.id),old=ownerBase[kind].find(value=>value.id===entity.id);
-        if(kind==='items'&&field==='rules'&&old&&sameRuleOrder(old.rules,patch.value,row.rules)){
-          for(let index=0;index<patch.value.length;index++)if(!saveEqual(old.rules[index],patch.value[index])){if(basis&&sameRuleOrder(basis.rules,row.rules)&&saveEqual(row.rules[index],basis.rules[index]))basis.rules[index]=copy(old.rules[index]);row.rules[index]=copy(patch.value[index]);}
+        const orderedField=kind==='items'&&field==='rules'||kind==='parts'&&field==='supplierIds',plan=orderedField&&old?orderedListPlan(old[field],patch.value,row[field],field==='supplierIds'):null;
+        // A form still displays its own base after an ACK. Reset only touched
+        // cells that have no newer local intent; retain all other peer cells.
+        if(plan&&basis&&orderedListPlan(old[field],basis[field],row[field],field==='supplierIds')){
+          const current=copy(plan.wrap(row[field])),before=copy(plan.wrap(basis[field])),visible=plan.wrap(old[field]),currentIds=current.map(value=>value.id),basisIds=before.map(value=>value.id);
+          for(const change of plan.changes){if(saveEqual(current.find(value=>value.id===change.id),before.find(value=>value.id===change.id)))applyListChange(before,{...change,value:visible.find(value=>value.id===change.id)||null});applyListChange(current,change);}
+          row[field]=plan.unwrap(plan.reorder(current,'mine'));
+          basis[field]=plan.unwrap((plan.localMoved||plan.localPrimary)&&saveEqual(currentIds,basisIds)?orderListRows(before,visible.map(value=>value.id),basisIds,field==='supplierIds',plan.originals):before);
+        }else if(['photos','mediaItems'].includes(field)&&old&&basis&&photoChanges(old[field],patch.value,row[field])&&photoChanges(old[field],basis[field],row[field])){
+          for(const change of photoChanges(old[field],patch.value,row[field])){
+            const current=row[field].find(value=>value.id===change.id),prior=basis[field].find(value=>value.id===change.id),visible=old[field].find(value=>value.id===change.id),same=change.fields?change.fields.every(key=>saveEqual(current?.[key],prior?.[key])):saveEqual(current,prior);
+            if(same)applyPhotoChange(basis[field],{...change,value:visible||null});applyPhotoChange(row[field],change);
+          }
         }else{if(basis&&old&&saveEqual(row[field],basis[field])){if(old[field]===undefined)delete basis[field];else basis[field]=copy(old[field]);}row[field]=copy(patch.value);}
       }
       localBase=basisSnapshot;localSnapshot=merged;
