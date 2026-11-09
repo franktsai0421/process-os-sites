@@ -1955,7 +1955,7 @@ async function beginProcessMasterDraft() {
 function saveProcessMasterDraft() {
   if(saveProcessMasterDraft.flight)return saveProcessMasterDraft.flight;
   const save=async()=>{
-    try{await flushProcessMasterNames();await window.MasterDataWorkflow.shared.execute('PROCESS','save');
+    try{await flushProcessMasterNames();const result=await window.MasterDataWorkflow.shared.execute('PROCESS','save');if(!result)return;
       toast(document.documentElement.lang==='vi'?'Đã lưu bản nháp chung.':'已存取共用草稿。');
       if(!document.querySelector('#equipment-editor-dialog[open]')&&(!window.ProcessMasterVersioning||!window.ProcessMasterVersioning.departureNames.dirty()))repaintProcessMasterPage();
     }catch(error){toast(window.sharedDraftErrorMessage?.(error)||error.message);}

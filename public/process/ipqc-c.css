@@ -137,3 +137,8 @@
 @media(max-width:600px){.ipqcc-case-meta,.ipqcc-case-diff{grid-template-columns:1fr}.ipqcc-case-table table{min-width:560px}.ipqcc-case-dialog{width:100vw}.ipqcc-case-pages .button{min-height:44px}}
 @media(max-width:900px){.ipqcc-layout{grid-template-columns:minmax(180px,220px) minmax(0,1fr)}.ipqcc-columns{grid-template-columns:1fr}.ipqcc-card{max-height:none}}
 @media(max-width:600px){.ipqcc-page{padding:10px}.ipqcc-header-actions{width:100%}.ipqcc-header-actions label{flex:1;min-width:130px}.ipqcc-header-actions .button{min-height:44px}.ipqcc-layout{display:block}.ipqcc-products{max-height:230px;margin-bottom:10px}.ipqcc-work{padding:9px}.ipqcc-card{margin-bottom:10px}.ipqcc-overlay{padding:0}.ipqcc-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0}.ipqcc-dialog-body{flex:1;align-content:start}.ipqcc-dialog footer{position:sticky;bottom:0;justify-content:stretch}.ipqcc-dialog footer button{flex:1;min-height:46px}.ipqcc-photo-row{grid-template-columns:58px minmax(0,1fr)}.ipqcc-photo-row img{width:58px;height:54px}.ipqcc-photo-row>label,.ipqcc-photo-row>div{grid-column:2}.ipqcc-stages button{min-height:44px}.ipqcc-viewer>div{width:100vw;max-height:100dvh;height:100dvh;border-radius:0}.ipqcc-viewer img{max-width:calc(100vw - 86px)}}
+
+/* Grouped Save choices retain readable labels and touch targets at narrow widths. */
+.ipqcc-save-choice>footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ipqcc-save-choice>footer button{min-width:0;min-height:44px;white-space:normal;overflow-wrap:anywhere}
+.ipqcc-save-choice>footer [data-save-cancel]{grid-column:1/-1}

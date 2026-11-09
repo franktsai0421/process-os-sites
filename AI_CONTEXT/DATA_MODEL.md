@@ -1,3 +1,13 @@
+## 2026-11-09 — 全草稿衝突候選的命令／中繼資料
+
+既有業務 scope、資料 ID、active／working／saved／pending／歷史及收據不遷移或刪除；未新增 SQL schema、binding 或資料包。線別工段的獨立所有權切換仍關閉。
+
+- IPQC A/B 新初始化 group workflow 可附伺服器產生的 optional `coldOrigin` witness（`ipqc-ab-cold-origin-v1/v2`），記錄原 scope／世代／有效版／來源草稿及來源 key；不接受命令提供的 witness，也不回填舊 workflow。`localLineage` 是授權 GET 計算的唯讀摘要，用來辨識未變來源上的首次初始化；不能只憑 aggregate revision 接受新世代或取消原 guard。
+- 例行 FQC 在既有每文件 scope 接受受限 `save-local-v1` 命令：先於私有記憶體 Apply 逐欄 guards，再 Save，同一次 shared-state CAS 保存原完整命令 fingerprint／收據。中間 Apply 不成為另一筆共享 working 寫入；UNKNOWN 沿原 operation 查詢，不重送。
+- 製程畫布 `save-canvas-v1` 的 `process:platform`／`*` 是整頁 Save 的命令選取標記，並非新增持久草稿 scope。各 journal entry 原 workspace／stage 身分及逐路徑 guards 保留；同一既有 workflow 一次原子交易，不分批部分成功。
+
+[逐頁邊界、驗收及尚未啟用的主資料分拆](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。

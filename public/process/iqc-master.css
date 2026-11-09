@@ -10,7 +10,7 @@
 .iqc-page .iqc-field-head h3{flex:1 1 160px}
 .iqc-page .iqc-part-list{overflow-anchor:none;scrollbar-gutter:stable}
 .iqc-dialog-overlay,.iqc-lightbox{overscroll-behavior:contain}
-body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay){overflow:hidden}
+body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay:not([hidden])){overflow:hidden}
 .iqc-dialog:has(.iqc-item-form){display:flex;overflow:hidden;min-height:0}
 .iqc-dialog .iqc-item-form{display:flex;flex-direction:column;max-height:calc(100dvh - 66px);min-height:0;width:100%}
 .iqc-dialog .iqc-item-form-header,.iqc-dialog .iqc-item-form>footer{flex:none}
@@ -147,3 +147,5 @@ body:has(.iqc-dialog-overlay),body:has(.ipqcab-overlay),body:has(.ipqcc-overlay)
 .iqc-page .iqc-alert-list li{margin:6px 0;overflow-wrap:anywhere}
 .iqc-page .iqc-alert-list button{margin-left:8px}
 @media(max-width:520px){.iqc-page .iqc-version .iqc-actions{justify-content:stretch}.iqc-page .iqc-version .iqc-actions label,.iqc-page .iqc-version .iqc-actions button{width:100%}.iqc-page .iqc-item-number{align-items:flex-start}}
+
+.iqc-approved-view .iqc-part-list button{display:block;width:100%;min-height:44px;text-align:left;white-space:normal;overflow-wrap:anywhere}

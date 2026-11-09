@@ -1,0 +1,28 @@
+name: Approved history reads
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: approved-history-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  approved-history:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/approved-history-unified-route.test.cjs
+      - run: node scripts/test-approved-history-evidence.cjs
+      - run: node --test tests/bom-approved-history-real-common.test.mjs tests/ipqc-c-approved-history.test.mjs tests/iqc-approved-history.test.mjs tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs
+      - run: node --test tests/tooling-fqc-approved-history.test.mjs tests/equipment-approved-history.test.mjs tests/tooling-global-save-choice.test.mjs tests/equipment-save-choice.test.mjs tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs
+      - run: node --test --test-concurrency=2 tests/master-approved-history.test.mjs tests/master-save-merge.test.mjs tests/abc-save-conflict-choice.test.mjs tests/master-lines-filter-retention.test.mjs
+      - run: npm run sites:source-check

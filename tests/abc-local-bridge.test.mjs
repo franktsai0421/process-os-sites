@@ -7,7 +7,7 @@ for(const scope of ['AB','C']){
   const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Counted Save';await x.bridge.execute(scope,'apply');x.calls.length=0;x.f.reset();if(lost)x.mode('lost');
   const result=await x.bridge.execute(scope,'save'),requests=x.calls.map(c=>c.method==='POST'?'POST':new URL(c.url,'https://fixture.invalid').searchParams.has('operationId')?'receipt GET':'full GET');
   t.diagnostic(JSON.stringify({scope,lost,requests,recovered:result.recovered===true,cas:x.f.stats.cas}));
-  assert.deepEqual(requests,lost?['POST','receipt GET','full GET']:['POST','full GET']);assert.equal(result.recovered===true,lost);assert.equal(x.f.stats.cas,1);
+  assert.deepEqual(requests,lost?['full GET','POST','receipt GET','full GET']:['full GET','POST','full GET']);assert.equal(result.recovered===true,lost);assert.equal(x.f.stats.cas,1);
   assert.equal(result.permissions.view,true);assert.equal(result.receipt.operationId,x.posts()[0].body.command.operationId);assert.equal(result.control.workflow.saved.content.products[0].name,'Counted Save');assert.equal(x.bridge.localDirty(scope),false);assert.equal(x.bridge.client(scope).hasUnknown(),false);assert.equal(x.disk.size,0);
  });
  for(const failure of ['view revoked','session revoked','read unavailable','generation changed','wrong receipt','identity replaced','epoch changed','delivery changed'])void test(`${scope} Save readback ${failure} retains the original sent command`,async t=>{
@@ -45,7 +45,7 @@ for(const scope of ['AB','C']){
  void test(`${scope} newer permission denial supersedes a late successful Save readback`,async t=>{
   const x=await fixture({scope});t.after(x.f.close);x.draft().snapshot.products[0].name='Sent before denial';await x.bridge.execute(scope,'apply');x.calls.length=0;
   const beforeFlow=JSON.stringify(x.control.workflowScopes[scope]),fetch=x.box.fetch;let marker,first=true;x.box.fetch=async(url,options)=>{const response=await fetch(url,options);if(options.method==='POST')marker=[...x.disk];
-   if(options.method==='GET'&&!new URL(url,'https://fixture.invalid').searchParams.has('operationId')&&!new URL(url,'https://fixture.invalid').searchParams.has('permissions')&&first){first=false;await x.f.mutateValues(v=>{const users=JSON.parse(v.platformUsers);users[0].accessOverrides[scope==='AB'?'ab.view':'c.view']=false;v.platformUsers=JSON.stringify(users);});await assert.rejects(x.bridge.client(scope).permissions(),e=>e.status===403);}
+   if(marker&&options.method==='GET'&&!new URL(url,'https://fixture.invalid').searchParams.has('operationId')&&!new URL(url,'https://fixture.invalid').searchParams.has('permissions')&&first){first=false;await x.f.mutateValues(v=>{const users=JSON.parse(v.platformUsers);users[0].accessOverrides[scope==='AB'?'ab.view':'c.view']=false;v.platformUsers=JSON.stringify(users);});await assert.rejects(x.bridge.client(scope).permissions(),e=>e.status===403);}
    return response;};
   await assert.rejects(x.bridge.execute(scope,'save'),/RESULT_UNKNOWN/);assert.deepEqual([...x.disk],marker);assert.equal(x.posts().length,1);assert.equal(x.bridge.client(scope).permission('view'),false);assert(x.bridge.localDirty(scope));assert.equal(JSON.stringify(x.control.workflowScopes[scope]),beforeFlow);
  });
@@ -53,7 +53,7 @@ for(const scope of ['AB','C']){
   const x=await fixture({scope});t.after(x.f.close);const original=x.f.row();x.draft().snapshot.products[0].name='First';await x.bridge.execute(scope,'apply');x.draft().snapshot.products[0].name='Second';await x.bridge.execute(scope,'apply');
   assert.equal(x.posts().length,0);assert.deepEqual(x.f.row(),original);assert(x.bridge.localDirty(scope));await x.bridge.load(scope);assert.equal(x.draft().snapshot.products[0].name,'Second');
   await assert.rejects(x.bridge.submit(scope),/UNSAVED_CHANGES_SAVE_REQUIRED/);x.calls.length=0;const saved=await x.bridge.execute(scope,'save');assert.equal(x.posts().length,1);assert.equal(saved.control.workflow.saved.content.products[0].name,'Second');assert(!x.bridge.localDirty(scope));assert.equal(x.disk.size,0);
-  const sent=x.posts()[0].body.command;assert.equal(sent.input.batches.length,2);assert.equal(sent.input.batches[0].guards[0].value,'Synthetic product');assert.equal(sent.input.batches[1].guards[0].value,'First');
+  const sent=x.posts()[0].body.command;assert.equal(sent.input.batches.length,1);assert.equal(sent.input.batches[0].patches[0].value,'Second');assert.equal(sent.input.batches[0].guards[0].value,'Synthetic product');assert(Number.isSafeInteger(sent.expectedRevision));
   x.draft().snapshot.products[0].name='Discard';await x.bridge.execute(scope,'apply');x.bridge.discardLocal(scope);assert.equal(x.draft().snapshot.products[0].name,'Second');assert(!x.bridge.localDirty(scope));
  });
  void test(`${scope} unknown Save retains exact sent operation/basis across reopen and 404; GET-only recovery`,async t=>{

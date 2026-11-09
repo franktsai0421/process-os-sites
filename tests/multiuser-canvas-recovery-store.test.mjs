@@ -476,3 +476,13 @@ void test('failed old capture never replaces a newer queued reader', async () =>
 void test('failed old capture cannot revive a reader after pagehide invalidation', async () => {
   const f = await preparedFixture(); f.store.schedulePending(f.prepared.reservation, () => { f.emit('pagehide'); throw Error('old capture'); }); assert.equal(f.store.flushPending(f.prepared.reservation).ok, false); assert.equal(f.store.status().hasPending, false); f.store.close();
 });
+
+for(const invalid of ['clone-token','other-session','reused','epoch','runtime','reference','command-clone'])void test(`private Save command pin rejects ${invalid} without dispatch`,async()=>{
+ const f=await fixture().ready(),input=writeInput(),command={...commandFor(input),moduleAction:'save-canvas-v1',expectedRevision:1},token=f.store.captureSaveCommand(command,input.reference);let target=f,selected=token,posts=0;
+ if(invalid==='clone-token')selected={...token};if(invalid==='other-session')target=await fixture().ready();if(invalid==='epoch')f.ctx.epoch++;if(invalid==='runtime'){f.emit('pagehide');f.emit('pageshow',{persisted:true});await f.store.ready;}if(invalid==='reference')input.reference.operationId=webcrypto.randomUUID();
+ const prepared=target.store.prepareWrite({...input,commandPin:selected});
+ if(invalid==='reused'){assert(prepared.ok);assert.equal(target.store.prepareWrite({...input,commandPin:selected}).code,'SAVE_COMMAND_PIN_REQUIRED');}
+ else if(invalid==='command-clone'){assert(prepared.ok);await assert.rejects(target.store.dispatchPrepared(prepared.reservation,structuredClone(command),async()=>{posts++;}),/SAVE_COMMAND_PIN_REQUIRED/);}
+ else assert.equal(prepared.ok,false);
+ assert.equal(posts,0);assert(![...f.disk.data.values()].some(raw=>raw.includes('save-canvas-v1')),'private command is not persisted');f.store.close();if(target!==f)target.store.close();
+});

@@ -16,6 +16,7 @@ export function fixture({store=storage(),actor='owner',remote=null,schedulers={s
    const d=remote.control.documents.find(d=>d.id===body.documentId),cmd=body.command;let result={ok:true};
    if(body.action==='draft'){
     if(cmd.action==='apply')for(const p of cmd.patches){d.flow.working[p.path[0]]=copy(p.value);}
+    if(cmd.action==='save'&&cmd.moduleAction==='save-local-v1')for(const p of cmd.patches){if(p.path.length===1)d.flow.working[p.path[0]]=copy(p.value);else d.flow.working.lines.find(line=>line.id===p.path[1].id).results=copy(p.value);}
     if(cmd.action==='save')d.flow.saved={id:'saved-'+body.operationId,revision:d.flow.revision,content:copy(d.flow.working)};
     if(cmd.action==='submit')d.flow.pendingId='case-'+body.operationId;
     if(['approve','return','withdraw'].includes(cmd.action)){d.flow.generation='generation-'+body.operationId;d.flow.pendingId=null;if(cmd.action==='approve')d.flow.saved=null;}

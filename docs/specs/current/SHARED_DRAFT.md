@@ -2,6 +2,26 @@
 
 全站所有頁面取消固定秒數／分鐘向伺服器查詢、刷新、同步的背景檢查，不改成另一頻率。進頁、使用者明確更新及操作需要時讀取。草稿於存取時比對；存取、送審當下必要的最新版本、權限、狀態、CAS 和送出結果不明的防重送保護保留。歷史視窗也改於明確操作時核對權限；不承諾閒置畫面即時得知撤權或別人的修改。畫面時鐘、請求逾時和操作觸發的單次 UI 回呼不屬於背景輪詢。這項政策不等於已完成全站草稿拆分、衝突選擇或未存表單恢復移除。[候選逐頁盤點與驗證界線](../../acceptance/global-background-checks-20261109.md)。
 
+## 2026-11-09 — 全頁已核准歷史版本只讀查看（最新確認）
+
+所有實際共用業務草稿頁（含 BOM）在同頁同一版本篩選欄列當前草稿及該模組已通過審核的版本；選舊版直接同頁唯讀，選當前草稿切回。未存輸入、其他共用草稿、未核准／待審／退回／撤回案件及儲存紀錄不列為歷史。正式指標本身不偽造審核證據。不要另開歷史彈窗或提供還原、回溯、套用舊版入口。保護目前 RAM、原基準、pending、權限及 UNKNOWN 原收據；不因查看切換寫入、送審、重送或清除。此規則取代下方較早的歷史彈窗／還原介面敘述，不授權刪除歷史資料或移除相容 API。
+
+[實際逐頁盤點、首批共同 GET 與尚未完成的前端／發布狀態](../../acceptance/approved-history-unification-20261109/README.md)。不得把第一批後端 PASS 當作全頁已完成。
+
+## 2026-11-09 — 同頁篩選追加核對
+
+同一頁的 AB/C 篩選保留兩邊暫存；這不等於已完成線別工段頁獨立持久草稿，Save 仍按目前舊範圍。畫布篩選清除問題另有未整合候選；其他頁面追加修正及相依見[逐頁報告](../../acceptance/draft-filter-followup-20261109/README.md)。正式切換所有權、版本查看與全站背景檢查依其各自候選核對，不能因共用程式存在而算完成。
+
+## 2026-11-09 — 全頁草稿存取衝突的共同規則與候選界線
+
+本次確認取代逐欄／逐項選衝突及定時內容同步：只有明確 Save 比對原始基準、本機最終意圖與目前共用內容；一次選「用我的／用對方的／取消」套用全部真正衝突，保留雙方非衝突修改。選後重新讀取發現版本改變必須重比，穩定後同次原子 Save；已送操作及 UNKNOWN 不自動重送。未送本機內容離開真正模組頁時無提示放棄，同頁搜尋／線別／群組篩選保留。已核准版唯讀、不可撤回；權限、pending、原收據、世代、CAS 與引用驗證不放寬。
+
+本機整合候選已涵蓋各實際業務草稿；**線別工段仍與 AB/C 共用既有持久 scope**。每真正頁面獨立草稿是未完成的架構切換，closed split admission 保留，不能以現有候選宣稱已切換或上站。[逐頁盤點、驗收與分拆切換方案](../../acceptance/unified-draft-save-choice-20261109/README.md)。私人問題回報不併入共用業務草稿。
+
+## 2026-11-09 — 全部草稿的存取衝突要求與首批界線
+
+使用者要求只有按存取時核對衝突，整組選「用我的」或「用對方的」，沒有衝突的修改保留，取消原多人同步，並要求各分頁草稿獨立。這是待完成的全站要求，不宣告現有 scope 已分拆。首批 AB/C 候選僅處理既有產品名稱／規格／單位與線別／工段名稱；混入結構、類別或路線修改仍保留原 guards。PROCESS、各分頁持久草稿隔離與 master 取消輪詢整合仍未由此批完成。[實作範圍與驗證界線](../../acceptance/abc-field-save-choice-20261109/README.md)。
+
 ## 2026-11-05 AB/C: local completion and one explicit Save
 
 This AB/C candidate covers master products, categories, group defaults/product exceptions and the selected AB/C line/stage entry, separately from IPQC A/B. Form completion retains ordered original-basis guarded changes in the current page; only explicit Save atomically shares them and creates/retains the saved snapshot. Edit includes Save; create/delete/Submit/review remain distinct. Search/filter/poll preserve local input. Leaving the current editing destination/scope silently drops only unsent input; current product↔line/stage destination changes replace the shell projection and therefore also drop unsent input. Unknown Begin/Save retain original scoped markers, generation, operation and sent guards through departure/reopen; only original receipt lookup can settle them, never a 404 retry. Submit refuses local unsaved content and never auto-saves or sends an older snapshot. Existing shared working/saved/pending/effective/history and linked PROCESS cases remain. This supersedes older two-stage Apply/Save and prompted departure wording only for this candidate. [Implementation and acceptance boundary](../../acceptance/abc-local-save-20261105/README.md).

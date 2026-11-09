@@ -1,0 +1,253 @@
+{
+  "provenance": {
+    "bom": "ab306562540415b8dec4f3584e540577911cd551",
+    "main": "b06394ce0065849733399423afd2d906761d69c1"
+  },
+  "projections": [
+    {
+      "file": "public/process/shared-draft-client.js",
+      "target": "bom",
+      "beforeHash": "8e20a20104dfc75de70d4eaf1460aa1e49e335833915340bbe33ab10de6e0101",
+      "afterHash": "517d9fc561b9b8832190ecfa5dce53727eb4f1ed42f907e105fced3ebbfff192",
+      "beforeBytes": 167967,
+      "afterBytes": 171448,
+      "rules": [
+        {
+          "beforeOffset": 95369,
+          "afterOffset": 95369,
+          "before": "    async function request(url,body,readOptions) {\n      if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertOwner();\n",
+          "after": "    async function request(url,body,readOptions,equipmentRecheck) {\n      // Only the private explicit equipment permission read may use its new delivery pin.\n      const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};\n      if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();\n"
+        },
+        {
+          "beforeOffset": 100219,
+          "afterOffset": 100522,
+          "before": "        assertOwner();\n",
+          "after": "        assertRequestOwner();\n"
+        },
+        {
+          "beforeOffset": 109386,
+          "afterOffset": 109696,
+          "before": "",
+          "after": "    // JSON object key order is not content; array positions, keys and values are.\n    function equipmentContentEqual(a,b){\n      if(a===b)return true;if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;\n      if(Array.isArray(a)&&a.length!==b.length)return false;\n      const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&equipmentContentEqual(a[key],b[key]));\n    }\n"
+        },
+        {
+          "beforeOffset": 110080,
+          "afterOffset": 110864,
+          "before": "      if(originalPost&&command.action==='save'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>=0&&postFlow?.scope==='routine-equipment'&&postFlow.generation===command.generation&&postFlow.revision===result.receipt.revision&&postFlow.saved?.id===result.receipt.savedId&&postFlow.pendingId===null&&result.receipt.caseId===null&&JSON.stringify(postFlow.saved.content)===JSON.stringify(postFlow.working))return {...result,equipmentCommand:JSON.parse(JSON.stringify(command))};\n",
+          "after": "      if(originalPost&&command.action==='save'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||'')&&Number.isSafeInteger(result.revision)&&result.revision>=0&&postFlow?.scope==='routine-equipment'&&postFlow.generation===command.generation&&postFlow.revision===result.receipt.revision&&postFlow.saved?.id===result.receipt.savedId&&postFlow.pendingId===null&&result.receipt.caseId===null&&equipmentContentEqual(postFlow.saved.content,postFlow.working))return {...result,equipmentCommand:JSON.parse(JSON.stringify(command))};\n"
+        },
+        {
+          "beforeOffset": 119576,
+          "afterOffset": 120349,
+          "before": "",
+          "after": "    const equipmentDeliveryChecks=new WeakMap();\n"
+        },
+        {
+          "beforeOffset": 121103,
+          "afterOffset": 121925,
+          "before": "",
+          "after": "      async recheckEquipmentDelivery(generation,isCurrent,accept){\n        const owner=beginRuntimeOwner,oldDelivery=owner?.delivery,delivery=window.ProcessSync?.captureDelivery?.(),marker=sessionStorage.getItem(key),record=unknown;\n        const failures=[...syncFailures],assertRecheck=()=>{\n          if(!equipmentLocalSave||!durableBegin||endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||!accessGuard||!owner||owner!==beginRuntimeOwner||owner.delivery!==oldDelivery||!oldDelivery||window.ProcessSync?.isCurrentDelivery?.(oldDelivery)!==false||\n            !departureOwnerCurrent(owner)||owner.identity!==window.ProcessSync?.identity||owner.id!==actorId||\n            !Number.isSafeInteger(owner.epoch)||owner.epoch<0||owner.epoch!==window.ProcessSync?.identityGeneration?.()||\n            clientPagehideGeneration!==transportPagehideGeneration||!delivery||window.ProcessSync?.isCurrentDelivery?.(delivery)!==true||\n            queued||preparedFlights.size||beginPending||retryPending||beginRead||recoveryInvalid||beginOutstanding()||equipmentProjectionRetired||\n            typeof generation!=='string'||!generation||conditionalRead?.flowToken?.slice(0,conditionalRead.flowToken.lastIndexOf(':'))!==generation||record&&record.generation!==generation||unknown!==record||\n            sessionStorage.getItem(key)!==marker||marker!==(record?JSON.stringify(packCommand(record)):null)||\n            syncFailures.size!==failures.length||failures.some(([id,failure])=>syncFailures.get(id)!==failure)||syncFailures.size&&!record||\n            typeof isCurrent!=='function'||isCurrent()!==true||typeof accept!=='function')throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');\n        };\n        assertRecheck();\n        const result=await request(query('permissions=1'),undefined,{isCurrent,requireAcceptedAccess:true},assertRecheck);\n        assertRecheck();\n        if(result.permissions?.view!==true||result.permissions?.edit!==true||accept(result)!==true)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');\n        assertRecheck();\n        equipmentDeliveryChecks.set(result,()=>{assertRecheck();if(accept(result)!==true)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');assertRecheck();owner.delivery=delivery;});\n        return result;\n      },\n      confirmEquipmentDelivery(result){\n        const confirm=equipmentDeliveryChecks.get(result);if(!confirm)throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');\n        equipmentDeliveryChecks.delete(result);\n        // Only this read's private receipt can renew the idle runtime after all\n        // caller checks. Original journal, operations and failures stay untouched.\n        confirm();\n      },\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/shared-draft-client.js",
+      "target": "main",
+      "beforeHash": "0a580dc462943f0acd76dcbee419a0abc5605e0b7d508700fd36cdd3e4ca28d4",
+      "afterHash": "517d9fc561b9b8832190ecfa5dce53727eb4f1ed42f907e105fced3ebbfff192",
+      "beforeBytes": 171066,
+      "afterBytes": 171448,
+      "rules": [
+        {
+          "beforeOffset": 124930,
+          "afterOffset": 124930,
+          "before": "",
+          "after": "      ...(beginPath==='/api/bom/workflow'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true})}:{}),\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/index.html",
+      "target": "bom",
+      "beforeHash": "2b3b8f7933742865a4d34163e351efbcceacf824429f826f006f857922ff60e1",
+      "afterHash": "ad645aa12d9545613482b5ad7bad15a2e69445a699d1571a6e0025028102f5c7",
+      "beforeBytes": 10866,
+      "afterBytes": 10861,
+      "rules": [
+        {
+          "beforeOffset": 6909,
+          "afterOffset": 6909,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261108-bom-approved-history1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261109-bom-main-history1\"></script>\n"
+        },
+        {
+          "beforeOffset": 9016,
+          "afterOffset": 9012,
+          "before": "    <script data-process-src=\"routine-equipment.js?v=20261105-fqc-transfer-preflight1\"></script>\n",
+          "after": "    <script data-process-src=\"routine-equipment.js?v=20261108-equipment-ci-recovery1\"></script>\n"
+        }
+      ]
+    },
+    {
+      "file": "public/process/index.html",
+      "target": "main",
+      "beforeHash": "b32d9d7ff08a6f9fc5cac824a7500b7687b6bc10a52fa1a298323006fd695028",
+      "afterHash": "ad645aa12d9545613482b5ad7bad15a2e69445a699d1571a6e0025028102f5c7",
+      "beforeBytes": 10845,
+      "afterBytes": 10861,
+      "rules": [
+        {
+          "beforeOffset": 2571,
+          "afterOffset": 2571,
+          "before": "    <link rel=\"stylesheet\" href=\"bom-workspace.css?v=20261012-labels3\" />\n",
+          "after": "    <link rel=\"stylesheet\" href=\"bom-workspace.css?v=20261108-bom-save-history1\" />\n"
+        },
+        {
+          "beforeOffset": 6899,
+          "afterOffset": 6909,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261108-equipment-ci-recovery1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261109-bom-main-history1\"></script>\n"
+        },
+        {
+          "beforeOffset": 7981,
+          "afterOffset": 7986,
+          "before": "    <script data-process-src=\"bom-workspace.js?v=20261105-bom-atomic1\"></script>\n",
+          "after": "    <script data-process-src=\"bom-workspace.js?v=20261108-bom-unsent-history1\"></script>\n"
+        },
+        {
+          "beforeOffset": 8468,
+          "afterOffset": 8481,
+          "before": "    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n",
+          "after": "    <script data-process-src=\"version-draft-ui.js?v=20261108-bom-approved-history1\"></script>\n"
+        }
+      ]
+    }
+  ],
+  "current": [
+    {
+      "file": "app/api/bom/workflow/route.ts",
+      "sha256": "62bc80a17f942cccb0ba654c30fd6b819ce85e126ef2fd8135acbae33fc785ca",
+      "bytes": 297
+    },
+    {
+      "file": "app/api/master/workflow/route.ts",
+      "sha256": "ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f",
+      "bytes": 5829
+    },
+    {
+      "file": "lib/approved-history.ts",
+      "sha256": "3af9737bbb2760d08f04bd2ec098350d29ba19ad7381a2246ff711c992d38d44",
+      "bytes": 3687
+    },
+    {
+      "file": "lib/bom-workflow.ts",
+      "sha256": "023f2fd8a4cdcdd0d919cacd94c24a346fe6fe135b91946da06687ec61d45378",
+      "bytes": 9557
+    },
+    {
+      "file": "lib/draft-restore-access.ts",
+      "sha256": "7c92948cd0ed62583ec352bffc17b414abcd63a914456bfc3b5535f96dd4ea96",
+      "bytes": 2905
+    },
+    {
+      "file": "lib/master-document-boundary.ts",
+      "sha256": "7ef5bcf7c3da7d1e839929c28f81913cdc1c70909c60710091137c3a1efb10d7",
+      "bytes": 17048
+    },
+    {
+      "file": "lib/process-state.ts",
+      "sha256": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
+      "bytes": 25771
+    },
+    {
+      "file": "lib/shared-draft.ts",
+      "sha256": "2671a3f9677f253956f5a8d8e4687724bcd3689f9131b07b4488c1e2579bb1db",
+      "bytes": 17143
+    },
+    {
+      "file": "lib/state-records-response.ts",
+      "sha256": "fab6d83c70e79c1ef0200c1dc3488414215cd032e999f68f5b80fad947949e33",
+      "bytes": 2112
+    },
+    {
+      "file": "lib/user-access.ts",
+      "sha256": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+      "bytes": 2592
+    },
+    {
+      "file": "lib/versioned-shared-workflow.ts",
+      "sha256": "7810585ff095ee56aa7edc004d5059818724dea6d48730b33b5707c39b9b3042",
+      "bytes": 43498
+    },
+    {
+      "file": "lib/workflow-begin.ts",
+      "sha256": "078045e3ef3467a2e5fa34559c5e9a1a62abefd5e89dc6ab08ee108d021ad2b5",
+      "bytes": 3195
+    },
+    {
+      "file": "public/process/bom-domain.mjs",
+      "sha256": "5f72340c005ea09f9233efc493ef74c1c500580b26c92ef0c96db6a249e9d22c",
+      "bytes": 20824
+    },
+    {
+      "file": "public/process/bom-workspace.js",
+      "sha256": "ac0bbf5e7bd83b4eca30d47a03144a0ab6d4d2409853815df9eee5c8461bc361",
+      "bytes": 89242
+    },
+    {
+      "file": "public/process/index.html",
+      "sha256": "ad645aa12d9545613482b5ad7bad15a2e69445a699d1571a6e0025028102f5c7",
+      "bytes": 10861
+    },
+    {
+      "file": "public/process/routine-equipment.js",
+      "sha256": "6f57fc37463575cb1ee59790bad2869f44c7583a8005cbde1e805494f816597f",
+      "bytes": 283915
+    },
+    {
+      "file": "public/process/shared-draft-client.js",
+      "sha256": "517d9fc561b9b8832190ecfa5dce53727eb4f1ed42f907e105fced3ebbfff192",
+      "bytes": 171448
+    },
+    {
+      "file": "public/process/version-draft-ui.js",
+      "sha256": "0a609f37f2882e86a62dba8db88af0a91eddcdf51b78742208e441c362b63423",
+      "bytes": 57418
+    },
+    {
+      "file": "scripts/bom-successor-source-contract.cjs",
+      "sha256": "2ff3d794795adc4557657e039571ff2b912f11eb11cbe5100b1f5bf21adff1dc",
+      "bytes": 5028
+    },
+    {
+      "file": "scripts/bom-successor-source-contracts.json",
+      "sha256": "823d6e2a2f70cf25429670a4d7ba1977ccf748aefc259d4c4243e9cf69976b11",
+      "bytes": 13592
+    },
+    {
+      "file": "scripts/bom-unsent-source-contract.cjs",
+      "sha256": "fa6da57f98bf4a0fc811380b7fcb8252048c5e7dfa7d624fd20d40011167b533",
+      "bytes": 2825
+    },
+    {
+      "file": "scripts/bom-unsent-source-contract.json",
+      "sha256": "3e2d8d7bf6dac95ad004b0304a2415b2023009dc3999b8d06582416901d9fcce",
+      "bytes": 38639
+    },
+    {
+      "file": "scripts/equipment-ci-repair-source-contract.cjs",
+      "sha256": "45517ea0f5aeb079872af70df96e84311241f8e700a9a003e6f9b57323bcb296",
+      "bytes": 11723
+    },
+    {
+      "file": "scripts/equipment-no-poll-source-contract.cjs",
+      "sha256": "69356c95bf9b5ff6dd7d5affde2b25d45e40448598fe58ab7fd657cc1eff1e8f",
+      "bytes": 5878
+    },
+    {
+      "file": "scripts/master-route-successor-source-contract.cjs",
+      "sha256": "cd710b13df6f1f8e7e1615dadef79ef85e3e3f4b7db9dea80b003a891c8f3af1",
+      "bytes": 3961
+    }
+  ]
+}

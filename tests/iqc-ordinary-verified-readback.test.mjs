@@ -139,7 +139,9 @@ for(const status of [401,403])void test(`initial automatic receipt ${status}, re
 });
 void test('IQC local Save original guarded conflict is a proven rejection, not unknown',async()=>{
  const f=await warm(),client=f.api.transport(),path=['items',{id:'item'},'nameVi'];
- const pending=client.command('g','save',{moduleAction:'save-local-v1',patches:[{op:'set',path,value:'new'}],guards:[{path,value:'old'}]}).catch(e=>e);await tick();
+ const comparing=client.compareForSave({isCurrent:()=>true});await tick();const state=full();state.control.workflow.pendingId=null;f.respond(f.requests.length-1,state);const evidence=await comparing;
+ const command=client.prepareComparedSave(evidence,{moduleAction:'save-local-v1',patches:[{op:'set',path,value:'new'}],guards:[{path,value:'old'}]},{isCurrent:()=>true});
+ const pending=client.sendPrepared(command).catch(e=>e);await tick();
  f.respond(f.requests.length-1,{error:'DEPENDENCY_CHANGED_RECONFIRM',details:{path},requestId:webcrypto.randomUUID()},409);
  const error=await pending;assert.equal(error.message,'DEPENDENCY_CHANGED_RECONFIRM');assert.equal(client.hasUnknown(),false);assert.equal(f.markerCount(),0);
 });

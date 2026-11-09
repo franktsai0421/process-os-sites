@@ -10,6 +10,42 @@ Based on merged main 021f0f3 (#99), this batch changes only the selector count a
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
 
+## 2026-11-09 — AB/C、線別工段核准版本本機批次
+
+本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 已核准歷史與 d1ff 草稿篩選語意合併（本機）
+
+承接 `d1ff4a61` 的晚到輸入、照片及篩選保護，保留 IQC／FQC／模具／檢具的同頁核准歷史顯示與回原草稿。受影響 371 項情境分批 PASS，含 IQC 原 File/blob 跨歷史返回後只於明確 Save 上傳一次；原 9 個 named predecessors 與完整 historical witness 待合併 source 固定後重新生成。未上傳／合併 GitHub／部署；其他歷史頁仍未接完。[逐頁狀態與整合限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
+
+FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
+
+## 2026-11-09 — 已接續首批 IQC 同頁核准版本前端
+
+IQC 使用同位置單一 selector，已核准快照以原 detailPanel 唯讀顯示並可切回保留的當前 RAM；本頁舊歷史／還原彈窗入口移除。display epoch 阻擋舊回應與工作回呼，保留 UNKNOWN、pending、原比較基準與照片。32 項新查看、53 項 Save／離頁、76 項 BOM/C 共用、89 項其他 IQC 回歸及兩支投影腳本 PASS。其他頁面尚未完成，無 GitHub／部署變更。[逐頁矩陣與限制](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 全頁核准版本查看首批（本機，未發布）
+
+已在獨立候選以 ce824f2 為基準盤點全部草稿頁，新增共同 approved-only GET 精確 envelope 與 source/body／權限防護；78 項新 route 測試、76 項 BOM/C common 實際 handler、68 項既有權限／收據回歸及 12 組 helper PASS。沒有接通其他頁的同頁 selector，不可宣稱全站完成；Github／測試站仍未更新，保留既有 243-path UNKNOWN 與拒絕操作邊界。[逐頁矩陣、來源與接續](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
+# 2026-11-09 — 全站明確存取／整組衝突選擇本機整合
+
+以 main b06394c 在隔離整合分支合併 master AB/C/PROCESS、Canvas、FQC、IQC、IPQC A/B/C、BOM、模具、檢具及例行 FQC。選擇前後均保護原輸入／權限／世代，選後換版重比，同次 Save，不重送 UNKNOWN。root 獨立審查補正主資料接受基準／巢狀排序與共用 quality predicate 後的 owner 漂移。逐頁草稿所有權、各批證據與外部阻擋見[統一候選](docs/acceptance/unified-draft-save-choice-20261109/README.md)。線別工段獨立持久 scope 仍未啟用，需單獨重大所有權切換決定。未上傳／合併／部署；不可重送舊 243-path UNKNOWN 或覆蓋另一路畫布平台清單工作。
+
+# 2026-11-09 — AB/C field Save choice candidate
+
+Small independent local slice from main b06394c: existing product display fields
+and line/stage names gain one Save-time conflict choice. Category/route/structure,
+PROCESS and per-tab stored-draft separation remain open; master polling removal
+is a separate candidate. [Scope, verification and retained boundaries](docs/acceptance/abc-field-save-choice-20261109/README.md).
+No remote write, live data, migration, connector action or deployment.
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.

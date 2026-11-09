@@ -10,6 +10,44 @@ Source candidate stops shared draft/master polling and direct process/reference/
 
 New stage review snapshots include approved preset names/media and global custom flow types with new stage-specific IDs and no copied machine assignments. Missing custom type gets an explicit custom choice; divergent catalog keys refuse before submission. Existing stages, fixed source approval, permissions, locks, receipts and CAS remain. Independent review found ID collision/reference masking and lone-surrogate URI failures. Shared ID reservation and total UTF-16 encoding fix generation; approval validates fixed new IDs without rewriting cases or historical identities. No migration or deployed data change. See [scope and acceptance boundaries](../docs/acceptance/process-platform-tracking-20261109.md).
 
+## 2026-11-09 — AB/C、線別工段核准版本本機批次
+
+本機接上 AB/C／線別工段單一同頁核准版本及回原 RAM，保留 scope／權限／pending／UNKNOWN。修正模具 busy 後選單與 FQC 真實 bind 的矩陣歷史返回／離頁保護。受影響 421/421 PASS，另目錄讀取 42 項及 typed lint／TypeScript／source boundary PASS；其餘四組頁面仍待接線。未上傳 GitHub／未部署／原生與實站未驗；舊未知上傳與拒絕不重送。[逐頁狀態與相依](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 已核准歷史與 d1ff 草稿篩選語意合併（本機）
+
+承接 `d1ff4a61` 的晚到輸入、照片及篩選保護，保留 IQC／FQC／模具／檢具的同頁核准歷史顯示與回原草稿。受影響 371 項情境分批 PASS，含 IQC 原 File/blob 跨歷史返回後只於明確 Save 上傳一次；原 9 個 named predecessors 與完整 historical witness 待合併 source 固定後重新生成。未上傳／合併 GitHub／部署；其他歷史頁仍未接完。[逐頁狀態與整合限制](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
+
+FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
+
+## 2026-11-09 — IQC 同頁已核准版本查看候選
+
+同一 selector 載入具審核證據的快照，以獨立顯示狀態重用 IQC 唯讀詳細版面；返回保留原草稿 RAM、篩選、原基準、pending 與 UNKNOWN 收據。本頁舊歷史／還原彈窗入口移除，原相容 API 保留。完成可追溯的隔離測試，原生／實站未驗證，未上傳或部署。[驗證及全頁剩餘](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 全頁核准歷史讀取首批候選
+
+精確綁定 approved-only GET 的 route、scope 和 envelope，擴展 BOM 的固定核准內容及讀後授權／session／revision 防護至 numeric-version 草稿 API，排除無審核證據的 formal baseline。各頁同頁 selector 與 legacy 聯集仍待完成；無 schema、資料或發布變更。[逐頁盤點與實測界線](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
+## 2026-11-09 — 全業務草稿整組衝突本機候選
+
+各草稿頁面採 Save-time 三方比較、整組 mine/theirs/cancel、無衝突保留及選後換版重比；共同傳輸保留原收據／UNKNOWN／世代／權限／CAS。例行 FQC private Apply + Save 在同一 CAS 保存原命令收據；IPQC A/B 增加 optional coldOrigin lineage metadata（無 SQL migration），C 照片按穩定 ID／順序處理。頁面所有權分拆、遠端上傳與實站驗收未完成。[逐頁界線與證據](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
+
+## 2026-11-09 — AB/C existing-field conflict choice candidate
+
+Adds one Save-time mine/theirs/cancel dialog for batches of existing product
+name/specification/unit and line/stage name edits, preserving both sides'
+nonconflicting changes. Pins input before flush and across the authorized read
+and dialog; observed-value guards, server authority/CAS and original unknown
+receipts remain. Structural/category/route edits retain the original flow.
+[Scope, tests and outstanding page/PROCESS boundaries](../docs/acceptance/abc-field-save-choice-20261109/README.md).
+Local only; no schema, data, GitHub write or deployment.
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

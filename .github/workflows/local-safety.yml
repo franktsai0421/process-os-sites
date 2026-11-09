@@ -49,6 +49,21 @@ jobs:
           $headLintExit = $LASTEXITCODE
           Write-Host "HEAD_LINT_END exit=$headLintExit"
           exit $headLintExit
+      - name: Exact unified source and predecessor proofs
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/unified-draft-source-contract.test.cjs tests/unified-draft-source-engine.test.cjs tests/unified-draft-source-witness.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/bom-main-integration-source-contract.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/bom-unsent-source-contract.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/bom-successor-source-contract.test.cjs tests/access-event-main-integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/equipment-save-choice.test.mjs tests/equipment-save-choice-source.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/bom-approved-history-real-common.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Equipment no-poll source and local Save regression
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
@@ -81,7 +96,7 @@ jobs:
       - name: AB C integrated local Save and scoped recovery contracts
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
-          node --test tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-bridge-ownership.test.mjs tests/master-shared-clone.test.mjs
+          node --test tests/abc-save-conflict-choice.test.mjs tests/abc-local-save.test.mjs tests/abc-local-bridge.test.mjs tests/master-bridge-ownership.test.mjs tests/master-shared-clone.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: BOM atomic Save and original-operation browser recovery
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}

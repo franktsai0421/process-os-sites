@@ -1,3 +1,5 @@
+import unified from '../scripts/unified-draft-source-contract.cjs';
+import {execFileSync} from 'node:child_process';
 // Full production closure and actual shared receipt/read-pause helpers. Only the
 // DOM paint/search/dialog ports, clock and HTTP store are synthetic. No browser.
 import test from 'node:test';
@@ -127,6 +129,8 @@ void test('normal Update and separate read-only Refresh are bilingual; cache mat
   assert.match(source, /btn\('update-current', t\('更新', 'Cập nhật'\)/);
   assert.match(source, /btn\('refresh', t\('重新整理', 'Làm mới'\)\)/);
   assert.doesNotMatch(source, /setInterval\s*\(/);
-  const shell = fs.readFileSync('public/process/index.html', 'utf8');
-  assert.equal(shell.match(/routine-fqc\.js\?v=20261108-manual-generate2/g)?.length, 1);
+  const currentIndex=unified.canonicalSource(fs.readFileSync('public/process/index.html'),execFileSync('git',['show','HEAD:public/process/index.html']));
+  const shell=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString();
+  assert.equal(shell.match(/routine-fqc\.js\?v=20261109-unified-save-choice1/g)?.length, 1);
+  assert.equal(currentIndex.toString().match(/routine-fqc\.js\?v=20261109-unified-save-choice2/g)?.length,1);
 });

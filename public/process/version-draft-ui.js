@@ -5,7 +5,7 @@
     wholeScope:['儲存／送審範圍','Phạm vi lưu / gửi duyệt'], abScope:['整個 AB（A、B 線）','Toàn bộ AB (chuyền A, B)'], cScope:['整個 C（C 線）','Toàn bộ C (chuyền C)'],
     scopeReminder:['篩選只影響顯示，其他類別與分頁的修改也包含在內。','Bộ lọc chỉ đổi phần hiển thị; thay đổi ở nhóm và trang khác cũng được bao gồm.'],
     draftSynced:['已同步到共用草稿','Đã đồng bộ vào bản nháp chung'], draftUnsaved:['尚未儲存，請儲存後送審','Chưa lưu; hãy lưu trước khi gửi duyệt'],
-    historyHelp:['查看版本與儲存紀錄為唯讀。需要取回舊內容時，開啟送審案件並預覽還原到草稿。','Xem phiên bản và lịch sử lưu chỉ để đọc. Muốn lấy lại nội dung cũ, mở hồ sơ và xem trước khôi phục vào bản nháp.'],
+    historyHelp:['同一版本篩選欄可查看已核准版本（唯讀），選擇當前草稿返回。','Xem phiên bản đã duyệt (chỉ đọc) trong cùng bộ lọc; chọn bản nháp hiện tại để quay lại.'],
     unchanged:['尚無變更','Chưa có thay đổi'], recover:['查詢操作結果','Kiểm tra kết quả thao tác'], menu:['版本／草稿','Phiên bản / bản nháp'], active:['目前正式版本','Phiên bản có hiệu lực'], savedBy:['最後儲存者與時間','Người lưu cuối và thời gian'], unknown:['未記錄','Chưa ghi nhận'],
     begin:['開始修改草稿','Bắt đầu sửa bản nháp'], back:['返回共用草稿','Trở lại bản nháp chung'], save:['儲存草稿','Lưu bản nháp'], submit:['送出審核','Gửi duyệt'], withdraw:['撤回草稿','Rút bản nháp'], withdrawSubmitted:['撤回送審','Rút hồ sơ'], review:['查看送審案件','Xem hồ sơ gửi duyệt'],
     withdrawn:['已撤回','Đã rút'],returned:['已發回','Đã trả lại'],'pending-test':['待審','Chờ duyệt'],draft:['編輯中','Đang chỉnh sửa'], pending:['待審','Chờ duyệt'], approved:['正式版本','Bản có hiệu lực'], superseded:['歷史唯讀','Lịch sử · chỉ đọc'], history:['操作紀錄','Lịch sử thao tác'],
@@ -38,7 +38,149 @@
       const paint=()=>{rows.forEach((row,i)=>row.hidden=i<page*8||i>=(page+1)*8);prev.disabled=page===0;next.disabled=(page+1)*8>=rows.length;label.textContent=`${page+1} / ${Math.ceil(rows.length/8)}`;};prev.type=next.type='button';prev.onclick=()=>{page--;paint();};next.onclick=()=>{page++;paint();};nav.append(prev,label,next);group.after(nav);paint();
     }
   }
+  // BOM-only presentation lease. Neither this selector nor its GETs settle a
+  // write, replace a working aggregate, or touch a local recovery journal.
+  const approvedDisplays=new WeakMap();
+  const cloneHistory=value=>JSON.parse(JSON.stringify(value));
+  function clearHistory(client){const entry=client&&approvedDisplays.get(client);if(entry){entry.sequence++;entry.selected=null;}}
+  function historyVersion(client){const entry=client&&approvedDisplays.get(client);try{if(entry?.selected&&!entry.selected.current()){entry.sequence++;entry.selected=null;}return entry?.selected?cloneHistory(entry.selected.version):null;}catch{if(entry){entry.sequence++;entry.selected=null;}return null;}}
+  const bomHistoryModel=model=>model.module==='BOM'&&typeof model.renderHistory==='function'&&typeof model.historyCurrent==='function';
+  function bomHistoryMetadata(shell,model,log,empty){
+    const client=model.historyClient?.();if(!client?.approvedHistory||!client.approvedVersion)return;
+    let entry=approvedDisplays.get(client);if(!entry){entry={sequence:0,selected:null,revision:-1};approvedDisplays.set(client,entry);}
+    // Each mount retires handlers/readbacks belonging to the detached shell,
+    // but a synchronous render of the selected snapshot retains its lease.
+    entry.sequence++;
+    const sync=host.ProcessSync,identity=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.();
+    const owner=()=>!!identity?.id&&identity===host.ProcessSync?.identity&&Number.isSafeInteger(epoch)&&epoch>=0&&epoch===host.ProcessSync?.identityGeneration?.()&&!host.ProcessSync?.requiresReload&&delivery!==undefined&&delivery!==null&&host.ProcessSync?.isCurrentDelivery?.(delivery)===true&&model.historyClient?.()===client;
+    const allowed=()=>owner()&&model.historyCurrent()===true&&client.permission('view')===true&&client.permission('history')===true;
+    const live=()=>shell.isConnected&&allowed();
+    const evidence=value=>{
+      if(!value||typeof value!=='object')return false;
+      if(value.kind==='formal-baseline')return value.caseId===null&&value.savedId===null;
+      if(value.kind==='legacy-approval')return value.caseId===null&&value.savedId===null&&typeof value.approvedAt==='string'&&Number.isFinite(Date.parse(value.approvedAt));
+      return value.kind==='approved-case'&&typeof value.caseId==='string'&&!!value.caseId&&typeof value.savedId==='string'&&!!value.savedId.trim()&&typeof value.approvedBy==='string'&&!!value.approvedBy.trim()&&typeof value.approvedAt==='string'&&Number.isFinite(Date.parse(value.approvedAt));
+    };
+    const validRow=row=>row&&typeof row.id==='string'&&!!row.id&&!row.id.startsWith('shared-')&&Number.isSafeInteger(row.number)&&row.number>=1&&['approved','superseded'].includes(row.status)&&evidence(row.approvalEvidence)&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===row.id);
+    const authority=result=>{
+      if(result?.approvedOnly!==true||!Number.isSafeInteger(result.revision)||result.revision<entry.revision||!['view','edit','save','submit','withdraw','approve','return','history'].every(key=>typeof result.permissions?.[key]==='boolean')||result.permissions.view!==true||result.permissions.history!==true||!allowed())throw Error('APPROVED_HISTORY_AUTHORITY_REQUIRED');
+      entry.revision=result.revision;
+    };
+    empty?.remove();const notice=create('p','vd-history-load',''),section=create('section','vd-history-page'),rows=create('ol',''),nav=create('nav','vd-pages'),previous=create('button','button ghost',t('prev')),next=create('button','button ghost',t('next')),pageLabel=create('span','');
+    const choice=create('select',''),currentOption=create('option','',`${t('working')} · ${number(model.version)}`);currentOption.value='';choice.append(currentOption);choice.setAttribute('aria-label',t('viewVersions'));choice.dataset.vdApprovedChoice='true';shell.querySelector('.vd-choice')?.append(choice);
+    const back=create('button','button ghost',t('back'));back.type=previous.type=next.type='button';back.dataset.vdApprovedCurrent='true';shell.querySelector('.vd-actions')?.append(back);
+    section.append(create('h4','',t('viewVersions')),rows);nav.append(previous,pageLabel,next);section.append(nav);log.append(notice,section);
+    let loading=false,started=false,cursors=[''],page=null;const known=new Map();
+    const controls=()=>{back.hidden=!entry.selected&&!loading;back.disabled=!live();choice.disabled=loading||!live();previous.disabled=loading||!live()||cursors.length===1;next.disabled=loading||!live()||!page?.next;for(const button of rows.querySelectorAll('button'))button.disabled=loading||!live();};
+    const paint=()=>{
+      known.clear();rows.replaceChildren();choice.replaceChildren(currentOption);
+      const selected=historyVersion(client);if(selected){const option=create('option','',`${number(selected)} · ${t('superseded')}`);option.value=selected.id;choice.append(option);}
+      for(const row of page?.rows||[]){known.set(row.id,row);const li=create('li',''),button=create('button','button ghost',`${number(row)} · ${t(row.status)} · ${date(row.createdAt)}`);button.type='button';button.dataset.vdApprovedId=row.id;button.onclick=()=>void choose(row.id);li.append(button);rows.append(li);if(row.id!==selected?.id){const option=create('option','',`${number(row)} · ${t(row.status)}`);option.value=row.id;choice.append(option);}}
+      if(!page?.rows.length)rows.append(create('li','',t('none')));choice.value=selected?.id||'';pageLabel.textContent=`${cursors.length} / ${Math.max(1,Math.ceil((page?.total||0)/20))}`;controls();
+    };
+    const begin=()=>{if(loading||!live())throw Error('APPROVED_HISTORY_SUPERSEDED');loading=true;const sequence=++entry.sequence;controls();const current=()=>sequence===entry.sequence&&live();current.sequence=sequence;return current;};
+    const fail=error=>{if(!shell.isConnected)return;if(!allowed()){clearHistory(client);known.clear();page=null;rows.replaceChildren();choice.replaceChildren(currentOption);choice.value='';}if(shell.isConnected){notice.textContent=t('history')+' · '+t('failed')+' · '+error.message;controls();}};
+    async function load(nextCursors=cursors){let current;try{current=begin();notice.textContent=t('history')+' · '+t('syncing');const result=await client.approvedHistory({versionBefore:nextCursors.at(-1)},{isCurrent:current});if(!current())throw Error('APPROVED_HISTORY_SUPERSEDED');authority(result);const data=result.versions;if(!data||!Array.isArray(data.rows)||data.rows.length>20||!data.rows.every(validRow)||new Set(data.rows.map(row=>row.id)).size!==data.rows.length||!Number.isSafeInteger(data.total)||data.total<data.rows.length||!(data.next===null||typeof data.next==='string'&&!!data.next))throw Error('APPROVED_HISTORY_INVALID');page=cloneHistory(data);cursors=nextCursors.slice();notice.textContent='';shell.dataset.historyLoaded='true';paint();}catch(error){fail(error);if(!page)started=false;}finally{if(current?.sequence===entry.sequence)loading=false;controls();}}
+    async function choose(id){let current;try{
+      if(!id&&loading){entry.sequence++;loading=false;}
+      current=begin();notice.textContent=t('history')+' · '+t('syncing');
+      if(!id){
+        const result=await client.permissions({isCurrent:current,requireAcceptedAccess:true});if(!current()||result.permissions?.view!==true||result.permissions?.history!==true||!['view','edit','save','submit','withdraw','approve','return','history'].every(key=>typeof result.permissions?.[key]==='boolean')||!Number.isSafeInteger(result.revision)||result.revision<entry.revision)throw Error('APPROVED_HISTORY_SUPERSEDED');entry.revision=result.revision;
+        // The adapter must observe an empty selection before restoring its own
+        // retained editor. The returned/current ID is never a writer basis.
+        clearHistory(client);model.renderHistory(null,model.version?.id);if(shell.isConnected){loading=false;notice.textContent='';paint();}return;
+      }
+      if(!known.has(id)&&entry.selected?.version.id!==id)throw Error('APPROVED_HISTORY_NOT_LISTED');
+      const result=await client.approvedVersion(id,{isCurrent:current});if(!current())throw Error('APPROVED_HISTORY_SUPERSEDED');authority(result);
+      const value=result.version;if(!validRow(value)||value.id!==id||!value.snapshot||typeof value.snapshot.bom!=='object'||Array.isArray(value.snapshot.bom)||!value.snapshot.bom||!Array.isArray(value.snapshot.referenceIssues))throw Error('APPROVED_HISTORY_INVALID');
+      const version=cloneHistory(value);entry.selected={version,current:allowed};
+      // Store the validated clone first: the BOM adapter checks this selection
+      // and clones its display, without rebinding flow()/version()/editor.
+      model.renderHistory(cloneHistory(version),model.version?.id);
+    }catch(error){fail(error);}finally{if(current?.sequence===entry.sequence)loading=false;if(shell.isConnected){choice.value=historyVersion(client)?.id||'';controls();notice.textContent=notice.textContent===t('history')+' · '+t('syncing')?'':notice.textContent;}}}
+    back.onclick=()=>void choose('');choice.onchange=()=>void choose(choice.value);previous.onclick=()=>void load(cursors.slice(0,-1));next.onclick=()=>{if(page?.next)void load([...cursors,page.next]);};
+    const start=()=>{if(started)return;started=true;void load();};log.addEventListener('toggle',()=>{if(log.open)start();});choice.addEventListener('focus',start,{once:true});
+    entry.cleanup?.();const invalidate=()=>{if(!allowed()){clearHistory(client);known.clear();page=null;rows.replaceChildren();choice.replaceChildren(currentOption);choice.value='';notice.textContent=t('locked');controls();}};const invalidationEvents=['process-delivery-invalidated','process-sync-status'];for(const name of invalidationEvents)host.addEventListener(name,invalidate);entry.cleanup=()=>{for(const name of invalidationEvents)host.removeEventListener?.(name,invalidate);};
+    shell.refreshHistoryLabels=()=>{currentOption.textContent=`${t('working')} · ${number(model.version)}`;back.textContent=t('back');previous.textContent=t('prev');next.textContent=t('next');paint();};paint();if(log.open)start();
+  }
+
+  // Explicit adapters own their working buffers. This controller owns only a
+  // display lease and cloned, audited GET results; it never calls a writer.
+  const approvedPageCaches=new WeakMap();
+  function createApprovedHistory(options){
+    const {root,shell,client}=options;
+    if(!root||!shell||!client?.approvedHistory||!client?.approvedVersion)throw Error('APPROVED_HISTORY_ADAPTER_REQUIRED');
+    client.useAccessResultGuard?.();
+    const sync=host.ProcessSync,actor=sync?.identity,epoch=sync?.identityGeneration?.(),delivery=sync?.captureDelivery?.();
+    const owner=()=>root.isConnected&&shell.isConnected&&root.contains(shell)&&actor===host.ProcessSync?.identity&&!!actor?.id&&Number.isSafeInteger(epoch)&&epoch>=0&&epoch===host.ProcessSync?.identityGeneration?.()&&!host.ProcessSync?.requiresReload&&delivery!=null&&host.ProcessSync?.isCurrentDelivery?.(delivery)===true&&client.isRuntimeCurrent?.()!==false&&options.isCurrent()===true;
+    const allowed=()=>owner()&&client.permission('view')===true&&client.permission('history')===true;
+    let cache=approvedPageCaches.get(client);
+    if(!cache||cache.actor!==actor||cache.epoch!==epoch||host.ProcessSync?.isCurrentDelivery?.(cache.delivery)!==true){cache={actor,epoch,delivery,rows:new Map(),cursor:null,loaded:false,revision:-1};approvedPageCaches.set(client,cache);}
+    options.empty?.remove();
+    const choice=create('select','');choice.id=options.selectId;choice.dataset.vdApprovedChoice='true';
+    const old=shell.querySelector('.vd-choice select');if(old){old.before(choice);old.remove();}else shell.querySelector('.vd-choice')?.append(choice);
+    const notice=create('p','vd-approved-notice');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');shell.querySelector('.vd-card')?.append(notice);
+    const display=create('section','vd-approved-view');display.setAttribute('data-vd-approved-view','true');display.hidden=true;shell.after(display);
+    const title=shell.querySelector('.vd-top h3');let currentTitle=title?.textContent,sequence=0,retired=false,loading=false,blocking=options.initialBlocked===true,selected=null,data=null,hidden=[];
+    const live=()=>!retired&&owner();
+    const canChoose=()=>options.canChoose()===true;
+    const text=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
+    const hideWorking=()=>{if(hidden.length)return;const nodes=[];let child=shell;while(child&&child!==root){for(const sibling of child.parentElement?.children||[])if(sibling!==child&&sibling!==display)nodes.push(sibling);child=child.parentElement;}const card=shell.querySelector('.vd-card');nodes.push(...[...shell.children].filter(n=>!n.matches('.vd-heading,.vd-card')),...[...(card?.children||[])].filter(n=>!n.matches('.vd-top')&&n!==notice));hidden=[...new Set(nodes)].map(n=>[n,n.hidden]);for(const [node]of hidden)node.hidden=true;};
+    const restoreWorking=()=>{for(const [node,wasHidden]of hidden)node.hidden=wasHidden;hidden=[];display.hidden=true;display.replaceChildren();if(title)title.textContent=currentTitle;};
+    function paint(){
+      choice.replaceChildren();const option=(value,label)=>{const node=create('option','',label);node.value=value;choice.append(node);};
+      option('',text('當前草稿','Bản nháp hiện tại'));
+      for(const row of cache.rows.values())option(row.id,`V${row.number} · ${text('已核准 · 唯讀','Đã duyệt · chỉ đọc')} · ${date(row.approvalEvidence.approvedAt)}`);
+      if(cache.cursor)option('__more',text('載入更多已核准版本…','Xem thêm phiên bản đã duyệt…'));
+      if(blocking&&!selected)option(loading?'__loading':'__blocked',text(loading?'正在載入版本…':'請重新選擇當前草稿',loading?'Đang tải phiên bản…':'Chọn lại bản nháp hiện tại'));
+      choice.value=blocking&&loading?'__loading':selected?.id||(blocking?'__blocked':'');choice.setAttribute('aria-label',text('已核准版本／當前草稿','Phiên bản đã duyệt / bản nháp hiện tại'));choice.disabled=!live()||!allowed()||!canChoose();
+      if(blocking&&title)title.textContent=selected?`V${selected.number} · ${text('已核准 · 唯讀','Đã duyệt · chỉ đọc')}`:text(loading?'正在載入版本…':'請重新選擇當前草稿',loading?'Đang tải phiên bản…':'Chọn lại bản nháp hiện tại');
+    }
+    const erase=()=>{if(retired)return;options.onBoundary();options.onDenied?.();sequence++;blocking=true;loading=false;selected=null;data=null;cache.rows.clear();cache.cursor=null;cache.loaded=false;hideWorking();display.hidden=true;display.replaceChildren();notice.textContent=text('權限或頁面已變更，請重新開啟核對。','Quyền hoặc trang đã thay đổi. Hãy mở lại và kiểm tra.');paint();};
+    const invalidate=()=>{if(!live()||!allowed())erase();else paint();};
+    const events=['process-delivery-invalidated','process-sync-status','pagehide'];
+    const onPageHide=()=>erase();for(const event of events)host.addEventListener(event,event==='pagehide'?onPageHide:invalidate);
+    const unwatch=client.watchApprovedAccess(invalidate);
+    function retire(){if(retired)return;retired=true;sequence++;unwatch();for(const event of events)host.removeEventListener(event,event==='pagehide'?onPageHide:invalidate);restoreWorking();display.remove();}
+    const begin=()=>{if(!live())throw Error('APPROVED_HISTORY_SUPERSEDED');loading=true;const ticket=++sequence;return()=>live()&&ticket===sequence;};
+    const authority=result=>{if(!allowed()||!Number.isSafeInteger(result?.revision)||result.revision<cache.revision||!['view','edit','save','submit','withdraw','approve','return','history','delete'].every(key=>typeof result.permissions?.[key]==='boolean')||result.permissions.view!==true||result.permissions.history!==true)throw Error('APPROVED_HISTORY_AUTHORITY_REQUIRED');cache.revision=result.revision;};
+    const evidence=e=>e&&typeof e.approvedAt==='string'&&Number.isFinite(Date.parse(e.approvedAt))&&(e.kind==='legacy-approval'&&e.caseId===null&&e.savedId===null||e.kind==='approved-case'&&typeof e.caseId==='string'&&!!e.caseId&&typeof e.savedId==='string'&&!!e.savedId.trim()&&typeof e.approvedBy==='string'&&!!e.approvedBy.trim());
+    const validRow=row=>row&&typeof row.id==='string'&&!!row.id&&!row.id.startsWith('shared-')&&!['__more','__blocked','__loading'].includes(row.id)&&Number.isSafeInteger(row.number)&&row.number>=1&&['approved','superseded'].includes(row.status)&&evidence(row.approvalEvidence)&&(row.approvalEvidence.kind!=='approved-case'||row.approvalEvidence.caseId===row.id);
+    const message=error=>text('無法讀取版本','Không đọc được phiên bản')+' · '+String(error?.message||error);
+    async function load(){if(loading||!live()||!canChoose())return;const current=begin();try{notice.textContent=text('載入中…','Đang tải…');authority(await client.permissions({isCurrent:current,requireAcceptedAccess:true}));if(!current())return;const result=await client.approvedHistory({versionBefore:cache.cursor||''},{isCurrent:current});if(!current())return;authority(result);const rows=result.versions;if(result.approvedOnly!==true||!rows||!Array.isArray(rows.rows)||rows.rows.length>20||!rows.rows.every(validRow)||new Set(rows.rows.map(row=>row.id)).size!==rows.rows.length||!Number.isSafeInteger(rows.total)||rows.total<rows.rows.length||!(rows.next===null||typeof rows.next==='string'&&!!rows.next)||rows.next&&rows.next===cache.cursor)throw Error('APPROVED_HISTORY_INVALID');for(const row of rows.rows)cache.rows.set(row.id,cloneHistory(row));cache.cursor=rows.next;cache.loaded=true;notice.textContent=rows.total?'':text('尚無已核准版本','Chưa có phiên bản đã duyệt');}catch(error){if(current())notice.textContent=message(error);}finally{if(current()){loading=false;paint();options.onIdle?.();}}}
+    function renderSnapshot(){if(!live()||!allowed()||!selected||!data)return;display.hidden=false;display.replaceChildren();const hint=create('p','',text('唯讀。請於同一篩選欄選擇當前草稿切回。','Chỉ đọc. Chọn bản nháp hiện tại trong cùng bộ lọc để quay lại.'));display.append(hint,create('p','',`${selected.approvalEvidence.approvedBy||''} · ${date(selected.approvalEvidence.approvedAt)}`));options.renderSnapshot(display,cloneHistory(data),()=>live()&&allowed()&&!!selected&&!loading);}
+    async function choose(id,fromApprovedCase=false){
+      if(!live())return;if(!canChoose()){paint();return;}if(id==='__more')return load();if(['__loading','__blocked'].includes(id)||id&&!cache.rows.has(id)&&!fromApprovedCase){paint();return;}
+      if(typeof id!=='string'||fromApprovedCase&&!id)return;
+      options.onBoundary();blocking=true;const current=begin();hideWorking();display.hidden=true;display.replaceChildren();selected=null;data=null;paint();
+      try{notice.textContent=text('載入中…','Đang tải…');if(!id){const permission=await client.permissions({isCurrent:current,requireAcceptedAccess:true});if(!current())return;authority(permission);blocking=false;loading=false;retire();options.renderCurrent();document.querySelector('#'+options.selectId)?.focus({preventScroll:true});return;}
+        const result=await client.approvedVersion(id,{isCurrent:current});if(!current())return;authority(result);const value=result.version;if(result.approvedOnly!==true||!validRow(value)||value.id!==id||!options.validateSnapshot(value.snapshot))throw Error('APPROVED_HISTORY_INVALID');selected=cloneHistory(value);cache.rows.set(value.id,cloneHistory({id:value.id,number:value.number,status:value.status,approvalEvidence:value.approvalEvidence}));data=cloneHistory(value.snapshot);loading=false;notice.textContent='';renderSnapshot();
+      }catch(error){if(current()){selected=null;data=null;blocking=true;display.hidden=true;display.replaceChildren();notice.textContent=message(error);}}finally{if(current()){loading=false;paint();}}
+    }
+    choice.onfocus=()=>{if(!cache.loaded)return load();};choice.onchange=()=>choose(choice.value);
+    const view={retire,refreshControls(){if(live())paint();},openVersion:id=>choose(id,true),get selectedId(){return selected?.id||'';},get historical(){return blocking||!!selected;},get reading(){return loading;},get blocked(){return blocking||!live();},relabel(){if(!live())return;shell.refreshLabels?.();if(!blocking)currentTitle=title?.textContent;paint();if(selected)renderSnapshot();}};
+    shell.refreshHistoryLabels=paint;if(blocking){hideWorking();notice.textContent=text('請重新選擇當前草稿','Chọn lại bản nháp hiện tại');}paint();return view;
+  }
+  // Read-only field renderer for explicit module schemas. Data, labels and media
+  // come solely from the selected snapshot and the adapter's immutable route.
+  function renderApprovedCollections(target,snapshot,{collections,fields,mediaURL},current){
+    const text=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
+    const label=key=>fields[key]?.[document.documentElement.lang==='vi'?1:0]||key;
+    function value(node,data,key,ancestors=[]){
+      if(data==null){node.append(create('span','','—'));return;}
+      if(typeof data!=='object'){node.append(create('span','',typeof data==='boolean'?text(data?'是':'否',data?'Có':'Không'):String(data)));return;}
+      if(key==='photos'||key==='mediaItems'){for(const photo of Array.isArray(data)?data:[]){const url=mediaURL?.(photo);if(!url){node.append(create('p','',text('此歷史圖片無法讀取','Không đọc được ảnh lịch sử này')));continue;}const img=create('img','');img.loading='lazy';img.alt=photo.name||text('歷史圖片','Ảnh lịch sử');img.src=url;img.onerror=()=>{if(!current())return;img.onerror=null;img.hidden=true;img.after(create('p','',text('此歷史圖片無法讀取','Không đọc được ảnh lịch sử này')));};node.append(img);}return;}
+      if(Array.isArray(data)){const list=create('ol','');for(const row of data){const item=create('li','');value(item,row,'',ancestors);list.append(item);}node.append(list);return;}
+      const list=create('dl','');for(const [field,item]of Object.entries(data)){if(field==='equipmentSnapshot'&&data.equipmentId&&item?.id!==data.equipmentId){list.append(create('dt','',label(field)),create('dd','',text('此版本未保存相符設備','Phiên bản này không lưu thiết bị phù hợp')));continue;}const dd=create('dd','');value(dd,item,field,[...ancestors,key]);list.append(create('dt','',label(field)),dd);}node.append(list);
+    }
+    for(const key of collections){const section=create('section','vd-approved-collection'),rows=snapshot[key],heading=create('h3','',`${label(key)} · ${rows.length}`),searchLabel=create('label','',text('搜尋','Tìm kiếm')),search=create('input',''),area=create('div',''),nav=create('nav','vd-pages'),prev=create('button','button ghost',t('prev')),next=create('button','button ghost',t('next')),count=create('span','');let page=0,query='';search.setAttribute('type','search');search.setAttribute('aria-label',text('搜尋','Tìm kiếm')+' · '+label(key));searchLabel.append(search);prev.type=next.type='button';nav.append(prev,count,next);section.append(heading,searchLabel,area,nav);target.append(section);
+      function paintRows(){if(!current())return;const filtered=rows.filter(row=>!query||JSON.stringify(row).toLocaleLowerCase().includes(query.toLocaleLowerCase()));page=Math.min(page,Math.max(0,Math.ceil(filtered.length/10)-1));area.replaceChildren();for(const row of filtered.slice(page*10,page*10+10)){const detail=create('details',''),summary=create('summary','',row.code||row.nameZh||row.nameVi||row.name||row.id||text('資料','Dữ liệu')),body=create('div','');detail.append(summary,body);detail.ontoggle=()=>{if(!current()||!detail.open||body.children.length)return;value(body,row,key);};area.append(detail);}if(!filtered.length)area.append(create('p','',t('none')));count.textContent=`${page+1} / ${Math.max(1,Math.ceil(filtered.length/10))} · ${filtered.length}`;prev.disabled=page===0;next.disabled=(page+1)*10>=filtered.length;}
+      search.oninput=event=>{if(!current()||event.isComposing)return;query=search.value;page=0;paintRows();};search.oncompositionend=search.oninput;prev.onclick=()=>{if(current()){page--;paintRows();}};next.onclick=()=>{if(current()){page++;paintRows();}};paintRows();
+    }
+  }
   async function historyMetadata(shell,model,select,log,empty){
+    if(bomHistoryModel(model))return bomHistoryMetadata(shell,model,log,empty);
+    if(typeof model.mountApprovedHistory==='function')return model.mountApprovedHistory(shell,log,empty);
     const client=model.historyClient?.();if(!client?.uiHistory||client.permission('history')===false)return;
     empty?.remove();
     const known=new Map(),sections={},pages={},cursors={versions:[''],saves:['']};let loading=false;
@@ -65,7 +207,8 @@
   // listeners) rather than creating alternate write paths or replacing inputs.
   function mount(root,model){
     if(!root)return;const old=root.querySelector(model.header);if(!old||old.dataset.vdMounted)return;
-    const v=model.version,flow=model.flow,versions=model.versions||[],pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');
+    const selected=bomHistoryModel(model)?historyVersion(model.historyClient?.()):null;
+    const v=selected||model.version,flow=model.flow,versions=model.versions||[],pending=['pending','pending-test'].includes(v?.status),draft=versions.find(row=>row.status==='draft');
     const statusNodes=(model.status||[]).map(selector=>root.querySelector(selector)).filter(Boolean);
     const shell=create('section','vd-shell');shell.dataset.i18nSkip='true';shell.dataset.module=model.module;if(model.masterScope)shell.dataset.vdMasterScope=model.masterScope;const translations=[];const label=(node,key)=>{translations.push(()=>node.textContent=t(key));return node;};
     const heading=create('header','vd-heading');heading.innerHTML=`<h2>${h(model.module)}</h2><p><span class="vd-scope-help" title="${h(t('filters'))}">${t('scope')}：${h(model.scope)}</span></p>`;
@@ -245,7 +388,7 @@
     }
     return {inspect,covered:()=>completedCoverage.length>0&&completedCoverage.every(lease=>lease.current()),otherDraftsPending(){const plan=config.unknown?.()&&unknownPlan();if(plan)return plan.peers.some(client=>client.otherDeparturePending(plan.peers));const pending=host.sharedDraftAccountState?.()||{};return host.sharedDraftDepartureBlocked?.()??!!(pending.unknown||pending.failed);},ownsRuntimeLocal:()=>config.ownsRuntimeLocal?.()===true,save:()=>act('save'),discard:()=>act('discard'),abandon:()=>act('abandon'),ownsDialog:node=>(config.dialogs?.()||[]).includes(node),closeClean(){const status=inspect();if(!['clean','departing'].includes(status.state))throw Error(status.reason);config.closeClean?.();if(operation?.unknown){operation.committed=true;completedCoverage=operation.coverage;}}};
   }
-  host.VersionDraftUI={createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
+  host.VersionDraftUI={createApprovedHistory,renderApprovedCollections,historyVersion,clearHistory,createDeparture,masterChanges,mount,t,date,issueMessage,confirmSubmit,confirmReview,preserveView,reasonFor,updateSaved,updateSync};
   const priorValidation=host.renderSharedDraftValidation;
   host.renderSharedDraftValidation=options=>{const shell=options.after?.closest('.vd-shell');if(shell)shell.querySelectorAll('[data-shared-issue-kind]').forEach(node=>node.remove());priorValidation?.(options);if(shell){for(const kind of ['error','missing','warning']){const section=shell.querySelector(kind==='warning'?'.vd-history':'.vd-'+(kind==='error'?'errors':'missing'));for(const node of shell.querySelectorAll('.shared-validation [data-shared-issue-kind="'+kind+'"]')){section.querySelector('.vd-empty')?.remove();section.append(node);}}shell.querySelectorAll('.shared-validation').forEach(node=>node.remove());}};
   host.addEventListener('process-language-change',()=>document.querySelectorAll('.vd-shell').forEach(shell=>shell.refreshLabels?.()));

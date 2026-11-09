@@ -1,3 +1,4 @@
+const unified=require('./unified-draft-source-contract.cjs');
 const {withoutLocalAtomicSave}=require('./ipqc-c-local-save-source-contract.cjs');
 /* Actual candidate and published handler; synthetic SQLite/R2 only, no network. */
 const assert=require('node:assert/strict'),fs=require('node:fs');
@@ -85,8 +86,8 @@ await check('P7 non-permissions GET preserves data/I/O with exact permission DTO
  const denied=request('admin-two','?restoreSaveId=save0'),a=await run(denied),b=await run(denied,true);assert.equal(b.status,200);assert.deepEqual(comparable(a),{status:403,headers:b.headers,body:{error:'FORBIDDEN'}},'ordinary admin cannot inherit restore from edit');assert.equal(a.metrics.revocations,b.metrics.revocations+extraRevocations('admin-two'));
 });
 await check('P8 exact composed performance plus #44 permission/restore spans and historical read-selection proof',async()=>{
- const priorBytes=execFileSync('git',['show',base+':'+route]),committedBytes=execFileSync('git',['show','HEAD:'+route]);
- const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(committedBytes),'working tree differs beyond CRLF');
+ const priorBytes=execFileSync('git',['show',base+':'+route]),actualCommitted=execFileSync('git',['show','HEAD:'+route]),committedBytes=unified.project(unified.canonicalSource(fs.readFileSync(route),actualCommitted),route,'main');
+ const lf=bytes=>Buffer.from([...bytes].filter((value,index)=>value!==13||bytes[index+1]!==10));assert.deepEqual(lf(fs.readFileSync(route)),lf(actualCommitted),'working tree differs beyond CRLF');
  const createBase=assertCreateMutationContract(withoutLocalAtomicSave(committedBytes)).normalized;
  assertComposedPerformanceContract(createBase);
  const explicitBytes=withoutComposedPerformance(createBase);
