@@ -48,6 +48,8 @@
 
 測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
 
+獨審補充後，名稱元件的 patch／guard 實體 selector 僅接受純 `{id:string}`（非空 ID），拒絕額外鍵、陣列或缺少字串 ID 的 selector，避免同一實體的不同外觀被誤當不同 contributor intent。拒絕發生在 staging 前，不修改原命令或 fingerprint；共用 kernel 與既有 writer 的相容格式不變。
+
 ## 資料安全演練與重大發現
 
 [master-page-retention-snapshot.test.mjs](../../tests/master-page-retention-snapshot.test.mjs) 使用既有 record encoder／verifiedRecordRestore、分發快照匯出及 isolated-local restore，全部為記憶體 fake DB/R2。8 組測試涵蓋原樣業務 root／待審／原收據保留、尚未 hydrate 歷史與 partial read 拒絕、歷史 body／原 archival string 缺損或破壞、歷史／待審專用媒體缺失、來源改版、傳輸毀損及非空目標保護。分發演練另逐 byte 核對四份合成媒體（含跨 chunk 的待審圖片）；source fake DB/R2 沒有被 exporter 寫入，目標只寫 isolated memory bindings。
@@ -108,7 +110,7 @@
 實際命令及最終輸出保留在工作區 `module-draft-boundary-evidence-20261109/`，摘要隨本次交付提供。新測試已加入 AB C local Save CI，沒有放寬既有測試。測試重用工作區既有依賴，沒有安裝、seed 或啟動開發服務。
 
 - PASS：新頁面邊界／純預演的 11 組合成契約；實際 GET/POST 的 reserved page/split admission，DB/R2 零讀寫。
-- PASS：單一 LINES 名稱 Save／真實 shared kernel 15 組合成契約，DB/R2 零讀寫；補上「暫改再改回」的貢獻者負控制與混合真修改案例。修正前會留下假貢獻者，修正後保留原歸屬；它不是完整新頁面 adapter 的生命週期驗收。
+- PASS：單一 LINES 名稱 Save／真實 shared kernel 17 組合成契約，DB/R2 零讀寫；補上「暫改再改回」的貢獻者負控制、混合真修改及線別／工段／guard selector alias 反例。修正前會留下假貢獻者或接受 alias，修正後保留原歸屬並在 staging 前拒絕非純 selector；它不是完整新頁面 adapter 的生命週期驗收。
 - PASS：資料保留／快照用途分界 8 組合成演練，含上述已重現的分發 port 限制及 cutoff 安全拒絕。合成目標 R2/DB 寫入不等於真實持久資料寫入。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
@@ -121,7 +123,9 @@
 
 ## 審查與其他 PR 的相依
 
-本輪已讀回 #102 的 head `b172aaf53e6c2da6f9c5b1a6b331d15944340c03`：AB C local Save 與 PROCESS local Save 通過，Local safety 尚在執行；該結果不能冒充後續 head 的結果。當時沒有 GitHub review 或 comment。貢獻者問題由作者自查重現並補回歸，**不是獨立審查通過**；Frank 的架構／資料／權限合併決定與另外的獨立審查仍保留。
+首次讀回 #102 的 head `b172aaf53e6c2da6f9c5b1a6b331d15944340c03`：AB C local Save 與 PROCESS local Save 通過，Local safety 尚在執行；該結果不能冒充後續 head 的結果。當時沒有 GitHub review 或 comment。第一個貢獻者問題由作者自查重現並補回歸，不當作獨立審查通過。
+
+隨後另一位審查者獨立核對 head `ee7d4fdc750ab5227f25559f52c9edac62b09086`／tree `fb3d634de91cfbfe52de9952bae0f22711e0a2d9`，實跑相關合成／lint／型別檢查，並以純記憶體案例重現一個 P2：額外 selector 鍵可把同一欄位分為不同 intents，繞過 reverted contributor 修正。此問題限未接線元件；已補 canonical selector admission 與 17 組回歸，保留修正前負控制。複審結果綁定其實際 tree 回執；獨立 Codex 審查不代替 Frank 的架構／資料／權限合併決定或 GitHub 人員審核。
 
 | 對照 PR／本輪 head | 與 #102 的直接重疊 | 整合準備 |
 | --- | --- | --- |

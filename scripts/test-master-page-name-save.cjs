@@ -166,6 +166,30 @@ check('a reverted name keeps its original contributor while a real peer-field ed
   assert.equal(f.flow.saved.contributors[draft.stableDraftJSON(path('C'))].actor.id, author.id);
   assert.deepEqual(plain(f.flow.contributors), {});
 });
+check('line and stage selector aliases reject before staging or misattributing a restored field', () => {
+  for (const item of [{ stage: false, selector: 2 }, { stage: true, selector: 4 }]) for (const aliasGuard of [true, false]) {
+    const f = fixture(), namePath = path('AB', item.stage), originalName = item.stage ? 'Stage' : 'A';
+    const apply = command(f, 'apply', { patches: [{ op: 'set', path: namePath, value: 'Peer draft' }],
+      guards: [{ path: namePath, value: originalName }] });
+    f.flow = draft.applyDraftCommand(f.flow, apply, context(f, peer)).state;
+    const request = save(f, [{ scope: 'AB', stage: item.stage, before: 'Peer draft', after: 'Temporary' },
+      { scope: 'C', before: 'C', after: 'Actual edit' }, { scope: 'AB', stage: item.stage, before: 'Temporary', after: 'Peer draft' }]);
+    const last = request.input.batches[2], alias = path('AB', item.stage);
+    alias[item.selector] = { ...alias[item.selector], extra: true };
+    last.patches[0].path = plain(alias);
+    if (aliasGuard) last.guards[0].path = plain(alias);
+    const originalCommand = JSON.stringify(request);
+    unchanged(f, () => code(() => run(f, request), 'MASTER_PAGE_NAME_SELECTOR_INVALID'));
+    assert.equal(JSON.stringify(request), originalCommand);
+  }
+});
+check('noncanonical selectors in additional dependency guards reject without changing source or request', () => {
+  const f = fixture(), request = save(f), alias = path('AB'); alias[2] = { id: 'line', extra: true };
+  request.input.batches[0].guards.push({ path: alias, value: 'A' });
+  const before = JSON.stringify(request);
+  unchanged(f, () => code(() => run(f, request), 'MASTER_PAGE_NAME_SELECTOR_INVALID'));
+  assert.equal(JSON.stringify(request), before);
+});
 assert.equal(reads, 0); assert.equal(writes, 0);
 console.log(JSON.stringify({ status: 'PASS', checks, storageReads: reads, storageWrites: writes,
   scope: 'inactive names-only Save plus synthetic actual-kernel lifecycle; no HTTP/CAS/adoption/ACL mapping' }, null, 2));

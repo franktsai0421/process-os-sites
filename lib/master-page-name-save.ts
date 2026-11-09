@@ -7,6 +7,12 @@ import type { ModuleDraftCommand } from './versioned-shared-workflow';
 
 type Snapshot = Record<string, unknown>;
 type Batch = { patches: DraftPatch[]; guards: { path: DraftPatch['path']; value: unknown }[] };
+function exactSelector(value: unknown): value is { id: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+    Reflect.ownKeys(value).length !== 1 || !Object.hasOwn(value, 'id')) return false;
+  const id = (value as { id: unknown }).id;
+  return typeof id === 'string' && id.length > 0;
+}
 
 // Inactive, request-local building block for the ONE line page. No constructor,
 // storage/CAS/HTTP registration, cutoff, permission mapping or activation switch.
@@ -22,12 +28,21 @@ export function saveMasterPageNames(source: SharedDraft<Snapshot>, command: Modu
   ]) assertMasterPageContent('LINES', content);
   assertMasterPageSave('LINES', command);
   const batches = command.input!.batches as Batch[];
+  // Kernel lookup uses only selector.id. Keep this new protocol canonical so
+  // equivalent entity paths cannot create distinct attribution intent keys.
+  // Reject aliases in guards too; the original command/fingerprint stays intact.
+  for (const batch of batches) for (const guard of batch.guards) {
+    if (guard.path.some(step => typeof step !== 'string' && !exactSelector(step)))
+      throw new DraftConflict('MASTER_PAGE_NAME_SELECTOR_INVALID', 422);
+  }
   const intents = new Map<string, { before: unknown; after: unknown }>();
   for (const batch of batches) for (const patch of batch.patches) {
     const path = patch.path;
     if (patch.op !== 'set' || ![4, 6].includes(path.length) || path.at(-1) !== 'name' ||
       typeof path[2] !== 'object' || path.length === 6 && (path[3] !== 'stages' || typeof path[4] !== 'object'))
       throw new DraftConflict('MASTER_PAGE_NAME_SAVE_ONLY', 422);
+    if (!exactSelector(path[2]) || path.length === 6 && !exactSelector(path[4]))
+      throw new DraftConflict('MASTER_PAGE_NAME_SELECTOR_INVALID', 422);
     if (typeof patch.value !== 'string' || !patch.value.trim()) throw new DraftConflict('NAME_REQUIRED', 422);
     const guard = batch.guards.find(entry => sameDraftValue(entry.path, path));
     if (!guard) throw new DraftConflict('DEPENDENCY_GUARD_REQUIRED', 422);

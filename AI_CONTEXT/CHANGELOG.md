@@ -8,6 +8,8 @@
 
 作者自查補正未啟用名稱元件的修改者歸屬：ordered Save 暫改再復原的欄位沿用原貢獻者，真正修改維持本次操作者；修正前反例與 15 組合成契約保留，沒有改共用 kernel、現用 writer 或資料。
 
+獨審發現新 helper 的 selector 額外鍵可產生同實體的 attribution alias；新增 patch／guard 純 id selector admission，保留原 request/fingerprint，17 組合成契約涵蓋線別／工段／額外 guard 反例。修正限未接線元件，不改共用 kernel／現用 workflow。
+
 ## 2026-11-09 — New-stage approved catalog inheritance candidate
 
 New stage review snapshots include approved preset names/media and global custom flow types with new stage-specific IDs and no copied machine assignments. Missing custom type gets an explicit custom choice; divergent catalog keys refuse before submission. Existing stages, fixed source approval, permissions, locks, receipts and CAS remain. Independent review found ID collision/reference masking and lone-surrogate URI failures. Shared ID reservation and total UTF-16 encoding fix generation; approval validates fixed new IDs without rewriting cases or historical identities. No migration or deployed data change. See [scope and acceptance boundaries](../docs/acceptance/process-platform-tracking-20261109.md).

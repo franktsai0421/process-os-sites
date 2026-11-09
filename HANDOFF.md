@@ -10,6 +10,8 @@
 
 #102 追蹤時自查修正未啟用名稱 Save 的貢獻者：同次暫改又改回保留原歸屬，混合真正修改仍正確標記；修正前反例已重現，名稱契約補為 15 組。這是作者自查，尚無獨立 review。與 #100/#101/#88 的直接重疊均為文件；未做跨 PR 合併，也未啟用拆分或變更真資料。各 head CI 與審查以遠端回執為準。
 
+後續獨立審查對 ee7d4fd／fb3d634 tree 提出並重現 1 個 P2：selector 額外鍵造成語意相同路徑分組不同。新 helper 已加純 id selector 檢查，patch／guard 皆在 staging 前拒絕 alias，原 fingerprint 不改；回歸擴為 17 組，需按最新 tree 複審。這不是獨立切換或合併授權，三項業務問題仍待 Frank 回覆。
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
