@@ -9,6 +9,7 @@ Source evidence is not functional acceptance, upload or publication authority.
 import argparse
 import base64
 import contextlib
+import copy
 import hashlib
 import io
 import json
@@ -44,6 +45,7 @@ NEW_TARGETS = {
     'editor_frozen': 'a31039d33b17b9929e2f4de11cbd2119126f65b1',
     'history_complete': 'e3d92846cd6e5963213c2970f65c9e019895d6c9',
     'previous_editor_runtime': '380d016fc80fe9a92b6f38eeb5f8519e536315b0',
+    'boundary_runtime': '972e3a8cad7be5da7af0f4d7519fc36ff8bb2b6d',
 }
 FILES = {
     'generator': 'scripts/generate-unified-draft-source-contract.py',
@@ -389,6 +391,35 @@ def external_outputs(repository, paths):
     return outputs
 
 
+def encode_span_refs(manifest):
+    """Lossless transport only; the frozen V1 verifier already checked this model."""
+    require(manifest.get('encoding') == 'content-addressed-base64-spans-v1'
+            and isinstance(manifest.get('spans'), dict) and 'spanRefs' not in manifest,
+            'INDEXED_SPAN_SOURCE_REQUIRED')
+    encoded = copy.deepcopy(manifest)
+    refs = sorted(manifest['spans'])
+    indexes = {key: index for index, key in enumerate(refs)}
+    for projection in encoded['projections']:
+        for rule in projection['rules']:
+            for side in ('beforeRef', 'afterRef'):
+                require(isinstance(rule.get(side), str) and rule[side] in indexes,
+                        'INDEXED_SPAN_REFERENCE_REQUIRED')
+                rule[side] = indexes[rule[side]]
+    encoded['encoding'] = 'content-addressed-base64-indexed-spans-v2'
+    encoded['spanRefs'] = refs
+    restored = copy.deepcopy(encoded)
+    for projection in restored['projections']:
+        for rule in projection['rules']:
+            for side in ('beforeRef', 'afterRef'):
+                rule[side] = refs[rule[side]]
+    del restored['spanRefs']
+    restored['encoding'] = manifest['encoding']
+    require(json.dumps(restored, ensure_ascii=False, separators=(',', ':'))
+            == json.dumps(manifest, ensure_ascii=False, separators=(',', ':')),
+            'INDEXED_SPAN_ROUNDTRIP_CHANGED')
+    return encoded
+
+
 def write_pair(outputs, values):
     created = []
     try:
@@ -452,7 +483,7 @@ def main():
         # Observe again after generation; never silently certify a runtime that
         # changed while this read-only generator was running.
         primary.assert_frozen_runtime(source)
-        write_pair(outputs, (manifest, combined))
+        write_pair(outputs, (encode_span_refs(manifest), combined))
     print(json.dumps({**checked, 'source': manifest['source'], 'frozen': FROZEN,
                       'targets': len(pins), 'historicalRequests': len(requests),
                       'contract': str(outputs[0]), 'witness': str(outputs[1]),

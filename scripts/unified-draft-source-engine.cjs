@@ -26,7 +26,23 @@ function canonicalSource(working,committed){
  raw(working);raw(committed);const lf=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
  assert.deepEqual(lf(working),lf(committed),'Unified source checkout differs from HEAD beyond EOL');return committed;
 }
+// Indexed transport is decoded losslessly before the original V1 verifier.
+// Keep the hash-keyed pool and every old span/hash/offset check unchanged.
+function decodeIndexedManifest(manifest){
+ if(manifest?.encoding!=='content-addressed-base64-indexed-spans-v2'){assert(manifest?.spanRefs===undefined,'Unified unexpected span index');return manifest;}
+ assert(manifest.spans&&typeof manifest.spans==='object'&&!Array.isArray(manifest.spans),'Unified indexed span pool required');
+ const refs=manifest.spanRefs,keys=Object.keys(manifest.spans).sort();
+ assert(Array.isArray(refs)&&refs.length===keys.length&&keys.every((key,index)=>Object.hasOwn(refs,index)&&/^[a-f0-9]{64}$/.test(refs[index])&&refs[index]===key),'Unified span index must exactly list sorted unique pool keys');
+ assert(Array.isArray(manifest.projections),'Unified indexed projections required');
+ const decoded=structuredClone(manifest);
+ for(const entry of decoded.projections){assert(Array.isArray(entry.rules),'Unified indexed rules required');for(const rule of entry.rules){
+  assert(Reflect.ownKeys(rule).length===4&&['beforeOffset','afterOffset','beforeRef','afterRef'].every(key=>Object.hasOwn(rule,key)),'Unified indexed mixed or unknown span fields');
+  for(const side of ['before','after']){const index=rule[side+'Ref'];assert(integer(index)&&!Object.is(index,-0)&&index<refs.length,'Unified span index out of bounds');rule[side+'Ref']=refs[index];}
+ }}
+ delete decoded.spanRefs;decoded.encoding='content-addressed-base64-spans-v1';return decoded;
+}
 function createSourceContract(manifest){
+ manifest=decodeIndexedManifest(manifest);
  assert(manifest?.format==='PROCESS_OS_UNIFIED_SOURCE_V1','Unified source format required');
  assert(manifest.source&&/^[a-f0-9]{40}$/.test(manifest.source.commit)&&/^[a-f0-9]{40}$/.test(manifest.source.tree),'Unified source commit/tree required');
  assert(manifest.targets&&Object.keys(manifest.targets).length,'Unified source named targets required');
@@ -51,4 +67,4 @@ function createSourceContract(manifest){
  function attest(read){assert.equal(typeof read,'function','Unified source reader required');for(const entry of manifest.current)attestBytes(read(entry.file),entry);return true;}
  return Object.freeze({manifest,restore,project,attest,canonicalSource,invert});
 }
-module.exports=Object.freeze({createSourceContract,canonicalSource,invert});
+module.exports=Object.freeze({createSourceContract,canonicalSource,invert,decodeIndexedManifest});
