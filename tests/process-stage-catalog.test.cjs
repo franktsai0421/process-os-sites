@@ -280,3 +280,140 @@ void test('malformed approved metadata cannot propagate into a new stage', () =>
     assert.deepEqual(copy(r), before);
   }
 });
+
+void test('new template IDs reserve all approved IDs and occupied suffixes', () => {
+  const seed = root([custom]);
+  const base = link
+    .stageCatalogTemplates('A-NEW', seed.active.PROCESS)
+    .find((t) => t.catalogKey === custom.catalogKey).id;
+  const presetId = 'A-NEW-FLOW-01';
+  const r = root([
+    { ...copy(custom), id: base },
+    { id: base + ':1', name: 'legacy suffix' },
+    { id: presetId, name: 'legacy preset collision' },
+    { id: presetId + ':1', name: 'legacy preset suffix' },
+  ]);
+  const before = copy(r.active.PROCESS),
+    fixed = prepare(r),
+    added = fixed.content['A-NEW'];
+  assert.equal(
+    added.find((t) => t.catalogKey === custom.catalogKey).id,
+    base + ':2',
+  );
+  assert.equal(added.find((t) => t.presetKey === 'entry').id, presetId + ':2');
+  const retained = new Set(
+    Object.values(before)
+      .flat()
+      .map((t) => t.id),
+  );
+  for (const row of added) assert.equal(retained.has(row.id), false);
+  assert.deepEqual(copy(r.active.PROCESS), before);
+});
+void test('all accepted Unicode catalog keys have distinct total ID encodings', () => {
+  const keys = [
+    String.fromCharCode(0xd800),
+    String.fromCharCode(0xd801),
+    String.fromCharCode(0xdc00),
+    String.fromCharCode(0xdc01),
+    '😀',
+    'é',
+    'e' + String.fromCharCode(0x301),
+    '%',
+    ':',
+    '%3A',
+  ];
+  const r = root(
+    keys.map((catalogKey, i) => ({
+      ...copy(custom),
+      id: 'unicode-source-' + i,
+      catalogKey,
+    })),
+  );
+  const added = prepare(r).content['A-NEW'].filter(
+    (t) => t.catalogKey && keys.includes(t.catalogKey),
+  );
+  assert.equal(added.length, keys.length);
+  assert.equal(new Set(added.map((t) => t.id)).size, keys.length);
+  assert.deepEqual(copy(added.map((t) => t.catalogKey)), keys);
+});
+void test('one link allocates distinct preset and custom IDs across all new stages', () => {
+  const r = root([custom]),
+    content = {
+      lines: [
+        {
+          code: 'A',
+          stages: [
+            { code: 'A-CUT', name: 'old' },
+            { code: 'A-NEW', name: 'new' },
+            { code: 'A-OTHER', name: 'other' },
+          ],
+        },
+      ],
+    };
+  const fixed = link.stageProcessLink(r, 'AB', content, {}),
+    added = [...fixed.content['A-NEW'], ...fixed.content['A-OTHER']],
+    retained = new Set(
+      Object.values(r.active.PROCESS)
+        .flat()
+        .map((t) => t.id),
+    );
+  assert.equal(new Set(added.map((t) => t.id)).size, added.length);
+  for (const row of added) assert.equal(retained.has(row.id), false);
+});
+
+void test('old pinned collisions and invalid new IDs reject without changing fixed content', () => {
+  for (const id of [custom.id, '', null]) {
+    const r = root([custom]),
+      fixed = prepare(r);
+    fixed.content['A-NEW'].find((t) => t.catalogKey === custom.catalogKey).id =
+      id;
+    const before = copy(r),
+      pinned = copy(fixed);
+    assert.throws(
+      () =>
+        link.activateStageProcessLink(
+          r,
+          fixed,
+          'case',
+          { id: 'reviewer', name: 'Reviewer' },
+          'fixture',
+        ),
+      /PROCESS_TEMPLATE_ID_COLLISION/,
+    );
+    assert.deepEqual(copy(r), before);
+    assert.deepEqual(copy(fixed), pinned);
+  }
+});
+void test('noncolliding old pinned IDs activate unchanged', () => {
+  const r = root([custom]),
+    fixed = prepare(r);
+  fixed.content['A-NEW'].find((t) => t.catalogKey === custom.catalogKey).id =
+    'legacy-pinned-free-id';
+  const pinned = copy(fixed.content);
+  link.activateStageProcessLink(
+    r,
+    fixed,
+    'case',
+    { id: 'reviewer', name: 'Reviewer' },
+    'fixture',
+  );
+  assert.deepEqual(copy(r.active.PROCESS), pinned);
+});
+void test('unchanged legacy duplicate IDs do not reject safe new-stage allocation', () => {
+  const r = root([custom]);
+  r.active.PROCESS['B-PACK'] = [
+    ...copy(link.stageDefaultTemplates('B-PACK')),
+    copy(custom),
+  ];
+  r.versions[0].snapshot = copy(r.active.PROCESS);
+  const fixed = prepare(r),
+    pinned = copy(fixed.content);
+  link.activateStageProcessLink(
+    r,
+    fixed,
+    'case',
+    { id: 'reviewer', name: 'Reviewer' },
+    'fixture',
+  );
+  assert.deepEqual(copy(r.active.PROCESS), pinned);
+});

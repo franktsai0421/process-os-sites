@@ -83,5 +83,49 @@ let checks=0;async function check(name,fn){await fn();checks++;console.log('PASS
   assert.equal((await run('AB','a','submit',{savedId,reason:'Reject malformed approved template'},422)).error,'PROCESS_TEMPLATE_INVALID');
   const after=await state();assert.equal(after.s.revision,before);assert.equal(after.root.workflowScopes.AB.pendingId,null);assert.equal(after.root.active.PROCESS['A-NEW'],undefined);
  });
+ await check('T45 total Unicode catalog IDs survive actual stage Save Submit Approve',async()=>{
+  for(const key of [String.fromCharCode(0xd800),String.fromCharCode(0xdc00),'😀',':%']){
+   await reset();const current=await state();current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').catalogKey=key;
+   current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+   const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+   db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+   const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Unicode catalog fixture'}),fixed=(await get('AB','a','&caseId='+sent.receipt.caseId)).reviewCase.linkedProcess;
+   assert.ok(fixed.content['A-NEW'].some(t=>t.catalogKey===key));await run('AB','reviewer','approve',{caseId:sent.receipt.caseId});
+   const after=await state();assert.deepEqual(after.root.active.PROCESS,fixed.content);
+  }
+ });
+ await check('T45 reserved template IDs preserve final approved old-stage reference protection',async()=>{
+  await reset();const current=await state(),sourceId=link.stageCatalogTemplates('A-NEW',current.root.active.PROCESS).find(t=>t.catalogKey==='custom-stage-fixture').id;
+  current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').id=sourceId;
+  current.root.versions.find(v=>v.id==='PROCESS-active').snapshot=copy(current.root.active.PROCESS);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root),processMasterData:JSON.stringify(current.root.active.PROCESS)};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'ID collision fixture'}),fixed=(await get('AB','a','&caseId='+sent.receipt.caseId)).reviewCase.linkedProcess;
+  const newId=fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id;assert.notEqual(newId,sourceId);
+  await run('AB','reviewer','approve',{caseId:sent.receipt.caseId});const approved=await state();assert.deepEqual(approved.root.active.PROCESS,fixed.content);
+  const ids=Object.values(approved.root.active.PROCESS).flat().map(t=>t.id);assert.equal(new Set(ids).size,ids.length);
+  const values={...approved.s.values,approvalVersions:JSON.stringify([{id:'published-old-stage',status:'approved',category:'Fixture',line:'A',stages:{'A-CUT':[{id:'op-old',templateId:sourceId}]}}])};
+  db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(values,approved.s));
+  await post('PROCESS','a',{action:'begin'});const working=(await get('PROCESS')).control.workflow.working,path=['A-CUT',{id:sourceId}],row=working['A-CUT'].find(t=>t.id===sourceId),before=(await state()).s.revision;
+  assert.equal((await run('PROCESS','a','apply',{patches:[{op:'remove',path}],guards:[{path,value:row}]},409)).error,'PROCESS_MASTER_IN_USE');
+  const after=await state();assert.equal(after.s.revision,before);assert.ok(after.root.active.PROCESS['A-CUT'].some(t=>t.id===sourceId));assert.ok(after.root.active.PROCESS['A-NEW'].some(t=>t.id===newId));
+ });
+ await check('T45 pre-fix pinned collision cannot approve or mutate; withdrawal and return still work',async()=>{
+  for(const action of ['withdraw','return']){
+   await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Legacy fixed collision fixture'}),caseId=sent.receipt.caseId,current=await state();
+   const fixed=current.root.workflowScopes.AB.cases.find(c=>c.id===caseId).linkedProcess;
+   fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id=current.root.active.PROCESS['A-CUT'].find(t=>t.catalogKey==='custom-stage-fixture').id;
+   const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+   const before=await state();assert.equal((await run('AB','reviewer','approve',{caseId},409)).error,'PROCESS_TEMPLATE_ID_COLLISION');const after=await state();assert.equal(after.s.revision,before.s.revision);assert.deepEqual(after.root,before.root);assert.equal(after.root.workflowScopes.AB.pendingId,caseId);
+   await run('AB',action==='return'?'reviewer':'b',action,{caseId,reason:'Keep fixed content and release review'});assert.equal((await state()).root.workflowScopes.AB.pendingId,null);
+  }
+ });
+ await check('T45 safe legacy pinned IDs remain fixed through approval and original receipt replay',async()=>{
+  await reset();const savedId=await prepareStage(),sent=await run('AB','a','submit',{savedId,reason:'Legacy fixed safe fixture'}),caseId=sent.receipt.caseId,current=await state();
+  const fixed=current.root.workflowScopes.AB.cases.find(c=>c.id===caseId).linkedProcess;fixed.content['A-NEW'].find(t=>t.catalogKey==='custom-stage-fixture').id='legacy-fixed-safe-id';const expected=copy(fixed.content);
+  const changed={...current.s.values,masterDataControl:JSON.stringify(current.root)};db.prepare('UPDATE shared_state SET revision=revision+1,"values"=?').run(await core.encodeValues(changed,current.s));
+  const approval=await cmd('AB','reviewer','approve',{caseId});await post('AB','reviewer',{command:approval});const approved=await state();assert.deepEqual(approved.root.active.PROCESS,expected);
+  await post('AB','reviewer',{command:approval});const replayed=await state();assert.equal(replayed.s.revision,approved.s.revision);assert.deepEqual(replayed.root,approved.root);
+ });
  console.log(JSON.stringify({result:'PASS_ISOLATED',checks,realLocalWrites:0,browser:'NOT_EXECUTED'}));
 }finally{db.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

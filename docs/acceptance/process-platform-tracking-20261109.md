@@ -29,8 +29,8 @@ b1598b6：獨立畫布候選，來源 dc34874。e460d76：BOM＋畫布＋history
 
 ## 本批驗證
 
-- 新增工段共用類型：14 項 PASS。含已核准預設名稱、空／scalar 媒體保留、來源不變、共用鍵去重／不一致拒絕、不帶機器、ID 分隔碰撞、無共用鍵舊資料保留、來源變更拒絕核准。
-- 真正 master workflow handler：inline 與 records-v1 各 9 組 PASS，覆蓋 fixed Save／Submit／Approve、PROCESS busy、withdraw／approve 競態、來源版本 pin 及非法來源拒絕傳播；fixture 含已核准自訂類型。
+- 新增工段共用類型：20 項 PASS。含已核准預設名稱、空／scalar 媒體保留、來源不變、共用鍵去重／不一致拒絕、不帶機器、ID 分隔碰撞、無共用鍵舊資料保留、來源變更拒絕核准。
+- 真正 master workflow handler：inline 與 records-v1 各 13 組 PASS，覆蓋 fixed Save／Submit／Approve、PROCESS busy、withdraw／approve 競態、來源版本 pin 及非法來源拒絕傳播；fixture 含已核准自訂類型。
 - 既有 AB 權限與製程主資料引用：58 項 PASS；沒有以管理員成功取代拒絕角色測試。
 - lint、非增量 TypeScript、來源 boundary：PASS；完整歷史來源掃描已取得公開 main 歷史並檢查 594 個 commits，PASS。提交後須再核對最終 HEAD。
 - 已存在匹配 lockfile 的依賴以隔離副本重用；不是全新安裝驗收。首次依賴 symlink 被 source boundary 正常拒絕，已改用實體副本，未改防護。
@@ -43,3 +43,11 @@ b1598b6：獨立畫布候選，來源 dc34874。e460d76：BOM＋畫布＋history
 沒有 SQL/schema migration、帳號權限調整或真實資料寫入；既有核准工段／模板 ID／歷史不修改。新增模板只有隨原工段案件經核准才生效。真正不同模組草稿／權限拆分與既有資料遷移仍需獨立決定；本批未部署、未合併 main，亦未操作原中控系統連接器。
 
 本批接續追查：`7b051cf` 的 AB/C 與 PROCESS CI 已通過，Windows Local safety 仍執行；GitHub 尚無已提交審查。另以三個反例證實新增工段仍丟失已核准預設名稱／照片設定，已補 presetKey 的同來源繼承；舊 scalar 或空媒體不再被 fallback 圖片覆蓋。機器與舊工段不變，仍無 migration／權限變更。最新後繼 CI 與獨立審查另行核對。
+
+## 獨立審查修補
+
+審查者在 b538079 確認兩項 P2：新 ID 可撞到既有模板並掩蓋引用刪除；lone surrogate catalogKey 可在送審回 500。修補將當前已核准 PROCESS 所有工段的模板 ID，以及本案件全部新增模板 ID，共用於可重現的防碰撞分配，包含已占用的後綴；類型鍵採固定四碼 UTF-16 code unit 編碼，保留原鍵，不做字元替換或正規化。
+
+核准只檢查固定案件新增工段的 ID。舊碰撞案件回 409，revision、pending、active、versions 與原內容不變，仍可正常撤回／發回；安全的舊格式 ID 和原收據 replay 保留，不重新生成固定內容。不拒絕或遷移 unchanged 舊工段彼此已有的重複 ID；歷史不批次整理或改號。
+
+20 項單元、inline／records 各 13 組實際 handler 與 42 組 line reducer 通過；涵蓋來源／後綴撞號、跨新增工段、surrogate／astral／百分號／冒號／正規化差異、真實引用刪除拒絕、舊 pending 案件處理及原收據。新的獨立複核與最終 CI 另行紀錄，原失敗與反例保留。
