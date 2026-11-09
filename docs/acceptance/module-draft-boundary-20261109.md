@@ -48,14 +48,38 @@
 
 **已重現用途不相容：去機密分發快照不是原樣 cutoff 還原備份。** 現有 `snapshot-redaction.mjs` 的 `cleanJson` 會遞迴解析 JSON 外觀的字串，再去機密並 JSON.stringify。合法的自由文字／名稱若包含帶空白或 `1e2` 的 JSON 字串，分發重開後會改文字；原操作 fingerprint 字串若含該值也一起改變。合成資料中完整 root digest 與 fingerprint digest 均不同，原請求重播得到 `OPERATION_ID_REUSED`。穩定 ID、pendingId、版本數及媒體仍可存在，不能以它們判定原收據相容。這是目前分發 port 的已確認限制，沒有認定真實資料已受影響，也沒有在本題擅改全域 scrubber。
 
-現有頁面預演使用原來源 pins 時會以 `MASTER_PAGE_SOURCE_CHANGED` 擋住這個分發重開結果；原樣 record restore 路徑則保留文字及 fingerprint，原請求可精確重播。故後續資料安全方案必須：
+現有頁面預演使用原來源 pins 時會以 `MASTER_PAGE_SOURCE_CHANGED` 擋住這個分發重開結果；原樣 record restore 路徑則保留文字及 fingerprint，原請求可精確重播。原樣還原依下方精簡方案處理，不能以去機密分發快照代替。
 
-1. 在任何整理／redaction 前，從受授權的完整來源固定 program、全域 revision、master root、已核准版本向量與原收據摘要，獨立保留 pins。不可在轉換包上重算 pins 當作原來源證據。
-2. 另外保存受控的原樣還原備份，依既有備份規範涵蓋完整 DB row／state_backups、全部 immutable／legacySources、媒體、權限及帳號關聯；實際敏感內容不得進 GitHub／公開報告。分發包僅作另有授權的去機密用途，不作唯一 rollback／receipt 相容證明。
-3. 在空白隔離目標從原樣備份演練完整還原，逐項核對原 root／完整業務內容、ID／關聯、歷史、媒體 bytes 和原 receipt fingerprint；重播只能查／回原結果，不重送未知操作。
-4. 缺 body／媒體、hash 不同、來源 revision 改變、還原不完整或原 receipt 不符，均不啟用拆分。後續新資料回退要另有可保留切換後寫入的方案，不能用舊備份覆蓋新寫入。
+## 精簡原樣保留／還原方案（文件準備，未執行真資料操作）
 
-本輪只證明合成 records 原樣保留及分發差異的安全拒絕，**未建立或驗收真實完整 DB/R2／媒體還原備份**，也沒有實作 cutoff／adoption。重大發現已回報；保持未啟用，等待既有三項業務決策與後續備份方案審查。
+依 Frank 最新要求，**不新增備份診斷程式、排程、服務或維護入口**；本次只整理既有能力與已取得的合成證據，也不修改既有備份／redaction 程式。沿用受授權的維護流程時，最少保留以下四類，不額外複製每份畫布或每張案件成另一套業務資料：
+
+| 保留內容 | 最小可驗要求 |
+| --- | --- |
+| 一致的完整 DB 原樣快照 | 含 schema、業務資料、working/saved/pending/active/history、receipts、sequences/generation、帳號／角色關聯及適用的撤銷／操作紀錄；不只摘出目前已核准 master root 或分發 port 的三張表 |
+| 完整 R2／媒體來源閉包 | 保存每個被目前或歷史／待審引用的 immutable body、allocation index、`legacySources` 原字串及媒體 bytes；沿用原 key／ID／路徑。未分類物件先保留，不憑名稱當快取刪除 |
+| 程式與版本識別 | 固定相容程式 commit、schema、全域 revision、master root digest 與 AB/C/PROCESS approved vector；必要的未提交成果另保全。這些 pins 要在整理／redaction 前從原來源取得，不能由轉換包自我產生 |
+| 一份受控核對紀錄 | 記錄原樣備份及媒體的大小／SHA-256、物件／案件／版本數、原 receipt fingerprint 摘要，以及適用帳號／權限差異；只公開摘要，不把真實 payload、驗證資料或解密材料提交 GitHub |
+
+只用無損壓縮或保留同一內容雜湊物件一次來減少重複，不能刪除看似相同但有不同原字串的 `legacySources`、舊收據或歷史。可重建的 build、node_modules、cache、測試輸出和診斷日誌不列為業務還原內容；沒有新增清理或刪除操作。
+
+還原演練沿用既有受控流程，在**全新空白隔離目標**依序完成：
+
+1. 固定原來源與獨立 pins，核對來源沒有改版；取得完整原樣副本及必要既有解密存取，不啟動新的備份服務或建立新憑證。
+2. 先驗原始檔案／物件 hash 與 DB 完整性，再還原完整 DB 和 R2／媒體；保留原 owner、ID、路徑、status、世代及 receipt，過程不做 Begin、Save、Submit 或自動採用新 scope。
+3. 依原來源逐項讀回：全部草稿／待審／歷史內容、案件與版本數、關聯、原文字／fingerprint、媒體 bytes 及權限。原收據用原 owner 的唯讀查詢核對，不向真系統重送原 POST；合成測試中的 kernel replay 不是重新執行真實寫入的授權。
+4. 所有必要比較 PASS 才標記「該隔離還原已驗證」。缺 body／媒體、hash 或原 receipt 不符、來源改版、目標非空或還原不完整時保留副本與證據，不切換。正式拆分另受既有三項決策與完整 adapter 驗收限制。
+
+切換前的原樣備份不能直接蓋回切換後的新寫入；若正式切換後已有新資料，先保全該狀態並另定前進修復／合併方案。本文件不授權覆寫現場或自動回退。
+
+| 既有能力／證據 | 本方案可用範圍與目前結果 |
+| --- | --- |
+| `state-records-restore.ts`／現有 8 組合成演練 | PASS：驗全部 reachable record body／原 archival string，缺損拒絕；完整 hydrate 後保留原文字、pending、receipt。它本身不建立完整 DB／媒體備份 |
+| 同一合成快照演練 | PASS：四份媒體 bytes、歷史／待審專用媒體缺失、來源改版、毀損傳輸和非空目標保護；並重現分發快照用途不相容。全部為 fake bindings，沒有真資料 |
+| [既有 local ZIP 工具](../../lib/local-backup.mjs)／[CLI](../../scripts/backup-cli.mjs) | 是本機 `.wrangler`／SQLite／R2 目錄工具，會寫設定／稽核並有 retention 行為；這次不執行，不能直接套成雲端站的原樣備份命令。沒有在 Linux 上重跑其 Windows `tar.exe` 測試 |
+| [既有部署／快照流程](../../DEPLOYMENT.md) | 去機密分發 port 另有用途；分頁資料查詢不是完整備份。現有能力不足以宣稱選定雲端站的完整原樣 DB/R2 還原已驗收 |
+
+本次方案已可審查，重用 6645b42 的合成證據且未修改其測試或產品來源；不重複跑沒有受影響的 suite。**真實完整 DB/R2／媒體原樣備份與還原仍 NOT_RUN**，沒有執行 cutoff／adoption、改權限或啟用拆分。若現有選定環境沒有受授權的完整原樣取得／還原能力，就停在這個邊界回報；本題不另造備份診斷程式來補位。
 
 ## 尚需使用者決定的具體事項
 

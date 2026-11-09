@@ -6,6 +6,8 @@
 
 後續 8 組資料安全演練確認：去機密分發快照會重寫 JSON 外觀文字與其 receipt fingerprint，不能作為這次拆分的原樣還原備份；原來源 pins 會安全拒絕該結果。原樣 records 復原可保留原文字／收據。重大用途限制已回報；維持未啟用，沒有改全域 scrubber 或真實資料。[證據、資料安全方案及未驗範圍](docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
 
+依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
