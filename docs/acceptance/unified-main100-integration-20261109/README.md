@@ -22,7 +22,27 @@
 
 ## 整合回歸修正
 
-首輪共同core為838/839，一個真實回歸來自新讀取預檢回呼：若回呼在request捕獲access之前invalidate C比較狀態後仍返回true，舊實作會以新版本發出Begin比較資格。最小修正先於所有caller callback捕獲request-entry C版本，發證時同時核對該版本及原回應後callback版本；不改#100的assertReadCurrent、HTTP status或明確權限政策。原1–5負控完整保留，再覆蓋目前全部7個回呼位置；正常cold Begin、普通grant讀取與既有拒絕／未知收據規則不放寬。首次失敗log保留，修正後全共同core須重跑。
+首輪共同core為838/839，一個真實回歸來自新讀取預檢回呼：若回呼在request捕獲access之前invalidate C比較狀態後仍返回true，舊實作會以新版本發出Begin比較資格。最小修正先於所有caller callback捕獲request-entry C版本，發證時同時核對該版本及原回應後callback版本；不改#100的assertReadCurrent、HTTP status或明確權限政策。原1–5負控完整保留，再覆蓋目前全部7個回呼位置；正常cold Begin、普通grant讀取與既有拒絕／未知收據規則不放寬。首次失敗log保留；修正後共同core已847/847通過，含原負控與新增完整回呼掃描。
+
+## 最終本機驗證
+
+Runtime 固定於 `0d912ebcd54de6c52968ef9f035e0696c5d35aa2`；後續只更新來源witness與驗證文件。11個真target、45個current runtime來源、353個精確inverse、15個新增來源不存在證明及原79個歷史ref/path保留。原source helper及#100 background contracts的hash/span與負向斷言未放寬。
+
+| 正常CI／相關檢查 | 結果 |
+| --- | --- |
+| 整組衝突／dispatch authority | 847/847 PASS |
+| 同頁輸入保留 | 115/115 PASS |
+| 明確權限／無背景查詢／FQC readiness／#99 catalog | 219/219 PASS |
+| 入口／明確更新 | 127/127 PASS |
+| 精確來源／具名inverse／歷史負控 | 682/682 PASS |
+| 既有完整離頁gate | 463/463 PASS |
+| 標準lint／TypeScript | PASS |
+| poll-wiring／scoped-readpause | PASS；9個完整模組初始化、44明確permission案例、3刪防護負控、4 scheduler負控；scoped46組與equipment28項 |
+| source-EOL／read races／panel differential | 78／20／15項 PASS；合成來源/controller ports，不是native版面 |
+| 原安全掃描 | main100相對215檔零finding；全庫兩個合成負控制逐byte與main相同，未改scanner |
+| 受保護build／compiled HTTP／bundle consumer | 以本批外部manifest綁定最終HEAD及結果，不以較早版本代替 |
+
+測試組有重疊，不能相加為總覆蓋。本批保留最初focus fixture與C Begin整合回歸失敗log及修正後日誌；正常CI沒有skip、continue-on-error或移除必要gate。
 
 ## 持續保留的未完成／外部界線
 
