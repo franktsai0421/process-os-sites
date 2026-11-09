@@ -358,14 +358,24 @@
         if(localBeginReceipt&&flow.generation!==localBeginReceipt.generation)throw Error('STALE_GENERATION');
         if(syncGeneration&&flow.generation!==syncGeneration)throw Error('STALE_GENERATION');
         comparisonAttempt={current:owns};equipmentSaveComparison=comparisonAttempt;
-        const fresh=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();
-        const latest=fresh.control?.workflow;
-        if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true)throw Error('FORBIDDEN');
-        if(!Number.isSafeInteger(fresh.revision)||fresh.revision<revision||latest?.scope!=='routine-equipment'||latest.generation!==flow.generation||latest.pendingId||!Number.isSafeInteger(latest.revision)||latest.revision<flow.revision||fresh.control.activeVersionId!==control.activeVersionId||!fresh.control.versions?.some(version=>version.id===open()?.id&&version.status==='draft'))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
-        const comparison=compareEquipmentSave(base||flow.working,sentInput||flow.working,latest.working,sentPhotos);
-        const choice=comparison.conflicts.length?await chooseEquipmentSave(comparison.conflicts,owns):'mine';assertOwned();if(choice==='cancel')return null;
-        const plan=comparison.materialize(choice);local=plan.local;chosenPhotos=plan.chosenPhotos;comparedSave=true;
-        detail={moduleAction:'save-local-v1',expectedRevision:latest.revision,patches:plan.patches,guards:plan.guards};
+        const inspectFresh=fresh=>{const latest=fresh.control?.workflow;
+          if(fresh.permissions?.view!==true||fresh.permissions?.edit!==true)throw Error('FORBIDDEN');
+          if(!Number.isSafeInteger(fresh.revision)||fresh.revision<revision||latest?.scope!=='routine-equipment'||latest.generation!==flow.generation||latest.pendingId||!Number.isSafeInteger(latest.revision)||latest.revision<flow.revision||fresh.control.activeVersionId!==control.activeVersionId||!fresh.control.versions?.some(version=>version.id===open()?.id&&version.status==='draft'))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+          return latest;
+        };
+        let fresh=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();
+        // Nothing is uploaded/dispatched in this loop. Every new peer revision
+        // is compared against the same captured base/input/File entries.
+        for(;;){const latest=inspectFresh(fresh),comparison=compareEquipmentSave(base||flow.working,sentInput||flow.working,latest.working,sentPhotos);
+          const choice=comparison.conflicts.length?await chooseEquipmentSave(comparison.conflicts,owns):'mine';assertOwned();if(choice==='cancel')return null;
+          if(comparison.conflicts.length){
+            const confirmed=await client.read(undefined,{isCurrent:owns,requireAcceptedAccess:true});assertOwned();const next=inspectFresh(confirmed);
+            if(confirmed.revision<fresh.revision||next.revision<latest.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+            if(confirmed.revision!==fresh.revision||next.revision!==latest.revision||!equipmentContentEqual(next.working,latest.working)){fresh=confirmed;continue;}
+          }
+          const plan=comparison.materialize(choice);local=plan.local;chosenPhotos=plan.chosenPhotos;comparedSave=true;
+          detail={moduleAction:'save-local-v1',expectedRevision:latest.revision,patches:plan.patches,guards:plan.guards};break;
+        }
         equipmentSaveComparison=null;
         // Only captured, chosen photos upload. Later previews remain a next batch.
         for(const [id,pending]of chosenPhotos){const row=['equipment','categories','subcategories','groups'].flatMap(k=>local[k]||[]).find(r=>r.id===id);if(row){assertOwned();const photoId=await uploadImage(pending.file);assertOwned();row.photoId=photoId;uploadedPhotos.set(id,pending);

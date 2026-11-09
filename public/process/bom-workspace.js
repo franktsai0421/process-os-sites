@@ -260,7 +260,10 @@
   // JSON operations that the server receives (undefined properties are omitted).
   captureLocalBase();finishEdit();const target=pending.slice(),wireTarget=copy(target),comparison=batch,revision=localRevision,base=copy(localBase),intent=await saveIntent(base,wireTarget);
   const selected=()=>{check();if(localRevision!==revision||batch!==comparison||pending.length!==target.length||!target.every((item,i)=>pending[i]===item))throw Error('BOM_LOCAL_INPUT_CHANGED_RECONFIRM');};
-  selected();const first=await c.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});selected();const fresh=checkRecoveryRead(first);
+  selected();let first=await c.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});
+  // This loop owns only a private, undispatched comparison. Keep the original
+  // journal/base across new peer revisions; never enter it after sendManual.
+  for(;;){selected();const fresh=checkRecoveryRead(first);
   if(first.permissions.save!==true||first.permissions.edit!==true||!first.control.versions.some(value=>value.id===versionId&&value.status==='draft'))throw Error('FORBIDDEN');
   if(intent.imports.length&&first.permissions.import!==true)throw Error('FORBIDDEN');
   const changed=D.canonical(D.semantic(base))!==D.canonical(D.semantic(fresh.working.bom));let operations,reconciliation,localBasis;
@@ -271,8 +274,9 @@
     if(candidate.conflicts.length){
      const choice=await chooseSaveConflicts(candidate.conflicts);selected();if(choice==='cancel')return false;
      const second=await c.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});selected();const confirmed=checkRecoveryRead(second);
+     if(second.revision<first.revision||confirmed.revision<fresh.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
      if(second.permissions.view!==true||second.permissions.edit!==true||second.permissions.save!==true||second.permissions.import!==true||['view','edit','save','import'].some(key=>c.permission(key)!==true))throw Error('FORBIDDEN');
-     if(second.revision!==first.revision||confirmed.generation!==fresh.generation||confirmed.revision!==fresh.revision||D.canonical(confirmed.working.bom)!==D.canonical(fresh.working.bom))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+     if(second.revision!==first.revision||confirmed.generation!==fresh.generation||confirmed.revision!==fresh.revision||D.canonical(confirmed.working.bom)!==D.canonical(fresh.working.bom)){first=second;continue;}
      decision={choice,conflictsDigest:await D.occurrenceConflictDigest(candidate.conflicts),reviewDigest:candidate.reviewDigest};selected();
      candidate=await D.reconcileOccurrenceSave(base,wireTarget,fresh.working.bom,decision);
     }
@@ -284,8 +288,9 @@
    let merged=mergeSaveFields(base,intent.mine,fresh.working.bom);
    if(merged.conflicts.length){const choice=await chooseSaveConflicts(merged.conflicts);selected();if(choice==='cancel')return false;
     const second=await c.read(undefined,{isCurrent:owned,requireAcceptedAccess:true});selected();const confirmed=checkRecoveryRead(second);
+     if(second.revision<first.revision||confirmed.revision<fresh.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
     if(second.permissions.save!==true||intent.imports.length&&second.permissions.import!==true)throw Error('FORBIDDEN');
-    if(second.revision!==first.revision||confirmed.generation!==fresh.generation||confirmed.revision!==fresh.revision||D.canonical(D.semantic(confirmed.working.bom))!==D.canonical(D.semantic(fresh.working.bom)))throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');
+    if(second.revision!==first.revision||confirmed.generation!==fresh.generation||confirmed.revision!==fresh.revision||D.canonical(confirmed.working.bom)!==D.canonical(fresh.working.bom)){first=second;continue;}
     merged=mergeSaveFields(base,intent.mine,fresh.working.bom,choice);
    }
    localBasis=merged.next;operations=await saveOperations(intent,fresh.working.bom,merged.next);
@@ -293,6 +298,7 @@
   selected();const result=await sendManual({operations,items:target,localBasis,expectedRevision:fresh.revision,...(reconciliation?{reconciliation}:{})},check);
   check();
   if(batch&&!batch.changes.length)batch=null;cachedIndex=null;lastErrorCode='';return result;
+  }
  }
  async function run(fn){if(busy)return;const runOwner=++runSequence,delivery=window.ProcessSync?.captureDelivery?.(),owns=()=>runOwner===runSequence&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery));busy=true;readEpoch++;error='';window.VersionDraftUI?.updateSync(document.querySelector('#data-content'),true,false);document.querySelectorAll('.bw-workspace [data-bw],#data-content .vd-shell [data-bw],.bw-review [data-bw],#review-bom [data-bw]').forEach(b=>b.disabled=true);document.querySelector('.bw-workspace')?.setAttribute('aria-busy','true');let failed=false,failure;try{try{await fn();}catch(e){if(owns()){lastErrorCode=String(e.message||'');error=errorText(e);}}}catch(e){failed=true;failure=e;}if(!owns())return;busy=false;paint();renderReview();const dialog=document.querySelector('.bw-review');if(dialog){for(const b of dialog.querySelectorAll('[data-bw]'))b.disabled=b.dataset.bw==='close'?false:!permission(b.dataset.bw);if(error){let alert=dialog.querySelector('[role=alert]');if(!alert){alert=document.createElement('p');alert.setAttribute('role','alert');dialog.prepend(alert);}alert.textContent=error;}}if(failed)throw failure;}
  function selectionAllowed(){if(historicalDisplay()||!edit)return true;error=t('請先完成修改或放棄修改，再切換位置。','Hãy hoàn tất hoặc bỏ sửa trước khi đổi vị trí.');paint();return false;}

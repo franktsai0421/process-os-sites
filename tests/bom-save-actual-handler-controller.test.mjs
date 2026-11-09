@@ -39,3 +39,9 @@ void test('actual all-theirs lost ACK, peer Save and late input preserve origina
  f.edit('itemName','My late input');await x.peer('unit','Peer newer unit',1);x.receiptsAvailable();await f.api.settleRecord(f.session().key);assert.equal(posts(f).length,1);assert.equal(f.api.editor().ROOT[0].itemName,'My late input');
  const before=clone((await server.read()).workflow),second=f.save(),again=await dialog(f);assert.equal(posts(f).length,1);again.querySelector('[data-bw-conflict="cancel"]').click();assert.equal(await second,false);assert.deepEqual((await server.read()).workflow,before);assert.equal(f.api.editor().ROOT[0].itemName,'My late input');
 });
+
+for(const side of ['mine','theirs'])void test('actual structural import re-compares a later peer Save before creating its one command: '+side,async t=>{
+ const x=await setup(t),{f,server}=x;await x.import();await x.peer('itemName','First peer');const journal=JSON.stringify(f.api.state().pending),task=f.save(),first=await dialog(f);
+ await x.peer('itemName','Later peer');await x.peer('unit','New peer unit',1);first.querySelector('[data-bw-conflict="mine"]').click();const second=await dialog(f);assert.notEqual(second,first);assert(second.textContent.includes('Later peer'));assert.equal(posts(f).length,0);assert.equal(JSON.stringify(f.api.state().pending),journal);second.querySelector('[data-bw-conflict="'+side+'"]').click();await task;
+ const flow=(await server.read()).workflow;assert.equal(posts(f).length,1);assert.equal(flow.saved.content.bom.ROOT[0].itemName,side==='mine'?'My root name':'Later peer');assert.equal(flow.saved.content.bom.ROOT[1].unit,'New peer unit');assert(flow.saved.content.bom.ROOT.some(row=>row.itemCode==='NEW'));assert.equal(flow.receipts[posts(f)[0].body.command.operationId].result.savedId,flow.saved.id);
+});
