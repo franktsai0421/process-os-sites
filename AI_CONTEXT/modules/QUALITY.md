@@ -1,3 +1,12 @@
+## 2026-11-09 例行 FQC 整頁接線候選（未切換）
+
+已接 metadata-only resolver、穩定新建／取消／更正／followup、單一 page Save／固定來源 Submit/Review/effects、codec/CAS、舊 writer fence，以及本機比較／File／晚到輸入／UNKNOWN UI。路徑 `/api/routine-fqc/page`，scope `routine-fqc:page`；受既存 marker/baseline 守門，不自行初始化。管理 Update 不會保存 RAM 文字／File。既有文件 archive、待審／歷史／原收據保留；新已核准版本查看由另一工作處理。下列前置段落保留歷史狀態，以[最新實作與驗收矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)為準；不代表真資料切換、十三頁最終驗收或獨審 PASS。
+
+## 2026-11-09 例行 FQC domain 抽取
+
+現用 builder／case-link／review issues／approval effects 已分離為明確 metadata＋Content 的 server helper；舊 dispatch 仍保留原流程／收據。新 helper 不建立 flow/Save/approval，不自行作權限、CAS、receipt 或 idempotence；未註冊新整頁 route。整頁 fixed changed set／source pins、建立取消更正及媒體UI仍待接線。七組合成契約與既有 route 回歸另列於唯一分界矩陣。
+
+
 ## 2026-11-09 — 例行 FQC 每文件同頁核准版本（本機）
 
 每文件專用只讀 approved-only GET 與單一原頁 selector 已接，保留多 buffers／原 UNKNOWN／pending；225/225 新舊回歸（34 新查看＋191 原收據／route／手動產生）及 lint／TS PASS。reopened 只在私有 fixture 初始化，現有 revoke-plan 403 未改權限，未冒稱完整生命周期。main #100 已直接核實並 fetch 9fbba823，尚待本機語意合併與新 head 回歸；畫布唯一尚未接前端。未上傳、未部署、原生／實站未驗。[完整界線與逐頁狀態](../../docs/acceptance/approved-history-unification-20261109/README.md)。

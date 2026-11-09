@@ -37,12 +37,17 @@ jobs:
           node scripts/test-draft-page-boundaries.cjs
           node scripts/test-draft-page-cutover.cjs
           node scripts/test-routine-fqc-page-save.cjs
+          node scripts/test-routine-page-domain-helpers.cjs
+          node scripts/test-routine-whole-page.cjs
+          node scripts/test-routine-whole-page-route.cjs
+          node scripts/test-routine-whole-page-ui.cjs
+          node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-review-regressions.cjs
           node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-ui.cjs
           node --test --test-concurrency=2 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs
-          node --test tests/master-page-runtime-source.test.cjs
+          node --test tests/master-page-runtime-source.test.cjs tests/batch3-workflow-source-contract.test.cjs
           node tests/master-page-retention-snapshot.test.mjs
           node scripts/test-master-workflow-v3.cjs
           node --test tests/process-stage-catalog.test.cjs

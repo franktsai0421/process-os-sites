@@ -468,6 +468,7 @@
       historySearch = workflowModule.createHistorySearch({getData: () => data, readPreview: () => read('?search-preview=1')});
     }
   }
+  let pageDraftMode = false;
   async function mount(container, historyMode = false) {
     retireApprovedHistory();
     navigationError=null;
@@ -490,6 +491,10 @@
         root.innerHTML = `<div class="rf-empty"><b>${t('例行檢查準備中', 'Đang chuẩn bị kiểm tra định kỳ')}</b>${t('3040 完成驗收後啟用', 'Kích hoạt sau nghiệm thu 3040')}</div>`;
         return;
       }
+      if(a.pageDraftLayout==='page-v1'){
+        if(s.busy||s.retry||s.dialogOpen||inFlightMutation||docs().some(dirty))throw Error('ROUTINE_PAGE_CUTOVER_RELOAD_REQUIRED');
+        pageDraftMode=true;await window.RoutineFqcPage.mount(root,{review:false});return;
+      }
       await ensureHistorySearch();if(!owns())return;
       await refresh(true);
     } catch (e) {
@@ -497,7 +502,7 @@
     } finally {
       if (mountOwner === owns) {
         loading = false; mountOwner = null;
-        if (owns() && available && data) paint();
+        if (owns() && available && data && !pageDraftMode) paint();
       }
     }
   }
@@ -2027,13 +2032,13 @@
     const url = new URL(location.href);
     if (url.searchParams.get('rfDocument')) s.selected = url.searchParams.get('rfDocument');
     s.reviewCase = url.searchParams.get('rfCase'); s.selfReview = null;
-    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}
+    try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.mount(area,{review:true});updatePendingBadge();return;} if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}
   }
   function updatePendingBadge() {
-    const count = liveDocs().filter((d) => status(d) === 'pending').length;
+    const count = pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length;
     const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = count;
   }
-  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
+  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.refreshMetadata();updatePendingBadge();return;} const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }
 
   // Navigation consumes only unsent RAM. Exact unknown-operation metadata
   // remains in storage and continues to fence every Routine FQC write.
@@ -2062,7 +2067,7 @@
   const departureSharedOwned=d=>{const tracked=d.flow?.scope==='routine-fqc:'+d.id;if(tracked)window.SharedDraftDeparture?.register?.(d.flow.scope);const owned=tracked?window.SharedDraftDeparture?.owns?.(d.flow):null;if(typeof owned==='boolean')return owned;if(!window.sharedDraftNeedsSave?.(d.flow))return false;const stamps=d.flow.contributors,actors=stamps&&typeof stamps==='object'&&!Array.isArray(stamps)?Object.values(stamps).map(value=>value?.actor?.id):[];return !actors.length||actors.some(actor=>typeof actor!=='string'||!actor||actor===window.ProcessSync?.identity?.id);};
   const departureDocuments=()=>docs().filter(d=>dirty(d)||departureSharedOwned(d));
   window.RoutineFQCUI = {
-    navigation:{get departure(){return moduleDeparture ||= routineDeparture({
+    navigation:{get departure(){if(pageDraftMode)return window.RoutineFqcPage.departure();return moduleDeparture ||= routineDeparture({
       root:()=>root,context:()=>[s.selected,data?.identity?.id,data?.permissions?.save,data?.permissions?.edit,docs().map(d=>[d.id,d.flow.generation])],
       current:()=>!data?.identity||!window.ProcessSync?.identity||data.identity.id===window.ProcessSync.identity.id,
       busy:()=>s.busy||!!inFlightMutation,unknown:()=>!!s.retry,
@@ -2075,13 +2080,13 @@
       canSave:()=>historyAllowsMutation()&&data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,
       async save(){s.busy=true;try{for(const d of departureDocuments())await save(d);return true;}finally{s.busy=false;paint();}},
       discard(){for(const dialog of document.querySelectorAll('.rf-modal[open]'))dialog.querySelector('[data-cancel]')?.click();for(const d of docs())if(dirty(d)){s.buffers.delete(d.id);s.bases.delete(d.id);}paint();},
-    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
+    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){window.RoutineFqcPage?.reset();pageDraftMode=false;retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},
     html,
     mount,
     reviewHTML,
     bindReview,
     refreshPending,
-    pendingCount: () => docs().filter((d) => status(d) === 'pending').length,
+    pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():docs().filter((d) => status(d) === 'pending').length,
     historyForItem: (item) => {
       s.line = '';
       s.category = '';

@@ -15,7 +15,7 @@ export const draftPageBoundaries = Object.freeze(([
   { page: 'BOM', scope: 'bom', permissionModule: 'bom', endpoint: '/api/bom/workflow', stateKey: 'bomMasterControl', migration: 'existing' },
   { page: 'EQUIPMENT', scope: 'routine-equipment', permissionModule: 'equipment', endpoint: '/api/routine-equipment/workflow', stateKey: 'routineEquipmentControl', migration: 'existing' },
   { page: 'TOOLING', scope: 'tooling', permissionModule: 'tooling', endpoint: '/api/tooling/workflow', stateKey: 'toolingMasterControl', migration: 'existing' },
-  { page: 'ROUTINE_FQC', scope: 'routine-fqc:page', permissionModule: 'routine', endpoint: '/api/routine-fqc', stateKey: 'routineFqcControl', migration: 'routine-page' },
+  { page: 'ROUTINE_FQC', scope: 'routine-fqc:page', permissionModule: 'routine', endpoint: '/api/routine-fqc/page', stateKey: 'routineFqcControl', migration: 'routine-page' },
 ] as const).map(entry => Object.freeze(entry)));
 export type DraftPage = typeof draftPageBoundaries[number]['page'];
 export const privateDraftBoundaries = Object.freeze([Object.freeze({ page: 'PRIVATE_FEEDBACK',

@@ -1,3 +1,19 @@
+## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
+
+受既存 page-v1 baseline 守門的單一 owner 已接建立／取消／更正／followup、一次 Save／固定整頁送審核准 effects、實際 codec/CAS、舊 writer fence及原收據查詢、本機比較與 File/晚到輸入/UNKNOWN。保留真正舊 documents/history/receipt，無 fake per-document approvals。合成 kernel/HTTP/UI 與製程來源權威負控制另列[唯一矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。未執行真資料切換、角色變更、上傳重送、合併或部署；統一已核准查看／權限／其餘衝突及全站驗收仍待整合。下列舊前置段落是歷史紀錄。
+
+## 2026-11-09 例行 RF domain 相依整合（本機未啟用）
+語意保留 88a 逐文件 atomic Save 與本題 metadata／固定 Content effects 抽取，新增原收據、撤權、版本／guard、改回舊 Save 的回歸。整頁 RF orchestration 與 UI 仍未完成。來源驗證接線保留原 pins 與負例。
+
+## 2026-11-09 例行 FQC domain 函式共用
+
+抽取不建立 flow 的 metadata/content builder、固定內容 review/case-link 與業務 effects；既有 route 維持原流程／receipt。七組合成契約含 legacy 真核准重播不重跑 effects。沒有新增整頁 route、migration、真資料或啟用；整頁建立／審核／媒體UI仍待實作。
+
+## 2026-11-09 Managed layout 守門與相依
+
+補 server-managed page-layout／owner namespace 的一般 aggregate 寫入守門，禁止普通 JSON replacement 啟用分頁；十組 inline/records review controls。核對88a4a2c依賴，master page comparer限定AB/C/LINES，不替代其PROCESS照片組與RF晚到輸入行為。沒有真資料切換或新的獨審PASS。
+
+
 ## 2026-11-09 — 製程合樹最新草稿與已核准歷史交付
 
 真merge #102 dfdfe76、衝突88a4a2c及版本owner2e4d20f，保留no-poll、當前畫布Save、history owner與UNKNOWN。新增publicState在隱去私有scope前驗證正式來源修正42cdba6；避免把另一筆核准工段當目前來源。新page／canvas歷史63、public authority12及各頁route／UI檢查通過，正常lint／TS／build通過。未啟用marker、未改真資料／schema／ACL、未上傳或部署。舊422交接已解；主資料完整UI、routine整頁與實站仍待交付。[現況矩陣](../docs/acceptance/process-editor-complete-20261109.md)。
