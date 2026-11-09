@@ -1,4 +1,4 @@
-/* Synthetic dependency ports for the actual shipped foreground scheduler.
+/* Synthetic dependency ports for the retired foreground callback driver.
  * Only this scheduler uses the virtual clock. Existing transport/deadline ports
  * remain untouched; this is not browser or elapsed-time evidence. */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
@@ -13,9 +13,9 @@ module.exports=function installForegroundPorts(context){
  const {window,document}=context;assert(window&&document);events(window);events(document);
  let now=0,sequence=0,focused=true;const timers=new Map();
  document.visibilityState??='visible';document.hasFocus=()=>focused;
- const source=fs.readFileSync(path.resolve(__dirname,'../../public/process/shared-draft-client.js'),'utf8');
+ const source=fs.readFileSync(path.resolve(__dirname,'fixtures/retired-foreground-scheduler.js'),'utf8');
  const start=source.indexOf('  window.createForegroundPoll = () => {'),end=source.indexOf('  // Local Begin feedback only:',start);
- assert(start>=0&&end>start,'exact shipped scheduler boundary');
+ assert(start>=0&&end>start,'exact test-only driver boundary');
  assert.equal(source.indexOf('  window.createForegroundPoll = () => {',start+1),-1,'unique scheduler');
  const extracted=source.slice(start,end);
  vm.runInNewContext(extracted,{window,document,performance:{now:()=>now},setTimeout(fn,ms){assert.equal(typeof fn,'function');const id=++sequence;timers.set(id,{fn,due:now+ms,delay:ms});return id;},clearTimeout:id=>timers.delete(id)});

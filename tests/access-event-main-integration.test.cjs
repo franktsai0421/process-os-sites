@@ -14,7 +14,7 @@ const cRoute='app/api/ipqc-c/workflow/route.ts';
 const checkoutLF=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
 const canonicalSource=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'Reporting proof requires raw source bytes');assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
 const readSource=file=>canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));
-const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -152,8 +152,8 @@ void test('normal Local safety CI registers no-poll, sent-batch, quarantine, ins
  assert(step.includes('if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'));assert.doesNotMatch(step,/continue-on-error|test-name-pattern|test-skip-pattern/);
 });
 
-for(const contract of equipmentRepair.contracts)void test('equipment CI repair attests current bytes and exact predecessor: '+contract.file,()=>{
- const bytes=readSource(contract.file),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
+for(const contract of equipmentRepair.contracts)void test('equipment CI repair retains exact d4ac309 source and predecessor: '+contract.file,()=>{
+ const bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(readSource(contract.file),contract.file),copy=Buffer.from(bytes),prior=equipmentRepair.restorePredecessor(bytes,contract.file);
  assert.equal(hash(bytes),contract.afterHash);assert.equal(hash(prior),contract.beforeHash);assert.deepEqual(bytes,copy);
  assert.equal(contract.beforeHash,contract.file===noPoll.file?noPoll.afterHash:'cb5fccf31b25d24751f5d72422cc744a3c6024e9e2142bf55db6189942d12352');
  assert.equal(hash(project(bytes,contract.file)),main[contract.file]);

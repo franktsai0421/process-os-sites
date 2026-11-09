@@ -1,3 +1,7 @@
+## 2026-11-09 — Retire periodic web checks
+
+Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).

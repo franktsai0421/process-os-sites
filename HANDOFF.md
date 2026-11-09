@@ -1,3 +1,7 @@
+## 2026-11-09 — Global background checks candidate
+
+Main d4ac309 plus inert compatible shared scheduler, direct interval removals and action-scoped history permissions. No data/schema/deployment. Preserve ongoing module candidates and current equipment recheck/ACK safeguards. [Inventory and evidence](docs/acceptance/global-background-checks-20261109.md).
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.
