@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 type Row=Record<string,unknown>;
 const str=(v:unknown)=>typeof v==='string'?v:typeof v==='number'?String(v):'';
 const object=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
@@ -25,7 +26,7 @@ function collectReferences(values:Record<string,string>,codes:string[],previous?
   const operations=(value:unknown,source:string)=>{const record=object(value);for(const [stage,list]of Object.entries(object(record.stages)))for(const op of rows(list))add(stage,source,str(op.id||op.number),'operation','editor',op,record);
     for(const workspace of rows(record.workspaces))operations(workspace,source+'/'+str(workspace.id));};
   const master=object(preparedMaster??parse(values.masterDataControl));
-  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS'&&(master.pageDraftLayout!=='page-v1'||['AB','C'].includes(scope)))catalog(content,'master:active:'+scope,scope.toLowerCase());
+  for(const [scope,content]of Object.entries(object(master.active)))if(scope!=='PROCESS'&&(master.pageDraftLayout!=='page-v1'||['AB','C'].includes(scope)))catalog(master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master as Parameters<typeof approvedMasterPageCatalog>[0],scope as 'AB'|'C').content:content,'master:active:'+scope,scope.toLowerCase());
   const retired=(scope:unknown)=>master.pageDraftLayout==='page-v1'&&['AB','C'].includes(str(scope));
   for(const v of rows(master.versions))if(!retired(v.scope)&&['draft','pending','pending-test'].includes(String(v.status)))catalog(v.snapshot,'master:'+String(v.id),str(v.scope).toLowerCase());
   for(const [scope,value]of Object.entries(object(master.workflowScopes))){if(retired(scope))continue;const flow=object(value);catalog(flow.working,'master:working:'+scope,scope.toLowerCase());catalog(object(flow.saved).content,'master:saved:'+scope,scope.toLowerCase());}

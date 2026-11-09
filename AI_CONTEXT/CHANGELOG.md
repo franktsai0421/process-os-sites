@@ -1,3 +1,27 @@
+## 2026-11-09 例行 FQC 整頁版本與 legacyArchive fence
+
+基於e5＋既有2e查看，接新整頁API／單一原頁selector，保留原文件核准來源／File／UNKNOWN。舊封存序列化後重查session／view/history／revision，修正晚到撤權P2。未修另一owner的照片PUT UNKNOWN，不宣稱發布就緒。[界線與證據](../docs/acceptance/routine-page-approved-history-20261109.md)。
+
+## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
+
+受既存 page-v1 baseline 守門的單一 owner 已接建立／取消／更正／followup、一次 Save／固定整頁送審核准 effects、實際 codec/CAS、舊 writer fence及原收據查詢、本機比較與 File/晚到輸入/UNKNOWN。保留真正舊 documents/history/receipt，無 fake per-document approvals。合成 kernel/HTTP/UI 與製程來源權威負控制另列[唯一矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。未執行真資料切換、角色變更、上傳重送、合併或部署；統一已核准查看／權限／其餘衝突及全站驗收仍待整合。下列舊前置段落是歷史紀錄。
+
+## 2026-11-09 例行 RF domain 相依整合（本機未啟用）
+語意保留 88a 逐文件 atomic Save 與本題 metadata／固定 Content effects 抽取，新增原收據、撤權、版本／guard、改回舊 Save 的回歸。整頁 RF orchestration 與 UI 仍未完成。來源驗證接線保留原 pins 與負例。
+
+## 2026-11-09 例行 FQC domain 函式共用
+
+抽取不建立 flow 的 metadata/content builder、固定內容 review/case-link 與業務 effects；既有 route 維持原流程／receipt。七組合成契約含 legacy 真核准重播不重跑 effects。沒有新增整頁 route、migration、真資料或啟用；整頁建立／審核／媒體UI仍待實作。
+
+## 2026-11-09 Managed layout 守門與相依
+
+補 server-managed page-layout／owner namespace 的一般 aggregate 寫入守門，禁止普通 JSON replacement 啟用分頁；十組 inline/records review controls。核對88a4a2c依賴，master page comparer限定AB/C/LINES，不替代其PROCESS照片組與RF晚到輸入行為。沒有真資料切換或新的獨審PASS。
+
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+修正 runtime 初審兩個 P2：逐層檢查復原子項的 create 權限與同 parent 歷史身分；所有 companion 的 approved body／pointer／ID 核對，讀取與驗證不採用未核准 active 或過期相容鏡像。inline/records 八組反例與正控制。獨立審查被內容安全機制中止，沒有新 tree 完整 PASS；未重送、未上傳／切換。
+
+
 ## 2026-11-09 新頁 owner 核准歷史
 
 基於真實679合樹（含972），接通新 AB.catalog／C.catalog／LINES approved-only API 與原頁版本查看，修正422與送審後舊顯示阻擋重繪。保留原來源證據、未存內容、pending／UNKNOWN及權限fences；未啟用marker或碰真資料。未上傳／部署；後續候選仍待協調。[本批驗證與交付](../docs/acceptance/master-page-approved-history-20261109.md)。

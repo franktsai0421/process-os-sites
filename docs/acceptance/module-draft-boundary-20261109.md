@@ -1,6 +1,36 @@
 # 全站各功能頁草稿分界：實作與驗收矩陣
 
-原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
+原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支是未啟用的分界 runtime 候選；僅語意整合已記錄的 88a RF domain 相依，沒有整批帶入其他未發布候選。不是全頁拆分已完成，也不是可啟用切換的版本。
+
+## 2026-11-09 例行 FQC 整頁 runtime 與本機驗收候選
+
+例行頁已接上受儲存 `pageDraftLayout:page-v1` 守門的 `/api/routine-fqc/page`、`routine-fqc:page` 單一 owner，以及明確 Save 才送出本機新增／修改／取消與 File 的頁面。每份文件保留穩定 ID、kind、plan/case/correction links；不建立假的逐文件 flow 或核准案件。一次 Save 固定整頁內容，一次送審固定 changedDocumentIds、原 immutable Save 與 jobs/cases 來源；核准只對該固定變更執行既有業務 effects 一次，與整頁 CAS／原收據同交易。新來源仍須先取得可核准的 baseline；本候選沒有 initializer、資料 adoption 或真資料切換。
+
+既有原 documents/flows/Save/cases/receipts 原樣保留；marker 後舊 writer 拒絕，原收據仍可讀，`/api/routine-fqc?legacyArchive=1` 只提供真正舊已核准文件的原 scope／案件／Save，只讀且不冒充整頁核准。新頁的已核准歷史查看仍交統一查看工作接線；主資料 UI 的匯入匯出／進階整理等價、權限 resolved policy、其餘衝突候選與十三頁整體驗收尚未完成。不能把本機 RF 功能或全頁 owner 盤點稱為全站實站完成。
+
+Save 前重新讀取、比對目前身分／權限／世代／版本，衝突一次選我的或對方，保留無衝突，取消保留文字及原 File；同一被刪結果可沿原 ID 恢復。晚到輸入保留；UNKNOWN 只查原操作收據，不重送。圖片走本頁已驗簽名／限量／權限的既有媒體格式。唯讀收據查詢在 aggregate SHA 驗證後只投影原 ledger，不需目前或歷史內容 body；正常頁回應省略歷史 body，compact wire 保留獨立可修改複本。
+
+本批另採用製程整合 42cdba6 的三行來源權威順序修正及十二組合成測試：先解析核准 page catalogs，再移除私人 workflowScopes，避免錯採過期相容鏡像。沒有整批匯入 25305c1。原三項業務決策均已答；後續順序依 Frank 指示先完成 #102，與 #101／製程整合核對更新，再做其他整合。
+
+十三組整頁 kernel、十四組實際 HTTP（inline／immutable records、隔離 SQLite／R2）與九組真 client／合成 DOM／File 測試已通過；最終固定提交的回歸與建置結果另附 evidence receipt。不是獨立審查或原生／iPhone 驗收。獨審內容安全中止、原生 Chromium OS socket EPERM、舊公開 create_tree 成功回執後讀回 404 的 UNKNOWN 均未重試／換路；未建立遠端 commit 或移動 ref。沒有真資料、真人權限、schema、部署、合併變更。
+
+## 前批歷史紀錄（以下保留當時狀態，以本頁最新段落與矩陣為準）
+
+## Managed layout 邊界與最新並行來源
+
+作者另在 inline／records 自查重現一般 legacy aggregate replacement 可附加新 layout／owner baselines 的缺口。現已把 pageDraftLayout、AB.catalog／C.catalog／LINES active／versions／workflowScopes 視為 server-managed 欄位；一般 shared-state 寫入無論提出或已持有這些欄位皆拒絕，不能以一般帳號的 JSON replacement 啟用／降版。原樣切換仍走另行確認的資料方案，本題未建立自助切換入口。review regressions 增為十組，修正前反例與拒絕無寫入均保留。此項是作者自查，沒有獨審 PASS。
+
+最新衝突候選為 88a4a2c6959dea76acfbaee24c11eb8e20494d5f（tree 6b3c533844ecd3b14fd9d426b533744a0fa82d5e），包含 7ef04ed。本次唯讀核對其 RF domain 24 行 validator 整合、routine UI late ACK 及 PROCESS photo/ordering 改動，沒有整批匯入。此處 master page comparator 僅允許 AB／C／LINES，不能拿 7ef 的舊 PROCESS photo 分支替代 88a 的照片組／別名／排序行為。後續合併須保留 88a 的 per-document atomic localSave、實際晚到輸入與 File／圖片上傳修正，再接本題整頁 owner；版本查看／畫布候選也不由此覆蓋。
+
+## Runtime 初審發現與修正（獨立審查未完成）
+
+972e3a8／ddff7a2 的獨審回報兩個 P2：恢復舊線別時可附帶新工段而未查 create；本頁 baseline 正確時，另一 owner 的 active body 未逐一核對核准來源。已在 inline／records 重現失敗反例，修正為整份復原 subtree 各 ID／原 parent 的歷史來源判別，以及所有 companion 的 approved body／pointer／唯一 ID 解析。合法舊 parent＋child 仍可由 edit 恢復，新 child 仍需 create；unknown reserved ID 不復用。驗證、相容讀取及 public/stage references 均只由驗證後來源組成，不信任過期 compatibility mirror。新增八組來源／復原 review regressions（另加兩組 managed-layout controls），包含無寫入拒絕及合法恢復正控制。
+
+該獨審子工作在完成兩項回報後，被內容安全機制以 possible cybersecurity risk 中止，**沒有完整審查 PASS**。沒有重送／改寫同一審查要求，已查房間近訊息但未取得針對此中止的新使用者指示。後續修正目前是作者自查／合成測試，不以先前 build 或部分審查取代新 tree 複審。原生 Chromium 的 OS socket EPERM 也仍未解；沒有更換 flags／executor 繞過。
+
+既有 test-master-read-projection 在本候選與還原乾淨的 8560869 副本均因 fixture 缺 ProcessAccountTransition 而失敗；沒有修改該 fixture 或放寬產品守門。歷史 #100／事件／例行來源 pins 原值保留，新 test-only exact inverse 只回復本 runtime delta 後驗原歷史來源，還原 bytes 不執行；新增來源順序／快取斷言保留精確 bytes 與順序。
+
+權限工作 0c89b6a／98789f9 的十三頁 fixture 曾核對舊前置介面；本批 RF endpoint 已改為 `/api/routine-fqc/page`，其 registry hash／endpoint fixture 需由權限工作更新，尚未接入其 resolved policy。四項現用權限差距仍不算解決，缺主要管理員明確稽核的真人高階映射仍交 Frank 決定；沒有套用真人帳號／角色資料。版本查看仍由另一工作實作。
 
 ## 2026-11-09 主資料 runtime 接線候選（未切換）
 
@@ -36,7 +66,7 @@ catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES wr
 | BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
 | 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
 | 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 14 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
+| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 整頁 runtime／建立取消更正／固定送審核准 effects／HTTP codec-CAS／UI-File／原收據及舊 writer fence 已接，受資料 marker 守門；尚未切換，查看工作與原生驗收待整合 |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
 | 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
 
@@ -134,6 +164,23 @@ current-approved 引用只回傳固定版本的副本，不採用 working/saved/
 先前 AB 整合中可確認的草稿要求納入本題後續接線驗收：修改與 File 先留本機，明確 Save 才保存與上傳圖片；衝突一次選我的／對方、保留無衝突並接續同次 Save；對方刪除而選我的時恢復同一項；取消保留原文字與 File；Save 重查身分、權限與版本，UNKNOWN 查原收據且防重送；他人先開草稿後可重新比較續存。這些是跨頁交付條件，目前純核心沒有 File／UI 行為，不宣稱已驗收；先核對既有 7ef04ed 行為再語意接入，舊 243-path 清單不完整且操作 UNKNOWN，不猜內容、不重送。
 
 已核准版本查看統一由另一項工作負責；本題只提供 owner/scope 與保存／送審資料介面依賴，不重複修改其版本查看元件。需要該工作配合 LINES、AB/C catalog、routine-fqc:page 新 scope；其尚未整合項與 Canvas 失敗仍須各自處理。
+
+## 例行 FQC 整頁接線的 domain 函式抽取（未啟用整頁）
+
+最新相依核對已將 88a 的 RF domain 逐文件 atomic local Save 語意合入本分支，保留本題 metadata／explicit-content 抽取。新 Save 只在 request memory 套 guard edits，再產生一次原 Save／receipt／revision；原 receipt 重播仍查 edit，缺版本／錯 guard／撤權不變更 domain，改回既有 saved body 仍正確增加一次 working revision。新增兩組實際 kernel 整合負例，合計九組 helper 契約。這只整合 lib/routine-fqc.ts 的已知相依；88a 的 UI late ACK／PROCESS／IQC／FQC／tooling 等仍未整批納入，也不是整頁 RF owner。
+
+另更新 batch3 的 test-only successor 接線：先按新全來源精確 hash 還原，再驗原 unchanged historical pin。原歷史 hashes／before bytes 不改；PROCESS scope mutation 對目前六個 master owner 的真實 span 執行，CAS／session／Begin／create 等負例全留。初次 100/102 與後續修正紀錄均保留，不能把第一次紅燈記成通過。
+
+
+從現用 routine-fqc.ts 抽出 buildRoutineDocumentDraft（metadata/content，沒有 flow）、validateRoutineCaseLink、routineDocumentReviewIssues、以及 applyRoutineDocumentApprovalEffects（明確固定 Content 與 staged business domain）。原 addDocument 仍只在 legacy dispatch 建立逐文件 flow；原 approve dispatch 傳入 kernel 已核准的 active.content。原結構／retest／提交 issues 保留，同一原 outer receipt replay 不重跑 effects。新增七組 DB/R2 零讀寫契約，含無 fake flow 的 plan/report/disposal/correction business effects、來源與 owner 複本、requiredSamples、錯誤 links 無 domain 變更，以及真 legacy create/Apply/Save/Submit/Approve/replay。
+
+這些 helper 不自行驗登入／權限、不作 CAS／receipt／revision、不提供 idempotence，也不是新 page approval。後續整頁 orchestrator 必須先核准固定 Save 案件，從 server 推導 changedDocumentIds 及依賴 pins，只對該固定差異執行一次，所有 domain/pageflow/receipt 同 CAS。不能循環呼叫 legacy executeRoutine 製造逐文件 Save/approval。
+
+尚未完成：metadata-only effective document resolver、穩定新文件建立／取消／更正／followup 暫存、整頁 Begin/Submit/Withdraw/Review、codec/CAS/舊 writer fence、全部本次媒體與 File、整頁 toolbar 及與88a late ACK／衝突的完整接線。現用 routine 仍逐文件，不能說例行整頁草稿已完成。原始真人資料、待審與歷史未操作。
+
+本次 helper 抽取：七組新契約及既有 Routine 254 項檢查通過，整頁既有文件 Save core 的 14 組仍通過；lint、TypeScript、diff 檢查通過。這些數字不包含原生瀏覽器或完整整頁流程驗收。
+
+版本查看另一路已提供 2e4d20f4560fe1480576680d07edcf903b67fef9（tree 1c423112e0e6dc66e22b7f5b959a7565640466ac），處理新 AB／C／LINES 核准歷史 422。此處只記錄依賴，未匯入、覆蓋或宣稱與 88a4a2c 衝突候選及 Routine 整頁流程已整合；版本查看由原工作負責。
 
 ## 與全站衝突候選的協調
 

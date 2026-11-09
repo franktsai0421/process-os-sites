@@ -119,6 +119,7 @@
   const departureOwnerCurrent=owner=>!!owner?.id&&!window.ProcessSync?.requiresReload&&owner.id===window.ProcessSync?.identity?.id&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync?.identityGeneration?.():owner.identity===window.ProcessSync?.identity);
   const departureScope=endpoint=>{
     const [path,query='']=endpoint.split('?'),params={get(key){const values=query.split('&').filter(part=>part.split('=')[0]===key);if(values.length!==1)return null;try{return decodeURIComponent(values[0].slice(key.length+1).replaceAll('+',' '));}catch{return null;}}};
+    if(path==='/api/routine-fqc/page'&&!query)return 'routine-fqc:page';
     if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;
     if(path==='/api/master/workflow')return ['AB','C','PROCESS'].includes(params.get('scope'))?'master:'+params.get('scope'):null;
     if(path==='/api/ipqc-ab/workflow')return params.get('module')==='1'?'ipqc-ab:module':/^[AB]:.+/.test(params.get('scope')||'')?'ipqc-ab:'+params.get('scope'):null;
@@ -334,7 +335,7 @@
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     const approvedAccessListeners=new Set();
-    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/master/pages','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
+    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/master/pages','/api/routine-fqc/page','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;

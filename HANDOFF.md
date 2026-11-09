@@ -1,3 +1,32 @@
+## 2026-11-09 版本owner已接例行整頁與舊封存P2
+
+本機真merge e5＋2e：新routine-fqc:page approved-only與原頁selector／原文件唯讀聯集，legacyArchive最後撤權fence已修。保留File／pending／原workflow UNKNOWN。照片PUT UNKNOWN仍待草稿owner，5729／25305等後續整合與原生／實站未驗；本批無遠端／資料切換。[唯一查看紀錄](docs/acceptance/routine-page-approved-history-20261109.md)。
+
+## 2026-11-09 例行整頁候選收尾與整合順序
+
+本批已接 RF whole-page kernel／實際 route＋codec-CAS／舊 writer fence＋原收據／本機 UI＋File；不是只有原未註冊 Save prototype。scope `routine-fqc:page`，endpoint `/api/routine-fqc/page`，同頁文件不再各建模組 flow。kernel13、HTTP14、UI9與製程來源權威12組合成檢查通過；精確提交與 source/build receipt 另附。受 marker/baseline 守門，沒有 initializer 或真資料切換。原 documents/flows/history/receipts 保留。
+
+依 Frank 最新順序：先完成 #102，與 #101／製程整合核對更新，再做其他整合。25305c1 包含本題舊 dfdfe76，不得以整檔覆蓋後續 master/RF；只採42cdba6來源解析三行順序修正＋12組測試。88a其餘衝突UI/PROCESS/IQC/FQC/tooling、2e4d20f查看、98789f9權限仍待語意整合；權限 registry endpoint/hash需更新，查看需接新page協定及真正legacyArchive。master匯入匯出/進階整理功能等價、十三頁最終驗收未完成。舊段落為前批歷史，以[最新矩陣](docs/acceptance/module-draft-boundary-20261109.md)為準。公開 tree UNKNOWN、獨審中止、原生socket限制不變；未重送／換路，未合併／部署。
+
+## 2026-11-09 本輪固定交付
+RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save/receipt replay 及 CAS peer 保留已驗。Routine 259、source102、helpers9、page Save14 與 lint/types/diff PASS；後續測試／文件提交不改 runtime。最終 source/build receipt 在外部 evidence。十三頁功能缺口、權限／查看／88a UI 尚待整合，三項業務決策已答，不可再稱等待。詳 docs/acceptance/module-draft-boundary-20261109.md。公開 source UNKNOWN／獨審中止／原生限制不變。
+
+## 2026-11-09 RF domain／衝突候選相依
+已語意合入 88a 的例行 FQC domain atomic per-document Save，保留 metadata helper；九組 kernel 契約驗一次 Save/receipt、撤權、錯 guard/版本與返回舊 Save。不是整頁 writer、UI late ACK 或全 88a 候選整合。batch3 來源負例補精確 successor wrapper，原歷史 pins 全留。新本機來源需按實際 commit 測試；不得引用 f8be build 證明後續 runtime。詳見全頁分界矩陣。
+
+## 2026-11-09 例行整頁 domain 接續
+
+已抽出 metadata/content builder、無 flow 的 case/review 驗證及固定 Content 業務 effects，原 legacy dispatch／原 receipt 不變。七組 metadata-only／真 legacy replay memory 契約；不是整頁 orchestration、CAS 或 UI。下一批須 metadata resolver＋server-derived fixed changedDocumentIds/pins，保留88a localSave/late ACK/File；不得用逐文件 executeRoutine 循環冒充整頁。獨審中止、原生 browser 限制及公開 tree UNKNOWN 仍未解。
+
+## 2026-11-09 Managed layout 守門與相依
+
+作者自查補一般 aggregate 不得建立／移除／改寫 server-managed pageLayout／owner baseline，inline/records 負控制已重現並拒絕無寫入。最新衝突來源88a4a2c已唯讀核對，保留其PROCESS照片組／排序、RF late ACK及domain localSave；本題master comparer只開放AB/C/LINES。未匯入、未上傳、未重送UNKNOWN；獨審中止狀態不變。
+
+## 2026-11-09 Runtime 初審修正與未完成界線
+
+972e3a8 初審回報 parent restore 可帶新 child 漏查 create，以及 companion active 未綁原 approved 來源兩個 P2。已留修正前負控制並補逐層 identity 分類、三 owner 來源解析和 verified-only 相容讀取／public references；新增八組 memory regressions。獨審隨後因 possible cybersecurity risk 被內容安全機制中止，沒有整輪 PASS、未重送；目前新修正只有作者測試。原生 browser OS socket EPERM、舊登入 fixture baseline failure、完整 UI 等價／routine 整頁／權限 policy／版本查看相依仍需保留。
+
+
 ## 2026-11-09 — 完整製程與972頁面runtime已本機合樹，仍NOT_READY
 
 產品42917bf保留完整畫布／已核准歷史與#102固定972受marker守門之writer，未切真資料或上傳。277畫布／C回呼、162歷史及1550來源相依PASS，guarded build／lint／TS PASS；新pages approvedOnly三頁仍422，版本adapter及routine整頁仍未完成。[精確交界與下一步](docs/acceptance/process-editor-remaining-dependencies-20261109.md)。原UNKNOWN／拒絕不重送。下方舊檢查點按其日期／來源閱讀，不能作新樹狀態。

@@ -98,5 +98,5 @@ function compareMasterSnapshots(base,mine,theirs,scope){
         orderRows(projected,merged);return batches;
       }};
     }
-host.ProcessPageDraftMerge={compare:compareMasterSnapshots,diff,project:projectLocal};
+host.ProcessPageDraftMerge={compare(base,mine,theirs,scope){if(!['AB','C','LINES'].includes(scope))throw Error('MASTER_PAGE_SCOPE_REQUIRED');return compareMasterSnapshots(base,mine,theirs,scope);},diff,project:projectLocal};
 })(window);
