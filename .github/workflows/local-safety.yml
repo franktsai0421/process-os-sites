@@ -88,6 +88,13 @@ jobs:
         run: |
           node --test tests/bom-atomic-save.test.cjs tests/bom-atomic-departure.test.mjs tests/bom-bounded-recovery-transport.test.mjs tests/bom-bounded-rejection-route.test.mjs tests/bom-local-recovery-actual-stack.test.mjs tests/bom-manual-ram-save.test.mjs tests/bom-post-authority-actual-stack.test.mjs tests/bom-post-authority-route.test.mjs tests/bom-post-authority-transport.test.mjs tests/bom-review-access-projection.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Routine FQC explicit entry and Update generation
+        if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
+        run: |
+          node --test tests/routine-fqc-source-contract.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/routine-fqc-explicit-refresh.test.mjs tests/routine-fqc-manual-generation.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-durable-receipt.test.mjs tests/routine-fqc-receipt-only.test.mjs tests/routine-fqc-departure-attribution.test.mjs tests/multiuser-module-departure-routine-save.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: FQC local editing and atomic single Save
         if: ${{ !cancelled() && steps.install_locked_dependencies.outcome == 'success' }}
         run: |
