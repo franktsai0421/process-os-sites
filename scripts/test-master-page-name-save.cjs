@@ -148,9 +148,23 @@ check('serialized isolated snapshot can reopen without changing Save, cases, gen
 });
 check('ordered intermediate edits returning to prior saved content still retain a single correct receipt', () => {
   const f = fixture(); run(f, save(f)); const prior = f.flow.saved.id, revision = f.flow.revision;
+  const contributors = plain(f.flow.contributors);
   const result = run(f, save(f, [{ scope: 'AB', before: 'Edited A', after: 'Temporary' }, { scope: 'AB', before: 'Temporary', after: 'Edited A' }]));
   assert.equal(result.receipt.unchanged, true); assert.equal(f.flow.saved.id, prior); assert.equal(f.flow.revision, revision);
   assert.equal(f.flow.saves.length, 1); assert.equal(Object.keys(f.flow.receipts).length, 2);
+  assert.deepEqual(plain(f.flow.contributors), contributors);
+});
+check('a reverted name keeps its original contributor while a real peer-field edit is attributed correctly', () => {
+  const f = fixture(), namePath = path('AB'), apply = command(f, 'apply', {
+    patches: [{ op: 'set', path: namePath, value: 'Peer draft' }], guards: [{ path: namePath, value: 'A' }],
+  });
+  f.flow = draft.applyDraftCommand(f.flow, apply, context(f, peer)).state;
+  run(f, save(f, [{ scope: 'AB', before: 'Peer draft', after: 'Temporary' },
+    { scope: 'C', before: 'C', after: 'Actual edit' }, { scope: 'AB', before: 'Temporary', after: 'Peer draft' }]));
+  assert.equal(f.flow.saved.content.AB.lines[0].name, 'Peer draft');
+  assert.equal(f.flow.saved.contributors[draft.stableDraftJSON(namePath)].actor.id, peer.id);
+  assert.equal(f.flow.saved.contributors[draft.stableDraftJSON(path('C'))].actor.id, author.id);
+  assert.deepEqual(plain(f.flow.contributors), {});
 });
 assert.equal(reads, 0); assert.equal(writes, 0);
 console.log(JSON.stringify({ status: 'PASS', checks, storageReads: reads, storageWrites: writes,

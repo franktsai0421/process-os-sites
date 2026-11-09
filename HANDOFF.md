@@ -8,6 +8,8 @@
 
 依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
 
+#102 追蹤時自查修正未啟用名稱 Save 的貢獻者：同次暫改又改回保留原歸屬，混合真正修改仍正確標記；修正前反例已重現，名稱契約補為 15 組。這是作者自查，尚無獨立 review。與 #100/#101/#88 的直接重疊均為文件；未做跨 PR 合併，也未啟用拆分或變更真資料。各 head CI 與審查以遠端回執為準。
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
