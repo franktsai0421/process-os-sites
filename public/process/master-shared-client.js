@@ -182,7 +182,7 @@
     }
     // Three-way comparison is local to this explicit Save. Stable entity IDs
     // preserve unrelated rows and fields; primitive lists remain one value.
-    function compareMasterSnapshots(base,mine,theirs){
+    function compareMasterSnapshots(base,mine,theirs,scope){
       const conflicts=[],clone=value=>value===undefined?undefined:copy(value);
       const entityList=value=>Array.isArray(value)&&value.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.id==='string');
       const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
@@ -190,6 +190,17 @@
       function merge(before,own,other,path,choice){
         if(equal(own,before))return clone(other);
         if(equal(other,before)||equal(own,other))return clone(own);
+        // Legacy PROCESS photos have no entity ID. Only an unchanged, nonempty
+        // prefix proves these are independent additions (including the primary
+        // photo); replacement/deletion/reorder remain conservative conflicts.
+        if(scope==='PROCESS'&&path.at(-1)==='mediaItems'&&Array.isArray(before)&&before.length&&[own,other].every(Array.isArray)){
+          const valid=list=>list.every(row=>row&&typeof row==='object'&&!Array.isArray(row)&&!Object.hasOwn(row,'id')&&typeof row.src==='string'&&row.src)&&new Set(list.map(row=>row.src)).size===list.length;
+          if([before,own,other].every(valid)&&[own,other].every(list=>list.length>=before.length&&before.every((row,index)=>equal(row,list[index])))){
+            const otherBySrc=new Map(other.map(row=>[row.src,row]));
+            if(own.every(row=>!otherBySrc.has(row.src)||equal(row,otherBySrc.get(row.src))))
+              return clone([...other,...own.filter(row=>!otherBySrc.has(row.src))]);
+          }
+        }
         if(entityList(before)&&entityList(own)&&entityList(other)){
           for(const list of [before,own,other])if(new Set(list.map(row=>row.id)).size!==list.length)throw Error('CATALOG_IDENTITY_INVALID');
           const maps=[before,own,other].map(list=>new Map(list.map(row=>[row.id,row]))),ids=[...new Set([...other,...own,...before].map(row=>row.id))],rows=new Map();
@@ -274,7 +285,7 @@
       }
       let next=await read();
       for(let attempt=0;attempt<8;attempt++){
-        const comparison=compareMasterSnapshots(local.base,projectLocal(local.base,JSON.parse(original)),next.working);
+        const comparison=compareMasterSnapshots(local.base,projectLocal(local.base,JSON.parse(original)),next.working,scope);
         const choice=comparison.conflicts.length?await chooseCatalogConflicts(scope,comparison.conflicts,currentInput):'mine';
         assertCurrent();if(choice==='cancel')return null;
         if(comparison.conflicts.length){

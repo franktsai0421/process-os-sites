@@ -1,3 +1,7 @@
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
+
 ## 2026-11-09 — 主資料全組衝突候選
 
 master-shared-client 的 AB/C 與 PROCESS 明確 Save 以固定原本機基準、原 ordered journal 的最終意圖與最新 working 三方比較；穩定 ID 保留其他記錄及欄位，結構與排序也是同一全組選擇。選後讀到新 revision 時重比，命令帶 expectedRevision 與逐 patch guards，server 仍驗證資料／權限／引用。PROCESS 成功收據只退休原 sent prefix，後續輸入以接受的 predispatch merged snapshot 為基準，不使用較晚 readback 冒充原操作內容。主資料及 IPQC 引用區不定時讀取。線別工段仍共用 AB/C scope；未啟用 split-v1 或遷移資料。[候選與驗收](../../docs/acceptance/unified-draft-save-choice-20261109/README.md)。

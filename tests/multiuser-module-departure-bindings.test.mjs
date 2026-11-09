@@ -13,13 +13,22 @@ function sourceDeclaration(ast,name){
  const matches=[];function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)matches.push(node);if(ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>d.name.getText(ast)===name))matches.push(node);ts.forEachChild(node,visit);}visit(ast);
  assert.equal(matches.length,1,`one actual declaration for ${name}`);return matches[0].getText(ast);
 }
+// Mutable production state stays on the VM global so cases can exercise the
+// real cancellation branches. Extract individual initializers, not an entire
+// multi-binding statement that would introduce hidden/shadowing lexical state.
+function sourceInitializers(ast,names){
+ const values=new Map();function visit(node){if(ts.isVariableDeclaration(node)&&ts.isIdentifier(node.name)&&names.includes(node.name.text)){assert(!values.has(node.name.text));assert(node.initializer);values.set(node.name.text,node.initializer.getText(ast));}ts.forEachChild(node,visit);}visit(ast);
+ return names.map(name=>{assert(values.has(name),`actual initializer for ${name}`);return `globalThis.${name}=${values.get(name)};`;}).join('\n');
+}
 function stageAB(box,key='A:G'){const base=structuredClone(box.flow().working),snapshot={...structuredClone(base),value:'unsaved local'};box.localScopes.set(key,{base,snapshot});return snapshot;}
-function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
+function fixture(name,{omitBomRecovery=false,omitInputClosures=false,omitCancellationClosures=false}={}){
  const source=fs.readFileSync(`public/process/${name}.js`,'utf8');
  const ast=ts.createSourceFile(name+'.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let config;
- function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)===(name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
+ const factory=name==='routine-equipment'?'equipmentDeparture':name==='routine-fqc'?'routineDeparture':'window.VersionDraftUI.createDeparture';
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)===factory&&ts.isObjectLiteralExpression(node.arguments[0])){assert.equal(config,undefined,'one departure factory per module');config=node.arguments[0].getText(ast);}ts.forEachChild(node,visit);}
  visit(ast);assert(config,name+' departure config');
  let writes=0,unknown=false,failed=false,allowed=true;
+ const revokedURLs=[];class URLPort extends URL{static revokeObjectURL(value){revokedURLs.push(value);}}
  const identity={id:'user'},root={isConnected:true,inert:false,dataset:{activeTab:name},querySelector:()=>null,querySelectorAll:()=>[]};
  const f={generation:'generation',revision:2,contributors:{field:{actor:{id:'user'}}},working:{value:'new'},saved:{id:'old',content:{value:'old'}},pendingId:null};
  const version={id:'version',status:'draft',snapshot:f.working};
@@ -27,9 +36,9 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  const ack=async()=>{writes++;box.revision++;f.saved={id:'confirmed',content:structuredClone(f.working)};return{receipt:{status:'confirmed'}};};
  const window={ProcessSync:{identity,epoch:1,delivery:1,identityGeneration(){return this.epoch;},captureDelivery(){return this.delivery;},isCurrentDelivery(value){return value===this.delivery;}},sharedDraftNeedsSave:x=>!!x&&!x.pendingId&&JSON.stringify(x.working)!==JSON.stringify(x.saved?.content),VersionDraftUI:{},ProcessNavigationForms:{composing:()=>false},ProcessMasterVersioning:{departureNames:{dirty:()=>false}},dispatchEvent(){}};
  const document={documentElement:{lang:'zh'},querySelector:q=>q==='#data-content'?root:null,querySelectorAll:()=>[]};
- const box={window,document,JSON,Set,Map,URL,revision:2,departureSharedCache:null,root,hostElement:root,host:root,client,sharedClient:client,moduleClient:client,
+ const box={window,document,JSON,Set,Map,URL:URLPort,revision:2,departureSharedCache:null,root,hostElement:root,host:root,client,sharedClient:client,moduleClient:client,
   control:{workflow:f,libraries:{fqc:{workflow:f}},moduleDraft:{workflow:f}},flow:()=>f,library:()=>({workflow:f}),scope:()=>({workflow:f}),
-  shared:{flow:()=>f,permissions:()=>({save:allowed,edit:allowed}),busy:()=>false,client:()=>client,execute:ack},departureScope:()=>name==='master-data'?'AB':'PROCESS',departureDialogs:()=>[],closeDepartureDialogs(){},deliveryGeneration:1,
+  state:{dataTab:'AB',masterScope:'AB'},shared:{flow:()=>f,permissions:()=>({save:allowed,edit:allowed}),busy:()=>false,client:()=>client,execute:ack},departureScope:()=>name==='master-data'?'AB':'PROCESS',departureDialogs:()=>[],closeDepartureDialogs(){},deliveryGeneration:1,
   actor:'user',sharedActor:'user',controlActor:'user',identity:()=>window.ProcessSync.identity,currentReadOwner:()=>()=>true,sharedStateCurrent:()=>true,
   mountSequence:1,viewEpoch:1,selectedVersionId:'version',versionId:'version',selected:'version',key:()=> 'A:G',
   ui:{versionId:'version',selectedVersionId:'version',busy:false,saving:false},busy:false,loading:false,readOnlyBusy:false,beginRecovery:null,
@@ -45,7 +54,8 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  // acknowledged working delta is not this document's unsent local overlay.
  if(name==='master-data'){
   const bridge=fs.readFileSync('public/process/master-shared-client.js','utf8');
-  box.locals=new Map();box.draft=()=>version;
+  box.locals=new Map();box.saveChoices=new Map();box.draft=()=>version;
+  vm.runInNewContext(sourceDeclaration(ast,'departureScopes'),box);
   const localDirty=sourceBlock(bridge,'    const localDirty=','    function productReferenceCode(');
   const discard=sourceBlock(bridge,'    function discardLocal(','    function stageLocal(');
   vm.runInNewContext(localDirty+discard+'\nshared.localDirty=localDirty;shared.discardLocal=discardLocal;',box);
@@ -55,28 +65,32 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
  if(name==='bom-workspace'){box.ownerQuarantined=false;box.transportOwner=()=>true;box.recoveryFlight=null;box.recoverySession=null;box.localRevision=0;Object.assign(box,{pending:[],batch:null,edit:null,saveCommand:null,departureRetained:false,isolatedInputs:[],manualLocal:()=>!!box.pending.length,active:()=>({snapshot:{bom:{}}})});vm.runInNewContext(sourceBlock(source,' function unknownReady(){',' let moduleDeparture;'),box);if(!omitBomRecovery)vm.runInNewContext(source.slice(source.indexOf(' function discardOwnRecovery(){'),source.indexOf(' async function reconcileLocal(')),box);}
  if(name==='fqc-master'){
   f.working={errors:[{id:'error',name:'Shared current'}],items:[]};f.saved.content={errors:[{id:'error',name:'Saved earlier'}],items:[]};version.snapshot=structuredClone(f.working);
+  vm.runInNewContext(sourceInitializers(ast,['activeSaveComparison','activeSharedAction'])+'\n'+sourceDeclaration(ast,'comparisonCancellable')+(!omitCancellationClosures?'\n'+sourceDeclaration(ast,'cancelSaveComparison'):''),box);
   Object.assign(box,{syncBase:structuredClone(f.working),localRejection:null,formOwners:new WeakMap(),matrixOwner:()=>false,transport:()=>client});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sharedFields=','  function transport(')+sourceBlock(source,'  function changes(','  async function reconcileLocalConflict('),box);
  }
  // Tooling now owns a document-local candidate; its actual departure closure
  // reads and clears these variables even when no editor dialog is open.
- if(name==='tooling')Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});
- if(name==='iqc-master'){box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
+ if(name==='tooling'){Object.assign(box,{localBase:null,localSnapshot:null,localGeneration:null});vm.runInNewContext(sourceDeclaration(ast,'discardCatalogInputs'),box);}
+ if(name==='iqc-master'){vm.runInNewContext(sourceInitializers(ast,['activePost','activeSaveComparison','localPhotos','pendingLocalSave','localBeginReceipt'])+'\n'+sourceDeclaration(ast,'comparisonCancellable')+(!omitCancellationClosures?'\n'+sourceDeclaration(ast,'cancelSaveComparison'):'')+'\n'+sourceDeclaration(ast,'clearLocalPhotos'),box);box.localSnapshot=null;box.localBase=null;box.localGeneration=null;box.editorOwners=new Set();box.errorBatch=null;box.errorRecoverySession=null;box.errorLocalRevision=0;vm.runInNewContext(source.slice(source.indexOf('  function discardErrorInput('),source.indexOf('  async function discardErrorRecord(')),box);vm.runInNewContext(sourceBlock(source,'  function discardLocalInput(){','\n})(window);'),box);}
  // Run the actual caller closures, not always-true owner/local-input stand-ins.
  // Save remains the existing acknowledgement stub: these are binding tests, not transport/route acceptance.
  if(name==='ipqc-ab'){
   Object.assign(box,{actor:()=>window.ProcessSync.identity,sharedIdentity:'user:A:G',reviewHost:null,mutationLifetime:0,localBatch:null,inputBasisOwner:null,modalBase:null,modalGeneration:null,viewer:null,
    API:'/api/ipqc-ab',sessionStorage:{length:0,key:()=>null},localScopes:new Map(),localPhotos:new Map(),legacyClients:new Map(),localModuleGeneration:null,localBeginReceipt:null,localSent:null,localConflict:null,moduleTransport:()=>client});
-  const closures=['legacyABClients','localPending','clearLocalEditing','abandonLocalEditing'];if(!omitInputClosures)closures.push('localDirty');
+  vm.runInNewContext(sourceInitializers(ast,['conflictEscapeCleanup','localBeginExpectation','localBusinessBase','localSaveIntent']),box);
+  const closures=['legacyABClients','localPending','clearLocalEditing','abandonLocalEditing'];if(!omitCancellationClosures)closures.push('clearConflictEscape');if(!omitInputClosures)closures.push('localDirty');
   vm.runInNewContext(closures.map(n=>sourceDeclaration(ast,n)).join('\n'),box);
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  const sameInput=','  function mutationCurrent(')+sourceBlock(source,'  function hasPrivateInput(){','  function retainInputBase('),box);
  }
  if(name==='ipqc-c'){
+  vm.runInNewContext(sourceInitializers(ast,['saveChoice','localSaveAttempt','localBase']),box);
   Object.assign(box,{localChanges:[{action:'edit'}],localGeneration:'generation',localPhotos:new Map(),picker:{},viewer:{}});
   vm.runInNewContext(sourceBlock(source,'  function clearLocal(){','\n'),box);
  }
  if(name==='routine-equipment'){
   const markers=new Map();
+  vm.runInNewContext(sourceInitializers(ast,['equipmentSaveChoice','equipmentSaveComparison'])+(!omitCancellationClosures?'\n'+sourceDeclaration(ast,'retireEquipmentSaveComparison'):''),box);
   Object.assign(box,{fqcTransferClient:null,inputOwner:null,equipmentEditRequest:0,sessionStorage:{getItem:key=>markers.get(key)??null,setItem:(key,value)=>markers.set(key,value),removeItem:key=>markers.delete(key)},localBeginReceipt:null,pendingSaveBatch:null,formPendingPhoto:null,newEquipmentForm:null,newEquipmentOwner:null,syncBase:null,syncGeneration:f.generation,snapshotOf:v=>structuredClone(v.snapshot)});
   if(!omitInputClosures)vm.runInNewContext(sourceBlock(source,'  function inputPrincipalCurrent(){','  function sharedTransport(')+'\nrememberInputOwner();',box);
   vm.runInNewContext(sourceBlock(source,'  const isDirty =','\n'),box);
@@ -85,9 +99,14 @@ function fixture(name,{omitBomRecovery=false,omitInputClosures=false}={}){
   vm.runInNewContext(sourceBlock(source,'  function equipmentDeparture(config){','  let navigationError='),box);
  }
  vm.createContext(box);vm.runInContext(helper.replaceAll('host.','window.')+'\nwindow.VersionDraftUI.createDeparture=createDeparture;',box);
- if(name==='routine-fqc')vm.runInContext(source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
- const adapter=vm.runInContext((name==='routine-equipment'?'equipmentDeparture':'window.VersionDraftUI.createDeparture')+'('+config+')',box);
- return {adapter,box,flow:f,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
+ if(name==='routine-fqc'){
+  // Exact unknown-reference bytes live at the synthetic storage port; the
+  // receipt owner predicates and wrapper themselves are production code.
+  const records=new Map();window.localStorage={get length(){return records.size;},key:index=>[...records.keys()][index]??null,getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)};
+  vm.runInContext(sourceInitializers(ast,['receiptInvalid','receiptRecord','receiptLifecycle','receiptSuspended','receiptText','receiptInt','receiptNotice'])+'\n'+['receiptPin','receiptCurrent','receiptOwnedPin','receiptStore','routineDeparture'].map(n=>sourceDeclaration(ast,n)).join('\n')+'\n'+source.slice(source.indexOf('  const departureSharedOwned='),source.indexOf('  window.RoutineFQCUI =')),box);
+ }
+ const adapter=vm.runInContext(factory+'('+config+')',box);
+ return {adapter,box,flow:f,revokedURLs,get writes(){return writes;},unknown:value=>unknown=value,failed:value=>failed=value,allowed:value=>{allowed=value;box.data.permissions={save:value,edit:value};}};
 }
 for(const name of decisionModules){
  void test(`${name}: actual adapter preserves its current shared departure policy`,async()=>{
@@ -286,4 +305,65 @@ void test('IPQC-AB unknown departure clears RAM but preserves the original sent 
  Object.assign(client,{departureIdle:()=>true,departureUnknown:()=>anchor,coverDeparture:(value,current)=>{assert.equal(value,anchor);return{current,release(){}};}});
  const before=JSON.stringify(b.control);assert.equal(f.adapter.inspect().canAbandon,true);await assert.rejects(f.adapter.save());await assert.rejects(f.adapter.discard());
  const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();assert.equal(b.localScopes.size,0);assert.equal(b.localSent,sent);assert.equal(client.departureUnknown(),anchor);assert.equal(client.hasUnknown(),true);assert.equal(f.writes,0);assert.equal(JSON.stringify(b.control),before);
+});
+
+
+// Nonempty cancellation-state checks ensure the newly extracted dependencies
+// execute their real branches, not merely return early from null initial state.
+for(const name of ['fqc-master','iqc-master'])void test(`${name}: actual comparison cancellation retires only the unsent attempt`,async()=>{
+ const f=fixture(name),b=f.box,before=JSON.stringify(f.flow),operation={};let closed=0,cancelled=0;
+ const attempt={phase:'comparing',operation,close(){closed++;},resolveCancel(value){assert.equal(value,false);cancelled++;},cancel(value){assert.equal(value,false);cancelled++;}};
+ b.activeSaveComparison=attempt;
+ if(name==='fqc-master'){b.activeSharedAction=operation;b.ui.saving=true;}else{b.activePost=operation;b.ui.busy=true;b.localSnapshot={value:'unsent local'};b.localPhotos.set('staged',{preview:'blob:iqc-preview'});}
+ assert.equal(vm.runInContext('comparisonCancellable()',b),true);const lease=await f.adapter.abandon();
+ assert.equal(attempt.cancelled,true);assert.equal(b.activeSaveComparison,null);assert.equal(closed,1);assert.equal(cancelled,1);
+ assert.equal(name==='fqc-master'?b.ui.saving:b.ui.busy,false);
+ if(name==='iqc-master'){assert.equal(b.localPhotos.size,0);assert.deepEqual(f.revokedURLs,['blob:iqc-preview']);}
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+for(const name of ['fqc-master','iqc-master','routine-equipment','ipqc-ab'])void test(`${name}: missing production cancellation closure is a failing negative control`,async()=>{
+ const f=fixture(name,{omitCancellationClosures:true}),b=f.box,before=JSON.stringify(f.flow),local={value:'retain local'};
+ const missing=name==='routine-equipment'?'retireEquipmentSaveComparison':name==='ipqc-ab'?'clearConflictEscape':'cancelSaveComparison';
+ if(name==='fqc-master')b.editable().snapshot.errors[0].name='Unsent';
+ if(name==='iqc-master')b.localSnapshot=local;
+ if(name==='routine-equipment'){b.editingEquipmentId='eq';b.working=local;}
+ if(name==='ipqc-ab')stageAB(b);
+ await assert.rejects(f.adapter.abandon(),new RegExp(missing+' is not defined'));
+ if(name==='fqc-master')assert.equal(b.localDirty(),true);
+ if(name==='iqc-master')assert.equal(b.localSnapshot,local);
+ if(name==='routine-equipment'){assert.equal(b.working,local);assert.equal(b.editingEquipmentId,'eq');}
+ if(name==='ipqc-ab')assert.equal(b.localScopes.size,1);
+ assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);assert.equal(b.root.inert,false);
+});
+void test('IPQC-AB actual escape cleanup retires conflict listeners and local intent',async()=>{
+ const f=fixture('ipqc-ab'),b=f.box,before=JSON.stringify(f.flow);let detached=0;
+ stageAB(b);b.conflictEscapeCleanup=()=>{detached++;};b.localSaveIntent={id:'unsent-intent'};
+ const lease=await f.adapter.abandon();assert.equal(detached,1);assert.equal(b.conflictEscapeCleanup,null);assert.equal(b.localSaveIntent,null);assert.equal(b.localScopes.size,0);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+void test('IPQC C actual clearLocal closes its pending choice and revokes local previews',()=>{
+ const f=fixture('ipqc-c'),b=f.box,before=JSON.stringify(f.flow);let finished=0;
+ b.saveChoice={finish(value){assert.equal(value,null);finished++;}};b.localSaveAttempt={id:'unsent'};b.localPhotos.set('staged',{preview:'blob:c-preview'});
+ f.adapter.closeClean();assert.equal(finished,1);assert.equal(b.localSaveAttempt,null);assert.equal(b.localPhotos.size,0);assert.deepEqual(f.revokedURLs,['blob:c-preview']);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
+});
+void test('equipment actual retirement cancels an owned comparison without dispatching or clearing markers',async()=>{
+ const f=fixture('routine-equipment'),b=f.box,before=JSON.stringify(f.flow),owner=b.inputOwner;let closed=0;
+ b.equipmentSaveComparison={current:()=>b.inputOwner===owner&&b.inputOwnerCurrent()};b.equipmentSaveChoice=()=>{closed++;};b.writeShared={attempt:{id:'not-dispatched'}};b.editingEquipmentId='eq';b.busy=true;
+ b.sessionStorage.setItem('unrelated-original-marker','original bytes');const lease=await f.adapter.abandon();
+ assert.equal(b.equipmentSaveComparison,null);assert.equal(b.writeShared.attempt,null);assert.equal(b.busy,false);assert.equal(closed,1);assert.equal(b.editingEquipmentId,'');assert.equal(b.sessionStorage.getItem('unrelated-original-marker'),'original bytes');assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+void test('tooling actual catalog cleanup removes synthetic DOM entries and retains shared snapshots',async()=>{
+ const f=fixture('tooling'),b=f.box,before=JSON.stringify(f.flow),entries=[{removed:false,remove(){this.removed=true;}},{removed:false,remove(){this.removed=true;}}];
+ b.host.querySelectorAll=selector=>selector==='.tooling-catalog-entry,.tooling-inline-editor'?entries:[];b.localSnapshot={value:'local'};
+ const lease=await f.adapter.abandon();assert(entries.every(entry=>entry.removed));assert.equal(b.localSnapshot,null);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+void test('master actual bridge choice cancellation covers both retained line-admin scope buffers',async()=>{
+ const f=fixture('master-data'),b=f.box,before=JSON.stringify(f.flow),cancelled=[];b.state.dataTab='line-admin';
+ for(const scope of ['AB','C']){b.locals.set(scope,{batches:[{}]});b.saveChoices.set(scope,()=>cancelled.push(scope));}
+ const lease=await f.adapter.abandon();assert.deepEqual(cancelled,['AB','C']);assert.equal(b.locals.size,0);assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);lease.release();
+});
+void test('routine actual wrapper clears only local buffers and retains exact owned unknown bytes',async()=>{
+ const f=fixture('routine-fqc'),b=f.box,before=JSON.stringify(f.flow),key='routine-original-reference',raw='exact original reference bytes';
+ b.window.localStorage.setItem(key,raw);b.receiptRecord={key,raw};b.s.retry={operationId:'original'};b.s.buffers=new Map([['doc',{value:'unsent'}]]);b.s.bases=new Map([['doc',{value:'basis'}]]);b.dirty=doc=>b.s.buffers.has(doc.id);
+ assert.equal(f.adapter.inspect().state,'unknown');assert.equal(f.adapter.inspect().canAbandon,true);const lease=await f.adapter.abandon();f.adapter.closeClean();lease.release();
+ assert.equal(b.s.buffers.size,0);assert.equal(b.s.bases.size,0);assert.equal(b.window.localStorage.getItem(key),raw);assert.equal(b.receiptRecord.raw,raw);assert.equal(b.s.retry.operationId,'original');assert.equal(JSON.stringify(f.flow),before);assert.equal(f.writes,0);
 });

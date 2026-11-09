@@ -505,6 +505,33 @@
     if(needsBegin)localBeginExpectation.lineageReconciled={businessBase:view.businessBase,revision,generation:moduleGeneration};
     return adopt.length>0;
   }
+  // Preserve independent stable-ID photo/rule edits in disposable Save
+  // candidates. Original RAM/base stay untouched until the original Save ACK.
+  function localListPlan(before,mine,peer,field,choice='mine'){
+    if(![before,mine,peer].every(rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string')&&new Set(rows.map(row=>row.id)).size===rows.length))return null;
+    const ids=rows=>rows.map(row=>row.id),index=rows=>new Map(rows.map(row=>[row.id,row])),a=index(before),b=index(mine),c=index(peer),all=[...new Set([...ids(peer),...ids(mine),...ids(before)])],deleted=new Set();
+    for(const id of ids(before))if(!b.has(id)&&c.has(id)&&!sameInput(a.get(id),c.get(id))||b.has(id)&&!c.has(id)&&!sameInput(a.get(id),b.get(id)))deleted.add(id);
+    const common=ids(before).filter(id=>b.has(id)&&c.has(id)),localOrder=ids(mine).filter(id=>common.includes(id)),peerOrder=ids(peer).filter(id=>common.includes(id)),localMoved=!sameInput(common,localOrder),peerMoved=!sameInput(common,peerOrder),shared=all.filter(id=>b.has(id)&&c.has(id));
+    const orderConflict=localMoved&&peerMoved&&!sameInput(localOrder,peerOrder)||ids(mine).some(id=>!a.has(id)&&c.has(id))&&!sameInput(ids(mine).filter(id=>shared.includes(id)),ids(peer).filter(id=>shared.includes(id)));
+    let conflicts=deleted.size>0||orderConflict;const rows=new Map(),values=(row,keys)=>Object.fromEntries(keys.filter(key=>row&&Object.hasOwn(row,key)).map(key=>[key,clone(row[key])]));
+    for(const id of all){const origin=a.get(id),own=b.get(id),remote=c.get(id);let selected;
+      if(!origin)selected=remote||own;else if(own&&remote)selected=remote;else if(deleted.has(id))selected=choice==='server'?remote:own;
+      if(!selected)continue;const next=clone(selected);rows.set(id,next);if(!own||!remote)continue;
+      const keys=field==='rules'?['cadence','kind','value','name']:['name','note'],variant=row=>[row?.cadence,row?.kind],blocks=field==='rules'&&(!sameInput(variant(origin),variant(own))||!sameInput(variant(origin),variant(remote)))?[keys]:keys.map(key=>[key]);
+      for(const block of blocks){const original=values(origin,block),local=values(own,block),current=values(remote,block);if(sameInput(local,original))continue;const clash=!sameInput(current,original)&&!sameInput(local,current);conflicts ||=clash;const wanted=clash&&choice==='server'?current:local;for(const key of block){if(Object.hasOwn(wanted,key))next[key]=clone(wanted[key]);else delete next[key];}}
+    }
+    const primary=orderConflict?(choice==='server'?peer:mine):localMoved?mine:peer,secondary=primary===mine?peer:mine,ordered=ids(primary).filter(id=>rows.has(id)),rest=ids(secondary);
+    for(let n=0;n<rest.length;n++){const id=rest[n];if(!rows.has(id)||ordered.includes(id))continue;const next=rest.slice(n+1).find(value=>ordered.includes(value));if(next!==undefined)ordered.splice(ordered.indexOf(next),0,id);else{const previous=rest.slice(0,n).reverse().find(value=>ordered.includes(value));if(previous!==undefined)ordered.splice(ordered.indexOf(previous)+1,0,id);else ordered.push(id);}}
+    return{conflicts,value:ordered.map(id=>rows.get(id))};
+  }
+  const localListFields=['standardPhotos','methodPhotos','rules'];
+  function mergeLocalListEntries(entries){
+    return entries.map(source=>{const entry={...source,base:clone(source.base),snapshot:clone(source.snapshot),restoreChoices:clone(source.restoreChoices||{})},server=control.scopes[entry.scope],current=server?.workflow?.working||server?.versions.find(v=>v.status==='draft')?.snapshot||server?.versions.find(v=>v.id===server.activeVersionId)?.snapshot;
+      for(const before of entry.base.items){const mine=entry.snapshot.items.find(row=>row.id===before.id),peer=current?.items.filter(row=>row.id===before.id);if(before.deleted||mine?.deleted||peer?.length!==1||peer[0].deleted)continue;
+        for(const field of localListFields)if(!sameInput(before[field],mine[field])){const plan=localListPlan(before[field],mine[field],peer[0][field],field);if(plan&&!plan.conflicts){before[field]=clone(peer[0][field]);mine[field]=plan.value;}}}
+      return entry;
+    });
+  }
   function localPreflightConflicts(){
     const conflicts=[],seen=new Set();
     for(const entry of localScopes.values()){
@@ -521,7 +548,7 @@
           if(rows.length!==1||row.deleted&&!restoring){add(path);continue;}
           if(restoring){const parent=current.errors.filter(e=>e.id===row.errorId),parentGuard=change.guards.find(g=>g.path[0]==='errors');if(row.deleted!==true||!sameInput(row,guard?.value)||parent.length!==1||parent[0].deleted||!sameInput(parent[0],parentGuard?.value))add(path);}
           else if(deleting){if(path[0]==='errors'&&current.items.some(item=>!item.deleted&&item.errorId===row.id&&!entry.snapshot.items.find(r=>r.id===item.id)?.deleted))throw Error('ERROR_IN_USE');if(!sameInput(row,guard?.value))add(path);}
-          else if(path[2]!=='productCodes'&&!sameInput(row[path[2]],guard?.value)&&!sameInput(row[path[2]],change.patches.find(p=>sameInput(p.path,path)).value))add(path);
+          else if(path[2]!=='productCodes'&&!sameInput(row[path[2]],guard?.value)&&!sameInput(row[path[2]],change.patches.find(p=>sameInput(p.path,path)).value)){const plan=localListFields.includes(path[2])?localListPlan(guard?.value,change.patches.find(p=>sameInput(p.path,path)).value,row[path[2]],path[2]):null;if(!plan||plan.conflicts)add(path);}
         }
       }
     }return conflicts;
@@ -576,7 +603,7 @@
         const fields={...entry.restoreChoices[mine.id]?.fields};for(const field of createItemFields)if(!sameInput(before[field],mine[field]))fields[field]=clone(mine[field]);
         entry.restoreChoices[mine.id]={origin:clone(restore.origin),fields:clone(fields),parent:clone(restore.parent)};
         entry.base.items[entry.base.items.indexOf(before)]=clone(current);entry.snapshot.items[entry.snapshot.items.indexOf(mine)]={...clone(current),...fields,deleted:false};
-      }else if(kind==='field'){before[path[2]]=clone(current[path[2]]);if(choice==='server')mine[path[2]]=clone(current[path[2]]);}
+      }else if(kind==='field'){const plan=localListFields.includes(path[2])?localListPlan(before[path[2]],mine[path[2]],current[path[2]],path[2],choice):null;before[path[2]]=clone(current[path[2]]);if(plan)mine[path[2]]=plan.value;else if(choice==='server')mine[path[2]]=clone(current[path[2]]);}
       else if(kind==='delete-edited'&&choice==='mine')Object.assign(before,clone(current));
       else{entry.base[path[0]][entry.base[path[0]].indexOf(before)]=clone(current);entry.snapshot[path[0]][entry.snapshot[path[0]].indexOf(mine)]=clone(current);delete entry.restoreChoices[mine.id];}
       if(kind!=='field')handled.add(token);
@@ -707,9 +734,9 @@
             if(conflicts.length){rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}
             throw Error('CONFLICT_SET_CHANGED_RECONFIRM');
           }
-          saveEntries=planLocalConflictChoice(rows,intent.resolution.choice);saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;
+          saveEntries=mergeLocalListEntries(planLocalConflictChoice(rows,intent.resolution.choice));saveScopes=localSaveScopes(saveEntries);checkPermissions(result.permissions);return true;
         }
-        if(conflicts.length){if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}return true;
+        if(conflicts.length){if(intent.dispatched)throw Error('LOCAL_BATCH_RECONFIRM');rememberLocalConflict(conflicts[0],conflicts);waiting=true;return false;}saveEntries=mergeLocalListEntries(saveEntries);saveScopes=localSaveScopes(saveEntries);return true;
       };
       // Compare before any Begin or media write. A cancelled initial conflict
       // must not create a module draft merely to display its choices.

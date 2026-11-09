@@ -1,3 +1,7 @@
+## 2026-11-09 — 已核准歷史與 d1ff 草稿篩選語意合併（本機）
+
+承接 `d1ff4a61` 的晚到輸入、照片及篩選保護，保留 IQC／FQC／模具／檢具的同頁核准歷史顯示與回原草稿。受影響 371 項情境分批 PASS，含 IQC 原 File/blob 跨歷史返回後只於明確 Save 上傳一次；原 9 個 named predecessors 與完整 historical witness 待合併 source 固定後重新生成。未上傳／合併 GitHub／部署；其他歷史頁仍未接完。[逐頁狀態與整合限制](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
 
 FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
@@ -9,6 +13,10 @@ FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 sele
 ## 2026-11-09 — 全頁核准歷史讀取首批候選
 
 精確綁定 approved-only GET 的 route、scope 和 envelope，擴展 BOM 的固定核准內容及讀後授權／session／revision 防護至 numeric-version 草稿 API，排除無審核證據的 formal baseline。各頁同頁 selector 與 legacy 聯集仍待完成；無 schema、資料或發布變更。[逐頁盤點與實測界線](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
+## 2026-11-09 — 同頁篩選與整組存取追加候選
+
+線別 AB/C 同頁切換保留兩邊未送 RAM，Save 仍按目前舊 scope；真正離頁才丟未送內容且保留 UNKNOWN。追加核對修正品質表單／照片／關聯及設備父層保留；未啟用獨立持久草稿、未合併另一畫布候選或遠端 #99/#100。詳見[逐頁結果與相依](../docs/acceptance/draft-filter-followup-20261109/README.md)。本機候選，不是已上站；原未知上傳不重送。
 
 ## 2026-11-09 — 全業務草稿整組衝突本機候選
 

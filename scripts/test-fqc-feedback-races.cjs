@@ -1,4 +1,4 @@
-const {execFileSync}=require('node:child_process');
+const historicalSource=require('./unified-draft-historical-source.cjs').read;
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url'),{webcrypto,createHash}=require('node:crypto');
 const source=path.resolve(process.env.FQC_SOURCE||path.join(__dirname,'..')),read=n=>fs.readFileSync(path.join(source,'public/process',n),'utf8'),copy=structuredClone,tick=()=>new Promise(setImmediate);
 const at='2026-10-27T00:00:00Z',actor={id:'synthetic-admin',name:'Synthetic Admin',role:'admin'},permissions={view:true,edit:true,save:true,submit:true,approve:true,return:true,withdraw:true,history:true,delete:true};
@@ -6,7 +6,7 @@ const snapshot={errors:[{id:'error',code:'SYN-FQC-L01',name:'Synthetic defect',c
 function library(){return{activeVersionId:null,versions:[{id:'draft',number:1,status:'draft',snapshot:copy(snapshot),revision:1,createdAt:at,updatedAt:at,creatorId:actor.id,creatorName:actor.name,history:[]}],workflow:{scope:'fqc',generation:'g',revision:1,working:copy(snapshot),saved:null,pendingId:null,cases:[],receipts:{}}};}
 async function fixture({legacy=false,invalidStorage=false,invalidEpoch=false,initialControl=null,send=null,identityUser=null,session=null,catalogProducts=null,sourceRef,common=false}={}){
  if(sourceRef!==undefined&&sourceRef!=='82c058e7d2b205ddf885d747fdb8ac41bd52dd53')throw Error('Unexpected FQC UI source');
- const read=n=>sourceRef&&['fqc-master.js','shared-draft-client.js'].includes(n)?execFileSync('git',['show',sourceRef+':public/process/'+n],{cwd:source,encoding:'utf8'}):fs.readFileSync(path.join(source,'public/process',n),'utf8');
+ const read=n=>sourceRef&&['fqc-master.js','shared-draft-client.js'].includes(n)?historicalSource(sourceRef,'public/process/'+n).toString('utf8'):fs.readFileSync(path.join(source,'public/process',n),'utf8');
  const{canvasDOM}=await import(pathToFileURL(path.join(source,'scripts/login-reentry-dom.mjs')).href),dom=canvasDOM(),doc=dom.document;doc.visibilityState='visible';doc.hidden=false;doc.documentElement.lang='zh';Object.defineProperty(dom.Node.prototype,'options',{get(){return this.children;}});Object.defineProperty(dom.Node.prototype,'firstChild',{get(){return this.children[0]||null;}});const main=doc.createElement('main');main.id='data-content';main.dataset.activeTab='quality-fqc';doc.body.append(main);
  let lib=initialControl||library(),defer=null,mode='deferred',epoch=1,seq=0,receiptStatus=404;const beginReceipts=new Map();let serverRevision=1;const requests=[],records=session||new Map(),localRecords=new Map(),timers=new Map(),toasts=[],models=[];
  if(legacy)delete lib.workflow;

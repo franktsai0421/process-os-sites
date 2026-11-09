@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {setup,clone,waitForChoice} from './iqc-save-choice-fixture.mjs';
+import {browserPorts,openPart,apply,tinyPNG,photoRoute} from './quality-filter-dom-ports.mjs';
 const at='2026-11-09T00:00:00.000Z';
 const turn=()=>new Promise(setImmediate);
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{resolve,promise};};
@@ -98,3 +99,5 @@ void test('view denial retires an undispatched Save choice without POST, retaini
  const h=await fixture(t);await h.stage({nameVi:'Mine remains'});await h.peerSave({nameVi:'Peer'});await h.open();const choiceReady=waitForChoice(h.doc),pending=h.probe.post('save');await choiceReady;assert(h.doc.querySelector('[data-iqc-save-choice]'));
  const before=h.probe.get(),basis=JSON.stringify({localBase:before.localBase,localSnapshot:before.localSnapshot,localGeneration:before.localGeneration}),records=[...h.records],posts=h.posts().length;h.intercept(async(url,_options,next)=>url.includes('permissions=1')?Response.json({error:'FORBIDDEN'},{status:403}):next());await assert.rejects(h.probe.transport().permissions());assert.equal(await pending,false);assert.equal(h.doc.querySelector('[data-iqc-save-choice]'),null);assert.equal(h.posts().length,posts);const after=h.probe.get();assert.equal(JSON.stringify({localBase:after.localBase,localSnapshot:after.localSnapshot,localGeneration:after.localGeneration}),basis);assert.deepEqual([...h.records],records);assert.equal(h.c.historyProbe.current(),false);h.intercept(null);await h.probe.transport().permissions();await h.choose('');assert(h.c.historyProbe.current());assert.equal(h.posts().length,posts);
 });
+
+void test('integrated IQC staged File/blob survives approved history/current without PUT, then original File uploads once on Save',async t=>{const h=await fixture(t);browserPorts(h);await photoRoute(h);const form=openPart(h),input=form.querySelector('#iqc-part-file'),file=tinyPNG();input.files=[file];await input.onchange({target:input});await apply(form);const before=h.retain(),puts=()=>h.requests.filter(r=>r.method==='PUT');assert.equal(puts().length,0);await h.open();await h.choose('legacy-21');await h.choose('');assert.equal(h.retain(),before);assert.equal(puts().length,0);await h.probe.post('save');assert.equal(puts().length,1);assert.equal(puts()[0].body,file);const saved=(await h.state()).workflow.saved.content.parts[0].photos;assert(saved.some(photo=>/^[a-f0-9]{64}$/.test(photo.id)));});

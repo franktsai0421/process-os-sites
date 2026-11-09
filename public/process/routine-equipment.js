@@ -1307,11 +1307,10 @@
     if (!addingEquipment || !newEquipmentForm || newEquipmentOwner?.actor !== identity()?.id ||
         newEquipmentOwner?.epoch !== window.ProcessSync?.identityGeneration?.()) return '';
     const tree = structure(visible());
-    const group = tree.groups.find(g => g.id === selectedGroup);
-    const cat = tree.categories.find(c => c.id === (group?.categoryId || selectedCategory));
-    const sub = tree.subcategories.find(s => s.id === (group?.subcategoryId || selectedSubcategory));
-
     const form = newEquipmentForm;
+    const group = tree.groups.find(g => g.id === form.groupId);
+    const cat = tree.categories.find(c => c.id === group?.categoryId);
+    const sub = tree.subcategories.find(s => s.id === group?.subcategoryId);
     const computedMark = computeNextPieceMark(form.assetCode);
 
     return `<div class="routine-modal-backdrop" id="routine-add-backdrop"><section class="routine-card routine-modal routine-editor" id="routine-add-modal" role="dialog" aria-modal="true" aria-label="${t('新增檢具', 'Thêm thiết bị')}">
@@ -1351,7 +1350,7 @@
           <label class="wide">
             ${t('所屬規格群組（必填）', 'Nhóm quy cách (Bắt buộc)')}
             <select id="routine-add-group-select">
-              ${tree.groups.filter(g => g.subcategoryId === selectedSubcategory).map(g => `<option value="${h(g.id)}" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}
+              ${tree.groups.filter(g => g.subcategoryId === group?.subcategoryId).map(g => `<option value="${h(g.id)}" ${g.id === (form.groupId || selectedGroup) ? 'selected' : ''}>${h(g.id)} · ${h(g.name || g.nameVi || g.nameZh || '')}</option>`).join('')}
             </select>
           </label>
 
@@ -1460,6 +1459,8 @@
       kind,
       id,
       prior,
+      parentCategoryId: parentCat?.id || '',
+      parentSubcategoryId: parentSub?.id || '',
       parentCategory: parentCat ? `${parentCat.code} · ${parentCat.name}` : '',
       parentSubcategory: parentSub?.name || '',
       parentGroup: parentGrp ? `${parentGrp.id} · ${parentGrp.name || parentGrp.nameVi || parentGrp.nameZh || ''}` : '',
@@ -1502,6 +1503,9 @@
     if(prior&&!collection.includes(prior)){
       nodeDialog.error=t('此項目已變更或移除；輸入仍保留，請重新核對，不會自動新增。','Mục này đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu, không tự tạo lại.');render();return;
     }
+    if(!prior&&kind!=='category'&&(!working.categories.some(row=>row.id===dialog.parentCategoryId)||kind==='group'&&!working.subcategories.some(row=>row.id===dialog.parentSubcategoryId&&row.categoryId===dialog.parentCategoryId))){
+      dialog.error=t('原上層分類已變更或移除；輸入仍保留，請重新核對。','Nhóm cha gốc đã đổi hoặc bị xóa; giữ dữ liệu nhập để đối chiếu.');render();return;
+    }
     if (prior) {
       prior.name = name;
       if (kind === 'group') prior.spec = spec;
@@ -1523,18 +1527,18 @@
       selectedCategory = newId; selectedSubcategory = ''; selectedGroup = '';
     } else if (kind === 'subcategory') {
       const newId = crypto.randomUUID();
-      const rec = { id: newId, categoryId: selectedCategory, name, photoId: '' };
+      const rec = { id: newId, categoryId: dialog.parentCategoryId, name, photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
       dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
-      selectedSubcategory = newId; selectedGroup = '';
+      selectedCategory = rec.categoryId; selectedSubcategory = newId; selectedGroup = '';
     } else {
       const newId = crypto.randomUUID();
-      const rec = { id: newId, categoryId: selectedCategory, subcategoryId: selectedSubcategory, name, spec, notes: '', photoId: '' };
+      const rec = { id: newId, categoryId: dialog.parentCategoryId, subcategoryId: dialog.parentSubcategoryId, name, spec, notes: '', photoId: '' };
       if (nodeDialog.pendingPhoto) pendingPhotos.set(newId, nodeDialog.pendingPhoto);
       collection.push(rec);
       dialog.prior=rec;dialog.id=newId; // RAM identity only; delivery may still be unknown.
-      selectedGroup = newId;
+      selectedCategory = rec.categoryId; selectedSubcategory = rec.subcategoryId; selectedGroup = newId;
     }
 
     if(dialog.comparisonBasis){
@@ -1786,8 +1790,8 @@
     busy = true;
     try {
       const tree = structure(visible());
-      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || selectedGroup;
-      const group = tree.groups.find(g => g.id === chosenGroup) || tree.groups.find(g => g.id === selectedGroup);
+      const chosenGroup = root.querySelector('#routine-add-group-select')?.value || form.groupId;
+      const group = tree.groups.find(g => g.id === chosenGroup);
       if (!group) throw new Error(t('所選規格群組無效', 'Nhóm quy cách không hợp lệ'));
       selectedGroup = group.id;
 
@@ -3348,11 +3352,9 @@
         selectedGroup = groupsUnderSub.length === 1 ? groupsUnderSub[0].id : '';
       }
       if (button.dataset.nodeSelect === 'group') selectedGroup = id;
-      editingEquipmentId = '';
+      // Hierarchy selections filter this same page. Keep open RAM editors,
+      // their original parent/basis and exact File entries until completion/cancel.
       selectedEquipmentId = '';
-      addingEquipment = false;
-      newEquipmentForm = null;
-      formSnapshot = null;
       equipmentPage = 1; render();
     }));
     root.querySelectorAll('[data-node-view]').forEach(button => button.onclick = guardWorking(button,event => {

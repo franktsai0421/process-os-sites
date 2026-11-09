@@ -449,6 +449,27 @@
   }
   // Compare only captured local intent. Peer-only rows and fields stay in latest.
   // Coupled equipment/rule values are one decision unit, never a mixed record.
+  // Only unique stable photo identities and preserved order prove independence.
+  // Peer additions precede independent local additions; moved lists stay atomic.
+  function photoChanges(before,local,peer){
+    const valid=rows=>Array.isArray(rows)&&rows.every(row=>row&&typeof row.id==='string'&&row.id)&&new Set(rows.map(row=>row.id)).size===rows.length;
+    if(![before,local,peer].every(valid))return null;
+    const originals=before.map(row=>row.id),rank=new Map(originals.map((id,index)=>[id,index]));
+    const ordered=rows=>{let last=-1,appended=false;for(const row of rows){if(!rank.has(row.id)){appended=true;continue;}if(appended||rank.get(row.id)<=last)return false;last=rank.get(row.id);}return true;};
+    if(!ordered(local)||!ordered(peer))return null;
+    const common=new Set(local.filter(row=>!rank.has(row.id)&&peer.some(value=>value.id===row.id)).map(row=>row.id));
+    if(!saveEqual(local.filter(row=>common.has(row.id)).map(row=>row.id),peer.filter(row=>common.has(row.id)).map(row=>row.id)))return null;
+    const changes=[];
+    for(const old of before)if(!local.some(row=>row.id===old.id)){const current=peer.find(row=>row.id===old.id);if(current)changes.push({id:old.id,value:null,conflict:!saveEqual(current,old),originals});}
+    for(const row of local){const old=before.find(value=>value.id===row.id),current=peer.find(value=>value.id===row.id);if(old&&saveEqual(old,row)||current&&saveEqual(current,row))continue;changes.push({id:row.id,value:row,conflict:!!old&&!current||!!current&&(!old||!saveEqual(current,old)),originals});}
+    return changes;
+  }
+  function applyPhotoChange(rows,change){
+    const index=rows.findIndex(row=>row.id===change.id);if(change.value===null){if(index>=0)rows.splice(index,1);return;}
+    if(index>=0){rows[index]=clone(change.value);return;}
+    const originalIndex=change.originals.indexOf(change.id);if(originalIndex<0){rows.push(clone(change.value));return;}
+    const later=new Set(change.originals.slice(originalIndex+1)),originals=new Set(change.originals),position=rows.findIndex(row=>later.has(row.id)||!originals.has(row.id));rows.splice(position<0?rows.length:position,0,clone(change.value));
+  }
   function compareLocalSave(base,local,latest){
     const units=[],conflicts=new Map(),revivals=new Map();
     const conflict=(unit,key,label,unsupported=false)=>{unit.conflict=key;const old=conflicts.get(key);conflicts.set(key,{label,unsupported:unsupported||old?.unsupported});};
@@ -456,10 +477,20 @@
     for(const kind of ['errors','items'])for(const row of local[kind]){
       const before=base[kind].find(r=>r.id===row.id),peer=latest[kind].find(r=>r.id===row.id),label=row.name||row.id;
       if(!before){const unit=add(kind,row,[],true);if(peer){if(saveEqual(peer,row)){unit.same=true;continue;}conflict(unit,kind+':'+row.id+':identity',label+' · '+(isVi()?'Mã đã tồn tại':'同識別項目已存在'),true);}continue;}
-      if(row.isDeleted&&(!peer||peer.isDeleted))continue;
+      if(row.isDeleted&&(!peer||peer.isDeleted)){
+        const payload=sharedFields[kind].filter(field=>field!=='isDeleted'&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
+        if(payload.some(field=>!peer||!saveEqual(row[field],peer[field]))){const unit=add(kind,row,payload);conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa; thay đổi nội dung cần kiểm tra':'已刪除；內容修改需重新核對'),true);}
+        continue;
+      }
       const touched=sharedFields[kind].filter(field=>!['productCodes','productRefs','products'].includes(field)&&row[field]!==undefined&&!saveEqual(row[field],before[field])&&!(row[field]===''&&before[field]==null));
       const groups=[];for(const field of touched){const group=saveFieldGroups.find(g=>g.includes(field))||[field];if(!groups.includes(group)&&!groups.some(g=>g.length===1&&g[0]===field))groups.push(group);}
-      for(const fields of groups){const unit=add(kind,row,fields),value=r=>Object.fromEntries(fields.map(f=>[f,r?.[f]]));
+      for(const fields of groups){
+        const photos=fields.length===1&&fields[0]==='mediaItems'&&peer?photoChanges(before.mediaItems,row.mediaItems,peer.mediaItems):null;
+        if(photos){if(peer.isDeleted&&!photos.length)photos.push({id:null,value:null,originals:[],noop:true});for(const photo of photos){const unit=add(kind,row,fields);unit.photo=photo;
+          if(peer.isDeleted){revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});conflict(unit,kind+':'+row.id+':removed',label+' · '+(isVi()?'Đã xóa ở bản chung':'對方已刪除'));}
+          else if(photo.conflict)conflict(unit,kind+':'+row.id+':mediaItems:'+photo.id,label+' · '+(photo.value?.name||photo.id));
+        }continue;}
+        const unit=add(kind,row,fields),value=r=>Object.fromEntries(fields.map(f=>[f,r?.[f]]));
         if(!peer||peer.isDeleted){
           if(peer?.isDeleted&&fields.length===1&&fields[0]==='isDeleted'&&row.isDeleted===true){unit.same=true;continue;}
           if(peer?.isDeleted)revivals.set(kind+':'+row.id,{collection:kind,id:row.id,tombstone:clone(peer)});
@@ -477,16 +508,23 @@
         }
       }
     }
+    // A selected current-draft child may require its existing soft-deleted
+    // parent. Revive exact current tombstones together; never invent a row.
+    for(const unit of units){if(unit.kind!=='items'||unit.insert||unit.row.isDeleted)continue;const peer=latest.items.find(row=>row.id===unit.id),parent=latest.errors.find(row=>row.id===unit.row.errorId);if(!peer||!parent||parent.isDeleted!==true||parent.category!==unit.row.category||peer.errorId!==parent.id||peer.category!==parent.category)continue;
+      revivals.set('errors:'+parent.id,{collection:'errors',id:parent.id,tombstone:clone(parent)});unit.same=false;conflict(unit,'items:'+unit.id+':removed',(unit.row.name||unit.id)+' · '+(isVi()?'Mục lỗi cha đã bị xóa':'所屬錯誤代碼已刪除'));
+    }
     function materialize(choice,check=true){
-      const next=clone(latest),patches=[],guards=[],matrixCells=[],reviveRows=[];
+      const next=clone(latest),patches=[],guards=[],matrixCells=[],reviveRows=[],photoTouched=new Set();
       if(choice==='mine')for(const revive of revivals.values()){next[revive.collection].find(row=>row.id===revive.id).isDeleted=false;reviveRows.push(clone(revive));}
       for(const unit of units){if(unit.same||choice==='theirs'&&unit.conflict)continue;
         if(check&&unit.conflict&&conflicts.get(unit.conflict).unsupported)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');
         if(unit.cell){const row=next.items.find(r=>r.id===unit.id&&!r.isDeleted);if(!row){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}const codes=new Set(row.productCodes||[]);if(unit.cell.value)codes.add(unit.cell.productCode);else codes.delete(unit.cell.productCode);matrixCells.push({...unit.cell,base:(latest.items.find(r=>r.id===unit.id)?.productCodes||[]).includes(unit.cell.productCode)});row.productCodes=[...codes];continue;}
         if(unit.insert){if(next[unit.kind].some(r=>r.id===unit.id)){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}next[unit.kind].push(clone(unit.row));patches.push({op:'insert',path:[unit.kind],value:clone(unit.row)});continue;}
         const row=next[unit.kind].find(r=>r.id===unit.id&&!r.isDeleted);if(!row){if(check)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');continue;}
+        if(unit.photo){if(!unit.photo.noop){applyPhotoChange(row.mediaItems,unit.photo);photoTouched.add(unit.id);}continue;}
         for(const field of unit.fields)if(unit.row[field]!==undefined&&!saveEqual(row[field],unit.row[field])){const path=[unit.kind,{id:unit.id},field];guards.push({path,value:row[field]});patches.push({op:'set',path,value:clone(unit.row[field])});row[field]=clone(unit.row[field]);}
       }
+      for(const id of photoTouched){const row=next.items.find(value=>value.id===id),before=latest.items.find(value=>value.id===id);if(!saveEqual(row.mediaItems,before.mediaItems)){const path=['items',{id},'mediaItems'];guards.push({path,value:clone(before.mediaItems)});patches.push({op:'set',path,value:clone(row.mediaItems)});}}
       if(check)for(const item of next.items.filter(r=>!r.isDeleted)){const parent=next.errors.find(r=>r.id===item.errorId&&!r.isDeleted);if(!parent||parent.category!==item.category)throw Error('FQC_STRUCTURE_RECHECK_REQUIRED');}
       return {snapshot:next,detail:{moduleAction:'save-local-v1',patches,guards,input:{matrixCells,...(reviveRows.length?{reviveRows}:{})}}};
     }
@@ -517,11 +555,20 @@
   }
   function retainLaterSaveInput(attempt,read){
     const current=localSnapshot(),latest=saveReadSnapshot(read),later=compareLocalSave(attempt.snapshot,current,attempt.snapshot).materialize('mine').detail;
-    const merged=clone(latest);
-    for(const patch of later.patches){const [kind,entity,field]=patch.path;if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');merged[kind].push(clone(patch.value));}else{const row=merged[kind].find(row=>row.id===entity.id&&!row.isDeleted);if(!row)throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');row[field]=clone(patch.value);}}
-    for(const cell of later.input.matrixCells){const row=merged.items.find(row=>row.id===cell.itemId&&!row.isDeleted);if(!row)throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');const codes=new Set(row.productCodes);if(cell.value)codes.add(cell.productCode);else codes.delete(cell.productCode);row.productCodes=[...codes];}
-    adopt(read);editable().snapshot=merged;matrixBatch=null;matrixChoiceRevision++;matrixRecoveryNote='';localSaveAttempt=null;
+    const merged=clone(latest),basis=clone(latest);
+    for(const patch of later.patches){const [kind,entity,field]=patch.path;
+      if(patch.op==='insert'){if(merged[kind].some(row=>row.id===patch.value.id))throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');merged[kind].push(clone(patch.value));continue;}
+      const row=merged[kind].find(value=>value.id===entity.id&&!value.isDeleted),before=basis[kind].find(value=>value.id===entity.id),sent=attempt.chosen?.[kind].find(value=>value.id===entity.id);if(!row||!before||!sent)throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');
+      if(field==='mediaItems'){
+        const original=attempt.snapshot[kind].find(value=>value.id===entity.id)?.mediaItems,photos=photoChanges(original,patch.value,original);
+        if(!photos||!photoChanges(sent.mediaItems,row.mediaItems,sent.mediaItems))throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');
+        for(const change of photos){applyPhotoChange(row.mediaItems,change);applyPhotoChange(before.mediaItems,{...change,value:sent.mediaItems.find(photo=>photo.id===change.id)||null,originals:sent.mediaItems.map(photo=>photo.id)});}
+      }else{row[field]=clone(patch.value);if(sent[field]===undefined)delete before[field];else before[field]=clone(sent[field]);}
+    }
+    for(const cell of later.input.matrixCells){const row=merged.items.find(value=>value.id===cell.itemId&&!value.isDeleted),before=basis.items.find(value=>value.id===cell.itemId),sent=attempt.chosen?.items.find(value=>value.id===cell.itemId);if(!row||!before||!sent)throw Error('FQC_LATER_INPUT_RECHECK_REQUIRED');const codes=new Set(row.productCodes),oldCodes=new Set(before.productCodes);if(cell.value)codes.add(cell.productCode);else codes.delete(cell.productCode);if(sent.productCodes.includes(cell.productCode))oldCodes.add(cell.productCode);else oldCodes.delete(cell.productCode);row.productCodes=[...codes];before.productCodes=[...oldCodes];}
+    adopt(read);syncBase=basis;editable().snapshot=merged;matrixBatch=null;matrixChoiceRevision++;matrixRecoveryNote='';localSaveAttempt=null;
   }
+
   async function saveCompared(operation,client,onPrepared){
     const snapshot=localSnapshot(),base=clone(syncBase),versionId=selected()?.id,generation=syncGeneration;let lease=saveLocalLease(operation,client),rejection=localRejection;
     const attempt={operation,phase:'comparing',cancelled:false,close:null};
@@ -563,7 +610,7 @@
     // base and intent stay in RAM until this exact Save is acknowledged.
     attempt.phase='preparing';
     const command=client.prepareComparedSave(evidence,chosen.detail,{isCurrent:current});
-    onPrepared(command);localSaveAttempt={command,snapshot:clone(snapshot),generation:command.generation};
+    onPrepared(command);localSaveAttempt={command,snapshot:clone(snapshot),chosen:clone(chosen.snapshot),generation:command.generation};
     const feedback={owned:operation.owned,action:'save'};pendingCommandFeedback=feedback;window.VersionDraftUI?.updateSync(hostElement,true,!!ui.lastError);
     let result;try{result=await client.sendPrepared(command);}finally{if(pendingCommandFeedback===feedback)pendingCommandFeedback=null;}
     if(!operation.owned())throw Error('FQC_OPERATION_CONTEXT_CHANGED');

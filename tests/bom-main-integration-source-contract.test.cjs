@@ -28,9 +28,10 @@ void test('checkout equivalence is byte-based and cannot hide invalid UTF8 or or
  assert.throws(()=>proof.canonicalSource(Buffer.concat([bytes,Buffer.from([255])]),Buffer.concat([bytes,Buffer.from([254])])),/beyond EOL/);assert.throws(()=>proof.canonicalSource(Buffer.concat([bytes,Buffer.from(' ')]),bytes),/beyond EOL/);
 });
 void test('integrated shared client includes both bounded features and unique coherent cache',()=>{
- const source=read('public/process/shared-draft-client.js').toString(),html=fs.readFileSync('public/process/index.html','utf8');
+ const source=read('public/process/shared-draft-client.js').toString(),currentIndex=unified.canonicalSource(fs.readFileSync('public/process/index.html'),execFileSync('git',['show','HEAD:public/process/index.html'])),html=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString();
  assert(source.includes("beginPath==='/api/bom/workflow'?{approvedHistory:"));assert(source.includes('recheckEquipmentDelivery'));assert(source.includes('confirmEquipmentDelivery'));
- assert.equal((html.match(/shared-draft-client\.js\?v=20261109-quality-approved-history2/g)||[]).length,1);assert(html.includes('routine-equipment.js?v=20261109-quality-approved-history2'));assert(html.includes('bom-workspace.js?v=20261109-unified-save-choice1'));
+ assert.equal((html.match(/shared-draft-client\.js\?v=20261109-unified-save-choice1/g)||[]).length,1);assert(html.includes('routine-equipment.js?v=20261109-unified-save-choice1'));assert(html.includes('bom-workspace.js?v=20261109-unified-save-choice1'));
+ for(const [stage,version]of [[html,'20261109-unified-save-choice1'],[currentIndex.toString(),'20261109-unified-save-choice2']]){const references=[...stage.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);for(const asset of ['shared-draft-client.js','routine-equipment.js','bom-workspace.js'])assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+(stage===html||asset==='bom-workspace.js'?version:'20261109-approved-history-integrated3')]);}
 });
 void test('both CI jobs execute integrated attestation and retain their original gates',()=>{
  const files=['scripts/bom-main-integration-source-contract.cjs','scripts/bom-main-integration-source-contract.json','tests/bom-main-integration-source-contract.test.cjs'];

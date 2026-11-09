@@ -1,4 +1,4 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與 IQC／FQC／模具前端
+# 全草稿頁已核准歷史版本查看：共同讀取與 IQC／FQC／模具／檢具前端
 
 基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及 IQC／FQC／模具前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
@@ -66,7 +66,17 @@
 
 writer、upload、一般 read 及頁面 callbacks 有 display epoch 保護；開啟編輯／新增／節點／照片／移轉視窗、寫入／比較／核對、pending photo 或上傳中阻擋切換。保留原 delivery-only recheck 與 FQC 跨模組移轉機制。新增 22 項實際共用 UI／簽章 HTTP handler／SQLite／Map-R2 情境 PASS（含實際 Submit pending、UNKNOWN 零查詢／零重送、舊讀回、雙語及照片來源）；原 equipment Save 68 項 PASS。這不是原生／實站驗收。檢具 JS cache tag 同 `20261109-quality-approved-history2`。
 
-收到另批草稿／篩選候選 `d1ff4a61` 後已定位真實本機來源 `draft-filter-followup-20261109`，會先語意核對與整合其 FQC／IQC 晚到輸入、照片及篩選保護，再重跑受影響測試；目前不可標成已整合，沒有重複上傳。
+收到另批草稿／篩選候選 `d1ff4a61` 後已定位真實本機來源 `draft-filter-followup-20261109`，已語意合併其 FQC／IQC 晚到輸入、照片及篩選保護，保留同頁歷史 display lease；受影響 371 項執行情境已分批驗證（351 項共同批次，修正測試結尾 hook 後 20 項模具），無跳過。typed lint／TypeScript／source boundary PASS；完整來源證明與 build 尚待固定本次整合 source 後驗證，沒有重複上傳。
+
+## 草稿／篩選候選語意相依整合
+
+本機 `d1ff4a61b2a8c81a206ec358ab2614393c171e94` 由原真實 repository 取得，並與核准歷史候選做 merge。FQC、檢具的非重疊輸入保留變動自動合併；IQC reset／discard 同時保留歷史退休與 localPhotos 清理；模具保留完整新 catalog／picker／late-save 實作後重新接入 display epoch 與舊 callbacks 保護。來源帳本採原九個 named predecessor 與完整 historical requests，再依真正合併產品 commit 生成，不偽造舊 Git 物件或放寬 pin。
+
+新增整合負責範圍：IQC 本機 File／blob 可在套用後切歷史再回草稿，完全不 PUT，原 File 只於明確 Save 上傳一次。原草稿候選各頁篩選測試的 PASS 不是其他歷史版本頁面已接線的證據。其畫布候選 `80745895`、遠端 PR #99／#100、IQC 數值提示 PR #88 均仍獨立，不在本次 merge 中冒稱完成。
+
+保留整合失敗日誌：最初三個模具身分錯誤提示被 display guard 提前靜默攔截，改為由原 editor owner／epoch guard 回報；歷史 guard 仍阻擋跨顯示世代。高並行下舊 200ms Begin 等待未完成，fixture 改等實際 production run promise；新候選有內部 IIFE，歷史 fixture 的 hook 改成僅匹配模組結尾，沒有更動產品邏輯或舊斷言。351 及 20 項修復後證據分開記錄，不用失敗的整批 log 假稱全部 PASS。
+
+共用與四頁 JS／VersionDraftUI CSS 使用 `20261109-approved-history-integrated3`；IQC 自身 CSS 保留 `20261109-iqc-approved-history1`，其他承接 d1ff 的已變動資產保留 `20261109-unified-save-choice2`。資產順序、唯一性、所有初始 predecessor cache 與來源負向斷言保留。
 
 ## BOM 候選來源核對
 
