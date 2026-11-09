@@ -47,7 +47,7 @@
 - `shared-draft-client` 只為明確 IQC bounded scope 增加 approved GET／access watcher；approved-only 不帶 editing projection，沿用原 URLSearchParams。一般 IQC GET／POST 仍用原 projection。VersionDraftUI 只額外允許明確 IQC adapter，其他模組不自動當作已完成。
 - IQC JS／CSS、共用 client／VersionDraftUI 四個資產更新同一 cache tag `20261109-iqc-approved-history1`，保留其餘資產順序與 tags。歷史零件列最小 44px，沿用既有 850px 響應式版面；沒有冒稱實體手機或原生 IME 驗收。
 
-前端驗證：32 項 IQC actual module/common/primary transport/handler 新測試 PASS；53 項 IQC Save／離頁回歸及 76 項 BOM/C 共用回歸 PASS；另 89 項既有表單、照片、比較 Save、已驗證讀回及兩支 deferred projection UI／race scripts PASS。最初額外 URL 全域依賴造成的既有 VM fixture 失敗已修正為沿用 URLSearchParams，相關原日誌保留；投影 UI fixture 補上真實 isConnected／退休節點語意，未放寬產品 guard。前端所依賴的來源證據會以新產品 commit 重新生成，保留全部原 named predecessors／負向控制。
+前端驗證：32 項 IQC actual module/common/primary transport/handler 新測試 PASS；53 項 IQC Save／離頁回歸及 76 項 BOM/C 共用回歸 PASS；另 89 項既有表單、照片、比較 Save、已驗證讀回及兩支 deferred projection UI／race scripts PASS。最初額外 URL 全域依賴造成的既有 VM fixture 失敗已修正為沿用 URLSearchParams，相關原日誌保留；投影 UI fixture 補上真實 isConnected／退休節點語意，未放寬產品 guard。前端來源證據已由真實產品 commit `2245941` 重新生成，保留全部原 named predecessors／負向控制。當前資產的 cache 斷言只更新四個已修改 tags；BOM／equipment tags 與所有歷史 pin 不變。最初唯一舊 shared-client live cache 預期造成的 source-test 失敗已保留，修正斷言後完整 **498 PASS、0 FAIL、0 SKIP**。固定 IQC 產品 `2245941` 的新查看與所有受影響回歸合計 **250 PASS、0 FAIL、0 SKIP**；完整 typed lint、TypeScript 與 source boundary PASS，最終 guarded build／候選識別另列本機交付 receipt。
 
 ## BOM 候選來源核對
 
@@ -71,4 +71,4 @@
 
 ## 接續順序
 
-先維持單一寫入者固定 Save 整合候選；本批後端可獨立檢視並語意整合，再處理各模組顯示 lease／回當前與所有直接 writer callback 的 display epoch 防護。逐頁加上同頁 selector，移除舊彈窗／還原入口；舊 AB 群組與 legacy PROCESS 歷史需在原身分／scope 下唯讀聯集，不遷移、不拼造核准。例行 FQC 保留自有文件 ID 與完整 workflow 語意，另做投影。最後逐頁確認 RAM、open form、照片、pending、UNKNOWN、撤權、延遲回應及同頁篩選；遠端 CI／審查通過且無既有 UNKNOWN 阻擋後再依原授權處理 GitHub。正式資料／權限／重大架構與部署仍交 Frank 決定。
+共同 API 與首批 IQC 前端已完成本機定向驗證；維持單一寫入者，接續 FQC／主資料／製程等剩餘頁面的顯示 lease／回當前與所有直接 writer callback 的 display epoch 防護。逐頁加上同頁 selector，移除舊彈窗／還原入口；舊 AB 群組與 legacy PROCESS 歷史需在原身分／scope 下唯讀聯集，不遷移、不拼造核准。例行 FQC 保留自有文件 ID 與完整 workflow 語意，另做投影。最後逐頁確認 RAM、open form、照片、pending、UNKNOWN、撤權、延遲回應及同頁篩選；遠端 CI／審查通過且無既有 UNKNOWN 阻擋後再依原授權處理 GitHub。正式資料／權限／重大架構與部署仍交 Frank 決定。
