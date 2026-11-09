@@ -1,3 +1,4 @@
+import {createDepartureCoordinator} from '../public/process/navigation-lifecycle.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import {setup,wid} from './canvas-approved-history-fixture.mjs';
 for(const lang of ['zh','vi'])for(const inline of [false,true])void test('Canvas '+lang+'/'+(inline?'inline':'records')+': one selector, approved modern/legacy union and original journal',async t=>{
  const f=await setup({lang,inline});t.after(f.close);const original=f.api.flow(),generation=original.generation;f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'LOCAL_ONLY'}]);const counts=structuredClone(f.canvas.counts()),before=structuredClone(f.canvas.project(wid,'A-CUT',[])),native=f.doc.querySelector('#retained-native').onclick,db=f.f.row();await f.open();assert.equal(f.select().options.length,22);assert(!f.select().options.some(v=>v.value.includes('unapproved')||v.value==='formal'));let pages=0;while(f.select().options.some(v=>v.value==='__more')){assert(++pages<5);await f.choose('__more');}assert.equal(f.select().options.length,24);const writes=f.calls.filter(c=>c.method==='POST').length;
@@ -35,4 +36,20 @@ void test('history fences queued view filters and current-canvas Save retains an
  const posts=f.calls.filter(call=>call.method==='POST').length;assert.equal(await f.api.save(),true);assert.equal(f.calls.filter(call=>call.method==='POST').length-posts,1);
  const saved=f.api.flow().saved.content.workspaces[0].stages;assert.equal(saved['A-CUT'][0].name,'Current saved');assert.equal(saved['A-PACK'][0].name,'Other original');
  assert.equal(f.canvas.project(wid,'A-PACK',[])[0].name,'Other RAM');assert.equal(f.canvas.form(wid,'A-PACK','two').draft.note,'unfinished other');assert.equal(f.canvas.counts().fields,1);
+});
+
+// Production coordinator and authoring/departure boundaries; navigation shell port is synthetic.
+for(const dirty of [false,true])void test(`history/line race retains the winning boundary: dirty=${dirty}`,async t=>{
+ const f=await setup();t.after(f.close);await f.open();
+ if(dirty)f.canvas.edit(wid,'A-CUT',[{id:'one',f:'name',value:'unsent'}]);
+ const adapter=f.api.navigation.departure;
+ f.box.ProcessEditorV2.departure={inspect:()=>({state:'clean',hasDialog:false}),freeze:()=>()=>{},discardLocal(){},closeClean(){}};
+ let prompts=0,ran=0,abandoned=0;
+ const coordinator=createDepartureCoordinator({owner:()=>({identity:f.box.ProcessSync.identity}),isCurrent:owner=>owner.identity===f.box.ProcessSync.identity,
+  inspect:()=>adapter.inspect(),autoAbandon:()=>adapter.autoAbandon,async act(action){assert.equal(action,'abandon');abandoned++;return adapter.abandon();},show(){prompts++;}});
+ f.box.ProcessDeliveryNavigation={guardAction:spec=>coordinator.request({...spec,run:ticket=>{adapter.closeClean();const value=spec.run();if(ticket)coordinator.committed(ticket);return {status:'ready',value};}})};
+ const before=f.calls.length,switching=f.api.changeCanvasView({kind:'line',key:'B',label:'B',run(){ran++;}}),choosing=f.choose('legacy-process:old-21');
+ if(dirty){assert.equal((await switching).status,'ready');await choosing;assert.equal(ran,1);assert.equal(abandoned,1);assert(!f.api.historyReadOnly());assert.equal(f.canvas.counts().fields,0);}
+ else{await assert.rejects(switching,/CANVAS_REVIEW_CHANGED/);await choosing;assert.equal(ran,0);assert.equal(abandoned,0);assert(f.api.historyReadOnly());}
+ assert.equal(prompts,0);assert(f.calls.slice(before).every(call=>call.method==='GET'&&!call.url.includes('operationId=')));
 });
