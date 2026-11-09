@@ -4,7 +4,7 @@
 
 等待業務決定的獨立增量 `master-page-name-save.ts` 為未註冊、僅既有名稱的整頁 ordered Save。AB/C 同一 working/saved/receipt，後批失敗全保留來源；未建立控制資料、映射帳號權限或啟用寫入。不含 topology／PROCESS 變更，實際 UI/API/CAS 仍待接線。
 
-`master-line-page-workflow.ts` 再補已建立單一 LINES owner 的 identified Begin、上述 Save、固定案件送審／撤回／發回／核准、數字版本投影、原 owner 收據讀取及 current-approved 只讀引用。16 組合成契約涵蓋 pending 全頁鎖、權限／來源失效、重開、無變更與投影不一致；實際三項業務政策不由 context callback 推定。新增／刪除／改 code、Apply／restore、舊資料 adoption、HTTP／CAS／UI 仍未實作或啟用。
+`master-line-page-workflow.ts` 再補已建立單一 LINES owner 的 identified Begin、上述 Save、固定案件送審／撤回／發回／核准、數字版本投影、原 owner 收據讀取及 current-approved 只讀引用。18 組合成契約涵蓋 pending 全頁鎖、權限／來源失效、重開、無變更與投影不一致；實際三項業務政策不由 context callback 推定。新增／刪除／改 code、Apply／restore、舊資料 adoption、HTTP／CAS／UI 仍未實作或啟用。
 
 ## 2026-11-09 新工段繼承共用類型候選
 

@@ -58,9 +58,18 @@ function assertControl(control: MasterLinePageControl): void {
   for (const content of [flow.active.content, flow.working, ...(flow.saved ? [flow.saved.content] : []),
     ...flow.saves.map(save => save.content), ...flow.cases.flatMap(review => [review.before, review.content])])
     assertContent(content);
+  // Cases refer to an immutable successful Save, including after return,
+  // withdrawal or approval. A matching numeric projection alone is not proof
+  // that case content was ever saved. Refuse mixed/drifted records unchanged.
+  for (const review of flow.cases) {
+    const saved = flow.saves.find(save => save.id === review.savedId);
+    if (!saved || !sameDraftValue(review.content, saved.content))
+      throw new DraftConflict('MASTER_LINE_PAGE_OWNER_INVALID', 409);
+  }
   const open = openedVersion(control), pending = flow.cases.filter(review => review.status === 'pending');
   if (flow.pendingId ? pending.length !== 1 || pending[0].id !== flow.pendingId || open?.id !== flow.pendingId ||
-    open.status !== 'pending' || !sameDraftValue(open.snapshot, pending[0].content)
+    open.status !== 'pending' || !sameDraftValue(open.snapshot, pending[0].content) ||
+    pending[0].savedId !== flow.saved?.id || !sameDraftValue(flow.working, pending[0].content)
     : pending.length > 0 || !!open && (open.status !== 'draft' || open.revision !== flow.revision || !sameDraftValue(open.snapshot, flow.working)))
     throw new DraftConflict('MASTER_LINE_PAGE_OWNER_INVALID', 409);
   if (flow.saved && !flow.saves.some(save => save.id === flow.saved!.id && sameDraftValue(save, flow.saved)))

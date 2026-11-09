@@ -10,7 +10,7 @@
 
 獨審發現新 helper 的 selector 額外鍵可產生同實體的 attribution alias；新增 patch／guard 純 id selector admission，保留原 request/fingerprint，17 組合成契約涵蓋線別／工段／額外 guard 反例。修正限未接線元件，不改共用 kernel／現用 workflow。
 
-依優先完成拆分的要求，整合已合併 #100 main 後補未註冊的單一 LINES 既有名稱生命週期：識別式 Begin、固定案件／版本投影、原收據與 current-approved 引用；16 組合成契約。沒有建立核准 baseline、處理舊案／權限政策、接入 HTTP／storage/CAS 或啟用拆分；不是完整線別 topology writer。
+依優先完成拆分的要求，整合已合併 #100 main 後補未註冊的單一 LINES 既有名稱生命週期：識別式 Begin、固定案件／版本投影、原收據與 current-approved 引用；18 組合成契約。沒有建立核准 baseline、處理舊案／權限政策、接入 HTTP／storage/CAS 或啟用拆分；不是完整線別 topology writer。
 
 ## 2026-11-09 — Retire periodic web checks
 

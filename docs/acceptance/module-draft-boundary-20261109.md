@@ -56,9 +56,9 @@
 
 current-approved 引用只回傳固定版本的副本，不採用 working/saved/pending；版本改變或權限失效拒絕。這是後續 catalog writer 的依賴元件，尚未讓真實 AB/C 頁面改讀它。所有 control／版本／原收據要完整 hydrate；saved、pending、draft 投影不一致及重複實體識別拒絕，不自動修補。
 
-16 組合成契約涵蓋完整既有名稱生命週期、雙人非衝突／衝突、全頁 pending lock、終止後原收據重播、no-change／確認版本、撤權、錯誤引用、序列化重開與媒體保留。context callbacks 是未來同一交易提供的完整頁面權限／引用驗證，沒有替使用者選定 AB/C 分區規則。新增／刪除／改 code、PROCESS link planner、歷史版 UI、codec／CAS、HTTP、舊 caller fence、資料 adoption 與實站仍未完成。新 Apply／restore 被拒絕；舊收據仍在原 owner 保留，不由此元件轉換或重送。
+18 組合成契約涵蓋完整既有名稱生命週期、雙人非衝突／衝突、全頁 pending lock、終止後原收據重播、no-change／確認版本、撤權、錯誤引用、序列化重開與媒體保留。context callbacks 是未來同一交易提供的完整頁面權限／引用驗證，沒有替使用者選定 AB/C 分區規則。新增／刪除／改 code、PROCESS link planner、歷史版 UI、codec／CAS、HTTP、舊 caller fence、資料 adoption 與實站仍未完成。新 Apply／restore 被拒絕；舊收據仍在原 owner 保留，不由此元件轉換或重送。
 
-本增量與 #100 相容整合尚未獨立審查或 build/browser；dc5bc6a 的複審只適用其原 tree。此處沒有新增備份診斷程式，也沒有執行真資料遷移、啟用或上傳。
+新元件初審在 13c6e02 重現 1 個 P2：pending case 與 NumericVersion 同向漂移時，尚未綁定原 immutable Save。已補所有案件 savedId／content 及 pending current saved／working 的一致性 admission，含待審及歷史的負控制；修正前會接受未存內容，修正後拒絕且保留來源。定向複審綁定其實際新 tree 回執；本增量未跑 build/browser，dc5bc6a 的舊複審只適用其原 tree。此處沒有新增備份診斷程式，也沒有執行真資料遷移、啟用或上傳。
 
 ## 資料安全演練與重大發現
 

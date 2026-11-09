@@ -122,6 +122,8 @@ check('topology cannot enter through saved or pending bodies, Apply, restore, or
   }
   run(f, submit(f)); f.control.workflow.cases[0].content.C.lines[0].stages.push({ id: 'new', code: 'New', name: 'New' });
   f.control.versions.find(v => v.status === 'pending').snapshot = plain(f.control.workflow.cases[0].content);
+  f.control.workflow.saved.content = plain(f.control.workflow.cases[0].content);
+  f.control.workflow.saves[0] = plain(f.control.workflow.saved); f.control.workflow.working = plain(f.control.workflow.saved.content);
   unchanged(f, () => code(() => run(f, review(f, 'approve'), { actor: reviewer }), 'MASTER_PAGE_NAME_SAVE_ONLY'));
 });
 check('all retained bodies must be hydrated and owned, with unambiguous line and stage identities', () => {
@@ -176,6 +178,27 @@ check('inconsistent pending, saved or draft projections are refused rather than 
     else if (target === 'draft') f.control.versions.find(v => v.status === 'draft').snapshot.AB.lines[0].name = 'Other';
     else f.control.workflow.saved.content.AB.lines[0].name = 'Other';
     unchanged(f, () => code(() => api.approvedMasterLinePage(f.control, f.control.activeVersionId, context(f)), 'MASTER_LINE_PAGE_OWNER_INVALID'));
+  }
+});
+check('pending and historical cases cannot drift together with numeric projections away from their immutable Save', () => {
+  for (const historical of [false, true]) {
+    const f = fixture(); begin(f); run(f, save(f, [{ scope: 'AB', before: 'A', after: 'Saved name' }])); run(f, submit(f));
+    if (historical) run(f, review(f, 'approve'), { actor: reviewer });
+    f.control = plain(f.control); const fixed = f.control.workflow.cases[0];
+    fixed.content.AB.lines[0].name = 'Never saved'; f.control.versions.find(v => v.id === fixed.id).snapshot = plain(fixed.content);
+    if (historical) { f.control.workflow.active.content = plain(fixed.content); f.control.workflow.working = plain(fixed.content); }
+    assert.equal(f.control.workflow.saves[0].content.AB.lines[0].name, 'Saved name');
+    unchanged(f, () => code(() => historical ? api.approvedMasterLinePage(f.control, f.control.activeVersionId, context(f))
+      : run(f, review(f, 'approve'), { actor: reviewer }), 'MASTER_LINE_PAGE_OWNER_INVALID'));
+  }
+});
+check('every case resolves its fixed Save and a pending case is bound to the current saved snapshot', () => {
+  for (const mismatch of ['missing-save', 'current-save']) {
+    const f = fixture(); begin(f); run(f, save(f)); run(f, save(f, [{ scope: 'AB', before: 'Edited A', after: 'Final name' }])); run(f, submit(f));
+    f.control = plain(f.control);
+    if (mismatch === 'missing-save') f.control.workflow.cases[0].savedId = 'missing-save';
+    else f.control.workflow.saved = plain(f.control.workflow.saves[0]);
+    unchanged(f, () => code(() => run(f, review(f, 'approve'), { actor: reviewer }), 'MASTER_LINE_PAGE_OWNER_INVALID'));
   }
 });
 assert.equal(reads, 0); assert.equal(writes, 0);
