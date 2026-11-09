@@ -104,3 +104,27 @@ Final full command above: PASS 53/53 (26.4 s), including 18 File cases, original
 32 grouped Tooling cases and 3 atomic route cases. Log:
 `/tmp/tooling-file-hash-outcome-final.log`; scoped runtime lint and diff checks PASS.
 Cross-reload/native/device/hosted limits and lack of durable photo receipts remain.
+
+## Narrow photo error presentation follow-up
+
+Only the three new `PHOTO_UPLOAD_RESULT_UNKNOWN`, `PHOTO_OWNER_CHANGED` and
+`PHOTO_SAVE_CONTEXT_CHANGED` errors receive Tooling-local Chinese/Vietnamese
+presentation text. Stored/raised error identifiers, upload outcomes, ownership
+checks, receipt handling and endpoint/classifier behavior are unchanged. Their
+existing read-only status button uses a status-query label without suggesting
+reload; owner/context messages ask the user to check the login/draft/content and
+keep the current page so its RAM File remains available. Other errors keep their
+existing text and label.
+
+Two actual lost-photo-ACK tests reproduce raw code text before this change
+(`/tmp/tooling-photo-error-ui-before.log`, 2/2 FAIL). Both languages now show the
+intended text while retaining the original raw identifier, File and dispatched
+outcome: first Save has one PUT and no workflow POST; next Save only reads the
+original hash and continues the workflow without another PUT. The fixture uses
+actual Tooling-rendered error nodes with the shell's error-node move adapted to
+the synthetic DOM. Native shell layout/device acceptance remains NOT_RUN.
+
+Full affected command: `node --test tests/tooling-save-only-files.test.mjs tests/tooling-local-atomic-save.test.cjs`, PASS 55/55 (27.7 s).
+Log: `/tmp/tooling-photo-error-ui-final.log`. Scoped runtime oxlint and
+`git diff --check` PASS. Data-model impact: none; no new endpoint, classifier,
+permission or remote/native acceptance claim.
