@@ -14,7 +14,7 @@
    const header=document.createElement('section');header.className='routine-page-version';container.querySelector('[data-routine-page-panel]')?.prepend(header);
    const pending=flow.cases.find(c=>c.id===flow.pendingId),active=flow.cases.find(c=>c.id===flow.active.id),version={id:pending?.id||'shared-'+flow.generation,number:pending?flow.cases.indexOf(pending)+1:flow.cases.length+1,status:pending?'pending':'draft'};
    host.VersionDraftUI.mount(container,{header:'.routine-page-version',module:text('例行 FQC','FQC định kỳ'),scope:'routine-fqc:page',version,versions:[],active:active?{id:active.id,number:flow.cases.indexOf(active)+1,status:'approved'}:null,flow,busy:context.busy(),localUnsaved:context.dirty(),historyClient:()=>client,mountApprovedHistory(shell,_log,empty){
-    view=host.VersionDraftUI.createApprovedHistory({root:container,shell,empty,client,selectId:'routine-page-approved-version',
+    view=host.VersionDraftUI.createApprovedHistory({root:container,shell,empty,client,selectId:'routine-page-approved-version',cacheKey:flow.active.id||null,
      isCurrent:()=>root===container&&context.root()===container&&context.data()===data&&context.owner()&&!context.reviewOnly(),
      canChoose:()=>!context.busy()&&!context.dialog()&&!context.locked()&&!document.querySelector('dialog[open]'),
      onBoundary(){epoch++;},onDenied(){epoch++;},onIdle(){if(context.owner()&&mutable())context.permissions(permissions());},

@@ -132,5 +132,5 @@ void test('normal Update and separate read-only Refresh are bilingual; cache mat
   const currentIndex=unified.canonicalSource(fs.readFileSync('public/process/index.html'),execFileSync('git',['show','HEAD:public/process/index.html']));
   const shell=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString();
   assert.equal(shell.match(/routine-fqc\.js\?v=20261109-unified-save-choice1/g)?.length, 1);
-  assert.equal(currentIndex.toString().match(/routine-fqc\.js\?v=20261109-routine-page-history2/g)?.length,1);
+  assert.equal(currentIndex.toString().match(/routine-fqc\.js\?v=20261109-approved-history-cache1/g)?.length,1);
 });

@@ -35,3 +35,7 @@ Frank指定舊對話 `01a1b57f-bda8-75bf-a224-1320cc24a028`。Personal Context�
 修正真實 `process-language-change` 會進入舊Routine `paint()`、清掉新page畫面的缺陷：page模式只委派原page runtime重繪，不讀伺服器、不動File／mine／history selection。實際RoutineFQCUI入口＋語言事件驗證歷史仍在原選單、文字轉越文、切回原File物件與原內容不變；新page／舊Routine兩個修改資產升到history2。
 
 擴大source／legacy離頁首輪有49項失敗，根因為舊fixture要求現行程式仍存在已退役的beforeunload，連帶讓Save函式抽取無法建立。唯讀採用製程固定test-only提交7e409a0的同項修正：完整原beforeunload、Save SHA與所有負例改讀真正固定d4前身；另明確測現行沒有beforeunload、page owner delegation及舊busy/retry/dialog/inflight防線。不是刪除原負例、恢復輪詢或重開原生瀏覽器；目前actual common／全closure／signed handler測試獨立執行，不能把歷史函式測試稱作現行產品實測。沒有整批採用5729／7e runtime或其26-target證據。
+
+## 有效版本更新後的清單快取
+
+最終生命週期補驗另重現：先載歷史清單、實際Save／Submit／他人Approve，再接受新page control後，舊cache仍讓新核准case不出現在選單。共同viewer現以adapter提供的已接受有效版識別cache；新AB/C/LINES、Routine整頁／原逐文件、舊主資料／PROCESS、FQC、IPQC AB、檢具、模具、Canvas均提供各自有效版（IPQC AB另含舊scope vector），不混用writer body或權限。BOM與IQC/C各自既有viewer機制保留，沒有重寫。四項真實簽章核准後再開選單的測試確認新case出現、返回不重送；正常Save沒有新有效版不會冒充歷史，也沒有加入poll。十個實際修改前端資產以cache1更新，舊歷史cache斷言不改。

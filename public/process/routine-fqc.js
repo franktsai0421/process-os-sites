@@ -127,7 +127,7 @@
   }
   function mountApprovedHistory(shell,log,empty){
     const d=doc(),page=root,documentRoot=root.querySelector('.rf-document'),client=approvedClient(d.id);historyDocument=d.id;
-    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:documentRoot,shell,client,empty,selectId:'routine-fqc-approved-version',cacheKey:d.flow.active.id||null,
       isCurrent:()=>root===page&&doc()?.id===d.id&&!s.reviewPlatform&&root.querySelector('.rf-document')===documentRoot,
       canChoose:()=>!s.busy&&!s.dialogOpen&&!inFlightMutation&&!generationRefresh?.current()&&!document.querySelector('.rf-modal[open]'),
       onBoundary(){historyDisplayEpoch++;},renderCurrent(){approvedHistoryView=null;historyDocument=null;paint();},

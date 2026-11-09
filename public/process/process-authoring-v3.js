@@ -15,7 +15,7 @@
  function mountCanvasHistory(shell,_log,empty){
   const target=document.querySelector('#authoring-v3-panel'),page=target?.closest('.editor-page');if(!page||!host.VersionDraftUI?.createApprovedHistory)return;
   approvedHistoryView?.retire();historyRoot=page;const c=client(),model=control,category=state.category,line=state.editorLine,context=localContextEpoch;
-  approvedHistoryView=host.VersionDraftUI.createApprovedHistory({root:page,shell,empty,client:c,selectId:'canvas-approved-version',
+  approvedHistoryView=host.VersionDraftUI.createApprovedHistory({root:page,shell,empty,client:c,selectId:'canvas-approved-version',cacheKey:control?.activeVersionId||null,
    isCurrent:()=>historyRoot===page&&state.view==='editor'&&state.category===category&&state.editorLine===line&&localContextEpoch===context&&model===control&&c===transport&&ownFlow(),
    canChoose:()=>!busy&&!loading&&!departureOperation&&!ownIntentPending()&&!modalOpen()&&!document.querySelector('dialog[open],.gesture-active')&&!host.ProcessEditorV2?.interacting?.()&&!host.ProcessCanvasLocal?.isBusy?.(),
    onBoundary(){historyDisplayEpoch++;host.ProcessEditorV2?.updateControls?.();},

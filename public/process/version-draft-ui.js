@@ -115,7 +115,7 @@
     const owner=()=>root.isConnected&&shell.isConnected&&root.contains(shell)&&actor===host.ProcessSync?.identity&&!!actor?.id&&Number.isSafeInteger(epoch)&&epoch>=0&&epoch===host.ProcessSync?.identityGeneration?.()&&!host.ProcessSync?.requiresReload&&delivery!=null&&host.ProcessSync?.isCurrentDelivery?.(delivery)===true&&client.isRuntimeCurrent?.()!==false&&options.isCurrent()===true;
     const allowed=()=>owner()&&client.permission('view')===true&&client.permission('history')===true;
     let cache=approvedPageCaches.get(client);
-    if(!cache||cache.actor!==actor||cache.epoch!==epoch||host.ProcessSync?.isCurrentDelivery?.(cache.delivery)!==true){cache={actor,epoch,delivery,rows:new Map(),cursor:null,loaded:false,revision:-1};approvedPageCaches.set(client,cache);}
+    if(!cache||cache.actor!==actor||cache.epoch!==epoch||cache.key!==options.cacheKey||host.ProcessSync?.isCurrentDelivery?.(cache.delivery)!==true){cache={actor,epoch,delivery,key:options.cacheKey,rows:new Map(),cursor:null,loaded:false,revision:-1};approvedPageCaches.set(client,cache);}
     options.empty?.remove();
     const choice=create('select','');choice.id=options.selectId;choice.dataset.vdApprovedChoice='true';
     const old=shell.querySelector('.vd-choice select');if(old){old.before(choice);old.remove();}else shell.querySelector('.vd-choice')?.append(choice);
@@ -403,7 +403,7 @@
     const shared=host.MasterDataWorkflow.shared,client=shared.client('PROCESS'),root=document.querySelector('#data-content'),resume=processHistoryResume;processHistoryResume=null;
     processHistoryView?.retire();
     if(processHistoryLease!==shared){processHistoryLease=shared;shared.setApprovedDisplayLease('PROCESS',{current:processHistoryCurrent,epoch:()=>processHistoryEpoch,refresh:()=>processHistoryView?.refreshControls()});}
-    processHistoryView=createApprovedHistory({root,shell,client,empty,selectId:'process-approved-version',initialBlocked:!!resume,
+    processHistoryView=createApprovedHistory({root,shell,client,empty,selectId:'process-approved-version',cacheKey:shared.flow('PROCESS')?.active.id||processMasterVersions().find(v=>v.status==='approved')?.id||null,initialBlocked:!!resume,
       isCurrent:()=>state.view==='data'&&state.dataTab==='process-master'&&document.querySelector('#data-content')===root&&shared.client('PROCESS')===client,
       canChoose:()=>!shared.busy()&&!saveProcessMasterDraft.flight&&!host.ProcessMasterVersioning.departureNames.dirty()&&!host.ProcessEquipment?.hasUnappliedChanges?.()&&!document.querySelector('dialog[open]')&&![...root.querySelectorAll('[data-master-media]')].some(input=>input.disabled||input.files?.length),
       onBoundary(){processHistoryEpoch++;},

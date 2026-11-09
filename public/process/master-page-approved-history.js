@@ -19,7 +19,7 @@
    const header=document.createElement('section');header.className='master-page-version';const title=document.createElement('h3');title.textContent=text('版本／草稿','Phiên bản / bản nháp');header.append(title);container.querySelector('.panel')?.prepend(header);
    const control=context.control(),flow=control.workflow;
    host.VersionDraftUI.mount(container,{header:'.master-page-version',module:page==='LINES'?text('線別與工段','Chuyền và công đoạn'):page+text(' 產線與類別',' · Sản phẩm và nhóm'),scope:flow?.scope||'master:'+(page==='LINES'?'LINES':page+'.catalog'),version:control.versions.find(v=>['draft','pending','pending-test'].includes(v.status))||control.versions.find(v=>v.id===control.activeVersionId),versions:control.versions,active:control.versions.find(v=>v.id===control.activeVersionId),flow,busy:context.busy(),localUnsaved:context.dirty(),historyClient:()=>client,mountApprovedHistory(shell,_log,empty){
-    view=host.VersionDraftUI.createApprovedHistory({root:container,shell,empty,client,selectId:'master-page-approved-version',
+    view=host.VersionDraftUI.createApprovedHistory({root:container,shell,empty,client,selectId:'master-page-approved-version',cacheKey:control.activeVersionId||null,
      isCurrent:()=>root===container&&context.owner()&&context.control()===control&&container.dataset.activeTab===(page==='LINES'?'line-admin':page),
      canChoose:()=>!context.busy()&&!context.dialog()&&!document.querySelector('dialog[open]'),
      onBoundary(){epoch++;},onDenied(){epoch++;},
