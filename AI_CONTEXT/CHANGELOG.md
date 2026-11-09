@@ -1,3 +1,7 @@
+## 2026-11-09 — FQC／模具同頁核准版本（本機，未發布）
+
+FQC 與模具接上明確 page adapter 的同頁核准版本／當前草稿 selector。獨立歷史 display lease 保全原 RAM、比較基準、矩陣、UNKNOWN journal 與實際 pending；新增 40 項實際模組／共用 client／簽章 handler 合成資料測試 PASS。舊回呼及一般讀回有 display epoch 保護；其餘模組仍逐頁處理，沒有 GitHub／測試站更新。[逐頁矩陣與證據](../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真實資料變更。
+
 ## 2026-11-09 — IQC 同頁已核准版本查看候選
 
 同一 selector 載入具審核證據的快照，以獨立顯示狀態重用 IQC 唯讀詳細版面；返回保留原草稿 RAM、篩選、原基準、pending 與 UNKNOWN 收據。本頁舊歷史／還原彈窗入口移除，原相容 API 保留。完成可追溯的隔離測試，原生／實站未驗證，未上傳或部署。[驗證及全頁剩餘](../docs/acceptance/approved-history-unification-20261109/README.md)。

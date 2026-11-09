@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {setup,clone} from './iqc-save-choice-fixture.mjs';
+import {setup,clone,waitForChoice} from './iqc-save-choice-fixture.mjs';
 const at='2026-11-09T00:00:00.000Z';
 const turn=()=>new Promise(setImmediate);
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{resolve,promise};};
@@ -67,7 +67,7 @@ void test('history search/detail navigation uses only its snapshot and leaves wo
  const h=await fixture(t);await h.open();await h.choose('legacy-21');const before=h.retain(),search=h.q('[data-iqc-history-search]');search.value='Approved';search.oninput({target:search});const button=h.q('[data-iqc-history-part]');button.onclick();assert.equal(h.retain(),before);assert.match(h.q('[data-iqc-history-detail]').textContent,/Approved historical item/);await h.choose('');assert.equal(h.retain(),before);
 });
 void test('attempting a switch during a Save choice cannot retire the original comparison',async t=>{
- const h=await fixture(t);await h.stage({nameVi:'Mine'});await h.peerSave({nameVi:'Peer'});await h.open();const pending=h.probe.post('save');for(let i=0;i<150&&!h.doc.querySelector('[data-iqc-save-choice]');i++)await turn();assert(h.doc.querySelector('[data-iqc-save-choice]'));const before=h.retain(),count=h.requests.length,epoch=h.c.historyProbe.epoch();await h.choose('legacy-21');assert.equal(h.requests.length,count);assert.equal(h.c.historyProbe.epoch(),epoch);assert.equal(h.retain(),before);h.doc.querySelector('[data-iqc-save-choice="cancel"]').click();await pending;assert.equal(h.c.historyProbe.current(),true);
+ const h=await fixture(t);await h.stage({nameVi:'Mine'});await h.peerSave({nameVi:'Peer'});await h.open();const choiceReady=waitForChoice(h.doc),pending=h.probe.post('save');await choiceReady;assert(h.doc.querySelector('[data-iqc-save-choice]'));const before=h.retain(),count=h.requests.length,epoch=h.c.historyProbe.epoch();await h.choose('legacy-21');assert.equal(h.requests.length,count);assert.equal(h.c.historyProbe.epoch(),epoch);assert.equal(h.retain(),before);h.doc.querySelector('[data-iqc-save-choice="cancel"]').click();await pending;assert.equal(h.c.historyProbe.current(),true);
 });
 
 void test('history search retains the exact focused input and waits for composition end',async t=>{
@@ -95,6 +95,6 @@ void test('historical photos use only immutable historical references; unavailab
 });
 
 void test('view denial retires an undispatched Save choice without POST, retaining local content and basis',async t=>{
- const h=await fixture(t);await h.stage({nameVi:'Mine remains'});await h.peerSave({nameVi:'Peer'});await h.open();const pending=h.probe.post('save');for(let i=0;i<150&&!h.doc.querySelector('[data-iqc-save-choice]');i++)await turn();assert(h.doc.querySelector('[data-iqc-save-choice]'));
+ const h=await fixture(t);await h.stage({nameVi:'Mine remains'});await h.peerSave({nameVi:'Peer'});await h.open();const choiceReady=waitForChoice(h.doc),pending=h.probe.post('save');await choiceReady;assert(h.doc.querySelector('[data-iqc-save-choice]'));
  const before=h.probe.get(),basis=JSON.stringify({localBase:before.localBase,localSnapshot:before.localSnapshot,localGeneration:before.localGeneration}),records=[...h.records],posts=h.posts().length;h.intercept(async(url,_options,next)=>url.includes('permissions=1')?Response.json({error:'FORBIDDEN'},{status:403}):next());await assert.rejects(h.probe.transport().permissions());assert.equal(await pending,false);assert.equal(h.doc.querySelector('[data-iqc-save-choice]'),null);assert.equal(h.posts().length,posts);const after=h.probe.get();assert.equal(JSON.stringify({localBase:after.localBase,localSnapshot:after.localSnapshot,localGeneration:after.localGeneration}),basis);assert.deepEqual([...h.records],records);assert.equal(h.c.historyProbe.current(),false);h.intercept(null);await h.probe.transport().permissions();await h.choose('');assert(h.c.historyProbe.current());assert.equal(h.posts().length,posts);
 });

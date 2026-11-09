@@ -30,7 +30,7 @@ void test('checkout equivalence is byte-based and cannot hide invalid UTF8 or or
 void test('integrated shared client includes both bounded features and unique coherent cache',()=>{
  const source=read('public/process/shared-draft-client.js').toString(),html=fs.readFileSync('public/process/index.html','utf8');
  assert(source.includes("beginPath==='/api/bom/workflow'?{approvedHistory:"));assert(source.includes('recheckEquipmentDelivery'));assert(source.includes('confirmEquipmentDelivery'));
- assert.equal((html.match(/shared-draft-client\.js\?v=20261109-iqc-approved-history1/g)||[]).length,1);assert(html.includes('routine-equipment.js?v=20261109-unified-save-choice1'));assert(html.includes('bom-workspace.js?v=20261109-unified-save-choice1'));
+ assert.equal((html.match(/shared-draft-client\.js\?v=20261109-quality-approved-history2/g)||[]).length,1);assert(html.includes('routine-equipment.js?v=20261109-unified-save-choice1'));assert(html.includes('bom-workspace.js?v=20261109-unified-save-choice1'));
 });
 void test('both CI jobs execute integrated attestation and retain their original gates',()=>{
  const files=['scripts/bom-main-integration-source-contract.cjs','scripts/bom-main-integration-source-contract.json','tests/bom-main-integration-source-contract.test.cjs'];

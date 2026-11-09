@@ -1,6 +1,6 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與首批 IQC 前端
+# 全草稿頁已核准歷史版本查看：共同讀取與 IQC／FQC／模具前端
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及首批 IQC 前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及 IQC／FQC／模具前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -17,13 +17,13 @@
 | AB 產線與類別 | `master:AB` | 新 approved-only PASS | 原 VersionDraftUI 一般歷史仍需轉接 |
 | C 產線與類別 | `master:C` | 新 approved-only PASS | 同上，保留 C 自己的版本與權限 |
 | 流程資料／模板／機器 | `master:PROCESS` | 新 approved-only PASS | 模板與機器是同頁視角；需同頁唯讀展示，不以現行機器資料替代歷史 |
-| FQC | `fqc` | 新 approved-only PASS | `fqc-master.js` 仍開案件／歷史彈窗；需保留矩陣 RAM 與原比較基準 |
+| FQC | `fqc` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM，移除本頁舊案件／還原入口；矩陣與比較基準保留，本機定向測試 PASS，原生與實站未驗 |
 | IQC | `iqc` | 新 approved-only PASS | 已接單一同頁 selector／原 detailPanel 唯讀與返回原草稿，移除舊案件／還原入口；32 項新情境及既有回歸 PASS，原生與實站未驗 |
 | IPQC A/B | `ipqc-ab:module` 與舊群組相容讀取 | module／群組新 approved-only PASS | `ipqc-ab.js` 尚未轉接；舊群組與新整份版本的唯讀聯集 helper 已有，但未註冊到本批 API／UI，不可宣稱舊版聯集完整 |
 | IPQC C | `ipqc-c` | 既有專用 approved-only 路由 | 基準已有同頁 selector／唯讀投影及回當前；本批重新執行其實際 common／transport／handler 測試，非原生瀏覽器驗收 |
 | BOM | `bom` | 既有路由沿新共同查詢規則，PASS | 基準已有同頁唯讀與原 writer 保全；本批移除僅有 formal pointer 的未審核基準，不重寫 BOM 本機編輯／Save |
 | 檢具與測試設備 | `routine-equipment` | 新 approved-only PASS | `routine-equipment.js` 仍有案件／還原彈窗；需保全表單與跨品質交易界線 |
-| 模具 | `tooling` | 新 approved-only PASS | `tooling.js` 一般歷史仍開彈窗；目錄／移轉分頁不另拆草稿 |
+| 模具 | `tooling` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照及回 RAM；器具、目錄與移轉以唯讀分組、搜尋與分頁展示，不另拆草稿；本機定向測試 PASS，原生與實站未驗 |
 | 例行 FQC | `routine-fqc:<documentId>` | 自有文件／案件路由，未在本批修改 | 另有歷史頁籤與已核准文件查看；需逐文件接同一 selector，不能套用 numeric-version API 冒充完成 |
 
 問題回報是私人 IndexedDB 草稿，無「已核准共用業務版本」；例行報告資料庫與其他未實作例行頁籤是 placeholder；帳號／權限即時表單不是共用業務草稿。不改這些資料模型。
@@ -49,6 +49,17 @@
 
 前端驗證：32 項 IQC actual module/common/primary transport/handler 新測試 PASS；53 項 IQC Save／離頁回歸及 76 項 BOM/C 共用回歸 PASS；另 89 項既有表單、照片、比較 Save、已驗證讀回及兩支 deferred projection UI／race scripts PASS。最初額外 URL 全域依賴造成的既有 VM fixture 失敗已修正為沿用 URLSearchParams，相關原日誌保留；投影 UI fixture 補上真實 isConnected／退休節點語意，未放寬產品 guard。前端來源證據已由真實產品 commit `2245941` 重新生成，保留全部原 named predecessors／負向控制。當前資產的 cache 斷言只更新四個已修改 tags；BOM／equipment tags 與所有歷史 pin 不變。最初唯一舊 shared-client live cache 預期造成的 source-test 失敗已保留，修正斷言後完整 **498 PASS、0 FAIL、0 SKIP**。固定 IQC 產品 `2245941` 的新查看與所有受影響回歸合計 **250 PASS、0 FAIL、0 SKIP**；完整 typed lint、TypeScript 與 source boundary PASS，最終 guarded build／候選識別另列本機交付 receipt。
 
+## 接續前端批次：FQC 與模具
+
+- 在原頁同一位置使用 `fqc-approved-version`／`tooling-approved-version`，取代原有含未核准版本的 selector。FQC 移除舊 `fqc-cases` 彈窗／還原入口；歷史版本不開視窗、不提供套用或還原。模具原有「審核平台案件比較」及器具移轉案件明細仍是個別業務案件功能，不作版本選單或歷史取回入口。
+- `VersionDraftUI.createApprovedHistory` 是明確頁面 adapter 的顯示 lease，不自動改造未接線頁面。當前版本 RAM、原 control、localBase／syncBase、矩陣批次、原 generation、UNKNOWN journal 與 pending 均不被核准快照取代；切回只重新讀 permissions，再由頁面重繪保留的資料。
+- 核准快照採獨立欄位／集合唯讀展示：FQC 不良與檢查項目；模具器具、類別、保管單位、供應商、製造商、移轉。各組獨立搜尋與每頁十筆；展開只讀所選快照。照片只取歷史引用；不查現行設備或借用目前草稿。搜尋 composition 不重建輸入節點；CSS 提供 44px 觸控尺寸、16px 搜尋及小螢幕欄位堆疊，未作原生版面驗收。
+- 頁面 writer 入口、舊 DOM callbacks 與一般讀回加 display epoch 保護。開啟表單、寫入／比較或上傳相關表單仍活動時阻擋切換；撤權清空歷史並退休未 dispatch 的比較／表單，不以重新授權復活舊回覆。模具 checks 在切換邊界中止，原回執不變。
+- `shared-draft-client` 的 approved GET／access watcher 限列出的既有 workflow 路由；metadata 仍由各 adapter 的 scope 決定，方法存在不授予權限。VersionDraftUI 要求明確 `mountApprovedHistory` callback；未接線頁面仍列未完成。
+- 新增 40 項實際模組＋common UI＋primary client＋簽章 HTTP handlers／SQLite／R2 測試，覆蓋雙語、分頁、固定 case content、舊操作、直接 writer、表單、撤權、延遲 body、錯誤證據、UNKNOWN 原 journal 不查詢／不重送及實際 Submit pending 鎖。其餘受影響原回歸另執行。合成 DOM 不代表原生瀏覽器、實機 iPhone 或真實 IME。
+- 保留初始失敗日誌：合成 approved case 最初缺 creator/base 關聯，fixture 補全原後端嚴格核准條件；合成 DOM 的屬性／新 root 焦點問題修正。並行測試的一項 IQC 比較視窗等待以固定 150 次 microtask 不足，隔離可通過，改為等待實際掛載事件，沒有放寬產品 guard 或撤除負向控制。完整本批 runtime／來源 proof／lint／build 結果由後續本機 evidence receipt 固定。
+- 共用 client／VersionDraftUI JS、VersionDraftUI CSS、FQC JS、Tooling JS 五個修改資產使用 `20261109-quality-approved-history2`；IQC 自身 JS／CSS 留原 tag，其他資產順序與 tags 不變。無 schema、ACL、資料格式或真實業務資料變更。
+
 ## BOM 候選來源核對
 
 已讀取 `4960d74` 的交付與獨立審查紀錄。它不是本批基準 `ce824f2` 的祖先，不盲目 cherry-pick。`bom-domain.mjs` 與 `lib/bom-workflow.ts` 相同；`bom-workspace.js` 的後續差異是全組衝突選擇文字及未 dispatch 的 Save 比較重讀 loop，現有 approved view 保留。共用 workflow 亦已有後續並行變動，本批只新增 GET opt-in。BOM common／實際 transport／實際 handler 的 35 項重新驗證 PASS。
@@ -71,4 +82,4 @@
 
 ## 接續順序
 
-共同 API 與首批 IQC 前端已完成本機定向驗證；維持單一寫入者，接續 FQC／主資料／製程等剩餘頁面的顯示 lease／回當前與所有直接 writer callback 的 display epoch 防護。逐頁加上同頁 selector，移除舊彈窗／還原入口；舊 AB 群組與 legacy PROCESS 歷史需在原身分／scope 下唯讀聯集，不遷移、不拼造核准。例行 FQC 保留自有文件 ID 與完整 workflow 語意，另做投影。最後逐頁確認 RAM、open form、照片、pending、UNKNOWN、撤權、延遲回應及同頁篩選；遠端 CI／審查通過且無既有 UNKNOWN 阻擋後再依原授權處理 GitHub。正式資料／權限／重大架構與部署仍交 Frank 決定。
+共同 API 與 IQC／FQC／模具前端已完成本機定向驗證；維持單一寫入者，接續檢具／主資料／製程等剩餘頁面的顯示 lease／回當前與所有直接 writer callback 的 display epoch 防護。逐頁加上同頁 selector，移除舊彈窗／還原入口；舊 AB 群組與 legacy PROCESS 歷史需在原身分／scope 下唯讀聯集，不遷移、不拼造核准。例行 FQC 保留自有文件 ID 與完整 workflow 語意，另做投影。最後逐頁確認 RAM、open form、照片、pending、UNKNOWN、撤權、延遲回應及同頁篩選；遠端 CI／審查通過且無既有 UNKNOWN 阻擋後再依原授權處理 GitHub。正式資料／權限／重大架構與部署仍交 Frank 決定。

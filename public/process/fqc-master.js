@@ -27,6 +27,10 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const now = () => new Date().toISOString();
   let control = null, hostElement = null, mountSequence = 0;
+  let historyDisplayEpoch=0,approvedHistoryView=null;
+  const historyAllowsMutation=()=>!approvedHistoryView?.blocked;
+  const assertCurrentDisplay=()=>{if(!historyAllowsMutation())throw Error('APPROVED_HISTORY_READ_ONLY');};
+  const guardWorking=(node,callback)=>{const epoch=historyDisplayEpoch,page=hostElement;return function(...args){if(epoch!==historyDisplayEpoch||!historyAllowsMutation()||page!==hostElement||!node?.isConnected)return;return callback.apply(this,args);};};
   let workspaceReady = () => false, sharedStateCurrent = () => false, reviewReadSequence = 0;
   let beginGenerationConflict=null;
   let sharedClient,sharedClientOwner=null,sharedActor='',syncBase=null,syncGeneration=null;let pendingCommandFeedback=null,activeSharedAction=null;
@@ -568,7 +572,7 @@
     window.dispatchEvent(new CustomEvent('fqc-equipment-references-updated'));return result;
     }finally{attempt.close?.();if(activeSaveComparison===attempt)activeSaveComparison=null;}
   }
-  async function sharedAction(action,detail={},onPrepared=null){if(action==='submit')assertNoUnapplied();if(action==='save'&&document.querySelector('.fqc-modal-form'))throw Error(isVi()?'Hoàn tất biểu mẫu trước khi lưu.':'請先完成表單，再按存取。');if(ui.saving)throw Error('OPERATION_IN_PROGRESS');const operation={owned:currentReadOwner()};activeSharedAction=operation;ui.saving=true;let sentCommand=null;
+  async function sharedAction(action,detail={},onPrepared=null){assertCurrentDisplay();if(action==='submit')assertNoUnapplied();if(action==='save'&&document.querySelector('.fqc-modal-form'))throw Error(isVi()?'Hoàn tất biểu mẫu trước khi lưu.':'請先完成表單，再按存取。');if(ui.saving)throw Error('OPERATION_IN_PROGRESS');const operation={owned:currentReadOwner()};activeSharedAction=operation;ui.saving=true;let sentCommand=null;
     // A request must become visibly busy before its first await. Do not rebuild
     // the open item form just to acknowledge Save (its input is still unsaved).
     hostElement?.querySelectorAll('#fqc-save,#fqc-submit,[data-matrix-item]').forEach(button=>{button.disabled=true;});
@@ -600,9 +604,9 @@
   // which can reappear after logout/login. Abort alone is not an adoption fence.
   function currentReadOwner(isCurrent = () => true) {
     const actorId = identity()?.id;
-    const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence,delivery=window.ProcessSync?.captureDelivery?.();
+    const epoch = window.ProcessSync?.identityGeneration?.(), mount = mountSequence,delivery=window.ProcessSync?.captureDelivery?.(),displayEpoch=historyDisplayEpoch;
     if (!actorId) throw Error('LOGIN_REQUIRED');
-    return () => isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
+    return () => historyAllowsMutation() && displayEpoch===historyDisplayEpoch && isCurrent() && (!delivery||window.ProcessSync.isCurrentDelivery(delivery)) && identity()?.id === actorId &&
       window.ProcessSync?.identityGeneration?.() === epoch && mountSequence === mount &&
       !window.ProcessSync?.requiresReload;
   }
@@ -756,7 +760,7 @@
     const list = versions();
     return list.find(version => version.id === ui.selectedVersionId) || list.find(version => version.status === 'draft') || list.find(version => version.status === 'pending') || list.find(version => version.id === library().activeVersionId) || list[0] || null;
   }
-  function editable() { const version = selected(); return version?.status === 'draft' ? version : null; }
+  function editable() { if(!historyAllowsMutation())return null;const version = selected(); return version?.status === 'draft' ? version : null; }
   function approved() { return library().versions.find(version => version.id === library().activeVersionId) || null; }
   function statusLabel(status) { return (isVi() ? { draft:'Bản nháp', pending:'Đang chờ quản lý duyệt', approved:'Đã duyệt', superseded:'Lịch sử đã duyệt' } : { draft:'草稿', pending:'主管審核中', approved:'已核准', superseded:'歷史核准' })[status] || status; }
   function displayScalar(...values) {
@@ -798,7 +802,7 @@
       throw error;
     }
   }
-  const canEditDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'edit')??(typeof window.hasPermission==='function'?window.hasPermission('view:data'):identity()?.role==='admin'));
+  const canEditDraft=()=>historyAllowsMutation()&&!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'edit')??(typeof window.hasPermission==='function'?window.hasPermission('view:data'):identity()?.role==='admin'));
   const canDraftAction=op=>!!identity()&&sharedClient?.permission(op==='save'?'edit':op)===true&&(library()?.workflow||canEditDraft());
   const canWithdrawDraft=()=>!!identity()&&(window.sharedDraftPermissionAllowed?.(sharedClient,'withdraw')??(typeof window.hasPermission==='function'?window.hasPermission('view:data')||window.hasPermission('approval.withdraw'):identity()?.role==='admin'));
   async function beginDraft() {
@@ -1093,14 +1097,28 @@
     return `<span class="fqc-tool-visual">👁 ${vi ? 'Kiểm tra bằng mắt' : '目視檢查'}</span>`;
   }
   function html() { return '<section class="fqc-page" id="fqc-page" data-i18n-skip="true"><div class="fqc-loading">'+(isVi()?'Đang tải dữ liệu FQC…':'正在載入 FQC 標準資料…')+'</div></section>'; }
+  const approvedFields={errors:['不良項目','Hạng mục lỗi'],items:['檢查項目','Hạng mục kiểm tra'],id:['識別碼','Mã'],code:['編號','Mã'],checkNo:['檢查編號','Mã kiểm tra'],name:['名稱','Tên'],nameVi:['越文名稱','Tên tiếng Việt'],nameZh:['中文名稱','Tên tiếng Hoa'],category:['類別','Loại'],line:['線別','Chuyền'],errorId:['不良項目','Hạng mục lỗi'],description:['檢查方法','Phương pháp kiểm tra'],note:['備註','Ghi chú'],reason:['原因','Lý do'],productCodes:['適用產品','Sản phẩm áp dụng'],rule:['檢查規則','Quy tắc kiểm tra'],tool:['檢具','Dụng cụ'],equipmentId:['設備識別碼','Mã thiết bị'],equipmentSnapshot:['此版本設備','Thiết bị trong phiên bản'],mediaItems:['照片','Ảnh'],photos:['照片','Ảnh'],isDeleted:['已刪除','Đã xóa'],isMonthly:['每月','Hàng tháng'],isQuarterly:['每季','Hàng quý'],isYearly:['每年','Hàng năm'],isCustomPeriod:['自訂週期','Chu kỳ riêng'],customPeriodText:['週期說明','Mô tả chu kỳ'],inspectionMode:['檢查模式','Chế độ kiểm tra'],inspectionSpec:['檢查規格','Quy cách kiểm tra'],inspectionSpecVi:['越文檢查規格','Quy cách tiếng Việt'],inspectionSpecZh:['中文檢查規格','Quy cách tiếng Hoa'],unit:['單位','Đơn vị'],specification:['規格','Quy cách'],assetNumber:['資產編號','Mã tài sản'],photoId:['照片識別碼','Mã ảnh']};
+  function mountApprovedHistory(shell,log,empty){
+    const client=transport(),page=hostElement,mount=mountSequence;approvedHistoryView?.retire();
+    approvedHistoryView=window.VersionDraftUI.createApprovedHistory({root:hostElement.querySelector('#fqc-page'),shell,client,empty,selectId:'fqc-approved-version',
+      isCurrent:()=>page===hostElement&&mount===mountSequence&&sharedClient===client&&fqcTabIsActive(),
+      canChoose:()=>!ui.saving&&!activeSharedAction&&!activeSaveComparison&&!document.querySelector('.fqc-modal-overlay'),
+      onBoundary(){historyDisplayEpoch++;},
+      onDenied(){cancelSaveComparison();for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);},
+      renderCurrent(){approvedHistoryView=null;workspaceReady=currentReadOwner(fqcTabIsActive);sharedStateCurrent=currentReadOwner();render();},
+      validateSnapshot:snapshot=>snapshot&&['errors','items'].every(key=>Array.isArray(snapshot[key])&&snapshot[key].every(row=>row&&typeof row==='object'&&!Array.isArray(row)))&&snapshot.items.every(row=>Array.isArray(row.productCodes)&&(!row.mediaItems||Array.isArray(row.mediaItems))),
+      renderSnapshot:(target,snapshot,current)=>window.VersionDraftUI.renderApprovedCollections(target,snapshot,{collections:['errors','items'],fields:approvedFields,mediaURL:photo=>client.mediaURL(photo)},current)
+    });
+  }
   function render() {
+    if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}approvedHistoryView?.retire();approvedHistoryView=null;
     if (!workspaceReady()) return;
     const focused=hostElement?.contains(document.activeElement)?document.activeElement:null,focusId=focused?.id,selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
     if (!fqcTabIsActive()) return;
     const matrixScroll = hostElement.querySelector('.fqc-matrix-scroll');
     const scroll = { x:matrixScroll?.scrollLeft || 0, y:matrixScroll?.scrollTop || 0, page:window.scrollY };
     ensureControl(); restoreMatrixChoices(); const version = selected();
-    if (!version) { hostElement.innerHTML = emptyHTML(); bindEvents(); if(sharedClient?.hasUnknownBegin?.()){const button=document.createElement('button');button.id='fqc-check-result';button.textContent=isVi()?'Kiểm tra kết quả':'查詢前次結果';button.onclick=()=>checkPreviousResult();hostElement.prepend(button);} return; }
+    if (!version) { hostElement.innerHTML = emptyHTML(); bindEvents(); if(sharedClient?.hasUnknownBegin?.()){const button=document.createElement('button');button.id='fqc-check-result';button.textContent=isVi()?'Kiểm tra kết quả':'查詢前次結果';button.onclick=guardWorking(button,()=>checkPreviousResult());hostElement.prepend(button);} return; }
     const category = categoryName(version), errors = errorRows(version, category);
     if (!errors.some(error => error.id === ui.selectedErrorId)) ui.selectedErrorId = errors[0]?.id || '';
     const selectedError = errors.find(error => error.id === ui.selectedErrorId), items = itemRows(version, category, ui.selectedErrorId);
@@ -1254,8 +1272,8 @@
     </section>`;
     matrixRecoveryGate=null;bindEvents();paintMatrixActions();
     if(library().workflow||sharedClient?.hasUnknownBegin?.()){const flow=library().workflow||{},bar=document.createElement('section');bar.className='master-version-bar';bar.innerHTML=`<p id="fqc-shared-status" role="status">${h(ui.lastError ? displayDraftError(ui.lastError) : `${isVi()?'Bản nháp chung toàn bộ FQC':'FQC 全庫共用草稿'} · ${flow.saved&&JSON.stringify(flow.saved.content)===JSON.stringify(flow.working)?(isVi()?'Đã lưu':'已儲存'):(isVi()?'Chưa lưu':'尚未儲存')} · ${isVi()?'Người lưu':'儲存者'}: ${flow.saved?.actor.name||'—'}`)}</p><button id="fqc-cases" class="button ghost">${isVi()?'Hồ sơ gửi duyệt':'送審案件'}</button>${transport().hasUnknown()?'<button id="fqc-check-result">'+(isVi()?'Kiểm tra kết quả':'查詢前次結果')+'</button>':''}`;hostElement.querySelector('#fqc-page').prepend(bar);
-      bar.querySelector('#fqc-cases').onclick=()=>window.openSharedDraftHistory({client:transport(),editable:()=>!!editable()&&identity()?.role==='admin',onApplied:async r=>{adopt(r);render();}}).catch(e=>toast(displayDraftError(e)));
-      bar.querySelector('#fqc-check-result')?.addEventListener('click',()=>checkPreviousResult());
+      bar.querySelector('#fqc-cases').onclick=guardWorking(bar.querySelector('#fqc-cases'),()=>window.openSharedDraftHistory({client:transport(),editable:()=>!!editable()&&identity()?.role==='admin',onApplied:async r=>{adopt(r);render();}}).catch(e=>toast(displayDraftError(e))));
+      bar.querySelector('#fqc-check-result')?.addEventListener('click',guardWorking(bar.querySelector('#fqc-check-result'),()=>checkPreviousResult()));
     }
     const matrix = hostElement.querySelector('.fqc-matrix-scroll');
     if (matrix) { matrix.scrollLeft = scroll.x; matrix.scrollTop = scroll.y; }
@@ -1265,7 +1283,7 @@
       const item=version.snapshot.items.find(row=>row.id===id),error=version.snapshot.errors.find(row=>row.id===(item?.errorId||id));
       ui.search='';if(error){ui.category=error.category;ui.selectedErrorId=error.id;}render();if(item)openItemModal(item.id,'',true);else if(error)openErrorModal(error.id);
     }});
-    window.VersionDraftUI?.mount(hostElement,{header:'.fqc-version-bar',historyClient:transport,module:'FQC',scope:isVi()?'Toàn bộ FQC':'FQC 全庫',version,versions:versions(),active:approved(),flow:library().workflow,localUnsaved:localDirty(),busy:ui.saving,failed:!!ui.lastError||sharedClient?.hasUnknown()&&!commandFeedbackPending(),actions:{begin:'#fqc-begin',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-fqc-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-fqc-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{errors:true,missing:true},history:['.fqc-activity','#fqc-cases','[data-shared-issue-kind="warning"]'],status:['#fqc-shared-status']});
+    window.VersionDraftUI?.mount(hostElement,{header:'.fqc-version-bar',historyClient:transport,mountApprovedHistory,module:'FQC',scope:isVi()?'Toàn bộ FQC':'FQC 全庫',version,versions:versions(),active:approved(),flow:library().workflow,localUnsaved:localDirty(),busy:ui.saving,failed:!!ui.lastError||sharedClient?.hasUnknown()&&!commandFeedbackPending(),actions:{begin:'#fqc-begin',save:'#fqc-save',submit:'#fqc-submit',withdraw:'#fqc-withdraw'},review:()=>{state.view='approval';state.approvalTab='quality';window.render();},errors:'[data-fqc-issue-kind="error"],[data-shared-issue-kind="error"]',missing:'[data-fqc-issue-kind="missing"],[data-shared-issue-kind="missing"]',checked:{errors:true,missing:true},remove:['#fqc-cases'],history:['.fqc-activity','[data-shared-issue-kind="warning"]'],status:['#fqc-shared-status']});
     const saveLabel=hostElement.querySelector('#fqc-save');if(saveLabel&&!ui.saving)saveLabel.textContent=isVi()?'Lưu':'存取';
     if(localRejection&&['DEPENDENCY_CHANGED_RECONFIRM','DRAFT_REVISION_CHANGED_RECONFIRM','FQC_REVIVE_CHANGED_RECONFIRM'].includes(localRejection.error.message)){const button=document.createElement('button');button.id='fqc-resolve-conflict';button.className='button ghost';button.textContent=isVi()?'So sánh lại và lưu':'重新比較並存取';button.onclick=reconcileLocalConflict;hostElement.querySelector('#fqc-page').prepend(button);}
     if(ui.recoveryNotice){const notice=document.createElement('p');notice.id='fqc-recovery-notice';notice.className='master-edit-note';notice.setAttribute('role','status');notice.setAttribute('data-i18n-skip','true');notice.textContent=displayDraftError(ui.recoveryNotice);hostElement.querySelector('#fqc-page').prepend(notice);}
@@ -1301,19 +1319,19 @@
       button.setAttribute('aria-pressed', String(button.classList.contains('included')));
       if (ui.saving) button.disabled = true;
     });
-    root.querySelector('#fqc-begin')?.addEventListener('click', beginDraft);
-    root.querySelector('#fqc-begin-empty')?.addEventListener('click', beginDraft);
-    root.querySelector('#fqc-save')?.addEventListener('click', async () => { try { await sharedAction('save'); } catch (error) { toast(displayDraftError(error)); } });
-    root.querySelector('#fqc-submit')?.addEventListener('click', submitDraft);
-    root.querySelector('#fqc-withdraw')?.addEventListener('click', withdrawDraft);
-    root.querySelector('#fqc-approval')?.addEventListener('click', () => { state.approvalTab = 'quality'; navigate('approval'); });
-    root.querySelector('#fqc-version')?.addEventListener('change', event => { ui.selectedVersionId = event.target.value; render(); });
-    root.querySelector('#fqc-line')?.addEventListener('change', event => { ui.line = event.target.value; ui.category = ''; ui.selectedErrorId = ''; render(); });
-    root.querySelector('#fqc-category')?.addEventListener('change', event => { ui.category = event.target.value; ui.selectedErrorId = ''; render(); });
-    root.querySelector('#fqc-search')?.addEventListener('input', event => { ui.search = event.target.value; render(); });
-    root.querySelector('.fqc-matrix')?.addEventListener('toggle', event => { ui.matrixOpen = event.target.open; });
-    root.querySelector('#fqc-problems-details')?.addEventListener('toggle', event => { ui.problemsOpen = event.target.open; });
-    root.querySelector('#fqc-retry-save')?.addEventListener('click', async () => {
+    root.querySelector('#fqc-begin')?.addEventListener('click', guardWorking(root.querySelector('#fqc-begin'),beginDraft));
+    root.querySelector('#fqc-begin-empty')?.addEventListener('click', guardWorking(root.querySelector('#fqc-begin-empty'),beginDraft));
+    root.querySelector('#fqc-save')?.addEventListener('click', guardWorking(root.querySelector('#fqc-save'),async () => { try { await sharedAction('save'); } catch (error) { toast(displayDraftError(error)); } }));
+    root.querySelector('#fqc-submit')?.addEventListener('click', guardWorking(root.querySelector('#fqc-submit'),submitDraft));
+    root.querySelector('#fqc-withdraw')?.addEventListener('click', guardWorking(root.querySelector('#fqc-withdraw'),withdrawDraft));
+    root.querySelector('#fqc-approval')?.addEventListener('click', guardWorking(root.querySelector('#fqc-approval'),() => { state.approvalTab = 'quality'; navigate('approval'); }));
+    root.querySelector('#fqc-version')?.addEventListener('change', guardWorking(root.querySelector('#fqc-version'),event => { ui.selectedVersionId = event.target.value; render(); }));
+    root.querySelector('#fqc-line')?.addEventListener('change', guardWorking(root.querySelector('#fqc-line'),event => { ui.line = event.target.value; ui.category = ''; ui.selectedErrorId = ''; render(); }));
+    root.querySelector('#fqc-category')?.addEventListener('change', guardWorking(root.querySelector('#fqc-category'),event => { ui.category = event.target.value; ui.selectedErrorId = ''; render(); }));
+    root.querySelector('#fqc-search')?.addEventListener('input', guardWorking(root.querySelector('#fqc-search'),event => { ui.search = event.target.value; render(); }));
+    root.querySelector('.fqc-matrix')?.addEventListener('toggle', guardWorking(root.querySelector('.fqc-matrix'),event => { ui.matrixOpen = event.target.open; }));
+    root.querySelector('#fqc-problems-details')?.addEventListener('toggle', guardWorking(root.querySelector('#fqc-problems-details'),event => { ui.problemsOpen = event.target.open; }));
+    root.querySelector('#fqc-retry-save')?.addEventListener('click', guardWorking(root.querySelector('#fqc-retry-save'),async () => {
       try {
         ui.lastError = null;
         await persist('草稿重新儲存成功');
@@ -1321,9 +1339,9 @@
         ui.lastError = err.message;
         render();
       }
-    });
+    }));
     root.querySelectorAll('[data-fix-item]').forEach(button => {
-      button.onclick = () => {
+      button.onclick = guardWorking(button,() => {
         const itemId = button.dataset.fixItem;
         const cat = button.dataset.fixCat;
         const err = button.dataset.fixErr;
@@ -1338,34 +1356,34 @@
         setTimeout(() => {
           openItemModal(itemId, '', true);
         }, 60);
-      };
+      });
     });
-    root.querySelectorAll('[data-error-id]').forEach(row => row.addEventListener('click', event => { if (event.target.closest('button')) return; ui.selectedErrorId = row.dataset.errorId; render(); }));
-    root.querySelector('#fqc-add-error')?.addEventListener('click', () => openErrorModal());
-    root.querySelectorAll('[data-edit-error]').forEach(button => button.onclick = () => openErrorModal(button.dataset.editError));
-    root.querySelectorAll('[data-delete-error]').forEach(button => button.onclick = () => deleteError(button.dataset.deleteError));
-    root.querySelector('#fqc-add-item')?.addEventListener('click', () => openItemModal());
-    root.querySelectorAll('[data-edit-item]').forEach(button => button.onclick = () => openItemModal(button.dataset.editItem));
-    root.querySelectorAll('[data-routine-history]').forEach(button => button.onclick = () => window.RoutineFQCUI?.historyForItem?.(button.dataset.routineHistory));
-    root.querySelectorAll('[data-delete-item]').forEach(button => button.onclick = () => deleteItem(button.dataset.deleteItem));
-    root.querySelectorAll('[data-matrix-item]').forEach(button => button.onclick = () => toggleMatrixChoice(button));
-    root.querySelector('#fqc-matrix-apply')?.addEventListener('click',applyMatrixChoices);
-    root.querySelector('#fqc-matrix-discard')?.addEventListener('click',discardMatrixChoices);
-    root.querySelector('#fqc-matrix-reconcile')?.addEventListener('click',reconcileMatrixChoices);
-    root.querySelector('#fqc-matrix-recovery')?.addEventListener('click',openMatrixRecovery);
-    root.querySelectorAll('[data-add-existing]').forEach(button => button.onclick = () => openExistingModal(button.dataset.addExisting));
-    root.querySelectorAll('[data-add-new-product]').forEach(button => button.onclick = () => openItemModal('', button.dataset.addNewProduct));
+    root.querySelectorAll('[data-error-id]').forEach(row => row.addEventListener('click', guardWorking(row,event => { if (event.target.closest('button')) return; ui.selectedErrorId = row.dataset.errorId; render(); })));
+    root.querySelector('#fqc-add-error')?.addEventListener('click', guardWorking(root.querySelector('#fqc-add-error'),() => openErrorModal()));
+    root.querySelectorAll('[data-edit-error]').forEach(button => button.onclick = guardWorking(button,() => openErrorModal(button.dataset.editError)));
+    root.querySelectorAll('[data-delete-error]').forEach(button => button.onclick = guardWorking(button,() => deleteError(button.dataset.deleteError)));
+    root.querySelector('#fqc-add-item')?.addEventListener('click', guardWorking(root.querySelector('#fqc-add-item'),() => openItemModal()));
+    root.querySelectorAll('[data-edit-item]').forEach(button => button.onclick = guardWorking(button,() => openItemModal(button.dataset.editItem)));
+    root.querySelectorAll('[data-routine-history]').forEach(button => button.onclick = guardWorking(button,() => window.RoutineFQCUI?.historyForItem?.(button.dataset.routineHistory)));
+    root.querySelectorAll('[data-delete-item]').forEach(button => button.onclick = guardWorking(button,() => deleteItem(button.dataset.deleteItem)));
+    root.querySelectorAll('[data-matrix-item]').forEach(button => button.onclick = guardWorking(button,() => toggleMatrixChoice(button)));
+    root.querySelector('#fqc-matrix-apply')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-apply'),applyMatrixChoices));
+    root.querySelector('#fqc-matrix-discard')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-discard'),discardMatrixChoices));
+    root.querySelector('#fqc-matrix-reconcile')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-reconcile'),reconcileMatrixChoices));
+    root.querySelector('#fqc-matrix-recovery')?.addEventListener('click',guardWorking(root.querySelector('#fqc-matrix-recovery'),openMatrixRecovery));
+    root.querySelectorAll('[data-add-existing]').forEach(button => button.onclick = guardWorking(button,() => openExistingModal(button.dataset.addExisting)));
+    root.querySelectorAll('[data-add-new-product]').forEach(button => button.onclick = guardWorking(button,() => openItemModal('', button.dataset.addNewProduct)));
     root.querySelectorAll('[data-view-item]').forEach(button => {
-      button.onclick = () => {
+      button.onclick = guardWorking(button,() => {
         const item = selected()?.snapshot.items.find(it => it.id === button.dataset.viewItem);
         if (item && item.mediaItems?.length) openPhotoViewer(item, 0);
-      };
+      });
     });
     root.querySelectorAll('[data-view-eq-id]').forEach(link => {
-      link.onclick = (e) => {
+      link.onclick = guardWorking(link,(e) => {
         e.preventDefault();
         void openEquipmentViewModal(link.dataset.viewEqId);
-      };
+      });
     });
   }
   function nextErrorCode(category, errors) {
@@ -1573,20 +1591,20 @@
       <div class="fqc-field" data-field-wrap="name"><label class="fqc-label">${vi ? 'Tên lỗi' : '錯誤名稱'}</label><input name="name" value="${h(existing?.name || '')}" required data-i18n-skip="true" class="fqc-input"><div class="fqc-field-error" data-field-error="name"></div></div>
     </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${isVi()?'Hoàn tất chỉnh sửa':'完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
-    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
+    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
     overlay.querySelectorAll('input, textarea').forEach(input => {
-      input.addEventListener('input', () => {
+      input.addEventListener('input', guardWorking(input,() => {
         const wrap = input.closest('.fqc-field');
         if (wrap) {
           wrap.classList.remove('has-error');
           const err = wrap.querySelector('.fqc-field-error');
           if (err) { err.textContent = ''; err.classList.remove('show'); }
         }
-      });
+      }));
     });
 
     ownFormWrite(overlay,version);
-    overlay.querySelector('form').onsubmit = async event => {
+    overlay.querySelector('form').onsubmit = guardWorking(overlay.querySelector('form'),async event => {
       event.preventDefault();
       if(!admitFormWrite(overlay))return;
       clearModalErrors(overlay);
@@ -1607,7 +1625,7 @@
         if(!formWriteCurrent(overlay))return;
         showModalAlert(overlay, 'error', error.message || (vi ? 'Lưu thất bại' : '儲存失敗'));
       } finally { release(); }
-    };
+    });
   }
   function selectedEqCardHTML(eq) {
     const vi = isVi();
@@ -1659,11 +1677,11 @@
         </footer>
       </div>
     `);
-    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
-    overlay.querySelector('#fqc-picker-retry').onclick = () => {
+    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
+    overlay.querySelector('#fqc-picker-retry').onclick = guardWorking(overlay.querySelector('#fqc-picker-retry'),() => {
       closeModal(overlay);
       openEquipmentPickerModal(currentSelectedId, onSelect).catch(error => toast(displayDraftError(error)));
-    };
+    });
   }
 
   async function openEquipmentPickerModal(currentSelectedId, onSelect) {
@@ -1729,7 +1747,7 @@
       </div>
     `);
 
-    overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(overlay));
+    overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = guardWorking(b,() => closeModal(overlay)));
 
     const catSelect = overlay.querySelector('#fqc-picker-cat');
     const subSelect = overlay.querySelector('#fqc-picker-sub');
@@ -1802,42 +1820,42 @@
       }).join('');
 
       listEl.querySelectorAll('[data-select-eq]').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = guardWorking(btn,() => {
           const id = btn.dataset.selectEq;
           const eq = catalog.equipment.find(e => e.id === id);
           if (eq && !equipmentUnavailableReason(eq, catalog)) {
             onSelect(eq);
             closeModal(overlay);
           }
-        };
+        });
       });
     }
 
-    catSelect.onchange = () => {
+    catSelect.onchange = guardWorking(catSelect,() => {
       pickerCat = catSelect.value;
       pickerSub = '';
       pickerGrp = '';
       updateSubOptions();
       updateGrpOptions();
       renderList();
-    };
+    });
 
-    subSelect.onchange = () => {
+    subSelect.onchange = guardWorking(subSelect,() => {
       pickerSub = subSelect.value;
       pickerGrp = '';
       updateGrpOptions();
       renderList();
-    };
+    });
 
-    grpSelect.onchange = () => {
+    grpSelect.onchange = guardWorking(grpSelect,() => {
       pickerGrp = grpSelect.value;
       renderList();
-    };
+    });
 
-    searchInput.oninput = () => {
+    searchInput.oninput = guardWorking(searchInput,() => {
       pickerSearch = searchInput.value;
       renderList();
-    };
+    });
 
     updateSubOptions();
     updateGrpOptions();
@@ -1901,7 +1919,7 @@
         </footer>
       </div>
     `);
-    overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(overlay));
+    overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = guardWorking(b,() => closeModal(overlay)));
     void refreshEquipmentReferencePanel(overlay, eqId);
   }
 
@@ -1967,7 +1985,7 @@
     const closeView=()=>{closePhoto?.();closeModal(overlay);};
     overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = closeView);
     overlay.querySelectorAll('[data-view-idx]').forEach(card => {
-      card.onclick = () => {if(!authorizedView||authorizedView.current()){closePhoto?.();closePhoto=openPhotoViewer(item, Number(card.dataset.viewIdx));}};
+      card.onclick = guardWorking(card,() => {if(!authorizedView||authorizedView.current()){closePhoto?.();closePhoto=openPhotoViewer(item, Number(card.dataset.viewIdx));}});
     });
     return closeView;
   }
@@ -2129,7 +2147,7 @@
       <p class="fqc-system-note">${vi ? 'Phiên bản' : '版本'} ${h(version.number)} · ${vi ? 'Tài khoản sửa' : '修改帳號'} ${h(actor().id)} · ${vi ? 'Thời gian lưu do máy chủ ghi nhận' : '儲存時間由伺服器完成後記錄'}</p>
     </div><footer><div class="fqc-modal-alert" role="alert"></div><button class="button signal" type="submit">${vi ? 'Hoàn tất chỉnh sửa' : '完成編輯'}</button><button type="button" class="button ghost" data-close>${vi ? 'Hủy' : '取消'}</button></footer></form>`);
 
-    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
+    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
 
     // 規則卡片切換處理
     const ruleCadenceSelect = overlay.querySelector('#fqc-rule-cadence');
@@ -2143,26 +2161,26 @@
     const timeFreqSelect = overlay.querySelector('#fqc-time-frequency');
     const timeCustomWrap = overlay.querySelector('#fqc-time-custom-wrap');
 
-    ruleCadenceSelect.onchange = () => {
+    ruleCadenceSelect.onchange = guardWorking(ruleCadenceSelect,() => {
       const val = ruleCadenceSelect.value;
       batchSubwrap.style.display = val === 'batch' ? '' : 'none';
       timeSubwrap.style.display = val === 'time' ? '' : 'none';
       clearModalErrors(overlay);
-    };
+    });
 
-    batchKindSelect.onchange = () => {
+    batchKindSelect.onchange = guardWorking(batchKindSelect,() => {
       const kind = batchKindSelect.value;
       batchAqlWrap.style.display = kind === 'aql' ? '' : 'none';
       batchFixedWrap.style.display = kind === 'fixed_count' ? '' : 'none';
       batchQtyWrap.style.display = kind === 'batch_quantity' ? '' : 'none';
       batchCustomWrap.style.display = kind === 'custom' ? '' : 'none';
       clearModalErrors(overlay);
-    };
+    });
 
-    timeFreqSelect.onchange = () => {
+    timeFreqSelect.onchange = guardWorking(timeFreqSelect,() => {
       timeCustomWrap.style.display = timeFreqSelect.value === 'custom' ? '' : 'none';
       clearModalErrors(overlay);
-    };
+    });
 
     if (focusRule) {
       setTimeout(() => {
@@ -2201,21 +2219,21 @@
       `).join('');
 
       container.querySelectorAll('[data-photo-note]').forEach(input => {
-        input.oninput = e => {
+        input.oninput = guardWorking(input,e => {
           const i = Number(e.target.dataset.photoNote);
           if (currentMedia[i]) currentMedia[i].note = e.target.value;
-        };
+        });
       });
       container.querySelectorAll('[data-photo-primary]').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = guardWorking(btn,() => {
           const i = Number(btn.dataset.photoPrimary);
           const [moved] = currentMedia.splice(i, 1);
           currentMedia.unshift(moved);
           renderPhotoList();
-        };
+        });
       });
       container.querySelectorAll('[data-photo-up]').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = guardWorking(btn,() => {
           const i = Number(btn.dataset.photoUp);
           if (i > 0) {
             const temp = currentMedia[i - 1];
@@ -2223,10 +2241,10 @@
             currentMedia[i] = temp;
             renderPhotoList();
           }
-        };
+        });
       });
       container.querySelectorAll('[data-photo-down]').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = guardWorking(btn,() => {
           const i = Number(btn.dataset.photoDown);
           if (i < currentMedia.length - 1) {
             const temp = currentMedia[i + 1];
@@ -2234,20 +2252,20 @@
             currentMedia[i] = temp;
             renderPhotoList();
           }
-        };
+        });
       });
       container.querySelectorAll('[data-photo-remove]').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = guardWorking(btn,() => {
           const i = Number(btn.dataset.photoRemove);
           currentMedia.splice(i, 1);
           renderPhotoList();
-        };
+        });
       });
     }
 
     renderPhotoList();
 
-    overlay.querySelector('#fqc-file-input').onchange = async e => {
+    overlay.querySelector('#fqc-file-input').onchange = guardWorking(overlay.querySelector('#fqc-file-input'),async e => {
       const files = [...(e.target.files || [])];
       try {
         for (const file of files) {
@@ -2259,57 +2277,57 @@
         }
       } catch(error) { showModalAlert(overlay,'error',error.message||String(error)); }
       finally { e.target.value=''; }
-    };
+    });
 
     overlay.querySelectorAll('input[name="toolType"]').forEach(r => {
-      r.addEventListener('change', () => {
+      r.addEventListener('change', guardWorking(r,() => {
         toolType = r.value;
         const eqBlock = overlay.querySelector('#fqc-tool-eq-block');
         if (eqBlock) eqBlock.style.display = toolType === 'equipment' ? '' : 'none';
-      });
+      }));
     });
 
     function bindEqCardActions() {
       const container = overlay.querySelector('#fqc-selected-eq-container');
       if (!container) return;
-      container.querySelector('#fqc-pick-eq-trigger')?.addEventListener('click', () => {
+      container.querySelector('#fqc-pick-eq-trigger')?.addEventListener('click', guardWorking(container.querySelector('#fqc-pick-eq-trigger'),() => {
         openEquipmentPickerModal(selectedEqId, (chosenEq) => {
           selectedEq = chosenEq;
           selectedEqId = chosenEq.id;
           container.innerHTML = selectedEqCardHTML(selectedEq);
           bindEqCardActions();
         }).catch(error => toast(displayDraftError(error)));
-      });
-      container.querySelector('#fqc-change-eq-trigger')?.addEventListener('click', () => {
+      }));
+      container.querySelector('#fqc-change-eq-trigger')?.addEventListener('click', guardWorking(container.querySelector('#fqc-change-eq-trigger'),() => {
         openEquipmentPickerModal(selectedEqId, (chosenEq) => {
           selectedEq = chosenEq;
           selectedEqId = chosenEq.id;
           container.innerHTML = selectedEqCardHTML(selectedEq);
           bindEqCardActions();
         }).catch(error => toast(displayDraftError(error)));
-      });
-      container.querySelector('#fqc-clear-eq-trigger')?.addEventListener('click', () => {
+      }));
+      container.querySelector('#fqc-clear-eq-trigger')?.addEventListener('click', guardWorking(container.querySelector('#fqc-clear-eq-trigger'),() => {
         selectedEq = null;
         selectedEqId = '';
         container.innerHTML = selectedEqCardHTML(null);
         bindEqCardActions();
-      });
+      }));
     }
     bindEqCardActions();
 
     overlay.querySelectorAll('input, textarea, select').forEach(input => {
-      input.addEventListener('input', () => {
+      input.addEventListener('input', guardWorking(input,() => {
         const wrap = input.closest('.fqc-field');
         if (wrap) {
           wrap.classList.remove('has-error');
           const err = wrap.querySelector('.fqc-field-error');
           if (err) { err.textContent = ''; err.classList.remove('show'); }
         }
-      });
+      }));
     });
 
     ownFormWrite(overlay,version);
-    overlay.querySelector('form').onsubmit = async event => {
+    overlay.querySelector('form').onsubmit = guardWorking(overlay.querySelector('form'),async event => {
       event.preventDefault();
       if(!admitFormWrite(overlay))return;
       clearModalErrors(overlay);
@@ -2452,7 +2470,7 @@
         render();
         showModalAlert(overlay, 'error', error.message || (vi ? 'Lưu thất bại' : '儲存失敗'));
       } finally { release(); }
-    };
+    });
   }
   function openPhotoViewer(item, initialIndex = 0) {
     const photos = item.mediaItems || [];
@@ -2491,22 +2509,22 @@
       </div>`;
 
       overlay.querySelectorAll('[data-close]').forEach(btn => btn.onclick = closeViewer);
-      overlay.querySelector('#fqc-viewer-prev')?.addEventListener('click', () => {
+      overlay.querySelector('#fqc-viewer-prev')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-viewer-prev'),() => {
         currentIndex = (currentIndex - 1 + photos.length) % photos.length;
         renderViewer();
-      });
-      overlay.querySelector('#fqc-viewer-next')?.addEventListener('click', () => {
+      }));
+      overlay.querySelector('#fqc-viewer-next')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-viewer-next'),() => {
         currentIndex = (currentIndex + 1) % photos.length;
         renderViewer();
-      });
-      overlay.querySelector('#fqc-viewer-btn-prev')?.addEventListener('click', () => {
+      }));
+      overlay.querySelector('#fqc-viewer-btn-prev')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-viewer-btn-prev'),() => {
         currentIndex = (currentIndex - 1 + photos.length) % photos.length;
         renderViewer();
-      });
-      overlay.querySelector('#fqc-viewer-btn-next')?.addEventListener('click', () => {
+      }));
+      overlay.querySelector('#fqc-viewer-btn-next')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-viewer-btn-next'),() => {
         currentIndex = (currentIndex + 1) % photos.length;
         renderViewer();
-      });
+      }));
     }
 
     function keyHandler(e) {
@@ -2611,7 +2629,7 @@
       </footer>
     </form>`);
 
-    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = () => closeModal(overlay));
+    overlay.querySelectorAll('[data-close]').forEach(button => button.onclick = guardWorking(button,() => closeModal(overlay)));
 
     const checkInputs = Array.from(overlay.querySelectorAll('input[name="itemCheck"]'));
     const countEl = overlay.querySelector('#fqc-selected-count');
@@ -2633,40 +2651,40 @@
     updateCount();
 
     overlay.querySelectorAll('.fqc-batch-row').forEach(row => {
-      row.addEventListener('click', event => {
+      row.addEventListener('click', guardWorking(row,event => {
         if (event.target.tagName.toLowerCase() === 'input') return;
         const cb = row.querySelector('input[name="itemCheck"]');
         if (cb) {
           cb.checked = !cb.checked;
           updateCount();
         }
-      });
+      }));
     });
 
     checkInputs.forEach(cb => {
-      cb.addEventListener('change', updateCount);
+      cb.addEventListener('change', guardWorking(cb,updateCount));
     });
 
-    overlay.querySelector('#fqc-select-all')?.addEventListener('click', () => {
+    overlay.querySelector('#fqc-select-all')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-select-all'),() => {
       checkInputs.forEach(cb => cb.checked = true);
       updateCount();
-    });
+    }));
 
-    overlay.querySelector('#fqc-deselect-all')?.addEventListener('click', () => {
+    overlay.querySelector('#fqc-deselect-all')?.addEventListener('click', guardWorking(overlay.querySelector('#fqc-deselect-all'),() => {
       checkInputs.forEach(cb => cb.checked = false);
       updateCount();
-    });
+    }));
 
     if (toggleAllMaster) {
-      toggleAllMaster.addEventListener('change', () => {
+      toggleAllMaster.addEventListener('change', guardWorking(toggleAllMaster,() => {
         const checked = toggleAllMaster.checked;
         checkInputs.forEach(cb => cb.checked = checked);
         updateCount();
-      });
+      }));
     }
 
     ownFormWrite(overlay,version);
-    overlay.querySelector('form').onsubmit = async event => {
+    overlay.querySelector('form').onsubmit = guardWorking(overlay.querySelector('form'),async event => {
       event.preventDefault();
       if(!admitFormWrite(overlay))return;
       clearModalErrors(overlay);
@@ -2703,7 +2721,7 @@
         if(!formWriteCurrent(overlay))return;
         showModalAlert(overlay, 'error', error.message || (isVi() ? 'Lưu thất bại' : '儲存失敗'));
       } finally { release(); }
-    };
+    });
   }
   async function deleteError(id) {
     const version = editable(), error = version?.snapshot?.errors.find(item => item.id === id);
@@ -2741,6 +2759,7 @@
     }
   }
   function bind(element) {
+    historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;
     const sequence = ++mountSequence;navigationError=null;
     workspaceReady = () => false;
     hostElement = element;
@@ -2911,7 +2930,7 @@
     canSave:()=>!!editable()&&!!canDraftAction('save'),canDiscard:()=>!!editable()&&sharedClient?.permission('edit')===true,
     save:()=>sharedAction('save'),dialogs:()=>[...document.querySelectorAll('.fqc-modal-overlay')],
     async discard(){cancelSaveComparison();for(const overlay of document.querySelectorAll('.fqc-modal-overlay'))closeModal(overlay);if(matrixDirty())await discardMatrixChoices();discardLocalEdits();},
-  }));},requiresSave:()=>false,saveForDeparture:()=>sharedAction('save'),hasLocalChanges:localDirty,canLeave:()=>!ui.saving&&!localDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){cancelSaveComparison();beginGenerationConflict=null;localRejection=null;localSaveAttempt=null;matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;matrixRecoveryContext='';matrixRecoveryBase='';matrixRecoveryReady=false;mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
+  }));},requiresSave:()=>false,saveForDeparture:()=>sharedAction('save'),hasLocalChanges:localDirty,canLeave:()=>!ui.saving&&!localDirty()&&!document.querySelector('.fqc-modal-overlay'),error:()=>navigationError,reset(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;cancelSaveComparison();beginGenerationConflict=null;localRejection=null;localSaveAttempt=null;matrixRecoverySession?.close();matrixRecoverySession=null;matrixBatch=null;matrixRecoveryContext='';matrixRecoveryBase='';matrixRecoveryReady=false;mountSequence++;reviewReadSequence++;sharedStateCurrent=()=>false;activeSharedAction=null;pendingCommandFeedback=null;ui.saving=false;workspaceReady=()=>false;hostElement=null;control=null;syncBase=null;syncGeneration=null;equipmentCache=null;equipmentCacheCurrent=()=>false;masterCatalogCache=null;masterCatalogCurrent=()=>false;ui.selectedVersionId='';ui.recoveryNotice=null;navigationError=null;}}, html, bind, reviewHTML, bindReview, pendingCount, get control() { return ensureControl(); } };
   host.FQCQualityAPI = {
     openAuthorizedItemView(version,itemId,current) {
       if(typeof current!=='function'||!current()||typeof version?.id!=='string'||!Array.isArray(version.snapshot?.items)||!Array.isArray(version.snapshot?.errors))throw Error('FQC_REFERENCE_VIEW_UNAVAILABLE');
@@ -2993,7 +3012,7 @@
     }
   };
 
-  window.addEventListener('process-language-change',()=>{if(workspaceReady()&&!document.querySelector('.fqc-modal-overlay'))render();});
+  window.addEventListener('process-language-change',()=>{if(approvedHistoryView?.blocked){approvedHistoryView.relabel();return;}if(workspaceReady()&&!document.querySelector('.fqc-modal-overlay'))render();});
   window.addEventListener('process-shared-state-updated', () => {
     // No background path may install or render a partial mounting workspace.
     if (fqcTabIsActive() && !workspaceReady()) return;

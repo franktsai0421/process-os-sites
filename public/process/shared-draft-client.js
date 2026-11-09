@@ -351,6 +351,7 @@
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     const approvedAccessListeners=new Set();
+    const approvedHistoryRoute=['/api/bom/workflow','/api/fqc/workflow','/api/iqc/workflow','/api/tooling/workflow','/api/routine-equipment/workflow','/api/process-authoring/workflow','/api/master/workflow','/api/ipqc-ab/workflow','/api/ipqc-c/workflow'].includes(beginPath);
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
@@ -382,7 +383,7 @@
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
       if(denied||revoked){accessFence=accessIssued;if(boundedScope==='ipqc-c')cComparisonVersion++;}
       gateControls(denied||revoked);
-      if(boundedScope==='ipqc-c'||boundedScope==='iqc')for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
+      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -1212,10 +1213,8 @@
       },
       reviewMetadata:revision=>request(query('reviewMetadata=1'+(Number.isSafeInteger(revision)?'&since='+encodeURIComponent('state:'+revision):''))),
       history: before=>request(query(`history=cases${before?`&before=${encodeURIComponent(before)}`:''}`)),
-      ...(beginPath==='/api/ipqc-c/workflow'&&boundedScope==='ipqc-c'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true}),watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
-      ...(beginPath==='/api/iqc/workflow'&&boundedScope==='iqc'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true}),watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
+      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       uiHistory: options=>request(query('uiHistory=1&'+new URLSearchParams(options))),
-      ...(beginPath==='/api/bom/workflow'?{approvedHistory:(options,readOptions)=>request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true}),approvedVersion:(id,readOptions)=>request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true})}:{}),
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
       ...(legacyArchive?{legacyHistory:before=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`)),legacyVersion:id=>request(query(`legacyVersionId=${encodeURIComponent(id)}`))}:{}),
