@@ -1,4 +1,5 @@
 import unified from '../scripts/unified-draft-source-contract.cjs';
+import currentTag from './approved-history-cache-tags.cjs';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
 const root=process.env.PROCESS_RECOVERY_SOURCE||process.cwd(),source=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),tick=()=>new Promise(r=>setImmediate(r));
@@ -80,7 +81,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  };
  for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
  const currentReferences=[...currentIndex.toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
- for(const [asset,version]of Object.entries(versions)){const currentVersion=version==='20261109-unified-save-choice1'||asset==='master-admin-ui.js'?'20261109-unified-save-choice2':version;assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}
+ for(const [asset,version]of Object.entries(versions)){const currentVersion=currentTag(asset,version);assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}
 });
 for(const action of ['save','begin'])void test('authoring '+action+' retains its original response contract during30s tolerance',async()=>{
  const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(action==='begin'?f.client.begin():f.client.command('g','save'));await tick();const body=JSON.parse(f.calls[0].options.body);await f.advance(30000);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);f.calls[0].respond(action==='begin'?{control:{workflow:{generation:'new'}}}:ack(body.command,{savedId:'saved'}));await result.done;assert.equal(result.error,undefined);assert.equal(action==='begin'?result.value.control.workflow.generation:result.value.receipt.savedId,action==='begin'?'new':'saved');assert.equal(f.calls.length,1);assert.equal(f.memory.size,0);

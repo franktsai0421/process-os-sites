@@ -1,4 +1,5 @@
 import unified from '../scripts/unified-draft-source-contract.cjs';
+import currentTag from './approved-history-cache-tags.cjs';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -39,11 +40,11 @@ assert(iqcAdmission.includes('function validateIqcPayload(')&&iqcSelected.includ
 // the full shared transport is exercised by the dedicated IQC race suites.
 function iqcLoadFixture(){
  let epoch=1;const response=deferred(),events=[],actor={id:'synthetic'},options=[];
- const box={control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
+ const box={historyDisplayEpoch:0,approvedHistoryView:null,control:null,revision:null,loadSequence:0,readDenied:null,navigationError:null,activeDeferredId:'',ui:{versionId:''},identity:()=>actor,
   window:{ProcessSync:{captureDelivery:()=>epoch,isCurrentDelivery:owner=>owner===epoch}},
   transport:()=>({read:(token,opt)=>{assert.equal(token,undefined);assert.equal(opt.requireAcceptedAccess,true);assert.equal(opt.isCurrent(),true);events.push('combined');options.push(opt);return response.promise;}}),
   denyRead:error=>{box.readDenied=error;}};
- vm.createContext(box);vm.runInContext(iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
+ const displayGuards=iqcSource.match(/  const historyAllowsMutation=[^\n]+\n  const assertCurrentDisplay=[^\n]+/);assert(displayGuards,'actual IQC display guards required');vm.createContext(box);vm.runInContext(displayGuards[0]+'\n'+iqcSelected+iqcAdmission+iqcLoad,box);return{box,response,events,options,invalidate:()=>{epoch++;}};
 }
 const iqcFull=()=>({revision:9,permissions:Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,true])),control:{schemaVersion:1,versions:[],issues:[],reservedErrorCodes:[],reservedCheckNos:[]}});
 for(const kind of ['delivery','entry-owner'])void test('actual IQC load rejects old '+kind+' without installing model',async()=>{
@@ -159,7 +160,7 @@ void test('changed persistent-navigation executable references have coherent new
  const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
  for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
  const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
- const currentExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ const currentExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,currentTag(file,version)]));
  for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
  for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));
@@ -187,3 +188,6 @@ void test('line-admin departure never auto-saves legacy shared AB/C working',()=
  const flow={working:{name:'changed'},saved:{content:{name:'saved'}},active:{content:{name:'active'}}},box={state:{view:'data',dataTab:'line-admin',masterScope:'C'},shared:{flow:scope=>{assert.equal(scope,'C');return flow;}}};
  vm.createContext(box);const adapter=vm.runInContext('({'+declaration+'})',box);assert.equal(adapter.requiresSave(),false);flow.saved.content=flow.working;assert.equal(adapter.requiresSave(),false);box.state.view='editor';assert.equal(adapter.requiresSave(),false);
 });
+
+void test('actual IQC history guard blocks ordinary read before dispatch',async()=>{const f=iqcLoadFixture();f.box.approvedHistoryView={blocked:true};await assert.rejects(f.box.load(),/APPROVED_HISTORY_READ_ONLY/);assert.deepEqual(f.events,[]);});
+void test('actual IQC display epoch retires an ordinary in-flight read',async()=>{const f=iqcLoadFixture(),pending=f.box.load();f.box.historyDisplayEpoch++;f.response.resolve(iqcFull());await assert.rejects(pending,/DELIVERY_SUPERSEDED/);assert.equal(f.box.control,null);});

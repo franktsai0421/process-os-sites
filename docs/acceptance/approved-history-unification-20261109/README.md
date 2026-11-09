@@ -1,6 +1,6 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與品質／AB/C 主資料前端
+# 全草稿頁已核准歷史版本查看：共同讀取與十二組頁面前端
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及 IQC／FQC／模具前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及十二組已接前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -165,3 +165,17 @@ FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重
 保留 main 和本候選各自不同的驗證：目前九個完整模組初始化／focus／visibility 不產生輪詢；七個已退役 producer 的舊回呼從真實 d4ac309 Git 來源以有限 witness 取出，僅在測試手動 driver 執行，並由現行程式無 producer 斷言保護。這些 cached callback 測試不代表產品仍安裝 timer。原 9 個來源 target 保留，新增 `main_100`，原 background exact inverse 和負向控制不放寬。
 
 製程編輯台仍未完成原頁唯讀前端與舊核准聯集。獨立 80745895 交付文件明文要求 parent 先協調另一畫布工作；此處已提出協調需求，未把該候選當作已整合，也未以本批完成十二組頁面宣稱全站完成。GitHub 本批仍未上傳、未部署；原先 create_tree 結果不明及 equipment 上傳自動審查拒絕仍未解除、未重送。資料／schema／ACL 無變更。
+
+### 固定整合結果
+
+產品 merge `bfa26509bf7b29a2855f84da290d971dd4dca3a7` 已包含真實 main #100；交付前再以 GitHub 唯讀核實 main 仍為 `9fbba823090f03da8385c8d92f5e59293d19d2f1`。
+
+- **418/418 PASS**：十個實際頁面／API 查看套件，加 #99 stage catalog 與 #100 FQC readiness。其餘已完成頁面原有更大批次結果見上述逐頁紀錄。
+- **775/775 PASS**：完整 named predecessor／bounded witness／來源負向控制，以及 #100 原五檔 exact inverse。原九個 target、舊 hash／歷史 pin 不變，新增 main_100。
+- **239/239 PASS**：#100 手動畫布同步、原收據恢復、restore admission、read deadline、全站 timer inventory、inert scheduler 與 fixture ports；最初 cache 失敗已在最終固定 source 下重跑通過。
+- **79/79 PASS**：來源相依的原導覽／收據／五檔 inverse；原歷史 cache 預期全部保留，目前 cache 以有限明確 map 驗證。IQC 原 closure fixture 補入實際 display guard 宣告，新增 history-before-read／late display epoch 負向。
+- **九個 current initializers** 零 request／零 timer；**14 個明確 permission GET、1 dirty-flush、4 negative probes**，以及原 equipment 28 項回歸 PASS。current scoped read pause 與 frozen cached callback companion 各自完成，後者 **50 groups PASS**。
+- #100 原 panel differential **15 cases PASS**，完整 baseline hash 仍為 a8a0b53…；以 unified→main_100→原 background inverse 組合，未改 baseline pin。EOL fixture **78 checks PASS**；IQC cached closure **24 checks PASS**；AB/C/PROCESS/BOM review composition **37 cases PASS**。cached suite 僅從真實 d4 取歷史 producer，不把其 timer 裝入產品。
+- typed lint、TypeScript、Sites source boundary、diff check 與受保護 build **PASS**。Build 只證明編譯與既有已知 public auth 檢查，不宣稱通用敏感資料掃描或發布許可。
+
+日誌存放本機兄弟目錄 `approved-history-unified-evidence-20261109`；最終 bundle／main-relative patch／receipt 另固定候選提交與 SHA256。沒有 GitHub Actions CI／PR review、測試站或原生瀏覽器驗收結果。既有兩項未修改 Canvas equipment snapshot 斷言曾在前任同樣失敗，仍保留其紀錄；本批沒有把那些未解限制改成 PASS。資料模型／schema／ACL 無改動；沒有真實資料寫入。

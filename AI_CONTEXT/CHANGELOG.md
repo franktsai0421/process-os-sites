@@ -1,6 +1,6 @@
 ## 2026-11-09 — #100 main 與同頁核准版本本機整合
 
-本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。最終測試、source proof 與 build 綁後續真實 merge SHA；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
 
 ## 2026-11-09 — Retire periodic web checks
 

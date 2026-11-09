@@ -3,12 +3,14 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 const root=process.env.PANEL_TEST_ROOT||path.resolve(__dirname,'..'),candidate=process.env.PANEL_CANDIDATE||path.join(root,'public/process/process-authoring-v3.js'),fixturePath=path.join(root,'scripts/test-authoring-save-validation-ui.cjs');
 const candidateSource=fs.readFileSync(candidate,'utf8').replace(/\r\n/g,'\n');
 function replaceOnce(source,from,to){assert.equal(source.split(from).length-1,1,'portable baseline requires one exact source anchor: '+from.slice(0,90));return source.replace(from,to);}
-// Admit checkout EOL only against actual committed bytes, then compose the exact
-// background-check inverse before the unchanged departure/panel historical pins.
+// Admit checkout EOL against actual committed bytes; compose the unified exact
+// main_100 projection with its unchanged background inverse before the original
+// panel/departure control. Candidate itself is executed unchanged.
 const committedSource=execFileSync('git',['show','HEAD:public/process/process-authoring-v3.js'],{cwd:root});
 assert.equal(createHash('sha256').update(candidateSource).digest('hex'),createHash('sha256').update(committedSource.toString().replace(/\r\n/g,'\n')).digest('hex'),'authoring checkout differs from HEAD beyond checkout EOL');
 const currentSource=committedSource;
-let baselineSource=require('./background-check-source-contract.cjs').projectKnown(currentSource,'public/process/process-authoring-v3.js').toString().replace(/\r\n/g,'\n');
+const main100Source=require('./unified-draft-source-contract.cjs').restore(currentSource,'public/process/process-authoring-v3.js','main_100');
+let baselineSource=require('./background-check-source-contract.cjs').projectKnown(main100Source,'public/process/process-authoring-v3.js').toString().replace(/\r\n/g,'\n');
 // Build the reviewed current-source panel control without changing the candidate.
 // Atomic Save/recovery code outside these exact departure spans is shared by both
 // arms; historical baseline provenance is retained separately in the inverse JSON.
