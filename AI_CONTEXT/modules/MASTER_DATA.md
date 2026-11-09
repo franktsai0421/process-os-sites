@@ -2,6 +2,8 @@
 
 實際 line-admin 仍借用 AB/C 的 scope；流程資料的模板／機器是同頁 `master:PROCESS`。`master-page-boundary.ts` 新增頁面所有權純預演：AB catalog、C catalog、單一 LINES（AB/C 為分區），完整保留舊 root 並固定 revision/digest/approved vector。沒有 storage／writer／UI adoption；route 拒絕未支援的 page marker，避免落回 combined writer。舊 split-v1 四文件及 line reducer 不等於新頁草稿已完成。[盤點、權限／舊案決策及接線](../../docs/acceptance/module-draft-boundary-20261109.md)。
 
+等待業務決定的獨立增量 `master-page-name-save.ts` 為未註冊、僅既有名稱的整頁 ordered Save。AB/C 同一 working/saved/receipt，後批失敗全保留來源；未建立控制資料、映射帳號權限或啟用寫入。不含 topology／PROCESS 變更，實際 UI/API/CAS 仍待接線。
+
 ## 2026-11-05 BOM 原子存取候選
 
 `save-local-v1` 在 request memory 依序驗證本機手動／已確認 Digiwin 操作，最後一次 CAS 保存 working、saved 和原收據。保留原 guards、匯入基準／決策、L2、角色、pending、歷史與引用。BOM edit 包含 Save；送審／核准／匯入分開。離頁無提示放棄未送輸入；未知 Begin／Save 留原持久標記、只查原收據，舊無識別碼紀錄不視為 clean。從未合併 PR77 分支衍生，未發布；[驗證與共用檔協調](../../docs/acceptance/bom-atomic-save-20261105/README.md)。

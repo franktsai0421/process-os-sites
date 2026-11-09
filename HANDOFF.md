@@ -2,6 +2,8 @@
 
 獨立自 main d4ac309，盤點 line-admin 借用 AB/C、PROCESS 模板／機器同頁。新增單一 LINES 頁面邊界純預演、完整來源保全及 revision/digest/approved pins，未啟用 storage/UI/CAS。實際 route 拒絕未支援 page marker，避免誤落 legacy writer。重大切換需決定舊 combined pending/working cutoff、AB/C 分區權限與例行文件例外；[具體候選與逐頁狀態](docs/acceptance/module-draft-boundary-20261109.md)。沒有真資料、schema、帳號權限、GitHub 寫入或部署；不重送歷史 UNKNOWN／拒絕操作。
 
+等待 Frank 回覆期間，補未註冊的整頁名稱 Save 元件及 14 組合成測試。AB/C 共享一份 Save／案件／pending lock 的 shared-kernel 證明，含兩編輯者、撤回／發回／核准、重開與原收據。無 Begin/adoption/ACL mapping/HTTP/CAS，不能當作線別頁已拆完。
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.

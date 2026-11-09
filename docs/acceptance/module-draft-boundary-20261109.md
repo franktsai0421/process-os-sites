@@ -9,7 +9,7 @@
 | 製程編輯台 | `process:platform` | 已是整頁一份；workspace／類別／工段為內部畫布。未改 runtime，跨畫布 Save 本輪 NOT_RUN |
 | AB 產線與類別 | `master:AB`，含線別工段 | 尚未拆。預演投影為 `master:AB.catalog`，只含 products/categoryGroups |
 | C 產線與類別 | `master:C`，含線別工段 | 尚未拆。預演投影為 `master:C.catalog` |
-| 線別與工段管理 | 依目前 AB/C 選取借用上述兩份 | 尚未拆。預演為單一 `master:LINES`，AB/C 分區在同一份 content，不能變成兩份頁面草稿 |
+| 線別與工段管理 | 依目前 AB/C 選取借用上述兩份 | 尚未拆。預演為單一 `master:LINES`；新增未註冊的既有名稱 Save 元件，AB/C 分區在同一份 content，不能變成兩份頁面草稿 |
 | 流程資料 | `master:PROCESS` | 已獨立；模板、名稱、媒體與設備總表／機器 modal 同頁，不拆成新模組 |
 | FQC | `fqc` | 已獨立；錯誤碼／項目／矩陣為內部視角，生命週期本輪 NOT_RUN |
 | IQC | `iqc` | 已獨立；零件／項目／供應商等同頁，生命週期本輪 NOT_RUN |
@@ -38,6 +38,10 @@
 
 實際 HTTP 前置守門現在拒絕任何尚未支援的 `page` marker，防止新 caller 被忽略標記後落入舊 combined AB/C writer。新 preview 沒有 HTTP、storage、環境開關或啟用 writer；舊 route 其餘行為保留。
 
+等待業務決定期間，另增 [master-page-name-save.ts](../../lib/master-page-name-save.ts)：只處理已存在線別／工段的名稱，整頁 ordered Save 在記憶體完成後只回傳一個 working＋saved＋sequence＋receipt 結果。後批 guard／validator 或權限失敗不改來源；沿用 shared kernel 的世代、pending、原 receipt 身分與精確重播。只接受 `master:LINES` 所有權及完整 owned history，不建立初始草稿、不推定 ACL cell、不接 HTTP／storage/CAS；新增刪除、code／路線／結構與 PROCESS link 均不由此元件處理。未決的舊資料切換和分區權限沒有被預設或繞過。
+
+測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
+
 ## 尚需使用者決定的具體事項
 
 1. **舊 combined 草稿如何切換。** 建議在舊流程正常結清待審及需要保留的未核准修改後，再從固定已核准版本建立新頁面草稿；永久保留舊版本、saved、案件和原 receipt 命名空間。若要帶著未結清 combined 草稿並行切換，必須另設舊案可處理範圍、交叉鎖及衝突政策。本預演只保留並列問題，不自動撤回／發回、清空、假核准或轉成新案。
@@ -59,6 +63,7 @@
 實際命令及最終輸出保留在工作區 `module-draft-boundary-evidence-20261109/`，摘要隨本次交付提供。新測試已加入 AB C local Save CI，沒有放寬既有測試。測試重用工作區既有依賴，沒有安裝、seed 或啟動開發服務。
 
 - PASS：新頁面邊界／純預演的 11 組合成契約；實際 GET/POST 的 reserved page/split admission，DB/R2 零讀寫。
+- PASS：單一 LINES 名稱 Save／真實 shared kernel 14 組合成契約，DB/R2 零讀寫；它不是完整新頁面 adapter 的生命週期驗收。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
 - NOT_RUN：新所有權 storage／CAS／HTTP／UI 全生命週期、雙身分、正式帳號、真資料遷移與備份還原、原生瀏覽器／手機／IME、Cloudflare 實站。
