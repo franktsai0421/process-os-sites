@@ -46,13 +46,15 @@ function canonicalCheckout(working,committed){
   return Buffer.from(committed);
 }
 function verifyRepository(directory=process.cwd()){
+  const unified=require('./unified-draft-source-contract.cjs');
   const git=(...args)=>execFileSync('git',args,{cwd:directory});
   assert.equal(git('rev-parse',contract.base+'^{tree}').toString().trim(),contract.baseTree,'Routine base tree mismatch');
   git('merge-base','--is-ancestor',contract.base,'HEAD');
   const before=git('show',contract.base+':'+contract.file),beforeIndex=git('show',contract.base+':'+contract.index);
   assertPredecessor(before,contract.file);
-  const source=canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file));
-  const index=canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index));
+  unified.attest(file=>unified.canonicalSource(fs.readFileSync(path.join(directory,file)),git('show','HEAD:'+file)));
+  const source=unified.project(canonicalCheckout(fs.readFileSync(path.join(directory,contract.file)),git('show','HEAD:'+contract.file)),contract.file,'latest_main');
+  const index=unified.project(canonicalCheckout(fs.readFileSync(path.join(directory,contract.index)),git('show','HEAD:'+contract.index)),contract.index,'latest_main');
   assertSource(source,contract.file);assertIndexSuccessor(index,beforeIndex,contract.index);
   return Object.freeze({status:'PASS_ROUTINE_FQC_SOURCE',base:contract.base,sourceHash:hash(source),indexHash:hash(index)});
 }

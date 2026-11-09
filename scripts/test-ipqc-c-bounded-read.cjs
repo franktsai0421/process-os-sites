@@ -1,3 +1,4 @@
+const unified=require('./unified-draft-source-contract.cjs');
 const {withoutLocalAtomicSave}=require('./ipqc-c-local-save-source-contract.cjs');
 /* Actual final GET and exact published GET baseline; synthetic SQLite/R2, no server/network. */
 const assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{randomBytes,createHash,createHmac}=require('node:crypto');
@@ -88,8 +89,8 @@ await check('C9 exact composed performance and explicit-rights spans; historical
  assert.throws(()=>preserved(Buffer.from('missing'),lf,lf,true),/POST source marker required/);
  assert.throws(()=>preserved(lf,Buffer.from('missing'),lf,true),/POST source marker required/);
  for(const file of ['app/api/ipqc-c/route.ts','lib/ipqc-c.ts','lib/ipqc-c-workflow.ts','app/api/ipqc-c/workflow/route.ts','app/api/ipqc-c/photo/route.ts']){
-  const committed=execFileSync('git',['show','HEAD:'+file]),working=fs.readFileSync(file);
-  assert.deepEqual(checkoutBytes(working),checkoutBytes(committed),'Working source changed beyond CRLF conversion');
+  const actualCommitted=execFileSync('git',['show','HEAD:'+file]),working=fs.readFileSync(file),committed=unified.project(unified.canonicalSource(working,actualCommitted),file,'main');
+  assert.deepEqual(checkoutBytes(working),checkoutBytes(actualCommitted),'Working source changed beyond CRLF conversion');
   // Retain the reviewed coverage-domain binding and its historical byte proof.
   // Canonical Save/CPU/projection changes are exactly reversed before the
   // unchanged #44 span negatives and original v20 proof, not ignored.

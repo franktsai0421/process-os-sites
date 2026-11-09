@@ -1,3 +1,5 @@
+> Historical first slice. The broader behavior is superseded by [the unified candidate](../unified-draft-save-choice-20261109/README.md); original tests and scope evidence remain below.
+
 # AB/C existing display-field Save choices — local candidate
 
 Base: GitHub main `b06394ce0065849733399423afd2d906761d69c1` (re-read

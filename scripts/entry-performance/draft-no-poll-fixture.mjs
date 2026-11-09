@@ -1,0 +1,36 @@
+// Current shipped sources only. Removed draft callers must not be replaced with
+// a permissive fake timer; live history/restore permission timers are separate.
+import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import ts from 'typescript';import {webcrypto} from 'node:crypto';import {canvasDOM} from '../login-reentry-dom.mjs';
+export const draftModules=['process-authoring-v3.js','master-data.js','fqc-master.js','iqc-master.js','ipqc-ab.js','ipqc-c.js','routine-equipment.js','bom-workspace.js','tooling.js'];
+const source=(root,name)=>fs.readFileSync(path.join(root,'public/process',name),'utf8');
+export function assertNoDraftPoll(root,name,text=source(root,name)){
+ const ast=ts.createSourceFile(name,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),forbidden=[];
+ function visit(node){if(ts.isCallExpression(node)){const callee=node.expression.getText(ast);if(['matrixRecoverySession.schedule','session.schedule'].includes(callee)){const body=node.arguments[0]?.getText(ast)||'';assert.match(body,/matrixSnapshot|errorProjection/,name+' schedules only explicit recovery capture');assert.doesNotMatch(body,/(?:\bfetch|\.(?:read|permissions))\s*\(/,name+' recovery capture cannot hide a draft reader');}if(/(?:^|\.)setInterval$|(?:^|\.)createForegroundPoll$/.test(callee)||ts.isPropertyAccessExpression(node.expression)&&node.expression.name.text==='schedule'&&!['matrixRecoverySession.schedule','session.schedule'].includes(callee))forbidden.push(callee);}if(ts.isFunctionDeclaration(node)&&/^(?:pollMaster|pollShared|pollTick|poll|scheduleRefresh|scheduleSharedRefresh)$/.test(node.name?.text||''))forbidden.push(node.name.text);ts.forEachChild(node,visit);}visit(ast);
+ assert.deepEqual(forbidden,[],name+' has no retired recurring draft reader or renamed scheduler call');return text;
+}
+export async function assertDraftInitializerIdle(root,name){
+ const text=assertNoDraftPoll(root,name),dom=canvasDOM(),document=dom.document;document.visibilityState='visible';const timers=new Map(),calls=[],store=new Map();let sequence=0;
+ const storage={get length(){return store.size;},key:i=>[...store.keys()][i]??null,getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+ const c={...dom,console,crypto:webcrypto,structuredClone,URL,URLSearchParams,Response,Request,AbortController,AbortSignal,TextEncoder,location:{origin:'https://no-poll.invalid',pathname:'/process/',href:'https://no-poll.invalid/process/'},localStorage:storage,sessionStorage:storage,hasPermission:()=>false,readStore:()=>null,escapeHtml:String,queueMicrotask,
+  setTimeout(fn,ms){const id=++sequence;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),setInterval(){throw Error('DRAFT_INTERVAL_FORBIDDEN:'+name);},clearInterval(){},MutationObserver:class{observe(){}disconnect(){}},
+  state:{view:'data',masterScope:'AB'},data:{products:[],categories:[]},lines:[],routing:{productRoutes:{},lines:[]},processMaster:{},ipqcMatrix:{},bindView(){},renderInspector(){},bindData(){},bindDataInner(){},bindApproval(){},render(){},editor(){},
+  ProcessSync:{deliveryProjection:true,identity:{id:'owner'},identityGeneration:()=>1,captureDelivery:()=>1,isCurrentDelivery:v=>v===1,platformHeaders:()=>({}),requiresReload:false},
+  createMasterSharedBridge:()=>({diff:()=>({patches:[],guards:[]}),flow:()=>null,permissions:()=>({})}),VersionDraftUI:{mount(){},updateSaved(){},preserveView:()=>()=>{},t:v=>v},fetch:async(url,o={})=>{calls.push({url,method:o.method||'GET'});throw Error('IDLE_READ_FORBIDDEN:'+name);}
+ };c.window=c;dom.events(c);vm.createContext(c);vm.runInContext(source(root,'shared-draft-client.js'),c);c.createForegroundPoll=()=>{throw Error('DRAFT_SCHEDULER_FORBIDDEN:'+name);};
+ vm.runInContext(text,c,{filename:name});
+ for(const type of ['focus','visibilitychange','pageshow']){c.dispatchEvent({type});document.dispatchEvent({type});}
+ await new Promise(setImmediate);assert.equal(calls.length,0,name+' initialization/focus/visibility has no draft GET or POST');assert.equal(timers.size,0,name+' initialization/events have no timer');return {module:name,sourceAssertions:true,fullInitializer:true,requests:calls.length,timers:timers.size};
+}
+export async function assertLivePermissionTimers(root){
+ const text=source(root,'shared-draft-client.js'),ast=ts.createSourceFile('shared-draft-client.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),callbacks=[];
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='setTimeout'&&node.arguments[1]?.getText(ast)==='4000'&&node.arguments[0].getText(ast).includes('client.permissions()'))callbacks.push(node.arguments[0].getText(ast));ts.forEachChild(node,visit);}visit(ast);assert.equal(callbacks.length,2,'history and restore retain separate 4s permission checks');
+ let cases=0;for(const [index,callback]of callbacks.entries())for(const mode of ['allow','history-revoked','restore-revoked','401','403']){
+  let reads=0,closed=0,rearmed=0;const button={disabled:false},c={client:{permissions:async()=>{reads++;if(['401','403'].includes(mode))throw Object.assign(Error('denied'),{status:Number(mode)});return {permissions:{history:mode!=='history-revoked',edit:mode!=='restore-revoked'}};}},close:()=>closed++,overlay:{isConnected:true,querySelector:()=>button},restoreAllowed:()=>mode!=='restore-revoked',checkPermission:()=>rearmed++};
+  await vm.runInNewContext('('+callback+')()',c);assert.equal(reads,1);if(mode==='allow'){assert.equal(closed,0);assert.equal(rearmed,1);}else if(mode==='restore-revoked'&&index===0){assert.equal(button.disabled,true);assert.equal(closed,0);assert.equal(rearmed,1);}else{assert.equal(closed,1);assert.equal(rearmed,0);}cases++;
+ }return cases;
+}
+export function assertDirtyFlushRetained(root){
+ const text=source(root,'shared-state.js'),ast=ts.createSourceFile('shared-state.js',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),matches=[];
+ function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='setTimeout'&&node.arguments[0]?.getText(ast)==='flush'&&node.arguments[1]?.getText(ast)==='250')matches.push(node);ts.forEachChild(node,visit);}visit(ast);assert.equal(matches.length,1,'generic dirty flush retains its 250ms producer');
+ let calls=0;const c={timer:null,flush:()=>calls++,setTimeout(fn,ms){assert.equal(ms,250);fn();return 1;}};vm.runInNewContext('timer='+matches[0].getText(ast),c);assert.equal(calls,1);assert.equal(c.timer,1);return 1;
+}

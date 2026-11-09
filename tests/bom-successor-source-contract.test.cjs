@@ -1,3 +1,4 @@
+const unified=require('../scripts/unified-draft-source-contract.cjs');
 /* Standalone BOM byte proof, not full historical-release or browser acceptance. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{execFileSync}=require('node:child_process'),{createHash}=require('node:crypto');
 const proof=require('../scripts/bom-successor-source-contract.cjs');
@@ -6,7 +7,7 @@ const {withoutDurableBegin}=require('../scripts/workflow-begin-source-contract.c
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const integration=require('../scripts/bom-main-integration-source-contract.cjs');
 // Test exact BOM parent projection; current integration has an independent gate.
-const readSource=file=>integration.project(proof.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'bom');
+const readSource=file=>integration.project(unified.project(proof.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'bom_integration'),file,'bom');
 const sources=new Map(proof.attestedPaths.map(file=>[file,readSource(file)]));
 const changed=(bytes,from,to)=>{assert(bytes.includes(Buffer.from(from)),'Mutation token must exist: '+from);const result=Buffer.from(bytes.toString().replace(from,to));assert.notDeepEqual(result,bytes);return result;};
 const reader=(file,bytes)=>path=>path===file?bytes:sources.get(path);

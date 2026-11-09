@@ -1,9 +1,10 @@
+const unified=require('../scripts/unified-draft-source-contract.cjs');
 /* Exact caller proof + independent semantic negative controls. No runtime writes. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{createHash}=require('node:crypto');
 const proof=require('../scripts/bom-unsent-source-contract.cjs'),older=require('../scripts/bom-successor-source-contract.cjs');
 const integration=require('../scripts/bom-main-integration-source-contract.cjs'),{execFileSync}=require('node:child_process');
 // Admit Git checkout EOL only after byte equality; inner static pins stay raw.
-const read=file=>integration.project(integration.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'bom');
+const read=file=>integration.project(unified.project(integration.canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file])),file,'bom_integration'),file,'bom');
 const {contract:c}=proof,bytes=read(c.file),hash=x=>createHash('sha256').update(x).digest('hex');
 const mutate=(text,from,to)=>{assert(text.includes(from),'mutation token missing: '+from);const next=text.replace(from,to);assert.notEqual(next,text);return next;};
 const block=(text,start,end)=>{const a=text.indexOf(start),z=text.indexOf(end,a+start.length);assert(a>=0&&z>a,'protected boundaries exist');return text.slice(a,z);};

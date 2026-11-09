@@ -1,14 +1,18 @@
+const unified=require('./unified-draft-source-contract.cjs');
 /* Exact pre-Begin-v1 handlers, current dependencies, synthetic SQLite/R2 only.
  * This is a backward-protocol rejection proof, not a historical release replay. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{randomUUID,createHash}=require('node:crypto');
 const {fixture}=require('./ipqc-c-operation-fixture.cjs');
 const {withoutDurableBegin}=require('./workflow-begin-source-contract.cjs');
 const root=path.resolve(__dirname,'..');
+const read=file=>unified.project(unified.canonicalSource(fs.readFileSync(path.join(root,file)),require('node:child_process').execFileSync('git',['show','HEAD:'+file],{cwd:root})),file,'main');
 const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.ts'];
 (async()=>{
- const overrides={};
+ const overrides={},currentSources=new Map();
  for(const file of files){
-  const bytes=fs.readFileSync(path.join(root,file));
+  const projected=read(file);
+  const bytes=require('./bom-successor-source-contract.cjs').canonicalSource(projected,projected);
+  currentSources.set(file,bytes);
   overrides[file]=withoutDurableBegin(bytes,file).toString();
   if(file==='app/api/ipqc-c/workflow/route.ts'){
    const readIO=require('./ipqc-c-read-io-source-contract.cjs'),canonical=readIO.withoutWorkflowReadAhead(bytes);
@@ -45,7 +49,7 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
   assert.throws(()=>abInverse(altered),/differs from pinned bytes/);assert.throws(()=>withoutDurableBegin(altered,files[1]),/differs from pinned bytes/);
  }
  const atomicInverse=require('./ipqc-c-local-save-source-contract.cjs').withoutLocalAtomicSave;
- const historical=atomicInverse(fs.readFileSync(path.join(root,files[0])));
+ const historical=atomicInverse(currentSources.get(files[0]));
  assert.equal(createHash('sha256').update(historical).digest('hex'),'8e02233a3928309f28d478814610e4862fc8b331f20e273292f4f87f24c8eb07','Begin inverse composes with unchanged historical Local Save proof');
  const h=await fixture();
  try{
