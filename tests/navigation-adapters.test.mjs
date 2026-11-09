@@ -1,3 +1,5 @@
+import unified from '../scripts/unified-draft-source-contract.cjs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -125,6 +127,7 @@ void test('changed persistent-navigation executable references have coherent new
   'ipqc-c.js':'20261109-unified-save-choice1',
   'iqc-master.js':'20261109-unified-save-choice1',
   'master-data.js':'20261109-unified-save-choice1',
+  'master-admin-ui.js':'20261105-abc-local-save1',
   'master-shared-client.js':'20261109-unified-save-choice1',
   'permission-controls.js':'20261029-dispatch-rights1',
   'process-authoring-v3.js':'20261109-unified-save-choice1',
@@ -151,10 +154,14 @@ void test('changed persistent-navigation executable references have coherent new
   'user-access-initial-read.js':'20261029-users-load2',
   'web-feedback-entry.js':'20261106-access-offline1',
  };
- const html=source('index.html'),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const currentIndex=unified.canonicalSource(fs.readFileSync('public/process/index.html'),execFileSync('git',['show','HEAD:public/process/index.html'])),html=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString(),references=[...html.matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [file,version] of Object.entries(expected))assert.deepEqual(references.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file);
  const ordered=['access-event-reporter.js','shared-draft-client.js','master-shared-client.js','web-feedback-entry.js'];
  for(let i=1;i<ordered.length;i++)assert(references.indexOf(`${ordered[i-1]}?v=${expected[ordered[i-1]]}`)<references.indexOf(`${ordered[i]}?v=${expected[ordered[i]]}`),'reporter and recovery clients remain available before feedback entry');
+ const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
+ const currentExpected=Object.fromEntries(Object.entries(expected).map(([file,version])=>[file,version==='20261109-unified-save-choice1'||file==='master-admin-ui.js'?'20261109-unified-save-choice2':version]));
+ for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
+ for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));
 });
 

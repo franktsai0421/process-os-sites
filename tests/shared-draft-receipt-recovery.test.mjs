@@ -1,3 +1,5 @@
+import unified from '../scripts/unified-draft-source-contract.cjs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
 const root=process.env.PROCESS_RECOVERY_SOURCE||process.cwd(),source=fs.readFileSync(path.join(root,'public/process/shared-draft-client.js'),'utf8'),tick=()=>new Promise(r=>setImmediate(r));
 const patch=(field,value)=>({op:'set',path:['items',{id:'synthetic'},field],value});
@@ -55,7 +57,7 @@ for(const endpoint of ['/api/process-authoring/workflow?channel=canvas','/api/iq
  const f=deadlineFixture(endpoint),result=observe(f.client.read());await tick();await f.advance(44999);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);await f.advance(1);await result.done;assert.equal(result.error.name,'AbortError');assert.deepEqual(f.calls.map(c=>c.options.method),['GET']);assert.equal(f.memory.size,0);assert(!f.client.hasUnknown());
 });
 void test('changed integrated client, modules and stylesheets cache tags are explicitly versioned',()=>{
- const html=fs.readFileSync(path.join(root,'public/process/index.html'),'utf8');
+ const currentIndex=unified.canonicalSource(fs.readFileSync(path.join(root,'public/process/index.html')),execFileSync('git',['show','HEAD:public/process/index.html'],{cwd:root})),html=unified.restore(currentIndex,'public/process/index.html','initial_unified').toString();
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'local-draft-recovery.js':'20261103-fqc-generation1',
@@ -74,6 +76,8 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'master-data.js':'20261109-unified-save-choice1',
  };
  for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
+ const currentReferences=[...currentIndex.toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+ for(const [asset,version]of Object.entries(versions)){const currentVersion=version==='20261109-unified-save-choice1'||asset==='master-admin-ui.js'?'20261109-unified-save-choice2':version;assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+currentVersion]);}
 });
 for(const action of ['save','begin'])void test('authoring '+action+' retains its original response contract during30s tolerance',async()=>{
  const f=deadlineFixture('/api/process-authoring/workflow?caseMetadata=1'),result=observe(action==='begin'?f.client.begin():f.client.command('g','save'));await tick();const body=JSON.parse(f.calls[0].options.body);await f.advance(30000);assert.equal(f.calls[0].aborted,false);assert.equal(result.settled,false);f.calls[0].respond(action==='begin'?{control:{workflow:{generation:'new'}}}:ack(body.command,{savedId:'saved'}));await result.done;assert.equal(result.error,undefined);assert.equal(action==='begin'?result.value.control.workflow.generation:result.value.receipt.savedId,action==='begin'?'new':'saved');assert.equal(f.calls.length,1);assert.equal(f.memory.size,0);
