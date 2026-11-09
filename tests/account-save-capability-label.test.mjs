@@ -18,7 +18,7 @@ function renderer(language='zh'){
 }
 function draft(){return {role:'synthetic',cells:Object.fromEntries(P.accessKeys.map(k=>[k,false])),roleCells:{},editable:Object.fromEntries(P.accessKeys.map(k=>[k,true])),accessOverrides:{'bom.save':false}};}
 function note(html,key){return html.match(new RegExp('<small data-ua-save-included="'+key+'"[^>]*>([^<]*)</small>'))?.[1];}
-test('matrix explains backend edit-implies-save in both languages without modifying raw grants',()=>{
+void test('matrix explains backend edit-implies-save in both languages without modifying raw grants',()=>{
  for(const language of ['zh','vi'])for(const individual of [false,true])for(const view of [false,true])for(const edit of [false,true])for(const save of [false,true]){
   const d=draft();for(const id of includesSave){d.cells[id+'.view']=view;d.cells[id+'.edit']=edit;d.cells[id+'.save']=save;}
   const before=JSON.stringify(d),html=renderer(language).matrix(d,individual);
@@ -26,14 +26,14 @@ test('matrix explains backend edit-implies-save in both languages without modify
   assert.equal(JSON.stringify(d),before,'render must preserve raw cells and explicit deny overrides');
  }
 });
-test('unsupported derivations and independent save-only grants never claim edit includes save',()=>{
+void test('unsupported derivations and independent save-only grants never claim edit includes save',()=>{
  const d=draft();for(const id of ['editor','routine','lines']){d.cells[id+'.view']=true;d.cells[id+'.edit']=true;}
  const html=renderer().matrix(d,false);
  for(const id of ['editor','routine','lines'])assert.equal(note(html,id+'.save'),undefined);
  d.cells['bom.view']=true;d.cells['bom.save']=true;
  assert.equal(note(renderer().matrix(d,true),'bom.save'),'');
 });
-test('raw checkbox values and editable flags stay identical for every permission',()=>{
+void test('raw checkbox values and editable flags stay identical for every permission',()=>{
  const d=draft();for(const [i,k]of P.accessKeys.entries()){d.cells[k]=i%3!==0;d.editable[k]=i%4!==0;}
  for(const individual of [false,true]){
   const html=renderer().matrix(d,individual),inputs=[...html.matchAll(/<input type="checkbox"([^>]*data-ua-cell="([^" ]+)"[^>]*)>/g)];
@@ -41,7 +41,7 @@ test('raw checkbox values and editable flags stay identical for every permission
   for(const [,attributes,key]of inputs){assert.equal(/(?:^|\s)checked(?:\s|$)/.test(attributes),d.cells[key],key);assert.equal(/(?:^|\s)disabled(?:\s|$)/.test(attributes),key.startsWith('lines.')&&key!=='lines.view'||!d.editable[key],key);}
  }
 });
-test('sync updates the note after view/edit changes without replacing inputs or changing draft',()=>{
+void test('sync updates the note after view/edit changes without replacing inputs or changing draft',()=>{
  const context=renderer('vi'),d=draft(),node={dataset:{uaSaveIncluded:'bom.save'},textContent:''};
  const input={dataset:{uaCell:'bom.save'},checked:false,disabled:false,closest:()=>({querySelector:()=>null})};
  const root={querySelectorAll:s=>s==='[data-ua-cell]'?[input]:s==='[data-ua-save-included]'?[node]:[]};
@@ -50,13 +50,13 @@ test('sync updates the note after view/edit changes without replacing inputs or 
   assert.equal(node.textContent,view&&edit?'Đã gồm trong quyền Sửa':'');assert.equal(input.checked,false);assert.equal(input.disabled,false);assert.equal(JSON.stringify(d),before);
  }
 });
-test('a denied or readonly raw save cell retains its management boundary',()=>{
+void test('a denied or readonly raw save cell retains its management boundary',()=>{
  const d=draft();d.cells['bom.view']=true;d.cells['bom.edit']=true;d.editable={};
  const html=renderer().matrix(d,true);
  assert.equal(note(html,'bom.save'),'修改權已包含');assert.match(html,/data-ua-cell="bom.save"[^>]*disabled/);assert.equal(d.accessOverrides['bom.save'],false);
 });
 
-test('displayed inclusion agrees with actual workflow GET capabilities; no data writes',async()=>{
+void test('displayed inclusion agrees with actual workflow GET capabilities; no data writes',async()=>{
  const db=new DatabaseSync(':memory:');
  for(const name of fs.readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort())db.exec(fs.readFileSync('drizzle/'+name,'utf8'));
  const d=draft();for(const row of P.catalog){if(row.ops.includes('view'))d.cells[row.id+'.view']=true;if(row.ops.includes('edit'))d.cells[row.id+'.edit']=true;}
