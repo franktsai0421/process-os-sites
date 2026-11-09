@@ -14,7 +14,7 @@
 | 無固定4／30秒背景檢查，不以focus/visibility暗中同步 | #100已由Frank合併，main9fbba823；來源head158bb6b，無輪詢產品已納入本機共同底座 | 與d1、歷史client一起語意合併；保留明確entry/Save/Submit權限與fresh read，不抹掉read fencing |
 | 畫布依已核准類別主要工段，C/GIA CONG可顯示設定5工段 | main categoryStageCodes 優先approved category.defaultStages；未設定fallback產品路線集合 | 真實類別、空類別、隱藏工段、舊引用實站核對，不能只用純函式當驗收 |
 | 已核准線別／工段與流程類型／機器連動，缺自訂補自訂 | #99已合併main021f0f3，3CI與獨立審查PASS；新工段繼承已核准preset/catalog設定、獨立防碰撞ID | 不回填舊歷史或複製機器；新選機器依線別/工段；需實際新增→核准→類別→畫布測試 |
-| 製程草稿與其他功能頁草稿／權限分開；同頁不依篩選另拆模組 | process:platform現有；#102 b172aaf為未啟用頁面ownership預演；line-admin仍未真正拆分 | 業務決定、完整codec/CAS/舊writer fences/PROCESS link/審核/歷史/UI及還原演練尚未完成，不開flag冒充拆分 |
+| 製程草稿與其他功能頁草稿／權限分開；同頁不依篩選另拆模組 | process:platform現有；#102 b172aaf為未啟用頁面ownership預演；line-admin仍未真正拆分 | 三規則已確認：舊草稿可不保留、A可整份AB送審、例行FQC整頁共用；完整codec/CAS/舊writer fences/PROCESS link/審核/歷史/UI及還原演練仍待#102實作驗證，不開flag冒充拆分 |
 | 送審／撤回與審核確認權限分開；核准後不得撤回 | main與各workflow有既有guards，帳號／權限由別案處理 | 各角色與各入口在完整樹、真實帳號驗證；不得用admin成功代替拒絕角色 |
 | 原頁只顯示已核准版本，唯讀；返回當前草稿，無歷史彈窗／回朔 | 本機已接固定3f6e736（含d1），API與部分模組前端PASS；另一owner後續9914864與bfa2650已提交PROCESS/IPQC AB/例行FQC及#100整合，但尚未納入此固定runtime | 畫布原頁只讀前端仍缺；另案已提交PROCESS模板機器／IPQC AB／routine前端，須以新凍結交付接入並驗證；不讀取其dirty測試／證據或以API PASS代替前端完成 |
 | 存取後流程總數立即與畫布一致 | #101 8f1f243，獨立複核、36相關測試、build與598來源PASS；4CI全部PASS，但依最新單一完整PR要求保持草稿 | 元件尚未合併；舊版唯讀／篩選／新版Canvas API合入後重驗，不能宣稱所有數字皆修好 |
@@ -26,7 +26,7 @@
 1. 固定實際 main9fbba823（含#99/#100）、#1018f、#100158、#102b172 與可重現的d1/807/歷史committed checkpoints。#101暫停單獨合併；各對話原工作樹不改、不取dirty檔當完成來源。
 2. 在獨立本機分支保留#99與#101，語意合併#100；index保留所有實際修改，source/cache helper保留兩邊pins和負例。舊CI只證明舊head。
 3. 合入已凍結的d1／歷史共同底座，再接807同頁切換；解開process-authoring、Canvas、shared client、index及來源帳本重疊。對存取當前畫布／跨畫布差異先明確定義驗收，不能悄悄改範圍。
-4. 歷史owner後續已提交PROCESS／IPQC AB／例行FQC與main100整合；待完整凍結交付再接入，畫布原頁只讀前端仍未完成。#102未啟用前置可合入檢查，真正ownership/權限/資料切換仍等業務決定和完整安全驗證。
+4. 歷史owner後續已提交PROCESS／IPQC AB／例行FQC與main100整合；待完整凍結交付再接入，畫布原頁只讀前端仍未完成。#102未啟用前置可合入檢查，真正ownership/權限/資料切換依已確認三規則由#102續作，仍需完整安全驗證。
 5. 完整來源樹固定後，重新生成精確current-file witnesses、所有歷史投影與cache tags；保留真Git血緣、hash/span、原拒絕與UNKNOWN防護，重跑受影響功能、角色、結構、收據與編譯瀏覽器測試並獨立審查。
 6. 遠端傳送須先解決原UNKNOWN／拒絕的適用阻擋，不能用#101既有通道或新PR重送原payload。合法可執行時，才一次更新共同約定的同一PR，確認實際head/tree與CI。此步尚未執行。
 7. 所有合併條件通過後，再依測試站發布規則處理最終版本；原V42部署無回執不能重送。取得明確部署結果後跑完整實站驗收，未通過不稱整體完成。
@@ -34,7 +34,7 @@
 ## 已知不能用本機合併消除的阻擋
 
 - 舊243-path/quality create_tree結果UNKNOWN，缺原精確payload／未執行證據；404不足。設備舊tree拒絕也不因本批授權自動解除。
-- 線別工段切換的舊草稿/待審處理、A-only人員是否可送整頁AB、routine FQC文件ownership三個業務問題仍由parent等待使用者決定；不能在程式中自行預設。
+- 已核實使用者06:18／06:19的新決定：目前草稿可不保留、A可送含AB修改的整份案件、例行FQC整頁共用一份草稿；全部草稿頁面統一在#102。這三項不再待答；真正拆分、待審關聯與安全轉換仍由#102 owner實作驗證，本候選僅含未啟用b172前置。
 - 畫布存取範圍已依原確認改為當前畫布；同頁保留與真正離頁放棄仍須完整合樹與實站驗證，不得擴大保存範圍或清除其他畫布輸入。
 - 歷史對話未凍結的製程前端，以及本機原生/實機/實站驗收未完成。
 
@@ -63,3 +63,5 @@ Frozen parents：main021／count8f／no-poll158／history3f6（含d1）／filter
 原來源掃描的唯一新阻擋已由獨立審查確認為合成收據key（actor與API路徑相接）的分類，不是工作站路徑。只增真祖先2245941、該檔43ca7bc、WORKSTATION_PATH精確tuple；不改掃描regex、size threshold、原anchor、私有Git證明或其他hash。全歷史掃描與新callback後的最終結果須看交付manifest，不能套用13f基準的舊PASS。
 
 最新固定runtime380d016的C實際堆疊139/139、來源／engine／witness／count／background／Routine819/819、panel15/15、全庫正常typed lint、guarded build均PASS。18個真target、53 current、654精確projection、173 bounded真objects、原79歷史requests；compact contract4,453,246 bytes，無提高5MiB來源blob限制。source-policy原15 unit與16組exact/private-proof/真Git祖先負控PASS。來源證據與功能套件有重疊，不能相加為完整覆蓋數。最終source-only全歷史／乾淨來源consumer結果由外部manifest綁定，不可先推定通過。
+
+最後本機交付：正常source-only history/worktree全667提交PASS；乾淨單分支無alternates、無node_modules且7ef commit不存在的consumer819/819 PASS；最終畫布Save/衝突/UNKNOWN282/282、cache/navigation/receipt182/182、count/stage/no-poll33/33 PASS，三輪獨立複核均無must-fix。測試與來源證據不是GitHub完整來源已上傳或實站完成；最新三項草稿決定已修正為#102待實作，無新DB/ACL/schema操作。
