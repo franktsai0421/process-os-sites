@@ -210,7 +210,7 @@ void test('changed persistent-navigation executable references have coherent new
  for(const [file,version]of Object.entries(mainBackgroundExpected))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' main #100');
  for(let i=1;i<ordered.length;i++)assert(mainBackgroundReferences.indexOf(`${ordered[i-1]}?v=${mainBackgroundExpected[ordered[i-1]]}`)<mainBackgroundReferences.indexOf(`${ordered[i]}?v=${mainBackgroundExpected[ordered[i]]}`),'main #100 reporter/recovery ordering remains exact');
  const currentReferences=[...currentIndex.toString().matchAll(/(?:data-process-src|src|href)="([^"]+)"/g)].map(match=>match[1]);
- const currentExpected=Object.fromEntries(Object.entries(followupExpected).map(([file,version])=>[file,version==='20261109-unified-save-choice2'?'20261109-unified-main1001':version]));
+ const currentExpected=Object.fromEntries(Object.entries(followupExpected).map(([file,version])=>[file,version==='20261109-unified-save-choice2'?'20261109-conflict-continuation1':version]));
  for(const [file,version]of Object.entries(currentExpected))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===file),[`${file}?v=${version}`],file+' current');
  for(let i=1;i<ordered.length;i++)assert(currentReferences.indexOf(`${ordered[i-1]}?v=${currentExpected[ordered[i-1]]}`)<currentReferences.indexOf(`${ordered[i]}?v=${currentExpected[ordered[i]]}`),'current reporter/recovery ordering remains exact');
  assert(source('delivery-navigation.js').includes("navigation-lifecycle.mjs?v=20261104-draft-integration1"));

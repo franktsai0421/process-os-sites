@@ -100,7 +100,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const mainBackgroundReferences=[...unified.restore(currentIndex,'public/process/index.html','main_background').toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  for(const [asset,version]of Object.entries(mainBackgroundVersions))assert.deepEqual(mainBackgroundReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
  const currentReferences=[...currentIndex.toString().matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
- const currentVersions={...Object.fromEntries(Object.entries(versions).map(([asset,version])=>[asset,version==='20261109-unified-save-choice1'||asset==='master-admin-ui.js'?'20261109-unified-main1001':version])),'process-authoring-v3.js':'20261109-unified-main1001','process-ipqc.js':'20261109-unified-main1001','effective-version-notice.js':'20261109-unified-main1001'};
+ const currentVersions={...Object.fromEntries(Object.entries(versions).map(([asset,version])=>[asset,version==='20261109-unified-save-choice1'||asset==='master-admin-ui.js'?'20261109-conflict-continuation1':version])),'process-authoring-v3.js':'20261109-conflict-continuation1','process-ipqc.js':'20261109-conflict-continuation1','effective-version-notice.js':'20261109-conflict-continuation1'};
  for(const [asset,version]of Object.entries(currentVersions))assert.deepEqual(currentReferences.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
 
 });

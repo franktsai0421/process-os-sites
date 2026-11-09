@@ -33,16 +33,17 @@ jobs:
       - name: Global decisions and pre-dispatch authority
         run: >-
           node --test --test-concurrency=2
-          tests/master-save-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
+          tests/master-save-merge.test.mjs tests/process-legacy-photo-merge.test.mjs tests/abc-save-conflict-choice.test.mjs
           tests/quality-comparison-callback-owner.test.mjs
           tests/fqc-save-choice.test.mjs tests/fqc-save-choice-navigation.test.mjs tests/fqc-compared-save-client.test.mjs
-          tests/iqc-save-choice.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
-          tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs
+          tests/iqc-save-choice.test.mjs tests/iqc-stable-lists.test.mjs tests/iqc-save-choice-navigation.test.mjs tests/iqc-compared-save-client.test.mjs
+          tests/iqc-revival-wire.test.mjs tests/fqc-revive-save.test.mjs tests/fqc-retained-deleted-save.test.mjs tests/fqc-retained-deleted-ui.test.mjs
+          tests/fqc-photo-metadata.test.mjs tests/fqc-file-local-save.test.mjs
           tests/ipqc-ab-conflict-ui.test.mjs tests/ipqc-ab-save-revision-fence.test.mjs
           tests/ipqc-c-save-choices-actual-stack.test.mjs tests/ipqc-c-structural-save-actual-stack.test.mjs
           tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs
           tests/equipment-save-choice.test.mjs tests/canvas-save-conflict-choice.test.mjs
-          tests/tooling-global-save-choice.test.mjs tests/routine-fqc-durable-route.test.mjs
+          tests/tooling-save-only-files.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-content-validator.test.mjs
       - name: Same-page input retention
         run: >-
           node --test --test-concurrency=2

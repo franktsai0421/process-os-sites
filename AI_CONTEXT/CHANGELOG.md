@@ -1,3 +1,7 @@
+## 2026-11-09 — 草稿衝突處理續作
+
+從 7ef04ed 繼續整合 PROCESS／IQC 照片與清單、例行 FQC late ACK、FQC 墓碑 payload，以及模具 File 明確 Save 後上傳。舊工作草稿可放棄、A 可送整份 A/B、例行 FQC 整頁一份已確認；持久分界仍由 #102 接線，未刪待審／核准歷史或動真資料。[逐頁實作、相依與上傳界線](../docs/acceptance/draft-conflict-continuation-20261109/README.md)。
+
 ## 2026-11-09 — 統一草稿候選納入已合併 main #99／#100
 
 已於隔離分支真正merge main `9fbba823`，同時保留inert背景排程、history/restore明確操作權限與既有整組Save／CAS／原收據fences。原d1交付不覆寫，Canvas獨立候選與持久分拆未混入；未上傳或部署。[整合內容、驗證及界線](../docs/acceptance/unified-main100-integration-20261109/README.md)。
