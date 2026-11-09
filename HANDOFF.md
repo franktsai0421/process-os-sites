@@ -1,3 +1,13 @@
+## 2026-11-09 — 各頁草稿分界：切換前置小批
+
+獨立自 main d4ac309，已合併 main 021f0f3（#99）並保留其工段邏輯與測試。盤點 line-admin 借用 AB/C、PROCESS 模板／機器同頁；新增單一 LINES 頁面邊界純預演、完整來源保全及 revision/digest/approved pins，未啟用 storage/UI/CAS。實際 route 拒絕未支援 page marker，避免誤落 legacy writer。重大切換需決定舊 combined pending/working cutoff、AB/C 分區權限與例行文件例外；[具體候選、公開邊界與逐頁狀態](docs/acceptance/module-draft-boundary-20261109.md)。沒有真資料、schema、帳號權限或部署變更；獨立草稿 PR 的遠端狀態以交付回執為準，不重送歷史 UNKNOWN／拒絕操作。
+
+等待 Frank 回覆期間，補未註冊的整頁名稱 Save 元件及 14 組合成測試。AB/C 共享一份 Save／案件／pending lock 的 shared-kernel 證明，含兩編輯者、撤回／發回／核准、重開與原收據。無 Begin/adoption/ACL mapping/HTTP/CAS，不能當作線別頁已拆完。
+
+後續 8 組資料安全演練確認：去機密分發快照會重寫 JSON 外觀文字與其 receipt fingerprint，不能作為這次拆分的原樣還原備份；原來源 pins 會安全拒絕該結果。原樣 records 復原可保留原文字／收據。重大用途限制已回報；維持未啟用，沒有改全域 scrubber 或真實資料。[證據、資料安全方案及未驗範圍](docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
+
+依後續委派，將原樣保留／還原方案精簡為完整 DB、R2／媒體閉包、程式／原來源 pins 和一份受控核對紀錄；只更新文件，沒有新增備份診斷程式。重用 6645b42 的合成證據，未執行 local ZIP 工具或宣稱 hosted 原樣還原已可用。[方案與現有能力邊界](docs/acceptance/module-draft-boundary-20261109.md)。
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
