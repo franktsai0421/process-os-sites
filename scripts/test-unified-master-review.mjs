@@ -95,9 +95,10 @@ for(const bom of [false,true])for(const routine of [false,true]){
  const f=renderCallerFixture({bom:true,routine:true,tab:'routine'});assert.deepEqual(f.calls,['routine-panel']);let ready=false;f.box.approvalReady.then(()=>{ready=true;});await drain();assert.equal(ready,false);f.routineRead.resolve();await f.box.approvalReady;assert.equal(ready,true);compositionCases++;
 }
 
-const {fixture:foregroundFixture}=await import('./entry-performance/foreground-poll.test.mjs');
+// Retained producer fencing uses a test-only retired driver, never production timing.
+const {fixture:foregroundFixture}=await import('./entry-performance/retired-poll-fixture.mjs');
 const bomSource=readSource('bom-workspace.js');
-assert.match(bomSource,/const foregroundPoll=window\.createForegroundPoll\(\)/,'composition must retain foreground scheduler');
+assert.match(bomSource,/const foregroundPoll=window\.createForegroundPoll\(\)/,'legacy composition retains compatible facade; runtime scheduling is covered by no-background tests');
 function bomPermissions(){return{view:true,create:true,edit:true,delete:true,save:true,submit:true,withdraw:true,approve:true,return:true,history:true,restore:true,import:true};}
 function bomReadResult(){return{revision:11,permissions:bomPermissions(),control:bomControl()};}
 function bomPollFixture({workspace=false,allow=false,omitHelper=false,storageMode='complete'}={}){
@@ -155,4 +156,4 @@ for(const invalid of ['scope','permissions','permission-type','view-denied','edi
 {
  const f=bomPollFixture({workspace:true,allow:true});f.handler(()=>({...bomReadResult(),permissions:{...bomPermissions(),view:false,edit:false}}));await f.api.read();await f.api.session().ready;assert.equal(f.client.permission('view'),false);assert.equal(f.api.session().status().ready,false);assert.equal(f.api.session().discover().code,'VIEW_PERMISSION_REQUIRED');assert.equal(f.heldLocks.size,0);f.close();compositionCases++;
 }
-console.log(JSON.stringify({status:'PASS_MASTER_REVIEW_FOREGROUND_COMPOSITION',cases:compositionCases,actualMasterCallers:true,actualBOMClosure:true,actualForegroundScheduler:true,actualRecoveryHelperAndSession:true,syntheticDependencies:true,network:false,browser:false,limits:'No primary transport/server authorization or browser acceptance; readonly transport ports reflect response grants, record read kinds and reject any command. Authority-shape negatives exercise checkRecoveryRead, not ordinary read().'}));
+console.log(JSON.stringify({status:'PASS_MASTER_REVIEW_FOREGROUND_COMPOSITION',cases:compositionCases,actualMasterCallers:true,actualBOMClosure:true,actualForegroundScheduler:false,testOnlyRetiredCallbackDriver:true,actualRecoveryHelperAndSession:true,syntheticDependencies:true,network:false,browser:false,limits:'No primary transport/server authorization or browser acceptance; readonly transport ports reflect response grants, record read kinds and reject any command. Authority-shape negatives exercise checkRecoveryRead, not ordinary read().'}));
