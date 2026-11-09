@@ -10,9 +10,19 @@
 
 ## 2026-11-09 主資料頁面所有權預演
 
+## 2026-11-09 主資料分頁資料布局候選
+
+目標資料布局新增受信任 `pageDraftLayout:page-v1`，active／versions.scope／workflowScopes 使用 AB.catalog、C.catalog、LINES；原 AB/C 版本／flow／Save／receipt 原樣保留只讀，已退役草稿不作目前引用。新入口要求 baseline 已存在，不會 adoption 或生成核准人／案件。既有 records codec 以 owner active snapshot 與同 scope version body 對應，合成 inline/records 重開已測；沒有 SQL/schema/key 變更或真資料切換。生效 AB/C 是有明確 catalog＋LINES approved source vector 的只讀組合，不能冒充舊 combined version。一般 public payload 使用明確允許欄位，不含私人 extensions／草稿。[資料介面與未完成項](../docs/acceptance/module-draft-boundary-20261109.md)。
+
+## 2026-11-09 主資料頁面所有權預演
+
+全站分界目標已列在 `draft-page-boundaries.ts`：十三個業務頁 owner，另列私人 feedback 的 origin／actor IndexedDB 隔離。`draft-page-cutover.ts` 是未註冊的純切換規劃，保留 master／routine 原字串與全部歷史／收據，遇 pending 或不完整來源拒絕；不是 DB/R2 備份或 migration。`RoutinePageContent` 候選僅 `{documents:[{id,content}]}`，`routine-fqc-page-save.ts` 在記憶體回傳一份 page working/saved/receipt，不寫逐文件 flow 或異常案件。未採用新儲存格式、schema、codec 或資料切換；新版整頁審核及業務副作用仍待接線。
+
 `master-page-boundary.ts` 是未註冊的純規劃模組，不新增 SQL、shared_state key、workflow、Save 或案件。候選投影為 AB.catalog、C.catalog、整頁 LINES（content.AB.lines/content.C.lines）；PROCESS 保留。來源固定 revision、完整 root SHA-256 及 AB/C/PROCESS approved vector；全部 legacy working/saved/pending/history/receipts/未知欄位留在原 owner 的記憶體保全輸出。非外部備份，也不證明 R2／媒體存在。實際 storage／CAS／codec／歷史讀取與資料切換待接線及決策，詳 [候選](../docs/acceptance/module-draft-boundary-20261109.md)。
 
 未註冊的 `master-page-name-save.ts` 只在 request memory 產生單一 LINES 名稱儲存結果，使用既有 SharedDraft 欄位及原 receipt fingerprint；沒有持久化 key、控制資料初始化或資料移轉。
+
+後續 `master-line-page-workflow.ts` 僅在記憶體接受已建立的 `scope:master:LINES`／VersionedControl。既有 approved baseline、單一 draft/pending 投影、working/saved/cases、Begin 與命令原收據須屬同頁且完整 hydrate；不一致拒絕，不自動修補。此型別不是已採用的儲存格式，沒有 codec／SQL／migration／loader；不從舊 AB/C root 製造核准版。既有名稱編輯的版本投影及只讀 current-approved 引用已可做合成驗證，完整 topology／PROCESS 交易另待準備。
 
 合成 restore 演練區分原樣 records 與去機密分發快照：後者 `cleanJson` 會遞迴正規化 JSON 外觀字串，可能改動業務文字及原 fingerprint，不得代替 cutoff 原樣還原備份；新預演在原 pins 下拒絕差異。完整 DB／媒體還原尚未驗收。[已重現限制與安全方案](../docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
 

@@ -1,8 +1,18 @@
 ## 2026-11-09 草稿分界前置候選
 
+## 2026-11-09 各頁 runtime 候選
+
+新增 master-page-workflow＋/api/master/pages，受儲存布局 marker 守門，AB/C 只管 catalog、LINES 一份含 AB/C topology。共用現有 route CAS／Begin／權限／原收據；union PROCESS link 同 CAS，其他頁 working 不送出。新基本 UI 用本機三方比較，整組選擇續存、原 ID 復原與 UNKNOWN 查詢。舊 combined／generic writer 被 fence，舊 receipt/history 仍原 owner 只讀。尚未真切換；原生瀏覽器被 OS socket EPERM 阻擋，完整 UI 等價／已核准查看協調／adoption 未完成。[唯一狀態矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。
+
+## 2026-11-09 草稿分界前置候選
+
+使用者已答三項並要求 #102 覆蓋所有草稿頁：舊未核准 working 可放棄、A/B 完整快照可送審、例行 FQC 整頁一份。待審、已核准歷史及原 receipts 仍保護，真實切換另確認。十三頁合約與切換規劃已加入；`scope=LINES` 現明確映射 lines.*，不會落入 AB/C／data fallback，但 LINES 實際新路由與 UI 尚未啟用。全頁完成／缺口以同一[逐頁矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)為準。
+
 實際 line-admin 仍借用 AB/C 的 scope；流程資料的模板／機器是同頁 `master:PROCESS`。`master-page-boundary.ts` 新增頁面所有權純預演：AB catalog、C catalog、單一 LINES（AB/C 為分區），完整保留舊 root 並固定 revision/digest/approved vector。沒有 storage／writer／UI adoption；route 拒絕未支援的 page marker，避免落回 combined writer。舊 split-v1 四文件及 line reducer 不等於新頁草稿已完成。[盤點、權限／舊案決策及接線](../../docs/acceptance/module-draft-boundary-20261109.md)。
 
 等待業務決定的獨立增量 `master-page-name-save.ts` 為未註冊、僅既有名稱的整頁 ordered Save。AB/C 同一 working/saved/receipt，後批失敗全保留來源；未建立控制資料、映射帳號權限或啟用寫入。不含 topology／PROCESS 變更，實際 UI/API/CAS 仍待接線。
+
+`master-line-page-workflow.ts` 再補已建立單一 LINES owner 的 identified Begin、上述 Save、固定案件送審／撤回／發回／核准、數字版本投影、原 owner 收據讀取及 current-approved 只讀引用。18 組合成契約涵蓋 pending 全頁鎖、權限／來源失效、重開、無變更與投影不一致；實際三項業務政策不由 context callback 推定。新增／刪除／改 code、Apply／restore、舊資料 adoption、HTTP／CAS／UI 仍未實作或啟用。
 
 ## 2026-11-09 新工段繼承共用類型候選
 

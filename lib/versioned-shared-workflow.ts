@@ -163,7 +163,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   async function currentPermissions(request:Request,state:State,phase?:Awaited<ReturnType<typeof createMasterABPermissionPhase>>|null){
     const check=phase?phase.allowed:(key:string)=>can(request,state,key);
     const defaults=await workflowAccess(request,state,check),permissions=adapter.access?await adapter.access(request,state,defaults):defaults;
-    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C','master:PROCESS'].includes(adapter.scope)||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}
+    if(adapter.key==='iqcMasterControl'&&adapter.scope==='iqc'||adapter.key==='bomMasterControl'&&adapter.scope==='bom'||adapter.key==='toolingMasterControl'&&adapter.scope==='tooling'||adapter.key==='masterDataControl'&&['master:AB','master:C','master:PROCESS','master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope)||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment'){defaults.save=defaults.save||defaults.edit;permissions.save=permissions.save||permissions.edit;}
     // Expose the same adapter-specific delete gate used by POST. This is UI
     // metadata, not a new command or permission; authoring still uses submit.
     const workflowModule=moduleForURL(request.url),limited=Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,value&&permissions[key as DraftPermission]])) as typeof defaults;
@@ -313,7 +313,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const knownPhotos=new Set(adapter.photoIds(previous));let receipt;const begin=parseBeginIdentity(body);let beginAlreadyOpen=false;
         if(body.action==='begin'||begin){
           if(!permissions.edit)return reply({error:'FORBIDDEN'},403);
-          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','master:PROCESS','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
+          if(begin){if(!['fqc','iqc','tooling','bom','process:platform','master:AB','master:C','master:PROCESS','master:AB.catalog','master:C.catalog','master:LINES','routine-equipment','ipqc-ab:module'].includes(adapter.scope))throw new DraftConflict('INVALID_BEGIN_IDENTITY',422);const replay=replayBegin(control,begin,actor.id);if(replay)return reply({revision:state.revision,receipt:replay,operationKind:'begin-v1',unchanged:true});assertBeginBasis(control,begin);}
           adapter.beforeBegin?.(control,state);
           const open=openedVersion(control);
           if(!begin&&control.workflow&&open)return reply({revision:state.revision,control:visibleSharedControl(control,permissions.history,caseMetadata,adapter.draftMissing),unchanged:true});
@@ -326,7 +326,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
           if(!control.workflow||!openedVersion(control)&&!control.workflow.receipts[command.operationId])throw new DraftConflict('BEGIN_REQUIRED');
           const deletes=adapter.requiresDelete?.(control,command)||command.moduleAction?.startsWith('delete')||command.patches?.some(p=>p.op==='remove'||p.op==='set'&&(p.path.at(-1)==='isDeleted'||p.path.at(-1)==='deleted')&&p.value===true);
           if(deletes&&!permissions.delete)return reply({error:'FORBIDDEN'},403);
-          const workflowModule=moduleForURL(request.url),creates=adapter.requiresCreate?.(control,command)||command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert');
+          const workflowModule=moduleForURL(request.url),ownedMasterPage=adapter.key==='masterDataControl'&&['master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope),creates=adapter.requiresCreate?.(control,command)||!ownedMasterPage&&(command.moduleAction?.startsWith('create')||command.moduleAction?.startsWith('add')||command.patches?.some(p=>p.op==='insert'));
           if(creates&&workflowModule&&accessKeys.includes(workflowModule+'.create')&&!await can(request,state,workflowModule+'.create'))return reply({error:'FORBIDDEN'},403);
           if((command.action==='restore'||adapter.requiresRestore?.(control,command))&&!permissions.restore)return reply({error:'RESTORE_PERMISSION_REQUIRED'},403);
           stage('adapter-apply');
@@ -353,7 +353,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         // a lost CAS. Never delete shared/deduplicated objects to simulate rollback.
         if(phase&&!await phase.current())return reply({error:'LOGIN_REQUIRED'},401);
         // Recheck session after immutable storage for original Begin, BOM atomic Save and exact equipment workflow.
-        if((begin||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+        if((begin||adapter.key==='masterDataControl'&&['master:AB.catalog','master:C.catalog','master:LINES'].includes(adapter.scope)||adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&body.command?.action==='save'&&body.command.moduleAction==='save-local-v1'||adapter.key==='routineEquipmentControl'&&adapter.scope==='routine-equipment')&&!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
         stage('state-cas');
         const changed=await env.DB.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1 AND revision=?').bind(state.revision+1,encoded,at,state.revision).run();
         if(changed.meta.changes!==1)continue;

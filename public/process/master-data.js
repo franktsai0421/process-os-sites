@@ -318,6 +318,10 @@
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
+    if(control.pageDraftLayout==='page-v1'&&!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();
+    if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(tab)){
+      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
+    }
     if(tab==='line-admin'){
       const cells=currentUser?.cells,visible=scope=>!cells||cells[(scope==='C'?'c':'ab')+'.view']===true;
       if(!visible(state.masterScope))state.masterScope=visible('AB')?'AB':'C';
@@ -1134,9 +1138,9 @@
   const closeDepartureDialogs=()=>{for(const dialog of departureDialogs()){dialog.close();dialog.remove();}if(departureScope()==='PROCESS')clearProcessPageInputs();};
   window.MasterDataWorkflow = {
     control: () => control,
-    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),
+    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),
     navigation:{
-      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
+      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({
         root:()=>document.querySelector('#data-content'),flow:()=>shared.flow(departureScope()),ownsRuntimeLocal:()=>true,
         sharedOwned:()=>false,
         context:()=>[state.dataTab,departureScope(),deliveryGeneration,...departureScopes().map(scope=>[scope,shared.flow(scope)?.generation,shared.permissions(scope)?.save,shared.permissions(scope)?.edit])],
@@ -1162,6 +1166,7 @@
     },
     async loadScope(scope){const generation=deliveryGeneration,owner=window.ProcessSync?.identity,result=await shared.load(scope);if(ownsDelivery(generation)&&owner===window.ProcessSync?.identity)sharedLoaded.add(scope);return result;},
     resetProjection(){
+      window.ProcessMasterPages?.reset();
       window.MasterAdminUI?.retireApprovedHistory?.();
       window.ProcessMasterVersioning?.retireApprovedHistory?.();
       clearProcessPageInputs();

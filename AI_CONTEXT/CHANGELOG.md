@@ -16,6 +16,29 @@ The V2 header counts the same projected rows as the cards, including after Save 
 ## 2026-11-09 — #100 main 與同頁核准版本本機整合
 
 本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+## 2026-11-09 主資料分頁 runtime 候選（未切換）
+
+補 catalog/LINES 的資料 marker 守門 route、基本本機編輯 UI、整組衝突續存與同 ID 復原、同 CAS topology／PROCESS link；生效 catalog 明確標示兩個核准來源，不生成 combined approval。保留舊 owner 收據／歷史，fence 舊 writer；一般 payload 不輸出私人草稿。未切真資料／schema／部署；原生瀏覽器與完整 UI 等價仍未驗。[驗證界線](../docs/acceptance/module-draft-boundary-20261109.md)。
+
+## 2026-11-09 — 全站草稿分界統一範圍（未完成接線）
+
+修正獨審兩項 P2：整頁 Save 先驗所有 working 文件的原引用／結構（包括零批次），原收據照原結果重播；切換規劃拒絕重複文件、案件與 immutable Save ID。新增修正前負控制及 14／10 組定向契約。未改現用 writer 或業務資料；AB 衝突／File／UNKNOWN 接線另列驗收，已核准版本查看維持另一工作負責。
+
+已採納三項答覆並把十三業務草稿頁與私人 feedback 納入同一矩陣：舊未核准 working 可放棄、AB 整份 A/B 送審、例行 FQC 整頁一份。新增全頁 owner／權限合約、完整來源／pending 保護的純切換規劃及例行多文件原子 Save 核心；原結構／retest 驗證共用，不產生逐文件暫存收據或核准副作用。LINES URL 權限明確使用 lines.*。沒有新 schema、備份診斷程式、真資料刪除／切換、啟用或部署；現行 AB/C↔line-admin 及例行逐文件 UI 仍待整頁接線。[逐頁完成及缺口](../docs/acceptance/module-draft-boundary-20261109.md)。
+
+## 2026-11-09 — 模組草稿分界前置候選
+
+主資料頁面所有權預演改以單一 LINES 頁面含 AB/C 分區；catalog 分開、PROCESS 不拆。固定來源完整性並保留全部 legacy root，reserved page selector 在實際 API 進入前拒絕。未提供切換 writer、未遷移或發布，非全頁拆分完成。[範圍與待決](../docs/acceptance/module-draft-boundary-20261109.md)。
+
+等待業務決定期間補 request-local 名稱 Save 元件，保留單一 LINES 原子結果／原收據，拒絕新 topology。合成 shared-kernel 生命週期不代表實際 API／CAS／帳號權限或正式頁面已完成。
+
+資料安全的 8 組合成演練重現去機密分發快照對 JSON 外觀文字／receipt fingerprint 的轉換，並確認原 pins 拒絕該 cutoff。原樣 record 復原與分發用途分開；沒有修改 scrubber、真實資料或啟用拆分。
+
+作者自查補正未啟用名稱元件的修改者歸屬：ordered Save 暫改再復原的欄位沿用原貢獻者，真正修改維持本次操作者；修正前反例與 15 組合成契約保留，沒有改共用 kernel、現用 writer 或資料。
+
+獨審發現新 helper 的 selector 額外鍵可產生同實體的 attribution alias；新增 patch／guard 純 id selector admission，保留原 request/fingerprint，17 組合成契約涵蓋線別／工段／額外 guard 反例。修正限未接線元件，不改共用 kernel／現用 workflow。
+
+依優先完成拆分的要求，整合已合併 #100 main 後補未註冊的單一 LINES 既有名稱生命週期：識別式 Begin、固定案件／版本投影、原收據與 current-approved 引用；18 組合成契約。沒有建立核准 baseline、處理舊案／權限政策、接入 HTTP／storage/CAS 或啟用拆分；不是完整線別 topology writer。
 
 ## 2026-11-09 — Retire periodic web checks
 

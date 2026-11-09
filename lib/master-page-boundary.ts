@@ -1,4 +1,5 @@
 import { cloneDraft, DraftConflict, type DraftPatch, stableDraftJSON } from './shared-draft';
+import { confirmedDraftBoundaryPolicy } from './draft-page-boundaries';
 import {
   assertMasterOwnedCommand, assertMasterOwnedContent, masterDocumentDescriptors,
   previewMasterDocumentSplit, type MasterDocumentPreviewRoot, type MasterSplitSourceVector,
@@ -6,7 +7,8 @@ import {
 
 // Review-only successor to the four split-v1 document projections. A real page
 // owns a draft; AB/C filters inside the line page do not own separate drafts.
-// No route, storage adapter, environment flag or adoption writer imports this.
+// Runtime page adapters reuse only the ownership guards below. The preview
+// never activates a route, adopts a baseline or writes data.
 export type MasterPage = 'AB' | 'C' | 'LINES' | 'PROCESS';
 type Snapshot = Record<string, unknown>;
 type Row = Record<string, unknown>;
@@ -117,7 +119,8 @@ export async function previewMasterPageSplit(source: MasterPageSource, expected:
     issues: legacy.issues,
     legacy: legacy.legacy,
     identities: legacy.identities,
-    decisionsRequired: ['LEGACY_CUTOFF_POLICY', 'LINES_PARTITION_PERMISSIONS'] as const,
+    confirmedPolicy: confirmedDraftBoundaryPolicy,
+    decisionsRequired: [] as const,
     implementationRequired: ['STORAGE_CODEC_CAS', 'WRITERS_AND_OLD_CLIENT_FENCE', 'REVIEW_HISTORY_RECEIPTS',
       'PROCESS_LINK_AND_APPROVED_PROJECTION', 'UI_LIFECYCLE_AND_BACKUP_RESTORE'] as const,
   };

@@ -1,21 +1,33 @@
-# 各功能頁草稿分界：盤點與切換前置候選
+# 全站各功能頁草稿分界：實作與驗收矩陣
 
-原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99）。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
+原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支為獨立、未啟用的前置小批，沒有帶入其他未發布候選；不是全頁拆分已完成，也不是可啟用切換的版本。
 
-## 獨立公開候選邊界
+## 2026-11-09 主資料 runtime 接線候選（未切換）
 
-相對 #99 的 main，此批只新增兩個未註冊的頁面預演／名稱 Save 模組、三份合成回歸測試、必要的規格／交接，以及 AB/C CI 三條測試命令。唯一現用程式差異為 `master-document-boundary.ts` 拒絕尚未支援的 `page` query marker，避免誤落既有 combined writer。現行 UI、master writer、PROCESS link、共用衝突 client、snapshot/redaction、schema 及權限政策均與 main 相同；#99 的工段邏輯及測試保留。
+新增 `/api/master/pages?scope=AB|C|LINES`，使用既有登入、權限、識別 Begin、原收據、全 shared_state revision CAS 及 immutable-record codec。只有受信任資料中已存在 `pageDraftLayout:page-v1` 與三個已建立的獨立有效 baseline 才接受；查詢／環境變數不會啟用、初始化或轉移資料。目標 versions／workflowScopes keys 是 `AB.catalog`、`C.catalog`、`LINES`，active 同時保留各 owner 內容與僅由核准來源組成的 AB/C 相容讀取。沒有 SQL schema 或新 shared_state key。
 
-來源為本次已核對公開 main 上的新提交，沒有匯入舊 243-path／quality／equipment 上傳 payload 或未發布整合祖先。新候選以 main 為遠端 parent，只公開本批差異；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
+catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES writer 只改 AB/C 分區的 lines/stages，同頁篩選共用一份 Save／pending。完整 topology 沿用既有引用阻擋與 PROCESS 模板鎖，整頁只產生一份 union pinned PROCESS link，核准於同次 CAS 處理，不採用其他頁 working。每次新 Save 固定 owner revision／目前身分／權限；編碼後再查 session。固定案件綁原 immutable Save。舊 combined writer 與 generic master 寫入在 marker 後拒絕，舊 owner 的收據／歷史保持只讀。
+
+新的生效 catalog 回應是 `catalog:{kind:approved-page-composition-v1,sources:{catalog,lines},content}`，來源各自指向原核准版；不是新 combined 核准案件／版本。FQC 可讀新舊兩種協定。一般站台 payload 只帶 approved 相容 active、PROCESS 有效版本及 layout，避免輸出新舊私人草稿／root extensions。
+
+前端候選以各頁 owner 持有本機輸入，明確 Save 才傳送。整組選我的／對方後保留無衝突並續存；取消不傳送、保留文字；對方刪除可在同一原父項下恢復已知原 ID（新 ID 仍需 create）；UNKNOWN 沿原 endpoint 查原操作。新增選用欄位以原父 entity guard 證明不存在，避免 JSON 丟失 undefined。未新增本模組圖片輸入；File／媒體契約仍須在其他頁及例行整頁完成驗收。一般離開模組丟棄未傳送輸入；UNKNOWN markers 保留。
+
+實際 inline／records 路由與合成 DOM＋真 transport 已測；原生 Chromium 啟動遭 OS socket EPERM，未繞過，桌面／390px／觸控／布局未驗收。仍需完整 UI 功能等價（既有匯入匯出、進階整理）、版本查看工作對接、真資料 adoption／原樣 DB/R2 還原與明確切換確認；例行 FQC 仍只有未註冊整頁 Save 核心。本候選不可視為全站拆分完成、Ready、合併或部署許可。
+
+## 獨立公開候選邊界（此前小批，歷史）
+
+相對 #100 的 main，本機候選包含主資料頁面預演／名稱 Save／整頁生命週期、十三頁 owner 合約、切換規劃及例行 FQC 整頁 Save 核心，合計七份定向合成測試已列入 AB/C CI。現用程式差異還包括 master route 的未支援 page marker 拒絕、`scope=LINES` 明確映射 `lines.*`，以及例行 FQC 原結構／retest 驗證抽為同一個純函式供兩種 Save 使用。沒有改帳號或角色權限值，沒有接入新頁面的 UI／master writer／storage/CAS、執行 migration 或啟用拆分；#99 工段及 #100 定時檢查改動保留。
+
+公開 main 已核對，本機相容分支沒有納入其他未發布功能，也沒有匯入舊 243-path／quality／equipment 上傳 payload。既有本機整合歷史沒有整段上傳；遠端 #102 仍是 ee7d4fd，後續公開範圍須按最終來源另核對授權與審查；舊 UNKNOWN 仍保留 UNKNOWN，不能把樹查詢 404 當成未執行證據，也沒有以改用工具、重建連接器或拆舊 payload 的方式接續。草稿 PR 只供審查這個未啟用的小批，三項業務決策與正式資料切換不在其範圍內。
 
 ## 逐頁現況
 
 | 真正功能頁 | 現行草稿所有權 | 本批結果／未完成 |
 | --- | --- | --- |
 | 製程編輯台 | `process:platform` | 已是整頁一份；workspace／類別／工段為內部畫布。未改 runtime，跨畫布 Save 本輪 NOT_RUN |
-| AB 產線與類別 | `master:AB`，含線別工段 | 尚未拆。預演投影為 `master:AB.catalog`，只含 products/categoryGroups |
-| C 產線與類別 | `master:C`，含線別工段 | 尚未拆。預演投影為 `master:C.catalog` |
-| 線別與工段管理 | 依目前 AB/C 選取借用上述兩份 | 尚未拆。預演為單一 `master:LINES`；新增未註冊的既有名稱 Save 元件，AB/C 分區在同一份 content，不能變成兩份頁面草稿 |
+| AB 產線與類別 | 目前實站 `master:AB`；候選 `master:AB.catalog` | 新入口 writer/CAS/基本 UI 已接，受資料 marker 守門；未真切換，完整 UI 等價／原生驗收未完成 |
+| C 產線與類別 | 目前實站 `master:C`；候選 `master:C.catalog` | 同上；不含線別草稿 |
+| 線別與工段管理 | 目前實站借用 AB/C；候選單一 `master:LINES` | 完整 topology writer、同 CAS union PROCESS link 與基本 UI 已接；AB/C 是同一 content 分區。未真切換，仍待完整 UI／原生驗收 |
 | 流程資料 | `master:PROCESS` | 已獨立；模板、名稱、媒體與設備總表／機器 modal 同頁，不拆成新模組 |
 | FQC | `fqc` | 已獨立；錯誤碼／項目／矩陣為內部視角，生命週期本輪 NOT_RUN |
 | IQC | `iqc` | 已獨立；零件／項目／供應商等同頁，生命週期本輪 NOT_RUN |
@@ -24,7 +36,7 @@
 | BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
 | 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
 | 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | `routine-fqc:<documentId>` | 依每張檢查文件持久化。不同文件是否也要改成全頁一份，現有確認規則未明確涵蓋；須另確認，不自行重組文件案件 |
+| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 14 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
 | 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
 
@@ -44,9 +56,21 @@
 
 實際 HTTP 前置守門現在拒絕任何尚未支援的 `page` marker，防止新 caller 被忽略標記後落入舊 combined AB/C writer。新 preview 沒有 HTTP、storage、環境開關或啟用 writer；舊 route 其餘行為保留。
 
-等待業務決定期間，另增 [master-page-name-save.ts](../../lib/master-page-name-save.ts)：只處理已存在線別／工段的名稱，整頁 ordered Save 在記憶體完成後只回傳一個 working＋saved＋sequence＋receipt 結果。後批 guard／validator 或權限失敗不改來源；沿用 shared kernel 的世代、pending、原 receipt 身分與精確重播。只接受 `master:LINES` 所有權及完整 owned history，不建立初始草稿、不推定 ACL cell、不接 HTTP／storage/CAS；新增刪除、code／路線／結構與 PROCESS link 均不由此元件處理。未決的舊資料切換和分區權限沒有被預設或繞過。
+等待業務決定期間，另增 [master-page-name-save.ts](../../lib/master-page-name-save.ts)：只處理已存在線別／工段的名稱，整頁 ordered Save 在記憶體完成後只回傳一個 working＋saved＋sequence＋receipt 結果。後批 guard／validator 或權限失敗不改來源；沿用 shared kernel 的世代、pending、原 receipt 身分與精確重播。同次暫改又復原的欄位保留原貢獻者，不把中間態的修改者寫進最終 Save；其他真正修改仍歸屬實際操作者。只接受 `master:LINES` 所有權及完整 owned history，不建立初始草稿、不推定 ACL cell、不接 HTTP／storage/CAS；新增刪除、code／路線／結構與 PROCESS link 均不由此元件處理。未決的舊資料切換和分區權限沒有被預設或繞過。
 
 測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
+
+獨審補充後，名稱元件的 patch／guard 實體 selector 僅接受純 `{id:string}`（非空 ID），拒絕額外鍵、陣列或缺少字串 ID 的 selector，避免同一實體的不同外觀被誤當不同 contributor intent。拒絕發生在 staging 前，不修改原命令或 fingerprint；共用 kernel 與既有 writer 的相容格式不變。
+
+## #100 後續本機生命週期增量
+
+[master-line-page-workflow.ts](../../lib/master-line-page-workflow.ts) 僅接受已建立的單一 `master:LINES` approved control，不從舊 AB/C root 生成核准版，也不決定舊 pending/working cutoff。識別式 Begin 固定 basis／原 owner 收據；一份 AB/C content 共用 working/saved/case/generation。既有名稱 Save 沿用已複審的 selector admission；送審、撤回、發回、核准沿用 shared kernel 並產生同一頁的 NumericVersion 投影。開始修改／權限／來源及後批驗證失敗均不得改來源。
+
+current-approved 引用只回傳固定版本的副本，不採用 working/saved/pending；版本改變或權限失效拒絕。這是後續 catalog writer 的依賴元件，尚未讓真實 AB/C 頁面改讀它。所有 control／版本／原收據要完整 hydrate；saved、pending、draft 投影不一致及重複實體識別拒絕，不自動修補。
+
+18 組合成契約涵蓋完整既有名稱生命週期、雙人非衝突／衝突、全頁 pending lock、終止後原收據重播、no-change／確認版本、撤權、錯誤引用、序列化重開與媒體保留。context callbacks 是未來同一交易提供的完整頁面權限／引用驗證，沒有替使用者選定 AB/C 分區規則。新增／刪除／改 code、PROCESS link planner、歷史版 UI、codec／CAS、HTTP、舊 caller fence、資料 adoption 與實站仍未完成。新 Apply／restore 被拒絕；舊收據仍在原 owner 保留，不由此元件轉換或重送。
+
+新元件初審在 13c6e02 重現 1 個 P2：pending case 與 NumericVersion 同向漂移時，尚未綁定原 immutable Save。已補所有案件 savedId／content 及 pending current saved／working 的一致性 admission，含待審及歷史的負控制；修正前會接受未存內容，修正後拒絕且保留來源。定向複審綁定其實際新 tree 回執；本增量未跑 build/browser，dc5bc6a 的舊複審只適用其原 tree。此處沒有新增備份診斷程式，也沒有執行真資料遷移、啟用或上傳。
 
 ## 資料安全演練與重大發現
 
@@ -87,13 +111,33 @@
 
 本次方案已可審查，重用 6645b42 的合成證據且未修改其測試或產品來源；不重複跑沒有受影響的 suite。**真實完整 DB/R2／媒體原樣備份與還原仍 NOT_RUN**，沒有執行 cutoff／adoption、改權限或啟用拆分。若現有選定環境沒有受授權的完整原樣取得／還原能力，就停在這個邊界回報；本題不另造備份診斷程式來補位。
 
-## 尚需使用者決定的具體事項
+## 三項已決政策與仍需保護的資料
 
-1. **舊 combined 草稿如何切換。** 建議在舊流程正常結清待審及需要保留的未核准修改後，再從固定已核准版本建立新頁面草稿；永久保留舊版本、saved、案件和原 receipt 命名空間。若要帶著未結清 combined 草稿並行切換，必須另設舊案可處理範圍、交叉鎖及衝突政策。本預演只保留並列問題，不自動撤回／發回、清空、假核准或轉成新案。
-2. **單一線別頁內的權限。** 操作應對應 `lines.*`，不沿用 AB/C 編輯／送審權。AB-only／C-only 帳號是否可保存與送審包含另一分區內容的整頁快照，需要決定：建議允許有對應資料查看權的分區編輯，整頁送審／審核要求能查看全部案件內容；不可顯示隱藏分區，也不可默默漏掉它。這是建議，尚未寫入 permission policy、帳號或範本。
-3. **例行 FQC 例外。** 它目前每張文件一份，與主資料 FQC 分開。請確認「同頁一份」是否只指主資料編輯頁並保留例行文件邊界。
+使用者已明確選擇：舊未核准草稿可放棄、可送包含 A/B 的整份已存草稿、例行 FQC 全頁一份；並要求最終 #102 涵蓋所有草稿功能頁。這三項不是待答問題。線別頁使用自己的 `lines.*`，A/B 是同頁資料，不自動替帳號加權限。
 
-依本次委派明示「重大架構、資料與權限的合併需使用者決定」及 [AGENTS](../../AGENTS.md) 的資料／發布界線，先交付具體候選再等決定。沒有要求重新確認已授權的本機開發，也沒有任何自動審查拒絕。
+「草稿可不要」不擴大為刪除待審案件、歷史／immutable Save、原 receipts、異常案件或媒體。未註冊的 `draft-page-cutover.ts` 固定完整來源 revision、master digest／approved vector 及例行 FQC 原字串 digest；待審（含 orphan pointer／舊 pending version）、來源缺損或 approved case 與原 Save 不符時整批拒絕，原資料不動。新的投影只引用既有已核准來源，沒有生成核准人、核准案件或新 workflow。PROCESS 原有草稿和其他九個已獨立模組不列為此次可放棄的資料。
+
+唯讀實站資料檢視的 shared_state 欄位遭截斷，**未能確認完整待審／已核准版本數或 cutoff 可執行**。本機僅有合成完整來源驗證；不能把不完整讀取當作「沒有待審」。正式切換須先取得可完整核對的唯讀狀態、驗證原樣還原與全部 writer／UI 接線，再由使用者確認具體切換；本次不執行。
+
+## 十三頁共同合約與例行 FQC 存取核心
+
+`draft-page-boundaries.ts` 集中列出十三個真正頁面的 owner、endpoint、permission module 與現況遷移標記。`test-draft-page-boundaries.cjs` 直接載入現有 adapters／IPQC-C Begin／workflowAccess 核對 scope、storage key、篩選不變 owner、交叉 owner 拒絕及 LINES 不落入 AB/C／broad-data 權限。這是 owner／權限合約，不是十三頁 UI 或生命週期驗收。IPQC AB 群組 legacy Save／Submit 已拒絕，舊 Apply／案件／收據入口保留相容；私人 feedback 維持帳號隔離，版本確認平台也不另建草稿。
+
+`routine-fqc-page-save.ts` 提供未註冊的單一 `routine-fqc:page` 既有文件 Save：多文件 ordered guarded edits 在同次記憶體暫存，只有一份 working／Save／revision／sequence／原 receipt。無衝突欄位保留，後批驗證／權限失敗不改任何文件或業務 domain；改回原值保留原貢獻者。原來源／retest 規則由 `routine-fqc.ts` 的同一純驗證函式執行，沒有模擬逐文件 Apply、產生逐文件收據或觸發核准副作用。14 組契約涵蓋多文件原子性、兩人／篩選、pending lock、世代／重播、不可變來源／正式文件／retest／照片驗證失敗及完整來源需求。
+
+**仍未完成的例行整頁工作：** 文件新建／刪除／更正的整頁暫存、新版 Begin／固定整頁案件、核准副作用只對該固定差異執行一次、舊操作 fence／原收據查詢、媒體驗證、codec／CAS、toolbar／比較／review／歷史與正式文件輸出。現行 UI 仍逐文件；不能把此核心稱為全頁已接上。
+
+## 本輪獨審修正與接線要求
+
+獨審在 ff75a5c／e53b007 重現兩個 P2，修正前負控制已留存：整頁 Save 只驗改動文件，可能把另一張來源過期的文件一同保存；切換規劃未拒絕重複文件、案件或 immutable Save ID。現已在新 Save（包括零批次）之前驗整份 working 的原引用與結構，原操作收據重播先行且不受後來來源改版影響；未改動的正式／已取消文件仍可保留。規劃器拒絕不合法／重複 owner ID，避免以 find 任選其中一筆。14 組整頁 Save、10 組切換契約涵蓋這些反例；獨立複審以後續精確 tree 為準。ff75a5c 的乾淨 clone source check／受控 build 通過，只適用該修正前來源，不充當新 tree 的 build 證據。
+
+先前 AB 整合中可確認的草稿要求納入本題後續接線驗收：修改與 File 先留本機，明確 Save 才保存與上傳圖片；衝突一次選我的／對方、保留無衝突並接續同次 Save；對方刪除而選我的時恢復同一項；取消保留原文字與 File；Save 重查身分、權限與版本，UNKNOWN 查原收據且防重送；他人先開草稿後可重新比較續存。這些是跨頁交付條件，目前純核心沒有 File／UI 行為，不宣稱已驗收；先核對既有 7ef04ed 行為再語意接入，舊 243-path 清單不完整且操作 UNKNOWN，不猜內容、不重送。
+
+已核准版本查看統一由另一項工作負責；本題只提供 owner/scope 與保存／送審資料介面依賴，不重複修改其版本查看元件。需要該工作配合 LINES、AB/C catalog、routine-fqc:page 新 scope；其尚未整合項與 Canvas 失敗仍須各自處理。
+
+## 與全站衝突候選的協調
+
+已唯讀核對另一工作提供的 `7ef04ed741249816aac2f1336cf15f888ff92fa0`（tree `336500430fbccb61dd7f42afef5704a38f284c6c`），未整批匯入或上傳。其 master bridge／master-data、routine-fqc UI、routine-fqc domain、versioned workflow 與本題後續接線直接相依；其中 routine 已有逐文件 localSave 原子化，仍不是整頁 owner。此處的 `validateRoutineContentEdit` 抽取需在該候選上語意合併，保留它的 localSave 與原 receipt 修正，不能用本分支整檔蓋回。文件／CI 也須保留雙方新段落；實際最終合樹另驗。已在記憶體語意組合該 routine module 與本純驗證抽取，13 組整頁 Save 契約通過且保留其 localSave 分支；沒有產生合併 tree 或改對方候選。後續版本查看候選 e3d92846 仍未發布且有既知 Canvas 測試失敗／80745895 未整合，須另核對其 master/routine/history UI 相依，不能把頁面數等同 #102 已整合。
 
 ## 後續接線與整合順序
 
@@ -108,13 +152,29 @@
 實際命令及最終輸出保留在工作區 `module-draft-boundary-evidence-20261109/`，摘要隨本次交付提供。新測試已加入 AB C local Save CI，沒有放寬既有測試。測試重用工作區既有依賴，沒有安裝、seed 或啟動開發服務。
 
 - PASS：新頁面邊界／純預演的 11 組合成契約；實際 GET/POST 的 reserved page/split admission，DB/R2 零讀寫。
-- PASS：單一 LINES 名稱 Save／真實 shared kernel 14 組合成契約，DB/R2 零讀寫；它不是完整新頁面 adapter 的生命週期驗收。
+- PASS：單一 LINES 名稱 Save／真實 shared kernel 17 組合成契約，DB/R2 零讀寫；補上「暫改再改回」的貢獻者負控制、混合真修改及線別／工段／guard selector alias 反例。修正前會留下假貢獻者或接受 alias，修正後保留原歸屬並在 staging 前拒絕非純 selector；它不是完整新頁面 adapter 的生命週期驗收。
 - PASS：資料保留／快照用途分界 8 組合成演練，含上述已重現的分發 port 限制及 cutoff 安全拒絕。合成目標 R2/DB 寫入不等於真實持久資料寫入。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
-- PASS：合併 #99 後，在獨立乾淨 clone 重新執行新增 11／14／8 組契約、document boundary、line reducer、master workflow、20 項 stage catalog、stage link、lines API 及 307 項 legacy bridge／Begin／permission／receipt 回歸。來源邊界、全專案 lint、型別與受控 build 也通過；沿用同版本既有安裝依賴，沒有重新安裝或改 build guard。最後只更新本段文件，程式／測試 bytes 沒有再變。
+- PASS：首次合併 #99 後，在獨立乾淨 clone 重新執行當時的 11／14／8 組契約、document boundary、line reducer、master workflow、20 項 stage catalog、stage link、lines API 及 307 項 legacy bridge／Begin／permission／receipt 回歸。來源邊界、全專案 lint、型別與受控 build 也通過；沿用同版本既有安裝依賴，沒有重新安裝或改 build guard。後續未啟用名稱元件的貢獻者修正採 15 組及 lint／型別定向驗證；其餘實際 UI／API／writer／kernel 未變，既有結果按範圍保留，遠端 CI 綁定各自 head。
 - NOT_RUN：新所有權 storage／CAS／HTTP／UI 全生命週期、雙身分、正式帳號、真資料遷移與備份還原、原生瀏覽器／手機／IME、Cloudflare 實站。
 - NOT_RUN：新獨立候選的遠端 CI／原生瀏覽器；後續接線後須重新驗證真正最終程式。本機 build 不代表正式站或全部瀏覽器驗收。
 - GitHub：本批只準備獨立草稿 PR，實際上傳／PR 狀態以遠端回執為準；不宣稱已合併或部署。舊 243-path create_tree UNKNOWN 與先前檢具 create_tree 拒絕保持原狀，本批沒有重送舊 payload、拆包接續或改用遠端路徑繞過。
 
 沒有 schema／正式資料變更，沒有修改帳號／角色 cell，也沒有啟動或重連 C2C 連接器。
+
+## 審查與其他 PR 的相依
+
+首次讀回 #102 的 head `b172aaf53e6c2da6f9c5b1a6b331d15944340c03`：AB C local Save 與 PROCESS local Save 通過，Local safety 尚在執行；該結果不能冒充後續 head 的結果。當時沒有 GitHub review 或 comment。第一個貢獻者問題由作者自查重現並補回歸，不當作獨立審查通過。
+
+隨後另一位審查者獨立核對 head `ee7d4fdc750ab5227f25559f52c9edac62b09086`／tree `fb3d634de91cfbfe52de9952bae0f22711e0a2d9`，實跑相關合成／lint／型別檢查，並以純記憶體案例重現一個 P2：額外 selector 鍵可把同一欄位分為不同 intents，繞過 reverted contributor 修正。此問題限未接線元件；已補 canonical selector admission 與 17 組回歸，保留修正前負控制。複審結果綁定其實際 tree 回執；獨立 Codex 審查不代替 Frank 的架構／資料／權限合併決定或 GitHub 人員審核。
+
+| 對照 PR／本輪 head | 與 #102 的直接重疊 | 整合準備 |
+| --- | --- | --- |
+| #100，已由 Frank 合併為 main `9fbba823090f03da8385c8d92f5e59293d19d2f1` | CHANGELOG、SHARED_DRAFT | 已在本機相容分支保留兩者段落；#100 程式及測試不作變更。沒有現用程式檔案重疊，也沒有啟用新頁面元件的依賴 |
+| #101 `8f1f24321764d7aaa51941bce8c48b2b6634ac6d` | CHANGELOG、HANDOFF | 畫布總數修正與本批守門／未啟用元件分開；文件標頭需語意合併 |
+| #88 `f0e9ae37731411801fda72c2e8843d30e467d091` | CHANGELOG、HANDOFF | 沒有本批 runtime 依賴；#88 自身舊基準與 IQC 驗收由其 owner 另行確認 |
+
+除 #100 已本機整合外，#101／#88 仍是指定 head 的檔案／來源分析，尚未合入；不以文件重疊分析代替完整合樹驗收，也不要求先合併 #102 才能處理其他批。未發布的全站整組衝突、權限與版本查看候選仍須在真正最終來源另驗，不以這張表推定相容。
+
+本機已複審的 `dc5bc6a`／tree `e80d87a` 保留原提交；上述 #100 相容整合是後續來源，須另綁定驗證結果，不能沿用舊複審作完整整合背書。遠端 #102 仍以實際回執為準；先前目的地授權拒絕未重試，這次沒有上傳、合併或部署。

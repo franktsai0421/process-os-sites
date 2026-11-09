@@ -36,7 +36,11 @@ async function effectiveABCatalog(request:Request){
   // selected-state authorization. The projection is not an authorization cache.
   const preflight=await readState({keys:authKeys}),actor=await identity(request,preflight),before=await catalogPermissions(request,preflight);
   if(!actor||!before.view)return reply({error:'FORBIDDEN'},403);
-  if(!preflight.recordStorage)return legacyCatalog(request);
+  if(!preflight.recordStorage){
+   if(JSON.parse(preflight.values.masterDataControl||'{}').pageDraftLayout!=='page-v1')return legacyCatalog(request);
+   const state=await readState({keys:[...authKeys,'masterDataControl']}),current=await identity(request,state),permissions=await catalogPermissions(request,state);
+   return !current||!permissions.view?reply({error:'FORBIDDEN'},403):reply({revision:state.revision,permissions,control:masterCatalog(state.values.masterDataControl)});
+  }
   const state=await readState({keys:[...authKeys,'masterDataControl'],
    projectValue:(key,raw)=>key==='masterDataControl'?projectMasterCatalog(key,raw):raw});
   const current=await identity(request,state),permissions=await catalogPermissions(request,state);
@@ -59,8 +63,8 @@ async function productReferences(request:Request){
   return reply({revision:state.revision,...visibleCatalogReferences(catalogReferences(state.values,[code]),user?effectiveAccess(user,state.values).cells:{})});
  }catch{return reply({error:'REFERENCE_CHECK_UNAVAILABLE'},503);}
 }
-export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('approvedOnly')?versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request):new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
- ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'')).GET(request));
+export const GET=async(request:Request)=>documentBoundary(request)||(new URL(request.url).searchParams.has('approvedOnly')?versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'',{legacyArchive:true})).GET(request):new URL(request.url).searchParams.has('references')?productReferences(request):new URL(request.url).searchParams.get('catalog')==='effective'
+ ?effectiveABCatalog(request):versionedWorkflowRoute(masterWorkflowAdapter(new URL(request.url).searchParams.get('scope')||'',{legacyArchive:['operationId','history','caseId','legacyHistory','legacyVersionId','versionId','uiHistory','reviewMetadata'].some(key=>new URL(request.url).searchParams.has(key))})).GET(request));
 export const POST=async(request:Request)=>{
  const boundary=documentBoundary(request);if(boundary)return boundary;
  const scope=new URL(request.url).searchParams.get('scope')||'';

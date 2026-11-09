@@ -316,7 +316,15 @@ export function publicState(state: State,actorId?:string) {
   const quality=parse(values.qualityMasterControl,null);
   if(quality?.libraries?.fqc?.workflow){const library=quality.libraries.fqc;delete library.workflow;library.versions=library.versions.filter((v:{id:string})=>v.id===library.activeVersionId);values.qualityMasterControl=JSON.stringify(quality);}
   const master=parse(values.masterDataControl,null);
-  if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;
+  if(master?.pageDraftLayout==='page-v1'){
+    // New page readers use their authenticated owner endpoint. The general
+    // Site payload carries effective compatibility content only, never old
+    // abandoned drafts or a fabricated combined approved version.
+    delete master.workflowScopes;
+    master.active=Object.fromEntries(['AB','C','PROCESS'].filter(scope=>master.active?.[scope]).map(scope=>[scope,master.active[scope]]));
+    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));
+    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});
+  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;
     master.versions=master.versions.filter((v:{scope:string;status:string;snapshot:unknown})=>!adopted.has(v.scope)||v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active[v.scope]));
     values.masterDataControl=JSON.stringify(master);}
   values.platformUsers = JSON.stringify(

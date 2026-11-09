@@ -17,6 +17,17 @@ Latest verified main is 9fbba823090f03da8385c8d92f5e59293d19d2f1 after Frank mer
 # 2026-11-09 - Independent canvas count batch
 
 Based on merged main 021f0f3 (#99), this batch changes only the selector count and its cache tag, with exact source/cache composition and synthetic regression. Both #99 CI and documentation additions are retained; concurrent global draft edits are not absorbed. [Acceptance boundary](docs/acceptance/editor-projected-count-20261109.md). No merge/deployment is implied.
+## 2026-11-09 主資料 runtime 接線接續
+
+在 8560869 後新增受儲存 marker 守門的 catalog/LINES 真 route、writer、codec/CAS 與基本 UI；使用已建立 baseline，不自行 migration。inline/records 生命週期、union PROCESS link、跨頁 CAS、R2 撤權、原收據與 public 隱私已用 memory fixtures 核對；UI 真 transport＋合成 DOM 驗整組衝突／原 ID 復原／取消／UNKNOWN。原生 Chromium OS socket EPERM，未繞過，完整 UI 等價／真切換／版本查看整合仍未完成；routine 整頁接線仍待後續。公開上傳 UNKNOWN 未重送。[完整候選狀態](docs/acceptance/module-draft-boundary-20261109.md)。
+
+## 2026-11-09 — #102 全站草稿分界接續
+
+獨審在 ff75a5c 重現整頁未改文件來源漂移與重複文件／案件／Save ID 兩個 P2；已留修正前負控制並補完整 working preflight（保留原收據優先重播）與 owner 唯一性拒絕。精確新 tree 複審另行紀錄。AB local-only／File／一次整組衝突及 UNKNOWN 等要求納入同題接線；版本查看由統一已核准版本查看工作負責，本題只協調 scope／介面。
+
+使用者已回答：舊草稿可不要、A/B 整份可送審、例行 FQC 改整頁草稿，並要求 #102 包含所有有草稿頁。這三項已不是待決；仍不得推定刪除 pending、已核准歷史、原 receipts 或不可恢復資料。十三業務頁＋私人 feedback 矩陣／owner 合約、pending/完整來源切換規劃與例行 FQC 多文件單次 Save 核心已加入本機；後者未接新建文件／整頁 review 副作用／codec/CAS/UI，不能稱統一拆分完成。既有九個獨立 owner 也只完成來源／owner 合約核對，未作全頁實站驗收。
+
+真實 Sites 唯讀回傳被截斷，未取得完整 pending／approved 數，不能當 cutoff 已驗證。另一未發布候選 7ef04ed（tree3365004）的 master/routine/shared-client 是直接相依；只做唯讀及記憶體語意組合測試，未整批匯入，不可覆蓋其 localSave／UNKNOWN 改動。原公開五檔 create_tree 依新相關答覆只重試一次，工具回成功 SHA、GET讀回404；不據404重送、不移動ref，#102遠端狀態仍須核對。舊243-path UNKNOWN保持原狀。[完整矩陣](docs/acceptance/module-draft-boundary-20261109.md)。
 
 ## 2026-11-09 — 各頁草稿分界：切換前置小批
 
@@ -34,6 +45,14 @@ Based on merged main 021f0f3 (#99), this batch changes only the selector count a
 ## 2026-11-09 — #100 main 與同頁核准版本本機整合
 
 本機語意合併真實 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，保留無定時讀取與 #99 新工段核准目錄行為；保留目前十二組頁面歷史／草稿 RAM／UNKNOWN／pending 保護。現行 initializer 與 frozen cached callback 驗證分開，來源 pin／負向控制不放寬。畫布 80745895 待 parent 協調且未整合，畫布前端仍未完成。固定產品 merge bfa26509：418 查看／main 相依、775 source、239 main 回歸、79 導覽／來源相依 PASS，typed lint／TS／source boundary／build PASS；尚無上傳、部署或實站驗收，舊 UNKNOWN／拒絕上傳維持。[逐頁界線](docs/acceptance/approved-history-unification-20261109/README.md)。
+
+#102 追蹤時自查修正未啟用名稱 Save 的貢獻者：同次暫改又改回保留原歸屬，混合真正修改仍正確標記；修正前反例已重現，名稱契約補為 15 組。這是作者自查，尚無獨立 review。與 #100/#101/#88 的直接重疊均為文件；未做跨 PR 合併，也未啟用拆分或變更真資料。各 head CI 與審查以遠端回執為準。
+
+後續獨立審查對 ee7d4fd／fb3d634 tree 提出並重現 1 個 P2：selector 額外鍵造成語意相同路徑分組不同。新 helper 已加純 id selector 檢查，patch／guard 皆在 staging 前拒絕 alias，原 fingerprint 不改；回歸擴為 17 組，需按最新 tree 複審。這不是獨立切換或合併授權，三項業務問題仍待 Frank 回覆。
+
+Frank 手動合併 #100 後，已核對公開 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`／tree `6eee3963fec61a540c144a920fbb3f65949d5e10`，另開本機相容分支整合；CHANGELOG／SHARED_DRAFT 保留雙方段落，#100 的程式與測試維持原樣。先前已複審的 dc5bc6a 留在原分支；後續整合須按新來源驗證。遠端 #102 的 selector 修正上傳仍被目的地授權審查擋下，沒有重試或換路；不啟用拆分、不改真資料、不合併或部署。
+
+Frank 要求優先拆分後，新增未接線 `master-line-page-workflow.ts` 與 18 組純合成測試，補單一 LINES 既有名稱的 identified Begin／Save／案件／版本及核准來源處理。需要已建立的 page-owned approved baseline，不從舊 root adoption；callbacks 只代表未來受信任交易權限／引用驗證，沒有選擇 AB/C 分區政策。完整 topology／PROCESS planner、codec／CAS、舊 caller fence、UI 與真資料切換仍待完成；新元件初審在 13c6e02 發現案件與數字投影可同向偏離原 Save；已補固定 savedId／content 及 pending current saved 綁定，等待新 tree 定向複審。build/browser 尚未執行，不得沿用 dc5bc6a 的舊複審充數。公開新增範圍也不同於先前被拒的五檔，須另依最終來源核對授權，不能重送舊 payload。
 
 # 2026-11-09 — Process platform stage catalog batch
 
