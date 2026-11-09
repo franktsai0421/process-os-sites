@@ -1,3 +1,7 @@
+## 2026-11-09 — 製程原頁核准歷史查看
+
+編輯台只用 canvas-approved-version 選當前草稿／真正已核准 V3 及舊核准聯集；不可編輯快照留同頁，沒有 restore/apply 或歷史彈窗入口。獨立 display epoch 不改 journal、generation、Canvas edit epoch 或原 UNKNOWN；普通 adopt 退休工作稿 selector，不誤鎖新模型。原表單、gesture、在途 Save 阻擋版本切換；回當前只讀 permissions、可保存原 journal，pending 鎖不變。舊來源 stages inline aggregate 保留，不宣稱已拆 body；buffer 後角色／session／revision fence。80745895 的其他 view-filter 保留改動仍未整合，未覆蓋其工作。[狀態／測試／限制](../../docs/acceptance/approved-history-unification-20261109/README.md)。無 schema／ACL／真資料修改。
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。

@@ -84,3 +84,17 @@ for(const side of ['mine','peer'])for(const deletion of ['mine','peer'])void tes
 void test('photo structural cancel retains original list journal and has no reservation or PUT',async()=>{const f=await setup();try{const {base}=await photoBasis(f);f.stage('I1','mediaItems',[base[1],base[0],base[2]],'items');await f.peer('I1','mediaItems',[base[0],base[2],base[1]],'items');const before=copy(f.api.state()),db=f.h.snapshot(),saving=f.api.write('save');await waitChoice(f);click(f.document.querySelector('[data-save-cancel]'));await saving;assert.deepEqual(copy(f.api.state().working),before.working);assert.deepEqual(copy(f.api.state().localChanges),before.localChanges);assert.deepEqual(f.h.snapshot(),db);assert.equal(posts(f).length,0);assert.equal(f.calls.filter(row=>row.method==='PUT').length,0);assert.equal(f.writes.length,0);}finally{f.close();}});
 
 void test('photo structure version drift rereads all additions and asks a fresh global choice',async()=>{const f=await setup();try{const {rows,base}=await photoBasis(f,6);f.stage('I1','mediaItems',[base[1],rows[3],base[0],base[2]],'items');await f.peer('I1','mediaItems',[base[0],rows[4],base[2],base[1]],'items');const saving=f.api.write('save');await waitChoice(f);await f.peer('I1','mediaItems',[base[0],rows[4],rows[5],base[2],base[1]],'items');const db=f.h.snapshot();choose(f,'mine');await waitChoice(f);assert.equal(posts(f).length,0);assert.deepEqual(f.h.snapshot(),db);choose(f,'peer');await saving;assert.equal(f.api.state().message,'');const list=f.h.flow(await f.h.read('ipqc-c')).working.items[0].mediaItems;assert.equal(list.length,6);assert.equal(new Set(list.map(row=>row.id)).size,6);assert(list.some(row=>row.id===rows[3].id));assert(list.some(row=>row.id===rows[5].id));assert.equal(posts(f).length,1);}finally{f.close();}});
+
+void test('every accepted-read caller callback keeps its request-entry C comparison version',async t=>{
+  const probe=await setup({legacy:true});let positions=0;
+  try{const client=probe.api.sharedTransport(),source=await client.read(null,{requireAcceptedAccess:true,isCurrent:()=>{positions++;return true;}});assert(positions>=5,'retain every original 1..5 negative control');await client.beginCompared(source,()=>true);assert.equal(posts(probe).length,1,'an unchanged accepted cold read still issues one Begin');}
+  finally{probe.close();}
+  t.diagnostic(`observed accepted-read callback positions: ${positions}`);
+  for(let at=1;at<=positions;at++)await t.test('invalidation at callback '+at,async()=>{
+    const f=await setup({legacy:true});try{const client=f.api.sharedTransport();let checks=0,source;
+      try{source=await client.read(null,{requireAcceptedAccess:true,isCurrent:()=>{if(++checks===at)client.invalidateReadState();return true;}});}catch(error){assert.equal(error.message,'ACCESS_READ_SUPERSEDED');}
+      assert(checks>=at,'exercise the actual callback position');if(source)await assert.rejects(client.beginCompared(source,()=>true),/BEGIN_COMPARISON_REQUIRED/);
+      assert.equal(posts(f).length,0);assert.equal(f.writes.length,0);assert.equal(f.uuid,f.startUUID);
+    }finally{f.close();}
+  });
+});

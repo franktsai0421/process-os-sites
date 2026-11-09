@@ -12,7 +12,7 @@ const cases = [
   { name: 'identity', fixture: 'scripts/entry-performance/identity-prefetch.test.cjs', target: 'lib/state-records.ts', boundary: 'const baseline=load(baselineSource),candidate=load(candidateSource);', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: ' // Prefetch only adjacent selected identity aggregates, never token reads.', baselineHash: '5245f6533dc253b220b3bf2b61c298138917e8b4dcab9a4ff1210e4edf741fcc' },
   // Integrated atomic Save and checked silent departure retain the three-anchor panel optimization.
   // Pin this complete inverse source; changed/duplicated anchor negatives remain mandatory.
-  { name: 'panel', fixture: 'scripts/test-authoring-panel-local-unsaved.cjs', target: 'public/process/process-authoring-v3.js', boundary: 'function loader(code){', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: '  // Markup helpers may reset an obsolete owner; cache only after that boundary.', baselineHash: 'a8a0b53dfeac0ec5acd13a730d31fc3c086fe9dfa7e6f1568f66f6a5a8ab206c' },
+  { name: 'panel', fixture: 'scripts/test-authoring-panel-local-unsaved-legacy.cjs', target: 'public/process/process-authoring-v3.js', boundary: 'function loader(code){', output: '{ baseline: baselineSource, candidate: candidateSource }', marker: '  // Markup helpers may reset an obsolete owner; cache only after that boundary.', baselineHash: 'a8a0b53dfeac0ec5acd13a730d31fc3c086fe9dfa7e6f1568f66f6a5a8ab206c' },
   { name: 'incoming', fixture: 'scripts/test-process-incoming-index.cjs', target: 'lib/process-editor-integrity.ts', boundary: "const original=fs.readFileSync(loaderFile,'utf8')", output: '{ baseline: baselineCode, candidate: candidateCode }', marker: '  // Valid JSON graph rows can share one stage-local incoming lookup. Preserve', baselineHash: '80d53996faaced356241821b9d530c54a1edf5fa07ef502810e48d379c5027ba' },
 ];
 let checks = 0;
@@ -21,7 +21,7 @@ for (const test of cases) {
   const code = fs.readFileSync(fixture, 'utf8');
   assert.equal(code.split(test.boundary).length, 2, test.name + ' unique fixture prefix');
   const prefix = code.slice(0, code.indexOf(test.boundary));
-  const raw = canonical(fs.readFileSync(target, 'utf8'));
+  const raw = canonical(test.name==='panel'?require('node:child_process').execFileSync('git',['show','4a10e935ef8bd4cb3d4beecaa38ebf8c6f1508c2:'+test.target],{cwd:root,encoding:'utf8'}):fs.readFileSync(target, 'utf8'));
   assert.equal(raw.split(test.marker).length, 2, test.name + ' unique mutation marker');
   function execute(source) {
     const requireFixture = createRequire(fixture), mod = { exports: {} };

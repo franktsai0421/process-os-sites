@@ -1,6 +1,6 @@
-# 全草稿頁已核准歷史版本查看：共同讀取與十二組頁面前端
+# 全草稿頁已核准歷史版本查看：共同讀取與十三組頁面前端
 
-基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及十二組已接前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
+基準：本機全站草稿候選 `ce824f28d8f033500d81d7aa57104dfda1595eb3`，已包含 main `d4ac309fe05c89288af226b52c18161865ccdcb8`（#98）。另已語意合併並行候選的 `bfb561a`（測試／文件／來源證據，無產品 runtime 修改）。本文件記錄共同後端及十三組已接前端，**不是全頁前端完成、已上 GitHub 或已部署的聲明**。
 
 ## 已確認規則
 
@@ -12,7 +12,7 @@
 
 | 實際頁面 | 現有 scope／來源 | 本機 API | 本機前端與剩餘工作 |
 | --- | --- | --- | --- |
-| 製程編輯台／畫布 | `process:platform` | 新 approved-only PASS | `process-authoring-v3.js` 仍以舊歷史彈窗查看；需同頁顯示與工作區選擇保護 |
+| 製程編輯台／畫布 | `process:platform` | 新 approved-only PASS | 已接單一 `canvas-approved-version`／原頁核准快照與回原 journal；V3 與嚴格舊核准聯集，實際作者端／Canvas journal／common／簽章 API PASS；獨立 80745895 保留未整合 |
 | 線別與工段管理 | `master:AB`、`master:C` | 各 scope 新 approved-only PASS | 已接單一同頁 selector／核准快照／回原 RAM；AB/C 兩邊暫存保留，沿用原 scope，合成 DOM／實際 handler PASS |
 | AB 產線與類別 | `master:AB` | 新 approved-only PASS | 已接單一同頁 selector／獨立核准快照，移除本頁舊案件／還原入口，30 項新主資料情境及 80 項既有回歸 PASS |
 | C 產線與類別 | `master:C` | 新 approved-only PASS | 已接同頁 selector，保留 C 自己的版本、權限、pending 與原 RAM；與 AB/C／線別共同驗證 PASS |
@@ -179,3 +179,19 @@ FQC 的一般目錄讀取仍接受 main 的同 actor ID／同 identity epoch 重
 - typed lint、TypeScript、Sites source boundary、diff check 與受保護 build **PASS**。Build 只證明編譯與既有已知 public auth 檢查，不宣稱通用敏感資料掃描或發布許可。
 
 日誌存放本機兄弟目錄 `approved-history-unified-evidence-20261109`；最終 bundle／main-relative patch／receipt 另固定候選提交與 SHA256。沒有 GitHub Actions CI／PR review、測試站或原生瀏覽器驗收結果。既有兩項未修改 Canvas equipment snapshot 斷言曾在前任同樣失敗，仍保留其紀錄；本批沒有把那些未解限制改成 PASS。資料模型／schema／ACL 無改動；沒有真實資料寫入。
+
+## 最後一批：製程編輯台／畫布與 7ef04ed7 相依
+
+本批已接畫布原頁 `canvas-approved-version`，目前草稿與真正已核准的 V3／舊 `approvalVersions` 共用同一 selector。移除編輯台舊未核准版本 selector、草稿歷史彈窗／還原入口、孤立產品問題的舊封存彈窗；案件審核平台保留原業務案件查看，不把它當作草稿版本清單。歷史以獨立不可編輯的工作區／工段／流程欄位展示，可展開核對連線 IDs、設備 IDs、作業說明、BOM 選擇與該版圖片；不將歷史塞入目前畫布 renderer、journal 或活資料引用。此為同頁唯讀快照，沒有歷史圖形拖曳／編輯。
+
+`processApprovedGET` 僅處理原 approvedOnly 查詢，保留原非 opt-in GET／POST／scope／角色／CAS。舊版本須有核准事件、有效日期與審核者文字；排除 shared／未核准、重複來源 IDs 與投影 ID 衝突，不以正式指標冒充核准。metadata 不取 V3 歷史 body，detail 固定取核准 case.content；舊 stages 本來就 inline 在一個保留 aggregate，清楚承認需讀這個 aggregate，沒有宣稱它已拆為按版 body。選定內容 buffer 後再核對角色／session／global revision；新 metadata／detail 不寫資料或持久 aliases。
+
+歷史 display epoch 與原 Canvas edit epoch／journal／generation／owned ledger 分開。writer、直接 Canvas Sync／Save／Discard／recovery、舊原生屬性事件及原普通讀回有保護；畫布 renderer 重新綁事件後也補上同一 fence。原表單／gesture／操作執行中阻擋切換，休止的舊 Sync UNKNOWN 與目前全站 Save UNKNOWN 可查看歷史且不查收據、不重送。切回只讀 permissions，回原 RAM／journal；原 pending 仍鎖定。普通成功 adopt 會退休工作稿 selector，不把合法最新工作稿誤當歷史唯讀。
+
+已唯讀取入真實 `7ef04ed741249816aac2f1336cf15f888ff92fa0`；精確採用其中產品修正 `bbc5f9d106b4027b2d33b70b2a8f3d5eb0a580f1`（request 入口先 pin C comparison version，防止同步 callback 使舊請求取得新 Begin proof）及其新實際回歸。沒有整份覆寫共用 client 或宣稱完整候選合併／發布；其餘共同 main／原 d1ff 改動早已保留，source proof 增列 draft_main100 比對 target。80745895 並未整合，仍待 parent 協調其另外的 stage／category／line 保留改動；本批版本查看無需先套入它。
+
+全頁查看與 C 比較 **572/572 PASS**；畫布新實際堆疊另固定最終日誌，包含雙語 inline／records、聯集分頁、不可修改／舊 callback、原 UNKNOWN、真正 pending、body／aggregate 撤權與 revision fence、原生表單、回原 journal 後一次真正 Save、操作執行中與拒絕返回。製程既有 Begin／離頁／就緒／審核狀態／真實 atomic Save **149/149 PASS**；原 unknown recovery **4 groups PASS**，原 evidence helpers **13 groups PASS**。新 fixture 最初補齊 bindDataInner／crypto／Canvas accept 及合法工段；未放寬產品門檻。原歷史可編輯 restore 的 R12 改驗無入口與原 SUBMIT_STATE_UNCONFIRMED command fence，未取消 transport 負向。
+
+舊 panel 效能差分比較的是舊歷史 UI，不能再宣稱與目前新 UI 相同；完整原 15 cases／hash／78 EOL 負向保留為明示 frozen 4a10e935→d4 基準，現行行為另由新 stack 測試及完整 source proof 驗證。原 Canvas-post suite 一項『empty atomic Save』要求 POST/GET，實際為合法比較 GET/POST/GET；同一斷言已在真實前任 fe162bc 重現，不刪測試、不放寬計數。該套件另外 204 PASS、3 SKIP／1 FAIL 的初始合併紀錄保留，未聲稱全域無失敗。原完整 submit-feedback script 曾未到最終 JSON，R12／S6 各自有完整終點證據；未將不完整 run 計成全套 PASS。
+
+本批四個修改資產（shared client、authoring、Canvas local、editor）用 `20261109-canvas-approved-history9`，其他 tags 與全部歷史 pins 保留。schema／資料模型／ACL／真實業務資料無變動。GitHub 本批未上傳、測試站未部署、原生／實機／實站未驗；舊未知／拒絕上傳限制持續。前面 fe162bc／main100 交付包已變成十二組頁面的歷史檢查點，最終交付以後續 canvas receipt／bundle 為準。
