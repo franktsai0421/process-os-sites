@@ -243,3 +243,6 @@ Frank 合併 #100 後，本輪先只讀核對 main=9fbba823090f03da8385c8d92f5e5
 真正需要 Frank 決定的情況已具體化：**某已移轉帳號／角色有 approval.approve=true，但沒有完整主要管理員明確授權稽核，或後續紀錄不完整**。此時預演回 `PLATFORM_APPROVAL_CONFIRMATION_REQUIRED`，不能猜其為舊 reviewer 或新高階；須先以有權的完整唯讀名單核對，再針對明確對象核定高階權。這輪沒有讀真人名單、不提空白名單讓使用者核准，也沒有執行真實設定。
 
 現用診斷仍維持 6 PASS／4 FAIL，因為此準備元件沒有接入現用 route／ACL。先完成此獨立實作並交予 #102 接線；舊拒絕、receiver PENDING、build guard 及真實切換限制原樣保留，無遠端寫入。
+
+
+本批固定來源提交 `0c89b6a9d89abfba3b27344e3f7981f3b0f619db` 的完整 27-file regression **358/358 PASS、0 skipped/cancelled**；source/history/worktree gate PASS（618 commits、5451 unique blobs、2033 source files）。完整命令與結果見專案外 evidence 的 `account-review-preparation-regression.json`／`.log`，交付收據 `account-review-preparation-delivery-receipt.json` 同時保存現用四項 FAIL 與 #102 registry hash 未漂移核對。工作樹乾淨；原 345 項覆蓋全部保留，新批增加 12 項投影契約及 1 項實際 account API 稽核整合。沒有 runtime import、部署、帳號／角色設定、schema 或 DB/R2 寫入。後續純文件提交不改此測試的程式／fixture tree，重用這份來源回歸，正常 build／compiled／browser／Windows／實站依舊未驗收。
