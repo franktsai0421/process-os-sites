@@ -1,3 +1,9 @@
+## 2026-11-09 例行整頁候選收尾與整合順序
+
+本批已接 RF whole-page kernel／實際 route＋codec-CAS／舊 writer fence＋原收據／本機 UI＋File；不是只有原未註冊 Save prototype。scope `routine-fqc:page`，endpoint `/api/routine-fqc/page`，同頁文件不再各建模組 flow。kernel13、HTTP14、UI9與製程來源權威12組合成檢查通過；精確提交與 source/build receipt 另附。受 marker/baseline 守門，沒有 initializer 或真資料切換。原 documents/flows/history/receipts 保留。
+
+依 Frank 最新順序：先完成 #102，與 #101／製程整合核對更新，再做其他整合。25305c1 包含本題舊 dfdfe76，不得以整檔覆蓋後續 master/RF；只採42cdba6來源解析三行順序修正＋12組測試。88a其餘衝突UI/PROCESS/IQC/FQC/tooling、2e4d20f查看、98789f9權限仍待語意整合；權限 registry endpoint/hash需更新，查看需接新page協定及真正legacyArchive。master匯入匯出/進階整理功能等價、十三頁最終驗收未完成。舊段落為前批歷史，以[最新矩陣](docs/acceptance/module-draft-boundary-20261109.md)為準。公開 tree UNKNOWN、獨審中止、原生socket限制不變；未重送／換路，未合併／部署。
+
 ## 2026-11-09 本輪固定交付
 RF domain runtime 2bb1071，實際 HTTP 合成媒體／guard rollback、原 Save/receipt replay 及 CAS peer 保留已驗。Routine 259、source102、helpers9、page Save14 與 lint/types/diff PASS；後續測試／文件提交不改 runtime。最終 source/build receipt 在外部 evidence。十三頁功能缺口、權限／查看／88a UI 尚待整合，三項業務決策已答，不可再稱等待。詳 docs/acceptance/module-draft-boundary-20261109.md。公開 source UNKNOWN／獨審中止／原生限制不變。
 

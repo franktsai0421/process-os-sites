@@ -1,3 +1,7 @@
+## 2026-11-09 例行 FQC 整頁 runtime／UI 候選
+
+受既存 page-v1 baseline 守門的單一 owner 已接建立／取消／更正／followup、一次 Save／固定整頁送審核准 effects、實際 codec/CAS、舊 writer fence及原收據查詢、本機比較與 File/晚到輸入/UNKNOWN。保留真正舊 documents/history/receipt，無 fake per-document approvals。合成 kernel/HTTP/UI 與製程來源權威負控制另列[唯一矩陣](../docs/acceptance/module-draft-boundary-20261109.md)。未執行真資料切換、角色變更、上傳重送、合併或部署；統一已核准查看／權限／其餘衝突及全站驗收仍待整合。下列舊前置段落是歷史紀錄。
+
 ## 2026-11-09 例行 RF domain 相依整合（本機未啟用）
 語意保留 88a 逐文件 atomic Save 與本題 metadata／固定 Content effects 抽取，新增原收據、撤權、版本／guard、改回舊 Save 的回歸。整頁 RF orchestration 與 UI 仍未完成。來源驗證接線保留原 pins 與負例。
 

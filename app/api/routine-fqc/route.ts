@@ -48,21 +48,25 @@ const enabled = (
   state.values.routineFqcEnabled === '1';
 export async function GET(request: Request) {
   try {
+    const query = new URL(request.url).searchParams, operationId=query.get('operationId');
     const state = await readState({
         deferHistory: true,
         deferDependencyHistory: true,
+        ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),
       }),
       actor = await identity(request, state),
       permissions = await access(request, state);
     if (!actor) return reply({ error: 'LOGIN_REQUIRED' }, 401);
     if (!permissions.view) return reply({ error: 'FORBIDDEN' }, 403);
     const c = parseRoutine(state.values[RF_KEY]),
-      sources = routineSources(state),
-      query = new URL(request.url).searchParams;
+      sources = operationId?[]:routineSources(state);
     if (query.has('availability'))
-      return reply({ enabled: enabled(request, state) });
+      return reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) });
     if (!enabled(request, state))
       return reply({ error: 'FQC_NOT_ENABLED' }, 404);
+    if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))
+      return reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'});
+    if(query.has('legacyArchive')&&([...query.keys()].some(key=>!['legacyArchive','compact'].includes(key))||query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'))return reply({error:'ROUTINE_PAGE_SELECTOR_INVALID'},422);
     // Search is a read-only projection under routine.view. It does not grant
     // schedule settings access and never persists preview jobs.
     if (query.has('search-preview')) {
@@ -105,7 +109,10 @@ export async function GET(request: Request) {
       const receipt = c.receipts[query.get('operationId')!];
       if (!receipt || receipt.actorId !== actor.id)
         return reply({ error: 'OPERATION_NOT_FOUND' }, 404);
-      return reply({ result: receipt.result, revision: c.revision });
+      const response=reply({ result: receipt.result, revision: c.revision });
+      if(!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);
+      if(!await stateRevisionIsCurrent(state))return reply({error:'CONCURRENT_CHANGE_RETRY'},409);
+      return response;
     }
     const documents = c.documents.map((d) => ({
       ...d,
@@ -126,6 +133,11 @@ export async function GET(request: Request) {
             ),
       },
     }));
+    if(query.has('legacyArchive')){
+      if(query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'||!permissions.history)return reply({error:'FORBIDDEN'},403);
+      const approved=documents.filter(doc=>doc.flow.active.id||doc.flow.cases.some(review=>review.status==='approved')).map(doc=>{const cases=doc.flow.cases.filter(review=>review.status==='approved'),savedIds=new Set(cases.map(review=>review.savedId));return{id:doc.id,number:doc.number,kind:doc.kind,planId:doc.planId,caseId:doc.caseId,correctionOf:doc.correctionOf,source:{scope:doc.flow.scope,active:doc.flow.active,cases,saves:doc.flow.saves.filter(save=>savedIds.has(save.id))}};});
+      return reply({kind:'routine-legacy-document-archive-v1',documents:approved,permissions:{view:permissions.view,history:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false},identity:actor,revision:state.revision});
+    }
     if (query.has('export')) {
       if (!permissions.history) return reply({ error: 'FORBIDDEN' }, 403);
       const d = documents.find((d) => d.id === query.get('export'));
@@ -208,6 +220,8 @@ export async function POST(request: Request) {
       if(['discard-draft','delete-plan'].includes(command.action)&&!await can(request,state,'routine.delete'))return reply({error:'FORBIDDEN'},403);
       const control = parseRoutine(state.values[RF_KEY]),
         existing = control.receipts[command.operationId];
+      if ((control as typeof control & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !existing)
+        return reply({error:'ROUTINE_LEGACY_WRITER_RETIRED',requestId},409);
       const at = new Date().toISOString();
       if (command.action === 'enable') {
         if (

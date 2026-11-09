@@ -1,3 +1,4 @@
+import {approvedMasterPageCatalog} from './master-approved-pages';
 import {legacyJsonValueText,type JsonValue} from './legacy-login-json';
 import type {FqcSnapshot} from './fqc-workflow';
 import {
@@ -215,7 +216,7 @@ export function routineSources(state: State): Source[] {
     );
   if (!version) return [];
   const master = JSON.parse(state.values.masterDataControl || '{}'),
-    products = (master.active?.AB?.products || []) as {
+    products = ((master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB)?.products || []) as {
       code: string;
       name: string;
     }[];
@@ -281,7 +282,7 @@ export function routineCatalog(state: State) {
         v.id === lib.activeVersionId && v.status === 'approved',
     ),
     master = JSON.parse(state.values.masterDataControl || '{}'),
-    active = master.active?.AB || {},
+    active = (master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB) || {},
     categories = new Map<string, { name: string; line: string }>();
   const add = (name: string, line: string) => {
     if (name)

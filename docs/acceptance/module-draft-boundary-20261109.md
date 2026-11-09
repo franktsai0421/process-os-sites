@@ -2,13 +2,19 @@
 
 原始基準為 GitHub main `d4ac309fe05c89288af226b52c18161865ccdcb8`，已語意合併 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165`（#99），並在獨立本機相容分支整合 `9fbba823090f03da8385c8d92f5e59293d19d2f1`（Frank 已合併 #100）。保留 #100 的取消背景定時檢查規則及程式；只有 CHANGELOG、SHARED_DRAFT 的並列文件標頭需語意合併。本分支是未啟用的分界 runtime 候選；僅語意整合已記錄的 88a RF domain 相依，沒有整批帶入其他未發布候選。不是全頁拆分已完成，也不是可啟用切換的版本。
 
-## 本機本輪交付與剩餘工作
+## 2026-11-09 例行 FQC 整頁 runtime 與本機驗收候選
 
-runtime 固定於 2bb1071e36f309aa2b8c384f47978b344e7dd9d7；隨後只補實際 RF route 測試及本段紀錄。新增 API 契約在隔離 SQLite／Map R2 驗：local Save 媒體未上傳、錯 guard 都不持久寫入；正常 Save／原 POST 和 receipt GET 重播只保留一次 Save／原收據；CAS 遇 peer generate 後重讀並保存兩者。原重播回應不冒充原 POST requestId。九組 helpers、十四組 page Save 核心、Routine **259 PASS**、來源證據 **102 PASS**、owner／cutover 契約、lint／types／diff 通過。13 組 master runtime、10 組 review regressions、8 組合成 UI 與 307 項共用回歸在 f8be0f6 通過；後續 runtime 只動 RF domain，沒有用新測試數宣稱全頁驗收。精確最終 source／build 以外部固定提交回執為準。
+例行頁已接上受儲存 `pageDraftLayout:page-v1` 守門的 `/api/routine-fqc/page`、`routine-fqc:page` 單一 owner，以及明確 Save 才送出本機新增／修改／取消與 File 的頁面。每份文件保留穩定 ID、kind、plan/case/correction links；不建立假的逐文件 flow 或核准案件。一次 Save 固定整頁內容，一次送審固定 changedDocumentIds、原 immutable Save 與 jobs/cases 來源；核准只對該固定變更執行既有業務 effects 一次，與整頁 CAS／原收據同交易。新來源仍須先取得可核准的 baseline；本候選沒有 initializer、資料 adoption 或真資料切換。
 
-尚需實作：例行 FQC metadata effective resolver、穩定新文件／取消／更正／followup、本頁單一 Submit／Review 固定變更集與 effects、實際 codec／CAS、舊 writer fence、page toolbar/File／媒體；master 新 UI 與既有匯入匯出／進階整理功能等價；與 88a 其餘 UI、2e4d20f 核准查看及 98789f9 權限 resolved policy 語意整合、全十三頁最終驗收。這些是程式缺口，不能列為等待三項業務決策，因為 Frank 已經回覆三項。
+既有原 documents/flows/Save/cases/receipts 原樣保留；marker 後舊 writer 拒絕，原收據仍可讀，`/api/routine-fqc?legacyArchive=1` 只提供真正舊已核准文件的原 scope／案件／Save，只讀且不冒充整頁核准。新頁的已核准歷史查看仍交統一查看工作接線；主資料 UI 的匯入匯出／進階整理等價、權限 resolved policy、其餘衝突候選與十三頁整體驗收尚未完成。不能把本機 RF 功能或全頁 owner 盤點稱為全站實站完成。
 
-GitHub 本輪唯讀核對：main=9fbba823090f03da8385c8d92f5e59293d19d2f1；#102 Draft/open/未 merge，source head 仍 ee7d4fdc750ab5227f25559f52c9edac62b09086（該舊 head 三個 CI success），不是本機 runtime。原 create_tree 回成功後讀回 404 仍 UNKNOWN，沒有重送、建立 commit 或移動 ref。獨審內容安全中止／原生 OS socket EPERM 未繞過，不能當作 PASS。沒有真資料、已核准／待審、真人權限、schema 或部署變更。
+Save 前重新讀取、比對目前身分／權限／世代／版本，衝突一次選我的或對方，保留無衝突，取消保留文字及原 File；同一被刪結果可沿原 ID 恢復。晚到輸入保留；UNKNOWN 只查原操作收據，不重送。圖片走本頁已驗簽名／限量／權限的既有媒體格式。唯讀收據查詢在 aggregate SHA 驗證後只投影原 ledger，不需目前或歷史內容 body；正常頁回應省略歷史 body，compact wire 保留獨立可修改複本。
+
+本批另採用製程整合 42cdba6 的三行來源權威順序修正及十二組合成測試：先解析核准 page catalogs，再移除私人 workflowScopes，避免錯採過期相容鏡像。沒有整批匯入 25305c1。原三項業務決策均已答；後續順序依 Frank 指示先完成 #102，與 #101／製程整合核對更新，再做其他整合。
+
+十三組整頁 kernel、十四組實際 HTTP（inline／immutable records、隔離 SQLite／R2）與九組真 client／合成 DOM／File 測試已通過；最終固定提交的回歸與建置結果另附 evidence receipt。不是獨立審查或原生／iPhone 驗收。獨審內容安全中止、原生 Chromium OS socket EPERM、舊公開 create_tree 成功回執後讀回 404 的 UNKNOWN 均未重試／換路；未建立遠端 commit 或移動 ref。沒有真資料、真人權限、schema、部署、合併變更。
+
+## 前批歷史紀錄（以下保留當時狀態，以本頁最新段落與矩陣為準）
 
 ## Managed layout 邊界與最新並行來源
 
@@ -24,7 +30,7 @@ GitHub 本輪唯讀核對：main=9fbba823090f03da8385c8d92f5e59293d19d2f1；#102
 
 既有 test-master-read-projection 在本候選與還原乾淨的 8560869 副本均因 fixture 缺 ProcessAccountTransition 而失敗；沒有修改該 fixture 或放寬產品守門。歷史 #100／事件／例行來源 pins 原值保留，新 test-only exact inverse 只回復本 runtime delta 後驗原歷史來源，還原 bytes 不執行；新增來源順序／快取斷言保留精確 bytes 與順序。
 
-權限工作 0c89b6a／98789f9 的十三頁 fixture 已核對與本候選 owner／endpoint／stateKey 一致，尚未接入其 resolved policy。四項現用權限差距仍不算解決，缺主要管理員明確稽核的真人高階映射仍交 Frank 決定；沒有套用真人帳號／角色資料。版本查看仍由另一工作實作。
+權限工作 0c89b6a／98789f9 的十三頁 fixture 曾核對舊前置介面；本批 RF endpoint 已改為 `/api/routine-fqc/page`，其 registry hash／endpoint fixture 需由權限工作更新，尚未接入其 resolved policy。四項現用權限差距仍不算解決，缺主要管理員明確稽核的真人高階映射仍交 Frank 決定；沒有套用真人帳號／角色資料。版本查看仍由另一工作實作。
 
 ## 2026-11-09 主資料 runtime 接線候選（未切換）
 
@@ -60,7 +66,7 @@ catalog writer 只改 products/categoryGroups，引用已核准 LINES；LINES wr
 | BOM | `bom` | 已獨立；樹、根件、匯入不是新模組，生命週期本輪 NOT_RUN |
 | 模具 | `tooling` | 已獨立；內部目錄／表單不拆，生命週期本輪 NOT_RUN |
 | 檢具與測試設備 | `routine-equipment` | 已獨立；跨品質替換另有交易契約，生命週期本輪 NOT_RUN |
-| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 已確認整頁一份。新增未註冊的多文件原子 Save 核心及 14 組合成契約；新建文件、固定整頁審核／副作用、HTTP/CAS、UI、舊案及媒體接線尚未完成 |
+| 例行 FQC | 現行 `routine-fqc:<documentId>`；目標 `routine-fqc:page` | 整頁 runtime／建立取消更正／固定送審核准 effects／HTTP codec-CAS／UI-File／原收據及舊 writer fence 已接，受資料 marker 守門；尚未切換，查看工作與原生驗收待整合 |
 | 問題回報 | 帳號私人 IndexedDB drafts | 私人回報，不納入多人業務草稿 |
 | 帳號／權限、例行報告及建置中頁面 | 即時管理或 placeholder | 不因有表單就建立業務草稿 |
 

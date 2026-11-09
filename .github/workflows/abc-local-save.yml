@@ -38,6 +38,10 @@ jobs:
           node scripts/test-draft-page-cutover.cjs
           node scripts/test-routine-fqc-page-save.cjs
           node scripts/test-routine-page-domain-helpers.cjs
+          node scripts/test-routine-whole-page.cjs
+          node scripts/test-routine-whole-page-route.cjs
+          node scripts/test-routine-whole-page-ui.cjs
+          node scripts/test-master-public-page-authority.cjs
           node scripts/test-master-page-runtime.cjs
           node scripts/test-master-page-review-regressions.cjs
           node scripts/test-master-page-ui.cjs

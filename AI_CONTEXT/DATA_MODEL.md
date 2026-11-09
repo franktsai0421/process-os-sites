@@ -1,3 +1,9 @@
+## 2026-11-09 例行 FQC page-v1 儲存候選
+
+`routineFqcControl` 新受信任布局為原 root 加 `pageDraftLayout:page-v1` 及 `page:{baseline:{id,content},workflow:SharedDraft<RoutineWholePage>,documentState,caseDependencies,operationPermissions}`。整頁 content 是 `{documents:[{id,metadata,content,cancelled}]}`，metadata 保留 number/kind/planId/caseId/correctionOf/createdAt/owner。原 documents 仍是唯讀原逐文件 archive，不用新 flow 替代；原 root receipts 不變。沒有新 SQL/schema/shared_state key，沒有 adoption/initializer。baseline 須覆蓋原真正已核准（含舊 reopened）文件，舊 pending/缺損來源拒絕。
+
+新 Save/case/receipt 使用單一 `routine-fqc:page`；送審綁 immutable Save、原 before 與 changedDocumentIds，caseDependencies 固定 relevant jobs/cases/document metadata/business state。核准重查固定來源並同 CAS 執行 effects 一次。日程 configure/generate 等沿原頁 ledger/CAS 記錄，不冒充 immutable Save。receipt GET 可在原 SHA 驗證後僅投影原 ledger/caps，缺 current/history body 不會推定操作未執行。讀取 live body 不傳全部歷史；舊核准 archive 只讀原 scope/Save/case，不製造整頁 approved case。既有 R2 codec/媒體 key 保留；備份及真實切換未驗收。下列前置段落是歷史；[最新矩陣](../docs/acceptance/module-draft-boundary-20261109.md)為準。
+
 ## 2026-11-09 例行文件 metadata 工作介面
 
 新增 RoutineDocumentMetadata／RoutineBusinessState 型別及無 flow 的內容 builder，僅供未來 staged domain orchestration。現用 routineFqcControl.documents 仍是原 Document+flow 儲存格式，沒有 migration/schema/key 變更。原審核路徑把固定 active.content 傳給業務 effects；helper 不建立假 Save/approved case/receipt。

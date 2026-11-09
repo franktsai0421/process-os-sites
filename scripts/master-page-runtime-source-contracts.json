@@ -41,7 +41,7 @@
   {
     "file": "app/api/shared-state/route.ts",
     "beforeHash": "8655284f2d68a09595b09e7532d770ef28b2e4a0b843c8af16f0b60ee17a2b83",
-    "afterHash": "1e9c95510c43808d09df196970fa6792e1eb61e32523b68da4977492710ec155",
+    "afterHash": "da2892160c1bbb6ca208c7c728a93fcfd5cc9b70287d4a80dd529f8c58b8ea12",
     "rules": [
       {
         "offset": 2746,
@@ -49,7 +49,12 @@
         "after": "}\n// Page ownership and its baselines are initialized only by the separately\n// authorized data cutover, never by an ordinary aggregate replacement.\nfunction hasManagedMasterPages(value:unknown){\n if(!value||typeof value!=='object'||Array.isArray(value))return false;\n const root=value as Record<string,unknown>,owned=(scope:unknown)=>typeof scope==='string'&&['AB.catalog','C.catalog','LINES'].includes(scope);\n const owners=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).some(owned);\n return Object.hasOwn(root,'pageDraftLayout')||owners(root.active)||owners(root.workflowScopes)||Array.isArray(root.versions)&&root.versions.some(version=>version&&typeof version==='object'&&owned((version as Record<string,unknown>).scope));\n"
       },
       {
-        "offset": 9848,
+        "offset": 8772,
+        "before": "",
+        "after": "    if(key==='routineFqcControl'&&[parse(state.values[key],null),parse(value as string,null)].some(root=>root&&typeof root==='object'&&(Object.hasOwn(root,'pageDraftLayout')||Object.hasOwn(root,'page'))))return Response.json({error:'ROUTINE_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n"
+      },
+      {
+        "offset": 10136,
         "before": "",
         "after": "    if(key==='masterDataControl'&&(hasManagedMasterPages(adoptedMaster)||hasManagedMasterPages(parse(value as string,null))))return Response.json({error:'MASTER_PAGE_CUTOVER_REQUIRED'},{status:409,headers});\n    if(adoptedMaster?.pageDraftLayout==='page-v1'&&['masterDataControl','processMasterData'].includes(key))return Response.json({error:'WORKFLOW_V3_REQUIRED'},{status:409,headers});\n"
       }
@@ -58,12 +63,17 @@
   {
     "file": "lib/draft-page-boundaries.ts",
     "beforeHash": "ba56a63cd89b1db31baca835297aa0c3978e6a32bdba654761acfb538633fc50",
-    "afterHash": "be44c1f957fd8f00b1321286e12eb015e7e7d99d5b0ba8ad09121244f69a89a9",
+    "afterHash": "c7e2a312cdb2d8a04246ca56e5418ba590927d4cd72b9a1a685dede9a888aad7",
     "rules": [
       {
         "offset": 447,
         "before": "  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/workflow?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },\n  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/workflow?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },\n  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/workflow?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },\n",
         "after": "  { page: 'AB', scope: 'master:AB.catalog', permissionModule: 'ab', endpoint: '/api/master/pages?scope=AB', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:AB' },\n  { page: 'C', scope: 'master:C.catalog', permissionModule: 'c', endpoint: '/api/master/pages?scope=C', stateKey: 'masterDataControl', migration: 'master-split', legacyScope: 'master:C' },\n  { page: 'LINES', scope: 'master:LINES', permissionModule: 'lines', endpoint: '/api/master/pages?scope=LINES', stateKey: 'masterDataControl', migration: 'master-split' },\n"
+      },
+      {
+        "offset": 2297,
+        "before": "  { page: 'ROUTINE_FQC', scope: 'routine-fqc:page', permissionModule: 'routine', endpoint: '/api/routine-fqc', stateKey: 'routineFqcControl', migration: 'routine-page' },\n",
+        "after": "  { page: 'ROUTINE_FQC', scope: 'routine-fqc:page', permissionModule: 'routine', endpoint: '/api/routine-fqc/page', stateKey: 'routineFqcControl', migration: 'routine-page' },\n"
       }
     ]
   },
@@ -170,7 +180,7 @@
   {
     "file": "lib/process-state.ts",
     "beforeHash": "a9ac65e8a0cac0b7346b88e7b33271aa0b10dcdf69ebd99c616c96a220d66937",
-    "afterHash": "8459d013380dce07a2355006e2a1aef6f485a15053ecd182f5f0b1eebd967882",
+    "afterHash": "dd2b05803a827aa334fc16271ef01ea8e77cafcecfcb49b73a0ea5d788418672",
     "rules": [
       {
         "offset": 0,
@@ -180,7 +190,7 @@
       {
         "offset": 21450,
         "before": "  if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\r\n",
-        "after": "  if(master?.pageDraftLayout==='page-v1'){\n    // New page readers use their authenticated owner endpoint. The general\n    // Site payload carries effective compatibility content only, never old\n    // abandoned drafts or a fabricated combined approved version.\n    delete master.workflowScopes;\n    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};\n    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));\n    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});\n  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\n"
+        "after": "  if(master?.pageDraftLayout==='page-v1'){\n    // New page readers use their authenticated owner endpoint. The general\n    // Site payload carries effective compatibility content only, never old\n    // abandoned drafts or a fabricated combined approved version.\n    // Verify current owner pointers before omitting their private proof.\n    master.active={AB:approvedMasterPageCatalog(master,'AB').content,C:approvedMasterPageCatalog(master,'C').content,...(master.active?.PROCESS?{PROCESS:master.active.PROCESS}:{})};\n    delete master.workflowScopes;\n    master.versions=(master.versions||[]).filter((v:{scope:string;status:string;snapshot:unknown})=>v.scope==='PROCESS'&&v.status==='approved'&&JSON.stringify(v.snapshot)===JSON.stringify(master.active.PROCESS));\n    values.masterDataControl=JSON.stringify({pageDraftLayout:master.pageDraftLayout,active:master.active,versions:master.versions});\n  }else if(master?.workflowScopes){const adopted=new Set(Object.keys(master.workflowScopes));delete master.workflowScopes;\n"
       }
     ]
   },
@@ -238,22 +248,27 @@
   {
     "file": "public/process/index.html",
     "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
-    "afterHash": "c4f098836537957a1783995ec332df23d8a0cdb58ad9f0b944c9096acf0fb3ab",
+    "afterHash": "87cbe76183b08fbf7f434a0bee888451d8831ac57523e1d031d83580258b9441",
     "rules": [
       {
         "offset": 6899,
         "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n",
-        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261109-page-owners1\"></script>\n"
+        "after": "    <script data-process-src=\"shared-draft-client.js?v=20261109-routine-page1\"></script>\n"
       },
       {
-        "offset": 7173,
+        "offset": 7174,
         "before": "    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
         "after": "    <script data-process-src=\"page-draft-merge.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261109-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261109-page-owners1\"></script>\n"
       },
       {
-        "offset": 8976,
+        "offset": 8977,
         "before": "    <script data-process-src=\"fqc-master.js?v=20261104-begin-generation2\"></script>\n",
         "after": "    <script data-process-src=\"fqc-master.js?v=20261109-page-catalog1\"></script>\n"
+      },
+      {
+        "offset": 9883,
+        "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n",
+        "after": "    <script data-process-src=\"routine-fqc-page.js?v=20261109-page1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261109-page1\"></script>\n"
       }
     ]
   },
@@ -287,20 +302,20 @@
   {
     "file": "public/process/shared-draft-client.js",
     "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
-    "afterHash": "c0f45c7c592640278157f9743977b1221101feab11ba1f17166d45993fed49fe",
+    "afterHash": "5724ec04c3f0e54381a88a7b3f0858b09fa55166c14d7f1428c3dcf5de2e8c60",
     "rules": [
       {
         "offset": 12978,
         "before": "",
-        "after": "    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;\n"
+        "after": "    if(path==='/api/routine-fqc/page'&&!query)return 'routine-fqc:page';\n    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;\n"
       },
       {
-        "offset": 35075,
+        "offset": 35148,
         "before": "    const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;\n",
         "after": "    const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;\n    const masterLocalBegin=pageLocalBegin||durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;\n"
       },
       {
-        "offset": 46865,
+        "offset": 46938,
         "before": "",
         "after": "      if(pageLocalBegin&&flow&&flow.scope!==departureScope(endpoint))throw Error('MASTER_PAGE_OWNER_MISMATCH');\n"
       }
@@ -309,102 +324,216 @@
   {
     "file": "lib/routine-fqc.ts",
     "beforeHash": "c7e948099a20dd57fd645017153f6e51b5cbb148ebbd24e336c77d3f320e7165",
-    "afterHash": "e0b3a2917674e87098e6dc92e14946071bae92229d56c763378e3fbfac9022ca",
+    "afterHash": "b6061a8c755c450a04ca5e7ecf2bb3df8edea395f8ff9141dd7f93ea2e8ceaa5",
     "rules": [
       {
-        "offset": 352,
+        "offset": 0,
+        "before": "",
+        "after": "import {approvedMasterPageCatalog} from './master-approved-pages';\n"
+      },
+      {
+        "offset": 419,
         "before": "",
         "after": "  type DraftContext,\n"
       },
       {
-        "offset": 2447,
+        "offset": 2514,
         "before": "",
         "after": "export type RoutineDocumentMetadata = Omit<Document, 'flow'>;\nexport type RoutineBusinessState = Omit<RoutineFqc, 'documents'> & { documents: RoutineDocumentMetadata[] };\nexport type RoutineDocumentLinks = Partial<Pick<RoutineDocumentMetadata, 'planId' | 'caseId' | 'correctionOf'>>;\n\n"
       },
       {
-        "offset": 19705,
+        "offset": 6020,
+        "before": "    products = (master.active?.AB?.products || []) as {\n",
+        "after": "    products = ((master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB)?.products || []) as {\n"
+      },
+      {
+        "offset": 8376,
+        "before": "    active = master.active?.AB || {},\n",
+        "after": "    active = (master.pageDraftLayout==='page-v1'?approvedMasterPageCatalog(master,'AB').content:master.active?.AB) || {},\n"
+      },
+      {
+        "offset": 19940,
         "before": "  command?: DraftCommand;\n",
         "after": "  command?: DraftCommand & { moduleAction?: 'save-local-v1' };\n"
       },
       {
-        "offset": 19804,
+        "offset": 20039,
         "before": "function addDocument(\n  c: RoutineFqc,\n",
         "after": "export function buildRoutineDocumentDraft(\n  c: Pick<RoutineFqc, 'cases'> & { documents: Pick<Document, 'kind'>[] },\n"
       },
       {
-        "offset": 19962,
+        "offset": 20197,
         "before": "  ctx: Context,\n  extra: Partial<Document> = {},\n",
         "after": "  ctx: Pick<Context, 'actor' | 'at' | 'today'>,\n  extra: RoutineDocumentLinks = {},\n"
       },
       {
-        "offset": 20050,
+        "offset": 20285,
         "before": "",
         "after": "  demand(Object.keys(extra).every(key => ['planId', 'caseId', 'correctionOf'].includes(key)) &&\n    Object.values(extra).every(value => value === null || typeof value === 'string'), 'DOCUMENT_LINKS_INVALID');\n"
       },
       {
-        "offset": 21576,
+        "offset": 21811,
         "before": "  const flow = createSharedDraft(\n    'routine-fqc:' + id,\n    content,\n    null,\n    crypto.randomUUID(),\n  );\n",
         "after": "  const metadata: RoutineDocumentMetadata = {\n    id, number, kind, planId: null, caseId: null, correctionOf: null,\n    createdAt: ctx.at, owner: cloneDraft(ctx.actor), ...extra,\n  };\n  return {metadata, content};\n}\n// Legacy dispatch alone creates its historical per-document flow. The page\n// path can use the builder above without fabricating a flow, Save or review.\nfunction addDocument(c: RoutineFqc, kind: Document['kind'], jobs: Job[], ctx: Context, extra: RoutineDocumentLinks = {}) {\n  const {metadata, content} = buildRoutineDocumentDraft(c, kind, jobs, ctx, extra);\n  const flow = createSharedDraft('routine-fqc:' + metadata.id, content, null, crypto.randomUUID());\n"
       },
       {
-        "offset": 22316,
+        "offset": 22551,
         "before": "  const doc: Document = {\n    id,\n    number,\n    kind,\n    planId: null,\n    caseId: null,\n    correctionOf: null,\n    createdAt: ctx.at,\n    owner: ctx.actor,\n    flow,\n    ...extra,\n  };\n",
         "after": "  const doc: Document = {...metadata, flow};\n"
       },
       {
-        "offset": 22402,
+        "offset": 22637,
         "before": "function linkedCase(c: RoutineFqc, doc: Document, jobId: string) {\n",
         "after": "function linkedCase(c: Pick<RoutineFqc, 'cases'>, doc: Pick<RoutineDocumentMetadata, 'caseId' | 'correctionOf'>, jobId: string) {\n"
       },
       {
-        "offset": 23676,
+        "offset": 23911,
         "before": "function validateCaseLink(c: RoutineFqc, doc: Document) {\n",
         "after": "export function validateRoutineCaseLink(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content) {\n"
       },
       {
-        "offset": 23989,
+        "offset": 24224,
         "before": "      item && doc.flow.working.lines.every((l) => l.jobId === item.jobId),\n",
         "after": "      item && content.lines.every((l) => l.jobId === item.jobId),\n"
       },
       {
-        "offset": 24440,
+        "offset": 24675,
         "before": "",
         "after": "function validateCaseLink(c: RoutineFqc, doc: Document) {\n  validateRoutineCaseLink(c, doc, doc.flow.working);\n}\n\n"
       },
       {
-        "offset": 24711,
+        "offset": 24946,
         "before": "export function validateRoutineContentEdit(c: RoutineFqc, doc: Document, content: Content, previous: Content) {\n",
         "after": "export function validateRoutineContentEdit(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content, previous: Content) {\n"
       },
       {
-        "offset": 25387,
+        "offset": 25622,
         "before": "function approveEffects(c: RoutineFqc, doc: Document, ctx: Context) {\n  validateCaseLink(c, doc);\n  const content = doc.flow.active.content;\n",
         "after": "// Submission rules accept explicit metadata/content, without a per-document flow.\nexport function routineDocumentReviewIssues(c: Pick<RoutineFqc, 'cases'>, doc: RoutineDocumentMetadata, content: Content): DraftIssue[] {\n  const issues = reportIssues(content, doc.kind);\n  if (doc.kind === 'report')\n    for (const line of content.lines) {\n      const a = linkedCase(c, doc, line.jobId);\n      if (!a) continue;\n      if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))\n        issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});\n      if (\n        !line.results.some((r) => r.outcome === 'unable') &&\n        a.requiredSamples.some(\n          (s) => !line.results.flatMap((r) => r.samples).includes(s),\n        )\n      )\n        issues.push({\n          kind: 'error',\n          path: ['lines', { id: line.id }],\n          message: 'RETEST_REQUIRED_SAMPLES',\n        });\n    }\n  return issues;\n}\n\n// Staged business effects only. No permissions, flow, Save, receipt, revision\n// or idempotence is created here. The authenticated transaction must first\n// approve its fixed case once and invoke only its server-derived changed set.\nexport function applyRoutineDocumentApprovalEffects(c: RoutineBusinessState, doc: RoutineDocumentMetadata,\n  content: Content, ctx: Pick<Context, 'actor' | 'at'>) {\n  validateRoutineCaseLink(c, doc, content);\n"
       },
       {
-        "offset": 31371,
+        "offset": 31606,
         "before": "",
         "after": "    if (cmd.command?.moduleAction === 'save-local-v1' && cmd.command.patches?.length) demand(ctx.allowed('edit'), 'FORBIDDEN', 403);\n"
       },
       {
-        "offset": 35837,
+        "offset": 36072,
         "before": "        if (command.action === 'apply') {\n",
         "after": "        const localSave = command.action === 'save' && command.moduleAction === 'save-local-v1';\n        demand(command.moduleAction === undefined || localSave, 'PATCH_NOT_ALLOWED');\n        if (localSave) demand(Number.isSafeInteger(command.expectedRevision), 'DRAFT_REVISION_REQUIRED', 409);\n        if (command.action === 'apply' || localSave) {\n"
       },
       {
-        "offset": 37697,
+        "offset": 37932,
         "before": "        const applied = applyDraftCommand(doc.flow, command, {\n",
         "after": "        const draftContext: DraftContext<Content> = {\n"
       },
       {
-        "offset": 38117,
+        "offset": 38352,
         "before": "          validate: (content) => {\n            const issues = reportIssues(content, doc.kind);\n            if (doc.kind === 'report')\n              for (const line of content.lines) {\n                const a = linkedCase(c, doc, line.jobId);\n                if (!a) continue;\n                if (a.requiredSamples.length && line.results.some(row => row.samples.some(sample => !a.requiredSamples.includes(sample))))\n                  issues.push({kind:'error',path:['lines',{id:line.id},'samples'],message:'RETEST_SAMPLE_FIXED'});\n                if (\n                  !line.results.some((r) => r.outcome === 'unable') &&\n                  a.requiredSamples.some(\n                    (s) => !line.results.flatMap((r) => r.samples).includes(s),\n                  )\n                )\n                  issues.push({\n                    kind: 'error',\n                    path: ['lines', { id: line.id }],\n                    message: 'RETEST_REQUIRED_SAMPLES',\n                  });\n              }\n            return issues;\n          },\n        });\n",
         "after": "          validate: content => routineDocumentReviewIssues(c, doc, content),\n        };\n        // Preserve the conflict candidate's atomic per-document Save until\n        // the separately guarded whole-page orchestrator replaces this owner.\n        let saveSource = doc.flow, workingChanged = false;\n        if (localSave && command.patches!.length) {\n          demand(ctx.allowed('save'), 'FORBIDDEN', 403);\n          const staged = applyDraftCommand(doc.flow, { ...command, action: 'apply' }, draftContext);\n          workingChanged = !staged.receipt.unchanged;\n          saveSource = { ...doc.flow, working: staged.state.working, contributors: staged.state.contributors };\n        }\n        const applied = applyDraftCommand(saveSource, command, draftContext);\n        if (workingChanged && applied.receipt.unchanged) {\n          applied.state.revision = doc.flow.revision + 1;\n          applied.state.contributors = {};\n          applied.receipt = { ...applied.receipt, revision: applied.state.revision, unchanged: false };\n          applied.state.receipts[command.operationId] = { ...applied.state.receipts[command.operationId], result: cloneDraft(applied.receipt) };\n        }\n"
       },
       {
-        "offset": 39446,
+        "offset": 39681,
         "before": "          approveEffects(c, doc, ctx);\n",
         "after": "          applyRoutineDocumentApprovalEffects(c, doc, doc.flow.active.content, ctx);\n"
+      }
+    ]
+  },
+  {
+    "file": "app/api/routine-fqc/route.ts",
+    "beforeHash": "9a9bb7aa3903a60dfd58a19c0fde0e14bfedc4085feaf8068c7473226f78a6ac",
+    "afterHash": "ec874fd401325a5830c7cb2ec451668b2522146193de9cf2ff9bb951ab92ac46",
+    "rules": [
+      {
+        "offset": 1427,
+        "before": "",
+        "after": "    const query = new URL(request.url).searchParams, operationId=query.get('operationId');\n"
+      },
+      {
+        "offset": 1620,
+        "before": "",
+        "after": "        ...(operationId?{keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','processAccessControl','maintenanceMode','routineFqcEnabled',RF_KEY],projectValue:(key:string,raw:string)=>{if(key!==RF_KEY)return raw;const root=JSON.parse(raw);return JSON.stringify({schemaVersion:root.schemaVersion,revision:root.revision,documents:[],jobs:[],cases:[],receipts:root.receipts&&Object.hasOwn(root.receipts,operationId)?{[operationId]:root.receipts[operationId]}:{}});}}:{}),\n"
+      },
+      {
+        "offset": 2401,
+        "before": "      sources = routineSources(state),\n      query = new URL(request.url).searchParams;\n",
+        "after": "      sources = operationId?[]:routineSources(state);\n"
+      },
+      {
+        "offset": 2490,
+        "before": "      return reply({ enabled: enabled(request, state) });\n",
+        "after": "      return reply({ enabled: enabled(request, state),...((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout==='page-v1'?{pageDraftLayout:'page-v1'}:{}) });\n"
+      },
+      {
+        "offset": 2745,
+        "before": "",
+        "after": "    if ((c as typeof c & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !query.has('operationId') && !query.has('export') && !query.has('legacyArchive'))\n      return reply({enabled:true,pageDraftLayout:'page-v1',pageEndpoint:'/api/routine-fqc/page'});\n    if(query.has('legacyArchive')&&([...query.keys()].some(key=>!['legacyArchive','compact'].includes(key))||query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'))return reply({error:'ROUTINE_PAGE_SELECTOR_INVALID'},422);\n"
+      },
+      {
+        "offset": 5305,
+        "before": "      return reply({ result: receipt.result, revision: c.revision });\n",
+        "after": "      const response=reply({ result: receipt.result, revision: c.revision });\n      if(!await identity(request,state))return reply({error:'LOGIN_REQUIRED'},401);\n      if(!await stateRevisionIsCurrent(state))return reply({error:'CONCURRENT_CHANGE_RETRY'},409);\n      return response;\n"
+      },
+      {
+        "offset": 6297,
+        "before": "",
+        "after": "    if(query.has('legacyArchive')){\n      if(query.getAll('legacyArchive').length!==1||query.get('legacyArchive')!=='1'||!permissions.history)return reply({error:'FORBIDDEN'},403);\n      const approved=documents.filter(doc=>doc.flow.active.id||doc.flow.cases.some(review=>review.status==='approved')).map(doc=>{const cases=doc.flow.cases.filter(review=>review.status==='approved'),savedIds=new Set(cases.map(review=>review.savedId));return{id:doc.id,number:doc.number,kind:doc.kind,planId:doc.planId,caseId:doc.caseId,correctionOf:doc.correctionOf,source:{scope:doc.flow.scope,active:doc.flow.active,cases,saves:doc.flow.saves.filter(save=>savedIds.has(save.id))}};});\n      return reply({kind:'routine-legacy-document-archive-v1',documents:approved,permissions:{view:permissions.view,history:true,edit:false,save:false,submit:false,withdraw:false,approve:false,return:false},identity:actor,revision:state.revision});\n    }\n"
+      },
+      {
+        "offset": 10285,
+        "before": "",
+        "after": "      if ((control as typeof control & {pageDraftLayout?:string}).pageDraftLayout === 'page-v1' && !existing)\n        return reply({error:'ROUTINE_LEGACY_WRITER_RETIRED',requestId},409);\n"
+      }
+    ]
+  },
+  {
+    "file": "public/process/routine-fqc.js",
+    "beforeHash": "5738d095b99bdf3d43240dd425327e92083a730d83484ff6f2c73333fe314d15",
+    "afterHash": "e1e57510e3242272fab0bb4ecccba3fcf8b11ed00826efbdd3e5ffc2e419121f",
+    "rules": [
+      {
+        "offset": 35641,
+        "before": "",
+        "after": "  let pageDraftMode = false;\n"
+      },
+      {
+        "offset": 36642,
+        "before": "",
+        "after": "      if(a.pageDraftLayout==='page-v1'){\n        if(s.busy||s.retry||s.dialogOpen||inFlightMutation||docs().some(dirty))throw Error('ROUTINE_PAGE_CUTOVER_RELOAD_REQUIRED');\n        pageDraftMode=true;await window.RoutineFqcPage.mount(root,{review:false});return;\n      }\n"
+      },
+      {
+        "offset": 37150,
+        "before": "        if (owns() && available && data) paint();\n",
+        "after": "        if (owns() && available && data && !pageDraftMode) paint();\n"
+      },
+      {
+        "offset": 149595,
+        "before": "    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n",
+        "after": "    try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.mount(area,{review:true});updatePendingBadge();return;} if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n"
+      },
+      {
+        "offset": 150111,
+        "before": "    const count = liveDocs().filter((d) => status(d) === 'pending').length;\n",
+        "after": "    const count = pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length;\n"
+      },
+      {
+        "offset": 150367,
+        "before": "  async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n",
+        "after": "  async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.refreshMetadata();updatePendingBadge();return;} const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n"
+      },
+      {
+        "offset": 151532,
+        "before": "    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({\n",
+        "after": "    navigation:{get departure(){if(pageDraftMode)return window.RoutineFqcPage.departure();return moduleDeparture ||= window.VersionDraftUI.createDeparture({\n"
+      },
+      {
+        "offset": 153313,
+        "before": "    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n",
+        "after": "    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){window.RoutineFqcPage?.reset();pageDraftMode=false;loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n"
+      },
+      {
+        "offset": 153868,
+        "before": "    pendingCount: () => docs().filter((d) => status(d) === 'pending').length,\n",
+        "after": "    pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():docs().filter((d) => status(d) === 'pending').length,\n"
       }
     ]
   }
