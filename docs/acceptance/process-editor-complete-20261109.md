@@ -1,6 +1,6 @@
 # 製程編輯台完整目標與整合狀態
 
-目前本機產品合樹固定於 `42917bfcf940f034ba3cad318bc89bf470baf686`，tree `34ddcd2ec9b0473679db4463bcfa9b54da1b2689`；先前59027／58c855交付保留。保留已合併 #99／#100 的 main `9fbba823`、#101 計數、d1／807、歷史 `e3d92846` 與 #102 固定972e3a8受資料marker守門之runtime的真實血緣。此候選尚未上傳完整程式、合併或部署。
+目前受保護產品合樹基準固定於 `42917bfcf940f034ba3cad318bc89bf470baf686`，tree `34ddcd2ec9b0473679db4463bcfa9b54da1b2689`；先前59027／58c855交付保留。後續純畫布文案／cache修正ddcc7a6未改歷史API／selector或任何資料交易，最終HEAD見外部manifest。保留已合併 #99／#100 的 main `9fbba823`、#101 計數、d1／807、歷史 `e3d92846` 與 #102 固定972e3a8受資料marker守門之runtime的真實血緣。此候選尚未上傳完整程式、合併或部署。
 
 使用者要求完整製程編輯台一起上同一 PR；#101 保持 Draft，遠端仍是計數元件 `8f1f243`，該元件四組 CI 成功不能代替完整候選的新 HEAD CI。#102 的新固定runtime已本機合樹；尚缺新owner歷史與完整UI、例行整頁接線。未凍結的dirty程式未拷入。精確交界見[剩餘相依](process-editor-remaining-dependencies-20261109.md)。
 
@@ -39,3 +39,6 @@
 舊 243-path create_tree 結果仍 UNKNOWN，缺原精確 payload／未執行證據；404 不足。原設備 tree 拒絕亦保留，未以 #101、新 PR、拆分或其他管道重送。PR #101 說明文字更新另已獲使用者明確同意，與程式傳送分開。
 
 未啟用頁面資料／schema／ACL 切換、未接觸真實業務資料、未啟動或重連中控系統 connector、未合併或部署。原 V42 結果未明不重送。真實瀏覽器、手機／IME、兩人、效能及測試站仍 NOT_RUN，完整製程目標尚未完成。
+
+
+後續分工已依parent最新更正：所有核准歷史API／selector由「統一已核准版本查看」owner實作；本製程owner只提供新三頁普通GET200／history422、資料完全不變的精確重現與相依，繼續畫布範圍。主資料UI及例行FQC scope由草稿拆分owner處理。

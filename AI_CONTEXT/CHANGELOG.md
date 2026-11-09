@@ -1,3 +1,7 @@
+## 2026-11-09 — 畫布操作文案與歷史分工交接
+
+畫布中越文說明明確區分「存取當前畫布」與「送審整份已存製程」，共享更新提示不再指向已移除的查看最新共享入口；只改文案及cache，無交易／權限／資料變更。新AB/C/LINES歷史422的固定接口與普通GET200正控制已交付parent，依最新指示由統一已核准版本查看owner負責API／selector，本owner未實作；主資料UI及routine scope仍由草稿拆分owner負責。
+
 ## 2026-11-09 — 本機完整製程合入受保護頁面owner
 
 真merge42917bf整合#102固定972，保留no-poll、IPQC owner／restore、當前畫布Save、核准歷史及UNKNOWN；未啟用page-v1、未碰真資料／schema／ACL／遠端。新增非admin完整saved-process生命週期及C五工段／自訂機器回歸，8項獨立複核PASS。來源以可逐byte還原V1的indexed refs保存21targets與原173物件／79請求，大小降回5MiB內。新頁歷史route實測422，仍NOT_READY；詳[相依矩陣](../docs/acceptance/process-editor-remaining-dependencies-20261109.md)。
