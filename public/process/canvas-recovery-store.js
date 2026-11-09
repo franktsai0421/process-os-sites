@@ -68,7 +68,7 @@
     let releaseBarrier = Promise.resolve();
     let state = result('RUNTIME_ACQUIRING'), notice = protocol === PROTOCOL ? '' : 'WEB_LOCKS_UNAVAILABLE';
     const lineageClaims = new Map();
-    const claims = new Map(), tickets = new WeakMap(), preparations = new WeakMap(), rejections = new Map();
+    const claims = new Map(), tickets = new WeakMap(), preparations = new WeakMap(), rejections = new Map(), saveCommandPins = new WeakMap(), capturedSaveCommands = new WeakSet();
     let activePreparation = null, memoryDurable = false, lastLocalBase = pinned.baseVersion;
         function wrapLineage(handle, heldReference = false) {
       if (!heldReference) handle.refs++;
@@ -265,7 +265,7 @@
       return exactKeys(ref, ['operationId', 'generation', 'workspace', 'stage', 'channel']) && typeof ref.operationId === 'string' && UUID.test(ref.operationId) && short(ref.generation) && short(ref.workspace) && short(ref.stage) && ['canvas-v2', 'canvas'].includes(ref.channel);
     }
     function validSent(sent, ref) {
-      return exactKeys(sent, ['workspace', 'stage', 'entries', 'dependencies']) && sent.workspace === ref.workspace && sent.stage === ref.stage && plain(sent.entries) && plain(sent.dependencies) && Object.keys(sent.entries).length <= 256 && Object.entries(sent.entries).every(([entryKey, entry]) => entry && entry.w === ref.workspace && entry.s === ref.stage && short(entry.id) && short(entry.f) && entryKey === JSON.stringify([entry.w, entry.s, entry.id, entry.f])) && Object.entries(sent.dependencies).every(([entryKey, entry]) => entry && entry.w === ref.workspace && entry.s === ref.stage && short(entry.id) && entryKey === JSON.stringify([entry.w, entry.s, entry.id]));
+      return exactKeys(sent, ['workspace', 'stage', 'entries', 'dependencies']) && sent.workspace === ref.workspace && sent.stage === ref.stage && plain(sent.entries) && plain(sent.dependencies) && Object.keys(sent.entries).length <= 256 && Object.entries(sent.entries).every(([entryKey, entry]) => entry && (ref.workspace === 'process:platform' && ref.stage === '*' ? short(entry.w) && short(entry.s) : entry.w === ref.workspace && entry.s === ref.stage) && short(entry.id) && short(entry.f) && entryKey === JSON.stringify([entry.w, entry.s, entry.id, entry.f])) && Object.entries(sent.dependencies).every(([entryKey, entry]) => entry && (ref.workspace === 'process:platform' && ref.stage === '*' ? short(entry.w) && short(entry.s) : entry.w === ref.workspace && entry.s === ref.stage) && short(entry.id) && entryKey === JSON.stringify([entry.w, entry.s, entry.id]));
     }
     function referenceBase(value, reference) {
       let base; try { base = JSON.parse(value); } catch { return null; }
@@ -416,7 +416,22 @@
     function isolatedRaw(prepared, payload) {
       return JSON.stringify({ version: 3, kind: 'isolated', owner: ownerMetadata(), baseVersion: pinned.baseVersion, lineageId, captureId: prepared.captureId, reference: prepared.reference, sent: prepared.sent, payload });
     }
+    function captureSaveCommand(command, reference) {
+      // Capture once, before prepareWrite's storage/readPayload callbacks. This
+      // replaces the Save dispatch raw capture; no command enters persistence.
+      if (!command || capturedSaveCommands.has(command)) throw Error('SAVE_COMMAND_PIN_REQUIRED');
+      const raw = JSON.stringify(command), snapshot = JSON.parse(raw), originalReference = copyJSON(reference);
+      if (!validReference(originalReference) || originalReference.channel !== 'canvas-v2' || snapshot.operationId !== originalReference.operationId || snapshot.generation !== originalReference.generation || snapshot.source !== 'canvas-v2:' + JSON.stringify([originalReference.workspace, originalReference.stage]) || snapshot.action !== 'apply' || snapshot.moduleAction !== 'save-canvas-v1' || !Number.isSafeInteger(snapshot.expectedRevision) || snapshot.expectedRevision < 0) throw Error('SAVE_COMMAND_PIN_REQUIRED');
+      const error = current(); if (error || !writable()) throw Error(error || 'RUNTIME_NOT_READY');
+      const token = Object.freeze({}); saveCommandPins.set(token, { command, raw, reference: originalReference, runtimeId, generation, used: false }); capturedSaveCommands.add(command); return token;
+    }
     function prepareWrite(input) {
+      let commandPin = null;
+      if (input?.commandPin !== undefined) {
+        commandPin = saveCommandPins.get(input.commandPin);
+        if (!commandPin || commandPin.used || commandPin.runtimeId !== runtimeId || commandPin.generation !== generation || !sameReference(commandPin.reference, input.reference)) return result('SAVE_COMMAND_PIN_REQUIRED');
+        commandPin.used = true;
+      }
       if (activePreparation) return result('RECEIPT_REQUIRED');
       const error = current(); if (error) return result(error);
       if (!writable()) return result('RUNTIME_NOT_READY');
@@ -434,7 +449,7 @@
       if (current() || !writable() || context().baseVersion !== pinned.baseVersion || context().writeState !== 'idle') return result(current() || 'CONTEXT_CHANGED');
       cancelScheduled(); rejections.clear(); run++;
       const reservation = Object.freeze({ id: host.crypto.randomUUID() });
-      const prepared = { reference, sent, payload, runtimeGeneration: generation, runtimeId, snapshotKey: key + '#isolated:' + host.crypto.randomUUID(), snapshotRaw: null, snapshotDurableRaw: null, captureId: host.crypto.randomUUID(), snapshotRevision: 1, confirmedSnapshotRevision: 0, previousRaw: durableRaw, anchorRaw: null, dispatched: false, done: false, reader: null, timer: null, reservation, cancelRaw: null };
+      const prepared = { reference, sent, payload, commandPin, runtimeGeneration: generation, runtimeId, snapshotKey: key + '#isolated:' + host.crypto.randomUUID(), snapshotRaw: null, snapshotDurableRaw: null, captureId: host.crypto.randomUUID(), snapshotRevision: 1, confirmedSnapshotRevision: 0, previousRaw: durableRaw, anchorRaw: null, dispatched: false, done: false, reader: null, timer: null, reservation, cancelRaw: null };
       prepared.snapshotRaw = isolatedRaw(prepared, payload);
       prepared.anchorRaw = JSON.stringify({ version: 3, kind: 'unknown', owner: ownerMetadata(), baseVersion: pinned.baseVersion, leaseProtocol: protocol, lineageId, reference, snapshotKey: prepared.snapshotKey });
       preparations.set(reservation, prepared); activePreparation = prepared;
@@ -559,27 +574,36 @@
       if (!Array.isArray(path) || !path.length || path.length > 32 || path.some(part => !(short(part) || exactKeys(part, ['id']) && short(part.id)))) return null;
       return JSON.stringify(path);
     }
-    async function dispatchPrepared(reservation, command, sender) {
+    async function dispatchPrepared(reservation, command, sender, rejection = {}) {
       const prepared = preparations.get(reservation), reason = preparationGate(prepared);
       if (reason) throw Error(reason);
       const reference = prepared.reference, expectedSource = 'canvas-v2:' + JSON.stringify([reference.workspace, reference.stage]);
       if (prepared.dispatched || typeof sender !== 'function' || command?.operationId !== reference.operationId || command.generation !== reference.generation || command.action !== 'apply' || (reference.channel === 'canvas-v2' ? command.source !== expectedSource : !!command.source) || !Array.isArray(command.patches) || command.patches.length > 256) throw Error('PREPARATION_COMMAND_MISMATCH');
+      if (prepared.commandPin ? prepared.commandPin.command !== command : capturedSaveCommands.has(command)) throw Error('SAVE_COMMAND_PIN_REQUIRED');
+      const commandRaw = prepared.commandPin?.raw ?? JSON.stringify(command), canvasSave = !!prepared.commandPin || JSON.parse(commandRaw).moduleAction === 'save-canvas-v1';
       const frozenCommand = { operationId: command.operationId, generation: command.generation, action: command.action, source: command.source, paths: Array.isArray(command.guards) && command.guards.length <= 512 ? command.guards.map(guard => pathIdentity(guard?.path)).filter(Boolean) : [] };
       const flushed = flushPending(reservation); if (!flushed.ok) throw Error(flushed.code);
       const anchor = readRaw(key), snapshot = readRaw(prepared.snapshotKey);
       if (!anchor.ok || !snapshot.ok || anchor.raw !== prepared.anchorRaw || snapshot.raw !== prepared.snapshotRaw || durableRaw !== prepared.anchorRaw || preparationGate(prepared)) throw Error('DURABLE_RECEIPT_REQUIRED');
       if (!registryMatches(prepared)) throw Error('DURABLE_RECEIPT_REQUIRED');
-      prepared.commandRaw = JSON.stringify(command); prepared.transportAdmitted = false; prepared.dispatched = true;
+      prepared.commandRaw = commandRaw; prepared.transportAdmitted = false; prepared.dispatched = true;
       try {
-        if (['operationId', 'generation', 'action', 'source'].some(field => command[field] !== frozenCommand[field])) throw Object.assign(Error('PREPARATION_COMMAND_CHANGED'), { notSent: true });
+        if (canvasSave ? JSON.stringify(command) !== commandRaw : ['operationId', 'generation', 'action', 'source'].some(field => command[field] !== frozenCommand[field])) throw Error('PREPARATION_COMMAND_CHANGED');
         const response = await sender(command);
         const late = preparationGate(prepared); if (late) throw Error(late);
         return response;
       } catch (error) {
         const path = pathIdentity(error?.details?.path);
-        const rejected = error?.notSent === true || error?.status === 409 && error.message === 'DEPENDENCY_CHANGED_RECONFIRM' && typeof error.requestId === 'string' && UUID.test(error.requestId) && path !== null && frozenCommand.paths.includes(path);
+        // Pin the protocol before handing the command to a sender. Neither
+        // mutation after POST nor a public notSent flag can downgrade a Save
+        // into the legacy rejection path or retire its original receipt.
+        const unchanged = () => { try { return JSON.stringify(command) === commandRaw; } catch { return false; } };
+        const verify = () => { try { return unchanged() && rejection.verify?.(error) === true; } catch { return false; } };
+        const rejected = unchanged() && (canvasSave ? verify() : error?.notSent === true || error?.status === 409 && error.message === 'DEPENDENCY_CHANGED_RECONFIRM' && typeof error.requestId === 'string' && UUID.test(error.requestId) && path !== null && frozenCommand.paths.includes(path));
         if (rejected && !preparationGate(prepared)) {
-          prepared.rejectionProof = error;
+          prepared.rejectionProof = error;prepared.verifyRejection = canvasSave ? verify : unchanged;
+          prepared.beforeReject = rejection.beforeReject;
+          try { prepared.beforeReject?.(); } catch { throw error; }
           const cancelled = cancelPreparedRecord(reservation, true);
           if (cancelled.ok && !current() && prepared.runtimeGeneration === generation) rejections.set(reservation, error);
         }
@@ -611,7 +635,8 @@
     }
     function retryRejected(reservation, error) {
       const prepared = preparations.get(reservation), reason = preparationGate(prepared); if (reason) return result(reason);
-      if (!prepared.dispatched || !prepared.rejectionProof || prepared.rejectionProof !== error) return result('REJECTION_PROOF_REQUIRED');
+      if (!prepared.dispatched || !prepared.rejectionProof || prepared.rejectionProof !== error || prepared.verifyRejection && !prepared.verifyRejection()) return result('REJECTION_PROOF_REQUIRED');
+      try { prepared.beforeReject?.(); } catch { return result('REJECTION_PROOF_REQUIRED'); }
       const cancelled = cancelPreparedRecord(reservation, true);
       if (cancelled.ok && !current() && prepared.runtimeGeneration === generation) rejections.set(reservation, error);
       return cancelled;
@@ -697,7 +722,7 @@
     }
     events.addEventListener?.('pagehide', pagehide); events.addEventListener?.('pageshow', pageshow);
     ready = acquireRuntime();
-    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, prepareWrite, schedulePending, flushPending, cancelPrepared, dispatchPrepared, departureProof, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
+    return Object.freeze({ get ready() { return ready; }, get key() { return key; }, get runtimeId() { return runtimeId; }, status, schedule, flush, cancelScheduled, discover, claim, preview, restore, discard, captureSaveCommand, prepareWrite, schedulePending, flushPending, cancelPrepared, dispatchPrepared, departureProof, wasRejected, retryRejected, settleReceipt, finalizeDisposition, handoff, assertDispatch, close });
   }
   host.CanvasRecoveryStore = Object.freeze({ create, releaseHandoff });
 })(typeof window === 'undefined' ? globalThis : window);

@@ -37,10 +37,24 @@ export function bomRootReader(values:Record<string,string>){
 }
 // canvas-v2 retains the ordinary workflow CAS, permission, receipt and integrity
 // transaction. This admission check only narrows the explicit manual batch scope.
-export function assertCanvasBatch(control:AuthoringControl,command:DraftCommand){
+export function assertCanvasBatch(control:AuthoringControl,command:DraftCommand&{moduleAction?:string}){
  if(command.action!=='apply'||!command.source?.startsWith('canvas-v2:'))throw new DraftConflict('CANVAS_SCOPE_REQUIRED',422);
  let selected:unknown;try{selected=JSON.parse(command.source.slice('canvas-v2:'.length));}catch{throw new DraftConflict('CANVAS_SCOPE_INVALID',422);}
  if(!Array.isArray(selected)||selected.length!==2||selected.some(v=>typeof v!=='string'||!v||['__proto__','prototype','constructor'].includes(v)))throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+ if(selected[0]==='process:platform'&&selected[1]==='*'){
+  if(command.moduleAction!==CANVAS_SAVE_ACTION)throw new DraftConflict('CANVAS_SCOPE_REQUIRED',422);
+  // Whole-platform Save retains the same narrowed canvas paths. Validate each
+  // workspace/stage independently, then apply every part in one guarded CAS.
+  for(const patch of command.patches||[]){
+   if(patch.op==='insert'&&patch.path.length===1&&patch.path[0]==='workspaces'){
+    const value=patch.value as unknown as Workspace;
+    if(!value.stages||!Object.keys(value.stages).length)throw new DraftConflict('CANVAS_SCOPE_INVALID',422);
+    for(const stage of Object.keys(value.stages))assertCanvasBatch(control,{...command,source:'canvas-v2:'+JSON.stringify([value.id,stage]),patches:[{...patch,value:{...value,stages:{[stage]:value.stages[stage]}}}],guards:[]});
+   }else{const path=patch.path;if(!path[1]||typeof path[1]!=='object'||typeof path[3]!=='string')throw new DraftConflict('CANVAS_SCOPE_INVALID',422);assertCanvasBatch(control,{...command,source:'canvas-v2:'+JSON.stringify([path[1].id,path[3]]),patches:[patch],guards:[]});}
+  }
+  for(const guard of command.guards||[]){const path=guard.path;if(!path[1]||typeof path[1]!=='object'||typeof path[3]!=='string')throw new DraftConflict('CANVAS_SCOPE_INVALID',422);assertCanvasBatch(control,{...command,source:'canvas-v2:'+JSON.stringify([path[1].id,path[3]]),patches:[],guards:[guard]});}
+  return;
+ }
  const [workspace,stage]=selected as [string,string],existing=control.workflow!.working.workspaces.find(w=>w.id===workspace);
  const fields=new Set(['x','y','nextIds','number','name','templateId','editorType','mode','people','productCodes','bomSelections','bomProductCode','bomItems','machineIds','machineId','machineDetails','instructionSteps','instructions','ipqc','productInstructionSteps','productInstructions','mediaItems','media','mediaName','mediaType','productMediaItems','ipqcAssignments','ipqcQueryEnabled']);
  const within=(path:DraftPath)=>path[0]==='workspaces'&&typeof path[1]==='object'&&path[1]?.id===workspace&&path[2]==='stages'&&path[3]===stage;

@@ -83,7 +83,7 @@ async function browserFixture(seed={}){
 }
 
 void test('100 local drag edits have zero POST and bounded debounce; legacy explicit Sync remains one batch',async()=>{
- const f=await browserFixture();for(let i=1;i<=100;i++)f.local.edit(w,'S',[{id:'a',f:'x',value:i}]);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);f.tick();assert.equal(f.writes.length,1);const lease=f.local.lockForDeparture();await assert.rejects(f.local.saveForDeparture(lease),/UNSYNCHRONIZED/);lease.release();assert.equal(f.calls.length,0);await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.dirty());
+ const f=await browserFixture();for(let i=1;i<=100;i++)f.local.edit(w,'S',[{id:'a',f:'x',value:i}]);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);f.tick();assert.equal(f.writes.length,0);const lease=f.local.lockForDeparture();await assert.rejects(f.local.saveForDeparture(lease),/UNSYNCHRONIZED/);lease.release();assert.equal(f.calls.length,0);await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.dirty());
 });
 
 void test('lost response uses original receipt without a second POST; later editing stays local',async()=>{
@@ -94,24 +94,26 @@ void test('late actor ACK preserves original persisted batch and cannot clear in
  const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.mode('late-actor');await assert.rejects(f.local.sync(),/ACCOUNT_CHANGED|OWNER_CHANGED/);const stored=[...f.records.values()].map(raw=>JSON.parse(raw)),marker=stored.find(row=>row.kind==='unknown');assert(marker?.reference?.operationId);assert(stored.some(row=>JSON.stringify(row).includes('"value":5')));for(const raw of f.records.values())assert(!/"(?:command|patches|guards|headers|body)"\s*:/.test(raw));
 });
 
-void test('pending and new generation retain local recovery; duplicated tab gets independent storage',async()=>{
- const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.tick();const keys=[...f.records.keys()];const raw=f.records.get(keys[0]),duplicate=await browserFixture({records:f.records,session:f.session,manager:f.manager});assert.equal(duplicate.local.counts().fields,0);await assert.rejects(duplicate.local.previewRecovery(keys[0]),/IN_USE/);duplicate.local.edit(w,'S',[{id:'a',f:'x',value:8}]);duplicate.tick();assert.equal(f.records.size,2);assert.equal(f.records.get(keys[0]),raw);
- const next={...f.model(),generation:'generation-next',pendingId:null};await f.remote(next);assert.equal(f.local.project(w,'S',next.working.workspaces[0].stages.S)[0].x,0);assert.equal(f.records.get(keys[0]),raw);await assert.rejects(f.local.restoreRecovery(keys[0],()=>true),/BASE_CHANGED|VERSION_CHANGED/);
+void test('unsent input is RAM only across duplicate tabs and new generations',async()=>{
+ const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.tick();assert.equal(f.records.size,0);
+ const duplicate=await browserFixture({records:f.records,session:f.session,manager:f.manager});assert.equal(duplicate.local.counts().fields,0);
+ await assert.rejects(duplicate.local.restoreRecovery('old'),/LOCAL_RECOVERY_REMOVED/);
+ await f.remote({...f.model(),generation:'generation-next'});assert.equal(f.local.counts().fields,0);assert.equal(f.records.size,0);
 });
 
 void test('quota error never reports recovery success and blocks sending the batch',async()=>{
- const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.mode('quota');f.tick();assert.match(f.status.textContent,/存檔失敗|存檔未完成/);await assert.rejects(f.local.sync(),/RECOVERY_STORAGE_UNAVAILABLE/);assert.equal(f.calls.length,0);assert(f.local.dirty());
+ const f=await browserFixture();f.local.edit(w,'S',[{id:'a',f:'x',value:5}]);f.mode('quota');f.tick();assert.equal(f.writes.length,0);await assert.rejects(f.local.sync(),/RECOVERY_STORAGE_UNAVAILABLE/);assert.equal(f.calls.length,0);assert(f.local.dirty());
 });
 
 void test('background newer shared value cannot become an unseen overwrite baseline',()=>{
  const first=content(),j=new Journal(first);j.project(w,'S',first.workspaces[0].stages.S);const fresh=clone(first);op(fresh,'a').x=999;j.content=fresh;j.edit(w,'S',[{id:'a',f:'x',value:5}]);assert.throws(()=>j.freeze(w,'S'),/CANVAS_CONFLICT/);assert.equal(j.project(w,'S')[0].x,5);
 });
 
-void test('production poll updates authority/shared model without replacing editor or increasing interval',async()=>{
- const server={versions:[{status:'draft'}],workflow:{generation:'g',revision:1,working:content()}};let enabled=false,renders=0,reads=0;const intervals=[];
- const client={read:async()=>{reads++;return {control:clone(server),permissions:{edit:true,view:true}};},contentIssues:async()=>({generation:'g',revision:server.workflow.revision})};
- const c={structuredClone,console,JSON,Error,setInterval:(fn,ms)=>intervals.push(ms),setTimeout:()=>1,clearTimeout(){},localStorage:{getItem:()=>enabled?'enabled':null},state:{view:'editor',category:'Synthetic',editorLine:'A',editorByCategory:{}},document:{documentElement:{lang:'zh'},addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>({dataset:{}})},bindView(){},renderInspector(){},render:()=>renders++,toast(){},editorKey:()=> 'Synthetic:A',lineFor:()=>({stages:[{code:'S'},{code:'T'}]}),createMasterSharedBridge:()=>({diff(){}}),createSharedDraftClient:()=>client,ProcessSync:{identity:{id:'synthetic-a'}},ProcessEditorV2:{interacting:()=>false}};
- c.window=c;c.ensureCategoryEditor=()=>c.state.editorByCategory['Synthetic:A'];vm.runInNewContext(fs.readFileSync('public/process/process-authoring-v3.js','utf8'),c);enabled=true;await c.ProcessAuthoringV3.load();const first=renders;server.workflow.revision++;op(server.workflow.working,'a').name='Remote actor';await c.ProcessAuthoringV3.load();assert.equal(c.ensureCategoryEditor().S[0].name,'A');assert.equal(op(c.ProcessAuthoringV3.flow().working,'a').name,'Remote actor');assert.equal(renders,first);assert.equal(reads,2);assert.deepEqual(intervals,[4000]);
+void test('explicit reads update authority without replacing editor; editor and approval have no polling',async()=>{
+ const server={versions:[{status:'draft'}],workflow:{generation:'g',revision:1,working:content()}};let enabled=false,renders=0,reads=0;const intervals=[],intervalRuns=[];
+ const client={canPoll:()=>true,read:async()=>{reads++;return {control:clone(server),permissions:{edit:true,view:true}};},contentIssues:async()=>({generation:'g',revision:server.workflow.revision})};
+ const c={structuredClone,console,JSON,Error,setInterval:(fn,ms)=>{intervals.push(ms);intervalRuns.push(fn);},setTimeout:()=>1,clearTimeout(){},localStorage:{getItem:()=>enabled?'enabled':null},state:{view:'editor',category:'Synthetic',editorLine:'A',editorByCategory:{}},document:{documentElement:{lang:'zh'},addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>({dataset:{}})},bindView(){},renderInspector(){},render:()=>renders++,toast(){},editorKey:()=> 'Synthetic:A',lineFor:()=>({stages:[{code:'S'},{code:'T'}]}),createMasterSharedBridge:()=>({diff(){}}),createSharedDraftClient:()=>client,ProcessSync:{identity:{id:'synthetic-a'}},ProcessEditorV2:{interacting:()=>false}};
+ c.window=c;c.ensureCategoryEditor=()=>c.state.editorByCategory['Synthetic:A'];vm.runInNewContext(fs.readFileSync('public/process/process-authoring-v3.js','utf8'),c);enabled=true;await c.ProcessAuthoringV3.load();const first=renders;server.workflow.revision++;op(server.workflow.working,'a').name='Remote actor';await c.ProcessAuthoringV3.load();assert.equal(c.ensureCategoryEditor().S[0].name,'A');assert.equal(op(c.ProcessAuthoringV3.flow().working,'a').name,'Remote actor');assert.equal(renders,first);assert.equal(reads,2);assert.deepEqual(intervals,[]);c.document.visibilityState='visible';for(const fn of intervalRuns)fn();await new Promise(setImmediate);assert.equal(reads,2,'editor never polls');c.state.view='approval';c.state.approvalTab='process';for(const fn of intervalRuns)fn();await new Promise(setImmediate);assert.equal(reads,2,'approval has no background polling');await c.ProcessAuthoringV3.load();assert.equal(reads,3,'explicit approval load remains available');
 });
 
 void test('batch limit never silently splits and corrupt pending commands never replay',()=>{
@@ -120,7 +122,7 @@ void test('batch limit never silently splits and corrupt pending commands never 
 });
 
 void test('unavailable legacy sessionStorage neither imports old tabs nor blocks independent local persistence',async()=>{
- let touched=0;const f=await browserFixture({sessionStorage:{getItem(){touched++;throw Error('denied');},setItem(){touched++;throw Error('denied');}}});f.local.edit(w,'S',[{id:'a',f:'x',value:3}]);f.local.flushRecovery();assert.equal(touched,0);assert.equal(f.records.size,1);assert.equal(f.calls.length,0);assert.equal(f.local.project(w,'S',f.model().working.workspaces[0].stages.S)[0].x,3);
+ let touched=0;const f=await browserFixture({sessionStorage:{getItem(){touched++;throw Error('denied');},setItem(){touched++;throw Error('denied');}}});f.local.edit(w,'S',[{id:'a',f:'x',value:3}]);f.local.flushRecovery();assert.equal(touched,0);assert.equal(f.records.size,0);assert.equal(f.calls.length,0);assert.equal(f.local.project(w,'S',f.model().working.workspaces[0].stages.S)[0].x,3);
 });
 
 void test('whole-canvas review preserves original/latest/mine, rebases only reviewed values and requires manual Sync',()=>{
@@ -128,7 +130,7 @@ void test('whole-canvas review preserves original/latest/mine, rebases only revi
 });
 
 void test('review latest drops only selected canvas; removed nodes/new incoming edges remain blocked with local content',()=>{
- const original=content(),j=new Journal(original);j.edit(w,'S',[{id:'a',f:'name',value:'Mine'}]);j.edit(w,'T',[{id:'c',f:'name',value:'Keep T'}]);const latest=clone(original);latest.workspaces[0].stages.S.shift();const review=j.review(w,'S',latest);assert.equal(review.blockers[0].reason,'OPERATION_REMOVED');assert.throws(()=>j.resolveReview(review,'mine'),/REVIEW_UNSAFE/);assert.equal(j.counts(w,'S').fields,1);j.resolveReview(review,'latest');assert.equal(j.counts(w,'S').fields,0);assert.equal(j.counts(w,'T').fields,1);
+ const original=content(),j=new Journal(original);j.edit(w,'S',[{id:'a',f:'name',value:'Mine'}]);j.edit(w,'T',[{id:'c',f:'name',value:'Keep T'}]);const latest=clone(original);latest.workspaces[0].stages.S.shift();const review=j.review(w,'S',latest);assert.equal(review.blockers[0].reason,'OPERATION_REMOVED');j.resolveReview(review,'mine');assert.equal(j.counts(w,'S').fields,0);assert.equal(j.counts(w,'T').fields,1);
  const deletion=new Journal(original);deletion.remove(w,'S','b');const changed=clone(original);changed.workspaces[0].stages.S.push({id:'new-source',stageCode:'S',name:'New source',productCodes:[],nextIds:['b']});const incoming=deletion.review(w,'S',changed);assert(incoming.blockers.some(b=>b.reason==='NEW_INCOMING_CONNECTION'));assert.throws(()=>deletion.resolveReview(incoming,'mine'),/REVIEW_UNSAFE/);assert.equal(deletion.project(w,'S').length,1,'review does not replace preview');
 });
 
@@ -169,14 +171,46 @@ void test('dirty buffer never bypasses revoked edit, missing draft, or invalidat
  f.ctx.ProcessSync.requiresReload=true;assert.equal(f.ctx.ProcessAuthoringV3.canEditLocalCanvas(),false);assert(f.local.dirty());
 });
 
-void test('reloaded unknown has receipt-only marker, never auto-imports, and explicitly recovers only post-send edits',async()=>{
+void test('reloaded unknown retains original receipt, never imports or restores unsent post-send edits',async()=>{
  const source=await browserFixture();source.local.edit(w,'S',[{id:'a',f:'x',value:5}]);source.mode('lost');await assert.rejects(source.local.sync(),/UNKNOWN/);source.local.edit(w,'S',[{id:'a',f:'x',value:6}]);source.tick();
  const [key,raw]=[...source.records].find(([,value])=>JSON.parse(value).kind==='unknown'),marker=JSON.parse(raw);assert.equal(marker.payload,undefined);assert.equal(marker.command,undefined);assert.equal(marker.reference.operationId,source.receipt().receipt.operationId);assert(source.records.has(marker.snapshotKey));await source.close();
  const next=await browserFixture({records:source.records,manager:source.manager,model:source.model(),receipt:source.receipt()});assert.equal(next.local.counts().fields,0);assert.equal(next.local.project(w,'S',next.model().working.workspaces[0].stages.S)[0].x,5);assert.equal(next.calls.length,0);
  await next.local.resolveRecovery(key);assert.equal(next.calls.filter(call=>call.method==='POST').length,0);assert.equal(next.calls.filter(call=>call.receipt).length,1);assert.equal(next.calls.find(call=>call.receipt).id,marker.reference.operationId);assert.equal(next.local.counts().fields,0);assert.equal(JSON.parse(next.records.get(key)).kind,'local');
- await next.local.restoreRecovery(key,()=>true);assert.equal(next.local.project(w,'S',next.model().working.workspaces[0].stages.S)[0].x,6);assert.equal(next.calls.filter(call=>call.method==='POST').length,0);await next.close();
+ await assert.rejects(next.local.restoreRecovery(key,()=>true),/LOCAL_RECOVERY_REMOVED/);assert.equal(next.local.project(w,'S',next.model().working.workspaces[0].stages.S)[0].x,5);assert.equal(next.calls.filter(call=>call.method==='POST').length,0);await next.close();
 });
 void test('missing original receipt after reload stays unknown and never re-POSTs or exposes editable restore',async()=>{
  const source=await browserFixture();source.local.edit(w,'S',[{id:'a',f:'x',value:5}]);source.mode('lost');await assert.rejects(source.local.sync(),/UNKNOWN/);const [key,raw]=[...source.records].find(([,value])=>JSON.parse(value).kind==='unknown');await source.close();
  const next=await browserFixture({records:source.records,manager:source.manager,model:source.model()});await assert.rejects(next.local.resolveRecovery(key),/OPERATION_NOT_FOUND/);assert.equal(next.records.get(key),raw);const preview=await next.local.previewRecovery(key);assert.equal(preview.kind,'unknown');assert.equal(preview.payload,undefined);assert.equal(preview.canRestore,false);assert.equal(next.calls.filter(call=>call.method==='POST').length,0);assert.equal(next.local.counts().fields,0);await next.close();
+});
+
+void test('all theirs resolves only conflicting fields and preserves both actors non-conflicting changes',()=>{
+ const original=content(),j=new Journal(original);j.operation(w,'S',{...op(original,'a'),name:'Mine',x:42},op(original,'a'));
+ const latest=clone(original);op(latest,'a').name='Theirs';op(latest,'a').y=99;
+ const review=j.review(w,'S',latest);assert.equal(review.changes.filter(c=>c.conflict).length,1);j.resolveReview(review,'latest');
+ const next=j.project(w,'S');assert.equal(next[0].name,'Theirs');assert.equal(next[0].x,42);assert.equal(next[0].y,99);assert.equal(j.freeze(w,'S').patches.length,1);
+});
+void test('confirmed deletion rebases and removes newly added incoming links; cancellation leaves journal untouched',()=>{
+ const original=content(),j=new Journal(original);j.remove(w,'S','b');const latest=clone(original);latest.workspaces[0].stages.S.push({id:'c',stageCode:'S',nextIds:['b'],name:'Remote'});
+ const review=j.review(w,'S',latest),before=JSON.stringify(j.record()),impact=j.deletionImpact(review,'mine');assert(impact.nodes.includes('b'));assert(impact.links.some(e=>e.from==='c'&&e.to==='b'));assert.equal(JSON.stringify(j.record()),before);
+ assert.throws(()=>j.resolveReview(review,'mine'),/REVIEW_UNSAFE/);j.resolveReview(review,'mine',true);const next=j.project(w,'S');assert(!next.some(o=>o.id==='b'));assert(!next.some(o=>o.nextIds?.includes('b')));assert(j.freeze(w,'S').guards.some(g=>g.path.includes('nextIds')));
+});
+
+void test('identical concurrent field values are not a real conflict',()=>{const initial=content(),j=new Journal(initial);j.edit(w,'S',[{id:'a',f:'name',value:'Same'}]);const latest=clone(initial);op(latest,'a').name='Same';const review=j.review(w,'S',latest);assert(!review.changes.some(c=>c.conflict));j.resolveReview(review,'mine');assert.equal(j.counts().fields,0);});
+
+void test('dependent unlink unknown queries its original receipt once without recreating the deleted node',async()=>{
+ const f=await browserFixture();f.local.remove(w,'S','b');f.mode('lost');await assert.rejects(f.local.sync(),/UNKNOWN/);assert(f.local.pending());f.local.edit(w,'S',[{id:'a',f:'name',value:'Independent after send'}]);f.mode('success');await f.local.sync();assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert(!f.local.pending());assert(!f.local.project(w,'S').some(o=>o.id==='b'));assert.deepEqual(object(f.local.project(w,'S')[0].nextIds),[]);assert.equal(f.local.project(w,'S')[0].name,'Independent after send');assert(f.local.dirty());
+});
+
+for(const choice of ['mine','latest'])void test(`deletion group ${choice} keeps CAS protection after preview and reveals new incoming edges`,()=>{
+ const original=content(),j=new Journal(original);j.edit(w,'S',[{id:'a',f:'name',value:'Independent'}]);j.remove(w,'S','b');const latest=clone(original);op(latest,'b').name='Remote B';j.resolveReview(j.review(w,'S',latest),choice,choice==='mine');const batch=j.freeze(w,'S');assert.doesNotThrow(()=>apply(server(clone(latest)),batch));
+ const changed=clone(latest);op(changed,choice==='mine'?'b':'a').name='Changed after preview';const target=server(changed),before=clone(target);assert.throws(()=>apply(clone(target),batch));assert.deepEqual(object(target),object(before));
+ if(choice==='mine'){const connected=clone(latest);connected.workspaces[0].stages.S.push({...op(connected,'b'),id:'new-incoming',nextIds:['b']});assert.throws(()=>apply(server(connected),batch));assert(j.deletionImpact(j.review(w,'S',connected),'mine').links.some(e=>e.from==='new-incoming'&&e.to==='b'));}
+});
+
+for(const peerLinks of [[],['c']])for(const decision of ['mine','latest'])void test(`peer unlink rebase to atomic Save and reread: ${decision} ${JSON.stringify(peerLinks)}`,()=>{
+ const original=content();op(original,'b').nextIds=['c'];original.workspaces[0].stages.S.push({...op(original,'b'),id:'c',name:'C',nextIds:[]});const j=new Journal(original);j.remove(w,'S','b');j.edit(w,'S',[{id:'c',f:'name',value:'Keep'}]);const fresh=clone(original);op(fresh,'a').nextIds=peerLinks;op(fresh,'b').name='Peer';j.resolveReview(j.review(w,'S',fresh),decision,decision==='mine');const batch=j.freeze(w,'S'),cmd={...command(batch),moduleAction:'save-canvas-v1'};
+ const changed=clone(fresh);op(changed,'c').name='CAS changed';assert.throws(()=>processAuthoringAdapter(true).apply(server(changed),cmd,context),/DEPENDENCY_CHANGED/);
+ const state=server(fresh),result=processAuthoringAdapter(true).apply(state,cmd,context);state.workflow=result.state;const replay=processAuthoringAdapter(true).apply(state,cmd,context);assert.deepEqual(object(replay.receipt),object(result.receipt));assert.equal(result.state.saves.length,1);
+ const saved=result.state.saved.content;assert.deepEqual(object(op(saved,'a').nextIds),decision==='latest'?peerLinks:[]);assert.equal(op(saved,'c').name,'Keep');if(decision==='latest'){assert.equal(op(saved,'b').name,'Peer');assert(!batch.patches.some(p=>p.path[4]?.id==='a'&&p.path.at(-1)==='nextIds'));}else assert(!op(saved,'b'));
+ j.acknowledge(batch,saved);assert.equal(j.counts().fields,0);const reopened=new Journal(clone(saved));assert.equal(reopened.counts().fields,0);assert.deepEqual(object(reopened.project(w,'S').find(o=>o.id==='a').nextIds),decision==='latest'?peerLinks:[]);
 });
