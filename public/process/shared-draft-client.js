@@ -933,6 +933,9 @@
     const readPause=window.createScopedReadPause(endpoint.split('?')[0]);
     const readKind=url=>/[?&]operationId(?:=|&|$)/.test(url)?'receipt':/[?&]permissions(?:=|&|$)/.test(url)?'permissions':/[?&]contentIssues(?:=|&|$)/.test(url)?'inspection':/[?&]reviewMetadata(?:=|&|$)/.test(url)?'review':/[?&](?:history|uiHistory|versionId|caseId|saveId|restoreSaveId|legacyHistory|legacyVersionId)(?:=|&|$)/.test(url)?'history':'state';
     async function request(url,body,readOptions,equipmentRecheck) {
+      // A caller may retire C consent before access capture. Never mint a
+      // new-version Begin proof for a request that started in an older version.
+      const cRequestVersion=cComparisonVersion;
       // Explicit history reads cannot adopt a reply after their view has changed.
       // A known HTTP refusal still carries its status for existing callers.
       const assertReadCurrent=status=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Object.assign(Error('ACCESS_READ_SUPERSEDED'),Number.isInteger(status)&&status>=400?{status}:{});};
@@ -1008,7 +1011,7 @@
         // Caller currency may synchronously invalidate ownership. Never mint a
         // new-version proof for an old response after that callback returns.
         const cReadVersion=cComparisonVersion;
-        if(durableBegin&&boundedScope==='ipqc-c'&&accessGuard&&acceptedAccess&&ownsAccess(accessOwner)&&accessOwner.epoch===accessEpoch&&cReadVersion===cComparisonVersion&&!body&&kind==='state'&&result.workflow===null&&validBeginBasis(result.beginBasis)&&result.beginBasis.generation===null&&result.beginBasis.openVersionStatus==='draft'&&result.permissions?.view===true&&result.permissions?.edit===true&&beginRuntimeCurrent())cBeginReads.set(result,{raw:cBeginReadRaw(result),version:cReadVersion,used:false});
+        if(durableBegin&&boundedScope==='ipqc-c'&&accessGuard&&acceptedAccess&&ownsAccess(accessOwner)&&accessOwner.epoch===accessEpoch&&cRequestVersion===cReadVersion&&cReadVersion===cComparisonVersion&&!body&&kind==='state'&&result.workflow===null&&validBeginBasis(result.beginBasis)&&result.beginBasis.generation===null&&result.beginBasis.openVersionStatus==='draft'&&result.permissions?.view===true&&result.permissions?.edit===true&&beginRuntimeCurrent())cBeginReads.set(result,{raw:cBeginReadRaw(result),version:cReadVersion,used:false});
         return result;
       } catch(error) {
         if(canvasPrimary)canvasBasis=null;
