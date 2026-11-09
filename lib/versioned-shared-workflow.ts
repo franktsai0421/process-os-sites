@@ -1,3 +1,4 @@
+import {approvedHistoryQuery} from './approved-history-query';
 import {approvedVersion,approvedVersions,approvedVersionEvidence} from './approved-history';
 import {parseBeginIdentity,replayBegin,assertBeginBasis,recordBegin} from './workflow-begin';
 import {assertFqcLocalSaveCommand} from './fqc-local-save';
@@ -167,13 +168,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
   return {
     async GET(request:Request){const reply=(body:unknown,status=200)=>Response.json(iqcEditingPayload(compactWorkflowPayload(body,new URL(request.url).searchParams.get('compact')==='1'),iqcEditingRequested(request,adapter.key,adapter.scope)),{status,headers:responseHeaders});try{
       const selectors=new URL(request.url).searchParams;
-      const bomApproved=adapter.key==='bomMasterControl'&&adapter.scope==='bom'&&new URL(request.url).pathname==='/api/bom/workflow'&&selectors.has('approvedOnly');
-      if(bomApproved){
-        // An approved-only request must never fall through to a legacy/body
-        // selector, nor ask metadata reads to hydrate a historical case body.
-        const listing=selectors.has('uiHistory'),detail=selectors.has('versionId'),allowed=new Set(['approvedOnly','caseMetadata','compact',...(listing?['uiHistory','versionBefore']:['versionId'])]);
-        if(selectors.get('approvedOnly')!=='1'||listing===detail||[...selectors.keys()].some(key=>!allowed.has(key)||selectors.getAll(key).length!==1)||listing&&selectors.get('uiHistory')!=='1'||detail&&(!selectors.get('versionId')||selectors.get('versionId')!.length>512)||selectors.has('caseMetadata')&&selectors.get('caseMetadata')!=='1'||selectors.has('compact')&&selectors.get('compact')!=='1'||(selectors.get('versionBefore')?.length||0)>512)return reply({error:'INVALID_APPROVED_HISTORY_QUERY'},422);
-      }
+      const approvedOnlyRead=approvedHistoryQuery(request,adapter.key,adapter.scope);
       const fqcReadAhead=isIpqcAB(request)||adapter.key==='qualityMasterControl'&&adapter.scope==='fqc'&&new URL(request.url).pathname==='/api/fqc/workflow'&&!selectors.has('scope');
       let preflight:State|undefined;
       if(adapter.permissionOnlyRead){
@@ -197,7 +192,7 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
       if(query.get('since')===`state:${state.revision}`)return reply({revision:state.revision,permissions,unchanged:true});
       const control=adapter.parse(state.values[adapter.key],state.recordStorage?.models.get(adapter.key)),flow=control.workflow;
       if(query.has('reviewMetadata'))return reply({revision:state.revision,permissions,review:workflowReviewMetadata(control,permissions.history)});
-      // BOM opts in without changing the history policy of existing modules.
+      // Explicit approved-only reads share the same immutable-body and authority fences.
       // Refresh authorization after all selected reads/hydration, including
       // metadata aggregate I/O. No stale permission snapshot authorizes output.
       const approvedReadCurrent=async()=>{
@@ -208,9 +203,9 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const finalActor=await identity(request,fresh);
         return !finalActor||finalActor.id!==actor.id||finalActor.sessionType!==actor.sessionType?reply({error:'FORBIDDEN'},403):null;
       };
-      if(bomApproved&&query.has('uiHistory')){
+      if(approvedOnlyRead&&query.has('uiHistory')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
-        const rows=approvedVersions(control,true).slice().reverse(),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
+        const rows=approvedVersions(control,true).filter(v=>approvedVersionEvidence(control,v,true)?.kind!=='formal-baseline').slice().reverse(),before=query.get('versionBefore'),start=before?rows.findIndex(v=>v.id===before)+1:0;
         if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
         const body={approvedOnly:true,revision:state.revision,permissions,activeVersionId:control.activeVersionId,versions:{rows:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.id===control.activeVersionId?'approved':'superseded',creatorName:v.creatorName,createdAt:v.createdAt,approvalEvidence:approvedVersionEvidence(control,v,true)})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length}};
         return await approvedReadCurrent()||reply(body);
@@ -223,10 +218,10 @@ export function versionedWorkflowRoute<T,C extends VersionedControl<T>>(adapter:
         const before=query.get('before'),start=before?rows.findIndex(v=>v.id===before)+1:0;if(before&&!start)return reply({error:'HISTORY_CURSOR_INVALID'},409);
         return reply({versions:rows.slice(start,start+20).map(v=>({id:v.id,number:v.number,status:v.status,creatorId:v.creatorId,creatorName:v.creatorName,createdAt:v.createdAt,updatedAt:v.updatedAt})),next:rows.length>start+20?rows[start+19].id:null,total:rows.length});
       }
-      if(bomApproved&&query.has('versionId')){
+      if(approvedOnlyRead&&query.has('versionId')){
         if(!permissions.history)return reply({error:'FORBIDDEN'},403);
         const version=approvedVersion(control,query.get('versionId')!,true);
-        if(!version)return reply({error:'VERSION_NOT_FOUND'},404);
+        if(!version||version.approvalEvidence.kind==='formal-baseline')return reply({error:'VERSION_NOT_FOUND'},404);
         const body={approvedOnly:true,version,revision:state.revision,permissions,activeVersionId:control.activeVersionId};
         // One selected snapshot only. Compatibility history streams can start
         // delivering before R2 hydration completes; this opt-in must not expose

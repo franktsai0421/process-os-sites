@@ -1,3 +1,7 @@
+## 2026-11-09 — 全頁核准版本查看首批（本機，未發布）
+
+已在獨立候選以 ce824f2 為基準盤點全部草稿頁，新增共同 approved-only GET 精確 envelope 與 source/body／權限防護；78 項新 route 測試、76 項 BOM/C common 實際 handler、68 項既有權限／收據回歸及 12 組 helper PASS。沒有接通其他頁的同頁 selector，不可宣稱全站完成；Github／測試站仍未更新，保留既有 243-path UNKNOWN 與拒絕操作邊界。[逐頁矩陣、來源與接續](docs/acceptance/approved-history-unification-20261109/README.md)。
+
 # 2026-11-09 — 全站明確存取／整組衝突選擇本機整合
 
 以 main b06394c 在隔離整合分支合併 master AB/C/PROCESS、Canvas、FQC、IQC、IPQC A/B/C、BOM、模具、檢具及例行 FQC。選擇前後均保護原輸入／權限／世代，選後換版重比，同次 Save，不重送 UNKNOWN。root 獨立審查補正主資料接受基準／巢狀排序與共用 quality predicate 後的 owner 漂移。逐頁草稿所有權、各批證據與外部阻擋見[統一候選](docs/acceptance/unified-draft-save-choice-20261109/README.md)。線別工段獨立持久 scope 仍未啟用，需單獨重大所有權切換決定。未上傳／合併／部署；不可重送舊 243-path UNKNOWN 或覆蓋另一路畫布平台清單工作。

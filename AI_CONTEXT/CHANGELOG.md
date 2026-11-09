@@ -1,3 +1,7 @@
+## 2026-11-09 — 全頁核准歷史讀取首批候選
+
+精確綁定 approved-only GET 的 route、scope 和 envelope，擴展 BOM 的固定核准內容及讀後授權／session／revision 防護至 numeric-version 草稿 API，排除無審核證據的 formal baseline。各頁同頁 selector 與 legacy 聯集仍待完成；無 schema、資料或發布變更。[逐頁盤點與實測界線](../docs/acceptance/approved-history-unification-20261109/README.md)。
+
 ## 2026-11-09 — 全業務草稿整組衝突本機候選
 
 各草稿頁面採 Save-time 三方比較、整組 mine/theirs/cancel、無衝突保留及選後換版重比；共同傳輸保留原收據／UNKNOWN／世代／權限／CAS。例行 FQC private Apply + Save 在同一 CAS 保存原命令收據；IPQC A/B 增加 optional coldOrigin lineage metadata（無 SQL migration），C 照片按穩定 ID／順序處理。頁面所有權分拆、遠端上傳與實站驗收未完成。[逐頁界線與證據](../docs/acceptance/unified-draft-save-choice-20261109/README.md)。
