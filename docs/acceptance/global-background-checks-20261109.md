@@ -1,6 +1,6 @@
 # Global background check retirement
 
-Candidate starts at main `d4ac309fe05c89288af226b52c18161865ccdcb8` (#97 and #98 already merged). Source-only change. No schema, migration, account/role change, business-data write or Site publication.
+Candidate starts at main `d4ac309fe05c89288af226b52c18161865ccdcb8` (#97 and #98 already merged), with merged #99 main `021f0f388b16ebcdff0f64ff44039d2ea07f4165` integrated in the follow-up. Source-only change. No schema, migration, account/role change, business-data write or Site publication.
 
 ## Confirmed policy and implementation
 
@@ -50,7 +50,7 @@ The shared `createForegroundPoll` API is retained as an inert compatibility faca
 
 Keep the main equipment recheck/ACK changes; do not replace the full shared client with the older history candidate. The history patch is composed onto current main and its explicit-read ownership checks added around the existing private equipment request owner.
 
-Other draft/canvas/type-catalog candidates in the workspace are deliberately not merged here. When they integrate, retain the inert facade and the removed direct interval lines; semantically combine cache/source-proof changes and rerun only affected checks. This branch changes no business schema/data and creates no production release.
+The approved stage-catalog batch #99 is included through latest main, preserving its workflow checks and documentation. Other draft/canvas candidates in the workspace are deliberately not merged here. When they integrate, retain the inert facade and the removed direct interval lines; semantically combine cache/source-proof changes and rerun only affected checks. This branch changes no business schema/data and creates no production release.
 
 ## Independent review follow-up
 
@@ -61,3 +61,17 @@ The timer guard now follows client static/dynamic imports into local libraries a
 The cancelled e37 Windows run exposed an additional obsolete assertion in `canvas-manual-sync`: it required the retired 4-second registration. That assertion now verifies zero idle interval and unchanged explicit-read authority/editor behavior. The unified-master legacy callback composition uses the same explicitly test-only driver as the other retained producer-fence tests; current production scheduling is verified separately. No application behavior or safety assertion is relaxed to satisfy these retired-cadence expectations.
 
 The final 7d0f126 Windows run passed through build, AB/C, IPQC A/B, BOM and input abandonment, but stopped on two more retired-poll expectations: compiled transfer waited for a background FQC GET, and the deadline fixture called a removed notice interval. Both are migrated to assert no idle request while preserving the original stale-Save 409/unchanged stored data and 45-second abort/unknown/no-retry checks. No timeout increase, test skip, workflow relaxation or runtime change is used. Local browser execution remains blocked; the changed compiled scenario requires the existing remote CI run.
+
+## Latest-main and FQC CI follow-up
+
+Remote head efdaa3d passed the four module workflows plus Local safety's compiled AB/C, IPQC A/B, BOM, equipment transfer, input abandonment, hosted-deadline/source/permission and outbound-denial steps. Local safety then failed eight FQC readiness cases that still expected the retired timer. The current-runtime initial-load test now requires zero timer registration and no focus/visibility reread. All original callback race and scoped-denial assertions remain under an explicitly labelled, SHA-256-pinned test-only historical driver; four additional current-runtime event tests fence replies after remount/epoch change without timers. The 34 FQC cases, nine global no-poll cases and 20 #99 stage-catalog cases pass together (63 total). No runtime change, skip, timeout increase or CI relaxation is used.
+
+Merged main 021f0f3 has no executable-file overlap with this batch. Its Local safety additions merge cleanly; the two prepend conflicts in CHANGELOG/HANDOFF retain both batches. Historical inverse proofs still target the unchanged five-file d4ac309 baseline; #99 does not change those files. The newly integrated head requires fresh remote CI and independent review; prior-head green steps are diagnostic evidence only. No merge or Site publication is claimed here.
+
+The previously gated follow-up also exposed a real compatibility regression: the explicit-read predicate replaced a stale non-JSON parse error before returning it. The catch path now suppresses stale access/read-pause effects while preserving the original parse-error identity (or the existing strict HTTP/cause wrapper). POST handling is unchanged. The unchanged 51-case access-result runner and 34-case FQC runner pass. The shared-client cache tag is bumped to explicit-checks3 and both exact source inverse hashes/rules are refreshed without changing their pinned predecessors.
+
+Independent review of the latest-main merge found five history assertions still expecting the superseded marker for strict stale non-JSON denial. They now require HTTP 403 plus the original SyntaxError identity; JSON still requires ACCESS_READ_SUPERSEDED, and all permissions/zero-POST/no-overlay assertions remain. An additional assertion proves stale denial does not pause history reads in the next view. The combined history, original-receipt recovery and navigation suite passes all 222 cases. A later IPQC A/B ACK-denial script imports a native-browser fixture and remains blocked locally by the documented socket restriction; no browser/environment workaround is used and the required remote CI test is retained.
+
+The previously gated IQC parallel-read runner found owner-error precedence had also changed: an expired view predicate masked existing BEGIN_OWNER_CHANGED. Existing transport-owner/admission checks now run before the new view predicate at request admission and after a parsed response. This preserves pre-existing owner errors and still fences access/model adoption; POST logic remains unchanged. All 13 unchanged IQC parallel-read cases pass. The shared-client exact inverse is refreshed; explicit-checks3 is still unpublished and remains the single new cache version for this follow-up.
+
+Publication minimization: HANDOFF remains byte-identical to latest main 021f0f3. This acceptance record and CHANGELOG retain the background-check integration summary; no new combined historical HANDOFF payload is part of this batch. The earlier local merge remains available in local commit history for recovery.

@@ -1,6 +1,6 @@
-## 2026-11-09 — Global background checks candidate
+# 2026-11-09 — Process platform stage catalog batch
 
-Main d4ac309 plus inert compatible shared scheduler, direct interval removals and action-scoped history permissions. No data/schema/deployment. Preserve ongoing module candidates and current equipment recheck/ACK safeguards. [Inventory and evidence](docs/acceptance/global-background-checks-20261109.md).
+Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.
 
 ## 2026-11-09 — Routine FQC explicit generation candidate
 

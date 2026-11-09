@@ -746,10 +746,10 @@
       // Explicit history reads cannot adopt a reply after their view has changed.
       // A known HTTP refusal still carries its status for existing callers.
       const assertReadCurrent=status=>{if(!body&&typeof readOptions?.isCurrent==='function'&&readOptions.isCurrent()!==true)throw Object.assign(Error('ACCESS_READ_SUPERSEDED'),Number.isInteger(status)&&status>=400?{status}:{});};
-      assertReadCurrent();
       // Only the private explicit equipment permission read may use its new delivery pin.
       const assertRequestOwner=()=>{if(equipmentRecheck){if(body||url!==query('permissions=1'))throw Error('EQUIPMENT_DELIVERY_RECHECK_REQUIRED');equipmentRecheck();}else assertOwner();};
       if(body?.action==='begin-v1'&&durableBegin){assertBegin(beginRecord);if(body.begin?.operationId!==beginRecord.operationId||JSON.stringify(body.begin.basis)!==JSON.stringify(beginRecord.basis))throw Error('BEGIN_MARKER_CHANGED');}else if(body)assertMutationAdmission();else assertRequestOwner();
+      assertReadCurrent();
       const accessOwner=captureAccess(readOptions),boundedPin=boundedKnownVersion;
       const canvasObserved=canvasObserving?++canvasObservation:0,canvasRequestOwner=canvasPrimary?canvasOwner():null;if(canvasObserving)canvasRequests++;if(canvasPrimary&&body)canvasBasis=null;
       const readOwner=!body||body.action==='begin'?window.ProcessSync?.captureDelivery?.():null,pauseOwner=body?null:readPause.capture(),kind=body?null:readKind(url);
@@ -784,9 +784,9 @@
         let response;try{response=await fetch(url+(url.includes('?')?'&':'?')+'compact=1'+(fqcMutation&&body?.command?.action==='apply'?'&projection=fqc-apply-ack-v1':responseProjection==='iqc-edit-v1'?'&projection=iqc-edit-v1':''),requestOptions);}
         catch(error){if(abEntry&&error&&typeof error==='object'&&!('status'in error))abFetchFailures.set(error,abEntry);throw error;}
         // An owned HTTP denial remains authoritative even when its body is not JSON.
-        // projectAccess fences stale reads; original parse/HTTP errors and unknown evidence remain.
-        phase='body';let result;try{result=await response.json();}catch(error){assertReadCurrent(response.status);if(!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
-        assertReadCurrent(response.status);assertRequestOwner();
+        // Stale non-JSON replies preserve their original parse/HTTP error but cannot change access or read-pause state.
+        phase='body';let result;try{result=await response.json();}catch(error){let currentRead=true;try{assertReadCurrent(response.status);}catch{currentRead=false;}if(currentRead&&!body&&[401,403].includes(response.status))projectAccess({},response.status,false,accessOwner);if(currentRead&&!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));if(!body&&readOptions?.requireAcceptedAccess===true&&[401,403].includes(response.status)){throw Object.assign(Error(`HTTP ${response.status}`),{status:response.status,cause:error});}throw error;}
+        assertRequestOwner();assertReadCurrent(response.status);
         if(abEntry)abAssert(abEntry,body.command);
         if(readOwner&&window.ProcessSync?.isCurrentDelivery?.(readOwner)===false)throw Error('DELIVERY_SUPERSEDED');
         if(!body&&(!accessGuard||ownsAccess(accessOwner)))readPause.denied(kind,response.status,pauseOwner,()=>request(url,undefined,readOptions));
