@@ -42,6 +42,21 @@
 
 測試以兩個合成編輯者及另一審核者呼叫真實 Save 元件與 shared kernel，驗證單一完整案件、整頁鎖、撤回／發回／再送、核准、原收據、序列化重開及非衝突保留；UI 全組選擇、真正 Begin、HTTP 身分驗證、CAS、備份媒體還原仍未測。測試中的 context 為合成授權，不代表已採納 `lines.*`／AB/C 可見性政策。
 
+## 資料安全演練與重大發現
+
+[master-page-retention-snapshot.test.mjs](../../tests/master-page-retention-snapshot.test.mjs) 使用既有 record encoder／verifiedRecordRestore、分發快照匯出及 isolated-local restore，全部為記憶體 fake DB/R2。8 組測試涵蓋原樣業務 root／待審／原收據保留、尚未 hydrate 歷史與 partial read 拒絕、歷史 body／原 archival string 缺損或破壞、歷史／待審專用媒體缺失、來源改版、傳輸毀損及非空目標保護。分發演練另逐 byte 核對四份合成媒體（含跨 chunk 的待審圖片）；source fake DB/R2 沒有被 exporter 寫入，目標只寫 isolated memory bindings。
+
+**已重現用途不相容：去機密分發快照不是原樣 cutoff 還原備份。** 現有 `snapshot-redaction.mjs` 的 `cleanJson` 會遞迴解析 JSON 外觀的字串，再去機密並 JSON.stringify。合法的自由文字／名稱若包含帶空白或 `1e2` 的 JSON 字串，分發重開後會改文字；原操作 fingerprint 字串若含該值也一起改變。合成資料中完整 root digest 與 fingerprint digest 均不同，原請求重播得到 `OPERATION_ID_REUSED`。穩定 ID、pendingId、版本數及媒體仍可存在，不能以它們判定原收據相容。這是目前分發 port 的已確認限制，沒有認定真實資料已受影響，也沒有在本題擅改全域 scrubber。
+
+現有頁面預演使用原來源 pins 時會以 `MASTER_PAGE_SOURCE_CHANGED` 擋住這個分發重開結果；原樣 record restore 路徑則保留文字及 fingerprint，原請求可精確重播。故後續資料安全方案必須：
+
+1. 在任何整理／redaction 前，從受授權的完整來源固定 program、全域 revision、master root、已核准版本向量與原收據摘要，獨立保留 pins。不可在轉換包上重算 pins 當作原來源證據。
+2. 另外保存受控的原樣還原備份，依既有備份規範涵蓋完整 DB row／state_backups、全部 immutable／legacySources、媒體、權限及帳號關聯；實際敏感內容不得進 GitHub／公開報告。分發包僅作另有授權的去機密用途，不作唯一 rollback／receipt 相容證明。
+3. 在空白隔離目標從原樣備份演練完整還原，逐項核對原 root／完整業務內容、ID／關聯、歷史、媒體 bytes 和原 receipt fingerprint；重播只能查／回原結果，不重送未知操作。
+4. 缺 body／媒體、hash 不同、來源 revision 改變、還原不完整或原 receipt 不符，均不啟用拆分。後續新資料回退要另有可保留切換後寫入的方案，不能用舊備份覆蓋新寫入。
+
+本輪只證明合成 records 原樣保留及分發差異的安全拒絕，**未建立或驗收真實完整 DB/R2／媒體還原備份**，也沒有實作 cutoff／adoption。重大發現已回報；保持未啟用，等待既有三項業務決策與後續備份方案審查。
+
 ## 尚需使用者決定的具體事項
 
 1. **舊 combined 草稿如何切換。** 建議在舊流程正常結清待審及需要保留的未核准修改後，再從固定已核准版本建立新頁面草稿；永久保留舊版本、saved、案件和原 receipt 命名空間。若要帶著未結清 combined 草稿並行切換，必須另設舊案可處理範圍、交叉鎖及衝突政策。本預演只保留並列問題，不自動撤回／發回、清空、假核准或轉成新案。
@@ -64,6 +79,7 @@
 
 - PASS：新頁面邊界／純預演的 11 組合成契約；實際 GET/POST 的 reserved page/split admission，DB/R2 零讀寫。
 - PASS：單一 LINES 名稱 Save／真實 shared kernel 14 組合成契約，DB/R2 零讀寫；它不是完整新頁面 adapter 的生命週期驗收。
+- PASS：資料保留／快照用途分界 8 組合成演練，含上述已重現的分發 port 限制及 cutoff 安全拒絕。合成目標 R2/DB 寫入不等於真實持久資料寫入。
 - PASS：既有 document boundary 13 組、未啟用 line reducer 42 組、master workflow 及 stage link 8 組定向回歸。Line reducer 仍是舊 AB.lines/C.lines 隔離契約，不能算作新 LINES 的生命週期驗收。
 - PASS：全專案 `npm run lint -- --format unix`、`tsc --noEmit --incremental false`、`git diff --check`。最初的型別窄化錯誤已修復，保留最初與最終日誌。
 - NOT_RUN：新所有權 storage／CAS／HTTP／UI 全生命週期、雙身分、正式帳號、真資料遷移與備份還原、原生瀏覽器／手機／IME、Cloudflare 實站。

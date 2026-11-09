@@ -4,6 +4,8 @@
 
 等待 Frank 回覆期間，補未註冊的整頁名稱 Save 元件及 14 組合成測試。AB/C 共享一份 Save／案件／pending lock 的 shared-kernel 證明，含兩編輯者、撤回／發回／核准、重開與原收據。無 Begin/adoption/ACL mapping/HTTP/CAS，不能當作線別頁已拆完。
 
+後續 8 組資料安全演練確認：去機密分發快照會重寫 JSON 外觀文字與其 receipt fingerprint，不能作為這次拆分的原樣還原備份；原來源 pins 會安全拒絕該結果。原樣 records 復原可保留原文字／收據。重大用途限制已回報；維持未啟用，沒有改全域 scrubber 或真實資料。[證據、資料安全方案及未驗範圍](docs/acceptance/module-draft-boundary-20261109.md#資料安全演練與重大發現)。
+
 ## 2026-11-09 — Routine FQC explicit generation candidate
 
 Independent successor to merged main b06394c. Routine FQC removes its fixed interval and generates eligible work only on normal entry or explicit Update; stale view failures are fenced. Other modules, shared clients, backend and schema stay at main. [Behavior and verification limits](docs/acceptance/routine-fqc-explicit-generation-20261109.md). No deployment or live-data change.

@@ -4,6 +4,8 @@
 
 等待業務決定期間補 request-local 名稱 Save 元件，保留單一 LINES 原子結果／原收據，拒絕新 topology。合成 shared-kernel 生命週期不代表實際 API／CAS／帳號權限或正式頁面已完成。
 
+資料安全的 8 組合成演練重現去機密分發快照對 JSON 外觀文字／receipt fingerprint 的轉換，並確認原 pins 拒絕該 cutoff。原樣 record 復原與分發用途分開；沒有修改 scrubber、真實資料或啟用拆分。
+
 ## 2026-11-09 — Routine FQC explicit generation
 
 Remove the 15-second reader/generator. Normal entry and the bilingual Update button use fresh permissions and the existing server generation/CAS path, retaining unsent input and original UNKNOWN receipts. History/review remain read-only; stale responses cannot update another view. [Scope and verification](../docs/acceptance/routine-fqc-explicit-generation-20261109.md).
