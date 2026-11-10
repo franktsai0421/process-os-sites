@@ -8,7 +8,7 @@ const response=(body,status=200)=>Response.json(body,{status}),patch=(field,valu
 
  const displayWindow={};setup(async()=>response({}),[],undefined,{},w=>Object.assign(displayWindow,w));
  const format=displayWindow.sharedDraftErrorMessage;
- const wording={DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次未送審。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; chưa gửi duyệt. Hãy kiểm tra và lưu nội dung mới nhất.'],"DEPENDENCY_CHANGED_RECONFIRM":["此欄位或相關資料已被其他分頁／使用者更新，本次未套用。請先複製保留目前輸入，再重新開啟最新資料，核對後重新套用。","Trường này hoặc dữ liệu liên quan đã được cập nhật từ tab hoặc người dùng khác. Thay đổi lần này chưa được áp dụng. Hãy sao chép nội dung đang nhập, mở lại dữ liệu mới nhất, đối chiếu rồi áp dụng lại."],"DEPENDENCY_GUARD_REQUIRED":["此分頁需要更新，已阻止套用以免覆寫較新資料。請先複製保留目前輸入，再重新載入頁面，核對最新資料後重新編輯。","Tab này cần được tải lại. Hệ thống đã chặn việc áp dụng để tránh ghi đè dữ liệu mới hơn. Hãy sao chép nội dung đang nhập, tải lại trang, đối chiếu dữ liệu mới nhất rồi chỉnh sửa lại."]};
+ const wording={DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次操作未完成。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; thao tác chưa hoàn tất. Hãy kiểm tra và lưu nội dung mới nhất.'],"DEPENDENCY_CHANGED_RECONFIRM":["此欄位或相關資料已被其他分頁／使用者更新，本次未套用。請先複製保留目前輸入，再重新開啟最新資料，核對後重新套用。","Trường này hoặc dữ liệu liên quan đã được cập nhật từ tab hoặc người dùng khác. Thay đổi lần này chưa được áp dụng. Hãy sao chép nội dung đang nhập, mở lại dữ liệu mới nhất, đối chiếu rồi áp dụng lại."],"DEPENDENCY_GUARD_REQUIRED":["此分頁需要更新，已阻止套用以免覆寫較新資料。請先複製保留目前輸入，再重新載入頁面，核對最新資料後重新編輯。","Tab này cần được tải lại. Hệ thống đã chặn việc áp dụng để tránh ghi đè dữ liệu mới hơn. Hãy sao chép nội dung đang nhập, tải lại trang, đối chiếu dữ liệu mới nhất rồi chỉnh sửa lại."]};
  for(const [code,translations]of Object.entries(wording)){
   for(const [i,lang]of ['zh','vi'].entries())assert.equal(format(code,lang),translations[i]);
   const details=Object.freeze({path:Object.freeze(['items','note'])}),error=Object.freeze(Object.assign(Error(code),{code,status:code==='DEPENDENCY_GUARD_REQUIRED'?422:409,details,requestId:'request-unchanged',operationId:'operation-unchanged'}));
@@ -16,7 +16,7 @@ const response=(body,status=200)=>Response.json(body,{status}),patch=(field,valu
  }
  for(const raw of ['RESULT_UNKNOWN_CHECK_BEFORE_RETRY','ACCOUNT_CHANGED_REOPEN_REQUIRED','OTHER_CODE','prefix DEPENDENCY_CHANGED_RECONFIRM','DEPENDENCY_GUARD_REQUIRED suffix','<b>business text</b>'])assert.equal(format(raw,'vi'),raw);
  assert.equal(format({code:'OTHER_CODE',message:'original fallback'},'vi'),'original fallback');
- for(const [code,status]of [['DEPENDENCY_CHANGED_RECONFIRM',409],['DEPENDENCY_GUARD_REQUIRED',422]]){
+ for(const [code,status]of [['DRAFT_REVISION_CHANGED_RECONFIRM',409],['DEPENDENCY_CHANGED_RECONFIRM',409],['DEPENDENCY_GUARD_REQUIRED',422]]){
   const rejected=setup(async()=>response({error:code,details:{field:'note'},requestId:'r'},status));
   await assert.rejects(rejected.command('g','apply',{patches:[patch('note','B')]}),error=>{assert.equal(error.message,code);assert.equal(error.status,status);assert.equal(error.requestId,'r');assert.equal(error.details.field,'note');assert.equal(error.code,undefined);assert.equal(format(error,'vi'),wording[code][1]);return true;});
   assert.equal(rejected.hasUnknown(),false);await assert.rejects(rejected.command('g','save'),new RegExp(code));

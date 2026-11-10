@@ -1,3 +1,7 @@
+## 2026-11-10 — Save and Submit revision messaging contracts
+
+Align three independent shared-client fixtures with the existing revision-conflict message used by both Save and Submit. Extend raw409/Save-fence assertions without changing production behavior, error identities, quota, UNKNOWN receipts or actor guards. Keep exact full-panel/source differential checks with separately asserted bilingual Save-time conflict notices. Actual race stack139, three client modes and panel17 pass; record one indirectly native fixture blocked by the existing environment, not retried. [CI failure and validation boundaries](../docs/acceptance/process-platform-integration-20261110.md).
+
 ## 2026-11-10 — Retain complete post-Flow safety contracts
 
 Verify all synthetic checks beyond the earlier Flow failure. Preserve final own-approval denial/zero writes while testing own Return as correction (179 paired groups), compose the exact approved-history route back to the original read-scope pins (37 pairs/74 GETs), execute the complete master initializer with no scheduler/background reads, and retain UNKNOWN quota/late-tamper/rollback guards alongside RAM-only silent departure. Fit still checks geometry, layout and journal consistency while requiring removed undo/redo actions to stay inert. The separate legacy poll-wiring suite now explicitly requires the removed master scheduler/callers absent while running all other callback and IQC owner negatives. No production changes, polling restoration or UNKNOWN32 replay.

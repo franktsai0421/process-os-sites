@@ -110,3 +110,20 @@ GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42
 
 
 同一無輪詢契約另有 `entry-performance/poll-wiring.test.mjs` 仍硬性擷取master pollMaster。已改為明確要求master scheduler與全部呼叫不存在，原六個保留legacy producer的16個允許／拒絕／取消晚到callback反例仍全跑，IQC額外owner binding案例保留；完整master initializer／7次事件零讀取另由scoped-read-pause覆蓋。其餘begin budget、shared read races、FQC CPU/render等價、editor readiness五組VM測試通過。沒有恢復任何產品timer，也沒有用合成VM宣稱原生或真實效能驗收。
+
+
+## 71feb2f CI終態與共用client後續修正
+
+71feb2f 的整合專項、AB C、PROCESS、Feedback、IPQC C五個workflow成功；Local safety run42848965218／job129944090518在step31失敗，後續32–57跳過，不能宣稱全綠。step1–30已通過，包括原先IPQC提示失敗的效能／離頁組及原native abandonment/modal/linking。終態日誌證實本輪Flow114、FQC179、read-scope37配對／74 GET、scoped-read-pause50、silent-discard及Fit9均已通過；新失敗在稍後 `test-shared-draft-client-v3.cjs` 還期待「本次未送審」，實際共用錯誤適用Save與Submit，提示為「本次操作未完成」。
+
+這次不是修改產品或放寬revision規則。三份client模式測試（普通、default、guardAccessResults opt-in）都嚴格核對中越文完整提示；新增DRAFT_REVISION_CHANGED_RECONFIRM 409於既有原錯誤／status／requestId／details／Save fence測試，保留immutable error descriptors、未知原code不轉換、quota不送出、500／失聯必須先查原receipt、排隊Save不得越過失敗、換帳號不能採用晚回覆等所有反例。各10組PASS。
+
+另跑實際shared client＋authoring＋Canvas＋durable store／owned ledger的139項合成堆疊回歸，含inline/records競態：peer於比較後POST前修改仍必須reconfirm、取消與失效owner不送POST／不改root、撤權保留本機內容、UNKNOWN只查原operation、不覆寫peer內容。這些是真正既有handler/controller，HTTP／儲存／DOM僅合成，沒有真人帳號或DB/R2操作。
+
+預跑step31新失敗點之後61個腳本：首輪57 PASS；兩個client副本及panel三個舊契約已修正並各自重跑PASS；另1個 `test-ipqc-ab-ack-deny.cjs` 間接fixture啟動Chromium，觸發既有socket/ptrace限制而未完成，沒有重跑或換executor。篩選只看直接來源漏掉間接原生依賴，這是測試選擇失誤；不把環境阻擋列為產品PASS。沒有修改該原生測試。原有GitHub CI流程維持不變。
+
+panel修正保留原固定完整baseline hash與source inverse、全部markup/status/buttons/flow/local/receipt/session/request/error/view等價及序列化比較；僅將兩個已審閱的中越文「最新共享預覽→Save時衝突」提示單獨逐字驗證後對齊。新增實際兩種語言dirty／peer案例，強制兩種提示都被執行；17組PASS，未刪除整個markup比較或忽略狀態差異。
+
+#103已前進至固定 `22567b269a8d3040fc76ee9ee8619dac338337c6`（仍open Draft）。唯讀重核後產品交集仍為前述五檔，另增加與本PR的FQC lifecycle測試交集，需保留兩邊完整斷言。離線政策組合17項只針對較早81791d1，不能充作22567b2或未來共同HEAD驗收；沒有覆寫或吸收尚在工作中的#103。
+
+本批仍僅測試與文件，產品輸入不變、可信marker未啟用，完整目標仍NOT_READY。新HEAD的Local safety與其跳過後續需重新核對終態。
