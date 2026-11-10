@@ -177,6 +177,59 @@
           "after": "bootstrap.js?v=20261110-permission-alignment2"
         }
       ]
+    },
+    {
+      "name": "master-saved-content-key-order",
+      "afterHash": "cfbc0b944ac2c7f8baf01c5bbfe4cb01494f721b92964e7e59671ee7c7e2fce8",
+      "afterLength": 10873,
+      "afterBlob": "e02427688380ca5b581437062f9ee49eaef15e18",
+      "rules": [
+        {
+          "offset": 1186,
+          "before": "access-policy.mjs?v=20261029-fqc-dependencies1",
+          "after": "access-policy.mjs?v=20261110-permission-alignment2"
+        },
+        {
+          "offset": 6933,
+          "before": "shared-draft-client.js?v=20261109-explicit-checks3",
+          "after": "shared-draft-client.js?v=20261110-master-readback1"
+        },
+        {
+          "offset": 7121,
+          "before": "web-feedback-entry.js?v=20261106-access-offline1",
+          "after": "web-feedback-entry.js?v=20261110-permission-alignment1"
+        },
+        {
+          "offset": 7217,
+          "before": "master-data.js?v=20261105-process-local-save1",
+          "after": "master-data.js?v=20261110-lines-view1"
+        },
+        {
+          "offset": 8160,
+          "before": "data-safety-ui.js?v=20261027-login-reentry1",
+          "after": "data-safety-ui.js?v=20261110-account-priority-candidate"
+        },
+        {
+          "offset": 9865,
+          "before": "dual-system.js?v=20261025-navigation2",
+          "after": "dual-system.js?v=20261110-feedback-shell1"
+        },
+        {
+          "offset": 10466,
+          "before": "user-access.css?v=20261106-role-layout2",
+          "after": "user-access.css?v=20261110-account-progress2"
+        },
+        {
+          "offset": 10543,
+          "before": "user-access.js?v=20261106-role-layout1",
+          "after": "user-access.js?v=20261110-permission-alignment1"
+        },
+        {
+          "offset": 10798,
+          "before": "bootstrap.js?v=20261104-draft-integration1",
+          "after": "bootstrap.js?v=20261110-permission-alignment2"
+        }
+      ]
     }
   ]
 }

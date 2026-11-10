@@ -224,6 +224,21 @@
           ]
         }
       ]
+    },
+    "public/process/shared-draft-client.js": {
+      "beforeHash": "b80c2e904a5a6ef7e384fb10229a35421eba684e60928958aa420e55d4c695f5",
+      "beforeLength": 174896,
+      "beforeBlob": "d5dc7f97a0f4a5ad73cbe3e2320f9628f8fb553a",
+      "afterHash": "787ea8334c142ada19d38e6d6e47426f39b9a16eb4ad6a25a941b0696a8381fd",
+      "afterLength": 174886,
+      "afterBlob": "98f78008f801d869202e1be16e17a0d6f2c188f7",
+      "rules": [
+        {
+          "offset": 108825,
+          "before": "flow.saved?.id!==r.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)",
+          "after": "flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)"
+        }
+      ]
     }
   }
 }

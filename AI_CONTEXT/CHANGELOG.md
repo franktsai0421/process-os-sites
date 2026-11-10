@@ -1,3 +1,7 @@
+# 2026-11-10 — Lines-only approved view and master Save readback
+
+Render the existing verified approved line/stage catalog for lines.view-only users without opening AB/C workflows or writes. Compare AB/C Save readback JSON content independent of object-key order; retain real mismatches, fresh authorization and UNKNOWN no-resend. Add exact source layers and read-only native failure receipts; original C timeout cause still awaits CI. Final-approval provenance and page-boundary dependencies are explicitly audited. [Evidence](../docs/acceptance/account-permissions-20261110.md#線別獨立查看與-abc-保存讀回續作).
+
 # 2026-11-10 — Editor and Routine Edit includes Save
 
 Extend the requested Edit→Save rule to existing process:platform and routine per-document transactions. Preserve explicit Save-only grants, raw ACLs, scope/pending/CAS/receipts and separate review/create/delete rights. Actual HTTP tests cover inline and records storage, zero-write replay and fresh revocation. Whole-page cutovers and final-approval separation remain separate work. [Scope](../docs/acceptance/account-permissions-20261110.md#editorroutine-save-獨立續作).

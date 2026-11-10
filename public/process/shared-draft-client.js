@@ -855,7 +855,7 @@
         throw Error('SAVE_READBACK_REQUIRED',{cause});
       }
       const flow=fresh.control?.workflow,r=result.receipt;
-      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||JSON.stringify(flow.working)!==JSON.stringify(flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
+      if(!beginRuntimeCurrent()||fresh.permissions?.view!==true||!flow||flow.generation!==r.generation||flow.revision<r.revision||flow.revision===r.revision&&(flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)))throw Error('SAVE_READBACK_REQUIRED');
       return {...fresh,receipt:r};
     }
     // JSON object key order is not content; array positions, keys and values are.

@@ -99,3 +99,24 @@ Feedback 42817524858/job 129834291274 的 293 項來源測試、schema、API、b
 實際 authoring／routine HTTP handlers 以合成登入及 inline／records-v1 驗證：Edit=true、原始 Save=false 仍可保存；僅 Save=true、Edit=false 亦可保存目前共享內容；成功重播不重寫，收回實際授權後新 Save 及原 Save POST 重播均 403；submit/withdraw/approve/return/create/delete 不因 Save 變為允許；其他 sentinel 與原始 ACL 保留。這些是現有交易的保存權限驗收，不是 whole-page cutover 驗收。保留舊 policy/index exact hash 為歷史層，新後繼仍逐 span 還原 genuine main，原 PR44 矩陣及來源證據不變。
 
 仍需整合的是：線別頁需把 AB/C 的 products/catalog 與 lines/stages 從同一 legacy aggregate 分出權威；routine 的多文件草稿若要改為整頁一份，需另處理固定案件、原收據及既有引用。editor 本來就是 process:platform，不需為同頁線別／工段再分可見範圍。版本平台最終核准分離仍另行盤點，不以本 Save 續作當完成。
+
+
+## 線別獨立查看與 AB/C 保存讀回續作
+
+只有 lines.view、沒有 ab.view/c.view 的帳號，現在使用既有已驗證 bootstrap runtime catalog 顯示全部已核准線別／工段。main 的 line-admin read plan 本來就提供這項唯讀依賴；不新增 AB/C API 權限，不讀工作中 products、不建立草稿，不提供新增／修改／保存控制。身分、目的地、權限、catalog 格式或載入範圍不符時顯示核對失敗，不能假裝空白即正式資料。中越文與窄螢幕卡片已加入；12 個實際 selector／bootstrap／拒絕測試通過。新增 compiled Chromium 案例由 GitHub Account permissions 執行，涵蓋正常登入、1365/390/320、中越文、AB/C 403 與零業務修改；本機未跑原生瀏覽器，尚待該 head CI。這補完獨立查看，線別編輯仍共用 AB/C legacy aggregate，不能宣稱 lines 專屬寫入邊界已完成。
+
+fda9122f 的 Feedback workflow 已由 parent 確認全套成功。AB C run 42821504084/job 129847898721 後段 C group and product routes 保存後仍為 RESULT_UNKNOWN_CHECK_BEFORE_RETRY；原 fixture 已清理，不能重送原 POST 或臆測已拒絕。本批只在現有失敗 catch 增加同一 ephemeral fixture 的唯讀 original operation／receipt、HTTP status、working/saved hash 與語意相等診斷，不改等待條件、逾時、斷言或呼叫 recovery。
+
+另以實際 AB/C bridge、shared transport 與 HTTP handlers 重現：相同 JSON 內容只改物件鍵順序，既有 masterSaveReadback 的 JSON.stringify 比較會誤鎖 UNKNOWN。改用檔案內既有遞迴 JSON 比較函式，仍完整比對 key、值、型別、陣列順序；opid、世代、版本、savedId、最新查看權限及 ownership 條件全部保留。AB/C × 正常／遺失 ACK 四個正向案例，及值／型別／缺 key／陣列反序八個負向案例均通過：每次只有原始一個 POST；真正不同時保留原 operation marker，第二次 Save 拒絕且零重送。這是獨立可重現的讀回缺陷，**尚不能認定就是已清理 C 原生案例的根因**，需最新 CI 診斷驗證。
+
+來源證明新增 shared-draft-client 單一比較 expression 的精確 inverse；保留 genuine main、所有既有 account/policy/cache 變體與 background hashes，先精確移除此獨立 layer 再檢查既有 predecessor。原 UNKNOWN-32 補丁未套用／重送；shared-draft-client、master-data、新 AB/C browser 診斷均非原 32 檔操作內容。與 #104 共用 index、navigation pins、background proof、HANDOFF，後續需語意合成；不整檔覆蓋。
+
+## 最終核准與剩餘草稿邊界：實際依賴盤點
+
+- main 的 app/api/user-access/route.ts 已有 schemaVersion 2、primaryAdminId 與 actor/action/target/before/after 稽核。缺的是可信最終核准來源證據的驗證／撤權策略及每個前後端入口執行，不能說資料模型完全沒有稽核，也不能直接把歷史 reviewer 當新的主要管理員明確授權。
+- lib/delivery-read-plan.mjs 的 identityKeys 目前不含 processAccessControl。若啟用依賴稽核的 policy，bootstrap、權限讀取與交易端必須取得一致且新鮮的證據，否則同帳號可能前後端判斷分歧；不可只在 account UI 改勾選。
+- #102 55d4672 的 draft-review-policy.mjs 有 createDraftReviewPolicy、draftReviewReceiptAllowed、routinePageReceiptAllowed 定義；git grep 顯示這三個名稱沒有其他 production consumer。舊成果是候選工具，不能整包當作已完成的執行保護。其 lib/user-access.ts 也只在 draftReviewPolicy=page-v1 時啟用新語意。
+- 舊 page-v1 registry 涵蓋 13 頁。editor 現有 process:platform 已是整頁交易，12 模組 Edit→Save 已獨立補完；routine 仍是 routine-fqc:<documentId>，整頁 routine-fqc:page endpoint 尚未安裝。AB/C/lines 的 master:AB.catalog、master:C.catalog、master:LINES pages route／adapter 尚未安裝；main 刻意拒絕 inactive split selector，須保留。
+- 線別獨立寫入需 master-page-boundary／master-line-page-workflow、原版本與案件引用、草稿命名／收據兼容，以及實際 master UI adapter 一起落地；routine 整頁需舊文件 ownership、固定案件與原收據保留。直接搬舊 app/master-admin/version-draft 大包亦會碰原 UNKNOWN-32 操作與其他未完成功能，不能以本次小批次繞過。
+
+因此本 PR 尚未完成 legacy reviewer→僅送審撤回、平台最終核准明確授權與全入口一致執行；既有已核准不可撤回等保護持續保留。這是待整合的功能依賴，並非已獲准改動真帳號、清掉舊 ACL 或重送 UNKNOWN。

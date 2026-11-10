@@ -14,6 +14,9 @@ on:
       - 'public/process/access-policy.mjs'
       - 'public/process/data-safety-ui.js'
       - 'public/process/index.html'
+      - 'public/process/master-data.js'
+      - 'public/process/shared-draft-client.js'
+      - 'tests/account-*-browser.mjs'
       - 'tests/account-*.test.mjs'
       - 'tests/helpers/native-worker-source.mjs'
       - '.github/workflows/account-permissions.yml'
@@ -60,7 +63,7 @@ jobs:
         run: node --test tests/account-cache-source-proof.test.cjs tests/account-permission-source-proof.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/navigation-adapters.test.mjs
       - name: Aligned permissions and feedback source authorization
         run: |
-          node --test tests/account-permission-alignment.test.cjs tests/account-editor-routine-save.test.cjs tests/account-feedback-shell.test.cjs tests/account-feedback-source-security.test.cjs tests/access-events-api.test.cjs tests/web-feedback-cloud.test.mjs tests/web-feedback-access.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-zip.test.cjs
+          node --test tests/account-permission-alignment.test.cjs tests/account-editor-routine-save.test.cjs tests/account-lines-view.test.cjs tests/account-master-readback.test.mjs tests/account-feedback-shell.test.cjs tests/account-feedback-source-security.test.cjs tests/access-events-api.test.cjs tests/web-feedback-cloud.test.mjs tests/web-feedback-access.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-zip.test.cjs
           node --test tests/problem-export.test.cjs tests/master-ab-auth-phase.test.mjs
           node scripts/test-access-template-reuse.cjs
           node scripts/test-feedback-cloud-admission.cjs
@@ -68,3 +71,7 @@ jobs:
           USER_PERMISSIONS_EVIDENCE="$RUNNER_TEMP/account-permissions" node scripts/audit-users-page-permissions.mjs
       - run: node scripts/sites-ci-preflight.mjs
       - run: npm run build
+      - name: Install isolated Chromium
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Native lines-only approved page without workflow grants
+        run: node tests/account-lines-view-browser.mjs

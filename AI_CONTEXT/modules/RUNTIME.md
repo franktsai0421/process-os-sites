@@ -1,3 +1,7 @@
+# 2026-11-10 — Lines-only approved catalog and master readback
+
+A verified lines.view-only delivery renders approved line/stage catalog without AB/C workflow access, products or editing controls. AB/C Save readback reuses strict recursive JSON equality, ignoring object-key order only; original receipt/generation/revision/savedId/fresh rights and UNKNOWN barriers remain. Twelve installed workflows derive Save from Edit. Whole-page and final-approval policy dependencies remain explicit. [Scope and evidence](../../docs/acceptance/account-permissions-20261110.md#線別獨立查看與-abc-保存讀回續作).
+
 # 2026-11-10 — Account-priority candidate
 
 Login fails closed for missing/invalid/unsupported credentials and logs fixed reason codes only. Authorized reset managers see credentialState metadata. The account controller compares fresh actor/target before a single POST and requires exact readback for a persistent success notice; unknowns remain GET-only. Crypto prewrite failures are explicit and do not imply a stored change. Chinese/Vietnamese text follows the current document. [Verification and remaining gates](../../docs/acceptance/account-permissions-20261110.md).
