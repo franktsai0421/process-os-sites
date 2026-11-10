@@ -31,6 +31,23 @@ function assertPredecessor(bytes,file){
 }
 function assertIndexSuccessor(bytes,before,file){
   raw(bytes);raw(before);assert.equal(file,contract.index,'Routine cache proof wrong file');
+  // Compose the reviewed account-only cache layer before the unchanged Routine
+  // and background proofs. The final whole-byte comparison still rejects every
+  // unrelated change; a mixed, duplicate or partial account layer is refused.
+  const accountTags=[
+    ['data-safety-ui.js?v=20261110-account-priority-candidate','data-safety-ui.js?v=20261027-login-reentry1'],
+    ['user-access.css?v=20261110-account-priority-candidate','user-access.css?v=20261106-role-layout2'],
+    ['user-access.js?v=20261110-account-priority-candidate','user-access.js?v=20261106-role-layout1'],
+  ];
+  if(accountTags.some(([tag])=>bytes.includes(Buffer.from(tag)))){
+    let text=bytes.toString('utf8');
+    for(const [next,prior] of accountTags){
+      const offset=text.indexOf(next);
+      assert(offset>=0&&text.indexOf(next,offset+next.length)===-1,'Routine cache successor must change only its own exact tag');
+      text=text.slice(0,offset)+prior+text.slice(offset+next.length);
+    }
+    bytes=Buffer.from(text,'utf8');
+  }
   bytes=require('./background-check-source-contract.cjs').projectKnown(bytes,file);
   assert.equal(hash(before),contract.indexBeforeHash,'Routine cache predecessor differs from merged main');
   const marker=Buffer.from(contract.oldTag),next=Buffer.from(contract.newTag),offset=before.indexOf(marker);

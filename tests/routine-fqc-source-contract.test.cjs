@@ -41,6 +41,17 @@ void test('Routine cache gate accepts only its one changed tag; rejects rollback
  assert.throws(()=>proof.assertIndexSuccessor(afterIndex,beforeIndex,contract.file),/wrong file/);
  for(const bytes of [afterIndex.toString(),new Uint8Array(afterIndex),null])assert.throws(()=>proof.assertIndexSuccessor(bytes,beforeIndex,contract.index),/raw Buffer/);
 });
+void test('reviewed account cache composition refuses partial, duplicate and unrelated changes',()=>{
+ const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-priority-candidate','user-access.js?v=20261110-account-priority-candidate'];
+ for(const tag of tags){
+  assert(afterIndex.includes(Buffer.from(tag)),tag);
+  for(const changed of [afterIndex.toString().replace(tag,tag+'-wrong'),afterIndex.toString().replace(tag,tag+' '+tag),afterIndex.toString().replace(tag,tag.replace('20261110-account-priority-candidate','old'))]){
+   assert.throws(()=>proof.assertIndexSuccessor(Buffer.from(changed),beforeIndex,contract.index),/own exact tag/);
+  }
+ }
+ const changed=Buffer.from(afterIndex);changed[0]^=1;
+ assert.throws(()=>proof.assertIndexSuccessor(changed,beforeIndex,contract.index),/own exact tag/);
+});
 void test('Windows checkout EOL is separate from exact committed raw source; non-EOL differences still reject',()=>{
  const lf=Buffer.from(after.toString().replace(/\r\n/g,'\n')),crlf=Buffer.from(lf.toString().replace(/\n/g,'\r\n'));
  for(const checkout of [lf,crlf])assert.deepEqual(proof.canonicalCheckout(checkout,after),after);
