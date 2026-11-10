@@ -135,7 +135,7 @@ void test('changed persistent-navigation executable references have coherent new
   'shared-draft-client.js':'20261110-master-readback1',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
-  'user-access.js':'20261110-permission-alignment1',
+  'user-access.js':'20261110-permission-reset1',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261109-explicit-checks1',
   'data-safety-ui.js':'20261110-account-priority-candidate',

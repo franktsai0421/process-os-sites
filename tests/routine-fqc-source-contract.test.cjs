@@ -42,7 +42,7 @@ void test('Routine cache gate accepts only its one changed tag; rejects rollback
  for(const bytes of [afterIndex.toString(),new Uint8Array(afterIndex),null])assert.throws(()=>proof.assertIndexSuccessor(bytes,beforeIndex,contract.index),/raw Buffer/);
 });
 void test('reviewed account cache composition refuses partial, duplicate and unrelated changes',()=>{
- const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-progress2','user-access.js?v=20261110-permission-alignment1'];
+ const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-progress2','user-access.js?v=20261110-permission-reset1'];
  for(const tag of tags){
   assert(afterIndex.includes(Buffer.from(tag)),tag);
   for(const changed of [afterIndex.toString().replace(tag,tag+'-wrong'),afterIndex.toString().replace(tag,tag+' '+tag),afterIndex.toString().replace(tag,tag.replace(/\?v=.*/,'?v=old'))]){

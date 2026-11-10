@@ -132,3 +132,22 @@ parent 讀取 AB C 42826165045/job 129863906955、PROCESS 42826164830/job 129863
 - 147 項定向契約／收據／導覽檢查通過；AB C／PROCESS 失敗來源 step 的完整合併命令，以及 Feedback 失敗 step 的完整來源命令均 exit 0。這一批只改測試、test-only source evidence、CI 與文件，產品 JS／API／權限及資料模型完全維持 72dfacf5；此前精確 product tree 的安全 build 通過仍有效，不另做無意義產品重建。
 
 parent 已確認 72dfacf5 Account permissions 與 IPQC C 成功，包含新增 lines-only 原生案例；AB C／PROCESS／Feedback 此次來源 gate 修正後仍須新 head CI，不可宣稱原生 C 後段已通過。Local safety 該次尚在執行；舊 fda Local 已取消，不算成功。role 原生 15 個 payload／雙語／角色保護案例已過，但 before screenshot 的 baseline is not defined 限制仍需如實保留。未重送原 UNKNOWN-32，也沒有合併、部署或真帳號操作。
+
+
+## a9b33d83 Local safety 根因與續修
+
+已核對終態日誌 SHA256 054ad1b997a0277555235eca3d87985b94b38e5d43f0ca8b17bae858f3ec308b（run 42827633128/job 129869038851）。七套為五成功、一 Local safety 失敗、一 PR87 專用 diagnostic 跳過；AB C、PROCESS、Feedback 的完整原生 workflow 已成功，包含原 C group/product routes。Local safety 只有 step9 與 step31 失敗；step15 已完成。14:09:59→14:29:34 的 1175 秒沉默發生在來源負向 fixture proof，最終明確 PASS，不能據沉默推斷掛住或成功；未取消或重跑舊 job。
+
+### 個別權限 reset 的產品錯誤
+
+role browser 把 pageerror 累積到最後 assert(errors=[]), 因而顯示在 before screenshots 結尾；實際錯誤是當前 user-access.js 的 editUser.set(null) 仍呼叫已移除的 baseline()。用實際 editUser 及 click handler 重現：九個新場景中八個發生同樣 ReferenceError，未允許更動的單格仍被原閘門拒絕。產品只移除那個已過時的中間賦值，原本緊接的 effectiveCells 會根據剩餘 raw overrides／角色重新計算所有有效格與 Edit→Save。中文／越文 × 單格／單列／全表恢復，以及不可編輯格保留九項通過；payload 只送 null choices，原模型不變，衍生 Save 不寫成新 ACL。保留原 native browser／截圖／errors=[]，未改 tests/role-template-layout-browser.mjs 或任何 UNKNOWN-32 候選內容。
+
+### CAS 重試與 paired policy
+
+原 Process Save 場景只把 editor.save 設 false，保留 Edit，按已確認 Edit→Save 規則有效保存權仍在；本機重現 200≠403。不是取消撤權檢查。新完整 full-read／record-mutation 配對保留目前同一權限 resolver，涵蓋七種 CAS 中途狀態：Save 撤掉但 Edit 保留、Edit 撤掉但原 Save 保留均可；兩來源皆撤掉、原先無 Save 再撤 Edit、查看撤掉均 403；epoch 變更 401、maintenance 503。首次 CAS 必須撞到 concurrent ACL 更新；拒絕時只有那次失敗 CAS 嘗試，row 與 concurrent snapshot 完全相同，無新 Save／receipt；成功只在重新讀取後第二次 CAS 發布，保留 raw ACL、sentinel、舊歷史與固定案件。原四次 CAS 上限、未知 ACK 後原 receipt GET 不重送及故障策略保留；完整 44 組通過。
+
+續跑此前被 step31 首個失敗遮住的案例，另發現 FQC lifecycle8 的舊 kernel（848be13）雖有精確 pin，卻透過當前全域 resolver 取得新 Edit→Save，舊側因而也 200。現明確為舊側載入 genuine main 9fbba823 的原 access-policy.mjs，SHA256 de42a8cb53deaeae2b17295dcfbe013401c84c59f9a6b26637873a66b14ea28f 逐 byte 校驗，沒有改舊 kernel/hash 或模擬權限。保留原 edit-only Save 舊 403／新 200 斷言，並直接驗兩側的有效格及新側 Submit 403；完整 FQC 套件通過。Process flow、IPQC assignment reuse、contentIssues readscope 的後續隔離契約亦通過。
+
+可選 PROCESS_SAVE_BASELINE_REF=9fceccc… 歷史三檔模式本機無法執行：該 ref 的 lib/state-records.ts 路徑不可取得；原 pin 與限制未修改。這不影響 CI 預設的 current ordinary full-read vs record-mutation 44 組比較，不能把可選歷史模式算成功。
+
+已將 reset 與兩個完整 paired 套件加入 Account permissions gate，更新 account JS 快取、既有 exact cache inverse 及 Routine 負向 tag fixture，保留所有歷史變體／原 predecessor，以及每項錯版／重複／部分漂移的拒絕斷言。無資料／schema／真帳號／部署異動；最新 head 原生角色與完整 Local safety 仍待 CI，前一 head 的五套成功不能取代新 head 結果。

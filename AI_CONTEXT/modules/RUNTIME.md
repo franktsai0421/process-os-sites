@@ -1,3 +1,7 @@
+# 2026-11-10 — Inherited permission reset
+
+Individual cell/row/table reset removes only editable raw exceptions and recomputes the current effective matrix, including Edit→Save. The obsolete baseline callback is removed; payload nulls and noneditable cells remain protected. Native role error assertions are unchanged. CAS paired tests require denial only after every effective Save source (or view/session admission) is revoked. [Evidence](../../docs/acceptance/account-permissions-20261110.md#a9b33d83-local-safety-根因與續修).
+
 # 2026-11-10 — Lines-only approved catalog and master readback
 
 A verified lines.view-only delivery renders approved line/stage catalog without AB/C workflow access, products or editing controls. AB/C Save readback reuses strict recursive JSON equality, ignoring object-key order only; original receipt/generation/revision/savedId/fresh rights and UNKNOWN barriers remain. Twelve installed workflows derive Save from Edit. Whole-page and final-approval policy dependencies remain explicit. [Scope and evidence](../../docs/acceptance/account-permissions-20261110.md#線別獨立查看與-abc-保存讀回續作).
