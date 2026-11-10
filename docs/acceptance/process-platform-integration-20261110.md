@@ -51,10 +51,12 @@
 
 ## 驗證與剩餘項目
 
-本機當前畫布核心510案例PASS；核准歷史／頁權限／保存快照／腳本組合83案例PASS；主資料邊界、name Save、真正route SQLite/MapR2、UI、工具、public authority及review回歸逐腳本PASS。main原legacy橋接逐byte保留，199個既有橋接／保存／權限回歸全通過。測試組有重疊，不相加成覆蓋率。最終來源156案例PASS，lint及非增量TypeScript PASS。最終guarded build在真實本機e90efc7cdad9bb8835127daa8f7d9d070a42f8d9回exit0，postbuild auth boundary PASS；後續只有文件收據修改，產品輸入相同。GitHub CI依遠端新HEAD另核對。另20個跨模組合成回歸及12個權限政策案例PASS。
+本機當前畫布核心510案例PASS；核准歷史／頁權限／保存快照／腳本組合83案例PASS；主資料邊界、name Save、真正route SQLite/MapR2、UI、工具、public authority及review回歸逐腳本PASS。main原legacy橋接逐byte保留，199個既有橋接／保存／權限回歸全通過。測試組有重疊，不相加成覆蓋率。最終來源159案例PASS，lint及非增量TypeScript PASS。最終guarded build在真實本機67b2d18afdf98e88f8bb9e64cb4a7f9383d1efcc回exit0，postbuild auth boundary PASS；後續只有文件收據修改，產品輸入相同。GitHub CI依遠端新HEAD另核對。另20個跨模組合成回歸及12個權限政策案例PASS。
 
 依賴為相同lockfile的實體副本，沒有聲稱全新安裝。synthetic DOM不是原生瀏覽器；SQLite/R2為合成記憶體。擴大回歸誤選含原生Chromium的IPQC scope測試，9案例被既有socket/ptrace限制阻擋；該原生組停止，未換路重試。其餘20個合成案例另組全數通過，不能用它們抵銷原生未完成。
 
 剩餘：PROCESS主資料UNKNOWN32修復、跨模組整頁相依、可信資料切換、原生桌面／實體iPhone／IME／兩人測試站、C/GIA CONG真實生命周期及效能。完整發布狀態仍NOT_READY。#104保持Draft，無合併部署。
 
 本輪自動審查曾拒絕恢復舊pollMaster排程內容（操作未執行，原因為可能恢復固定輪詢）。採取安全替代：直接移除排程及所有啟動／重置呼叫，實際測試改為明確要求排程不存在；既有無輪詢inventory及固定前身負向來源pins保留，沒有重送被拒排程。
+
+GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42831612397）及IPQC C通過，但Feedback／AB C／PROCESS因舊cache-tag fixture及Feedback入口多讀master control失敗。已對齊本次精確tag、讓非master入口不讀control，另修新頁切換URL；原失敗Feedback整組293及PROCESS整組338本機全通過，後者含AB C原失敗組。沒有刪除或跳過失敗斷言。最終遠端HEAD的CI仍需獨立讀回，不引用初次head的通過替代。

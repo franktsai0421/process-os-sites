@@ -721,9 +721,9 @@
     {
       "file": "public/process/index.html",
       "beforeHash": "499f83c29f4f6caa692c54c04c16535aae5d4884c534f9d36d0b3a93b58f8b4d",
-      "afterHash": "380d8b61e364398c375c57a3fc948f95ee936631e082ccbbf6df66c5feddaab5",
+      "afterHash": "f550e3a70f36dbb700e32de4679a7be5e0890d88d81fa011f45b041a84d490ca",
       "beforeBlob": "7b7113a4f6805e35e33bcdf6a4bf560dfc42eb1c",
-      "afterBlob": "018d45df4646ef3d534043175732e626f22de045",
+      "afterBlob": "8876ced6d4e24079bd910686b9ed918a6ed13566",
       "rules": [
         {
           "offset": 5599,
@@ -737,21 +737,21 @@
         },
         {
           "offset": 7185,
-          "before": "",
-          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-master-pages1\"></script>\n"
+          "before": "    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
+          "after": "    <script data-process-src=\"page-draft-merge.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-master-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-master-pages1\"></script>\n"
         },
         {
-          "offset": 8738,
+          "offset": 8732,
           "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261109-explicit-checks1\"></script>\n",
           "after": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-canvas-history1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-canvas-history1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-canvas-history1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration2\"></script>\n"
         },
         {
-          "offset": 9869,
+          "offset": 9863,
           "before": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n",
           "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-process-integration2\"></script>\n"
         },
         {
-          "offset": 10528,
+          "offset": 10522,
           "before": "    <script data-process-src=\"canvas-recovery-store.js?v=20261104-canvas-integration1\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261104-begin-receipt1\"></script>\n    <script data-process-src=\"process-editor.js?v=20261104-canvas-integration1\"></script>\n",
           "after": "    <script data-process-src=\"canvas-recovery-store.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n"
         }
@@ -760,37 +760,37 @@
     {
       "file": "public/process/master-data.js",
       "beforeHash": "79dd392e82f176a7ee2ae4c73b0fc71068b4fdb70b285e2b8fa0df7f94faf470",
-      "afterHash": "b78c72a4c650a9a363c954b0fb6b4557cc8b76c9e857a24a22f54ebe825b0d33",
+      "afterHash": "452e0b8352bdf9b5c56405717bda71d474fc22cc3880a739fbf50b2ed5addb05",
       "beforeBlob": "74303200ca1140e15f2fe3023728e3ec42664e04",
-      "afterBlob": "b040aa05a5a95e5f05ffcf56f3c194eb22c3574a",
+      "afterBlob": "f6253d44615d1af11c4e0291a7ccceffc402bccf",
       "rules": [
         {
           "offset": 17162,
           "before": "",
-          "after": "    if(control.pageDraftLayout==='page-v1'&&!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();\n    if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(tab)){\n      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;\n    }\n"
+          "after": "    if(!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();\n    if(['AB','C','line-admin'].includes(tab)&&control.pageDraftLayout==='page-v1'){\n      const url=new URL(location.href);\n      if(push&&url.searchParams.get('dataTab')!==tab){url.searchParams.set('dataTab',tab);history.pushState({...history.state,dataTab:tab},'',url);}\n      content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;\n    }\n"
         },
         {
-          "offset": 53992,
+          "offset": 54144,
           "before": "    canLeave:()=>!shared.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n",
           "after": "    canLeave:()=>!shared.busy()&&!window.ProcessMasterPages?.busy()&&!window.MasterAdminUI?.departureBusy?.(),\n"
         },
         {
-          "offset": 54121,
+          "offset": 54273,
           "before": "      get departure(){return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n",
           "after": "      get departure(){if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(state.dataTab))return window.ProcessMasterPages?.departure();return moduleDeparture ||= Object.assign(window.VersionDraftUI.createDeparture({\n"
         },
         {
-          "offset": 56643,
+          "offset": 56795,
           "before": "    resetProjection(){\r\n      deliveryGeneration++;sharedPoll.cancel();shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;\r\n",
           "after": "    resetProjection(){\n      window.ProcessMasterPages?.reset();\n      deliveryGeneration++;shared.resetReads();sharedLoaded.clear();sharedLoading.clear();dataReady=Promise.resolve();dataError=null;\n"
         },
         {
-          "offset": 57522,
+          "offset": 57674,
           "before": "      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();pollMaster();\r\n",
           "after": "      state.masterReviewId=null;state.masterValidationErrors=[];applyActive();\n"
         },
         {
-          "offset": 57673,
+          "offset": 57825,
           "before": "  const sharedPoll=window.createForegroundPoll();\r\n  function pollMaster(){const pollScheduleOwner=sharedPoll.capture();const generation=deliveryGeneration;sharedPoll.schedule(async()=>{\r\n    if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;\r\n    try{if(document.visibilityState!=='hidden'&&!shared.busy()&&sharedLoaded.size){\r\n      const editing=document.querySelector('dialog[open],.shared-restore-overlay')||document.activeElement?.matches('input,textarea,select');\r\n      if(!editing&&(document.querySelector('.master-organized,.process-master-version')||state.view==='approval'&&state.approvalTab==='master')){let changed=false;\r\n        const scopes=state.view==='approval'?[...sharedLoaded]:[document.querySelector('.process-master-version')?'PROCESS':state.masterScope];\r\n        for(const scope of scopes){if(!sharedLoaded.has(scope)||!shared.client(scope).canPoll('state'))continue;const result=await shared.load(scope);if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;changed ||= !result.unchanged||result.permissionsChanged;}\r\n        if(changed){applyActive();render();}\r\n      }\r\n    }}catch(error){if(!ownsDelivery(generation)||!sharedPoll.isCurrent(pollScheduleOwner))return;const panel=document.querySelector('#master-shared-status');if(panel)panel.textContent=displayDraftError(error);}finally{if(ownsDelivery(generation)&&sharedPoll.isCurrent(pollScheduleOwner))pollMaster();}\r\n  });}\r\n  pollMaster();\r\n",
           "after": "  // Read on explicit entry and workflow actions; no timed draft sync.\n"
         }

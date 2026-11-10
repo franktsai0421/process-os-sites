@@ -318,8 +318,10 @@
     if (tab==='AB'||tab==='C') {if(state.masterScope!==tab){state.masterCategory='全部';state.masterSearch='';}state.masterScope=tab;}
     const content=document.querySelector('#data-content');
     if (!content) return;
-    if(control.pageDraftLayout==='page-v1'&&!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();
-    if(control.pageDraftLayout==='page-v1'&&['AB','C','line-admin'].includes(tab)){
+    if(!['AB','C','line-admin'].includes(tab))window.ProcessMasterPages?.leave();
+    if(['AB','C','line-admin'].includes(tab)&&control.pageDraftLayout==='page-v1'){
+      const url=new URL(location.href);
+      if(push&&url.searchParams.get('dataTab')!==tab){url.searchParams.set('dataTab',tab);history.pushState({...history.state,dataTab:tab},'',url);}
       content.dataset.activeTab=tab;window.ProcessMasterPages.mount(content,{page:tab==='line-admin'?'LINES':tab});bindTabButtons();return;
     }
     if(tab==='line-admin'){
