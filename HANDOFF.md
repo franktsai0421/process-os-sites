@@ -523,3 +523,7 @@ readback, unknown-effect rules and exact staging-only scope. No live schema,
 credential, upload, audience, owner password or deployment has changed.
 Security architecture requires independent review and informed per-action
 credential approval before enabling. Copy/restore/activate are excluded.
+
+## 2026-11-10 — PR103 CI follow-up
+
+Local safety f608 step 9 is an account status/alert regression; step 31 needs exact account-cache composition before the retained background predecessor proof. Product status semantics and independent source evidence are corrected without changing the UNKNOWN-32 role fixture or replaying its request. [Details and final CI gate](docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).

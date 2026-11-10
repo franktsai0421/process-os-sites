@@ -1189,3 +1189,7 @@ See [photo policy](../docs/sites/PHOTO_UPLOAD.md) for limits and test boundaries
 - 使用同一合成 fixture 比較 main 與候選的 AB/C 操作；補驗歷史、未知結果恢復、多人與跨模組切頁。
 - 修正 FQC 切頁 adapter 讀取 `libraries.fqc.workflow`，更新單一資源版本與回歸測試。
 - GitHub、PR 與後續整合由使用者指定 dot 處理；本輪只保留本地程式與證據，未發布。
+
+## 2026-11-10 — Account status/alert and exact cache source composition
+
+Fix pending account reads being announced as errors and prematurely satisfying the role fixture's error wait. Preserve the unchanged role test and UNKNOWN protections. Compose a pinned account cache inverse ahead of the unchanged background proof instead of changing historical hashes. [CI root causes](../docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).

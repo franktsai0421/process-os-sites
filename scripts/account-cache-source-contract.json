@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "baseTree": "6eee3963fec61a540c144a920fbb3f65949d5e10",
+  "index": "public/process/index.html",
+  "beforeHash": "41474215c11933274c47c35fc09e86f4fc930fd791322013da861c256b766fae",
+  "beforeBlob": "e4bd6ca9f8f4cee667df26f288621913da78a58f",
+  "beforeLength": 10838,
+  "publishedAccountSource": "f6081ea899e62f6e10b23d2efeb6fc90f3c5b061",
+  "variants": [
+    {
+      "name": "published-account-priority",
+      "afterHash": "54601dc7f40468342cd42c64010b91c19b286dd00319d881c25b780ef7a0a41c",
+      "afterBlob": "35e83e9c33eeff34b4c04ceec073247b826372b0",
+      "afterLength": 10878,
+      "rules": [
+        {
+          "offset": 8158,
+          "before": "data-safety-ui.js?v=20261027-login-reentry1",
+          "after": "data-safety-ui.js?v=20261110-account-priority-candidate"
+        },
+        {
+          "offset": 10460,
+          "before": "user-access.css?v=20261106-role-layout2",
+          "after": "user-access.css?v=20261110-account-priority-candidate"
+        },
+        {
+          "offset": 10546,
+          "before": "user-access.js?v=20261106-role-layout1",
+          "after": "user-access.js?v=20261110-account-priority-candidate"
+        }
+      ]
+    },
+    {
+      "name": "account-progress-status",
+      "afterHash": "e83b3ad99f142f80dbd0d0b62e040da66ac76bbdd627971efacaef855faf0a4d",
+      "afterBlob": "823ad26d09203a6c313139f3899bd57549225bb9",
+      "afterLength": 10860,
+      "rules": [
+        {
+          "offset": 8158,
+          "before": "data-safety-ui.js?v=20261027-login-reentry1",
+          "after": "data-safety-ui.js?v=20261110-account-priority-candidate"
+        },
+        {
+          "offset": 10460,
+          "before": "user-access.css?v=20261106-role-layout2",
+          "after": "user-access.css?v=20261110-account-progress2"
+        },
+        {
+          "offset": 10537,
+          "before": "user-access.js?v=20261106-role-layout1",
+          "after": "user-access.js?v=20261110-account-progress2"
+        }
+      ]
+    }
+  ]
+}

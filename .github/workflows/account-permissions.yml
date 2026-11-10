@@ -53,5 +53,7 @@ jobs:
           node scripts/test-login-entry-marker.cjs
           node scripts/test-login-reentry.cjs
           node scripts/test-login-json-coercion.mjs
+      - name: Exact account cache and retained background source proofs
+        run: node --test tests/account-cache-source-proof.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/navigation-adapters.test.mjs
       - run: node scripts/sites-ci-preflight.mjs
       - run: npm run build

@@ -68,7 +68,7 @@
   if(roleChanged)entries.unshift(t('角色：','Vai trò: ')+roleName(initial.role)+' → '+roleName(draft.role));
   box.innerHTML=`<strong>${entries.length?t(`尚未保存 · ${entries.length} 項權限變更`,`Chưa lưu · ${entries.length} thay đổi quyền`):t('權限未變更','Quyền chưa thay đổi')}</strong>${entries.length?`<details><summary>${t('核對變更','Đối chiếu thay đổi')}</summary><ul>${entries.map(v=>`<li>${h(v)}</li>`).join('')}</ul></details>`:''}${issues.length?`<details class="ua-dependency"><summary>${t(`有 ${issues.length} 項權限缺少必要條件`,`Có ${issues.length} quyền thiếu điều kiện`)}</summary><ul>${issues.map(i=>`<li>${h(permissionLabel(i.key))} → ${t('需要','Cần')} ${h(permissionLabel(i.requires))}</li>`).join('')}</ul><p>${t('不會自動補勾；請確認設定。既有設定不會直接重設。','Không tự cấp thêm quyền; hãy kiểm tra. Cấu hình hiện có không bị đặt lại.')}</p></details>`:''}`;
  }
- function dialog(title,markup){const d=document.createElement('dialog');d.className='ua-dialog';d.dataset.i18nSkip='true';d.innerHTML=`<form><header><h3>${h(title)}</h3>${button(t('關閉','Đóng'),'data-ua-close')}</header><div class="ua-dialog-body">${markup}</div><p class="ua-error" role="alert"></p><footer>${button(t('取消','Hủy'),'data-ua-close')}<button class="button signal" type="submit">${t('確認','Xác nhận')}</button></footer></form>`;document.body.append(d);d.showModal();d.addEventListener('close',()=>d.remove());d.querySelectorAll('[data-ua-close]').forEach(b=>b.onclick=()=>{if(d.dataset.saving)return;if(!d.dataset.dirty||confirm(t('尚未儲存，確定離開？','Chưa lưu; bạn muốn rời đi?')))d.close();});d.oncancel=e=>{e.preventDefault();d.querySelector('[data-ua-close]').click();};d.querySelector('form').oninput=e=>{if(!e.target.matches('[data-ua-matrix-search], [data-ua-role-search]'))d.dataset.dirty='1';};return d;}
+ function dialog(title,markup){const d=document.createElement('dialog');d.className='ua-dialog';d.dataset.i18nSkip='true';d.innerHTML=`<form><header><h3>${h(title)}</h3>${button(t('關閉','Đóng'),'data-ua-close')}</header><div class="ua-dialog-body">${markup}</div><p class="ua-progress" role="status" aria-live="polite"></p><p class="ua-error" role="alert"></p><footer>${button(t('取消','Hủy'),'data-ua-close')}<button class="button signal" type="submit">${t('確認','Xác nhận')}</button></footer></form>`;document.body.append(d);d.showModal();d.addEventListener('close',()=>d.remove());d.querySelectorAll('[data-ua-close]').forEach(b=>b.onclick=()=>{if(d.dataset.saving)return;if(!d.dataset.dirty||confirm(t('尚未儲存，確定離開？','Chưa lưu; bạn muốn rời đi?')))d.close();});d.oncancel=e=>{e.preventDefault();d.querySelector('[data-ua-close]').click();};d.querySelector('form').oninput=e=>{if(!e.target.matches('[data-ua-matrix-search], [data-ua-role-search]'))d.dataset.dirty='1';};return d;}
  function submit(d,build,done){
   const form=d.querySelector('form'),validation=document.createElement('p');
   validation.className='ua-validation';validation.setAttribute('role','alert');d.querySelector('.ua-error').before(validation);
@@ -87,12 +87,13 @@
   // Account API canonicalizes all account/role IDs before lookup.
   const target=(value,payload)=>JSON.stringify((payload.action.endsWith('role')?value.roles:value.users)?.find(item=>item.id===String(payload.id||'').trim().toLowerCase())??null);
   const errorBox=d.querySelector('.ua-error'),submitButton=d.querySelector('[type="submit"]');
+  const progress=text=>{const node=d.querySelector('.ua-progress');if(node)node.textContent=text;};
   if(writeUncertain){errorBox.textContent=message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');if(submitButton)submitButton.disabled=true;}
   d.querySelector('form').onsubmit=async event=>{
    event.preventDefault();validation.textContent='';if(d.dataset.saving||blocked)return;
    if(writeUncertain){errorBox.textContent=message('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');if(submitButton)submitButton.disabled=true;return;}
    if(!sameIdentity(owner)){errorBox.textContent=message('LOGIN_REQUIRED');if(submitButton)submitButton.disabled=true;return;}
-   clearResultNotice();
+   clearResultNotice();errorBox.textContent='';
    const controls=[...d.querySelectorAll('button,input,select,textarea')],previous=new Map(controls.map(c=>[c,c.disabled])),submitLabel=submitButton?.textContent;
    let payload,acknowledged,committed=false;
    try{
@@ -100,13 +101,13 @@
     if(target(model,payload)!==baseline){blocked=true;throw Error('TARGET_CHANGED');}
     d.dataset.saving='1';d.ariaBusy='true';form.setAttribute('aria-busy','true');controls.forEach(c=>c.disabled=true);
     if(submitButton)submitButton.textContent=t('保存並核對中…','Đang lưu và đối chiếu…');
-    errorBox.textContent=t('正在讀取最新資料核對，尚未送出變更…','Đang đọc dữ liệu mới nhất để đối chiếu, chưa gửi thay đổi…');
+    progress(t('正在讀取最新資料核對，尚未送出變更…','Đang đọc dữ liệu mới nhất để đối chiếu, chưa gửi thay đổi…'));
     try{await load(true);}catch(error){if(['LOGIN_REQUIRED','FORBIDDEN','STALE_IDENTITY_RESPONSE','STALE_ACCESS_RESPONSE'].includes(error.message))throw error;throw Error('PREWRITE_READ_UNAVAILABLE');}
     if(!sameIdentity(owner))throw Error('STALE_IDENTITY_RESPONSE');
     if(!d.isConnected||!d.open)throw Error('DIALOG_CLOSED');
     if(JSON.stringify(model.actor)!==actorBaseline){blocked=true;throw Error('ACTOR_CHANGED');}
     if(target(model,payload)!==baseline){blocked=true;throw Error('TARGET_CHANGED');}
-    errorBox.textContent=t('保存並核對中…','Đang lưu và đối chiếu…');
+    progress(t('保存並核對中…','Đang lưu và đối chiếu…'));
     const result=await send(payload);committed=true;
     if(!result.relogin){
      const returned=target(result,payload);
@@ -135,7 +136,7 @@
      };errorBox.append(retry);
     }
    }finally{
-    delete d.dataset.saving;d.ariaBusy='false';form.removeAttribute('aria-busy');controls.forEach(c=>c.disabled=previous.get(c));
+    progress('');delete d.dataset.saving;d.ariaBusy='false';form.removeAttribute('aria-busy');controls.forEach(c=>c.disabled=previous.get(c));
     if(submitButton){submitButton.textContent=submitLabel;submitButton.disabled=previous.get(submitButton)===true||blocked||writeUncertain||!sameIdentity(owner);}
    }
   };

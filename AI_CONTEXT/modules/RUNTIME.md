@@ -457,3 +457,7 @@ separate acceptance; this local candidate is not a release.
   and shared transport with synthetic DOM/HTTP/clock ports. VersionDraftUI
   mount is a model/status port. It is not native browser, authenticated backend,
   real timeout-duration, or original unknown-operation recovery acceptance.
+
+## 2026-11-10 — Account pending status follow-up
+
+Account dialogs render pending prewrite/POST feedback in a separate status live region; only actual failures populate the error alert. Fresh actor/target reads, CAS, input retention, control locks and UNKNOWN GET-only recovery are unchanged. Exact account cache source composition retains the original main/background inverse. [Root causes and verification boundary](../../docs/acceptance/account-permissions-20261110.md#local-safety-ci-follow-up-status-regions-and-composed-source-evidence).

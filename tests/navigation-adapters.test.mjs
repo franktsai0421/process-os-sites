@@ -135,7 +135,7 @@ void test('changed persistent-navigation executable references have coherent new
   'shared-draft-client.js':'20261109-explicit-checks3',
   'shared-state.js':'20261106-access-offline1',
   'tooling.js':'20261105-tooling-local-save1',
-  'user-access.js':'20261110-account-priority-candidate',
+  'user-access.js':'20261110-account-progress2',
   'navigation-forms.js':'20261025-navigation2',
   'process-ipqc.js':'20261109-explicit-checks1',
   'data-safety-ui.js':'20261110-account-priority-candidate',
@@ -147,7 +147,7 @@ void test('changed persistent-navigation executable references have coherent new
   'photo-viewer.css':'20261029-photo2',
   'version-workflow.js':'20261030-access-fusion1',
   'i18n.js':'20261029-photo1',
-  'user-access.css':'20261110-account-priority-candidate',
+  'user-access.css':'20261110-account-progress2',
   'user-access-initial-read.js':'20261029-users-load2',
   'web-feedback-entry.js':'20261106-access-offline1',
  };

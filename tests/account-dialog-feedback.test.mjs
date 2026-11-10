@@ -6,12 +6,12 @@ import vm from 'node:vm';
 const source=fs.readFileSync('public/process/user-access.js','utf8');
 function fixture({language='zh',action='update-user',id='synthetic-target',mode='normal'}={}){
  const owner={id:'synthetic-manager'},actor={id:owner.id,role:'staff',name:'Synthetic manager'},target={id:'synthetic-target',name:'Before'},key=action.endsWith('role')?'roles':'users',initial={actor,users:[],roles:[],[key]:[target]};
- let validationNode=null;const handlers={};
- const controls=[{disabled:false,textContent:'Confirm'},{disabled:true,textContent:'Protected'},{disabled:false,value:'Synthetic input'}],submitButton=controls[0],retries=[],form={addEventListener(name,fn){handlers[name]=fn;},setAttribute(){},removeAttribute(){},querySelector:()=>null},errorBox={textContent:'',append:button=>retries.push(button),before(node){validationNode=node;}},dialog={isConnected:true,open:true,dataset:{dirty:'1'},querySelector:s=>s==='form'?form:s==='.ua-error'?errorBox:s==='[type="submit"]'?submitButton:null,querySelectorAll:()=>controls,close(){this.closed=true;}};
+ let validationNode=null;const handlers={},progressBox={textContent:''};
+ const controls=[{disabled:false,textContent:'Confirm'},{disabled:true,textContent:'Protected'},{disabled:false,value:'Synthetic input'}],submitButton=controls[0],retries=[],form={addEventListener(name,fn){handlers[name]=fn;},setAttribute(){},removeAttribute(){},querySelector:()=>null},errorBox={textContent:'',append:button=>retries.push(button),before(node){validationNode=node;}},dialog={isConnected:true,open:true,dataset:{dirty:'1'},querySelector:s=>s==='form'?form:s==='.ua-error'?errorBox:s==='.ua-progress'?progressBox:s==='[type="submit"]'?submitButton:null,querySelectorAll:()=>controls,close(){this.closed=true;}};
  let posts=0,reads=0,hold=null,release,readHold=null,releaseRead;
  const ctx={JSON,structuredClone,Error,model:structuredClone(initial),modelStamp:owner,writeUncertain:false,identityStamp:()=>owner,sameIdentity:x=>x===owner,active:()=>true,h:s=>String(s).replaceAll('<','&lt;'),t:(zh,vi)=>language==='vi'?vi:zh,message:code=>code,toast(){},accountToast(){},paint(){},document:{querySelector:selector=>selector==='.ua-dialog[data-saving]'&&dialog.dataset.saving?dialog:selector==='.ua-dialog[data-dirty]'&&dialog.dataset.dirty?dialog:null,querySelectorAll:()=>[dialog],createElement:()=>({setAttribute(){}})},async send(){posts++;if(hold)await hold;if(mode==='rejected')throw Error('FORBIDDEN');if(mode.startsWith('rejected:'))throw Error(mode.slice(9));if(mode==='unknown'){ctx.writeUncertain=true;throw Error('WRITE_RESULT_UNKNOWN_RELOAD_REQUIRED');}ctx.model={actor,users:[],roles:[],[key]:action.startsWith('delete-')||mode==='missing-target'?[]:[{...target,name:'After'}]};return ctx.model;},async load(){reads++;if(readHold&&posts===0)await readHold;if(posts===0){if(mode==='prewrite-down')throw Error('SYNTHETIC_READ_DOWN');if(mode==='prewrite-actor')ctx.model={...ctx.model,actor:{...actor,name:'New actor metadata'}};if(mode==='prewrite-target')ctx.model={...ctx.model,[key]:[{...target,name:'Peer changed'}]};if(mode==='prewrite-closed')dialog.open=false;}if(mode==='read-failed'&&posts>0)throw Error('SYNTHETIC_READ_FAILED');if(mode==='changed'&&posts>0)ctx.model={...ctx.model,[key]:[{...target,name:'External'}]};return ctx.model;}};
  const helpers=source.slice(source.indexOf(' function rememberResultNotice('),source.indexOf(' function paint(')),submit=source.slice(source.indexOf(' function submit('),source.indexOf(' function password('));vm.createContext(ctx);vm.runInContext('let resultNotice=null;'+helpers+submit+';this.noticeValue=()=>resultNotice;',ctx);ctx.submit(dialog,()=>({action,id,password:'SYNTHETIC-SECRET-NEVER-IN-NOTICE',confirmation:'SYNTHETIC-SECRET-NEVER-IN-NOTICE'}));
- return{ctx,controls,submitButton,dialog,errorBox,retries,handlers,form,validation:()=>validationNode,posts:()=>posts,reads:()=>reads,run:()=>form.onsubmit({preventDefault(){}}),mode(value){mode=value;},hold(){hold=new Promise(r=>release=r);},release(){release();},holdPrewrite(){readHold=new Promise(r=>releaseRead=r);},releasePrewrite(){readHold=null;releaseRead();}};
+ return{ctx,controls,submitButton,dialog,errorBox,progressBox,retries,handlers,form,validation:()=>validationNode,posts:()=>posts,reads:()=>reads,run:()=>form.onsubmit({preventDefault(){}}),mode(value){mode=value;},hold(){hold=new Promise(r=>release=r);},release(){release();},holdPrewrite(){readHold=new Promise(r=>releaseRead=r);},releasePrewrite(){readHold=null;releaseRead();}};
 }
 void test('pending Save shows busy feedback and disables controls; completion restores prior disabled states',async()=>{
  const f=fixture();f.hold();const running=f.run();for(let i=0;i<20&&f.posts()===0;i++)await Promise.resolve();assert.equal(f.dialog.ariaBusy,'true');assert.match(f.submitButton.textContent,/保存|核對/);assert(f.controls.every(c=>c.disabled));assert.equal(f.posts(),1);await f.run();assert.equal(f.posts(),1);f.release();await running;assert.equal(f.dialog.ariaBusy,'false');assert.equal(f.submitButton.textContent,'Confirm');assert.equal(f.controls[1].disabled,true);assert.equal(f.controls[2].disabled,false);assert.equal(f.dialog.closed,true);
@@ -96,4 +96,23 @@ void test('a revision rejection keeps explicit GET-only comparison before a late
 });
 void test('localized native validation cannot erase acknowledged or unknown recovery warnings or release Confirm',async()=>{
  for(const mode of ['read-failed','unknown'])for(const language of ['zh','vi']){const f=fixture({mode,language});await f.run();const warning=f.errorBox.textContent;assert.equal(f.submitButton.disabled,true);f.form.querySelector=()=>({validity:{valueMissing:true},validationMessage:'foreign browser message',focus(){}});f.handlers.invalid({preventDefault(){}});assert.equal(f.errorBox.textContent,warning);assert.equal(f.retries.length,1);assert.equal(f.submitButton.disabled,true);if(language==='vi')assert.doesNotMatch(f.validation().textContent,/[\u3400-\u9fff]/);await f.run();assert.equal(f.posts(),1);}
+});
+
+for(const language of ['zh','vi'])void test(language+' role prewrite and pending POST use status only; a real refusal alone raises an alert',async()=>{
+ const f=fixture({language,action:'update-role',mode:'rejected:FORBIDDEN'});
+ f.errorBox.textContent='Previous refusal';f.holdPrewrite();f.hold();const running=f.run();
+ await Promise.resolve();assert.equal(f.posts(),0);assert.equal(f.reads(),1);
+ assert.equal(f.errorBox.textContent,'');assert(f.progressBox.textContent);assert.equal(f.dialog.ariaBusy,'true');
+ assert(f.controls.every(c=>c.disabled));await f.run();assert.equal(f.posts(),0);
+ f.releasePrewrite();for(let i=0;i<20&&f.posts()===0;i++)await Promise.resolve();
+ assert.equal(f.posts(),1);assert.equal(f.errorBox.textContent,'');assert(f.progressBox.textContent);
+ assert.equal(f.ctx.noticeValue(),null);f.release();await running;
+ assert.equal(f.progressBox.textContent,'');assert.equal(f.errorBox.textContent,'FORBIDDEN');
+ assert.equal(f.dialog.closed,undefined);assert.equal(f.posts(),1);assert.equal(f.controls[1].disabled,true);
+ assert.equal(f.submitButton.disabled,false);assert.equal(f.ctx.noticeValue(),null);
+});
+void test('dialog gives status and error separate accessible live regions and hides both when empty',()=>{
+ assert.match(source,/<p class="ua-progress" role="status" aria-live="polite"><\/p><p class="ua-error" role="alert"><\/p>/);
+ const css=fs.readFileSync('public/process/user-access.css','utf8');
+ assert.match(css,/\.ua-error:empty,\.ua-validation:empty,\.ua-progress:empty\{display:none\}/);
 });

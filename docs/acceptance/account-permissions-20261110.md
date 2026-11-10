@@ -40,3 +40,13 @@ NOT_RUN：真人帳號、原生瀏覽器／cookie、IME、實體手機、實站�
 ## 尚需協調
 
 新的逐頁草稿邊界、查看／編輯／Save 權限政策、模組送審／撤回與版本平台最終核准分離，與 #102 的 page-v1 架構相依；本 PR 不啟用政策標記、不授予真帳號高階權限、不移除既有 restore 格或實作恢復。需要另立有完整相依與逐頁驗收的整合，不能宣稱本帳號 PR 已完成全站權限切換。
+
+## Local safety CI follow-up: status regions and composed source evidence
+
+Read the complete #103 f6081ea Local safety run 42802175203/job 129782242429. Step 9 failed at the unchanged role fixture's capturePayload assertion: fresh account prewrite GET displayed a pending message in .ua-error before POST had occurred. The corresponding step 9 on #104 e6a6472/run 42804470301/job 129789989411 passed. This identifies an account UI status/alert regression, not a reason to bypass the fresh read or relax the payload assertion.
+
+The product now has a separate .ua-progress status/live region. Error alerts remain empty during the prewrite and pending POST, become visible for actual failures, and retain UNKNOWN/readback recovery protections. Both languages are covered with held prewrite and POST responses, zero premature writes, double-submit blocking and disabled-control restoration. The role browser test and all original UNKNOWN-32 repair paths remain unchanged except this branch's already independent account index/CHANGELOG content; no original request is retried.
+
+Step 31 failed because the exact background source proof expected the original main index hash 41474215..., while the account-only cache layer yielded 54601dc7.... The fix follows #104's explicit source-layer composition pattern, using an account-only helper rather than importing its process count code. It retains the original background contracts and hashes, and reconstructs genuine main 9fbba823 bytes before the unchanged d4ac309 background inverse. The historical published f6081ea index blob and current status-region cache layer each have pinned raw hashes, lengths, offsets and spans. Partial/duplicate tags, wrong paths, nonraw inputs and any unrelated drift are rejected. Routine now uses this same exact layer instead of its earlier ad hoc tag replacement.
+
+Data-model/schema/business data: unchanged. No real account, merge, deployment, original UNKNOWN retry, guard relaxation or native executor retry. Local deterministic and source checks are recorded with the follow-up commit; final remote step 9/31 outcomes must be reported separately.

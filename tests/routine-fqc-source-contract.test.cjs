@@ -42,10 +42,11 @@ void test('Routine cache gate accepts only its one changed tag; rejects rollback
  for(const bytes of [afterIndex.toString(),new Uint8Array(afterIndex),null])assert.throws(()=>proof.assertIndexSuccessor(bytes,beforeIndex,contract.index),/raw Buffer/);
 });
 void test('reviewed account cache composition refuses partial, duplicate and unrelated changes',()=>{
- const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-priority-candidate','user-access.js?v=20261110-account-priority-candidate'];
+ const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-progress2','user-access.js?v=20261110-account-progress2'];
  for(const tag of tags){
   assert(afterIndex.includes(Buffer.from(tag)),tag);
-  for(const changed of [afterIndex.toString().replace(tag,tag+'-wrong'),afterIndex.toString().replace(tag,tag+' '+tag),afterIndex.toString().replace(tag,tag.replace('20261110-account-priority-candidate','old'))]){
+  for(const changed of [afterIndex.toString().replace(tag,tag+'-wrong'),afterIndex.toString().replace(tag,tag+' '+tag),afterIndex.toString().replace(tag,tag.replace(/\?v=.*/,'?v=old'))]){
+   assert.notEqual(changed,afterIndex.toString(),'negative fixture must actually mutate its tag');
    assert.throws(()=>proof.assertIndexSuccessor(Buffer.from(changed),beforeIndex,contract.index),/own exact tag/);
   }
  }

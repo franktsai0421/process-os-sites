@@ -78,8 +78,8 @@
 .ua-dialog textarea{padding:10px 12px;min-height:90px;resize:vertical}
 .ua-dialog input[readonly],.ua-dialog textarea[readonly],.ua-dialog select:disabled{background:#f2f6f4;color:#5a716d}
 .ua-dialog-body>[data-ua-reset-table]{align-self:flex-start}
-.ua-error,.ua-validation{flex-shrink:0;min-height:1.5em;margin:0;padding:10px 22px;color:#a1262e;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
-.ua-error:empty,.ua-validation:empty{display:none}
+.ua-error,.ua-validation,.ua-progress{flex-shrink:0;min-height:1.5em;margin:0;padding:10px 22px;color:#a1262e;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.ua-error:empty,.ua-validation:empty,.ua-progress:empty{display:none}
 .ua-menu{display:flex;flex-direction:column;gap:10px}
 .ua-menu button{width:100%;text-align:left;white-space:normal}
 .ua-menu small{color:var(--ua-muted);font-size:12px}
@@ -124,7 +124,7 @@
  .ua-dialog header,.ua-dialog footer{padding:14px;gap:8px}
  .ua-dialog header h3{flex-basis:150px;font-size:18px}
  .ua-dialog-body{padding:14px;gap:16px}
- .ua-error,.ua-validation{padding:10px 14px}
+ .ua-error,.ua-validation,.ua-progress{padding:10px 14px}
  .ua-matrix{width:1236px;min-width:1236px}
  .ua-matrix:has([data-ua-reset-row]){width:1332px;min-width:1332px}
  .ua-matrix tr>:nth-child(2){width:126px;min-width:126px}
@@ -146,7 +146,7 @@
 .ua-own-permissions{min-width:0}
 .ua-own-permissions h3{margin:0 0 8px;font-size:16px}
 .ua-error button{display:block;margin-top:8px;white-space:normal;text-align:left}
-.ua-dialog[data-saving] .ua-error{color:var(--ua-accent)}
+.ua-progress{color:var(--ua-accent)}
 .ua-dialog:has(.ua-own-permissions){width:min(1180px,96vw)}
 .ua-page button,.ua-dialog button{white-space:normal;overflow-wrap:anywhere}
 @media(max-width:1000px){.ua-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
