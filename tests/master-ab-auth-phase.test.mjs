@@ -412,7 +412,10 @@ void test('AB complete permission matrix projection for baseline/current compari
         ...(result.status === 200 ? {permissions: result.body.permissions} : {error: result.body.error})});
       const baselineRow=structuredClone(rows.at(-1));
       if(result.status===200){
-        const access=f.load('lib/user-access.ts').effectiveAccess(user,await f.decoded()),legacySave=access.cells['ab.save']===true;
+        const accessModule=f.load('lib/user-access.ts'),values=await f.decoded(),access=accessModule.effectiveAccess(user,values),policy=f.load('public/process/access-policy.mjs');
+        // Recover the configured cell before the new shared Edit→Save projection,
+        // so this historical route proof still reverses only its original Save delta.
+        const legacySave=(policy.basePermissionCells?policy.basePermissionCells(user,accessModule.roleTemplates(values)):access.cells)['ab.save']===true;
         assert.equal(result.body.permissions.save,isBaseline?legacySave:legacySave||result.body.permissions.edit,item.name+': edit implies Save only');
         baselineRow.permissions.save=legacySave;
       }

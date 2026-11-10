@@ -43,7 +43,20 @@ void test('both actual ZIP APIs: separate projections, notes, ACL, version confl
    const archiveKey=(source==='helper'?'web-feedback/v1/':'access-events/v1/exports/')+made.value.id+'.zip',good=objects.get(archiveKey);objects.set(archiveKey,Buffer.from('tampered'));assert.equal((await call(source,'download&id='+made.value.id)).status,503);objects.set(archiveKey,good);
    const second={...preview.value.batches[1],operationId:randomUUID()};for(const key of ['count','imageBytes','metadataBytes'])delete second[key];const madeSecond=await call(source,generate,second);assert.equal(madeSecond.status,201);assert.equal(madeSecond.value.count,1);
   });
-  await t.test('helper denies selected inaccessible screenshots; explicit no-images export is safe',async()=>{const ids=[hid],denied=await call('helper','export-preview',{ids},'restricted');assert.equal(denied.status,403);assert.equal(denied.value.error,'EXPORT_IMAGE_PERMISSION_REQUIRED');const safe=await call('helper','export-preview',{ids,imageIds:[]},'restricted');assert.equal(safe.status,200);assert.equal(safe.value.preview[0].images.length,0);});
+  await t.test('helper requires case source even without images; independently denies original image envelope',async()=>{
+   const ids=[hid],beforeAuth=db.prepare('SELECT * FROM shared_state').get(),beforePuts=puts;
+   // Public report visibility is not export authority for an inaccessible source.
+   for(const fields of [{ids},{ids,imageIds:[]}]){const denied=await call('helper','export-preview',fields,'restricted');assert.equal(denied.status,403);assert.equal(denied.value.error,'EXPORT_SOURCE_PERMISSION_REQUIRED');}
+   try{
+    // Grant the case page only. The original screenshot still captured BOM scope,
+    // which this actor lacks, so image inclusion must continue to fail closed.
+    const revised=JSON.parse(beforeAuth.values),actors=JSON.parse(revised.platformUsers);actors.find(u=>u.id==='restricted').accessOverrides['dashboard.view']=true;revised.platformUsers=JSON.stringify(actors);
+    db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));
+    const denied=await call('helper','export-preview',{ids},'restricted');assert.equal(denied.status,403);assert.equal(denied.value.error,'EXPORT_IMAGE_PERMISSION_REQUIRED');
+    const safe=await call('helper','export-preview',{ids,imageIds:[]},'restricted');assert.equal(safe.status,200);assert.equal(safe.value.preview[0].images.length,0);assert(!JSON.stringify(safe.value).includes('PRIVATE_ORIGINAL_RECORD'));
+    assert.equal(puts,beforePuts);
+   }finally{db.prepare('UPDATE shared_state SET revision=?,"values"=?,updated_at=? WHERE id=1').run(beforeAuth.revision,beforeAuth.values,beforeAuth.updated_at);}
+  });
   await t.test('large metadata preview rejects explicitly without truncating notes or generating any package',async()=>{
    const note=JSON.stringify(Array.from({length:100},()=>({authorId:'other-admin',at:'synthetic',text:'x'.repeat(4000)}))),beforePuts=puts,snapshots=accessIds.slice(0,7).map(id=>db.prepare('SELECT id,notes FROM access_events WHERE id=?').get(id));
    for(const row of snapshots)db.prepare('UPDATE access_events SET notes=? WHERE id=?').run(note,row.id);

@@ -58,6 +58,7 @@ function projectedSource(file,original){
  return {contract,before,after};
 }
 function withoutPR44AccessChanges(file,bytes,original=execFileSync('git',['show',accessTemplateBase+':'+file])){
+ bytes=require('./account-permission-source-contract.cjs').projectKnown(bytes,file);
  const {before,after}=projectedSource(file,original);
  assert.deepEqual(bytes,Buffer.from(after),'Access-template source differs from exact six-span contract: '+file);
  return Buffer.from(before);

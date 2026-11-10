@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
+  "baseTree": "6eee3963fec61a540c144a920fbb3f65949d5e10",
+  "files": {
+    "lib/user-access.ts": {
+      "beforeHash": "aac873548f57e80329d63c2ef24a46ef77d0e26ad621fe72cc61f83cdc8cef69",
+      "beforeLength": 2592,
+      "beforeBlob": "9923ad341cf82575db0e7c67be2a7c5d510023aa",
+      "afterHash": "e71fdb803dc2ed5624a4622c49bd91e74335863eb62f33d3960fa2941a7f5212",
+      "afterLength": 2594,
+      "afterBlob": "53933c54933c6d2ee9112d296c2d6ff6dd84aadf",
+      "rules": [
+        {
+          "offset": 29,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 484,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 862,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1138,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1141,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1271,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1459,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1595,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1723,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1833,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1859,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1889,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 1949,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2022,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2088,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2171,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2262,
+          "before": "",
+          "after": "row.id!=='feedback'&&"
+        },
+        {
+          "offset": 2484,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2486,
+          "before": "\r",
+          "after": ""
+        },
+        {
+          "offset": 2593,
+          "before": "\r",
+          "after": ""
+        }
+      ]
+    },
+    "public/process/access-policy.mjs": {
+      "beforeHash": "de42a8cb53deaeae2b17295dcfbe013401c84c59f9a6b26637873a66b14ea28f",
+      "beforeLength": 11219,
+      "beforeBlob": "bbdc6a0c60b3c438b72c95d46baf097cd05317a2",
+      "afterHash": "2711349e1b15474eba4189069145ec162d8a3cd21f808c17508770b2ed8af427",
+      "afterLength": 11867,
+      "afterBlob": "e68f5f348999c18fc42d66c10f64a66191315d33",
+      "rules": [
+        {
+          "offset": 6335,
+          "before": "",
+          "after": "bas"
+        },
+        {
+          "offset": 6339,
+          "before": "ff",
+          "after": "P"
+        },
+        {
+          "offset": 6341,
+          "before": "ct",
+          "after": "rm"
+        },
+        {
+          "offset": 6344,
+          "before": "ve",
+          "after": "ssion"
+        },
+        {
+          "offset": 6982,
+          "before": "",
+          "after": "if(key==='feedback.view')value=true;"
+        },
+        {
+          "offset": 7042,
+          "before": "",
+          "after": "}\n// These existing workflow APIs already include atomic Save in Edit. Keep the\n// same effective result in account projections, browser checks and role previews.\nexport const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment']);\nexport function withEditSave(source){\n const cells={...source};\n for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;\n return cells;\n}\nexport function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));"
+        },
+        {
+          "offset": 8419,
+          "before": "r.id+'.'+op",
+          "after": ""
+        },
+        {
+          "offset": 8420,
+          "before": "==",
+          "after": "["
+        },
+        {
+          "offset": 8433,
+          "before": "",
+          "after": ",'feedback.view'].includes(r.id+'.'+op)"
+        }
+      ]
+    }
+  }
+}

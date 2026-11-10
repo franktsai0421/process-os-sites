@@ -74,3 +74,14 @@ Data-model/schema/business data: unchanged. No real account, merge, deployment, 
 儲存模型／schema／migration／業務資料：無變更。衍生權限有兩項明確變更：有效帳號固定 feedback.view；10 個現有原子流程 Edit 包含 Save。未導入 #102 草稿架構、最終核准授權證據、#104 製程計數、原 UNKNOWN 32 檔修復或任何真帳號設定；原 UNKNOWN 操作保持未定、不重送、不拆分。
 
 與 #104 的共同入口只有各自獨立的 index 快取層及來源證明需語意合成；合併整合時須保留兩邊精確 layer，不能以一邊 index／hash 覆蓋另一邊。此 PR 未變更 process app/master/version draft 產品檔，也未帶入 #104 的製程計數。
+
+## 8c06cb8 CI 相容修正（產品授權不放寬）
+
+已完整讀取 Feedback run 42816052697/job 129829311437、AB C run 42816052695/job 129829312166、PROCESS run 42816052839/job 129829312049 的終態日誌。Account permissions 42816052670 已成功；這不抵銷其他 workflow 的失敗。舊 f1ecc 的 Local safety 因新提交取消，step 29 未完成、31 未跑，僅可引用已完成的 role step 9。
+
+- Feedback 舊案例同時缺案件來源 dashboard.view 與原圖捕捉範圍 bom.view，新增產品來源閘門正確先拒絕 EXPORT_SOURCE_PERMISSION_REQUIRED。保留此產品規則及錯誤碼；現在先驗含圖／不含圖均不得越過案件來源，再只授予來源頁查看、保留原圖範圍缺權限，驗證 EXPORT_IMAGE_PERMISSION_REQUIRED。來源合法時明確排除圖片的安全預覽仍 200，無 locator/context 私密原值、無 R2 寫入。不是單改預期錯誤碼或讓無圖片匯出繞過來源授權。
+- AB/PROCESS 的 172 列歷史矩陣還原把新 effective Save 當成原始 Save，因此沒有真正反轉 Edit→Save。修正只從同一 production policy 的 basePermissionCells 取原始 Save；保留原始完整 digest a80751bb12f51ef0685bc05a1ee12c6989dbb425abafe3e948d2136143ed3633、每列 DTO／無 DTO 拒絕及零寫入斷言，沒有改 hash 或 route 權限。
+- 額外核對既有 access-template 性能／來源證明：新增兩個權限檔的精確 raw-byte account inverse，還原 genuine main 9fbba823 後再進原 PR44 六個 span。原契約/hash 與 session/identity/revocation 保護不動，新增位移、錯路徑、重複／部分／外部 bytes 變異拒絕。歷史性能比較只扣掉已禁止的 feedback-only 泛用 data 別名，其餘完整物件相等、4→2 次同一請求角色解析、114 組比較及跨請求撤權仍必須通過。
+- 更新合成 import-pending fixture 的唯一 policy import 為此次真快取版本，保留 unknown module 拒絕；15 個啟動／身分／讀取順序場景通過。
+
+本機已重跑三個失敗 CI 的完整受影響 source test 命令（AB/PROCESS 合併一組、Feedback 一組）均 exit 0；55 個根因定向測試、3 個權限來源 inverse 測試及性能 reuse 通過。最新 head 的遠端 CI 仍以其獨立結果為準，不能稱取消／尚未執行的原生步驟通過。此輪只改測試、精確來源證明及 CI；產品權限／原圖／封存保護保持 8c06cb8。
