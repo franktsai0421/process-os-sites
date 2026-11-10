@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
-const source=fs.readFileSync('public/process/ipqc-c.js','utf8'),start=source.indexOf('  function equipmentForDisplay('),end=source.indexOf('  async function loadCaseHistory(',start);
+const source=fs.readFileSync('public/process/ipqc-c.js','utf8'),start=source.indexOf('  function equipmentForDisplay('),end=source.indexOf('  function caseRowsById(',start);
+assert(start>=0&&end>start,'equipment helpers must have an explicit current-source boundary');
 const registry=[{id:'old',assetCode:'REGISTRY-OLD',pieceMark:'01',name:'New registry name',photoId:'b'.repeat(64)},{id:'next',assetCode:'NEXT',pieceMark:'02',name:'Next',photoId:'c'.repeat(64)},{id:'disabled',assetCode:'OFF',available:false,photoId:'d'.repeat(64)}];
 const ctx={equipment:registry,h:v=>String(v??''),t:(vi,zh)=>zh,encodeURIComponent};vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
 const snapshot=Object.freeze({id:'old',assetCode:'HISTORICAL',pieceMark:'00',name:'Historical name',photoId:'a'.repeat(64)});

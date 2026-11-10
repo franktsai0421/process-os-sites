@@ -160,9 +160,10 @@ void test('actual location selector never intercepts platform composedPath or re
 
 void test('actual master select/bind dispatches feedback without AB hydration and awaits gateway readiness',async()=>{
  const f=fixture({boot:true,tab:'web-feedback'});f.run('web-feedback-entry.js');const text=read('master-data.js'),part=(a,b)=>text.slice(text.indexOf(a),text.indexOf(b));
- Object.assign(f.context,{dataReady:Promise.resolve(),dataError:null,approvalReady:Promise.resolve(),bindTabButtons(){},masterView(){throw Error('AB hydration is forbidden for feedback destination');}});
+ let leftMaster=0;f.window.ProcessMasterPages={leave(){leftMaster++;},mount(){throw Error('Master page hydration is forbidden for feedback destination');}};
+ Object.assign(f.context,{control:{pageDraftLayout:'page-v1'},dataReady:Promise.resolve(),dataError:null,approvalReady:Promise.resolve(),bindTabButtons(){},masterView(){throw Error('AB hydration is forbidden for feedback destination');}});
  vm.runInContext(part('  function selectDataTab(', '  function bindTabButtons(')+part('  window.ProcessDataTabs=', "  window.addEventListener('popstate',()=>{"),f.context);
- vm.runInContext('bindData()',f.context);assert.equal(f.content.dataset.activeTab,'web-feedback');assert.equal(f.requests.length,0);f.document.documentElement.removeAttribute('data-process-boot');const task=f.window.ProcessDataTabs.readyForDestination();await tick();assert.equal(f.requests.length,1);reply(f.requests[0],{issues:[],admin:false,permissions:{view:true}});await task;assert(f.content.querySelector('[data-board-tab]'));
+ vm.runInContext('bindData()',f.context);assert.equal(leftMaster,1);assert.equal(f.content.dataset.activeTab,'web-feedback');assert.equal(f.requests.length,0);f.document.documentElement.removeAttribute('data-process-boot');const task=f.window.ProcessDataTabs.readyForDestination();await tick();assert.equal(f.requests.length,1);reply(f.requests[0],{issues:[],admin:false,permissions:{view:true}});await task;assert(f.content.querySelector('[data-board-tab]'));
 });
 
 void test('late capability response after same-ID delivery or epoch never opens private storage',async()=>{

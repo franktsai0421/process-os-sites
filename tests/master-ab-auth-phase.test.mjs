@@ -279,12 +279,30 @@ void test('AB second GET phase emits newly restricted edit/restore/create/delete
   await assertUnchanged(f, () => f.request('POST', f.command()), 403);
 });
 
-void test('AB ordinary admin does not infer newly explicit restore permission from edit', async t => {
+void test('AB ordinary admin keeps restore permission separate while retired preview stays unavailable', async t => {
   const f = await fixture({user: {accessOverrides: {}}}); t.after(f.close);
   const result = await f.request(); assert.equal(result.status, 200);
   assert.equal(result.body.permissions.edit, true); assert.equal(result.body.permissions.restore, false);
-  await assertUnchanged(f, () => f.request('GET', undefined, '&restoreSaveId=save0'), 403);
+  const preview = await assertUnchanged(f, () => f.request('GET', undefined, '&restoreSaveId=save0'), 422);
+  assert.equal(preview.body.error, 'DRAFT_RESTORE_NOT_SUPPORTED');
+  assert.equal(preview.body.control, undefined);
   await assertUnchanged(f, () => f.request('POST', f.command('restore', {restoreSaveId: 'save0', expectedRevision: 0})), 403);
+});
+
+void test('AB explicit restore grant cannot create a new restore preview or write after retirement', async t => {
+  const f = await fixture({user: {accessOverrides: {'ab.restore': true}}}); t.after(f.close);
+  const read = await f.request(); assert.equal(read.status, 200);
+  assert.equal(read.body.permissions.restore, true, 'retained permission still gates historical receipt access');
+  f.reset();
+  for (const operation of [
+    () => f.request('GET', undefined, '&restoreSaveId=save0'),
+    () => f.request('POST', f.command('restore', {restoreSaveId: 'save0', expectedRevision: 0})),
+  ]) {
+    const result = await assertUnchanged(f, operation, 422);
+    assert.equal(result.body.error, 'DRAFT_RESTORE_NOT_SUPPORTED');
+    assert.equal(result.body.control, undefined);
+  }
+  assert.equal(f.stats.put, 0); assert.equal(f.stats.cas, 0);
 });
 
 void test('AB failed authorization is not reused by a later healthy request', async t => {

@@ -7,7 +7,8 @@ void test('actual access-event API: minimal collection, original receipts, curre
  let beforeRun=null;const objects=new Map();const env={PROCESS_SESSION_SECRET:randomUUID(),ACCESS_EVENTS_ENABLED:'1',DB:{prepare(sql){let args=[];return{bind(...value){args=value;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){beforeRun?.(sql);return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}};}};},},STATE_ARCHIVE:{async get(key){return objects.get(key)||null;},async put(){throw Error('BUSINESS_R2_WRITE_FORBIDDEN');}}};
  const load=require('../scripts/ipqc-ab-import-harness.cjs')(env),core=load('lib/process-state.ts'),kernel=load('lib/shared-draft.ts'),route=load('app/api/access-events/route.ts');
  const ids=['frank','other-admin','view-admin','employee','peer','restricted','no-feedback'];
- const users=ids.map(id=>({id,name:id==='other-admin'?'Frank':id,role:id==='frank'||id.includes('admin')?'admin':'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,!((id==='restricted'&&key.startsWith('bom.'))||(id==='no-feedback'&&key.startsWith('feedback.'))||(id==='view-admin'&&['feedback.edit','feedback.exchange'].includes(key)))]))}));
+ // Readers have no management grants, even though ordinary roles may now receive them.
+ const users=ids.map(id=>({id,name:id==='other-admin'?'Frank':id,role:id==='frank'||id.includes('admin')?'admin':'staff',enabled:true,authMode:'platform',authEpoch:1,accessOverrides:Object.fromEntries(accessKeys.map(key=>[key,!((id==='restricted'&&key.startsWith('bom.'))||(id==='no-feedback'&&key.startsWith('feedback.'))||(['employee','view-admin'].includes(id)&&['feedback.edit','feedback.exchange'].includes(key)))]))}));
  const flow=kernel.createSharedDraft('bom',{bom:{},referenceIssues:[]},null,'synthetic-generation');
  const operationId='original-save-000001';flow.receipts[operationId]={actorId:'employee',fingerprint:JSON.stringify({action:'save',commandDigestV1:'a'.repeat(64)}),result:{operationId,generation:flow.generation,revision:1,savedId:'synthetic-saved',caseId:null,unchanged:false}};
  const values={platformUsers:JSON.stringify(users),bomMasterControl:JSON.stringify({schemaVersion:1,activeVersionId:null,versions:[],workflow:flow})};
@@ -38,7 +39,10 @@ void test('actual access-event API: minimal collection, original receipts, curre
   await t.test('existing page viewers see only authorized minimal metadata, not operation IDs or receipts',async()=>{
    const list=await call('list');assert.equal(list.status,200);assert.equal(list.value.events.length,3);assert.equal(list.value.complete,false);assert.equal(list.value.coverage,'received-events-only');id=list.value.events.find(row=>row.outcome==='receipt-confirmed').id;
    assert(!JSON.stringify(list.value).includes(operationId));assert(!JSON.stringify(list.value).includes('commandDigestV1'));assert(list.value.events.every(row=>!Object.hasOwn(row,'notes')&&!Object.hasOwn(row,'history')&&!Object.hasOwn(row,'actorId')));
-   assert.equal((await call('list',undefined,'restricted')).value.events.length,0);assert.equal((await call('list',undefined,'no-feedback')).status,403);
+   assert.equal((await call('list',undefined,'restricted')).value.events.length,0);
+   // Feedback view is mandatory for enabled accounts; edit/exchange remain assignable.
+   const reader=await call('list',undefined,'no-feedback');assert.equal(reader.status,200);assert.equal(reader.value.events.length,3);assert.deepEqual(reader.value.permissions,{edit:false,exchange:false});
+   assert.equal((await call('update',{id,version:1,status:'handled',note:'denied',operationId:'reader-denied-0001'},'no-feedback')).status,403);
    assert.equal((await call('detail&id='+id,undefined,'restricted')).status,404);
   });
   await t.test('management follows configured existing permissions, with exactly-once notes and separate handling status',async()=>{
@@ -71,7 +75,7 @@ void test('actual access-event API: minimal collection, original receipts, curre
   await t.test('authorization revision change at the event CAS rejects rather than silently writing',async()=>{
    const count=db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n;let fired=false;beforeRun=sql=>{if(!fired&&sql.startsWith('INSERT INTO access_events')){fired=true;db.prepare('UPDATE shared_state SET revision=revision+1 WHERE id=1').run();}};
    assert.equal((await call('observe',event('race-operation-000001'))).status,409);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM access_events').get().n,count);beforeRun=null;
-   const revised=JSON.parse(original.values),revoked=JSON.parse(revised.platformUsers);revoked.find(user=>user.id==='other-admin').accessOverrides['feedback.view']=false;revised.platformUsers=JSON.stringify(revoked);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));assert.equal((await call('list',undefined,'other-admin')).status,403);
+   const revised=JSON.parse(original.values),revoked=JSON.parse(revised.platformUsers);revoked.find(user=>user.id==='other-admin').accessOverrides['feedback.edit']=false;revised.platformUsers=JSON.stringify(revoked);db.prepare('UPDATE shared_state SET revision=revision+1,"values"=? WHERE id=1').run(JSON.stringify(revised));const row=db.prepare('SELECT * FROM access_events WHERE id=?').get(id);assert.equal((await call('update',{id,version:row.version,status:'open',note:'revoked',operationId:'revoked-edit-000001'},'other-admin')).status,403);assert.deepEqual(db.prepare('SELECT * FROM access_events WHERE id=?').get(id),row);
   });
   await t.test('flag alone cannot enable access events when required schema is incomplete',async()=>{
    const before=db.prepare('SELECT COUNT(*) n FROM access_events').get().n;
