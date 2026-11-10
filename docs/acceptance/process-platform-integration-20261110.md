@@ -107,3 +107,6 @@ GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42
 5. Canvas Fit仍要求undo/redo可還原layout；現驗已移除的兩個action均不能修改layout/journal，保留負座標、zoom、指標世界座標、連線ID、origin與late paint全部9組幾何回歸。
 
 上述五檔均不在原UNKNOWN32路徑，沒有用拆分／換工具重送該操作。原8項IPQC／114項Flow修正後的新head a433687，五個模組workflow再度成功；Local safety尚在執行，這五項後續fixture在下一候選CI另驗，不能把a433687視為已驗完後續修改。
+
+
+同一無輪詢契約另有 `entry-performance/poll-wiring.test.mjs` 仍硬性擷取master pollMaster。已改為明確要求master scheduler與全部呼叫不存在，原六個保留legacy producer的16個允許／拒絕／取消晚到callback反例仍全跑，IQC額外owner binding案例保留；完整master initializer／7次事件零讀取另由scoped-read-pause覆蓋。其餘begin budget、shared read races、FQC CPU/render等價、editor readiness五組VM測試通過。沒有恢復任何產品timer，也沒有用合成VM宣稱原生或真實效能驗收。
