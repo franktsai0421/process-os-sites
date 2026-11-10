@@ -1,3 +1,7 @@
+## 2026-11-10 — Process platform lifecycle and CI continuation
+
+Retain the production single-Save behavior and align two Local safety fixtures without dropping historical DOM equivalence, guarded command preparation or CAS/receipt negatives. Add real memory-backed category/new-stage-to-canvas and page-role lifecycle tests (16 and 14 checks), including C/GIA CONG five-stage defaults, hidden canvas retention and fresh approval revocation. Record the five-file #103 semantic merge boundary and exact remaining UNKNOWN32, full-page and real cutover dependencies in the [matrix](../docs/acceptance/process-platform-integration-20261110.md). No product code, data or trusted markers changed.
+
 ## 2026-11-10 — Process platform integration Draft #104
 
 Integrated scoped Canvas Save, grouped fresh conflicts, silent unsent departure, scaffold-aware dirty state, projected counts and same-page approved Canvas history. Added independent AB/C catalog and LINES writer/UI dependencies, immutable approved-source validation and separate review-policy projection behind trusted stored markers. Kept main no-poll behavior and prior branch sources; no #103 password/Feedback policy changes, real migration or publication. [Twenty-item implementation/acceptance matrix](../docs/acceptance/process-platform-integration-20261110.md) records the remaining UNKNOWN32, cross-module, native, staging and performance blockers.

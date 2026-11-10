@@ -30,8 +30,8 @@
 | 12 | 一鍵Save當前畫布、保留其他已存 | 已整合 scope filter，節點／內容／連線同存；同頁類別保留其他journal；整份已存製程送審 |
 | 13 | fresh比較、整組我的／對方 | 已整合群組選擇、無衝突保留、刪除／連線／同ID／選擇中peer改版；revision/CAS保留 |
 | 14 | 取消輪詢、恢復、undo/redo | 保留#100；移除畫布多餘入口與未送恢復；必要權限fresh與已送結果查詢保留 |
-| 15 | 類別defaultStages | 沿用 main 的核准類別優先與legacy fallback；明確空設定及C/GIA CONG實站待驗 |
-| 16 | 核准工段類型與機器連動 | 保留#99；新增主資料頁來源核對，草稿工段不可冒充正式；新工段到類別全流程待驗 |
+| 15 | 類別defaultStages | 沿用 main；新合成端到端驗核准類別優先、明確空設定、legacy fallback、C/GIA CONG五工段及產品例外路由不覆蓋類別；實站待驗 |
+| 16 | 核准工段類型與機器連動 | 保留#99；新增主資料頁來源核對，草稿工段不可冒充正式；新LINES→核准工段→類別→畫布Save全流程合成PASS；真人實站待驗 |
 | 17 | 各頁草稿與權限分離 | 納入 AB.catalog／C.catalog／LINES API、UI、Save、import/export與CAS；只接受已存在可信page-v1；未啟用或遷移真資料 |
 | 18 | 送審／撤回／核准分開 | 納入draft-review-policy：模組submit/withdraw與最終approval分離；return修正可退回本人案件、自己的最終核准仍受限制；可信政策標記未開 |
 | 19 | 原頁核准版本只讀、回草稿 | Canvas及新AB/C/LINES已接selector、唯讀快照、actor/revision/late-display fence、回草稿fresh權限；PROCESS主資料後續重繪修復受原UNKNOWN32阻擋，其他頁不宣稱完成 |
@@ -66,3 +66,30 @@ GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42
 第三次head 22984fc8b3befd0bfddee1b15279cd4491a97a81 的專項、Feedback、IPQC C通過，但PROCESS後續真瀏覽器冷啟動／離頁組有6項在首次進editor就緒前逾時（run42833825421），不是環境socket拒絕。已在實際controller＋client＋signed handler的合成環境重現：先paint後read會過早掛歷史權限watcher，首次access回覆使尚未取得flow的history owner失效，導致AUTHORING_LOAD_REQUIRED。兩個中越文／inline-records新反例在修正前全FAIL，修正後全PASS；歷史元件改為當前flow與view/history權限就緒後才掛載，原撤權／唯讀fence不放寬。重跑畫布510、歷史政策bundle85、來源與cache198全部PASS；lint、非增量TypeScript及真實8c6a88a guarded build/postbuild auth PASS。native原逾時及斷言未修改；最終新HEAD需以原CI再驗。
 
 第四次head b91a50be2569afadb6b8b6e1aa24cee34c34ea93 的AB C run42836578436／job129900277393已越過首次ready，但同六個native案例在返回後modal name欄／連線操作失敗。實際ProcessEditor.bind會先掛handler fence，panel發現舊history root已斷開後再增加epoch；重新guard卻包住舊fence，內層過期epoch令新回呼也永久拒絕。兩個真controller中越文反例修前均FAIL（fresh callback 0≠1），修後通過。改以私有WeakMap記錄原callback，只替換同一DOM節點／事件的fence；舊被擷取回呼仍拒絕，搬到其他節點也不能重新授權。歷史26、整組歷史政策bundle88、畫布510、來源cache198均PASS；lint／非增量TS／真實7753e6f guarded build及auth boundary PASS。原native測試檔、modal／linking斷言、未存保護及等待時間都未改，需新HEAD原CI再驗。
+
+
+## 續作：分類生命週期、權限與 Local safety（88f8之後）
+
+88f8 的整合、AB C、PROCESS、Feedback、IPQC C 五個 workflow 成功，原 AB C compiled abandonment/modal/linking 17 項通過；但 Local safety run 42838989816 最終失敗，不能宣稱全綠。兩處失敗均完整保留檢查範圍後修復：
+
+- `test-process-ipqc-choice-dom.cjs` 的歷史基線原文保持不變，候選提示明確要求中越文「先留目前頁面，再存取草稿」。其餘完整展開 DOM、49個選項／占用／舊關聯／唯讀／失效回呼及不額外fetch保持等價；8組PASS，初始節點1644→566。沒有只刪除提示斷言。
+- `test-process-flow-record-mutation.cjs` 原本僅擷取prepare表達式，遺漏實際guards與stagedSave。改用已確認55d4672來源的AST擷取完整正規化及revision來源；檢查Apply/staged/fallback/null/zero，defined/missing/own-undefined guard、原物件descriptor未變、patch引用、moduleAction及17/0/31版號。114組實際handler/CAS/receipt/來源錯誤路徑全部PASS。此檔與IPQC提示測試皆不在原UNKNOWN32範圍。
+
+新增兩個實際handler測試，加入整合CI，沒有重做main已正確的產品程式：
+
+- `scripts/test-process-page-lifecycle.cjs`：16項、inline/records兩種儲存；AB類別及C/GIA CONG五工段。驗草稿LINES不可當正式來源、核准新工段繼承正式custom類型且ID獨立／不複製機器設備、原來源未變；核准catalog才改類別defaultStages。直接執行當前app.js的categoryStageCodes，含明確空設定與legacy fallback，產品例外路由不覆蓋類別；再由真正process-authoring handler原子Save保留隱藏工段與其他頁。
+- `scripts/test-process-page-roles.cjs`：14項、inline/records兩種儲存；僅LINES角色可到自身API、不獲AB/C頁，edit導出Save不改stored save grant；模組approve只導出submit/withdraw/修正，不能最終核准。缺少Frank audit provenance與CAS中途撤回high grant均拒絕，合法獨立審查才核准，已結束案件仍409且不改root。trusted marker與帳號僅存在記憶體測試，不啟用真人ACL。
+
+#103在固定head `81791d18fe3f36c1e3ab2ace783d58cf5888a307` 的相依已唯讀盤點。相交產品檔案為 `lib/user-access.ts`、`public/process/access-policy.mjs`、`public/process/master-data.js`、`public/process/shared-draft-client.js`、`public/process/index.html`，另有文件與來源proof fixtures。未覆寫或修改#103。外部離線SourceTextModule語意組合驗證17項PASS：保留#103 edit→Save／Feedback不衍生data view，同時保留#104 LINES owner mapping與trusted draft-review-policy／最終approval fail closed；這只是政策組合驗證，不是雙分支整體合併驗收。master-data需保留#103切換前LINES只讀入口與#104 page-v1 writer dispatch；shared-client需同時保留#103 Save readback等價與#104 issued command/receipt fences；index與來源pins須依最終組合重核。
+
+原UNKNOWN32的本機base及expected tree現可唯讀列出完整32路徑，仍不證明遠端執行結果。PROCESS主資料重繪涉及app.js、version-draft-ui及其fixture，仍未重送或改道重建；本次只修兩個不在該範圍的既有測試、加入新合成端到端驗證。
+
+| 剩餘缺口 | 精確依賴／安全下一步 |
+| --- | --- |
+| PROCESS主資料原頁核准歷史重繪 | 原UNKNOWN32執行結果未明；先由原服務確認操作結果／既有tree，不重送原內容 |
+| BOM/IPQC等所有頁原頁歷史與例行FQC整頁 | 尚未接全頁owner/history契約；FQC舊候選有撤權／照片UNKNOWN已知缺陷，需獨立owner設計與回歸，不能直接搬入 |
+| #103與#104共同產品檔案 | 依上述五檔逐hunk語意組合，保留帳密/Feedback成果與本PR receipt/page guards，然後驗最終共同HEAD；本PR未擅自合入尚在工作中的#103 |
+| 可信layout／review policy切換 | 真實pending、UNKNOWN、baseline與audit先唯讀分類保全，經授權切換；目前禁止真DB/R2/ACL操作 |
+| 真人兩人、實體iPhone/IME、實際C/GIA CONG及效能 | 本次記憶體／DOM測試不能取代；需隔離測試站資料及裝置驗證，未宣稱先前實站成果等同新版驗收 |
+
+這批不改產品輸入，沿用7753e6f已通過guarded build；新增測試及lint／非增量TypeScript另驗。發布狀態仍NOT_READY，PR仍Draft。

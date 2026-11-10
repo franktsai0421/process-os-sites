@@ -16,6 +16,7 @@ on:
       - 'tests/master-page*'
       - 'tests/draft-review-policy.test.mjs'
       - 'scripts/test-master-page*.cjs'
+      - 'scripts/test-process-page-*.cjs'
       - 'lib/process-authoring-workflow.ts'
       - 'public/process/canvas*.js'
       - 'public/process/version-draft-ui.*'
@@ -71,6 +72,8 @@ jobs:
           node scripts/test-master-page-ui.cjs
           node scripts/test-master-page-tools-ui.cjs
           node scripts/test-master-page-transfer.cjs
+          node scripts/test-process-page-lifecycle.cjs
+          node scripts/test-process-page-roles.cjs
       - name: Existing master bridge and persistence compatibility
         run: node --test tests/abc-local-bridge.test.mjs tests/abc-local-save.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs tests/master-bridge-ownership.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-shared-clone.test.mjs tests/master-manual-name-apply.test.cjs
       - name: Shared kernel synthetic compatibility
