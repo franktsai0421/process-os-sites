@@ -16,10 +16,15 @@ void test('partial, duplicate, unrelated and non-EOL changes cannot pass an exac
  const bytes=fs.readFileSync(contract.index),variant=contract.variants.find(v=>proof.hash(bytes)===v.afterHash);assert(variant);
  for(const rule of variant.rules){
   const text=bytes.toString();
-  for(const altered of [text.replace(rule.after,rule.before),text.replace(rule.after,rule.after+rule.after),text.replace(rule.after,rule.after+'-wrong')])assert.throws(()=>proof.projectIndex(Buffer.from(altered)),/pinned successor/);
+  for(const altered of [text.replace(rule.after,rule.before),text.replace(rule.after,rule.after+rule.after),text.replace(rule.after,rule.after+'-wrong')])assert.throws(()=>proof.projectIndex(Buffer.from(altered),variant.afterHash),/pinned successor/);
  }
  const altered=Buffer.from(bytes);altered[0]^=1;assert.throws(()=>proof.projectIndex(altered),/pinned successor/);
 });
 void test('committed account cache plus retained original source objects attest against genuine main',()=>{
  assert.equal(proof.verifyRepository().status,'PASS_ACCOUNT_CACHE_EXACT_INVERSE');
+});
+
+void test('a genuine prior cache layer remains historical evidence but cannot satisfy the current-layer pin',()=>{
+ const bytes=fs.readFileSync(contract.index),current=proof.hash(bytes);
+ for(const variant of contract.variants.filter(v=>v.afterHash!==current)){const historical=execFileSync('git',['cat-file','blob',variant.afterBlob]);assert.deepEqual(proof.projectIndex(historical),predecessor);assert.throws(()=>proof.projectIndex(historical,current),/pinned successor/);}
 });

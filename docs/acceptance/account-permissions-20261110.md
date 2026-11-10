@@ -85,3 +85,9 @@ Data-model/schema/business data: unchanged. No real account, merge, deployment, 
 - 更新合成 import-pending fixture 的唯一 policy import 為此次真快取版本，保留 unknown module 拒絕；15 個啟動／身分／讀取順序場景通過。
 
 本機已重跑三個失敗 CI 的完整受影響 source test 命令（AB/PROCESS 合併一組、Feedback 一組）均 exit 0；55 個根因定向測試、3 個權限來源 inverse 測試及性能 reuse 通過。最新 head 的遠端 CI 仍以其獨立結果為準，不能稱取消／尚未執行的原生步驟通過。此輪只改測試、精確來源證明及 CI；產品權限／原圖／封存保護保持 8c06cb8。
+
+## 6f2bf38 原生員工回報入口修正
+
+Feedback 42817524858/job 129834291274 的 293 項來源測試、schema、API、build 均通過；原生第六階段在員工登入後等待 .wf-row 逾時，前五個階段均通過。原因是 feedback-only 帳號已不再取得泛用 views:data，但 dual-system 舊的 data shell 仍只看這個泛用別名，所以 API 可讀、列表畫面卻無法進入。
+
+產品只為目前已驗證的 data:web-feedback delivery 放行 data 畫面容器：protected/projected、目前身分相符、有效帳號、feature flag、feedback.view、目的地 view/tab/module/key 全部相符，且無 expired/requiresReload。沒有改 API view:data、currentUser.views、其他頁面、圖片／封存／private notes 或寫入權限。測試涵蓋正常入口及逐項身分／目的地／旗標／失效反例；既有 bootstrap 仍驗 feedback-only 的泛用 data API 權限為 false。原生案例、逾時與拒絕斷言均不改，等待新 head CI 驗證。

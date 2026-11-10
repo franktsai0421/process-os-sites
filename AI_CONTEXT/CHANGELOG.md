@@ -1,3 +1,7 @@
+# 2026-11-10 — Feedback-only authorized shell admission
+
+Fix the staff feedback native-entry timeout by admitting only the current verified feedback delivery to the data shell. Generic data API/view rights remain absent; source/images/archives/private notes/writes are unchanged. Native latest-head verification remains separate. [Evidence](../docs/acceptance/account-permissions-20261110.md#6f2bf38-原生員工回報入口修正).
+
 # 2026-11-10 — Permission CI baseline composition
 
 Preserve source/image export denials while separating those two fixture conditions. Restore the original 172-row AB matrix digest from configured Save rather than derived Save. Retain PR44 source hashes through an exact two-file account inverse and reject drift. Full affected source CI commands pass locally; native/latest-head outcomes remain separate. [Root causes and boundaries](../docs/acceptance/account-permissions-20261110.md#8c06cb8-ci-相容修正產品授權不放寬).

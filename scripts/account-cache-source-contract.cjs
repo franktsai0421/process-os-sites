@@ -4,8 +4,8 @@ const contract=Object.freeze(require('./account-cache-source-contract.json'));
 for(const variant of contract.variants){for(const rule of variant.rules)Object.freeze(rule);Object.freeze(variant.rules);Object.freeze(variant);}Object.freeze(contract.variants);
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function raw(bytes){assert(Buffer.isBuffer(bytes),'Account cache proof requires raw Buffer');}
-function projectIndex(bytes){
- raw(bytes);const variant=contract.variants.find(v=>hash(bytes)===v.afterHash);
+function projectIndex(bytes,expectedHash){
+ raw(bytes);if(expectedHash!==undefined)assert.equal(hash(bytes),expectedHash,'Account cache proof differs from pinned successor');const variant=contract.variants.find(v=>hash(bytes)===v.afterHash);
  assert(variant,'Account cache proof differs from pinned successor');assert.equal(bytes.length,variant.afterLength);
  let prior=Buffer.from(bytes);
  for(const {offset,before,after} of [...variant.rules].reverse()){

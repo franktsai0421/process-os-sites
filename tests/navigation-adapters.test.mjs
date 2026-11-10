@@ -118,7 +118,7 @@ void test('changed persistent-navigation executable references have coherent new
   'canvas-local.js':'20261104-begin-receipt1',
   'canvas-recovery-store.js':'20261104-canvas-integration1',
   'delivery-navigation.js':'20261104-canvas-integration1',
-  'dual-system.js':'20261025-navigation2',
+  'dual-system.js':'20261110-feedback-shell1',
   'effective-version-notice.js':'20261109-explicit-checks1',
   'fqc-master.js':'20261104-begin-generation2',
   'ipqc-ab.js':'20261105-ab-scope-input1',
