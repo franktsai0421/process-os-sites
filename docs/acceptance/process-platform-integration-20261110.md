@@ -93,3 +93,17 @@ GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42
 | 真人兩人、實體iPhone/IME、實際C/GIA CONG及效能 | 本次記憶體／DOM測試不能取代；需隔離測試站資料及裝置驗證，未宣稱先前實站成果等同新版驗收 |
 
 這批不改產品輸入，沿用7753e6f已通過guarded build；新增測試及lint／非增量TypeScript另驗。發布狀態仍NOT_READY，PR仍Draft。
+
+
+### Local safety後續檢查續修
+
+預先執行原Flow失敗點後的合成測試，發現五個舊fixture契約，產品程式未改：
+
+1. FQC lifecycle8 的self-review測試現分開驗：最終核准本人案件仍409 `SELF_REVIEW_CONFIRM_REQUIRED`且D1/R2零寫入；發回是修正，無自我核准確認也可回草稿，案件returned／pending清空／正式版本不變／audit.selfReview=false。179組實際paired handler、CAS、immutable body故障與原收據回歸PASS。
+2. contentIssues read-scope先由本PR已驗精確Canvas來源inverse去除新增approvedOnly入口，再執行原固定baseline/hash/selector/POST字串及所有變造反例；實際測試仍載入當前route。37 paired reads（34 exact、3原有fault policy delta）及74 GET全零寫入PASS，沒有將正式路由放寬為任意包含字串。
+3. scoped read pause不重新加入被移除master scheduler。若有舊scheduler仍測舊callback；本候選則執行完整master-data與原master bridge initializer、7次shared-state更新事件，assert scheduler identifier不存在、零背景GET／timer／interval／storage write。其他模組拒絕讀取停止、明確GET-only重試及權限owner案例保留；整組50項及內含Node 28項PASS。
+4. canvas silent discard不再要求未送RAM內容有local recovery envelope。沒有UNKNOWN時，即使localStorage quota也不需寫入或警告；有UNKNOWN時，必要isolated payload清理若quota失敗仍阻擋，原anchor/sent bytes不丟失，成功只清掉未送內容。BFCache不復活未存、GET-only原結果恢復、篡改anchor拒絕與callback失敗rollback全部PASS。
+
+5. Canvas Fit仍要求undo/redo可還原layout；現驗已移除的兩個action均不能修改layout/journal，保留負座標、zoom、指標世界座標、連線ID、origin與late paint全部9組幾何回歸。
+
+上述五檔均不在原UNKNOWN32路徑，沒有用拆分／換工具重送該操作。原8項IPQC／114項Flow修正後的新head a433687，五個模組workflow再度成功；Local safety尚在執行，這五項後續fixture在下一候選CI另驗，不能把a433687視為已驗完後續修改。
