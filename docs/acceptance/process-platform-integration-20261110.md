@@ -60,3 +60,5 @@
 本輪自動審查曾拒絕恢復舊pollMaster排程內容（操作未執行，原因為可能恢復固定輪詢）。採取安全替代：直接移除排程及所有啟動／重置呼叫，實際測試改為明確要求排程不存在；既有無輪詢inventory及固定前身負向來源pins保留，沒有重送被拒排程。
 
 GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42831612397）及IPQC C通過，但Feedback／AB C／PROCESS因舊cache-tag fixture及Feedback入口多讀master control失敗。已對齊本次精確tag、讓非master入口不讀control，另修新頁切換URL；原失敗Feedback整組293及PROCESS整組338本機全通過，後者含AB C原失敗組。沒有刪除或跳過失敗斷言。最終遠端HEAD的CI仍需獨立讀回，不引用初次head的通過替代。
+
+第二次head 96df92fd684122aab4633538eddd00c186974a58 的專項（42832781363）、Feedback（42832781206）及IPQC C（42832781031）通過；AB C／PROCESS進一步執行舊版Begin協定檢查時，原固定hash尚未組合新候選來源而失敗。只新增本候選→已確認#104前身的精確組合，保留原Begin所有hash／rules／歷史scope及負向斷言；舊protocol測試先驗現候選，再對原前身測原反例，沒有取用或重送UNKNOWN32既有proof修復。六個真正舊handler都以422拒絕新Begin且D1/R2零變動，另67項組合／原pins反例PASS。產品來源未再修改，67b2d18的build仍對應最後產品輸入。最終HEAD CI需另核對。

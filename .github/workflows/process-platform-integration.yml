@@ -75,3 +75,7 @@ jobs:
         run: node --test tests/abc-local-bridge.test.mjs tests/abc-local-save.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs tests/master-bridge-ownership.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-shared-clone.test.mjs tests/master-manual-name-apply.test.cjs
       - name: Shared kernel synthetic compatibility
         run: node --test tests/bom-atomic-save.test.cjs tests/bom-review-access-projection.test.mjs tests/ipqc-c-case-comparison.test.mjs tests/process-canvas-atomic-save.test.mjs
+      - name: Exact historical Begin composition and old-server rejection
+        run: |
+          node scripts/test-workflow-begin-old-server.cjs
+          node --test tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs

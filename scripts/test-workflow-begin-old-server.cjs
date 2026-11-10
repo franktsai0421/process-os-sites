@@ -8,7 +8,9 @@ const files=['app/api/ipqc-c/workflow/route.ts','lib/versioned-shared-workflow.t
 (async()=>{
  const overrides={};
  for(const file of files){
-  const bytes=fs.readFileSync(path.join(root,file));
+  const runtime=fs.readFileSync(path.join(root,file)),bytes=require('./process-platform-canvas-contract.cjs').projectKnown(runtime,file);
+  assert.deepEqual(withoutDurableBegin(runtime,file),withoutDurableBegin(bytes,file),'Current exact successor composes to the same complete historical handler');
+  const drift=Buffer.concat([runtime,Buffer.from('// unknown successor drift')]);assert.throws(()=>withoutDurableBegin(drift,file),/differs from pinned bytes/);
   overrides[file]=withoutDurableBegin(bytes,file).toString();
   if(file==='app/api/ipqc-c/workflow/route.ts'){
    const readIO=require('./ipqc-c-read-io-source-contract.cjs'),canonical=readIO.withoutWorkflowReadAhead(bytes);
