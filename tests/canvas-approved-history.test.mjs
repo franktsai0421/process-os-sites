@@ -53,3 +53,7 @@ for(const dirty of [false,true])void test(`history/line race retains the winning
  else{await assert.rejects(switching,/CANVAS_REVIEW_CHANGED/);await choosing;assert.equal(ran,0);assert.equal(abandoned,0);assert(f.api.historyReadOnly());}
  assert.equal(prompts,0);assert(f.calls.slice(before).every(call=>call.method==='GET'&&!call.url.includes('operationId=')));
 });
+
+for(const [lang,inline]of [['zh',true],['vi',false]])void test('cold Canvas first paint does not install a premature history authority watcher '+lang,async t=>{
+ const f=await setup({lang,inline,cold:true});t.after(f.close);assert.equal(f.api.flow().generation,'g');assert.equal(f.api.historyReadOnly(),false);assert.equal(f.api.canMutate(),true);assert(f.select());assert.equal(f.select().disabled,false);assert(f.calls.every(row=>row.method==='GET'),'cold readiness never begins or saves a draft');
+});
