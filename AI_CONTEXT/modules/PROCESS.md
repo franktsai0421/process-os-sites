@@ -1,3 +1,7 @@
+# 2026-11-10 process integration candidate
+
+The editor header counts the same allowed-stage CanvasJournal projection as V2 cards. Its source is reused byte-for-byte from #101 e2591c6, with only its own cache tag applied on main #100; saved/local additions and removals therefore appear immediately without replacing the held editor copy. [Integration matrix](../../docs/acceptance/process-platform-integration-20261110.md) distinguishes this narrow implementation from the unfinished full draft/history target.
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。

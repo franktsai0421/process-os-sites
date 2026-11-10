@@ -1,3 +1,7 @@
+# 2026-11-10 — Independent process integration, incomplete
+
+Main-based branch preserves previously merged canvas Save, approved stage types and no-background checks. It reuses the exact #101 projected-count source; the complete target remains blocked on unresolved original UNKNOWN uploads and cross-page draft/history dependencies. [Current matrix and verification boundaries](docs/acceptance/process-platform-integration-20261110.md), [branch inventory](docs/acceptance/process-platform-branch-inventory-20261110.json). No #103 account changes, old PR reopening/deletion, live data, merge or deployment.
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.

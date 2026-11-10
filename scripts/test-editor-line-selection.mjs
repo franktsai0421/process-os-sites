@@ -14,7 +14,7 @@ const state={view:'editor',editorLine:'A',category:'SHARED',editorVersionId:'A-d
 const products=[{code:'A1',category:'SHARED'},{code:'A2',category:'A-ONLY'},{code:'B1',category:'SHARED'},{code:'B2',category:'B-ONLY'},{code:'C1',category:'C-ONLY'}];
 let renders=0,ensures=0;
 const s={state,data:{products},lines:['A','B','C','D'].map(code=>({code,name:code+' line'})),currentUser:{role:'admin'},routeFor:code=>({line:code[0]}),editorKey:()=>`${state.category}:${state.editorLine}`,escapeHtml:String,syncProductRoute(){},ensureCategoryEditor(){ensures++},render(){renders++},document:{documentElement:{lang:'zh-Hant'},querySelector(){return null}},MutationObserver:class{observe(){}}};
-vm.createContext(s);vm.runInContext(fs.readFileSync(path.join(root,'editor-line-selection.js'),'utf8'),s);
+s.window=s;vm.createContext(s);vm.runInContext(fs.readFileSync(path.join(root,'editor-line-selection.js'),'utf8'),s);
 const arr=x=>Array.from(x);
 assert.deepEqual(arr(s.editorCategories()),['A-ONLY','SHARED']);
 assert.deepEqual(arr(s.editorCategories('B')),['B-ONLY','SHARED']);

@@ -110,7 +110,7 @@ void test('actual account malformed successful ACK stays guarded and describes n
 void test('changed persistent-navigation executable references have coherent new cache versions',()=>{
  const expected={
   'master-reference-viewer.js':'20261030-pr5152-integrated1',
-  'editor-line-selection.js':'20261030-pr54-integrated1',
+  'editor-line-selection.js':'20261109-projected-count1',
   'app.js':'20261105-process-local-save1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',

@@ -1,0 +1,33 @@
+name: Process platform integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/process/editor-line-selection.js'
+      - 'public/process/index.html'
+      - 'scripts/process-platform-count-contract.*'
+      - 'scripts/background-check-source-contract.cjs'
+      - 'tests/process-platform-count-contract.test.cjs'
+      - 'tests/editor-projected-count.test.mjs'
+      - '.github/workflows/process-platform-integration.yml'
+permissions:
+  contents: read
+concurrency:
+  group: process-platform-integration-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  process-platform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - name: Current canvas count and exact historical source composition
+        run: node --test tests/editor-projected-count.test.mjs tests/process-platform-count-contract.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/access-event-main-integration.test.cjs tests/navigation-adapters.test.mjs tests/global-background-checks.test.mjs
+      - run: node scripts/test-editor-line-selection.mjs
+      - run: node scripts/sites-source-check.mjs
