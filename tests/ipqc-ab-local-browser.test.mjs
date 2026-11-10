@@ -38,7 +38,12 @@ void test('AB two browser editors merge different cells, compare same field and 
   await a.page.locator('[data-ab-matrix-item]').first().check();await b.page.locator('[data-ab-matrix-item]').last().check();await save(a);await save(b);
   let group=await a.f.read('ipqc-ab','editor','&scope=A%3AG');assert.deepEqual(group.control.workflow.working.items[0].productCodes.sort(),['A1','A2']);
   await a.boot();await b.boot();for(const [s,name]of [[a,'Alice'],[b,'Bob']]){await s.page.locator('[data-ab-edit-item]').first().click();await s.page.locator('#ab-standard').fill(name);await s.page.locator('#ab-apply').click();}
-  await save(a);await save(b);assert.equal(writes(b).at(-1).status,409);await b.page.locator('[data-ab-conflict]').waitFor();await b.page.locator('[data-ab-conflict-choice="mine"]').click();await save(b);assert.equal(writes(b).at(-1).status,200);
+  await save(a);const beforeConflict=a.f.snapshot(),beforePosts=writes(b).length;
+  await save(b);const conflict=b.page.locator('[data-ab-conflict]');await conflict.waitFor();assert.equal(await conflict.locator('[data-ab-conflict-choice]').count(),3);assert.equal(writes(b).length,beforePosts,'preflight comparison does not dispatch a stale Save');assert.deepEqual(a.f.snapshot(),beforeConflict);
+  await conflict.locator('[data-ab-conflict-choice="cancel"]').click();await conflict.waitFor({state:'detached'});assert.equal(writes(b).length,beforePosts);assert.deepEqual(a.f.snapshot(),beforeConflict);
+  await b.page.locator('[data-ab-edit-item]').first().click();assert.equal(await b.page.locator('#ab-standard').inputValue(),'Bob','cancel retains the original private field');await b.page.locator('#ab-apply').click();assert.equal(writes(b).length,beforePosts);
+  await save(b);await conflict.waitFor();await conflict.locator('[data-ab-conflict-choice="mine"]').click();await b.page.waitForFunction(()=>!sharedDraftAccountState().queued&&!document.querySelector('[data-ab-conflict]')&&!document.querySelector('#ipqcab-save')?.disabled);
+  assert.equal(writes(b).length,beforePosts+1,'choosing Mine continues the same Save without another click');assert.equal(writes(b).at(-1).status,200);
   group=await a.f.read('ipqc-ab','editor','&scope=A%3AG');assert.equal(group.control.workflow.working.items[0].standard,'Bob');assert.deepEqual(group.control.workflow.working.items[0].productCodes.sort(),['A1','A2']);assert.deepEqual([...a.errors,...b.errors],[]);
  }finally{await b?.close();await a.close();}
 });

@@ -68,6 +68,7 @@ async function setup(t) {
         : r.abort(),
     );
     return {
+      actorId: who,
       page,
       c,
       errors,
@@ -94,12 +95,17 @@ async function setup(t) {
   };
   const admin = await open();
   let seq = 0;
-  const call = async (actor, method, query, body) => {
+  const call = async (actor, method, query, body, { expectedActor = actor.actorId } = {}) => {
     const response = await actor.c.request.fetch(
       f.url.origin + '/api/ipqc-ab/workflow?caseMetadata=1&' + query,
       {
         method,
-        headers: { Origin: f.url.origin },
+        headers: {
+          Origin: f.url.origin,
+          ...(method === 'POST' && expectedActor !== null
+            ? { 'X-Process-Expected-Actor': expectedActor }
+            : {}),
+        },
         ...(body ? { data: body } : {}),
       },
     );
@@ -192,6 +198,13 @@ void test(
   async (t) => {
     const s = await setup(t),
       results = [];
+    for (const expectedActor of [null, 'different-synthetic-actor']) {
+      const before = await s.state();
+      const denied = await s.call(s.admin, 'POST', 'module=1', { action: 'begin' }, { expectedActor });
+      assert.equal(denied.status, 403);
+      assert.equal(denied.body.error, 'ACCOUNT_CHANGED_REOPEN_REQUIRED');
+      assert.deepEqual(await s.state(), before, 'missing or different actor cannot mutate the compiled fixture');
+    }
     const negative = async (actor, detail) => {
       const before = (await s.state()).row;
       const reply = await s.cmd(actor, 'save', detail);
