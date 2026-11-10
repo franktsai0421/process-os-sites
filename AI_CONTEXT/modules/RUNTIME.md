@@ -1,3 +1,7 @@
+# 2026-11-10 — Account-priority candidate
+
+Login fails closed for missing/invalid/unsupported credentials and logs fixed reason codes only. Authorized reset managers see credentialState metadata. The account controller compares fresh actor/target before a single POST and requires exact readback for a persistent success notice; unknowns remain GET-only. Crypto prewrite failures are explicit and do not imply a stored change. Chinese/Vietnamese text follows the current document. [Verification and remaining gates](../../docs/acceptance/account-permissions-20261110.md).
+
 ## 2026-11-09 Background check retirement candidate
 
 Shared polling API is now inert for compatible cached callers; no timer/callback/focus listener is retained. Direct process 4s, references 5s, effective-version 30s/focus and history-permission 4s checks are retired. Entry/action reads and original unknown receipts stay guarded. [Per-page inventory, remaining timer purposes and acceptance limits](../../docs/acceptance/global-background-checks-20261109.md). This is source-only, not hosted acceptance.

@@ -1,0 +1,57 @@
+name: Account permissions
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/api/platform-login/**'
+      - 'app/api/user-access/**'
+      - 'lib/passwords.ts'
+      - 'lib/user-access.ts'
+      - 'public/process/user-access*'
+      - 'public/process/access-policy.mjs'
+      - 'public/process/data-safety-ui.js'
+      - 'public/process/index.html'
+      - 'tests/account-*.test.mjs'
+      - 'tests/helpers/native-worker-source.mjs'
+      - '.github/workflows/account-permissions.yml'
+permissions:
+  contents: read
+concurrency:
+  group: account-permissions-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_CF_FETCH_ENABLED: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+      WRANGLER_WRITE_LOGS: 'false'
+      PROCESS_PROGRAM_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -- --format unix
+      - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Isolated account API and UI source regression
+        run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs
+      - name: Existing account authority and session protections
+        run: |
+          node scripts/test-user-access.mjs
+          node scripts/test-role-effective-session.cjs
+          node scripts/test-user-access-projection-reuse.mjs
+          node scripts/test-user-access-dialog-dirty.mjs
+          node scripts/test-user-access-response-fence.mjs
+          node scripts/test-user-access-initial-read.mjs
+          node scripts/test-login-entry-marker.cjs
+          node scripts/test-login-reentry.cjs
+          node scripts/test-login-json-coercion.mjs
+      - run: node scripts/sites-ci-preflight.mjs
+      - run: npm run build

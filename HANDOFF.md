@@ -1,3 +1,7 @@
+# 2026-11-10 — Account-priority independent integration
+
+New main-based account branch extracts login/password/operation feedback from closed #102 and preserves imported older permission work. Scope, exact old-branch inventory, isolated checks and unrun native/real-account gates: [acceptance](docs/acceptance/account-permissions-20261110.md). No page-v1 activation, account migration, old UNKNOWN replay, branch deletion, merge or deployment.
+
 # 2026-11-09 — Process platform stage catalog batch
 
 Isolated b06394c successor with main d4ac309 (#98) merged handles the missing approved custom types when adding a stage. It does not absorb the concurrently dirty unified-draft/canvas work. [Tracking matrix](docs/acceptance/process-platform-tracking-20261109.md) records ownership, sources, tests and outstanding decisions. No business data/schema/account permissions changed; no merge/deployment/live acceptance is implied.

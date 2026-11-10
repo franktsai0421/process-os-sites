@@ -1,3 +1,7 @@
+# 2026-11-10 — Account feedback and credential diagnostics
+
+Account-priority extraction adds authorized credential-state diagnostics, uniform anonymous login errors, typed password validation and prewrite/readback feedback with persistent bilingual results. Existing CAS/session/unknown guards remain. [Scope, branch preservation and verification limits](../docs/acceptance/account-permissions-20261110.md).
+
 ## 2026-11-09 — Retire periodic web checks
 
 Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).

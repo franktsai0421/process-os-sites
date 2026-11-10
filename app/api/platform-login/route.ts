@@ -2,7 +2,7 @@ import {legacyJsonLoginText,type JsonValue} from '@/lib/legacy-login-json';
 import {demoIdentity,isDemoUser} from '@/lib/demo-identities.mjs';
 import {readState,readPlatformUsers,sameOrigin,demoSession,demoEnabled,sessionCookie,clearDemoSession,responseHeaders as headers} from '@/lib/process-state';
 import { effectiveAccess } from '@/lib/user-access';
-import {verifyPassword} from '@/lib/passwords';
+import {verifyPassword,passwordCredentialState} from '@/lib/passwords';
 import {boundedJson} from '@/lib/site-security.mjs';
 import {allowLoginAttempt} from '@/lib/login-limit';
 
@@ -31,12 +31,29 @@ export async function POST(request:Request){
   if(!id||!password||id.length>80||password.length>200)return Response.json({error:'帳號或密碼錯誤'},{status:401,headers});
   try{if(!await allowLoginAttempt(request,id))return Response.json({error:'登入次數過多，請稍後重試',code:'LOGIN_RATE_LIMITED'},{status:429,headers:{...headers,'Retry-After':'300'}});}
   catch{return Response.json({error:'登入暫時無法使用',code:'LOGIN_LIMIT_UNAVAILABLE'},{status:503,headers});}
-  const state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']}),users=readPlatformUsers(state.values.platformUsers),user=users.find((item)=>String(item.id||'').trim().toLowerCase()===id);
-  if(!user || user.deletedAt)return Response.json({error:'帳號不存在',code:'ACCOUNT_NOT_FOUND'},{status:404,headers});
-  if(user.enabled===false)return Response.json({error:'此帳號已停用',code:'ACCOUNT_DISABLED'},{status:403,headers});
-  if(user.authMode==='demo'||!await verifyPassword(user,password))return Response.json({error:'密碼錯誤',code:'PASSWORD_INCORRECT'},{status:401,headers});
-  if(!user.role)return Response.json({error:'此帳號尚未設定使用權限',code:'NO_PERMISSION'},{status:403,headers});
-  const token=await demoSession(request,String(user.id).toLowerCase(),false,user.authEpoch||0);
-  if(!token)return Response.json({error:'登入暫時無法使用'},{status:503,headers});
+  // Public failures intentionally share one response. Detailed reasons are
+  // server-only, fixed codes; never log the request, account or crypto exception.
+  const reject=(reason:string,status=401)=>{
+    console.warn(JSON.stringify({event:'PLATFORM_LOGIN_FAILURE',reason}));
+    return Response.json({error:'帳號或密碼錯誤，或暫時無法登入',code:'LOGIN_FAILED'},{status,headers});
+  };
+  let state;
+  try{state=await readState({keys:['platformUsers','processCustomRoles','processRoleTemplateOverrides','maintenanceMode']});}
+  catch{return reject('STATE_UNAVAILABLE',503);}
+  let user;
+  try{const users=readPlatformUsers(state.values.platformUsers);user=users.find((item)=>String(item.id||'').trim().toLowerCase()===id);}
+  catch{return reject('ACCOUNT_DATA_INVALID',503);}
+  if(!user || user.deletedAt)return reject('ACCOUNT_UNAVAILABLE');
+  if(user.enabled===false)return reject('ACCOUNT_DISABLED');
+  if(user.authMode==='demo')return reject('ACCOUNT_TYPE');
+  const credential=passwordCredentialState(user);
+  if(credential==='missing'||credential==='invalid'||credential==='unsupported')return reject('CREDENTIAL_'+credential.toUpperCase());
+  try{if(!await verifyPassword(user,password))return reject('PASSWORD_INCORRECT');}
+  catch{return reject('PASSWORD_SERVICE_UNAVAILABLE');}
+  if(!user.role)return reject('NO_PERMISSION');
+  let token;
+  try{token=await demoSession(request,String(user.id).toLowerCase(),false,user.authEpoch||0);}
+  catch{return reject('SESSION_UNAVAILABLE');}
+  if(!token)return reject('SESSION_UNAVAILABLE');
   return Response.json({user:{id:String(user.id).toLowerCase(),name:user.name,...effectiveAccess(user,state.values)}},{headers:{...headers,'Set-Cookie':sessionCookie(request,token)}});
 }
