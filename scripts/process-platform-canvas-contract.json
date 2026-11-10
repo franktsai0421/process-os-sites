@@ -721,9 +721,9 @@
     {
       "file": "public/process/index.html",
       "beforeHash": "499f83c29f4f6caa692c54c04c16535aae5d4884c534f9d36d0b3a93b58f8b4d",
-      "afterHash": "69f7e32d687dc51bf7f0a38af657cf88ca50b702aaac5ebfc0d23bce73bbf34a",
+      "afterHash": "ff1d55ff9ae3ee693690665d83efc4a2a432b56b7936dd32982e58a91dbc032e",
       "beforeBlob": "7b7113a4f6805e35e33bcdf6a4bf560dfc42eb1c",
-      "afterBlob": "e43ee889285d5bb43cfc65c543790614d641b180",
+      "afterBlob": "bd6562466b91a6a6cbbfcf1fc4f7ae7fca944e6b",
       "rules": [
         {
           "offset": 5599,
@@ -748,10 +748,10 @@
         {
           "offset": 9863,
           "before": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n",
-          "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-process-integration2\"></script>\n"
+          "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n"
         },
         {
-          "offset": 10522,
+          "offset": 10526,
           "before": "    <script data-process-src=\"canvas-recovery-store.js?v=20261104-canvas-integration1\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261104-begin-receipt1\"></script>\n    <script data-process-src=\"process-editor.js?v=20261104-canvas-integration1\"></script>\n",
           "after": "    <script data-process-src=\"canvas-recovery-store.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n"
         }
@@ -1017,14 +1017,29 @@
     {
       "file": "public/process/process-ipqc.js",
       "beforeHash": "514cb6db94afdfb1c22912e9dbd74465e67d172a32af22a7482d11dc63f96cba",
-      "afterHash": "502c1280b6a009189e705fbc0b22647112ca647f098b6176fabcbca0cc372c31",
+      "afterHash": "868772d8196c03cabc17d180d14460cbc7b2152d13d2a9bb47391c151f5db58b",
       "beforeBlob": "385aa59ec42b1f4cd4a7070f3cc7dd1325f14033",
-      "afterBlob": "bd4929721a5e35d704b03baa955089842c20edef",
+      "afterBlob": "eaa084eaed7177dd246bab851a05af4f8dd0eb6a",
       "rules": [
         {
           "offset": 8315,
           "before": "      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ cục bộ, rồi đồng bộ sơ đồ và lưu thủ công.','此處僅分配項目；完成方塊後先留本機，再同步目前畫布、手動儲存。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的產品、工段與啟用狀態。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div>${stale.map(a=>`<div class=\"process-ipqc-warning\" role=\"status\">${label('Liên kết cũ đã thay đổi hoặc không còn phù hợp; vẫn được giữ lại','既有關聯來源或產品條件已變更；原關聯仍保留')}<code>${h(a.itemId)}</code><button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`).join('')}${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n",
           "after": "      panel.innerHTML=`<div class=\"process-ipqc-context\"><b>${h(state.editorLine)} → ${h(state.category)} → ${h(op.stageCode)}</b><strong>${h(op.number||op.id)} · ${h(document.querySelector('#operation-name')?.value||op.name)}</strong><small>IPQC-${h(result.source)} · ${label('Chỉ dùng nguồn được duyệt','僅使用核准來源')}</small></div><p>${label('Chỉ phân công hạng mục. Hoàn tất để giữ trên trang hiện tại, rồi lưu bản nháp.','此處僅分配項目；完成方塊後先留目前頁面，再存取草稿。')}</p>${result.reason?`<div class=\"process-ipqc-warning\" role=\"status\"><p>${label(...messages[result.reason])}</p>${result.reason==='NO_PRODUCTS'?`<button type=\"button\" data-ipqc-products>${label('Chọn sản phẩm trong thông tin cơ bản','前往基本資料選擇產品')}</button>`:`<p>${result.reason==='SOURCE_NOT_APPROVED'?label('Lưu, gửi duyệt và duyệt nguồn đúng chuyền / nhóm; sau đó tải lại. Không dùng bản nháp làm nguồn.','請在品質後台將此線別／群組的來源保存、送審並核准，再重新讀取。草稿尚不能分配。'):label('Kiểm tra sản phẩm, công đoạn và trạng thái bật của tiêu chuẩn đã duyệt.','請核對核准標準的產品、工段與啟用狀態。')}</p><a href=\"?view=data&system=process&dataTab=quality-ipqc-${result.source==='AB'?'ab':'c'}&ipqcScope=${encodeURIComponent(result.scope)}&ipqcStage=${encodeURIComponent(op.stageCode)}\" target=\"_blank\" rel=\"noopener\">${label('Mở nguồn chất lượng · '+result.scope,'開啟品質來源 · '+result.scope)}</a>`}</div>`:''}<div class=\"process-ipqc-overview\" role=\"status\" aria-live=\"polite\">${['selected','occupied','available'].map(status=>`<div class=\"process-ipqc-metric ${status}\"><strong data-ipqc-count=\"${status}\">0</strong><span>${h(statusText(status))}</span></div>`).join('')}</div>${stale.map(a=>`<div class=\"process-ipqc-warning\" role=\"status\">${label('Liên kết cũ đã thay đổi hoặc không còn phù hợp; vẫn được giữ lại','既有關聯來源或產品條件已變更；原關聯仍保留')}<code>${h(a.itemId)}</code><button type=\"button\" data-ipqc-remove=\"${h(key(a))}\" ${document.querySelector('#apply-operation')?.disabled?'disabled':''}>${label('Bỏ liên kết','移除關聯')}</button></div>`).join('')}${[...groups.values()].map(list=>`<details class=\"process-ipqc-group\"><summary><span class=\"process-ipqc-group-title\"><b>${h(list[0].errorCode)}</b><span>${h(list[0].errorName)}</span></span><span class=\"process-ipqc-progress\" data-ipqc-progress></span></summary>${list.map(c=>choiceMarkup(c,op,owners.get(key(c)),detailBodies)).join('')}</details>`).join('')}<button type=\"button\" class=\"process-ipqc-reload\" data-ipqc-reload>${label('Tải lại nguồn','重新讀取來源')}</button>`;\n"
+        },
+        {
+          "offset": 23205,
+          "before": "          detail.innerHTML=comparisonMarkup(old,current)+`<p>${label('Chỉ đổi liên kết trên máy. Hoàn tất bước, đồng bộ sơ đồ, rồi lưu thủ công. Không sửa tiêu chuẩn nguồn.','只更新本機分配版本記錄；完成方塊後另按同步畫布、手動儲存。不修改來源標準。')}</p>`;\n",
+          "after": "          detail.innerHTML=comparisonMarkup(old,current)+`<p>${label('Chỉ đổi phiên bản liên kết trên biểu mẫu hiện tại. Hoàn tất bước rồi bấm “Lưu bản nháp”. Không sửa tiêu chuẩn nguồn.','只更新目前表單的分配版本記錄；完成方塊後按「存取草稿」。不修改來源標準。')}</p>`;\n"
+        },
+        {
+          "offset": 24274,
+          "before": "              // locked: manual Sync still validates the then-current source.\n",
+          "after": "              // locked: the current-canvas Save still validates the then-current source.\n"
+        },
+        {
+          "offset": 25581,
+          "before": "              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu cục bộ; chưa đồng bộ hay lưu.','已採用至本機表單；尚未同步、尚未儲存。');button.disabled=true;\n",
+          "after": "              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.','已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。');button.disabled=true;\n"
         }
       ]
     },

@@ -1,3 +1,7 @@
+# 2026-11-10 — IPQC comparison single-Save notices
+
+The source comparison preview and adoption result now direct users to finish the operation and press one Save, without a removed synchronization step. Source-adoption regressions use the actual current-stage renderer and single atomic Save; unsent assignments stay in the form and source libraries remain unchanged. No data-model or permission changes, merge or deployment.
+
 # 2026-11-10 — Revision messaging and post-failure safety continuation
 
 71feb2f five module workflows passed; Local safety passed steps1–30 and the previous Flow/FQC/read-scope/departure/Fit fixes, then failed on a later shared-client fixture expecting Submit-only revision text. All three client modes now verify the correct Save/Submit-neutral bilingual message plus raw revision409/Save fences, keeping quota/UNKNOWN/actor/immutable-error negatives (10 groups each). Actual Canvas/controller/handler race stack139 and exact panel differential17 pass. Of61 later scripts,60 now pass; one indirectly launched native AB fixture is blocked by socket/ptrace and was not retried. #103 fixed22567b2 remains independent; original policy-only union evidence81791d1 is historical. [Full evidence and blockers](docs/acceptance/process-platform-integration-20261110.md). No product edits, UNKNOWN32 replay, real data, merge or deployment.

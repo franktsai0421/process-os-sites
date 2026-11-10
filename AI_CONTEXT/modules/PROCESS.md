@@ -1,3 +1,7 @@
+## 2026-11-10 — IPQC reference adoption
+
+IPQC source comparison/adoption changes the current form only. Completing the operation enters the current Canvas journal; one explicit Canvas Save persists its reference. Preview/adoption notices in both languages match this flow. Existing unconfirmed operation receipts remain protected.
+
 # 2026-11-10 process integration candidate
 
 #104 now includes scoped Canvas Save, grouped fresh conflicts, silent departure, RAM-only unsent forms, scaffold-aware dirty checks, projected counts and same-page approved history. AB/C catalog and LINES page-owner APIs/UI, approved provenance and separate review policy are included behind existing trusted-data markers; no marker, ACL or real-data cutover was activated. Actual runtime tests cover session/revision/display/UNKNOWN fences. [Complete matrix and remaining blockers](../../docs/acceptance/process-platform-integration-20261110.md). Historical synchronization/recovery requirements below are superseded by current confirmed requirements. No #103 password changes or merge/deployment.

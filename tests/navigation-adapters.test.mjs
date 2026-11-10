@@ -147,7 +147,7 @@ void test('changed persistent-navigation executable references have coherent new
   'tooling.js':'20261105-tooling-local-save1',
   'user-access.js':'20261106-role-layout1',
   'navigation-forms.js':'20261025-navigation2',
-  'process-ipqc.js':'20261110-process-integration2',
+  'process-ipqc.js':'20261110-ipqc-source-single-save1',
   'data-safety-ui.js':'20261027-login-reentry1',
   'process-equipment.js':'20261105-process-local-save1',
   'process-editor.js':'20261110-process-integration2',

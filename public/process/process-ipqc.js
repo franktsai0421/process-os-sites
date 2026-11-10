@@ -107,21 +107,21 @@
         try{
           const candidates=await get(query);pin.check();const current=currentSource(candidates,assignment,op);
           const history=await get(new URLSearchParams({scope:assignment.scope,versionId:assignment.sourceVersionId}),'/api/ipqc-ab/workflow');pin.check();const old=historicalSource(history,assignment,op);
-          detail.innerHTML=comparisonMarkup(old,current)+`<p>${label('Chỉ đổi liên kết trên máy. Hoàn tất bước, đồng bộ sơ đồ, rồi lưu thủ công. Không sửa tiêu chuẩn nguồn.','只更新本機分配版本記錄；完成方塊後另按同步畫布、手動儲存。不修改來源標準。')}</p>`;
+          detail.innerHTML=comparisonMarkup(old,current)+`<p>${label('Chỉ đổi phiên bản liên kết trên biểu mẫu hiện tại. Hoàn tất bước rồi bấm “Lưu bản nháp”. Không sửa tiêu chuẩn nguồn.','只更新目前表單的分配版本記錄；完成方塊後按「存取草稿」。不修改來源標準。')}</p>`;
           const adopt=document.createElement('button');adopt.type='button';adopt.setAttribute('data-ipqc-adopt','');adopt.textContent=text('Dùng nguồn này trên máy','明確採用此來源至本機');detail.append(adopt);preview={pin,current};
           adopt.onclick=async()=>{
             if(running||!preview)return;const selectedPreview=preview;running=true;adopt.disabled=true;button.disabled=true;
             try{
               pin.check();const candidates=await get(query);pin.check();const next=currentSource(candidates,assignment,op);if(!same(next,selectedPreview.current))throw Error('IPQC_SOURCE_CHANGED_RECOMPARE');
               // Last GET rechecks edit permission/pending/peers. Sources are not
-              // locked: manual Sync still validates the then-current source.
+              // locked: the current-canvas Save still validates the then-current source.
               const token=pin.api.captureCanvasRecovery(),fresh=await pin.api.readCanvasRecovery(token);pin.check();const flow=fresh?.control?.workflow;
               if(fresh?.permissions?.view!==true||fresh.permissions.edit!==true||flow?.scope!=='process:platform'||flow.generation!==pin.generation||!Number.isSafeInteger(flow.revision)||flow.revision<pin.flowRevision||(flow.saved?.id??null)!==pin.savedId||flow.pendingId||!fresh.control.versions?.some(v=>v.status==='draft'))throw Error('IPQC_AUTHORITY_CHANGED');
               const shared=stageOperations(flow,pin.workspace,pin.stage),target=oneOperation(shared,pin.id);
               if(JSON.stringify(target.ipqcAssignments)!==pin.baseAssignments||JSON.stringify(target.productCodes)!==pin.baseProducts)throw Error('IPQC_SHARED_ASSIGNMENT_CHANGED');
               const local=editor.operations();if(!Array.isArray(local)||[...shared,...local].some(row=>row.id!==pin.id&&(row.ipqcAssignments||[]).some(a=>key(a)===key(assignment))))throw Error('IPQC_ALREADY_ASSIGNED');
               const matches=(op.ipqcAssignments||[]).filter(a=>key(a)===key(assignment));if(matches.length!==1||!same(matches[0],assignment))throw Error('IPQC_CONTEXT_CHANGED');pin.check();
-              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu cục bộ; chưa đồng bộ hay lưu.','已採用至本機表單；尚未同步、尚未儲存。');button.disabled=true;
+              op.ipqcAssignments=op.ipqcAssignments.map(a=>key(a)===key(assignment)?{...a,sourceVersionId:next.sourceVersionId,productCodes:[...next.productCodes]}:a);preview=null;panel.dispatchEvent(new Event('input',{bubbles:true}));detail.textContent=text('Đã dùng nguồn trên biểu mẫu hiện tại; chưa lưu bản nháp. Hoàn tất bước rồi bấm “Lưu bản nháp”.','已採用至目前表單；尚未存取草稿。完成方塊後請按「存取草稿」。');button.disabled=true;
             }catch(error){preview=null;if(detail.isConnected)detail.textContent=text('Không áp dụng; giữ nguyên đầu vào. Hãy so sánh lại.','未採用，原輸入保留。請重新比較。')+' '+error.message;}
             finally{running=false;if(preview||detail.querySelector('[data-ipqc-adopt]'))adopt.disabled=true;if(detail.isConnected&&preview===null&&same(op.ipqcAssignments?.find(a=>key(a)===key(assignment)),assignment))button.disabled=!valid()||!editor.canEdit();if(document.activeElement===adopt&&detail.isConnected&&valid())detail.focus();}
           };

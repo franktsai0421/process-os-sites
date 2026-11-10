@@ -1,3 +1,7 @@
+## 2026-11-10 — IPQC source adoption follows single Canvas Save
+
+Comparison and adoption notices now explain that only the current operation form changes; completing the operation stays local until one explicit Save. The notices no longer instruct users to press the removed synchronization control. Source/history/permission/occupancy checks and reference-only persistence are unchanged. The actual source-adoption regression follows that single atomic Save path in both languages.
+
 ## 2026-11-10 — Save and Submit revision messaging contracts
 
 Align three independent shared-client fixtures with the existing revision-conflict message used by both Save and Submit. Extend raw409/Save-fence assertions without changing production behavior, error identities, quota, UNKNOWN receipts or actor guards. Keep exact full-panel/source differential checks with separately asserted bilingual Save-time conflict notices. Actual race stack139, three client modes and panel17 pass; record one indirectly native fixture blocked by the existing environment, not retried. [CI failure and validation boundaries](../docs/acceptance/process-platform-integration-20261110.md).

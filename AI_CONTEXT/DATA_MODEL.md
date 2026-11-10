@@ -1,3 +1,7 @@
+## 2026-11-10 — Existing IPQC reference persistence clarified
+
+Source adoption updates only the existing operation assignment tuple in the current form. After operation completion, one current-canvas Save persists it in the existing process snapshot; source standards/photos are not copied. No field, storage format, ownership, schema or data migration changes.
+
 ## 2026-11-10 — Independent process/master-page candidate
 
 No SQL schema or migration runs. Canvas retains the existing process:platform workflow, immutable whole saved snapshot and original UNKNOWN receipts; only unsent overlays/forms are RAM-only. Candidate masterDataControl page-v1 uses independent AB.catalog, C.catalog and LINES owners, each with its own approved version/workflow. LINES owns both AB/C topology partitions; catalog owners exclude lines. Compatibility/public projections resolve original approved owner IDs before omitting private workflows. A trusted existing processAccessControl.draftReviewPolicy=page-v1 separates module submit/correction from high approval; absent marker keeps legacy projection, invalid provenance fails closed. No real marker, ACL, baseline, archive or data cutover was created. [Scope and unresolved acceptance](../docs/acceptance/process-platform-integration-20261110.md).
