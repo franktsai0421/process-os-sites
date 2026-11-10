@@ -151,3 +151,12 @@ role browser 把 pageerror 累積到最後 assert(errors=[]), 因而顯示在 be
 可選 PROCESS_SAVE_BASELINE_REF=9fceccc… 歷史三檔模式本機無法執行：該 ref 的 lib/state-records.ts 路徑不可取得；原 pin 與限制未修改。這不影響 CI 預設的 current ordinary full-read vs record-mutation 44 組比較，不能把可選歷史模式算成功。
 
 已將 reset 與兩個完整 paired 套件加入 Account permissions gate，更新 account JS 快取、既有 exact cache inverse 及 Routine 負向 tag fixture，保留所有歷史變體／原 predecessor，以及每項錯版／重複／部分漂移的拒絕斷言。無資料／schema／真帳號／部署異動；最新 head 原生角色與完整 Local safety 仍待 CI，前一 head 的五套成功不能取代新 head 結果。
+
+
+## 81791d18 legacy 權限矩陣續修
+
+終態 Local safety run 42837910698/job 129904952371 只有 step31 的 legacy rights suite 失敗；完整 log SHA256 958d58dde4243bd72203e4807809f9520ae439dbcb0a0e2f23184cd5ddefbe0f。step9 原角色瀏覽器／errors=[]、CAS 新場景及其餘 1–30 通過，另外五套 CI 成功；固定 PR87 diagnostic 跳過，不計成功。
+
+精確失敗列為 IQC 的 view+edit→legacy Save；新 resolver 正確給出 effective Save=true，原測試卻一律要求403。測試現在對 IQC 與 equipment 各驗：view-only Save403、Save-only完整快照 Save403（缺 Edit）、未授 Submit403、缺 create403、快照刪除缺 delete403；所有拒絕另驗 DB/R2 寫入計數及全部儲存 bytes 不變。view+edit與view+edit+save均以真正變更欄位驗200及精確讀回，原始 Save=false／其他操作false仍保留，沒有改產品授權。具 Submit授權但無V3固定已存證據時，原產品明確拒絕409 WORKFLOW_V3_REQUIRED；保留此失敗規則與零變更斷言，不改成成功，也不靠舊403掩蓋已通過的權限檢查。
+
+兩模組16個具體場景與 Local safety 該處完整六檔帳號／還原／legacy／initial-read／response-fence／projection-reuse來源命令通過。本批只改測試與CI依賴，產品輸入維持81791d18，先前精確安全build仍有效。較大的#104頁面相依與routine整頁整合另行進行，不以此次矩陣修正宣稱整體完成。

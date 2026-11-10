@@ -1,3 +1,7 @@
+# 2026-11-10 — Legacy Save rights matrix
+
+Test IQC/equipment Edit-derived legacy Save with actual mutation/readback, while retaining view-only/Save-only/create/delete/Submit denials and zero DB/R2 changes. Authorized legacy Submit still rejects missing V3 saved-version proof. Product authorization is unchanged. [Evidence](../docs/acceptance/account-permissions-20261110.md#81791d18-legacy-權限矩陣續修).
+
 # 2026-11-10 — Account reset and fresh CAS authority
 
 Fix the actual individual reset handler's obsolete baseline reference, then recompute inherited effective permissions without persisting derived grants. Preserve native error assertions. Process Save paired tests now distinguish raw Save from remaining Edit-derived authorization at CAS retry; FQC old policy is explicitly pinned to genuine source so old403/new200 remains meaningful. [Evidence and limits](../docs/acceptance/account-permissions-20261110.md#a9b33d83-local-safety-根因與續修).

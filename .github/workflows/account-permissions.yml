@@ -12,6 +12,7 @@ on:
       - 'tests/account-*.test.cjs'
       - 'scripts/test-process-save-record-mutation.cjs'
       - 'scripts/test-fqc-lifecycle8-record-mutation.cjs'
+      - 'scripts/test-legacy-draft-rights.mjs'
       - 'scripts/account-permission-source-contract.*'
       - 'scripts/account-cache-source-contract.*'
       - 'tests/access-event-main-integration.test.cjs'
@@ -73,6 +74,7 @@ jobs:
           node --test tests/problem-export.test.cjs tests/master-ab-auth-phase.test.mjs
           node scripts/test-process-save-record-mutation.cjs
           node scripts/test-fqc-lifecycle8-record-mutation.cjs
+          node scripts/test-legacy-draft-rights.mjs
           node scripts/test-access-template-reuse.cjs
           node scripts/test-feedback-cloud-admission.cjs
           node scripts/test-web-feedback.cjs "$RUNNER_TEMP/account-feedback"
