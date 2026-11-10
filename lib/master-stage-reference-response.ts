@@ -10,10 +10,10 @@ export async function visibleStageReferences(request:Request,impact:ReturnType<t
   if(await identity(request,state)){
    const allowed=new Map<string,boolean>();
    for(const row of impact?.references||[]){
-    const referenceModule=row.module==='current'?scope.toLowerCase():row.module;
-    if(!['ab','c','editor'].includes(referenceModule))continue;
+    const rawModule=row.module==='current'?scope.toLowerCase():row.module,referenceModule=rawModule==='ab.catalog'?'ab':rawModule==='c.catalog'?'c':rawModule;
+    if(!['ab','c','lines','editor'].includes(referenceModule))continue;
     if(!allowed.has(referenceModule))allowed.set(referenceModule,await can(request,state,referenceModule+'.view'));
-    if(allowed.get(referenceModule))references.push({...row,detailQuery:new URLSearchParams({scope,stage:row.stage,source:row.source,recordId:row.recordId||row.id,kind:row.kind}).toString(),resolveUrl:referenceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+referenceModule.toUpperCase()});
+    if(allowed.get(referenceModule))references.push({...row,detailQuery:new URLSearchParams({scope,stage:row.stage,source:row.source,recordId:row.recordId||row.id,kind:row.kind}).toString(),resolveUrl:referenceModule==='editor'?'/process/?system=process&view=editor':'/process/?system=process&view=data&dataTab='+(referenceModule==='lines'?'line-admin':referenceModule.toUpperCase())});
    }
   }
  }catch{/* Keep the deletion denied; unavailable authorization hides all details. */}

@@ -1,68 +1,60 @@
-# 製程平台新分支整合：範圍與未完成項目
+# 製程平台整合候選與完整需求矩陣
 
-基底 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`，新分支 `codex/process-platform-integration-20261110`。本次為新雲端工作副本；#101/#102 保持已關閉、未合併，來源分支保留。#103 帳號權限獨立工作，不帶入其程式。
+基底 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`；分支 `codex/process-platform-integration-20261110`；[Draft PR #104](https://github.com/franktsai0421/process-os-sites/pull/104)。本輪已從計數擴充至畫布存取、離頁、衝突、歷史查看及主資料頁草稿相依。**程式候選不等於整體實站驗收完成，維持 Draft，不合併、不部署。**
 
-**完整清單尚未完成，不能合併或部署。** 本輪先沿用可獨立確認的 #101 畫布計數成果，保留 main 已完成的其餘功能；沒有重新修理已驗過的舊功能。這份候選只有兩個產品檔：`editor-line-selection.js` 與它的 index cache tag。其他項目仍按下表列明，不能把盤點或舊版 PASS 說成新整合版驗收。
+## 來源與沿用界線
 
-## 來源分類與不重做原則
+- 已合併：#77 原子 Save、#96 歷史 helper、#99 工段類型、#100 無固定輪詢。保留 main 成果；新需求只取必要增量。
+- 舊測試站：使用者已說以前完成者不重做；缺少將所有20項綁到同一部署 SHA 的收據，因此不補造測試站 PASS。
+- 已沿用：#101 `e2591c6` 計數；`ec5b2eb` 畫布群組衝突／RAM表單、`8074589` 同頁類別切換、`14caf33` 當前畫布 Save、`59027b1` 無提示離頁、`1a147d9` Canvas 歷史、`d4a5ef9` 回草稿 fresh 權限；#102 固定 `55d4672cb8004d0b01715714cbc91fbce6b22d2b` 的主資料頁 writer／權限與核准來源依賴。逐項抽取，沒有整包套用舊分支。
+- 其他來源的精確 blob 與保全清單見 [branch inventory](process-platform-branch-inventory-20261110.json)。benchmark10檔、#99四檔與 main 相同，直接保留；preview 專用入口與 seed 不帶入。
+- #101/#102 保持關閉且未合併，來源分支保留。#103 帳密工作不帶入；本輪 `user-access` 僅為模組送審與最終核准的必要政策投影，不改密碼／登入API。
 
-| 分類 | 證據／本輪處置 |
-| --- | --- |
-| 已合併 | #77 原子存取 merge `2b58eae`、#96 未啟用歷史 helper merge `dc34874`、#99 工段類型 merge `021f0f3`、#100 無固定輪詢 merge `9fbba823` 已在 main；其產品檔不改寫 |
-| 舊測試站曾驗證 | 使用者表示以前有測試站驗證；現有交接與 PR 資料沒有足以將整份 20 項清單綁到某個 live URL／commit 的部署收據。本輪保留既有產品程式，不補造實站 PASS。舊 compiled／synthetic CI 明確只作其原版本證據 |
-| 舊分支可獨立沿用 | #101 `8f1f243` 中計數來源 commit `e2591c6fb70a01770d3c7ae12a6780c58c1fe6a3`；本輪 selector 檔逐 byte 相同，只組合自己的 cache tag 到最新 main，沒有恢復 #100 已移除的 4 秒輪詢 |
-| 舊分支仍待整合 | #102 `55d4672` 含 390 個 app/lib/public/scripts/tests 差異，混合多頁草稿、品質、帳號、歷史與來源證明；不能整包套用。完整畫布候選的本機交接含已知跨頁相依，必須逐項抽取完整依賴 |
-| 新需求尚未驗證 | 最新 main + 本輪計數以外的整體新候選尚不存在；完整多人、歷史、分頁、BOM/IPQC、真實效能與實站驗收不可引用舊 PASS 代替 |
+## 完整20項核對
 
-## 其他製程分支的保全核對
+需求來源：[固定完整清單](https://github.com/franktsai0421/process-os-sites/blob/55d4672cb8004d0b01715714cbc91fbce6b22d2b/docs/acceptance/process-editor-complete-20261109.md)、[PROCESS_EDITOR](../specs/current/PROCESS_EDITOR.md) 與最新使用者指示。
 
-精確 SHA／blob 比對在 [branch inventory](process-platform-branch-inventory-20261110.json)。benchmark 補充的 10 個腳本／測試及 #99 的 4 個程式／測試檔與 main 逐 byte 相同，不重做。舊 preview 自身 27 個程式／測試路徑中，11 個與 main 現況相同，24 個的原 blob 已在 main 歷史；其餘三個是預覽專用 title/i18n 標示與啟動合成資料腳本。已唯讀確認 i18n 與 main 只差標題的「流程資料驗收副本 CLOUD 29102026」前綴；index 是獨立驗收入口，launcher 只建立合成 fixture。本輪不將預覽入口或 seed 帶入平台，也不刪除其來源。其他已是 main 祖先的原子存取、local Save、bounded-writes-clean、fullflow、portable save response 直接保留；原始非 portable 分支尚不以名稱或 diverged 狀態推定可刪除。
-
-## 完整目標、相依、風險與驗證矩陣
-
-需求來源：[固定 55d 完整清單](https://github.com/franktsai0421/process-os-sites/blob/55d4672cb8004d0b01715714cbc91fbce6b22d2b/docs/acceptance/process-editor-complete-20261109.md)、[PROCESS_EDITOR](../specs/current/PROCESS_EDITOR.md) 及使用者最新指示。下列沿用 main 表示程式未改，不表示本輪重新驗收。
-
-| 目標 | 本輪結果 | 必要後續／風險 |
+| # | 需求 | 本輪狀態與驗證界線 |
 | --- | --- | --- |
-| 1 工段橫向畫布、搜尋、縮放、全螢幕 | 沿用 main | 桌面／手機互動，完整流程只能調視角 |
-| 2 新增、拖曳、平移、連線、產品高亮 | 沿用 main | 手勢／照片／端點誤觸與跨線別來源 |
-| 3 類型適用分頁、隱藏舊資料保留 | 沿用 main | 不能以隱藏 UI 刪資料；新增工段類型沿用 #99 |
-| 4 雙語卡片、作業文字及本方塊照片 | 沿用 main | 長名稱、共用／產品媒體來源及讀失敗重試 |
-| 5 連線規則、刪除影響、自動整理 | 沿用 main；舊候選有刪除相依群組增量待抽取 | BOM、入出邊、刪除與同 ID 競態須一起測 |
-| 6 編輯視窗、跨分頁輸入、Apply 後明確 Save | 沿用 main | 原生 IME／輸入、Apply 與伺服器保存不可混為一談 |
-| 7 產品與跨工段 BOM 唯一性 | 沿用 main | 真正 handler 的引用、權限、重複占用與多人 CAS |
-| 8 IPQC 占用及機器線別工段篩選 | 沿用 main | 不改品質／機器主檔；跨頁來源與權限仍需完整流程 |
-| 9 主資料先顯示、輔助失敗不誤報空流程 | 沿用 main | 冷啟動、失敗重試及舊快取 |
-| 10 篩選補空工段不誤判 dirty／不阻擋離頁 | 待整合舊畫布成果 | 需和新 shared client／navigation 語意一起核對；40 秒原因未查明 |
-| 11 切頁／線別／工段直接放棄未送修改 | main 有部分；舊候選後續 changeCanvasView 待整合 | 必須保留已送 UNKNOWN／原收據，不能把一般 RAM 放棄當取消保存 |
-| 12 單一 Save 保存當前畫布、保留其他已存畫布 | #77 核心保留；舊候選 scoped/filter 保留增量待整合 | 同頁篩選不是新模組，送審仍整份已存製程；檢查跨畫布 journal |
-| 13 fresh 比較、整組我的／對方、無衝突保留 | 舊 ec5b2eb／後續成果待抽取 | 節點刪除、新邊、撞號、peer 再修改及 revision/CAS／UNKNOWN |
-| 14 取消固定輪詢／多餘恢復／undo redo | #100 保留；舊畫布入口清理增量待整合 | 不移除必要權限 fresh 核對及原結果查詢；不得帶回舊 count 分支輪詢 |
-| 15 類別 defaultStages 決定畫布 | 沿用 main | C/GIA CONG 真實類別、明確空設定、legacy fallback 未重新實站驗收 |
-| 16 核准新工段與流程類型、機器連動 | #99 保留 | 先工段核准再引用；不能複製別工段機器；page-v1 writer 相依另核對 |
-| 17 製程與主資料頁草稿／權限分離 | #102 page-v1 相依待整合 | 不混入 #103 帳密修復；沒有啟用標記、遷移真資料或授予真人權限 |
-| 18 送審／撤回／核准權限分開 | main 防護保留；新頁規則待整合 | 固定 saved 快照、pending/CAS、核准不可撤回、前後端一致 |
-| 19 原頁選核准版本只讀、切回草稿 | #96 helper 已在 main；完整 API／selector／display fences 待整合 | UNKNOWN32 包含後續 PROCESS history 重繪修復，不能用舊 baseline 宣稱最新完整通過 |
-| 20 Save 後流程數及速度 | **已沿用 #101 計數**；本機／新 CI 定向驗證 | 只計 allowed category stages 的目前 V2 投影；效能未量測，>5 秒優化、>10 秒優先 |
+| 1 | 橫向工段、搜尋、縮放、全螢幕 | 沿用 main；原生桌面／手機待驗 |
+| 2 | 新增、拖曳、平移、連線、高亮 | 沿用 main；新增衝突／刪除依賴回歸；手勢命中待驗 |
+| 3 | 類型適用分頁及隱藏舊資料 | 保留 main/#99，不因隱藏刪資料；完整UI待驗 |
+| 4 | 雙語卡片、文字、本方塊照片 | 保留原實作；合成表單與照片 guard 回歸，IME／實際照片待驗 |
+| 5 | 連線、刪除影響、自動整理 | 納入刪除節點與新邊整組相依；合成競態通過，原生排列待驗 |
+| 6 | 編輯視窗、跨分頁輸入、Apply/Save | 未送表單與 journal 為 RAM；明確 Save；晚到表單／離頁回歸通過 |
+| 7 | BOM唯一性／跨工段 | 保留 main handler 與最終 Save驗證；不另改BOM資料模型；真實兩人流程待驗 |
+| 8 | IPQC占用及機器來源 | 保留 main/已核准來源；新頁主檔只能引用正式工段；實站待驗 |
+| 9 | 主內容先顯示、失敗不當空流程 | 保留 main；不把空scaffold當dirty；冷啟動與讀失敗實站待驗 |
+| 10 | 空工段不誤判dirty | 新增實際controller回歸：系統補空不是修改；真增刪仍dirty；40秒原因未量測 |
+| 11 | 切頁／線／工段直接放棄未存 | 已整合 silent checked departure；不提示、不自存；保留已送UNKNOWN及原結果查詢 |
+| 12 | 一鍵Save當前畫布、保留其他已存 | 已整合 scope filter，節點／內容／連線同存；同頁類別保留其他journal；整份已存製程送審 |
+| 13 | fresh比較、整組我的／對方 | 已整合群組選擇、無衝突保留、刪除／連線／同ID／選擇中peer改版；revision/CAS保留 |
+| 14 | 取消輪詢、恢復、undo/redo | 保留#100；移除畫布多餘入口與未送恢復；必要權限fresh與已送結果查詢保留 |
+| 15 | 類別defaultStages | 沿用 main 的核准類別優先與legacy fallback；明確空設定及C/GIA CONG實站待驗 |
+| 16 | 核准工段類型與機器連動 | 保留#99；新增主資料頁來源核對，草稿工段不可冒充正式；新工段到類別全流程待驗 |
+| 17 | 各頁草稿與權限分離 | 納入 AB.catalog／C.catalog／LINES API、UI、Save、import/export與CAS；只接受已存在可信page-v1；未啟用或遷移真資料 |
+| 18 | 送審／撤回／核准分開 | 納入draft-review-policy：模組submit/withdraw與最終approval分離；return修正可退回本人案件、自己的最終核准仍受限制；可信政策標記未開 |
+| 19 | 原頁核准版本只讀、回草稿 | Canvas及新AB/C/LINES已接selector、唯讀快照、actor/revision/late-display fence、回草稿fresh權限；PROCESS主資料後續重繪修復受原UNKNOWN32阻擋，其他頁不宣稱完成 |
+| 20 | Save後計數與效能 | #101可見CanvasJournal投影計數；實際selector測試通過；真實進頁／切頁／Save/Submit效能未量測，>5秒優化、>10秒優先 |
 
-## 本輪計數實作與來源
+## 相依與安全邊界
 
-舊 header 使用 held `editorByCategory`，Save 後 V2 卡片已使用更新的 CanvasJournal projection，導致數字落後。本輪直接沿用原修正，頁首與卡片按同樣可見工段投影計數；不寫資料、不存取、不查其他工段、不改 journal。中文／越文及 legacy／V2 未載入保留原行為。
+新主資料頁保留已核准catalog／topology各自來源、版本ID與不可變Save；LINES覆蓋AB/C兩個partition，catalog不擁有lines。舊pending不自動丟棄，未完成處理則拒絕切換。一般shared-state寫入不能初始化或覆寫managed layout；既有legacy operation receipt仍由原owner查詢。public state只投影已核准內容並先驗來源，隱藏新舊私有草稿。新頁寫入在R2後／CAS前再次檢查session，其他頁既有kernel行為保留。
 
-新來源證明保留 main #100 的所有 background contract hashes、Rules 和舊前身；只允許精確的新 index 反向移除本計數 tag，再進入原無輪詢／Routine 來源驗證。非 Buffer、回退、部分 tag 或任何非精確 byte 均不能被當成已知 successor。來源 helper 不執行或恢復舊產品程式。定向 CI 與既有 CI 均保留，沒有修改原 UNKNOWN32 的 workflow 或測試修復。
+`page-v1` 和draft review可信標記皆未設定；沒有schema、DB/R2、真人ACL、備份還原或部署操作。即使程式齊備，現有正式資料仍需獨立唯讀盤點、pending/UNKNOWN分類、保全及經授權切換，不能用query/env/一般POST啟用。例行FQC整頁與其歷史／照片UNKNOWN屬更廣跨模組相依，本輪不複製舊候選已知缺陷，也不宣稱13頁全生命周期完成。
 
-## 原 UNKNOWN32 阻擋與外部操作
+## UNKNOWN操作仍未重送
 
-原操作 `github.create_tree`：base tree `d52e44319e6453a45bf9db8b0ff66d3f0c0ebec9`，expected tree `5005cba09d970cec70334d6bd540db1b599858d2`，32 paths。歷史工具在約 4789 秒後由使用者中斷；沒有後續 create_commit/update_ref。舊讀回 422，本輪唯讀 GET tree 再回 404；仍不是原操作「確定沒執行」的證據。**狀態 UNKNOWN，沒有重送、拆分、換工具或建立重疊替代上傳。** 另有 243-path 及設備歷史限制，本輪沒有重試。
+原32-path `github.create_tree` base `d52e44319e6453a45bf9db8b0ff66d3f0c0ebec9`，expected `5005cba09d970cec70334d6bd540db1b599858d2`，約4789秒後中斷；讀回422／404不能證明沒執行，仍為UNKNOWN。未重試、拆分、換工具重送；舊243-path及設備拒絕也未重試。
 
-本輪與該 32 檔只有 `public/process/index.html` 路徑相交：只改 `editor-line-selection.js` 的計數資源 tag。沒有帶入該批 app.js、version-draft-ui.js、PROCESS history 重繪、role fixtures、source-proof helper 或其 workflow 內容。這是已確認遠端 #101 的獨立成果，不是舊 UNKNOWN 操作的替代重送。
+路徑相交須區分：index只組合本次獨立模組／計數tag；version-draft-ui只有generic mount callback，Canvas及新主資料歷史使用獨立 `ProcessCanvasHistory`，沒有帶入原UNKNOWN32的PROCESS owner/prepareRender/app.js重繪修復。scripts-build僅驗本次main50→55實際bundle及單次載入，沒有重送原62檔fixture修復。role fixtures／舊proof修復未套用。新proof以遠端已確認#104前身tree `8eff928e54b9da8d483e8084fabc7ef1bdcea82c` 做精確逆向，main原pins及負向測試保留。
 
-新分支建立成功。新 Draft PR、上傳與 CI 必須以本次實際外部收據為準；完整整合仍受上述相依與 UNKNOWN 限制。未重開、刪除、合併 #101/#102；未改 #103；無部署、DB/R2、schema、資料包或真人帳號操作。
+## 驗證與剩餘項目
 
-## 驗證狀態
+本機當前畫布核心510案例PASS；核准歷史／頁權限／保存快照／腳本組合83案例PASS；主資料邊界、name Save、真正route SQLite/MapR2、UI、工具、public authority及review回歸逐腳本PASS。main原legacy橋接逐byte保留，199個既有橋接／保存／權限回歸全通過。測試組有重疊，不相加成覆蓋率。最終來源156案例PASS，lint及非增量TypeScript PASS。最終guarded build在真實本機e90efc7cdad9bb8835127daa8f7d9d070a42f8d9回exit0，postbuild auth boundary PASS；後續只有文件收據修改，產品輸入相同。GitHub CI依遠端新HEAD另核對。另20個跨模組合成回歸及12個權限政策案例PASS。
 
-PASS：113 個定向 VM／來源／導覽／無輪詢案例，含原 #101 四個實際 selector＋CanvasJournal 計數案例、3 個新精確組合負向測試、原 background/Routine/reporting pins；既有線別選擇腳本 PASS。lint 0 findings、非增量 TypeScript 0 diagnostics、diff whitespace PASS。來源歷史預檢在 bc0fe0e 檢查 605 commits／5,329 unique blobs／2,015 working files，PASS；最後候選另以實際預檢收據核對。guarded build 在真實本機 commit 8c8ba548204fc199a9b05853cd0a69ae3866e044 回 exit 0，postbuild auth boundary PASS；其產品來源與最後文件候選相同，但不稱為遠端新 HEAD build。前次以縮寫 SHA 啟動在編譯前被既有 guard 正常拒絕，後續改為完整真 SHA，沒有改 guard。
+依賴為相同lockfile的實體副本，沒有聲稱全新安裝。synthetic DOM不是原生瀏覽器；SQLite/R2為合成記憶體。擴大回歸誤選含原生Chromium的IPQC scope測試，9案例被既有socket/ptrace限制阻擋；該原生組停止，未換路重試。其餘20個合成案例另組全數通過，不能用它們抵銷原生未完成。
 
-定向 VM／來源檢查只驗證上述計數與組合；依賴重用相同 lockfile 的實體副本，不是全新 npm 安裝驗收。各組有重疊，不相加為覆蓋率。沒有重試既有原生 socket 限制。
+剩餘：PROCESS主資料UNKNOWN32修復、跨模組整頁相依、可信資料切換、原生桌面／實體iPhone／IME／兩人測試站、C/GIA CONG真實生命周期及效能。完整發布狀態仍NOT_READY。#104保持Draft，無合併部署。
 
-NOT_RUN：原生桌面、實體 iPhone／IME、實站兩位使用者、完整 20 項新整合候選、C/GIA CONG 真資料生命週期、進頁／切頁／Save／Submit 的真實資料效能與部署驗收。
+本輪自動審查曾拒絕恢復舊pollMaster排程內容（操作未執行，原因為可能恢復固定輪詢）。採取安全替代：直接移除排程及所有啟動／重置呼叫，實際測試改為明確要求排程不存在；既有無輪詢inventory及固定前身負向來源pins保留，沒有重送被拒排程。

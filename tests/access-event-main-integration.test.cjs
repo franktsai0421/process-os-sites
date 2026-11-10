@@ -14,6 +14,8 @@ const cRoute='app/api/ipqc-c/workflow/route.ts';
 const checkoutLF=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
 const canonicalSource=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'Reporting proof requires raw source bytes');assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
 const readSource=file=>canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));
+// Validate current bytes with the exact new inverse, then test unchanged historical pins.
+const readMasterSafetySource=()=>require('../scripts/process-platform-canvas-contract.cjs').restorePredecessor(readSource(masterRoute.file),masterRoute.file);
 const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
@@ -35,8 +37,8 @@ const main={
   "app/api/master/workflow/route.ts": "e59302315b30f2e2bce1d47ea6d6ea4f9d7228babaa0ddfc23267fee90ec2de8"
 };
 for(const [file,pinned]of Object.entries(main))void test('preserves merged main safety bytes: '+file,()=>assert.equal(hash(project(readSource(file),file)),pinned));
-void test('master successor attests current raw bytes before restoring the unchanged complete historical pin',()=>{
- const bytes=readSource(masterRoute.file),untouched=Buffer.from(bytes);
+void test('verified #104 preimage retains master raw bytes before restoring the unchanged complete historical pin',()=>{
+ const bytes=readMasterSafetySource(),untouched=Buffer.from(bytes);
  masterRoute.assertMasterRouteSuccessor(bytes,masterRoute.file);
  assert.equal(bytes.length,5829);assert.equal(hash(bytes),'ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f');
  const prior=masterRoute.restoreMasterRoutePredecessor(bytes,masterRoute.file);
@@ -48,7 +50,7 @@ void test('master successor attests current raw bytes before restoring the uncha
  assert.deepEqual(project(bytes,'public/process/shared-draft-client.js'),bytes,'master inverse never dispatches for another file');
 });
 void test('master successor rejects wrong paths, non-Buffer inputs, EOL drift and every single-byte drift',()=>{
- const bytes=readSource(masterRoute.file),reject=source=>assert.throws(()=>project(source,masterRoute.file),/pinned/);
+ const bytes=readMasterSafetySource(),reject=source=>assert.throws(()=>project(source,masterRoute.file),/pinned/);
  for(const path of [cRoute,'./'+masterRoute.file,masterRoute.file.toUpperCase(),undefined])assert.throws(()=>masterRoute.restoreMasterRoutePredecessor(bytes,path),/wrong file/);
  for(const source of [bytes.toString(),new Uint8Array(bytes),null]){
   assert.throws(()=>masterRoute.assertMasterRouteSuccessor(source,masterRoute.file),/raw source bytes/);
@@ -59,7 +61,7 @@ void test('master successor rejects wrong paths, non-Buffer inputs, EOL drift an
  for(let offset=0;offset<bytes.length;offset++){const altered=Buffer.from(bytes);altered[offset]^=1;reject(altered);}
 });
 void test('master successor rejects missing, partial, repeated and moved spans and authority changes',()=>{
- const bytes=readSource(masterRoute.file),text=bytes.toString(),changed=[];
+ const bytes=readMasterSafetySource(),text=bytes.toString(),changed=[];
  for(const rule of masterRoute.rules){
   const span=Buffer.from(rule.after),start=bytes.subarray(0,rule.offset),end=bytes.subarray(rule.offset+span.length);
   changed.push(Buffer.concat([start,Buffer.from(rule.before),end]),Buffer.concat([start,span,span,end]),Buffer.concat([start,span.subarray(1),span.subarray(0,1),end]));
@@ -76,8 +78,8 @@ void test('master successor rejects missing, partial, repeated and moved spans a
  ]){assert(text.includes(from),from);changed.push(Buffer.from(text.replace(from,to)));}
  for(const source of changed){assert.notDeepEqual(source,bytes);assert.throws(()=>project(source,masterRoute.file),/pinned/);}
 });
-void test('master successor proof rejects corrupted fixed offsets, spans, lengths and predecessor hash',()=>{
- const bytes=readSource(masterRoute.file),code=fs.readFileSync('scripts/master-route-successor-source-contract.cjs','utf8');
+void test('verified #104 preimage master proof rejects corrupted fixed offsets, spans, lengths and predecessor hash',()=>{
+ const bytes=readMasterSafetySource(),code=fs.readFileSync('scripts/master-route-successor-source-contract.cjs','utf8');
  assert(Object.isFrozen(masterRoute)&&Object.isFrozen(masterRoute.rules)&&masterRoute.rules.every(Object.isFrozen));
  for(const [from,to,message]of [
   ['offset:740','offset:741',/source span/],['offset:4822','offset:4821',/source span/],['offset:5220','offset:5221',/source span/],

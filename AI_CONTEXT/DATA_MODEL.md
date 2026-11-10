@@ -1,3 +1,7 @@
+## 2026-11-10 — Independent process/master-page candidate
+
+No SQL schema or migration runs. Canvas retains the existing process:platform workflow, immutable whole saved snapshot and original UNKNOWN receipts; only unsent overlays/forms are RAM-only. Candidate masterDataControl page-v1 uses independent AB.catalog, C.catalog and LINES owners, each with its own approved version/workflow. LINES owns both AB/C topology partitions; catalog owners exclude lines. Compatibility/public projections resolve original approved owner IDs before omitting private workflows. A trusted existing processAccessControl.draftReviewPolicy=page-v1 separates module submit/correction from high approval; absent marker keeps legacy projection, invalid provenance fails closed. No real marker, ACL, baseline, archive or data cutover was created. [Scope and unresolved acceptance](../docs/acceptance/process-platform-integration-20261110.md).
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。

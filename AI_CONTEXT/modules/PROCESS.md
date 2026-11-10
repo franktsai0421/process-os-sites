@@ -1,6 +1,6 @@
 # 2026-11-10 process integration candidate
 
-The editor header counts the same allowed-stage CanvasJournal projection as V2 cards. Its source is reused byte-for-byte from #101 e2591c6, with only its own cache tag applied on main #100; saved/local additions and removals therefore appear immediately without replacing the held editor copy. [Integration matrix](../../docs/acceptance/process-platform-integration-20261110.md) distinguishes this narrow implementation from the unfinished full draft/history target.
+#104 now includes scoped Canvas Save, grouped fresh conflicts, silent departure, RAM-only unsent forms, scaffold-aware dirty checks, projected counts and same-page approved history. AB/C catalog and LINES page-owner APIs/UI, approved provenance and separate review policy are included behind existing trusted-data markers; no marker, ACL or real-data cutover was activated. Actual runtime tests cover session/revision/display/UNKNOWN fences. [Complete matrix and remaining blockers](../../docs/acceptance/process-platform-integration-20261110.md). Historical synchronization/recovery requirements below are superseded by current confirmed requirements. No #103 password changes or merge/deployment.
 
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 

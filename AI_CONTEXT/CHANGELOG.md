@@ -1,3 +1,7 @@
+## 2026-11-10 — Process platform integration Draft #104
+
+Integrated scoped Canvas Save, grouped fresh conflicts, silent unsent departure, scaffold-aware dirty state, projected counts and same-page approved Canvas history. Added independent AB/C catalog and LINES writer/UI dependencies, immutable approved-source validation and separate review-policy projection behind trusted stored markers. Kept main no-poll behavior and prior branch sources; no #103 password/Feedback policy changes, real migration or publication. [Twenty-item implementation/acceptance matrix](../docs/acceptance/process-platform-integration-20261110.md) records the remaining UNKNOWN32, cross-module, native, staging and performance blockers.
+
 ## 2026-11-09 — Retire periodic web checks
 
 Source candidate stops shared draft/master polling and direct process/reference/effective-version/history permission timers. Entry and explicit operations retain fresh permissions/CAS/original receipt checks. [Scope and validation boundary](../docs/acceptance/global-background-checks-20261109.md).
