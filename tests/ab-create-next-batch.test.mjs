@@ -60,7 +60,10 @@ for (const kind of ['item', 'error'])
     await s.peer('methodText', 'Peer');
     const before = s.f.snapshot();
     await s.apiSave();
-    assert.equal(writes(s)[0].status, 409);
+    assert.equal(writes(s).length, 0, 'comparison stops before create allocation or Save');
+    await s.page.locator('[data-ab-conflict]').waitFor();
+    await s.page.locator('[data-ab-conflict-choice="cancel"]').click();
+    await s.page.waitForFunction(() => !__ABTest.view().busy && !document.querySelector('[data-ab-conflict]'));
     assert.deepEqual(s.f.snapshot(), before);
     await sameLocal(s, local);
     assert.equal((await s.entry()).base.items[0].methodText, 'Initial method');

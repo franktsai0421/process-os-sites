@@ -49,6 +49,7 @@ jobs:
           tests/ipqc-c-save-choices-actual-stack.test.mjs tests/ipqc-c-structural-save-actual-stack.test.mjs
           tests/bom-save-actual-handler-controller.test.mjs tests/bom-save-choice-controller.test.mjs
           tests/equipment-save-choice.test.mjs tests/canvas-save-conflict-choice.test.mjs
+          tests/canvas-pending-form-admission.test.mjs tests/process-ipqc-source-adopt.test.mjs
           tests/tooling-save-only-files.test.mjs tests/routine-fqc-durable-route.test.mjs tests/routine-fqc-content-validator.test.mjs
       - name: Same-page input retention
         run: >-

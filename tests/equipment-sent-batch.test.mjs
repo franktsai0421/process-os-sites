@@ -210,7 +210,16 @@ void test('known pre-CAS Save rejection retains original base through recheck an
 void test('retained add drawer uses explicit delivery gate without applying its DOM inputs',async()=>{const f=await fixture({hold:''});f.p.openAddEquipmentDialog();const input=f.host.querySelector('#routine-add-name');input.value='private new name';input.dispatchEvent({type:'input',target:input});const form=f.p.form;f.mutate('delivery');await f.p.writeShared('save');const retry=f.host.querySelector('#routine-load-retry');assert(retry);retry.click();await tick();await tick();assert.equal(f.p.form,form);assert.equal(f.host.querySelector('#routine-add-name').value,'private new name');assert.equal(f.posts().length,0);assert.equal(f.calls.filter(x=>x.method==='GET').length,2);});
 
 void test('pre-existing drawer retry button cannot use old renewal flow to bypass changed delivery gate',async()=>{const f=await fixture({hold:''});f.p.openAddEquipmentDialog();const input=f.host.querySelector('#routine-add-name');input.value='retained drawer';input.dispatchEvent({type:'input',target:input});f.setFailRead();await assert.rejects(f.p.read());f.p.render();const retry=f.host.querySelector('#routine-load-retry');assert(retry);const start=f.calls.length;f.setFailRead(false);f.mutate('delivery');retry.click();await tick();await tick();assert.equal(f.p.unavailable,false);assert.equal(f.p.form.name,'retained drawer');assert.equal(f.calls.length-start,2);assert.equal(f.calls.slice(start).some(x=>String(x.url).includes('shared-state')),false);assert.equal(f.posts().length,0);});
-void test('later same-owner typing during explicit delivery recheck remains latest RAM, never part of its GET',async()=>{const f=await fixture({hold:'GET'});const input=f.type('before');f.mutate('delivery');const pending=f.p.read(false,true);await f.waiting;input.value='during read';input.oninput();f.release();await pending;assert.equal(f.p.working.issues[0].resolution,'during read');assert.equal(f.p.base.issues[0].resolution,'');assert.equal(f.posts().length,0);});
+void test('explicit delivery recheck quarantines detached input, preserves RAM and resumes only live same-owner typing',async()=>{
+ const f=await fixture({hold:'GET'}),input=f.type('before'),local=f.p.working,base=f.p.base;
+ f.mutate('delivery');const pending=f.p.read(false,true);await f.waiting;
+ // Recheck renders the quarantine view. A detached event is not new user input.
+ assert.equal(input.isConnected,false);assert.equal(f.host.querySelector('[data-issue-result]'),null);
+ input.value='stale detached event';input.oninput();assert.equal(f.p.working.issues[0].resolution,'before');
+ f.release();await pending;assert.equal(f.p.working,local);assert.equal(f.p.base,base);
+ f.p.render();const current=f.type('after recheck');assert.equal(current.isConnected,true);assert.notEqual(current,input);
+ input.oninput();assert.equal(f.p.working.issues[0].resolution,'after recheck');assert.equal(f.p.base.issues[0].resolution,'');assert.equal(f.posts().length,0);
+});
 
 for(const kind of ['tab','disconnect'])void test('late explicit recheck after '+kind+' cannot admit detached or repurposed target',async()=>{const f=await fixture({hold:'GET'});f.type('mine');f.mutate('delivery');const pending=f.p.read(false,true);await f.waiting;f.mutate(kind);f.release();await assert.rejects(pending,/DELIVERY/);await f.explicitSave();assert.equal(f.posts().length,0);assert.equal(f.p.revision,10);assert.equal(f.p.working.issues[0].resolution,'mine');});
 

@@ -12,7 +12,8 @@ async function editError(s,name){
 }
 async function save(s){
  await s.page.locator('#fqc-save').click();
- await s.page.waitForFunction(()=>!window.sharedDraftAccountState().queued);
+ // Compare reads precede transport queueing; wait for the UI operation too.
+ await s.page.waitForFunction(()=>document.querySelector('#fqc-save')&&document.querySelector('#fqc-save').textContent!=='儲存中…'&&document.querySelector('#fqc-save').textContent!=='Đang lưu…'&&!window.sharedDraftAccountState().queued);
 }
 for(const [width,lang] of [[390,'zh'],[1280,'vi']])void test(`FQC local form and filtered matrix save once ${width}px ${lang}`,async t=>{
  const s=await setup(width,lang);try{
@@ -129,18 +130,21 @@ void test('completed local edits and matrix leave silently without writing or re
  }finally{await s.close();}
 });
 
-void test('true field conflict requires confirmation and a separate Save preserves unrelated edits',async()=>{
+for(const choice of ['mine','theirs'])void test(`true field conflict cancels without writes then ${choice} continues the same Save with unrelated edits`,async()=>{
  const s=await setup();try{
   s.page.setDefaultTimeout(10000);await editError(s,'My desired name');
   const other=s.f.realm('other');await other.client.read();const generation=(await s.f.state()).workflow.generation;
   await other.client.command(generation,'apply',{patches:[{op:'set',path:['errors',{id:'error'},'name'],value:'Other name'},{op:'set',path:['items',{id:'item'},'description'],value:'Other description'}],guards:[{path:['errors',{id:'error'},'name'],value:'Synthetic error'},{path:['items',{id:'item'},'description'],value:'Synthetic description'}]});
-  await save(s);await s.page.locator('#fqc-resolve-conflict').waitFor();assert.equal(await s.page.evaluate(()=>window.sharedDraftAccountState().unknown),false);const before=posts(s.f).length;
-  let consent=false,confirmations=0;s.page.removeAllListeners('dialog');s.page.on('dialog',dialog=>{assert.equal(dialog.type(),'confirm');assert.match(dialog.message(),/Other name/);assert.match(dialog.message(),/My desired name/);confirmations++;void(consent?dialog.accept():dialog.dismiss());});
-  const cancelButton=await s.page.locator('#fqc-resolve-conflict').elementHandle();await cancelButton.click();await s.page.waitForFunction(button=>!button.isConnected,cancelButton);
+  const before=posts(s.f).length;
+  await s.page.locator('#fqc-save').click();await s.page.locator('[data-fqc-save-choice="cancel"]').waitFor();
+  assert.equal(await s.page.evaluate(()=>window.sharedDraftAccountState().unknown),false);assert.equal(posts(s.f).length,before);
+  await s.page.locator('[data-fqc-save-choice="cancel"]').click();
+  await s.page.waitForFunction(()=>document.querySelector('#fqc-save')&&document.querySelector('#fqc-save').textContent!=='儲存中…'&&document.querySelector('#fqc-save').textContent!=='Đang lưu…');
   assert.equal((await s.f.state()).workflow.working.errors[0].name,'Other name');assert.equal(posts(s.f).length,before);
-  consent=true;await s.page.locator('#fqc-resolve-conflict').click();await s.page.waitForFunction(()=>!document.querySelector('#fqc-resolve-conflict'));
-  assert.equal(posts(s.f).length,before);assert.equal((await s.f.state()).workflow.working.errors[0].name,'Other name');
-  await save(s);const flow=(await s.f.state()).workflow;assert.equal(flow.saved.content.errors[0].name,'My desired name');assert.equal(flow.saved.content.items[0].description,'Other description');assert.equal(posts(s.f).length,before+1);assert.equal(confirmations,2);assert.deepEqual(s.errors,[]);
+  assert.equal(await s.page.evaluate(()=>window.FQCMasterUI.control.libraries.fqc.versions.find(row=>row.status==='draft').snapshot.errors[0].name),'My desired name');
+  await s.page.locator('#fqc-save').click();await s.page.locator(`[data-fqc-save-choice="${choice}"]`).click();
+  await s.page.waitForFunction(()=>document.querySelector('#fqc-save')&&document.querySelector('#fqc-save').textContent!=='儲存中…'&&document.querySelector('#fqc-save').textContent!=='Đang lưu…'&&!window.sharedDraftAccountState().queued);
+  const flow=(await s.f.state()).workflow;assert.equal(flow.saved.content.errors[0].name,choice==='mine'?'My desired name':'Other name');assert.equal(flow.saved.content.items[0].description,'Other description');assert.equal(posts(s.f).length,before+1);assert.deepEqual(s.errors,[]);
  }finally{await s.close();}
 });
 

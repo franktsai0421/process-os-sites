@@ -63,7 +63,10 @@ void test('peer edit in an unsent field remains an original guard and conflictin
   await s.peer('methodText', 'Peer method');
   const server = s.f.snapshot();
   await s.apiSave();
-  assert.equal(writes(s).at(-1).status, 409);
+  assert.equal(writes(s).length, 0, 'true conflict is compared before POST');
+  await s.page.locator('[data-ab-conflict]').waitFor();
+  await s.page.locator('[data-ab-conflict-choice="cancel"]').click();
+  await s.page.waitForFunction(() => !__ABTest.view().busy && !document.querySelector('[data-ab-conflict]'));
   assert.deepEqual(s.f.snapshot(), server);
   assert.deepEqual((await s.entry()).base, original.base);
   assert.equal((await s.entry()).snapshot.items[0].methodText, 'Own method');
@@ -71,14 +74,8 @@ void test('peer edit in an unsent field remains an original guard and conflictin
     (await s.group()).control.workflow.working.items[0].methodText,
     'Peer method',
   );
-  const scopes = writes(s)[0].body.command.input.scopes;
-  assert(
-    scopes[0].changes.some((c) =>
-      c.guards?.some(
-        (g) => g.path[2] === 'methodText' && g.value === 'Initial method',
-      ),
-    ),
-  );
+  assert.equal((await s.entry()).base.items[0].methodText, 'Initial method', 'cancel preserves the original comparison guard');
+  assert.equal(writes(s).length, 0);
   s.cleanErrors();
 });
 void test('read and polling preserve the local snapshot and original comparison base', async (t) => {

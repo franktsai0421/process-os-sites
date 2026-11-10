@@ -57,11 +57,15 @@ async function check(name,fn){await fn();results.push({name,status:'PASS'});cons
   await run('PROCESS','a','apply',fixtureSetGuards((await get('PROCESS','a')).control.workflow.working,[{op:'set',path:['A-CUT',{id:'A-CUTmanual'},'name'],value:'Tên quy trình mới'}]));const saved=(await run('PROCESS','a','save')).control.workflow.saved;
   const pending=await run('PROCESS','a','submit',{savedId:saved.id,reason:'Sửa mẫu'});const before=await core.readState();await run('PROCESS','reviewer','approve',{caseId:pending.receipt.caseId});const after=await core.readState();assert.equal(after.revision,before.revision+1);const root=JSON.parse(after.values.masterDataControl);assert.deepEqual(JSON.parse(after.values.processMasterData),root.active.PROCESS);assert.equal(root.active.PROCESS['A-CUT'][1].name,'Tên quy trình mới');
  });
- await check('master partial T17/T23/T45 direct cross-scope collision and restore preview enforce server permissions',async()=>{
+ await check('master partial T17/T23/T45 direct cross-scope collision and retired restore preview preserve state',async()=>{
   const before=await core.readState();const duplicate=await send('AB','a',{command:await command('AB','a','apply',{patches:[{op:'insert',path:['products'],value:{id:'attempt-C1',code:'C1',name:'duplicate',line:'A',category:'G',stages:['A-CUT']}}]})});assert.equal(duplicate.status,409);assert.equal(duplicate.body.error,'PRODUCT_CODE_USED_IN_OTHER_SCOPE');assert.equal((await core.readState()).revision,before.revision);
   const saved=JSON.parse((await core.readState()).values.masterDataControl).workflowScopes.AB.saves[0];
-  const denied=await api.GET(new Request(url('AB')+'&restoreSaveId='+saved.id,{headers:sessions.a}));assert.equal(denied.status,403);
-  const allowed=await api.GET(new Request(url('AB')+'&restoreSaveId='+saved.id,{headers:sessions.admin}));assert.equal(allowed.status,200);
+  const preserved=await core.readState(),priorObjects=[...objects];
+  for(const who of ['a','admin']){
+   const preview=await api.GET(new Request(url('AB')+'&restoreSaveId='+saved.id,{headers:sessions[who]}));
+   assert.equal(preview.status,422);assert.deepEqual(await preview.json(),{error:'DRAFT_RESTORE_NOT_SUPPORTED'});
+  }
+  assert.deepEqual(await core.readState(),preserved,'retired preview must preserve all shared values and history');assert.deepEqual([...objects],priorObjects,'retired preview cannot write immutable data');
  });
  await check('T45 used stage blocks even combined route cleanup; no mutation',async()=>{
   const state=await core.readState(),working=(await get('AB','admin')).control.workflow.working,stagePath=['lines',{id:'lines:A'},'stages',{id:'stage:A-CUT'}];
