@@ -101,3 +101,16 @@ void test('view denial retires an undispatched Save choice without POST, retaini
 });
 
 void test('integrated IQC staged File/blob survives approved history/current without PUT, then original File uploads once on Save',async t=>{const h=await fixture(t);browserPorts(h);await photoRoute(h);const form=openPart(h),input=form.querySelector('#iqc-part-file'),file=tinyPNG();input.files=[file];await input.onchange({target:input});await apply(form);const before=h.retain(),puts=()=>h.requests.filter(r=>r.method==='PUT');assert.equal(puts().length,0);await h.open();await h.choose('legacy-21');await h.choose('');assert.equal(h.retain(),before);assert.equal(puts().length,0);await h.probe.post('save');assert.equal(puts().length,1);assert.equal(puts()[0].body,file);const saved=(await h.state()).workflow.saved.content.parts[0].photos;assert(saved.some(photo=>/^[a-f0-9]{64}$/.test(photo.id)));});
+
+void test('denied original UNKNOWN receipt quarantines the workspace without losing its marker or replaying writes',async t=>{
+ const h=await fixture(t);await h.stage({nameVi:'Unsent original unknown intent'});let denied=false;
+ h.intercept(async(url,options,next)=>{
+  if(url.includes('operationId='))return Response.json({error:denied?'FORBIDDEN':'OPERATION_NOT_FOUND'},{status:denied?403:404});
+  if(options.method==='POST'){const result=await next();assert.equal(result.status,200);throw Error('Synthetic committed ACK lost');}
+  return next();
+ });
+ await assert.rejects(h.probe.post('save'),/UNKNOWN/);const client=h.probe.transport(),records=[...h.records],posts=h.posts().length,puts=h.requests.filter(r=>r.method==='PUT').length,epoch=h.c.historyProbe.epoch();assert(client.hasUnknown());assert(h.q('#iqc-operation-status'));denied=true;
+ await assert.rejects(h.probe.checkOperation());assert(h.c.historyProbe.epoch()>epoch);assert.equal(client.permission('view'),false);assert.equal(h.c.historyProbe.current(),false);assert.match(h.q('[data-iqc-approved-notice]').textContent,/權限或頁面已變更，請重新開啟核對。/);
+ const hidden=node=>{for(;node;node=node.parentElement)if(node.hidden)return true;return false;};for(const selector of ['.iqc-grid','.iqc-part-list','#iqc-operation-status'])assert(hidden(h.q(selector)),selector+' hidden by approved-history fence');
+ await assert.rejects(h.probe.post('save'),/APPROVED_HISTORY_READ_ONLY/);assert.equal(client.hasUnknown(),true);assert.deepEqual([...h.records],records);assert.equal(h.posts().length,posts);assert.equal(h.requests.filter(r=>r.method==='PUT').length,puts);
+});

@@ -67,3 +67,10 @@ void test('refreshed conflict choice may cancel with original RAM and no busines
   for(let n=0;n<100&&!h.ui.doc.querySelector('[data-fqc-save-choice]');n++)await tick();await h.peerSave({name:'Newer'});await h.choose('mine');await h.choose('cancel');assert.equal(await task,false);assert.equal(h.posts().length,0);assert.equal(h.ui.c.__fqcTest.selected().snapshot.items[0].name,'Mine');assert.deepEqual(clone(h.ui.c.__fqcTest.syncBase()),base);
  }finally{h.f.close();}
 });
+
+void test('a peer inspection-group change after final comparison causes real CAS 409 without a partial Save',async()=>{
+ const h=await setup();try{await h.stage({name:'Mine after comparison'});const client=h.ui.c.__fqcTest.transport(),send=client.sendPrepared;let peerState,hit=false;
+ client.sendPrepared=async(command,options)=>{assert.equal(hit,false);hit=true;await h.peerSave({name:'Peer wins after comparison'});peerState=clone(await h.f.state());return send(command,options);};
+ const error=await h.ui.c.__fqcTest.sharedAction('save').catch(e=>e);assert(hit);assert.equal(error.status,409);assert.equal(h.posts().length,1,'only the explicit stale Save reaches the handler');assert.deepEqual(await h.f.state(),peerState);assert.equal(client.hasUnknown(),false);assert.equal(h.ui.c.__fqcTest.selected().snapshot.items[0].name,'Mine after comparison');assert.equal(h.ui.doc.querySelector('[data-fqc-save-choice]'),null);
+ }finally{h.f.close();}
+});

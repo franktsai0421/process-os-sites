@@ -1,3 +1,7 @@
+## 2026-11-10 — PR102 AB 移轉帳號標頭與回歸修正（本機）
+
+AB 設備移轉的 scope client 明確帶入 dialog 開始時固定的 `X-Process-Expected-Actor`，保留 actor／delivery／revision 檢查及後端驗證。IQC 收據 403 測試改驗同頁歷史 watcher 的隔離提示、不可操作、原 UNKNOWN 不變與零重送；FQC 已知同組衝突先選擇／取消，最後比較後的競爭另驗真正 CAS 409。設備原始混合換行、1,790 項逆向來源規則與 79 筆歷史請求均保留。[測試與整合限制](../../docs/acceptance/pr102-independent-repairs-20261110.md)。沒有 schema、真人權限或業務資料變更；原生瀏覽器與實站仍未驗證，未由本工作更新 GitHub。
+
 ## 2026-11-09 品質草稿整合候選
 
 已合入各品質頁衝突與唯讀核准查看。例行FQC採整頁routine-fqc:page，固定changedDocumentIds／來源pins及原receipt完成Save／送審／核准effects；歷史包含真正整頁與舊文件封存，最後身分與版本檢查保留。照片送出journal及actor-scoped outcome在回覆遺失或查詢404時保持UNKNOWN，不重PUT；保留原File。本人發回不新增admin／本人核准確認，原receipt caps仍保留。未啟用marker或切換真資料，詳 [逐頁矩陣](../../docs/acceptance/module-draft-boundary-20261109.md)。
