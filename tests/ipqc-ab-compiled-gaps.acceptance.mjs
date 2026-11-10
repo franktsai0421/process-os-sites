@@ -124,8 +124,9 @@ async function setup(t) {
         sequence: seq,
         action,
         generation: flow.generation,
-        input: { stateRevision: read.body.revision },
+        expectedRevision: flow.revision,
         ...detail,
+        input: { stateRevision: read.body.revision, ...detail.input },
       },
     });
   };

@@ -22,8 +22,10 @@ const flow=(controls,moduleId)=>moduleId==='fqc'?controls.qualityMasterControl.l
 for(const [width,language]of [[1280,'zh'],[390,'vi']])void test(`compiled four-module transfer preserves open local forms; only FQC explicitly saves ${width} ${language}`,async t=>{
  const s=await setup(width,language);try{
  await s.source.locator('[data-node-select="category"]').first().click();await s.source.locator('[data-node-select="subcategory"]').first().click();if(await s.source.locator('[data-node-select="group"]').count())await s.source.locator('[data-node-select="group"]').first().click();
+ // Missing/mismatched owner must still fail before the identified setup writes.
+ for(const expectedActor of [null,'different-synthetic-actor']){const before=await s.controls();const denied=await s.source.evaluate(async(expectedActor)=>{const headers={'Content-Type':'application/json',...(expectedActor===null?{}:{'X-Process-Expected-Actor':expectedActor})};const r=await fetch('/api/ipqc-ab/workflow?scope=A%3AG-A&caseMetadata=1',{method:'POST',headers,body:JSON.stringify({action:'begin'})});return{status:r.status,body:await r.json()};},expectedActor);assert.equal(denied.status,403);assert.equal(denied.body.error,'ACCOUNT_CHANGED_REOPEN_REQUIRED');assert.deepEqual(await s.controls(),before);}
  // Establish the real shared drafts before opening another page's unsent form.
- for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){const q=moduleId==='ipqc-ab'?'scope=A%3AG-A&caseMetadata=1':'caseMetadata=1';assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
+ for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){const q=moduleId==='ipqc-ab'?'scope=A%3AG-A&caseMetadata=1':'caseMetadata=1';assert.equal(await s.source.evaluate(async({moduleId,q})=>(await fetch('/api/'+moduleId+'/workflow?'+q,{method:'POST',headers:{'Content-Type':'application/json','X-Process-Expected-Actor':window.ProcessSync.identity.id},body:JSON.stringify({action:'begin'})})).status,{moduleId,q}),200);}
  const targetPages=[];
  for(const moduleId of ['fqc','iqc','ipqc-c','ipqc-ab']){
   const p=await s.page('quality-'+moduleId);
