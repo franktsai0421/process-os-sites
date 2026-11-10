@@ -120,3 +120,15 @@ fda9122f 的 Feedback workflow 已由 parent 確認全套成功。AB C run 42821
 - 線別獨立寫入需 master-page-boundary／master-line-page-workflow、原版本與案件引用、草稿命名／收據兼容，以及實際 master UI adapter 一起落地；routine 整頁需舊文件 ownership、固定案件與原收據保留。直接搬舊 app/master-admin/version-draft 大包亦會碰原 UNKNOWN-32 操作與其他未完成功能，不能以本次小批次繞過。
 
 因此本 PR 尚未完成 legacy reviewer→僅送審撤回、平台最終核准明確授權與全入口一致執行；既有已核准不可撤回等保護持續保留。這是待整合的功能依賴，並非已獲准改動真帳號、清掉舊 ACL 或重送 UNKNOWN。
+
+
+## 72dfacf5 來源契約續修（不變更產品授權）
+
+parent 讀取 AB C 42826165045/job 129863906955、PROCESS 42826164830/job 129863906358 與 Feedback 42826164805/job 129863905136 終態日誌；本機重現相同兩個失敗：shared-draft-receipt-recovery 仍釘住 shared client 舊 tag，與 master-data 線別唯讀增量未納入歷史安全來源的精確還原。相同測試還有 master-data 的舊 tag，已一併對齊實際入口，保留每項引用恰好一次的斷言。
+
+- 原 master-data 基準 64760 bytes、SHA256 79dd392e82f176a7ee2ae4c73b0fc71068b4fdb70b285e2b8fa0df7f94faf470，與 genuine main 9fbba823 及歷史 bad0463 相同。新版 66669 bytes、cedfd7a7b9bac1cc121f2d12bef84a989bc86c4d222cbfabab0576daf7bba5f5；新增三個 positioned raw-byte inverse spans，只還原先前已授權的 approvedLinesOnly／selector／語言刷新增量，完整原 pin 不變。
+- reporting composition 對這個檔案必須先通過精確 successor 契約，再進原歷史證明。新增整檔 rollback、inverse 重複套用、錯路徑、非 Buffer、EOL 漂移、缺失／重複／移動 span、查看權／身分／目的地／catalog／escape 條件變更，以及契約 offset／span／length／predecessor hash 損壞的拒絕測試。原其他安全 bytes、UNKNOWN／receipt／ownership 保護與負向案例保留，不靠換 hash 或略過比較通過。
+- Feedback paths 納入 master-data 與 account proof 的所有新依賴；checkout 取得 history 供真正 git preimage 核對，停用持久憑證。Account permissions 也納入這兩個完整來源測試，避免只跑新專用 proof 漏掉既有 reporting／cache gates。
+- 147 項定向契約／收據／導覽檢查通過；AB C／PROCESS 失敗來源 step 的完整合併命令，以及 Feedback 失敗 step 的完整來源命令均 exit 0。這一批只改測試、test-only source evidence、CI 與文件，產品 JS／API／權限及資料模型完全維持 72dfacf5；此前精確 product tree 的安全 build 通過仍有效，不另做無意義產品重建。
+
+parent 已確認 72dfacf5 Account permissions 與 IPQC C 成功，包含新增 lines-only 原生案例；AB C／PROCESS／Feedback 此次來源 gate 修正後仍須新 head CI，不可宣稱原生 C 後段已通過。Local safety 該次尚在執行；舊 fda Local 已取消，不算成功。role 原生 15 個 payload／雙語／角色保護案例已過，但 before screenshot 的 baseline is not defined 限制仍需如實保留。未重送原 UNKNOWN-32，也沒有合併、部署或真帳號操作。

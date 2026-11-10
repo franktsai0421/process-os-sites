@@ -9,12 +9,13 @@ const noPoll=require('../scripts/equipment-no-poll-source-contract.cjs');
 const masterRoute=require('../scripts/master-route-successor-source-contract.cjs');
 const equipmentRepair=require('../scripts/equipment-ci-repair-source-contract.cjs');
 const cRoute='app/api/ipqc-c/workflow/route.ts';
+const accountSource=require('../scripts/account-permission-source-contract.cjs'),lineFile='public/process/master-data.js';
 // Hash the committed bytes only after proving the checkout differs by EOL alone.
 // Windows may convert any LF blob, not just the C workflow route.
 const checkoutLF=bytes=>{const result=Buffer.alloc(bytes.length);let length=0;for(let i=0;i<bytes.length;i++){if(bytes[i]===13&&bytes[i+1]===10)continue;result[length++]=bytes[i];}return result.subarray(0,length);};
 const canonicalSource=(working,committed)=>{assert(Buffer.isBuffer(working)&&Buffer.isBuffer(committed),'Reporting proof requires raw source bytes');assert.deepEqual(checkoutLF(working),checkoutLF(committed),'Reporting worktree source differs from HEAD beyond checkout EOL');return committed;};
 const readSource=file=>canonicalSource(fs.readFileSync(file),execFileSync('git',['show','HEAD:'+file]));
-const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
+const project=(bytes,file)=>{assert(Buffer.isBuffer(bytes),'Access-event projection requires raw source bytes');if(file===lineFile)bytes=accountSource.projectFile(bytes,file);bytes=require('../scripts/background-check-source-contract.cjs').projectKnown(bytes,file);if(equipmentRepair.contracts.some(contract=>contract.file===file&&contract.afterHash===hash(bytes)))bytes=equipmentRepair.restorePredecessor(bytes,file);if(file===masterRoute.file)bytes=masterRoute.restoreMasterRoutePredecessor(bytes,file);if(file===noPoll.file&&hash(bytes)===noPoll.afterHash)bytes=noPoll.restoreEquipmentPolling(bytes,file);return metadataProject(file===cRoute&&hash(bytes)===readIO.afterHash?readIO.withoutWorkflowReadAhead(bytes):bytes,file);};
 const main={
   "public/process/shared-draft-client.js": "194d0627c909f54a1bbf1c7c328cf9f98d5411234556e08c33538f9e55bf6589",
   "lib/versioned-shared-workflow.ts": "d1246a4b451206a4091afbc66e3c066c5f04fa4de0da319e5120b0a339a7f01e",
@@ -115,9 +116,9 @@ void test('C read-ahead/reporting composition cannot hide partial, repeated or a
  for(const [from,to]of [["['since','caseMetadata','compact']","['since','caseMetadata','compact','permissions']"],['actor=await identity(request,state)','actor=null'],['!permissions.view','false'],['receipt.actorId!==actor.id','false'],['!await identity(request,state)','false'],['if(changed.meta.changes!==1)continue;','if(false)continue;']]){assert(text.includes(from));changed.push(Buffer.from(text.replace(from,to)));}
  for(const source of changed){assert.notDeepEqual(source,bytes);assert.notEqual(hash(project(source,cRoute)),main[cRoute]);}
 });
-void test('Feedback path filters include every C reporting inverse dependency',()=>{
- const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8').replace(/\r\n/g,'\n'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);
- for(const file of [cRoute,noPoll.file,masterRoute.file,'public/process/shared-draft-client.js','scripts/equipment-ci-repair-source-contract.cjs','scripts/master-route-successor-source-contract.cjs','scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
+void test('Feedback path filters include every reporting inverse dependency and source history',()=>{
+ const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8').replace(/\r\n/g,'\n'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);assert.match(workflow,/fetch-depth: 0/);assert.match(workflow,/persist-credentials: false/);
+ for(const file of [cRoute,noPoll.file,masterRoute.file,lineFile,'scripts/account-permission-source-contract.cjs','scripts/account-permission-source-contract.json','scripts/account-cache-source-contract.cjs','scripts/account-cache-source-contract.json','public/process/shared-draft-client.js','scripts/equipment-ci-repair-source-contract.cjs','scripts/master-route-successor-source-contract.cjs','scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
 });
 const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
 for(const [label,from,to]of [
@@ -178,4 +179,22 @@ void test('equipment CI repair rejects semantic equality and explicit owner rech
   const bytes=readSource(file),text=bytes.toString();
   for(const [from,to]of changes){assert(text.includes(from),from);const changed=Buffer.from(text.replace(from,to));assert.throws(()=>equipmentRepair.assertCurrent(changed,file),/pinned/);assert.notEqual(hash(project(changed,file)),main[file]);}
  }
+});
+
+void test('approved-line view exact inverse retains the unchanged historical source and cannot conceal rollback or changed authority',()=>{
+ const bytes=readSource(lineFile),prior=execFileSync('git',['show',accountSource.contract.base+':'+lineFile]),copy=Buffer.from(bytes),c=accountSource.contract.files[lineFile];
+ assert.equal(hash(prior),main[lineFile]);assert.equal(c.beforeHash,main[lineFile]);assert.deepEqual(accountSource.projectFile(bytes,lineFile),prior);assert.deepEqual(project(bytes,lineFile),prior);assert.deepEqual(bytes,copy);
+ assert.throws(()=>project(prior,lineFile),/successor differs/,'complete rollback is not a pinned successor');
+ assert.throws(()=>accountSource.projectFile(prior,lineFile),/successor differs/,'cannot apply inverse twice');
+ for(const value of [bytes.toString(),new Uint8Array(bytes),null])assert.throws(()=>project(value,lineFile),/raw source bytes/);
+ for(const file of ['other','__proto__','./'+lineFile,lineFile.toUpperCase()])assert.throws(()=>accountSource.projectFile(bytes,file),/Unknown account permission path/);
+ const altered=[Buffer.concat([bytes,Buffer.from(' ')]),bytes.subarray(1),Buffer.concat([bytes,bytes]),Buffer.from(bytes.toString().replace(/\r?\n/g,'\r\n'))];
+ for(const rule of c.rules){const span=Buffer.from(rule.after),head=bytes.subarray(0,rule.offset),tail=bytes.subarray(rule.offset+span.length);altered.push(Buffer.concat([head,Buffer.from(rule.before),tail]),Buffer.concat([head,span,span,tail]),Buffer.concat([head,span.subarray(1),span.subarray(0,1),tail]));}
+ for(const [from,to]of [["currentUser?.cells?.['lines.view']!==true",'false'],["sync.identity.id!==currentUser?.id",'false'],["d.key!=='data:line-admin'",'false'],["catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'",'false'],["catalog.loadedScopes?.includes(scope)",'true'],["safe(line.code)",'line.code'],["if(!visible(state.masterScope))",'if(false)']]){assert(bytes.includes(Buffer.from(from)),from);altered.push(Buffer.from(bytes.toString().replace(from,to)));}
+ for(const candidate of altered){assert.notDeepEqual(candidate,bytes);assert.throws(()=>project(candidate,lineFile),/successor differs/);}
+});
+void test('approved-line inverse rejects corrupt offsets, spans, lengths and predecessor hash',()=>{
+ const bytes=readSource(lineFile),code=fs.readFileSync('scripts/account-permission-source-contract.cjs','utf8'),contract=accountSource.contract;
+ const corrupt=[c=>c.rules[0].offset++,c=>c.rules[0].after+=' ',c=>c.afterLength--,c=>c.beforeLength--,c=>c.beforeHash='0'.repeat(64)];
+ for(const change of corrupt){const cloned=structuredClone(contract);change(cloned.files[lineFile]);const mod={exports:{}};require('node:vm').runInNewContext(code,{require:name=>name==='./account-permission-source-contract.json'?cloned:require(name),module:mod,Buffer});assert.throws(()=>mod.exports.projectFile(bytes,lineFile),assert.AssertionError);}
 });

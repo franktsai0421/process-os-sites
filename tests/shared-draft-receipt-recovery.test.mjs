@@ -59,7 +59,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
  const references=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
  const versions={
   'local-draft-recovery.js':'20261103-fqc-generation1',
-  'shared-draft-client.js':'20261109-explicit-checks3',
+  'shared-draft-client.js':'20261110-master-readback1',
   'process-authoring-v3.js':'20261109-explicit-checks1',
   'process-ipqc.js':'20261109-explicit-checks1',
   'effective-version-notice.js':'20261109-explicit-checks1',
@@ -74,7 +74,7 @@ void test('changed integrated client, modules and stylesheets cache tags are exp
   'bom-workspace.js':'20261105-bom-atomic1',
   'master-admin-ui.js':'20261105-abc-local-save1',
   'master-shared-client.js':'20261105-process-local-save1',
-  'master-data.js':'20261105-process-local-save1',
+  'master-data.js':'20261110-lines-view1',
  };
  for(const [asset,version]of Object.entries(versions))assert.deepEqual(references.filter(value=>value.split('?')[0]===asset),[asset+'?v='+version]);
 });

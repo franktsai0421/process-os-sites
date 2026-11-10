@@ -239,6 +239,31 @@
           "after": "flow.saved?.id!==r.savedId||!equipmentContentEqual(flow.working,flow.saved?.content)"
         }
       ]
+    },
+    "public/process/master-data.js": {
+      "beforeHash": "79dd392e82f176a7ee2ae4c73b0fc71068b4fdb70b285e2b8fa0df7f94faf470",
+      "beforeLength": 64760,
+      "beforeBlob": "74303200ca1140e15f2fe3023728e3ec42664e04",
+      "afterHash": "cedfd7a7b9bac1cc121f2d12bef84a989bc86c4d222cbfabab0576daf7bba5f5",
+      "afterLength": 66669,
+      "afterBlob": "1f7beafc863cba44d18728c0987138e2aeb37588",
+      "rules": [
+        {
+          "offset": 16698,
+          "before": "",
+          "after": "  function approvedLinesOnly(content) {\n    const sync=window.ProcessSync,d=sync?.destination,catalog=sync?.catalog;\n    if(sync?.protected!==true||sync.deliveryProjection!==true||sync.requiresReload||sync.expired||!sync.identity?.id||sync.identity.id!==currentUser?.id||currentUser?.enabled===false||currentUser?.deletedAt||currentUser?.cells?.['lines.view']!==true||d?.view!=='data'||d.dataTab!=='line-admin'||d.module!=='lines'||d.key!=='data:line-admin'||catalog?.format!=='PROCESS_RUNTIME_CATALOG_V1'||!['AB','C'].every(scope=>catalog.loadedScopes?.includes(scope))||!Array.isArray(catalog.routing?.lines))throw Error('LINES_VIEW_RELOAD_REQUIRED');\n    const vi=(document.documentElement.lang||'').toLowerCase().startsWith('vi'),rows=catalog.routing.lines,t=(zh,vn)=>vi?vn:zh;\n    if(rows.some(line=>!line||typeof line.code!=='string'||!Array.isArray(line.stages)||line.stages.some(stage=>!stage||typeof stage.code!=='string')))throw Error('LINES_VIEW_RELOAD_REQUIRED');\n    content.innerHTML=`<section class=\"panel\" data-lines-readonly data-i18n-skip=\"true\"><h3>${t('線別與工段管理','Chuyền và công đoạn')}</h3><p role=\"status\">${t('目前僅查看已核准的線別與工段；此畫面不修改或保存資料。','Chỉ xem chuyền và công đoạn đã duyệt; màn hình này không sửa hoặc lưu dữ liệu.')}</p><div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px\">${rows.map(line=>`<article class=\"panel\" style=\"min-width:0;overflow-wrap:anywhere\"><h4>${safe(line.code)} · ${safe(line.name||line.code)}</h4>${line.stages.length?`<ol>${line.stages.map(stage=>`<li>${safe(stage.code)} · ${safe(stage.name||stage.code)}</li>`).join('')}</ol>`:`<p>${t('尚無已核准工段','Chưa có công đoạn đã duyệt')}</p>`}</article>`).join('')||`<p>${t('尚無已核准線別','Chưa có chuyền đã duyệt')}</p>`}</div></section>`;\n  }\n"
+        },
+        {
+          "offset": 19303,
+          "before": "      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"status\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Đây là lối vào bản nháp chung AB/C. Tài khoản cần quyền Xem AB hoặc C; lưu sẽ áp dụng cho toàn bộ mô-đun. Liên hệ quản trị viên để cấp quyền.':'這是 AB／C 共用草稿的管理入口。此帳號尚缺 AB 或 C 查看權限；保存會涵蓋所屬模組整份草稿。請由管理者調整對應權限。'}</p></section>`;bindTabButtons();return;}\r\n",
+          "after": "      if(!visible(state.masterScope)){content.dataset.activeTab=tab;dataError=null;dataReady=Promise.resolve();try{approvedLinesOnly(content);}catch(error){dataError=error;content.innerHTML=`<section class=\"panel\" data-line-permission-notice role=\"alert\"><h3>${document.documentElement.lang==='vi'?'Chuyền và công đoạn':'線別與工段管理'}</h3><p>${document.documentElement.lang==='vi'?'Chưa xác minh được dữ liệu đã duyệt; hãy tải lại để kiểm tra.':'尚無法核對已核准資料；請重新載入確認。'}</p></section>`;}bindTabButtons();return;}\n"
+        },
+        {
+          "offset": 66331,
+          "before": "  window.addEventListener('process-language-change',()=>{if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});\r\n",
+          "after": "  window.addEventListener('process-language-change',()=>{if(state.view==='data'&&state.dataTab==='line-admin'&&document.querySelector('[data-lines-readonly]'))selectDataTab('line-admin');if(state.view==='approval'&&!document.querySelector('dialog[open]')){const x=window.scrollX,y=window.scrollY;render();window.scrollTo(x,y);}});\n"
+        }
+      ]
     }
   }
 }

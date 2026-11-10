@@ -1,3 +1,7 @@
+# 2026-11-10 — Retained reporting source proof for approved lines
+
+Compose the exact approved-line view increment back to genuine main before the unchanged historical reporting pin. Reject complete rollback, altered authority, moved spans and corrupted evidence; align both actual asset tags and include these existing safety gates in Account permissions. Feedback fetches source history for actual preimage validation. Product code and authorization remain at the preceding reviewed tree. [Evidence](../docs/acceptance/account-permissions-20261110.md#72dfacf5-來源契約續修不變更產品授權).
+
 # 2026-11-10 — Lines-only approved view and master Save readback
 
 Render the existing verified approved line/stage catalog for lines.view-only users without opening AB/C workflows or writes. Compare AB/C Save readback JSON content independent of object-key order; retain real mismatches, fresh authorization and UNKNOWN no-resend. Add exact source layers and read-only native failure receipts; original C timeout cause still awaits CI. Final-approval provenance and page-boundary dependencies are explicitly audited. [Evidence](../docs/acceptance/account-permissions-20261110.md#線別獨立查看與-abc-保存讀回續作).
