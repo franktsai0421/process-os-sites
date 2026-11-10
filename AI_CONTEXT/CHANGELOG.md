@@ -1,3 +1,7 @@
+# 2026-11-10 — Account permissions and feedback source checks
+
+Align effective Edit→Save across ten existing atomic workflows, preserve raw overrides, and admit active accounts to feedback without a generic data grant. Original images and both archive profiles require all current source/envelope permissions, fresh revocation and byte integrity. Role help is bilingual. Page-v1/final approval and lines/editor/routine boundary gaps remain explicit. [Scope and evidence](../docs/acceptance/account-permissions-20261110.md#2026-11-10-擴充需求核對與本批結果). No schema, real-account, merge or deployment change.
+
 # 2026-11-10 — Account feedback and credential diagnostics
 
 Account-priority extraction adds authorized credential-state diagnostics, uniform anonymous login errors, typed password validation and prewrite/readback feedback with persistent bilingual results. Existing CAS/session/unknown guards remain. [Scope, branch preservation and verification limits](../docs/acceptance/account-permissions-20261110.md).

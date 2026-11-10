@@ -65,11 +65,20 @@ export function legacyAllowed(user,preset,module,op){
  if(module==='dispatch')return views.has('dispatch');
  return perms.has('approval.submit')||perms.has('approval.revise');
 }
-export function effectiveCells(user,roles){
+export function basePermissionCells(user,roles){
  const preset=roles[user.role];if(!preset||user.enabled===false||user.deletedAt)return Object.fromEntries(accessKeys.map(k=>[k,false]));
  if(isPrimary(user))return Object.fromEntries(accessKeys.map(k=>[k,true]));
- return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';return[key,value];})));
+ return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';if(key==='feedback.view')value=true;return[key,value];})));
 }
+// These existing workflow APIs already include atomic Save in Edit. Keep the
+// same effective result in account projections, browser checks and role previews.
+export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment']);
+export function withEditSave(source){
+ const cells={...source};
+ for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;
+ return cells;
+}
+export function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));}
 export function managementRight(actor,target,action,cells){
  if(!actor||!target||actor.enabled===false||actor.deletedAt)return false;
  if(target.authMode==='demo'&&action!=='view')return false;
@@ -79,7 +88,7 @@ export function managementRight(actor,target,action,cells){
  if(actor.role!=='admin'||actor.id===target.id||target.role==='admin'||isPrimary(target))return false;
  return cells[({'edit':'users.edit',create:'users.create',delete:'users.delete',status:'user-status.edit',password:'user-password.edit'})[action]]===true;
 }
-export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,r.id+'.'+op!=='users.view'&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
+export const roleEditable=role=>Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>[r.id+'.'+op,!['users.view','feedback.view'].includes(r.id+'.'+op)&&(!(r.adminOnly||r.adminOps?.includes(op))||role==='admin')])));
 export const editableCells=(actor,target,cells,action='edit')=>{const allowed=roleEditable(target.role),manage=!isPrimary(target)&&managementRight(actor,target,action,cells);return Object.fromEntries(accessKeys.map(key=>[key,allowed[key]&&manage&&(isPrimary(actor)||cells[key]===true)]));};
 // Reject invalid combinations rather than silently granting view or removing actions.
 export function invalidDependencies(cells){return catalog.filter(r=>r.id!=='lines'&&r.ops.includes('view')&&!cells[r.id+'.view']&&r.ops.some(op=>op!=='view'&&cells[r.id+'.'+op])).map(r=>r.id);}

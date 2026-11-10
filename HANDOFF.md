@@ -1,6 +1,6 @@
 # 2026-11-10 — Account-priority independent integration
 
-New main-based account branch extracts login/password/operation feedback from closed #102 and preserves imported older permission work. Scope, exact old-branch inventory, isolated checks and unrun native/real-account gates: [acceptance](docs/acceptance/account-permissions-20261110.md). No page-v1 activation, account migration, old UNKNOWN replay, branch deletion, merge or deployment.
+New main-based account branch extracts login/password/operation feedback from closed #102 and preserves imported older permission work. Expanded batch aligns ten existing atomic Edit→Save resolvers and fixed active-account feedback view with source/image/archive checks; lines/editor/routine boundaries and legacy reviewer/final-approval separation remain incomplete. Scope, exact old-branch inventory, isolated checks and unrun native/real-account gates: [acceptance](docs/acceptance/account-permissions-20261110.md). No page-v1 activation, account migration, old UNKNOWN replay, branch deletion, merge or deployment.
 
 # 2026-11-09 — Process platform stage catalog batch
 

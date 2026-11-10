@@ -7,6 +7,9 @@ on:
       - 'app/api/user-access/**'
       - 'lib/passwords.ts'
       - 'lib/user-access.ts'
+      - 'lib/web-feedback.ts'
+      - 'public/process/web-feedback*'
+      - 'tests/account-*.test.cjs'
       - 'public/process/user-access*'
       - 'public/process/access-policy.mjs'
       - 'public/process/data-safety-ui.js'
@@ -55,5 +58,11 @@ jobs:
           node scripts/test-login-json-coercion.mjs
       - name: Exact account cache and retained background source proofs
         run: node --test tests/account-cache-source-proof.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/navigation-adapters.test.mjs
+      - name: Aligned permissions and feedback source authorization
+        run: |
+          node --test tests/account-permission-alignment.test.cjs tests/account-feedback-source-security.test.cjs tests/access-events-api.test.cjs tests/web-feedback-cloud.test.mjs tests/web-feedback-access.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-zip.test.cjs
+          node scripts/test-feedback-cloud-admission.cjs
+          node scripts/test-web-feedback.cjs "$RUNNER_TEMP/account-feedback"
+          USER_PERMISSIONS_EVIDENCE="$RUNNER_TEMP/account-permissions" node scripts/audit-users-page-permissions.mjs
       - run: node scripts/sites-ci-preflight.mjs
       - run: npm run build

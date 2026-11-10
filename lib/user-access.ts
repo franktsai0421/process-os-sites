@@ -14,6 +14,6 @@ export function effectiveAccess(user:AccessUser, values:Record<string,string>, r
   const enabled = user.enabled !== false && !user.deletedAt && !!preset;
   const cells=effectiveCells(user,roles),primary=isPrimary(user);
   return { role, enabled, primary, cells, inheritRole: user.inheritRole !== false,
-    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...(primary?roleDefaults.admin.permissions:scope?.permissions||[]),...accessKeys.filter(key=>cells[key])])] : [] };
+    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...(primary?roleDefaults.admin.permissions:scope?.permissions||[]),...accessKeys.filter(key=>cells[key])])] : [] };
 }
 import {templates,effectiveCells,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';

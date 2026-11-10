@@ -50,3 +50,27 @@ The product now has a separate .ua-progress status/live region. Error alerts rem
 Step 31 failed because the exact background source proof expected the original main index hash 41474215..., while the account-only cache layer yielded 54601dc7.... The fix follows #104's explicit source-layer composition pattern, using an account-only helper rather than importing its process count code. It retains the original background contracts and hashes, and reconstructs genuine main 9fbba823 bytes before the unchanged d4ac309 background inverse. The historical published f6081ea index blob and current status-region cache layer each have pinned raw hashes, lengths, offsets and spans. Partial/duplicate tags, wrong paths, nonraw inputs and any unrelated drift are rejected. Routine now uses this same exact layer instead of its earlier ad hoc tag replacement.
 
 Data-model/schema/business data: unchanged. No real account, merge, deployment, original UNKNOWN retry, guard relaxation or native executor retry. Local deterministic and source checks are recorded with the follow-up commit; final remote step 9/31 outcomes must be reported separately.
+
+## 2026-11-10 擴充需求核對與本批結果
+
+這節取代上文「所有查看／編輯／Save 政策均未納入」的概括限制；原帳號抽取及 CI 根因證據仍保留。已完成和未完成分開驗收，不能以本次帳號 PR 宣稱整個 page-v1 遷移完成。
+
+| Frank 新要求 | 本 PR 已納入 | 未完成／相依 |
+| --- | --- | --- |
+| 角色範本、詳細設定、中越文、訊息時間、桌機與手機 | 保留既有響應式矩陣、展開其他權限、角色來源／例外／依賴摘要；新增「修改包含保存」、固定回報查看、篩選不切 scope 說明。成功／失敗／UNKNOWN 均不靠短暫 toast 判定，操作結果持續保留；pending 使用獨立 status | f1ecc 的原生 role layout/payload 步驟通過，中越文 × 1440/1024/768/390/320；本批新文字仍須最新 head CI 重驗，不代表實體手機／IME 或實站驗收 |
+| 逐頁 view/edit/save/submit/withdraw、前後端一致 | 27 個矩陣項目、24 個獨立目的地逐頁檢查；10 個已有原子保存的模組將既有後端 Edit→Save 結果同步至共同 resolver、帳號投影及角色／個別設定預覽。原始 Save=false 不被改寫，撤掉 Edit 後仍按原 Save 值；Save 可獨立授予，沒有自動補 view、submit 或 approve。無功能格保留 —；框架頁只提供現有 view，不新增空操作格。同頁 line/group/stage 參數不產生新權限 | lines 使用 AB/C 共用流程；只有 lines.view 的目的地可進、AB API 403，是尚未建立獨立頁面資料邊界的缺口。editor 為 process:platform，routine 多文件 scope；不將這三者假裝切成獨立頁草稿或擴大底層資料可見性 |
+| 模組送審／撤回 vs 平台最終核准、舊 reviewer 映射、發回規則、已核准不可撤回 | 保留現行固定案件、pending、理由、世代、CAS 與收據，另驗證核心核准後不可撤回、發回／撤回已終結案件不可再審 | **新分離政策未啟用。** main 缺少 #102 的完整 page-v1 scope/adapter 與可信主要管理員最終核准授權證據鏈；legacy approval.approve/reject 仍沿用舊解析。因此舊模組 reviewer 仍可能得到目前核准能力，不能宣稱已解決。須與 13 頁邊界及平台入口一起整合，不能僅重命名勾選格、清掉舊值或自動授予最終核准 |
+| 有效帳號查看錯誤回報；操作／匯出依權限；原圖／封存不越權 | feedback.view 固定給已啟用、未刪除、有效角色的登入帳號，矩陣為唯讀；停用／刪除／未知角色／匿名仍拒絕。新增帳號選單入口，沿既有 delivery coordinator；嚴格 feature flag 維持不變。feedback-only 不衍生泛用 view:data，避免打開其他業務 API。編輯／create／exchange 與現行 admin-only 限制保留。原圖須來源模組查看及原始 access envelope，普通 ADMIN 也不能繞過。歷史與兩種 ZIP 全部核對每筆案件與圖片來源；混合歷史不能透過重新匯出洩漏其他案件。未授權歷史隱藏並顯示雙語提示；下載前後 fresh 授權、雜湊及大小校驗 | 不改真實帳號、不啟用 WEB_FEEDBACK_ENABLED 或 access-event 功能旗標。主要管理員的既有全權身分保留；缺少 access envelope 的舊原圖只由有效主要管理員讀取。原匯出收據可回最小相同結果供未知操作追查，但原圖／ZIP 每次另驗目前授權，不藉重送產生新檔 |
+
+10 個 Edit→Save 對齊模組：AB、C、流程資料（templates）、BOM、FQC、IQC、IPQC-AB、IPQC-C、模具設備（tooling）、檢具與測試設備（equipment）。這是將產品已存在的原子 Save 判定如實顯示，不修改真帳號或持久 ACL。新增依賴仍拒絕、舊不一致值不批次覆寫。
+
+### 本批隔離證據與接受界線
+
+- 修改前同一稽核：648 cells 一致，108 組 workflow metadata 中 38 處 Save 配置／API 落差。修改後：161 次合成帳號設定、283 次 API、648 cells、24 目的地、108 workflow metadata 全一致；11 個撤權舊 session 均拒絕。另核對 dispatch view-only 寫入 403 且零修改、IPQC-C 不因 approval.view 跨頁開放。這不是每個業務 action 的完整端到端驗收。
+- 新增 policy／實際角色事件／帳號入口／原圖／兩種封存／混合歷史／下載中途撤權／收據保護測試；既有回報 API（72 項）、嚴格 bootstrap、access-event 的私密投影及 CAS 回歸一起執行。匿名、停用、普通使用者操作及越權圖片／ZIP 均有負向驗證，未放寬測試斷言來通過。
+- 保留 69 個帳密／操作結果定向測試、原 49 個 exact source/navigation 檢查；新快取層另增加第 3 個 exact raw-byte inverse 變體，原 main/hash、舊兩個 account 變體和 background inverse 不變。所有新版 JS 入口鏈一致更新，無背景自動重送。
+- lint、非增量 TypeScript、安全 build 與 preflight 按最新提交執行；最新 CI 狀態另以 GitHub head/run 為準。真人帳號（含 phung）、實站、cookie 實際重登入、實體手機及 IME 仍未驗收；沒有另啟本機原生 executor 繞過限制。
+
+儲存模型／schema／migration／業務資料：無變更。衍生權限有兩項明確變更：有效帳號固定 feedback.view；10 個現有原子流程 Edit 包含 Save。未導入 #102 草稿架構、最終核准授權證據、#104 製程計數、原 UNKNOWN 32 檔修復或任何真帳號設定；原 UNKNOWN 操作保持未定、不重送、不拆分。
+
+與 #104 的共同入口只有各自獨立的 index 快取層及來源證明需語意合成；合併整合時須保留兩邊精確 layer，不能以一邊 index／hash 覆蓋另一邊。此 PR 未變更 process app/master/version draft 產品檔，也未帶入 #104 的製程計數。

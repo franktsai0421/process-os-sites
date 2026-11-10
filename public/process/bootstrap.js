@@ -9,7 +9,7 @@ void (async () => {
   let scripts = [...document.querySelectorAll('script[data-process-src]')];
   try {
     [window.ProcessAccessPolicy,window.ProcessDeliveryPurpose]=await Promise.all([
-      import('./access-policy.mjs?v=20261029-fqc-dependencies1'),
+      import('./access-policy.mjs?v=20261110-permission-alignment1'),
       import('./delivery-purpose.mjs?v=20261026-feedback1'),
     ]);
     await window.ProcessSync.ready;
