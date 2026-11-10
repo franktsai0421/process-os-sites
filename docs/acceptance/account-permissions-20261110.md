@@ -91,3 +91,11 @@ Data-model/schema/business data: unchanged. No real account, merge, deployment, 
 Feedback 42817524858/job 129834291274 的 293 項來源測試、schema、API、build 均通過；原生第六階段在員工登入後等待 .wf-row 逾時，前五個階段均通過。原因是 feedback-only 帳號已不再取得泛用 views:data，但 dual-system 舊的 data shell 仍只看這個泛用別名，所以 API 可讀、列表畫面卻無法進入。
 
 產品只為目前已驗證的 data:web-feedback delivery 放行 data 畫面容器：protected/projected、目前身分相符、有效帳號、feature flag、feedback.view、目的地 view/tab/module/key 全部相符，且無 expired/requiresReload。沒有改 API view:data、currentUser.views、其他頁面、圖片／封存／private notes 或寫入權限。測試涵蓋正常入口及逐項身分／目的地／旗標／失效反例；既有 bootstrap 仍驗 feedback-only 的泛用 data API 權限為 false。原生案例、逾時與拒絕斷言均不改，等待新 head CI 驗證。
+
+## Editor／Routine Save 獨立續作
+
+進一步讀取既有 route 後確認：將修改包含 Save 套用在已安裝的 process:platform 與 routine-fqc:<documentId> 交易，不必先切換 page-v1 或全頁草稿。先前把這項 Save 語意整項列為邊界相依過於概括，本批已補做；共用 resolver 的適用範圍由 10 個增至 12 個模組。沒有改任何草稿 ownership、pending、案件、scope、資料或 real account ACL。
+
+實際 authoring／routine HTTP handlers 以合成登入及 inline／records-v1 驗證：Edit=true、原始 Save=false 仍可保存；僅 Save=true、Edit=false 亦可保存目前共享內容；成功重播不重寫，收回實際授權後新 Save 及原 Save POST 重播均 403；submit/withdraw/approve/return/create/delete 不因 Save 變為允許；其他 sentinel 與原始 ACL 保留。這些是現有交易的保存權限驗收，不是 whole-page cutover 驗收。保留舊 policy/index exact hash 為歷史層，新後繼仍逐 span 還原 genuine main，原 PR44 矩陣及來源證據不變。
+
+仍需整合的是：線別頁需把 AB/C 的 products/catalog 與 lines/stages 從同一 legacy aggregate 分出權威；routine 的多文件草稿若要改為整頁一份，需另處理固定案件、原收據及既有引用。editor 本來就是 process:platform，不需為同頁線別／工段再分可見範圍。版本平台最終核准分離仍另行盤點，不以本 Save 續作當完成。

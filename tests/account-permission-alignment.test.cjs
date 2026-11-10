@@ -15,8 +15,8 @@ for(const id of P.editIncludesSave)void test(id+' effective Edit includes Save w
  for(const op of ['submit','withdraw','approve','return'])assert.equal(cells[id+'.'+op],false);
  assert.equal(P.effectiveCells({...user,accessOverrides:raw},roles)[id+'.save'],true);
 });
-void test('unestablished authoring/routine/lines boundaries remain explicit dependencies; filters do not create permissions',()=>{
- for(const id of ['editor','routine','lines'])assert.equal(P.withEditSave({...off,[id+'.view']:true,[id+'.edit']:true})[id+'.save'],false);
+void test('lines boundary remains independent of Edit→Save; filters do not create permissions',()=>{
+ for(const id of ['lines'])assert.equal(P.withEditSave({...off,[id+'.view']:true,[id+'.edit']:true})[id+'.save'],false);
  for(const query of ['?view=data&dataTab=bom&line=A&group=x&stage=one','?view=data&dataTab=bom&line=C&group=y&stage=two'])assert.equal(P.moduleForURL('http://fixture/process/'+query),'bom');
  for(const row of P.catalog){assert.equal(new Set(row.ops).size,row.ops.length);for(const op of P.columns.map(c=>c[0]))assert.equal(P.accessKeys.includes(row.id+'.'+op),row.ops.includes(op));}
 });

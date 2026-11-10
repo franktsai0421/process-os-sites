@@ -114,7 +114,7 @@ void test('changed persistent-navigation executable references have coherent new
   'app.js':'20261105-process-local-save1',
   'approval-tabs.js':'20261025-navigation2',
   'bom-workspace.js':'20261105-bom-atomic1',
-  'bootstrap.js':'20261110-permission-alignment1',
+  'bootstrap.js':'20261110-permission-alignment2',
   'canvas-local.js':'20261104-begin-receipt1',
   'canvas-recovery-store.js':'20261104-canvas-integration1',
   'delivery-navigation.js':'20261104-canvas-integration1',

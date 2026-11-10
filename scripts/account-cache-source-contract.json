@@ -134,6 +134,49 @@
           "after": "bootstrap.js?v=20261110-permission-alignment1"
         }
       ]
+    },
+    {
+      "name": "editor-routine-edit-includes-save",
+      "afterHash": "856795a67a8b7f7514f48a8318d3e35cc0ffbb3c811f169b8a9b6a6d1d776f1c",
+      "afterLength": 10881,
+      "afterBlob": "46c0548987463260c658448c7962c4eaffb1acdb",
+      "rules": [
+        {
+          "offset": 1186,
+          "before": "access-policy.mjs?v=20261029-fqc-dependencies1",
+          "after": "access-policy.mjs?v=20261110-permission-alignment2"
+        },
+        {
+          "offset": 7121,
+          "before": "web-feedback-entry.js?v=20261106-access-offline1",
+          "after": "web-feedback-entry.js?v=20261110-permission-alignment1"
+        },
+        {
+          "offset": 8168,
+          "before": "data-safety-ui.js?v=20261027-login-reentry1",
+          "after": "data-safety-ui.js?v=20261110-account-priority-candidate"
+        },
+        {
+          "offset": 9873,
+          "before": "dual-system.js?v=20261025-navigation2",
+          "after": "dual-system.js?v=20261110-feedback-shell1"
+        },
+        {
+          "offset": 10474,
+          "before": "user-access.css?v=20261106-role-layout2",
+          "after": "user-access.css?v=20261110-account-progress2"
+        },
+        {
+          "offset": 10551,
+          "before": "user-access.js?v=20261106-role-layout1",
+          "after": "user-access.js?v=20261110-permission-alignment1"
+        },
+        {
+          "offset": 10806,
+          "before": "bootstrap.js?v=20261104-draft-integration1",
+          "after": "bootstrap.js?v=20261110-permission-alignment2"
+        }
+      ]
     }
   ]
 }

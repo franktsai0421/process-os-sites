@@ -70,9 +70,9 @@ export function basePermissionCells(user,roles){
  if(isPrimary(user))return Object.fromEntries(accessKeys.map(k=>[k,true]));
  return Object.fromEntries(catalog.flatMap(r=>r.ops.map(op=>{const key=r.id+'.'+op;let value=Object.hasOwn(preset.access||{},key)?preset.access[key]===true:legacyAllowed(user,preset,r.id,op);if(Object.hasOwn(user.accessOverrides||{},key))value=user.accessOverrides[key]===true;if((r.adminOnly||r.adminOps?.includes(op))&&user.role!=='admin')value=false;if(key==='users.view')value=user.role==='admin';if(key==='feedback.view')value=true;return[key,value];})));
 }
-// These existing workflow APIs already include atomic Save in Edit. Keep the
-// same effective result in account projections, browser checks and role previews.
-export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment']);
+// Edit includes Save within each installed workflow's existing transaction scope.
+// This does not change its draft boundary or grant submit/review/create/delete.
+export const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine']);
 export function withEditSave(source){
  const cells={...source};
  for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;

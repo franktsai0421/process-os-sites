@@ -117,9 +117,9 @@
       "beforeHash": "de42a8cb53deaeae2b17295dcfbe013401c84c59f9a6b26637873a66b14ea28f",
       "beforeLength": 11219,
       "beforeBlob": "bbdc6a0c60b3c438b72c95d46baf097cd05317a2",
-      "afterHash": "2711349e1b15474eba4189069145ec162d8a3cd21f808c17508770b2ed8af427",
-      "afterLength": 11867,
-      "afterBlob": "e68f5f348999c18fc42d66c10f64a66191315d33",
+      "afterHash": "0cf57d9055b5f89797ff8196374413ef0ebb2371800187da1390dc6bdf5a7e87",
+      "afterLength": 11889,
+      "afterBlob": "01516c3dacff741b0262e23e1318181a5223f7ed",
       "rules": [
         {
           "offset": 6335,
@@ -149,22 +149,79 @@
         {
           "offset": 7042,
           "before": "",
-          "after": "}\n// These existing workflow APIs already include atomic Save in Edit. Keep the\n// same effective result in account projections, browser checks and role previews.\nexport const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment']);\nexport function withEditSave(source){\n const cells={...source};\n for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;\n return cells;\n}\nexport function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));"
+          "after": "}\n// Edit includes Save within each installed workflow's existing transaction scope.\n// This does not change its draft boundary or grant submit/review/create/delete.\nexport const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment','editor','routine']);\nexport function withEditSave(source){\n const cells={...source};\n for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;\n return cells;\n}\nexport function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));"
         },
         {
-          "offset": 8419,
+          "offset": 8441,
           "before": "r.id+'.'+op",
           "after": ""
         },
         {
-          "offset": 8420,
+          "offset": 8442,
           "before": "==",
           "after": "["
         },
         {
-          "offset": 8433,
+          "offset": 8455,
           "before": "",
           "after": ",'feedback.view'].includes(r.id+'.'+op)"
+        }
+      ],
+      "historical": [
+        {
+          "beforeHash": "de42a8cb53deaeae2b17295dcfbe013401c84c59f9a6b26637873a66b14ea28f",
+          "beforeLength": 11219,
+          "beforeBlob": "bbdc6a0c60b3c438b72c95d46baf097cd05317a2",
+          "afterHash": "2711349e1b15474eba4189069145ec162d8a3cd21f808c17508770b2ed8af427",
+          "afterLength": 11867,
+          "afterBlob": "e68f5f348999c18fc42d66c10f64a66191315d33",
+          "rules": [
+            {
+              "offset": 6335,
+              "before": "",
+              "after": "bas"
+            },
+            {
+              "offset": 6339,
+              "before": "ff",
+              "after": "P"
+            },
+            {
+              "offset": 6341,
+              "before": "ct",
+              "after": "rm"
+            },
+            {
+              "offset": 6344,
+              "before": "ve",
+              "after": "ssion"
+            },
+            {
+              "offset": 6982,
+              "before": "",
+              "after": "if(key==='feedback.view')value=true;"
+            },
+            {
+              "offset": 7042,
+              "before": "",
+              "after": "}\n// These existing workflow APIs already include atomic Save in Edit. Keep the\n// same effective result in account projections, browser checks and role previews.\nexport const editIncludesSave=Object.freeze(['ab','c','templates','bom','fqc','iqc','ipqc-ab','ipqc-c','tooling','equipment']);\nexport function withEditSave(source){\n const cells={...source};\n for(const id of editIncludesSave)if(cells[id+'.view']===true&&cells[id+'.edit']===true)cells[id+'.save']=true;\n return cells;\n}\nexport function effectiveCells(user,roles){return withEditSave(basePermissionCells(user,roles));"
+            },
+            {
+              "offset": 8419,
+              "before": "r.id+'.'+op",
+              "after": ""
+            },
+            {
+              "offset": 8420,
+              "before": "==",
+              "after": "["
+            },
+            {
+              "offset": 8433,
+              "before": "",
+              "after": ",'feedback.view'].includes(r.id+'.'+op)"
+            }
+          ]
         }
       ]
     }

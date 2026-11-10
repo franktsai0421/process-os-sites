@@ -1,3 +1,7 @@
+# 2026-11-10 — Editor and Routine Edit includes Save
+
+Extend the requested Edit→Save rule to existing process:platform and routine per-document transactions. Preserve explicit Save-only grants, raw ACLs, scope/pending/CAS/receipts and separate review/create/delete rights. Actual HTTP tests cover inline and records storage, zero-write replay and fresh revocation. Whole-page cutovers and final-approval separation remain separate work. [Scope](../docs/acceptance/account-permissions-20261110.md#editorroutine-save-獨立續作).
+
 # 2026-11-10 — Feedback-only authorized shell admission
 
 Fix the staff feedback native-entry timeout by admitting only the current verified feedback delivery to the data shell. Generic data API/view rights remain absent; source/images/archives/private notes/writes are unchanged. Native latest-head verification remains separate. [Evidence](../docs/acceptance/account-permissions-20261110.md#6f2bf38-原生員工回報入口修正).
