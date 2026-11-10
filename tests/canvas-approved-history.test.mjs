@@ -57,3 +57,11 @@ for(const dirty of [false,true])void test(`history/line race retains the winning
 for(const [lang,inline]of [['zh',true],['vi',false]])void test('cold Canvas first paint does not install a premature history authority watcher '+lang,async t=>{
  const f=await setup({lang,inline,cold:true});t.after(f.close);assert.equal(f.api.flow().generation,'g');assert.equal(f.api.historyReadOnly(),false);assert.equal(f.api.canMutate(),true);assert(f.select());assert.equal(f.select().disabled,false);assert(f.calls.every(row=>row.method==='GET'),'cold readiness never begins or saves a draft');
 });
+
+for(const lang of ['zh','vi'])void test('newly bound current Canvas handlers survive a later history boundary while captured old handlers stay fenced '+lang,async t=>{
+ const f=await setup({lang,earlyGuards:true});t.after(f.close);const old=f.doc.querySelector('#retained-native'),captured=old.onclick;f.box.render();const current=f.doc.querySelector('#retained-native');assert.notEqual(current,old);captured();assert.equal(f.canvas.counts().fields,0,'captured retired callback cannot edit');current.onclick();assert.equal(f.canvas.counts().fields,1,'fresh visible callback remains usable');assert.equal(f.canvas.project(wid,'A-CUT',[])[0].name,'NATIVE_EDIT');
+});
+
+void test('moving a captured retired callback to another current DOM node cannot reauthorize it',async t=>{
+ const f=await setup({earlyGuards:true});t.after(f.close);const captured=f.doc.querySelector('#retained-native').onclick;f.box.render();const current=f.doc.querySelector('#retained-native');current.onclick=captured;f.api.guardHistoryHandlers();current.onclick();assert.equal(f.canvas.counts().fields,0);
+});

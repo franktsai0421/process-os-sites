@@ -51,7 +51,7 @@
 
 ## 驗證與剩餘項目
 
-本機當前畫布核心510案例PASS；核准歷史／頁權限／保存快照／腳本組合85案例PASS；主資料邊界、name Save、真正route SQLite/MapR2、UI、工具、public authority及review回歸逐腳本PASS。main原legacy橋接逐byte保留，199個既有橋接／保存／權限回歸全通過。測試組有重疊，不相加成覆蓋率。最終來源159及原收據/cache39案例合組198項PASS，lint及非增量TypeScript PASS。最終guarded build在真實本機8c6a88a6b0d71503b5f2247348224f1bb730a314回exit0，postbuild auth boundary PASS；後續只有文件收據修改，產品輸入相同。GitHub CI依遠端新HEAD另核對。另20個跨模組合成回歸及12個權限政策案例PASS。
+本機當前畫布核心510案例PASS；核准歷史／頁權限／保存快照／腳本組合88案例PASS；主資料邊界、name Save、真正route SQLite/MapR2、UI、工具、public authority及review回歸逐腳本PASS。main原legacy橋接逐byte保留，199個既有橋接／保存／權限回歸全通過。測試組有重疊，不相加成覆蓋率。最終來源159及原收據/cache39案例合組198項PASS，lint及非增量TypeScript PASS。最終guarded build在真實本機7753e6ff47394a33c19dfd2ff849f70310e2c7f9回exit0，postbuild auth boundary PASS；後續只有文件收據修改，產品輸入相同。GitHub CI依遠端新HEAD另核對。另20個跨模組合成回歸及12個權限政策案例PASS。
 
 依賴為相同lockfile的實體副本，沒有聲稱全新安裝。synthetic DOM不是原生瀏覽器；SQLite/R2為合成記憶體。擴大回歸誤選含原生Chromium的IPQC scope測試，9案例被既有socket/ptrace限制阻擋；該原生組停止，未換路重試。其餘20個合成案例另組全數通過，不能用它們抵銷原生未完成。
 
@@ -64,3 +64,5 @@ GitHub初次整合head 0d9ea8a16de70c20d7b1ae5a403f1b9a9cda7a6f 的專項CI（42
 第二次head 96df92fd684122aab4633538eddd00c186974a58 的專項（42832781363）、Feedback（42832781206）及IPQC C（42832781031）通過；AB C／PROCESS進一步執行舊版Begin協定檢查時，原固定hash尚未組合新候選來源而失敗。只新增本候選→已確認#104前身的精確組合，保留原Begin所有hash／rules／歷史scope及負向斷言；舊protocol測試先驗現候選，再對原前身測原反例，沒有取用或重送UNKNOWN32既有proof修復。六個真正舊handler都以422拒絕新Begin且D1/R2零變動，另67項組合／原pins反例PASS。這批當時僅改測試；後續首次進頁修正與新build以最新紀錄為準。最終HEAD CI需另核對。
 
 第三次head 22984fc8b3befd0bfddee1b15279cd4491a97a81 的專項、Feedback、IPQC C通過，但PROCESS後續真瀏覽器冷啟動／離頁組有6項在首次進editor就緒前逾時（run42833825421），不是環境socket拒絕。已在實際controller＋client＋signed handler的合成環境重現：先paint後read會過早掛歷史權限watcher，首次access回覆使尚未取得flow的history owner失效，導致AUTHORING_LOAD_REQUIRED。兩個中越文／inline-records新反例在修正前全FAIL，修正後全PASS；歷史元件改為當前flow與view/history權限就緒後才掛載，原撤權／唯讀fence不放寬。重跑畫布510、歷史政策bundle85、來源與cache198全部PASS；lint、非增量TypeScript及真實8c6a88a guarded build/postbuild auth PASS。native原逾時及斷言未修改；最終新HEAD需以原CI再驗。
+
+第四次head b91a50be2569afadb6b8b6e1aa24cee34c34ea93 的AB C run42836578436／job129900277393已越過首次ready，但同六個native案例在返回後modal name欄／連線操作失敗。實際ProcessEditor.bind會先掛handler fence，panel發現舊history root已斷開後再增加epoch；重新guard卻包住舊fence，內層過期epoch令新回呼也永久拒絕。兩個真controller中越文反例修前均FAIL（fresh callback 0≠1），修後通過。改以私有WeakMap記錄原callback，只替換同一DOM節點／事件的fence；舊被擷取回呼仍拒絕，搬到其他節點也不能重新授權。歷史26、整組歷史政策bundle88、畫布510、來源cache198均PASS；lint／非增量TS／真實7753e6f guarded build及auth boundary PASS。原native測試檔、modal／linking斷言、未存保護及等待時間都未改，需新HEAD原CI再驗。

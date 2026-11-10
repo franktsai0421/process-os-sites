@@ -11,7 +11,20 @@
  const assertHistoryCurrent=()=>{if(historyReadOnly())throw Error('APPROVED_HISTORY_READ_ONLY');};
  function retireHistory(){historyDisplayEpoch++;approvedHistoryView?.retire();approvedHistoryView=null;historyRoot=null;}
  function historyPermissions(c){return {...permissions,...Object.fromEntries(['view','edit','save','submit','withdraw','approve','return','history','delete'].map(key=>[key,c.permission(key)===true]))};}
- function guardCanvasHandlers(){const page=document.querySelector('.editor-page'),epoch=historyDisplayEpoch;if(!page)return;for(const node of [page,...page.querySelectorAll('*')])for(const key of ['onclick','onchange','oninput','onkeydown','onpointerdown','onpointermove','onpointerup','onpointercancel']){const fn=node[key];if(node.id==='canvas-approved-version'||node.closest('[data-vd-approved-view]')||typeof fn!=='function'||fn.__approvedDisplayEpoch===epoch)continue;const wrapped=function(...args){if(!historyCurrent(epoch)||!node.isConnected)return;return fn.apply(this,args);};wrapped.__approvedDisplayEpoch=epoch;wrapped.authoringV3=fn.authoringV3;node[key]=wrapped;}}
+ // Keep each DOM handler's original callback private. A newly bound current
+ // node may need a newer fence after the old history root retires; wrapping the
+ // previous fence would leave its obsolete epoch permanently blocking edits.
+ const historyHandlerPins=new WeakMap();
+ function guardCanvasHandlers(){
+  const page=document.querySelector('.editor-page'),epoch=historyDisplayEpoch;if(!page)return;
+  for(const node of [page,...page.querySelectorAll('*')])for(const key of ['onclick','onchange','oninput','onkeydown','onpointerdown','onpointermove','onpointerup','onpointercancel']){
+   const installed=node[key];if(node.id==='canvas-approved-version'||node.closest('[data-vd-approved-view]')||typeof installed!=='function')continue;
+   const prior=historyHandlerPins.get(installed),sameBinding=prior?.node===node&&prior?.key===key;
+   if(sameBinding&&prior.epoch===epoch)continue;
+   const fn=sameBinding?prior.fn:installed,wrapped=function(...args){if(!historyCurrent(epoch)||!node.isConnected)return;return fn.apply(this,args);};
+   historyHandlerPins.set(wrapped,{node,key,epoch,fn});wrapped.__approvedDisplayEpoch=epoch;wrapped.authoringV3=fn.authoringV3;node[key]=wrapped;
+  }
+ }
  function mountCanvasHistory(shell,_log,empty){
   const target=document.querySelector('#authoring-v3-panel'),page=target?.closest('.editor-page');if(!page||!ownFlow()||!control||permissions.view!==true||permissions.history!==true||!host.ProcessCanvasHistory?.createApprovedHistory)return;
   approvedHistoryView?.retire();historyRoot=page;const c=client(),model=control,category=state.category,line=state.editorLine,context=localContextEpoch;
