@@ -11,7 +11,11 @@ import {fixture as fullFixture} from './fixtures/routine-fqc-durable.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
-const file='public/process/routine-fqc.js',successor=fs.readFileSync(file),legacyBytes=execFileSync('git',['show','5f9d34b04fbbc87bd473c0ff7ddd9f5ac8e9a035:'+file]),legacy=legacyBytes.toString(),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
+const require=createRequire(import.meta.url),pageProof=require('../scripts/account-page-source-contract.cjs'),{canonicalCheckout}=require('../scripts/routine-fqc-source-contract.cjs');
+// The checkout may use CRLF. Attest it against actual HEAD bytes before the
+// unchanged exact source/predecessor checks; never normalize their hashes.
+function assertCurrentCheckout(working,committed){const source=canonicalCheckout(working,committed);pageProof.assertCurrent(source,file);return source;}
+const file='public/process/routine-fqc.js',committedSuccessor=execFileSync('git',['show','HEAD:'+file]),successor=assertCurrentCheckout(fs.readFileSync(file),committedSuccessor),legacyBytes=execFileSync('git',['show','5f9d34b04fbbc87bd473c0ff7ddd9f5ac8e9a035:'+file]),legacy=legacyBytes.toString(),previous=execFileSync('git',['show','51bda3eda99c98ab30d3c46b6615065588be564c'],{encoding:'utf8'});
 assert.equal(createHash('sha256').update(previous).digest('hex'),'ed342c34242df88c2b6edb71d2f2025b284a4fe41026ffbd92d0fb614f03c3f7');
 const lf=text=>text.replace(/\r\n/g,'\n');
 // Among the pinned functions, only Save changed in checkpoint1ab4ccf: ownership,
@@ -113,7 +117,6 @@ void test('genuine public predecessor Save permits save-only for clean local inp
 
 // The successor deliberately delegates silent RAM departure and whole-page
 // ownership. Do not mint a new reviewedSaveSHA or run restored proof bytes.
-const pageProof=createRequire(import.meta.url)('../scripts/account-page-source-contract.cjs');
 void test('current Routine source exactly attests and restores the genuine public predecessor without changing its Save pin',()=>{
  pageProof.assertCurrent(successor,file);
  assert.deepEqual(pageProof.projectFile(successor,file),legacyBytes);
@@ -123,6 +126,30 @@ void test('current Routine source exactly attests and restores the genuine publi
  for(const [from,to]of [["assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();",''],["moduleAction:'save-local-v1'","moduleAction:'unknown'"],["if(!current())throw Error('DELIVERY_SUPERSEDED');",'']]){
   assert.ok(successor.toString().includes(from));assert.throws(()=>pageProof.assertCurrent(Buffer.from(successor.toString().replace(from,to)),file));
  }
+});
+void test('current Routine LF and CRLF checkouts attest to the same untouched raw Git source and genuine predecessor',()=>{
+ const crlf=Buffer.from(lf(committedSuccessor.toString()).replace(/\n/g,'\r\n'));
+ assert.equal(committedSuccessor.includes(Buffer.from('\r\n')),false,'the actual pinned Git blob uses LF');
+ assert.notEqual(crlf.length,committedSuccessor.length,'reproduce Windows checkout byte growth');
+ assert.throws(()=>pageProof.assertCurrent(crlf,file),/successor length differs/,'raw source proof remains strict');
+ const rawBefore=Buffer.from(committedSuccessor),checkoutBefore=Buffer.from(crlf);
+ for(const checkout of [committedSuccessor,crlf]){
+  const attested=assertCurrentCheckout(checkout,committedSuccessor);
+  assert.deepEqual(attested,committedSuccessor);assert.notEqual(attested,committedSuccessor,'no shared mutable evidence buffer');
+  assert.deepEqual(pageProof.projectFile(attested,file),legacyBytes);
+ }
+ assert.deepEqual(committedSuccessor,rawBefore);assert.deepEqual(crlf,checkoutBefore);
+});
+void test('current Routine EOL admission rejects content drift and cannot bless a substituted Git source',()=>{
+ const raw=committedSuccessor.toString(),guard='assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();';assert.ok(raw.includes(guard));
+ const altered=[raw+'\n// unrelated drift',raw.slice(0,-1),raw.replace(guard,''),raw.replace(/\n/,'\r')];
+ for(const changed of altered){
+  assert.notEqual(changed,raw);
+  for(const checkout of [changed,changed.replace(/\r?\n/g,'\r\n')])assert.throws(()=>assertCurrentCheckout(Buffer.from(checkout),committedSuccessor),/beyond checkout EOL/);
+  assert.throws(()=>assertCurrentCheckout(Buffer.from(changed),Buffer.from(changed)),/successor (length differs|differs)/,'matching forged inputs do not replace the pinned source');
+ }
+ const crlf=Buffer.from(raw.replace(/\n/g,'\r\n'));
+ assert.throws(()=>assertCurrentCheckout(crlf,crlf),/successor length differs/,'a CRLF Git blob is not the attested LF blob');
 });
 void test('current full Routine legacy-layout navigation retains dirty, busy, retry and dialog fences',()=>{
  const f=fullFixture(),navigation=f.win.RoutineFQCUI.navigation,d=f.api.getData().control.documents[0];
