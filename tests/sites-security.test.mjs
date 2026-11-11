@@ -27,13 +27,20 @@ function loader(overrides={}) {
       return cache.get(key);
     }
     let file=specifier.startsWith('@/')?path.join(root,specifier.slice(2)):path.resolve(path.dirname(importer),specifier);
-    if(!fs.existsSync(file))for(const extension of ['.ts','.mjs','.js'])if(fs.existsSync(file+extension)){file+=extension;break;}
     if(!file.startsWith(root+path.sep))throw Error('Test module outside isolated source');
-    if(cache.has(file))return cache.get(file);
+    // Mirror the existing isolated Worker loader's two exact policy URLs.
+    // URL identity keeps its version; filesystem access uses the query-free path.
+    const query='?v=20261110-account-pages1',relative=path.relative(root,file).split(path.sep).join('/');
+    const pinnedQuery=['public/process/access-policy.mjs'+query,'public/process/draft-review-policy.mjs'+query].includes(relative);
+    if(/[?#]/.test(file)&&!pinnedQuery)throw Error('Test policy module URL refused');
+    if(pinnedQuery)file=file.slice(0,-query.length);
+    if(!fs.existsSync(file))for(const extension of ['.ts','.mjs','.js'])if(fs.existsSync(file+extension)){file+=extension;break;}
+    const moduleKey=file+(pinnedQuery?query:'');
+    if(cache.has(moduleKey))return cache.get(moduleKey);
     const source=fs.readFileSync(file,'utf8');
     const output=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext},fileName:file,reportDiagnostics:true});
     assert.equal((output.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error).length,0,'TypeScript syntax diagnostics');
-    const compiledModule=new vm.SourceTextModule(output.outputText,{context,identifier:file});cache.set(file,compiledModule);
+    const compiledModule=new vm.SourceTextModule(output.outputText,{context,identifier:moduleKey});cache.set(moduleKey,compiledModule);
     return compiledModule;
   }
   // Link the root once and let the VM traverse its graph. Recursively linking
@@ -41,6 +48,25 @@ function loader(overrides={}) {
   // sibling import, producing ERR_VM_MODULE_LINK_FAILURE on diamond graphs.
   return async relative=>{const compiledModule=load('./'+relative);if(compiledModule.status==='unlinked')await compiledModule.link((name,parent)=>load(name,parent.identifier));await compiledModule.evaluate();return compiledModule.namespace;};
 }
+
+await test('isolated policy loader supports only pinned query URLs with distinct cached module identity',async()=>{
+ const load=loader(),plain=await load('public/process/access-policy.mjs'),versioned=await load('public/process/access-policy.mjs?v=20261110-account-pages1');
+ assert.notEqual(plain,versioned);assert.notEqual(plain.effectiveCells,versioned.effectiveCells);
+ assert.deepEqual([...plain.accessKeys],[...versioned.accessKeys]);assert.equal(await load('public/process/access-policy.mjs?v=20261110-account-pages1'),versioned);
+ const policy=await load('public/process/draft-review-policy.mjs?v=20261110-account-pages1');assert.equal(typeof policy.prepareDraftReviewPolicy,'function');
+ for(const name of ['access-policy.mjs?v=wrong','access-policy.mjs?v=20261110-account-pages1#fragment','user-access.js?v=20261110-account-pages1'])await assert.rejects(load('public/process/'+name),/Test policy module URL refused/);
+ await assert.rejects(load('../outside-isolated-source.mjs'),/outside isolated source/);
+});
+
+await test('actual loader resolves the pinned policy URL under Windows path rules without reading a query-bearing filename',async()=>{
+ const winRoot=path.win32.resolve('D:',path.win32.sep,'synthetic-source'),policyFile=path.win32.join(winRoot,'public','process','access-policy.mjs'),policySource=fs.readFileSync(path.join(root,'public/process/access-policy.mjs'),'utf8'),reads=[];
+ assert.equal(path.win32.isAbsolute(winRoot),true);
+ const sourceFS={existsSync:file=>file===policyFile,readFileSync(file){assert.equal(file,policyFile);assert.doesNotMatch(file,/[?#]/);reads.push(file);return policySource;}};
+ const winLoader=vm.runInNewContext('('+loader.toString()+')',{root:winRoot,path:path.win32,fs:sourceFS,vm,ts,assert,Request,Response,Headers,URL,TextEncoder,TextDecoder,Uint8Array,ArrayBuffer,webcrypto,atob,btoa,console}),load=winLoader();
+ const plain=await load('public/process/access-policy.mjs'),versioned=await load('public/process/access-policy.mjs?v=20261110-account-pages1');
+ assert.notEqual(plain,versioned);assert.deepEqual([...plain.accessKeys],[...versioned.accessKeys]);assert.equal(reads.length,2);
+ const count=reads.length;await assert.rejects(load('public/process/access-policy.mjs?v=wrong'),/Test policy module URL refused/);await assert.rejects(load('../outside.mjs'),/outside isolated source/);assert.equal(reads.length,count);
+});
 
 await test('source-only copy excludes business dataset and retains the selected Site identity',()=>{const hosting=JSON.parse(fs.readFileSync(path.join(root,'.openai/hosting.json'),'utf8'));assert.equal(hosting.project_id,'appgprj_6ad9abaff47c8191846eb9821034696b');assert.equal(hosting.d1,'DB');assert.equal(hosting.r2,'STATE_ARCHIVE');assert.equal(checkSitesSource(root).registered,true);});
 await test('DEMO defaults closed; explicit opt-in still works',()=>{for(const value of [undefined,null,'',false,'false'])assert.equal(demoLoginAllowed(value),false);assert.equal(demoLoginAllowed('true'),true);});
