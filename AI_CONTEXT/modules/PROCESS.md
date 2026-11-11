@@ -1,6 +1,10 @@
+## 2026-11-11 — Current AB departure test boundary
+
+AB navigation uses the actual RAM-only adapter: sharedDirty/sharedOwned are false, and acknowledged shared writes alone do not prompt. SharedDraftDeparture still tracks exact per-tab ACKs, module Save global cutoffs and owner epochs for callers that need it. Tests execute the current full navigation object, retain those tracker proofs separately, and require local/modal/UNKNOWN state plus zero-request repeated inspection. They do not restore the removed departureOwnShared aggregate. Consolidated synthetic regression checks pass; compiled Begin recovery is still unresolved and native/staging acceptance remains separate.
+
 ## 2026-11-11 — Begin receipt ownership after navigation
 
-An idle invalidated transport cannot lazily acquire a later runtime's Begin marker. A transport that already captured its original record or invalid evidence keeps its obligation and all owner/receipt checks. This prevents a stale authoring instance from turning successful successor receipt cleanup into a permanent account UNKNOWN. No marker deletion, resend, deadline extension or admission bypass is added. Original receipts still require matching operation and authoritative readback.
+Only the idle invalidated process-authoring transport stops lazily acquiring a later runtime's Begin marker. Other modules retain their existing explicit stale-delivery marker discovery, including equipment permission renewal. A transport that already captured its original record or invalid evidence keeps its obligation and all owner/receipt checks. This prevents a stale authoring instance from turning successful successor receipt cleanup into a permanent account UNKNOWN. No marker deletion, resend, deadline extension or admission bypass is added. Original receipts still require matching operation and authoritative readback. The reproduced memory case does not establish compiled acceptance: the original Begin browser case still times out, and its concrete module/cause remains unresolved pending bounded failure diagnostics.
 
 ## 2026-11-10 — IPQC reference adoption
 

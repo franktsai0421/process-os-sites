@@ -1,5 +1,8 @@
 // Actual shared transport, synthetic HTTP/storage/clock; no live endpoint or business data.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {webcrypto} from 'node:crypto';
+import {beginRecoveryFailureSummary,installBeginRecoveryProbe} from './begin-recovery-browser.mjs';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 const source=fs.readFileSync('public/process/shared-draft-client.js','utf8'),copy=structuredClone;
 const scopes={tooling:'TOOLING',fqc:'FQC',iqc:'IQC','ipqc-c':'IPQC-C','process-authoring':null,'ipqc-ab':'IPQC-AB'};
 function fixture(moduleName='fqc',{disk=new Map(),remote,legacy=false}={}){
@@ -69,7 +72,7 @@ void test('prepared Begin POST success followed by terminal GET503 remains unkno
  const f=fixture(),identity={operationId:webcrypto.randomUUID(),basis:originalBasis()};let reads=0;f.hook(call=>call.method==='GET'&&!call.url.includes('operationId=')&&++reads===2?Response.json({error:'TERMINAL_GET_FAILED'},{status:503}):null);let error;try{await f.client.beginWithIdentity(identity);}catch(e){error=e;}assert(error);assert.equal(error.status,503);assert.equal(f.posts().length,1);assert(f.remote.receipt);assert.equal(f.client.isBeginNotSent(error,identity),false);assert(f.client.hasUnknownBegin());const retained=[...f.disk];f.mode('missing');await assert.rejects(f.client.resolveUnknown(),/OPERATION_NOT_FOUND/);assert.deepEqual([...f.disk],retained);f.mode('ok');await f.client.resolveUnknown();assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);
 });
 
-for(const moduleName of Object.keys(scopes))void test(moduleName+' idle stale projection cannot acquire a newer Begin obligation and survive its exact receipt',async()=>{
+for(const moduleName of Object.keys(scopes))void test(moduleName+' idle stale account inspection cannot shadow the successor Begin receipt',async()=>{
  const f=fixture(moduleName),old=f.client;f.delivery();const writer=f.create();assert.notEqual(writer,old);f.mode('lost');await assert.rejects(writer.begin(),/lost ACK/);const retained=[...f.disk];
  assert.equal(f.box.sharedDraftAccountState().unknown,true);f.delivery();const reader=f.create();assert.notEqual(reader,writer);await reader.read();assert.deepEqual([...f.disk],retained);f.mode('ok');const result=await reader.resolveUnknown();
  assert.equal(result.receipt.operationId,JSON.parse(retained[0][1]).operationId);assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);assert.equal(reader.hasUnknown(),false);assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});
@@ -81,4 +84,37 @@ for(const fault of ['removed','changed','unreadable'])void test('stale runtime w
 });
 for(const change of ['epoch','identity','pagehide'])void test('idle runtime replaced after '+change+' cannot shadow successor Begin receipt',async()=>{
  const f=fixture('process-authoring'),old=f.client;if(change==='epoch')f.epoch();if(change==='identity')f.box.ProcessSync.identity={id:'actor'};if(change==='pagehide')f.emit('pagehide');const next=f.create();assert.notEqual(next,old);f.mode('lost');await assert.rejects(next.begin(),/lost ACK/);const retained=[...f.disk];assert.equal(old.hasUnknownBegin(),false);assert.equal(f.box.sharedDraftAccountState().unknown,true);assert.deepEqual([...f.disk],retained);await assert.rejects(old.begin(),/BEGIN_OWNER_CHANGED/);f.mode('ok');await next.resolveUnknown();assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);
+});
+
+for(const moduleName of Object.keys(scopes).filter(name=>name!=='process-authoring'))void test(moduleName+' explicit stale observation retains original Begin discovery contract',async()=>{
+ const f=fixture(moduleName),old=f.client;f.delivery();const writer=f.create();f.mode('lost');await assert.rejects(writer.begin(),/lost ACK/);const retained=[...f.disk];assert.equal(old.hasUnknownBegin(),true);assert.equal(writer.hasUnknownBegin(),true);assert.deepEqual([...f.disk],retained);assert.equal(f.box.sharedDraftAccountState().unknown,true);await assert.rejects(old.begin(),/BEGIN_OWNER_CHANGED/);assert.equal(f.posts().length,1);
+ f.mode('ok');await writer.resolveUnknown();assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});
+});
+
+void test('Begin failure summary identifies module/reopen, raw account barrier and navigation readiness',()=>{
+ const actual=beginRecoveryFailureSummary({stage:'iqc:spa:reopen',dom:{account:{queued:0,unknown:true,failed:false},markers:['one'],navigationStatus:'ready',readyGeneration:'7',view:{view:'data',dataTab:'quality-iqc'},status:'Chưa xác nhận ACCESS_READ_SUPERSEDED'}});
+ assert.deepEqual(actual,{status:'FAIL_BEGIN_RECOVERY_BROWSER',stage:'iqc:spa:reopen',account:{queued:0,unknown:true,failed:false},beginMarkerCount:1,navigationStatus:'ready',readyGeneration:'7',destination:{view:'data',dataTab:'quality-iqc'},clients:[],visibleRecoveryCodes:['ACCESS_READ_SUPERSEDED']});
+});
+void test('Begin summary never emits raw DOM, marker keys, identity, cookies, errors or arbitrary strings',()=>{
+ const secret='SYNTHETIC_MUST_NOT_LEAK',raw={stage:secret,error:secret,cookie:secret,dom:{account:{queued:secret,unknown:secret,failed:secret,password:secret},markers:[secret],navigationStatus:secret,readyGeneration:secret,status:secret,buttons:[secret],clients:[{module:secret,unknown:secret,actorId:secret,url:secret}],view:{view:secret,dataTab:secret,key:secret,identity:secret}}};
+ const actual=beginRecoveryFailureSummary(raw);assert.equal(JSON.stringify(actual).includes(secret),false);assert.equal(actual.stage,'unknown');assert.deepEqual(actual.account,{queued:null,unknown:null,failed:null});assert.deepEqual(actual.destination,{view:null,dataTab:null});assert.equal(actual.beginMarkerCount,1);assert.deepEqual(actual.visibleRecoveryCodes,[]);
+});
+void test('missing diagnostics and malformed queue counts stay bounded without replacing the original failure',()=>{
+ assert.equal(beginRecoveryFailureSummary(undefined).account,null);assert.equal(beginRecoveryFailureSummary({dom:null}).stage,'unknown');
+ for(const queued of [-1,NaN,Infinity,{},'0'])assert.equal(beginRecoveryFailureSummary({dom:{account:{queued}}}).account.queued,null);
+ for(const moduleName of ['fqc','iqc','ipqc-c','process-authoring'])for(const reopen of ['spa','native'])assert.equal(beginRecoveryFailureSummary({stage:moduleName+':'+reopen+':reopen'}).stage,moduleName+':'+reopen+':reopen');
+});
+
+void test('failure diagnostics preserve every original native assertion, receipt contract and 30s deadline byte-for-byte',()=>{
+ const original=execFileSync('git',['show','608e7b5f0d743af76188b07cc5cf859beb23e44f:tests/begin-recovery-browser.mjs']);assert.equal(createHash('sha256').update(original).digest('hex'),'7a2275f825ca24163ffe718630541ce5a2eda75ff32b0cacd06f86427d2cd1f6');
+ const current=fs.readFileSync('tests/begin-recovery-browser.mjs','utf8'),start=current.indexOf('// Public CI failure output is an allowlist,'),end=current.indexOf('export async function runBeginRecoveryBrowser(');assert(start>=0&&end>start);
+ const helper=current.slice(start,end);assert.equal(current.split(helper).length,2);let projected=current.replace(helper,'');
+ for(const addition of ['   await context.addInitScript(installBeginRecoveryProbe);\n','clients:window.__beginRecoveryProbe?.(),','navigationStatus:document.documentElement.dataset.processNavigationStatus,readyGeneration:document.documentElement.dataset.processDestinationReadyGeneration,','console.error(JSON.stringify(beginRecoveryFailureSummary(report)));']){assert.equal(projected.split(addition).length,2);projected=projected.replace(addition,'');}
+ assert.deepEqual(Buffer.from(projected),original);
+});
+
+void test('failure-only client probe forwards factory identity/options and does not call getters on the happy path',()=>{
+ const realm={window:{}},options={endpoint:'/api/iqc/workflow?caseMetadata=1',durableBegin:true,externalDurableBounded:{scope:'IQC'}},calls=[];let reads=0;const client={hasUnknown(){reads++;return true;},hasUnknownBegin(){return true;},isRuntimeCurrent(){return false;},isBeginRuntimeCurrent(){return false;}};
+ vm.runInNewContext('('+installBeginRecoveryProbe.toString()+')()',realm);realm.window.createSharedDraftClient=function(value){assert.equal(this,realm.window);assert.equal(value,options);calls.push(value);return client;};
+ assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(realm.window.createSharedDraftClient(options),client);assert.equal(calls.length,2);assert.equal(reads,0);const rows=realm.window.__beginRecoveryProbe();assert.equal(rows.length,1);assert.equal(reads,1);assert.equal(rows[0].module,'iqc');assert.equal(rows[0].unknown,true);assert.equal(rows[0].runtimeCurrent,false);
 });

@@ -1,3 +1,15 @@
+## 2026-11-11 — Pre-run later regressions and current AB departure contracts
+
+Before publication, execute all inspected socket-free follow-on CI checks and broader shared-draft authority/submission/recovery suites. Fix two stale AB test extractions that referenced removed shared-departure aggregation: execute the actual current RAM-only navigation object and retain tab attribution, saved global cutoff, identity retirement, local/modal/UNKNOWN and no-request checks. Register attribution/prepared regressions alongside the existing Begin CI tests. All17 local command groups pass after this test-only repair; one socket-bound FQC oracle and compiled/native/Windows checks remain unrun locally. Step36 root cause is unresolved; bounded diagnostics remain necessary. No product, data-model or acceptance/deployment claim is added.
+
+## 2026-11-11 — Preserve unresolved compiled Begin evidence
+
+5707352 still fails compiled Begin recovery after original receipt200 as well as the independently reproduced equipment regression. The nine-file equipment repair does not establish a step36 fix. Actual-handler/shared-client memory probes pass for four modules, and the full IQC closure probe passes, so the last IQC write in CI is not proof of the failing module or cause. Add failure-only allowlisted stage/account/marker-count/navigation/error-code output, with privacy negatives. Native assertions,30s deadline, original receipt and no-extra-POST checks remain unchanged. No new runtime fix or native PASS is claimed.
+
+## 2026-11-11 — Limit idle Begin ownership guard to authoring
+
+The shared guard introduced at5707352 was too broad: the unchanged equipment delivery test correctly found that explicit stale-delivery permission renewal could overlook an unresolved Begin marker. Restrict the idle-runtime guard to the exact process-authoring route; preserve all other modules' existing marker discovery and the original equipment rejection assertions. Add five non-authoring explicit-observation regressions alongside the authoring succession negatives. No marker cleanup, new retry, timeout extension, permission broadening or data-model change. Active CI is not cancelled or rerun.
+
 ## 2026-11-11 — Preserve Begin receipt ownership across idle runtimes
 
 Fix a reproduced authoring defect where a stale idle transport lazily adopted a newer Begin marker, then reported permanent UNKNOWN after the rightful successor completed exact receipt recovery. Only record-free, error-free invalidated runtimes stop acquiring newer markers; captured original/invalid evidence and other operation barriers remain. Add six module succession cases plus stale owned-record and identity/epoch/pagehide negatives; retain one POST and exact operation/readback requirements. Version the shared-client asset and preserve exact historical source composition. No polling, deadline, schema, real policy/account/data or deployment change.
