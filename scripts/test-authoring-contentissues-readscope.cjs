@@ -62,7 +62,8 @@ const lf=text=>text.replace(/\r\n/g,'\n'),candidateRoute=fs.readFileSync(path.jo
 const oldPost="export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter()).POST(request);",newPost="export const POST=(request:Request)=>versionedWorkflowRoute(processAuthoringAdapter(new URL(request.url).searchParams.get('channel')==='canvas-v2')).POST(request);";
 assert.equal(lf(baselineRoute).split(oldPost).length,2,'one pinned POST dispatch');
 const expectedRoute=lf(baselineRoute).replace(oldPost,newPost);
-const assertRoute=text=>assert.equal(lf(text).replace(selector,''),expectedRoute,'only selector and exact canvas-v2 dispatch; all other route bytes pinned');
+const Canvas=require('./process-platform-canvas-contract.cjs');Canvas.verifyRepository();
+const assertRoute=text=>assert.equal(Canvas.restorePredecessor(Buffer.from(lf(text)),routeKey).toString().replace(selector,''),expectedRoute,'exact candidate Canvas history inverse, then only selector and canvas-v2 dispatch; all original route bytes pinned');
 assertRoute(candidateRoute);assertRoute(lf(candidateRoute).replaceAll('\n','\r\n'));
 for(const altered of [candidateRoute.replace(newPost,oldPost),candidateRoute.replace(newPost,newPost+newPost),candidateRoute.replace("==='canvas-v2'","!=='canvas-v2'")])assert.throws(()=>assertRoute(altered),{code:'ERR_ASSERTION'});
 async function pair(name,{query='contentIssues=1',who='editor',status=200,afterStatus=status,policyDelta=false,ioSame=false}={}){

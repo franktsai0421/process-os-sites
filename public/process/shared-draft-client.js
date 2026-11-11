@@ -11,7 +11,7 @@
       UNSAVED_CHANGES_SAVE_REQUIRED:['共用草稿有儲存後的新修改。請先儲存，再核對版本並送審；目前修改仍保留。','Bản nháp chung có thay đổi sau lần lưu. Hãy lưu rồi kiểm tra phiên bản trước khi gửi duyệt; các thay đổi vẫn được giữ.'],
       DRAFT_REVISION_REQUIRED:['此分頁缺少送審版本確認。請先保留未套用內容，再重新開啟最新頁面。','Tab này thiếu thông tin xác nhận phiên bản gửi duyệt. Hãy giữ nội dung chưa áp dụng rồi mở lại trang mới nhất.'],
       WORKFLOW_V3_REQUIRED:['此舊版流程無法確認已儲存的送審版本，暫停新送審。請保留內容並由管理者核對共用草稿採用狀態。','Quy trình cũ này không xác minh được bản đã lưu để gửi duyệt. Hãy giữ nội dung và nhờ quản trị viên kiểm tra trạng thái bản nháp chung.'],
-      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次未送審。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; chưa gửi duyệt. Hãy kiểm tra và lưu nội dung mới nhất.'],
+      DRAFT_REVISION_CHANGED_RECONFIRM:['確認期間共用草稿已更新，本次操作未完成。請重新核對並儲存最新內容。','Bản nháp chung đã thay đổi trong lúc xác nhận; thao tác chưa hoàn tất. Hãy kiểm tra và lưu nội dung mới nhất.'],
       UNAPPLIED_CHANGES_APPLY_REQUIRED:['尚有未套用內容。請先明確套用或放棄這些輸入，再儲存或送審。','Còn nội dung chưa áp dụng. Hãy áp dụng rõ ràng hoặc bỏ các nội dung đó trước khi lưu hay gửi duyệt.'],
       PENDING_LOCKED:['此範圍已送審，暫時不能寫入。尚未送出的輸入仍保留。','Phạm vi này đang chờ duyệt nên chưa thể ghi. Nội dung chưa gửi vẫn được giữ.'],
       RESTORE_PERMISSION_REQUIRED:['沒有還原歷史至草稿的權限，資料未變更。','Không có quyền khôi phục lịch sử vào bản nháp; dữ liệu chưa thay đổi.'],
@@ -119,6 +119,8 @@
   const departureOwnerCurrent=owner=>!!owner?.id&&!window.ProcessSync?.requiresReload&&owner.id===window.ProcessSync?.identity?.id&&(typeof owner.epoch==='number'?owner.epoch===window.ProcessSync?.identityGeneration?.():owner.identity===window.ProcessSync?.identity);
   const departureScope=endpoint=>{
     const [path,query='']=endpoint.split('?'),params={get(key){const values=query.split('&').filter(part=>part.split('=')[0]===key);if(values.length!==1)return null;try{return decodeURIComponent(values[0].slice(key.length+1).replaceAll('+',' '));}catch{return null;}}};
+    if(path==='/api/routine-fqc/page')return 'routine-fqc:page';
+    if(path==='/api/master/pages')return ['AB','C','LINES'].includes(params.get('scope'))?'master:'+(params.get('scope')==='LINES'?'LINES':params.get('scope')+'.catalog'):null;
     if(path==='/api/master/workflow')return ['AB','C','PROCESS'].includes(params.get('scope'))?'master:'+params.get('scope'):null;
     if(path==='/api/ipqc-ab/workflow')return params.get('module')==='1'?'ipqc-ab:module':/^[AB]:.+/.test(params.get('scope')||'')?'ipqc-ab:'+params.get('scope'):null;
     return {'/api/fqc/workflow':'fqc','/api/iqc/workflow':'iqc','/api/ipqc-c/workflow':'ipqc-c','/api/bom/workflow':'bom','/api/routine-equipment/workflow':'routine-equipment','/api/tooling/workflow':'tooling','/api/process-authoring/workflow':'process:platform'}[path]||null;
@@ -314,8 +316,9 @@
     if(equipmentLocalSave&&(endpoint!=='/api/routine-equipment/workflow?caseMetadata=1'||externalStrict||!durableBegin))throw Error('EQUIPMENT_LOCAL_SCOPE_REQUIRED');
     if(processLocalSave!==false&&(processLocalSave!==true||!durableBegin||boundedScope!=='master:PROCESS'))throw Error('PROCESS_LOCAL_SCOPE_REQUIRED');
     const masterLocalBegin=durableBegin&&beginPath==='/api/master/workflow'&&(processLocalSave?['PROCESS']:['AB','C']).includes(beginParams.get('scope'))&&endpoint===`/api/master/workflow?scope=${beginParams.get('scope')}&caseMetadata=1`;
-    const beginScopePath=masterLocalBegin?beginPath+'?scope='+beginParams.get('scope'):beginPath;
-    if(durableBegin&&!masterLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
+    const pageLocalBegin=durableBegin&&beginPath==='/api/master/pages'&&['AB','C','LINES'].includes(beginParams.get('scope'))&&endpoint===`/api/master/pages?scope=${beginParams.get('scope')}&caseMetadata=1`;
+    const beginScopePath=(masterLocalBegin||pageLocalBegin)?beginPath+'?scope='+beginParams.get('scope'):beginPath;
+    if(durableBegin&&!masterLocalBegin&&!pageLocalBegin&&!abModule&&(!['/api/fqc/workflow','/api/iqc/workflow','/api/ipqc-c/workflow','/api/tooling/workflow','/api/bom/workflow','/api/process-authoring/workflow','/api/routine-equipment/workflow'].includes(beginPath)||externalCanvas||[...beginParams].some(([key,value])=>key!=='caseMetadata'||value!=='1')||beginParams.getAll('caseMetadata').length>1))throw Error('BEGIN_DURABLE_SCOPE_REQUIRED');
     const beginRuntimeOwner=durableBegin?{...departureOwner(),delivery:window.ProcessSync?.captureDelivery?.()}:null;
     const beginRuntimeCurrent=()=>!durableBegin||departureOwnerCurrent(beginRuntimeOwner)&&beginRuntimeOwner.identity===window.ProcessSync?.identity&&Number.isSafeInteger(beginRuntimeOwner.epoch)&&beginRuntimeOwner.epoch>=0&&beginRuntimeOwner.epoch===window.ProcessSync?.identityGeneration?.()&&clientPagehideGeneration===transportPagehideGeneration&&(!beginRuntimeOwner.delivery||window.ProcessSync?.isCurrentDelivery?.(beginRuntimeOwner.delivery)!==false);
     const clientPagehideGeneration=transportPagehideGeneration;
@@ -330,6 +333,7 @@
     const boundedPredecessor=externalBounded?transports.get(transportKey):null;
     let boundedProjectionRetired=false,equipmentProjectionRetired=false;
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
+    const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath);
     // Opt-in UI access projection only; never order or alter command/receipt results.
     let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
     const captureAccess=options=>{const sync=window.ProcessSync;return {sequence:++accessIssued,epoch:accessEpoch,identity:sync?.identity,identityEpoch:accessGuard?sync?.identityGeneration?.():undefined,isCurrent:options?.isCurrent};};
@@ -352,6 +356,7 @@
       if(revision!==null)accessRevision=Math.max(accessRevision,revision);
       if(denied||revoked)accessFence=accessIssued;
       gateControls(denied||revoked);
+      if(approvedHistoryRoute)for(const listener of approvedAccessListeners)try{listener();}catch{/* Presentation cannot change request or receipt authority. */}
       return !restricted;
     }
     // A view denial retires navigation coverage, including on clients without UI gates.
@@ -473,6 +478,30 @@
     const canvasObserving=canvasPrimary||canvasTarget;
     let canvasObservation=0,canvasRequests=0,canvasBasis=null;
     const canvasOriginalReads=new WeakMap(),canvasCommands=new WeakMap(),canvasArms=new Map(),canvasPosts=new WeakMap();
+    // Only an issued Canvas Save and its original HTTP POST can prove that
+    // revision/field guards rejected the write. Public error flags, receipt GETs
+    // and copied commands cannot mint this private capability.
+    const canvasRejectionTokens=new WeakMap(),canvasRejectionIssued=new WeakMap(),canvasRejectionResponses=new WeakMap();
+    function canvasRejectionCurrent(pin){return !!pin&&!pin.consumed&&canvasTarget&&externalCurrent()&&clientPagehideGeneration===transportPagehideGeneration&&pin.pagehide===transportPagehideGeneration&&canvasOwnerCurrent(pin.owner)&&JSON.stringify(pin.command)===pin.raw;}
+    function canvasRejectionResponse(error,command,status,result){
+      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);
+      if(!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw||status!==409||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.requestId||''))return;
+      const path=JSON.stringify(result.details?.path),guard=result.error==='DEPENDENCY_CHANGED_RECONFIRM'&&command.guards?.some(g=>JSON.stringify(g.path)===path);
+      if(result.error!=='DRAFT_REVISION_CHANGED_RECONFIRM'&&!guard)return;
+      canvasRejectionResponses.set(error,{pin,flight,kind:'http',status,code:result.error,requestId:result.requestId,details:JSON.stringify(result.details),notSent:error.notSent});
+    }
+    function canvasRejectionUnsent(error,command){
+      const pin=canvasRejectionIssued.get(command),flight=preparedFlights.get(command?.operationId);
+      if(!externalUnsent.has(error)||!canvasRejectionCurrent(pin)||!flight||pin.flight!==flight||JSON.stringify(command)!==pin.raw)return;
+      // This error is created only by the transport's failed durability check,
+      // before fetch. It is never inferred from a caller-supplied public flag.
+      canvasRejectionResponses.set(error,{pin,flight,kind:'unsent',status:error.status,code:error.message,requestId:error.requestId,details:JSON.stringify(error.details),notSent:true});
+    }
+    function confirmedCanvasRejection(error,command,token){
+      try{const pin=canvasRejectionTokens.get(token),proof=canvasRejectionResponses.get(error),failure=syncFailures.get(command?.operationId);
+        return canvasRejectionCurrent(pin)&&pin.command===command&&proof?.pin===pin&&proof.flight===pin.flight&&!!pin.flight&&failure?.error===error&&JSON.stringify(failure.command)===pin.raw&&(proof.kind==='http'||proof.kind==='unsent'&&externalUnsent.has(error))&&error.notSent===proof.notSent&&error.status===proof.status&&error.message===proof.code&&error.requestId===proof.requestId&&JSON.stringify(error.details)===proof.details;
+      }catch{return false;}
+    }
     function canvasBasisCurrent(basis){return !!basis&&basis===canvasBasis&&basis.accessEpoch===accessEpoch&&canvasOwnerCurrent(basis.owner)&&canvasSame(access,basis.permissions)&&canvasSame(basis.response.control,basis.control)&&basis.response.revision===basis.globalRevision;}
     function canvasCapture(source,model){
       try{const basis=canvasOriginalReads.get(source)||canvasAuthoritySources.get(source);if(!canvasPrimary||canvasRequests||!canvasBasisCurrent(basis)||model!==basis.response.control&&!canvasSame(model,basis.control))return null;
@@ -769,7 +798,7 @@
         if(externalCanvas&&body){
           assertMutationAdmission();
           try{if(body.command?.action!=='apply'||externalProof(body.command)!==true)throw Error('CANVAS_DURABLE_DISPATCH_REQUIRED');}
-          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);throw error;}
+          catch(cause){const error=Object.assign(Error('CANVAS_DURABLE_DISPATCH_REQUIRED'),{notSent:true,cause});externalUnsent.add(error);if(canvasTarget)canvasRejectionUnsent(error,body.command);throw error;}
           assertMutationAdmission();
         }
         if(externalBounded&&body?.command){
@@ -798,7 +827,7 @@
           if(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&typeof value.__liveContent==='string'){const [key,field]=value.__liveContent.split('#');if(!Object.hasOwn(live,key)||field&&(!live[key]||typeof live[key]!=='object'||!Object.hasOwn(live[key],field)))throw Error('INVALID_WORKFLOW_RESPONSE');return JSON.parse(JSON.stringify(field?live[key][field]:live[key]));}
           if(Array.isArray(value))return value.map(expand);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,child])=>[key,expand(child)]));return value;};
           const {liveContent:_live,wireVersion:_version,...body}=result;result=expand(body);}
-        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
+        if(!response.ok){const error=Object.assign(Error(result.error||`HTTP ${response.status}`),{status:response.status,requestId:result.requestId,details:result.details});if(canvasTarget&&body?.command)canvasRejectionResponse(error,body.command,response.status,result);if(body?.action==='begin-v1')beginResponses.set(error,{record:beginRecord,raw:beginRaw});if(abEntry)abResponse(error,body.command,result);if(externalBounded&&body?.command)boundedResponses.set(error,{record:boundedRecord,operationId:body.command.operationId,raw:JSON.stringify(body.command),status:response.status,code:result.error,path:JSON.stringify(result.details?.path),flight:preparedFlights.get(body.command.operationId)?.promise,manualBodyTooLarge:boundedScope==='bom'&&(body.command.action==='apply'&&!body.command.moduleAction||body.command.action==='save'&&body.command.moduleAction==='save-local-v1')&&response.status===413&&result.error==='COMMAND_TOO_LARGE'&&new TextEncoder().encode(requestOptions.body).byteLength>2_000_000});throw error;}
         // Real HTTP errors above retain their original status even for stale ownership.
         if(accessGuard&&!body&&(!ownsAccess(accessOwner)||(kind==='permissions'||readOptions?.requireAcceptedAccess===true)&&!acceptedAccess))throw Error('ACCESS_READ_SUPERSEDED');
         // Pair a full owned projection with its state revision. Metadata-only
@@ -999,6 +1028,7 @@
       version: (id,options)=>request(query('versionId='+encodeURIComponent(id)),undefined,options),
       contentIssues: caseId=>request(query('contentIssues=1'+(caseId?'&contentCaseId='+encodeURIComponent(caseId):''))),
       ...(legacyArchive?{legacyHistory:(before,options)=>request(query(`legacyHistory=1${before?`&before=${encodeURIComponent(before)}`:''}`),undefined,options),legacyVersion:(id,options)=>request(query(`legacyVersionId=${encodeURIComponent(id)}`),undefined,options)}:{}),
+      ...(approvedHistoryRoute?{approvedHistory:(options,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('uiHistory=1&'+new URLSearchParams({...options,approvedOnly:'1'})),undefined,{...readOptions,requireAcceptedAccess:true});},approvedVersion:(id,readOptions)=>{if(!accessGuard){accessGuard=true;accessEpoch++;}return request(query('versionId='+encodeURIComponent(id)+'&approvedOnly=1'),undefined,{...readOptions,requireAcceptedAccess:true});},watchApprovedAccess(listener){approvedAccessListeners.add(listener);return ()=>approvedAccessListeners.delete(listener);}}:{}),
       reviewCase: (id,options)=>request(query(`caseId=${encodeURIComponent(id)}`),undefined,options),
       previewRestore: (id,options)=>request(query(`restoreSaveId=${encodeURIComponent(id)}`),undefined,options),
       async beginWithIdentity(identity){
@@ -1073,6 +1103,18 @@
       mediaURL(photo){if(typeof photo?.src==='string'&&/^(?:data:image\/(?:png|jpeg|webp|gif|avif);base64,|\/(?!\/))/.test(photo.src))return photo.src;
         if(typeof photo?.src==='string'&&photo.src.startsWith('assets/')){const url=new URL(photo.src,location.origin+'/process/');if(url.origin===location.origin&&url.pathname.startsWith('/process/assets/'))return url.pathname+url.search;}
         return /^[a-f0-9]{64}$/.test(photo?.id||'')?endpoint.split('?')[0].replace(/\/workflow$/,'')+'/photo?id='+photo.id:'';},
+      canvasRejectionCapability(command){
+        assertOwner();const snapshot=canvasCommands.get(command);
+        if(!canvasTarget||!snapshot||!canvasJSONMatches(command,snapshot)||command.action!=='apply'||command.moduleAction!=='save-canvas-v1'||!Number.isSafeInteger(command.expectedRevision)||command.expectedRevision<0||canvasRejectionIssued.has(command))throw Error('CANVAS_SAVE_PREPARATION_REQUIRED');
+        const raw=JSON.stringify(command);
+        const token=Object.freeze({}),pin={command,raw,owner:canvasOwner(),pagehide:transportPagehideGeneration,flight:null,consumed:false};
+        canvasRejectionTokens.set(token,pin);canvasRejectionIssued.set(command,pin);return token;
+      },
+      isConfirmedCanvasRejection:confirmedCanvasRejection,
+      discardRejectedCanvasSave(command,error,token){
+        assertOwner();if(unknown||queued||preparedFlights.size||!confirmedCanvasRejection(error,command,token))return false;
+        const pin=canvasRejectionTokens.get(token);syncFailures.delete(command.operationId);pin.consumed=true;canvasRejectionIssued.delete(command);return true;
+      },
       rejectionCapability(command){
         assertOwner();const raw=JSON.stringify(command);if(!externalBounded||boundedSelectedObjects.get(command)!==raw)throw Error('BOUNDED_RECOVERY_COMMAND_REQUIRED');
         const token=Object.freeze({}),proof={clientId,raw,flight:preparedFlights.get(command.operationId)?.promise||null,current:externalCurrent};rejectionCapabilities.set(token,proof);
@@ -1098,14 +1140,15 @@
         if(existing){if(JSON.stringify(existing.command)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');return existing.promise;}
         if(externalBounded&&boundedSelected.has(command.operationId)){if(boundedSelected.get(command.operationId)!==JSON.stringify(command)||typeof options?.assertDispatch!=='function')throw Object.assign(Error('BOUNDED_DURABLE_DISPATCH_REQUIRED'),{notSent:true});boundedProofs.set(command.operationId,options.assertDispatch);}
         // Capture the admitted JSON payload; a caller cannot mutate a queued command.
-        command=JSON.parse(JSON.stringify(command));
+        const canvasRejectionPin=canvasTarget?canvasRejectionIssued.get(command):null;
+        command=JSON.parse(JSON.stringify(command));if(canvasRejectionPin)canvasRejectionIssued.set(command,canvasRejectionPin);
         if(unknown?.operationId===command.operationId&&JSON.stringify(unknown)!==JSON.stringify(command))throw Error('OPERATION_ID_PAYLOAD_MISMATCH');
         if(beginPending||retryPending)throw Error('OPERATION_IN_PROGRESS');
         assertMutationAdmission();const retry=unknown?.operationId===command.operationId,owner=retry?unknownOwner:departureOwner();queued++;const {action}=command;
         const result=tail.then(async()=>{assertMutationAdmission();if(action==='save'&&syncFailures.size)throw syncFailures.values().next().value.error;
           if(action==='submit'){const advisory=await request(query('permissions=1'));assertMutationAdmission();if(advisory.permissions?.submit&&advisory.otherReviewerAvailable===false)window.alert(document.documentElement.lang.startsWith('zh')?'目前沒有其他已啟用的審核人，仍可送審。具審核權限者可經確認後自審。':'Hiện chưa có người duyệt khác đang hoạt động. Bạn vẫn có thể gửi duyệt. Người có quyền duyệt có thể tự duyệt sau khi xác nhận.');}
           return post(command,retry,owner);}).finally(()=>{queued--;if(externalBounded)boundedProofs.delete(command.operationId);});
-        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;
+        const flight={command,promise:result};preparedFlights.set(command.operationId,flight);if(canvasRejectionPin&&!canvasRejectionPin.flight&&canvasRejectionCurrent(canvasRejectionPin)&&canvasRejectionPin.raw===JSON.stringify(command))canvasRejectionPin.flight=flight;if(externalBounded)for(const proof of boundedCapabilities.get(command.operationId)||[])proof.flight=result;
         if(abEntry)abEntry.flight=result;
         void result.then(()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);},()=>{if(preparedFlights.get(command.operationId)===flight)preparedFlights.delete(command.operationId);});
         tail=result.then(value=>{if(supersededRecovery(value))return;syncFailures.delete(command.operationId);if(action==='apply'){

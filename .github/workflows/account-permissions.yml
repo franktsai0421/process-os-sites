@@ -3,6 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'scripts/account-process-joint-source-contract.cjs'
+      - 'scripts/account-process-joint-source-contract.json'
+      - 'tests/account-process-joint-source.test.cjs'
       - 'app/api/platform-login/**'
       - 'app/api/user-access/**'
       - 'lib/passwords.ts'
@@ -14,6 +17,12 @@ on:
       - 'scripts/test-fqc-lifecycle8-record-mutation.cjs'
       - 'scripts/test-legacy-draft-rights.mjs'
       - 'scripts/account-permission-source-contract.*'
+      - 'scripts/account-page-source-contract.*'
+      - 'app/api/master/pages/**'
+      - 'app/api/routine-fqc/page/**'
+      - 'public/process/*page*'
+      - 'public/process/account-review-preview.mjs'
+      - 'public/process/draft-review-policy.mjs'
       - 'scripts/account-cache-source-contract.*'
       - 'tests/access-event-main-integration.test.cjs'
       - 'tests/shared-draft-receipt-recovery.test.mjs'
@@ -54,7 +63,7 @@ jobs:
       - run: npm run lint -- --format unix
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Isolated account API and UI source regression
-        run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs
+        run: node --experimental-vm-modules --test --test-concurrency=1 tests/account-priority-api.test.mjs tests/account-dialog-feedback.test.mjs tests/account-login-language.test.mjs tests/account-result-notice.test.mjs tests/account-policy-source-loader.test.mjs
       - name: Existing account authority and session protections
         run: |
           node scripts/test-user-access.mjs
@@ -67,7 +76,7 @@ jobs:
           node scripts/test-login-reentry.cjs
           node scripts/test-login-json-coercion.mjs
       - name: Exact account cache and retained background source proofs
-        run: node --test tests/account-cache-source-proof.test.cjs tests/account-permission-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/shared-draft-receipt-recovery.test.mjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/navigation-adapters.test.mjs
+        run: node --test tests/account-process-joint-source.test.cjs tests/account-cache-source-proof.test.cjs tests/account-permission-source-proof.test.cjs tests/access-event-main-integration.test.cjs tests/shared-draft-receipt-recovery.test.mjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/navigation-adapters.test.mjs
       - name: Aligned permissions and feedback source authorization
         run: |
           node --test tests/account-permission-alignment.test.cjs tests/account-user-reset.test.cjs tests/account-editor-routine-save.test.cjs tests/account-lines-view.test.cjs tests/account-master-readback.test.mjs tests/account-feedback-shell.test.cjs tests/account-feedback-source-security.test.cjs tests/access-events-api.test.cjs tests/web-feedback-cloud.test.mjs tests/web-feedback-access.test.mjs tests/web-feedback-layout.test.mjs tests/web-feedback-zip.test.cjs
@@ -79,6 +88,26 @@ jobs:
           node scripts/test-feedback-cloud-admission.cjs
           node scripts/test-web-feedback.cjs "$RUNNER_TEMP/account-feedback"
           USER_PERMISSIONS_EVIDENCE="$RUNNER_TEMP/account-permissions" node scripts/audit-users-page-permissions.mjs
+      - name: Isolated page permissions, platform review and Routine whole-page owners
+        run: |
+          node --experimental-vm-modules --test --test-concurrency=1 tests/account-final-approval.test.cjs tests/account-review-preview.test.cjs tests/account-lines-save-adoption.test.cjs tests/account-master-page-review.test.cjs tests/account-module-review-access.test.cjs tests/account-routine-save-ui.test.cjs tests/account-page-entry.test.cjs tests/account-page-source-proof.test.cjs tests/draft-review-policy.test.mjs
+          node --experimental-vm-modules --test --test-concurrency=1 tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/master-page-retention-snapshot.test.mjs tests/routine-page-approved-history.test.mjs tests/routine-page-approved-history-ui.test.mjs tests/routine-page-review-policy.test.mjs
+          node scripts/test-process-page-roles.cjs
+          node scripts/test-master-page-runtime.cjs
+          node scripts/test-master-page-ui.cjs
+          node scripts/test-master-page-boundary.cjs
+          node scripts/test-master-page-name-save.cjs
+          node scripts/test-master-page-review-regressions.cjs
+          node scripts/test-master-page-transfer.cjs
+          node scripts/test-master-page-tools-ui.cjs
+          node scripts/test-master-line-page-workflow.cjs
+          node scripts/test-master-public-page-authority.cjs
+          node scripts/test-routine-page-domain-helpers.cjs
+          node scripts/test-routine-fqc-page-save.cjs
+          node scripts/test-routine-whole-page.cjs
+          node scripts/test-routine-whole-page-route.cjs
+          node scripts/test-routine-whole-page-ui.cjs
+          node scripts/test-routine-page-photo-outcome.cjs
       - run: node scripts/sites-ci-preflight.mjs
       - run: npm run build
       - name: Install isolated Chromium

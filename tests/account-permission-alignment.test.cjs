@@ -15,8 +15,8 @@ for(const id of P.editIncludesSave)void test(id+' effective Edit includes Save w
  for(const op of ['submit','withdraw','approve','return'])assert.equal(cells[id+'.'+op],false);
  assert.equal(P.effectiveCells({...user,accessOverrides:raw},roles)[id+'.save'],true);
 });
-void test('lines boundary remains independent of Edit→Save; filters do not create permissions',()=>{
- for(const id of ['lines'])assert.equal(P.withEditSave({...off,[id+'.view']:true,[id+'.edit']:true})[id+'.save'],false);
+void test('installed line Edit derives only Save; same-page filters do not create additional permissions',()=>{
+ const cells=P.withEditSave({...off,'lines.view':true,'lines.edit':true});assert.equal(cells['lines.save'],true);for(const key of ['ab.view','ab.edit','c.view','c.edit','lines.submit','lines.approve'])assert.equal(cells[key],false);
  for(const query of ['?view=data&dataTab=bom&line=A&group=x&stage=one','?view=data&dataTab=bom&line=C&group=y&stage=two'])assert.equal(P.moduleForURL('http://fixture/process/'+query),'bom');
  for(const row of P.catalog){assert.equal(new Set(row.ops).size,row.ops.length);for(const op of P.columns.map(c=>c[0]))assert.equal(P.accessKeys.includes(row.id+'.'+op),row.ops.includes(op));}
 });
@@ -25,7 +25,7 @@ for(const language of ['zh','vi'])void test(language+' actual role dialog recomp
  const role={id:'staff',name:'Synthetic',access:{...off,'bom.view':true}};
  const matrix={innerHTML:''},submit={textContent:'',hidden:false},d={dataset:{},classList:{add(){}},querySelector:s=>s==='[data-ua-matrix]'?matrix:s.includes('type=')?submit:s==='[name="name"]'?{value:'Synthetic'}:{value:''},querySelectorAll:()=>[]};let payload,review;
  const ctx={P,model:{canRoles:true},fields:()=>roles,crypto:require('node:crypto').webcrypto,structuredClone,t:(zh,vi)=>language==='vi'?vi:zh,h:s=>s,matrix:draft=>JSON.stringify(draft.cells),dialog:()=>d,reviewChanges:(d,draft)=>{review=draft.cells;},bindSearch(){},setIndeterminate(){},syncCells:(d,draft)=>{review=draft.cells;},submit:(d,fn)=>{payload=fn;}};
- vm.createContext(ctx);const start=source.indexOf(' function editRole(');vm.runInContext(source.slice(start,source.indexOf(' function more(',start)),ctx);ctx.editRole(role);
+ vm.createContext(ctx);{const helperStart=source.indexOf(' function previewCells(');vm.runInContext(source.slice(helperStart,source.indexOf('\n const active=',helperStart)),ctx);}const start=source.indexOf(' function editRole(');vm.runInContext(source.slice(start,source.indexOf(' function more(',start)),ctx);ctx.editRole(role);
  assert.equal(JSON.parse(matrix.innerHTML)['feedback.view'],true);
  d.onchange({target:{dataset:{uaCell:'bom.edit'},checked:true}});assert.equal(review['bom.save'],true);
  let body=payload();assert.equal(body.access['bom.edit'],true);assert.equal(Object.hasOwn(body.access,'bom.save'),false);
@@ -34,13 +34,13 @@ for(const language of ['zh','vi'])void test(language+' actual role dialog recomp
 });
 for(const language of ['zh','vi'])void test(language+' account feedback link uses delivery coordinator and rejects invalidated/device/disabled shells',()=>{
  let button,navigations=0,toasts=0;const menu={querySelector:()=>button,classList:{remove(){}},append:b=>{button=b;}};const ctx={currentUser:{role:'staff',enabled:true,cells:{'feedback.view':true}},window:{ProcessSync:{identity:{id:'synthetic'},deliveryProjection:true,features:{webFeedback:true}},ProcessDeliveryNavigation:{navigate(...args){assert.deepEqual(args,['data','web-feedback','process']);navigations++;return true;}}},document:{querySelector:()=>menu,createElement:()=>({dataset:{},remove(){button=undefined;}})},t:(zh,vi)=>language==='vi'?vi:zh,accountToast(){toasts++;}};
- vm.createContext(ctx);const start=source.indexOf(' function accountFeedback(');vm.runInContext(source.slice(start,source.indexOf(' const previousBindView',start)),ctx);ctx.accountFeedback();assert(button);if(language==='vi')assert.doesNotMatch(button.textContent,/[\u3400-\u9fff]/);button.onclick();assert.equal(navigations,1);
+ vm.createContext(ctx);{const helperStart=source.indexOf(' function previewCells(');vm.runInContext(source.slice(helperStart,source.indexOf('\n const active=',helperStart)),ctx);}const start=source.indexOf(' function accountFeedback(');vm.runInContext(source.slice(start,source.indexOf(' const previousBindView',start)),ctx);ctx.accountFeedback();assert(button);if(language==='vi')assert.doesNotMatch(button.textContent,/[\u3400-\u9fff]/);button.onclick();assert.equal(navigations,1);
  ctx.window.ProcessSync.requiresReload=true;button.onclick();assert.equal(navigations,1);ctx.accountFeedback();assert.equal(button,undefined);
  ctx.window.ProcessSync.requiresReload=false;for(const role of ['viewer','device']){ctx.currentUser.role=role;ctx.accountFeedback();assert.equal(button,undefined);}ctx.currentUser.role='staff';ctx.currentUser.enabled=false;ctx.accountFeedback();assert.equal(button,undefined);assert.equal(toasts,0);
 });
 
 for(const language of ['zh','vi'])void test(language+' actual matrix describes derived Save and fixed feedback, without unsupported operation toggles',()=>{
- const ctx={P,t:(zh,vi)=>language==='vi'?vi:zh,h:s=>String(s),normalized:s=>String(s).toLowerCase(),fields:()=>roles,button:()=>''};vm.createContext(ctx);
+ const ctx={P,model:{},t:(zh,vi)=>language==='vi'?vi:zh,h:s=>String(s),normalized:s=>String(s).toLowerCase(),fields:()=>roles,button:()=>''};vm.createContext(ctx);{const helper=source.indexOf(' function previewCells(');vm.runInContext(source.slice(helper,source.indexOf('\n const active=',helper)),ctx);}
  const start=source.indexOf(' const primaryOps='),end=source.indexOf(' function reviewChanges(',start);vm.runInContext(source.slice(start,end),ctx);
  const cells=P.effectiveCells({...user,accessOverrides:{...off,'bom.view':true,'bom.edit':true}},roles),html=ctx.matrix({role:'staff',cells,editable:P.roleEditable('staff')},false);
  assert.match(html,/data-ua-included="bom.save"/);assert.match(html,language==='vi'?/Sửa đã bao gồm lưu/:/修改已包含保存/);

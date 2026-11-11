@@ -4,19 +4,21 @@
   const t=(zh,vi)=>document.documentElement.lang==='vi'?vi:zh;
   host.createMasterSharedBridge=({control,onChange,processLocalSave=false})=>{
     const clients=new Map(),clientOwners=new Map(),bases=new Map(),generations=new Map(),permissions=new Map(),readTokens=new Map(),readOwners=new Map();let busy=false;
+    const pageScopes=new Map([['AB.catalog','AB'],['C.catalog','C'],['LINES','LINES']]);
     const localScopes=new Set(['AB','C',...(processLocalSave?['PROCESS']:[])]),locals=new Map(),stateRevisions=new Map();let processSaving=false,processSave=null;
     const client=scope=>{const actor=host.ProcessSync?.identity?.id;if(!actor)throw Error('LOGIN_REQUIRED');const key=actor+':'+scope;
-      if((scope==='PROCESS'||localScopes.has(scope))&&clients.has(key)&&(!ownerMatches(clientOwners.get(key))||clients.get(key).isRuntimeCurrent?.()===false||localScopes.has(scope)&&clients.get(key).isBeginRuntimeCurrent?.()===false)){clients.delete(key);clientOwners.delete(key);readTokens.delete(key);}
-      if(!clients.has(key)){clients.set(key,host.createSharedDraftClient({endpoint:'/api/master/workflow?scope='+encodeURIComponent(scope)+'&caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},...(scope==='PROCESS'?{externalDurableBounded:{scope:'PROCESS'},...(processLocalSave?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,processLocalSave:true}:{})}:localScopes.has(scope)?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true}:{})}));if(scope==='PROCESS'||localScopes.has(scope))clientOwners.set(key,captureOwner());}return clients.get(key);
+      if((scope==='PROCESS'||localScopes.has(scope)||pageScopes.has(scope))&&clients.has(key)&&(!ownerMatches(clientOwners.get(key))||clients.get(key).isRuntimeCurrent?.()===false||(localScopes.has(scope)||pageScopes.has(scope))&&clients.get(key).isBeginRuntimeCurrent?.()===false)){clients.delete(key);clientOwners.delete(key);readTokens.delete(key);}
+      if(!clients.has(key)){clients.set(key,host.createSharedDraftClient({endpoint:(pageScopes.has(scope)?'/api/master/pages?scope='+pageScopes.get(scope):'/api/master/workflow?scope='+encodeURIComponent(scope))+'&caseMetadata=1',legacyArchive:true,actorId:actor,headers:()=>host.ProcessSync?.platformHeaders?.()||{'Content-Type':'application/json'},...(scope==='PROCESS'?{externalDurableBounded:{scope:'PROCESS'},...(processLocalSave?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true,processLocalSave:true}:{})}:localScopes.has(scope)||pageScopes.has(scope)?{durableBegin:true,allowUnknownDeparture:true,guardAccessResults:true}:{})}));if(scope==='PROCESS'||localScopes.has(scope)||pageScopes.has(scope))clientOwners.set(key,captureOwner());}return clients.get(key);
     };
     const flow=scope=>control.workflowScopes?.[scope];
     const draft=scope=>control.versions.find(v=>v.scope===scope&&v.status==='draft');
     function adopt(scope,result){if(!result.control)return;
-      if(localScopes.has(scope)&&Number.isSafeInteger(result.revision)){if(result.revision<(stateRevisions.get(scope)??-1))return;stateRevisions.set(scope,result.revision);}
+      if((localScopes.has(scope)||pageScopes.has(scope))&&Number.isSafeInteger(result.revision)){if(result.revision<(stateRevisions.get(scope)??-1))return;stateRevisions.set(scope,result.revision);}
       const c=result.control;
       control.versions=control.versions.filter(v=>v.scope!==scope).concat(c.versions.map(v=>({...v,scope,warnings:v.warnings||[]})));
       const active=c.versions.find(v=>v.id===c.activeVersionId);if(active)control.active[scope]=copy(active.snapshot);
       if(c.workflow)control.workflowScopes={...control.workflowScopes,[scope]:c.workflow};
+      if(pageScopes.has(scope)){for(const part of ['AB','C']){const catalog=control.active[part+'.catalog'],lines=control.active.LINES?.[part]?.lines;if(catalog)control.active[part]={...control.active[part],...copy(catalog)};if(lines)control.active[part]={...control.active[part],lines:copy(lines)};}}
       bases.set(scope,copy(c.workflow?.working||draft(scope)?.snapshot||active?.snapshot||{}));generations.set(scope,c.workflow?.generation);
       const local=locals.get(scope),version=draft(scope);if(local&&ownerMatches(local.owner)&&version){if(scope==='PROCESS')local.snapshot=projectLocal(c.workflow.working,local.batches);version.snapshot=copy(local.snapshot);}
     }
@@ -231,7 +233,7 @@
     }
     async function review(scope,action,caseId){const c=flow(scope)?.cases.find(row=>row.id===caseId);if(!c)throw Error('CASE_NOT_FOUND');
       if(action==='approve'&&c.linkedProcess&&!confirm(t('此案件同步核准必要 PROCESS 範本。來源 '+c.linkedProcess.baseVersionId+'；新增 '+c.linkedProcess.added.join(', ')+'；刪除 '+c.linkedProcess.removed.join(', ')+'。確認？','Hồ sơ này đồng thời duyệt các mẫu PROCESS bắt buộc. Nguồn '+c.linkedProcess.baseVersionId+'; thêm '+c.linkedProcess.added.join(', ')+'; xóa '+c.linkedProcess.removed.join(', ')+'. Xác nhận?')))return null;
-      const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:scope+' · '+caseId,selfReview:action!=='withdraw'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
+      const answer=await host.VersionDraftUI.confirmReview({action:action==='return'?'reject':action,scope:(scope==='LINES'?t('線別與工段','Chuyền và công đoạn'):pageScopes.get(scope)||scope)+' · '+caseId,selfReview:action==='approve'&&c.actor.id===host.ProcessSync?.identity?.id});if(!answer)return null;
       return execute(scope,action,{caseId,...answer});
     }
     async function history(scope){await host.openSharedDraftHistory({client:client(scope),masterScope:['AB','C'].includes(scope)?scope:null,editable:()=>!!draft(scope)&&['history','edit','restore'].every(key=>client(scope).permission(key)===true),onApplied:async()=>{await load(scope);onChange?.();}});}
@@ -239,7 +241,7 @@
       if(busy)throw Error('OPERATION_IN_PROGRESS');busy=true;
       const actor=host.ProcessSync?.identity,epoch=host.ProcessSync?.identityGeneration?.();
       const owned=()=>actor===host.ProcessSync?.identity&&epoch===host.ProcessSync?.identityGeneration?.();
-      try{const c=client(scope);if(localScopes.has(scope)){const result=await c.resolveUnknown();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(result?.recoveryKind!=='begin-v1'&&result?.receipt){if(scope==='PROCESS')retireProcessSave(result);else discardLocal(scope);}readTokens.delete(actor?.id+':'+scope);if(result?.control)adopt(scope,result);else await load(scope);if(owned())onChange?.();return result;}try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}
+      try{const c=client(scope);if(localScopes.has(scope)||pageScopes.has(scope)){const result=await c.resolveUnknown();if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(result?.recoveryKind!=='begin-v1'&&result?.receipt){if(scope==='PROCESS')retireProcessSave(result);else if(localScopes.has(scope))discardLocal(scope);}readTokens.delete(actor?.id+':'+scope);if(result?.control)adopt(scope,result);else await load(scope);if(owned())onChange?.();return result;}try{await c.resolveUnknown();}catch(error){if(error.status!==404)throw error;if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');if(!confirm(t('伺服器尚未找到此操作。以同一操作編號重試？','Máy chủ chưa tìm thấy thao tác. Thử lại với cùng mã thao tác?')))return;await c.retryUnknown();}
         if(!owned())throw Error('ACCOUNT_CHANGED_REOPEN_REQUIRED');readTokens.delete(actor?.id+':'+scope);await load(scope);if(owned())onChange?.();
       }finally{busy=false;}
     }

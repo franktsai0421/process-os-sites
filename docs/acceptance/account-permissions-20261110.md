@@ -1,3 +1,7 @@
+## Local continuation after published 22567b26
+
+The exact four-file legacy test correction is published; the independent-page, Routine and review-policy integration is currently local. [Current implementation, explicit pre-adoption line ACL effect, tests and remaining gates](../../AI_CONTEXT/ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md) is the continuation source. The concrete local proposal was applied once after owner confirmation. This does not activate real flags or authorize publishing the larger candidate under the four-file approval. Original UNKNOWN-32 remains unresolved and untouched. Earlier head/build/CI results below retain their original scope.
+
 # 帳號與權限獨立整合（2026-11-10）
 
 以 main `9fbba823090f03da8385c8d92f5e59293d19d2f1` 為基底，工作分支 `codex/accounts-permissions-cleanup-20261110`。從已關閉、未合併的 #102 `55d4672cb8004d0b01715714cbc91fbce6b22d2b` 逐項抽取帳號相關成果；沒有合入整包草稿架構。這是帳號優先的小範圍候選，不能表示所有模組／草稿審核權限已完成。

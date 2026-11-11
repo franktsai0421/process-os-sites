@@ -1,3 +1,11 @@
+## 2026-11-10 — Joint local permissions/process verification
+
+在獨立分支組合已公開 #103 5f9d34b 與 #104 dd9be45 的產品／測試，保留線別 Edit→Save、Save-only、Routine owner、回報來源與中央最終核准證明，以及 Canvas 私有拒絕能力、原收據、一次 Save 與歷史保護。九個共享來源檔有雙公開前身精確逆向證據；共同 runtime/source、TypeScript/lint/preflight/safe build 通過。未公開較大候選、未合併 PR、未改真資料或旗標。唯一目前紀錄：[共同隔離候選](ACCOUNT_PROCESS_JOINT_LOCAL.md)。
+
+## 2026-11-10 — Local independent-page permission composition
+
+Draft #103 publishes the exact four-file legacy-rights correction at 22567b26. A larger, separately local candidate composes AB/C/LINES owners, Routine FQC whole-page/photo/history, explicit primary final-approval proof, effective dialog previews, platform fixed-case review and dependency-ordered assets. The line Save resolver changes effective rights before adoption but preserves raw ACL and legacy/cross-module denials. New page UNKNOWN recovery is original-receipt GET-only; empty-batch Save is independent while editing still requires Edit. No real data flag, schema, account or deployment change. Final current-source/build/native validation remains separate. [Sources, checks and limits](ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).
+
 # 2026-11-10 — Legacy Save rights matrix
 
 Test IQC/equipment Edit-derived legacy Save with actual mutation/readback, while retaining view-only/Save-only/create/delete/Submit denials and zero DB/R2 changes. Authorized legacy Submit still rejects missing V3 saved-version proof. Product authorization is unchanged. [Evidence](../docs/acceptance/account-permissions-20261110.md#81791d18-legacy-權限矩陣續修).

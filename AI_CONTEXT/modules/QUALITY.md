@@ -1,3 +1,7 @@
+## 2026-11-10 — Process IPQC source comparison notices
+
+The process operation source comparator keeps changes in the current form, then the Canvas single Save persists the reference. It does not change the IPQC library, standards or photos. Both preview and adoption status describe this flow without a separate synchronization step; existing exact-history, fresh-permission, peer-occupancy and late-owner guards remain.
+
 ## 2026-11-08 — Equipment explicit recheck and structural ACK candidate
 
 Equipment retry can revalidate retained input after delivery-only drift while actor object/id, epoch, host/target, generation and all original guards remain unchanged. A fresh exact-scope permission GET and private one-use confirmation renew only the existing runtime delivery; no journal, unknown command or receipt is replaced. Equipment Save snapshot equality ignores JSON object-key order but preserves array order and exact keys/types/values. Other shared workflows retain their comparison behavior. [Source proof, regression evidence and limits](../../docs/acceptance/equipment-no-poll-20261108/README.md). No model, persistence format, ACL or schema change.

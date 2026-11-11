@@ -39,7 +39,7 @@ for(const [file,pinned]of Object.entries(main))void test('preserves merged main 
 void test('master successor attests current raw bytes before restoring the unchanged complete historical pin',()=>{
  const bytes=readSource(masterRoute.file),untouched=Buffer.from(bytes);
  masterRoute.assertMasterRouteSuccessor(bytes,masterRoute.file);
- assert.equal(bytes.length,5829);assert.equal(hash(bytes),'ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f');
+ const page=require('../scripts/account-page-source-contract.cjs');page.assertCurrent(bytes,masterRoute.file);const previous=page.projectFile(bytes,masterRoute.file);assert.equal(previous.length,5829);assert.equal(hash(previous),'ad13dec6e560d606d831e64ced7a1d94fde84a93faed832e86ab46450df1966f');
  const prior=masterRoute.restoreMasterRoutePredecessor(bytes,masterRoute.file);
  assert.equal(prior.length,5336);assert.equal(hash(prior),main[masterRoute.file]);assert.equal(masterRoute.beforeHash,main[masterRoute.file]);
  assert.deepEqual(project(bytes,masterRoute.file),prior);assert.deepEqual(bytes,untouched,'projection never rewrites current runtime bytes');
@@ -87,7 +87,7 @@ void test('master successor proof rejects corrupted fixed offsets, spans, length
   [masterRoute.beforeHash,'0'.repeat(64),/predecessor bytes/],
  ]){
   assert(code.includes(from),from);const proofModule={exports:{}};
-  require('node:vm').runInNewContext(code.replace(from,to),{require,module:proofModule,Buffer});
+  require('node:vm').runInNewContext(code.replace(from,to),{require:require('node:module').createRequire(require.resolve('../scripts/master-route-successor-source-contract.cjs')),module:proofModule,Buffer});
   assert.throws(()=>proofModule.exports.restoreMasterRoutePredecessor(bytes,masterRoute.file),message);
  }
 });
@@ -118,7 +118,7 @@ void test('C read-ahead/reporting composition cannot hide partial, repeated or a
 });
 void test('Feedback path filters include every reporting inverse dependency and source history',()=>{
  const workflow=fs.readFileSync('.github/workflows/feedback-queues.yml','utf8').replace(/\r\n/g,'\n'),paths=workflow.split('    paths:\n')[1]?.split('permissions:')[0];assert(paths);assert.match(workflow,/fetch-depth: 0/);assert.match(workflow,/persist-credentials: false/);
- for(const file of [cRoute,noPoll.file,masterRoute.file,lineFile,'scripts/account-permission-source-contract.cjs','scripts/account-permission-source-contract.json','scripts/account-cache-source-contract.cjs','scripts/account-cache-source-contract.json','public/process/shared-draft-client.js','scripts/equipment-ci-repair-source-contract.cjs','scripts/master-route-successor-source-contract.cjs','scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
+ for(const file of [cRoute,noPoll.file,masterRoute.file,lineFile,'scripts/account-permission-source-contract.cjs','scripts/account-permission-source-contract.json','scripts/account-page-source-contract.cjs','scripts/account-page-source-contract.json','scripts/account-cache-source-contract.cjs','scripts/account-cache-source-contract.json','public/process/shared-draft-client.js','scripts/equipment-ci-repair-source-contract.cjs','scripts/master-route-successor-source-contract.cjs','scripts/equipment-no-poll-source-contract.cjs','scripts/ipqc-c-read-io-source-contract.cjs','scripts/access-event-source-contract.cjs'])assert(paths.includes("      - '"+file+"'\n"),file+' must trigger the existing Feedback safety gate');
 });
 const file='public/process/shared-draft-client.js',current=fs.readFileSync(file);
 for(const [label,from,to]of [

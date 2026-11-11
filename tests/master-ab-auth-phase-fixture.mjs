@@ -36,10 +36,11 @@ function loadModules(env, emit) {
     },
   })};
   function load(relative) {
-    const filename = path.resolve(sourceRoot, relative);
-    if (modules.has(filename)) return modules.get(filename).exports;
+    const moduleKey = path.resolve(sourceRoot, relative),query='?v=20261110-account-pages1',name=path.relative(sourceRoot,moduleKey).split(path.sep).join('/');
+    const filename=['public/process/access-policy.mjs'+query,'public/process/draft-review-policy.mjs'+query].includes(name)?moduleKey.slice(0,-query.length):moduleKey;
+    if (modules.has(moduleKey)) return modules.get(moduleKey).exports;
     const mod = {exports: {}};
-    modules.set(filename, mod);
+    modules.set(moduleKey, mod);
     if (!compiled.has(filename)) {
       compiled.set(filename, typescript.transpileModule(readFileSync(filename, 'utf8'), {
         compilerOptions: {module: typescript.ModuleKind.CommonJS, target: typescript.ScriptTarget.ES2022, esModuleInterop: true, allowJs: true},
@@ -51,7 +52,7 @@ function loadModules(env, emit) {
         if (id.startsWith('node:')) return require(id);
         const target = id.startsWith('@/') ? path.resolve(sourceRoot, id.slice(2)) : path.resolve(path.dirname(filename), id);
         if (target.endsWith('.json')) return JSON.parse(readFileSync(target, 'utf8'));
-        return load(/\.(ts|mjs|js)$/.test(target) ? target : target + '.ts');
+        return load(/\.(ts|mjs|js)(?:\?v=20261110-account-pages1)?$/.test(target) ? target : target + '.ts');
       }, Request, Response, Headers, ReadableStream, URL, URLSearchParams,
       TextEncoder, TextDecoder, atob, btoa, structuredClone, crypto, Date: FixtureDate, console,
     }, {filename});

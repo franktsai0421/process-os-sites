@@ -28,7 +28,9 @@ try{
     const user=users.find(u=>u.id===actual.id),rights=policy.effectiveAccess(user,values);
     for(const [key,value]of Object.entries(rights))assert.deepEqual(actual[key],normalize(value),actor.id+':'+user.id+':'+key);
     assert.deepEqual(actual.configuredCells,normalize(user.enabled===false?effectiveCells({...user,enabled:true},roles):rights.cells));
-    assert.deepEqual(actual.editable,normalize(editableCells(actor,user,actorRights.cells)));
+    const originalEditable=editableCells(actor,user,actorRights.cells);assert.equal(result.pageCapabilities.lines,false,'fixture has no adopted line owner');
+    for(const [key,value]of Object.entries(originalEditable))assert.equal(actual.editable[key],key.startsWith('lines.')&&key!=='lines.view'?false:value,actor.id+':'+user.id+':'+key+' installed-operation metadata');
+    assert.deepEqual(Object.keys(actual.editable),Object.keys(originalEditable),'no other editable field may disappear');
     for(const [action,value]of Object.entries(actual.actions))assert.equal(value,managementRight(actor,user,action,actorRights.cells));
     assertions++;
    }

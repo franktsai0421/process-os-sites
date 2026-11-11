@@ -28,9 +28,9 @@ export function normalizeMasterSnapshot(snapshot:Snapshot,scope:string):Snapshot
  }
  return next;
 }
-export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Library>{
+export function masterWorkflowAdapter(scope:string,options:{legacyArchive?:boolean}={}):WorkflowAdapter<Snapshot,Library>{
  let root:Root,legacy=new Map<string,Version>(),values:Record<string,string>,linkedActivated=false,checkEnteredFields=false;
- function serializeModel(control:Library){const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
+ function serializeModel(control:Library){if(options.legacyArchive)throw new DraftConflict('MASTER_LEGACY_ARCHIVE_READ_ONLY',409);const cases=new Set(control.workflow?.cases.map(c=>c.id)||[]);
    root.versions=[...root.versions.filter(v=>v.scope!==scope),...control.versions.map(v=>({...v,scope,parentVersionId:v.baseVersionId??v.parentVersionId,
     snapshot:!v.id.startsWith('shared-')&&!cases.has(v.id)&&legacy.has(v.id)?legacy.get(v.id)!.snapshot:v.snapshot}))];
    if(control.activeVersionId)root.active[scope]=root.versions.find(v=>v.id===control.activeVersionId)!.snapshot;
@@ -41,6 +41,12 @@ export function masterWorkflowAdapter(scope:string):WorkflowAdapter<Snapshot,Lib
   needsReferenceHistory:command=>scope!=='PROCESS'&&!!command&&(['restore','submit','approve'].includes(command.action)||['apply','save'].includes(command.action)&&(command.patches||[]).some(p=>p.op==='remove'||p.op==='set'&&(p.path[0]==='products'&&p.path.at(-1)==='code'||p.path[0]==='categoryGroups'&&(p.path.at(-1)==='name'||p.path.at(-1)==='line')))),
   parse(raw,prepared){if(!['AB','C','PROCESS'].includes(scope))throw new DraftConflict('SCOPE_INVALID',422);if(!raw)throw new DraftConflict('MASTER_INITIALIZATION_REQUIRED',422);
    root=(prepared||JSON.parse(raw)) as Root;if(!root.active?.[scope]||!Array.isArray(root.versions))throw new DraftConflict('MASTER_EXISTING_DATA_INVALID',422);
+   if(scope!=='PROCESS'&&(root as Root&{pageDraftLayout?:string}).pageDraftLayout==='page-v1'){
+    if(!options.legacyArchive)throw new DraftConflict('MASTER_LEGACY_WRITER_RETIRED',409);
+    const source=root.workflowScopes?.[scope]?.active.content;
+    if(!source)throw new DraftConflict('MASTER_LEGACY_ARCHIVE_UNAVAILABLE',409);
+    root={...root,active:{...root.active,[scope]:source}};
+   }
    // Each adapter belongs to one request. Keep untouched legacy snapshots by
    // reference; deep-copying every historical version here multiplies heap use.
    const versions=root.versions.filter(v=>v.scope===scope);legacy=new Map(versions.map(v=>[v.id,v]));

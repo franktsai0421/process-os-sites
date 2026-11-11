@@ -3,6 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'scripts/account-process-joint-source-contract.cjs'
+      - 'scripts/account-process-joint-source-contract.json'
+      - 'tests/account-process-joint-source.test.cjs'
       - 'lib/web-feedback*'
       - 'lib/access-event*.ts'
       - 'lib/feedback-approved-export.ts'
@@ -15,6 +18,8 @@ on:
       - 'scripts/access-event-source-contract.cjs'
       - 'scripts/account-permission-source-contract.cjs'
       - 'scripts/account-permission-source-contract.json'
+      - 'scripts/account-page-source-contract.cjs'
+      - 'scripts/account-page-source-contract.json'
       - 'scripts/account-cache-source-contract.cjs'
       - 'scripts/account-cache-source-contract.json'
       - 'public/process/master-data.js'

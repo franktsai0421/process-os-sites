@@ -1,0 +1,90 @@
+name: Process platform integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/account-process-joint-source-contract.cjs'
+      - 'scripts/account-process-joint-source-contract.json'
+      - 'tests/account-process-joint-source.test.cjs'
+      - 'lib/master*.ts'
+      - 'lib/*draft*.ts'
+      - 'lib/user-access.ts'
+      - 'lib/process-state.ts'
+      - 'lib/versioned-shared-workflow.ts'
+      - 'app/api/master/**'
+      - 'app/api/shared-state/route.ts'
+      - 'public/process/master*.js'
+      - 'public/process/*draft*.mjs'
+      - 'public/process/access-policy.mjs'
+      - 'tests/master-page*'
+      - 'tests/draft-review-policy.test.mjs'
+      - 'scripts/test-master-page*.cjs'
+      - 'scripts/test-process-page-*.cjs'
+      - 'lib/process-authoring-workflow.ts'
+      - 'public/process/canvas*.js'
+      - 'public/process/version-draft-ui.*'
+      - 'app/api/process-authoring/workflow/route.ts'
+      - 'lib/*approved-history*.ts'
+      - 'public/process/process-authoring-v3.js'
+      - 'public/process/process-editor.js'
+      - 'public/process/process-ipqc.js'
+      - 'public/process/shared-draft-client.js'
+      - 'public/process/editor-line-selection.js'
+      - 'public/process/index.html'
+      - 'scripts/process-platform-*-contract.*'
+      - 'scripts/background-check-source-contract.cjs'
+      - 'tests/*canvas*.test.*'
+      - 'tests/editor-projected-count.test.mjs'
+      - 'tests/process-ipqc-source-adopt.test.mjs'
+      - '.github/workflows/process-platform-integration.yml'
+permissions:
+  contents: read
+concurrency:
+  group: process-platform-integration-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  process-platform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - name: Current canvas count and exact historical source composition
+        run: node --test tests/account-process-joint-source.test.cjs tests/editor-projected-count.test.mjs tests/process-platform-count-contract.test.cjs tests/process-platform-canvas-contract.test.cjs tests/background-check-source-proof.test.cjs tests/routine-fqc-source-contract.test.cjs tests/access-event-main-integration.test.cjs tests/navigation-adapters.test.mjs tests/global-background-checks.test.mjs
+      - run: node scripts/test-editor-line-selection.mjs
+      - run: node scripts/sites-source-check.mjs
+      - name: Actual canvas Save, departure, conflict and original receipt contracts
+        run: node --test tests/canvas-deletion-groups.test.mjs tests/canvas-save-conflict-choice.test.mjs tests/canvas-departure.test.mjs tests/canvas-manual-sync.test.mjs tests/canvas-pending-form-admission.test.mjs tests/process-editor-departure.test.mjs tests/multiuser-canvas-recovery-authority.test.mjs tests/multiuser-canvas-recovery-store.test.mjs tests/process-canvas-atomic-save-client.test.mjs tests/process-canvas-atomic-save-stack.test.mjs
+      - name: Existing IPQC source adoption and single atomic Save
+        run: node --test tests/process-ipqc-source-adopt.test.mjs
+      - name: Same-page Canvas approved history and read-only actor fences
+        run: node --test tests/canvas-approved-history.test.mjs tests/process-scripts-build.test.mjs
+      - name: Page-specific ownership, independent permissions and approved-history fences
+        run: node --experimental-vm-modules --test tests/draft-review-policy.test.mjs tests/master-page-approved-history.test.mjs tests/master-page-approved-history-ui.test.mjs tests/master-page-retention-snapshot.test.mjs
+      - name: Actual isolated page routes and UI
+        run: |
+          node scripts/test-draft-page-boundaries.cjs
+          node scripts/test-master-line-page-workflow.cjs
+          node scripts/test-master-page-boundary.cjs
+          node scripts/test-master-page-name-save.cjs
+          node scripts/test-master-page-runtime.cjs
+          node scripts/test-master-public-page-authority.cjs
+          node scripts/test-master-page-review-regressions.cjs
+          node scripts/test-master-page-ui.cjs
+          node scripts/test-master-page-tools-ui.cjs
+          node scripts/test-master-page-transfer.cjs
+          node scripts/test-process-page-lifecycle.cjs
+          node scripts/test-process-page-roles.cjs
+      - name: Existing master bridge and persistence compatibility
+        run: node --test tests/abc-local-bridge.test.mjs tests/abc-local-save.test.mjs tests/process-local-bridge.test.mjs tests/process-local-save.test.mjs tests/master-bridge-ownership.test.mjs tests/master-ab-replay-permission.test.mjs tests/master-ab-auth-phase.test.mjs tests/master-shared-clone.test.mjs tests/master-manual-name-apply.test.cjs
+      - name: Shared kernel synthetic compatibility
+        run: node --test tests/bom-atomic-save.test.cjs tests/bom-review-access-projection.test.mjs tests/ipqc-c-case-comparison.test.mjs tests/process-canvas-atomic-save.test.mjs
+      - name: Exact historical Begin composition and old-server rejection
+        run: |
+          node scripts/test-workflow-begin-old-server.cjs
+          node --test tests/batch3-workflow-source-contract.test.cjs tests/bom-workflow-source-contract.test.cjs tests/ipqc-c-read-io-source-contract.test.mjs

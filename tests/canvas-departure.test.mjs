@@ -42,8 +42,8 @@ void test('lease and local discard fail closed after account/generation changes'
  const f=await setup();f.edit();const lease=f.local.lockForDeparture();f.context.ProcessSync.identity={id:'other'};assert.equal(lease.current(),false);await assert.rejects(f.local.discardForDeparture(f.model,lease),/CANVAS_DEPARTURE_LOCKED/);assert.equal(f.local.dirty(),true);lease.release();
 });
 
-void test('local abandonment checks persisted deletion and keeps input if the store refuses',async()=>{
+void test('unsent abandonment does not require local storage or a network write',async()=>{
  const f=await setup(),status={textContent:''};f.context.document.querySelector=selector=>selector==='.pe-local-status'?status:null;f.edit(80);const lease=f.local.lockForDeparture(),before=f.posts;
  f.context.localStorage.setItem=()=>{throw Error('SYNTHETIC_QUOTA');};
- await assert.rejects(f.local.discardForDeparture(f.model,lease));assert.equal(f.x(),80);assert.equal(f.local.dirty(),true);assert.equal(f.posts,before);assert.match(status.textContent,/目前畫布 1 項/);lease.release();
+ await f.local.discardForDeparture(f.model,lease);assert.equal(f.x(),10);assert.equal(f.local.dirty(),false);assert.equal(f.posts,before);lease.release();
 });

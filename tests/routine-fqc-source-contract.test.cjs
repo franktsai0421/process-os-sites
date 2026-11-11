@@ -35,14 +35,14 @@ void test('Routine source rejects drift in authority, UNKNOWN and generation int
 });
 void test('Routine cache gate accepts only its one changed tag; rejects rollback, wrong path and unrelated changes',()=>{
  const untouched=Buffer.from(beforeIndex);proof.assertIndexSuccessor(afterIndex,beforeIndex,contract.index);assert.deepEqual(beforeIndex,untouched);
- for(const current of [beforeIndex,Buffer.concat([afterIndex,Buffer.from(' ')]),Buffer.from(afterIndex.toString().replace(contract.newTag,'routine-fqc.js?v=wrong'))])assert.throws(()=>proof.assertIndexSuccessor(current,beforeIndex,contract.index),/own exact tag/);
+ for(const current of [beforeIndex,Buffer.concat([afterIndex,Buffer.from(' ')]),Buffer.from(afterIndex.toString().replace('routine-fqc.js?v=20261110-account-pages1','routine-fqc.js?v=wrong'))])assert.throws(()=>proof.assertIndexSuccessor(current,beforeIndex,contract.index),/own exact tag/);
  const other=Buffer.from(afterIndex);other[0]^=1;assert.throws(()=>proof.assertIndexSuccessor(other,beforeIndex,contract.index),/own exact tag/);
  const badBase=Buffer.from(beforeIndex);badBase[0]^=1;assert.throws(()=>proof.assertIndexSuccessor(afterIndex,badBase,contract.index),/predecessor/);
  assert.throws(()=>proof.assertIndexSuccessor(afterIndex,beforeIndex,contract.file),/wrong file/);
  for(const bytes of [afterIndex.toString(),new Uint8Array(afterIndex),null])assert.throws(()=>proof.assertIndexSuccessor(bytes,beforeIndex,contract.index),/raw Buffer/);
 });
 void test('reviewed account cache composition refuses partial, duplicate and unrelated changes',()=>{
- const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-progress2','user-access.js?v=20261110-permission-reset1'];
+ const tags=['data-safety-ui.js?v=20261110-account-priority-candidate','user-access.css?v=20261110-account-progress2','user-access.js?v=20261110-account-pages1'];
  for(const tag of tags){
   assert(afterIndex.includes(Buffer.from(tag)),tag);
   for(const changed of [afterIndex.toString().replace(tag,tag+'-wrong'),afterIndex.toString().replace(tag,tag+' '+tag),afterIndex.toString().replace(tag,tag.replace(/\?v=.*/,'?v=old'))]){
@@ -62,5 +62,5 @@ void test('Windows checkout EOL is separate from exact committed raw source; non
  assert.throws(()=>proof.canonicalCheckout(lf.toString(),after),/raw Buffer/);
 });
 void test('actual committed Routine successor and checkout attest against genuine merged-main ancestry',()=>{
- const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,contract.afterHash);assert.equal(result.base,contract.base);
+ const result=proof.verifyRepository();assert.equal(result.status,'PASS_ROUTINE_FQC_SOURCE');assert.equal(result.sourceHash,require('../scripts/account-page-source-contract.cjs').contract.files[contract.file].afterHash);assert.equal(result.attestedSourceHash,contract.afterHash);assert.equal(result.base,contract.base);
 });

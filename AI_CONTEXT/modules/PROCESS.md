@@ -1,3 +1,11 @@
+## 2026-11-10 — IPQC reference adoption
+
+IPQC source comparison/adoption changes the current form only. Completing the operation enters the current Canvas journal; one explicit Canvas Save persists its reference. Preview/adoption notices in both languages match this flow. Existing unconfirmed operation receipts remain protected.
+
+# 2026-11-10 process integration candidate
+
+#104 now includes scoped Canvas Save, grouped fresh conflicts, silent departure, RAM-only unsent forms, scaffold-aware dirty checks, projected counts and same-page approved history. AB/C catalog and LINES page-owner APIs/UI, approved provenance and separate review policy are included behind existing trusted-data markers; no marker, ACL or real-data cutover was activated. Actual runtime tests cover session/revision/display/UNKNOWN fences. [Complete matrix and remaining blockers](../../docs/acceptance/process-platform-integration-20261110.md). Historical synchronization/recovery requirements below are superseded by current confirmed requirements. No #103 password changes or merge/deployment.
+
 ## 2026-11-04 — 製程畫布原子存取候選（未發布）
 
 `process-authoring-workflow` 識別 `apply/moduleAction: save-canvas-v1`，透過製程專用 `process-canvas-save` 在同一個 workflow 結果及外層 CAS 中完成 guarded Apply + immutable Save。原始 command fingerprint／operation receipt 保留，須同時具 view/edit/save；完整依賴路徑處理新命令，不套用既有 Save／Flow 快路徑。畫布工具列移除 Sync，頂部與全螢幕 Save 共用一次存取入口；欄位合併不削弱刪除整體 guard 或 legacy editor guard。新命令由 canvas durable store 承接，不送進僅能辨識舊 Apply／Save 的 owned inverse ledger；canonical saved readback 更新 ledger，unknown 仍由原 durable reservation 阻擋。

@@ -1,3 +1,11 @@
+# 2026-11-10 — Local account/process joint composition
+
+The isolated candidate combines known #103/#104 products and preserves both exact public source histories. No PR merge, publication, flags or live-data action. Current composition, verification state and remaining approval/activation boundaries: [joint local record](AI_CONTEXT/ACCOUNT_PROCESS_JOINT_LOCAL.md).
+
+# 2026-11-10 — Independent page/account local candidate
+
+The exact legacy-rights four-file correction is published at Draft #103 `22567b26`. Owner confirmation also permitted applying the previously reviewed local configuration proposal; it was applied once and isolated tests passed. Additional line/Routine page and platform review work remains local, with no real activation. Sources, effective pre-adoption line ACL impact, fresh authority/UNKNOWN guards and precise validation limits: [continuation](AI_CONTEXT/ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).
+
 # 2026-11-10 — Account-priority independent integration
 
 New main-based account branch extracts login/password/operation feedback from closed #102 and preserves imported older permission work. Expanded batch aligns twelve installed workflow Edit→Save resolvers and fixed active-account feedback view with source/image/archive checks; Lines-only accounts now render the existing approved catalog without AB/C workflow grants; AB/C Save readback accepts equal JSON objects regardless of key order and retains genuine UNKNOWN mismatches. Independent line editing/routine whole-page boundaries and legacy reviewer/final-approval separation remain incomplete. a9b33d83 AB C, PROCESS and Feedback full native workflows passed, including the prior C group/product stage. Local safety still required the individual reset baseline fix and fresh-CAS paired-policy updates; latest-head native verification remains separate. The 72dfacf5 source-gate follow-up retains original reporting hashes through an exact approved-lines inverse and aligns both asset tags; complete AB C/PROCESS and Feedback source steps pass locally, latest native CI remains separate. Scope, exact old-branch inventory, isolated checks and unrun native/real-account gates: [acceptance](docs/acceptance/account-permissions-20261110.md). No page-v1 activation, account migration, old UNKNOWN replay, branch deletion, merge or deployment.

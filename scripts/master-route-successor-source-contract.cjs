@@ -23,6 +23,7 @@ const rules=Object.freeze([
 ]);
 function assertMasterRouteSuccessor(bytes,path){
  assert(Buffer.isBuffer(bytes),'Master successor requires raw source bytes');
+ bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,path);
  assert.equal(path,file,'Master successor wrong file');
  assert.equal(bytes.length,afterLength,'Master successor differs from pinned byte length');
  assert.equal(hash(bytes),afterHash,'Master successor differs from pinned bytes');
@@ -34,6 +35,7 @@ function assertMasterRouteSuccessor(bytes,path){
  }
 }
 function restoreMasterRoutePredecessor(bytes,path){
+ bytes=require('./account-page-source-contract.cjs').projectKnown(bytes,path);
  assertMasterRouteSuccessor(bytes,path);
  let result=Buffer.from(bytes);
  for(const {offset,before,after}of [...rules].reverse()){

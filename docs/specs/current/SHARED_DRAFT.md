@@ -1,3 +1,7 @@
+## 2026-11-10 共同隔離候選進度
+
+本機共同候選已把十三個安裝流程的 Edit→Save、獨立 AB.catalog／C.catalog／LINES、例行 FQC 整頁草稿與模組送審／撤回／修正及平台最終核准分離接在同一程式樹驗證。LINE 既有 raw ACL 不改，Save 有效格在 adoption 前也受 resolver 影響；legacy writer 仍拒絕，採用標記不能由 query 或一般 shared-state 寫入建立。Save-only 只能保存現有 working 的空編輯批次；改內容、create/delete、送審與最終核准各自檢查。Canvas 保留一次原子 Save、guard/CAS、固定 saved、分組衝突與 UNKNOWN 原收據，離頁只放棄未送 RAM 輸入。下方十二流程與未完成描述是較早公開 checkpoint，不代表此較大本機候選已上傳、採用或通過原生驗收。[當前證據與未完成界線](../../../AI_CONTEXT/ACCOUNT_PROCESS_JOINT_LOCAL.md)。
+
 ## 2026-11-10 最新權限要求（部分候選，尚未全站接受）
 
 Frank 本次要求修改包含存取（Save）、真正獨立頁各有權限，同頁線別／群組／工段只作篩選；模組送審／撤回與版本平台最終核准分離，舊模組 reviewer 不能自動取得最終核准，已核准版不可撤回；有效啟用帳號可查看錯誤回報，其他操作及原圖／封存按授權。這取代下文歷史規則將 Save 與 Edit 完全獨立的要求，但不授權增加跨頁資料可見性或跳過既有 CAS／UNKNOWN 保護。#103 先對齊十二個已安裝流程的 Edit→Save（含現有 process:platform 及 routine 每文件交易）與回報查看／來源授權；lines.view-only 的已核准唯讀頁已獨立補完，不取得 AB/C workflow 或寫入權；line page 寫入／routine whole-page 草稿切換、page-v1 與最終核准分離尚未完成。[實作、缺口與驗證](../../acceptance/account-permissions-20261110.md#2026-11-10-擴充需求核對與本批結果)。

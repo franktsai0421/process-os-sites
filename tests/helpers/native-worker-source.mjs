@@ -22,16 +22,18 @@ export function workerSource(env={},options={}){
  }
  function source(file){
   let resolved=path.resolve(file);if(!resolved.startsWith(checkout+path.sep))throw Error('SOURCE_OUTSIDE_CHECKOUT');
+  const query='?v=20261110-account-pages1',queried=path.relative(checkout,resolved).split(path.sep).join('/'),hasPinnedQuery=['public/process/access-policy.mjs'+query,'public/process/draft-review-policy.mjs'+query].includes(queried);
+  if(hasPinnedQuery)resolved=resolved.slice(0,-query.length);
   const relative=path.relative(checkout,resolved).split(path.sep).join('/');
   if(!/^(?:app\/api\/|lib\/|public\/process\/)/.test(relative))throw Error('SOURCE_DIRECTORY_REFUSED');
-  if(!path.extname(resolved))resolved+='.ts';
+  if(!path.extname(resolved))resolved+='.ts';const moduleKey=resolved+(hasPinnedQuery?query:'');
   if(!['.ts','.mjs','.js'].includes(path.extname(resolved)))throw Error('SOURCE_EXTENSION_REFUSED');
   if(fs.lstatSync(resolved).isSymbolicLink()||fs.realpathSync(resolved)!==resolved)throw Error('SOURCE_LINK_REFUSED');
-  if(!cache.has(resolved)){
+  if(!cache.has(moduleKey)){
    const raw=fs.readFileSync(resolved,'utf8'),code=resolved.endsWith('.ts')?stripTypeScriptTypes(raw,{mode:'transform',sourceUrl:pathToFileURL(resolved).href}):raw;
-   cache.set(resolved,new vm.SourceTextModule(code,{context,identifier:resolved,initializeImportMeta(meta){meta.url=pathToFileURL(resolved).href;}}));
+   cache.set(moduleKey,new vm.SourceTextModule(code,{context,identifier:moduleKey,initializeImportMeta(meta){meta.url=pathToFileURL(resolved).href+(hasPinnedQuery?query:'');}}));
   }
-  return cache.get(resolved);
+  return cache.get(moduleKey);
  }
  if(!cache.has('cloudflare:workers'))cache.set('cloudflare:workers',new vm.SyntheticModule(['env'],function(){this.setExport('env',env);},{context,identifier:'cloudflare:workers'}));
  const link=async(specifier,parent)=>{

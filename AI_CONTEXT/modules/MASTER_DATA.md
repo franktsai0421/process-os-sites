@@ -1,3 +1,7 @@
+## 2026-11-10 — Local permission/page composition
+
+獨立 AB.catalog／C.catalog／LINES 頁候選與版本平台使用同一 owner API／固定案件；線別 AB/C 為同頁篩選，舊 writer 在採用後退休，未採用不能由 query 開啟。有效 line Edit→Save 在 adoption 前也會改格，原 raw ACL 不覆寫；舊入口與跨模組仍拒絕。只有空編輯批次可獨立 Save，帶 batch 仍檢查 Edit。 尚未啟用真資料或宣稱原生／實站驗收。[來源與驗證界線](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md)。
+
 ## 2026-11-09 新工段繼承共用類型候選
 
 `master-stage-link.ts` 在固定工段案件內，從同一已核准 PROCESS 快照帶入 presetKey 預設設定與 catalogKey 共用自訂類型（含名稱及媒體缺省語意）；新增 ID 與空機器選取，無自訂時加入自訂。舊工段、舊 ID、來源與歷史不改；來源不一致拒絕。ID 分配以整份已核准與新增案件命名空間防碰撞，鍵採完整 UTF-16 編碼；核准拒絕舊碰撞固定內容而不重生，撤回／發回與原收據保留。無 SQL/schema 或帳號權限變更。實際路由／records-v1 測試與完整平台未完成項見 [本批追蹤](../../docs/acceptance/process-platform-tracking-20261109.md)。這不是畫布／全站草稿整合或實站驗收。

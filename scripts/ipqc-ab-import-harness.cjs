@@ -15,7 +15,9 @@ module.exports=function harness(env={}) {
       const target=id.startsWith('@/')?path.resolve(id.slice(2)):path.resolve(path.dirname(file),id);
       if(target.endsWith('.json')) return JSON.parse(fs.readFileSync(target,'utf8'));
       return target.endsWith('.mjs')?require(target):load(target.endsWith('.ts')?target:target+'.ts');
-    },Request,Response,ReadableStream,Headers,URL,URLSearchParams,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});
+    // .mjs policies run in the host realm; use the same native byte constructors
+    // as those policies and Request streams, as in a single Workers runtime.
+    },Uint8Array,ArrayBuffer,DataView,Request,Response,ReadableStream,Headers,URL,URLSearchParams,crypto:webcrypto,Date,TextEncoder,TextDecoder,atob,btoa,structuredClone,console});
     cache.set(file,mod.exports);return mod.exports;
   }
   return load;

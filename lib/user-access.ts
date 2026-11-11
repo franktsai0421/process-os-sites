@@ -12,8 +12,15 @@ export function effectiveAccess(user:AccessUser, values:Record<string,string>, r
   const preset = roles[role];
   const scope = user.inheritRole !== false ? preset : user;
   const enabled = user.enabled !== false && !user.deletedAt && !!preset;
-  const cells=effectiveCells(user,roles),primary=isPrimary(user);
-  return { role, enabled, primary, cells, inheritRole: user.inheritRole !== false,
-    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...(primary?roleDefaults.admin.permissions:scope?.permissions||[]),...accessKeys.filter(key=>cells[key])])] : [] };
+  const primary=isPrimary(user);let control:Record<string,unknown>={};try{control=JSON.parse(values.processAccessControl||'{}');}catch{/* Invalid policy evidence cannot establish a grant. */}
+  const {cells,draftReviewPolicyActive,reviewPolicy}=resolveAccountReview(user,roles,control);
+  const legacyPermissions=primary?roleDefaults.admin.permissions:scope?.permissions||[];
+  const permissions=draftReviewPolicyActive?legacyPermissions.filter(key=>!['approval.approve','approval.submit','approval.withdraw','approval.reject'].includes(key)):legacyPermissions;
+  if(draftReviewPolicyActive){if(cells['approval.approve'])permissions.push('approval.approve');for(const [op,alias]of [['submit','approval.submit'],['withdraw','approval.withdraw'],['return','approval.reject']])if(catalog.some(row=>row.ops.includes('submit')&&cells[row.id+'.'+op]))permissions.push(alias);}
+
+  return { role, enabled, primary, cells, ...(draftReviewPolicyActive?{draftReviewPolicyActive,reviewPolicy}:{}), inheritRole: user.inheritRole !== false,
+    lines: enabled ? ['A','B','C'] : [], views: enabled ? [...new Set(catalog.filter(row=>row.id!=='feedback'&&cells[row.id+'.view']).map(row=>row.view))] : [], permissions: enabled ? [...new Set([...permissions,...accessKeys.filter(key=>cells[key])])] : [] };
 }
-import {templates,effectiveCells,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';
+import {templates,isPrimary,accessKeys,catalog} from '../public/process/access-policy.mjs';
+
+import {resolveAccountReview} from '../public/process/account-review-preview.mjs';

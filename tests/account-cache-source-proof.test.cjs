@@ -15,8 +15,8 @@ for(const variant of contract.variants)void test(variant.name+' reconstructs gen
 void test('partial, duplicate, unrelated and non-EOL changes cannot pass an exact account cache layer',()=>{
  const bytes=fs.readFileSync(contract.index),variant=contract.variants.find(v=>proof.hash(bytes)===v.afterHash);assert(variant);
  for(const rule of variant.rules){
-  const text=bytes.toString();
-  for(const altered of [text.replace(rule.after,rule.before),text.replace(rule.after,rule.after+rule.after),text.replace(rule.after,rule.after+'-wrong')])assert.throws(()=>proof.projectIndex(Buffer.from(altered),variant.afterHash),/pinned successor/);
+  const span=Buffer.from(rule.after),head=bytes.subarray(0,rule.offset),tail=bytes.subarray(rule.offset+span.length),duplicate=span.length?span:Buffer.from(rule.before);
+  for(const altered of [Buffer.concat([head,Buffer.from(rule.before),tail]),Buffer.concat([head,span,duplicate,tail]),Buffer.concat([head,span,Buffer.from('-wrong'),tail])]){assert.notDeepEqual(altered,bytes);assert.throws(()=>proof.projectIndex(altered,variant.afterHash),/pinned successor/);}
  }
  const altered=Buffer.from(bytes);altered[0]^=1;assert.throws(()=>proof.projectIndex(altered),/pinned successor/);
 });
