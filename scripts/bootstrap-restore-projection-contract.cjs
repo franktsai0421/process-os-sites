@@ -1,7 +1,9 @@
-/* Exact #44/#51 DTO deltas for the non-primary owner/reader fixtures only.
+/* Exact #44/#51 and inactive-policy DTO deltas for non-primary owner/reader fixtures only.
  * Construct the expected response from v20: retain every existing byte/field
  * and insert eleven denied restore cells at their fixed catalog positions,
- * plus the approved empty categoryGroups field for this fixed empty-group fixture.
+ * plus the approved empty categoryGroups field for this fixed empty-group fixture,
+ * and explicit draftReviewPolicyActive:false immediately after the cells field.
+ * Active policy changes are not legacy equivalence and must not enter this fixture.
  * Never strip candidate users/cells, derive grants, or replace the v20 loader. */
 const assert=require('node:assert/strict');
 const restoreAnchors=[['ab','exchange'],['c','exchange'],['bom','exchange'],['templates','exchange'],['editor','return'],['fqc','exchange'],['iqc','exchange'],['ipqc-ab','exchange'],['ipqc-c','exchange'],['tooling','exchange'],['equipment','exchange']];
@@ -15,12 +17,18 @@ function publicFixtureUser(body){
  for(const key of ['processCustomRoles','processRoleTemplateOverrides','processAccessControl'])assert.equal(Object.hasOwn(body.values,key),false,'Private role field leaked: '+key);
  return user;
 }
+function expectedInactivePolicyProjection(user){
+ assert.equal(Object.hasOwn(user,'draftReviewPolicyActive'),false,'Pinned v20 must not contain policy metadata');
+ assert.equal(Object.hasOwn(user,'reviewPolicy'),false,'Pinned v20 must not contain a policy result');
+ assert(Object.hasOwn(user,'cells'),'Pinned policy insertion anchor missing');
+ return Object.fromEntries(Object.entries(user).flatMap(([key,value])=>key==='cells'?[[key,value],['draftReviewPolicyActive',false]]:[[key,value]]));
+}
 function expectedRestoreProjection(body){
  const user=publicFixtureUser(body),anchors=new Map(restoreAnchors.map(([module,op])=>[module+'.'+op,module+'.restore']));
  for(const key of restoreKeys){assert.equal(Object.hasOwn(user.cells,key),false,'v20 unexpectedly contains restore');assert.equal(user.permissions.includes(key),false);}
  for(const anchor of anchors.keys())assert(Object.hasOwn(user.cells,anchor),'Pinned restore anchor missing: '+anchor);
  user.cells=Object.fromEntries(Object.entries(user.cells).flatMap(([key,value])=>anchors.has(key)?[[key,value],[anchors.get(key),false]]:[[key,value]]));
- body.values.platformUsers=JSON.stringify([user]);return body;
+ body.values.platformUsers=JSON.stringify([expectedInactivePolicyProjection(user)]);return body;
 }
 function comparableBootstrap(response,candidate=false){
  if(response.status!==200)return{status:response.status,headers:response.headers,text:response.text};
@@ -30,7 +38,7 @@ function comparableBootstrap(response,candidate=false){
   // feature-off DTO; nonempty modules, missing fields and extras still reject.
   assert.deepEqual(body.features,{webFeedback:true,accessEvents:[]});delete body.features;
   assert.deepEqual(body.catalog.categoryGroups,[],'Fixed fixture must expose exactly the approved empty category groups');
-  const user=publicFixtureUser(body);for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
+  const user=publicFixtureUser(body);assert.equal(user.draftReviewPolicyActive,false,'Legacy fixture must explicitly report inactive policy');assert.equal(Object.hasOwn(user,'reviewPolicy'),false,'Inactive fixture must not expose an active policy result');for(const key of restoreKeys){assert.equal(user.cells[key],false,'Fixture must not acquire restore: '+key);assert.equal(user.permissions.includes(key),false);}
  }else{
   assert.equal(Object.hasOwn(body,'features'),false);expectedRestoreProjection(body);
   assert.equal(Object.hasOwn(body.catalog,'categoryGroups'),false,'Pinned v20 must not contain category groups');
@@ -55,6 +63,15 @@ function assertRestoreProjectionContract(before,after){
   mutateUser(user=>{const value=user.cells[key];delete user.cells[key];user.cells[key]=value;});
   mutateBody(body=>{const entry=JSON.stringify(key)+':false';assert(body.values.platformUsers.includes(entry));body.values.platformUsers=body.values.platformUsers.replace(entry,entry+','+entry);});
  }
+ for(const value of [true,null,'false',0])mutateUser(user=>{user.draftReviewPolicyActive=value;});
+ mutateUser(user=>{delete user.draftReviewPolicyActive;});
+ mutateUser(user=>{const value=user.draftReviewPolicyActive;delete user.draftReviewPolicyActive;user.draftReviewPolicyActive=value;});
+ mutateBody(body=>{const entry=JSON.stringify('draftReviewPolicyActive')+':false';assert(body.values.platformUsers.includes(entry));body.values.platformUsers=body.values.platformUsers.replace(entry,entry+','+entry);});
+ for(const value of [{resolved:true,blocked:[]},{resolved:false,blocked:['synthetic-unresolved']},null])mutateUser(user=>{user.reviewPolicy=value;});
+ for(const key of ['draftReviewPolicyActive','reviewPolicy']){
+  const body=JSON.parse(before.text),users=JSON.parse(body.values.platformUsers);users[0][key]=key==='draftReviewPolicyActive'?false:{};body.values.platformUsers=JSON.stringify(users);
+  assert.throws(()=>comparableBootstrap({...before,text:JSON.stringify(body)}),/Pinned v20 must not contain/);negatives++;
+ }
  mutateUser(user=>{user.cells['iqc.view']=!user.cells['iqc.view'];});
  mutateUser(user=>{user.cells['unrelated.view']=false;});
  mutateUser(user=>{user.name+=' changed';});
@@ -72,6 +89,6 @@ function assertRestoreProjectionContract(before,after){
  mutateBody(body=>{body.values.platformUsers=JSON.stringify([...JSON.parse(body.values.platformUsers),{id:'other-user'}]);});
  mutateBody(body=>Object.fromEntries(Object.entries(body).reverse()));
  reject({...after,status:403});reject({...after,headers:{...after.headers,'x-unexpected':'true'}});
- return {restoreCells:restoreKeys.length,negativeCases:negatives};
+ return {restoreCells:restoreKeys.length,inactivePolicyFields:1,negativeCases:negatives};
 }
 module.exports={comparableBootstrap,assertRestoreProjectionContract};

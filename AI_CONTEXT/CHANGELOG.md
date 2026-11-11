@@ -1,3 +1,7 @@
+## 2026-11-11 — Bootstrap inactive-policy DTO regression contract
+
+The pinned historical bootstrap expectation inserts exactly draftReviewPolicyActive:false after cells; the observed actor DTO is retained whole. Explicit inactive metadata and absent reviewPolicy are required, with 81 negative controls per owner/reader covering rights, privacy, metadata shape/order/duplication and unchanged historical fields. Separate actual-handler checks cover active policy provenance/revocation and zero-write private delivery in records, inline, chunks and whole-R2 synthetic storage. Existing read counts, final identity/revision/session checks and legacy loader remain unchanged. Test-only local follow-up; no runtime or data-model changes, marker activation, merge or deployment.
+
 ## 2026-11-10 — Access-template policy-state regression contract
 
 The historical role-reuse differential now requires the complete legacy result plus explicit inactive policy metadata. Active page-v1 projection is tested separately for same-call reuse, explicit primary-admin audit provenance, revocation, invalid layout, fresh returned values and zero input mutation. Exact Canvas inverses precede the unchanged PR44/AB/FQC source guards and their negative controls. No runtime grants, policy activation, source pins or production behavior change.
