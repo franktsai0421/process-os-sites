@@ -1,3 +1,11 @@
+## 2026-11-10 — Access-template policy-state regression contract
+
+The historical role-reuse differential now requires the complete legacy result plus explicit inactive policy metadata. Active page-v1 projection is tested separately for same-call reuse, explicit primary-admin audit provenance, revocation, invalid layout, fresh returned values and zero input mutation. Exact Canvas inverses precede the unchanged PR44/AB/FQC source guards and their negative controls. No runtime grants, policy activation, source pins or production behavior change.
+
+## 2026-11-10 — Compiled transfer fixture acquisition cleanup
+
+Test setup closes every acquired context/browser/Worker if navigation or earlier setup fails, and retains the original error when cleanup also fails. Repeated close calls share one result. Native scenario assertions and deadlines are unchanged; memory-only fault injection checks the actual setup body without starting a browser.
+
 ## 2026-11-10 — IPQC source adoption follows single Canvas Save
 
 Comparison and adoption notices now explain that only the current operation form changes; completing the operation stays local until one explicit Save. The notices no longer instruct users to press the removed synchronization control. Source/history/permission/occupancy checks and reference-only persistence are unchanged. The actual source-adoption regression follows that single atomic Save path in both languages.

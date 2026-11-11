@@ -1,3 +1,11 @@
+# 2026-11-10 — Access-template policy-state contract
+
+Local safety run42867042538/job130008127877 stopped at step32 because effectiveAccess now deliberately exposes draftReviewPolicyActive:false for legacy state. Keep that runtime contract: compare every historical field plus explicit false, reject missing/spurious metadata or grants, and test active policy independently with real synthetic audit provenance, fresh-call revocation and malformed-layout fail-closed behavior. Compose the exact Canvas inverse before the unchanged historical authorization guards; never remove fields from the observed DTO. The dedicated integration workflow now runs this regression earlier. Local validation: seven groups/116 exact legacy comparisons, policy12, actual page roles14, historical source guards91, cleanup16, lint and nonincremental TypeScript PASS. These overlapping checks are not a coverage sum. No policy marker, live account, data, merge or deployment is changed. Full requirements and combined-PR/staging acceptance remain incomplete as recorded below.
+
+# 2026-11-10 — Transfer fixture acquisition cleanup
+
+A navigation error before setup returned could leave the browser/Worker outside the caller's finally block. The test-only patch closes acquired resources on setup failure and preserves both setup and cleanup errors; no native assertions or wait budgets change. Pure fault injection runs without sockets or browsers. The dd9be45 CI is terminal: five module workflows passed; Local safety failed at the separate access-template policy-state assertion. The cleanup patch can accompany that next test-only update; no running CI is cancelled or rerun.
+
 # 2026-11-10 — IPQC comparison single-Save notices
 
 The source comparison preview and adoption result now direct users to finish the operation and press one Save, without a removed synchronization step. Source-adoption regressions use the actual current-stage renderer and single atomic Save; unsent assignments stay in the form and source libraries remain unchanged. No data-model or permission changes, merge or deployment.
