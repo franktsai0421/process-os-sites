@@ -68,3 +68,17 @@ void test('a pre-dispatch durable cleanup failure retains exact evidence and has
 void test('prepared Begin POST success followed by terminal GET503 remains unknown and cannot use unsent proof',async()=>{
  const f=fixture(),identity={operationId:webcrypto.randomUUID(),basis:originalBasis()};let reads=0;f.hook(call=>call.method==='GET'&&!call.url.includes('operationId=')&&++reads===2?Response.json({error:'TERMINAL_GET_FAILED'},{status:503}):null);let error;try{await f.client.beginWithIdentity(identity);}catch(e){error=e;}assert(error);assert.equal(error.status,503);assert.equal(f.posts().length,1);assert(f.remote.receipt);assert.equal(f.client.isBeginNotSent(error,identity),false);assert(f.client.hasUnknownBegin());const retained=[...f.disk];f.mode('missing');await assert.rejects(f.client.resolveUnknown(),/OPERATION_NOT_FOUND/);assert.deepEqual([...f.disk],retained);f.mode('ok');await f.client.resolveUnknown();assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);
 });
+
+for(const moduleName of Object.keys(scopes))void test(moduleName+' idle stale projection cannot acquire a newer Begin obligation and survive its exact receipt',async()=>{
+ const f=fixture(moduleName),old=f.client;f.delivery();const writer=f.create();assert.notEqual(writer,old);f.mode('lost');await assert.rejects(writer.begin(),/lost ACK/);const retained=[...f.disk];
+ assert.equal(f.box.sharedDraftAccountState().unknown,true);f.delivery();const reader=f.create();assert.notEqual(reader,writer);await reader.read();assert.deepEqual([...f.disk],retained);f.mode('ok');const result=await reader.resolveUnknown();
+ assert.equal(result.receipt.operationId,JSON.parse(retained[0][1]).operationId);assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);assert.equal(reader.hasUnknown(),false);assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});
+});
+
+for(const fault of ['removed','changed','unreadable'])void test('stale runtime with its own Begin '+fault+' evidence retains account barrier',async()=>{
+ const f=fixture('process-authoring');f.mode('lost');await assert.rejects(f.client.begin(),/lost ACK/);const retained=[...f.disk];f.delivery();if(fault==='removed')f.disk.clear();if(fault==='changed')f.disk.set(retained[0][0],retained[0][1]+' ');if(fault==='unreadable')f.box.sessionStorage.getItem=()=>{throw Error('synthetic storage read failure');};
+ assert.equal(f.client.hasUnknownBegin(),true);assert.equal(f.box.sharedDraftAccountState().unknown,true);await assert.rejects(f.client.resolveUnknown(),/BEGIN_OWNER_CHANGED/);await assert.rejects(f.client.begin(),/BEGIN_OWNER_CHANGED/);assert.equal(f.posts().length,1);
+});
+for(const change of ['epoch','identity','pagehide'])void test('idle runtime replaced after '+change+' cannot shadow successor Begin receipt',async()=>{
+ const f=fixture('process-authoring'),old=f.client;if(change==='epoch')f.epoch();if(change==='identity')f.box.ProcessSync.identity={id:'actor'};if(change==='pagehide')f.emit('pagehide');const next=f.create();assert.notEqual(next,old);f.mode('lost');await assert.rejects(next.begin(),/lost ACK/);const retained=[...f.disk];assert.equal(old.hasUnknownBegin(),false);assert.equal(f.box.sharedDraftAccountState().unknown,true);assert.deepEqual([...f.disk],retained);await assert.rejects(old.begin(),/BEGIN_OWNER_CHANGED/);f.mode('ok');await next.resolveUnknown();assert.deepEqual(copy(f.box.sharedDraftAccountState()),{queued:0,unknown:false,failed:false});assert.equal(f.posts().length,1);assert.equal(f.disk.size,0);
+});

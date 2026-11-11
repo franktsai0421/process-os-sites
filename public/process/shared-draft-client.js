@@ -378,6 +378,9 @@
     function validBeginBasis(value){return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')==='activeVersionId,generation,openVersionId,openVersionRevision,openVersionStatus'&&beginText(value.generation)&&beginText(value.activeVersionId)&&beginText(value.openVersionId)&&(value.openVersionId===null?value.openVersionStatus===null&&value.openVersionRevision===null:['draft','pending','pending-test'].includes(value.openVersionStatus)&&(value.openVersionRevision===null||Number.isSafeInteger(value.openVersionRevision)&&value.openVersionRevision>=0));}
     function beginOutstanding(){
       if(!durableBegin)return false;
+      // An idle retired runtime never acquires a newer owner's Begin marker.
+      // Its already captured record/invalid evidence still remains an obligation.
+      if(!beginRecord&&!beginInvalid&&!beginRuntimeCurrent())return false;
       try{const raw=sessionStorage.getItem(beginKey);if(!beginRecord&&!beginInvalid&&raw!==null){const record=JSON.parse(raw);if(!record||Object.keys(record).sort().join(',')!=='actorId,basis,endpoint,operationId,version'||record.version!==1||record.actorId!==actorId||record.endpoint!==beginScopePath||!beginUUID(record.operationId)||!validBeginBasis(record.basis))throw Error('INVALID_BEGIN_MARKER');beginRecord=record;beginRaw=raw;}if(beginRecord&&raw!==beginRaw)beginInvalid=true;}catch{beginInvalid=true;}
       return !!beginRecord||beginInvalid;
     }

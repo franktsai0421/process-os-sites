@@ -1,3 +1,7 @@
+## 2026-11-11 — Preserve Begin receipt ownership across idle runtimes
+
+Fix a reproduced authoring defect where a stale idle transport lazily adopted a newer Begin marker, then reported permanent UNKNOWN after the rightful successor completed exact receipt recovery. Only record-free, error-free invalidated runtimes stop acquiring newer markers; captured original/invalid evidence and other operation barriers remain. Add six module succession cases plus stale owned-record and identity/epoch/pagehide negatives; retain one POST and exact operation/readback requirements. Version the shared-client asset and preserve exact historical source composition. No polling, deadline, schema, real policy/account/data or deployment change.
+
 ## 2026-11-11 — Bootstrap inactive-policy DTO regression contract
 
 The pinned historical bootstrap expectation inserts exactly draftReviewPolicyActive:false after cells; the observed actor DTO is retained whole. Explicit inactive metadata and absent reviewPolicy are required, with 81 negative controls per owner/reader covering rights, privacy, metadata shape/order/duplication and unchanged historical fields. Separate actual-handler checks cover active policy provenance/revocation and zero-write private delivery in records, inline, chunks and whole-R2 synthetic storage. Existing read counts, final identity/revision/session checks and legacy loader remain unchanged. Test-only local follow-up; no runtime or data-model changes, marker activation, merge or deployment.

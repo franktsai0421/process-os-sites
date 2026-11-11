@@ -1,3 +1,7 @@
+## 2026-11-11 — Begin receipt ownership after navigation
+
+An idle invalidated transport cannot lazily acquire a later runtime's Begin marker. A transport that already captured its original record or invalid evidence keeps its obligation and all owner/receipt checks. This prevents a stale authoring instance from turning successful successor receipt cleanup into a permanent account UNKNOWN. No marker deletion, resend, deadline extension or admission bypass is added. Original receipts still require matching operation and authoritative readback.
+
 ## 2026-11-10 — IPQC reference adoption
 
 IPQC source comparison/adoption changes the current form only. Completing the operation enters the current Canvas journal; one explicit Canvas Save persists its reference. Preview/adoption notices in both languages match this flow. Existing unconfirmed operation receipts remain protected.
