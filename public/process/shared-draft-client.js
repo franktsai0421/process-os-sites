@@ -335,7 +335,9 @@
     let access=null,gates=permissionGates,permissionNotice=null,validation=null;
     const approvedAccessListeners=new Set(),approvedHistoryRoute=['/api/process-authoring/workflow','/api/master/pages','/api/routine-fqc/page'].includes(beginPath);
     // Opt-in UI access projection only; never order or alter command/receipt results.
-    let accessGuard=guardAccessResults,accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
+    // Authoring approved history enables this guard during first paint. Start it
+    // before any durable Begin receipt/readback so mounting cannot retire that read.
+    let accessGuard=guardAccessResults||durableBegin&&beginPath==='/api/process-authoring/workflow',accessEpoch=0,accessIssued=0,accessObserved=0,accessFence=0,accessRevision=-1;
     const captureAccess=options=>{const sync=window.ProcessSync;return {sequence:++accessIssued,epoch:accessEpoch,identity:sync?.identity,identityEpoch:accessGuard?sync?.identityGeneration?.():undefined,isCurrent:options?.isCurrent};};
     const ownsAccess=owner=>{const sync=window.ProcessSync;return owner.epoch===accessEpoch&&(!sync||(!sync.requiresReload&&sync.identity?.id===actorId&&sync.identity===owner.identity&&(typeof owner.identityEpoch!=='number'||owner.identityEpoch===sync.identityGeneration?.())))&&(!owner.delivery||sync?.isCurrentDelivery?.(owner.delivery)!==false)&&(!owner.isCurrent||owner.isCurrent());};
     // Only the existing complete nine-boolean snapshot shape supplies defaults for new explicit cells.
@@ -379,6 +381,9 @@
     function validBeginBasis(value){return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')==='activeVersionId,generation,openVersionId,openVersionRevision,openVersionStatus'&&beginText(value.generation)&&beginText(value.activeVersionId)&&beginText(value.openVersionId)&&(value.openVersionId===null?value.openVersionStatus===null&&value.openVersionRevision===null:['draft','pending','pending-test'].includes(value.openVersionStatus)&&(value.openVersionRevision===null||Number.isSafeInteger(value.openVersionRevision)&&value.openVersionRevision>=0));}
     function beginOutstanding(){
       if(!durableBegin)return false;
+      // An idle retired authoring runtime never acquires a newer owner's Begin marker.
+      // Other modules keep explicit delivery-recheck discovery; captured evidence stays.
+      if(beginPath==='/api/process-authoring/workflow'&&!beginRecord&&!beginInvalid&&!beginRuntimeCurrent())return false;
       try{const raw=sessionStorage.getItem(beginKey);if(!beginRecord&&!beginInvalid&&raw!==null){const record=JSON.parse(raw);if(!record||Object.keys(record).sort().join(',')!=='actorId,basis,endpoint,operationId,version'||record.version!==1||record.actorId!==actorId||record.endpoint!==beginScopePath||!beginUUID(record.operationId)||!validBeginBasis(record.basis))throw Error('INVALID_BEGIN_MARKER');beginRecord=record;beginRaw=raw;}if(beginRecord&&raw!==beginRaw)beginInvalid=true;}catch{beginInvalid=true;}
       return !!beginRecord||beginInvalid;
     }

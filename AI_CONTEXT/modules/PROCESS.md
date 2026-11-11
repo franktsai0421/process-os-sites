@@ -1,3 +1,7 @@
+## 2026-11-11 — Begin receipt ownership and history mount
+
+Durable authoring transports enable the existing access-result guard before their first read. Mounting approved history therefore cannot increment the epoch of an in-flight original Begin receipt. An idle stale authoring transport with no captured evidence cannot acquire a newer owner's Begin marker; captured/invalid evidence and other modules' explicit discovery remain unchanged. Actual history mounting is tested during recovery with identity, epoch, delivery, revocation, newer-denial and malformed-receipt negatives. Recovery remains original-receipt GET-only, with full authorized readback before marker cleanup. Isolated reproduction does not establish the precise module of #103's undiagnosed native timeout; latest native CI remains required.
+
 ## 2026-11-10 — IPQC reference adoption
 
 IPQC source comparison/adoption changes the current form only. Completing the operation enters the current Canvas journal; one explicit Canvas Save persists its reference. Preview/adoption notices in both languages match this flow. Existing unconfirmed operation receipts remain protected.

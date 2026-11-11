@@ -1,3 +1,7 @@
+## 2026-11-11 — Authoring Begin recovery fences
+
+Reproduce eight failures against the #103 product using the real transport/history mount, then align authoring's initial guard and idle-owner marker discovery with the independently reviewed #104 candidate. Keep all other account/Routine and readback-comparison changes. Native failure reporting emits only bounded allowlisted state; an exact LF/CRLF inverse retains the original assertions, one-POST/receipt identity and 30-second deadline. Shared source evidence still reverses to both unchanged public predecessors. No account, database, schema, flag, merge or deployment change; native/latest-head acceptance remains separate.
+
 ## 2026-11-11 — Consolidated permission CI fixture compatibility
 
 Bind the real account-review preview explicitly in bootstrap/readiness fixtures and retain missing, duplicate, altered and unknown-import rejection. Lifecycle route fixtures share the exact two-policy URL resolver, keeping query module identity, one Error realm and source boundary checks. FQC bootstrap checks distinguish effective feedback visibility from unchanged stored ACLs and denied feedback operations. Snapshot directory validation rejects network roots before host normalization. This is local isolated verification; Windows/native CI and hosted acceptance remain separate. No schema, account, DB/R2, flag, merge or deployment change.

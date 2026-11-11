@@ -346,6 +346,69 @@
           "after": "    <script src=\"bootstrap.js?v=20261110-account-pages1\"></script>\n"
         }
       ]
+    },
+    {
+      "name": "authoring-begin-owner-and-access-epoch",
+      "afterHash": "ff4b6a98d58f6de8d0d8020e7d397d7274bb3a447bca78d06cdcd347ef731cc6",
+      "afterLength": 11508,
+      "afterBlob": "09890269d59c646cefd33501bcc4c523db8e2c7d",
+      "rules": [
+        {
+          "offset": 1150,
+          "before": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261029-fqc-dependencies1\">\n",
+          "after": "    <link rel=\"modulepreload\" href=\"access-policy.mjs?v=20261110-account-pages1\">\n"
+        },
+        {
+          "offset": 5596,
+          "before": "    <script data-process-src=\"editor-line-selection.js?v=20261030-pr54-integrated1\"></script>\n",
+          "after": "    <script data-process-src=\"editor-line-selection.js?v=20261110-process-integration2\"></script>\n"
+        },
+        {
+          "offset": 6640,
+          "before": "    <script data-process-src=\"master-review.js?v=20261030-pr54-integrated1\"></script>\n",
+          "after": "    <script data-process-src=\"master-review.js?v=20261110-account-pages1\"></script>\n"
+        },
+        {
+          "offset": 6898,
+          "before": "    <script data-process-src=\"shared-draft-client.js?v=20261109-explicit-checks3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261105-process-local-save1\"></script>\n    <script data-process-src=\"web-feedback-entry.js?v=20261106-access-offline1\"></script>\n    <script data-process-src=\"master-data.js?v=20261105-process-local-save1\"></script>\n",
+          "after": "    <script data-process-src=\"shared-draft-client.js?v=20261111-authoring-access-epoch3\"></script>\n    <script data-process-src=\"master-shared-client.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"web-feedback-entry.js?v=20261110-permission-alignment1\"></script>\n    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261110-account-pages1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"canvas-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"page-draft-merge.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-transfer.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-page-editor.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"master-data.js?v=20261110-account-pages1\"></script>\n"
+        },
+        {
+          "offset": 8759,
+          "before": "    <script data-process-src=\"data-safety-ui.js?v=20261027-login-reentry1\"></script>\n",
+          "after": "    <script data-process-src=\"data-safety-ui.js?v=20261110-account-priority-candidate\"></script>\n"
+        },
+        {
+          "offset": 9011,
+          "before": "    <link rel=\"stylesheet\" href=\"version-draft-ui.css?v=20261030-manual-sharing-integrated1\">\n    <script data-process-src=\"version-draft-ui.js?v=20261103-unknown-departure1\"></script>\n    <script data-process-src=\"process-authoring-v3.js?v=20261109-explicit-checks1\"></script>\n",
+          "after": "    <script data-process-src=\"process-authoring-v3.js?v=20261110-process-integration4\"></script>\n"
+        },
+        {
+          "offset": 9876,
+          "before": "    <script data-process-src=\"process-ipqc.js?v=20261109-explicit-checks1\"></script>\n",
+          "after": "    <script data-process-src=\"process-ipqc.js?v=20261110-ipqc-source-single-save1\"></script>\n"
+        },
+        {
+          "offset": 10207,
+          "before": "    <script data-process-src=\"routine-fqc.js?v=20261108-manual-generate2\"></script>\n    <script data-process-src=\"dual-system.js?v=20261025-navigation2\"></script>\n",
+          "after": "    <script data-process-src=\"routine-page-approved-history.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc-page.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"routine-fqc.js?v=20261110-account-pages1\"></script>\n    <script data-process-src=\"dual-system.js?v=20261110-feedback-shell1\"></script>\n"
+        },
+        {
+          "offset": 10728,
+          "before": "    <script data-process-src=\"canvas-recovery-store.js?v=20261104-canvas-integration1\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261104-begin-receipt1\"></script>\n    <script data-process-src=\"process-editor.js?v=20261104-canvas-integration1\"></script>\n",
+          "after": "    <script data-process-src=\"canvas-recovery-store.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"canvas-local.js?v=20261110-process-integration2\"></script>\n    <script data-process-src=\"process-editor.js?v=20261110-process-integration2\"></script>\n"
+        },
+        {
+          "offset": 11082,
+          "before": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261106-role-layout2\">\n    <script data-process-src=\"user-access.js?v=20261106-role-layout1\"></script>\n",
+          "after": "    <link rel=\"stylesheet\" href=\"user-access.css?v=20261110-account-progress2\">\n    <script data-process-src=\"user-access.js?v=20261110-account-pages1\"></script>\n"
+        },
+        {
+          "offset": 11423,
+          "before": "    <script src=\"bootstrap.js?v=20261104-draft-integration1\"></script>\n",
+          "after": "    <script src=\"bootstrap.js?v=20261110-account-pages1\"></script>\n"
+        }
+      ]
     }
   ]
 }
