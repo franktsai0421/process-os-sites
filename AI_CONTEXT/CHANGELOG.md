@@ -1,3 +1,7 @@
+## 2026-11-11 — Consolidated permission CI fixture compatibility
+
+Bind the real account-review preview explicitly in bootstrap/readiness fixtures and retain missing, duplicate, altered and unknown-import rejection. Lifecycle route fixtures share the exact two-policy URL resolver, keeping query module identity, one Error realm and source boundary checks. FQC bootstrap checks distinguish effective feedback visibility from unchanged stored ACLs and denied feedback operations. Snapshot directory validation rejects network roots before host normalization. This is local isolated verification; Windows/native CI and hosted acceptance remain separate. No schema, account, DB/R2, flag, merge or deployment change.
+
 ## 2026-11-10 — Joint local permissions/process verification
 
 在獨立分支組合已公開 #103 5f9d34b 與 #104 dd9be45 的產品／測試，保留線別 Edit→Save、Save-only、Routine owner、回報來源與中央最終核准證明，以及 Canvas 私有拒絕能力、原收據、一次 Save 與歷史保護。九個共享來源檔有雙公開前身精確逆向證據；共同 runtime/source、TypeScript/lint/preflight/safe build 通過。未公開較大候選、未合併 PR、未改真資料或旗標。唯一目前紀錄：[共同隔離候選](ACCOUNT_PROCESS_JOINT_LOCAL.md)。

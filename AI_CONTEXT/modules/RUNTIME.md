@@ -1,3 +1,7 @@
+## 2026-11-11 — Snapshot directory network-root portability
+
+`assertPlainDirectory` rejects UNC and `//` network roots before host path normalization, retaining the resolved-root and symlink checks. POSIX previously normalized those inputs before the rejection could recognize them. Isolated adapter checks cover both forms without network access; snapshot content, DB/R2, permissions and transfer/publication behavior are unchanged.
+
 ## 2026-11-10 Local page/account review continuation
 
 The four-file correction is published at Draft #103 22567b26. The larger local candidate shares review projection, explicit primary proof and independent page/Routine owners. Cold-boot assets and policy cache dependencies are wired; no live flag is enabled. Line effective Edit→Save changes before adoption, while legacy writers still deny it. [Sources, validation and exact limits](../ACCOUNT_PERMISSION_INTEGRATION_LOCAL.md).

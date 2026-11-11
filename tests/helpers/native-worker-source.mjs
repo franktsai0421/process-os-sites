@@ -7,6 +7,20 @@ import {stripTypeScriptTypes} from 'node:module';
 import {webcrypto} from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 const checkout=path.resolve(fileURLToPath(new URL('../..',import.meta.url)));
+// Physical reads omit only the two reviewed cache queries; module keys retain them.
+// Shared by ESM and same-realm CJS fixtures so Windows never treats ?v= as a filename.
+export function policySourceLocation(file){
+ let filename=path.resolve(file);if(!filename.startsWith(checkout+path.sep))throw Error('SOURCE_OUTSIDE_CHECKOUT');
+ const query='?v=20261110-account-pages1',queried=path.relative(checkout,filename).split(path.sep).join('/'),hasPinnedQuery=['public/process/access-policy.mjs'+query,'public/process/draft-review-policy.mjs'+query].includes(queried);
+ if(hasPinnedQuery)filename=filename.slice(0,-query.length);
+ const relative=path.relative(checkout,filename).split(path.sep).join('/');
+ if(!/^(?:app\/api\/|lib\/|public\/process\/)/.test(relative))throw Error('SOURCE_DIRECTORY_REFUSED');
+ if(/[?#]/.test(filename))throw Error('SOURCE_EXTENSION_REFUSED');
+ if(!path.extname(filename))filename+='.ts';
+ if(!['.ts','.mjs','.js'].includes(path.extname(filename)))throw Error('SOURCE_EXTENSION_REFUSED');
+ if(fs.lstatSync(filename).isSymbolicLink()||fs.realpathSync(filename)!==filename)throw Error('SOURCE_LINK_REFUSED');
+ return {filename,moduleKey:filename+(hasPinnedQuery?query:''),query:hasPinnedQuery?query:''};
+}
 export function workerSource(env={},options={}){
  const cryptoOverrides=options.cryptoOverrides||{};if(Object.keys(cryptoOverrides).some(key=>!['randomBytes','scrypt'].includes(key)||typeof cryptoOverrides[key]!=='function'))throw Error('CRYPTO_PORT_REFUSED');
  const consolePort=options.consolePort||console;
@@ -21,17 +35,10 @@ export function workerSource(env={},options={}){
   return cache.get(specifier);
  }
  function source(file){
-  let resolved=path.resolve(file);if(!resolved.startsWith(checkout+path.sep))throw Error('SOURCE_OUTSIDE_CHECKOUT');
-  const query='?v=20261110-account-pages1',queried=path.relative(checkout,resolved).split(path.sep).join('/'),hasPinnedQuery=['public/process/access-policy.mjs'+query,'public/process/draft-review-policy.mjs'+query].includes(queried);
-  if(hasPinnedQuery)resolved=resolved.slice(0,-query.length);
-  const relative=path.relative(checkout,resolved).split(path.sep).join('/');
-  if(!/^(?:app\/api\/|lib\/|public\/process\/)/.test(relative))throw Error('SOURCE_DIRECTORY_REFUSED');
-  if(!path.extname(resolved))resolved+='.ts';const moduleKey=resolved+(hasPinnedQuery?query:'');
-  if(!['.ts','.mjs','.js'].includes(path.extname(resolved)))throw Error('SOURCE_EXTENSION_REFUSED');
-  if(fs.lstatSync(resolved).isSymbolicLink()||fs.realpathSync(resolved)!==resolved)throw Error('SOURCE_LINK_REFUSED');
+  const {filename:resolved,moduleKey,query}=policySourceLocation(file);
   if(!cache.has(moduleKey)){
    const raw=fs.readFileSync(resolved,'utf8'),code=resolved.endsWith('.ts')?stripTypeScriptTypes(raw,{mode:'transform',sourceUrl:pathToFileURL(resolved).href}):raw;
-   cache.set(moduleKey,new vm.SourceTextModule(code,{context,identifier:moduleKey,initializeImportMeta(meta){meta.url=pathToFileURL(resolved).href+(hasPinnedQuery?query:'');}}));
+   cache.set(moduleKey,new vm.SourceTextModule(code,{context,identifier:moduleKey,initializeImportMeta(meta){meta.url=pathToFileURL(resolved).href+query;}}));
   }
   return cache.get(moduleKey);
  }
