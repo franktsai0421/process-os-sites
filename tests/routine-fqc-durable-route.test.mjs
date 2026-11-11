@@ -388,9 +388,9 @@ const receiptMetadataFields = [
   'submitSavedId', 'restoreSaveId', 'requestedRevision',
 ].sort();
 const uiSentText = 'Synthetic UI-only dirty Save payload: never durable metadata';
-const uiNextText = 'Synthetic next input during Apply: must stay only in RAM';
+const uiNextText = 'Synthetic next input during atomic Save: must stay only in RAM';
 
-async function runActualUISave(t, source, { durableStorage = true, nextInput = false } = {}) {
+async function runActualUISave(t, source, { durableStorage = true, nextInput = false, protocol = 'atomic' } = {}) {
   const f = await fixture(t), planId = await f.createPlan();
   const initial = await f.get();
   assert.equal(initial.status, 200);
@@ -401,17 +401,27 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   ui.s.bases.set(planId, clone(ui.doc().flow.working));
   ui.s.buffers.set(planId, { ...clone(ui.doc().flow.working), notes: uiSentText });
   if (nextInput) tab.afterPost((command) => {
-    if (command.command?.action === 'apply') ui.s.buffers.get(planId).notes = uiNextText;
+    if (command.command?.action === (protocol === 'atomic' ? 'save' : 'apply')) ui.s.buffers.get(planId).notes = uiNextText;
   });
   const counts = { ...f.counts };
   const receipt = await ui.save();
-  assert.equal(receipt.operationId, tab.calls[2].body.operationId);
-  assert.deepEqual(tab.calls.map((call) => [call.method, call.body?.command?.action || 'state']), [
-    ['POST', 'apply'], ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
-  ], 'actual dirty Save is original Apply/readback/fixed Save/readback, with no extra receipt GET or resend');
+  const atomic = protocol === 'atomic';
+  const posts = tab.calls.filter(call => call.method === 'POST');
+  assert.equal(receipt.operationId, posts.at(-1).body.operationId);
+  assert.deepEqual(tab.calls.map((call) => [call.method, call.body?.command?.action || 'state']), atomic ? [
+    ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
+  ] : [['POST', 'apply'], ['GET', 'state'], ['POST', 'save'], ['GET', 'state']],
+  'exact protocol: atomic Save reads current state before one guarded POST, then reads back');
+  if (atomic) {
+    assert.equal(posts[0].body.command.moduleAction, 'save-local-v1');
+    assert.equal(posts[0].body.command.expectedRevision, initial.body.control.documents[0].flow.revision);
+    assert.deepEqual(posts[0].body.command.guards, [{ path: ['notes'], value: initial.body.control.documents[0].flow.working.notes }]);
+    assert.deepEqual(posts[0].body.command.patches, [{ op: 'set', path: ['notes'], value: uiSentText }]);
+    assert.deepEqual(tab.calls[0].markersAtDispatch, []);
+  }
   assert.ok(tab.calls.every((call) => call.status === 200));
   assert.deepEqual(f.delta(counts), {
-    post: 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: 2, r2Put: 0, r2Head: 0,
+    post: atomic ? 1 : 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: atomic ? 1 : 2, r2Put: 0, r2Head: 0,
   });
   const saved = f.document(planId).flow;
   assert.equal(saved.saved.id, receipt.savedId);
@@ -429,10 +439,10 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   }
   assert.equal(ui.s.retry, null);
   if (durableStorage) {
-    assert.equal(tab.localStorage.writes.length, 2, 'exactly one metadata marker before each POST');
+    assert.equal(tab.localStorage.writes.length, posts.length, 'exactly one metadata marker before each POST');
     assert.equal(tab.sessionStorage.writes.length, 0, 'no generic full-command session persistence');
     for (const [index, write] of tab.localStorage.writes.entries()) {
-      const meta = JSON.parse(write.value), command = tab.calls[index * 2].body;
+      const meta = JSON.parse(write.value), command = posts[index].body;
       assert.match(write.key, /^routine-fqc-receipt-v1:/);
       assert.deepEqual(Object.keys(meta).sort(), receiptMetadataFields);
       assert.equal(meta.operationId, command.operationId);
@@ -444,7 +454,7 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
       assert.equal(meta.documentRevision, initial.body.control.documents[0].flow.revision + index);
       assert.equal(write.value.includes(uiSentText), false);
       assert.equal(write.value.includes(uiNextText), false);
-      for (const call of tab.calls.slice(index * 2, index * 2 + 2)) {
+      for (const call of tab.calls.slice(atomic ? 1 : index * 2, atomic ? 3 : index * 2 + 2)) {
         assert.deepEqual(call.markersAtDispatch, [[write.key, write.value]],
           'durable original metadata exists before POST and remains until actual full readback');
       }
@@ -463,17 +473,17 @@ async function runActualUISave(t, source, { durableStorage = true, nextInput = f
   };
 }
 
-void test('actual full routine UI → actual route: dirty Save is 2 POST + 2 GET and metadata-only durability', async (t) => {
+void test('actual full routine UI → actual route: dirty Save is 1 atomic POST + 2 GET and metadata-only durability', async (t) => {
   const metrics = await runActualUISave(t, routineUISource);
   t.diagnostic('Current UI source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
   t.diagnostic('Synthetic actual UI/route bytes (not browser timing): ' + JSON.stringify(metrics));
 });
 
-void test('actual full routine UI → actual route: input made during Apply remains the next unsent batch', async (t) => {
+void test('actual full routine UI → actual route: input made during atomic Save remains the next unsent batch', async (t) => {
   await runActualUISave(t, routineUISource, { nextInput: true });
 });
 
-void test('actual full routine UI → actual route: independent peer Save before guarded Apply may advance savedId', async (t) => {
+void test('actual full routine UI → actual route: independent peer Save before guarded atomic Save may advance savedId', async (t) => {
   const f = await fixture(t, { withPeer: true }), planId = await f.createPlan();
   const applyNotes = (value) => f.accepted(f.draft(planId, 'apply', {
     patches: [{ op: 'set', path: ['notes'], value }],
@@ -515,27 +525,29 @@ void test('actual full routine UI → actual route: independent peer Save before
     post: 1, get: 0, receiptGet: 0, stateGet: 0, dbRun: 1, r2Put: 0, r2Head: 0,
   }, 'peer Save is counted separately from the owner UI operation');
 
-  let observedApply = null;
+  let observedSave = null;
   tab.afterPost((command) => {
-    assert.equal(ui.s.buffers.get(planId).title, localTitle, 'original local input survives each in-flight POST');
-    if (command.command.action === 'apply') {
-      observedApply = clone(f.control().receipts[command.operationId].result);
-      assert.equal(observedApply.revision, 7);
-      assert.equal(observedApply.savedId, savedB, 'actual Apply ACK legitimately contains the peer newer savedId');
-      assert.equal(observedApply.generation, generation);
-      assert.equal(observedApply.unchanged, false);
-      assert.deepEqual(command.command.guards, [{ path: ['title'], value: titleBefore }]);
-    }
+    assert.equal(ui.s.buffers.get(planId).title, localTitle, 'original local input survives the in-flight POST');
+    assert.equal(command.command.action, 'save');
+    assert.equal(command.command.moduleAction, 'save-local-v1');
+    assert.equal(command.command.expectedRevision, 6, 'fresh GET pins the peer revision');
+    assert.deepEqual(command.command.guards, [{ path: ['title'], value: titleBefore }]);
+    assert.deepEqual(command.command.patches, [{ op: 'set', path: ['title'], value: localTitle }]);
+    observedSave = clone(f.control().receipts[command.operationId].result);
+    assert.equal(observedSave.revision, 7, 'atomic working change and Save use one document revision');
+    assert.notEqual(observedSave.savedId, savedB);
+    assert.equal(observedSave.generation, generation);
+    assert.equal(observedSave.unchanged, false);
   });
   const ownCounts = { ...f.counts }, saved = await ui.save();
-  assert.ok(observedApply);
+  assert.ok(observedSave);
   assert.deepEqual(tab.calls.map((call) => [call.method, call.body?.command?.action || 'state']), [
-    ['POST', 'apply'], ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
+    ['GET', 'state'], ['POST', 'save'], ['GET', 'state'],
   ]);
   assert.deepEqual(f.delta(ownCounts), {
-    post: 2, get: 2, receiptGet: 0, stateGet: 2, dbRun: 2, r2Put: 0, r2Head: 0,
+    post: 1, get: 2, receiptGet: 0, stateGet: 2, dbRun: 1, r2Put: 0, r2Head: 0,
   }, 'legal peer progress creates no extra receipt lookup or resend');
-  assert.equal(saved.revision, 8);
+  assert.equal(saved.revision, 7);
   assert.notEqual(saved.savedId, savedB);
   assert.equal(f.document(planId).flow.saved.actor.id, initial.body.identity.id);
   assert.equal(f.document(planId).flow.saved.content.title, localTitle);
@@ -543,20 +555,17 @@ void test('actual full routine UI → actual route: independent peer Save before
   assert.equal(ui.doc().flow.saved.id, saved.savedId);
   assert.equal(ui.s.buffers.has(planId), false);
   assert.equal(ui.s.bases.has(planId), false);
-  assert.equal(ui.s.retry, null, 'higher-revision legitimate Apply is not trapped as permanent unknown');
-  assert.equal(tab.localStorage.writes.length, 2);
-  const [applyMeta, saveMeta] = tab.localStorage.writes.map((write) => JSON.parse(write.value));
-  assert.equal(applyMeta.savedId, savedA);
-  assert.equal(applyMeta.documentRevision, 5);
-  assert.equal(saveMeta.savedId, savedB);
-  assert.equal(saveMeta.documentRevision, 7);
-  assert.equal(saveMeta.requestedRevision, 7);
-  for (const [index, write] of tab.localStorage.writes.entries()) {
-    assert.deepEqual(Object.keys(JSON.parse(write.value)).sort(), receiptMetadataFields);
-    assert.equal(write.value.includes(localTitle), false);
-    for (const call of tab.calls.slice(index * 2, index * 2 + 2)) {
-      assert.deepEqual(call.markersAtDispatch, [[write.key, write.value]], 'each terminal marker waits for its actual full GET');
-    }
+  assert.equal(ui.s.retry, null, 'legal peer progress is not trapped as permanent unknown');
+  assert.equal(tab.localStorage.writes.length, 1);
+  const [write] = tab.localStorage.writes, saveMeta = JSON.parse(write.value);
+  assert.equal(saveMeta.savedId, savedB, 'marker pins the actual pre-dispatch peer Save');
+  assert.equal(saveMeta.documentRevision, 6);
+  assert.equal(saveMeta.requestedRevision, 6);
+  assert.deepEqual(Object.keys(saveMeta).sort(), receiptMetadataFields);
+  assert.equal(write.value.includes(localTitle), false);
+  assert.deepEqual(tab.calls[0].markersAtDispatch, []);
+  for (const call of tab.calls.slice(1)) {
+    assert.deepEqual(call.markersAtDispatch, [[write.key, write.value]], 'terminal marker waits for the actual full GET');
   }
   assert.deepEqual(tab.localStorage.snapshot(), [['unrelated-storage-key', 'synthetic retained local value']]);
   assert.equal(tab.sessionStorage.writes.length, 0);
@@ -564,20 +573,56 @@ void test('actual full routine UI → actual route: independent peer Save before
   t.diagnostic('Peer Save race source SHA256: ' + createHash('sha256').update(routineUISource).digest('hex'));
 });
 
+void test('actual full routine UI → actual route: peer working change after own Save preserves the confirmed snapshot and peer dirty state', async (t) => {
+  const f = await fixture(t, { withPeer: true }), planId = await f.createPlan();
+  const initial = await f.get(), tab = actualUI(f, routineUISource, initial.body.identity), { ui } = tab;
+  ui.setData(initial.body); ui.s.selected = planId;
+  ui.s.bases.set(planId, clone(ui.doc().flow.working));
+  ui.s.buffers.set(planId, { ...clone(ui.doc().flow.working), title: uiSentText });
+  let peerResult;
+  tab.afterPost(async command => {
+    assert.equal(command.command.action, 'save');
+    const peerCommand = f.draft(planId, 'apply', {
+      patches: [{ op: 'set', path: ['notes'], value: 'Peer working change after confirmed Save' }],
+      guards: [{ path: ['notes'], value: f.document(planId).flow.working.notes }],
+    });
+    const response = await f.post(peerCommand, 'peer');
+    assert.equal(response.status, 200, JSON.stringify(response.body));
+    peerResult = response.body.result;
+  });
+  const receipt = await ui.save(), flow = f.document(planId).flow;
+  assert.equal(flow.saved.id, receipt.savedId);
+  assert.equal(flow.saved.content.title, uiSentText);
+  assert.equal(flow.saved.content.notes, initial.body.control.documents[0].flow.working.notes);
+  assert.equal(flow.working.notes, 'Peer working change after confirmed Save');
+  assert.equal(flow.revision, peerResult.revision);
+  assert.equal(ui.doc().flow.revision, peerResult.revision, 'readback adopts genuine higher-revision peer working state');
+  assert.equal(ui.doc().flow.working.notes, flow.working.notes);
+  assert.equal(ui.s.buffers.has(planId), false, 'only the known saved local batch is cleared');
+  assert.equal(ui.s.bases.has(planId), false);
+  assert.equal(ui.s.retry, null);
+  assert.deepEqual(tab.calls.map(call => call.method), ['GET', 'POST', 'GET']);
+  assert.equal(tab.localStorage.writes.length, 1);
+  assert.deepEqual(tab.localStorage.snapshot(), [['unrelated-storage-key', 'synthetic retained local value']]);
+  assert.equal(flow.pendingId, null, 'peer unsaved working content is not submitted automatically');
+  f.verifyBackups();
+});
+
 // Optional explicit local comparison input; core current-code tests above never
 // skip or depend on Git history. This turn supplies the exact ab520ee blob.
 if (process.env.ROUTINE_FQC_BASELINE_JS) {
-  void test('explicit ab520ee baseline versus current full UI: same synthetic Save route counts and wire bytes', async (t) => {
+  void test('explicit ab520ee baseline versus current full UI: synthetic atomic Save uses one less POST and database write', async (t) => {
     const baseline = fs.readFileSync(process.env.ROUTINE_FQC_BASELINE_JS, 'utf8');
     const gitBlob = createHash('sha1').update('blob ' + Buffer.byteLength(baseline) + '\0').update(baseline).digest('hex');
     assert.equal(gitBlob, '12c50d4a6e2444d886f6be107cca273dbfd60462', 'baseline must be the exact ab520ee routine UI source');
-    const before = await runActualUISave(t, baseline, { durableStorage: false });
+    const before = await runActualUISave(t, baseline, { durableStorage: false, protocol: 'legacy-apply-save' });
     const after = await runActualUISave(t, routineUISource);
-    assert.deepEqual({ post: after.post, get: after.get }, { post: before.post, get: before.get });
-    // Native random UUIDs are already fixed width; no payload, response field,
-    // or legitimate byte growth is normalized away for this comparison.
-    assert.deepEqual(after.requestBytes, before.requestBytes);
-    assert.deepEqual(after.responseBytes, before.responseBytes);
+    assert.equal(before.post, 2);
+    assert.equal(after.post, 1);
+    assert.equal(after.get, before.get);
+    // Report exact wire bytes without normalizing the different protocols.
+    assert.equal(before.requestBytes.length, 4);
+    assert.equal(after.requestBytes.length, 3);
     t.diagnostic('Explicit same-data baseline/current counts and bytes: ' + JSON.stringify({ before, after }));
   });
 }

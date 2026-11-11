@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import ts from 'typescript';
 import {createRequire} from 'node:module';
 import {randomUUID, webcrypto} from 'node:crypto';
 
@@ -14,13 +15,13 @@ const shared=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 const routine=fs.readFileSync('public/process/routine-fqc.js','utf8');
 const helper=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const coordinator=helper.slice(helper.indexOf('  function createDeparture(config){'),helper.indexOf('  host.VersionDraftUI='));
-const configStart=routine.indexOf('window.VersionDraftUI.createDeparture('),configEnd=routine.indexOf('});},',configStart);
-assert(configStart>=0&&configEnd>configStart);
-const departureConfig=routine.slice(configStart+'window.VersionDraftUI.createDeparture('.length,configEnd+1);
+const ast=ts.createSourceFile('routine-fqc.js',routine,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS),configs=[];
+function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(ast)==='routineDeparture')configs.push(node.arguments[0].getText(ast));ts.forEachChild(node,visit);}visit(ast);assert.equal(configs.length,1);const departureConfig=configs[0];
+const declarations=[];function declaration(node){if(ts.isFunctionDeclaration(node)&&node.name?.text==='routineDeparture')declarations.push(node.getText(ast));ts.forEachChild(node,declaration);}declaration(ast);assert.equal(declarations.length,1);
 const part=(from,to)=>{
  const a=routine.indexOf(from),b=routine.indexOf(to,a);assert(a>=0&&b>a);return routine.slice(a,b);
 };
-const code=[part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
+const code=[part('  let historyDisplayEpoch=','  function retireApprovedHistory('),...declarations,part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
  part('  async function postOwned(','  async function refresh('),
  part('  const departureSharedOwned=','  window.RoutineFQCUI ='),
  'this.departureSharedOwned=departureSharedOwned;this.departureDocuments=departureDocuments;'].join('\n');
@@ -62,7 +63,7 @@ function fixture(){
    },
   };
   vm.createContext(box);vm.runInContext(shared,box);vm.runInContext(code,box);
-  vm.runInContext(coordinator.replaceAll('host.','window.')+'\nthis.departure=createDeparture('+departureConfig+');',box);
+  vm.runInContext(coordinator.replaceAll('host.','window.')+'\nwindow.VersionDraftUI={createDeparture};this.departure=routineDeparture('+departureConfig+');',box);
   const hook=box.window.SharedDraftDeparture,confirm=hook.confirmed;
   hook.confirmed=(...args)=>{confirmed.push(args);return confirm(...args);};
   const doc=(id='a')=>box.data.control.documents.find(d=>d.id===id);

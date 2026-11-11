@@ -41,4 +41,14 @@ await test('unrecognized bootstrap module stays rejected and never reveals the a
  const f=await runImportBoot({bootSource,response:()=>activeBootResponse({revision:1,values:{},serverProtected:true,identity:{id:'synthetic',role:'staff'}})});
  assert.ok(f.moduleImports.includes('./unexpected-private-module.mjs'));assert.deepEqual(f.preloadLinks,expectedPreloads);assert.deepEqual(f.executed,[]);assert.equal(f.attributes.role,'alert');assert.equal(f.boot.isConnected,true);assert.ok(!f.events.includes('unhidden'));assert.ok(!f.events.includes('process-ui-ready'));
 });
+await test('stale account policy or preview module versions stay rejected before the pending screen',async()=>{
+ const original=fs.readFileSync(new URL('../public/process/bootstrap.js',import.meta.url),'utf8');
+ for(const moduleName of ['access-policy','account-review-preview']){
+  const exact='./'+moduleName+'.mjs?v=20261110-account-pages1';assert.ok(original.includes(exact));
+  const stale='./'+moduleName+'.mjs?v=stale-fixture-version';
+  const f=await runImportBoot({bootSource:original.replace(exact,stale)});
+  assert.ok(f.moduleImports.includes(stale));assert.equal(f.attributes.role,'alert');
+  assert.deepEqual(f.preloads,[]);assert.deepEqual(f.executed,[]);assert.ok(!f.events.includes('unhidden'));
+ }
+});
 console.log(JSON.stringify({status:'PASS_SYNTHETIC_IMPORT_PENDING_CLIENT',cases:tests.length,tests,network:false,realData:false,realCredentials:false}));

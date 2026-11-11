@@ -1,32 +1,23 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import vm from 'node:vm';
-const source=fs.readFileSync('public/process/routine-fqc.js','utf8');
-const part=(from,to)=>source.slice(source.indexOf(from),source.indexOf(to,source.indexOf(from)));
-const code=part('  async function save(target = doc()) {','  function dialog(');
-const copy=structuredClone;
+// Full current Routine closure, real receipt/owner/display guards and transport.
+// Only the DOM and in-memory HTTP store are synthetic; actual route cases live
+// in routine-fqc-durable-route.test.mjs. Save is one guarded atomic command.
+import test from 'node:test';import assert from 'node:assert/strict';
+import {fixture as fullFixture} from './fixtures/routine-fqc-durable.mjs';
 function fixture(){
- const make=id=>({id,flow:{generation:'gen-'+id,revision:1,pendingId:null,working:{title:'old',date:'2026-10-30',notes:'',reason:'',disposition:'',evidence:[],lines:[]},saved:null}});
- const first=make('a'),second=make('b');
- const s={selected:'a',buffers:new Map(),bases:new Map()},data={identity:{id:'owner'},permissions:{save:true,edit:true},control:{revision:1,documents:[first,second]}};
- let epoch=1,delivery=1,onApply=()=>{},onSave=()=>{},onRead=()=>{};const calls=[];
- const sync={identity:{id:'owner'},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:value=>value===delivery};
- const box={s,data,window:{ProcessSync:sync},root:{},clone:copy,JSON,
-  doc:()=>box.data.control.documents.find(d=>d.id===s.selected),docs:()=>box.data.control.documents,status:d=>d.flow.pendingId?'pending':'draft',
-  dirty:d=>s.buffers.has(d.id)&&JSON.stringify(s.buffers.get(d.id))!==JSON.stringify(s.bases.get(d.id)),
-  buffer:d=>{if(!s.buffers.has(d.id)){s.buffers.set(d.id,copy(d.flow.working));s.bases.set(d.id,copy(d.flow.working));}return s.buffers.get(d.id);},
-  async draft(action,details,target){calls.push({action,details:copy(details),id:target.id});const d=box.data.control.documents.find(row=>row.id===target.id);if(action==='apply'){await Promise.resolve(onApply());for(const patch of details.patches)d.flow.working[patch.path[0]]=copy(patch.value);d.flow.revision++;}else{await Promise.resolve(onSave());assert.equal(details.expectedRevision,d.flow.revision);d.flow.saved={id:'saved-'+d.id,content:copy(d.flow.working)};d.flow.revision++;}box.data.control.revision++;return{receipt:{operationId:'original-'+action}};},
-  async read(){await Promise.resolve(onRead());return copy(box.data);},
- };
- vm.createContext(box);vm.runInContext(code,box);
- const change=(d=first,value='mine')=>{box.buffer(d).title=value;};
- return {box,s,calls,first,second,change,save:d=>box.save(d),onApply:fn=>onApply=fn,onSave:fn=>onSave=fn,onRead:fn=>onRead=fn,epoch:()=>epoch++,delivery:()=>delivery++,sync};
+ const f=fullFixture(),template=structuredClone(f.remote.control.documents[0]);
+ f.remote.control.documents=['a','b'].map(id=>({...structuredClone(template),id,flow:{...structuredClone(template.flow),scope:'routine-fqc:'+id,generation:'gen-'+id,saved:null}}));
+ f.api.setData(structuredClone(f.remote));f.api.s.selected='a';
+ const doc=id=>f.api.getData().control.documents.find(d=>d.id===id),calls=()=>f.calls.filter(c=>c.method==='POST').map(c=>JSON.parse(c.body));
+ return {...f,doc,calls,first:doc('a'),change(d=doc('a'),value='mine'){f.api.buffer(d).title=value;},save:d=>f.api.save(d),onSave:fn=>f.afterPost(fn)};
 }
-void test('routine actual Save applies own buffer then confirms saved document before clearing it',async()=>{const f=fixture();f.change();await f.save();assert.deepEqual(f.calls.map(x=>x.action),['apply','save']);assert.equal(f.box.data.control.documents[0].flow.saved.content.title,'mine');assert.equal(f.s.buffers.has('a'),false);assert.equal(f.calls[0].details.guards[0].value,'old');});
-void test('routine Save pins original document even if selection changes while Apply awaits',async()=>{const f=fixture();f.change();f.onApply(()=>{f.s.selected='b';});await f.save(f.first);assert.deepEqual(f.calls.map(x=>x.id),['a','a']);assert.equal(f.box.data.control.documents[1].flow.saved,null);});
-void test('routine newer local input remains after the captured batch is saved',async()=>{const f=fixture();f.change();f.onApply(()=>{f.s.buffers.get('a').title='newer local';});await f.save();assert.equal(f.s.buffers.get('a').title,'newer local');assert.equal(f.box.data.control.documents[0].flow.saved.content.title,'mine');assert.equal(f.box.dirty(f.box.data.control.documents[0]),true);});
-for(const change of ['identity','epoch','delivery','generation'])void test('routine late '+change+' after Apply cannot continue Save or erase local input',async()=>{const f=fixture();f.change();f.onApply(()=>{if(change==='identity')f.sync.identity={id:'other'};if(change==='epoch')f.epoch();if(change==='delivery')f.delivery();if(change==='generation')f.first.flow.generation='replaced';});await assert.rejects(f.save(),/DELIVERY_SUPERSEDED/);assert.deepEqual(f.calls.map(x=>x.action),['apply']);assert.equal(f.s.buffers.get('a').title,'mine');});
-void test('routine unknown Apply retains exact input and does not issue Save',async()=>{const f=fixture();f.change();f.onApply(()=>{throw Error('RESULT_UNKNOWN');});await assert.rejects(f.save(),/RESULT_UNKNOWN/);assert.equal(f.calls.length,1);assert.equal(f.s.buffers.get('a').title,'mine');});
-void test('routine late unsaved remote change after Save acknowledgement keeps input and blocks leave',async()=>{const f=fixture();f.change();f.onRead(()=>{const d=f.box.data.control.documents[0];if(d.flow.saved)d.flow.working.notes='new remote change';});await assert.rejects(f.save(),/SAVE_RECHECK_REQUIRED/);assert.equal(f.s.buffers.get('a').title,'mine');});
-void test('routine independent Save-only permission can save shared data, but cannot publish a local edit',async()=>{const f=fixture();f.box.data.permissions.edit=false;await f.save();assert.deepEqual(f.calls.map(x=>x.action),['save']);const g=fixture();g.change();g.box.data.permissions.edit=false;await assert.rejects(g.save(),/FORBIDDEN/);assert.equal(g.calls.length,0);});
+void test('routine actual Save reads fresh, sends one guarded atomic command and confirms saved document before clearing input',async()=>{const f=fixture();f.change();await f.save();assert.deepEqual(f.methods(),['GET','POST','GET']);assert.deepEqual(f.calls().map(x=>[x.command.action,x.command.moduleAction]),[['save','save-local-v1']]);assert.equal(f.doc('a').flow.saved.content.title,'mine');assert.equal(f.api.s.buffers.has('a'),false);assert.equal(f.calls()[0].command.guards[0].value,'Original');assert.equal(f.store.map.size,0);});
+void test('routine Save pins original document even if selection changes while dispatch awaits',async()=>{const f=fixture();f.change();f.onSave(()=>{f.api.s.selected='b';});await f.save(f.first);assert.deepEqual(f.calls().map(x=>x.documentId),['a']);assert.equal(f.doc('b').flow.saved,null);});
+void test('routine newer local input remains after the captured atomic batch is saved',async()=>{const f=fixture();f.change();f.onSave(()=>{f.api.s.buffers.get('a').title='newer local';});await f.save();assert.equal(f.api.s.buffers.get('a').title,'newer local');assert.equal(f.doc('a').flow.saved.content.title,'mine');assert.equal(f.api.dirty(f.doc('a')),true);});
+for(const change of ['identity','epoch','delivery','generation'])void test('routine late '+change+' after dispatch cannot confirm another owner or erase local input',async()=>{const f=fixture();f.change();f.onSave(()=>{if(change==='identity')f.sync.identity={id:'other'};if(change==='epoch')f.epoch();if(change==='delivery')f.delivery();if(change==='generation')f.doc('a').flow.generation='replaced';});await assert.rejects(f.save(),/ACCOUNT_CHANGED|DELIVERY_SUPERSEDED|STALE_GENERATION/);assert.equal(f.posts(),1);assert.equal(f.api.s.buffers.get('a').title,'mine');assert.equal(f.store.map.size,1);});
+void test('routine unknown atomic Save retains exact input and never issues a second POST',async()=>{const f=fixture();f.change();f.setMode('lost');await assert.rejects(f.save());assert.equal(f.posts(),1);assert.equal(f.api.s.buffers.get('a').title,'mine');assert.equal(f.store.map.size,1);await assert.rejects(f.api.postOwned(f.api.s.retry));assert.equal(f.posts(),1);});
+void test('routine readback contradicting captured saved content preserves local input and blocks acknowledgement',async()=>{const f=fixture();f.change();f.afterRead(()=>{if(f.posts())f.remote.control.documents[0].flow.saved.content.title='Different snapshot';});await assert.rejects(f.save(),/SAVE_RECHECK_REQUIRED/);assert.equal(f.api.s.buffers.get('a').title,'mine');assert.equal(f.posts(),1);});
+void test('routine independent Save-only permission saves existing working but cannot publish a local edit',async()=>{const f=fixture();f.remote.permissions.edit=false;f.api.getData().permissions.edit=false;await f.save();assert.equal(f.posts(),1);assert.deepEqual(f.calls()[0].command.patches,[]);const g=fixture();g.change();g.remote.permissions.edit=false;g.api.getData().permissions.edit=false;await assert.rejects(g.save(),/FORBIDDEN/);assert.equal(g.posts(),0);});
+
+void test('routine approved history refuses Save before any read or write',async()=>{const f=fixture();f.change();f.api.setApprovedHistory({blocked:true});await assert.rejects(f.save(),/APPROVED_HISTORY_READ_ONLY/);assert.deepEqual(f.methods(),[]);assert.equal(f.api.s.buffers.get('a').title,'mine');});
+void test('routine switching to approved history during the fresh read refuses dispatch and retains input',async()=>{const f=fixture();f.change();f.afterRead(()=>f.api.setApprovedHistory({blocked:true}));await assert.rejects(f.save(),/DELIVERY_SUPERSEDED/);assert.equal(f.posts(),0);assert.equal(f.api.s.buffers.get('a').title,'mine');});
+void test('routine switching to approved history after dispatch retains the original receipt and local input',async()=>{const f=fixture();f.change();f.onSave(()=>f.api.setApprovedHistory({blocked:true}));await assert.rejects(f.save(),/ACCOUNT_CHANGED_REOPEN_REQUIRED/);assert.equal(f.posts(),1);assert.equal(f.store.map.size,1);assert.equal(f.api.s.buffers.get('a').title,'mine');});
