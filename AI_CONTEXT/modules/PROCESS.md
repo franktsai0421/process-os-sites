@@ -1,3 +1,7 @@
+## 2026-11-11 — Native Begin inverse checkout boundary
+
+The original browser-source pin is independent of Git history: deterministic embedded baseline bytes retain the same fixed SHA256 and complete reverse byte comparison. Only checkout LF/CRLF equivalence is accepted; semantic mutation, extra suffix and invalid CR negatives remain fail-closed. This test compatibility fix does not change compiled Begin recovery or establish native acceptance. Native step36 remains unresolved until actual CI evidence is available. An additional independent integration-workflow job runs the same compiled Begin scenario after locked install/exact build; the original Windows step remains unchanged. It provides earlier evidence and does not confer broader acceptance.
+
 ## 2026-11-11 — Current AB departure test boundary
 
 AB navigation uses the actual RAM-only adapter: sharedDirty/sharedOwned are false, and acknowledged shared writes alone do not prompt. SharedDraftDeparture still tracks exact per-tab ACKs, module Save global cutoffs and owner epochs for callers that need it. Tests execute the current full navigation object, retain those tracker proofs separately, and require local/modal/UNKNOWN state plus zero-request repeated inspection. They do not restore the removed departureOwnShared aggregate. Consolidated synthetic regression checks pass; compiled Begin recovery is still unresolved and native/staging acceptance remains separate.
