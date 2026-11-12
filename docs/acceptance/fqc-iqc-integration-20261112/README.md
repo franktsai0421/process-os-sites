@@ -58,3 +58,5 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 ## 收尾修正
 
 已確認舊世代 Save 的私有換代證據後，FQC 會退休舊 attempt、保留目前表單並只查原收據；沒有證據仍拒絕跨代恢復。共用 `lib/shared-draft.ts` 與 main 完全相同，例行整頁 UI 對本人的退回／核准皆沿用 main 自審確認。歷史欄位衝突測試固定讀 main 真實 Git 來源，另加目前全域選擇的原生測試，保留舊反例。
+
+舊例行 document layout 保留 main 的 Apply → read → Save → read 相容協議並加入唯讀顯示隔離；210 項舊資料、收據、晚回應及離頁回歸通過。新 page layout 走獨立整頁 atomic Save，沒有以逐文件 Save 代替整頁。CI-only 多人測試改用實際核准歷史選單，合成初始版本具有明確合成核准事件；正式指標本身仍不算核准歷史。

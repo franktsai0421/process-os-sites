@@ -278,9 +278,9 @@
     "base": "9fbba823090f03da8385c8d92f5e59293d19d2f1",
     "beforeBlob": "7e7686c14e32090dd40aa111afc04e6091698820",
     "beforeHash": "5738d095b99bdf3d43240dd425327e92083a730d83484ff6f2c73333fe314d15",
-    "afterHash": "f7d38fe797b076672642a2ecfbfc7d6b2a988eec2ad186b95ea334c8f42384d1",
+    "afterHash": "0b6d47db0144e741b5a7b01549eb5a35f5516e172dbccd2b21661eba2c280807",
     "beforeLength": 153724,
-    "afterLength": 170049,
+    "afterLength": 162601,
     "rules": [
       {
         "offset": 3353,
@@ -383,102 +383,87 @@
         "after": "    assertCurrentDisplay();\n"
       },
       {
-        "offset": 111444,
-        "before": "",
-        "after": "  function sameRoutineValue(a,b) {\n    if(a===b)return true;\n    if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;\n    if(Array.isArray(a)||Array.isArray(b))return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((value,index)=>sameRoutineValue(value,b[index]));\n    const keys=Object.keys(a);return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&sameRoutineValue(a[key],b[key]));\n  }\n  // Three-way comparison runs only as part of explicit Save. Collections\n  // retain remote order and merge result identities; sample/photo arrays are\n  // individual field values, never positional result-row replacements.\n  function mergeSaveContent(base, mine, theirs, preference) {\n    const conflicts = [], absent = Symbol('absent');\n    const equal = (a,b) => a === absent || b === absent ? a === b : sameRoutineValue(a,b);\n    const copy = value => value === absent ? absent : clone(value);\n    function merge(b,m,r,path) {\n      if (equal(m,b)) return copy(r);\n      if (equal(r,b) || equal(m,r)) return copy(m);\n      // Photo references are membership edits: independent immutable uploads\n      // must survive either choice for an unrelated text/result conflict.\n      // Single-sample selection and every other ordered field remain atomic.\n      const photoRefs = value => Array.isArray(value) && value.every(id=>typeof id==='string') && new Set(value).size===value.length;\n      if (['photos','evidence'].includes(path.at(-1)) && [b,m,r].every(photoRefs)) {\n        const retained = new Set([...new Set([...b,...m,...r])].filter(id=>b.includes(id)?m.includes(id)&&r.includes(id):m.includes(id)||r.includes(id)));\n        return [...new Set([...r,...m])].filter(id=>retained.has(id));\n      }\n      const records = value => Array.isArray(value) && value.every(row => row && typeof row.id === 'string') && new Set(value.map(row=>row.id)).size === value.length;\n      if (records(b) && records(m) && records(r)) {\n        const rows = new Map(), bm=new Map(b.map(row=>[row.id,row])), mm=new Map(m.map(row=>[row.id,row])), rm=new Map(r.map(row=>[row.id,row]));\n        for (const id of new Set([...r.map(row=>row.id),...m.map(row=>row.id),...b.map(row=>row.id)])) {\n          const value=merge(bm.get(id)??absent,mm.get(id)??absent,rm.get(id)??absent,[...path,{id}]);\n          if(value!==absent)rows.set(id,value);\n        }\n        return [...rows.values()];\n      }\n      if ([b,m,r].every(value=>value!==absent && value && typeof value==='object' && !Array.isArray(value))) {\n        const value={};\n        for(const key of new Set([...Object.keys(r),...Object.keys(m),...Object.keys(b)])) {\n          const merged=merge(Object.hasOwn(b,key)?b[key]:absent,Object.hasOwn(m,key)?m[key]:absent,Object.hasOwn(r,key)?r[key]:absent,[...path,key]);\n          if(merged!==absent)value[key]=merged;\n        }\n        return value;\n      }\n      conflicts.push({path,mine:m===absent?null:copy(m),theirs:r===absent?null:copy(r)});\n      return copy(preference==='theirs'?r:m);\n    }\n    return {content:merge(base,mine,theirs,[]),conflicts};\n  }\n  async function chooseSaveConflicts(conflicts, target) {\n    const fields={title:t('文件名稱','Tên hồ sơ'),date:t('實際日期','Ngày thực tế'),notes:t('備註','Ghi chú'),reason:t('申請原因','Lý do đề nghị'),disposition:t('處置內容','Nội dung xử lý'),evidence:t('處置照片','Ảnh xử lý'),samples:t('實測樣品','Mẫu thực thử'),outcome:t('結果','Kết quả'),value:t('實測值','Giá trị thực thử'),photos:t('照片','Ảnh')};\n    const label=path=>{\n      const line=target.flow.working.lines.find(line=>line.id===path[1]?.id),row=line?.results.findIndex(row=>row.id===path[3]?.id);\n      return path[0]==='lines'?[line?.source.name||t('檢查項目','Hạng mục kiểm tra'),t('結果列','Dòng kết quả')+(row>=0?' '+(row+1):''),fields[path.at(-1)]||''].filter(Boolean).join(' · '):fields[path[0]]||t('文件內容','Nội dung hồ sơ');\n    };\n    const value=(content,path)=>content===null?t('已移除','Đã xóa'):Array.isArray(content)&&['photos','evidence'].includes(path.at(-1))?content.length+' '+t('張照片','ảnh'):typeof content==='object'&&!Array.isArray(content)?[content.samples?.join(', '),content.outcome,content.value,content.notes].filter(Boolean).join(' · '):Array.isArray(content)?content.join(', '):String(content);\n    const result=await dialog(t('儲存衝突','Xung đột khi lưu'),\n      `<p>${h(t('以下欄位已被雙方修改。請一次選擇所有衝突使用我的或他人的值；雙方其他修改都會保留並立即儲存。','Các trường sau đã được cả hai bên sửa. Chọn giá trị của tôi hoặc người khác cho mọi xung đột; các thay đổi còn lại của cả hai được giữ và lưu ngay.'))}</p><ul>${conflicts.map(conflict=>`<li><b>${h(label(conflict.path))}</b><p>${h(t('我的','Của tôi'))}: ${h(value(conflict.mine,conflict.path))}</p><p>${h(t('他人的','Của người khác'))}: ${h(value(conflict.theirs,conflict.path))}</p></li>`).join('')}</ul>`,\n      t('用我的','Dùng của tôi'), (el,close)=>{\n        const theirs=document.createElement('button');theirs.type='button';theirs.className='rf-btn';theirs.setAttribute('data-rf-conflict-theirs','true');\n        theirs.textContent=t('用對方的','Dùng của người khác');theirs.onclick=()=>close('theirs');el.querySelector('.rf-actions').append(theirs);\n      });\n    return result===null?null:result==='theirs'?'theirs':'mine';\n  }\n"
-      },
-      {
-        "offset": 117044,
+        "offset": 111484,
         "before": "",
         "after": "    assertCurrentDisplay();const displayCurrent=captureHistoryDisplay();\n"
       },
       {
-        "offset": 117266,
-        "before": "    const page=root,identity=data.identity.id,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;\n    const current=()=>root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n    const c = clone(buffer(d)),\n      base = s.bases.get(d.id),\n      patches = [];\n    for (const k of [\n      'title',\n      'date',\n      'notes',\n      'reason',\n      'disposition',\n      'evidence',\n    ])\n      if (JSON.stringify(c[k]) !== JSON.stringify(base[k]))\n        patches.push({ op: 'set', path: [k], value: c[k] });\n    for (const l of c.lines) {\n      const b = base.lines.find((o) => o.id === l.id);\n      if (JSON.stringify(l.results) !== JSON.stringify(b.results))\n        patches.push({\n          op: 'set',\n          path: ['lines', { id: l.id }, 'results'],\n          value: l.results,\n        });\n    }\n    if (patches.length) {\n      await draft('apply', {\n        patches,\n        guards: patches.map((p) => ({\n          path: p.path,\n          value:\n            p.path.length === 1\n              ? base[p.path[0]]\n              : base.lines.find((l) => l.id === p.path[1].id).results,\n        })),\n      }, d);\n",
-        "after": "    if(s.bufferGenerations.has(d.id)&&s.bufferGenerations.get(d.id)!==d.flow.generation)throw Error('STALE_GENERATION');\n    const life=receiptLifecycle,page=root,identity=data.identity.id,syncIdentity=window.ProcessSync?.identity,epoch=window.ProcessSync?.identityGeneration?.(),delivery=window.ProcessSync?.captureDelivery?.(),generation=d.flow.generation;\n    const current=()=>displayCurrent()&&!receiptSuspended&&life===receiptLifecycle&&root===page&&page?.isConnected!==false&&data?.identity?.id===identity&&syncIdentity===window.ProcessSync?.identity&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n    const c=clone(buffer(d)),base=clone(s.bases.get(d.id)),hasEdits=!sameRoutineValue(c,base);\n    const fresh=async()=>{\n      const next=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');\n      const latest=next.control.documents.find(row=>row.id===d.id);\n      if(next.identity.id!==identity||latest?.flow.generation!==generation)throw Error('STALE_GENERATION');\n      if(next.revision<data.revision||next.control.revision<data.control.revision)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');\n      data=next;\n      if(!latest||latest.cancelled||status(latest)!=='draft')throw Error('PENDING_LOCKED');\n      if(data.permissions.save!==true||hasEdits&&data.permissions.edit!==true)throw Error('FORBIDDEN');\n      return latest;\n    };\n    let latest=await fresh(),merged;\n    for(let attempt=0;attempt<5;attempt++) {\n      merged=mergeSaveContent(base,c,latest.flow.working);\n      if(!merged.conflicts.length)break;\n      const compared=clone(latest.flow),choice=await chooseSaveConflicts(merged.conflicts,d);\n"
+        "offset": 111880,
+        "before": "    const current=()=>root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n",
+        "after": "    const current=()=>displayCurrent()&&root===page&&data?.identity?.id===identity&&(!window.ProcessSync?.identity||window.ProcessSync.identity.id===identity)&&epoch===window.ProcessSync?.identityGeneration?.()&&!window.ProcessSync?.requiresReload&&(!delivery||window.ProcessSync.isCurrentDelivery(delivery)!==false)&&docs().find(row=>row.id===d.id)?.flow.generation===generation;\n"
       },
       {
-        "offset": 119138,
-        "before": "      const fresh = await read();\n      if(!current())throw Error('DELIVERY_SUPERSEDED');\n      if (fresh.control.revision >= data.control.revision) data = fresh;\n      if(!current())throw Error('DELIVERY_SUPERSEDED');\n      s.bases.set(d.id, clone(c));\n",
-        "after": "      if(choice===null)return null;\n      latest=await fresh();\n      if(compared.revision!==latest.flow.revision||compared.saved?.id!==latest.flow.saved?.id||!sameRoutineValue(compared.working,latest.flow.working)) {\n        if(attempt===4)throw Error('DRAFT_REVISION_CHANGED_RECONFIRM');\n        continue;\n      }\n      merged=mergeSaveContent(base,c,latest.flow.working,choice);break;\n"
+        "offset": 113257,
+        "before": "      const fresh = await read();\n",
+        "after": "      const fresh = await read('',current);\n"
       },
       {
-        "offset": 119586,
-        "before": "    const latest=docs().find(row=>row.id===d.id);\n    const result=await draft('save', { expectedRevision: latest.flow.revision }, latest);\n",
-        "after": "    const patches=[];\n    for(const key of ['title','date','notes','reason','disposition','evidence'])if(!sameRoutineValue(merged.content[key],latest.flow.working[key]))patches.push({op:'set',path:[key],value:merged.content[key]});\n    // Lines and source snapshots are immutable; only existing result collections\n    // can be edited. Row/cell merging above has already retained both sides.\n    if(!sameRoutineValue(merged.content.lines.map(line=>({...line,results:[]})),latest.flow.working.lines.map(line=>({...line,results:[]}))))throw Error('DOCUMENT_ITEMS_IMMUTABLE');\n    for(const line of merged.content.lines) {\n      const remote=latest.flow.working.lines.find(row=>row.id===line.id);\n      if(!sameRoutineValue(line.results,remote.results))patches.push({op:'set',path:['lines',{id:line.id},'results'],value:line.results});\n    }\n    const result=await draft('save',{moduleAction:'save-local-v1',expectedRevision:latest.flow.revision,patches,guards:patches.map(patch=>({path:patch.path,value:patch.path.length===1?latest.flow.working[patch.path[0]]:latest.flow.working.lines.find(line=>line.id===patch.path[1].id).results}))},latest);\n"
+        "offset": 113775,
+        "before": "    const fresh=await read();if(!current())throw Error('DELIVERY_SUPERSEDED');\n",
+        "after": "    const fresh=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');\n"
       },
       {
-        "offset": 120784,
-        "before": "    const fresh=await read();if(!current())throw Error('DELIVERY_SUPERSEDED');\n    if(fresh.control.revision>=data.control.revision)data=fresh;\n    if(!current())throw Error('DELIVERY_SUPERSEDED');\n",
-        "after": "    const next=await read('',current);if(!current())throw Error('DELIVERY_SUPERSEDED');\n    if(next.control.revision>=data.control.revision)data=next;\n"
-      },
-      {
-        "offset": 120990,
-        "before": "    if(!saved?.saved||JSON.stringify(saved.saved.content)!==JSON.stringify(saved.working))throw Error('SAVE_RECHECK_REQUIRED');\n    if(JSON.stringify(s.buffers.get(d.id))===JSON.stringify(c)){s.buffers.delete(d.id);s.bases.delete(d.id);}\n",
-        "after": "    if(!saved?.saved||saved.saved.id!==result.savedId||!sameRoutineValue(saved.saved.content,merged.content))throw Error('SAVE_RECHECK_REQUIRED');\n    const local=s.buffers.get(d.id);\n    if(sameRoutineValue(local,c)){s.buffers.delete(d.id);s.bases.delete(d.id);}\n    else if(local){\n      const rebased=mergeSaveContent(c,local,merged.content);\n      // An ACK settles only the captured Save. Newer input still belongs to\n      // its captured basis; never silently choose mine for a late conflict.\n      // The next explicit Save must compare that intent and ask once again.\n      if(rebased.conflicts.length)s.bases.set(d.id,clone(c));\n      else{s.buffers.set(d.id,rebased.content);s.bases.set(d.id,clone(merged.content));}\n    }\n"
-      },
-      {
-        "offset": 123145,
+        "offset": 115697,
         "before": "      onready?.(el);\n",
         "after": "      onready?.(el,close);\n"
       },
       {
-        "offset": 123463,
+        "offset": 116015,
         "before": "",
         "after": "    assertCurrentDisplay();\n"
       },
       {
-        "offset": 132574,
+        "offset": 125126,
         "before": "      await refresh();\n",
         "after": "      if(action!=='save')await refresh();\n"
       },
       {
-        "offset": 163030,
+        "offset": 155582,
         "before": "    root = area; s.reviewPlatform = true; s.tab = 'documents';\n",
         "after": "    retireApprovedHistory();root = area; s.reviewPlatform = true; s.tab = 'documents';\n"
       },
       {
-        "offset": 163322,
+        "offset": 155874,
         "before": "    try { const next = await read(); if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n",
         "after": "    try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.mount(area,{review:true});updatePendingBadge();return;} if (!data || next.identity.id !== data.identity.id || next.control.revision >= data.control.revision) data = next; if(s.retry)s.error=receiptInvalid?receiptStorageNotice():receiptNotice(); paint(); updatePendingBadge(); } catch (e) {if(e.message!=='DELIVERY_SUPERSEDED'){navigationError=e;fault(e);}}\n"
       },
       {
-        "offset": 163838,
+        "offset": 156390,
         "before": "    const count = liveDocs().filter((d) => status(d) === 'pending').length;\n",
         "after": "    const count = pageDraftMode?window.RoutineFqcPage.pendingCount():liveDocs().filter((d) => status(d) === 'pending').length;\n"
       },
       {
-        "offset": 164094,
+        "offset": 156646,
         "before": "  async function refreshPending() { if (s.reviewPlatform || s.busy) return; try { const next = await read(); const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n",
         "after": "  async function refreshPending() { if (!historyAllowsMutation()||s.reviewPlatform || s.busy) return; try { const next = await read(); if(next.pageDraftLayout==='page-v1'){pageDraftMode=true;await window.RoutineFqcPage.refreshMetadata();updatePendingBadge();return;} const badge = document.querySelector('#approval-tab-routine .approval-tab-count'); if (badge) badge.textContent = next.control.documents.filter((d) => !d.cancelled && d.flow.pendingId).length; } catch {} }\n"
       },
       {
-        "offset": 164568,
+        "offset": 157120,
         "before": "",
         "after": "  // Navigation consumes only unsent RAM. Exact unknown-operation metadata\n  // remains in storage and continues to fence every Routine FQC write.\n  function routineDeparture(config) {\n    const base=window.VersionDraftUI.createDeparture(config);let held=null,completed=null;\n    const anchor=()=>{\n      if(receiptInvalid||!receiptRecord||s.busy||inFlightMutation||s.dialogOpen)return null;\n      const pin=receiptPin();if(!receiptOwnedPin(pin))return null;\n      try{return receiptStore().getItem(receiptRecord.key)===receiptRecord.raw?{record:receiptRecord,raw:receiptRecord.raw,pin}:null;}catch{return null;}\n    };\n    const valid=record=>{const live=anchor();return !!live&&live.record===record.anchor.record&&live.raw===record.anchor.raw&&receiptOwnedPin(record.anchor.pin);};\n    return {...base,autoAbandon:true,allowUnload:()=>!s.busy&&!inFlightMutation,\n      inspect(){if(held&&valid(held))return {state:'departing',departureId:held.id,canSave:false,canDiscard:false,reason:receiptNotice()};const state=base.inspect();return state.state==='unknown'&&anchor()?{...state,canAbandon:true}:state;},\n      async abandon(){\n        if(base.inspect().state!=='unknown')return base.abandon();\n        const captured=anchor();if(held||!captured)throw Error('DEPARTURE_CONTEXT_CHANGED');\n        const record={id:{},anchor:captured};config.discard();if(!valid(record))throw Error('DEPARTURE_CONTEXT_CHANGED');held=record;\n        return {departureId:record.id,release(){if(held===record)held=null;}};\n      },\n      covered:()=>!!completed||base.covered(),\n      otherDraftsPending:()=>window.sharedDraftDepartureBlocked?.()??false,\n      closeClean(){if(!held)return base.closeClean();if(!valid(held))throw Error('DEPARTURE_CONTEXT_CHANGED');completed=held;},\n    };\n  }\n"
       },
       {
-        "offset": 167059,
+        "offset": 159611,
         "before": "    navigation:{get departure(){return moduleDeparture ||= window.VersionDraftUI.createDeparture({\n",
         "after": "    navigation:{get departure(){if(pageDraftMode)return window.RoutineFqcPage.departure();return moduleDeparture ||= routineDeparture({\n"
       },
       {
-        "offset": 168306,
+        "offset": 160858,
         "before": "      canSave:()=>data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,\n",
         "after": "      canSave:()=>historyAllowsMutation()&&data?.permissions.save===true&&(!docs().some(dirty)||data?.permissions.edit===true),canDiscard:()=>data?.permissions.edit===true&&!s.dialogOpen,\n"
       },
       {
-        "offset": 168844,
+        "offset": 161396,
         "before": "    });},canLeave:()=>!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n",
         "after": "    });},canLeave:()=>pageDraftMode?window.RoutineFqcPage.canLeave():!s.busy&&!s.retry&&!inFlightMutation&&!s.dialogOpen&&!docs().some(dirty),error:()=>navigationError,reset(){window.RoutineFqcPage?.reset();pageDraftMode=false;retireApprovedHistory();historyClients.clear();loading=false;root=null;data=null;s.selected=null;s.buffers.clear();s.bufferGenerations.clear();s.bases.clear();s.checked.clear();s.sampleOpen.clear();s.resultOpen.clear();s.reviewPlatform=false;s.issues=[];s.error='';navigationError=null;historySearch=null;historyLanguage=null;}},\n"
       },
       {
-        "offset": 169474,
+        "offset": 162026,
         "before": "    pendingCount: () => docs().filter((d) => status(d) === 'pending').length,\n",
         "after": "    pendingCount: () => pageDraftMode?window.RoutineFqcPage.pendingCount():docs().filter((d) => status(d) === 'pending').length,\n"
       },
       {
-        "offset": 170043,
+        "offset": 162595,
         "before": "  window.addEventListener('beforeunload', (e) => {\n    if (docs().some((d) => dirty(d))) {\n      e.preventDefault();\n    }\n  });\n",
         "after": ""
       }

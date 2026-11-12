@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const source=fs.readFileSync('public/process/routine-fqc.js','utf8');
 const part=(from,to)=>source.slice(source.indexOf(from),source.indexOf(to,source.indexOf(from)));
-const code=part('  async function save(target = doc()) {','  function dialog(');
+const code=part('  const historyAllowsMutation=','  function retireApprovedHistory(')+part('  async function save(target = doc()) {','  function dialog(');
 const copy=structuredClone;
 function fixture(){
  const make=id=>({id,flow:{generation:'gen-'+id,revision:1,pendingId:null,working:{title:'old',date:'2026-10-30',notes:'',reason:'',disposition:'',evidence:[],lines:[]},saved:null}});
@@ -12,7 +12,7 @@ function fixture(){
  const s={selected:'a',buffers:new Map(),bases:new Map()},data={identity:{id:'owner'},permissions:{save:true,edit:true},control:{revision:1,documents:[first,second]}};
  let epoch=1,delivery=1,onApply=()=>{},onSave=()=>{},onRead=()=>{};const calls=[];
  const sync={identity:{id:'owner'},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:value=>value===delivery};
- const box={s,data,window:{ProcessSync:sync},root:{},clone:copy,JSON,
+ const box={s,data,historyDisplayEpoch:0,approvedHistoryView:null,window:{ProcessSync:sync},root:{},clone:copy,JSON,
   doc:()=>box.data.control.documents.find(d=>d.id===s.selected),docs:()=>box.data.control.documents,status:d=>d.flow.pendingId?'pending':'draft',
   dirty:d=>s.buffers.has(d.id)&&JSON.stringify(s.buffers.get(d.id))!==JSON.stringify(s.bases.get(d.id)),
   buffer:d=>{if(!s.buffers.has(d.id)){s.buffers.set(d.id,copy(d.flow.working));s.bases.set(d.id,copy(d.flow.working));}return s.buffers.get(d.id);},

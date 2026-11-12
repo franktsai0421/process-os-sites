@@ -239,7 +239,8 @@
     "Current fixes: IQC post-upload fresh comparison in same Save; independent target IQC equipment atomic Save/original receipts; final quality session fence after immutable encoding.",
     "Fixture-only changes preserve original source pins through an exact 9fb inverse and retain mutation/path/type rejection tests.",
     "Legacy routine root is not silently activated: offline stdin/stdout cutover preparation preserves archive/receipts and rejects pending review. No live data modified.",
-    "Final recovery fix requires the existing private superseded-recovery proof. Shared review policy is byte-identical to main; routine UI and tests honor main self-review confirmation for own return and approval."
+    "Final recovery fix requires the existing private superseded-recovery proof. Shared review policy is byte-identical to main; routine UI and tests honor main self-review confirmation for own return and approval.",
+    "Legacy document-layout Save retains the main Apply/read/Save/read protocol plus display ownership. Whole-page atomic Save remains exclusively in the new page controller; no legacy live-data migration was performed."
   ],
   "candidateRuntimeHashes": {
     "app/api/routine-fqc/page/photo/route.ts": "c45d94dffe16f9358bc10bc0a10ee535a6613a23079b094b7ee0fdd9348d202a",
@@ -263,7 +264,7 @@
     "public/process/iqc-master.js": "a4736bb08dcda78db2263165b50158643062bbe5033099d6a397661bd3ed88bd",
     "public/process/routine-equipment.js": "e4d619be7495b1efc47afd70bad65149d29f6425c83f183595e127136dcdf779",
     "public/process/routine-fqc-page.js": "b9cd2a6607c3862b6e3803af4f0aafb01e7f70c22ee509320a02b34d5791c661",
-    "public/process/routine-fqc.js": "f7d38fe797b076672642a2ecfbfc7d6b2a988eec2ad186b95ea334c8f42384d1",
+    "public/process/routine-fqc.js": "0b6d47db0144e741b5a7b01549eb5a35f5516e172dbccd2b21661eba2c280807",
     "public/process/routine-page-approved-history.js": "08dc59c48e0bdc77a865b96a44392d4c1bf6bee14e4398d6ebd475d261daa74e",
     "public/process/shared-draft-client.js": "77cd6948475f4c1014f4a7d29a567cb27e0ff60908f77d82b65bb62b07bf05c1",
     "public/process/version-draft-ui.css": "83530d7ce7f45dea9a71f67a45b8155dcc20f39ca807967a352d43951b1513fd",

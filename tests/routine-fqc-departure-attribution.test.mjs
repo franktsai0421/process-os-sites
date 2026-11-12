@@ -14,13 +14,13 @@ const shared=fs.readFileSync('public/process/shared-draft-client.js','utf8');
 const routine=fs.readFileSync('public/process/routine-fqc.js','utf8');
 const helper=fs.readFileSync('public/process/version-draft-ui.js','utf8');
 const coordinator=helper.slice(helper.indexOf('  function createDeparture(config){'),helper.indexOf('  host.VersionDraftUI='));
-const configStart=routine.indexOf('window.VersionDraftUI.createDeparture('),configEnd=routine.indexOf('});},',configStart);
+const configStart=routine.indexOf('routineDeparture({'),configEnd=routine.indexOf('});},',configStart);
 assert(configStart>=0&&configEnd>configStart);
-const departureConfig=routine.slice(configStart+'window.VersionDraftUI.createDeparture('.length,configEnd+1);
+const departureConfig=routine.slice(configStart+'routineDeparture('.length,configEnd+1);
 const part=(from,to)=>{
  const a=routine.indexOf(from),b=routine.indexOf(to,a);assert(a>=0&&b>a);return routine.slice(a,b);
 };
-const code=[part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
+const code=[part('  const historyAllowsMutation=','  function retireApprovedHistory('),part('  const routineReceiptPrefix=', '  let inFlightMutation='),part('  async function read(', '  const issueNames ='),
  part('  async function postOwned(','  async function refresh('),
  part('  const departureSharedOwned=','  window.RoutineFQCUI ='),
  'this.departureSharedOwned=departureSharedOwned;this.departureDocuments=departureDocuments;'].join('\n');
@@ -37,7 +37,7 @@ function fixture(){
   const calls=[],confirmed=[],clientId=randomUUID(),s={buffers:new Map(),bases:new Map()};
   const sync={identity:{id:'owner'},identityGeneration:()=>epoch,captureDelivery:()=>delivery,isCurrentDelivery:value=>value===delivery};
   const box={window:{ProcessSync:sync,localStorage:storage,addEventListener(){}},document:{documentElement:{lang:'zh'}},crypto:webcrypto,AbortController,setTimeout,clearTimeout,
-   endpoint:'/api/routine-fqc',s,data:{identity:{id:'owner'},permissions:{view:true,save:true,edit:true},revision:1000+server.revision,control:clone(server)},id:randomUUID,t:zh=>zh,
+   endpoint:'/api/routine-fqc',s,historyDisplayEpoch:0,approvedHistoryView:null,receiptInvalid:false,historyDocument:null,data:{identity:{id:'owner'},permissions:{view:true,save:true,edit:true},revision:1000+server.revision,control:clone(server)},id:randomUUID,t:zh=>zh,
    clone,root:{isConnected:true,inert:false},inFlightMutation:0,status:d=>d.flow.pendingId?'pending':'draft',
    readPause:{capture:()=>1,denied(){},success(){}},
    docs:()=>box.data.control.documents,dirty:d=>s.buffers.has(d.id),
