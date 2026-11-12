@@ -2,7 +2,10 @@
 
 let reachedAssertions=false;process.once('beforeExit',()=>{if(!reachedAssertions&&!process.exitCode){console.error('IQC_FIXTURE_INCOMPLETE: unresolved synthetic request or skipped assertion tail');process.exitCode=1;}});
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),{webcrypto}=require('node:crypto');
-const source=fs.readFileSync(path.resolve(process.argv[2]||process.env.PROCESS_IQC_SOURCE||'public/process/iqc-master.js'),'utf8');
+const current=fs.readFileSync(path.resolve(process.argv[2]||process.env.PROCESS_IQC_SOURCE||'public/process/iqc-master.js'),'utf8');
+if(!process.argv[2]&&!process.env.PROCESS_IQC_SOURCE)assert.doesNotMatch(current,/createForegroundPoll|scheduleRefresh|setInterval\s*\(/,'current IQC has no idle producer');
+const source=require('./quality-retired-poll-source.cjs').retiredPollSource(current,'iqc-master.js');
+// Remaining cases exercise the pinned main closure with the current transport; current no-poll behavior is asserted above and in current browser suites.
 const shared=fs.readFileSync(path.resolve(process.env.PROCESS_SHARED_DRAFT_SOURCE||'public/process/shared-draft-client.js'),'utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve)),copy=value=>structuredClone(value);
 const permissions={view:true,edit:true,save:true,submit:false,withdraw:false,approve:false,return:false,history:true,delete:false};

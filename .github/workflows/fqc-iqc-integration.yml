@@ -40,6 +40,11 @@ jobs:
       - run: node --test tests/process-scripts-build.test.mjs tests/quality-shell-bundle-oracle.test.mjs tests/quality-submission-fences.test.mjs
       - run: node scripts/test-fqc-record-mutation.cjs
       - run: node scripts/test-fqc-lifecycle8-record-mutation.cjs
+      - run: node scripts/test-fqc-catalog-read.mjs
+      - run: node scripts/test-iqc-editing-projection-ui.cjs
+      - run: node scripts/test-iqc-poll-ownership.cjs
+      - run: node scripts/entry-performance/poll-wiring.test.mjs
+      - run: node --experimental-vm-modules tests/photo-standard-entries.test.mjs
       - run: node scripts/test-scoped-read-pause.cjs
       - run: node --test tests/input-resource-lifecycle.test.mjs tests/module-begin-recovery.test.mjs tests/shared-draft-begin-v1.test.mjs
       - run: node scripts/test-routine-equipment-edit-open-race.mjs
@@ -54,6 +59,7 @@ jobs:
       - run: node --test tests/iqc-save-choice-compiled-http.test.mjs
       - run: node node_modules/playwright/cli.js install --with-deps chromium
       - run: node --test --test-concurrency=1 tests/equipment-transfer-compiled.test.mjs tests/fqc-single-save-browser.test.mjs tests/fqc-unknown-recovery-browser.test.mjs tests/iqc-unknown-browser.test.mjs tests/fqc-matrix-conflict-discard-browser.test.mjs
+      - run: node scripts/test-iqc-content-issues.cjs
       - run: node scripts/test-quality-begin-generation-browser.cjs
       - run: node tests/fqc-draft-lifecycle-browser.mjs
       - run: node tests/fqc-matrix-multiuser-browser.mjs

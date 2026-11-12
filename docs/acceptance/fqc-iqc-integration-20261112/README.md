@@ -70,3 +70,5 @@ Cloud Chromium 下載實際回應 `403 Domain forbidden`，未改用替代主機
 較早候選 CI 已通過原生 49 項、完整生命週期 5 輪／160 樣本及多人矩陣 5 輪／60 樣本／25 功能檢查；0 非預期請求。Save 中位數約 130–147 ms，僅為合成 CI。最新提交的 CI、遠端 SHA 與完整 Windows 結果更新於同一 Draft PR #105；較早結果不冒稱最新 HEAD 已全數通過。未操作正式資料，真人及實站事項仍依上表待驗。
 
 後半段提前回歸另查獲實際 IQC 缺漏：設備頁 identified Begin 被 client 的 FQC-only 條件誤拒。修正僅容許既有 bounded IQC endpoint／scope 與 durable client，加入錯誤 scope／endpoint／非 durable 的零請求反例。IQC 原子移轉已保存時不再顯示未儲存或刷新其他頁；UNKNOWN 顯示原收據待查，既有標記保留。105 項輸入／Begin／恢復、83 項移轉意圖與四模組真實 handler 全流程回歸通過。FQC／IQC 舊輪詢反例固定使用已核 SHA 的 main Git 物件；目前兩模組嚴格斷言不存在閒置輪詢，另由當前原生流程驗證。新增編譯 IQC 失去 identified Begin ACK、離頁／重載後只查原收據而不自動 Save 的原生反例，結果列入最新 CI。
+
+最新編譯 IQC 反例已通過：Begin 已提交但 ACK 丟失時，離頁及重載保留兩份原標記；恢復只發 GET，未自動 Save，工作稿仍引用原設備且 saved=null。缺漏清單舊瀏覽器 fixture 補上精確 delivery token（以參考相等判斷當前頁），兩種語言／三種尺寸均通過定位、取消、保留未送輸入及即時語言切換；未放寬產品 owner 檢查。舊照片組合 17 項、FQC 目錄與 IQC deferred projection／歷史輪詢反例亦通過。

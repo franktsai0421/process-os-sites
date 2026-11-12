@@ -45,7 +45,7 @@ const formOwnership = exactSpan(source,
   '    const formActor=identity(),formActorId=formActor?.id,formGeneration=library().workflow?.generation,formVersionId=editable()?.id;',
   '    const version = {...clone(editable()),snapshot:localSnapshot()}, errors = errorRows(version, categoryName(version)), items = version.snapshot.items, existing = items.find(item => item.id === id), error = errors.find(item => item.id === (existing?.errorId || ui.selectedErrorId)) || errors[0]; if (!error) return;');
 const fqcBinding = exactSpan(source,
-  "    overlay.querySelector('#fqc-file-input').onchange = async e => {",
+  "    overlay.querySelector('#fqc-file-input').onchange = guardWorking(overlay.querySelector('#fqc-file-input'),async e => {",
   "    overlay.querySelectorAll('input[name=\"toolType\"]').forEach(r => {");
 const lightboxBinding = exactSpan(appSource, 'function bindLightbox() {', 'function bindCommon() {');
 function deferredPhoto() {
@@ -146,9 +146,11 @@ for (const [name, change] of Object.entries(templateOwnerChanges)) await photoCa
 function fqcPhotoFixture() {
   const state = { actor: { id: 'staff' }, workflow: { generation: 'one' }, version: { id: 'draft' },
     media: [], renders: 0, messages: [], calls: 0, gate: null };
-  const input = { value: 'chosen' };
+  const input = { value: 'chosen',isConnected:true };
   const overlay = { isConnected: true, querySelector: selector => { assert.equal(selector, '#fqc-file-input'); return input; } };
-  vm.runInNewContext(formOwnership + '\n' + fqcBinding, {
+  const displayGuards=source.split('\n').filter(line=>/const (historyAllowsMutation|guardWorking)=/.test(line)).join('\n');assert.equal(displayGuards.split('\n').length,2);
+  vm.runInNewContext(displayGuards+'\n'+formOwnership + '\n' + fqcBinding, {
+    hostElement:overlay,historyDisplayEpoch:0,approvedHistoryView:null,
     overlay, identity: () => state.actor, library: () => ({ workflow: state.workflow }),
     editable: () => state.version, transport: () => ({ permission: () => true }),
     currentMedia: state.media, crypto: { randomUUID: () => 'synthetic-photo' },
