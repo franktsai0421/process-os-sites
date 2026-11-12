@@ -12,12 +12,11 @@ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&
 const path=(v:unknown)=>Array.isArray(v)&&v.length>0&&v.length<=3&&v.every(step=>typeof step==='string'?!!step&&!['__proto__','constructor','prototype'].includes(step):object(step)&&Object.keys(step).length===1&&typeof step.id==='string'&&!!step.id);
 export function abLocalScopes(command:ModuleDraftCommand):AbLocalScope[]{
  if(command.action!=='save'||command.moduleAction!=='save-local-v1'||command.patches||command.guards||!object(command.input)||Object.keys(command.input).some(k=>!['scopes','stateRevision'].includes(k))||command.input.stateRevision!==undefined&&(!Number.isSafeInteger(command.input.stateRevision)||Number(command.input.stateRevision)<1)||!Array.isArray(command.input.scopes)||command.input.scopes.length>128)throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);
- const scopes=command.input.scopes as AbLocalScope[],seen=new Set<string>();let size=0,restores=0;
+ const scopes=command.input.scopes as AbLocalScope[],seen=new Set<string>();let size=0;
  for(const entry of scopes){
   if(!object(entry)||Object.keys(entry).some(k=>!['scope','generation','baseId','changes'].includes(k))||typeof entry.scope!=='string'||! /^[AB]:\S.*$/.test(entry.scope)||seen.has(entry.scope)||!(entry.generation===null||typeof entry.generation==='string'&&!!entry.generation)||!(entry.baseId===null||typeof entry.baseId==='string')||!Array.isArray(entry.changes))throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);
   seen.add(entry.scope);size+=entry.changes.length;
   for(const change of entry.changes){if(!object(change)||Object.keys(change).some(k=>!['moduleAction','input','patches','guards','localId'].includes(k))||change.moduleAction&&!['create-error','create-item','delete-error','delete-item','restore-item-local-v1'].includes(change.moduleAction)||change.moduleAction&&change.patches||!change.moduleAction&&!Array.isArray(change.patches)||change.input!==undefined&&!object(change.input)||change.localId!==undefined&&typeof change.localId!=='string'||change.patches!==undefined&&(!Array.isArray(change.patches)||!change.patches.every(p=>object(p)&&p.op==='set'&&path(p.path)&&Object.hasOwn(p,'value')))||change.guards!==undefined&&(!Array.isArray(change.guards)||!change.guards.every(g=>object(g)&&path(g.path)&&Object.hasOwn(g,'value'))))throw new DraftConflict('INVALID_AB_LOCAL_SAVE',422);
-   if(change.moduleAction==='restore-item-local-v1'&&++restores>1)throw new DraftConflict('INVALID_AB_ITEM_RESTORE',422);
   }
  }
  if(size>256)throw new DraftConflict('LOCAL_SAVE_LIMIT',422);return scopes;

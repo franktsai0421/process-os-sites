@@ -7,7 +7,7 @@ for(const [width,lang]of [[1280,'zh'],[390,'vi']])void test(`AB local forms and 
   await addError(s);await addItem(s);const cell=s.page.locator('[data-ab-matrix-item]').first();await cell.check();assert.equal(writes(s).length,0);
   const start=performance.now();await save(s);const firstMs=performance.now()-start;assert.deepEqual(writes(s).map(r=>r.body.action||r.body.command.action),['begin-v1','save']);assert(writes(s).every(r=>r.status===200),JSON.stringify(writes(s)));
   const g=await s.f.read('ipqc-ab','editor','&scope=A%3AG');assert.equal(g.control.workflow.working.items.length,1);assert.deepEqual(g.control.workflow.working.items[0].productCodes,['A1']);
-  await s.page.locator('[data-ab-matrix-item]').last().check();await s.page.locator('#ipqcab-line').selectOption('B');await s.page.locator('#ipqcab-line').selectOption('A');assert(await s.page.locator('[data-ab-matrix-item]').last().isChecked());
+  await s.page.locator('[data-ab-matrix-item]').last().check();await s.page.locator('#ipqcab-line').selectOption('B');await s.page.locator('#ipqcab-line').selectOption('A');assert.equal(await s.page.locator('[data-ab-matrix-item]').last().isChecked(),false,'filter departure silently discards unsent matrix input');await s.page.locator('[data-ab-matrix-item]').last().check();
   const next=performance.now();await save(s);const nextMs=performance.now()-next;assert.equal(writes(s).length,3);assert.equal(writes(s)[2].body.command.action,'save');assert.equal(writes(s)[2].status,200);assert.deepEqual(s.errors,[]);
   assert(await s.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));t.diagnostic(JSON.stringify({width,lang,firstMs,nextMs,firstWrites:2,nextWrites:1,synthetic:true}));
  }finally{await s.close();}

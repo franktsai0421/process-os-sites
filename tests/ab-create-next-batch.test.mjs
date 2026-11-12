@@ -60,7 +60,8 @@ for (const kind of ['item', 'error'])
     await s.peer('methodText', 'Peer');
     const before = s.f.snapshot();
     await s.apiSave();
-    assert.equal(writes(s)[0].status, 409);
+    assert.equal(writes(s).length, 0, 'whole-set preflight rejects before allocation or POST');
+    assert.equal(await s.page.locator('[data-ab-conflict]').count(), 1);
     assert.deepEqual(s.f.snapshot(), before);
     await sameLocal(s, local);
     assert.equal((await s.entry()).base.items[0].methodText, 'Initial method');

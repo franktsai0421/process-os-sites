@@ -17,7 +17,7 @@ async function invalid(s, kind = 'item') {
       const row = e.snapshot.items.at(-1);
       row.inspectionMode = 'equipment';
       row.equipmentId = '';
-    } else e.snapshot.errors.at(-1).stageCode = 'A-MISSING';
+    } else e.snapshot.errors.at(-1).name = ''; // Invalid business field reaches the real server validator.
   }, kind);
 }
 for (const kind of ['item', 'error'])
@@ -37,7 +37,7 @@ for (const kind of ['item', 'error'])
       if (kind === 'item') {
         e.snapshot.items.at(-1).inspectionMode = 'visual';
         e.snapshot.items.at(-1).standard = 'Corrected';
-      } else e.snapshot.errors.at(-1).stageCode = 'A-CUT';
+      } else e.snapshot.errors.at(-1).name = 'Corrected error';
     }, kind);
     assert.equal(writes(s).length, 1);
     await s.apiSave();

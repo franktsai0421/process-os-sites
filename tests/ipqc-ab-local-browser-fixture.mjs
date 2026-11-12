@@ -118,7 +118,8 @@ export async function setup({
         new Request('http://fixture' + url.pathname + url.search, {
           method: request.method(),
           headers: {
-            ...f.sessions[who],
+            ...Object.fromEntries(Object.entries(f.sessions[who]).filter(([name])=>!['x-process-expected-actor','x-process-upload-id'].includes(name.toLowerCase()))),
+            ...Object.fromEntries(['x-process-expected-actor','x-process-upload-id'].flatMap(name=>request.headers()[name]===undefined?[]:[[name,request.headers()[name]]])),
             ...(request.method() === 'PUT'
               ? { 'Content-Type': request.headers()['content-type'] }
               : {}),

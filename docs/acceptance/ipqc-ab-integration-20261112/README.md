@@ -1,6 +1,6 @@
 # IPQC A/B integration — 2026-11-12
 
-Source-only candidate on `codex/ipqc-ab-integration-20261112`, based on remote
+Source-only candidate on `codex/ipqc-ab-cloud-integration-20261112`, based on remote
 main `9fbba823090f03da8385c8d92f5e59293d19d2f1`. No merge, deployment, migration,
 real-account change or business-data write is authorized or performed.
 
@@ -34,28 +34,63 @@ and all 24 groups' 517 are different scopes, not an asserted arithmetic defect.
 
 | Scope | Candidate behavior | Verification / remaining boundary |
 |---|---|---|
-| Speed | Exact A/B permission phase; bounded aggregate read overlap; two concurrent photo workers; original receipt/authoritative readback preserved | Historical synthetic speed evidence belongs to c2e0bbf; current API/read tests and CI are separate. Real BOSEN >5s/>10s acceptance NOT_RUN; no hosted speed claim. |
+| Speed | Exact A/B permission phase; bounded aggregate read overlap; two concurrent photo workers; original receipt/authoritative readback preserved | Historical synthetic speed evidence belongs to c2e0bbf; current API/read tests and CI are separate. Real BOSEN latency acceptance NOT_RUN; no hosted speed claim. |
 | Completeness | Enabled, assigned, nondeleted items count missing standard/method/frequency/equipment; coverage gaps count per applicable product. Group label explicitly identifies scope. | `ipqc-ab-completeness.test.mjs`: 8 PASS, including 24 synthetic groups and actual module validator. Historical difference-of-one not independently reproduced. |
 | Shared draft/conflicts | One A/B module; disposable conflict plan, one mine/theirs/cancel decision; nonconflicting fields and stable-ID list edits survive. Cancel leaves RAM/base/Files/receipts unchanged. | Actual-handler + synthetic DOM two-actor tests. Confirmed revision rejection is retired before fresh comparison; no unknown payload resend. At most two automatic read continuations prevent unbounded churn. |
-| Delete/retain | Persistent tombstones; authorized mine restores one original ID/parent/product association, never a new item or entire snapshot | Existing exact guards, edit/create/restore gates, pending/generation/CAS and single-item restore limit retained. Multiple simultaneous deleted-item resurrection remains refused atomically. |
-| Photos | RAM preview; upload only during Save after comparison; original File pins, content hash/provenance, unknown-ACK guard | Conflict/cancel/revocation/unknown photo cases in actual-handler DOM suite. No C-only duplicate-photo claim. |
+| Delete/retain | Persistent tombstones; authorized mine restores one original ID/parent/product association, never a new item or entire snapshot | Existing exact guards, edit/create/restore gates, pending/generation/CAS and per-item identity/parent guards retained. A whole-set mine choice retains each affected original item within one atomic Save; it never restores a snapshot. |
+| Photos | RAM preview; upload only during Save after comparison; original File pins, content hash/provenance, actor-bound upload outcomes and durable unknown-ACK markers | Conflict/cancel/revocation/unknown photo cases in actual-handler DOM suite. No C-only duplicate-photo claim. |
 | Navigation/background | Line/group/stage changes abandon unsent RAM/Files silently; persisted module and original sent operation markers remain. Existing actual module departure retained; no fixed polling introduced | Three actual filter-event tests plus inherited departure/receipt tests. Equipment picker filtering remains inside the open form. |
 | Permission/history | Edit permits Save; create/delete/restore/submit/withdraw independently checked. Approved versions are original-page readonly selections backed by immutable approval evidence | Synthetic normal signed actor sessions; permission/revocation and approved-history suites. Real employee accounts and hosted acceptance NOT_RUN. No rollback/restore UI added. |
 
-## Validation ledger
+## Cloud handoff and current verification
 
-- PASS: selected pre-adjustment candidate: 239 actual-handler/synthetic DOM tests.
-- PASS: updated combined run: 240/241; the one failing assertion expected the old
-  manual second Save. Corrected to assert automatic fresh chooser; focused rerun
-  7/7 PASS, without relaxing persistence, request or identity assertions.
-- PASS: completeness 8/8; TypeScript and syntax; source-only boundary check.
-- Local Chromium BLOCKED: process launch fails before any page, with
-  `socket() failed: Operation not permitted` in ProcessSingleton. The attempted
-  legacy browser run is not functional PASS and is not evidence of product bugs.
-- Final lint, exact-head build, source proof, complete current synthetic run,
-  GitHub CI and compiled browser results must be recorded below when available.
-- NOT_RUN: live Site, real BOSEN/PHAODIEN latency, real employee accounts,
-  cross-machine sessions, physical phones and native IME.
+All 7 text batches were recovered from the original user messages without
+manual transcription. All 41 per-file byte counts and SHA-256 digests PASS.
+Combined patch: 576,703 bytes, SHA-256
+`0f09504b49826109fd4285cbd6ac93a274ed9ad44e6cf9687fe148a64f454117`.
+The reported Dot source is `acc9d5e014be137119b7496d349997cf967d8952`;
+that Git object was not transferred. Local import commit `0bf496c` records the
+verified source on unchanged main. Transfer JSON/patches/helpers are outside
+Git and are never part of this public PR.
+
+Remote readback on 2026-11-12: main `9fbba823`; #103 `2d2d79cb`, #104
+`429d3bfa`, both open Draft. Neither source branch is modified. The historical
+UNKNOWN32 tree `5005cba09d970cec70334d6bd540db1b599858d2` GET returned 404;
+this does not establish non-execution and that mutation is not repeated.
+Shared dependencies of this A/B change and both PRs: approved-history,
+versioned-shared-workflow, shared-draft-client, version-draft-ui and index.
+This change keeps their main behavior plus the selected A/B hunks; it does not
+absorb their account/PROCESS page policy or claim a jointly validated head.
+
+Cloud follow-up fixes:
+- Three floating test promises are handled explicitly.
+- A successful photo PUT followed by revision drift automatically re-enters the
+  same Save comparison, reusing acknowledged photos. Begin and unknown Save
+  obligations remain independently fenced. New same-field conflicts require a
+  fresh whole-set choice; cancel retains File/base/journal with zero Save POSTs.
+- Photo PUT now accepts an optional opaque upload operation ID. The immutable
+  actor-scoped R2 outcome is verified before success. Lost ACKs persist only
+  operation metadata in sessionStorage, never form/File restoration. Explicit
+  query is read-only; 404, missing media, revoked access or wrong actor cannot
+  authorize another PUT. Confirmed success allows the original File's photo ID
+  to be reused; definitive pre-write format refusals permit a corrected attempt.
+- Whole-set mine handles multiple deleted items with exact per-item ID, parent,
+  source and permission checks in the same CAS; general history restore is not
+  enabled. Nonconflicting peer fields and matrix associations remain.
+- Browser fixtures forward the actual expected-actor/upload headers. The invalid
+  error-name case still reaches the real server validator for untrusted ACK
+  tests; invalid stages are rejected by preflight before POST.
+- Performance runners are reused byte-for-byte from `c2e0bbf` (the two
+  `tests/ipqc-ab-speed-{measure,browser}.mjs` files). Synthetic timings remain
+  distinct from real BOSEN/PHAODIEN and hosted performance.
+
+Validation outcomes are recorded at the final candidate below. Exploratory
+failures and predecessor 332/332 remain historical evidence, not a final PASS.
+System Chromium is available in this Cloud executor. Playwright's optional CDN
+browser download was denied by the network policy; no allowlist was bypassed.
+The existing runner supports system Chromium and the native browser suite runs
+against it. Real Site, employee/cross-machine sessions, physical phones and
+native IME are NOT_RUN.
 
 No database schema or migration changes. Additive cold-origin lineage metadata
 is written only during explicit initialization; existing history, approved

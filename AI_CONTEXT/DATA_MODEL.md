@@ -1,3 +1,14 @@
+## 2026-11-12 — IPQC A/B photo operation outcomes (candidate)
+
+Optional `X-Process-Upload-Id` binds a photo attempt to an opaque UUID. R2
+`ipqc-ab/photo-uploads/<encoded actor ID>/<UUID>` retains immutable JSON
+`{actorId,uploadId,id}` referencing the normalized photo hash. GET by uploadId
+requires the same signed actor and current view/edit access; absent outcome or
+media remains UNKNOWN. Browser sessionStorage retains only operation ID and
+File fingerprint under an actor-scoped key until explicit verification, not a
+form, draft, File or history snapshot. No SQL schema/migration or existing data
+adoption is performed. See [candidate evidence](../docs/acceptance/ipqc-ab-integration-20261112/README.md).
+
 ## 2026-11-05 — 事件版本與匯出預覽內容核對
 
 無新增 schema。access_events 原結果首次核驗改變時 version 遞增，verified_at 保留首次證據時間；管理版本與原業務收據獨立。ZIP versions 預覽／生成協定增加非持久 contentHash，僅計算已授權的脫敏投影與所選圖片中繼資料，不含原操作 ID／收據。匯出原有 digest 自然涵蓋固定 pins，重試仍回原快照。首次 capability 失敗的新上報 metadata 不持久保存，無新資料保留架構。

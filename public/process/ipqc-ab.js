@@ -486,7 +486,14 @@
       list.push(legacyClients.get(k));
     }return list;
   }
-  function localPending(){moduleTransport();return moduleClient?.hasUnknown()||moduleClient?.legacyRecoveryUnsupported?.()||legacyABClients().some(c=>c.hasUnknown());}
+  const photoOperationPrefix=()=>`ipqc-ab-photo-operation:${actor()?.id}:`;
+  function photoOperations(){
+    const prefix=photoOperationPrefix(),records=[];
+    for(let n=0;n<sessionStorage.length;n++){const key=sessionStorage.key(n);if(!key?.startsWith(prefix))continue;const raw=sessionStorage.getItem(key);let value;try{value=JSON.parse(raw);}catch{value=null;}records.push({key,raw,value});}
+    return records;
+  }
+  function forgetPhotoOperation(record){if(sessionStorage.getItem(record.key)!==record.raw)throw Error('PHOTO_OPERATION_CHANGED');sessionStorage.removeItem(record.key);}
+  function localPending(){moduleTransport();return photoOperations().length>0||moduleClient?.hasUnknown()||moduleClient?.legacyRecoveryUnsupported?.()||legacyABClients().some(c=>c.hasUnknown());}
   function localSaveIntentCurrent(intent,checkStamp=true){return historyAllowsMutation()&&intent?.displayEpoch===historyDisplayEpoch&&!!intent&&localSaveIntent===intent&&intent.owner===actor()&&intent.epoch===window.ProcessSync?.identityGeneration?.()&&window.ProcessSync?.isCurrentDelivery?.(intent.delivery)===true&&!window.ProcessSync?.requiresReload&&host===intent.host&&host?.isConnected&&mutationLifetime===intent.lifetime&&modal===intent.modal&&moduleClient===intent.client&&localOwnerCurrent()&&[...intent.photoPins].every(([id,pin])=>localPhotos.get(id)===pin.staged&&pin.staged.file===pin.file&&pin.staged.preview===pin.preview)&&(!checkStamp||JSON.stringify(localSaveScopes())===intent.stamp);}
   function confirmLocalBegin(result){
     const expected=localBeginExpectation,receipt=result.receipt,flow=result.control?.workflow;if(expected)expected.receipt=receipt;
@@ -606,14 +613,12 @@
   function planLocalConflictChoice(rows,choice){
     // Build a disposable command candidate. Never rebase private RAM, including
     // a partly accepted set, while deciding, rechecking or awaiting an ACK.
-    const entries=new Map([...localScopes].map(([scope,entry])=>[scope,{...entry,base:clone(entry.base),snapshot:clone(entry.snapshot),restoreChoices:clone(entry.restoreChoices||{})}])),handled=new Set(),restores=new Set();
-    for(const entry of entries.values())for(const id of Object.keys(entry.restoreChoices))restores.add(JSON.stringify([entry.scope,id]));
+    const entries=new Map([...localScopes].map(([scope,entry])=>[scope,{...entry,base:clone(entry.base),snapshot:clone(entry.snapshot),restoreChoices:clone(entry.restoreChoices||{})}])),handled=new Set();
     for(const rowsAtChoice of rows){const {path,kind,current}=rowsAtChoice,entry=entries.get(rowsAtChoice.entry.scope),before=entry.base[path[0]].find(row=>row.id===path[1].id),mine=entry.snapshot[path[0]].find(row=>row.id===path[1].id),token=JSON.stringify([entry.scope,path[0],mine.id]);
       if(['missing','ambiguous'].includes(kind)||kind==='restore-changed'&&choice==='mine')throw Error(t('身分或狀態已變更；本機內容仍保留，此次存取未完成。','Định danh hoặc trạng thái đã đổi; giữ nội dung cục bộ, lần lưu chưa hoàn tất.'));
       if(kind!=='field'&&handled.has(token))continue;
       if(kind==='edit-deleted'&&choice==='mine'){
         const restore=localRestoreState(rowsAtChoice);if(!restore.allowed)throw Error(restore.reason);
-        restores.add(JSON.stringify([entry.scope,mine.id]));if(restores.size>1)throw Error(t('此存取只允許恢復已選的單筆項目；整組選擇未套用。','Lần lưu chỉ cho phép khôi phục một mục; chưa áp dụng lựa chọn cả nhóm.'));
         const fields={...entry.restoreChoices[mine.id]?.fields};for(const field of createItemFields)if(!sameInput(before[field],mine[field]))fields[field]=clone(mine[field]);
         entry.restoreChoices[mine.id]={origin:clone(restore.origin),fields:clone(fields),parent:clone(restore.parent)};
         entry.base.items[entry.base.items.indexOf(before)]=clone(current);entry.snapshot.items[entry.snapshot.items.indexOf(mine)]={...clone(current),...fields,deleted:false};
@@ -664,7 +669,14 @@
     assertCurrentDisplay();
     if(busy||intent&&!intent()||!localOwnerCurrent())return;const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.(),client=moduleTransport(),pin=pinLocalOperation(client),owns=pin.current;busy=true;draw();
     try{
-      const targets=[...legacyABClients().filter(c=>c.hasUnknown()),...(client.hasUnknown()?[client]:[])];if(!targets.length)throw Error('NO_PENDING_OPERATION');let rejected=false;
+      const uploads=photoOperations(),targets=[...legacyABClients().filter(c=>c.hasUnknown()),...(client.hasUnknown()?[client]:[])];if(!targets.length&&!uploads.length)throw Error('NO_PENDING_OPERATION');let rejected=false;
+      for(const record of uploads){
+        const value=record.value;if(value?.actorId!==owner.id||!/^[-a-f0-9]{36}$/.test(value.uploadId||'')||typeof value.fingerprint!=='string')throw Error('PHOTO_OPERATION_INVALID');
+        const response=await fetch(API+'/photo?uploadId='+encodeURIComponent(value.uploadId),{headers:{...headers(),'X-Process-Expected-Actor':owner.id},cache:'no-store'}),body=await response.json();
+        if(!owns())return;if(!response.ok||body.uploadId!==value.uploadId||!/^[a-f0-9]{64}$/.test(body.id||''))throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');
+        const staged=[...localPhotos.values()].filter(p=>p.uploadId===value.uploadId);if(staged.some(p=>p.file!==p.uploadAttemptFile||p.preview!==p.uploadAttemptPreview))throw Error('LOCAL_BATCH_RECONFIRM');
+        forgetPhotoOperation(record);for(const p of staged){p.uploaded=body.id;p.uploadedFile=p.file;p.uploadUnknown=false;}unknownPhotoFingerprints.delete(value.fingerprint);
+      }
       for(const target of targets){if(target===client&&localSent&&client.hasConfirmedRejection(localSent.command)){if(!owns())return;client.finalizeRejected(localSent.command);pin.setSent(null);rejected=true;continue;}const isBegin=target.hasUnknownBegin?.(),result=await target.resolveUnknown();if(!owns())return;if(isBegin){localBeginReceipt=result.receipt;confirmLocalBegin(result);}else if(target===client&&localSent?.owner===owner&&localSent.epoch===epoch&&localSent.command.operationId===result.receipt?.operationId){localSent.confirmed=result.receipt;}}
       if(!owns())return;if(await load(false,null,null,pin)===false||!owns())return;
       if(localBeginReceipt&&control.moduleDraft?.workflow?.generation!==localBeginReceipt.generation)throw Error('DRAFT_GENERATION_CHANGED');
@@ -700,11 +712,15 @@
     const jobs=[...groups.values()];let next=0;
     async function worker(){while(!failure&&next<jobs.length){const group=jobs[next++],staged=group[0];let started=false,accepted=false;try{
       if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
-      started=true;const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'X-Process-Expected-Actor':ownerId,'Content-Type':staged.file.type},body:pins.get(staged).file}),body=await response.json();
-      if(!response.ok)throw Error(body.error||'PHOTO_UPLOAD_FAILED');
+      const uploadId=staged.uploadId||crypto.randomUUID(),record={key:photoOperationPrefix()+uploadId,raw:JSON.stringify({actorId:ownerId,uploadId,fingerprint:fingerprints.get(staged)||uploadId})};
+      for(const member of group){member.uploadId=uploadId;member.uploadAttemptFile=pins.get(member).file;member.uploadAttemptPreview=pins.get(member).preview;}
+      sessionStorage.setItem(record.key,record.raw);if(sessionStorage.getItem(record.key)!==record.raw)throw Error('PHOTO_OPERATION_NOT_RECORDED');
+      started=true;const response=await fetch(API+'/photo',{method:'PUT',headers:{...headers(),'X-Process-Expected-Actor':ownerId,'X-Process-Upload-Id':uploadId,'Content-Type':staged.file.type},body:pins.get(staged).file}),body=await response.json();
+      if(!response.ok){if(mediaCurrent()&&[403,409,413,415,422].includes(response.status)&&body.uploadId===uploadId&&body.uploadState==='rejected'){forgetPhotoOperation(record);started=false;}throw Error(body.error||'PHOTO_UPLOAD_FAILED');}
+      if(body.uploadId!==uploadId)throw Error('PHOTO_UPLOAD_RESULT_UNKNOWN');
       if(!/^[a-f0-9]{64}$/.test(body?.id||''))throw Error('PHOTO_UPLOAD_FAILED');
       if(!mediaCurrent())throw Error('LOCAL_BATCH_RECONFIRM');
-      for(const member of group){member.uploaded=body.id;member.uploadedFile=pins.get(member).file;}accepted=true;
+      for(const member of group){member.uploaded=body.id;member.uploadedFile=pins.get(member).file;}forgetPhotoOperation(record);accepted=true;
     }catch(error){if(started&&!accepted)for(const member of group){member.uploadUnknown=true;const fingerprint=fingerprints.get(member);if(fingerprint)unknownPhotoFingerprints.add(fingerprint);}failure ||=error instanceof Error?error:Error('PHOTO_UPLOAD_FAILED');}}}
     await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));
     if(failure)throw failure;
@@ -724,7 +740,7 @@
     if(continuation&&!localSaveIntentCurrent(continuation))return null;
     if(!continuation&&localSaveIntent&&localConflictRows()){message=t('請選擇目前衝突或取消此次存取。','Hãy chọn xung đột hiện tại hoặc hủy lần lưu.');draw({localConflictChoice:true});return null;}
     const owner=actor(),epoch=window.ProcessSync?.identityGeneration?.();let capture=JSON.stringify(localSaveScopes());const intent=continuation||{displayEpoch:historyDisplayEpoch,owner,epoch,delivery:window.ProcessSync?.captureDelivery?.(),host,lifetime:mutationLifetime,modal,client,stamp:capture,photoPins:new Map([...localPhotos].map(([id,staged])=>[id,{staged,file:staged.file,preview:staged.preview}]))};localSaveIntent=intent;if(!continuation)localConflict=null;
-    let waiting=false,acknowledged=false,initialized=false,saveDispatched=false,recompare=false;const pin=pinLocalOperation(client),owns=()=>pin.current()&&(acknowledged||localSaveIntentCurrent(intent,false));
+    let waiting=false,acknowledged=false,initialized=false,saveDispatched=false,recompare=false,mediaAcknowledged=false;const pin=pinLocalOperation(client),owns=()=>pin.current()&&(acknowledged||localSaveIntentCurrent(intent,false));
     const unchanged=()=>owns()&&JSON.stringify(localSaveScopes())===capture;busy=true;message='';draw();
     try{
       let result=await client.read();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
@@ -773,7 +789,7 @@
       const selectedFiles=saveScopes.some(s=>s.changes.some(c=>localChangePhotos(c).some(photo=>localPhotos.has(photo.id))));
       if(selectedFiles){const equipmentIds=new Set();for(const scopeEntry of saveScopes)for(const change of scopeEntry.changes){const fields=change.input?.fields||change.input?.item||Object.fromEntries((change.patches||[]).map(p=>[p.path[2],p.value]));if(fields.equipmentId||fields.inspectionMode==='equipment'){const id=change.input?.id||change.localId||change.patches?.[0]?.path[1]?.id,row=saveEntries.find(entry=>entry.scope===scopeEntry.scope)?.snapshot.items.find(i=>i.id===id);if(row?.inspectionMode==='equipment')equipmentIds.add(row.equipmentId);}}
         if(equipmentIds.size){const response=await fetch(API+'?catalog=equipment',{headers:headers(),cache:'no-store'}),body=await response.json();if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');if(!response.ok||body.revision!==result.revision||!Array.isArray(body.equipment))throw Error('EQUIPMENT_REFERENCE_RECONFIRM');for(const id of equipmentIds)if(!body.equipment.some(e=>e.id===id&&e.available!==false))throw Error('EQUIPMENT_UNAVAILABLE');}}
-      const uploaded=await uploadLocalPhotos(saveScopes,unchanged,owner.id);
+      const uploaded=await uploadLocalPhotos(saveScopes,unchanged,owner.id);mediaAcknowledged=uploaded;
       if(!unchanged())throw Error('LOCAL_BATCH_RECONFIRM');
       // Reconfirm the actual signed principal after asynchronous media work.
       // The bound POST still rejects a cookie switch after this read.
@@ -785,7 +801,12 @@
       acknowledged=true;lastCommandAcknowledgement={actor:owner,epoch,action:'save',result:response};
       clearLocalEditing();pin.modal=null;pin.setSent(null);pin.refresh();if(await load(false,null,null,pin)===false||!owns())return null;
       message=t('整份草稿已存取。','Đã lưu toàn bộ bản nháp.');return response;
-    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':error.message;if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}}
+    }catch(error){const owned=owns();if(owned||initialized&&!saveDispatched&&pin.current()&&localSaveIntent===intent){message=acknowledged?t('已儲存，但重新讀取遭拒或失敗；請重新核對權限，不要重送。','Đã lưu nhưng đọc lại bị từ chối hoặc lỗi; kiểm tra quyền, không gửi lại.'):initialized&&!saveDispatched?t('草稿已初始化，但本次尚未存取；本機修改仍保留，請再次按存取以重新比較。','Bản nháp đã được khởi tạo nhưng lần này chưa lưu; thay đổi cục bộ vẫn giữ. Hãy nhấn lưu lại để so sánh.')+' ('+error.message+')':error.message;if(owned&&!client.hasUnknown()&&localSent&&client.isConfirmedRejection(error,localSent.command)){client.discardRejectedLocalSave(localSent.command);pin.setSent(null);if(['DRAFT_REVISION_CHANGED_RECONFIRM','MODULE_CHANGED_RECONFIRM'].includes(error.message)&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}}}
+      // No Save was sent: a verified media ACK followed by revision drift can
+      // re-enter comparison under the same owner/File pins. Confirmed Begin
+      // receipts remain bound; unknown Begin/media/Save never enter this path.
+      if(owned&&mediaAcknowledged&&!acknowledged&&!saveDispatched&&!client.hasUnknown()&&error.message==='MODULE_CHANGED_RECONFIRM'&&(intent.recomparisons||0)<2){intent.recomparisons=(intent.recomparisons||0)+1;intent.dispatched=false;intent.resolution=null;recompare=true;}
+    }
     finally{pin.finish();if(!waiting&&!recompare&&localSaveIntent===intent)localSaveIntent=null;}
     return recompare&&localSaveIntentCurrent(intent)?saveLocalModule(intent):null;
   }

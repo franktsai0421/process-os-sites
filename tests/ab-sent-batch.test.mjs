@@ -63,7 +63,8 @@ void test('peer edit in an unsent field remains an original guard and conflictin
   await s.peer('methodText', 'Peer method');
   const server = s.f.snapshot();
   await s.apiSave();
-  assert.equal(writes(s).at(-1).status, 409);
+  assert.equal(writes(s).length, 0, 'whole-set preflight compares before dispatch');
+  assert.equal(await s.page.locator('[data-ab-conflict]').count(), 1);
   assert.deepEqual(s.f.snapshot(), server);
   assert.deepEqual((await s.entry()).base, original.base);
   assert.equal((await s.entry()).snapshot.items[0].methodText, 'Own method');
